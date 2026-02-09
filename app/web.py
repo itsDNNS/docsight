@@ -5,6 +5,8 @@ import time
 
 from flask import Flask, render_template, request, jsonify, redirect
 
+from .config import POLL_MIN, POLL_MAX
+
 log = logging.getLogger("docsis.web")
 
 app = Flask(__name__, template_folder="templates")
@@ -85,14 +87,14 @@ def setup():
     if _config_manager and _config_manager.is_configured():
         return redirect("/")
     config = _config_manager.get_all() if _config_manager else {}
-    return render_template("setup.html", config=config)
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX)
 
 
 @app.route("/settings")
 def settings():
     config = _config_manager.get_all() if _config_manager else {}
     theme = _config_manager.get_theme() if _config_manager else "dark"
-    return render_template("settings.html", config=config, theme=theme)
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX)
 
 
 @app.route("/api/config", methods=["POST"])
@@ -104,6 +106,13 @@ def api_config():
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data"}), 400
+        # Clamp poll_interval to allowed range
+        if "poll_interval" in data:
+            try:
+                pi = int(data["poll_interval"])
+                data["poll_interval"] = max(POLL_MIN, min(POLL_MAX, pi))
+            except (ValueError, TypeError):
+                pass
         _config_manager.save(data)
         if _on_config_changed:
             _on_config_changed()

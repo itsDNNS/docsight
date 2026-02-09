@@ -132,15 +132,53 @@
             margin-bottom: 16px;
             display: none;
         }
+
+        /* Collapsible advanced section */
+        .advanced-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 12px 20px;
+            background: var(--surface);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border: 1px dashed var(--input-border);
+            user-select: none;
+        }
+        .advanced-toggle:hover { border-color: var(--accent); }
+        .advanced-toggle .arrow {
+            transition: transform 0.2s;
+            font-size: 0.8em;
+            color: var(--muted);
+        }
+        .advanced-toggle.open .arrow { transform: rotate(90deg); }
+        .advanced-toggle .adv-label {
+            font-size: 0.9em;
+            color: var(--muted);
+        }
+        .advanced-toggle .adv-hint {
+            font-size: 0.8em;
+            color: var(--muted);
+            margin-left: auto;
+        }
+        .advanced-content {
+            display: none;
+        }
+        .advanced-content.open {
+            display: block;
+        }
+
         @media (max-width: 600px) {
             .form-grid { grid-template-columns: 1fr; }
+            .advanced-toggle .adv-hint { display: none; }
         }
     </style>
 </head>
 <body>
 
 <h1>FritzBox DOCSIS Monitor</h1>
-<p class="subtitle">Ersteinrichtung - Verbindungen konfigurieren</p>
+<p class="subtitle">Ersteinrichtung</p>
 
 <div class="error-msg" id="global-error"></div>
 
@@ -148,7 +186,7 @@
 
     <!-- Step 1: FritzBox -->
     <div class="section">
-        <h2><span class="step-num">1</span>FritzBox</h2>
+        <h2><span class="step-num">1</span>FritzBox-Verbindung</h2>
         <div class="form-grid">
             <div class="form-row full">
                 <label for="fritz_url">URL</label>
@@ -169,49 +207,61 @@
         </div>
     </div>
 
-    <!-- Step 2: MQTT -->
+    <!-- Step 2: Poll interval -->
     <div class="section">
-        <h2><span class="step-num">2</span>MQTT Broker</h2>
+        <h2><span class="step-num">2</span>Abfrageintervall</h2>
         <div class="form-grid">
             <div class="form-row">
-                <label for="mqtt_host">Host</label>
-                <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}" placeholder="localhost">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_port">Port</label>
-                <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}" placeholder="1883">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_user">Benutzername (optional)</label>
-                <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_password">Passwort (optional)</label>
-                <input type="password" id="mqtt_password" name="mqtt_password" value="{{ config.mqtt_password }}">
-            </div>
-            <div class="form-row full">
-                <label for="mqtt_topic_prefix">Topic-Prefix</label>
-                <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}" placeholder="fritzbox/docsis">
-            </div>
-        </div>
-        <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testMqtt()">Verbindung testen</button>
-            <span class="test-result" id="mqtt-test"></span>
-        </div>
-    </div>
-
-    <!-- Step 3: General -->
-    <div class="section">
-        <h2><span class="step-num">3</span>Allgemein</h2>
-        <div class="form-grid">
-            <div class="form-row">
-                <label for="poll_interval">Abfrageintervall (Sekunden)</label>
-                <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="60" placeholder="300">
-                <span class="hint">Minimum: 60s, Standard: 300s (5 Min.)</span>
+                <label for="poll_interval">Intervall (Sekunden)</label>
+                <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
+                <span class="hint">Min: {{ poll_min }}s (1 Min.) / Max: {{ poll_max }}s (60 Min.) / Standard: 300s (5 Min.)</span>
             </div>
             <div class="form-row">
                 <label for="history_days">Historie (Tage)</label>
-                <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="1" placeholder="7">
+                <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="1" max="90">
+                <span class="hint">Wie lange Snapshots gespeichert werden</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced: MQTT (collapsed by default) -->
+    <div class="advanced-toggle" id="mqtt-toggle" onclick="toggleAdvanced()">
+        <span class="arrow">&#9654;</span>
+        <span class="adv-label">Erweitert: MQTT / Home Assistant</span>
+        <span class="adv-hint">Optional</span>
+    </div>
+    <div class="advanced-content" id="mqtt-section">
+        <div class="section">
+            <h2>MQTT Broker</h2>
+            <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">
+                Fuer die Integration mit Home Assistant via MQTT Auto-Discovery.
+                Ohne MQTT laeuft nur die Web-Oberflaeche.
+            </p>
+            <div class="form-grid">
+                <div class="form-row">
+                    <label for="mqtt_host">Host</label>
+                    <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}" placeholder="z.B. 192.168.178.10">
+                </div>
+                <div class="form-row">
+                    <label for="mqtt_port">Port</label>
+                    <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}" placeholder="1883">
+                </div>
+                <div class="form-row">
+                    <label for="mqtt_user">Benutzername (optional)</label>
+                    <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
+                </div>
+                <div class="form-row">
+                    <label for="mqtt_password">Passwort (optional)</label>
+                    <input type="password" id="mqtt_password" name="mqtt_password" value="{{ config.mqtt_password }}">
+                </div>
+                <div class="form-row full">
+                    <label for="mqtt_topic_prefix">Topic-Prefix</label>
+                    <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}" placeholder="fritzbox/docsis">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="button" class="btn btn-secondary" onclick="testMqtt()">Verbindung testen</button>
+                <span class="test-result" id="mqtt-test"></span>
             </div>
         </div>
     </div>
@@ -222,6 +272,13 @@
 </form>
 
 <script>
+function toggleAdvanced() {
+    var toggle = document.getElementById('mqtt-toggle');
+    var section = document.getElementById('mqtt-section');
+    toggle.classList.toggle('open');
+    section.classList.toggle('open');
+}
+
 function getFormData() {
     var form = document.getElementById('setup-form');
     var data = {};
@@ -296,6 +353,10 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
         errEl.style.display = 'block';
         return;
     }
+    var interval = parseInt(data.poll_interval) || 300;
+    if (interval < {{ poll_min }}) interval = {{ poll_min }};
+    if (interval > {{ poll_max }}) interval = {{ poll_max }};
+    data.poll_interval = String(interval);
     fetch('/api/config', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},

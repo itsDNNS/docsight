@@ -6,11 +6,14 @@ import os
 
 log = logging.getLogger("docsis.config")
 
+POLL_MIN = 60
+POLL_MAX = 3600
+
 DEFAULTS = {
     "fritz_url": "http://192.168.178.1",
     "fritz_user": "",
     "fritz_password": "",
-    "mqtt_host": "localhost",
+    "mqtt_host": "",
     "mqtt_port": 1883,
     "mqtt_user": "",
     "mqtt_password": "",
@@ -100,6 +103,10 @@ class ConfigManager:
     def is_configured(self):
         """True if fritz_password is set (from env or config.json)."""
         return bool(self.get("fritz_password"))
+
+    def is_mqtt_configured(self):
+        """True if mqtt_host is set (MQTT is optional)."""
+        return bool(self.get("mqtt_host"))
 
     def get_theme(self):
         """Return 'dark' or 'light'."""

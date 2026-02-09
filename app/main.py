@@ -27,26 +27,28 @@ def polling_loop(config_mgr, storage, stop_event):
     config = config_mgr.get_all()
 
     log.info("FritzBox: %s (user: %s)", config["fritz_url"], config["fritz_user"])
-    log.info("MQTT: %s:%s (prefix: %s)", config["mqtt_host"], config["mqtt_port"], config["mqtt_topic_prefix"])
     log.info("Poll interval: %ds", config["poll_interval"])
 
-    # Connect MQTT
-    mqtt_user = config["mqtt_user"] or None
-    mqtt_password = config["mqtt_password"] or None
-    mqtt_pub = MQTTPublisher(
-        host=config["mqtt_host"],
-        port=int(config["mqtt_port"]),
-        user=mqtt_user,
-        password=mqtt_password,
-        topic_prefix=config["mqtt_topic_prefix"],
-    )
-
-    try:
-        mqtt_pub.connect()
-    except Exception as e:
-        log.error("MQTT connection failed: %s", e)
-        web.update_state(error=f"MQTT Verbindung fehlgeschlagen: {e}")
-        return
+    # Connect MQTT (optional)
+    mqtt_pub = None
+    if config_mgr.is_mqtt_configured():
+        mqtt_user = config["mqtt_user"] or None
+        mqtt_password = config["mqtt_password"] or None
+        mqtt_pub = MQTTPublisher(
+            host=config["mqtt_host"],
+            port=int(config["mqtt_port"]),
+            user=mqtt_user,
+            password=mqtt_password,
+            topic_prefix=config["mqtt_topic_prefix"],
+        )
+        try:
+            mqtt_pub.connect()
+            log.info("MQTT: %s:%s (prefix: %s)", config["mqtt_host"], config["mqtt_port"], config["mqtt_topic_prefix"])
+        except Exception as e:
+            log.warning("MQTT connection failed: %s (continuing without MQTT)", e)
+            mqtt_pub = None
+    else:
+        log.info("MQTT not configured, running without Home Assistant integration")
 
     web.update_state(poll_interval=config["poll_interval"])
 
@@ -67,15 +69,16 @@ def polling_loop(config_mgr, storage, stop_event):
             data = fritzbox.get_docsis_data(config["fritz_url"], sid)
             analysis = analyzer.analyze(data)
 
-            if not discovery_published:
-                mqtt_pub.publish_discovery(device_info)
-                mqtt_pub.publish_channel_discovery(
-                    analysis["ds_channels"], analysis["us_channels"], device_info
-                )
-                discovery_published = True
-                time.sleep(1)
+            if mqtt_pub:
+                if not discovery_published:
+                    mqtt_pub.publish_discovery(device_info)
+                    mqtt_pub.publish_channel_discovery(
+                        analysis["ds_channels"], analysis["us_channels"], device_info
+                    )
+                    discovery_published = True
+                    time.sleep(1)
+                mqtt_pub.publish_data(analysis)
 
-            mqtt_pub.publish_data(analysis)
             web.update_state(analysis=analysis)
             storage.save_snapshot(analysis)
 
@@ -90,10 +93,11 @@ def polling_loop(config_mgr, storage, stop_event):
             time.sleep(1)
 
     # Cleanup MQTT
-    try:
-        mqtt_pub.disconnect()
-    except Exception:
-        pass
+    if mqtt_pub:
+        try:
+            mqtt_pub.disconnect()
+        except Exception:
+            pass
     log.info("Polling loop stopped")
 
 
