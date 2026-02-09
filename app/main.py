@@ -68,6 +68,7 @@ def polling_loop(config_mgr, storage, stop_event):
             if device_info is None:
                 device_info = fritzbox.get_device_info(config["modem_url"], sid)
                 log.info("FritzBox model: %s (%s)", device_info["model"], device_info["sw_version"])
+                web.update_state(device_info=device_info)
 
             if connection_info is None:
                 connection_info = fritzbox.get_connection_info(config["modem_url"], sid)

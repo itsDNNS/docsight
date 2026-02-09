@@ -64,6 +64,7 @@ _state = {
     "poll_interval": 900,
     "error": None,
     "connection_info": None,
+    "device_info": None,
 }
 
 _storage = None
@@ -158,7 +159,7 @@ def inject_auth():
     return {"auth_enabled": auth_enabled}
 
 
-def update_state(analysis=None, error=None, poll_interval=None, connection_info=None):
+def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None):
     """Update the shared web state from the main loop."""
     if analysis is not None:
         _state["analysis"] = analysis
@@ -170,6 +171,8 @@ def update_state(analysis=None, error=None, poll_interval=None, connection_info=
         _state["poll_interval"] = poll_interval
     if connection_info is not None:
         _state["connection_info"] = connection_info
+    if device_info is not None:
+        _state["device_info"] = device_info
 
 
 @app.route("/")
@@ -185,6 +188,7 @@ def index():
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
     conn_info = _state.get("connection_info") or {}
+    dev_info = _state.get("device_info") or {}
 
     def _compute_uncorr_pct(analysis):
         """Compute log-scale percentage for uncorrectable errors gauge."""
@@ -221,6 +225,7 @@ def index():
                 bqm_configured=bqm_configured,
                 uncorr_pct=_compute_uncorr_pct(snapshot),
                 has_us_ofdma=_has_us_ofdma(snapshot),
+                device_info=dev_info,
                 t=t, lang=lang, languages=LANGUAGES,
             )
     return render_template(
@@ -236,6 +241,7 @@ def index():
         bqm_configured=bqm_configured,
         uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
+        device_info=dev_info,
         t=t, lang=lang, languages=LANGUAGES,
     )
 

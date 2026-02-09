@@ -175,5 +175,6 @@
   "card_ideal_range": "Rango ideal",
   "card_uncorr_exact": "No corregibles (exacto)",
   "card_corr_exact": "Corregibles (exacto)",
-  "card_errors_note": "Los errores no corregibles no se pueden recuperar. Números altos y crecientes indican un problema de cable."
+  "card_errors_note": "Los errores no corregibles no se pueden recuperar. Números altos y crecientes indican un problema de cable.",
+  "card_uptime": "Tiempo activo del módem"
 }

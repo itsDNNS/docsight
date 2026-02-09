@@ -84,10 +84,17 @@ def get_device_info(url: str, sid: str) -> dict:
         r.raise_for_status()
         data = r.json().get("data", {})
         fritzos = data.get("fritzos", {})
-        return {
+        result = {
             "model": fritzos.get("Productname", "FRITZ!Box"),
             "sw_version": fritzos.get("nspver", ""),
         }
+        uptime = fritzos.get("Uptime")
+        if uptime is not None:
+            try:
+                result["uptime_seconds"] = int(uptime)
+            except (ValueError, TypeError):
+                pass
+        return result
     except Exception:
         return {"model": "FRITZ!Box", "sw_version": ""}
 

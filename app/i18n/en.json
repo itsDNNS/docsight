@@ -175,5 +175,6 @@
   "card_ideal_range": "Ideal Range",
   "card_uncorr_exact": "Uncorrectable (exact)",
   "card_corr_exact": "Correctable (exact)",
-  "card_errors_note": "Uncorrectable errors cannot be recovered. High growing numbers indicate a cable issue."
+  "card_errors_note": "Uncorrectable errors cannot be recovered. High growing numbers indicate a cable issue.",
+  "card_uptime": "Modem Uptime"
 }

@@ -208,7 +208,7 @@
         /* ── Metric Cards Grid ── */
         .metric-cards {
             display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 12px; margin-bottom: 16px; align-items: start;
+            gap: 12px; margin-bottom: 16px;
         }
 
         /* ── Metric Card ── */
@@ -364,6 +364,7 @@
             color: var(--accent); list-style: none;
             display: flex; align-items: center; gap: 8px; user-select: none;
         }
+        details.channel-group summary .badge { margin-left: auto; }
         details.channel-group summary::-webkit-details-marker { display: none; }
         details.channel-group summary::before {
             content: "\25B6"; font-size: 0.65em; transition: transform 0.2s;
@@ -720,6 +721,14 @@
                         <div class="metric-secondary">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}</div>
                     </div>
                 </div>
+                {% if device_info and device_info.uptime_seconds is defined %}
+                {% set ut = device_info.uptime_seconds %}
+                {% set ut_d = ut // 86400 %}
+                {% set ut_h = (ut % 86400) // 3600 %}
+                <div class="metric-secondary" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--input-border);">
+                    &#9201; {{ t.card_uptime }}: <strong>{% if ut_d %}{{ ut_d }}d {% endif %}{{ ut_h }}h</strong>
+                </div>
+                {% endif %}
             </div>
             <div class="metric-card-detail">
                 <table class="detail-table">

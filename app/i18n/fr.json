@@ -175,5 +175,6 @@
   "card_ideal_range": "Plage idéale",
   "card_uncorr_exact": "Non corrigeables (exact)",
   "card_corr_exact": "Corrigeables (exact)",
-  "card_errors_note": "Les erreurs non corrigeables ne peuvent pas être récupérées. Des chiffres élevés et croissants indiquent un problème de câble."
+  "card_errors_note": "Les erreurs non corrigeables ne peuvent pas être récupérées. Des chiffres élevés et croissants indiquent un problème de câble.",
+  "card_uptime": "Disponibilité modem"
 }

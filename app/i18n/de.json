@@ -175,5 +175,6 @@
   "card_ideal_range": "Idealbereich",
   "card_uncorr_exact": "Unkorrigierbar (exakt)",
   "card_corr_exact": "Korrigierbar (exakt)",
-  "card_errors_note": "Unkorrigierbare Fehler koennen nicht wiederhergestellt werden. Hohe und steigende Werte deuten auf ein Kabelproblem hin."
+  "card_errors_note": "Unkorrigierbare Fehler koennen nicht wiederhergestellt werden. Hohe und steigende Werte deuten auf ein Kabelproblem hin.",
+  "card_uptime": "Modem-Laufzeit"
 }
