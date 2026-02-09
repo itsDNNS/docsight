@@ -21,8 +21,8 @@ All four methods create the exact same container. Pick whichever fits your setup
 |---|---|
 | [Docker CLI](#docker-cli) | Quick terminal one-liner |
 | [Docker Compose](#docker-compose) | Reproducible config file |
-| [Portainer](#portainer) | NAS users with Portainer UI |
-| [Dockhand](#dockhand) | NAS users with Dockhand UI |
+| [Portainer](#portainer) | Users with Portainer web UI |
+| [Dockhand](#dockhand) | Users with Dockhand web UI |
 
 ---
 
