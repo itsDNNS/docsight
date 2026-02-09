@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  Docker container that monitors DOCSIS channel health on cable modems and publishes per-channel sensor data to Home Assistant via MQTT Auto-Discovery. Currently supports AVM FRITZ!Box Cable routers.
+  Docker container that monitors DOCSIS channel health on cable modems and publishes per-channel sensor data to Home Assistant via MQTT Auto-Discovery.
 </p>
 
 ![Dashboard Dark Mode](docs/screenshots/dashboard-dark.png)
@@ -139,7 +139,7 @@ Copy `.env.example` to `.env` and edit:
 
 ## Requirements
 
-- DOCSIS cable modem or router (currently supported: AVM FRITZ!Box Cable, tested with 6690 Cable)
+- DOCSIS cable modem or router (tested with AVM FRITZ!Box 6690 Cable)
 - MQTT broker (e.g., Mosquitto) - optional, for Home Assistant integration
 
 ## Roadmap
