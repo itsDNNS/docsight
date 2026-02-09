@@ -214,10 +214,10 @@ When you open DOCSight for the first time, a setup wizard guides you through the
 
 > **Recommended: Create a dedicated user**
 >
-> Instead of using your main admin account, create a separate user for DOCSight on your router. This way you can rotate or revoke its credentials independently.
+> Instead of using your main admin account, create a separate user for DOCSight on your modem. This way you can rotate or revoke its credentials independently without affecting your admin login.
 >
 > <details>
-> <summary>How to create a dedicated user on a FRITZ!Box</summary>
+> <summary>Example: FRITZ!Box</summary>
 >
 > 1. Open `http://fritz.box` and log in as admin
 > 2. Go to **System** > **FRITZ!Box Users** > **Add User**
@@ -227,7 +227,7 @@ When you open DOCSight for the first time, a setup wizard guides you through the
 >
 > Use this new username and password in DOCSight instead of your admin credentials.
 >
-> *Note: "Access to FRITZ!Box settings" is the only permission DOCSight needs. Unfortunately, FRITZ!Box does not offer a read-only option - this is an AVM limitation. DOCSight only reads data and never modifies any settings.*
+> *Note: "Access to FRITZ!Box settings" is the only permission DOCSight needs. DOCSight only reads data and never modifies any settings.*
 > </details>
 
 | Field | What to enter |
