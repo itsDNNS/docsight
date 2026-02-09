@@ -117,6 +117,22 @@ Copy `.env.example` to `.env` and edit:
 - AVM FRITZ!Box Cable router (tested with 6690 Cable)
 - MQTT broker (e.g., Mosquitto) - optional, for Home Assistant integration
 
+## Roadmap
+
+### External Monitoring Integration
+- [ ] **ThinkBroadband BQM**: Daily fetch and archive of external broadband quality graphs (latency, packet loss)
+- [ ] **Speedtest Tracker**: Pull speed test results (download, upload, ping, jitter) from self-hosted [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker)
+
+### Enhanced Dashboard
+- [ ] Combined timeline: DOCSIS health + speed tests + BQM graph on a single time axis
+- [ ] Notification system: Webhooks on health degradation
+- [ ] Mobile-responsive layout
+
+### Multi-Modem Support
+- [ ] Plugin architecture for modem drivers
+- [ ] SNMP-based generic driver for non-FritzBox cable modems
+- [ ] Community-contributed drivers (Arris, Technicolor, Sagemcom)
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
