@@ -6,3 +6,5 @@ __pycache__/
 .vscode/
 .idea/
 deploy.sh
+.config_key
+config.json

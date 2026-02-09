@@ -1,3 +1,4 @@
 requests>=2.31
 paho-mqtt>=2.0
 flask>=3.0
+cryptography>=42.0

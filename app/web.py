@@ -5,7 +5,7 @@ import time
 
 from flask import Flask, render_template, request, jsonify, redirect
 
-from .config import POLL_MIN, POLL_MAX
+from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
 
 log = logging.getLogger("docsis.web")
 
@@ -86,13 +86,13 @@ def index():
 def setup():
     if _config_manager and _config_manager.is_configured():
         return redirect("/")
-    config = _config_manager.get_all() if _config_manager else {}
+    config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX)
 
 
 @app.route("/settings")
 def settings():
-    config = _config_manager.get_all() if _config_manager else {}
+    config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     theme = _config_manager.get_theme() if _config_manager else "dark"
     return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX)
 
@@ -127,11 +127,15 @@ def api_test_fritz():
     """Test FritzBox connection."""
     try:
         data = request.get_json()
+        # Resolve masked passwords to real values
+        password = data.get("fritz_password", "")
+        if password == PASSWORD_MASK and _config_manager:
+            password = _config_manager.get("fritz_password", "")
         from . import fritzbox
         sid = fritzbox.login(
             data.get("fritz_url", "http://192.168.178.1"),
             data.get("fritz_user", ""),
-            data.get("fritz_password", ""),
+            password,
         )
         info = fritzbox.get_device_info(data.get("fritz_url"), sid)
         return jsonify({"success": True, "model": info.get("model", "OK")})
@@ -144,10 +148,13 @@ def api_test_mqtt():
     """Test MQTT broker connection."""
     try:
         data = request.get_json()
+        # Resolve masked passwords to real values
+        pw = data.get("mqtt_password", "") or None
+        if pw == PASSWORD_MASK and _config_manager:
+            pw = _config_manager.get("mqtt_password", "") or None
         import paho.mqtt.client as mqtt
         client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="docsis-test")
         user = data.get("mqtt_user", "") or None
-        pw = data.get("mqtt_password", "") or None
         if user:
             client.username_pw_set(user, pw)
         port = int(data.get("mqtt_port", 1883))

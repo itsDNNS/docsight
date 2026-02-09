@@ -224,7 +224,7 @@
             </div>
             <div class="form-row">
                 <label for="fritz_password">Passwort</label>
-                <input type="password" id="fritz_password" name="fritz_password" value="{{ config.fritz_password }}">
+                <input type="password" id="fritz_password" name="fritz_password" value="" placeholder="{% if config.fritz_password %}Gespeichert{% endif %}">
             </div>
         </div>
         <div class="btn-row">
@@ -251,7 +251,7 @@
             </div>
             <div class="form-row">
                 <label for="mqtt_password">Passwort (optional)</label>
-                <input type="password" id="mqtt_password" name="mqtt_password" value="{{ config.mqtt_password }}">
+                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}Gespeichert{% endif %}">
             </div>
             <div class="form-row full">
                 <label for="mqtt_topic_prefix">Topic-Prefix</label>
@@ -310,11 +310,18 @@ function showToast(msg, ok) {
     setTimeout(function() { el.style.display = 'none'; }, 3000);
 }
 
+var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+var SECRET_FIELDS = ['fritz_password', 'mqtt_password'];
+
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
     form.querySelectorAll('input:not(#theme-check)').forEach(function(inp) {
-        data[inp.name] = inp.value;
+        if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
+            data[inp.name] = inp.value || MASK;
+        } else {
+            data[inp.name] = inp.value;
+        }
     });
     data.theme = themeCheck.checked ? 'dark' : 'light';
     return data;

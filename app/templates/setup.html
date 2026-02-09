@@ -198,7 +198,7 @@
             </div>
             <div class="form-row">
                 <label for="fritz_password">Passwort</label>
-                <input type="password" id="fritz_password" name="fritz_password" value="{{ config.fritz_password }}">
+                <input type="password" id="fritz_password" name="fritz_password" value="" placeholder="{% if config.fritz_password %}Gespeichert{% endif %}">
             </div>
         </div>
         <div class="btn-row">
@@ -252,7 +252,7 @@
                 </div>
                 <div class="form-row">
                     <label for="mqtt_password">Passwort (optional)</label>
-                    <input type="password" id="mqtt_password" name="mqtt_password" value="{{ config.mqtt_password }}">
+                    <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}Gespeichert{% endif %}">
                 </div>
                 <div class="form-row full">
                     <label for="mqtt_topic_prefix">Topic-Prefix</label>
@@ -279,12 +279,20 @@ function toggleAdvanced() {
     section.classList.toggle('open');
 }
 
+var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+var SECRET_FIELDS = ['fritz_password', 'mqtt_password'];
+
 function getFormData() {
     var form = document.getElementById('setup-form');
     var data = {};
     var inputs = form.querySelectorAll('input');
     inputs.forEach(function(inp) {
-        data[inp.name] = inp.value;
+        // For password fields: empty = send mask (keep existing), filled = send new value
+        if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
+            data[inp.name] = inp.value || MASK;
+        } else {
+            data[inp.name] = inp.value;
+        }
     });
     return data;
 }
@@ -348,7 +356,8 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
     var errEl = document.getElementById('global-error');
     errEl.style.display = 'none';
     var data = getFormData();
-    if (!data.fritz_password) {
+    var pwField = document.getElementById('fritz_password');
+    if (!pwField.value && !pwField.placeholder) {
         errEl.textContent = 'FritzBox-Passwort ist erforderlich.';
         errEl.style.display = 'block';
         return;
