@@ -695,11 +695,6 @@
                         <div class="range-labels"><span>25</span><span>35</span><span>49</span><span>54</span><span>60</span></div>
                     </div>
                 </div>
-                {% if not has_us_ofdma %}
-                <div class="card-notice card-notice-warn">
-                    <span>&#9888;</span> {{ t.card_no_docsis31 }}
-                </div>
-                {% endif %}
             </div>
             <div class="metric-card-detail">
                 <table class="detail-table">
@@ -738,8 +733,10 @@
 
     <h2 class="section-title">{{ t.downstream }} ({{ ds|length }} {{ t.channels }})</h2>
     {% for group in ds|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
+    {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
+    {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
     <details class="channel-group">
-        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }})</summary>
+        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }}) {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% elif g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% else %}<span class="badge badge-good">&#10003;</span>{% endif %}</summary>
         <table class="sortable">
             <thead><tr>
                 <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
@@ -772,8 +769,10 @@
 
     <h2 class="section-title">{{ t.upstream }} ({{ us|length }} {{ t.channels }})</h2>
     {% for group in us|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
+    {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
+    {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
     <details class="channel-group">
-        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }})</summary>
+        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }}) {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% elif g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% else %}<span class="badge badge-good">&#10003;</span>{% endif %}</summary>
         <table class="sortable">
             <thead><tr>
                 <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
@@ -799,6 +798,11 @@
         </table>
     </details>
     {% endfor %}
+    {% if not has_us_ofdma %}
+    <div class="card-notice card-notice-warn" style="margin-top:8px;">
+        <span>&#9888;</span> {{ t.card_no_docsis31 }}
+    </div>
+    {% endif %}
 
 {% elif not error %}
     <div class="waiting">
