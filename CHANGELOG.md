@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.0] - 2025-02-09
+Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
+
+## [2026-02-09.2]
 
 ### Added
 - **Setup Wizard**: Browser-based first-time configuration at `/setup`
@@ -20,7 +22,7 @@ All notable changes to this project will be documented in this file.
 - **Poll interval configurable in setup**: Min 60s, max 3600s
 - **Secrets removed from tracked files**: docker-compose.yml contains no credentials
 
-## [0.1.0] - 2025-02-09
+## [2026-02-09.1]
 
 ### Added
 - DOCSIS channel monitoring via FritzBox `data.lua` API
