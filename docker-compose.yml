@@ -1,5 +1,6 @@
 services:
   fritzbox-docsis-monitor:
+    image: ghcr.io/itsdnns/fritzbox-docsis-monitor:latest
     build: .
     container_name: fritzbox-docsis-monitor
     restart: unless-stopped
