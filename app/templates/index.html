@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="{{ theme|default('dark') }}">
+<html lang="{{ lang }}" data-theme="{{ theme|default('dark') }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -43,263 +43,173 @@
 
         /* ── Topbar ── */
         .topbar {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 16px;
-            background: var(--surface);
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 16px; background: var(--surface);
             border-bottom: 1px solid var(--input-border);
-            position: sticky;
-            top: 0;
-            z-index: 50;
+            position: sticky; top: 0; z-index: 50;
         }
         .hamburger-btn {
-            background: none;
-            border: none;
-            color: var(--text);
-            font-size: 1.5em;
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 4px;
-            line-height: 1;
+            background: none; border: none; color: var(--text);
+            font-size: 1.5em; cursor: pointer; padding: 2px 6px;
+            border-radius: 4px; line-height: 1;
         }
         .hamburger-btn:hover { color: var(--accent); }
-        .date-nav {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-        }
+        .date-nav { display: flex; align-items: center; gap: 2px; }
         .date-nav button {
-            background: none;
-            border: 1px solid var(--input-border);
-            color: var(--text);
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85em;
-            padding: 4px 8px;
+            background: none; border: 1px solid var(--input-border);
+            color: var(--text); border-radius: 4px; cursor: pointer;
+            font-size: 0.85em; padding: 4px 8px;
         }
         .date-nav button:hover { border-color: var(--accent); color: var(--accent); }
         .date-label {
-            font-size: 0.9em;
-            font-weight: bold;
-            padding: 4px 10px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-radius: 4px;
-            white-space: nowrap;
+            font-size: 0.9em; font-weight: bold; padding: 4px 10px;
+            cursor: pointer; border: 1px solid transparent;
+            border-radius: 4px; white-space: nowrap;
         }
         .date-label:hover { border-color: var(--accent); }
         .topbar-title {
-            flex: 1;
-            font-size: 1.1em;
-            color: var(--accent);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            flex: 1; font-size: 1.1em; color: var(--accent);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .topbar-meta {
-            font-size: 0.8em;
-            color: var(--muted);
-            white-space: nowrap;
-        }
+        .topbar-meta { font-size: 0.8em; color: var(--muted); white-space: nowrap; }
         .settings-link {
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 1.2em;
-            padding: 4px;
-            line-height: 1;
+            color: var(--muted); text-decoration: none;
+            font-size: 1.2em; padding: 4px; line-height: 1;
         }
         .settings-link:hover { color: var(--accent); }
         .settings-link svg { width: 20px; height: 20px; vertical-align: middle; }
 
         /* ── Sidebar ── */
         .sidebar-overlay {
-            position: fixed;
-            inset: 0;
-            background: var(--overlay);
-            z-index: 90;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s;
+            position: fixed; inset: 0; background: var(--overlay);
+            z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.25s;
         }
         .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
         .sidebar {
-            position: fixed;
-            top: 0; left: 0; bottom: 0;
-            width: 260px;
-            background: var(--surface);
-            z-index: 100;
-            transform: translateX(-100%);
-            transition: transform 0.25s ease;
-            display: flex;
-            flex-direction: column;
+            position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
+            background: var(--surface); z-index: 100;
+            transform: translateX(-100%); transition: transform 0.25s ease;
+            display: flex; flex-direction: column;
             border-right: 1px solid var(--input-border);
         }
         .sidebar.open { transform: translateX(0); }
         .sidebar-content { flex: 1; overflow-y: auto; }
         .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--input-border);
-            font-weight: bold;
-            color: var(--accent);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; border-bottom: 1px solid var(--input-border);
+            font-weight: bold; color: var(--accent);
         }
         .sidebar-close {
-            background: none;
-            border: none;
-            color: var(--muted);
-            font-size: 1.4em;
-            cursor: pointer;
-            line-height: 1;
+            background: none; border: none; color: var(--muted);
+            font-size: 1.4em; cursor: pointer; line-height: 1;
         }
         .sidebar-close:hover { color: var(--text); }
         .sidebar-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 20px;
-            color: var(--text);
-            text-decoration: none;
-            font-size: 0.95em;
-            cursor: pointer;
-            transition: background 0.15s;
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 20px; color: var(--text); text-decoration: none;
+            font-size: 0.95em; cursor: pointer; transition: background 0.15s;
         }
         .sidebar-link:hover { background: var(--card); }
         .sidebar-link.active { color: var(--accent); background: rgba(0,173,181,0.1); }
         .sidebar-link .icon { font-size: 1.1em; width: 24px; text-align: center; }
         .sidebar-divider { border-top: 1px solid var(--input-border); margin: 8px 0; }
+        .sidebar-ref { padding: 0 20px 16px; }
+        .sidebar-ref summary {
+            cursor: pointer; font-size: 0.9em; color: var(--muted);
+            padding: 10px 0; list-style: none; display: flex;
+            align-items: center; gap: 8px;
+        }
+        .sidebar-ref summary::-webkit-details-marker { display: none; }
+        .sidebar-ref summary::before {
+            content: "\25B6"; font-size: 0.6em; transition: transform 0.2s;
+        }
+        .sidebar-ref[open] summary::before { transform: rotate(90deg); }
+        .sidebar-ref table {
+            width: 100%; font-size: 0.78em; border-collapse: collapse; margin-top: 4px;
+        }
+        .sidebar-ref th, .sidebar-ref td { padding: 4px 6px; text-align: left; }
+        .sidebar-ref th { color: var(--accent); position: static; background: transparent; }
+        .sidebar-ref tr { border-bottom: 1px solid var(--input-border); }
 
         /* ── Calendar Popup ── */
         .calendar-popup {
-            position: fixed;
-            top: 52px;
-            left: 80px;
-            background: var(--surface);
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            padding: 12px;
-            z-index: 80;
-            display: none;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            min-width: 280px;
+            position: fixed; top: 52px; left: 80px;
+            background: var(--surface); border: 1px solid var(--input-border);
+            border-radius: 8px; padding: 12px; z-index: 80; display: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3); min-width: 280px;
         }
         .calendar-popup.open { display: block; }
         .cal-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 8px;
         }
         .cal-nav button {
-            background: none;
-            border: 1px solid var(--input-border);
-            color: var(--text);
-            border-radius: 4px;
-            cursor: pointer;
-            padding: 4px 10px;
-            font-size: 0.9em;
+            background: none; border: 1px solid var(--input-border);
+            color: var(--text); border-radius: 4px; cursor: pointer;
+            padding: 4px 10px; font-size: 0.9em;
         }
         .cal-nav button:hover { border-color: var(--accent); }
         .cal-nav span { font-weight: bold; font-size: 0.95em; }
         .cal-weekdays {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            text-align: center;
-            font-size: 0.75em;
-            color: var(--muted);
-            margin-bottom: 4px;
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            text-align: center; font-size: 0.75em; color: var(--muted); margin-bottom: 4px;
         }
-        .cal-days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-        }
+        .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
         .cal-day {
-            text-align: center;
-            padding: 6px 2px;
-            font-size: 0.85em;
-            border-radius: 4px;
-            cursor: default;
-            color: var(--muted);
+            text-align: center; padding: 6px 2px; font-size: 0.85em;
+            border-radius: 4px; cursor: default; color: var(--muted);
         }
-        .cal-day.has-data {
-            color: var(--text);
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .cal-day.has-data { color: var(--text); cursor: pointer; font-weight: bold; }
         .cal-day.has-data:hover { background: var(--card); }
         .cal-day.today { border: 1px solid var(--accent); }
         .cal-day.selected { background: var(--accent); color: #000; }
         .cal-day.empty { visibility: hidden; }
 
         /* ── Main Content ── */
-        .main-content {
-            padding: 16px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .main-content { padding: 16px; max-width: 1400px; margin: 0 auto; }
         .view { display: none; }
         .view.active { display: block; }
 
-        /* ── Dashboard Styles ── */
+        /* ── Dashboard ── */
         .history-banner {
-            padding: 10px 16px;
-            border-radius: 6px;
-            background: rgba(33,150,243,0.15);
-            border: 1px solid var(--info);
-            color: var(--info);
-            font-size: 0.95em;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 10px 16px; border-radius: 6px;
+            background: rgba(33,150,243,0.15); border: 1px solid var(--info);
+            color: var(--info); font-size: 0.95em; margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .history-banner a {
-            color: var(--info);
-            font-size: 0.85em;
-        }
+        .history-banner a { color: var(--info); font-size: 0.85em; }
         .health-banner {
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: bold;
-            margin-bottom: 16px;
+            padding: 12px 20px; border-radius: 8px;
+            font-size: 1.1em; font-weight: bold; margin-bottom: 16px;
         }
         .health-good { background: rgba(76,175,80,0.2); border: 1px solid var(--good); color: var(--good); }
         .health-warn { background: rgba(255,152,0,0.2); border: 1px solid var(--warn); color: var(--warn); }
         .health-crit { background: rgba(244,67,54,0.2); border: 1px solid var(--crit); color: var(--crit); }
         h2.section-title { font-size: 1.1em; margin: 16px 0 8px; color: var(--accent); }
         .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-bottom: 16px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px; margin-bottom: 16px;
         }
-        .summary-card {
-            background: var(--surface);
-            border-radius: 6px;
-            padding: 12px;
-        }
+        .summary-card { background: var(--surface); border-radius: 6px; padding: 12px; }
         .summary-card .label { font-size: 0.8em; color: var(--muted); }
         .summary-card .value { font-size: 1.3em; font-weight: bold; margin-top: 4px; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 16px;
-            font-size: 0.9em;
-        }
+
+        /* ── Tables ── */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.9em; }
         th, td { padding: 6px 10px; text-align: left; }
-        th { background: var(--surface); color: var(--accent); position: sticky; top: 52px; }
+        th {
+            background: var(--surface); color: var(--accent);
+            position: sticky; top: 52px; cursor: pointer; user-select: none;
+            white-space: nowrap;
+        }
+        th:hover { text-decoration: underline; }
+        th.sort-asc::after { content: " \25B2"; font-size: 0.65em; }
+        th.sort-desc::after { content: " \25BC"; font-size: 0.65em; }
         tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
         tr:hover { background: rgba(255,255,255,0.03); }
         .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: bold;
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.8em; font-weight: bold;
         }
         .badge-good { background: rgba(76,175,80,0.25); color: var(--good); }
         .badge-warn { background: rgba(255,152,0,0.25); color: var(--warn); }
@@ -307,139 +217,52 @@
         .val-good { color: var(--good); }
         .val-warn { color: var(--warn); }
         .val-crit { color: var(--crit); }
-        /* ── Collapsible Channel Groups ── */
-        details.channel-group {
-            margin-bottom: 4px;
-        }
-        details.channel-group summary {
-            cursor: pointer;
-            padding: 8px 12px;
-            background: var(--surface);
-            border-radius: 6px;
-            font-size: 0.95em;
-            font-weight: bold;
-            color: var(--accent);
-            list-style: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            user-select: none;
-        }
-        details.channel-group summary::-webkit-details-marker { display: none; }
-        details.channel-group summary::before {
-            content: "\25B6";
-            font-size: 0.65em;
-            transition: transform 0.2s;
-        }
-        details.channel-group[open] summary::before {
-            transform: rotate(90deg);
-        }
-        details.channel-group table { margin-top: 4px; }
-
-        /* ── Sidebar Reference Table ── */
-        .sidebar-ref {
-            padding: 0 20px 16px;
-        }
-        .sidebar-ref summary {
-            cursor: pointer;
-            font-size: 0.9em;
-            color: var(--muted);
-            padding: 10px 0;
-            list-style: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .sidebar-ref summary::-webkit-details-marker { display: none; }
-        .sidebar-ref summary::before {
-            content: "\25B6";
-            font-size: 0.6em;
-            transition: transform 0.2s;
-        }
-        .sidebar-ref[open] summary::before {
-            transform: rotate(90deg);
-        }
-        .sidebar-ref table {
-            width: 100%;
-            font-size: 0.78em;
-            border-collapse: collapse;
-            margin-top: 4px;
-        }
-        .sidebar-ref th, .sidebar-ref td {
-            padding: 4px 6px;
-            text-align: left;
-        }
-        .sidebar-ref th {
-            color: var(--accent);
-            position: static;
-            background: transparent;
-        }
-        .sidebar-ref tr {
-            border-bottom: 1px solid var(--input-border);
-        }
         .error-box {
-            background: rgba(244,67,54,0.15);
-            border: 1px solid var(--crit);
-            color: var(--crit);
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
+            background: rgba(244,67,54,0.15); border: 1px solid var(--crit);
+            color: var(--crit); padding: 12px; border-radius: 6px; margin-bottom: 16px;
         }
         .waiting {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--muted);
+            text-align: center; padding: 60px 20px; color: var(--muted);
         }
         .waiting .spinner {
-            display: inline-block;
-            width: 30px; height: 30px;
-            border: 3px solid var(--surface);
-            border-top: 3px solid var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 12px;
+            display: inline-block; width: 30px; height: 30px;
+            border: 3px solid var(--surface); border-top: 3px solid var(--accent);
+            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── Trend View ── */
+        /* ── Collapsible Channel Groups ── */
+        details.channel-group { margin-bottom: 4px; }
+        details.channel-group summary {
+            cursor: pointer; padding: 8px 12px; background: var(--surface);
+            border-radius: 6px; font-size: 0.95em; font-weight: bold;
+            color: var(--accent); list-style: none;
+            display: flex; align-items: center; gap: 8px; user-select: none;
+        }
+        details.channel-group summary::-webkit-details-marker { display: none; }
+        details.channel-group summary::before {
+            content: "\25B6"; font-size: 0.65em; transition: transform 0.2s;
+        }
+        details.channel-group[open] summary::before { transform: rotate(90deg); }
+        details.channel-group table { margin-top: 4px; }
+
+        /* ── Trends ── */
         .trend-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 16px;
         }
-        .trend-title {
-            font-size: 1.2em;
-            color: var(--accent);
-            font-weight: bold;
-        }
-        .charts-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        .chart-card {
-            background: var(--surface);
-            border-radius: 8px;
-            padding: 16px;
-        }
-        .chart-card .chart-label {
-            font-size: 0.85em;
-            color: var(--muted);
-            margin-bottom: 8px;
-        }
+        .trend-title { font-size: 1.2em; color: var(--accent); font-weight: bold; }
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .chart-card { background: var(--surface); border-radius: 8px; padding: 16px; }
+        .chart-card .chart-label { font-size: 0.85em; color: var(--muted); margin-bottom: 8px; }
         .chart-card canvas { width: 100% !important; }
         .no-data-msg {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--muted);
-            font-size: 0.95em;
+            text-align: center; padding: 40px 20px;
+            color: var(--muted); font-size: 0.95em;
         }
 
         /* ── Responsive ── */
-        @media (max-width: 900px) {
-            .charts-grid { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
         @media (max-width: 600px) {
             body { font-size: 14px; }
             .topbar { gap: 6px; padding: 8px 10px; }
@@ -459,36 +282,36 @@
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <span>Navigation</span>
+        <span>{{ t.nav }}</span>
         <button class="sidebar-close" id="sidebar-close">&times;</button>
     </div>
     <div class="sidebar-content">
         <a class="sidebar-link active" data-view="live">
-            <span class="icon">&#9679;</span> Live Dashboard
+            <span class="icon">&#9679;</span> {{ t.live_dashboard }}
         </a>
         <a class="sidebar-link" data-view="day">
-            <span class="icon">&#9201;</span> Tagesverlauf
+            <span class="icon">&#9201;</span> {{ t.day_trend }}
         </a>
         <a class="sidebar-link" data-view="week">
-            <span class="icon">&#9899;</span> Wochentrend
+            <span class="icon">&#9899;</span> {{ t.week_trend }}
         </a>
         <a class="sidebar-link" data-view="month">
-            <span class="icon">&#128197;</span> Monatstrend
+            <span class="icon">&#128197;</span> {{ t.month_trend }}
         </a>
         <div class="sidebar-divider"></div>
         <a class="sidebar-link" href="/settings">
-            <span class="icon">&#9881;</span> Einstellungen
+            <span class="icon">&#9881;</span> {{ t.settings }}
         </a>
         <div class="sidebar-divider"></div>
         <details class="sidebar-ref">
-            <summary>Richtwerte</summary>
+            <summary>{{ t.reference_values }}</summary>
             <table>
-                <thead><tr><th>Metrik</th><th>Gut</th><th>Grenz.</th><th>Schlecht</th></tr></thead>
+                <thead><tr><th>{{ t.metric }}</th><th>{{ t.good }}</th><th>{{ t.marginal }}</th><th>{{ t.poor }}</th></tr></thead>
                 <tbody>
                     <tr><td>DS Power</td><td>-7..+7</td><td>&plusmn;7..10</td><td>&gt;&plusmn;10 dBmV</td></tr>
                     <tr><td>US Power</td><td>35..49</td><td>50..54</td><td>&gt;54 dBmV</td></tr>
                     <tr><td>SNR/MER</td><td>&gt;30 dB</td><td>25..30</td><td>&lt;25 dB</td></tr>
-                    <tr><td>Unkorr.</td><td>niedrig</td><td>-</td><td>&gt;10.000</td></tr>
+                    <tr><td>{{ t.uncorr }}</td><td>{{ t.low }}</td><td>-</td><td>&gt;10,000</td></tr>
                 </tbody>
             </table>
         </details>
@@ -500,14 +323,14 @@
     <button class="hamburger-btn" id="hamburger">&#9776;</button>
     <div class="date-nav" id="date-nav">
         <button id="date-prev">&#8249;</button>
-        <span class="date-label" id="date-label" title="Kalender oeffnen">Live</span>
+        <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
         <button id="date-next">&#8250;</button>
     </div>
     <span class="topbar-title">DOCSIS Monitor</span>
     <span class="topbar-meta" id="topbar-meta">
-        {% if last_update %}{{ last_update }} | {{ poll_interval }}s{% endif %}
+        {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
     </span>
-    <a href="/settings" class="settings-link" title="Einstellungen">
+    <a href="/settings" class="settings-link" title="{{ t.settings }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -523,24 +346,24 @@
         <button id="cal-next">&rsaquo;</button>
     </div>
     <div class="cal-weekdays">
-        <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
     </div>
     <div class="cal-days" id="cal-days"></div>
 </div>
 
-<!-- ═══ View: Dashboard (Live / Historical) ═══ -->
+<!-- ═══ View: Dashboard ═══ -->
 <div class="main-content">
 <div id="view-dashboard" class="view active">
 
 {% if historical %}
 <div class="history-banner">
-    Historische Ansicht: {{ snapshot_ts.replace("T", " ") }}
-    <a href="/">Zurueck zu Live &rarr;</a>
+    {{ t.historical_view }}: {{ snapshot_ts.replace("T", " ") }}
+    <a href="/">{{ t.back_to_live }} &rarr;</a>
 </div>
 {% endif %}
 
 {% if error %}
-<div class="error-box">Fehler: {{ error }}</div>
+<div class="error-box">{{ t.error_label }}: {{ error }}</div>
 {% endif %}
 
 {% if analysis %}
@@ -548,65 +371,68 @@
     {% set ds = analysis.ds_channels %}
     {% set us = analysis.us_channels %}
 
+    {% set health_labels = {"Gut": t.health_good, "Grenzwertig": t.health_marginal, "Schlecht": t.health_poor} %}
+    {% set health_label = health_labels.get(s.health, s.health) %}
+
     {% if s.health == "Gut" %}
-    <div class="health-banner health-good">{{ s.health }} &mdash; {{ s.health_details }}</div>
+    <div class="health-banner health-good">{{ health_label }} &mdash; {{ s.health_details }}</div>
     {% elif s.health == "Schlecht" %}
-    <div class="health-banner health-crit">{{ s.health }} &mdash; {{ s.health_details }}</div>
+    <div class="health-banner health-crit">{{ health_label }} &mdash; {{ s.health_details }}</div>
     {% else %}
-    <div class="health-banner health-warn">{{ s.health }} &mdash; {{ s.health_details }}</div>
+    <div class="health-banner health-warn">{{ health_label }} &mdash; {{ s.health_details }}</div>
     {% endif %}
 
     <div class="summary-grid">
         <div class="summary-card">
-            <div class="label">Downstream Kanaele</div>
+            <div class="label">{{ t.ds_channels }}</div>
             <div class="value">{{ s.ds_total }}</div>
         </div>
         <div class="summary-card">
-            <div class="label">DS Power (Min / Avg / Max)</div>
+            <div class="label">{{ t.ds_power_range }}</div>
             <div class="value">{{ s.ds_power_min }} / {{ s.ds_power_avg }} / {{ s.ds_power_max }} dBmV</div>
         </div>
         <div class="summary-card">
-            <div class="label">DS SNR (Min / Avg)</div>
+            <div class="label">{{ t.ds_snr_range }}</div>
             <div class="value">{{ s.ds_snr_min }} / {{ s.ds_snr_avg }} dB</div>
         </div>
         <div class="summary-card">
-            <div class="label">DS Fehler (korr. / unkorr.)</div>
-            <div class="value">{{ "{:,}".format(s.ds_correctable_errors) }} / {{ "{:,}".format(s.ds_uncorrectable_errors) }}</div>
+            <div class="label">{{ t.ds_errors_label }}</div>
+            <div class="value">{{ s.ds_correctable_errors|fmt_k }} / {{ s.ds_uncorrectable_errors|fmt_k }}</div>
         </div>
         <div class="summary-card">
-            <div class="label">Upstream Kanaele</div>
+            <div class="label">{{ t.us_channels }}</div>
             <div class="value">{{ s.us_total }}</div>
         </div>
         <div class="summary-card">
-            <div class="label">US Power (Min / Avg / Max)</div>
+            <div class="label">{{ t.us_power_range }}</div>
             <div class="value">{{ s.us_power_min }} / {{ s.us_power_avg }} / {{ s.us_power_max }} dBmV</div>
         </div>
     </div>
 
-    <h2 class="section-title">Downstream ({{ ds|length }} Kanaele)</h2>
+    <h2 class="section-title">{{ t.downstream }} ({{ ds|length }} {{ t.channels }})</h2>
     {% for group in ds|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
     <details class="channel-group" open>
-        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} Kanaele)</summary>
-        <table>
+        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }})</summary>
+        <table class="sortable">
             <thead><tr>
-                <th>Status</th><th>Kanal</th><th>Frequenz</th><th>Power (dBmV)</th>
-                <th>SNR (dB)</th><th>Modulation</th><th>Korr.</th><th>Unkorr.</th>
+                <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
+                <th>{{ t.snr_db }}</th><th>{{ t.modulation }}</th><th>{{ t.corr }}</th><th>{{ t.uncorr }}</th>
             </tr></thead>
             <tbody>
             {% for ch in group.list %}
             <tr>
-                <td>
-                    {% if ch.health == "good" %}<span class="badge badge-good">Gut</span>
-                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
-                    {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>{% endif %}
+                <td data-sort="{{ 0 if ch.health == 'good' else (2 if ch.health == 'critical' else 1) }}">
+                    {% if ch.health == "good" %}<span class="badge badge-good">{{ t.health_good }}</span>
+                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">{{ t.health_critical }}</span>
+                    {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">{{ t.health_warning }}</span>{% endif %}
                 </td>
-                <td>{{ ch.channel_id }}</td>
+                <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
-                <td class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
-                <td class="{% if ch.snr is not none %}{% if ch.snr < 25 %}val-crit{% elif ch.snr < 30 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
+                <td data-sort="{{ ch.power if ch.power is not none else 0 }}" class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
+                <td data-sort="{{ ch.snr if ch.snr is not none else 0 }}" class="{% if ch.snr is not none %}{% if ch.snr < 25 %}val-crit{% elif ch.snr < 30 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
                 <td>{{ ch.modulation }}</td>
-                <td>{{ "{:,}".format(ch.correctable_errors) }}</td>
-                <td>{{ "{:,}".format(ch.uncorrectable_errors) }}</td>
+                <td data-sort="{{ ch.correctable_errors }}">{{ ch.correctable_errors|fmt_k }}</td>
+                <td data-sort="{{ ch.uncorrectable_errors }}">{{ ch.uncorrectable_errors|fmt_k }}</td>
             </tr>
             {% endfor %}
             </tbody>
@@ -614,26 +440,26 @@
     </details>
     {% endfor %}
 
-    <h2 class="section-title">Upstream ({{ us|length }} Kanaele)</h2>
+    <h2 class="section-title">{{ t.upstream }} ({{ us|length }} {{ t.channels }})</h2>
     {% for group in us|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
     <details class="channel-group" open>
-        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} Kanaele)</summary>
-        <table>
+        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }})</summary>
+        <table class="sortable">
             <thead><tr>
-                <th>Status</th><th>Kanal</th><th>Frequenz</th><th>Power (dBmV)</th>
-                <th>Modulation</th><th>Multiplex</th>
+                <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
+                <th>{{ t.modulation }}</th><th>{{ t.multiplex }}</th>
             </tr></thead>
             <tbody>
             {% for ch in group.list %}
             <tr>
-                <td>
-                    {% if ch.health == "good" %}<span class="badge badge-good">Gut</span>
-                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
-                    {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>{% endif %}
+                <td data-sort="{{ 0 if ch.health == 'good' else (2 if ch.health == 'critical' else 1) }}">
+                    {% if ch.health == "good" %}<span class="badge badge-good">{{ t.health_good }}</span>
+                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">{{ t.health_critical }}</span>
+                    {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">{{ t.health_warning }}</span>{% endif %}
                 </td>
-                <td>{{ ch.channel_id }}</td>
+                <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
-                <td class="{% if ch.power > 54 %}val-crit{% elif ch.power > 50 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
+                <td data-sort="{{ ch.power }}" class="{% if ch.power > 54 %}val-crit{% elif ch.power > 50 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
                 <td>{{ ch.modulation }}</td>
                 <td>{{ ch.multiplex }}</td>
             </tr>
@@ -646,7 +472,7 @@
 {% elif not error %}
     <div class="waiting">
         <div class="spinner"></div>
-        <p>Warte auf erste DOCSIS-Abfrage...</p>
+        <p>{{ t.waiting_msg }}</p>
     </div>
 {% endif %}
 </div>
@@ -656,24 +482,22 @@
     <div class="trend-header">
         <span class="trend-title" id="trend-title"></span>
     </div>
-    <div id="trend-no-data" class="no-data-msg" style="display:none">
-        Keine Daten fuer diesen Zeitraum vorhanden.
-    </div>
+    <div id="trend-no-data" class="no-data-msg" style="display:none"></div>
     <div class="charts-grid" id="charts-grid">
         <div class="chart-card">
-            <div class="chart-label">DS Power Avg (dBmV)</div>
+            <div class="chart-label">{{ t.ds_power_avg }}</div>
             <canvas id="chart-ds-power"></canvas>
         </div>
         <div class="chart-card">
-            <div class="chart-label">DS SNR Avg (dB)</div>
+            <div class="chart-label">{{ t.ds_snr_avg }}</div>
             <canvas id="chart-ds-snr"></canvas>
         </div>
         <div class="chart-card">
-            <div class="chart-label">US Power Avg (dBmV)</div>
+            <div class="chart-label">{{ t.us_power_avg }}</div>
             <canvas id="chart-us-power"></canvas>
         </div>
         <div class="chart-card">
-            <div class="chart-label">Fehler</div>
+            <div class="chart-label">{{ t.errors }}</div>
             <canvas id="chart-errors"></canvas>
         </div>
     </div>
@@ -684,6 +508,8 @@
 <script>
 (function() {
     'use strict';
+
+    var T = {{ t|tojson }};
 
     /* ── Theme ── */
     var saved = localStorage.getItem('docsis-theme');
@@ -698,8 +524,6 @@
     var calendarLoaded = false;
     var isHistorical = {{ 'true' if historical else 'false' }};
 
-    var MONTHS = ['Januar','Februar','Maerz','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-
     function todayStr() {
         var d = new Date();
         return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
@@ -708,6 +532,43 @@
     function formatDateDE(str) {
         var p = str.split('-');
         return p[2] + '.' + p[1] + '.' + p[0];
+    }
+
+    /* ── Sortable Tables ── */
+    document.querySelectorAll('table.sortable').forEach(function(table) {
+        var headers = table.querySelectorAll('th');
+        headers.forEach(function(th, colIdx) {
+            th.addEventListener('click', function() {
+                sortTable(table, colIdx, th);
+            });
+        });
+    });
+
+    function sortTable(table, colIdx, th) {
+        var tbody = table.querySelector('tbody');
+        var rows = Array.from(tbody.querySelectorAll('tr'));
+        var asc = th.getAttribute('data-sort-dir') !== 'asc';
+
+        table.querySelectorAll('th').forEach(function(h) {
+            h.removeAttribute('data-sort-dir');
+            h.classList.remove('sort-asc', 'sort-desc');
+        });
+        th.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+
+        rows.sort(function(a, b) {
+            var cellA = a.cells[colIdx];
+            var cellB = b.cells[colIdx];
+            var valA = cellA.getAttribute('data-sort') || cellA.textContent.trim();
+            var valB = cellB.getAttribute('data-sort') || cellB.textContent.trim();
+            var numA = parseFloat(valA);
+            var numB = parseFloat(valB);
+            if (!isNaN(numA) && !isNaN(numB)) {
+                return asc ? numA - numB : numB - numA;
+            }
+            return asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        });
+        rows.forEach(function(row) { tbody.appendChild(row); });
     }
 
     /* ── Sidebar ── */
@@ -722,12 +583,10 @@
     document.getElementById('sidebar-close').addEventListener('click', toggleSidebar);
     overlay.addEventListener('click', toggleSidebar);
 
-    /* ── Sidebar Links ── */
     var sidebarLinks = document.querySelectorAll('.sidebar-link[data-view]');
     sidebarLinks.forEach(function(link) {
         link.addEventListener('click', function() {
-            var view = this.getAttribute('data-view');
-            switchView(view);
+            switchView(this.getAttribute('data-view'));
             toggleSidebar();
         });
     });
@@ -737,10 +596,8 @@
         sidebarLinks.forEach(function(l) {
             l.classList.toggle('active', l.getAttribute('data-view') === view);
         });
-
         var dashView = document.getElementById('view-dashboard');
         var trendView = document.getElementById('view-trends');
-
         if (view === 'live') {
             dashView.classList.add('active');
             trendView.classList.remove('active');
@@ -762,9 +619,9 @@
 
     function updateDateLabel() {
         if (currentView === 'live') {
-            dateLabel.textContent = isHistorical ? formatDateDE('{{ snapshot_ts[:10] if snapshot_ts else "" }}') : 'Live';
+            dateLabel.textContent = isHistorical ? formatDateDE('{{ snapshot_ts[:10] if snapshot_ts else "" }}') : T.live;
         } else {
-            var rangeLabel = {day: 'Tag', week: 'Woche', month: 'Monat'}[currentView] || '';
+            var rangeLabel = {day: T.day, week: T.week, month: T.month}[currentView] || '';
             dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
         }
     }
@@ -783,9 +640,7 @@
         }
         selectedDate = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
         updateDateLabel();
-
         if (currentView === 'live') {
-            // Navigate to historical snapshot
             fetch('/api/snapshot/daily?date=' + selectedDate)
                 .then(function(r) { return r.json(); })
                 .then(function(snap) {
@@ -810,13 +665,11 @@
             renderCalendar();
         }
     });
-
     document.addEventListener('click', function(e) {
         if (!calPopup.contains(e.target) && e.target !== dateLabel) {
             calPopup.classList.remove('open');
         }
     });
-
     document.getElementById('cal-prev').addEventListener('click', function() {
         calendarMonth.setMonth(calendarMonth.getMonth() - 1);
         renderCalendar();
@@ -839,22 +692,18 @@
     function renderCalendar() {
         var year = calendarMonth.getFullYear();
         var month = calendarMonth.getMonth();
-        document.getElementById('cal-month-label').textContent = MONTHS[month] + ' ' + year;
-
+        document.getElementById('cal-month-label').textContent = T.months[month] + ' ' + year;
         var grid = document.getElementById('cal-days');
         grid.innerHTML = '';
-
         var firstDay = new Date(year, month, 1).getDay();
-        var offset = (firstDay === 0) ? 6 : firstDay - 1; // Monday-based
+        var offset = (firstDay === 0) ? 6 : firstDay - 1;
         var daysInMonth = new Date(year, month + 1, 0).getDate();
         var today = todayStr();
-
         for (var i = 0; i < offset; i++) {
             var empty = document.createElement('span');
             empty.className = 'cal-day empty';
             grid.appendChild(empty);
         }
-
         for (var d = 1; d <= daysInMonth; d++) {
             var dateStr = year + '-' + pad(month + 1) + '-' + pad(d);
             var el = document.createElement('span');
@@ -864,13 +713,11 @@
             if (dateStr === today) el.classList.add('today');
             if (dateStr === selectedDate) el.classList.add('selected');
             el.setAttribute('data-date', dateStr);
-
             el.addEventListener('click', function() {
                 var date = this.getAttribute('data-date');
                 if (!this.classList.contains('has-data')) return;
                 selectedDate = date;
                 calPopup.classList.remove('open');
-
                 if (currentView === 'live') {
                     fetch('/api/snapshot/daily?date=' + date)
                         .then(function(r) { return r.json(); })
@@ -908,29 +755,24 @@
         var title = document.getElementById('trend-title');
         var noData = document.getElementById('trend-no-data');
         var grid = document.getElementById('charts-grid');
-
-        var labels = {day: 'Tagesverlauf', week: 'Wochentrend', month: 'Monatstrend'};
+        var labels = {day: T.day_trend, week: T.week_trend, month: T.month_trend};
         title.textContent = (labels[range] || 'Trend') + ' - ' + formatDateDE(date);
 
         fetch('/api/trends?range=' + range + '&date=' + date)
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data || data.length === 0) {
+                    noData.textContent = T.no_data;
                     noData.style.display = 'block';
                     grid.style.display = 'none';
                     return;
                 }
                 noData.style.display = 'none';
                 grid.style.display = '';
-
                 var xLabels = data.map(function(d) {
-                    if (range === 'day') {
-                        return d.timestamp ? d.timestamp.substring(11, 16) : '';
-                    } else {
-                        return d.date ? formatDateDE(d.date) : '';
-                    }
+                    if (range === 'day') return d.timestamp ? d.timestamp.substring(11, 16) : '';
+                    return d.date ? formatDateDE(d.date) : '';
                 });
-
                 renderChart('chart-ds-power', xLabels,
                     [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#00adb5'}]);
                 renderChart('chart-ds-snr', xLabels,
@@ -938,12 +780,12 @@
                 renderChart('chart-us-power', xLabels,
                     [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#ff9800'}]);
                 renderChart('chart-errors', xLabels, [
-                    {label: 'Korrigierbar', data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
-                    {label: 'Unkorrigierbar', data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
+                    {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
+                    {label: T.uncorrectable, data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
                 ], 'bar');
             })
             .catch(function() {
-                noData.textContent = 'Fehler beim Laden der Trenddaten.';
+                noData.textContent = T.trend_error;
                 noData.style.display = 'block';
                 grid.style.display = 'none';
             });
@@ -953,31 +795,24 @@
         if (charts[canvasId]) charts[canvasId].destroy();
         var ctx = document.getElementById(canvasId);
         if (!ctx) return;
-
         var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
         var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
         var textColor = isDark ? '#888' : '#666';
-
         var chartDatasets = datasets.map(function(ds) {
-            var base = {
-                label: ds.label,
-                data: ds.data,
+            return {
+                label: ds.label, data: ds.data,
                 borderColor: ds.color,
                 backgroundColor: ds.color + (type === 'bar' ? 'cc' : '22'),
-                borderWidth: 2,
-                tension: 0.3,
+                borderWidth: 2, tension: 0.3,
                 pointRadius: labels.length > 30 ? 0 : 3,
                 fill: type !== 'bar'
             };
-            return base;
         });
-
         charts[canvasId] = new Chart(ctx, {
             type: type || 'line',
             data: { labels: labels, datasets: chartDatasets },
             options: {
-                responsive: true,
-                maintainAspectRatio: true,
+                responsive: true, maintainAspectRatio: true,
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
                     legend: { display: datasets.length > 1, labels: { color: textColor, font: { size: 11 } } },

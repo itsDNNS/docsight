@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="dark">
+<html lang="{{ lang }}" data-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FritzBox DOCSIS Monitor - Setup</title>
+    <title>FritzBox DOCSIS Monitor - {{ t.initial_setup }}</title>
     <style>
         :root, [data-theme="dark"] {
             --bg: #1a1a2e;
@@ -42,6 +42,11 @@
         }
         h1 { font-size: 1.4em; color: var(--accent); margin-bottom: 4px; }
         .subtitle { color: var(--muted); font-size: 0.9em; margin-bottom: 24px; }
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
         h2 {
             font-size: 1.05em;
             color: var(--accent);
@@ -60,6 +65,16 @@
             font-size: 0.85em;
             font-weight: bold;
             margin-right: 8px;
+        }
+        .lang-select {
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.85em;
+            font-family: inherit;
+            cursor: pointer;
         }
         .section {
             background: var(--surface);
@@ -132,8 +147,6 @@
             margin-bottom: 16px;
             display: none;
         }
-
-        /* Collapsible advanced section */
         .advanced-toggle {
             display: flex;
             align-items: center;
@@ -153,22 +166,10 @@
             color: var(--muted);
         }
         .advanced-toggle.open .arrow { transform: rotate(90deg); }
-        .advanced-toggle .adv-label {
-            font-size: 0.9em;
-            color: var(--muted);
-        }
-        .advanced-toggle .adv-hint {
-            font-size: 0.8em;
-            color: var(--muted);
-            margin-left: auto;
-        }
-        .advanced-content {
-            display: none;
-        }
-        .advanced-content.open {
-            display: block;
-        }
-
+        .advanced-toggle .adv-label { font-size: 0.9em; color: var(--muted); }
+        .advanced-toggle .adv-hint { font-size: 0.8em; color: var(--muted); margin-left: auto; }
+        .advanced-content { display: none; }
+        .advanced-content.open { display: block; }
         @media (max-width: 600px) {
             .form-grid { grid-template-columns: 1fr; }
             .advanced-toggle .adv-hint { display: none; }
@@ -177,106 +178,111 @@
 </head>
 <body>
 
-<h1>FritzBox DOCSIS Monitor</h1>
-<p class="subtitle">Ersteinrichtung</p>
+<div class="top-row">
+    <div>
+        <h1>FritzBox DOCSIS Monitor</h1>
+        <p class="subtitle">{{ t.initial_setup }}</p>
+    </div>
+    <select class="lang-select" onchange="location.href='?lang='+this.value">
+        {% for code, name in languages.items() %}
+        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+    </select>
+</div>
 
 <div class="error-msg" id="global-error"></div>
 
 <form id="setup-form" autocomplete="off">
 
-    <!-- Step 1: FritzBox -->
     <div class="section">
-        <h2><span class="step-num">1</span>FritzBox-Verbindung</h2>
+        <h2><span class="step-num">1</span>{{ t.fritz_connection }}</h2>
         <div class="form-grid">
             <div class="form-row full">
-                <label for="fritz_url">URL</label>
+                <label for="fritz_url">{{ t.url }}</label>
                 <input type="text" id="fritz_url" name="fritz_url" value="{{ config.fritz_url }}" placeholder="http://192.168.178.1">
             </div>
             <div class="form-row">
-                <label for="fritz_user">Benutzername</label>
+                <label for="fritz_user">{{ t.username }}</label>
                 <input type="text" id="fritz_user" name="fritz_user" value="{{ config.fritz_user }}" placeholder="admin">
             </div>
             <div class="form-row">
-                <label for="fritz_password">Passwort</label>
-                <input type="password" id="fritz_password" name="fritz_password" value="" placeholder="{% if config.fritz_password %}Gespeichert{% endif %}">
+                <label for="fritz_password">{{ t.password }}</label>
+                <input type="password" id="fritz_password" name="fritz_password" value="" placeholder="{% if config.fritz_password %}{{ t.saved_ph }}{% endif %}">
             </div>
         </div>
         <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testFritz()">Verbindung testen</button>
+            <button type="button" class="btn btn-secondary" onclick="testFritz()">{{ t.test_connection }}</button>
             <span class="test-result" id="fritz-test"></span>
         </div>
     </div>
 
-    <!-- Step 2: Poll interval -->
     <div class="section">
-        <h2><span class="step-num">2</span>Abfrageintervall</h2>
+        <h2><span class="step-num">2</span>{{ t.poll_interval }}</h2>
         <div class="form-grid">
             <div class="form-row">
-                <label for="poll_interval">Intervall (Sekunden)</label>
+                <label for="poll_interval">{{ t.interval_sec }}</label>
                 <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
-                <span class="hint">Min: {{ poll_min }}s (1 Min.) / Max: {{ poll_max }}s (60 Min.) / Standard: 300s (5 Min.)</span>
+                <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s / {{ t.default }}: 300s</span>
             </div>
             <div class="form-row">
-                <label for="history_days">Historie (Tage)</label>
+                <label for="history_days">{{ t.history_days }}</label>
                 <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="1" max="90">
-                <span class="hint">Wie lange Snapshots gespeichert werden</span>
+                <span class="hint">{{ t.history_hint }}</span>
             </div>
             <div class="form-row">
-                <label for="snapshot_time">Tages-Snapshot (Uhrzeit)</label>
+                <label for="snapshot_time">{{ t.snapshot_time }}</label>
                 <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
-                <span class="hint">Referenz-Zeitpunkt fuer Tagesvergleiche und Trends</span>
+                <span class="hint">{{ t.snapshot_hint }}</span>
             </div>
         </div>
     </div>
 
-    <!-- Advanced: MQTT (collapsed by default) -->
     <div class="advanced-toggle" id="mqtt-toggle" onclick="toggleAdvanced()">
         <span class="arrow">&#9654;</span>
-        <span class="adv-label">Erweitert: MQTT / Home Assistant</span>
-        <span class="adv-hint">Optional</span>
+        <span class="adv-label">{{ t.advanced_mqtt }}</span>
+        <span class="adv-hint">{{ t.optional }}</span>
     </div>
     <div class="advanced-content" id="mqtt-section">
         <div class="section">
-            <h2>MQTT Broker</h2>
-            <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">
-                Fuer die Integration mit Home Assistant via MQTT Auto-Discovery.
-                Ohne MQTT laeuft nur die Web-Oberflaeche.
-            </p>
+            <h2>{{ t.mqtt_broker }}</h2>
+            <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.mqtt_desc }}</p>
             <div class="form-grid">
                 <div class="form-row">
                     <label for="mqtt_host">Host</label>
-                    <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}" placeholder="z.B. 192.168.178.10">
+                    <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}" placeholder="e.g. 192.168.178.10">
                 </div>
                 <div class="form-row">
                     <label for="mqtt_port">Port</label>
                     <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}" placeholder="1883">
                 </div>
                 <div class="form-row">
-                    <label for="mqtt_user">Benutzername (optional)</label>
+                    <label for="mqtt_user">{{ t.username_opt }}</label>
                     <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
                 </div>
                 <div class="form-row">
-                    <label for="mqtt_password">Passwort (optional)</label>
-                    <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}Gespeichert{% endif %}">
+                    <label for="mqtt_password">{{ t.password_opt }}</label>
+                    <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
                 </div>
                 <div class="form-row full">
-                    <label for="mqtt_topic_prefix">Topic-Prefix</label>
+                    <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
                     <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}" placeholder="fritzbox/docsis">
                 </div>
             </div>
             <div class="btn-row">
-                <button type="button" class="btn btn-secondary" onclick="testMqtt()">Verbindung testen</button>
+                <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
                 <span class="test-result" id="mqtt-test"></span>
             </div>
         </div>
     </div>
 
     <div class="submit-row">
-        <button type="submit" class="btn btn-primary">Einrichtung abschliessen</button>
+        <button type="submit" class="btn btn-primary">{{ t.complete_setup }}</button>
     </div>
 </form>
 
 <script>
+var T = {{ t|tojson }};
+
 function toggleAdvanced() {
     var toggle = document.getElementById('mqtt-toggle');
     var section = document.getElementById('mqtt-section');
@@ -292,13 +298,13 @@ function getFormData() {
     var data = {};
     var inputs = form.querySelectorAll('input');
     inputs.forEach(function(inp) {
-        // For password fields: empty = send mask (keep existing), filled = send new value
         if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
             data[inp.name] = inp.value || MASK;
         } else {
             data[inp.name] = inp.value;
         }
     });
+    data.language = '{{ lang }}';
     return data;
 }
 
@@ -306,7 +312,7 @@ function testFritz() {
     var el = document.getElementById('fritz-test');
     el.className = 'test-result';
     el.style.display = 'inline-block';
-    el.textContent = 'Teste...';
+    el.textContent = T.testing;
     var data = getFormData();
     fetch('/api/test-fritz', {
         method: 'POST',
@@ -317,15 +323,15 @@ function testFritz() {
     .then(function(res) {
         if (res.success) {
             el.className = 'test-result test-ok';
-            el.textContent = 'Verbunden: ' + (res.model || 'OK');
+            el.textContent = T.connected + ': ' + (res.model || 'OK');
         } else {
             el.className = 'test-result test-fail';
-            el.textContent = 'Fehler: ' + (res.error || 'Unbekannt');
+            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
         }
     })
-    .catch(function(e) {
+    .catch(function() {
         el.className = 'test-result test-fail';
-        el.textContent = 'Netzwerkfehler';
+        el.textContent = T.network_error;
     });
 }
 
@@ -333,7 +339,7 @@ function testMqtt() {
     var el = document.getElementById('mqtt-test');
     el.className = 'test-result';
     el.style.display = 'inline-block';
-    el.textContent = 'Teste...';
+    el.textContent = T.testing;
     var data = getFormData();
     fetch('/api/test-mqtt', {
         method: 'POST',
@@ -344,15 +350,15 @@ function testMqtt() {
     .then(function(res) {
         if (res.success) {
             el.className = 'test-result test-ok';
-            el.textContent = 'Verbunden';
+            el.textContent = T.connected;
         } else {
             el.className = 'test-result test-fail';
-            el.textContent = 'Fehler: ' + (res.error || 'Unbekannt');
+            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
         }
     })
-    .catch(function(e) {
+    .catch(function() {
         el.className = 'test-result test-fail';
-        el.textContent = 'Netzwerkfehler';
+        el.textContent = T.network_error;
     });
 }
 
@@ -363,7 +369,7 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
     var data = getFormData();
     var pwField = document.getElementById('fritz_password');
     if (!pwField.value && !pwField.placeholder) {
-        errEl.textContent = 'FritzBox-Passwort ist erforderlich.';
+        errEl.textContent = T.pw_required;
         errEl.style.display = 'block';
         return;
     }
@@ -381,12 +387,12 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
         if (res.success) {
             window.location.href = '/';
         } else {
-            errEl.textContent = res.error || 'Speichern fehlgeschlagen';
+            errEl.textContent = res.error || T.save_failed;
             errEl.style.display = 'block';
         }
     })
-    .catch(function(e) {
-        errEl.textContent = 'Netzwerkfehler';
+    .catch(function() {
+        errEl.textContent = T.network_error;
         errEl.style.display = 'block';
     });
 });

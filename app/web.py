@@ -7,10 +7,38 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, redirect
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
+from .i18n import get_translations, LANGUAGES
 
 log = logging.getLogger("docsis.web")
 
 app = Flask(__name__, template_folder="templates")
+
+
+@app.template_filter("fmt_k")
+def format_k(value):
+    """Format large numbers with k suffix: 132007 -> 132k, 5929 -> 5.9k."""
+    try:
+        value = int(value)
+    except (ValueError, TypeError):
+        return str(value)
+    if value >= 100000:
+        return f"{value // 1000}k"
+    elif value >= 1000:
+        formatted = f"{value / 1000:.1f}"
+        if formatted.endswith(".0"):
+            formatted = formatted[:-2]
+        return formatted + "k"
+    return str(value)
+
+
+def _get_lang():
+    """Get language from query param or config."""
+    lang = request.args.get("lang")
+    if lang and lang in LANGUAGES:
+        return lang
+    if _config_manager:
+        return _config_manager.get("language", "en")
+    return "en"
 
 # Shared state (updated from main loop)
 _state = {
@@ -56,6 +84,8 @@ def index():
         return redirect("/setup")
 
     theme = _config_manager.get_theme() if _config_manager else "dark"
+    lang = _get_lang()
+    t = get_translations(lang)
 
     ts = request.args.get("t")
     if ts and _storage:
@@ -70,6 +100,7 @@ def index():
                 historical=True,
                 snapshot_ts=ts,
                 theme=theme,
+                t=t, lang=lang, languages=LANGUAGES,
             )
     return render_template(
         "index.html",
@@ -80,6 +111,7 @@ def index():
         historical=False,
         snapshot_ts=None,
         theme=theme,
+        t=t, lang=lang, languages=LANGUAGES,
     )
 
 
@@ -88,14 +120,18 @@ def setup():
     if _config_manager and _config_manager.is_configured():
         return redirect("/")
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX)
+    lang = _get_lang()
+    t = get_translations(lang)
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES)
 
 
 @app.route("/settings")
 def settings():
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     theme = _config_manager.get_theme() if _config_manager else "dark"
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX)
+    lang = _get_lang()
+    t = get_translations(lang)
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES)
 
 
 @app.route("/api/config", methods=["POST"])

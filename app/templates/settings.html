@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="{{ theme }}">
+<html lang="{{ lang }}" data-theme="{{ theme }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FritzBox DOCSIS Monitor - Einstellungen</title>
+    <title>FritzBox DOCSIS Monitor - {{ t.settings }}</title>
     <style>
         :root, [data-theme="dark"] {
             --bg: #1a1a2e;
@@ -54,14 +54,8 @@
             align-items: center;
             margin-bottom: 20px;
         }
-        .header a {
-            color: var(--accent);
-            text-decoration: none;
-            font-size: 0.9em;
-        }
+        .header a { color: var(--accent); text-decoration: none; font-size: 0.9em; }
         .header a:hover { text-decoration: underline; }
-
-        /* Theme Toggle */
         .theme-toggle {
             display: flex;
             align-items: center;
@@ -72,50 +66,28 @@
             border-radius: 8px;
         }
         .theme-toggle label { font-size: 0.9em; color: var(--muted); }
-        .toggle-switch {
-            position: relative;
-            width: 48px; height: 24px;
-            cursor: pointer;
-        }
+        .toggle-switch { position: relative; width: 48px; height: 24px; cursor: pointer; }
         .toggle-switch input { display: none; }
         .toggle-slider {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--card);
-            border-radius: 12px;
-            border: 1px solid var(--input-border);
-            transition: background 0.2s;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--card); border-radius: 12px;
+            border: 1px solid var(--input-border); transition: background 0.2s;
         }
         .toggle-slider::before {
-            content: "";
-            position: absolute;
-            width: 18px; height: 18px;
-            left: 2px; bottom: 2px;
-            background: var(--accent);
-            border-radius: 50%;
-            transition: transform 0.2s;
+            content: ""; position: absolute; width: 18px; height: 18px;
+            left: 2px; bottom: 2px; background: var(--accent);
+            border-radius: 50%; transition: transform 0.2s;
         }
-        .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(24px);
-        }
-
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(24px); }
         .section {
             background: var(--surface);
             border-radius: 8px;
             padding: 16px 20px;
             margin-bottom: 16px;
         }
-        .form-row {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 12px;
-        }
-        .form-row label {
-            font-size: 0.85em;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-        .form-row input {
+        .form-row { display: flex; flex-direction: column; margin-bottom: 12px; }
+        .form-row label { font-size: 0.85em; color: var(--muted); margin-bottom: 4px; }
+        .form-row input, .form-row select {
             background: var(--input-bg);
             border: 1px solid var(--input-border);
             border-radius: 4px;
@@ -124,118 +96,88 @@
             font-size: 0.95em;
             font-family: inherit;
         }
-        .form-row input:focus { outline: none; border-color: var(--accent); }
+        .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent); }
         .form-row .hint { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0 16px;
-        }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
         .form-grid .full { grid-column: 1 / -1; }
         .btn {
-            display: inline-block;
-            padding: 8px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-family: inherit;
-            font-weight: bold;
+            display: inline-block; padding: 8px 20px; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 0.9em;
+            font-family: inherit; font-weight: bold;
         }
         .btn-primary { background: var(--accent); color: #000; }
         .btn-primary:hover { filter: brightness(1.15); }
         .btn-secondary {
-            background: var(--card);
-            color: var(--text);
+            background: var(--card); color: var(--text);
             border: 1px solid var(--input-border);
         }
         .btn-secondary:hover { background: var(--accent); color: #000; }
         .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
-        .test-result {
-            font-size: 0.85em;
-            padding: 4px 8px;
-            border-radius: 4px;
-            display: none;
-        }
+        .test-result { font-size: 0.85em; padding: 4px 8px; border-radius: 4px; display: none; }
         .test-ok { display: inline-block; background: rgba(76,175,80,0.2); color: var(--good); }
         .test-fail { display: inline-block; background: rgba(244,67,54,0.2); color: var(--crit); }
         .submit-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
         .submit-row .btn-primary { padding: 10px 32px; font-size: 1em; }
         .toast {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-size: 0.9em;
-            font-weight: bold;
-            z-index: 1000;
-            display: none;
+            position: fixed; top: 16px; right: 16px; padding: 12px 20px;
+            border-radius: 6px; font-size: 0.9em; font-weight: bold;
+            z-index: 1000; display: none;
         }
         .toast-ok { background: rgba(76,175,80,0.9); color: #fff; }
         .toast-fail { background: rgba(244,67,54,0.9); color: #fff; }
         .error-msg {
-            background: rgba(244,67,54,0.15);
-            border: 1px solid var(--crit);
-            color: var(--crit);
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            display: none;
+            background: rgba(244,67,54,0.15); border: 1px solid var(--crit);
+            color: var(--crit); padding: 10px; border-radius: 6px;
+            margin-bottom: 16px; display: none;
         }
-        @media (max-width: 600px) {
-            .form-grid { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>Einstellungen</h1>
-    <a href="/">&larr; Zurueck zum Dashboard</a>
+    <h1>{{ t.settings }}</h1>
+    <a href="/">&larr; {{ t.back_dashboard }}</a>
 </div>
 
 <div class="error-msg" id="global-error"></div>
 <div class="toast" id="toast"></div>
 
-<!-- Theme Toggle -->
 <div class="theme-toggle">
-    <label>Light Mode</label>
+    <label>{{ t.light_mode }}</label>
     <label class="toggle-switch">
         <input type="checkbox" id="theme-check" {% if theme == 'dark' %}checked{% endif %}>
         <span class="toggle-slider"></span>
     </label>
-    <label>Dark Mode</label>
+    <label>{{ t.dark_mode }}</label>
 </div>
 
 <form id="settings-form" autocomplete="off">
 
-    <!-- FritzBox -->
     <div class="section">
         <h2>FritzBox</h2>
         <div class="form-grid">
             <div class="form-row full">
-                <label for="fritz_url">URL</label>
+                <label for="fritz_url">{{ t.url }}</label>
                 <input type="text" id="fritz_url" name="fritz_url" value="{{ config.fritz_url }}">
             </div>
             <div class="form-row">
-                <label for="fritz_user">Benutzername</label>
+                <label for="fritz_user">{{ t.username }}</label>
                 <input type="text" id="fritz_user" name="fritz_user" value="{{ config.fritz_user }}">
             </div>
             <div class="form-row">
-                <label for="fritz_password">Passwort</label>
-                <input type="password" id="fritz_password" name="fritz_password" value="" placeholder="{% if config.fritz_password %}Gespeichert{% endif %}">
+                <label for="fritz_password">{{ t.password }}</label>
+                <input type="password" id="fritz_password" name="fritz_password" value="" placeholder="{% if config.fritz_password %}{{ t.saved_ph }}{% endif %}">
             </div>
         </div>
         <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testFritz()">Verbindung testen</button>
+            <button type="button" class="btn btn-secondary" onclick="testFritz()">{{ t.test_connection }}</button>
             <span class="test-result" id="fritz-test"></span>
         </div>
     </div>
 
-    <!-- MQTT (optional) -->
     <div class="section">
-        <h2>MQTT Broker <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">(optional - fuer Home Assistant)</span></h2>
+        <h2>{{ t.mqtt_broker }} <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.mqtt_optional_ha }})</span></h2>
         <div class="form-grid">
             <div class="form-row">
                 <label for="mqtt_host">Host</label>
@@ -246,59 +188,66 @@
                 <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
             </div>
             <div class="form-row">
-                <label for="mqtt_user">Benutzername (optional)</label>
+                <label for="mqtt_user">{{ t.username_opt }}</label>
                 <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
             </div>
             <div class="form-row">
-                <label for="mqtt_password">Passwort (optional)</label>
-                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}Gespeichert{% endif %}">
+                <label for="mqtt_password">{{ t.password_opt }}</label>
+                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
             </div>
             <div class="form-row full">
-                <label for="mqtt_topic_prefix">Topic-Prefix</label>
+                <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
                 <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
             </div>
         </div>
         <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testMqtt()">Verbindung testen</button>
+            <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
             <span class="test-result" id="mqtt-test"></span>
         </div>
     </div>
 
-    <!-- General -->
     <div class="section">
-        <h2>Allgemein</h2>
+        <h2>{{ t.general }}</h2>
         <div class="form-grid">
             <div class="form-row">
-                <label for="poll_interval">Abfrageintervall (Sekunden)</label>
+                <label for="poll_interval">{{ t.interval_sec }}</label>
                 <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
                 <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s</span>
             </div>
             <div class="form-row">
-                <label for="history_days">Historie (Tage)</label>
+                <label for="history_days">{{ t.history_days }}</label>
                 <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="1">
             </div>
             <div class="form-row">
-                <label for="snapshot_time">Tages-Snapshot (Uhrzeit)</label>
+                <label for="snapshot_time">{{ t.snapshot_time }}</label>
                 <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
-                <span class="hint">Referenz-Zeitpunkt fuer Tagesvergleiche und Trends</span>
+                <span class="hint">{{ t.snapshot_hint }}</span>
+            </div>
+            <div class="form-row">
+                <label for="language">{{ t.language }}</label>
+                <select id="language" name="language">
+                    {% for code, name in languages.items() %}
+                    <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
     </div>
 
     <div class="submit-row">
-        <button type="submit" class="btn btn-primary">Speichern</button>
+        <button type="submit" class="btn btn-primary">{{ t.save }}</button>
     </div>
 </form>
 
 <script>
+var T = {{ t|tojson }};
+
 var themeCheck = document.getElementById('theme-check');
 themeCheck.addEventListener('change', function() {
     var theme = themeCheck.checked ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('docsis-theme', theme);
 });
-
-// Instant theme from localStorage
 (function() {
     var saved = localStorage.getItem('docsis-theme');
     if (saved) {
@@ -321,7 +270,7 @@ var SECRET_FIELDS = ['fritz_password', 'mqtt_password'];
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
-    form.querySelectorAll('input:not(#theme-check)').forEach(function(inp) {
+    form.querySelectorAll('input:not(#theme-check), select').forEach(function(inp) {
         if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
             data[inp.name] = inp.value || MASK;
         } else {
@@ -336,7 +285,7 @@ function testFritz() {
     var el = document.getElementById('fritz-test');
     el.className = 'test-result';
     el.style.display = 'inline-block';
-    el.textContent = 'Teste...';
+    el.textContent = T.testing;
     var data = getFormData();
     fetch('/api/test-fritz', {
         method: 'POST',
@@ -347,15 +296,15 @@ function testFritz() {
     .then(function(res) {
         if (res.success) {
             el.className = 'test-result test-ok';
-            el.textContent = 'Verbunden: ' + (res.model || 'OK');
+            el.textContent = T.connected + ': ' + (res.model || 'OK');
         } else {
             el.className = 'test-result test-fail';
-            el.textContent = 'Fehler: ' + (res.error || 'Unbekannt');
+            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
         }
     })
     .catch(function() {
         el.className = 'test-result test-fail';
-        el.textContent = 'Netzwerkfehler';
+        el.textContent = T.network_error;
     });
 }
 
@@ -363,7 +312,7 @@ function testMqtt() {
     var el = document.getElementById('mqtt-test');
     el.className = 'test-result';
     el.style.display = 'inline-block';
-    el.textContent = 'Teste...';
+    el.textContent = T.testing;
     var data = getFormData();
     fetch('/api/test-mqtt', {
         method: 'POST',
@@ -374,15 +323,15 @@ function testMqtt() {
     .then(function(res) {
         if (res.success) {
             el.className = 'test-result test-ok';
-            el.textContent = 'Verbunden';
+            el.textContent = T.connected;
         } else {
             el.className = 'test-result test-fail';
-            el.textContent = 'Fehler: ' + (res.error || 'Unbekannt');
+            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
         }
     })
     .catch(function() {
         el.className = 'test-result test-fail';
-        el.textContent = 'Netzwerkfehler';
+        el.textContent = T.network_error;
     });
 }
 
@@ -399,14 +348,19 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
     .then(function(r) { return r.json(); })
     .then(function(res) {
         if (res.success) {
-            showToast('Einstellungen gespeichert', true);
+            showToast(T.settings_saved, true);
+            // Reload if language changed
+            var newLang = document.getElementById('language').value;
+            if (newLang !== '{{ lang }}') {
+                setTimeout(function() { location.reload(); }, 500);
+            }
         } else {
-            errEl.textContent = res.error || 'Speichern fehlgeschlagen';
+            errEl.textContent = res.error || T.save_failed;
             errEl.style.display = 'block';
         }
     })
     .catch(function() {
-        errEl.textContent = 'Netzwerkfehler';
+        errEl.textContent = T.network_error;
         errEl.style.display = 'block';
     });
 });

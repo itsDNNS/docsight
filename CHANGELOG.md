@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.5]
+
+### Added
+- **Internationalization (i18n)**: English as default language, German available via toggle
+- **Language selector**: Configurable in Setup (top-right) and Settings (General section)
+- **Sortable table columns**: Click any column header to sort ascending/descending
+- **Compact error formatting**: Large numbers abbreviated with k suffix (e.g. 132k, 5.9k)
+
 ## [2026-02-09.4]
 
 ### Changed

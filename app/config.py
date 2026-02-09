@@ -29,6 +29,7 @@ DEFAULTS = {
     "history_days": 7,
     "snapshot_time": "06:00",
     "theme": "dark",
+    "language": "en",
 }
 
 ENV_MAP = {
