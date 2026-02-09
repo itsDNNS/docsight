@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DOCSight - {{ t.initial_setup }}</title>
+    <link rel="icon" type="image/png" href="/static/icon.png">
     <style>
         :root, [data-theme="dark"] {
             --bg: #1a1a2e;
@@ -179,9 +180,12 @@
 <body>
 
 <div class="top-row">
-    <div>
-        <h1>DOCSight</h1>
-        <p class="subtitle">{{ t.initial_setup }}</p>
+    <div style="display:flex;align-items:center;gap:12px;">
+        <img src="/static/icon.png" alt="DOCSight" style="width:48px;height:48px;border-radius:10px;">
+        <div>
+            <h1>DOCSight</h1>
+            <p class="subtitle">{{ t.initial_setup }}</p>
+        </div>
     </div>
     <select class="lang-select" onchange="location.href='?lang='+this.value">
         {% for code, name in languages.items() %}

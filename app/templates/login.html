@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DOCSight - {{ t.login_title }}</title>
+    <link rel="icon" type="image/png" href="/static/icon.png">
     <style>
         :root, [data-theme="dark"] {
             --bg: #1a1a2e;
@@ -94,6 +95,7 @@
 </head>
 <body>
     <div class="login-box">
+        <img src="/static/icon.png" alt="DOCSight" style="width:64px;height:64px;border-radius:14px;display:block;margin:0 auto 12px;">
         <h1>DOCSight</h1>
         <p class="hint">{{ t.login_hint }}</p>
         {% if error %}
