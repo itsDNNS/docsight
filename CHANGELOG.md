@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.7]
+
+### Added
+- **ISP name field**: Configurable in Setup and Settings, included in LLM export report
+
+### Fixed
+- **Clipboard copy**: Fixed copy-to-clipboard on non-HTTPS connections (fallback to `execCommand`)
+
 ## [2026-02-09.6]
 
 ### Added

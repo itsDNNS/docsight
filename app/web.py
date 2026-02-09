@@ -266,6 +266,8 @@ def api_export():
     us = analysis["us_channels"]
     ts = _state.get("last_update", "unknown")
 
+    isp = _config_manager.get("isp_name", "") if _config_manager else ""
+
     lines = [
         "# DOCSIS Cable Connection – Status Report",
         "",
@@ -275,6 +277,7 @@ def api_export():
         "Analyze this data and provide insights about connection health, problematic channels, and recommendations.",
         "",
         "## Overview",
+        f"- **ISP**: {isp}" if isp else None,
         f"- **Health**: {s.get('health', 'Unknown')}",
         f"- **Details**: {s.get('health_details', '')}",
         f"- **Timestamp**: {ts}",
@@ -330,7 +333,7 @@ def api_export():
         "3. Error rate analysis and whether it indicates a problem",
         "4. Specific recommendations to improve connection quality",
     ]
-    return jsonify({"text": "\n".join(lines)})
+    return jsonify({"text": "\n".join(l for l in lines if l is not None)})
 
 
 @app.route("/api/snapshots")
