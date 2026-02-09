@@ -7,6 +7,8 @@ services:
       - "8765:8765"
     volumes:
       - docsight_data:/data
+    # environment:
+    #   - TZ=Europe/Berlin  # set container timezone for snapshot scheduling
     # env_file: .env  # uncomment if using environment variables
 
 volumes:

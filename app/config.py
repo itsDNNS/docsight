@@ -28,7 +28,7 @@ DEFAULTS = {
     "mqtt_topic_prefix": "docsight",
     "poll_interval": 300,
     "web_port": 8765,
-    "history_days": 7,
+    "history_days": 0,
     "snapshot_time": "06:00",
     "theme": "dark",
     "language": "en",

@@ -141,7 +141,9 @@ class SnapshotStorage:
         return results
 
     def _cleanup(self):
-        """Delete snapshots older than max_days."""
+        """Delete snapshots older than max_days. 0 = keep all."""
+        if self.max_days <= 0:
+            return
         cutoff = (datetime.now() - timedelta(days=self.max_days)).strftime(
             "%Y-%m-%dT%H:%M:%S"
         )

@@ -83,7 +83,7 @@ Copy `.env.example` to `.env` and edit:
 | `MQTT_TOPIC_PREFIX` | `docsight` | MQTT topic prefix |
 | `POLL_INTERVAL` | `300` | Polling interval in seconds |
 | `WEB_PORT` | `8765` | Web UI port |
-| `HISTORY_DAYS` | `7` | Snapshot retention in days |
+| `HISTORY_DAYS` | `0` | Snapshot retention in days (0 = unlimited) |
 | `ADMIN_PASSWORD` | - | Web UI password (optional) |
 
 </details>

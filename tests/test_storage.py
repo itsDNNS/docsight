@@ -56,3 +56,11 @@ class TestSnapshotStorage:
     def test_empty_storage(self, storage):
         assert storage.get_snapshot_list() == []
         assert storage.get_dates_with_data() == []
+
+    def test_unlimited_retention(self, tmp_path, sample_analysis):
+        """max_days=0 should keep all snapshots (no cleanup)."""
+        db_path = str(tmp_path / "unlimited.db")
+        s = SnapshotStorage(db_path, max_days=0)
+        s.save_snapshot(sample_analysis)
+        s.save_snapshot(sample_analysis)
+        assert len(s.get_snapshot_list()) == 2

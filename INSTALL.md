@@ -97,6 +97,8 @@ services:
       - "8765:8765"
     volumes:
       - docsight_data:/data
+    # environment:
+    #   - TZ=Europe/Berlin  # set container timezone for snapshot scheduling
 
 volumes:
   docsight_data:
@@ -146,6 +148,8 @@ services:
       - "8765:8765"
     volumes:
       - docsight_data:/data
+    # environment:
+    #   - TZ=Europe/Berlin  # set container timezone for snapshot scheduling
 
 volumes:
   docsight_data:
@@ -187,6 +191,8 @@ services:
       - "8765:8765"
     volumes:
       - docsight_data:/data
+    # environment:
+    #   - TZ=Europe/Berlin  # set container timezone for snapshot scheduling
 
 volumes:
   docsight_data:
@@ -244,8 +250,8 @@ Click **Test Connection** to verify DOCSight can reach your router. If successfu
 |---|---|---|
 | **ISP** | Your internet provider name (for reports) | - |
 | **Poll Interval** | How often to read channel data (seconds) | `300` (5 min) |
-| **History Days** | How many days of snapshots to keep | `7` |
-| **Snapshot Time** | When to save the daily snapshot | `03:00` |
+| **History Days** | How many days of snapshots to keep (0 = unlimited) | `0` (keep all) |
+| **Snapshot Time** | When to save the daily snapshot (server timezone, set `TZ` env var to change) | `06:00` |
 
 ### Advanced: MQTT for Home Assistant (optional)
 
