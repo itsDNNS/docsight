@@ -8,7 +8,7 @@ import stat
 import time
 from datetime import datetime, timedelta
 
-from flask import Flask, render_template, request, jsonify, redirect, session, url_for
+from flask import Flask, render_template, request, jsonify, redirect, session, url_for, make_response
 from werkzeug.security import check_password_hash
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
@@ -182,6 +182,7 @@ def index():
     t = get_translations(lang)
 
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
+    bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
     conn_info = _state.get("connection_info") or {}
 
     ts = request.args.get("t")
@@ -200,6 +201,7 @@ def index():
                 snapshot_ts=ts,
                 theme=theme,
                 isp_name=isp_name, connection_info=conn_info,
+                bqm_configured=bqm_configured,
                 t=t, lang=lang, languages=LANGUAGES,
             )
     return render_template(
@@ -212,6 +214,7 @@ def index():
         snapshot_ts=None,
         theme=theme,
         isp_name=isp_name, connection_info=conn_info,
+        bqm_configured=bqm_configured,
         t=t, lang=lang, languages=LANGUAGES,
     )
 
@@ -461,6 +464,32 @@ def api_snapshots():
     if _storage:
         return jsonify(_storage.get_snapshot_list())
     return jsonify([])
+
+
+@app.route("/api/bqm/dates")
+@require_auth
+def api_bqm_dates():
+    """Return dates that have BQM graph data."""
+    if _storage:
+        return jsonify(_storage.get_bqm_dates())
+    return jsonify([])
+
+
+@app.route("/api/bqm/image/<date>")
+@require_auth
+def api_bqm_image(date):
+    """Return BQM graph PNG for a given date."""
+    if not _DATE_RE.match(date):
+        return jsonify({"error": "Invalid date format"}), 400
+    if not _storage:
+        return jsonify({"error": "No storage"}), 404
+    image = _storage.get_bqm_graph(date)
+    if not image:
+        return jsonify({"error": "No BQM graph for this date"}), 404
+    resp = make_response(image)
+    resp.headers["Content-Type"] = "image/png"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
 
 
 @app.after_request

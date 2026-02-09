@@ -154,5 +154,11 @@
   "login_button": "Login",
   "logout": "Logout",
   "admin_password": "Admin Password",
-  "admin_password_hint": "Leave empty to disable authentication"
+  "admin_password_hint": "Leave empty to disable authentication",
+
+  "bqm_title": "BQM Graphs",
+  "bqm_optional": "optional",
+  "bqm_share_url": "BQM Share URL",
+  "bqm_url_hint": "Paste your ThinkBroadband BQM share link (.png)",
+  "bqm_no_data": "No BQM graph for this date."
 }

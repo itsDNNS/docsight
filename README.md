@@ -40,6 +40,7 @@
 - **Internationalization**: English, German, French, and Spanish UI
 - **LLM Export**: Generate structured reports for AI analysis (ChatGPT, Claude, Gemini, etc.)
 - **MQTT Auto-Discovery**: Zero-config integration with Home Assistant
+- **ThinkBroadband BQM**: Daily fetch and archive of broadband quality graphs with gallery view
 - **Optional Authentication**: Password-protected web UI with scrypt hashing
 - **Light/Dark Mode**: Persistent theme toggle
 
@@ -86,6 +87,7 @@ Copy `.env.example` to `.env` and edit:
 | `WEB_PORT` | `8765` | Web UI port |
 | `HISTORY_DAYS` | `0` | Snapshot retention in days (0 = unlimited) |
 | `ADMIN_PASSWORD` | - | Web UI password (optional) |
+| `BQM_URL` | - | ThinkBroadband BQM share URL (.png, optional) |
 
 </details>
 
@@ -145,7 +147,7 @@ Copy `.env.example` to `.env` and edit:
 ## Roadmap
 
 ### External Monitoring Integration
-- [ ] **ThinkBroadband BQM**: Daily fetch and archive of external broadband quality graphs (latency, packet loss)
+- [x] **ThinkBroadband BQM**: Daily fetch and archive of external broadband quality graphs (latency, packet loss)
 - [ ] **Speedtest Tracker**: Pull speed test results (download, upload, ping, jitter) from self-hosted [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker)
 
 ### Enhanced Dashboard

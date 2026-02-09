@@ -5,7 +5,7 @@ import os
 import threading
 import time
 
-from . import fritzbox, analyzer, web
+from . import fritzbox, analyzer, web, thinkbroadband
 from .config import ConfigManager
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
@@ -57,6 +57,7 @@ def polling_loop(config_mgr, storage, stop_event):
     device_info = None
     connection_info = None
     discovery_published = False
+    bqm_last_date = None
 
     while not stop_event.is_set():
         try:
@@ -91,6 +92,15 @@ def polling_loop(config_mgr, storage, stop_event):
 
             web.update_state(analysis=analysis)
             storage.save_snapshot(analysis)
+
+            # Fetch BQM graph once per day
+            if config_mgr.is_bqm_configured():
+                today = time.strftime("%Y-%m-%d")
+                if today != bqm_last_date:
+                    image = thinkbroadband.fetch_graph(config_mgr.get("bqm_url"))
+                    if image:
+                        storage.save_bqm_graph(image)
+                        bqm_last_date = today
 
         except Exception as e:
             log.error("Poll error: %s", e)

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.17]
+
+### Added
+- **ThinkBroadband BQM integration**: Daily fetch and archive of broadband quality monitor graphs (latency, packet loss)
+- **BQM gallery view**: New sidebar view to browse archived BQM graphs with date navigation and calendar integration
+- **BQM configuration**: `BQM_URL` env var and settings/setup UI field for the BQM share URL
+- **BQM API endpoints**: `GET /api/bqm/dates` and `GET /api/bqm/image/<date>` for graph retrieval
+- **BQM translations**: EN, DE, FR, ES support for all BQM-related UI strings
+
 ## [2026-02-09.16]
 
 ### Added

@@ -359,6 +359,11 @@
         <a class="sidebar-link" data-view="month">
             <span class="icon">&#128197;</span> {{ t.month_trend }}
         </a>
+        {% if bqm_configured %}
+        <a class="sidebar-link" data-view="bqm">
+            <span class="icon">&#128200;</span> {{ t.bqm_title }}
+        </a>
+        {% endif %}
         <div class="sidebar-divider"></div>
         <a class="sidebar-link" href="/settings">
             <span class="icon">&#9881;</span> {{ t.settings }}
@@ -605,6 +610,21 @@
         </div>
     </div>
 </div>
+
+<!-- ═══ View: BQM Graphs ═══ -->
+{% if bqm_configured %}
+<div id="view-bqm" class="view">
+    <div class="trend-header">
+        <span class="trend-title">{{ t.bqm_title }}</span>
+    </div>
+    <div id="bqm-content">
+        <div id="bqm-image-wrap" style="text-align:center;">
+            <img id="bqm-image" style="max-width:100%; border-radius:8px; display:none;" alt="BQM Graph">
+        </div>
+        <div id="bqm-no-data" class="no-data-msg" style="display:none;"></div>
+    </div>
+</div>
+{% endif %}
 </div><!-- /main-content -->
 </div><!-- /app-main -->
 </div><!-- /app-layout -->
@@ -719,15 +739,21 @@
         });
         var dashView = document.getElementById('view-dashboard');
         var trendView = document.getElementById('view-trends');
+        var bqmView = document.getElementById('view-bqm');
+        dashView.classList.remove('active');
+        trendView.classList.remove('active');
+        if (bqmView) bqmView.classList.remove('active');
+        stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
-            trendView.classList.remove('active');
             updateDateLabel();
             if (!isHistorical) startAutoRefresh();
+        } else if (view === 'bqm') {
+            if (bqmView) bqmView.classList.add('active');
+            updateDateLabel();
+            loadBqmGraph(selectedDate);
         } else {
-            dashView.classList.remove('active');
             trendView.classList.add('active');
-            stopAutoRefresh();
             updateDateLabel();
             loadTrends(view, selectedDate);
         }
@@ -741,6 +767,8 @@
     function updateDateLabel() {
         if (currentView === 'live') {
             dateLabel.textContent = isHistorical ? formatDateDE('{{ snapshot_ts[:10] if snapshot_ts else "" }}') : T.live;
+        } else if (currentView === 'bqm') {
+            dateLabel.textContent = formatDateDE(selectedDate) + ' (BQM)';
         } else {
             var rangeLabel = {day: T.day, week: T.week, month: T.month}[currentView] || '';
             dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
@@ -752,7 +780,7 @@
 
     function dateNav(dir) {
         var d = new Date(selectedDate + 'T12:00:00');
-        if (currentView === 'live' || currentView === 'day') {
+        if (currentView === 'live' || currentView === 'day' || currentView === 'bqm') {
             d.setDate(d.getDate() + dir);
         } else if (currentView === 'week') {
             d.setDate(d.getDate() + dir * 7);
@@ -769,6 +797,8 @@
                         window.location.href = '/?t=' + encodeURIComponent(snap.timestamp);
                     }
                 });
+        } else if (currentView === 'bqm') {
+            loadBqmGraph(selectedDate);
         } else {
             loadTrends(currentView, selectedDate);
         }
@@ -800,6 +830,8 @@
         renderCalendar();
     });
 
+    var bqmDates = [];
+
     function loadCalendarData() {
         fetch('/api/calendar')
             .then(function(r) { return r.json(); })
@@ -808,6 +840,10 @@
                 calendarLoaded = true;
                 renderCalendar();
             });
+        fetch('/api/bqm/dates')
+            .then(function(r) { return r.json(); })
+            .then(function(dates) { bqmDates = dates || []; })
+            .catch(function() {});
     }
 
     function renderCalendar() {
@@ -830,7 +866,8 @@
             var el = document.createElement('span');
             el.className = 'cal-day';
             el.textContent = d;
-            if (datesWithData.indexOf(dateStr) !== -1) el.classList.add('has-data');
+            var activeDates = (currentView === 'bqm') ? bqmDates : datesWithData;
+            if (activeDates.indexOf(dateStr) !== -1) el.classList.add('has-data');
             if (dateStr === today) el.classList.add('today');
             if (dateStr === selectedDate) el.classList.add('selected');
             el.setAttribute('data-date', dateStr);
@@ -847,6 +884,9 @@
                                 window.location.href = '/?t=' + encodeURIComponent(snap.timestamp);
                             }
                         });
+                } else if (currentView === 'bqm') {
+                    updateDateLabel();
+                    loadBqmGraph(selectedDate);
                 } else {
                     updateDateLabel();
                     loadTrends(currentView, selectedDate);
@@ -945,6 +985,22 @@
                 }
             }
         });
+    }
+
+    /* ── BQM Graph ── */
+    function loadBqmGraph(date) {
+        var img = document.getElementById('bqm-image');
+        var noData = document.getElementById('bqm-no-data');
+        if (!img || !noData) return;
+        img.style.display = 'none';
+        noData.style.display = 'none';
+        img.onload = function() { img.style.display = 'inline-block'; };
+        img.onerror = function() {
+            img.style.display = 'none';
+            noData.textContent = T.bqm_no_data || 'No BQM graph for this date.';
+            noData.style.display = 'block';
+        };
+        img.src = '/api/bqm/image/' + date;
     }
 
     /* ── Init ── */

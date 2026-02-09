@@ -154,5 +154,11 @@
   "login_button": "Se connecter",
   "logout": "Déconnexion",
   "admin_password": "Mot de passe admin",
-  "admin_password_hint": "Laisser vide pour désactiver l'authentification"
+  "admin_password_hint": "Laisser vide pour désactiver l'authentification",
+
+  "bqm_title": "Graphiques BQM",
+  "bqm_optional": "optionnel",
+  "bqm_share_url": "URL de partage BQM",
+  "bqm_url_hint": "Collez votre lien de partage ThinkBroadband BQM (.png)",
+  "bqm_no_data": "Pas de graphique BQM pour cette date."
 }

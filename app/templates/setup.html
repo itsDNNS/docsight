@@ -257,7 +257,7 @@
         </div>
     </div>
 
-    <div class="advanced-toggle" id="mqtt-toggle" onclick="toggleAdvanced()">
+    <div class="advanced-toggle" id="mqtt-toggle" onclick="toggleAdvanced('mqtt')">
         <span class="arrow">&#9654;</span>
         <span class="adv-label">{{ t.advanced_mqtt }}</span>
         <span class="adv-hint">{{ t.optional }}</span>
@@ -295,6 +295,22 @@
         </div>
     </div>
 
+    <div class="advanced-toggle" id="bqm-toggle" onclick="toggleAdvanced('bqm')">
+        <span class="arrow">&#9654;</span>
+        <span class="adv-label">ThinkBroadband BQM</span>
+        <span class="adv-hint">{{ t.optional }}</span>
+    </div>
+    <div class="advanced-content" id="bqm-section">
+        <div class="section">
+            <h2>ThinkBroadband BQM</h2>
+            <div class="form-row">
+                <label for="bqm_url">{{ t.bqm_share_url }}</label>
+                <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
+                <span class="hint">{{ t.bqm_url_hint }}</span>
+            </div>
+        </div>
+    </div>
+
     <div class="submit-row">
         <button type="submit" class="btn btn-primary">{{ t.complete_setup }}</button>
     </div>
@@ -309,9 +325,9 @@ function onIspChange() {
     row.style.display = sel.value === '__other__' ? 'flex' : 'none';
 }
 
-function toggleAdvanced() {
-    var toggle = document.getElementById('mqtt-toggle');
-    var section = document.getElementById('mqtt-section');
+function toggleAdvanced(id) {
+    var toggle = document.getElementById(id + '-toggle');
+    var section = document.getElementById(id + '-section');
     toggle.classList.toggle('open');
     section.classList.toggle('open');
 }

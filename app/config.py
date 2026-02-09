@@ -34,6 +34,7 @@ DEFAULTS = {
     "language": "en",
     "isp_name": "",
     "admin_password": "",
+    "bqm_url": "",
 }
 
 ENV_MAP = {
@@ -50,6 +51,7 @@ ENV_MAP = {
     "history_days": "HISTORY_DAYS",
     "data_dir": "DATA_DIR",
     "admin_password": "ADMIN_PASSWORD",
+    "bqm_url": "BQM_URL",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -227,6 +229,10 @@ class ConfigManager:
     def is_mqtt_configured(self):
         """True if mqtt_host is set (MQTT is optional)."""
         return bool(self.get("mqtt_host"))
+
+    def is_bqm_configured(self):
+        """True if bqm_url is set (BQM is optional)."""
+        return bool(self.get("bqm_url"))
 
     def get_theme(self):
         """Return 'dark' or 'light'."""

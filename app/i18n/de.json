@@ -154,5 +154,11 @@
   "login_button": "Anmelden",
   "logout": "Abmelden",
   "admin_password": "Admin-Passwort",
-  "admin_password_hint": "Leer lassen um Authentifizierung zu deaktivieren"
+  "admin_password_hint": "Leer lassen um Authentifizierung zu deaktivieren",
+
+  "bqm_title": "BQM-Graphen",
+  "bqm_optional": "optional",
+  "bqm_share_url": "BQM Share-URL",
+  "bqm_url_hint": "ThinkBroadband BQM Share-Link einfuegen (.png)",
+  "bqm_no_data": "Kein BQM-Graph fuer dieses Datum."
 }

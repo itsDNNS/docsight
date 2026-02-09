@@ -33,6 +33,14 @@ class SnapshotStorage:
                 CREATE INDEX IF NOT EXISTS idx_snapshots_ts
                 ON snapshots(timestamp)
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS bqm_graphs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL UNIQUE,
+                    timestamp TEXT NOT NULL,
+                    image_blob BLOB NOT NULL
+                )
+            """)
 
     def save_snapshot(self, analysis):
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
@@ -140,8 +148,38 @@ class SnapshotStorage:
             results.append(entry)
         return results
 
+    def save_bqm_graph(self, image_data):
+        """Save BQM graph for today. Skips if already exists (UNIQUE date)."""
+        today = datetime.now().strftime("%Y-%m-%d")
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
+                    (today, ts, image_data),
+                )
+            log.debug("BQM graph saved for %s", today)
+        except Exception as e:
+            log.error("Failed to save BQM graph: %s", e)
+
+    def get_bqm_dates(self):
+        """Return list of dates with BQM graphs (newest first)."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT date FROM bqm_graphs ORDER BY date DESC"
+            ).fetchall()
+        return [r[0] for r in rows]
+
+    def get_bqm_graph(self, date):
+        """Return BQM graph PNG bytes for a date, or None."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT image_blob FROM bqm_graphs WHERE date = ?", (date,)
+            ).fetchone()
+        return bytes(row[0]) if row else None
+
     def _cleanup(self):
-        """Delete snapshots older than max_days. 0 = keep all."""
+        """Delete snapshots and BQM graphs older than max_days. 0 = keep all."""
         if self.max_days <= 0:
             return
         cutoff = (datetime.now() - timedelta(days=self.max_days)).strftime(
@@ -153,3 +191,10 @@ class SnapshotStorage:
             ).rowcount
         if deleted:
             log.info("Cleaned up %d old snapshots (before %s)", deleted, cutoff)
+        cutoff_date = (datetime.now() - timedelta(days=self.max_days)).strftime("%Y-%m-%d")
+        with sqlite3.connect(self.db_path) as conn:
+            bqm_deleted = conn.execute(
+                "DELETE FROM bqm_graphs WHERE date < ?", (cutoff_date,)
+            ).rowcount
+        if bqm_deleted:
+            log.info("Cleaned up %d old BQM graphs (before %s)", bqm_deleted, cutoff_date)
