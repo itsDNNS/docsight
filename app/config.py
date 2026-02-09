@@ -12,7 +12,7 @@ log = logging.getLogger("docsis.config")
 POLL_MIN = 60
 POLL_MAX = 3600
 
-SECRET_KEYS = {"fritz_password", "mqtt_password"}
+SECRET_KEYS = {"fritz_password", "mqtt_password", "admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
 DEFAULTS = {
@@ -31,6 +31,7 @@ DEFAULTS = {
     "theme": "dark",
     "language": "en",
     "isp_name": "",
+    "admin_password": "",
 }
 
 ENV_MAP = {
@@ -46,6 +47,7 @@ ENV_MAP = {
     "web_port": "WEB_PORT",
     "history_days": "HISTORY_DAYS",
     "data_dir": "DATA_DIR",
+    "admin_password": "ADMIN_PASSWORD",
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days"}

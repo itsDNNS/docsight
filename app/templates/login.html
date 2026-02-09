@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" data-theme="{{ theme|default('dark') }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DOCSight - {{ t.login_title }}</title>
+    <style>
+        :root, [data-theme="dark"] {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --card: #0f3460;
+            --text: #e0e0e0;
+            --muted: #888;
+            --crit: #f44336;
+            --accent: #00adb5;
+            --input-bg: #0d1b3e;
+            --input-border: rgba(255,255,255,0.15);
+        }
+        [data-theme="light"] {
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --card: #e8edf2;
+            --text: #1a1a2e;
+            --muted: #666;
+            --crit: #c62828;
+            --accent: #00838f;
+            --input-bg: #f8f9fa;
+            --input-border: rgba(0,0,0,0.15);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+        .login-box h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .login-box .hint {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+        .login-box .error {
+            background: rgba(244,67,54,0.15);
+            color: var(--crit);
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 0.65rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        .login-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .login-box button {
+            width: 100%;
+            padding: 0.65rem;
+            border-radius: 6px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .login-box button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>DOCSight</h1>
+        <p class="hint">{{ t.login_hint }}</p>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <input type="password" name="password" placeholder="{{ t.password }}" autofocus required>
+            <button type="submit">{{ t.login_button }}</button>
+        </form>
+    </div>
+</body>
+</html>

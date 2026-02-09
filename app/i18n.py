@@ -163,6 +163,15 @@ EN = {
     "copied": "Copied!",
     "close": "Close",
     "export_no_data": "No data available yet. Wait for the first poll.",
+
+    # Auth
+    "login_title": "Login",
+    "login_hint": "Enter the admin password to access DOCSight.",
+    "login_failed": "Invalid password",
+    "login_button": "Login",
+    "logout": "Logout",
+    "admin_password": "Admin Password",
+    "admin_password_hint": "Leave empty to disable authentication",
 }
 
 DE = {
@@ -310,6 +319,14 @@ DE = {
     "copied": "Kopiert!",
     "close": "Schliessen",
     "export_no_data": "Noch keine Daten vorhanden. Warte auf die erste Abfrage.",
+
+    "login_title": "Anmeldung",
+    "login_hint": "Gib das Admin-Passwort ein, um auf DOCSight zuzugreifen.",
+    "login_failed": "Falsches Passwort",
+    "login_button": "Anmelden",
+    "logout": "Abmelden",
+    "admin_password": "Admin-Passwort",
+    "admin_password_hint": "Leer lassen um Authentifizierung zu deaktivieren",
 }
 
 _TRANSLATIONS = {"en": EN, "de": DE}

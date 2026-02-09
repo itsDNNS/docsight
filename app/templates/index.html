@@ -364,6 +364,11 @@
         <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
             <span class="icon">&#128196;</span> {{ t.export_llm }}
         </a>
+        {% if auth_enabled %}
+        <a class="sidebar-link" href="/logout">
+            <span class="icon">&#128682;</span> {{ t.logout }}
+        </a>
+        {% endif %}
         <div class="sidebar-divider"></div>
         <details class="sidebar-ref">
             <summary>{{ t.reference_values }}</summary>

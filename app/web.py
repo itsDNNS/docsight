@@ -1,10 +1,12 @@
 """Flask web UI for DOCSight – DOCSIS channel monitoring."""
 
+import functools
 import logging
+import os
 import time
 from datetime import datetime, timedelta
 
-from flask import Flask, render_template, request, jsonify, redirect
+from flask import Flask, render_template, request, jsonify, redirect, session, url_for
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
 from .i18n import get_translations, LANGUAGES
@@ -12,6 +14,7 @@ from .i18n import get_translations, LANGUAGES
 log = logging.getLogger("docsis.web")
 
 app = Flask(__name__, template_folder="templates")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(32))
 
 
 @app.template_filter("fmt_k")
@@ -67,6 +70,56 @@ def init_config(config_manager, on_config_changed=None):
     _on_config_changed = on_config_changed
 
 
+def _auth_required():
+    """Check if auth is enabled and user is not logged in."""
+    if not _config_manager:
+        return False
+    admin_pw = _config_manager.get("admin_password", "")
+    if not admin_pw:
+        return False
+    return not session.get("authenticated")
+
+
+def require_auth(f):
+    """Decorator: redirect to /login if auth is enabled and not logged in."""
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if _auth_required():
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not _config_manager or not _config_manager.get("admin_password", ""):
+        return redirect("/")
+    lang = _get_lang()
+    t = get_translations(lang)
+    theme = _config_manager.get_theme() if _config_manager else "dark"
+    error = None
+    if request.method == "POST":
+        pw = request.form.get("password", "")
+        if pw == _config_manager.get("admin_password", ""):
+            session["authenticated"] = True
+            return redirect("/")
+        error = t.get("login_failed", "Invalid password")
+    return render_template("login.html", t=t, lang=lang, theme=theme, error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.pop("authenticated", None)
+    return redirect("/login")
+
+
+@app.context_processor
+def inject_auth():
+    """Make auth_enabled available in all templates."""
+    auth_enabled = bool(_config_manager and _config_manager.get("admin_password", ""))
+    return {"auth_enabled": auth_enabled}
+
+
 def update_state(analysis=None, error=None, poll_interval=None, connection_info=None):
     """Update the shared web state from the main loop."""
     if analysis is not None:
@@ -82,6 +135,7 @@ def update_state(analysis=None, error=None, poll_interval=None, connection_info=
 
 
 @app.route("/")
+@require_auth
 def index():
     if _config_manager and not _config_manager.is_configured():
         return redirect("/setup")
@@ -134,6 +188,7 @@ def setup():
 
 
 @app.route("/settings")
+@require_auth
 def settings():
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     theme = _config_manager.get_theme() if _config_manager else "dark"
@@ -143,6 +198,7 @@ def settings():
 
 
 @app.route("/api/config", methods=["POST"])
+@require_auth
 def api_config():
     """Save configuration."""
     if not _config_manager:
@@ -168,6 +224,7 @@ def api_config():
 
 
 @app.route("/api/test-fritz", methods=["POST"])
+@require_auth
 def api_test_fritz():
     """Test FritzBox connection."""
     try:
@@ -189,6 +246,7 @@ def api_test_fritz():
 
 
 @app.route("/api/test-mqtt", methods=["POST"])
+@require_auth
 def api_test_mqtt():
     """Test MQTT broker connection."""
     try:

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.13]
+
+### Added
+- **Web UI authentication**: Optional admin password protects all routes except `/health`; configurable in Settings
+- **Login page**: Clean login form with i18n support (EN/DE)
+- **Logout**: Session-based auth with logout link in sidebar
+- **CONTRIBUTING.md**: Guidelines for contributors and modem driver development
+
 ## [2026-02-09.12]
 
 ### Added
