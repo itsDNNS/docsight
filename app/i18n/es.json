@@ -160,5 +160,19 @@
   "bqm_optional": "opcional",
   "bqm_share_url": "URL de compartir BQM",
   "bqm_url_hint": "Pega tu enlace de compartir ThinkBroadband BQM (.png)",
-  "bqm_no_data": "No hay gráfico BQM para esta fecha."
+  "bqm_no_data": "No hay gráfico BQM para esta fecha.",
+
+  "card_signal_quality": "Calidad de señal",
+  "card_upstream": "Ascendente",
+  "card_errors": "Errores",
+  "card_ds_power": "Nivel de señal",
+  "card_snr": "Claridad de señal",
+  "card_transmit_power": "Potencia de transmisión",
+  "card_uncorr_label": "no corregibles",
+  "card_corr_label": "corregidos automáticamente",
+  "card_power_range": "Rango",
+  "card_ideal_range": "Rango ideal",
+  "card_uncorr_exact": "No corregibles (exacto)",
+  "card_corr_exact": "Corregibles (exacto)",
+  "card_errors_note": "Los errores no corregibles no se pueden recuperar. Números altos y crecientes indican un problema de cable."
 }

@@ -2,6 +2,7 @@
 
 import functools
 import logging
+import math
 import os
 import re
 import stat
@@ -185,6 +186,13 @@ def index():
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
     conn_info = _state.get("connection_info") or {}
 
+    def _compute_uncorr_pct(analysis):
+        """Compute log-scale percentage for uncorrectable errors gauge."""
+        if not analysis:
+            return 0
+        uncorr = analysis.get("summary", {}).get("ds_uncorrectable_errors", 0)
+        return min(100, math.log10(max(1, uncorr)) / 5 * 100)
+
     ts = request.args.get("t")
     if ts and not _TS_RE.match(ts):
         return redirect("/")
@@ -202,6 +210,7 @@ def index():
                 theme=theme,
                 isp_name=isp_name, connection_info=conn_info,
                 bqm_configured=bqm_configured,
+                uncorr_pct=_compute_uncorr_pct(snapshot),
                 t=t, lang=lang, languages=LANGUAGES,
             )
     return render_template(
@@ -215,6 +224,7 @@ def index():
         theme=theme,
         isp_name=isp_name, connection_info=conn_info,
         bqm_configured=bqm_configured,
+        uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
         t=t, lang=lang, languages=LANGUAGES,
     )
 

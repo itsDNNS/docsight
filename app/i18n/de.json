@@ -160,5 +160,19 @@
   "bqm_optional": "optional",
   "bqm_share_url": "BQM Share-URL",
   "bqm_url_hint": "ThinkBroadband BQM Share-Link einfuegen (.png)",
-  "bqm_no_data": "Kein BQM-Graph fuer dieses Datum."
+  "bqm_no_data": "Kein BQM-Graph fuer dieses Datum.",
+
+  "card_signal_quality": "Signalqualitaet",
+  "card_upstream": "Upstream",
+  "card_errors": "Fehler",
+  "card_ds_power": "Signalpegel",
+  "card_snr": "Signalklarheit",
+  "card_transmit_power": "Sendeleistung",
+  "card_uncorr_label": "unkorrigierbar",
+  "card_corr_label": "automatisch korrigiert",
+  "card_power_range": "Bereich",
+  "card_ideal_range": "Idealbereich",
+  "card_uncorr_exact": "Unkorrigierbar (exakt)",
+  "card_corr_exact": "Korrigierbar (exakt)",
+  "card_errors_note": "Unkorrigierbare Fehler koennen nicht wiederhergestellt werden. Hohe und steigende Werte deuten auf ein Kabelproblem hin."
 }

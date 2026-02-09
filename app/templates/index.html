@@ -197,13 +197,96 @@
         .health-issue-name { font-weight: bold; font-size: 0.9em; display: block; }
         .health-issue-desc { font-size: 0.82em; color: var(--muted); margin-top: 2px; display: block; }
         h2.section-title { font-size: 1.1em; margin: 16px 0 8px; color: var(--accent); }
-        .summary-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px; margin-bottom: 16px;
+        /* ── Connection Info Bar ── */
+        .conn-info-bar {
+            background: var(--surface); border-radius: 6px; padding: 10px 16px;
+            font-size: 0.9em; color: var(--muted); margin-bottom: 12px;
+            display: flex; align-items: center; gap: 6px;
         }
-        .summary-card { background: var(--surface); border-radius: 6px; padding: 12px; }
-        .summary-card .label { font-size: 0.8em; color: var(--muted); }
-        .summary-card .value { font-size: 1.3em; font-weight: bold; margin-top: 4px; }
+        .conn-info-bar .conn-sep { opacity: 0.4; }
+
+        /* ── Metric Cards Grid ── */
+        .metric-cards {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 12px; margin-bottom: 16px;
+        }
+
+        /* ── Metric Card ── */
+        .metric-card {
+            background: var(--surface); border-radius: 6px;
+            border-left: 4px solid var(--muted); overflow: hidden;
+        }
+        .metric-card.health-good { border-left-color: var(--good); }
+        .metric-card.health-warn { border-left-color: var(--warn); }
+        .metric-card.health-crit { border-left-color: var(--crit); }
+
+        .metric-card-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 14px 0; cursor: pointer; user-select: none;
+        }
+        .metric-card-header .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .health-good .status-dot { background: var(--good); }
+        .health-warn .status-dot { background: var(--warn); }
+        .health-crit .status-dot { background: var(--crit); }
+        .metric-card-header .card-title {
+            font-size: 0.75em; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; color: var(--muted); flex: 1;
+        }
+        .metric-card-header .chevron {
+            font-size: 0.7em; color: var(--muted); transition: transform 0.25s ease;
+        }
+        .metric-card.open .metric-card-header .chevron { transform: rotate(90deg); }
+
+        .metric-card-body { padding: 8px 14px 14px; }
+
+        /* ── Metric Row (side-by-side metrics) ── */
+        .metric-row { display: flex; gap: 20px; }
+        .metric-item { flex: 1; min-width: 0; }
+        .metric-value {
+            font-size: 1.6em; font-weight: bold; line-height: 1.2;
+        }
+        .metric-value.val-good { color: var(--good); }
+        .metric-value.val-warn { color: var(--warn); }
+        .metric-value.val-crit { color: var(--crit); }
+        .metric-unit { font-size: 0.7em; font-weight: normal; color: var(--muted); margin-left: 2px; }
+        .metric-label { font-size: 0.78em; color: var(--muted); margin-top: 2px; }
+
+        /* ── Gauge Bar ── */
+        .gauge-bar {
+            height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px;
+            margin-top: 6px; overflow: hidden;
+        }
+        [data-theme="light"] .gauge-bar { background: rgba(0,0,0,0.08); }
+        .gauge-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+        .gauge-fill.val-good { background: var(--good); }
+        .gauge-fill.val-warn { background: var(--warn); }
+        .gauge-fill.val-crit { background: var(--crit); }
+
+        /* ── Secondary Value (errors card) ── */
+        .metric-secondary {
+            font-size: 0.85em; color: var(--muted); margin-top: 6px;
+        }
+        .metric-secondary strong { color: var(--text); font-weight: 600; }
+
+        /* ── Card Detail (expandable) ── */
+        .metric-card-detail {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 14px;
+        }
+        .metric-card.open .metric-card-detail { max-height: 300px; }
+        .detail-table {
+            width: 100%; font-size: 0.82em; border-collapse: collapse;
+            margin: 8px 0 12px;
+        }
+        .detail-table td { padding: 4px 0; }
+        .detail-table td:first-child { color: var(--muted); padding-right: 12px; }
+        .detail-note {
+            font-size: 0.78em; color: var(--muted); font-style: italic;
+            padding-bottom: 12px;
+        }
 
         /* ── Tables ── */
         table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.9em; }
@@ -325,11 +408,15 @@
             .sidebar { width: 0; min-width: 0; }
             .sidebar.collapsed { width: 0; min-width: 0; }
         }
+        @media (max-width: 900px) {
+            .metric-cards { grid-template-columns: 1fr; }
+        }
         @media (max-width: 600px) {
             body { font-size: 14px; }
             .topbar { gap: 6px; padding: 8px 10px; }
             .topbar-title { display: none; }
-            .summary-grid { grid-template-columns: 1fr 1fr; }
+            .metric-cards { grid-template-columns: 1fr; }
+            .metric-row { flex-direction: column; gap: 10px; }
             table { font-size: 0.8em; }
             th, td { padding: 4px 6px; }
             .calendar-popup { left: 10px; right: 10px; min-width: auto; }
@@ -480,36 +567,116 @@
         {% endif %}
     </div>
 
-    <div class="summary-grid">
-        {% if isp_name or connection_info %}
-        <div class="summary-card">
-            <div class="label">{{ t.tariff }}</div>
-            <div class="value">{% if isp_name %}{{ isp_name }}{% endif %}{% if connection_info.max_downstream_kbps %} {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} Mbit/s{% endif %}</div>
-        </div>
+    {# ── Connection Info Bar ── #}
+    {% if isp_name or (connection_info and connection_info.max_downstream_kbps) %}
+    <div class="conn-info-bar">
+        {% if isp_name %}{{ isp_name }}{% endif %}
+        {% if connection_info and connection_info.max_downstream_kbps %}
+            {% if isp_name %}<span class="conn-sep">&middot;</span>{% endif %}
+            {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} Mbit/s
         {% endif %}
-        <div class="summary-card">
-            <div class="label">{{ t.ds_channels }}</div>
-            <div class="value">{{ s.ds_total }}</div>
+        <span class="conn-sep">|</span>
+        {{ s.ds_total }} DS <span class="conn-sep">/</span> {{ s.us_total }} US {{ t.channels|lower }}
+    </div>
+    {% endif %}
+
+    {# ── Per-card health ── #}
+    {% set signal_health = 'crit' if 'ds_power_critical' in s.health_issues or 'snr_critical' in s.health_issues
+       else ('warn' if 'snr_warn' in s.health_issues else 'good') %}
+    {% set us_health = 'crit' if 'us_power_critical' in s.health_issues
+       else ('warn' if 'us_power_warn' in s.health_issues else 'good') %}
+    {% set error_health = 'crit' if 'uncorr_errors_high' in s.health_issues else 'good' %}
+
+    {# ── Gauge percentages ── #}
+    {% set ds_power_pct = [0, [100, (s.ds_power_avg|abs / 12 * 100)|int]|min]|max %}
+    {% set snr_pct = [0, [100, ((s.ds_snr_avg - 20) / 25 * 100)|int]|min]|max %}
+    {% set us_power_pct = [0, [100, ((s.us_power_avg - 30) / 30 * 100)|int]|min]|max %}
+
+    {# ── DS Power health ── #}
+    {% set ds_pwr_health = 'crit' if 'ds_power_critical' in s.health_issues else 'good' %}
+    {# ── SNR health ── #}
+    {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_warn' in s.health_issues else 'good') %}
+
+    <div class="metric-cards">
+        {# ── Card 1: Signal Quality ── #}
+        <div class="metric-card health-{{ signal_health }}" onclick="toggleCard(this)">
+            <div class="metric-card-header">
+                <span class="status-dot"></span>
+                <span class="card-title">{{ t.card_signal_quality }}</span>
+                <span class="chevron">&#9654;</span>
+            </div>
+            <div class="metric-card-body">
+                <div class="metric-row">
+                    <div class="metric-item">
+                        <div class="metric-value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}<span class="metric-unit">dBmV</span></div>
+                        <div class="metric-label">{{ t.card_ds_power }}</div>
+                        <div class="gauge-bar"><div class="gauge-fill val-{{ ds_pwr_health }}" style="width:{{ ds_power_pct }}%"></div></div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value val-{{ snr_health }}">{{ s.ds_snr_avg }}<span class="metric-unit">dB</span></div>
+                        <div class="metric-label">{{ t.card_snr }}</div>
+                        <div class="gauge-bar"><div class="gauge-fill val-{{ snr_health }}" style="width:{{ snr_pct }}%"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="metric-card-detail">
+                <table class="detail-table">
+                    <tr><td>{{ t.card_power_range }}</td><td>{{ s.ds_power_min }} ... {{ s.ds_power_max }} dBmV</td></tr>
+                    <tr><td>SNR {{ t.card_power_range }}</td><td>{{ s.ds_snr_min }} ... {{ s.ds_snr_avg }} dB</td></tr>
+                    <tr><td>{{ t.channels }}</td><td>{{ s.ds_total }} {{ t.downstream|lower }}</td></tr>
+                    <tr><td>{{ t.card_ideal_range }}</td><td>-7...+7 dBmV / SNR &gt;30 dB</td></tr>
+                </table>
+            </div>
         </div>
-        <div class="summary-card">
-            <div class="label">{{ t.ds_power_range }}</div>
-            <div class="value">{{ s.ds_power_min }} / {{ s.ds_power_avg }} / {{ s.ds_power_max }} dBmV</div>
+
+        {# ── Card 2: Upstream ── #}
+        <div class="metric-card health-{{ us_health }}" onclick="toggleCard(this)">
+            <div class="metric-card-header">
+                <span class="status-dot"></span>
+                <span class="card-title">{{ t.card_upstream }}</span>
+                <span class="chevron">&#9654;</span>
+            </div>
+            <div class="metric-card-body">
+                <div class="metric-row">
+                    <div class="metric-item">
+                        <div class="metric-value val-{{ us_health }}">{{ s.us_power_avg }}<span class="metric-unit">dBmV</span></div>
+                        <div class="metric-label">{{ t.card_transmit_power }}</div>
+                        <div class="gauge-bar"><div class="gauge-fill val-{{ us_health }}" style="width:{{ us_power_pct }}%"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="metric-card-detail">
+                <table class="detail-table">
+                    <tr><td>{{ t.card_power_range }}</td><td>{{ s.us_power_min }} ... {{ s.us_power_max }} dBmV</td></tr>
+                    <tr><td>{{ t.channels }}</td><td>{{ s.us_total }} {{ t.upstream|lower }}</td></tr>
+                    <tr><td>{{ t.card_ideal_range }}</td><td>35 ... 49 dBmV</td></tr>
+                </table>
+            </div>
         </div>
-        <div class="summary-card">
-            <div class="label">{{ t.ds_snr_range }}</div>
-            <div class="value">{{ s.ds_snr_min }} / {{ s.ds_snr_avg }} dB</div>
-        </div>
-        <div class="summary-card">
-            <div class="label">{{ t.ds_errors_label }}</div>
-            <div class="value">{{ s.ds_correctable_errors|fmt_k }} / {{ s.ds_uncorrectable_errors|fmt_k }}</div>
-        </div>
-        <div class="summary-card">
-            <div class="label">{{ t.us_channels }}</div>
-            <div class="value">{{ s.us_total }}</div>
-        </div>
-        <div class="summary-card">
-            <div class="label">{{ t.us_power_range }}</div>
-            <div class="value">{{ s.us_power_min }} / {{ s.us_power_avg }} / {{ s.us_power_max }} dBmV</div>
+
+        {# ── Card 3: Errors ── #}
+        <div class="metric-card health-{{ error_health }}" onclick="toggleCard(this)">
+            <div class="metric-card-header">
+                <span class="status-dot"></span>
+                <span class="card-title">{{ t.card_errors }}</span>
+                <span class="chevron">&#9654;</span>
+            </div>
+            <div class="metric-card-body">
+                <div class="metric-row">
+                    <div class="metric-item">
+                        <div class="metric-value val-{{ error_health }}">{{ s.ds_uncorrectable_errors|fmt_k }}<span class="metric-unit">{{ t.card_uncorr_label }}</span></div>
+                        <div class="gauge-bar"><div class="gauge-fill val-{{ error_health }}" style="width:{{ uncorr_pct|int }}%"></div></div>
+                        <div class="metric-secondary">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="metric-card-detail">
+                <table class="detail-table">
+                    <tr><td>{{ t.card_uncorr_exact }}</td><td>{{ "{:,}".format(s.ds_uncorrectable_errors) }}</td></tr>
+                    <tr><td>{{ t.card_corr_exact }}</td><td>{{ "{:,}".format(s.ds_correctable_errors) }}</td></tr>
+                </table>
+                <div class="detail-note">{{ t.card_errors_note }}</div>
+            </div>
         </div>
     </div>
 
@@ -1057,6 +1224,9 @@ function fallbackCopy(textarea, btn, T) {
         btn.textContent = 'Select All + Ctrl+C';
         setTimeout(function() { btn.textContent = T.copy_clipboard; }, 3000);
     }
+}
+function toggleCard(el) {
+    el.classList.toggle('open');
 }
 </script>
 
