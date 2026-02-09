@@ -732,7 +732,7 @@
     </div>
 
     <h2 class="section-title">{{ t.downstream }} ({{ ds|length }} {{ t.channels }})</h2>
-    {% for group in ds|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
+    {% for group in ds|groupby('docsis_version')|reverse %}
     {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
     {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
     <details class="channel-group">
@@ -768,7 +768,7 @@
     {% endfor %}
 
     <h2 class="section-title">{{ t.upstream }} ({{ us|length }} {{ t.channels }})</h2>
-    {% for group in us|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
+    {% for group in us|groupby('docsis_version')|reverse %}
     {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
     {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
     <details class="channel-group">
