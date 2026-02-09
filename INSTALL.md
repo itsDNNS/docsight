@@ -1,0 +1,326 @@
+# Installation Guide
+
+Get DOCSight running in under 10 minutes.
+
+## What You Need
+
+- **A computer or NAS** with Docker installed
+- **An AVM FRITZ!Box Cable router** (e.g. FRITZ!Box 6690 Cable)
+- **Your FRITZ!Box login credentials** (the username and password you use to log into `http://fritz.box`)
+
+> **New to Docker?** Docker runs applications in isolated containers. Install it from:
+> - **Windows/Mac**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+> - **Synology NAS**: Search for "Container Manager" in Package Center
+> - **Linux**: [Docker Engine](https://docs.docker.com/engine/install/)
+
+## Choose Your Installation Method
+
+All four methods create the exact same container. Pick whichever fits your setup:
+
+| Method | Best for |
+|---|---|
+| [Docker CLI](#docker-cli) | Quick terminal one-liner |
+| [Docker Compose](#docker-compose) | Reproducible config file |
+| [Portainer](#portainer) | NAS users with Portainer UI |
+| [Dockhand](#dockhand) | NAS users with Dockhand UI |
+
+---
+
+## Docker CLI
+
+### Step 1: Open a terminal
+
+- **Windows**: Search for "Command Prompt" or "PowerShell" in the Start menu
+- **Mac**: Open "Terminal" from Applications → Utilities
+- **Linux**: Open your terminal emulator
+- **Synology NAS**: SSH into your NAS or use the built-in terminal
+
+### Step 2: Run this command
+
+```bash
+docker run -d \
+  --name docsight \
+  --restart unless-stopped \
+  -p 8765:8765 \
+  -v docsight_data:/data \
+  ghcr.io/itsdnns/docsight:latest
+```
+
+| Flag | What it does |
+|---|---|
+| `-d` | Runs in the background |
+| `--name docsight` | Names the container "docsight" |
+| `--restart unless-stopped` | Auto-starts after reboot |
+| `-p 8765:8765` | Makes the web UI available on port 8765 |
+| `-v docsight_data:/data` | Stores config and history permanently |
+
+### Step 3: Open DOCSight
+
+Open your browser and go to **http://localhost:8765**
+
+> On a NAS or remote machine, replace `localhost` with the machine's IP address, e.g. `http://192.168.178.15:8765`
+
+Now continue with [First-Time Setup](#first-time-setup).
+
+---
+
+## Docker Compose
+
+### Step 1: Create a `docker-compose.yml` file
+
+Create a new folder (e.g. `docsight`) and save this file inside it as `docker-compose.yml`:
+
+```yaml
+services:
+  docsight:
+    image: ghcr.io/itsdnns/docsight:latest
+    container_name: docsight
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - docsight_data:/data
+
+volumes:
+  docsight_data:
+```
+
+### Step 2: Start the container
+
+Open a terminal in the folder with your `docker-compose.yml` and run:
+
+```bash
+docker compose up -d
+```
+
+### Step 3: Open DOCSight
+
+Open your browser and go to **http://localhost:8765**
+
+> On a NAS or remote machine, replace `localhost` with the machine's IP address, e.g. `http://192.168.178.15:8765`
+
+Now continue with [First-Time Setup](#first-time-setup).
+
+---
+
+## Portainer
+
+### Step 1: Open Portainer
+
+Open your Portainer web UI (usually `https://your-nas-ip:9443`).
+
+### Step 2: Create a new stack
+
+1. Go to **Stacks** in the left menu
+2. Click **Add stack**
+3. Give it the name `docsight`
+4. In the **Web editor**, paste this YAML:
+
+```yaml
+services:
+  docsight:
+    image: ghcr.io/itsdnns/docsight:latest
+    container_name: docsight
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - docsight_data:/data
+
+volumes:
+  docsight_data:
+```
+
+5. Click **Deploy the stack**
+
+### Step 3: Open DOCSight
+
+Open your browser and go to **http://your-nas-ip:8765**
+
+Now continue with [First-Time Setup](#first-time-setup).
+
+---
+
+## Dockhand
+
+### Step 1: Open Dockhand
+
+Open your Dockhand web UI in your browser.
+
+### Step 2: Create a new stack
+
+1. Go to **Stacks** in the navigation
+2. Click **Create Stack**
+3. Give it the name `docsight`
+4. In the YAML editor, paste this:
+
+```yaml
+services:
+  docsight:
+    image: ghcr.io/itsdnns/docsight:latest
+    container_name: docsight
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - docsight_data:/data
+
+volumes:
+  docsight_data:
+```
+
+5. Click **Deploy**
+
+### Step 3: Open DOCSight
+
+Open your browser and go to **http://your-nas-ip:8765**
+
+Now continue with [First-Time Setup](#first-time-setup).
+
+---
+
+## First-Time Setup
+
+When you open DOCSight for the first time, a setup wizard guides you through the configuration.
+
+![Setup Wizard](docs/screenshots/setup.png)
+
+### Step 1: Modem Connection
+
+| Field | What to enter |
+|---|---|
+| **Modem URL** | `http://192.168.178.1` (default FRITZ!Box address) |
+| **Username** | Your FRITZ!Box username |
+| **Password** | Your FRITZ!Box password |
+
+Click **Test Connection** to verify DOCSight can reach your router. If successful, continue to the next step.
+
+### Step 2: General Settings
+
+| Field | Description | Default |
+|---|---|---|
+| **ISP** | Your internet provider name (for reports) | - |
+| **Poll Interval** | How often to read channel data (seconds) | `300` (5 min) |
+| **History Days** | How many days of snapshots to keep | `7` |
+| **Snapshot Time** | When to save the daily snapshot | `03:00` |
+
+### Advanced: MQTT for Home Assistant (optional)
+
+If you use Home Assistant, you can enable MQTT to get per-channel sensors automatically:
+
+| Field | Description |
+|---|---|
+| **MQTT Host** | Your MQTT broker address (e.g. `192.168.178.15`) |
+| **MQTT Port** | `1883` (default) |
+| **MQTT User** | Broker username (if required) |
+| **MQTT Password** | Broker password (if required) |
+
+### Complete
+
+Click **Complete Setup** - DOCSight starts monitoring immediately. Your dashboard will show channel data after the first poll.
+
+---
+
+## Updating DOCSight
+
+Your configuration and history are stored in a Docker volume and survive updates.
+
+### Docker CLI
+
+```bash
+docker pull ghcr.io/itsdnns/docsight:latest
+docker stop docsight
+docker rm docsight
+docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
+```
+
+### Docker Compose
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+### Portainer
+
+1. Open the **docsight** stack
+2. Click **Update the stack**
+3. Enable **Re-pull image**
+4. Click **Update**
+
+### Dockhand
+
+1. Open the **docsight** stack
+2. Click **Redeploy**
+
+---
+
+## Troubleshooting
+
+### "Can't open http://localhost:8765"
+
+- **Is the container running?** Check with `docker ps` - you should see a container named `docsight`
+- **On a NAS?** Use the NAS IP address instead of `localhost`, e.g. `http://192.168.178.15:8765`
+- **Firewall?** Make sure port 8765 is not blocked
+
+### "Test Connection fails"
+
+- **Is the URL correct?** The default FRITZ!Box address is `http://192.168.178.1`. Try opening it in your browser first.
+- **Are the credentials correct?** Use the same username and password you use to log into the FRITZ!Box web interface.
+- **Network access?** The Docker container must be able to reach your FRITZ!Box. If running on a remote server, ensure it's on the same network.
+
+### "Port 8765 already in use"
+
+Another application is using port 8765. Change the port mapping:
+
+```bash
+# Docker CLI: change the first number to any free port
+docker run -d --name docsight --restart unless-stopped -p 9876:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
+```
+
+```yaml
+# Docker Compose / Portainer / Dockhand: change the first number
+ports:
+  - "9876:8765"
+```
+
+Then open `http://localhost:9876` instead.
+
+### "Container keeps restarting"
+
+Check the container logs:
+
+```bash
+docker logs docsight
+```
+
+The logs usually indicate the problem. Common causes:
+- Invalid configuration - delete the volume and start fresh: `docker volume rm docsight_data`
+- Network issues reaching the modem
+
+### "How do I check if it's working?"
+
+```bash
+docker logs docsight --tail 20
+```
+
+You should see log entries about successful polls. If the dashboard shows channel data, everything is working.
+
+---
+
+## Uninstalling
+
+### Docker CLI / Docker Compose
+
+```bash
+docker stop docsight
+docker rm docsight
+docker volume rm docsight_data
+```
+
+### Portainer / Dockhand
+
+1. Open the **docsight** stack
+2. Delete the stack
+
+This removes the container and all stored data.

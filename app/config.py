@@ -13,14 +13,14 @@ log = logging.getLogger("docsis.config")
 POLL_MIN = 60
 POLL_MAX = 3600
 
-SECRET_KEYS = {"fritz_password", "mqtt_password"}
+SECRET_KEYS = {"modem_password", "mqtt_password"}
 HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
 DEFAULTS = {
-    "fritz_url": "http://192.168.178.1",
-    "fritz_user": "",
-    "fritz_password": "",
+    "modem_url": "http://192.168.178.1",
+    "modem_user": "",
+    "modem_password": "",
     "mqtt_host": "",
     "mqtt_port": 1883,
     "mqtt_user": "",
@@ -37,9 +37,9 @@ DEFAULTS = {
 }
 
 ENV_MAP = {
-    "fritz_url": "FRITZ_URL",
-    "fritz_user": "FRITZ_USER",
-    "fritz_password": "FRITZ_PASSWORD",
+    "modem_url": "MODEM_URL",
+    "modem_user": "MODEM_USER",
+    "modem_password": "MODEM_PASSWORD",
     "mqtt_host": "MQTT_HOST",
     "mqtt_port": "MQTT_PORT",
     "mqtt_user": "MQTT_USER",
@@ -50,6 +50,20 @@ ENV_MAP = {
     "history_days": "HISTORY_DAYS",
     "data_dir": "DATA_DIR",
     "admin_password": "ADMIN_PASSWORD",
+}
+
+# Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
+_LEGACY_ENV_MAP = {
+    "modem_url": "FRITZ_URL",
+    "modem_user": "FRITZ_USER",
+    "modem_password": "FRITZ_PASSWORD",
+}
+
+# Deprecated config keys (fritz_* -> modem_*) - migrated on load
+_LEGACY_KEY_MAP = {
+    "fritz_url": "modem_url",
+    "fritz_user": "modem_user",
+    "fritz_password": "modem_password",
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days"}
@@ -101,20 +115,39 @@ class ConfigManager:
             return value
 
     def _load(self):
-        """Load config.json if it exists."""
+        """Load config.json if it exists. Migrates legacy fritz_* keys to modem_*."""
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, "r") as f:
                     self._file_config = json.load(f)
                 log.info("Loaded config from %s", self.config_path)
+                self._migrate_legacy_keys()
             except Exception as e:
                 log.warning("Failed to load config.json: %s", e)
                 self._file_config = {}
         else:
             log.info("No config.json found, using defaults/env")
 
+    def _migrate_legacy_keys(self):
+        """Migrate fritz_* config keys to modem_* (backwards compatibility)."""
+        migrated = False
+        for old_key, new_key in _LEGACY_KEY_MAP.items():
+            if old_key in self._file_config and new_key not in self._file_config:
+                self._file_config[new_key] = self._file_config.pop(old_key)
+                migrated = True
+            elif old_key in self._file_config:
+                del self._file_config[old_key]
+                migrated = True
+        if migrated:
+            try:
+                with open(self.config_path, "w") as f:
+                    json.dump(self._file_config, f, indent=2)
+                log.info("Migrated legacy fritz_* keys to modem_*")
+            except Exception as e:
+                log.warning("Failed to save migrated config: %s", e)
+
     def get(self, key, default=None):
-        """Get config value: env var > config.json > default.
+        """Get config value: env var > legacy env var > config.json > default.
         Secret keys from config.json are decrypted transparently."""
         # Env vars are never encrypted
         env_name = ENV_MAP.get(key)
@@ -123,6 +156,12 @@ class ConfigManager:
             if env_val is not None and env_val != "":
                 if key in INT_KEYS:
                     return int(env_val)
+                return env_val
+        # Check deprecated FRITZ_* env vars as fallback
+        legacy_env = _LEGACY_ENV_MAP.get(key)
+        if legacy_env:
+            env_val = os.environ.get(legacy_env)
+            if env_val is not None and env_val != "":
                 return env_val
 
         if key in self._file_config:
@@ -182,8 +221,8 @@ class ConfigManager:
         log.info("Config saved to %s", self.config_path)
 
     def is_configured(self):
-        """True if fritz_password is set (from env or config.json)."""
-        return bool(self.get("fritz_password"))
+        """True if modem_password is set (from env or config.json)."""
+        return bool(self.get("modem_password"))
 
     def is_mqtt_configured(self):
         """True if mqtt_host is set (MQTT is optional)."""

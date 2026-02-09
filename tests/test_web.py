@@ -10,7 +10,7 @@ from app.config import ConfigManager
 def config_mgr(tmp_path):
     data_dir = str(tmp_path / "data")
     mgr = ConfigManager(data_dir)
-    mgr.save({"fritz_password": "test", "isp_name": "Vodafone"})
+    mgr.save({"modem_password": "test", "isp_name": "Vodafone"})
     return mgr
 
 

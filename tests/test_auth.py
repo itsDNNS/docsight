@@ -10,7 +10,7 @@ from app.config import ConfigManager
 def auth_config(tmp_path):
     """Config with admin_password set."""
     mgr = ConfigManager(str(tmp_path / "data"))
-    mgr.save({"fritz_password": "test", "admin_password": "secret123"})
+    mgr.save({"modem_password": "test", "admin_password": "secret123"})
     return mgr
 
 
@@ -18,7 +18,7 @@ def auth_config(tmp_path):
 def noauth_config(tmp_path):
     """Config without admin_password."""
     mgr = ConfigManager(str(tmp_path / "data"))
-    mgr.save({"fritz_password": "test"})
+    mgr.save({"modem_password": "test"})
     return mgr
 
 

@@ -32,6 +32,8 @@ docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnn
 
 Open `http://localhost:8765` - the setup wizard guides you through configuration.
 
+For detailed step-by-step instructions (including Portainer and Dockhand), see the **[Installation Guide](INSTALL.md)**.
+
 ### Using Docker Compose
 
 ```bash
@@ -60,9 +62,9 @@ Copy `.env.example` to `.env` and edit:
 
 | Variable | Default | Description |
 |---|---|---|
-| `FRITZ_URL` | `http://192.168.178.1` | Modem URL |
-| `FRITZ_USER` | - | Modem username |
-| `FRITZ_PASSWORD` | - | Modem password |
+| `MODEM_URL` | `http://192.168.178.1` | Modem URL |
+| `MODEM_USER` | - | Modem username |
+| `MODEM_PASSWORD` | - | Modem password |
 | `MQTT_HOST` | - | MQTT broker host (optional) |
 | `MQTT_PORT` | `1883` | MQTT broker port |
 | `MQTT_USER` | - | MQTT username (optional) |

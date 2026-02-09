@@ -255,23 +255,24 @@ def api_config():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route("/api/test-fritz", methods=["POST"])
+@app.route("/api/test-modem", methods=["POST"])
+@app.route("/api/test-fritz", methods=["POST"])  # deprecated alias
 @require_auth
-def api_test_fritz():
-    """Test FritzBox connection."""
+def api_test_modem():
+    """Test modem connection."""
     try:
         data = request.get_json()
         # Resolve masked passwords to real values
-        password = data.get("fritz_password", "")
+        password = data.get("modem_password", "")
         if password == PASSWORD_MASK and _config_manager:
-            password = _config_manager.get("fritz_password", "")
+            password = _config_manager.get("modem_password", "")
         from . import fritzbox
         sid = fritzbox.login(
-            data.get("fritz_url", "http://192.168.178.1"),
-            data.get("fritz_user", ""),
+            data.get("modem_url", "http://192.168.178.1"),
+            data.get("modem_user", ""),
             password,
         )
-        info = fritzbox.get_device_info(data.get("fritz_url"), sid)
+        info = fritzbox.get_device_info(data.get("modem_url"), sid)
         return jsonify({"success": True, "model": info.get("model", "OK")})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
