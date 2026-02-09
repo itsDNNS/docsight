@@ -27,6 +27,7 @@
 - [Requirements](#requirements)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
+- [Changelog](#changelog)
 
 ## Features
 
@@ -160,6 +161,10 @@ Copy `.env.example` to `.env` and edit:
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes per version.
 
 ## License
 

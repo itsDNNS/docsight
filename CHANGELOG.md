@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.16]
+
+### Added
+- **French translation** (Français): Full UI localization with SFR as cable ISP option
+- **Spanish translation** (Español): Full UI localization with Vodafone, Euskaltel, R, Telecable as cable ISP options
+- **Installation guide** (`INSTALL.md`): Step-by-step beginner guide with 4 install methods (Docker CLI, Compose, Portainer, Dockhand), setup wizard walkthrough, troubleshooting, and uninstall instructions
+- **Timezone-aware snapshot hint**: Setup and settings show converted local time next to server timezone for daily snapshot scheduling
+- **Dedicated user recommendation**: Setup wizard and install guide recommend creating a separate modem user for DOCSight
+
+### Changed
+- **i18n modularized**: Translations moved from single Python file to `app/i18n/` package with per-language JSON files — adding a new language now only requires dropping a `.json` file
+- **Poll interval default**: Changed from 5 minutes (300s) to **15 minutes** (900s)
+- **Poll interval maximum**: Increased from 1 hour (3600s) to **4 hours** (14400s)
+- **History default**: Changed to unlimited (0 = keep all snapshots)
+- **Documentation generalized**: Replaced FRITZ!Box-specific references with modem-agnostic wording throughout README and INSTALL
+- **Environment variable rename**: `FRITZ_*` env vars deprecated in favor of `MODEM_*` (old vars still work as fallback)
+- **Config key migration**: Old `fritz_*` keys in config.json automatically migrated to `modem_*` on load
+
 ## [2026-02-09.15] - Initial Public Release
 
 ### Added
