@@ -14,9 +14,12 @@ from werkzeug.security import check_password_hash
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
 from .i18n import get_translations, LANGUAGES
 
-def _server_timezone():
-    """Return the server's current timezone abbreviation (e.g. 'UTC', 'CET')."""
-    return datetime.now().astimezone().strftime("%Z") or time.tzname[0] or "UTC"
+def _server_tz_info():
+    """Return server timezone name and UTC offset in minutes."""
+    now = datetime.now().astimezone()
+    name = now.strftime("%Z") or time.tzname[0] or "UTC"
+    offset_min = int(now.utcoffset().total_seconds() // 60)
+    return name, offset_min
 
 log = logging.getLogger("docsis.web")
 
@@ -220,7 +223,8 @@ def setup():
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     lang = _get_lang()
     t = get_translations(lang)
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=_server_timezone())
+    tz_name, tz_offset = _server_tz_info()
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset)
 
 
 @app.route("/settings")
@@ -230,7 +234,8 @@ def settings():
     theme = _config_manager.get_theme() if _config_manager else "dark"
     lang = _get_lang()
     t = get_translations(lang)
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=_server_timezone())
+    tz_name, tz_offset = _server_tz_info()
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset)
 
 
 @app.route("/api/config", methods=["POST"])

@@ -252,7 +252,7 @@
             <div class="form-row">
                 <label for="snapshot_time">{{ t.snapshot_time }}</label>
                 <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
-                <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }} ({{ server_tz }})</span>
+                <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
             </div>
         </div>
     </div>
@@ -430,12 +430,27 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
 });
 
 (function() {
+    var serverOffsetMin = {{ server_tz_offset }};
+    var browserOffsetMin = -new Date().getTimezoneOffset();
+    var diffMin = browserOffsetMin - serverOffsetMin;
+    if (diffMin === 0) return;
+
     var serverTz = '{{ server_tz }}';
-    var browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (browserTz && browserTz !== serverTz) {
-        var el = document.getElementById('snapshot-tz-hint');
-        el.textContent = el.textContent + ' — ' + T.snapshot_browser_tz + ': ' + browserTz;
+    var inp = document.getElementById('snapshot_time');
+    var hint = document.getElementById('snapshot-tz-hint');
+
+    function updateTzHint() {
+        var parts = inp.value.split(':');
+        if (parts.length < 2) return;
+        var h = parseInt(parts[0]), m = parseInt(parts[1]);
+        var totalMin = h * 60 + m + diffMin;
+        totalMin = ((totalMin % 1440) + 1440) % 1440;
+        var lh = String(Math.floor(totalMin / 60)).padStart(2, '0');
+        var lm = String(totalMin % 60).padStart(2, '0');
+        hint.textContent = T.snapshot_hint + ' — ' + inp.value + ' ' + serverTz + ' = ' + lh + ':' + lm + ' ' + T.snapshot_your_time;
     }
+    updateTzHint();
+    inp.addEventListener('change', updateTzHint);
 })();
 </script>
 
