@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.18]
+
+### Added
+- **AJAX live refresh**: Dashboard updates every 60s without full page reload — open modals, expanded metric cards, and channel groups are preserved
+- **Dark/Light theme toggle**: Quick-switch button in the topbar corner with persistent localStorage preference
+- **Modem uptime display**: Errors card now shows device uptime (days + hours)
+- **Range indicators**: Colored good/warn/crit zone bars with value marker for DS Power, SNR, and US Power
+- **Channel group health badges**: Collapsed DOCSIS version groups show green checkmark or warning/critical count
+- **DOCSIS 3.1 upstream warning**: Notice when no OFDMA upstream channel is detected
+
+### Changed
+- **Dashboard redesign**: Replaced 7 flat summary tiles with connection info bar + 3 compact metric cards (Downstream, Upstream, Errors) with progressive disclosure
+- **DOCSIS version sorting**: Channel groups now correctly sort descending (4.0, 3.1, 3.0)
+
+### Fixed
+- **Card expand bug**: Clicking anywhere on a card no longer expands all cards — only the header is clickable
+- **Card height alignment**: Cards no longer stretch to match the tallest card in the row
+
 ## [2026-02-09.17]
 
 ### Added
