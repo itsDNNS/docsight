@@ -2,6 +2,8 @@
 
 Docker container that monitors DOCSIS channel health on cable modems and publishes per-channel sensor data to Home Assistant via MQTT Auto-Discovery. Currently supports AVM FRITZ!Box Cable routers.
 
+![Dashboard Dark Mode](docs/screenshots/dashboard-dark.png)
+
 ## Features
 
 - **Per-Channel Sensors**: Every downstream/upstream DOCSIS channel becomes its own Home Assistant sensor with full attributes (frequency, modulation, SNR, errors, DOCSIS version)
@@ -84,6 +86,16 @@ Copy `.env.example` to `.env` and edit:
 | DS Power | -7..+7 dBmV | +/-7..+/-10 | > +/-10 dBmV |
 | US Power | 35..49 dBmV | 50..54 | > 54 dBmV |
 | SNR / MER | > 30 dB | 25..30 | < 25 dB |
+
+## Screenshots
+
+| Dashboard (Dark) | Dashboard (Light) | Setup Wizard |
+|---|---|---|
+| ![Dark](docs/screenshots/dashboard-dark.png) | ![Light](docs/screenshots/dashboard-light.png) | ![Setup](docs/screenshots/setup.png) |
+
+| Trend Charts | Health Banner |
+|---|---|
+| ![Trends](docs/screenshots/trends.png) | ![Health](docs/screenshots/health-banner.png) |
 
 ## Web UI
 

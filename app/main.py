@@ -18,8 +18,9 @@ log = logging.getLogger("docsis.main")
 
 
 def run_web(port):
-    """Run Flask in a separate thread."""
-    web.app.run(host="0.0.0.0", port=port, use_reloader=False)
+    """Run production web server in a separate thread."""
+    from waitress import serve
+    serve(web.app, host="0.0.0.0", port=port, threads=4, _quiet=True)
 
 
 def polling_loop(config_mgr, storage, stop_event):

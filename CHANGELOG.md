@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.12]
+
+### Added
+- **MIT License**: Added LICENSE file
+- **Test suite**: 70 tests covering analyzer, config, storage, and web routes
+- **Production web server**: Replaced Flask dev server with Waitress
+- **Docker healthcheck**: Container reports health via `/health` endpoint
+- **Screenshot placeholders in README**: Gallery structure for dashboard, setup, trends, health banner
+
 ## [2026-02-09.11]
 
 ### Changed

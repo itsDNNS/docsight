@@ -3,6 +3,7 @@
 *.db
 __pycache__/
 *.pyc
+.pytest_cache/
 .vscode/
 .idea/
 deploy.sh
