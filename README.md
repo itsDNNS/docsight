@@ -10,6 +10,18 @@
 
 ![Dashboard Dark Mode](docs/screenshots/dashboard-dark.png)
 
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Screenshots](#screenshots)
+- [Created Sensors](#created-sensors)
+- [Reference Values](#reference-values)
+- [Requirements](#requirements)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+
 ## Features
 
 - **Web Dashboard**: Real-time channel data with health assessment, trend charts, and calendar navigation
@@ -42,7 +54,8 @@ cd docsight
 docker compose up -d
 ```
 
-## Configuration
+<details>
+<summary><h2>Configuration</h2></summary>
 
 Configuration is stored in `config.json` inside the Docker volume and persists across restarts. Environment variables override config.json values.
 
@@ -75,7 +88,10 @@ Copy `.env.example` to `.env` and edit:
 | `HISTORY_DAYS` | `7` | Snapshot retention in days |
 | `ADMIN_PASSWORD` | - | Web UI password (optional) |
 
-## Screenshots
+</details>
+
+<details>
+<summary><h2>Screenshots</h2></summary>
 
 | Dashboard (Dark) | Dashboard (Light) | Setup Wizard |
 |---|---|---|
@@ -85,7 +101,10 @@ Copy `.env.example` to `.env` and edit:
 |---|---|
 | ![Trends](docs/screenshots/trends.png) | ![Health](docs/screenshots/health-banner.png) |
 
-## Created Sensors
+</details>
+
+<details>
+<summary><h2>Created Sensors</h2></summary>
 
 ### Per-Channel (~37 DS + 4 US)
 
@@ -106,13 +125,18 @@ Copy `.env.example` to `.env` and edit:
 | `docsight_us_total` | - | Number of upstream channels |
 | `docsight_us_power_min/max/avg` | dBmV | Upstream power range |
 
-## Reference Values
+</details>
+
+<details>
+<summary><h2>Reference Values</h2></summary>
 
 | Metric | Good | Marginal | Poor |
 |---|---|---|---|
 | DS Power | -7..+7 dBmV | +/-7..+/-10 | > +/-10 dBmV |
 | US Power | 35..49 dBmV | 50..54 | > 54 dBmV |
 | SNR / MER | > 30 dB | 25..30 | < 25 dB |
+
+</details>
 
 ## Requirements
 
