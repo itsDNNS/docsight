@@ -254,6 +254,85 @@ def api_trends():
         return jsonify({"error": "Invalid range (use day, week, month)"}), 400
 
 
+@app.route("/api/export")
+def api_export():
+    """Generate a structured markdown report for LLM analysis."""
+    analysis = _state.get("analysis")
+    if not analysis:
+        return jsonify({"error": "No data available"}), 404
+
+    s = analysis["summary"]
+    ds = analysis["ds_channels"]
+    us = analysis["us_channels"]
+    ts = _state.get("last_update", "unknown")
+
+    lines = [
+        "# DOCSIS Cable Connection – Status Report",
+        "",
+        "## Context",
+        "This is a status report from a DOCSIS cable modem (FritzBox Cable).",
+        "DOCSIS (Data Over Cable Service Interface Specification) is the standard for internet over coaxial cable.",
+        "Analyze this data and provide insights about connection health, problematic channels, and recommendations.",
+        "",
+        "## Overview",
+        f"- **Health**: {s.get('health', 'Unknown')}",
+        f"- **Details**: {s.get('health_details', '')}",
+        f"- **Timestamp**: {ts}",
+        "",
+        "## Summary",
+        "| Metric | Value |",
+        "|--------|-------|",
+        f"| Downstream Channels | {s.get('ds_total', 0)} |",
+        f"| DS Power (Min/Avg/Max) | {s.get('ds_power_min')} / {s.get('ds_power_avg')} / {s.get('ds_power_max')} dBmV |",
+        f"| DS SNR (Min/Avg) | {s.get('ds_snr_min')} / {s.get('ds_snr_avg')} dB |",
+        f"| DS Correctable Errors | {s.get('ds_correctable_errors', 0):,} |",
+        f"| DS Uncorrectable Errors | {s.get('ds_uncorrectable_errors', 0):,} |",
+        f"| Upstream Channels | {s.get('us_total', 0)} |",
+        f"| US Power (Min/Avg/Max) | {s.get('us_power_min')} / {s.get('us_power_avg')} / {s.get('us_power_max')} dBmV |",
+        "",
+        "## Downstream Channels",
+        "| Ch | Frequency | Power (dBmV) | SNR (dB) | Modulation | Corr. Errors | Uncorr. Errors | DOCSIS | Health |",
+        "|----|-----------|-------------|----------|------------|-------------|---------------|--------|--------|",
+    ]
+    for ch in ds:
+        lines.append(
+            f"| {ch.get('channel_id','')} | {ch.get('frequency','')} | {ch.get('power','')} "
+            f"| {ch.get('snr', '-')} | {ch.get('modulation','')} "
+            f"| {ch.get('correctable_errors', 0):,} | {ch.get('uncorrectable_errors', 0):,} "
+            f"| {ch.get('docsis_version','')} | {ch.get('health','')} |"
+        )
+    lines += [
+        "",
+        "## Upstream Channels",
+        "| Ch | Frequency | Power (dBmV) | Modulation | Multiplex | DOCSIS | Health |",
+        "|----|-----------|-------------|------------|-----------|--------|--------|",
+    ]
+    for ch in us:
+        lines.append(
+            f"| {ch.get('channel_id','')} | {ch.get('frequency','')} | {ch.get('power','')} "
+            f"| {ch.get('modulation','')} | {ch.get('multiplex','')} "
+            f"| {ch.get('docsis_version','')} | {ch.get('health','')} |"
+        )
+    lines += [
+        "",
+        "## Reference Values",
+        "| Metric | Good | Marginal | Poor |",
+        "|--------|------|----------|------|",
+        "| DS Power | -7 to +7 dBmV | +/-7 to +/-10 | > +/-10 dBmV |",
+        "| US Power | 35 to 49 dBmV | 50 to 54 | > 54 dBmV |",
+        "| SNR/MER | > 30 dB | 25 to 30 | < 25 dB |",
+        "| Uncorr. Errors | low | - | > 10,000 |",
+        "",
+        "## Questions",
+        "Please analyze this data and provide:",
+        "1. Overall connection health assessment",
+        "2. Channels that need attention (with reasons)",
+        "3. Error rate analysis and whether it indicates a problem",
+        "4. Specific recommendations to improve connection quality",
+    ]
+    return jsonify({"text": "\n".join(lines)})
+
+
 @app.route("/api/snapshots")
 def api_snapshots():
     """Return list of available snapshot timestamps."""
