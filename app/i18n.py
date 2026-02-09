@@ -119,13 +119,16 @@ EN = {
     # Language
     "language": "Language",
 
-    # ISP
+    # ISP / Connection
     "isp_name": "Internet Provider",
     "isp_hint": "Shown in LLM export report",
     "isp_other": "Other",
     "isp_other_placeholder": "Enter provider name",
     "isp_select": "Select provider",
     "isp_options": ["Vodafone", "PYUR", "eazy", "O2", "1&1", "Telekom", "NetCologne", "M-net", "Wilhelm.tel"],
+    "tariff": "Tariff",
+    "max_downstream": "Max Downstream",
+    "max_upstream": "Max Upstream",
 
     # Export
     "export_llm": "Export for LLM",
@@ -248,6 +251,9 @@ DE = {
     "isp_other_placeholder": "Anbietername eingeben",
     "isp_select": "Anbieter waehlen",
     "isp_options": ["Vodafone", "PYUR", "eazy", "O2", "1&1", "Telekom", "NetCologne", "M-net", "Wilhelm.tel"],
+    "tariff": "Tarif",
+    "max_downstream": "Max Downstream",
+    "max_upstream": "Max Upstream",
 
     "export_llm": "Export fuer LLM",
     "export_title": "LLM-Analyse Export",

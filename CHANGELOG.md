@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.9]
+
+### Added
+- **Tariff display**: ISP name and max down/up speeds (from FritzBox) shown on dashboard
+- **Connection info API**: Fetches max downstream/upstream speeds from FritzBox `netMoni` page
+
+### Changed
+- **Sidebar always visible**: Persistent left panel with collapse toggle instead of overlay
+- **Gear icon removed**: Settings accessible via sidebar only
+
+### Fixed
+- **ISP "Other" field alignment**: Manual input field now properly aligned in grid layout
+
 ## [2026-02-09.8]
 
 ### Changed

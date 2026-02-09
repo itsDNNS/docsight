@@ -90,3 +90,34 @@ def get_device_info(url: str, sid: str) -> dict:
         }
     except Exception:
         return {"model": "FRITZ!Box", "sw_version": ""}
+
+
+def get_connection_info(url: str, sid: str) -> dict:
+    """Get internet connection info (speeds, type) from netMoni page."""
+    try:
+        r = requests.post(
+            f"{url}/data.lua",
+            data={
+                "xhr": 1,
+                "sid": sid,
+                "lang": "de",
+                "page": "netMoni",
+                "xhrId": "all",
+                "no_sidrenew": "",
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        data = r.json().get("data", {})
+        conns = data.get("connections", [])
+        if not conns:
+            return {}
+        conn = conns[0]
+        return {
+            "max_downstream_kbps": conn.get("downstream", 0),
+            "max_upstream_kbps": conn.get("upstream", 0),
+            "connection_type": conn.get("medium", ""),
+        }
+    except Exception as e:
+        log.warning("Failed to get connection info: %s", e)
+        return {}

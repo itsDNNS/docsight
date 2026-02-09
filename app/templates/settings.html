@@ -220,7 +220,7 @@
                 </select>
                 <span class="hint">{{ t.isp_hint }}</span>
             </div>
-            <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}block{% else %}none{% endif %}">
+            <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
                 <label for="isp_other_input">{{ t.isp_other }}</label>
                 <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
             </div>
@@ -274,7 +274,7 @@ themeCheck.addEventListener('change', function() {
 function onIspChange() {
     var sel = document.getElementById('isp_select');
     var row = document.getElementById('isp-other-row');
-    row.style.display = sel.value === '__other__' ? 'block' : 'none';
+    row.style.display = sel.value === '__other__' ? 'flex' : 'none';
 }
 
 function showToast(msg, ok) {

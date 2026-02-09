@@ -54,6 +54,7 @@ def polling_loop(config_mgr, storage, stop_event):
 
     sid = None
     device_info = None
+    connection_info = None
     discovery_published = False
 
     while not stop_event.is_set():
@@ -65,6 +66,14 @@ def polling_loop(config_mgr, storage, stop_event):
             if device_info is None:
                 device_info = fritzbox.get_device_info(config["fritz_url"], sid)
                 log.info("FritzBox model: %s (%s)", device_info["model"], device_info["sw_version"])
+
+            if connection_info is None:
+                connection_info = fritzbox.get_connection_info(config["fritz_url"], sid)
+                if connection_info:
+                    ds = connection_info.get("max_downstream_kbps", 0) // 1000
+                    us = connection_info.get("max_upstream_kbps", 0) // 1000
+                    log.info("Connection: %d/%d Mbit/s (%s)", ds, us, connection_info.get("connection_type", ""))
+                    web.update_state(connection_info=connection_info)
 
             data = fritzbox.get_docsis_data(config["fritz_url"], sid)
             analysis = analyzer.analyze(data)

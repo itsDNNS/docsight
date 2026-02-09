@@ -46,6 +46,7 @@ _state = {
     "last_update": None,
     "poll_interval": 300,
     "error": None,
+    "connection_info": None,
 }
 
 _storage = None
@@ -66,7 +67,7 @@ def init_config(config_manager, on_config_changed=None):
     _on_config_changed = on_config_changed
 
 
-def update_state(analysis=None, error=None, poll_interval=None):
+def update_state(analysis=None, error=None, poll_interval=None, connection_info=None):
     """Update the shared web state from the main loop."""
     if analysis is not None:
         _state["analysis"] = analysis
@@ -76,6 +77,8 @@ def update_state(analysis=None, error=None, poll_interval=None):
         _state["error"] = str(error)
     if poll_interval is not None:
         _state["poll_interval"] = poll_interval
+    if connection_info is not None:
+        _state["connection_info"] = connection_info
 
 
 @app.route("/")
@@ -86,6 +89,9 @@ def index():
     theme = _config_manager.get_theme() if _config_manager else "dark"
     lang = _get_lang()
     t = get_translations(lang)
+
+    isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
+    conn_info = _state.get("connection_info") or {}
 
     ts = request.args.get("t")
     if ts and _storage:
@@ -100,6 +106,7 @@ def index():
                 historical=True,
                 snapshot_ts=ts,
                 theme=theme,
+                isp_name=isp_name, connection_info=conn_info,
                 t=t, lang=lang, languages=LANGUAGES,
             )
     return render_template(
@@ -111,6 +118,7 @@ def index():
         historical=False,
         snapshot_ts=None,
         theme=theme,
+        isp_name=isp_name, connection_info=conn_info,
         t=t, lang=lang, languages=LANGUAGES,
     )
 
@@ -267,6 +275,9 @@ def api_export():
     ts = _state.get("last_update", "unknown")
 
     isp = _config_manager.get("isp_name", "") if _config_manager else ""
+    conn = _state.get("connection_info") or {}
+    ds_mbps = conn.get("max_downstream_kbps", 0) // 1000 if conn else 0
+    us_mbps = conn.get("max_upstream_kbps", 0) // 1000 if conn else 0
 
     lines = [
         "# DOCSIS Cable Connection – Status Report",
@@ -278,6 +289,7 @@ def api_export():
         "",
         "## Overview",
         f"- **ISP**: {isp}" if isp else None,
+        f"- **Tariff**: {ds_mbps}/{us_mbps} Mbit/s (Down/Up)" if ds_mbps else None,
         f"- **Health**: {s.get('health', 'Unknown')}",
         f"- **Details**: {s.get('health_details', '')}",
         f"- **Timestamp**: {ts}",

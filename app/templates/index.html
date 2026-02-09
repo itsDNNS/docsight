@@ -72,38 +72,32 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .topbar-meta { font-size: 0.8em; color: var(--muted); white-space: nowrap; }
-        .settings-link {
-            color: var(--muted); text-decoration: none;
-            font-size: 1.2em; padding: 4px; line-height: 1;
-        }
-        .settings-link:hover { color: var(--accent); }
-        .settings-link svg { width: 20px; height: 20px; vertical-align: middle; }
+
+        /* ── Layout ── */
+        .app-layout { display: flex; min-height: 100vh; }
 
         /* ── Sidebar ── */
-        .sidebar-overlay {
-            position: fixed; inset: 0; background: var(--overlay);
-            z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.25s;
-        }
-        .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
         .sidebar {
-            position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
-            background: var(--surface); z-index: 100;
-            transform: translateX(-100%); transition: transform 0.25s ease;
+            width: 240px; min-width: 240px;
+            background: var(--surface);
             display: flex; flex-direction: column;
             border-right: 1px solid var(--input-border);
+            transition: width 0.25s ease, min-width 0.25s ease;
+            overflow: hidden;
         }
-        .sidebar.open { transform: translateX(0); }
+        .sidebar.collapsed { width: 0; min-width: 0; }
         .sidebar-content { flex: 1; overflow-y: auto; }
         .sidebar-header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 20px; border-bottom: 1px solid var(--input-border);
-            font-weight: bold; color: var(--accent);
+            padding: 14px 20px; border-bottom: 1px solid var(--input-border);
+            font-weight: bold; color: var(--accent); white-space: nowrap;
         }
-        .sidebar-close {
+        .sidebar-toggle {
             background: none; border: none; color: var(--muted);
-            font-size: 1.4em; cursor: pointer; line-height: 1;
+            font-size: 1.2em; cursor: pointer; line-height: 1; padding: 2px 4px;
         }
-        .sidebar-close:hover { color: var(--text); }
+        .sidebar-toggle:hover { color: var(--accent); }
+        .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
         .sidebar-link {
             display: flex; align-items: center; gap: 10px;
             padding: 12px 20px; color: var(--text); text-decoration: none;
@@ -309,7 +303,11 @@
         .btn-muted:hover { background: var(--accent); color: #000; }
 
         /* ── Responsive ── */
-        @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 900px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .sidebar { width: 0; min-width: 0; }
+            .sidebar.collapsed { width: 0; min-width: 0; }
+        }
         @media (max-width: 600px) {
             body { font-size: 14px; }
             .topbar { gap: 6px; padding: 8px 10px; }
@@ -322,15 +320,13 @@
     </style>
 </head>
 <body>
-
-<!-- Sidebar Overlay -->
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<div class="app-layout">
 
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <span>{{ t.nav }}</span>
-        <button class="sidebar-close" id="sidebar-close">&times;</button>
+        <span>DOCSIS Monitor</span>
+        <button class="sidebar-toggle" id="sidebar-collapse" title="Collapse">&#10094;</button>
     </div>
     <div class="sidebar-content">
         <a class="sidebar-link active" data-view="live">
@@ -368,9 +364,12 @@
     </div>
 </nav>
 
+<!-- Main Area -->
+<div class="app-main">
+
 <!-- Topbar -->
 <div class="topbar">
-    <button class="hamburger-btn" id="hamburger">&#9776;</button>
+    <button class="hamburger-btn" id="hamburger" title="Menu">&#9776;</button>
     <div class="date-nav" id="date-nav">
         <button id="date-prev">&#8249;</button>
         <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
@@ -380,12 +379,6 @@
     <span class="topbar-meta" id="topbar-meta">
         {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
     </span>
-    <a href="/settings" class="settings-link" title="{{ t.settings }}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-    </a>
 </div>
 
 <!-- Calendar Popup -->
@@ -433,6 +426,12 @@
     {% endif %}
 
     <div class="summary-grid">
+        {% if isp_name or connection_info %}
+        <div class="summary-card">
+            <div class="label">{{ t.tariff }}</div>
+            <div class="value">{% if isp_name %}{{ isp_name }}{% endif %}{% if connection_info.max_downstream_kbps %} {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} Mbit/s{% endif %}</div>
+        </div>
+        {% endif %}
         <div class="summary-card">
             <div class="label">{{ t.ds_channels }}</div>
             <div class="value">{{ s.ds_total }}</div>
@@ -553,6 +552,8 @@
     </div>
 </div>
 </div><!-- /main-content -->
+</div><!-- /app-main -->
+</div><!-- /app-layout -->
 
 <!-- Export Modal -->
 <div class="modal-overlay" id="export-modal">
@@ -641,21 +642,19 @@
 
     /* ── Sidebar ── */
     var sidebar = document.getElementById('sidebar');
-    var overlay = document.getElementById('sidebar-overlay');
 
-    function toggleSidebar() {
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('open');
-    }
-    document.getElementById('hamburger').addEventListener('click', toggleSidebar);
-    document.getElementById('sidebar-close').addEventListener('click', toggleSidebar);
-    overlay.addEventListener('click', toggleSidebar);
+    function collapseSidebar() { sidebar.classList.add('collapsed'); }
+    function expandSidebar() { sidebar.classList.remove('collapsed'); }
+
+    document.getElementById('sidebar-collapse').addEventListener('click', collapseSidebar);
+    document.getElementById('hamburger').addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+    });
 
     var sidebarLinks = document.querySelectorAll('.sidebar-link[data-view]');
     sidebarLinks.forEach(function(link) {
         link.addEventListener('click', function() {
             switchView(this.getAttribute('data-view'));
-            toggleSidebar();
         });
     });
 
@@ -903,10 +902,6 @@ function exportForLLM() {
     var T = {{ t|tojson }};
     var modal = document.getElementById('export-modal');
     var textarea = document.getElementById('export-text');
-    var sidebar = document.getElementById('sidebar');
-    var overlay = document.getElementById('sidebar-overlay');
-    sidebar.classList.remove('open');
-    overlay.classList.remove('open');
     textarea.value = T.export_no_data;
     modal.classList.add('open');
     fetch('/api/export')
