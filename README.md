@@ -11,18 +11,23 @@
 </p>
 
 <p align="center">
-  Docker container that monitors DOCSIS channel health on cable modems and publishes per-channel sensor data to Home Assistant via MQTT Auto-Discovery.
+  Self-hosted cable internet monitoring and diagnostics. Track DOCSIS signal levels, detect problems, and get actionable health assessments — right in your browser.
 </p>
 
 ![Dashboard Dark Mode](docs/screenshots/dashboard-dark.png)
 
+## Why DOCSight
+
+Cable internet dropping out, buffering, or slower than it should be? Your ISP says "everything looks fine"? DOCSight reads the DOCSIS signal levels directly from your modem and tells you whether the problem is on your end or your provider's. It gives you real data — power levels, signal-to-noise ratios, error counts — that you can show a technician or use to hold your ISP accountable.
+
 ## Table of Contents
 
+- [Why DOCSight](#why-docsight)
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Screenshots](#screenshots)
-- [Created Sensors](#created-sensors)
+- [Home Assistant Integration](#home-assistant-integration)
 - [Reference Values](#reference-values)
 - [Requirements](#requirements)
 - [Roadmap](#roadmap)
@@ -31,18 +36,22 @@
 
 ## Features
 
+**Monitoring & Diagnostics**
 - **Web Dashboard**: Real-time channel data with health assessment, trend charts, and calendar navigation
-- **Per-Channel Sensors**: Every downstream/upstream DOCSIS channel becomes its own Home Assistant sensor with full attributes
-- **Summary Sensors**: Aggregated metrics (power min/max/avg, SNR, error counts, overall health)
 - **Health Assessment**: Automatic traffic-light evaluation with actionable recommendations
-- **Setup Wizard**: Browser-based configuration - no .env file needed
-- **Settings Page**: Change all settings at runtime, test connections, toggle themes
-- **Internationalization**: English, German, French, and Spanish UI
+- **Trend Charts**: Track signal quality over days, weeks, or months to spot recurring issues
 - **LLM Export**: Generate structured reports for AI analysis (ChatGPT, Claude, Gemini, etc.)
-- **MQTT Auto-Discovery**: Zero-config integration with Home Assistant
 - **ThinkBroadband BQM**: Daily fetch and archive of broadband quality graphs with gallery view
-- **Optional Authentication**: Password-protected web UI with scrypt hashing
+
+**Ease of Use**
+- **Setup Wizard**: Browser-based configuration — no .env file needed
+- **4 Languages**: English, German, French, and Spanish UI
 - **Light/Dark Mode**: Persistent theme toggle
+- **Optional Authentication**: Password-protected web UI with scrypt hashing
+
+**Smart Home Integration** (optional)
+- **MQTT Auto-Discovery**: Zero-config integration with Home Assistant
+- **Per-Channel + Summary Sensors**: Every DOCSIS channel and aggregated metrics as HA entities
 
 ## Quick Start
 
@@ -105,7 +114,9 @@ Copy `.env.example` to `.env` and edit:
 </details>
 
 <details>
-<summary><h2>Created Sensors</h2></summary>
+<summary><h2>Home Assistant Integration</h2></summary>
+
+DOCSight can optionally publish all channel data to Home Assistant via MQTT Auto-Discovery. This is not required to use DOCSight.
 
 ### Per-Channel (~37 DS + 4 US)
 
@@ -141,8 +152,9 @@ Copy `.env.example` to `.env` and edit:
 
 ## Requirements
 
-- DOCSIS cable modem or router (tested with AVM FRITZ!Box 6690 Cable)
-- MQTT broker (e.g., Mosquitto) - optional, for Home Assistant integration
+- Docker (or any OCI-compatible container runtime)
+- A DOCSIS cable modem or router with web interface (tested with AVM FRITZ!Box 6690 Cable)
+- MQTT broker (optional) — only needed for Home Assistant integration
 
 ## Roadmap
 
