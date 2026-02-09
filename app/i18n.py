@@ -103,7 +103,7 @@ EN = {
 
     # Setup
     "initial_setup": "Initial Setup",
-    "fritz_connection": "Modem Connection",
+    "modem_connection": "Modem Connection",
     "url": "URL",
     "username": "Username",
     "password": "Password",
@@ -263,7 +263,7 @@ DE = {
                "Juli", "August", "September", "Oktober", "November", "Dezember"],
 
     "initial_setup": "Ersteinrichtung",
-    "fritz_connection": "Modem-Verbindung",
+    "modem_connection": "Modem-Verbindung",
     "url": "URL",
     "username": "Benutzername",
     "password": "Passwort",

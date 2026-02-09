@@ -199,24 +199,24 @@
 <form id="setup-form" autocomplete="off">
 
     <div class="section">
-        <h2><span class="step-num">1</span>{{ t.fritz_connection }}</h2>
+        <h2><span class="step-num">1</span>{{ t.modem_connection }}</h2>
         <div class="form-grid">
             <div class="form-row full">
-                <label for="fritz_url">{{ t.url }}</label>
-                <input type="text" id="fritz_url" name="fritz_url" value="{{ config.fritz_url }}" placeholder="http://192.168.178.1">
+                <label for="modem_url">{{ t.url }}</label>
+                <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}" placeholder="http://192.168.178.1">
             </div>
             <div class="form-row">
-                <label for="fritz_user">{{ t.username }}</label>
-                <input type="text" id="fritz_user" name="fritz_user" value="{{ config.fritz_user }}" placeholder="admin">
+                <label for="modem_user">{{ t.username }}</label>
+                <input type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}" placeholder="admin">
             </div>
             <div class="form-row">
-                <label for="fritz_password">{{ t.password }}</label>
-                <input type="password" id="fritz_password" name="fritz_password" value="" placeholder="{% if config.fritz_password %}{{ t.saved_ph }}{% endif %}">
+                <label for="modem_password">{{ t.password }}</label>
+                <input type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
             </div>
         </div>
         <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testFritz()">{{ t.test_connection }}</button>
-            <span class="test-result" id="fritz-test"></span>
+            <button type="button" class="btn btn-secondary" onclick="testModem()">{{ t.test_connection }}</button>
+            <span class="test-result" id="modem-test"></span>
         </div>
     </div>
 
@@ -316,7 +316,7 @@ function toggleAdvanced() {
 }
 
 var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-var SECRET_FIELDS = ['fritz_password', 'mqtt_password'];
+var SECRET_FIELDS = ['modem_password', 'mqtt_password'];
 
 function getFormData() {
     var form = document.getElementById('setup-form');
@@ -339,16 +339,16 @@ function getFormData() {
     return data;
 }
 
-function testFritz() {
-    var el = document.getElementById('fritz-test');
+function testModem() {
+    var el = document.getElementById('modem-test');
     el.className = 'test-result';
     el.style.display = 'inline-block';
     el.textContent = T.testing;
     var data = getFormData();
-    fetch('/api/test-fritz', {
+    fetch('/api/test-modem', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({fritz_url: data.fritz_url, fritz_user: data.fritz_user, fritz_password: data.fritz_password})
+        body: JSON.stringify({modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
     })
     .then(function(r) { return r.json(); })
     .then(function(res) {
@@ -398,7 +398,7 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
     var errEl = document.getElementById('global-error');
     errEl.style.display = 'none';
     var data = getFormData();
-    var pwField = document.getElementById('fritz_password');
+    var pwField = document.getElementById('modem_password');
     if (!pwField.value && !pwField.placeholder) {
         errEl.textContent = T.pw_required;
         errEl.style.display = 'block';

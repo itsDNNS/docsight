@@ -27,7 +27,7 @@ def polling_loop(config_mgr, storage, stop_event):
     """Run the FritzBox polling loop until stop_event is set."""
     config = config_mgr.get_all()
 
-    log.info("FritzBox: %s (user: %s)", config["fritz_url"], config["fritz_user"])
+    log.info("Modem: %s (user: %s)", config["modem_url"], config["modem_user"])
     log.info("Poll interval: %ds", config["poll_interval"])
 
     # Connect MQTT (optional)
@@ -61,22 +61,22 @@ def polling_loop(config_mgr, storage, stop_event):
     while not stop_event.is_set():
         try:
             sid = fritzbox.login(
-                config["fritz_url"], config["fritz_user"], config["fritz_password"]
+                config["modem_url"], config["modem_user"], config["modem_password"]
             )
 
             if device_info is None:
-                device_info = fritzbox.get_device_info(config["fritz_url"], sid)
+                device_info = fritzbox.get_device_info(config["modem_url"], sid)
                 log.info("FritzBox model: %s (%s)", device_info["model"], device_info["sw_version"])
 
             if connection_info is None:
-                connection_info = fritzbox.get_connection_info(config["fritz_url"], sid)
+                connection_info = fritzbox.get_connection_info(config["modem_url"], sid)
                 if connection_info:
                     ds = connection_info.get("max_downstream_kbps", 0) // 1000
                     us = connection_info.get("max_upstream_kbps", 0) // 1000
                     log.info("Connection: %d/%d Mbit/s (%s)", ds, us, connection_info.get("connection_type", ""))
                     web.update_state(connection_info=connection_info)
 
-            data = fritzbox.get_docsis_data(config["fritz_url"], sid)
+            data = fritzbox.get_docsis_data(config["modem_url"], sid)
             analysis = analyzer.analyze(data)
 
             if mqtt_pub:

@@ -1,14 +1,13 @@
 services:
   docsight:
     image: ghcr.io/itsdnns/docsight:latest
-    build: .
     container_name: docsight
     restart: unless-stopped
     ports:
       - "8765:8765"
     volumes:
-      - docsis_data:/data
+      - docsight_data:/data
     # env_file: .env  # uncomment if using environment variables
 
 volumes:
-  docsis_data:
+  docsight_data:

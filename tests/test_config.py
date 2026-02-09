@@ -18,7 +18,7 @@ def config(tmp_data_dir):
 
 class TestConfigDefaults:
     def test_defaults_applied(self, config):
-        assert config.get("fritz_url") == "http://192.168.178.1"
+        assert config.get("modem_url") == "http://192.168.178.1"
         assert config.get("poll_interval") == 300
         assert config.get("web_port") == 8765
         assert config.get("theme") == "dark"
@@ -37,15 +37,15 @@ class TestConfigDefaults:
 class TestConfigSaveLoad:
     def test_save_and_load(self, tmp_data_dir):
         config = ConfigManager(tmp_data_dir)
-        config.save({"fritz_user": "admin", "poll_interval": 120})
+        config.save({"modem_user": "admin", "poll_interval": 120})
 
         # Reload from disk
         config2 = ConfigManager(tmp_data_dir)
-        assert config2.get("fritz_user") == "admin"
+        assert config2.get("modem_user") == "admin"
         assert config2.get("poll_interval") == 120
 
     def test_save_creates_file(self, config, tmp_data_dir):
-        config.save({"fritz_user": "test"})
+        config.save({"modem_user": "test"})
         assert os.path.exists(os.path.join(tmp_data_dir, "config.json"))
 
     def test_int_keys_cast(self, tmp_data_dir):
@@ -58,40 +58,40 @@ class TestConfigSaveLoad:
 
 class TestConfigSecrets:
     def test_password_encrypted_at_rest(self, config, tmp_data_dir):
-        config.save({"fritz_password": "secret123"})
+        config.save({"modem_password": "secret123"})
 
         # Read raw file - password should not be plaintext
         with open(os.path.join(tmp_data_dir, "config.json")) as f:
             raw = json.load(f)
-        assert raw["fritz_password"] != "secret123"
-        assert raw["fritz_password"] != ""
+        assert raw["modem_password"] != "secret123"
+        assert raw["modem_password"] != ""
 
     def test_password_decrypted_on_read(self, tmp_data_dir):
         config = ConfigManager(tmp_data_dir)
-        config.save({"fritz_password": "secret123"})
+        config.save({"modem_password": "secret123"})
 
         config2 = ConfigManager(tmp_data_dir)
-        assert config2.get("fritz_password") == "secret123"
+        assert config2.get("modem_password") == "secret123"
 
     def test_mask_not_saved(self, tmp_data_dir):
         config = ConfigManager(tmp_data_dir)
-        config.save({"fritz_password": "original"})
-        config.save({"fritz_password": PASSWORD_MASK, "fritz_user": "updated"})
+        config.save({"modem_password": "original"})
+        config.save({"modem_password": PASSWORD_MASK, "modem_user": "updated"})
 
         config2 = ConfigManager(tmp_data_dir)
-        assert config2.get("fritz_password") == "original"
-        assert config2.get("fritz_user") == "updated"
+        assert config2.get("modem_password") == "original"
+        assert config2.get("modem_user") == "updated"
 
     def test_get_all_masks_secrets(self, config):
-        config.save({"fritz_password": "secret", "mqtt_password": "mqttpass"})
+        config.save({"modem_password": "secret", "mqtt_password": "mqttpass"})
         all_config = config.get_all(mask_secrets=True)
-        assert all_config["fritz_password"] == PASSWORD_MASK
+        assert all_config["modem_password"] == PASSWORD_MASK
         assert all_config["mqtt_password"] == PASSWORD_MASK
 
     def test_get_all_shows_secrets(self, config):
-        config.save({"fritz_password": "secret"})
+        config.save({"modem_password": "secret"})
         all_config = config.get_all(mask_secrets=False)
-        assert all_config["fritz_password"] == "secret"
+        assert all_config["modem_password"] == "secret"
 
     def test_admin_password_hashed_at_rest(self, config, tmp_data_dir):
         config.save({"admin_password": "admin123"})
@@ -109,7 +109,7 @@ class TestConfigSecrets:
         config = ConfigManager(tmp_data_dir)
         config.save({"admin_password": "original"})
         hash1 = config.get("admin_password")
-        config.save({"admin_password": PASSWORD_MASK, "fritz_user": "updated"})
+        config.save({"admin_password": PASSWORD_MASK, "modem_user": "updated"})
         assert config.get("admin_password") == hash1
 
     def test_admin_password_masked_in_get_all(self, config):
@@ -121,10 +121,10 @@ class TestConfigSecrets:
 class TestConfigEnvOverride:
     def test_env_overrides_file(self, tmp_data_dir, monkeypatch):
         config = ConfigManager(tmp_data_dir)
-        config.save({"fritz_url": "http://from-file"})
+        config.save({"modem_url": "http://from-file"})
 
-        monkeypatch.setenv("FRITZ_URL", "http://from-env")
-        assert config.get("fritz_url") == "http://from-env"
+        monkeypatch.setenv("MODEM_URL", "http://from-env")
+        assert config.get("modem_url") == "http://from-env"
 
     def test_env_overrides_default(self, tmp_data_dir, monkeypatch):
         monkeypatch.setenv("POLL_INTERVAL", "600")
@@ -132,14 +132,46 @@ class TestConfigEnvOverride:
         assert config.get("poll_interval") == 600
 
     def test_empty_env_ignored(self, tmp_data_dir, monkeypatch):
-        monkeypatch.setenv("FRITZ_USER", "")
+        monkeypatch.setenv("MODEM_USER", "")
         config = ConfigManager(tmp_data_dir)
-        assert config.get("fritz_user") == ""  # falls through to default
+        assert config.get("modem_user") == ""  # falls through to default
+
+    def test_legacy_fritz_env_fallback(self, tmp_data_dir, monkeypatch):
+        """Deprecated FRITZ_* env vars still work as fallback."""
+        monkeypatch.setenv("FRITZ_URL", "http://legacy-fritz")
+        config = ConfigManager(tmp_data_dir)
+        assert config.get("modem_url") == "http://legacy-fritz"
+
+    def test_modem_env_takes_priority_over_fritz(self, tmp_data_dir, monkeypatch):
+        """MODEM_* env vars take priority over deprecated FRITZ_*."""
+        monkeypatch.setenv("MODEM_URL", "http://new-modem")
+        monkeypatch.setenv("FRITZ_URL", "http://old-fritz")
+        config = ConfigManager(tmp_data_dir)
+        assert config.get("modem_url") == "http://new-modem"
+
+
+class TestConfigMigration:
+    def test_legacy_fritz_keys_migrated(self, tmp_data_dir):
+        """Old config.json with fritz_* keys should be auto-migrated to modem_*."""
+        os.makedirs(tmp_data_dir, exist_ok=True)
+        # Write a legacy config.json with fritz_* keys
+        legacy_config = {"fritz_url": "http://old-box", "fritz_user": "legacy"}
+        with open(os.path.join(tmp_data_dir, "config.json"), "w") as f:
+            json.dump(legacy_config, f)
+        # ConfigManager should migrate on load
+        config = ConfigManager(tmp_data_dir)
+        assert config.get("modem_url") == "http://old-box"
+        assert config.get("modem_user") == "legacy"
+        # Old keys should be gone from the file
+        with open(os.path.join(tmp_data_dir, "config.json")) as f:
+            raw = json.load(f)
+        assert "fritz_url" not in raw
+        assert "modem_url" in raw
 
 
 class TestConfigState:
     def test_is_configured_with_password(self, config):
-        config.save({"fritz_password": "pass123"})
+        config.save({"modem_password": "pass123"})
         assert config.is_configured() is True
 
     def test_is_mqtt_configured(self, config):
