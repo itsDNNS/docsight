@@ -16,12 +16,37 @@ EN = {
     "open_calendar": "Open calendar",
     "last_update": "Last Update",
 
-    # Health (display labels for analyzer values Gut/Grenzwertig/Schlecht)
+    # Health status
     "health_good": "Good",
     "health_marginal": "Marginal",
     "health_poor": "Poor",
     "health_warning": "Warning",
     "health_critical": "Critical",
+    "health_good_msg": "Your connection looks healthy. All values are within normal range.",
+    "health_marginal_msg": "Some values are outside the ideal range. This may not affect your internet experience yet, but is worth monitoring.",
+    "health_poor_msg": "One or more values are critically out of range. You may experience connection issues such as slow speeds, dropouts, or high latency.",
+    "all_ok": "All channels operating normally.",
+    "issues_found": "Issues detected",
+
+    # Health issue descriptions
+    "issue_ds_power_critical": "Downstream power out of spec",
+    "issue_ds_power_critical_desc": "Signal level exceeds +/-10 dBmV. This usually indicates a cabling or amplifier problem. Contact your ISP if the issue persists.",
+    "issue_us_power_critical": "Upstream power critically high",
+    "issue_us_power_critical_desc": "Transmit power exceeds 54 dBmV. Your modem is working too hard to reach the provider. Check cable connections or request a signal check from your ISP.",
+    "issue_us_power_warn": "Upstream power elevated",
+    "issue_us_power_warn_desc": "Transmit power is between 50-54 dBmV (ideal: 35-49). May indicate signal loss on the line. Monitor this value over time.",
+    "issue_snr_critical": "Signal-to-noise ratio critically low",
+    "issue_snr_critical_desc": "SNR below 25 dB causes packet loss and connection instability. Common causes: damaged coax cable, loose connectors, or interference from splitters.",
+    "issue_snr_warn": "Signal-to-noise ratio below ideal",
+    "issue_snr_warn_desc": "SNR between 25-30 dB (ideal: above 30 dB). Connection works but has reduced margin for error. Consider checking cable quality.",
+    "issue_uncorr_errors_high": "High uncorrectable error count",
+    "issue_uncorr_errors_high_desc": "Over 10,000 uncorrectable errors detected. These cannot be recovered and cause data loss. If this number grows rapidly, contact your ISP.",
+
+    # Channel health tooltips
+    "ch_power_critical": "Power critically out of range",
+    "ch_power_warning": "Power slightly elevated",
+    "ch_snr_critical": "SNR critically low",
+    "ch_snr_warning": "SNR below ideal",
 
     # Summary cards
     "ds_channels": "Downstream Channels",
@@ -157,6 +182,29 @@ DE = {
     "health_poor": "Schlecht",
     "health_warning": "Warnung",
     "health_critical": "Kritisch",
+    "health_good_msg": "Deine Verbindung sieht gut aus. Alle Werte sind im Normalbereich.",
+    "health_marginal_msg": "Einige Werte liegen ausserhalb des Idealbereichs. Das beeintraechtigt dein Internet moeglicherweise noch nicht, sollte aber beobachtet werden.",
+    "health_poor_msg": "Ein oder mehrere Werte sind kritisch. Du koenntest Verbindungsprobleme wie langsame Geschwindigkeiten, Abbrueche oder hohe Latenz bemerken.",
+    "all_ok": "Alle Kanaele arbeiten normal.",
+    "issues_found": "Probleme erkannt",
+
+    "issue_ds_power_critical": "Downstream-Pegel ausserhalb der Spezifikation",
+    "issue_ds_power_critical_desc": "Signalpegel ueberschreitet +/-10 dBmV. Das deutet meist auf ein Kabel- oder Verstaerkerproblem hin. Kontaktiere deinen Anbieter, wenn das Problem bestehen bleibt.",
+    "issue_us_power_critical": "Upstream-Sendeleistung kritisch hoch",
+    "issue_us_power_critical_desc": "Sendeleistung ueberschreitet 54 dBmV. Dein Modem arbeitet zu hart, um den Anbieter zu erreichen. Pruefe Kabelverbindungen oder fordere eine Signalmessung an.",
+    "issue_us_power_warn": "Upstream-Sendeleistung erhoeht",
+    "issue_us_power_warn_desc": "Sendeleistung zwischen 50-54 dBmV (ideal: 35-49). Kann auf Signalverlust hindeuten. Beobachte diesen Wert ueber Zeit.",
+    "issue_snr_critical": "Signal-Rausch-Verhaeltnis kritisch niedrig",
+    "issue_snr_critical_desc": "SNR unter 25 dB verursacht Paketverluste und Verbindungsinstabilitaet. Haeufige Ursachen: beschaedigtes Koax-Kabel, lose Stecker oder Stoerungen durch Splitter.",
+    "issue_snr_warn": "Signal-Rausch-Verhaeltnis unter Idealwert",
+    "issue_snr_warn_desc": "SNR zwischen 25-30 dB (ideal: ueber 30 dB). Verbindung funktioniert, hat aber weniger Fehlertoleranz. Pruefe die Kabelqualitaet.",
+    "issue_uncorr_errors_high": "Hohe Anzahl unkorrigierbarer Fehler",
+    "issue_uncorr_errors_high_desc": "Ueber 10.000 unkorrigierbare Fehler erkannt. Diese koennen nicht repariert werden und verursachen Datenverlust. Wenn diese Zahl schnell waechst, kontaktiere deinen Anbieter.",
+
+    "ch_power_critical": "Pegel kritisch ausserhalb des Bereichs",
+    "ch_power_warning": "Pegel leicht erhoeht",
+    "ch_snr_critical": "SNR kritisch niedrig",
+    "ch_snr_warning": "SNR unter Idealwert",
 
     "ds_channels": "Downstream Kanaele",
     "us_channels": "Upstream Kanaele",

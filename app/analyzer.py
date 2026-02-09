@@ -38,20 +38,10 @@ def _channel_health(issues):
 
 
 def _health_detail(issues):
-    """Build a human-readable detail string from issue list."""
+    """Build a machine-readable detail string from issue list."""
     if not issues:
         return ""
-    labels = []
-    for i in issues:
-        if "power" in i and "critical" in i:
-            labels.append("Power kritisch")
-        elif "power" in i:
-            labels.append("Power erhoeht")
-        if "snr" in i and "critical" in i:
-            labels.append("SNR kritisch")
-        elif "snr" in i:
-            labels.append("SNR niedrig")
-    return " + ".join(labels) if labels else ""
+    return " + ".join(issues)
 
 
 def _assess_ds_channel(ch, docsis_ver):
@@ -201,25 +191,25 @@ def analyze(data: dict) -> dict:
     # --- Overall health ---
     issues = []
     if ds_powers and (min(ds_powers) < -DS_POWER_CRIT or max(ds_powers) > DS_POWER_CRIT):
-        issues.append("DS Power ausserhalb Norm")
+        issues.append("ds_power_critical")
     if us_powers and max(us_powers) > US_POWER_CRIT:
-        issues.append("US Power kritisch hoch")
+        issues.append("us_power_critical")
     elif us_powers and max(us_powers) > US_POWER_WARN:
-        issues.append("US Power erhoeht")
+        issues.append("us_power_warn")
     if ds_snrs and min(ds_snrs) < SNR_CRIT:
-        issues.append("SNR zu niedrig")
+        issues.append("snr_critical")
     elif ds_snrs and min(ds_snrs) < SNR_WARN:
-        issues.append("SNR grenzwertig")
+        issues.append("snr_warn")
     if total_uncorr > UNCORR_ERRORS_CRIT:
-        issues.append("Viele uncorrectable Errors")
+        issues.append("uncorr_errors_high")
 
     if not issues:
-        summary["health"] = "Gut"
-    elif any("kritisch" in i for i in issues):
-        summary["health"] = "Schlecht"
+        summary["health"] = "good"
+    elif any("critical" in i for i in issues):
+        summary["health"] = "poor"
     else:
-        summary["health"] = "Grenzwertig"
-    summary["health_details"] = "; ".join(issues) if issues else "Alles OK"
+        summary["health"] = "marginal"
+    summary["health_issues"] = issues
 
     log.info(
         "Analysis: DS=%d US=%d Health=%s",

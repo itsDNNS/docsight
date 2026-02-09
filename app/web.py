@@ -291,7 +291,7 @@ def api_export():
         f"- **ISP**: {isp}" if isp else None,
         f"- **Tariff**: {ds_mbps}/{us_mbps} Mbit/s (Down/Up)" if ds_mbps else None,
         f"- **Health**: {s.get('health', 'Unknown')}",
-        f"- **Details**: {s.get('health_details', '')}",
+        f"- **Issues**: {', '.join(s.get('health_issues', []))}" if s.get('health_issues') else None,
         f"- **Timestamp**: {ts}",
         "",
         "## Summary",

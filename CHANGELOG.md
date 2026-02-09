@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.10]
+
+### Changed
+- **Health status redesigned**: Informative banner with translated status, explanation, and per-issue descriptions with actionable recommendations
+- **Analyzer outputs English keys**: Health uses `good/marginal/poor`, issues are machine-readable keys translated in the UI
+- **Channel groups collapsed by default**: Less visual clutter, expand to inspect
+
 ## [2026-02-09.9]
 
 ### Added

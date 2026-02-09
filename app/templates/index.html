@@ -173,12 +173,28 @@
         }
         .history-banner a { color: var(--info); font-size: 0.85em; }
         .health-banner {
-            padding: 12px 20px; border-radius: 8px;
-            font-size: 1.1em; font-weight: bold; margin-bottom: 16px;
+            padding: 16px 20px; border-radius: 8px; margin-bottom: 16px;
         }
-        .health-good { background: rgba(76,175,80,0.2); border: 1px solid var(--good); color: var(--good); }
-        .health-warn { background: rgba(255,152,0,0.2); border: 1px solid var(--warn); color: var(--warn); }
-        .health-crit { background: rgba(244,67,54,0.2); border: 1px solid var(--crit); color: var(--crit); }
+        .health-good { background: rgba(76,175,80,0.1); border: 1px solid var(--good); }
+        .health-warn { background: rgba(255,152,0,0.1); border: 1px solid var(--warn); }
+        .health-crit { background: rgba(244,67,54,0.1); border: 1px solid var(--crit); }
+        .health-status { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .health-icon { font-size: 1.4em; }
+        .health-good .health-icon { color: var(--good); }
+        .health-warn .health-icon { color: var(--warn); }
+        .health-crit .health-icon { color: var(--crit); }
+        .health-title { font-size: 1.15em; font-weight: bold; }
+        .health-good .health-title { color: var(--good); }
+        .health-warn .health-title { color: var(--warn); }
+        .health-crit .health-title { color: var(--crit); }
+        .health-msg { font-size: 0.9em; color: var(--text); opacity: 0.85; margin-bottom: 4px; }
+        .health-issues { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .health-issue {
+            padding: 8px 12px; border-radius: 6px;
+            background: rgba(0,0,0,0.15);
+        }
+        .health-issue-name { font-weight: bold; font-size: 0.9em; display: block; }
+        .health-issue-desc { font-size: 0.82em; color: var(--muted); margin-top: 2px; display: block; }
         h2.section-title { font-size: 1.1em; margin: 16px 0 8px; color: var(--accent); }
         .summary-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -414,16 +430,43 @@
     {% set ds = analysis.ds_channels %}
     {% set us = analysis.us_channels %}
 
-    {% set health_labels = {"Gut": t.health_good, "Grenzwertig": t.health_marginal, "Schlecht": t.health_poor} %}
-    {% set health_label = health_labels.get(s.health, s.health) %}
+    {% set health_map = {"good": t.health_good, "marginal": t.health_marginal, "poor": t.health_poor} %}
+    {% set health_label = health_map.get(s.health, s.health) %}
+    {% set health_msgs = {"good": t.health_good_msg, "marginal": t.health_marginal_msg, "poor": t.health_poor_msg} %}
+    {% set issue_labels = {
+        "ds_power_critical": t.issue_ds_power_critical,
+        "us_power_critical": t.issue_us_power_critical,
+        "us_power_warn": t.issue_us_power_warn,
+        "snr_critical": t.issue_snr_critical,
+        "snr_warn": t.issue_snr_warn,
+        "uncorr_errors_high": t.issue_uncorr_errors_high,
+    } %}
+    {% set issue_descs = {
+        "ds_power_critical": t.issue_ds_power_critical_desc,
+        "us_power_critical": t.issue_us_power_critical_desc,
+        "us_power_warn": t.issue_us_power_warn_desc,
+        "snr_critical": t.issue_snr_critical_desc,
+        "snr_warn": t.issue_snr_warn_desc,
+        "uncorr_errors_high": t.issue_uncorr_errors_high_desc,
+    } %}
 
-    {% if s.health == "Gut" %}
-    <div class="health-banner health-good">{{ health_label }} &mdash; {{ s.health_details }}</div>
-    {% elif s.health == "Schlecht" %}
-    <div class="health-banner health-crit">{{ health_label }} &mdash; {{ s.health_details }}</div>
-    {% else %}
-    <div class="health-banner health-warn">{{ health_label }} &mdash; {{ s.health_details }}</div>
-    {% endif %}
+    <div class="health-banner health-{{ 'good' if s.health == 'good' else ('crit' if s.health == 'poor' else 'warn') }}">
+        <div class="health-status">
+            <span class="health-icon">{% if s.health == 'good' %}&#10004;{% elif s.health == 'poor' %}&#10006;{% else %}&#9888;{% endif %}</span>
+            <span class="health-title">{{ health_label }}</span>
+        </div>
+        <div class="health-msg">{{ health_msgs.get(s.health, '') }}</div>
+        {% if s.health_issues %}
+        <div class="health-issues">
+            {% for issue in s.health_issues %}
+            <div class="health-issue">
+                <span class="health-issue-name">{{ issue_labels.get(issue, issue) }}</span>
+                <span class="health-issue-desc">{{ issue_descs.get(issue, '') }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
 
     <div class="summary-grid">
         {% if isp_name or connection_info %}
@@ -460,7 +503,7 @@
 
     <h2 class="section-title">{{ t.downstream }} ({{ ds|length }} {{ t.channels }})</h2>
     {% for group in ds|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
-    <details class="channel-group" open>
+    <details class="channel-group">
         <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }})</summary>
         <table class="sortable">
             <thead><tr>
@@ -470,10 +513,13 @@
             <tbody>
             {% for ch in group.list %}
             <tr>
+                {% set ch_tips = {"power critical": t.ch_power_critical, "power warning": t.ch_power_warning, "snr critical": t.ch_snr_critical, "snr warning": t.ch_snr_warning} %}
+                {% set ch_tip_parts = [] %}
+                {% for key, label in ch_tips.items() %}{% if key in ch.health_detail %}{% if ch_tip_parts.append(label) %}{% endif %}{% endif %}{% endfor %}
                 <td data-sort="{{ 0 if ch.health == 'good' else (2 if ch.health == 'critical' else 1) }}">
                     {% if ch.health == "good" %}<span class="badge badge-good">{{ t.health_good }}</span>
-                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">{{ t.health_critical }}</span>
-                    {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">{{ t.health_warning }}</span>{% endif %}
+                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip_parts|join(', ') }}">{{ t.health_critical }}</span>
+                    {% else %}<span class="badge badge-warn" title="{{ ch_tip_parts|join(', ') }}">{{ t.health_warning }}</span>{% endif %}
                 </td>
                 <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
@@ -491,7 +537,7 @@
 
     <h2 class="section-title">{{ t.upstream }} ({{ us|length }} {{ t.channels }})</h2>
     {% for group in us|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
-    <details class="channel-group" open>
+    <details class="channel-group">
         <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }})</summary>
         <table class="sortable">
             <thead><tr>
@@ -500,11 +546,12 @@
             </tr></thead>
             <tbody>
             {% for ch in group.list %}
+            {% set ch_tip = t.ch_power_critical if 'power critical' in ch.health_detail else (t.ch_power_warning if 'power warning' in ch.health_detail else '') %}
             <tr>
                 <td data-sort="{{ 0 if ch.health == 'good' else (2 if ch.health == 'critical' else 1) }}">
                     {% if ch.health == "good" %}<span class="badge badge-good">{{ t.health_good }}</span>
-                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">{{ t.health_critical }}</span>
-                    {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">{{ t.health_warning }}</span>{% endif %}
+                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip }}">{{ t.health_critical }}</span>
+                    {% else %}<span class="badge badge-warn" title="{{ ch_tip }}">{{ t.health_warning }}</span>{% endif %}
                 </td>
                 <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
