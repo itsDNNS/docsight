@@ -7,18 +7,6 @@ _DIR = os.path.dirname(__file__)
 _TRANSLATIONS = {}
 LANGUAGES = {}
 
-# ISP brand colors for visual indicator dot
-ISP_COLORS = {
-    "Vodafone": "#e60000",
-    "PYUR": "#512d6d",
-    "eazy": "#00b900",
-    "NetCologne": "#ec1c24",
-    "SFR": "#e2001a",
-    "Euskaltel": "#e30613",
-    "R": "#ff6600",
-    "Telecable": "#0066b3",
-}
-
 # Load all *.json files in this directory
 for _fname in sorted(os.listdir(_DIR)):
     if not _fname.endswith(".json"):

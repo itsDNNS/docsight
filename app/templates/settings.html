@@ -131,31 +131,6 @@
             color: var(--crit); padding: 10px; border-radius: 6px;
             margin-bottom: 16px; display: none;
         }
-        .isp-dropdown { position: relative; }
-        .isp-selected {
-            display: flex; align-items: center; gap: 8px;
-            background: var(--input-bg); border: 1px solid var(--input-border);
-            border-radius: 4px; padding: 8px 10px; cursor: pointer;
-            font-size: 0.95em; font-family: inherit; color: var(--text);
-        }
-        .isp-selected:hover { border-color: var(--accent); }
-        .isp-selected .isp-arrow { margin-left: auto; font-size: 0.8em; color: var(--muted); }
-        .isp-options {
-            display: none; position: absolute; top: 100%; left: 0; right: 0;
-            background: var(--input-bg); border: 1px solid var(--input-border);
-            border-radius: 4px; margin-top: 2px; z-index: 50;
-            max-height: 240px; overflow-y: auto;
-        }
-        .isp-options.open { display: block; }
-        .isp-option {
-            display: flex; align-items: center; gap: 8px;
-            padding: 8px 10px; cursor: pointer; font-size: 0.95em;
-        }
-        .isp-option:hover { background: var(--card); }
-        .isp-badge {
-            display: inline-block; width: 10px; height: 10px;
-            border-radius: 3px; flex-shrink: 0;
-        }
         @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -237,29 +212,14 @@
         <h2>{{ t.general }}</h2>
         <div class="form-grid">
             <div class="form-row">
-                <label>{{ t.isp_name }}</label>
-                <div class="isp-dropdown" id="isp-dropdown">
-                    <div class="isp-selected" id="isp-selected" onclick="toggleIspDropdown()">
-                        <span class="isp-badge" id="isp-sel-badge"></span>
-                        <span class="isp-text" id="isp-sel-text">{{ t.isp_select }}</span>
-                        <span class="isp-arrow">&#9662;</span>
-                    </div>
-                    <div class="isp-options" id="isp-options">
-                        <div class="isp-option" data-value="" onclick="selectIsp(this)">
-                            <span class="isp-text">{{ t.isp_select }}</span>
-                        </div>
-                        {% for isp in t.isp_options %}
-                        <div class="isp-option" data-value="{{ isp }}" onclick="selectIsp(this)">
-                            {% if isp in isp_colors %}<span class="isp-badge" style="background:{{ isp_colors[isp] }}"></span>{% endif %}
-                            <span class="isp-text">{{ isp }}</span>
-                        </div>
-                        {% endfor %}
-                        <div class="isp-option" data-value="__other__" onclick="selectIsp(this)">
-                            <span class="isp-text">{{ t.isp_other }}</span>
-                        </div>
-                    </div>
-                    <input type="hidden" id="isp_value" value="{{ config.isp_name or '' }}">
-                </div>
+                <label for="isp_select">{{ t.isp_name }}</label>
+                <select id="isp_select" name="isp_select" onchange="onIspChange()">
+                    <option value="">{{ t.isp_select }}</option>
+                    {% for isp in t.isp_options %}
+                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                    {% endfor %}
+                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                </select>
                 <span class="hint">{{ t.isp_hint }}</span>
             </div>
             <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
@@ -319,48 +279,11 @@ themeCheck.addEventListener('change', function() {
     }
 })();
 
-var ISP_COLORS = {{ isp_colors|tojson }};
-var ispOpen = false;
-
-function toggleIspDropdown() {
-    ispOpen = !ispOpen;
-    document.getElementById('isp-options').classList.toggle('open', ispOpen);
+function onIspChange() {
+    var sel = document.getElementById('isp_select');
+    var row = document.getElementById('isp-other-row');
+    row.style.display = sel.value === '__other__' ? 'flex' : 'none';
 }
-
-function selectIsp(el) {
-    var val = el.getAttribute('data-value');
-    document.getElementById('isp_value').value = val;
-    var badge = document.getElementById('isp-sel-badge');
-    var text = document.getElementById('isp-sel-text');
-    var color = ISP_COLORS[val];
-    badge.style.background = color || 'transparent';
-    badge.style.display = color ? 'inline-block' : 'none';
-    text.textContent = el.querySelector('.isp-text').textContent;
-    ispOpen = false;
-    document.getElementById('isp-options').classList.remove('open');
-    document.getElementById('isp-other-row').style.display = val === '__other__' ? 'flex' : 'none';
-}
-
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.isp-dropdown')) {
-        ispOpen = false;
-        document.getElementById('isp-options').classList.remove('open');
-    }
-});
-
-(function() {
-    var val = document.getElementById('isp_value').value;
-    if (!val) return;
-    var opts = document.querySelectorAll('#isp-options .isp-option');
-    var found = false;
-    for (var i = 0; i < opts.length; i++) {
-        if (opts[i].getAttribute('data-value') === val) { selectIsp(opts[i]); found = true; break; }
-    }
-    if (!found) {
-        var other = document.querySelector('#isp-options .isp-option[data-value="__other__"]');
-        selectIsp(other);
-    }
-})();
 
 function showToast(msg, ok) {
     var el = document.getElementById('toast');
@@ -376,18 +299,18 @@ var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password'];
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
-    form.querySelectorAll('input:not(#theme-check):not(#isp_other_input):not(#isp_value), select').forEach(function(inp) {
+    form.querySelectorAll('input:not(#theme-check):not(#isp_other_input), select:not(#isp_select)').forEach(function(inp) {
         if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
             data[inp.name] = inp.value || MASK;
         } else {
             data[inp.name] = inp.value;
         }
     });
-    var ispVal = document.getElementById('isp_value').value;
-    if (ispVal === '__other__') {
+    var ispSel = document.getElementById('isp_select');
+    if (ispSel.value === '__other__') {
         data.isp_name = document.getElementById('isp_other_input').value;
     } else {
-        data.isp_name = ispVal;
+        data.isp_name = ispSel.value;
     }
     data.theme = themeCheck.checked ? 'dark' : 'light';
     return data;
