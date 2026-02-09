@@ -146,6 +146,18 @@ Copy `.env.example` to `.env` and edit:
 
 ## Roadmap
 
+### Modulation & Signal Intelligence
+- [ ] **Modulation Watchdog**: Track and alert on QAM modulation changes per channel (e.g. 256QAM dropping to 16QAM)
+- [ ] **Channel Heatmap**: Visual grid of all channels color-coded by modulation quality — spot frequency-dependent issues at a glance
+- [ ] **OFDMA Analysis**: Detect whether the modem uses a wide OFDMA block vs. many narrow SC-QAMs; flag subcarrier count fluctuations as potential ingress indicators
+- [ ] **Adaptive Polling**: Automatically increase poll frequency (e.g. every 10-30s) when uncorrectable errors spike, to capture incidents in high resolution
+
+### Diagnosis & Reporting
+- [ ] **Incident Report Export**: One-click PDF/report with worst modulation values, max power levels, error sums, and auto-generated ISP complaint text referencing DIN thresholds
+- [ ] **Ping Correlation**: Built-in latency monitor (ping to Google/Cloudflare) overlaid on error graphs to prove causality between physical layer issues and packet loss
+- [ ] **Before/After Comparison**: Side-by-side overlay of two time periods (e.g. week before vs. after technician visit) to quantify improvements
+- [ ] **FritzBox Event Log Parser**: Extract and display T3/T4 Timeout events, Ranging Request failures, and other DOCSIS error codes from the modem's event log
+
 ### External Monitoring Integration
 - [x] **ThinkBroadband BQM**: Daily fetch and archive of external broadband quality graphs (latency, packet loss)
 - [ ] **Speedtest Tracker**: Pull speed test results (download, upload, ping, jitter) from self-hosted [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker)
@@ -154,6 +166,7 @@ Copy `.env.example` to `.env` and edit:
 - [ ] Combined timeline: DOCSIS health + speed tests + BQM graph on a single time axis
 - [ ] Notification system: Webhooks on health degradation
 - [ ] Mobile-responsive layout
+- [ ] Power level drift detection: Alert on relative changes (e.g. +3 dB in 24h) in addition to absolute thresholds
 
 ### Multi-Modem Support
 - [ ] Plugin architecture for modem drivers
