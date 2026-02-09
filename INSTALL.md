@@ -127,7 +127,7 @@ Now continue with [First-Time Setup](#first-time-setup).
 
 ### Step 1: Open Portainer
 
-Open your Portainer web UI (usually `https://your-nas-ip:9443`).
+Open your Portainer web UI (usually `https://your-host-ip:9443`).
 
 ### Step 2: Create a new stack
 
@@ -155,7 +155,7 @@ volumes:
 
 ### Step 3: Open DOCSight
 
-Open your browser and go to **http://your-nas-ip:8765**
+Open your browser and go to **http://your-host-ip:8765**
 
 Now continue with [First-Time Setup](#first-time-setup).
 
@@ -196,7 +196,7 @@ volumes:
 
 ### Step 3: Open DOCSight
 
-Open your browser and go to **http://your-nas-ip:8765**
+Open your browser and go to **http://your-host-ip:8765**
 
 Now continue with [First-Time Setup](#first-time-setup).
 

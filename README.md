@@ -5,6 +5,12 @@
 <h1 align="center">DOCSight</h1>
 
 <p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/itsDNNS/docsight" alt="License"></a>
+  <a href="https://github.com/itsDNNS/docsight/pkgs/container/docsight"><img src="https://img.shields.io/github/v/tag/itsDNNS/docsight?label=version" alt="Version"></a>
+  <a href="https://github.com/itsDNNS/docsight"><img src="https://img.shields.io/github/last-commit/itsDNNS/docsight" alt="Last Commit"></a>
+</p>
+
+<p align="center">
   Docker container that monitors DOCSIS channel health on cable modems and publishes per-channel sensor data to Home Assistant via MQTT Auto-Discovery. Currently supports AVM FRITZ!Box Cable routers.
 </p>
 
@@ -44,15 +50,7 @@ docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnn
 
 Open `http://localhost:8765` - the setup wizard guides you through configuration.
 
-For detailed step-by-step instructions (including Portainer and Dockhand), see the **[Installation Guide](INSTALL.md)**.
-
-### Using Docker Compose
-
-```bash
-git clone https://github.com/itsDNNS/docsight.git
-cd docsight
-docker compose up -d
-```
+For Docker Compose, Portainer, Dockhand, and detailed step-by-step instructions, see the **[Installation Guide](INSTALL.md)**.
 
 <details>
 <summary><h2>Configuration</h2></summary>
@@ -140,7 +138,7 @@ Copy `.env.example` to `.env` and edit:
 
 ## Requirements
 
-- AVM FRITZ!Box Cable router (tested with 6690 Cable)
+- DOCSIS cable modem or router (currently supported: AVM FRITZ!Box Cable, tested with 6690 Cable)
 - MQTT broker (e.g., Mosquitto) - optional, for Home Assistant integration
 
 ## Roadmap
@@ -156,8 +154,8 @@ Copy `.env.example` to `.env` and edit:
 
 ### Multi-Modem Support
 - [ ] Plugin architecture for modem drivers
-- [ ] SNMP-based generic driver for non-FritzBox cable modems
-- [ ] Community-contributed drivers (Arris, Technicolor, Sagemcom)
+- [ ] SNMP-based generic driver for additional cable modem models
+- [ ] Community-contributed drivers (Arris, Technicolor, Sagemcom, etc.)
 
 ## Contributing
 
