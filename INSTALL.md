@@ -5,8 +5,8 @@ Get DOCSight running in under 10 minutes.
 ## What You Need
 
 - **A computer or NAS** with Docker installed
-- **An AVM FRITZ!Box Cable router** (e.g. FRITZ!Box 6690 Cable)
-- **Your FRITZ!Box login credentials** (the username and password you use to log into `http://fritz.box`)
+- **A DOCSIS cable modem or router** (currently supported: AVM FRITZ!Box Cable)
+- **Your modem/router login credentials** (the username and password you use to access its web interface)
 
 > **New to Docker?** Docker runs applications in isolated containers. Install it from:
 > - **Windows/Mac**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
@@ -189,9 +189,9 @@ When you open DOCSight for the first time, a setup wizard guides you through the
 
 | Field | What to enter |
 |---|---|
-| **Modem URL** | `http://192.168.178.1` (default FRITZ!Box address) |
-| **Username** | Your FRITZ!Box username |
-| **Password** | Your FRITZ!Box password |
+| **Modem URL** | Your modem's web interface address (e.g. `http://192.168.178.1`) |
+| **Username** | Your modem login username |
+| **Password** | Your modem login password |
 
 Click **Test Connection** to verify DOCSight can reach your router. If successful, continue to the next step.
 
@@ -265,9 +265,9 @@ docker compose up -d
 
 ### "Test Connection fails"
 
-- **Is the URL correct?** The default FRITZ!Box address is `http://192.168.178.1`. Try opening it in your browser first.
-- **Are the credentials correct?** Use the same username and password you use to log into the FRITZ!Box web interface.
-- **Network access?** The Docker container must be able to reach your FRITZ!Box. If running on a remote server, ensure it's on the same network.
+- **Is the URL correct?** Try opening your modem's web interface URL in your browser first (e.g. `http://192.168.178.1` for FRITZ!Box).
+- **Are the credentials correct?** Use the same username and password you use to log into your modem's web interface.
+- **Network access?** The Docker container must be able to reach your modem. If running on a remote server, ensure it's on the same network.
 
 ### "Port 8765 already in use"
 
