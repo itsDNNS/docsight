@@ -261,6 +261,53 @@
             color: var(--muted); font-size: 0.95em;
         }
 
+        /* ── Export Modal ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: var(--overlay);
+            z-index: 200; display: none; justify-content: center; align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--surface); border-radius: 10px;
+            padding: 20px; max-width: 720px; width: 90%; max-height: 85vh;
+            display: flex; flex-direction: column;
+            border: 1px solid var(--input-border);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px;
+        }
+        .modal-header h2 { font-size: 1.1em; color: var(--accent); margin: 0; }
+        .modal-close {
+            background: none; border: none; color: var(--muted);
+            font-size: 1.4em; cursor: pointer; line-height: 1;
+        }
+        .modal-close:hover { color: var(--text); }
+        .modal-hint { font-size: 0.85em; color: var(--muted); margin-bottom: 12px; }
+        .modal-body {
+            flex: 1; overflow-y: auto; margin-bottom: 12px;
+        }
+        .modal-body textarea {
+            width: 100%; min-height: 300px; background: var(--bg);
+            color: var(--text); border: 1px solid var(--input-border);
+            border-radius: 6px; padding: 12px; font-size: 0.82em;
+            font-family: 'Consolas', 'Monaco', monospace; resize: vertical;
+        }
+        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-footer .btn {
+            display: inline-block; padding: 8px 20px; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 0.9em;
+            font-family: inherit; font-weight: bold;
+        }
+        .btn-accent { background: var(--accent); color: #000; }
+        .btn-accent:hover { filter: brightness(1.15); }
+        .btn-muted {
+            background: var(--card); color: var(--text);
+            border: 1px solid var(--input-border);
+        }
+        .btn-muted:hover { background: var(--accent); color: #000; }
+
         /* ── Responsive ── */
         @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
         @media (max-width: 600px) {
@@ -301,6 +348,9 @@
         <div class="sidebar-divider"></div>
         <a class="sidebar-link" href="/settings">
             <span class="icon">&#9881;</span> {{ t.settings }}
+        </a>
+        <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
+            <span class="icon">&#128196;</span> {{ t.export_llm }}
         </a>
         <div class="sidebar-divider"></div>
         <details class="sidebar-ref">
@@ -503,6 +553,24 @@
     </div>
 </div>
 </div><!-- /main-content -->
+
+<!-- Export Modal -->
+<div class="modal-overlay" id="export-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>{{ t.export_title }}</h2>
+            <button class="modal-close" onclick="closeExportModal()">&times;</button>
+        </div>
+        <p class="modal-hint">{{ t.export_hint }}</p>
+        <div class="modal-body">
+            <textarea id="export-text" readonly></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" onclick="closeExportModal()">{{ t.close }}</button>
+            <button class="btn btn-accent" id="export-copy-btn" onclick="copyExport()">{{ t.copy_clipboard }}</button>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
@@ -829,6 +897,44 @@
     /* ── Init ── */
     updateDateLabel();
 })();
+
+/* ── Export for LLM ── */
+function exportForLLM() {
+    var T = {{ t|tojson }};
+    var modal = document.getElementById('export-modal');
+    var textarea = document.getElementById('export-text');
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+    textarea.value = T.export_no_data;
+    modal.classList.add('open');
+    fetch('/api/export')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.text) {
+                textarea.value = data.text;
+            } else if (data.error) {
+                textarea.value = data.error;
+            }
+        })
+        .catch(function() {
+            textarea.value = 'Error loading export data.';
+        });
+}
+function closeExportModal() {
+    document.getElementById('export-modal').classList.remove('open');
+}
+function copyExport() {
+    var T = {{ t|tojson }};
+    var textarea = document.getElementById('export-text');
+    var btn = document.getElementById('export-copy-btn');
+    textarea.select();
+    navigator.clipboard.writeText(textarea.value).then(function() {
+        btn.textContent = T.copied;
+        setTimeout(function() { btn.textContent = T.copy_clipboard; }, 2000);
+    });
+}
 </script>
 
 </body>

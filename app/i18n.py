@@ -118,6 +118,15 @@ EN = {
 
     # Language
     "language": "Language",
+
+    # Export
+    "export_llm": "Export for LLM",
+    "export_title": "LLM Analysis Export",
+    "export_hint": "Copy this text and paste it into your favorite LLM (ChatGPT, Claude, Gemini, ...) for connection insights.",
+    "copy_clipboard": "Copy to Clipboard",
+    "copied": "Copied!",
+    "close": "Close",
+    "export_no_data": "No data available yet. Wait for the first poll.",
 }
 
 DE = {
@@ -224,6 +233,14 @@ DE = {
     "saved_ph": "Gespeichert",
 
     "language": "Sprache",
+
+    "export_llm": "Export fuer LLM",
+    "export_title": "LLM-Analyse Export",
+    "export_hint": "Kopiere diesen Text und fuege ihn in dein bevorzugtes LLM (ChatGPT, Claude, Gemini, ...) ein, um Insights zu deiner Verbindung zu erhalten.",
+    "copy_clipboard": "In Zwischenablage kopieren",
+    "copied": "Kopiert!",
+    "close": "Schliessen",
+    "export_no_data": "Noch keine Daten vorhanden. Warte auf die erste Abfrage.",
 }
 
 _TRANSLATIONS = {"en": EN, "de": DE}

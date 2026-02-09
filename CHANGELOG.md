@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.6]
+
+### Added
+- **LLM Export**: Generate structured markdown report for AI analysis (ChatGPT, Claude, Gemini, etc.)
+- **Export modal**: Copy-to-clipboard dialog accessible from sidebar menu
+- **API endpoint**: `/api/export` returns full DOCSIS status report with context and reference values
+
 ## [2026-02-09.5]
 
 ### Added
