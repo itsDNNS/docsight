@@ -104,6 +104,7 @@ EN = {
     # Setup
     "initial_setup": "Initial Setup",
     "modem_connection": "Modem Connection",
+    "modem_user_hint": "Tip: Create a dedicated user for DOCSight instead of using your main admin account.",
     "url": "URL",
     "username": "Username",
     "password": "Password",
@@ -264,6 +265,7 @@ DE = {
 
     "initial_setup": "Ersteinrichtung",
     "modem_connection": "Modem-Verbindung",
+    "modem_user_hint": "Tipp: Lege einen eigenen Benutzer fuer DOCSight an, anstatt deinen Haupt-Admin zu verwenden.",
     "url": "URL",
     "username": "Benutzername",
     "password": "Passwort",

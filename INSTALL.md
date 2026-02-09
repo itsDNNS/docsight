@@ -212,11 +212,29 @@ When you open DOCSight for the first time, a setup wizard guides you through the
 
 ### Step 1: Modem Connection
 
+> **Recommended: Create a dedicated user**
+>
+> Instead of using your main admin account, create a separate user for DOCSight on your router. This way you can rotate or revoke its credentials independently.
+>
+> <details>
+> <summary>How to create a dedicated user on a FRITZ!Box</summary>
+>
+> 1. Open `http://fritz.box` and log in as admin
+> 2. Go to **System** > **FRITZ!Box Users** > **Add User**
+> 3. Set username (e.g. `docsight`) and a password
+> 4. Enable **only** "Access to FRITZ!Box settings" - disable everything else
+> 5. Click **Apply**
+>
+> Use this new username and password in DOCSight instead of your admin credentials.
+>
+> *Note: "Access to FRITZ!Box settings" is the only permission DOCSight needs. Unfortunately, FRITZ!Box does not offer a read-only option - this is an AVM limitation. DOCSight only reads data and never modifies any settings.*
+> </details>
+
 | Field | What to enter |
 |---|---|
 | **Modem URL** | Your modem's web interface address (e.g. `http://192.168.178.1`) |
-| **Username** | Your modem login username |
-| **Password** | Your modem login password |
+| **Username** | Your dedicated DOCSight user (or admin username) |
+| **Password** | The corresponding password |
 
 Click **Test Connection** to verify DOCSight can reach your router. If successful, continue to the next step.
 
