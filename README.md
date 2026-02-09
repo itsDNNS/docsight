@@ -1,6 +1,12 @@
-# DOCSight
+<p align="center">
+  <img src="docs/docsight.png" alt="DOCSight" width="128">
+</p>
 
-Docker container that monitors DOCSIS channel health on cable modems and publishes per-channel sensor data to Home Assistant via MQTT Auto-Discovery. Currently supports AVM FRITZ!Box Cable routers.
+<h1 align="center">DOCSight</h1>
+
+<p align="center">
+  Docker container that monitors DOCSIS channel health on cable modems and publishes per-channel sensor data to Home Assistant via MQTT Auto-Discovery. Currently supports AVM FRITZ!Box Cable routers.
+</p>
 
 ![Dashboard Dark Mode](docs/screenshots/dashboard-dark.png)
 
