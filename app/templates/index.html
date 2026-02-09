@@ -73,6 +73,12 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .topbar-meta { font-size: 0.8em; color: var(--muted); white-space: nowrap; }
+        .theme-toggle {
+            background: none; border: 1px solid var(--input-border);
+            color: var(--muted); font-size: 1.1em; cursor: pointer;
+            padding: 4px 8px; border-radius: 4px; line-height: 1;
+        }
+        .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
 
         /* ── Layout ── */
         .app-layout { display: flex; min-height: 100vh; }
@@ -526,6 +532,7 @@
     <span class="topbar-meta" id="topbar-meta">
         {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
     </span>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
 </div>
 
 <!-- Calendar Popup -->
@@ -894,6 +901,20 @@
     var saved = localStorage.getItem('docsis-theme');
     if (saved) document.documentElement.setAttribute('data-theme', saved);
 
+    var themeBtn = document.getElementById('theme-toggle');
+    function updateThemeIcon() {
+        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        themeBtn.innerHTML = isDark ? '&#9788;' : '&#9790;';
+    }
+    updateThemeIcon();
+    themeBtn.addEventListener('click', function() {
+        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        var next = isDark ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('docsis-theme', next);
+        updateThemeIcon();
+    });
+
     /* ── State ── */
     var currentView = 'live';
     var selectedDate = todayStr();
@@ -914,14 +935,17 @@
     }
 
     /* ── Sortable Tables ── */
-    document.querySelectorAll('table.sortable').forEach(function(table) {
-        var headers = table.querySelectorAll('th');
-        headers.forEach(function(th, colIdx) {
-            th.addEventListener('click', function() {
-                sortTable(table, colIdx, th);
+    function initSortableTables() {
+        document.querySelectorAll('table.sortable').forEach(function(table) {
+            var headers = table.querySelectorAll('th');
+            headers.forEach(function(th, colIdx) {
+                th.addEventListener('click', function() {
+                    sortTable(table, colIdx, th);
+                });
             });
         });
-    });
+    }
+    initSortableTables();
 
     function sortTable(table, colIdx, th) {
         var tbody = table.querySelector('tbody');
@@ -1138,13 +1162,68 @@
         stopAutoRefresh();
         refreshTimer = setInterval(function() {
             if (currentView === 'live' && !isHistorical && !document.hidden) {
-                location.reload();
+                refreshData();
             }
         }, 60000);
     }
     function stopAutoRefresh() {
         if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
     }
+
+    function refreshData() {
+        fetch(window.location.href)
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+
+                // Save expanded metric cards by index
+                var openCardIndices = [];
+                document.querySelectorAll('.metric-card').forEach(function(el, i) {
+                    if (el.classList.contains('open')) openCardIndices.push(i);
+                });
+
+                // Save expanded channel groups by label text
+                var openGroupLabels = [];
+                document.querySelectorAll('details.channel-group[open]').forEach(function(el) {
+                    var s = el.querySelector('summary');
+                    if (s) openGroupLabels.push(s.textContent.trim());
+                });
+
+                // Replace dashboard content
+                var freshDash = doc.querySelector('#view-dashboard');
+                var currentDash = document.querySelector('#view-dashboard');
+                if (freshDash && currentDash) {
+                    currentDash.innerHTML = freshDash.innerHTML;
+                }
+
+                // Update topbar timestamp
+                var freshMeta = doc.querySelector('#topbar-meta');
+                var currentMeta = document.querySelector('#topbar-meta');
+                if (freshMeta && currentMeta) {
+                    currentMeta.innerHTML = freshMeta.innerHTML;
+                }
+
+                // Restore expanded metric cards
+                document.querySelectorAll('.metric-card').forEach(function(el, i) {
+                    if (openCardIndices.indexOf(i) !== -1) el.classList.add('open');
+                });
+
+                // Restore expanded channel groups
+                document.querySelectorAll('details.channel-group').forEach(function(el) {
+                    var s = el.querySelector('summary');
+                    if (s && openGroupLabels.indexOf(s.textContent.trim()) !== -1) {
+                        el.setAttribute('open', '');
+                    }
+                });
+
+                // Re-init sortable tables (event listeners lost on innerHTML replace)
+                initSortableTables();
+            })
+            .catch(function(err) {
+                console.warn('Auto-refresh failed:', err);
+            });
+    }
+
     if (!isHistorical) startAutoRefresh();
 
     /* ── Trend Charts ── */
