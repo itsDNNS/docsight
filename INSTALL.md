@@ -2,6 +2,19 @@
 
 Get DOCSight running in under 10 minutes.
 
+## Table of Contents
+
+- [What You Need](#what-you-need)
+- [Choose Your Installation Method](#choose-your-installation-method)
+  - [Docker CLI](#docker-cli)
+  - [Docker Compose](#docker-compose)
+  - [Portainer](#portainer)
+  - [Dockhand](#dockhand)
+- [First-Time Setup](#first-time-setup)
+- [Updating DOCSight](#updating-docsight)
+- [Troubleshooting](#troubleshooting)
+- [Uninstalling](#uninstalling)
+
 ## What You Need
 
 - **A computer or NAS** with Docker installed
@@ -26,7 +39,8 @@ All four methods create the exact same container. Pick whichever fits your setup
 
 ---
 
-## Docker CLI
+<details>
+<summary><h2>Docker CLI</h2></summary>
 
 ### Step 1: Open a terminal
 
@@ -62,9 +76,12 @@ Open your browser and go to **http://localhost:8765**
 
 Now continue with [First-Time Setup](#first-time-setup).
 
+</details>
+
 ---
 
-## Docker Compose
+<details>
+<summary><h2>Docker Compose</h2></summary>
 
 ### Step 1: Create a `docker-compose.yml` file
 
@@ -101,9 +118,12 @@ Open your browser and go to **http://localhost:8765**
 
 Now continue with [First-Time Setup](#first-time-setup).
 
+</details>
+
 ---
 
-## Portainer
+<details>
+<summary><h2>Portainer</h2></summary>
 
 ### Step 1: Open Portainer
 
@@ -139,9 +159,12 @@ Open your browser and go to **http://your-nas-ip:8765**
 
 Now continue with [First-Time Setup](#first-time-setup).
 
+</details>
+
 ---
 
-## Dockhand
+<details>
+<summary><h2>Dockhand</h2></summary>
 
 ### Step 1: Open Dockhand
 
@@ -176,6 +199,8 @@ volumes:
 Open your browser and go to **http://your-nas-ip:8765**
 
 Now continue with [First-Time Setup](#first-time-setup).
+
+</details>
 
 ---
 
@@ -221,7 +246,8 @@ Click **Complete Setup** - DOCSight starts monitoring immediately. Your dashboar
 
 ---
 
-## Updating DOCSight
+<details>
+<summary><h2>Updating DOCSight</h2></summary>
 
 Your configuration and history are stored in a Docker volume and survive updates.
 
@@ -253,23 +279,33 @@ docker compose up -d
 1. Open the **docsight** stack
 2. Click **Redeploy**
 
+</details>
+
 ---
 
-## Troubleshooting
+<details>
+<summary><h2>Troubleshooting</h2></summary>
 
-### "Can't open http://localhost:8765"
+<details>
+<summary><strong>"Can't open http://localhost:8765"</strong></summary>
 
 - **Is the container running?** Check with `docker ps` - you should see a container named `docsight`
 - **On a NAS?** Use the NAS IP address instead of `localhost`, e.g. `http://192.168.178.15:8765`
 - **Firewall?** Make sure port 8765 is not blocked
 
-### "Test Connection fails"
+</details>
+
+<details>
+<summary><strong>"Test Connection fails"</strong></summary>
 
 - **Is the URL correct?** Try opening your modem's web interface URL in your browser first (e.g. `http://192.168.178.1` for FRITZ!Box).
 - **Are the credentials correct?** Use the same username and password you use to log into your modem's web interface.
 - **Network access?** The Docker container must be able to reach your modem. If running on a remote server, ensure it's on the same network.
 
-### "Port 8765 already in use"
+</details>
+
+<details>
+<summary><strong>"Port 8765 already in use"</strong></summary>
 
 Another application is using port 8765. Change the port mapping:
 
@@ -286,7 +322,10 @@ ports:
 
 Then open `http://localhost:9876` instead.
 
-### "Container keeps restarting"
+</details>
+
+<details>
+<summary><strong>"Container keeps restarting"</strong></summary>
 
 Check the container logs:
 
@@ -298,7 +337,10 @@ The logs usually indicate the problem. Common causes:
 - Invalid configuration - delete the volume and start fresh: `docker volume rm docsight_data`
 - Network issues reaching the modem
 
-### "How do I check if it's working?"
+</details>
+
+<details>
+<summary><strong>"How do I check if it's working?"</strong></summary>
 
 ```bash
 docker logs docsight --tail 20
@@ -306,9 +348,14 @@ docker logs docsight --tail 20
 
 You should see log entries about successful polls. If the dashboard shows channel data, everything is working.
 
+</details>
+
+</details>
+
 ---
 
-## Uninstalling
+<details>
+<summary><h2>Uninstalling</h2></summary>
 
 ### Docker CLI / Docker Compose
 
@@ -324,3 +371,5 @@ docker volume rm docsight_data
 2. Delete the stack
 
 This removes the container and all stored data.
+
+</details>
