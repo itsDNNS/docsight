@@ -103,7 +103,7 @@ EN = {
 
     # Setup
     "initial_setup": "Initial Setup",
-    "fritz_connection": "FritzBox Connection",
+    "fritz_connection": "Modem Connection",
     "url": "URL",
     "username": "Username",
     "password": "Password",
@@ -126,7 +126,7 @@ EN = {
     "testing": "Testing...",
     "connected": "Connected",
     "network_error": "Network error",
-    "pw_required": "FritzBox password is required.",
+    "pw_required": "Modem password is required.",
     "unknown_error": "Unknown",
     "error_prefix": "Error",
     "default": "Default",
@@ -263,7 +263,7 @@ DE = {
                "Juli", "August", "September", "Oktober", "November", "Dezember"],
 
     "initial_setup": "Ersteinrichtung",
-    "fritz_connection": "FritzBox-Verbindung",
+    "fritz_connection": "Modem-Verbindung",
     "url": "URL",
     "username": "Benutzername",
     "password": "Passwort",
@@ -286,7 +286,7 @@ DE = {
     "testing": "Teste...",
     "connected": "Verbunden",
     "network_error": "Netzwerkfehler",
-    "pw_required": "FritzBox-Passwort ist erforderlich.",
+    "pw_required": "Modem-Passwort ist erforderlich.",
     "unknown_error": "Unbekannt",
     "error_prefix": "Fehler",
     "default": "Standard",
