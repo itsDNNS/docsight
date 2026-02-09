@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.3]
+
+### Added
+- **Hamburger-Menu**: Sliding Sidebar mit Navigation (Live, Tagesverlauf, Wochentrend, Monatstrend, Einstellungen)
+- **Kalender-Popup**: Mini-Monatskalender mit hervorgehobenen Datentagen zur Datumsnavigation
+- **Trend-Charts**: Chart.js Diagramme fuer DS Power, DS SNR, US Power und Fehler (Tag/Woche/Monat)
+- **API-Endpunkte**: `/api/calendar`, `/api/trends`, `/api/snapshot/daily` fuer Trend- und Kalenderdaten
+- **Snapshot-Uhrzeit**: Konfigurierbarer Referenz-Zeitpunkt fuer Tagesvergleiche (Setup + Settings)
+
+### Changed
+- **Dashboard komplett ueberarbeitet**: Neue Topbar mit Hamburger, Datumsnavigation und Kalender
+- **Timeline-Navigation ersetzt**: Kalender-Popup statt Dropdown-Select fuer historische Snapshots
+
 ## [2026-02-09.2]
 
 ### Added
