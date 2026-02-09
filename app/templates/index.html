@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="{{ theme|default('dark') }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if not historical %}
+    <meta http-equiv="refresh" content="60">
+    {% endif %}
+    <title>FritzBox DOCSIS Monitor</title>
+    <style>
+        :root, [data-theme="dark"] {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --card: #0f3460;
+            --text: #e0e0e0;
+            --muted: #888;
+            --good: #4caf50;
+            --warn: #ff9800;
+            --crit: #f44336;
+            --accent: #00adb5;
+            --info: #2196f3;
+        }
+        [data-theme="light"] {
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --card: #e8edf2;
+            --text: #1a1a2e;
+            --muted: #666;
+            --good: #2e7d32;
+            --warn: #e65100;
+            --crit: #c62828;
+            --accent: #00838f;
+            --info: #1565c0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+            background: var(--bg);
+            color: var(--text);
+            padding: 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 1.4em; margin-bottom: 16px; color: var(--accent); }
+        h2 { font-size: 1.1em; margin: 16px 0 8px; color: var(--accent); }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .meta { font-size: 0.85em; color: var(--muted); }
+        .settings-link {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 1.3em;
+            line-height: 1;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color 0.15s;
+        }
+        .settings-link:hover { color: var(--accent); }
+        .settings-link svg { width: 20px; height: 20px; vertical-align: middle; }
+
+        /* Timeline Navigation */
+        .timeline-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--surface);
+            border-radius: 6px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .timeline-bar label {
+            font-size: 0.85em;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .timeline-bar select {
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.85em;
+            max-width: 240px;
+        }
+        .timeline-bar button {
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 4px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        .timeline-bar button:hover { background: var(--accent); color: #000; }
+        .timeline-bar .btn-live {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+        }
+
+        .history-banner {
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: rgba(33,150,243,0.15);
+            border: 1px solid var(--info);
+            color: var(--info);
+            font-size: 0.95em;
+            margin-bottom: 16px;
+        }
+
+        .health-banner {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        .health-good { background: rgba(76,175,80,0.2); border: 1px solid var(--good); color: var(--good); }
+        .health-warn { background: rgba(255,152,0,0.2); border: 1px solid var(--warn); color: var(--warn); }
+        .health-crit { background: rgba(244,67,54,0.2); border: 1px solid var(--crit); color: var(--crit); }
+        .health-err  { background: rgba(244,67,54,0.15); border: 1px solid var(--crit); color: var(--crit); }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .summary-card {
+            background: var(--surface);
+            border-radius: 6px;
+            padding: 12px;
+        }
+        .summary-card .label { font-size: 0.8em; color: var(--muted); }
+        .summary-card .value { font-size: 1.3em; font-weight: bold; margin-top: 4px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            font-size: 0.9em;
+        }
+        th, td { padding: 6px 10px; text-align: left; }
+        th {
+            background: var(--surface);
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+        tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
+        tr:hover { background: rgba(255,255,255,0.03); }
+
+        /* Per-Channel Status Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: default;
+        }
+        .badge-good { background: rgba(76,175,80,0.25); color: var(--good); }
+        .badge-warn { background: rgba(255,152,0,0.25); color: var(--warn); }
+        .badge-crit { background: rgba(244,67,54,0.25); color: var(--crit); }
+
+        /* Colored value cells */
+        .val-good { color: var(--good); }
+        .val-warn { color: var(--warn); }
+        .val-crit { color: var(--crit); }
+
+        .ref-table { max-width: 600px; }
+        .ref-table td { font-size: 0.85em; }
+        .ref-table th { font-size: 0.85em; }
+
+        .error-box {
+            background: rgba(244,67,54,0.15);
+            border: 1px solid var(--crit);
+            color: var(--crit);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .waiting {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        .waiting .spinner {
+            display: inline-block;
+            width: 30px; height: 30px;
+            border: 3px solid var(--surface);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+            table { font-size: 0.8em; }
+            th, td { padding: 4px 6px; }
+            .timeline-bar { gap: 4px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <h1>FritzBox DOCSIS Monitor</h1>
+        <a href="/settings" class="settings-link" title="Einstellungen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </a>
+    </div>
+    <div class="meta">
+        {% if last_update %}
+            Letztes Update: {{ last_update }} | Intervall: {{ poll_interval }}s
+        {% else %}
+            Warte auf erste Abfrage...
+        {% endif %}
+    </div>
+</div>
+
+{# Timeline Navigation #}
+<div class="timeline-bar" id="timeline">
+    <label>Timeline:</label>
+    <button id="btn-prev" title="Vorheriger Snapshot">&lt;</button>
+    <select id="snapshot-select">
+        <option value="">Live</option>
+    </select>
+    <button id="btn-next" title="Naechster Snapshot">&gt;</button>
+    <button id="btn-live" class="btn-live">Live</button>
+</div>
+
+{% if historical %}
+<div class="history-banner">
+    Historische Ansicht: {{ snapshot_ts }}
+</div>
+{% endif %}
+
+{% if error %}
+<div class="error-box">Fehler: {{ error }}</div>
+{% endif %}
+
+{% if analysis %}
+    {% set s = analysis.summary %}
+    {% set ds = analysis.ds_channels %}
+    {% set us = analysis.us_channels %}
+
+    {# Health Banner #}
+    {% if s.health == "Gut" %}
+    <div class="health-banner health-good">{{ s.health }} &mdash; {{ s.health_details }}</div>
+    {% elif s.health == "Schlecht" %}
+    <div class="health-banner health-crit">{{ s.health }} &mdash; {{ s.health_details }}</div>
+    {% else %}
+    <div class="health-banner health-warn">{{ s.health }} &mdash; {{ s.health_details }}</div>
+    {% endif %}
+
+    {# Summary Cards #}
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="label">Downstream Kanaele</div>
+            <div class="value">{{ s.ds_total }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">DS Power (Min / Avg / Max)</div>
+            <div class="value">{{ s.ds_power_min }} / {{ s.ds_power_avg }} / {{ s.ds_power_max }} dBmV</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">DS SNR (Min / Avg)</div>
+            <div class="value">{{ s.ds_snr_min }} / {{ s.ds_snr_avg }} dB</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">DS Fehler (korr. / unkorr.)</div>
+            <div class="value">{{ "{:,}".format(s.ds_correctable_errors) }} / {{ "{:,}".format(s.ds_uncorrectable_errors) }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Upstream Kanaele</div>
+            <div class="value">{{ s.us_total }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">US Power (Min / Avg / Max)</div>
+            <div class="value">{{ s.us_power_min }} / {{ s.us_power_avg }} / {{ s.us_power_max }} dBmV</div>
+        </div>
+    </div>
+
+    {# Downstream Table #}
+    <h2>Downstream ({{ ds|length }} Kanaele)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Kanal</th>
+                <th>Frequenz</th>
+                <th>Power (dBmV)</th>
+                <th>SNR (dB)</th>
+                <th>Modulation</th>
+                <th>Korr. Fehler</th>
+                <th>Unkorr. Fehler</th>
+                <th>DOCSIS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ch in ds %}
+            <tr>
+                <td>
+                    {% if ch.health == "good" %}
+                    <span class="badge badge-good">Gut</span>
+                    {% elif ch.health == "critical" %}
+                    <span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
+                    {% else %}
+                    <span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>
+                    {% endif %}
+                </td>
+                <td>{{ ch.channel_id }}</td>
+                <td>{{ ch.frequency }}</td>
+                <td class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
+                <td class="{% if ch.snr is not none %}{% if ch.snr < 25 %}val-crit{% elif ch.snr < 30 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
+                <td>{{ ch.modulation }}</td>
+                <td>{{ "{:,}".format(ch.correctable_errors) }}</td>
+                <td>{{ "{:,}".format(ch.uncorrectable_errors) }}</td>
+                <td>{{ ch.docsis_version }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {# Upstream Table #}
+    <h2>Upstream ({{ us|length }} Kanaele)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Kanal</th>
+                <th>Frequenz</th>
+                <th>Power (dBmV)</th>
+                <th>Modulation</th>
+                <th>Multiplex</th>
+                <th>DOCSIS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ch in us %}
+            <tr>
+                <td>
+                    {% if ch.health == "good" %}
+                    <span class="badge badge-good">Gut</span>
+                    {% elif ch.health == "critical" %}
+                    <span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
+                    {% else %}
+                    <span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>
+                    {% endif %}
+                </td>
+                <td>{{ ch.channel_id }}</td>
+                <td>{{ ch.frequency }}</td>
+                <td class="{% if ch.power > 54 %}val-crit{% elif ch.power > 50 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
+                <td>{{ ch.modulation }}</td>
+                <td>{{ ch.multiplex }}</td>
+                <td>{{ ch.docsis_version }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {# Reference Values #}
+    <h2>Richtwerte</h2>
+    <table class="ref-table">
+        <thead><tr><th>Metrik</th><th>Gut</th><th>Grenzwertig</th><th>Schlecht</th></tr></thead>
+        <tbody>
+            <tr><td>DS Power</td><td>-7 .. +7 dBmV</td><td>&plusmn;7 .. &plusmn;10</td><td>&gt; &plusmn;10 dBmV</td></tr>
+            <tr><td>US Power</td><td>35 .. 49 dBmV</td><td>50 .. 54</td><td>&gt; 54 dBmV</td></tr>
+            <tr><td>SNR / MER</td><td>&gt; 30 dB</td><td>25 .. 30</td><td>&lt; 25 dB</td></tr>
+            <tr><td>Unkorr. Fehler</td><td>niedrig</td><td>-</td><td>&gt; 10.000</td></tr>
+        </tbody>
+    </table>
+
+{% elif not error %}
+    <div class="waiting">
+        <div class="spinner"></div>
+        <p>Warte auf erste DOCSIS-Abfrage...</p>
+    </div>
+{% endif %}
+
+<script>
+// Instant theme from localStorage
+(function() {
+    var saved = localStorage.getItem('docsis-theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+
+(function() {
+    var sel = document.getElementById('snapshot-select');
+    var btnPrev = document.getElementById('btn-prev');
+    var btnNext = document.getElementById('btn-next');
+    var btnLive = document.getElementById('btn-live');
+
+    // Load snapshot list
+    fetch('/api/snapshots')
+        .then(function(r) { return r.json(); })
+        .then(function(timestamps) {
+            var currentTs = '{{ snapshot_ts or "" }}';
+            timestamps.forEach(function(ts) {
+                var opt = document.createElement('option');
+                opt.value = ts;
+                opt.textContent = ts.replace('T', ' ');
+                if (ts === currentTs) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            if (!currentTs) sel.selectedIndex = 0;
+        });
+
+    sel.addEventListener('change', function() {
+        if (sel.value) {
+            window.location.href = '/?t=' + encodeURIComponent(sel.value);
+        } else {
+            window.location.href = '/';
+        }
+    });
+
+    btnLive.addEventListener('click', function() {
+        window.location.href = '/';
+    });
+
+    btnPrev.addEventListener('click', function() {
+        var idx = sel.selectedIndex;
+        if (idx < sel.options.length - 1) {
+            sel.selectedIndex = idx + 1;
+            sel.dispatchEvent(new Event('change'));
+        }
+    });
+
+    btnNext.addEventListener('click', function() {
+        var idx = sel.selectedIndex;
+        if (idx > 0) {
+            sel.selectedIndex = idx - 1;
+            sel.dispatchEvent(new Event('change'));
+        }
+    });
+})();
+</script>
+
+</body>
+</html>
