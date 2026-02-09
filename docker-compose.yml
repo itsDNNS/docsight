@@ -1,0 +1,15 @@
+services:
+  fritzbox-docsis-monitor:
+    build: .
+    container_name: fritzbox-docsis-monitor
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - docsis_data:/data
+    env_file:
+      - path: .env
+        required: false
+
+volumes:
+  docsis_data:
