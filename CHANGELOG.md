@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.4]
+
+### Changed
+- **Channel tables grouped by DOCSIS version**: Collapsible sections for DOCSIS 3.1 and 3.0 channels
+- **Reference table moved to sidebar**: Accessible via expandable "Richtwerte" section in hamburger menu
+- **DOCSIS column removed**: Redundant with group headers, saves horizontal space
+
 ## [2026-02-09.3]
 
 ### Added

@@ -136,6 +136,7 @@
             border-right: 1px solid var(--input-border);
         }
         .sidebar.open { transform: translateX(0); }
+        .sidebar-content { flex: 1; overflow-y: auto; }
         .sidebar-header {
             display: flex;
             justify-content: space-between;
@@ -306,8 +307,76 @@
         .val-good { color: var(--good); }
         .val-warn { color: var(--warn); }
         .val-crit { color: var(--crit); }
-        .ref-table { max-width: 600px; }
-        .ref-table td, .ref-table th { font-size: 0.85em; }
+        /* ── Collapsible Channel Groups ── */
+        details.channel-group {
+            margin-bottom: 4px;
+        }
+        details.channel-group summary {
+            cursor: pointer;
+            padding: 8px 12px;
+            background: var(--surface);
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-weight: bold;
+            color: var(--accent);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+        details.channel-group summary::-webkit-details-marker { display: none; }
+        details.channel-group summary::before {
+            content: "\25B6";
+            font-size: 0.65em;
+            transition: transform 0.2s;
+        }
+        details.channel-group[open] summary::before {
+            transform: rotate(90deg);
+        }
+        details.channel-group table { margin-top: 4px; }
+
+        /* ── Sidebar Reference Table ── */
+        .sidebar-ref {
+            padding: 0 20px 16px;
+        }
+        .sidebar-ref summary {
+            cursor: pointer;
+            font-size: 0.9em;
+            color: var(--muted);
+            padding: 10px 0;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sidebar-ref summary::-webkit-details-marker { display: none; }
+        .sidebar-ref summary::before {
+            content: "\25B6";
+            font-size: 0.6em;
+            transition: transform 0.2s;
+        }
+        .sidebar-ref[open] summary::before {
+            transform: rotate(90deg);
+        }
+        .sidebar-ref table {
+            width: 100%;
+            font-size: 0.78em;
+            border-collapse: collapse;
+            margin-top: 4px;
+        }
+        .sidebar-ref th, .sidebar-ref td {
+            padding: 4px 6px;
+            text-align: left;
+        }
+        .sidebar-ref th {
+            color: var(--accent);
+            position: static;
+            background: transparent;
+        }
+        .sidebar-ref tr {
+            border-bottom: 1px solid var(--input-border);
+        }
         .error-box {
             background: rgba(244,67,54,0.15);
             border: 1px solid var(--crit);
@@ -393,22 +462,37 @@
         <span>Navigation</span>
         <button class="sidebar-close" id="sidebar-close">&times;</button>
     </div>
-    <a class="sidebar-link active" data-view="live">
-        <span class="icon">&#9679;</span> Live Dashboard
-    </a>
-    <a class="sidebar-link" data-view="day">
-        <span class="icon">&#9201;</span> Tagesverlauf
-    </a>
-    <a class="sidebar-link" data-view="week">
-        <span class="icon">&#9899;</span> Wochentrend
-    </a>
-    <a class="sidebar-link" data-view="month">
-        <span class="icon">&#128197;</span> Monatstrend
-    </a>
-    <div class="sidebar-divider"></div>
-    <a class="sidebar-link" href="/settings">
-        <span class="icon">&#9881;</span> Einstellungen
-    </a>
+    <div class="sidebar-content">
+        <a class="sidebar-link active" data-view="live">
+            <span class="icon">&#9679;</span> Live Dashboard
+        </a>
+        <a class="sidebar-link" data-view="day">
+            <span class="icon">&#9201;</span> Tagesverlauf
+        </a>
+        <a class="sidebar-link" data-view="week">
+            <span class="icon">&#9899;</span> Wochentrend
+        </a>
+        <a class="sidebar-link" data-view="month">
+            <span class="icon">&#128197;</span> Monatstrend
+        </a>
+        <div class="sidebar-divider"></div>
+        <a class="sidebar-link" href="/settings">
+            <span class="icon">&#9881;</span> Einstellungen
+        </a>
+        <div class="sidebar-divider"></div>
+        <details class="sidebar-ref">
+            <summary>Richtwerte</summary>
+            <table>
+                <thead><tr><th>Metrik</th><th>Gut</th><th>Grenz.</th><th>Schlecht</th></tr></thead>
+                <tbody>
+                    <tr><td>DS Power</td><td>-7..+7</td><td>&plusmn;7..10</td><td>&gt;&plusmn;10 dBmV</td></tr>
+                    <tr><td>US Power</td><td>35..49</td><td>50..54</td><td>&gt;54 dBmV</td></tr>
+                    <tr><td>SNR/MER</td><td>&gt;30 dB</td><td>25..30</td><td>&lt;25 dB</td></tr>
+                    <tr><td>Unkorr.</td><td>niedrig</td><td>-</td><td>&gt;10.000</td></tr>
+                </tbody>
+            </table>
+        </details>
+    </div>
 </nav>
 
 <!-- Topbar -->
@@ -500,67 +584,64 @@
     </div>
 
     <h2 class="section-title">Downstream ({{ ds|length }} Kanaele)</h2>
-    <table>
-        <thead><tr>
-            <th>Status</th><th>Kanal</th><th>Frequenz</th><th>Power (dBmV)</th>
-            <th>SNR (dB)</th><th>Modulation</th><th>Korr.</th><th>Unkorr.</th><th>DOCSIS</th>
-        </tr></thead>
-        <tbody>
-        {% for ch in ds %}
-        <tr>
-            <td>
-                {% if ch.health == "good" %}<span class="badge badge-good">Gut</span>
-                {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
-                {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>{% endif %}
-            </td>
-            <td>{{ ch.channel_id }}</td>
-            <td>{{ ch.frequency }}</td>
-            <td class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
-            <td class="{% if ch.snr is not none %}{% if ch.snr < 25 %}val-crit{% elif ch.snr < 30 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
-            <td>{{ ch.modulation }}</td>
-            <td>{{ "{:,}".format(ch.correctable_errors) }}</td>
-            <td>{{ "{:,}".format(ch.uncorrectable_errors) }}</td>
-            <td>{{ ch.docsis_version }}</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    {% for group in ds|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
+    <details class="channel-group" open>
+        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} Kanaele)</summary>
+        <table>
+            <thead><tr>
+                <th>Status</th><th>Kanal</th><th>Frequenz</th><th>Power (dBmV)</th>
+                <th>SNR (dB)</th><th>Modulation</th><th>Korr.</th><th>Unkorr.</th>
+            </tr></thead>
+            <tbody>
+            {% for ch in group.list %}
+            <tr>
+                <td>
+                    {% if ch.health == "good" %}<span class="badge badge-good">Gut</span>
+                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
+                    {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>{% endif %}
+                </td>
+                <td>{{ ch.channel_id }}</td>
+                <td>{{ ch.frequency }}</td>
+                <td class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
+                <td class="{% if ch.snr is not none %}{% if ch.snr < 25 %}val-crit{% elif ch.snr < 30 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
+                <td>{{ ch.modulation }}</td>
+                <td>{{ "{:,}".format(ch.correctable_errors) }}</td>
+                <td>{{ "{:,}".format(ch.uncorrectable_errors) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </details>
+    {% endfor %}
 
     <h2 class="section-title">Upstream ({{ us|length }} Kanaele)</h2>
-    <table>
-        <thead><tr>
-            <th>Status</th><th>Kanal</th><th>Frequenz</th><th>Power (dBmV)</th>
-            <th>Modulation</th><th>Multiplex</th><th>DOCSIS</th>
-        </tr></thead>
-        <tbody>
-        {% for ch in us %}
-        <tr>
-            <td>
-                {% if ch.health == "good" %}<span class="badge badge-good">Gut</span>
-                {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
-                {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>{% endif %}
-            </td>
-            <td>{{ ch.channel_id }}</td>
-            <td>{{ ch.frequency }}</td>
-            <td class="{% if ch.power > 54 %}val-crit{% elif ch.power > 50 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
-            <td>{{ ch.modulation }}</td>
-            <td>{{ ch.multiplex }}</td>
-            <td>{{ ch.docsis_version }}</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-
-    <h2 class="section-title">Richtwerte</h2>
-    <table class="ref-table">
-        <thead><tr><th>Metrik</th><th>Gut</th><th>Grenzwertig</th><th>Schlecht</th></tr></thead>
-        <tbody>
-            <tr><td>DS Power</td><td>-7 .. +7 dBmV</td><td>&plusmn;7 .. &plusmn;10</td><td>&gt; &plusmn;10 dBmV</td></tr>
-            <tr><td>US Power</td><td>35 .. 49 dBmV</td><td>50 .. 54</td><td>&gt; 54 dBmV</td></tr>
-            <tr><td>SNR / MER</td><td>&gt; 30 dB</td><td>25 .. 30</td><td>&lt; 25 dB</td></tr>
-            <tr><td>Unkorr. Fehler</td><td>niedrig</td><td>-</td><td>&gt; 10.000</td></tr>
-        </tbody>
-    </table>
+    {% for group in us|sort(attribute='docsis_version', reverse=true)|groupby('docsis_version') %}
+    <details class="channel-group" open>
+        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} Kanaele)</summary>
+        <table>
+            <thead><tr>
+                <th>Status</th><th>Kanal</th><th>Frequenz</th><th>Power (dBmV)</th>
+                <th>Modulation</th><th>Multiplex</th>
+            </tr></thead>
+            <tbody>
+            {% for ch in group.list %}
+            <tr>
+                <td>
+                    {% if ch.health == "good" %}<span class="badge badge-good">Gut</span>
+                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
+                    {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>{% endif %}
+                </td>
+                <td>{{ ch.channel_id }}</td>
+                <td>{{ ch.frequency }}</td>
+                <td class="{% if ch.power > 54 %}val-crit{% elif ch.power > 50 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
+                <td>{{ ch.modulation }}</td>
+                <td>{{ ch.multiplex }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </details>
+    {% endfor %}
 
 {% elif not error %}
     <div class="waiting">
