@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.15] - Initial Public Release
+
+### Added
+- **DOCSight icon**: Favicon, sidebar logo, login/setup branding, README header
+- **README screenshots**: Dashboard (dark/light), setup wizard, trend charts, health banner
+- **Docker entrypoint**: Automatic data volume permission handling for upgrades
+
+### Changed
+- **UI labels generalized**: "FritzBox Connection" renamed to "Modem Connection" (EN/DE) for future multi-modem support
+
 ## [2026-02-09.14]
 
 ### Changed
