@@ -114,7 +114,7 @@ def main():
     data_dir = os.environ.get("DATA_DIR", "/data")
     config_mgr = ConfigManager(data_dir)
 
-    log.info("FritzBox DOCSIS Monitor starting")
+    log.info("DOCSight starting")
 
     # Initialize snapshot storage
     db_path = os.path.join(data_dir, "docsis_history.db")

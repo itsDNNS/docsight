@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FritzBox DOCSIS Monitor</title>
+    <title>DOCSight</title>
     <style>
         :root, [data-theme="dark"] {
             --bg: #1a1a2e;
@@ -341,7 +341,7 @@
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <span>DOCSIS Monitor</span>
+        <span>DOCSight</span>
         <button class="sidebar-toggle" id="sidebar-collapse" title="Collapse">&#10094;</button>
     </div>
     <div class="sidebar-content">
@@ -391,7 +391,7 @@
         <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
         <button id="date-next">&#8250;</button>
     </div>
-    <span class="topbar-title">DOCSIS Monitor</span>
+    <span class="topbar-title">DOCSight</span>
     <span class="topbar-meta" id="topbar-meta">
         {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
     </span>

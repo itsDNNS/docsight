@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.11]
+
+### Changed
+- **Project renamed to DOCSight**: Removed FritzBox trademark from project name, repo, Docker image, MQTT identifiers
+- **MQTT entities renamed**: `fritzbox_docsis_*` → `docsight_*`, device name now "DOCSight"
+- **Default MQTT topic prefix**: Changed from `fritzbox/docsis` to `docsight`
+
 ## [2026-02-09.10]
 
 ### Changed

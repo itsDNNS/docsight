@@ -1,8 +1,8 @@
 services:
-  fritzbox-docsis-monitor:
-    image: ghcr.io/itsdnns/fritzbox-docsis-monitor:latest
+  docsight:
+    image: ghcr.io/itsdnns/docsight:latest
     build: .
-    container_name: fritzbox-docsis-monitor
+    container_name: docsight
     restart: unless-stopped
     ports:
       - "8765:8765"

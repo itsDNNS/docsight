@@ -23,7 +23,7 @@ DEFAULTS = {
     "mqtt_port": 1883,
     "mqtt_user": "",
     "mqtt_password": "",
-    "mqtt_topic_prefix": "fritzbox/docsis",
+    "mqtt_topic_prefix": "docsight",
     "poll_interval": 300,
     "web_port": 8765,
     "history_days": 7,

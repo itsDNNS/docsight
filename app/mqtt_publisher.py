@@ -19,7 +19,7 @@ class MQTTPublisher:
 
         self.client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,
-            client_id="fritzbox-docsis-monitor",
+            client_id="docsight",
         )
         if user:
             self.client.username_pw_set(user, password)
@@ -57,8 +57,8 @@ class MQTTPublisher:
     def publish_discovery(self, device_info=None):
         """Publish HA MQTT Auto-Discovery for all sensors."""
         device = {
-            "identifiers": ["fritzbox_docsis"],
-            "name": "FritzBox DOCSIS",
+            "identifiers": ["docsight"],
+            "name": "DOCSight",
             "manufacturer": "AVM",
             "model": (device_info or {}).get("model", "FRITZ!Box"),
         }
@@ -68,28 +68,28 @@ class MQTTPublisher:
 
         # --- Summary sensors ---
         summary_sensors = [
-            ("ds_total", "Downstream Kanaele", None, "mdi:arrow-down-bold"),
+            ("ds_total", "Downstream Channels", None, "mdi:arrow-down-bold"),
             ("ds_power_min", "DS Power Min", "dBmV", "mdi:signal"),
             ("ds_power_max", "DS Power Max", "dBmV", "mdi:signal"),
-            ("ds_power_avg", "DS Power Durchschnitt", "dBmV", "mdi:signal"),
+            ("ds_power_avg", "DS Power Avg", "dBmV", "mdi:signal"),
             ("ds_snr_min", "DS SNR Min", "dB", "mdi:ear-hearing"),
-            ("ds_snr_avg", "DS SNR Durchschnitt", "dB", "mdi:ear-hearing"),
-            ("ds_correctable_errors", "DS Korrigierbare Fehler", None, "mdi:alert-circle-check"),
-            ("ds_uncorrectable_errors", "DS Nicht-korrigierbare Fehler", None, "mdi:alert-circle"),
-            ("us_total", "Upstream Kanaele", None, "mdi:arrow-up-bold"),
+            ("ds_snr_avg", "DS SNR Avg", "dB", "mdi:ear-hearing"),
+            ("ds_correctable_errors", "DS Correctable Errors", None, "mdi:alert-circle-check"),
+            ("ds_uncorrectable_errors", "DS Uncorrectable Errors", None, "mdi:alert-circle"),
+            ("us_total", "Upstream Channels", None, "mdi:arrow-up-bold"),
             ("us_power_min", "US Power Min", "dBmV", "mdi:signal"),
             ("us_power_max", "US Power Max", "dBmV", "mdi:signal"),
-            ("us_power_avg", "US Power Durchschnitt", "dBmV", "mdi:signal"),
-            ("health", "DOCSIS Gesundheit", None, "mdi:heart-pulse"),
+            ("us_power_avg", "US Power Avg", "dBmV", "mdi:signal"),
+            ("health", "DOCSIS Health", None, "mdi:heart-pulse"),
             ("health_details", "DOCSIS Details", None, "mdi:information"),
         ]
 
         count = 0
         for key, name, unit, icon in summary_sensors:
-            topic = f"{self.ha_prefix}/sensor/fritzbox_docsis/{key}/config"
+            topic = f"{self.ha_prefix}/sensor/docsight/{key}/config"
             config = {
                 "name": name,
-                "unique_id": f"fritzbox_docsis_{key}",
+                "unique_id": f"docsight_{key}",
                 "state_topic": f"{self.topic_prefix}/{key}",
                 "icon": icon,
                 "device": device,
@@ -106,8 +106,8 @@ class MQTTPublisher:
     def publish_channel_discovery(self, ds_channels, us_channels, device_info=None):
         """Publish HA MQTT Auto-Discovery for per-channel sensors."""
         device = {
-            "identifiers": ["fritzbox_docsis"],
-            "name": "FritzBox DOCSIS",
+            "identifiers": ["docsight"],
+            "name": "DOCSight",
             "manufacturer": "AVM",
             "model": (device_info or {}).get("model", "FRITZ!Box"),
         }
@@ -119,10 +119,10 @@ class MQTTPublisher:
         for ch in ds_channels:
             ch_id = ch["channel_id"]
             obj_id = f"ds_ch{ch_id}"
-            topic = f"{self.ha_prefix}/sensor/fritzbox_docsis/{obj_id}/config"
+            topic = f"{self.ha_prefix}/sensor/docsight/{obj_id}/config"
             config = {
-                "name": f"DS Kanal {ch_id}",
-                "unique_id": f"fritzbox_docsis_{obj_id}",
+                "name": f"DS Channel {ch_id}",
+                "unique_id": f"docsight_{obj_id}",
                 "state_topic": f"{self.topic_prefix}/channel/{obj_id}",
                 "value_template": "{{ value_json.power }}",
                 "json_attributes_topic": f"{self.topic_prefix}/channel/{obj_id}",
@@ -137,10 +137,10 @@ class MQTTPublisher:
         for ch in us_channels:
             ch_id = ch["channel_id"]
             obj_id = f"us_ch{ch_id}"
-            topic = f"{self.ha_prefix}/sensor/fritzbox_docsis/{obj_id}/config"
+            topic = f"{self.ha_prefix}/sensor/docsight/{obj_id}/config"
             config = {
-                "name": f"US Kanal {ch_id}",
-                "unique_id": f"fritzbox_docsis_{obj_id}",
+                "name": f"US Channel {ch_id}",
+                "unique_id": f"docsight_{obj_id}",
                 "state_topic": f"{self.topic_prefix}/channel/{obj_id}",
                 "value_template": "{{ value_json.power }}",
                 "json_attributes_topic": f"{self.topic_prefix}/channel/{obj_id}",
