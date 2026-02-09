@@ -2,6 +2,7 @@
 
 import logging
 import time
+from datetime import datetime, timedelta
 
 from flask import Flask, render_template, request, jsonify, redirect
 
@@ -163,6 +164,58 @@ def api_test_mqtt():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/api/calendar")
+def api_calendar():
+    """Return dates that have snapshot data."""
+    if _storage:
+        return jsonify(_storage.get_dates_with_data())
+    return jsonify([])
+
+
+@app.route("/api/snapshot/daily")
+def api_snapshot_daily():
+    """Return the daily snapshot closest to the configured snapshot_time."""
+    date = request.args.get("date")
+    if not date or not _storage:
+        return jsonify(None)
+    target_time = _config_manager.get("snapshot_time", "06:00") if _config_manager else "06:00"
+    snap = _storage.get_daily_snapshot(date, target_time)
+    return jsonify(snap)
+
+
+@app.route("/api/trends")
+def api_trends():
+    """Return trend data for a date range.
+    ?range=day|week|month&date=YYYY-MM-DD (date defaults to today)."""
+    if not _storage:
+        return jsonify([])
+    range_type = request.args.get("range", "day")
+    date_str = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
+    target_time = _config_manager.get("snapshot_time", "06:00") if _config_manager else "06:00"
+
+    try:
+        ref_date = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"error": "Invalid date format"}), 400
+
+    if range_type == "day":
+        # All snapshots for a single day (intraday)
+        return jsonify(_storage.get_intraday_data(date_str))
+    elif range_type == "week":
+        start = (ref_date - timedelta(days=ref_date.weekday())).strftime("%Y-%m-%d")
+        end = (ref_date + timedelta(days=6 - ref_date.weekday())).strftime("%Y-%m-%d")
+        return jsonify(_storage.get_trend_data(start, end, target_time))
+    elif range_type == "month":
+        start = ref_date.replace(day=1).strftime("%Y-%m-%d")
+        if ref_date.month == 12:
+            end = ref_date.replace(year=ref_date.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            end = ref_date.replace(month=ref_date.month + 1, day=1) - timedelta(days=1)
+        return jsonify(_storage.get_trend_data(start, end.strftime("%Y-%m-%d"), target_time))
+    else:
+        return jsonify({"error": "Invalid range (use day, week, month)"}), 400
 
 
 @app.route("/api/snapshots")

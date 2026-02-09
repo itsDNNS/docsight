@@ -3,9 +3,6 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {% if not historical %}
-    <meta http-equiv="refresh" content="60">
-    {% endif %}
     <title>FritzBox DOCSIS Monitor</title>
     <style>
         :root, [data-theme="dark"] {
@@ -19,6 +16,8 @@
             --crit: #f44336;
             --accent: #00adb5;
             --info: #2196f3;
+            --input-border: rgba(255,255,255,0.15);
+            --overlay: rgba(0,0,0,0.5);
         }
         [data-theme="light"] {
             --bg: #f0f2f5;
@@ -31,82 +30,219 @@
             --crit: #c62828;
             --accent: #00838f;
             --info: #1565c0;
+            --input-border: #ccc;
+            --overlay: rgba(0,0,0,0.3);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
             background: var(--bg);
             color: var(--text);
-            padding: 16px;
-            max-width: 1400px;
-            margin: 0 auto;
+            overflow-x: hidden;
         }
-        h1 { font-size: 1.4em; margin-bottom: 16px; color: var(--accent); }
-        h2 { font-size: 1.1em; margin: 16px 0 8px; color: var(--accent); }
 
-        .header {
+        /* ── Topbar ── */
+        .topbar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 10px;
+            padding: 10px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--input-border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
-        .header-left { display: flex; align-items: center; gap: 12px; }
-        .meta { font-size: 0.85em; color: var(--muted); }
+        .hamburger-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+        .hamburger-btn:hover { color: var(--accent); }
+        .date-nav {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .date-nav button {
+            background: none;
+            border: 1px solid var(--input-border);
+            color: var(--text);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            padding: 4px 8px;
+        }
+        .date-nav button:hover { border-color: var(--accent); color: var(--accent); }
+        .date-label {
+            font-size: 0.9em;
+            font-weight: bold;
+            padding: 4px 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .date-label:hover { border-color: var(--accent); }
+        .topbar-title {
+            flex: 1;
+            font-size: 1.1em;
+            color: var(--accent);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .topbar-meta {
+            font-size: 0.8em;
+            color: var(--muted);
+            white-space: nowrap;
+        }
         .settings-link {
             color: var(--muted);
             text-decoration: none;
-            font-size: 1.3em;
-            line-height: 1;
+            font-size: 1.2em;
             padding: 4px;
-            border-radius: 4px;
-            transition: color 0.15s;
+            line-height: 1;
         }
         .settings-link:hover { color: var(--accent); }
         .settings-link svg { width: 20px; height: 20px; vertical-align: middle; }
 
-        /* Timeline Navigation */
-        .timeline-bar {
+        /* ── Sidebar ── */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay);
+            z-index: 90;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
+        .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 260px;
+            background: var(--surface);
+            z-index: 100;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--input-border);
+        }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--input-border);
+            font-weight: bold;
+            color: var(--accent);
+        }
+        .sidebar-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.4em;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .sidebar-close:hover { color: var(--text); }
+        .sidebar-link {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: var(--surface);
-            border-radius: 6px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-        .timeline-bar label {
-            font-size: 0.85em;
-            color: var(--muted);
-            white-space: nowrap;
-        }
-        .timeline-bar select {
-            background: var(--card);
+            gap: 10px;
+            padding: 12px 20px;
             color: var(--text);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 0.85em;
-            max-width: 240px;
-        }
-        .timeline-bar button {
-            background: var(--card);
-            color: var(--text);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 4px;
-            padding: 4px 12px;
+            text-decoration: none;
+            font-size: 0.95em;
             cursor: pointer;
-            font-size: 0.85em;
+            transition: background 0.15s;
         }
-        .timeline-bar button:hover { background: var(--accent); color: #000; }
-        .timeline-bar .btn-live {
-            background: var(--accent);
-            color: #000;
+        .sidebar-link:hover { background: var(--card); }
+        .sidebar-link.active { color: var(--accent); background: rgba(0,173,181,0.1); }
+        .sidebar-link .icon { font-size: 1.1em; width: 24px; text-align: center; }
+        .sidebar-divider { border-top: 1px solid var(--input-border); margin: 8px 0; }
+
+        /* ── Calendar Popup ── */
+        .calendar-popup {
+            position: fixed;
+            top: 52px;
+            left: 80px;
+            background: var(--surface);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            padding: 12px;
+            z-index: 80;
+            display: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            min-width: 280px;
+        }
+        .calendar-popup.open { display: block; }
+        .cal-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .cal-nav button {
+            background: none;
+            border: 1px solid var(--input-border);
+            color: var(--text);
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 4px 10px;
+            font-size: 0.9em;
+        }
+        .cal-nav button:hover { border-color: var(--accent); }
+        .cal-nav span { font-weight: bold; font-size: 0.95em; }
+        .cal-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 0.75em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .cal-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+        .cal-day {
+            text-align: center;
+            padding: 6px 2px;
+            font-size: 0.85em;
+            border-radius: 4px;
+            cursor: default;
+            color: var(--muted);
+        }
+        .cal-day.has-data {
+            color: var(--text);
+            cursor: pointer;
             font-weight: bold;
         }
+        .cal-day.has-data:hover { background: var(--card); }
+        .cal-day.today { border: 1px solid var(--accent); }
+        .cal-day.selected { background: var(--accent); color: #000; }
+        .cal-day.empty { visibility: hidden; }
 
+        /* ── Main Content ── */
+        .main-content {
+            padding: 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ── Dashboard Styles ── */
         .history-banner {
             padding: 10px 16px;
             border-radius: 6px;
@@ -115,8 +251,14 @@
             color: var(--info);
             font-size: 0.95em;
             margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
+        .history-banner a {
+            color: var(--info);
+            font-size: 0.85em;
+        }
         .health-banner {
             padding: 12px 20px;
             border-radius: 8px;
@@ -127,8 +269,7 @@
         .health-good { background: rgba(76,175,80,0.2); border: 1px solid var(--good); color: var(--good); }
         .health-warn { background: rgba(255,152,0,0.2); border: 1px solid var(--warn); color: var(--warn); }
         .health-crit { background: rgba(244,67,54,0.2); border: 1px solid var(--crit); color: var(--crit); }
-        .health-err  { background: rgba(244,67,54,0.15); border: 1px solid var(--crit); color: var(--crit); }
-
+        h2.section-title { font-size: 1.1em; margin: 16px 0 8px; color: var(--accent); }
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -142,7 +283,6 @@
         }
         .summary-card .label { font-size: 0.8em; color: var(--muted); }
         .summary-card .value { font-size: 1.3em; font-weight: bold; margin-top: 4px; }
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -150,37 +290,24 @@
             font-size: 0.9em;
         }
         th, td { padding: 6px 10px; text-align: left; }
-        th {
-            background: var(--surface);
-            color: var(--accent);
-            position: sticky;
-            top: 0;
-        }
+        th { background: var(--surface); color: var(--accent); position: sticky; top: 52px; }
         tr { border-bottom: 1px solid rgba(255,255,255,0.05); }
         tr:hover { background: rgba(255,255,255,0.03); }
-
-        /* Per-Channel Status Badges */
         .badge {
             display: inline-block;
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 0.8em;
             font-weight: bold;
-            cursor: default;
         }
         .badge-good { background: rgba(76,175,80,0.25); color: var(--good); }
         .badge-warn { background: rgba(255,152,0,0.25); color: var(--warn); }
         .badge-crit { background: rgba(244,67,54,0.25); color: var(--crit); }
-
-        /* Colored value cells */
         .val-good { color: var(--good); }
         .val-warn { color: var(--warn); }
         .val-crit { color: var(--crit); }
-
         .ref-table { max-width: 600px; }
-        .ref-table td { font-size: 0.85em; }
-        .ref-table th { font-size: 0.85em; }
-
+        .ref-table td, .ref-table th { font-size: 0.85em; }
         .error-box {
             background: rgba(244,67,54,0.15);
             border: 1px solid var(--crit);
@@ -189,7 +316,6 @@
             border-radius: 6px;
             margin-bottom: 16px;
         }
-
         .waiting {
             text-align: center;
             padding: 60px 20px;
@@ -206,50 +332,126 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* ── Trend View ── */
+        .trend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .trend-title {
+            font-size: 1.2em;
+            color: var(--accent);
+            font-weight: bold;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .chart-card {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .chart-card .chart-label {
+            font-size: 0.85em;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .chart-card canvas { width: 100% !important; }
+        .no-data-msg {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+            font-size: 0.95em;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
         @media (max-width: 600px) {
-            body { padding: 8px; }
+            body { font-size: 14px; }
+            .topbar { gap: 6px; padding: 8px 10px; }
+            .topbar-title { display: none; }
             .summary-grid { grid-template-columns: 1fr 1fr; }
             table { font-size: 0.8em; }
             th, td { padding: 4px 6px; }
-            .timeline-bar { gap: 4px; }
+            .calendar-popup { left: 10px; right: 10px; min-width: auto; }
         }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="header-left">
-        <h1>FritzBox DOCSIS Monitor</h1>
-        <a href="/settings" class="settings-link" title="Einstellungen">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-        </a>
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <span>Navigation</span>
+        <button class="sidebar-close" id="sidebar-close">&times;</button>
     </div>
-    <div class="meta">
-        {% if last_update %}
-            Letztes Update: {{ last_update }} | Intervall: {{ poll_interval }}s
-        {% else %}
-            Warte auf erste Abfrage...
-        {% endif %}
+    <a class="sidebar-link active" data-view="live">
+        <span class="icon">&#9679;</span> Live Dashboard
+    </a>
+    <a class="sidebar-link" data-view="day">
+        <span class="icon">&#9201;</span> Tagesverlauf
+    </a>
+    <a class="sidebar-link" data-view="week">
+        <span class="icon">&#9899;</span> Wochentrend
+    </a>
+    <a class="sidebar-link" data-view="month">
+        <span class="icon">&#128197;</span> Monatstrend
+    </a>
+    <div class="sidebar-divider"></div>
+    <a class="sidebar-link" href="/settings">
+        <span class="icon">&#9881;</span> Einstellungen
+    </a>
+</nav>
+
+<!-- Topbar -->
+<div class="topbar">
+    <button class="hamburger-btn" id="hamburger">&#9776;</button>
+    <div class="date-nav" id="date-nav">
+        <button id="date-prev">&#8249;</button>
+        <span class="date-label" id="date-label" title="Kalender oeffnen">Live</span>
+        <button id="date-next">&#8250;</button>
     </div>
+    <span class="topbar-title">DOCSIS Monitor</span>
+    <span class="topbar-meta" id="topbar-meta">
+        {% if last_update %}{{ last_update }} | {{ poll_interval }}s{% endif %}
+    </span>
+    <a href="/settings" class="settings-link" title="Einstellungen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </a>
 </div>
 
-{# Timeline Navigation #}
-<div class="timeline-bar" id="timeline">
-    <label>Timeline:</label>
-    <button id="btn-prev" title="Vorheriger Snapshot">&lt;</button>
-    <select id="snapshot-select">
-        <option value="">Live</option>
-    </select>
-    <button id="btn-next" title="Naechster Snapshot">&gt;</button>
-    <button id="btn-live" class="btn-live">Live</button>
+<!-- Calendar Popup -->
+<div class="calendar-popup" id="calendar-popup">
+    <div class="cal-nav">
+        <button id="cal-prev">&lsaquo;</button>
+        <span id="cal-month-label"></span>
+        <button id="cal-next">&rsaquo;</button>
+    </div>
+    <div class="cal-weekdays">
+        <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+    </div>
+    <div class="cal-days" id="cal-days"></div>
 </div>
+
+<!-- ═══ View: Dashboard (Live / Historical) ═══ -->
+<div class="main-content">
+<div id="view-dashboard" class="view active">
 
 {% if historical %}
 <div class="history-banner">
-    Historische Ansicht: {{ snapshot_ts }}
+    Historische Ansicht: {{ snapshot_ts.replace("T", " ") }}
+    <a href="/">Zurueck zu Live &rarr;</a>
 </div>
 {% endif %}
 
@@ -262,7 +464,6 @@
     {% set ds = analysis.ds_channels %}
     {% set us = analysis.us_channels %}
 
-    {# Health Banner #}
     {% if s.health == "Gut" %}
     <div class="health-banner health-good">{{ s.health }} &mdash; {{ s.health_details }}</div>
     {% elif s.health == "Schlecht" %}
@@ -271,7 +472,6 @@
     <div class="health-banner health-warn">{{ s.health }} &mdash; {{ s.health_details }}</div>
     {% endif %}
 
-    {# Summary Cards #}
     <div class="summary-grid">
         <div class="summary-card">
             <div class="label">Downstream Kanaele</div>
@@ -299,86 +499,59 @@
         </div>
     </div>
 
-    {# Downstream Table #}
-    <h2>Downstream ({{ ds|length }} Kanaele)</h2>
+    <h2 class="section-title">Downstream ({{ ds|length }} Kanaele)</h2>
     <table>
-        <thead>
-            <tr>
-                <th>Status</th>
-                <th>Kanal</th>
-                <th>Frequenz</th>
-                <th>Power (dBmV)</th>
-                <th>SNR (dB)</th>
-                <th>Modulation</th>
-                <th>Korr. Fehler</th>
-                <th>Unkorr. Fehler</th>
-                <th>DOCSIS</th>
-            </tr>
-        </thead>
+        <thead><tr>
+            <th>Status</th><th>Kanal</th><th>Frequenz</th><th>Power (dBmV)</th>
+            <th>SNR (dB)</th><th>Modulation</th><th>Korr.</th><th>Unkorr.</th><th>DOCSIS</th>
+        </tr></thead>
         <tbody>
-            {% for ch in ds %}
-            <tr>
-                <td>
-                    {% if ch.health == "good" %}
-                    <span class="badge badge-good">Gut</span>
-                    {% elif ch.health == "critical" %}
-                    <span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
-                    {% else %}
-                    <span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>
-                    {% endif %}
-                </td>
-                <td>{{ ch.channel_id }}</td>
-                <td>{{ ch.frequency }}</td>
-                <td class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
-                <td class="{% if ch.snr is not none %}{% if ch.snr < 25 %}val-crit{% elif ch.snr < 30 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
-                <td>{{ ch.modulation }}</td>
-                <td>{{ "{:,}".format(ch.correctable_errors) }}</td>
-                <td>{{ "{:,}".format(ch.uncorrectable_errors) }}</td>
-                <td>{{ ch.docsis_version }}</td>
-            </tr>
-            {% endfor %}
+        {% for ch in ds %}
+        <tr>
+            <td>
+                {% if ch.health == "good" %}<span class="badge badge-good">Gut</span>
+                {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
+                {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>{% endif %}
+            </td>
+            <td>{{ ch.channel_id }}</td>
+            <td>{{ ch.frequency }}</td>
+            <td class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
+            <td class="{% if ch.snr is not none %}{% if ch.snr < 25 %}val-crit{% elif ch.snr < 30 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
+            <td>{{ ch.modulation }}</td>
+            <td>{{ "{:,}".format(ch.correctable_errors) }}</td>
+            <td>{{ "{:,}".format(ch.uncorrectable_errors) }}</td>
+            <td>{{ ch.docsis_version }}</td>
+        </tr>
+        {% endfor %}
         </tbody>
     </table>
 
-    {# Upstream Table #}
-    <h2>Upstream ({{ us|length }} Kanaele)</h2>
+    <h2 class="section-title">Upstream ({{ us|length }} Kanaele)</h2>
     <table>
-        <thead>
-            <tr>
-                <th>Status</th>
-                <th>Kanal</th>
-                <th>Frequenz</th>
-                <th>Power (dBmV)</th>
-                <th>Modulation</th>
-                <th>Multiplex</th>
-                <th>DOCSIS</th>
-            </tr>
-        </thead>
+        <thead><tr>
+            <th>Status</th><th>Kanal</th><th>Frequenz</th><th>Power (dBmV)</th>
+            <th>Modulation</th><th>Multiplex</th><th>DOCSIS</th>
+        </tr></thead>
         <tbody>
-            {% for ch in us %}
-            <tr>
-                <td>
-                    {% if ch.health == "good" %}
-                    <span class="badge badge-good">Gut</span>
-                    {% elif ch.health == "critical" %}
-                    <span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
-                    {% else %}
-                    <span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>
-                    {% endif %}
-                </td>
-                <td>{{ ch.channel_id }}</td>
-                <td>{{ ch.frequency }}</td>
-                <td class="{% if ch.power > 54 %}val-crit{% elif ch.power > 50 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
-                <td>{{ ch.modulation }}</td>
-                <td>{{ ch.multiplex }}</td>
-                <td>{{ ch.docsis_version }}</td>
-            </tr>
-            {% endfor %}
+        {% for ch in us %}
+        <tr>
+            <td>
+                {% if ch.health == "good" %}<span class="badge badge-good">Gut</span>
+                {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch.health_detail }}">Kritisch</span>
+                {% else %}<span class="badge badge-warn" title="{{ ch.health_detail }}">Warnung</span>{% endif %}
+            </td>
+            <td>{{ ch.channel_id }}</td>
+            <td>{{ ch.frequency }}</td>
+            <td class="{% if ch.power > 54 %}val-crit{% elif ch.power > 50 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
+            <td>{{ ch.modulation }}</td>
+            <td>{{ ch.multiplex }}</td>
+            <td>{{ ch.docsis_version }}</td>
+        </tr>
+        {% endfor %}
         </tbody>
     </table>
 
-    {# Reference Values #}
-    <h2>Richtwerte</h2>
+    <h2 class="section-title">Richtwerte</h2>
     <table class="ref-table">
         <thead><tr><th>Metrik</th><th>Gut</th><th>Grenzwertig</th><th>Schlecht</th></tr></thead>
         <tbody>
@@ -395,62 +568,350 @@
         <p>Warte auf erste DOCSIS-Abfrage...</p>
     </div>
 {% endif %}
+</div>
 
+<!-- ═══ View: Trends ═══ -->
+<div id="view-trends" class="view">
+    <div class="trend-header">
+        <span class="trend-title" id="trend-title"></span>
+    </div>
+    <div id="trend-no-data" class="no-data-msg" style="display:none">
+        Keine Daten fuer diesen Zeitraum vorhanden.
+    </div>
+    <div class="charts-grid" id="charts-grid">
+        <div class="chart-card">
+            <div class="chart-label">DS Power Avg (dBmV)</div>
+            <canvas id="chart-ds-power"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-label">DS SNR Avg (dB)</div>
+            <canvas id="chart-ds-snr"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-label">US Power Avg (dBmV)</div>
+            <canvas id="chart-us-power"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-label">Fehler</div>
+            <canvas id="chart-errors"></canvas>
+        </div>
+    </div>
+</div>
+</div><!-- /main-content -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
-// Instant theme from localStorage
 (function() {
+    'use strict';
+
+    /* ── Theme ── */
     var saved = localStorage.getItem('docsis-theme');
     if (saved) document.documentElement.setAttribute('data-theme', saved);
-})();
 
-(function() {
-    var sel = document.getElementById('snapshot-select');
-    var btnPrev = document.getElementById('btn-prev');
-    var btnNext = document.getElementById('btn-next');
-    var btnLive = document.getElementById('btn-live');
+    /* ── State ── */
+    var currentView = 'live';
+    var selectedDate = todayStr();
+    var calendarMonth = new Date();
+    var datesWithData = [];
+    var charts = {};
+    var calendarLoaded = false;
+    var isHistorical = {{ 'true' if historical else 'false' }};
 
-    // Load snapshot list
-    fetch('/api/snapshots')
-        .then(function(r) { return r.json(); })
-        .then(function(timestamps) {
-            var currentTs = '{{ snapshot_ts or "" }}';
-            timestamps.forEach(function(ts) {
-                var opt = document.createElement('option');
-                opt.value = ts;
-                opt.textContent = ts.replace('T', ' ');
-                if (ts === currentTs) opt.selected = true;
-                sel.appendChild(opt);
-            });
-            if (!currentTs) sel.selectedIndex = 0;
+    var MONTHS = ['Januar','Februar','Maerz','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+    function todayStr() {
+        var d = new Date();
+        return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+    }
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function formatDateDE(str) {
+        var p = str.split('-');
+        return p[2] + '.' + p[1] + '.' + p[0];
+    }
+
+    /* ── Sidebar ── */
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebar-overlay');
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('open');
+    }
+    document.getElementById('hamburger').addEventListener('click', toggleSidebar);
+    document.getElementById('sidebar-close').addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', toggleSidebar);
+
+    /* ── Sidebar Links ── */
+    var sidebarLinks = document.querySelectorAll('.sidebar-link[data-view]');
+    sidebarLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+            var view = this.getAttribute('data-view');
+            switchView(view);
+            toggleSidebar();
+        });
+    });
+
+    function switchView(view) {
+        currentView = view;
+        sidebarLinks.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('data-view') === view);
         });
 
-    sel.addEventListener('change', function() {
-        if (sel.value) {
-            window.location.href = '/?t=' + encodeURIComponent(sel.value);
+        var dashView = document.getElementById('view-dashboard');
+        var trendView = document.getElementById('view-trends');
+
+        if (view === 'live') {
+            dashView.classList.add('active');
+            trendView.classList.remove('active');
+            updateDateLabel();
+            if (!isHistorical) startAutoRefresh();
         } else {
-            window.location.href = '/';
+            dashView.classList.remove('active');
+            trendView.classList.add('active');
+            stopAutoRefresh();
+            updateDateLabel();
+            loadTrends(view, selectedDate);
+        }
+    }
+
+    /* ── Date Navigation ── */
+    var dateLabel = document.getElementById('date-label');
+    var datePrev = document.getElementById('date-prev');
+    var dateNext = document.getElementById('date-next');
+
+    function updateDateLabel() {
+        if (currentView === 'live') {
+            dateLabel.textContent = isHistorical ? formatDateDE('{{ snapshot_ts[:10] if snapshot_ts else "" }}') : 'Live';
+        } else {
+            var rangeLabel = {day: 'Tag', week: 'Woche', month: 'Monat'}[currentView] || '';
+            dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
+        }
+    }
+
+    datePrev.addEventListener('click', function() { dateNav(-1); });
+    dateNext.addEventListener('click', function() { dateNav(1); });
+
+    function dateNav(dir) {
+        var d = new Date(selectedDate + 'T12:00:00');
+        if (currentView === 'live' || currentView === 'day') {
+            d.setDate(d.getDate() + dir);
+        } else if (currentView === 'week') {
+            d.setDate(d.getDate() + dir * 7);
+        } else if (currentView === 'month') {
+            d.setMonth(d.getMonth() + dir);
+        }
+        selectedDate = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+        updateDateLabel();
+
+        if (currentView === 'live') {
+            // Navigate to historical snapshot
+            fetch('/api/snapshot/daily?date=' + selectedDate)
+                .then(function(r) { return r.json(); })
+                .then(function(snap) {
+                    if (snap && snap.timestamp) {
+                        window.location.href = '/?t=' + encodeURIComponent(snap.timestamp);
+                    }
+                });
+        } else {
+            loadTrends(currentView, selectedDate);
+        }
+    }
+
+    /* ── Calendar ── */
+    var calPopup = document.getElementById('calendar-popup');
+
+    dateLabel.addEventListener('click', function(e) {
+        e.stopPropagation();
+        calPopup.classList.toggle('open');
+        if (calPopup.classList.contains('open') && !calendarLoaded) {
+            loadCalendarData();
+        } else if (calPopup.classList.contains('open')) {
+            renderCalendar();
         }
     });
 
-    btnLive.addEventListener('click', function() {
-        window.location.href = '/';
-    });
-
-    btnPrev.addEventListener('click', function() {
-        var idx = sel.selectedIndex;
-        if (idx < sel.options.length - 1) {
-            sel.selectedIndex = idx + 1;
-            sel.dispatchEvent(new Event('change'));
+    document.addEventListener('click', function(e) {
+        if (!calPopup.contains(e.target) && e.target !== dateLabel) {
+            calPopup.classList.remove('open');
         }
     });
 
-    btnNext.addEventListener('click', function() {
-        var idx = sel.selectedIndex;
-        if (idx > 0) {
-            sel.selectedIndex = idx - 1;
-            sel.dispatchEvent(new Event('change'));
-        }
+    document.getElementById('cal-prev').addEventListener('click', function() {
+        calendarMonth.setMonth(calendarMonth.getMonth() - 1);
+        renderCalendar();
     });
+    document.getElementById('cal-next').addEventListener('click', function() {
+        calendarMonth.setMonth(calendarMonth.getMonth() + 1);
+        renderCalendar();
+    });
+
+    function loadCalendarData() {
+        fetch('/api/calendar')
+            .then(function(r) { return r.json(); })
+            .then(function(dates) {
+                datesWithData = dates;
+                calendarLoaded = true;
+                renderCalendar();
+            });
+    }
+
+    function renderCalendar() {
+        var year = calendarMonth.getFullYear();
+        var month = calendarMonth.getMonth();
+        document.getElementById('cal-month-label').textContent = MONTHS[month] + ' ' + year;
+
+        var grid = document.getElementById('cal-days');
+        grid.innerHTML = '';
+
+        var firstDay = new Date(year, month, 1).getDay();
+        var offset = (firstDay === 0) ? 6 : firstDay - 1; // Monday-based
+        var daysInMonth = new Date(year, month + 1, 0).getDate();
+        var today = todayStr();
+
+        for (var i = 0; i < offset; i++) {
+            var empty = document.createElement('span');
+            empty.className = 'cal-day empty';
+            grid.appendChild(empty);
+        }
+
+        for (var d = 1; d <= daysInMonth; d++) {
+            var dateStr = year + '-' + pad(month + 1) + '-' + pad(d);
+            var el = document.createElement('span');
+            el.className = 'cal-day';
+            el.textContent = d;
+            if (datesWithData.indexOf(dateStr) !== -1) el.classList.add('has-data');
+            if (dateStr === today) el.classList.add('today');
+            if (dateStr === selectedDate) el.classList.add('selected');
+            el.setAttribute('data-date', dateStr);
+
+            el.addEventListener('click', function() {
+                var date = this.getAttribute('data-date');
+                if (!this.classList.contains('has-data')) return;
+                selectedDate = date;
+                calPopup.classList.remove('open');
+
+                if (currentView === 'live') {
+                    fetch('/api/snapshot/daily?date=' + date)
+                        .then(function(r) { return r.json(); })
+                        .then(function(snap) {
+                            if (snap && snap.timestamp) {
+                                window.location.href = '/?t=' + encodeURIComponent(snap.timestamp);
+                            }
+                        });
+                } else {
+                    updateDateLabel();
+                    loadTrends(currentView, selectedDate);
+                }
+            });
+            grid.appendChild(el);
+        }
+    }
+
+    /* ── Auto Refresh ── */
+    var refreshTimer = null;
+    function startAutoRefresh() {
+        stopAutoRefresh();
+        refreshTimer = setInterval(function() {
+            if (currentView === 'live' && !isHistorical && !document.hidden) {
+                location.reload();
+            }
+        }, 60000);
+    }
+    function stopAutoRefresh() {
+        if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    }
+    if (!isHistorical) startAutoRefresh();
+
+    /* ── Trend Charts ── */
+    function loadTrends(range, date) {
+        var title = document.getElementById('trend-title');
+        var noData = document.getElementById('trend-no-data');
+        var grid = document.getElementById('charts-grid');
+
+        var labels = {day: 'Tagesverlauf', week: 'Wochentrend', month: 'Monatstrend'};
+        title.textContent = (labels[range] || 'Trend') + ' - ' + formatDateDE(date);
+
+        fetch('/api/trends?range=' + range + '&date=' + date)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data || data.length === 0) {
+                    noData.style.display = 'block';
+                    grid.style.display = 'none';
+                    return;
+                }
+                noData.style.display = 'none';
+                grid.style.display = '';
+
+                var xLabels = data.map(function(d) {
+                    if (range === 'day') {
+                        return d.timestamp ? d.timestamp.substring(11, 16) : '';
+                    } else {
+                        return d.date ? formatDateDE(d.date) : '';
+                    }
+                });
+
+                renderChart('chart-ds-power', xLabels,
+                    [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#00adb5'}]);
+                renderChart('chart-ds-snr', xLabels,
+                    [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#4caf50'}]);
+                renderChart('chart-us-power', xLabels,
+                    [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#ff9800'}]);
+                renderChart('chart-errors', xLabels, [
+                    {label: 'Korrigierbar', data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
+                    {label: 'Unkorrigierbar', data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
+                ], 'bar');
+            })
+            .catch(function() {
+                noData.textContent = 'Fehler beim Laden der Trenddaten.';
+                noData.style.display = 'block';
+                grid.style.display = 'none';
+            });
+    }
+
+    function renderChart(canvasId, labels, datasets, type) {
+        if (charts[canvasId]) charts[canvasId].destroy();
+        var ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+        var textColor = isDark ? '#888' : '#666';
+
+        var chartDatasets = datasets.map(function(ds) {
+            var base = {
+                label: ds.label,
+                data: ds.data,
+                borderColor: ds.color,
+                backgroundColor: ds.color + (type === 'bar' ? 'cc' : '22'),
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: labels.length > 30 ? 0 : 3,
+                fill: type !== 'bar'
+            };
+            return base;
+        });
+
+        charts[canvasId] = new Chart(ctx, {
+            type: type || 'line',
+            data: { labels: labels, datasets: chartDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { display: datasets.length > 1, labels: { color: textColor, font: { size: 11 } } },
+                    tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1 }
+                },
+                scales: {
+                    x: { ticks: { color: textColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } }
+                }
+            }
+        });
+    }
+
+    /* ── Init ── */
+    updateDateLabel();
 })();
 </script>
 

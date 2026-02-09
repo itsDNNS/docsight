@@ -221,6 +221,11 @@
                 <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="1" max="90">
                 <span class="hint">Wie lange Snapshots gespeichert werden</span>
             </div>
+            <div class="form-row">
+                <label for="snapshot_time">Tages-Snapshot (Uhrzeit)</label>
+                <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
+                <span class="hint">Referenz-Zeitpunkt fuer Tagesvergleiche und Trends</span>
+            </div>
         </div>
     </div>
 

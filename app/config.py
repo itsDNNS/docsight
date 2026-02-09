@@ -27,6 +27,7 @@ DEFAULTS = {
     "poll_interval": 300,
     "web_port": 8765,
     "history_days": 7,
+    "snapshot_time": "06:00",
     "theme": "dark",
 }
 

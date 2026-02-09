@@ -77,6 +77,69 @@ class SnapshotStorage:
             "us_channels": json.loads(row[2]),
         }
 
+    def get_dates_with_data(self):
+        """Return list of dates (YYYY-MM-DD) that have at least one snapshot."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT DISTINCT substr(timestamp, 1, 10) as day FROM snapshots ORDER BY day"
+            ).fetchall()
+        return [r[0] for r in rows]
+
+    def get_daily_snapshot(self, date, target_time="06:00"):
+        """Get the snapshot closest to target_time on the given date."""
+        target_ts = f"{date}T{target_time}:00"
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
+                   FROM snapshots
+                   WHERE timestamp LIKE ?
+                   ORDER BY ABS(julianday(timestamp) - julianday(?))
+                   LIMIT 1""",
+                (f"{date}%", target_ts),
+            ).fetchone()
+        if not row:
+            return None
+        return {
+            "timestamp": row[0],
+            "summary": json.loads(row[1]),
+            "ds_channels": json.loads(row[2]),
+            "us_channels": json.loads(row[3]),
+        }
+
+    def get_trend_data(self, start_date, end_date, target_time="06:00"):
+        """Get summary data points for a date range, one per day (closest to target_time).
+        Returns list of {date, timestamp, ...summary_fields}."""
+        dates = []
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT DISTINCT substr(timestamp, 1, 10) as day FROM snapshots WHERE day >= ? AND day <= ? ORDER BY day",
+                (start_date, end_date),
+            ).fetchall()
+            dates = [r[0] for r in rows]
+
+        results = []
+        for date in dates:
+            snap = self.get_daily_snapshot(date, target_time)
+            if snap:
+                entry = {"date": date, "timestamp": snap["timestamp"]}
+                entry.update(snap["summary"])
+                results.append(entry)
+        return results
+
+    def get_intraday_data(self, date):
+        """Get all snapshots for a single day (for day-detail trends)."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT timestamp, summary_json FROM snapshots WHERE timestamp LIKE ? ORDER BY timestamp",
+                (f"{date}%",),
+            ).fetchall()
+        results = []
+        for row in rows:
+            entry = {"timestamp": row[0]}
+            entry.update(json.loads(row[1]))
+            results.append(entry)
+        return results
+
     def _cleanup(self):
         """Delete snapshots older than max_days."""
         cutoff = (datetime.now() - timedelta(days=self.max_days)).strftime(
