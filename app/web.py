@@ -12,7 +12,7 @@ from flask import Flask, render_template, request, jsonify, redirect, session, u
 from werkzeug.security import check_password_hash
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
-from .i18n import get_translations, LANGUAGES
+from .i18n import get_translations, LANGUAGES, ISP_COLORS
 
 def _server_tz_info():
     """Return server timezone name and UTC offset in minutes."""
@@ -60,7 +60,7 @@ def _get_lang():
 _state = {
     "analysis": None,
     "last_update": None,
-    "poll_interval": 300,
+    "poll_interval": 900,
     "error": None,
     "connection_info": None,
 }
@@ -224,7 +224,7 @@ def setup():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset)
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset, isp_colors=ISP_COLORS)
 
 
 @app.route("/settings")
@@ -235,7 +235,7 @@ def settings():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset)
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset, isp_colors=ISP_COLORS)
 
 
 @app.route("/api/config", methods=["POST"])

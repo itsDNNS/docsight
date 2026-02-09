@@ -11,7 +11,7 @@ from werkzeug.security import generate_password_hash
 log = logging.getLogger("docsis.config")
 
 POLL_MIN = 60
-POLL_MAX = 3600
+POLL_MAX = 14400
 
 SECRET_KEYS = {"modem_password", "mqtt_password"}
 HASH_KEYS = {"admin_password"}
@@ -26,7 +26,7 @@ DEFAULTS = {
     "mqtt_user": "",
     "mqtt_password": "",
     "mqtt_topic_prefix": "docsight",
-    "poll_interval": 300,
+    "poll_interval": 900,
     "web_port": 8765,
     "history_days": 0,
     "snapshot_time": "06:00",

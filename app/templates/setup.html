@@ -226,13 +226,16 @@
         <div class="form-grid">
             <div class="form-row">
                 <label for="isp_select">{{ t.isp_name }}</label>
-                <select id="isp_select" onchange="onIspChange()">
-                    <option value="">{{ t.isp_select }}</option>
-                    {% for isp in t.isp_options %}
-                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
-                    {% endfor %}
-                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
-                </select>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <select id="isp_select" onchange="onIspChange()" style="flex:1;">
+                        <option value="">{{ t.isp_select }}</option>
+                        {% for isp in t.isp_options %}
+                        <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                        {% endfor %}
+                        <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                    </select>
+                    <span id="isp-dot" style="width:12px;height:12px;border-radius:50%;display:none;flex-shrink:0;"></span>
+                </div>
                 <span class="hint">{{ t.isp_hint }}</span>
             </div>
             <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
@@ -242,7 +245,7 @@
             <div class="form-row">
                 <label for="poll_interval">{{ t.interval_sec }}</label>
                 <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
-                <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s / {{ t.default }}: 300s</span>
+                <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s / {{ t.default }}: 900s</span>
             </div>
             <div class="form-row">
                 <label for="history_days">{{ t.history_days }}</label>
@@ -303,11 +306,17 @@
 <script>
 var T = {{ t|tojson }};
 
+var ISP_COLORS = {{ isp_colors|tojson }};
 function onIspChange() {
     var sel = document.getElementById('isp_select');
     var row = document.getElementById('isp-other-row');
     row.style.display = sel.value === '__other__' ? 'flex' : 'none';
+    var dot = document.getElementById('isp-dot');
+    var color = ISP_COLORS[sel.value];
+    dot.style.display = color ? 'inline-block' : 'none';
+    dot.style.background = color || 'transparent';
 }
+onIspChange();
 
 function toggleAdvanced() {
     var toggle = document.getElementById('mqtt-toggle');
@@ -405,7 +414,7 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
         errEl.style.display = 'block';
         return;
     }
-    var interval = parseInt(data.poll_interval) || 300;
+    var interval = parseInt(data.poll_interval) || 900;
     if (interval < {{ poll_min }}) interval = {{ poll_min }};
     if (interval > {{ poll_max }}) interval = {{ poll_max }};
     data.poll_interval = String(interval);

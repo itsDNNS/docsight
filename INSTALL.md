@@ -249,7 +249,7 @@ Click **Test Connection** to verify DOCSight can reach your router. If successfu
 | Field | Description | Default |
 |---|---|---|
 | **ISP** | Your internet provider name (for reports) | - |
-| **Poll Interval** | How often to read channel data (seconds) | `300` (5 min) |
+| **Poll Interval** | How often to read channel data (seconds) | `900` (15 min) |
 | **History Days** | How many days of snapshots to keep (0 = unlimited) | `0` (keep all) |
 | **Snapshot Time** | When to save the daily snapshot (server timezone, set `TZ` env var to change) | `06:00` |
 
