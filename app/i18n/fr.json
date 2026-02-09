@@ -162,9 +162,10 @@
   "bqm_url_hint": "Collez votre lien de partage ThinkBroadband BQM (.png)",
   "bqm_no_data": "Pas de graphique BQM pour cette date.",
 
-  "card_signal_quality": "Qualité du signal",
+  "card_signal_quality": "Descendant",
   "card_upstream": "Montant",
   "card_errors": "Erreurs",
+  "card_no_docsis31": "Aucun canal DOCSIS 3.1 montant trouvé. Peut dépendre de votre forfait ou équipement.",
   "card_ds_power": "Niveau du signal",
   "card_snr": "Clarté du signal",
   "card_transmit_power": "Puissance d'émission",

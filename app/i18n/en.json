@@ -162,9 +162,10 @@
   "bqm_url_hint": "Paste your ThinkBroadband BQM share link (.png)",
   "bqm_no_data": "No BQM graph for this date.",
 
-  "card_signal_quality": "Signal Quality",
+  "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Errors",
+  "card_no_docsis31": "No DOCSIS 3.1 upstream channel found. May depend on your plan or equipment.",
   "card_ds_power": "Signal Level",
   "card_snr": "Signal Clarity",
   "card_transmit_power": "Transmit Power",

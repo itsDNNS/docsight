@@ -193,6 +193,15 @@ def index():
         uncorr = analysis.get("summary", {}).get("ds_uncorrectable_errors", 0)
         return min(100, math.log10(max(1, uncorr)) / 5 * 100)
 
+    def _has_us_ofdma(analysis):
+        """Check if any upstream channel uses DOCSIS 3.1+ (OFDMA)."""
+        if not analysis:
+            return True  # don't warn when no data yet
+        for ch in analysis.get("us_channels", []):
+            if str(ch.get("docsis_version", "")) in ("3.1", "4.0"):
+                return True
+        return False
+
     ts = request.args.get("t")
     if ts and not _TS_RE.match(ts):
         return redirect("/")
@@ -211,6 +220,7 @@ def index():
                 isp_name=isp_name, connection_info=conn_info,
                 bqm_configured=bqm_configured,
                 uncorr_pct=_compute_uncorr_pct(snapshot),
+                has_us_ofdma=_has_us_ofdma(snapshot),
                 t=t, lang=lang, languages=LANGUAGES,
             )
     return render_template(
@@ -225,6 +235,7 @@ def index():
         isp_name=isp_name, connection_info=conn_info,
         bqm_configured=bqm_configured,
         uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
+        has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         t=t, lang=lang, languages=LANGUAGES,
     )
 

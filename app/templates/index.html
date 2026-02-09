@@ -208,7 +208,7 @@
         /* ── Metric Cards Grid ── */
         .metric-cards {
             display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 12px; margin-bottom: 16px;
+            gap: 12px; margin-bottom: 16px; align-items: start;
         }
 
         /* ── Metric Card ── */
@@ -253,7 +253,31 @@
         .metric-unit { font-size: 0.7em; font-weight: normal; color: var(--muted); margin-left: 2px; }
         .metric-label { font-size: 0.78em; color: var(--muted); margin-top: 2px; }
 
-        /* ── Gauge Bar ── */
+        /* ── Range Indicator ── */
+        .range-indicator {
+            position: relative; height: 6px; border-radius: 3px;
+            margin-top: 8px; display: flex; overflow: visible;
+        }
+        .range-zone { height: 100%; }
+        .range-zone:first-child { border-radius: 3px 0 0 3px; }
+        .range-zone:last-of-type { border-radius: 0 3px 3px 0; }
+        .range-good { background: var(--good); opacity: 0.25; }
+        .range-warn { background: var(--warn); opacity: 0.25; }
+        .range-crit { background: var(--crit); opacity: 0.25; }
+        .range-marker {
+            position: absolute; top: -4px; width: 3px; height: 14px;
+            border-radius: 1.5px; transform: translateX(-50%);
+            transition: left 0.4s ease;
+        }
+        .range-marker.val-good { background: var(--good); }
+        .range-marker.val-warn { background: var(--warn); }
+        .range-marker.val-crit { background: var(--crit); }
+        .range-labels {
+            display: flex; justify-content: space-between;
+            font-size: 0.6em; color: var(--muted); margin-top: 3px;
+        }
+
+        /* ── Gauge Bar (errors only) ── */
         .gauge-bar {
             height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px;
             margin-top: 6px; overflow: hidden;
@@ -286,6 +310,13 @@
         .detail-note {
             font-size: 0.78em; color: var(--muted); font-style: italic;
             padding-bottom: 12px;
+        }
+        .card-notice {
+            font-size: 0.78em; padding: 6px 10px; margin-top: 8px;
+            border-radius: 4px; display: flex; align-items: center; gap: 6px;
+        }
+        .card-notice-warn {
+            background: rgba(255,152,0,0.1); color: var(--warn);
         }
 
         /* ── Tables ── */
@@ -587,22 +618,22 @@
        else ('warn' if 'us_power_warn' in s.health_issues else 'good') %}
     {% set error_health = 'crit' if 'uncorr_errors_high' in s.health_issues else 'good' %}
 
-    {# ── Gauge percentages ── #}
-    {% set ds_power_pct = [0, [100, (s.ds_power_avg|abs / 12 * 100)|int]|min]|max %}
-    {% set snr_pct = [0, [100, ((s.ds_snr_avg - 20) / 25 * 100)|int]|min]|max %}
-    {% set us_power_pct = [0, [100, ((s.us_power_avg - 30) / 30 * 100)|int]|min]|max %}
-
     {# ── DS Power health ── #}
     {% set ds_pwr_health = 'crit' if 'ds_power_critical' in s.health_issues else 'good' %}
     {# ── SNR health ── #}
     {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_warn' in s.health_issues else 'good') %}
 
+    {# ── Range marker positions (clamped 2-98%) ── #}
+    {% set ds_pwr_marker = [2, [98, ((s.ds_power_avg + 12) / 24 * 100)|round|int]|min]|max %}
+    {% set snr_marker = [2, [98, ((s.ds_snr_avg - 15) / 30 * 100)|round|int]|min]|max %}
+    {% set us_pwr_marker = [2, [98, ((s.us_power_avg - 25) / 35 * 100)|round|int]|min]|max %}
+
     <div class="metric-cards">
-        {# ── Card 1: Signal Quality ── #}
-        <div class="metric-card health-{{ signal_health }}" onclick="toggleCard(this)">
-            <div class="metric-card-header">
+        {# ── Card 1: Downstream ── #}
+        <div class="metric-card health-{{ signal_health }}">
+            <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
                 <span class="status-dot"></span>
-                <span class="card-title">{{ t.card_signal_quality }}</span>
+                <span class="card-title">&#8595; {{ t.card_signal_quality }}</span>
                 <span class="chevron">&#9654;</span>
             </div>
             <div class="metric-card-body">
@@ -610,12 +641,26 @@
                     <div class="metric-item">
                         <div class="metric-value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}<span class="metric-unit">dBmV</span></div>
                         <div class="metric-label">{{ t.card_ds_power }}</div>
-                        <div class="gauge-bar"><div class="gauge-fill val-{{ ds_pwr_health }}" style="width:{{ ds_power_pct }}%"></div></div>
+                        <div class="range-indicator">
+                            <div class="range-zone range-crit" style="width:8.3%"></div>
+                            <div class="range-zone range-warn" style="width:12.5%"></div>
+                            <div class="range-zone range-good" style="width:58.3%"></div>
+                            <div class="range-zone range-warn" style="width:12.5%"></div>
+                            <div class="range-zone range-crit" style="width:8.4%"></div>
+                            <div class="range-marker val-{{ ds_pwr_health }}" style="left:{{ ds_pwr_marker }}%"></div>
+                        </div>
+                        <div class="range-labels"><span>-12</span><span>0</span><span>+12</span></div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-value val-{{ snr_health }}">{{ s.ds_snr_avg }}<span class="metric-unit">dB</span></div>
                         <div class="metric-label">{{ t.card_snr }}</div>
-                        <div class="gauge-bar"><div class="gauge-fill val-{{ snr_health }}" style="width:{{ snr_pct }}%"></div></div>
+                        <div class="range-indicator">
+                            <div class="range-zone range-crit" style="width:33.3%"></div>
+                            <div class="range-zone range-warn" style="width:16.7%"></div>
+                            <div class="range-zone range-good" style="width:50%"></div>
+                            <div class="range-marker val-{{ snr_health }}" style="left:{{ snr_marker }}%"></div>
+                        </div>
+                        <div class="range-labels"><span>15</span><span>25</span><span>30</span><span>45 dB</span></div>
                     </div>
                 </div>
             </div>
@@ -630,10 +675,10 @@
         </div>
 
         {# ── Card 2: Upstream ── #}
-        <div class="metric-card health-{{ us_health }}" onclick="toggleCard(this)">
-            <div class="metric-card-header">
+        <div class="metric-card health-{{ us_health }}">
+            <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
                 <span class="status-dot"></span>
-                <span class="card-title">{{ t.card_upstream }}</span>
+                <span class="card-title">&#8593; {{ t.card_upstream }}</span>
                 <span class="chevron">&#9654;</span>
             </div>
             <div class="metric-card-body">
@@ -641,9 +686,20 @@
                     <div class="metric-item">
                         <div class="metric-value val-{{ us_health }}">{{ s.us_power_avg }}<span class="metric-unit">dBmV</span></div>
                         <div class="metric-label">{{ t.card_transmit_power }}</div>
-                        <div class="gauge-bar"><div class="gauge-fill val-{{ us_health }}" style="width:{{ us_power_pct }}%"></div></div>
+                        <div class="range-indicator">
+                            <div class="range-zone range-good" style="width:68.6%"></div>
+                            <div class="range-zone range-warn" style="width:14.3%"></div>
+                            <div class="range-zone range-crit" style="width:17.1%"></div>
+                            <div class="range-marker val-{{ us_health }}" style="left:{{ us_pwr_marker }}%"></div>
+                        </div>
+                        <div class="range-labels"><span>25</span><span>35</span><span>49</span><span>54</span><span>60</span></div>
                     </div>
                 </div>
+                {% if not has_us_ofdma %}
+                <div class="card-notice card-notice-warn">
+                    <span>&#9888;</span> {{ t.card_no_docsis31 }}
+                </div>
+                {% endif %}
             </div>
             <div class="metric-card-detail">
                 <table class="detail-table">
@@ -655,8 +711,8 @@
         </div>
 
         {# ── Card 3: Errors ── #}
-        <div class="metric-card health-{{ error_health }}" onclick="toggleCard(this)">
-            <div class="metric-card-header">
+        <div class="metric-card health-{{ error_health }}">
+            <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
                 <span class="status-dot"></span>
                 <span class="card-title">{{ t.card_errors }}</span>
                 <span class="chevron">&#9654;</span>
