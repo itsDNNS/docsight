@@ -119,6 +119,10 @@ EN = {
     # Language
     "language": "Language",
 
+    # ISP
+    "isp_name": "Internet Provider",
+    "isp_hint": "e.g. Vodafone, Telekom, O2 (shown in export)",
+
     # Export
     "export_llm": "Export for LLM",
     "export_title": "LLM Analysis Export",
@@ -233,6 +237,9 @@ DE = {
     "saved_ph": "Gespeichert",
 
     "language": "Sprache",
+
+    "isp_name": "Internetanbieter",
+    "isp_hint": "z.B. Vodafone, Telekom, O2 (wird im Export angezeigt)",
 
     "export_llm": "Export fuer LLM",
     "export_title": "LLM-Analyse Export",

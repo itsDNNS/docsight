@@ -30,6 +30,7 @@ DEFAULTS = {
     "snapshot_time": "06:00",
     "theme": "dark",
     "language": "en",
+    "isp_name": "",
 }
 
 ENV_MAP = {

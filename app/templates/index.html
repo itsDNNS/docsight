@@ -930,10 +930,28 @@ function copyExport() {
     var textarea = document.getElementById('export-text');
     var btn = document.getElementById('export-copy-btn');
     textarea.select();
-    navigator.clipboard.writeText(textarea.value).then(function() {
+    textarea.setSelectionRange(0, textarea.value.length);
+    var ok = false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textarea.value).then(function() {
+            btn.textContent = T.copied;
+            setTimeout(function() { btn.textContent = T.copy_clipboard; }, 2000);
+        }).catch(function() {
+            fallbackCopy(textarea, btn, T);
+        });
+    } else {
+        fallbackCopy(textarea, btn, T);
+    }
+}
+function fallbackCopy(textarea, btn, T) {
+    try {
+        document.execCommand('copy');
         btn.textContent = T.copied;
         setTimeout(function() { btn.textContent = T.copy_clipboard; }, 2000);
-    });
+    } catch(e) {
+        btn.textContent = 'Select All + Ctrl+C';
+        setTimeout(function() { btn.textContent = T.copy_clipboard; }, 3000);
+    }
 }
 </script>
 
