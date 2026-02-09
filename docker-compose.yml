@@ -8,9 +8,7 @@ services:
       - "8765:8765"
     volumes:
       - docsis_data:/data
-    env_file:
-      - path: .env
-        required: false
+    # env_file: .env  # uncomment if using environment variables
 
 volumes:
   docsis_data:
