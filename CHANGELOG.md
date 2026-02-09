@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.8]
+
+### Changed
+- **ISP selection**: Dropdown with common German cable ISPs + "Other" option with free text input
+
 ## [2026-02-09.7]
 
 ### Added

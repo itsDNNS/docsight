@@ -209,10 +209,20 @@
     <div class="section">
         <h2>{{ t.general }}</h2>
         <div class="form-grid">
-            <div class="form-row full">
-                <label for="isp_name">{{ t.isp_name }}</label>
-                <input type="text" id="isp_name" name="isp_name" value="{{ config.isp_name }}">
+            <div class="form-row">
+                <label for="isp_select">{{ t.isp_name }}</label>
+                <select id="isp_select" name="isp_select" onchange="onIspChange()">
+                    <option value="">{{ t.isp_select }}</option>
+                    {% for isp in t.isp_options %}
+                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                    {% endfor %}
+                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                </select>
                 <span class="hint">{{ t.isp_hint }}</span>
+            </div>
+            <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}block{% else %}none{% endif %}">
+                <label for="isp_other_input">{{ t.isp_other }}</label>
+                <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
             </div>
             <div class="form-row">
                 <label for="poll_interval">{{ t.interval_sec }}</label>
@@ -261,6 +271,12 @@ themeCheck.addEventListener('change', function() {
     }
 })();
 
+function onIspChange() {
+    var sel = document.getElementById('isp_select');
+    var row = document.getElementById('isp-other-row');
+    row.style.display = sel.value === '__other__' ? 'block' : 'none';
+}
+
 function showToast(msg, ok) {
     var el = document.getElementById('toast');
     el.textContent = msg;
@@ -275,13 +291,19 @@ var SECRET_FIELDS = ['fritz_password', 'mqtt_password'];
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
-    form.querySelectorAll('input:not(#theme-check), select').forEach(function(inp) {
+    form.querySelectorAll('input:not(#theme-check):not(#isp_other_input), select:not(#isp_select)').forEach(function(inp) {
         if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
             data[inp.name] = inp.value || MASK;
         } else {
             data[inp.name] = inp.value;
         }
     });
+    var ispSel = document.getElementById('isp_select');
+    if (ispSel.value === '__other__') {
+        data.isp_name = document.getElementById('isp_other_input').value;
+    } else {
+        data.isp_name = ispSel.value;
+    }
     data.theme = themeCheck.checked ? 'dark' : 'light';
     return data;
 }

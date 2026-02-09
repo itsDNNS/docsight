@@ -121,7 +121,11 @@ EN = {
 
     # ISP
     "isp_name": "Internet Provider",
-    "isp_hint": "e.g. Vodafone, Telekom, O2 (shown in export)",
+    "isp_hint": "Shown in LLM export report",
+    "isp_other": "Other",
+    "isp_other_placeholder": "Enter provider name",
+    "isp_select": "Select provider",
+    "isp_options": ["Vodafone", "PYUR", "eazy", "O2", "1&1", "Telekom", "NetCologne", "M-net", "Wilhelm.tel"],
 
     # Export
     "export_llm": "Export for LLM",
@@ -239,7 +243,11 @@ DE = {
     "language": "Sprache",
 
     "isp_name": "Internetanbieter",
-    "isp_hint": "z.B. Vodafone, Telekom, O2 (wird im Export angezeigt)",
+    "isp_hint": "Wird im LLM-Export angezeigt",
+    "isp_other": "Andere",
+    "isp_other_placeholder": "Anbietername eingeben",
+    "isp_select": "Anbieter waehlen",
+    "isp_options": ["Vodafone", "PYUR", "eazy", "O2", "1&1", "Telekom", "NetCologne", "M-net", "Wilhelm.tel"],
 
     "export_llm": "Export fuer LLM",
     "export_title": "LLM-Analyse Export",

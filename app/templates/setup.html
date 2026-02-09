@@ -92,7 +92,7 @@
             color: var(--muted);
             margin-bottom: 4px;
         }
-        .form-row input {
+        .form-row input, .form-row select {
             background: var(--input-bg);
             border: 1px solid var(--input-border);
             border-radius: 4px;
@@ -101,7 +101,7 @@
             font-size: 0.95em;
             font-family: inherit;
         }
-        .form-row input:focus { outline: none; border-color: var(--accent); }
+        .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent); }
         .form-row .hint { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
         .form-grid {
             display: grid;
@@ -219,10 +219,20 @@
     <div class="section">
         <h2><span class="step-num">2</span>{{ t.general }}</h2>
         <div class="form-grid">
-            <div class="form-row full">
-                <label for="isp_name">{{ t.isp_name }}</label>
-                <input type="text" id="isp_name" name="isp_name" value="{{ config.isp_name }}" placeholder="e.g. Vodafone, Telekom, O2">
+            <div class="form-row">
+                <label for="isp_select">{{ t.isp_name }}</label>
+                <select id="isp_select" onchange="onIspChange()">
+                    <option value="">{{ t.isp_select }}</option>
+                    {% for isp in t.isp_options %}
+                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                    {% endfor %}
+                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                </select>
                 <span class="hint">{{ t.isp_hint }}</span>
+            </div>
+            <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}block{% else %}none{% endif %}">
+                <label for="isp_other_input">{{ t.isp_other }}</label>
+                <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
             </div>
             <div class="form-row">
                 <label for="poll_interval">{{ t.interval_sec }}</label>
@@ -288,6 +298,12 @@
 <script>
 var T = {{ t|tojson }};
 
+function onIspChange() {
+    var sel = document.getElementById('isp_select');
+    var row = document.getElementById('isp-other-row');
+    row.style.display = sel.value === '__other__' ? 'block' : 'none';
+}
+
 function toggleAdvanced() {
     var toggle = document.getElementById('mqtt-toggle');
     var section = document.getElementById('mqtt-section');
@@ -309,6 +325,12 @@ function getFormData() {
             data[inp.name] = inp.value;
         }
     });
+    var ispSel = document.getElementById('isp_select');
+    if (ispSel.value === '__other__') {
+        data.isp_name = document.getElementById('isp_other_input').value;
+    } else {
+        data.isp_name = ispSel.value;
+    }
     data.language = '{{ lang }}';
     return data;
 }
