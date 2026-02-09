@@ -3,10 +3,13 @@
 import functools
 import logging
 import os
+import re
+import stat
 import time
 from datetime import datetime, timedelta
 
 from flask import Flask, render_template, request, jsonify, redirect, session, url_for
+from werkzeug.security import check_password_hash
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
 from .i18n import get_translations, LANGUAGES
@@ -14,7 +17,10 @@ from .i18n import get_translations, LANGUAGES
 log = logging.getLogger("docsis.web")
 
 app = Flask(__name__, template_folder="templates")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(32))
+app.secret_key = os.urandom(32)  # overwritten by _init_session_key
+
+_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 @app.template_filter("fmt_k")
@@ -63,11 +69,30 @@ def init_storage(storage):
     _storage = storage
 
 
+def _init_session_key(data_dir):
+    """Load or generate a persistent session secret key."""
+    key_path = os.path.join(data_dir, ".session_key")
+    if os.path.exists(key_path):
+        with open(key_path, "rb") as f:
+            app.secret_key = f.read()
+    else:
+        key = os.urandom(32)
+        os.makedirs(data_dir, exist_ok=True)
+        with open(key_path, "wb") as f:
+            f.write(key)
+        try:
+            os.chmod(key_path, stat.S_IRUSR | stat.S_IWUSR)
+        except OSError:
+            pass
+        app.secret_key = key
+
+
 def init_config(config_manager, on_config_changed=None):
     """Set the config manager and optional change callback."""
     global _config_manager, _on_config_changed
     _config_manager = config_manager
     _on_config_changed = on_config_changed
+    _init_session_key(config_manager.data_dir)
 
 
 def _auth_required():
@@ -100,7 +125,12 @@ def login():
     error = None
     if request.method == "POST":
         pw = request.form.get("password", "")
-        if pw == _config_manager.get("admin_password", ""):
+        stored = _config_manager.get("admin_password", "")
+        if stored.startswith(("scrypt:", "pbkdf2:")):
+            success = check_password_hash(stored, pw)
+        else:
+            success = (pw == stored)  # legacy plaintext / env var
+        if success:
             session["authenticated"] = True
             return redirect("/")
         error = t.get("login_failed", "Invalid password")
@@ -148,6 +178,8 @@ def index():
     conn_info = _state.get("connection_info") or {}
 
     ts = request.args.get("t")
+    if ts and not _TS_RE.match(ts):
+        return redirect("/")
     if ts and _storage:
         snapshot = _storage.get_snapshot(ts)
         if snapshot:
@@ -269,6 +301,7 @@ def api_test_mqtt():
 
 
 @app.route("/api/calendar")
+@require_auth
 def api_calendar():
     """Return dates that have snapshot data."""
     if _storage:
@@ -277,17 +310,21 @@ def api_calendar():
 
 
 @app.route("/api/snapshot/daily")
+@require_auth
 def api_snapshot_daily():
     """Return the daily snapshot closest to the configured snapshot_time."""
     date = request.args.get("date")
     if not date or not _storage:
         return jsonify(None)
+    if not _DATE_RE.match(date):
+        return jsonify({"error": "Invalid date format"}), 400
     target_time = _config_manager.get("snapshot_time", "06:00") if _config_manager else "06:00"
     snap = _storage.get_daily_snapshot(date, target_time)
     return jsonify(snap)
 
 
 @app.route("/api/trends")
+@require_auth
 def api_trends():
     """Return trend data for a date range.
     ?range=day|week|month&date=YYYY-MM-DD (date defaults to today)."""
@@ -321,6 +358,7 @@ def api_trends():
 
 
 @app.route("/api/export")
+@require_auth
 def api_export():
     """Generate a structured markdown report for LLM analysis."""
     analysis = _state.get("analysis")
@@ -407,11 +445,21 @@ def api_export():
 
 
 @app.route("/api/snapshots")
+@require_auth
 def api_snapshots():
     """Return list of available snapshot timestamps."""
     if _storage:
         return jsonify(_storage.get_snapshot_list())
     return jsonify([])
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 
 @app.route("/health")

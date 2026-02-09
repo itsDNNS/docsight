@@ -6,13 +6,15 @@ import os
 import stat
 
 from cryptography.fernet import Fernet
+from werkzeug.security import generate_password_hash
 
 log = logging.getLogger("docsis.config")
 
 POLL_MIN = 60
 POLL_MAX = 3600
 
-SECRET_KEYS = {"fritz_password", "mqtt_password", "admin_password"}
+SECRET_KEYS = {"fritz_password", "mqtt_password"}
+HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
 DEFAULTS = {
@@ -127,6 +129,11 @@ class ConfigManager:
             val = self._file_config[key]
             if key in INT_KEYS and not isinstance(val, int):
                 return int(val)
+            if key in HASH_KEYS:
+                # Return werkzeug hash as-is; legacy Fernet-encrypted values get decrypted
+                if val and (val.startswith("scrypt:") or val.startswith("pbkdf2:")):
+                    return val
+                return self._decrypt(val)
             if key in SECRET_KEYS:
                 return self._decrypt(val)
             return val
@@ -140,9 +147,15 @@ class ConfigManager:
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
 
         # Don't overwrite passwords with the mask placeholder
-        for key in SECRET_KEYS:
+        for key in SECRET_KEYS | HASH_KEYS:
             if key in data and data[key] == PASSWORD_MASK:
                 del data[key]
+
+        # Hash password keys (admin_password) before storing
+        for key in HASH_KEYS:
+            if key in data and data[key]:
+                if not (data[key].startswith("scrypt:") or data[key].startswith("pbkdf2:")):
+                    data[key] = generate_password_hash(data[key])
 
         # Encrypt secret values before storing
         for key in SECRET_KEYS:
@@ -187,7 +200,7 @@ class ConfigManager:
         result = {}
         for key in DEFAULTS:
             val = self.get(key)
-            if mask_secrets and key in SECRET_KEYS and val:
+            if mask_secrets and key in (SECRET_KEYS | HASH_KEYS) and val:
                 result[key] = PASSWORD_MASK
             else:
                 result[key] = val

@@ -105,3 +105,24 @@ class TestAuthEnabled:
             content_type="application/json",
         )
         assert resp.status_code == 302
+
+    def test_api_calendar_requires_auth(self, auth_client):
+        resp = auth_client.get("/api/calendar")
+        assert resp.status_code == 302
+
+    def test_api_snapshots_requires_auth(self, auth_client):
+        resp = auth_client.get("/api/snapshots")
+        assert resp.status_code == 302
+
+    def test_api_export_requires_auth(self, auth_client):
+        resp = auth_client.get("/api/export")
+        assert resp.status_code == 302
+
+    def test_api_trends_requires_auth(self, auth_client):
+        resp = auth_client.get("/api/trends")
+        assert resp.status_code == 302
+
+    def test_password_hashed_not_plaintext(self, auth_config):
+        stored = auth_config.get("admin_password")
+        assert stored != "secret123"
+        assert stored.startswith(("scrypt:", "pbkdf2:"))

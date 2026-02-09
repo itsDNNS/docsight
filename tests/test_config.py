@@ -3,7 +3,7 @@
 import json
 import os
 import pytest
-from app.config import ConfigManager, DEFAULTS, SECRET_KEYS, PASSWORD_MASK
+from app.config import ConfigManager, DEFAULTS, SECRET_KEYS, HASH_KEYS, PASSWORD_MASK
 
 
 @pytest.fixture
@@ -92,6 +92,30 @@ class TestConfigSecrets:
         config.save({"fritz_password": "secret"})
         all_config = config.get_all(mask_secrets=False)
         assert all_config["fritz_password"] == "secret"
+
+    def test_admin_password_hashed_at_rest(self, config, tmp_data_dir):
+        config.save({"admin_password": "admin123"})
+        with open(os.path.join(tmp_data_dir, "config.json")) as f:
+            raw = json.load(f)
+        assert raw["admin_password"] != "admin123"
+        assert raw["admin_password"].startswith(("scrypt:", "pbkdf2:"))
+
+    def test_admin_password_hash_returned(self, config):
+        config.save({"admin_password": "admin123"})
+        stored = config.get("admin_password")
+        assert stored.startswith(("scrypt:", "pbkdf2:"))
+
+    def test_admin_password_mask_not_saved(self, tmp_data_dir):
+        config = ConfigManager(tmp_data_dir)
+        config.save({"admin_password": "original"})
+        hash1 = config.get("admin_password")
+        config.save({"admin_password": PASSWORD_MASK, "fritz_user": "updated"})
+        assert config.get("admin_password") == hash1
+
+    def test_admin_password_masked_in_get_all(self, config):
+        config.save({"admin_password": "secret"})
+        all_config = config.get_all(mask_secrets=True)
+        assert all_config["admin_password"] == PASSWORD_MASK
 
 
 class TestConfigEnvOverride:

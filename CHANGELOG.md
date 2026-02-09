@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-09.14]
+
+### Changed
+- **Password hashing**: Admin password stored as scrypt hash instead of reversible encryption
+- **Session key persisted**: Flask session secret key saved to file, sessions survive container restarts
+- **All API endpoints require auth**: `/api/calendar`, `/api/trends`, `/api/export`, `/api/snapshots`, `/api/snapshot/daily` now protected
+- **Input validation**: Timestamp and date parameters validated against format regex
+- **Security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` on all responses
+- **Non-root Docker user**: Container runs as `appuser` (uid 1000) instead of root
+
 ## [2026-02-09.13]
 
 ### Added
