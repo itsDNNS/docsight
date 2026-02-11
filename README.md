@@ -87,9 +87,11 @@ The DOCSight dashboard shows technical measurements from your cable modem. Here'
 <details>
 <summary><strong>Monitoring & Diagnostics</strong></summary>
 
-- **Web Dashboard**: Real-time channel data with health assessment, trend charts, and calendar navigation
+- **Web Dashboard**: Real-time channel data with health assessment, metric cards, and calendar navigation
 - **Health Assessment**: Automatic traffic-light evaluation with actionable recommendations
-- **Trend Charts**: Track signal quality over days, weeks, or months to spot recurring issues
+- **Signal Trends**: Interactive charts with DOCSIS reference zones (color-coded thresholds) for day/week/month views
+- **Speedtest Tracker Integration**: Pull speed test results (download, upload, ping, jitter) from a self-hosted [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker) instance with charts, sortable history, and anomaly highlighting
+- **Incident Report**: Two-step complaint flow with editable ISP letter + downloadable technical PDF
 - **LLM Export**: Generate structured reports for AI analysis (ChatGPT, Claude, Gemini, etc.)
 - **ThinkBroadband BQM**: Daily fetch and archive of broadband quality graphs with gallery view
 
@@ -99,8 +101,10 @@ The DOCSight dashboard shows technical measurements from your cable modem. Here'
 <summary><strong>Ease of Use</strong></summary>
 
 - **Setup Wizard**: Browser-based configuration — no .env file needed
-- **4 Languages**: English, German, French, and Spanish UI
+- **4 Languages**: English, German, French, and Spanish UI (181+ translation keys each)
 - **Light/Dark Mode**: Persistent theme toggle
+- **URL Hash Routing**: Bookmark and share specific views (#trends, #speedtest, #bqm)
+- **Zero JavaScript Dependencies**: All charts are pure HTML5 Canvas — no Chart.js, no libraries
 - **Optional Authentication**: Password-protected web UI with scrypt hashing
 
 </details>
@@ -147,17 +151,19 @@ Copy `.env.example` to `.env` and edit:
 | `HISTORY_DAYS` | `0` | Snapshot retention in days (0 = unlimited) |
 | `ADMIN_PASSWORD` | - | Web UI password (optional) |
 | `BQM_URL` | - | ThinkBroadband BQM share URL (.png, optional) |
+| `SPEEDTEST_TRACKER_URL` | - | Speedtest Tracker URL (optional) |
+| `SPEEDTEST_TRACKER_TOKEN` | - | Speedtest Tracker API token (optional) |
 
 </details>
 
 <details>
 <summary><h2>Screenshots</h2></summary>
 
-| Dashboard (Dark) | Dashboard (Light) | Setup Wizard |
-|---|---|---|
-| ![Dark](docs/screenshots/dashboard-dark.png) | ![Light](docs/screenshots/dashboard-light.png) | ![Setup](docs/screenshots/setup.png) |
+| Dashboard (Dark) | Dashboard (Light) |
+|---|---|
+| ![Dark](docs/screenshots/dashboard-dark.png) | ![Light](docs/screenshots/dashboard-light.png) |
 
-| Trend Charts | Health Banner |
+| Signal Trends | Health Assessment |
 |---|---|
 | ![Trends](docs/screenshots/trends.png) | ![Health](docs/screenshots/health-banner.png) |
 
@@ -222,13 +228,14 @@ DOCSight can optionally publish all channel data to Home Assistant via MQTT Auto
 
 ### External Monitoring Integration
 - [x] **ThinkBroadband BQM**: Daily fetch and archive of external broadband quality graphs (latency, packet loss)
-- [ ] **Speedtest Tracker**: Pull speed test results (download, upload, ping, jitter) from self-hosted [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker)
+- [x] **Speedtest Tracker**: Pull speed test results from self-hosted [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker) with interactive charts, sortable history, anomaly highlighting, and incremental SQLite caching
 
 ### Enhanced Dashboard
 - [ ] Combined timeline: DOCSIS health + speed tests + BQM graph on a single time axis
 - [ ] Notification system: Webhooks on health degradation
 - [ ] Mobile-responsive layout
 - [ ] Power level drift detection: Alert on relative changes (e.g. +3 dB in 24h) in addition to absolute thresholds
+- [x] Manual poll buttons: Trigger FritzBox and Speedtest Tracker data refresh on demand
 
 ### Multi-Modem Support
 - [ ] Plugin architecture for modem drivers
