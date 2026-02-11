@@ -371,6 +371,10 @@
         .val-good { color: var(--good); }
         .val-warn { color: var(--warn); }
         .val-crit { color: var(--crit); }
+        .val-bad { color: #e74c3c; font-weight: 600; }
+        #speedtest-table th { cursor: pointer; user-select: none; }
+        #speedtest-table th:hover { background: var(--surface-hover, rgba(255,255,255,0.05)); }
+        .sort-indicator { margin-left: 4px; font-size: 0.8em; opacity: 0.7; }
         .error-box {
             background: rgba(244,67,54,0.15); border: 1px solid var(--crit);
             color: var(--crit); padding: 12px; border-radius: 6px; margin-bottom: 16px;
@@ -966,7 +970,7 @@
     <div class="trend-header">
         <span class="trend-title">{{ t.speedtest_tracker }}</span>
         <div style="display:flex; gap:8px; align-items:center;">
-            <select id="speedtest-days" style="padding:6px 10px; border-radius:6px; border:1px solid var(--input-border); background:var(--surface); color:var(--text);" onchange="loadSpeedtestHistory()">
+            <select id="speedtest-days" style="padding:6px 10px; border-radius:6px; border:1px solid var(--input-border); background:var(--surface); color:var(--text);" onchange="filterSpeedtestData()">
                 <option value="1">1 {{ t.day }}</option>
                 <option value="7" selected>7 {{ t.day }}</option>
                 <option value="14">14 {{ t.day }}</option>
@@ -985,12 +989,12 @@
     <div id="speedtest-table-wrap">
         <table id="speedtest-table" class="sortable" style="display:none;">
             <thead><tr>
-                <th>{{ t.timestamp }}</th>
-                <th>{{ t.download }}</th>
-                <th>{{ t.upload }}</th>
-                <th>{{ t.ping }}</th>
-                <th>{{ t.jitter }}</th>
-                <th>{{ t.packet_loss }}</th>
+                <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
+                <th data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
+                <th data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
+                <th data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>
+                <th data-col="jitter_ms">{{ t.jitter }}<span class="sort-indicator"></span></th>
+                <th data-col="packet_loss_pct">{{ t.packet_loss }}<span class="sort-indicator"></span></th>
             </tr></thead>
             <tbody id="speedtest-tbody"></tbody>
         </table>
@@ -1742,13 +1746,26 @@ function openSpeedtestSetupModal() {
 function closeSpeedtestSetupModal() {
     document.getElementById('speedtest-setup-modal').classList.remove('open');
 }
+var _speedtestRawData = [];
 var _speedtestAllData = [];
 var _speedtestVisible = 50;
+var _speedtestSortCol = 'timestamp';
+var _speedtestSortDir = 'desc';
+
+function formatSpeedtestTimestamp(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return ts;
+    var dd = String(d.getDate()).padStart(2, '0');
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var yyyy = d.getFullYear();
+    var hh = String(d.getHours()).padStart(2, '0');
+    var min = String(d.getMinutes()).padStart(2, '0');
+    return dd + '.' + mm + '.' + yyyy + ' ' + hh + ':' + min;
+}
 
 function loadSpeedtestHistory() {
     var T = {{ t|tojson }};
-    var daysEl = document.getElementById('speedtest-days');
-    var days = daysEl ? daysEl.value : 7;
     var tbody = document.getElementById('speedtest-tbody');
     var table = document.getElementById('speedtest-table');
     var noData = document.getElementById('speedtest-no-data');
@@ -1760,9 +1777,10 @@ function loadSpeedtestHistory() {
     noData.style.display = 'none';
     if (loading) loading.style.display = '';
     if (moreWrap) moreWrap.style.display = 'none';
+    _speedtestRawData = [];
     _speedtestAllData = [];
     _speedtestVisible = 50;
-    fetch('/api/speedtest?count=1000')
+    fetch('/api/speedtest?count=2000')
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (loading) loading.style.display = 'none';
@@ -1771,15 +1789,91 @@ function loadSpeedtestHistory() {
                 noData.style.display = 'block';
                 return;
             }
-            _speedtestAllData = data;
-            table.style.display = '';
-            renderSpeedtestRows();
+            _speedtestRawData = data;
+            filterSpeedtestData();
         })
         .catch(function() {
             if (loading) loading.style.display = 'none';
             noData.textContent = T.network_error || 'Error';
             noData.style.display = 'block';
         });
+}
+
+function filterSpeedtestData() {
+    var T = {{ t|tojson }};
+    var daysEl = document.getElementById('speedtest-days');
+    var days = daysEl ? daysEl.value : '7';
+    var table = document.getElementById('speedtest-table');
+    var noData = document.getElementById('speedtest-no-data');
+    _speedtestVisible = 50;
+    if (days === '365') {
+        _speedtestAllData = _speedtestRawData.slice();
+    } else {
+        var cutoff = new Date(Date.now() - parseInt(days) * 86400000);
+        _speedtestAllData = _speedtestRawData.filter(function(r) {
+            return new Date(r.timestamp) >= cutoff;
+        });
+    }
+    sortSpeedtestData();
+    if (_speedtestAllData.length === 0) {
+        if (table) table.style.display = 'none';
+        if (noData) {
+            noData.textContent = T.speedtest_no_data || 'No speedtest data.';
+            noData.style.display = 'block';
+        }
+    } else {
+        if (table) table.style.display = '';
+        if (noData) noData.style.display = 'none';
+        renderSpeedtestRows();
+    }
+}
+
+function sortSpeedtestData() {
+    var col = _speedtestSortCol;
+    var dir = _speedtestSortDir === 'asc' ? 1 : -1;
+    _speedtestAllData.sort(function(a, b) {
+        var va = a[col], vb = b[col];
+        if (col === 'timestamp') {
+            va = new Date(va || 0).getTime();
+            vb = new Date(vb || 0).getTime();
+        } else {
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+        }
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+    });
+}
+
+function handleSpeedtestSort(col) {
+    if (_speedtestSortCol === col) {
+        _speedtestSortDir = _speedtestSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        _speedtestSortCol = col;
+        _speedtestSortDir = col === 'timestamp' ? 'desc' : 'asc';
+    }
+    var ths = document.querySelectorAll('#speedtest-table thead th');
+    ths.forEach(function(th) {
+        var indicator = th.querySelector('.sort-indicator');
+        if (indicator) {
+            if (th.getAttribute('data-col') === col) {
+                indicator.textContent = _speedtestSortDir === 'asc' ? '▲' : '▼';
+            } else {
+                indicator.textContent = '';
+            }
+        }
+    });
+    sortSpeedtestData();
+    _speedtestVisible = 50;
+    renderSpeedtestRows();
+}
+
+function computeMedian(arr) {
+    if (arr.length === 0) return 0;
+    var sorted = arr.slice().sort(function(a, b) { return a - b; });
+    var mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
 function renderSpeedtestRows() {
@@ -1789,15 +1883,31 @@ function renderSpeedtestRows() {
     var moreBtn = document.getElementById('speedtest-more-btn');
     if (!tbody) return;
     tbody.innerHTML = '';
+    var downloads = [], uploads = [];
+    for (var j = 0; j < _speedtestAllData.length; j++) {
+        var d = _speedtestAllData[j];
+        if (d.download_mbps != null) downloads.push(parseFloat(d.download_mbps) || 0);
+        if (d.upload_mbps != null) uploads.push(parseFloat(d.upload_mbps) || 0);
+    }
+    var medianDl = computeMedian(downloads);
+    var medianUl = computeMedian(uploads);
     var show = Math.min(_speedtestVisible, _speedtestAllData.length);
     for (var i = 0; i < show; i++) {
         var r = _speedtestAllData[i];
+        var dlVal = parseFloat(r.download_mbps) || 0;
+        var ulVal = parseFloat(r.upload_mbps) || 0;
+        var pingVal = parseFloat(r.ping_ms) || 0;
+        var jitterVal = parseFloat(r.jitter_ms) || 0;
+        var dlClass = (medianDl > 0 && dlVal < medianDl * 0.8) ? ' class="val-bad"' : '';
+        var ulClass = (medianUl > 0 && ulVal < medianUl * 0.8) ? ' class="val-bad"' : '';
+        var pingClass = pingVal > 50 ? ' class="val-warn"' : '';
+        var jitterClass = jitterVal > 20 ? ' class="val-warn"' : '';
         var tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + escapeHtml(r.timestamp || '') + '</td>'
-            + '<td><strong>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
-            + '<td><strong>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
-            + '<td>' + r.ping_ms + ' ms</td>'
-            + '<td>' + r.jitter_ms + ' ms</td>'
+        tr.innerHTML = '<td>' + escapeHtml(formatSpeedtestTimestamp(r.timestamp)) + '</td>'
+            + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
+            + '<td><strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
+            + '<td' + pingClass + '>' + r.ping_ms + ' ms</td>'
+            + '<td' + jitterClass + '>' + r.jitter_ms + ' ms</td>'
             + '<td>' + (r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>';
         tbody.appendChild(tr);
     }
@@ -1815,6 +1925,15 @@ function showMoreSpeedtest() {
     _speedtestVisible += 50;
     renderSpeedtestRows();
 }
+
+(function() {
+    var ths = document.querySelectorAll('#speedtest-table thead th[data-col]');
+    ths.forEach(function(th) {
+        th.addEventListener('click', function() {
+            handleSpeedtestSort(th.getAttribute('data-col'));
+        });
+    });
+})();
 
 function escapeHtml(str) {
     var div = document.createElement('div');
