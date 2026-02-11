@@ -1974,7 +1974,7 @@ function renderSpeedtestChart() {
     var wrap = canvas.parentElement;
     var dpr = window.devicePixelRatio || 1;
     var w = wrap.clientWidth;
-    var h = wrap.clientHeight;
+    var h = canvas.clientHeight || 250;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     var ctx = canvas.getContext('2d');
