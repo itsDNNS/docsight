@@ -222,5 +222,14 @@
   "packet_loss": "Perte de paquets",
   "via_speedtest_tracker": "via Speedtest Tracker",
   "speedtest_no_data": "Aucun résultat de speedtest disponible.",
-  "speed": "Vitesse"
+  "speed": "Vitesse",
+  "refresh": "Actualiser",
+  "refreshing": "Actualisation...",
+  "refresh_success": "Donnees mises a jour",
+  "refresh_rate_limit": "Veuillez patienter avant d'actualiser",
+  "fetch_all": "Tout charger",
+  "fetching": "Chargement...",
+  "show_more": "Afficher plus",
+  "show_less": "Afficher moins",
+  "timestamp": "Horodatage"
 }

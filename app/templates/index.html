@@ -85,6 +85,23 @@
             padding: 4px 8px; border-radius: 4px; line-height: 1;
         }
         .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+        .refresh-btn {
+            background: none; border: 1px solid var(--input-border);
+            color: var(--muted); font-size: 1.1em; cursor: pointer;
+            padding: 4px 8px; border-radius: 4px; line-height: 1;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .refresh-btn:hover { color: var(--accent); border-color: var(--accent); }
+        .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .refresh-btn.spinning { animation: spin 1s linear infinite; }
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 10px 20px; border-radius: 6px; font-size: 0.9em; z-index: 300;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+        .toast-success { background: var(--good); color: #fff; }
+        .toast-error { background: var(--crit); color: #fff; }
 
         /* ── Layout ── */
         .app-layout { display: flex; min-height: 100vh; }
@@ -556,6 +573,9 @@
     <span class="topbar-meta" id="topbar-meta">
         {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
     </span>
+    {% if not historical %}
+    <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
+    {% endif %}
     <select class="lang-select" id="lang-select" title="Language">
         {% for code, name in languages.items() %}
         <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ code.upper() }}</option>
@@ -945,18 +965,27 @@
 <div id="view-speedtest" class="view">
     <div class="trend-header">
         <span class="trend-title">{{ t.speedtest_tracker }}</span>
-        <select id="speedtest-days" style="padding:6px 10px; border-radius:6px; border:1px solid var(--input-border); background:var(--surface); color:var(--text);" onchange="loadSpeedtestHistory()">
-            <option value="1">1 {{ t.day }}</option>
-            <option value="7" selected>7 {{ t.day }}</option>
-            <option value="14">14 {{ t.day }}</option>
-            <option value="30">30 {{ t.day }}</option>
-        </select>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <select id="speedtest-days" style="padding:6px 10px; border-radius:6px; border:1px solid var(--input-border); background:var(--surface); color:var(--text);" onchange="loadSpeedtestHistory()">
+                <option value="1">1 {{ t.day }}</option>
+                <option value="7" selected>7 {{ t.day }}</option>
+                <option value="14">14 {{ t.day }}</option>
+                <option value="30">30 {{ t.day }}</option>
+                <option value="90">90 {{ t.day }}</option>
+                <option value="365">{{ t.fetch_all }}</option>
+            </select>
+            <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" onclick="loadSpeedtestHistory()">&#x1F504;</button>
+        </div>
+    </div>
+    <div id="speedtest-loading" class="waiting" style="display:none;">
+        <div class="spinner"></div>
+        <p>{{ t.fetching }}</p>
     </div>
     <div id="speedtest-no-data" class="no-data-msg" style="display:none;"></div>
     <div id="speedtest-table-wrap">
         <table id="speedtest-table" class="sortable" style="display:none;">
             <thead><tr>
-                <th>{{ t.status }}</th>
+                <th>{{ t.timestamp }}</th>
                 <th>{{ t.download }}</th>
                 <th>{{ t.upload }}</th>
                 <th>{{ t.ping }}</th>
@@ -965,6 +994,9 @@
             </tr></thead>
             <tbody id="speedtest-tbody"></tbody>
         </table>
+        <div id="speedtest-show-more" style="text-align:center; padding:12px; display:none;">
+            <button class="btn btn-muted" id="speedtest-more-btn" onclick="showMoreSpeedtest()"></button>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -1110,6 +1142,7 @@
     </div>
 </div>
 
+<div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
 (function() {
@@ -1460,6 +1493,38 @@
 
     if (!isHistorical) startAutoRefresh();
 
+    /* ── Manual Poll (Refresh Button) ── */
+    var refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            if (refreshBtn.disabled) return;
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add('spinning');
+            fetch('/api/poll', {method: 'POST'})
+                .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+                .then(function(res) {
+                    if (res.data.success) {
+                        showToast(T.refresh_success || 'Data updated', 'success');
+                        refreshData();
+                    } else {
+                        showToast(res.data.error || 'Error', res.status === 429 ? 'error' : 'error');
+                    }
+                })
+                .catch(function() { showToast(T.network_error || 'Error', 'error'); })
+                .finally(function() {
+                    refreshBtn.classList.remove('spinning');
+                    setTimeout(function() { refreshBtn.disabled = false; }, 10000);
+                });
+        });
+    }
+
+    function showToast(msg, type) {
+        var toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast toast-' + (type || 'success') + ' show';
+        setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    }
+
     /* ── Trend Charts ── */
     function loadTrends(range, date) {
         var title = document.getElementById('trend-title');
@@ -1677,6 +1742,9 @@ function openSpeedtestSetupModal() {
 function closeSpeedtestSetupModal() {
     document.getElementById('speedtest-setup-modal').classList.remove('open');
 }
+var _speedtestAllData = [];
+var _speedtestVisible = 50;
+
 function loadSpeedtestHistory() {
     var T = {{ t|tojson }};
     var daysEl = document.getElementById('speedtest-days');
@@ -1684,34 +1752,74 @@ function loadSpeedtestHistory() {
     var tbody = document.getElementById('speedtest-tbody');
     var table = document.getElementById('speedtest-table');
     var noData = document.getElementById('speedtest-no-data');
+    var loading = document.getElementById('speedtest-loading');
+    var moreWrap = document.getElementById('speedtest-show-more');
     if (!tbody || !table || !noData) return;
     tbody.innerHTML = '';
     table.style.display = 'none';
     noData.style.display = 'none';
+    if (loading) loading.style.display = '';
+    if (moreWrap) moreWrap.style.display = 'none';
+    _speedtestAllData = [];
+    _speedtestVisible = 50;
     fetch('/api/speedtest?days=' + days)
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            if (loading) loading.style.display = 'none';
             if (!data || data.length === 0) {
                 noData.textContent = T.speedtest_no_data || 'No speedtest data.';
                 noData.style.display = 'block';
                 return;
             }
+            _speedtestAllData = data;
             table.style.display = '';
-            data.forEach(function(r) {
-                var tr = document.createElement('tr');
-                tr.innerHTML = '<td>' + (r.timestamp || '') + '</td>'
-                    + '<td><strong>' + (r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
-                    + '<td><strong>' + (r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
-                    + '<td>' + r.ping_ms + ' ms</td>'
-                    + '<td>' + r.jitter_ms + ' ms</td>'
-                    + '<td>' + (r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>';
-                tbody.appendChild(tr);
-            });
+            renderSpeedtestRows();
         })
         .catch(function() {
+            if (loading) loading.style.display = 'none';
             noData.textContent = T.network_error || 'Error';
             noData.style.display = 'block';
         });
+}
+
+function renderSpeedtestRows() {
+    var T = {{ t|tojson }};
+    var tbody = document.getElementById('speedtest-tbody');
+    var moreWrap = document.getElementById('speedtest-show-more');
+    var moreBtn = document.getElementById('speedtest-more-btn');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    var show = Math.min(_speedtestVisible, _speedtestAllData.length);
+    for (var i = 0; i < show; i++) {
+        var r = _speedtestAllData[i];
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + escapeHtml(r.timestamp || '') + '</td>'
+            + '<td><strong>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
+            + '<td><strong>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
+            + '<td>' + r.ping_ms + ' ms</td>'
+            + '<td>' + r.jitter_ms + ' ms</td>'
+            + '<td>' + (r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>';
+        tbody.appendChild(tr);
+    }
+    if (moreWrap && moreBtn) {
+        if (_speedtestAllData.length > _speedtestVisible) {
+            moreWrap.style.display = '';
+            moreBtn.textContent = (T.show_more || 'Show more') + ' (' + (_speedtestAllData.length - _speedtestVisible) + ')';
+        } else {
+            moreWrap.style.display = 'none';
+        }
+    }
+}
+
+function showMoreSpeedtest() {
+    _speedtestVisible += 50;
+    renderSpeedtestRows();
+}
+
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
 }
 </script>
 

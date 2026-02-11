@@ -230,5 +230,14 @@
   "packet_loss": "Packet Loss",
   "via_speedtest_tracker": "via Speedtest Tracker",
   "speedtest_no_data": "No speed test results available.",
-  "speed": "Speed"
+  "speed": "Speed",
+  "refresh": "Refresh",
+  "refreshing": "Refreshing...",
+  "refresh_success": "Data updated",
+  "refresh_rate_limit": "Please wait before refreshing again",
+  "fetch_all": "Fetch All",
+  "fetching": "Fetching...",
+  "show_more": "Show more",
+  "show_less": "Show less",
+  "timestamp": "Timestamp"
 }

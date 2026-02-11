@@ -71,6 +71,7 @@ _state = {
 _storage = None
 _config_manager = None
 _on_config_changed = None
+_last_manual_poll = 0.0
 
 
 def init_storage(storage):
@@ -349,6 +350,38 @@ def api_test_mqtt():
         return jsonify({"success": False, "error": str(e)})
 
 
+@app.route("/api/poll", methods=["POST"])
+@require_auth
+def api_poll():
+    """Trigger an immediate FritzBox poll and return fresh analysis."""
+    global _last_manual_poll
+    if not _config_manager:
+        return jsonify({"success": False, "error": "Not configured"}), 500
+
+    now = time.time()
+    if now - _last_manual_poll < 10:
+        lang = _get_lang()
+        t = get_translations(lang)
+        return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
+
+    try:
+        from . import fritzbox, analyzer
+        config = _config_manager.get_all()
+        sid = fritzbox.login(
+            config["modem_url"], config["modem_user"], config["modem_password"],
+        )
+        data = fritzbox.get_docsis_data(config["modem_url"], sid)
+        analysis = analyzer.analyze(data)
+        update_state(analysis=analysis)
+        if _storage:
+            _storage.save_snapshot(analysis)
+        _last_manual_poll = time.time()
+        return jsonify({"success": True, "analysis": analysis})
+    except Exception as e:
+        log.error("Manual poll failed: %s", e)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/calendar")
 @require_auth
 def api_calendar():
@@ -535,7 +568,7 @@ def api_speedtest():
     if not _config_manager or not _config_manager.is_speedtest_configured():
         return jsonify([])
     days = request.args.get("days", 7, type=int)
-    days = max(1, min(days, 90))
+    days = max(1, min(days, 365))
     from .speedtest import SpeedtestClient
     client = SpeedtestClient(
         _config_manager.get("speedtest_tracker_url"),
@@ -543,7 +576,7 @@ def api_speedtest():
     )
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-    results = client.get_results(start_date, end_date)
+    results = client.get_results(start_date, end_date, per_page=500)
     return jsonify(results)
 
 
