@@ -1380,7 +1380,11 @@
             dateLabel.textContent = T.speedtest || 'Speedtest';
         } else if (currentView === 'trends') {
             var rangeLabel = {day: T.day, week: T.week, month: T.month}[_trendRange] || '';
-            dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
+            if (selectedDate === todayStr()) {
+                dateLabel.textContent = T.live + ' (' + rangeLabel + ')';
+            } else {
+                dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
+            }
             // Hide tabs when viewing historical data (not today)
             if (trendTabs) {
                 trendTabs.style.display = (selectedDate === todayStr()) ? '' : 'none';
