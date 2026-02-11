@@ -544,15 +544,6 @@
         <a class="sidebar-link" data-view="trends">
             <span class="icon">&#128202;</span> {{ t.signal_trends }}
         </a>
-        {% if bqm_configured %}
-        <a class="sidebar-link" data-view="bqm">
-            <span class="icon">&#128225;</span> {{ t.bqm_title }}
-        </a>
-        {% else %}
-        <a class="sidebar-link" onclick="openBqmSetupModal()">
-            <span class="icon">&#128225;</span> {{ t.bqm_title }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.bqm_optional }}</span>
-        </a>
-        {% endif %}
         {% if speedtest_configured %}
         <a class="sidebar-link" data-view="speedtest">
             <span class="icon">&#9889;</span> {{ t.speedtest }}
@@ -562,12 +553,21 @@
             <span class="icon">&#9889;</span> {{ t.speedtest }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.optional }}</span>
         </a>
         {% endif %}
-        <div class="sidebar-divider"></div>
-        <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
-            <span class="icon">&#128196;</span> {{ t.export_llm }}
+        {% if bqm_configured %}
+        <a class="sidebar-link" data-view="bqm">
+            <span class="icon">&#128225;</span> {{ t.bqm_title }}
         </a>
+        {% else %}
+        <a class="sidebar-link" onclick="openBqmSetupModal()">
+            <span class="icon">&#128225;</span> {{ t.bqm_title }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.bqm_optional }}</span>
+        </a>
+        {% endif %}
+        <div class="sidebar-divider"></div>
         <a class="sidebar-link" id="report-link" onclick="openReportModal()">
-            <span class="icon">&#128203;</span> {{ t.incident_report }}
+            <span class="icon">&#9888;</span> {{ t.incident_report }}
+        </a>
+        <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
+            <span class="icon">&#128203;</span> {{ t.export_llm }}
         </a>
         <div style="flex:1;"></div>
         <div class="sidebar-divider"></div>
