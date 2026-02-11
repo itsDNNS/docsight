@@ -73,6 +73,12 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .topbar-meta { font-size: 0.8em; color: var(--muted); white-space: nowrap; }
+        .lang-select {
+            background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+            border-radius: 6px; padding: 4px 6px; font-size: 0.8em; cursor: pointer;
+            font-family: inherit;
+        }
+        .lang-select:hover { color: var(--accent); border-color: var(--accent); }
         .theme-toggle {
             background: none; border: 1px solid var(--input-border);
             color: var(--muted); font-size: 1.1em; cursor: pointer;
@@ -93,7 +99,7 @@
             overflow: hidden;
         }
         .sidebar.collapsed { width: 0; min-width: 0; }
-        .sidebar-content { flex: 1; overflow-y: auto; }
+        .sidebar-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
         .sidebar-header {
             display: flex; justify-content: space-between; align-items: center;
             padding: 14px 20px; border-bottom: 1px solid var(--input-border);
@@ -494,14 +500,16 @@
         </a>
         {% endif %}
         <div class="sidebar-divider"></div>
-        <a class="sidebar-link" href="/settings">
-            <span class="icon">&#9881;</span> {{ t.settings }}
-        </a>
         <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
             <span class="icon">&#128196;</span> {{ t.export_llm }}
         </a>
         <a class="sidebar-link" id="report-link" onclick="openReportModal()">
             <span class="icon">&#128203;</span> {{ t.incident_report }}
+        </a>
+        <div style="flex:1;"></div>
+        <div class="sidebar-divider"></div>
+        <a class="sidebar-link" href="/settings">
+            <span class="icon">&#9881;</span> {{ t.settings }}
         </a>
         {% if auth_enabled %}
         <a class="sidebar-link" href="/logout">
@@ -539,6 +547,11 @@
     <span class="topbar-meta" id="topbar-meta">
         {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
     </span>
+    <select class="lang-select" id="lang-select" title="Language">
+        {% for code, name in languages.items() %}
+        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ code.upper() }}</option>
+        {% endfor %}
+    </select>
     <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
 </div>
 
@@ -979,6 +992,12 @@
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('docsis-theme', next);
         updateThemeIcon();
+    });
+
+    document.getElementById('lang-select').addEventListener('change', function() {
+        var url = new URL(window.location);
+        url.searchParams.set('lang', this.value);
+        window.location.href = url.toString();
     });
 
     /* ── State ── */
