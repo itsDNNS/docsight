@@ -136,6 +136,8 @@
         .sidebar-link:hover { background: var(--card); }
         .sidebar-link.active { color: var(--accent); background: rgba(0,173,181,0.1); }
         .sidebar-link .icon { font-size: 1.1em; width: 24px; text-align: center; }
+        .recording-dot { color: #e74c3c; animation: blink-recording 1.5s ease-in-out infinite; }
+        @keyframes blink-recording { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         .sidebar-divider { border-top: 1px solid var(--input-border); margin: 8px 0; }
         .sidebar-ref { padding: 0 20px 16px; }
         .sidebar-ref summary {
@@ -537,18 +539,18 @@
     </div>
     <div class="sidebar-content">
         <a class="sidebar-link active" data-view="live">
-            <span class="icon">&#9679;</span> {{ t.live_dashboard }}
+            <span class="icon recording-dot">&#9679;</span> {{ t.live_dashboard }}
         </a>
         <a class="sidebar-link" data-view="trends">
-            <span class="icon">&#128200;</span> {{ t.signal_trends }}
+            <span class="icon">&#128202;</span> {{ t.signal_trends }}
         </a>
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
-            <span class="icon">&#128200;</span> {{ t.bqm_title }}
+            <span class="icon">&#128225;</span> {{ t.bqm_title }}
         </a>
         {% else %}
         <a class="sidebar-link" onclick="openBqmSetupModal()">
-            <span class="icon">&#128200;</span> {{ t.bqm_title }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.bqm_optional }}</span>
+            <span class="icon">&#128225;</span> {{ t.bqm_title }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.bqm_optional }}</span>
         </a>
         {% endif %}
         {% if speedtest_configured %}
@@ -1713,15 +1715,16 @@
                 var bottom = yAxis.getPixelForValue(z.min);
                 ctx.fillStyle = z.color;
                 ctx.fillRect(chartArea.left, top, chartArea.right - chartArea.left, bottom - top);
-                // Draw dashed boundary lines at zone edges
+                // Draw dashed boundary lines at zone edges in zone color
+                var zoneBaseColor = z.color.replace(/[\d.]+\)$/, '0.7)');
                 [z.min, z.max].forEach(function(val) {
                     if (drawn[val]) return;
                     drawn[val] = true;
                     var py = yAxis.getPixelForValue(val);
                     ctx.beginPath();
                     ctx.setLineDash([6, 4]);
-                    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.35)';
-                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = zoneBaseColor;
+                    ctx.lineWidth = 1.5;
                     ctx.moveTo(chartArea.left, py);
                     ctx.lineTo(chartArea.right, py);
                     ctx.stroke();
