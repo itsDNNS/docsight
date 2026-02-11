@@ -222,6 +222,7 @@ DOCSight can optionally publish all channel data to Home Assistant via MQTT Auto
 
 ### Diagnosis & Reporting
 - [x] **Incident Report Export**: Two-step flow — editable ISP complaint letter with customer data fields + downloadable technical PDF with channel tables, worst values, and DIN threshold references (EN/DE/FR/ES)
+- [ ] **Incident Journal**: Built-in log to document ISP issues over time — date, title, detailed description, screenshot uploads. Replaces spreadsheet-based tracking and feeds directly into complaint letters and reports.
 - [ ] **Ping Correlation**: Built-in latency monitor (ping to Google/Cloudflare) overlaid on error graphs to prove causality between physical layer issues and packet loss
 - [ ] **Before/After Comparison**: Side-by-side overlay of two time periods (e.g. week before vs. after technician visit) to quantify improvements
 - [ ] **FritzBox Event Log Parser**: Extract and display T3/T4 Timeout events, Ranging Request failures, and other DOCSIS error codes from the modem's event log
