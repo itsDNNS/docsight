@@ -61,7 +61,7 @@ docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnn
 | ✅ Your internet **drops out or is slower** than what you're paying for | DOCSight documents it |
 | ✅ Your ISP says **"everything is fine on our end"** | DOCSight gives you proof |
 | ❌ You have **DSL or fiber** | This tool won't work for you |
-| ❌ Your internet **works perfectly** | You don't need this |
+| ✅ Your internet **works fine right now** | DOCSight builds a history — if problems start later, you already have proof of what "normal" looked like |
 
 ---
 
