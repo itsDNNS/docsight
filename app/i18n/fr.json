@@ -189,5 +189,6 @@
   "bqm_setup_step_1": "Configurez le <b>DNS dynamique</b> sur votre routeur (ex: MyFRITZ!) pour que BQM puisse trouver votre IP",
   "bqm_setup_step_2": "Activez le <b>ping WAN/ICMP</b> sur votre routeur pour qu'il réponde aux pings externes",
   "bqm_setup_step_3": "Allez sur <b>thinkbroadband.com/broadband/monitoring</b>, créez un compte gratuit et enregistrez votre adresse DynDNS",
-  "bqm_setup_step_4": "Une fois le monitoring actif, copiez votre <b>URL de partage</b> (se termine en .png) et collez-la dans DOCSight sous <b>Paramètres → BQM Share URL</b>"
+  "bqm_setup_step_4": "Une fois le monitoring actif, copiez votre <b>URL de partage</b> (se termine en .png) et collez-la dans DOCSight sous <b>Paramètres → BQM Share URL</b>",
+  "report_language": "Langue du rapport"
 }

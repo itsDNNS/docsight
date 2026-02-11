@@ -197,5 +197,6 @@
   "bqm_setup_step_1": "Set up <b>DynDNS</b> on your router (e.g. MyFRITZ! on Fritz!Box) so BQM can find your IP",
   "bqm_setup_step_2": "Enable <b>WAN ping/ICMP</b> on your router so it responds to external pings (Fritz!Box: Internet → Permit Access → tick \"Respond to ping\")",
   "bqm_setup_step_3": "Go to <b>thinkbroadband.com/broadband/monitoring</b>, create a free account, and register your DynDNS address",
-  "bqm_setup_step_4": "Once monitoring is active, copy your <b>Share URL</b> (ends in .png) and paste it in DOCSight <b>Settings → BQM Share URL</b>"
+  "bqm_setup_step_4": "Once monitoring is active, copy your <b>Share URL</b> (ends in .png) and paste it in DOCSight <b>Settings → BQM Share URL</b>",
+  "report_language": "Report language"
 }

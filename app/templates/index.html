@@ -935,14 +935,26 @@
         </div>
         <p class="modal-hint">{{ t.report_description }}</p>
         <div class="modal-body" style="padding: 10px 20px;">
-            <label for="report-days" style="font-size:14px;">{{ t.report_days }}:</label>
-            <select id="report-days" style="margin: 8px 0; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
-                <option value="1">1</option>
-                <option value="3">3</option>
-                <option value="7" selected>7</option>
-                <option value="14">14</option>
-                <option value="30">30</option>
-            </select>
+            <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+                <div>
+                    <label for="report-days" style="font-size:14px;">{{ t.report_days }}:</label><br>
+                    <select id="report-days" style="margin: 8px 0; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                        <option value="1">1</option>
+                        <option value="3">3</option>
+                        <option value="7" selected>7</option>
+                        <option value="14">14</option>
+                        <option value="30">30</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="report-lang" style="font-size:14px;">{{ t.report_language }}:</label><br>
+                    <select id="report-lang" style="margin: 8px 0; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                        {% for code, name in languages.items() %}
+                        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeReportModal()">{{ t.close }}</button>
@@ -1445,7 +1457,8 @@ function closeReportModal() {
 }
 function downloadReport() {
     var days = document.getElementById('report-days').value;
-    window.location.href = '/api/report?days=' + days;
+    var lang = document.getElementById('report-lang').value;
+    window.location.href = '/api/report?days=' + days + '&lang=' + lang;
     closeReportModal();
 }
 function copyExport() {
