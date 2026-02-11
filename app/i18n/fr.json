@@ -179,14 +179,14 @@
   "report_days": "Période du rapport (jours)",
   "report_description": "Rapport PDF avec données de signal, valeurs extrêmes et modèle de réclamation FAI.",
   "bqm_setup_title": "Broadband Quality Monitor (BQM)",
-  "bqm_setup_intro": "BQM de ThinkBroadband fournit une vérification indépendante de la qualité de votre connexion. DOCSight peut afficher les graphiques BQM à côté de vos données modem.",
+  "bqm_setup_intro": "BQM de ThinkBroadband surveille la qualité de votre connexion en pingant votre IP publique depuis des serveurs externes. DOCSight peut afficher les graphiques BQM à côté de vos données modem.",
   "bqm_setup_benefits_title": "Pourquoi utiliser BQM ?",
   "bqm_setup_benefit_1": "Preuve indépendante des problèmes de connexion (pas seulement côté modem)",
   "bqm_setup_benefit_2": "Surveille la latence, la perte de paquets et le débit 24h/24",
   "bqm_setup_benefit_3": "Renforce les plaintes FAI avec des preuves tierces",
   "bqm_setup_howto_title": "Comment configurer",
-  "bqm_setup_step_1": "Allez sur <b>thinkbroadband.com/broadband/monitoring</b> et créez un compte gratuit",
-  "bqm_setup_step_2": "Installez l'agent BQM sur un appareil de votre réseau (tourne en arrière-plan)",
-  "bqm_setup_step_3": "Une fois le monitoring actif, copiez votre <b>URL de partage</b> (se termine en .png)",
-  "bqm_setup_step_4": "Collez l'URL dans DOCSight sous <b>Paramètres → BQM Share URL</b>"
+  "bqm_setup_step_1": "Configurez le <b>DNS dynamique</b> sur votre routeur (ex: MyFRITZ!) pour que BQM puisse trouver votre IP",
+  "bqm_setup_step_2": "Activez le <b>ping WAN/ICMP</b> sur votre routeur pour qu'il réponde aux pings externes",
+  "bqm_setup_step_3": "Allez sur <b>thinkbroadband.com/broadband/monitoring</b>, créez un compte gratuit et enregistrez votre adresse DynDNS",
+  "bqm_setup_step_4": "Une fois le monitoring actif, copiez votre <b>URL de partage</b> (se termine en .png) et collez-la dans DOCSight sous <b>Paramètres → BQM Share URL</b>"
 }

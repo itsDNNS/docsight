@@ -187,14 +187,14 @@
   "report_days": "Berichtszeitraum (Tage)",
   "report_description": "PDF-Bericht mit Signaldaten, Extremwerten und einem vorformulierten Beschwerdebrief an den Provider.",
   "bqm_setup_title": "Broadband Quality Monitor (BQM)",
-  "bqm_setup_intro": "BQM von ThinkBroadband bietet eine unabhängige Verifizierung deiner Verbindungsqualität durch Dritte. DOCSight kann BQM-Graphen neben deinen Modemdaten anzeigen.",
+  "bqm_setup_intro": "BQM von ThinkBroadband überwacht deine Verbindungsqualität, indem es deine öffentliche IP von externen Servern aus anpingt. DOCSight kann BQM-Graphen neben deinen Modemdaten anzeigen.",
   "bqm_setup_benefits_title": "Warum BQM nutzen?",
   "bqm_setup_benefit_1": "Unabhängiger Nachweis von Verbindungsproblemen (nicht nur modemseitig)",
   "bqm_setup_benefit_2": "Überwacht Latenz, Paketverlust und Durchsatz rund um die Uhr",
   "bqm_setup_benefit_3": "Stärkt ISP-Beschwerden mit Drittanbieter-Belegen",
   "bqm_setup_howto_title": "So richtest du es ein",
-  "bqm_setup_step_1": "Gehe zu <b>thinkbroadband.com/broadband/monitoring</b> und erstelle ein kostenloses Konto",
-  "bqm_setup_step_2": "Installiere den BQM-Monitor auf einem Gerät in deinem Netzwerk (läuft im Hintergrund)",
-  "bqm_setup_step_3": "Sobald das Monitoring aktiv ist, kopiere deine <b>Share-URL</b> (endet auf .png)",
-  "bqm_setup_step_4": "Füge die URL in DOCSight unter <b>Einstellungen → BQM Share URL</b> ein"
+  "bqm_setup_step_1": "Richte <b>DynDNS</b> auf deinem Router ein (z.B. MyFRITZ! auf der Fritz!Box), damit BQM deine IP findet",
+  "bqm_setup_step_2": "Aktiviere <b>WAN-Ping/ICMP</b> auf deinem Router, damit er auf externe Pings antwortet (Fritz!Box: Internet → Freigaben → \"Auf Ping reagieren\" aktivieren)",
+  "bqm_setup_step_3": "Gehe zu <b>thinkbroadband.com/broadband/monitoring</b>, erstelle ein kostenloses Konto und registriere deine DynDNS-Adresse",
+  "bqm_setup_step_4": "Sobald das Monitoring aktiv ist, kopiere deine <b>Share-URL</b> (endet auf .png) und füge sie in DOCSight unter <b>Einstellungen → BQM Share URL</b> ein"
 }

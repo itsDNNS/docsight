@@ -187,14 +187,14 @@
   "report_days": "Report period (days)",
   "report_description": "Generate a PDF report with signal data, worst values, and a pre-written ISP complaint letter.",
   "bqm_setup_title": "Broadband Quality Monitor (BQM)",
-  "bqm_setup_intro": "BQM by ThinkBroadband provides independent, third-party verification of your connection quality. DOCSight can display BQM graphs alongside your modem data for a complete picture.",
+  "bqm_setup_intro": "BQM by ThinkBroadband monitors your connection quality by pinging your public IP from external servers. DOCSight can display BQM graphs alongside your modem data for a complete picture.",
   "bqm_setup_benefits_title": "Why use BQM?",
   "bqm_setup_benefit_1": "Independent proof of connection issues (not just modem-side)",
   "bqm_setup_benefit_2": "Tracks latency, packet loss, and throughput 24/7",
   "bqm_setup_benefit_3": "Strengthens ISP complaints with third-party evidence",
   "bqm_setup_howto_title": "How to set up",
-  "bqm_setup_step_1": "Go to <b>thinkbroadband.com/broadband/monitoring</b> and create a free account",
-  "bqm_setup_step_2": "Install the BQM monitor agent on a device in your network (runs in background)",
-  "bqm_setup_step_3": "Once monitoring is active, copy your <b>Share URL</b> (ends in .png)",
-  "bqm_setup_step_4": "Paste the URL in DOCSight <b>Settings → BQM Share URL</b>"
+  "bqm_setup_step_1": "Set up <b>DynDNS</b> on your router (e.g. MyFRITZ! on Fritz!Box) so BQM can find your IP",
+  "bqm_setup_step_2": "Enable <b>WAN ping/ICMP</b> on your router so it responds to external pings (Fritz!Box: Internet → Permit Access → tick \"Respond to ping\")",
+  "bqm_setup_step_3": "Go to <b>thinkbroadband.com/broadband/monitoring</b>, create a free account, and register your DynDNS address",
+  "bqm_setup_step_4": "Once monitoring is active, copy your <b>Share URL</b> (ends in .png) and paste it in DOCSight <b>Settings → BQM Share URL</b>"
 }
