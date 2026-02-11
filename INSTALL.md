@@ -1,55 +1,138 @@
 # Installation Guide
 
-Get DOCSight running in under 10 minutes.
+Get DOCSight running in under 10 minutes. No programming knowledge required.
 
 ## Table of Contents
 
-- [What You Need](#what-you-need)
-- [Choose Your Installation Method](#choose-your-installation-method)
-  - [Docker CLI](#docker-cli)
-  - [Docker Compose](#docker-compose)
-  - [Portainer](#portainer)
-  - [Dockhand](#dockhand)
-- [First-Time Setup](#first-time-setup)
+- [Step 1: Install Docker](#step-1-install-docker)
+- [Step 2: Start DOCSight](#step-2-start-docsight)
+- [Step 3: First-Time Setup](#step-3-first-time-setup)
 - [Updating DOCSight](#updating-docsight)
 - [Troubleshooting](#troubleshooting)
 - [Uninstalling](#uninstalling)
 
-## What You Need
+---
 
-- **A computer or NAS** with Docker installed
-- **A DOCSIS cable modem or router** (currently supported: AVM FRITZ!Box Cable)
-- **Your modem/router login credentials** (the username and password you use to access its web interface)
+## Step 1: Install Docker
 
-> **New to Docker?** Docker runs applications in isolated containers. Install it from:
-> - **Windows/Mac**: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-> - **Synology NAS**: Search for "Container Manager" in Package Center
-> - **Linux**: [Docker Engine](https://docs.docker.com/engine/install/)
+Docker runs applications in isolated "containers" — think of it as a lightweight virtual machine. DOCSight runs inside one of these containers.
 
-## Choose Your Installation Method
+**Already have Docker?** [Skip to Step 2 →](#step-2-start-docsight)
 
-All four methods create the exact same container. Pick whichever fits your setup:
+<details>
+<summary><h3>🪟 Windows</h3></summary>
 
-| Method | Best for |
-|---|---|
-| [Docker CLI](#docker-cli) | Quick terminal one-liner |
-| [Docker Compose](#docker-compose) | Reproducible config file |
-| [Portainer](#portainer) | Users with Portainer web UI |
-| [Dockhand](#dockhand) | Users with Dockhand web UI |
+1. Download [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
+2. Run the installer and follow the prompts
+3. When asked, enable **WSL 2** (recommended) or Hyper-V
+4. Restart your computer when prompted
+5. Open Docker Desktop — wait until the status indicator turns green ("Engine running")
+
+> **Requirements:** Windows 10 (64-bit, version 2004+) or Windows 11. Docker Desktop is free for personal use.
+
+To verify: Open **PowerShell** or **Command Prompt** and type:
+```
+docker --version
+```
+You should see something like `Docker version 27.x.x`.
+
+</details>
+
+<details>
+<summary><h3>🍎 macOS</h3></summary>
+
+1. Download [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/)
+   - **Apple Silicon (M1/M2/M3/M4):** Download the "Apple Silicon" version
+   - **Intel Mac:** Download the "Intel chip" version
+2. Open the `.dmg` file and drag Docker to your Applications folder
+3. Open Docker from Applications — allow it when macOS asks for permissions
+4. Wait until the whale icon in the menu bar stops animating ("Engine running")
+
+To verify: Open **Terminal** and type:
+```
+docker --version
+```
+
+</details>
+
+<details>
+<summary><h3>🐧 Linux</h3></summary>
+
+Most Linux distributions have Docker in their package manager.
+
+**Ubuntu / Debian:**
+```bash
+sudo apt update
+sudo apt install docker.io docker-compose-plugin
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+```
+Log out and back in for the group change to take effect.
+
+**Arch / CachyOS / Manjaro:**
+```bash
+sudo pacman -S docker docker-compose
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+```
+Log out and back in.
+
+**Fedora:**
+```bash
+sudo dnf install docker docker-compose-plugin
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+```
+Log out and back in.
+
+To verify:
+```bash
+docker --version
+```
+
+</details>
+
+<details>
+<summary><h3>📦 Synology NAS (DSM 7.2+)</h3></summary>
+
+1. Open **Package Center** on your Synology NAS
+2. Search for **Container Manager** and click **Install**
+3. Once installed, open **Container Manager** from the main menu
+
+That's it! You'll use Container Manager in Step 2.
+
+> **Older DSM (< 7.2)?** Look for "Docker" instead of "Container Manager" in Package Center.
+
+</details>
+
+<details>
+<summary><h3>🟠 Unraid</h3></summary>
+
+Docker is built into Unraid. To enable it:
+
+1. Go to **Settings → Docker** in the Unraid WebGUI
+2. Set **Enable Docker** to **Yes**
+3. Click **Apply**
+
+You'll use the Unraid Docker UI in Step 2.
+
+</details>
 
 ---
 
+## Step 2: Start DOCSight
+
+Choose the method that fits your setup. All methods create the same container.
+
 <details>
-<summary><h2>Docker CLI</h2></summary>
+<summary><h3>💻 Terminal (Windows, Mac, Linux)</h3></summary>
 
-### Step 1: Open a terminal
+Open a terminal:
+- **Windows:** PowerShell or Command Prompt
+- **Mac:** Terminal (Applications → Utilities)
+- **Linux:** Your terminal emulator
 
-- **Windows**: Search for "Command Prompt" or "PowerShell" in the Start menu
-- **Mac**: Open "Terminal" from Applications → Utilities
-- **Linux**: Open your terminal emulator
-- **Synology NAS**: SSH into your NAS or use the built-in terminal
-
-### Step 2: Run this command
+Run this command:
 
 ```bash
 docker run -d \
@@ -60,32 +143,29 @@ docker run -d \
   ghcr.io/itsdnns/docsight:latest
 ```
 
+> **Windows PowerShell?** Replace the backslashes `\` with backticks `` ` `` or put everything on one line:
+> ```
+> docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
+> ```
+
+What these flags mean:
+
 | Flag | What it does |
 |---|---|
 | `-d` | Runs in the background |
 | `--name docsight` | Names the container "docsight" |
 | `--restart unless-stopped` | Auto-starts after reboot |
 | `-p 8765:8765` | Makes the web UI available on port 8765 |
-| `-v docsight_data:/data` | Stores config and history permanently |
+| `-v docsight_data:/data` | Stores your config and history permanently |
 
-### Step 3: Open DOCSight
-
-Open your browser and go to **http://localhost:8765**
-
-> On a NAS or remote machine, replace `localhost` with the machine's IP address, e.g. `http://192.168.178.15:8765`
-
-Now continue with [First-Time Setup](#first-time-setup).
+**Open DOCSight:** Go to **http://localhost:8765** in your browser.
 
 </details>
 
----
-
 <details>
-<summary><h2>Docker Compose</h2></summary>
+<summary><h3>📄 Docker Compose (recommended for advanced users)</h3></summary>
 
-### Step 1: Create a `docker-compose.yml` file
-
-Create a new folder (e.g. `docsight`) and save this file inside it as `docker-compose.yml`:
+Create a `docker-compose.yml` file:
 
 ```yaml
 services:
@@ -97,46 +177,32 @@ services:
       - "8765:8765"
     volumes:
       - docsight_data:/data
-    # environment:
-    #   - TZ=Europe/Berlin  # set container timezone for snapshot scheduling
+    environment:
+      - TZ=Europe/Berlin  # optional: set your timezone
 
 volumes:
   docsight_data:
 ```
 
-### Step 2: Start the container
-
-Open a terminal in the folder with your `docker-compose.yml` and run:
+Start it:
 
 ```bash
 docker compose up -d
 ```
 
-### Step 3: Open DOCSight
-
-Open your browser and go to **http://localhost:8765**
-
-> On a NAS or remote machine, replace `localhost` with the machine's IP address, e.g. `http://192.168.178.15:8765`
-
-Now continue with [First-Time Setup](#first-time-setup).
+**Open DOCSight:** Go to **http://localhost:8765** in your browser.
 
 </details>
 
----
-
 <details>
-<summary><h2>Portainer</h2></summary>
+<summary><h3>📦 Synology Container Manager (DSM 7.2+)</h3></summary>
 
-### Step 1: Open Portainer
-
-Open your Portainer web UI (usually `https://your-host-ip:9443`).
-
-### Step 2: Create a new stack
-
-1. Go to **Stacks** in the left menu
-2. Click **Add stack**
-3. Give it the name `docsight`
-4. In the **Web editor**, paste this YAML:
+1. Open **Container Manager** on your Synology NAS
+2. Go to **Project** in the left sidebar
+3. Click **Create**
+4. Set **Project name** to `docsight`
+5. Set **Source** to **"Create compose.yml"**
+6. Paste this into the editor:
 
 ```yaml
 services:
@@ -148,8 +214,96 @@ services:
       - "8765:8765"
     volumes:
       - docsight_data:/data
-    # environment:
-    #   - TZ=Europe/Berlin  # set container timezone for snapshot scheduling
+    environment:
+      - TZ=Europe/Berlin  # optional: set your timezone
+
+volumes:
+  docsight_data:
+```
+
+7. Click **Next**, then **Done**
+
+The container will download and start automatically.
+
+**Open DOCSight:** Go to **http://YOUR-NAS-IP:8765** in your browser (e.g. `http://192.168.178.15:8765`).
+
+> **Tip:** You can find your NAS IP address in **Control Panel → Network → Network Interface**.
+
+</details>
+
+<details>
+<summary><h3>📦 Synology Container Manager (DSM < 7.2)</h3></summary>
+
+Older DSM versions don't have the Project feature. Use the Container UI instead:
+
+1. Open **Docker** (or **Container Manager**) on your NAS
+2. Go to **Registry** → Search for `ghcr.io/itsdnns/docsight` → **Download** the `latest` tag
+3. Go to **Image** → Select `ghcr.io/itsdnns/docsight:latest` → Click **Launch**
+4. Set **Container Name** to `docsight`
+5. Check **Enable auto-restart**
+6. Click **Advanced Settings**:
+   - **Port Settings:** Add Local Port `8765` → Container Port `8765` (TCP)
+   - **Volume:** Add folder or volume mapped to `/data`
+7. Click **Apply**, then **Next**, then **Done**
+
+**Open DOCSight:** Go to **http://YOUR-NAS-IP:8765** in your browser.
+
+</details>
+
+<details>
+<summary><h3>🟠 Unraid</h3></summary>
+
+1. Go to the **Docker** tab in the Unraid WebGUI
+2. At the bottom, click **Add Container**
+3. Fill in:
+
+| Field | Value |
+|---|---|
+| **Name** | `docsight` |
+| **Repository** | `ghcr.io/itsdnns/docsight:latest` |
+| **Network Type** | `bridge` |
+
+4. Click **Add another Path, Port, Variable, Label or Device** and add:
+
+**Port mapping:**
+| Field | Value |
+|---|---|
+| **Config Type** | Port |
+| **Container Port** | `8765` |
+| **Host Port** | `8765` |
+| **Connection Type** | TCP |
+
+**Volume mapping:**
+| Field | Value |
+|---|---|
+| **Config Type** | Path |
+| **Container Path** | `/data` |
+| **Host Path** | `/mnt/user/appdata/docsight` |
+
+5. Click **Apply**
+
+**Open DOCSight:** Go to **http://YOUR-UNRAID-IP:8765** in your browser.
+
+</details>
+
+<details>
+<summary><h3>🐳 Portainer</h3></summary>
+
+1. Open your Portainer web UI
+2. Go to **Stacks** → **Add stack**
+3. Name it `docsight`
+4. In the **Web editor**, paste:
+
+```yaml
+services:
+  docsight:
+    image: ghcr.io/itsdnns/docsight:latest
+    container_name: docsight
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - docsight_data:/data
 
 volumes:
   docsight_data:
@@ -157,125 +311,83 @@ volumes:
 
 5. Click **Deploy the stack**
 
-### Step 3: Open DOCSight
-
-Open your browser and go to **http://your-host-ip:8765**
-
-Now continue with [First-Time Setup](#first-time-setup).
+**Open DOCSight:** Go to **http://YOUR-HOST-IP:8765** in your browser.
 
 </details>
 
 ---
 
-<details>
-<summary><h2>Dockhand</h2></summary>
-
-### Step 1: Open Dockhand
-
-Open your Dockhand web UI in your browser.
-
-### Step 2: Create a new stack
-
-1. Go to **Stacks** in the navigation
-2. Click **Create Stack**
-3. Give it the name `docsight`
-4. In the YAML editor, paste this:
-
-```yaml
-services:
-  docsight:
-    image: ghcr.io/itsdnns/docsight:latest
-    container_name: docsight
-    restart: unless-stopped
-    ports:
-      - "8765:8765"
-    volumes:
-      - docsight_data:/data
-    # environment:
-    #   - TZ=Europe/Berlin  # set container timezone for snapshot scheduling
-
-volumes:
-  docsight_data:
-```
-
-5. Click **Deploy**
-
-### Step 3: Open DOCSight
-
-Open your browser and go to **http://your-host-ip:8765**
-
-Now continue with [First-Time Setup](#first-time-setup).
-
-</details>
-
----
-
-## First-Time Setup
+## Step 3: First-Time Setup
 
 When you open DOCSight for the first time, a setup wizard guides you through the configuration.
 
 ![Setup Wizard](docs/screenshots/setup.png)
 
-### Step 1: Modem Connection
-
-> **Recommended: Create a dedicated user**
->
-> Instead of using your main admin account, create a separate user for DOCSight on your modem. This way you can rotate or revoke its credentials independently without affecting your admin login.
->
-> <details>
-> <summary>Example: FRITZ!Box</summary>
->
-> 1. Open `http://fritz.box` and log in as admin
-> 2. Go to **System** > **FRITZ!Box Users** > **Add User**
-> 3. Set username (e.g. `docsight`) and a password
-> 4. Enable **only** "Access to FRITZ!Box settings" - disable everything else
-> 5. Click **Apply**
->
-> Use this new username and password in DOCSight instead of your admin credentials.
->
-> *Note: "Access to FRITZ!Box settings" is the only permission DOCSight needs. DOCSight only reads data and never modifies any settings.*
-> </details>
+### Connect Your Router
 
 | Field | What to enter |
 |---|---|
-| **Modem URL** | Your modem's web interface address (e.g. `http://192.168.178.1`) |
-| **Username** | Your dedicated DOCSight user (or admin username) |
-| **Password** | The corresponding password |
+| **Modem URL** | Your router's web address (e.g. `http://192.168.178.1` for FRITZ!Box) |
+| **Username** | Your router login username |
+| **Password** | Your router login password |
 
-Click **Test Connection** to verify DOCSight can reach your router. If successful, continue to the next step.
+Click **Test Connection** to verify. If it works, you're almost done.
 
-### Step 2: General Settings
+> **💡 Tip: Create a dedicated user for DOCSight**
+>
+> Instead of your main admin account, create a separate user on your router. This is more secure and lets you revoke access without changing your admin password.
+>
+> <details>
+> <summary><strong>How to do this on a FRITZ!Box</strong></summary>
+>
+> 1. Open `http://fritz.box` and log in as admin
+> 2. Go to **System** → **FRITZ!Box Users** → **Add User**
+> 3. Set username (e.g. `docsight`) and a password
+> 4. Enable **only** "Access to FRITZ!Box settings" (disable everything else)
+> 5. Click **Apply**
+>
+> Use this new username and password in DOCSight. DOCSight only reads data and never modifies any router settings.
+> </details>
+
+### General Settings
 
 | Field | Description | Default |
 |---|---|---|
-| **ISP** | Your internet provider name (for reports) | - |
-| **Poll Interval** | How often to read channel data (seconds) | `900` (15 min) |
-| **History Days** | How many days of snapshots to keep (0 = unlimited) | `0` (keep all) |
-| **Snapshot Time** | When to save the daily snapshot (server timezone, set `TZ` env var to change) | `06:00` |
+| **ISP Name** | Your internet provider (shown in reports) | — |
+| **Poll Interval** | How often to read data (in seconds) | `900` (15 min) |
+| **History Days** | How long to keep data (0 = forever) | `0` |
 
-### Advanced: MQTT for Home Assistant (optional)
+### Optional: MQTT for Home Assistant
 
-If you use Home Assistant, you can enable MQTT to get per-channel sensors automatically:
+If you use Home Assistant, DOCSight can send per-channel sensor data via MQTT:
 
 | Field | Description |
 |---|---|
-| **MQTT Host** | Your MQTT broker address (e.g. `192.168.178.15`) |
+| **MQTT Host** | Your broker address (e.g. `192.168.178.15`) |
 | **MQTT Port** | `1883` (default) |
-| **MQTT User** | Broker username (if required) |
-| **MQTT Password** | Broker password (if required) |
+| **MQTT User/Password** | If your broker requires authentication |
 
-### Complete
+### Optional: Speedtest Tracker
 
-Click **Complete Setup** - DOCSight starts monitoring immediately. Your dashboard will show channel data after the first poll.
+If you run a self-hosted [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker), DOCSight can pull your speed test results and display them alongside your DOCSIS data:
+
+| Field | Description |
+|---|---|
+| **Speedtest Tracker URL** | Your instance URL (e.g. `http://192.168.178.15:8999`) |
+| **API Token** | Generate one in Speedtest Tracker under Settings → API |
+
+### Done!
+
+Click **Complete Setup**. DOCSight starts monitoring immediately. Your dashboard will show data after the first poll (default: 15 minutes).
 
 ---
 
 <details>
 <summary><h2>Updating DOCSight</h2></summary>
 
-Your configuration and history are stored in a Docker volume and survive updates.
+Your configuration and history are stored in a Docker volume and **always survive updates**.
 
-### Docker CLI
+### Terminal (Docker CLI)
 
 ```bash
 docker pull ghcr.io/itsdnns/docsight:latest
@@ -291,17 +403,24 @@ docker compose pull
 docker compose up -d
 ```
 
+### Synology Container Manager
+
+1. Go to **Project** → select **docsight**
+2. Click **Action** → **Build**
+3. The container restarts with the new image
+
+### Unraid
+
+1. Go to the **Docker** tab
+2. Click the **docsight** icon → **Check for Updates**
+3. If an update is available, click **Update**
+
 ### Portainer
 
 1. Open the **docsight** stack
-2. Click **Update the stack**
-3. Enable **Re-pull image**
+2. Click **Editor** → **Update the stack**
+3. Enable **Re-pull image and redeploy**
 4. Click **Update**
-
-### Dockhand
-
-1. Open the **docsight** stack
-2. Click **Redeploy**
 
 </details>
 
@@ -311,37 +430,38 @@ docker compose up -d
 <summary><h2>Troubleshooting</h2></summary>
 
 <details>
-<summary><strong>"Can't open http://localhost:8765"</strong></summary>
+<summary><strong>"I can't open http://localhost:8765"</strong></summary>
 
-- **Is the container running?** Check with `docker ps` - you should see a container named `docsight`
-- **On a NAS?** Use the NAS IP address instead of `localhost`, e.g. `http://192.168.178.15:8765`
-- **Firewall?** Make sure port 8765 is not blocked
-
-</details>
-
-<details>
-<summary><strong>"Test Connection fails"</strong></summary>
-
-- **Is the URL correct?** Try opening your modem's web interface URL in your browser first (e.g. `http://192.168.178.1` for FRITZ!Box).
-- **Are the credentials correct?** Use the same username and password you use to log into your modem's web interface.
-- **Network access?** The Docker container must be able to reach your modem. If running on a remote server, ensure it's on the same network.
+- **Is the container running?** Open a terminal and run `docker ps`. You should see a container named `docsight` with status "Up".
+- **On a NAS or remote machine?** Use the machine's IP address instead of `localhost` (e.g. `http://192.168.178.15:8765`).
+- **Firewall blocking the port?** On Linux, check `sudo ufw status` or `sudo firewall-cmd --list-ports`.
+- **Docker Desktop not running?** On Windows/Mac, make sure Docker Desktop is open and the engine is running (green indicator).
 
 </details>
 
 <details>
-<summary><strong>"Port 8765 already in use"</strong></summary>
+<summary><strong>"Test Connection fails in setup"</strong></summary>
 
-Another application is using port 8765. Change the port mapping:
+- **Can you open the router URL yourself?** Try opening `http://192.168.178.1` (or your modem URL) in your browser. If that doesn't work either, the URL is wrong.
+- **Credentials correct?** Use the exact same username and password you use to log into your router's web interface.
+- **Docker on a different network?** If DOCSight runs on a remote server or VPN, it might not be able to reach your router. DOCSight must be on the same local network as your modem.
 
+</details>
+
+<details>
+<summary><strong>"Port 8765 is already in use"</strong></summary>
+
+Change the host port to any free port (e.g. 9876):
+
+**Docker CLI:**
 ```bash
-# Docker CLI: change the first number to any free port
 docker run -d --name docsight --restart unless-stopped -p 9876:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
 ```
 
+**Docker Compose / Portainer:**
 ```yaml
-# Docker Compose / Portainer / Dockhand: change the first number
 ports:
-  - "9876:8765"
+  - "9876:8765"  # change only the first number
 ```
 
 Then open `http://localhost:9876` instead.
@@ -351,26 +471,30 @@ Then open `http://localhost:9876` instead.
 <details>
 <summary><strong>"Container keeps restarting"</strong></summary>
 
-Check the container logs:
-
+Check the logs:
 ```bash
-docker logs docsight
+docker logs docsight --tail 30
 ```
 
-The logs usually indicate the problem. Common causes:
-- Invalid configuration - delete the volume and start fresh: `docker volume rm docsight_data`
-- Network issues reaching the modem
+Common causes:
+- Port conflict (see above)
+- Corrupt config: remove the volume and start fresh with `docker volume rm docsight_data` (this deletes all stored data!)
 
 </details>
 
 <details>
-<summary><strong>"How do I check if it's working?"</strong></summary>
+<summary><strong>"Dashboard shows no data"</strong></summary>
 
-```bash
-docker logs docsight --tail 20
-```
+- **Just installed?** Wait for the first poll cycle (default: 15 minutes). Check the timer in the top bar.
+- **Poll manually:** Click the refresh button (🔄) on the dashboard to trigger an immediate data fetch.
+- **Check logs:** `docker logs docsight --tail 10` should show successful poll entries.
 
-You should see log entries about successful polls. If the dashboard shows channel data, everything is working.
+</details>
+
+<details>
+<summary><strong>"My modem/router is not supported"</strong></summary>
+
+DOCSight currently supports AVM FRITZ!Box Cable models. Support for other DOCSIS modems (Arris, Technicolor, Sagemcom, Vodafone Station) is on the [roadmap](README.md#roadmap). If you'd like to help add support for your device, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 </details>
 
@@ -381,19 +505,29 @@ You should see log entries about successful polls. If the dashboard shows channe
 <details>
 <summary><h2>Uninstalling</h2></summary>
 
-### Docker CLI / Docker Compose
+### Stop and remove the container
 
 ```bash
 docker stop docsight
 docker rm docsight
+```
+
+### Delete all data (config + history)
+
+```bash
 docker volume rm docsight_data
 ```
 
-### Portainer / Dockhand
+### Unraid
 
-1. Open the **docsight** stack
-2. Delete the stack
+Click the **docsight** icon → **Remove**. Check **Also remove image** if you want to free disk space.
 
-This removes the container and all stored data.
+### Synology
+
+Go to **Container Manager** → **Project** → select **docsight** → **Action** → **Delete**.
+
+### Portainer
+
+Open the **docsight** stack → **Delete this stack**.
 
 </details>
