@@ -7,8 +7,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/github/license/itsDNNS/docsight" alt="License"></a>
   <a href="https://github.com/itsDNNS/docsight/pkgs/container/docsight"><img src="https://img.shields.io/github/v/tag/itsDNNS/docsight?label=version" alt="Version"></a>
-  <a href="https://github.com/itsDNNS/docsight"><img src="https://img.shields.io/github/last-commit/itsDNNS/docsight" alt="Last Commit"></a>
-  <a href="https://github.com/itsDNNS/docsight/stargazers"><img src="https://img.shields.io/github/stars/itsDNNS/docsight" alt="Stars"></a>
+  <a href="https://github.com/itsDNNS/docsight/stargazers"><img src="https://img.shields.io/github/stars/itsDNNS/docsight?style=flat" alt="Stars"></a>
 </p>
 
 <p align="center">
