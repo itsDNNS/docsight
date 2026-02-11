@@ -1694,14 +1694,15 @@
     var zonesPlugin = {
         id: 'zones',
         beforeDatasetsDraw: function(chart) {
-            if (!chart.config._zones) return;
+            var zones = chart._docsightZones;
+            if (!zones) return;
             var ctx = chart.ctx;
             var yAxis = chart.scales.y;
             var xAxis = chart.scales.x;
             var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
             var lineColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
             var drawn = {};
-            chart.config._zones.forEach(function(z) {
+            zones.forEach(function(z) {
                 var top = yAxis.getPixelForValue(z.max);
                 var bottom = yAxis.getPixelForValue(z.min);
                 ctx.fillStyle = z.color;
@@ -1764,13 +1765,15 @@
         if (zones) {
             // Filter out the yMin/yMax metadata entry and use it for axis limits
             var zoneMeta = zones.find(function(z) { return z.yMin !== undefined; });
-            chartConfig._zones = zones.filter(function(z) { return z.color; });
             if (zoneMeta) {
                 chartConfig.options.scales.y.suggestedMin = zoneMeta.yMin;
                 chartConfig.options.scales.y.suggestedMax = zoneMeta.yMax;
             }
         }
         charts[canvasId] = new Chart(ctx, chartConfig);
+        if (zones) {
+            charts[canvasId]._docsightZones = zones.filter(function(z) { return z.color; });
+        }
     }
 
     /* ── BQM Graph ── */
