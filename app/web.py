@@ -564,18 +564,34 @@ def api_bqm_image(date):
 @app.route("/api/speedtest")
 @require_auth
 def api_speedtest():
-    """Return speedtest results for N days as JSON."""
+    """Return speedtest results from local cache, with delta fetch from STT."""
     if not _config_manager or not _config_manager.is_speedtest_configured():
         return jsonify([])
-    count = request.args.get("count", 100, type=int)
-    count = max(1, min(count, 2000))
+    count = request.args.get("count", 2000, type=int)
+    count = max(1, min(count, 5000))
+    # Delta fetch: get new results from STT API and cache them
+    if _storage:
+        try:
+            from .speedtest import SpeedtestClient
+            client = SpeedtestClient(
+                _config_manager.get("speedtest_tracker_url"),
+                _config_manager.get("speedtest_tracker_token"),
+            )
+            last_id = _storage.get_latest_speedtest_id()
+            new_results = client.get_newer_than(last_id)
+            if new_results:
+                _storage.save_speedtest_results(new_results)
+                log.info("Cached %d new speedtest results (delta from id %d)", len(new_results), last_id)
+        except Exception as e:
+            log.warning("Speedtest delta fetch failed: %s", e)
+        return jsonify(_storage.get_speedtest_results(limit=count))
+    # Fallback: no storage, fetch directly
     from .speedtest import SpeedtestClient
     client = SpeedtestClient(
         _config_manager.get("speedtest_tracker_url"),
         _config_manager.get("speedtest_tracker_token"),
     )
-    results = client.get_results(per_page=count)
-    return jsonify(results)
+    return jsonify(client.get_results(per_page=count))
 
 
 @app.after_request

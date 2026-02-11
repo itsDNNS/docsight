@@ -118,11 +118,20 @@ def polling_loop(config_mgr, storage, stop_event):
                     stt_client = None
                 stt_url = current_stt_url
 
-            # Fetch latest speedtest result
+            # Fetch latest speedtest result + delta cache
             if stt_client:
                 results = stt_client.get_latest(1)
                 if results:
                     web.update_state(speedtest_latest=results[0])
+                # Delta fetch: cache new results in storage
+                try:
+                    last_id = storage.get_latest_speedtest_id()
+                    new_results = stt_client.get_newer_than(last_id)
+                    if new_results:
+                        storage.save_speedtest_results(new_results)
+                        log.info("Cached %d new speedtest results", len(new_results))
+                except Exception as e:
+                    log.warning("Speedtest delta cache failed: %s", e)
 
         except Exception as e:
             log.error("Poll error: %s", e)

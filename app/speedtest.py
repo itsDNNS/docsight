@@ -24,6 +24,7 @@ class SpeedtestClient:
         data = item.get("data") or {}
         ping_obj = data.get("ping") or {}
         return {
+            "id": item.get("id"),
             "timestamp": data.get("timestamp") or item.get("created_at", ""),
             "download_mbps": round(item.get("download_bits", 0) / 1_000_000, 2),
             "upload_mbps": round(item.get("upload_bits", 0) / 1_000_000, 2),
@@ -78,4 +79,44 @@ class SpeedtestClient:
             return all_results
         except Exception as e:
             log.warning("Failed to fetch speedtest results: %s", e)
+            return all_results
+
+    def get_newer_than(self, last_id, per_page=500):
+        """Fetch results with id > last_id, oldest first. Paginates until done."""
+        all_results = []
+        page = 1
+        try:
+            while True:
+                batch = min(per_page - len(all_results), 500) if per_page else 500
+                resp = self.session.get(
+                    self.base_url + "/api/v1/results",
+                    params={
+                        "page[size]": batch,
+                        "page[number]": page,
+                        "sort": "created_at",
+                    },
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                body = resp.json()
+                items = body.get("data", [])
+                if not items:
+                    break
+                for item in items:
+                    if item.get("id", 0) > last_id:
+                        all_results.append(self._parse_result(item))
+                # If the first item on this page had id <= last_id but
+                # some were newer, there may be more on the next page.
+                # If all items on this page were old, we can stop.
+                if all(item.get("id", 0) <= last_id for item in items):
+                    break
+                meta = body.get("meta", {})
+                if page >= meta.get("last_page", 1):
+                    break
+                if per_page and len(all_results) >= per_page:
+                    break
+                page += 1
+            return all_results
+        except Exception as e:
+            log.warning("Failed to fetch newer speedtest results: %s", e)
             return all_results
