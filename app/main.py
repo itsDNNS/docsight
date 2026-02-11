@@ -6,6 +6,7 @@ import threading
 import time
 
 from . import fritzbox, analyzer, web, thinkbroadband
+from .speedtest import SpeedtestClient
 from .config import ConfigManager
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
@@ -59,6 +60,10 @@ def polling_loop(config_mgr, storage, stop_event):
     discovery_published = False
     bqm_last_date = None
 
+    # Speedtest Tracker (optional, re-initialized on config change)
+    stt_client = None
+    stt_url = None
+
     while not stop_event.is_set():
         try:
             sid = fritzbox.login(
@@ -102,6 +107,31 @@ def polling_loop(config_mgr, storage, stop_event):
                     if image:
                         storage.save_bqm_graph(image)
                         bqm_last_date = today
+
+            # Re-initialize Speedtest client if URL changed
+            current_stt_url = config_mgr.get("speedtest_tracker_url") if config_mgr.is_speedtest_configured() else ""
+            if current_stt_url != stt_url:
+                if current_stt_url:
+                    stt_client = SpeedtestClient(current_stt_url, config_mgr.get("speedtest_tracker_token"))
+                    log.info("Speedtest Tracker: %s", current_stt_url)
+                else:
+                    stt_client = None
+                stt_url = current_stt_url
+
+            # Fetch latest speedtest result + delta cache
+            if stt_client:
+                results = stt_client.get_latest(1)
+                if results:
+                    web.update_state(speedtest_latest=results[0])
+                # Delta fetch: cache new results in storage
+                try:
+                    last_id = storage.get_latest_speedtest_id()
+                    new_results = stt_client.get_newer_than(last_id)
+                    if new_results:
+                        storage.save_speedtest_results(new_results)
+                        log.info("Cached %d new speedtest results", len(new_results))
+                except Exception as e:
+                    log.warning("Speedtest delta cache failed: %s", e)
 
         except Exception as e:
             log.error("Poll error: %s", e)

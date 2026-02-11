@@ -218,6 +218,22 @@
     </div>
 
     <div class="section">
+        <h2>Speedtest Tracker <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.optional }})</span></h2>
+        <div class="form-grid">
+            <div class="form-row full">
+                <label for="speedtest_tracker_url">{{ t.speedtest_url }}</label>
+                <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
+                <span class="hint">{{ t.speedtest_url_hint }}</span>
+            </div>
+            <div class="form-row full">
+                <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
+                <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
+                <span class="hint">{{ t.speedtest_token_hint }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
         <h2>{{ t.general }}</h2>
         <div class="form-grid">
             <div class="form-row">
@@ -303,7 +319,7 @@ function showToast(msg, ok) {
 }
 
 var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password'];
+var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token'];
 
 function getFormData() {
     var form = document.getElementById('settings-form');

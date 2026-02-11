@@ -6,6 +6,7 @@ import math
 import os
 import re
 import stat
+import subprocess
 import time
 from datetime import datetime, timedelta
 
@@ -23,6 +24,18 @@ def _server_tz_info():
     return name, offset_min
 
 log = logging.getLogger("docsis.web")
+
+def _get_version():
+    """Get version from git tag or fall back to 'dev'."""
+    try:
+        return subprocess.check_output(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            stderr=subprocess.DEVNULL, text=True
+        ).strip()
+    except Exception:
+        return "dev"
+
+APP_VERSION = _get_version()
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.urandom(32)  # overwritten by _init_session_key
@@ -65,11 +78,13 @@ _state = {
     "error": None,
     "connection_info": None,
     "device_info": None,
+    "speedtest_latest": None,
 }
 
 _storage = None
 _config_manager = None
 _on_config_changed = None
+_last_manual_poll = 0.0
 
 
 def init_storage(storage):
@@ -156,10 +171,10 @@ def logout():
 def inject_auth():
     """Make auth_enabled available in all templates."""
     auth_enabled = bool(_config_manager and _config_manager.get("admin_password", ""))
-    return {"auth_enabled": auth_enabled}
+    return {"auth_enabled": auth_enabled, "version": APP_VERSION}
 
 
-def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None):
+def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None):
     """Update the shared web state from the main loop."""
     if analysis is not None:
         _state["analysis"] = analysis
@@ -173,6 +188,8 @@ def update_state(analysis=None, error=None, poll_interval=None, connection_info=
         _state["connection_info"] = connection_info
     if device_info is not None:
         _state["device_info"] = device_info
+    if speedtest_latest is not None:
+        _state["speedtest_latest"] = speedtest_latest
 
 
 @app.route("/")
@@ -187,6 +204,8 @@ def index():
 
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
+    speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
+    speedtest_latest = _state.get("speedtest_latest")
     conn_info = _state.get("connection_info") or {}
     dev_info = _state.get("device_info") or {}
 
@@ -223,6 +242,8 @@ def index():
                 theme=theme,
                 isp_name=isp_name, connection_info=conn_info,
                 bqm_configured=bqm_configured,
+                speedtest_configured=speedtest_configured,
+                speedtest_latest=speedtest_latest,
                 uncorr_pct=_compute_uncorr_pct(snapshot),
                 has_us_ofdma=_has_us_ofdma(snapshot),
                 device_info=dev_info,
@@ -239,6 +260,8 @@ def index():
         theme=theme,
         isp_name=isp_name, connection_info=conn_info,
         bqm_configured=bqm_configured,
+        speedtest_configured=speedtest_configured,
+        speedtest_latest=speedtest_latest,
         uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         device_info=dev_info,
@@ -338,6 +361,38 @@ def api_test_mqtt():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/api/poll", methods=["POST"])
+@require_auth
+def api_poll():
+    """Trigger an immediate FritzBox poll and return fresh analysis."""
+    global _last_manual_poll
+    if not _config_manager:
+        return jsonify({"success": False, "error": "Not configured"}), 500
+
+    now = time.time()
+    if now - _last_manual_poll < 10:
+        lang = _get_lang()
+        t = get_translations(lang)
+        return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
+
+    try:
+        from . import fritzbox, analyzer
+        config = _config_manager.get_all()
+        sid = fritzbox.login(
+            config["modem_url"], config["modem_user"], config["modem_password"],
+        )
+        data = fritzbox.get_docsis_data(config["modem_url"], sid)
+        analysis = analyzer.analyze(data)
+        update_state(analysis=analysis)
+        if _storage:
+            _storage.save_snapshot(analysis)
+        _last_manual_poll = time.time()
+        return jsonify({"success": True, "analysis": analysis})
+    except Exception as e:
+        log.error("Manual poll failed: %s", e)
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/calendar")
@@ -517,6 +572,39 @@ def api_bqm_image(date):
     resp.headers["Content-Type"] = "image/png"
     resp.headers["Cache-Control"] = "public, max-age=86400"
     return resp
+
+
+@app.route("/api/speedtest")
+@require_auth
+def api_speedtest():
+    """Return speedtest results from local cache, with delta fetch from STT."""
+    if not _config_manager or not _config_manager.is_speedtest_configured():
+        return jsonify([])
+    count = request.args.get("count", 2000, type=int)
+    count = max(1, min(count, 5000))
+    # Delta fetch: get new results from STT API and cache them
+    if _storage:
+        try:
+            from .speedtest import SpeedtestClient
+            client = SpeedtestClient(
+                _config_manager.get("speedtest_tracker_url"),
+                _config_manager.get("speedtest_tracker_token"),
+            )
+            last_id = _storage.get_latest_speedtest_id()
+            new_results = client.get_newer_than(last_id)
+            if new_results:
+                _storage.save_speedtest_results(new_results)
+                log.info("Cached %d new speedtest results (delta from id %d)", len(new_results), last_id)
+        except Exception as e:
+            log.warning("Speedtest delta fetch failed: %s", e)
+        return jsonify(_storage.get_speedtest_results(limit=count))
+    # Fallback: no storage, fetch directly
+    from .speedtest import SpeedtestClient
+    client = SpeedtestClient(
+        _config_manager.get("speedtest_tracker_url"),
+        _config_manager.get("speedtest_tracker_token"),
+    )
+    return jsonify(client.get_results(per_page=count))
 
 
 @app.after_request

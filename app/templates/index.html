@@ -85,6 +85,23 @@
             padding: 4px 8px; border-radius: 4px; line-height: 1;
         }
         .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+        .refresh-btn {
+            background: none; border: 1px solid var(--input-border);
+            color: var(--muted); font-size: 1.1em; cursor: pointer;
+            padding: 4px 8px; border-radius: 4px; line-height: 1;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .refresh-btn:hover { color: var(--accent); border-color: var(--accent); }
+        .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .refresh-btn.spinning { animation: spin 1s linear infinite; }
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 10px 20px; border-radius: 6px; font-size: 0.9em; z-index: 300;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+        .toast-success { background: var(--good); color: #fff; }
+        .toast-error { background: var(--crit); color: #fff; }
 
         /* ── Layout ── */
         .app-layout { display: flex; min-height: 100vh; }
@@ -119,24 +136,10 @@
         .sidebar-link:hover { background: var(--card); }
         .sidebar-link.active { color: var(--accent); background: rgba(0,173,181,0.1); }
         .sidebar-link .icon { font-size: 1.1em; width: 24px; text-align: center; }
+        .recording-dot { color: #e74c3c; animation: blink-recording 1.5s ease-in-out infinite; }
+        @keyframes blink-recording { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         .sidebar-divider { border-top: 1px solid var(--input-border); margin: 8px 0; }
-        .sidebar-ref { padding: 0 20px 16px; }
-        .sidebar-ref summary {
-            cursor: pointer; font-size: 0.9em; color: var(--muted);
-            padding: 10px 0; list-style: none; display: flex;
-            align-items: center; gap: 8px;
-        }
-        .sidebar-ref summary::-webkit-details-marker { display: none; }
-        .sidebar-ref summary::before {
-            content: "\25B6"; font-size: 0.6em; transition: transform 0.2s;
-        }
-        .sidebar-ref[open] summary::before { transform: rotate(90deg); }
-        .sidebar-ref table {
-            width: 100%; font-size: 0.78em; border-collapse: collapse; margin-top: 4px;
-        }
-        .sidebar-ref th, .sidebar-ref td { padding: 4px 6px; text-align: left; }
-        .sidebar-ref th { color: var(--accent); position: static; background: transparent; }
-        .sidebar-ref tr { border-bottom: 1px solid var(--input-border); }
+        /* sidebar-ref removed */
 
         /* ── Calendar Popup ── */
         .calendar-popup {
@@ -219,7 +222,7 @@
 
         /* ── Metric Cards Grid ── */
         .metric-cards {
-            display: grid; grid-template-columns: repeat(3, 1fr);
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 12px; margin-bottom: 16px;
         }
 
@@ -354,6 +357,34 @@
         .val-good { color: var(--good); }
         .val-warn { color: var(--warn); }
         .val-crit { color: var(--crit); }
+        .val-bad { color: #e74c3c; font-weight: 600; }
+        #speedtest-table th { cursor: pointer; user-select: none; }
+        #speedtest-table th:hover { background: var(--surface-hover, rgba(255,255,255,0.05)); }
+        .speedtest-chart-wrap {
+            position: relative; width: 100%;
+            border: 1px solid var(--input-border); border-radius: 8px;
+            background: var(--surface); margin-bottom: 24px;
+            padding-bottom: 8px;
+        }
+        .speedtest-chart-wrap canvas { display: block; width: 100%; height: 250px; }
+        .speedtest-chart-legend {
+            display: flex; gap: 18px; justify-content: center;
+            padding: 8px 0 4px; font-size: 0.78em; color: var(--muted);
+        }
+        .speedtest-chart-legend span::before {
+            content: ''; display: inline-block; width: 10px; height: 10px;
+            border-radius: 50%; margin-right: 5px; vertical-align: -1px;
+        }
+        .legend-dl::before { background: #3b82f6; }
+        .legend-ul::before { background: #22c55e; }
+        .legend-ping::before { background: #f59e0b; }
+        .legend-thresh::before { background: #ef4444; }
+        .speedtest-chart-tooltip {
+            position: absolute; pointer-events: none; display: none;
+            background: rgba(0,0,0,0.85); color: #e0e0e0; font-size: 0.78em;
+            padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 1000;
+        }
+        .sort-indicator { margin-left: 4px; font-size: 0.8em; opacity: 0.7; }
         .error-box {
             background: rgba(244,67,54,0.15); border: 1px solid var(--crit);
             color: var(--crit); padding: 12px; border-radius: 6px; margin-bottom: 16px;
@@ -387,9 +418,22 @@
         /* ── Trends ── */
         .trend-header {
             display: flex; justify-content: space-between;
-            align-items: center; margin-bottom: 16px;
+            align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
         }
         .trend-title { font-size: 1.2em; color: var(--accent); font-weight: bold; }
+        .trend-tabs {
+            display: flex; gap: 0; border-radius: 6px; overflow: hidden;
+            border: 1px solid var(--input-border);
+        }
+        .trend-tab {
+            background: transparent; border: none; color: var(--muted);
+            padding: 6px 16px; font-size: 0.85em; cursor: pointer;
+            font-family: inherit; transition: background 0.15s, color 0.15s;
+            border-right: 1px solid var(--input-border);
+        }
+        .trend-tab:last-child { border-right: none; }
+        .trend-tab:hover { color: var(--text); background: rgba(0,173,181,0.05); }
+        .trend-tab.active { background: var(--accent); color: #000; font-weight: bold; }
         .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .chart-card { background: var(--surface); border-radius: 8px; padding: 16px; }
         .chart-card .chart-label { font-size: 0.85em; color: var(--muted); margin-bottom: 8px; }
@@ -479,32 +523,35 @@
     </div>
     <div class="sidebar-content">
         <a class="sidebar-link active" data-view="live">
-            <span class="icon">&#9679;</span> {{ t.live_dashboard }}
+            <span class="icon recording-dot">&#9679;</span> {{ t.live_dashboard }}
         </a>
-        <a class="sidebar-link" data-view="day">
-            <span class="icon">&#9201;</span> {{ t.day_trend }}
+        <a class="sidebar-link" data-view="trends">
+            <span class="icon">&#128202;</span> {{ t.signal_trends }}
         </a>
-        <a class="sidebar-link" data-view="week">
-            <span class="icon">&#9899;</span> {{ t.week_trend }}
+        {% if speedtest_configured %}
+        <a class="sidebar-link" data-view="speedtest">
+            <span class="icon">&#9889;</span> {{ t.speedtest }}
         </a>
-        <a class="sidebar-link" data-view="month">
-            <span class="icon">&#128197;</span> {{ t.month_trend }}
+        {% else %}
+        <a class="sidebar-link" onclick="openSpeedtestSetupModal()">
+            <span class="icon">&#9889;</span> {{ t.speedtest }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.optional }}</span>
         </a>
+        {% endif %}
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
-            <span class="icon">&#128200;</span> {{ t.bqm_title }}
+            <span class="icon">&#128225;</span> {{ t.bqm_title }}
         </a>
         {% else %}
         <a class="sidebar-link" onclick="openBqmSetupModal()">
-            <span class="icon">&#128200;</span> {{ t.bqm_title }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.bqm_optional }}</span>
+            <span class="icon">&#128225;</span> {{ t.bqm_title }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.bqm_optional }}</span>
         </a>
         {% endif %}
         <div class="sidebar-divider"></div>
-        <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
-            <span class="icon">&#128196;</span> {{ t.export_llm }}
-        </a>
         <a class="sidebar-link" id="report-link" onclick="openReportModal()">
-            <span class="icon">&#128203;</span> {{ t.incident_report }}
+            <span class="icon">&#128226;</span> {{ t.incident_report }}
+        </a>
+        <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
+            <span class="icon">&#128203;</span> {{ t.export_llm }}
         </a>
         <div style="flex:1;"></div>
         <div class="sidebar-divider"></div>
@@ -516,19 +563,11 @@
             <span class="icon">&#128682;</span> {{ t.logout }}
         </a>
         {% endif %}
-        <div class="sidebar-divider"></div>
-        <details class="sidebar-ref">
-            <summary>{{ t.reference_values }}</summary>
-            <table>
-                <thead><tr><th>{{ t.metric }}</th><th>{{ t.good }}</th><th>{{ t.marginal }}</th><th>{{ t.poor }}</th></tr></thead>
-                <tbody>
-                    <tr><td>DS Power</td><td>-7..+7</td><td>&plusmn;7..10</td><td>&gt;&plusmn;10 dBmV</td></tr>
-                    <tr><td>US Power</td><td>35..49</td><td>50..54</td><td>&gt;54 dBmV</td></tr>
-                    <tr><td>SNR/MER</td><td>&gt;30 dB</td><td>25..30</td><td>&lt;25 dB</td></tr>
-                    <tr><td>{{ t.uncorr }}</td><td>{{ t.low }}</td><td>-</td><td>&gt;10,000</td></tr>
-                </tbody>
-            </table>
-        </details>
+        <div style="padding: 8px 20px 12px;">
+            <a href="https://github.com/itsDNNS/docsight/releases" target="_blank"
+               style="color: var(--muted); font-size: 0.75em; text-decoration: none; opacity: 0.6;"
+               onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">{{ version }}</a>
+        </div>
     </div>
 </nav>
 
@@ -547,6 +586,9 @@
     <span class="topbar-meta" id="topbar-meta">
         {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
     </span>
+    {% if not historical %}
+    <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
+    {% endif %}
     <select class="lang-select" id="lang-select" title="Language">
         {% for code, name in languages.items() %}
         <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ code.upper() }}</option>
@@ -765,6 +807,48 @@
                 <div class="detail-note">{{ t.card_errors_note }}</div>
             </div>
         </div>
+
+        {# ── Card 4: Speed (Speedtest Tracker) ── #}
+        {% if speedtest_configured and speedtest_latest %}
+        <div class="metric-card health-good">
+            <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
+                <span class="status-dot"></span>
+                <span class="card-title">&#9889; {{ t.speed }}</span>
+                <span class="chevron">&#9654;</span>
+            </div>
+            <div class="metric-card-body">
+                <div class="metric-row">
+                    <div class="metric-item">
+                        <div class="metric-value val-good">{{ speedtest_latest.download_human or (speedtest_latest.download_mbps ~ ' Mbps') }}</div>
+                        <div class="metric-label">{{ t.download }}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value val-good">{{ speedtest_latest.upload_human or (speedtest_latest.upload_mbps ~ ' Mbps') }}</div>
+                        <div class="metric-label">{{ t.upload }}</div>
+                    </div>
+                </div>
+                <div class="metric-secondary" style="margin-top:8px;">
+                    {{ t.ping }}: <strong>{{ speedtest_latest.ping_ms }} ms</strong>
+                    <span class="conn-sep">&middot;</span>
+                    {{ t.jitter }}: <strong>{{ speedtest_latest.jitter_ms }} ms</strong>
+                    {% if speedtest_latest.packet_loss_pct > 0 %}
+                    <span class="conn-sep">&middot;</span>
+                    <span class="val-warn">{{ t.packet_loss }}: {{ speedtest_latest.packet_loss_pct }}%</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="metric-card-detail">
+                <table class="detail-table">
+                    <tr><td>{{ t.download }}</td><td>{{ speedtest_latest.download_mbps }} Mbps</td></tr>
+                    <tr><td>{{ t.upload }}</td><td>{{ speedtest_latest.upload_mbps }} Mbps</td></tr>
+                    <tr><td>{{ t.ping }}</td><td>{{ speedtest_latest.ping_ms }} ms</td></tr>
+                    <tr><td>{{ t.jitter }}</td><td>{{ speedtest_latest.jitter_ms }} ms</td></tr>
+                    <tr><td>{{ t.packet_loss }}</td><td>{{ speedtest_latest.packet_loss_pct }}%</td></tr>
+                </table>
+                <div class="detail-note">{{ t.via_speedtest_tracker }}{% if speedtest_latest.timestamp %} &middot; {{ speedtest_latest.timestamp }}{% endif %}</div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <h2 class="section-title">{{ t.downstream }} ({{ ds|length }} {{ t.channels }})</h2>
@@ -852,6 +936,11 @@
 <div id="view-trends" class="view">
     <div class="trend-header">
         <span class="trend-title" id="trend-title"></span>
+        <div class="trend-tabs" id="trend-tabs">
+            <button class="trend-tab active" data-range="day">{{ t.day }}</button>
+            <button class="trend-tab" data-range="week">{{ t.week }}</button>
+            <button class="trend-tab" data-range="month">{{ t.month }}</button>
+        </div>
     </div>
     <div id="trend-no-data" class="no-data-msg" style="display:none"></div>
     <div class="charts-grid" id="charts-grid">
@@ -888,9 +977,95 @@
     </div>
 </div>
 {% endif %}
+
+<!-- ═══ View: Speedtest ═══ -->
+{% if speedtest_configured %}
+<div id="view-speedtest" class="view">
+    <div class="trend-header">
+        <span class="trend-title">{{ t.speedtest_tracker }}</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <select id="speedtest-days" style="padding:6px 10px; border-radius:6px; border:1px solid var(--input-border); background:var(--surface); color:var(--text);" onchange="filterSpeedtestData()">
+                <option value="1">1 {{ t.day }}</option>
+                <option value="7" selected>7 {{ t.day }}</option>
+                <option value="14">14 {{ t.day }}</option>
+                <option value="30">30 {{ t.day }}</option>
+                <option value="90">90 {{ t.day }}</option>
+                <option value="365">{{ t.fetch_all }}</option>
+            </select>
+            <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" onclick="loadSpeedtestHistory()">&#x1F504;</button>
+        </div>
+    </div>
+    <div id="speedtest-loading" class="waiting" style="display:none;">
+        <div class="spinner"></div>
+        <p>{{ t.fetching }}</p>
+    </div>
+    <div id="speedtest-no-data" class="no-data-msg" style="display:none;"></div>
+    <div id="speedtest-chart-container" style="display:none;">
+        <div class="speedtest-chart-wrap">
+            <canvas id="speedtest-chart"></canvas>
+            <div class="speedtest-chart-tooltip" id="speedtest-chart-tooltip"></div>
+            <div class="speedtest-chart-legend">
+                <span class="legend-dl">Download (Mbps)</span>
+                <span class="legend-ul">Upload (Mbps)</span>
+                <span class="legend-ping">Ping (ms)</span>
+                <span class="legend-thresh">80% Median DL</span>
+            </div>
+        </div>
+    </div>
+    <div id="speedtest-table-wrap">
+        <table id="speedtest-table" class="sortable" style="display:none;">
+            <thead><tr>
+                <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
+                <th data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
+                <th data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
+                <th data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>
+                <th data-col="jitter_ms">{{ t.jitter }}<span class="sort-indicator"></span></th>
+                <th data-col="packet_loss_pct">{{ t.packet_loss }}<span class="sort-indicator"></span></th>
+            </tr></thead>
+            <tbody id="speedtest-tbody"></tbody>
+        </table>
+        <div id="speedtest-show-more" style="text-align:center; padding:12px; display:none;">
+            <button class="btn btn-muted" id="speedtest-more-btn" onclick="showMoreSpeedtest()"></button>
+        </div>
+    </div>
+</div>
+{% endif %}
 </div><!-- /main-content -->
 </div><!-- /app-main -->
 </div><!-- /app-layout -->
+
+<!-- Speedtest Setup Modal -->
+<div class="modal-overlay" id="speedtest-setup-modal" onclick="if(event.target===this)closeSpeedtestSetupModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>&#9889; {{ t.speedtest_setup_title }}</h2>
+            <button class="modal-close" onclick="closeSpeedtestSetupModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
+            <p style="margin-bottom:12px;">{{ t.speedtest_setup_intro }}</p>
+            <div style="background:var(--bg); border-radius:8px; padding:14px; margin-bottom:14px;">
+                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.speedtest_setup_benefits_title }}</p>
+                <ul style="list-style:none; padding:0;">
+                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_1 }}</li>
+                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_2 }}</li>
+                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_3 }}</li>
+                </ul>
+            </div>
+            <div style="background:var(--bg); border-radius:8px; padding:14px;">
+                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.speedtest_setup_howto_title }}</p>
+                <ol style="padding-left:20px;">
+                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_1|safe }}</li>
+                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_2|safe }}</li>
+                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_3|safe }}</li>
+                </ol>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" onclick="closeSpeedtestSetupModal()">{{ t.close }}</button>
+            <a class="btn btn-accent" href="/settings" style="text-decoration:none;">&#9881; {{ t.settings }}</a>
+        </div>
+    </div>
+</div>
 
 <!-- BQM Setup Modal -->
 <div class="modal-overlay" id="bqm-setup-modal" onclick="if(event.target===this)closeBqmSetupModal()">
@@ -997,6 +1172,7 @@
     </div>
 </div>
 
+<div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
 (function() {
@@ -1035,6 +1211,7 @@
     var datesWithData = [];
     var charts = {};
     var calendarLoaded = false;
+    var _trendRange = 'day';
     var isHistorical = {{ 'true' if historical else 'false' }};
 
     function todayStr() {
@@ -1105,17 +1282,20 @@
         });
     });
 
-    function switchView(view) {
+    function switchView(view, skipHash) {
         currentView = view;
+        if (!skipHash) location.hash = view === 'live' ? '' : view;
         sidebarLinks.forEach(function(l) {
             l.classList.toggle('active', l.getAttribute('data-view') === view);
         });
         var dashView = document.getElementById('view-dashboard');
         var trendView = document.getElementById('view-trends');
         var bqmView = document.getElementById('view-bqm');
+        var speedtestView = document.getElementById('view-speedtest');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
+        if (speedtestView) speedtestView.classList.remove('active');
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
@@ -1125,12 +1305,43 @@
             if (bqmView) bqmView.classList.add('active');
             updateDateLabel();
             loadBqmGraph(selectedDate);
-        } else {
-            trendView.classList.add('active');
+        } else if (view === 'speedtest') {
+            if (speedtestView) speedtestView.classList.add('active');
             updateDateLabel();
-            loadTrends(view, selectedDate);
+            loadSpeedtestHistory();
+        } else if (view === 'trends') {
+            trendView.classList.add('active');
+            updateTrendTabs();
+            updateDateLabel();
+            loadTrends(_trendRange, selectedDate);
         }
     }
+
+    /* ── Trend Tabs ── */
+    function updateTrendTabs() {
+        document.querySelectorAll('#trend-tabs .trend-tab').forEach(function(btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-range') === _trendRange);
+        });
+    }
+    document.querySelectorAll('#trend-tabs .trend-tab').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            _trendRange = this.getAttribute('data-range');
+            updateTrendTabs();
+            updateDateLabel();
+            loadTrends(_trendRange, selectedDate);
+        });
+    });
+
+    /* ── Hash-based view routing ── */
+    var validViews = ['live', 'trends', 'bqm', 'speedtest'];
+    function viewFromHash() {
+        var h = location.hash.replace('#', '');
+        return validViews.indexOf(h) !== -1 ? h : null;
+    }
+    window.addEventListener('hashchange', function() {
+        var v = viewFromHash();
+        if (v && v !== currentView) switchView(v, true);
+    });
 
     /* ── Date Navigation ── */
     var dateLabel = document.getElementById('date-label');
@@ -1138,13 +1349,28 @@
     var dateNext = document.getElementById('date-next');
 
     function updateDateLabel() {
+        var trendTabs = document.getElementById('trend-tabs');
         if (currentView === 'live') {
             dateLabel.textContent = isHistorical ? formatDateDE('{{ snapshot_ts[:10] if snapshot_ts else "" }}') : T.live;
         } else if (currentView === 'bqm') {
             dateLabel.textContent = formatDateDE(selectedDate) + ' (BQM)';
-        } else {
-            var rangeLabel = {day: T.day, week: T.week, month: T.month}[currentView] || '';
-            dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
+        } else if (currentView === 'speedtest') {
+            dateLabel.textContent = T.speedtest || 'Speedtest';
+        } else if (currentView === 'trends') {
+            var rangeLabel = {day: T.day, week: T.week, month: T.month}[_trendRange] || '';
+            if (selectedDate === todayStr()) {
+                dateLabel.textContent = T.live + ' (' + rangeLabel + ')';
+            } else {
+                dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
+            }
+            // Hide tabs when viewing historical data (not today)
+            if (trendTabs) {
+                trendTabs.style.display = (selectedDate === todayStr()) ? '' : 'none';
+            }
+        }
+        // Show tabs again when switching to trends with today's date
+        if (currentView !== 'trends' && trendTabs) {
+            trendTabs.style.display = '';
         }
     }
 
@@ -1153,11 +1379,12 @@
 
     function dateNav(dir) {
         var d = new Date(selectedDate + 'T12:00:00');
-        if (currentView === 'live' || currentView === 'day' || currentView === 'bqm') {
+        var navRange = currentView === 'trends' ? _trendRange : currentView;
+        if (navRange === 'live' || navRange === 'day' || navRange === 'bqm') {
             d.setDate(d.getDate() + dir);
-        } else if (currentView === 'week') {
+        } else if (navRange === 'week') {
             d.setDate(d.getDate() + dir * 7);
-        } else if (currentView === 'month') {
+        } else if (navRange === 'month') {
             d.setMonth(d.getMonth() + dir);
         }
         selectedDate = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
@@ -1172,8 +1399,12 @@
                 });
         } else if (currentView === 'bqm') {
             loadBqmGraph(selectedDate);
-        } else {
-            loadTrends(currentView, selectedDate);
+        } else if (currentView === 'trends') {
+            // Force day view when navigating to historical dates
+            if (selectedDate !== todayStr()) {
+                _trendRange = 'day';
+            }
+            loadTrends(_trendRange, selectedDate);
         }
     }
 
@@ -1260,9 +1491,9 @@
                 } else if (currentView === 'bqm') {
                     updateDateLabel();
                     loadBqmGraph(selectedDate);
-                } else {
+                } else if (currentView === 'trends') {
                     updateDateLabel();
-                    loadTrends(currentView, selectedDate);
+                    loadTrends(_trendRange, selectedDate);
                 }
             });
             grid.appendChild(el);
@@ -1337,9 +1568,64 @@
             });
     }
 
-    if (!isHistorical) startAutoRefresh();
+    if (!isHistorical && currentView === 'live') startAutoRefresh();
+
+    /* ── Manual Poll (Refresh Button) ── */
+    var refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            if (refreshBtn.disabled) return;
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add('spinning');
+            fetch('/api/poll', {method: 'POST'})
+                .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+                .then(function(res) {
+                    if (res.data.success) {
+                        showToast(T.refresh_success || 'Data updated', 'success');
+                        refreshData();
+                    } else {
+                        showToast(res.data.error || 'Error', res.status === 429 ? 'error' : 'error');
+                    }
+                })
+                .catch(function() { showToast(T.network_error || 'Error', 'error'); })
+                .finally(function() {
+                    refreshBtn.classList.remove('spinning');
+                    setTimeout(function() { refreshBtn.disabled = false; }, 10000);
+                });
+        });
+    }
+
+    function showToast(msg, type) {
+        var toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = 'toast toast-' + (type || 'success') + ' show';
+        setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    }
 
     /* ── Trend Charts ── */
+    var DS_POWER_ZONES = [
+        {min: -15, max: -10, color: "rgba(244,67,54,0.35)"},
+        {min: -10, max: -7, color: "rgba(255,152,0,0.30)"},
+        {min: -7, max: 7, color: "rgba(76,175,80,0.25)"},
+        {min: 7, max: 10, color: "rgba(255,152,0,0.30)"},
+        {min: 10, max: 15, color: "rgba(244,67,54,0.35)"},
+        {yMin: -12, yMax: 12}
+    ];
+    var DS_SNR_ZONES = [
+        {min: 15, max: 30, color: "rgba(244,67,54,0.35)"},
+        {min: 30, max: 35, color: "rgba(255,152,0,0.30)"},
+        {min: 35, max: 50, color: "rgba(76,175,80,0.25)"},
+        {yMin: 25, yMax: 45}
+    ];
+    var US_POWER_ZONES = [
+        {min: 20, max: 30, color: "rgba(244,67,54,0.35)"},
+        {min: 30, max: 35, color: "rgba(255,152,0,0.30)"},
+        {min: 35, max: 50, color: "rgba(76,175,80,0.25)"},
+        {min: 50, max: 55, color: "rgba(255,152,0,0.30)"},
+        {min: 55, max: 65, color: "rgba(244,67,54,0.35)"},
+        {yMin: 25, yMax: 60}
+    ];
+
     function loadTrends(range, date) {
         var title = document.getElementById('trend-title');
         var noData = document.getElementById('trend-no-data');
@@ -1363,11 +1649,14 @@
                     return d.date ? formatDateDE(d.date) : '';
                 });
                 renderChart('chart-ds-power', xLabels,
-                    [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#00adb5'}]);
+                    [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#00e5f0'}],
+                    null, DS_POWER_ZONES);
                 renderChart('chart-ds-snr', xLabels,
-                    [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#4caf50'}]);
+                    [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#66ff77'}],
+                    null, DS_SNR_ZONES);
                 renderChart('chart-us-power', xLabels,
-                    [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#ff9800'}]);
+                    [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#ffbb33'}],
+                    null, US_POWER_ZONES);
                 renderChart('chart-errors', xLabels, [
                     {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
                     {label: T.uncorrectable, data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
@@ -1380,7 +1669,48 @@
             });
     }
 
-    function renderChart(canvasId, labels, datasets, type) {
+    var zonesPlugin = {
+        id: 'zones',
+        beforeDatasetsDraw: function(chart) {
+            var zones = chart._docsightZones;
+            if (!zones) return;
+            var ctx = chart.ctx;
+            var yAxis = chart.scales.y;
+            var xAxis = chart.scales.x;
+            var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+            var lineColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+            // Clip to chart area only (don't bleed into axis labels)
+            var chartArea = chart.chartArea;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+            ctx.clip();
+            var drawn = {};
+            zones.forEach(function(z) {
+                var top = yAxis.getPixelForValue(z.max);
+                var bottom = yAxis.getPixelForValue(z.min);
+                ctx.fillStyle = z.color;
+                ctx.fillRect(chartArea.left, top, chartArea.right - chartArea.left, bottom - top);
+                // Draw dashed boundary lines at zone edges in zone color
+                var zoneBaseColor = z.color.replace(/[\d.]+\)$/, '0.7)');
+                [z.min, z.max].forEach(function(val) {
+                    if (drawn[val]) return;
+                    drawn[val] = true;
+                    var py = yAxis.getPixelForValue(val);
+                    ctx.beginPath();
+                    ctx.setLineDash([6, 4]);
+                    ctx.strokeStyle = zoneBaseColor;
+                    ctx.lineWidth = 1.5;
+                    ctx.moveTo(chartArea.left, py);
+                    ctx.lineTo(chartArea.right, py);
+                    ctx.stroke();
+                });
+            });
+            ctx.restore();
+        }
+    };
+
+    function renderChart(canvasId, labels, datasets, type, zones) {
         if (charts[canvasId]) charts[canvasId].destroy();
         var ctx = document.getElementById(canvasId);
         if (!ctx) return;
@@ -1392,27 +1722,42 @@
                 label: ds.label, data: ds.data,
                 borderColor: ds.color,
                 backgroundColor: ds.color + (type === 'bar' ? 'cc' : '22'),
-                borderWidth: 2, tension: 0.3,
+                borderWidth: 3, tension: 0.3,
                 pointRadius: labels.length > 30 ? 0 : 3,
                 fill: type !== 'bar'
             };
         });
-        charts[canvasId] = new Chart(ctx, {
+        var hasLegend = datasets.length > 1;
+        var legendPos = hasLegend ? 'bottom' : 'top';
+        var chartConfig = {
             type: type || 'line',
             data: { labels: labels, datasets: chartDatasets },
             options: {
                 responsive: true, maintainAspectRatio: true,
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
-                    legend: { display: datasets.length > 1, labels: { color: textColor, font: { size: 11 } } },
+                    legend: { display: hasLegend, position: legendPos, labels: { color: textColor, font: { size: 11 } } },
                     tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1 }
                 },
                 scales: {
                     x: { ticks: { color: textColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
                     y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } }
                 }
+            },
+            plugins: zones ? [zonesPlugin] : []
+        };
+        if (zones) {
+            // Filter out the yMin/yMax metadata entry and use it for axis limits
+            var zoneMeta = zones.find(function(z) { return z.yMin !== undefined; });
+            if (zoneMeta) {
+                chartConfig.options.scales.y.suggestedMin = zoneMeta.yMin;
+                chartConfig.options.scales.y.suggestedMax = zoneMeta.yMax;
             }
-        });
+        }
+        charts[canvasId] = new Chart(ctx, chartConfig);
+        if (zones) {
+            charts[canvasId]._docsightZones = zones.filter(function(z) { return z.color; });
+        }
     }
 
     /* ── BQM Graph ── */
@@ -1433,6 +1778,12 @@
 
     /* ── Init ── */
     updateDateLabel();
+
+    // Apply hash-based view routing (must be inside IIFE to access switchView)
+    var _initHash = location.hash.replace('#', '');
+    if (validViews.indexOf(_initHash) !== -1 && _initHash !== 'live') {
+        switchView(_initHash, true);
+    }
 })();
 
 /* ── Export for LLM ── */
@@ -1550,6 +1901,380 @@ function fallbackCopy(textarea, btn, T) {
 function toggleCard(el) {
     el.classList.toggle('open');
 }
+function openSpeedtestSetupModal() {
+    document.getElementById('speedtest-setup-modal').classList.add('open');
+}
+function closeSpeedtestSetupModal() {
+    document.getElementById('speedtest-setup-modal').classList.remove('open');
+}
+var _speedtestRawData = [];
+var _speedtestAllData = [];
+var _speedtestVisible = 50;
+var _speedtestSortCol = 'timestamp';
+var _speedtestSortDir = 'desc';
+
+function formatSpeedtestTimestamp(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return ts;
+    var dd = String(d.getDate()).padStart(2, '0');
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var yyyy = d.getFullYear();
+    var hh = String(d.getHours()).padStart(2, '0');
+    var min = String(d.getMinutes()).padStart(2, '0');
+    return dd + '.' + mm + '.' + yyyy + ' ' + hh + ':' + min;
+}
+
+function loadSpeedtestHistory() {
+    var T = {{ t|tojson }};
+    var tbody = document.getElementById('speedtest-tbody');
+    var table = document.getElementById('speedtest-table');
+    var noData = document.getElementById('speedtest-no-data');
+    var loading = document.getElementById('speedtest-loading');
+    var moreWrap = document.getElementById('speedtest-show-more');
+    if (!tbody || !table || !noData) return;
+    tbody.innerHTML = '';
+    table.style.display = 'none';
+    noData.style.display = 'none';
+    if (loading) loading.style.display = '';
+    if (moreWrap) moreWrap.style.display = 'none';
+    _speedtestRawData = [];
+    _speedtestAllData = [];
+    _speedtestVisible = 50;
+    fetch('/api/speedtest?count=2000')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (loading) loading.style.display = 'none';
+            if (!data || data.length === 0) {
+                noData.textContent = T.speedtest_no_data || 'No speedtest data.';
+                noData.style.display = 'block';
+                return;
+            }
+            _speedtestRawData = data;
+            filterSpeedtestData();
+        })
+        .catch(function() {
+            if (loading) loading.style.display = 'none';
+            noData.textContent = T.network_error || 'Error';
+            noData.style.display = 'block';
+        });
+}
+
+function filterSpeedtestData() {
+    var T = {{ t|tojson }};
+    var daysEl = document.getElementById('speedtest-days');
+    var days = daysEl ? daysEl.value : '7';
+    var table = document.getElementById('speedtest-table');
+    var noData = document.getElementById('speedtest-no-data');
+    _speedtestVisible = 50;
+    if (days === '365') {
+        _speedtestAllData = _speedtestRawData.slice();
+    } else {
+        var cutoff = new Date(Date.now() - parseInt(days) * 86400000);
+        _speedtestAllData = _speedtestRawData.filter(function(r) {
+            return new Date(r.timestamp) >= cutoff;
+        });
+    }
+    sortSpeedtestData();
+    if (_speedtestAllData.length === 0) {
+        if (table) table.style.display = 'none';
+        if (noData) {
+            noData.textContent = T.speedtest_no_data || 'No speedtest data.';
+            noData.style.display = 'block';
+        }
+        var cc = document.getElementById('speedtest-chart-container');
+        if (cc) cc.style.display = 'none';
+    } else {
+        if (table) table.style.display = '';
+        if (noData) noData.style.display = 'none';
+        renderSpeedtestRows();
+        renderSpeedtestChart();
+    }
+}
+
+function sortSpeedtestData() {
+    var col = _speedtestSortCol;
+    var dir = _speedtestSortDir === 'asc' ? 1 : -1;
+    _speedtestAllData.sort(function(a, b) {
+        var va = a[col], vb = b[col];
+        if (col === 'timestamp') {
+            va = new Date(va || 0).getTime();
+            vb = new Date(vb || 0).getTime();
+        } else {
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+        }
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+    });
+}
+
+function handleSpeedtestSort(col) {
+    if (_speedtestSortCol === col) {
+        _speedtestSortDir = _speedtestSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        _speedtestSortCol = col;
+        _speedtestSortDir = col === 'timestamp' ? 'desc' : 'asc';
+    }
+    var ths = document.querySelectorAll('#speedtest-table thead th');
+    ths.forEach(function(th) {
+        var indicator = th.querySelector('.sort-indicator');
+        if (indicator) {
+            if (th.getAttribute('data-col') === col) {
+                indicator.textContent = _speedtestSortDir === 'asc' ? '▲' : '▼';
+            } else {
+                indicator.textContent = '';
+            }
+        }
+    });
+    sortSpeedtestData();
+    _speedtestVisible = 50;
+    renderSpeedtestRows();
+    renderSpeedtestChart();
+}
+
+function computeMedian(arr) {
+    if (arr.length === 0) return 0;
+    var sorted = arr.slice().sort(function(a, b) { return a - b; });
+    var mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function renderSpeedtestRows() {
+    var T = {{ t|tojson }};
+    var tbody = document.getElementById('speedtest-tbody');
+    var moreWrap = document.getElementById('speedtest-show-more');
+    var moreBtn = document.getElementById('speedtest-more-btn');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    var downloads = [], uploads = [];
+    for (var j = 0; j < _speedtestAllData.length; j++) {
+        var d = _speedtestAllData[j];
+        if (d.download_mbps != null) downloads.push(parseFloat(d.download_mbps) || 0);
+        if (d.upload_mbps != null) uploads.push(parseFloat(d.upload_mbps) || 0);
+    }
+    var medianDl = computeMedian(downloads);
+    var medianUl = computeMedian(uploads);
+    var show = Math.min(_speedtestVisible, _speedtestAllData.length);
+    for (var i = 0; i < show; i++) {
+        var r = _speedtestAllData[i];
+        var dlVal = parseFloat(r.download_mbps) || 0;
+        var ulVal = parseFloat(r.upload_mbps) || 0;
+        var pingVal = parseFloat(r.ping_ms) || 0;
+        var jitterVal = parseFloat(r.jitter_ms) || 0;
+        var dlClass = (medianDl > 0 && dlVal < medianDl * 0.8) ? ' class="val-bad"' : '';
+        var ulClass = (medianUl > 0 && ulVal < medianUl * 0.8) ? ' class="val-bad"' : '';
+        var pingClass = pingVal > 50 ? ' class="val-warn"' : '';
+        var jitterClass = jitterVal > 20 ? ' class="val-warn"' : '';
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + escapeHtml(formatSpeedtestTimestamp(r.timestamp)) + '</td>'
+            + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
+            + '<td><strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
+            + '<td' + pingClass + '>' + r.ping_ms + ' ms</td>'
+            + '<td' + jitterClass + '>' + r.jitter_ms + ' ms</td>'
+            + '<td>' + (r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>';
+        tbody.appendChild(tr);
+    }
+    if (moreWrap && moreBtn) {
+        if (_speedtestAllData.length > _speedtestVisible) {
+            moreWrap.style.display = '';
+            moreBtn.textContent = (T.show_more || 'Show more') + ' (' + (_speedtestAllData.length - _speedtestVisible) + ')';
+        } else {
+            moreWrap.style.display = 'none';
+        }
+    }
+}
+
+function renderSpeedtestChart() {
+    var container = document.getElementById('speedtest-chart-container');
+    var canvas = document.getElementById('speedtest-chart');
+    if (!container || !canvas) return;
+    // Sort data chronologically for chart (oldest first)
+    var data = _speedtestAllData.slice().sort(function(a, b) {
+        return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+    if (data.length < 2) { container.style.display = 'none'; return; }
+    container.style.display = '';
+    var wrap = canvas.parentElement;
+    var dpr = window.devicePixelRatio || 1;
+    var w = wrap.clientWidth;
+    var h = canvas.clientHeight || 250;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    // Padding
+    var padL = 60, padR = 60, padT = 20, padB = 30;
+    var cw = w - padL - padR;
+    var ch = h - padT - padB;
+    // Extract data arrays
+    var dls = [], uls = [], pings = [], times = [];
+    for (var i = 0; i < data.length; i++) {
+        dls.push(parseFloat(data[i].download_mbps) || 0);
+        uls.push(parseFloat(data[i].upload_mbps) || 0);
+        pings.push(parseFloat(data[i].ping_ms) || 0);
+        times.push(new Date(data[i].timestamp));
+    }
+    // Scales
+    var maxSpeed = Math.max.apply(null, dls.concat(uls)) * 1.1 || 1;
+    var maxPing = Math.max.apply(null, pings) * 1.1 || 1;
+    var medianDl = computeMedian(dls);
+    var threshold = medianDl * 0.8;
+    function xPos(idx) { return padL + (idx / (data.length - 1)) * cw; }
+    function ySpeed(v) { return padT + ch - (v / maxSpeed) * ch; }
+    function yPing(v) { return padT + ch - (v / maxPing) * ch; }
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+    // Background zones (green/red tint per segment)
+    for (var i = 0; i < data.length - 1; i++) {
+        var x1 = xPos(i), x2 = xPos(i + 1);
+        var isHealthy = dls[i] >= threshold && dls[i + 1] >= threshold;
+        ctx.fillStyle = isHealthy ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)';
+        ctx.fillRect(x1, padT, x2 - x1, ch);
+    }
+    // Grid lines + left Y axis labels (speed)
+    var cs = getComputedStyle(document.documentElement);
+    var mutedColor = cs.getPropertyValue('--muted').trim() || '#888';
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = 1;
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    var gridLines = 5;
+    for (var g = 0; g <= gridLines; g++) {
+        var gy = padT + (g / gridLines) * ch;
+        var speedVal = maxSpeed - (g / gridLines) * maxSpeed;
+        var pingVal = maxPing - (g / gridLines) * maxPing;
+        ctx.beginPath();
+        ctx.moveTo(padL, gy);
+        ctx.lineTo(w - padR, gy);
+        ctx.stroke();
+        ctx.fillStyle = mutedColor;
+        ctx.textAlign = 'right';
+        ctx.fillText(speedVal.toFixed(0), padL - 6, gy);
+        ctx.textAlign = 'left';
+        ctx.fillText(pingVal.toFixed(0), w - padR + 6, gy);
+    }
+    ctx.fillStyle = mutedColor;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.translate(12, padT + ch / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Mbps', 0, 0);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(w - 10, padT + ch / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillText('ms', 0, 0);
+    ctx.restore();
+    // X axis labels (timestamps)
+    ctx.fillStyle = mutedColor;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    var labelCount = Math.min(6, data.length);
+    for (var li = 0; li < labelCount; li++) {
+        var idx = Math.round(li * (data.length - 1) / (labelCount - 1));
+        var t = times[idx];
+        var label = String(t.getDate()).padStart(2, '0') + '.' + String(t.getMonth() + 1).padStart(2, '0') + ' ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+        ctx.fillText(label, xPos(idx), padT + ch + 6);
+    }
+    // Threshold line (dashed red)
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    var threshY = ySpeed(threshold);
+    ctx.moveTo(padL, threshY);
+    ctx.lineTo(w - padR, threshY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Helper: draw filled line
+    function drawLine(values, yFn, color, fillColor) {
+        // Filled area
+        ctx.beginPath();
+        ctx.moveTo(xPos(0), padT + ch);
+        for (var i = 0; i < values.length; i++) {
+            ctx.lineTo(xPos(i), yFn(values[i]));
+        }
+        ctx.lineTo(xPos(values.length - 1), padT + ch);
+        ctx.closePath();
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+        // Line
+        ctx.beginPath();
+        for (var i = 0; i < values.length; i++) {
+            if (i === 0) ctx.moveTo(xPos(i), yFn(values[i]));
+            else ctx.lineTo(xPos(i), yFn(values[i]));
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+    drawLine(uls, ySpeed, '#22c55e', 'rgba(34,197,94,0.12)');
+    drawLine(dls, ySpeed, '#3b82f6', 'rgba(59,130,246,0.15)');
+    drawLine(pings, yPing, '#f59e0b', 'rgba(245,158,11,0.10)');
+    // Hover interaction
+    var tooltip = document.getElementById('speedtest-chart-tooltip');
+    // Move tooltip to body so it's never clipped
+    if (tooltip.parentElement !== document.body) document.body.appendChild(tooltip);
+    tooltip.style.position = 'fixed';
+    function onMouseMove(e) {
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = w / rect.width;
+        var scaleY = h / rect.height;
+        var mx = (e.clientX - rect.left) * scaleX;
+        var my = (e.clientY - rect.top) * scaleY;
+        if (mx < padL || mx > w - padR || my < padT || my > padT + ch) {
+            tooltip.style.display = 'none'; return;
+        }
+        var ratio = (mx - padL) / cw;
+        var idx = Math.round(ratio * (data.length - 1));
+        if (idx < 0) idx = 0;
+        if (idx >= data.length) idx = data.length - 1;
+        tooltip.style.display = 'block';
+        tooltip.innerHTML = '<strong>' + formatSpeedtestTimestamp(data[idx].timestamp) + '</strong><br>'
+            + '<span style="color:#3b82f6">&#9660;</span> DL: ' + dls[idx].toFixed(2) + ' Mbps<br>'
+            + '<span style="color:#22c55e">&#9650;</span> UL: ' + uls[idx].toFixed(2) + ' Mbps<br>'
+            + '<span style="color:#f59e0b">&#9679;</span> Ping: ' + pings[idx].toFixed(1) + ' ms';
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
+    }
+    function onMouseLeave() { tooltip.style.display = 'none'; }
+    if (canvas._chartMoveHandler) canvas.removeEventListener('mousemove', canvas._chartMoveHandler);
+    if (canvas._chartLeaveHandler) canvas.removeEventListener('mouseleave', canvas._chartLeaveHandler);
+    canvas._chartMoveHandler = onMouseMove;
+    canvas._chartLeaveHandler = onMouseLeave;
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseleave', onMouseLeave);
+}
+window.addEventListener('resize', function() {
+    if (_speedtestAllData.length >= 2) renderSpeedtestChart();
+});
+
+function showMoreSpeedtest() {
+    _speedtestVisible += 50;
+    renderSpeedtestRows();
+}
+
+(function() {
+    var ths = document.querySelectorAll('#speedtest-table thead th[data-col]');
+    ths.forEach(function(th) {
+        th.addEventListener('click', function() {
+            handleSpeedtestSort(th.getAttribute('data-col'));
+        });
+    });
+})();
+
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+
+
 </script>
 
 </body>
