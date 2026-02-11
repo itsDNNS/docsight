@@ -1,6 +1,7 @@
 {
-  "_meta": { "language_name": "Français" },
-
+  "_meta": {
+    "language_name": "Français"
+  },
   "nav": "Navigation",
   "live_dashboard": "Tableau de bord",
   "day_trend": "Tendance du jour",
@@ -8,10 +9,8 @@
   "month_trend": "Tendance du mois",
   "settings": "Paramètres",
   "reference_values": "Valeurs de référence",
-
   "open_calendar": "Ouvrir le calendrier",
   "last_update": "Dernière mise à jour",
-
   "health_good": "Bon",
   "health_marginal": "Limite",
   "health_poor": "Mauvais",
@@ -22,7 +21,6 @@
   "health_poor_msg": "Une ou plusieurs valeurs sont critiques. Vous pourriez rencontrer des problèmes de connexion tels que des vitesses lentes, des coupures ou une latence élevée.",
   "all_ok": "Tous les canaux fonctionnent normalement.",
   "issues_found": "Problèmes détectés",
-
   "issue_ds_power_critical": "Puissance descendante hors spécification",
   "issue_ds_power_critical_desc": "Le niveau du signal dépasse +/-10 dBmV. Cela indique généralement un problème de câblage ou d'amplificateur. Contactez votre FAI si le problème persiste.",
   "issue_us_power_critical": "Puissance montante critique",
@@ -35,19 +33,16 @@
   "issue_snr_warn_desc": "SNR entre 25-30 dB (idéal : supérieur à 30 dB). La connexion fonctionne mais avec une marge d'erreur réduite. Vérifiez la qualité du câble.",
   "issue_uncorr_errors_high": "Nombre élevé d'erreurs non corrigeables",
   "issue_uncorr_errors_high_desc": "Plus de 10 000 erreurs non corrigeables détectées. Elles ne peuvent pas être récupérées et causent des pertes de données. Si ce nombre augmente rapidement, contactez votre FAI.",
-
   "ch_power_critical": "Puissance critique hors plage",
   "ch_power_warning": "Puissance légèrement élevée",
   "ch_snr_critical": "SNR critique",
   "ch_snr_warning": "SNR sous l'idéal",
-
   "ds_channels": "Canaux descendants",
   "us_channels": "Canaux montants",
   "ds_power_range": "Puissance DS (Min / Moy / Max)",
   "ds_snr_range": "SNR DS (Min / Moy)",
   "ds_errors_label": "Erreurs DS (corr. / non corr.)",
   "us_power_range": "Puissance US (Min / Moy / Max)",
-
   "status": "Statut",
   "channel": "Canal",
   "frequency": "Fréquence",
@@ -60,18 +55,15 @@
   "channels": "Canaux",
   "downstream": "Descendant",
   "upstream": "Montant",
-
   "metric": "Métrique",
   "good": "Bon",
   "marginal": "Limite",
   "poor": "Mauvais",
   "low": "faible",
-
   "historical_view": "Vue historique",
   "back_to_live": "Retour au direct",
   "error_label": "Erreur",
   "waiting_msg": "En attente de la première requête DOCSIS...",
-
   "no_data": "Aucune donnée disponible pour cette période.",
   "trend_error": "Erreur lors du chargement des tendances.",
   "correctable": "Corrigeables",
@@ -80,14 +72,24 @@
   "ds_power_avg": "Puissance DS Moy (dBmV)",
   "ds_snr_avg": "SNR DS Moy (dB)",
   "us_power_avg": "Puissance US Moy (dBmV)",
-
   "live": "Direct",
   "day": "Jour",
   "week": "Semaine",
   "month": "Mois",
-  "months": ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-             "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
-
+  "months": [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre"
+  ],
   "initial_setup": "Configuration initiale",
   "modem_connection": "Connexion modem",
   "modem_user_hint": "Conseil : Créez un utilisateur dédié pour DOCSight au lieu d'utiliser votre compte administrateur principal.",
@@ -118,7 +120,6 @@
   "unknown_error": "Inconnu",
   "error_prefix": "Erreur",
   "default": "Défaut",
-
   "back_dashboard": "Retour au tableau de bord",
   "light_mode": "Mode clair",
   "dark_mode": "Mode sombre",
@@ -127,19 +128,18 @@
   "settings_saved": "Paramètres enregistrés",
   "save_failed": "Échec de l'enregistrement",
   "saved_ph": "Enregistré",
-
   "language": "Langue",
-
   "isp_name": "Fournisseur d'accès",
   "isp_hint": "Affiché dans le rapport d'export LLM",
   "isp_other": "Autre",
   "isp_other_placeholder": "Nom du fournisseur",
   "isp_select": "Choisir un fournisseur",
-  "isp_options": ["SFR"],
+  "isp_options": [
+    "SFR"
+  ],
   "tariff": "Forfait",
   "max_downstream": "Débit descendant max",
   "max_upstream": "Débit montant max",
-
   "export_llm": "Exporter pour LLM",
   "export_title": "Export pour analyse LLM",
   "export_hint": "Copiez ce texte et collez-le dans votre LLM préféré (ChatGPT, Claude, Gemini, ...) pour obtenir des informations sur votre connexion.",
@@ -147,7 +147,6 @@
   "copied": "Copié !",
   "close": "Fermer",
   "export_no_data": "Aucune donnée disponible. Attendez la première interrogation.",
-
   "login_title": "Connexion",
   "login_hint": "Entrez le mot de passe administrateur pour accéder à DOCSight.",
   "login_failed": "Mot de passe incorrect",
@@ -155,13 +154,11 @@
   "logout": "Déconnexion",
   "admin_password": "Mot de passe admin",
   "admin_password_hint": "Laisser vide pour désactiver l'authentification",
-
   "bqm_title": "Graphiques BQM",
   "bqm_optional": "optionnel",
   "bqm_share_url": "URL de partage BQM",
   "bqm_url_hint": "Collez votre lien de partage ThinkBroadband BQM (.png)",
   "bqm_no_data": "Pas de graphique BQM pour cette date.",
-
   "card_signal_quality": "Descendant",
   "card_upstream": "Montant",
   "card_errors": "Erreurs",
@@ -176,5 +173,9 @@
   "card_uncorr_exact": "Non corrigeables (exact)",
   "card_corr_exact": "Corrigeables (exact)",
   "card_errors_note": "Les erreurs non corrigeables ne peuvent pas être récupérées. Des chiffres élevés et croissants indiquent un problème de câble.",
-  "card_uptime": "Disponibilité modem"
+  "card_uptime": "Disponibilité modem",
+  "incident_report": "Rapport d'incident",
+  "generate_report": "Générer le rapport",
+  "report_days": "Période du rapport (jours)",
+  "report_description": "Rapport PDF avec données de signal, valeurs extrêmes et modèle de réclamation FAI."
 }

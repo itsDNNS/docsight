@@ -1,6 +1,7 @@
 {
-  "_meta": { "language_name": "English" },
-
+  "_meta": {
+    "language_name": "English"
+  },
   "nav": "Navigation",
   "live_dashboard": "Live Dashboard",
   "day_trend": "Day Trend",
@@ -8,10 +9,8 @@
   "month_trend": "Month Trend",
   "settings": "Settings",
   "reference_values": "Reference Values",
-
   "open_calendar": "Open calendar",
   "last_update": "Last Update",
-
   "health_good": "Good",
   "health_marginal": "Marginal",
   "health_poor": "Poor",
@@ -22,7 +21,6 @@
   "health_poor_msg": "One or more values are critically out of range. You may experience connection issues such as slow speeds, dropouts, or high latency.",
   "all_ok": "All channels operating normally.",
   "issues_found": "Issues detected",
-
   "issue_ds_power_critical": "Downstream power out of spec",
   "issue_ds_power_critical_desc": "Signal level exceeds +/-10 dBmV. This usually indicates a cabling or amplifier problem. Contact your ISP if the issue persists.",
   "issue_us_power_critical": "Upstream power critically high",
@@ -35,19 +33,16 @@
   "issue_snr_warn_desc": "SNR between 25-30 dB (ideal: above 30 dB). Connection works but has reduced margin for error. Consider checking cable quality.",
   "issue_uncorr_errors_high": "High uncorrectable error count",
   "issue_uncorr_errors_high_desc": "Over 10,000 uncorrectable errors detected. These cannot be recovered and cause data loss. If this number grows rapidly, contact your ISP.",
-
   "ch_power_critical": "Power critically out of range",
   "ch_power_warning": "Power slightly elevated",
   "ch_snr_critical": "SNR critically low",
   "ch_snr_warning": "SNR below ideal",
-
   "ds_channels": "Downstream Channels",
   "us_channels": "Upstream Channels",
   "ds_power_range": "DS Power (Min / Avg / Max)",
   "ds_snr_range": "DS SNR (Min / Avg)",
   "ds_errors_label": "DS Errors (corr. / uncorr.)",
   "us_power_range": "US Power (Min / Avg / Max)",
-
   "status": "Status",
   "channel": "Channel",
   "frequency": "Frequency",
@@ -60,18 +55,15 @@
   "channels": "Channels",
   "downstream": "Downstream",
   "upstream": "Upstream",
-
   "metric": "Metric",
   "good": "Good",
   "marginal": "Marg.",
   "poor": "Poor",
   "low": "low",
-
   "historical_view": "Historical View",
   "back_to_live": "Back to Live",
   "error_label": "Error",
   "waiting_msg": "Waiting for first DOCSIS query...",
-
   "no_data": "No data available for this period.",
   "trend_error": "Error loading trend data.",
   "correctable": "Correctable",
@@ -80,14 +72,24 @@
   "ds_power_avg": "DS Power Avg (dBmV)",
   "ds_snr_avg": "DS SNR Avg (dB)",
   "us_power_avg": "US Power Avg (dBmV)",
-
   "live": "Live",
   "day": "Day",
   "week": "Week",
   "month": "Month",
-  "months": ["January", "February", "March", "April", "May", "June",
-             "July", "August", "September", "October", "November", "December"],
-
+  "months": [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ],
   "initial_setup": "Initial Setup",
   "modem_connection": "Modem Connection",
   "modem_user_hint": "Tip: Create a dedicated user for DOCSight instead of using your main admin account.",
@@ -118,7 +120,6 @@
   "unknown_error": "Unknown",
   "error_prefix": "Error",
   "default": "Default",
-
   "back_dashboard": "Back to Dashboard",
   "light_mode": "Light Mode",
   "dark_mode": "Dark Mode",
@@ -127,19 +128,26 @@
   "settings_saved": "Settings saved",
   "save_failed": "Save failed",
   "saved_ph": "Saved",
-
   "language": "Language",
-
   "isp_name": "Internet Provider",
   "isp_hint": "Shown in LLM export report",
   "isp_other": "Other",
   "isp_other_placeholder": "Enter provider name",
   "isp_select": "Select provider",
-  "isp_options": ["Vodafone", "PYUR", "eazy", "O2", "1&1", "Telekom", "NetCologne", "M-net", "Wilhelm.tel"],
+  "isp_options": [
+    "Vodafone",
+    "PYUR",
+    "eazy",
+    "O2",
+    "1&1",
+    "Telekom",
+    "NetCologne",
+    "M-net",
+    "Wilhelm.tel"
+  ],
   "tariff": "Tariff",
   "max_downstream": "Max Downstream",
   "max_upstream": "Max Upstream",
-
   "export_llm": "Export for LLM",
   "export_title": "LLM Analysis Export",
   "export_hint": "Copy this text and paste it into your favorite LLM (ChatGPT, Claude, Gemini, ...) for connection insights.",
@@ -147,7 +155,6 @@
   "copied": "Copied!",
   "close": "Close",
   "export_no_data": "No data available yet. Wait for the first poll.",
-
   "login_title": "Login",
   "login_hint": "Enter the admin password to access DOCSight.",
   "login_failed": "Invalid password",
@@ -155,13 +162,11 @@
   "logout": "Logout",
   "admin_password": "Admin Password",
   "admin_password_hint": "Leave empty to disable authentication",
-
   "bqm_title": "BQM Graphs",
   "bqm_optional": "optional",
   "bqm_share_url": "BQM Share URL",
   "bqm_url_hint": "Paste your ThinkBroadband BQM share link (.png)",
   "bqm_no_data": "No BQM graph for this date.",
-
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Errors",
@@ -176,5 +181,9 @@
   "card_uncorr_exact": "Uncorrectable (exact)",
   "card_corr_exact": "Correctable (exact)",
   "card_errors_note": "Uncorrectable errors cannot be recovered. High growing numbers indicate a cable issue.",
-  "card_uptime": "Modem Uptime"
+  "card_uptime": "Modem Uptime",
+  "incident_report": "Incident Report",
+  "generate_report": "Generate Report",
+  "report_days": "Report period (days)",
+  "report_description": "Generate a PDF report with signal data, worst values, and a pre-written ISP complaint letter."
 }

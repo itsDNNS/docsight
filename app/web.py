@@ -528,6 +528,45 @@ def add_security_headers(response):
     return response
 
 
+@app.route("/api/report")
+@require_auth
+def api_report():
+    """Generate a PDF incident report."""
+    from .report import generate_report
+
+    analysis = _state.get("analysis")
+    if not analysis:
+        return jsonify({"error": "No data available"}), 404
+
+    # Time range: default last 7 days, configurable via ?days=N
+    days = request.args.get("days", 7, type=int)
+    days = max(1, min(days, 90))
+    end_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    start_ts = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    snapshots = []
+    if _storage:
+        snapshots = _storage.get_range_data(start_ts, end_ts)
+
+    config = {}
+    if _config_manager:
+        config = {
+            "isp_name": _config_manager.get("isp_name", ""),
+            "modem_type": _config_manager.get("modem_type", ""),
+        }
+
+    conn_info = _state.get("connection_info") or {}
+    lang = _get_lang()
+
+    pdf_bytes = generate_report(snapshots, analysis, config, conn_info, lang)
+
+    response = make_response(pdf_bytes)
+    response.headers["Content-Type"] = "application/pdf"
+    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    response.headers["Content-Disposition"] = f'attachment; filename="docsight_incident_report_{ts}.pdf"'
+    return response
+
+
 @app.route("/health")
 def health():
     """Simple health check endpoint."""

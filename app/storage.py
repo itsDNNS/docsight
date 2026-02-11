@@ -134,6 +134,25 @@ class SnapshotStorage:
                 results.append(entry)
         return results
 
+    def get_range_data(self, start_ts, end_ts):
+        """Get all snapshots between two ISO timestamps (inclusive)."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT timestamp, summary_json, ds_channels_json, us_channels_json "
+                "FROM snapshots WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
+                (start_ts, end_ts),
+            ).fetchall()
+        results = []
+        for row in rows:
+            entry = {
+                "timestamp": row[0],
+                "summary": json.loads(row[1]),
+                "ds_channels": json.loads(row[2]),
+                "us_channels": json.loads(row[3]),
+            }
+            results.append(entry)
+        return results
+
     def get_intraday_data(self, date):
         """Get all snapshots for a single day (for day-detail trends)."""
         with sqlite3.connect(self.db_path) as conn:

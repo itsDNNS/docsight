@@ -1,6 +1,7 @@
 {
-  "_meta": { "language_name": "Deutsch" },
-
+  "_meta": {
+    "language_name": "Deutsch"
+  },
   "nav": "Navigation",
   "live_dashboard": "Live Dashboard",
   "day_trend": "Tagesverlauf",
@@ -8,10 +9,8 @@
   "month_trend": "Monatstrend",
   "settings": "Einstellungen",
   "reference_values": "Richtwerte",
-
   "open_calendar": "Kalender oeffnen",
   "last_update": "Letztes Update",
-
   "health_good": "Gut",
   "health_marginal": "Grenzwertig",
   "health_poor": "Schlecht",
@@ -22,7 +21,6 @@
   "health_poor_msg": "Ein oder mehrere Werte sind kritisch. Du koenntest Verbindungsprobleme wie langsame Geschwindigkeiten, Abbrueche oder hohe Latenz bemerken.",
   "all_ok": "Alle Kanaele arbeiten normal.",
   "issues_found": "Probleme erkannt",
-
   "issue_ds_power_critical": "Downstream-Pegel ausserhalb der Spezifikation",
   "issue_ds_power_critical_desc": "Signalpegel ueberschreitet +/-10 dBmV. Das deutet meist auf ein Kabel- oder Verstaerkerproblem hin. Kontaktiere deinen Anbieter, wenn das Problem bestehen bleibt.",
   "issue_us_power_critical": "Upstream-Sendeleistung kritisch hoch",
@@ -35,19 +33,16 @@
   "issue_snr_warn_desc": "SNR zwischen 25-30 dB (ideal: ueber 30 dB). Verbindung funktioniert, hat aber weniger Fehlertoleranz. Pruefe die Kabelqualitaet.",
   "issue_uncorr_errors_high": "Hohe Anzahl unkorrigierbarer Fehler",
   "issue_uncorr_errors_high_desc": "Ueber 10.000 unkorrigierbare Fehler erkannt. Diese koennen nicht repariert werden und verursachen Datenverlust. Wenn diese Zahl schnell waechst, kontaktiere deinen Anbieter.",
-
   "ch_power_critical": "Pegel kritisch ausserhalb des Bereichs",
   "ch_power_warning": "Pegel leicht erhoeht",
   "ch_snr_critical": "SNR kritisch niedrig",
   "ch_snr_warning": "SNR unter Idealwert",
-
   "ds_channels": "Downstream Kanaele",
   "us_channels": "Upstream Kanaele",
   "ds_power_range": "DS Power (Min / Avg / Max)",
   "ds_snr_range": "DS SNR (Min / Avg)",
   "ds_errors_label": "DS Fehler (korr. / unkorr.)",
   "us_power_range": "US Power (Min / Avg / Max)",
-
   "status": "Status",
   "channel": "Kanal",
   "frequency": "Frequenz",
@@ -60,18 +55,15 @@
   "channels": "Kanaele",
   "downstream": "Downstream",
   "upstream": "Upstream",
-
   "metric": "Metrik",
   "good": "Gut",
   "marginal": "Grenz.",
   "poor": "Schlecht",
   "low": "niedrig",
-
   "historical_view": "Historische Ansicht",
   "back_to_live": "Zurueck zu Live",
   "error_label": "Fehler",
   "waiting_msg": "Warte auf erste DOCSIS-Abfrage...",
-
   "no_data": "Keine Daten fuer diesen Zeitraum vorhanden.",
   "trend_error": "Fehler beim Laden der Trenddaten.",
   "correctable": "Korrigierbar",
@@ -80,14 +72,24 @@
   "ds_power_avg": "DS Power Avg (dBmV)",
   "ds_snr_avg": "DS SNR Avg (dB)",
   "us_power_avg": "US Power Avg (dBmV)",
-
   "live": "Live",
   "day": "Tag",
   "week": "Woche",
   "month": "Monat",
-  "months": ["Januar", "Februar", "Maerz", "April", "Mai", "Juni",
-             "Juli", "August", "September", "Oktober", "November", "Dezember"],
-
+  "months": [
+    "Januar",
+    "Februar",
+    "Maerz",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember"
+  ],
   "initial_setup": "Ersteinrichtung",
   "modem_connection": "Modem-Verbindung",
   "modem_user_hint": "Tipp: Lege einen eigenen Benutzer fuer DOCSight an, anstatt deinen Haupt-Admin zu verwenden.",
@@ -118,7 +120,6 @@
   "unknown_error": "Unbekannt",
   "error_prefix": "Fehler",
   "default": "Standard",
-
   "back_dashboard": "Zurueck zum Dashboard",
   "light_mode": "Light Mode",
   "dark_mode": "Dark Mode",
@@ -127,19 +128,26 @@
   "settings_saved": "Einstellungen gespeichert",
   "save_failed": "Speichern fehlgeschlagen",
   "saved_ph": "Gespeichert",
-
   "language": "Sprache",
-
   "isp_name": "Internetanbieter",
   "isp_hint": "Wird im LLM-Export angezeigt",
   "isp_other": "Andere",
   "isp_other_placeholder": "Anbietername eingeben",
   "isp_select": "Anbieter waehlen",
-  "isp_options": ["Vodafone", "PYUR", "eazy", "O2", "1&1", "Telekom", "NetCologne", "M-net", "Wilhelm.tel"],
+  "isp_options": [
+    "Vodafone",
+    "PYUR",
+    "eazy",
+    "O2",
+    "1&1",
+    "Telekom",
+    "NetCologne",
+    "M-net",
+    "Wilhelm.tel"
+  ],
   "tariff": "Tarif",
   "max_downstream": "Max Downstream",
   "max_upstream": "Max Upstream",
-
   "export_llm": "Export fuer LLM",
   "export_title": "LLM-Analyse Export",
   "export_hint": "Kopiere diesen Text und fuege ihn in dein bevorzugtes LLM (ChatGPT, Claude, Gemini, ...) ein, um Insights zu deiner Verbindung zu erhalten.",
@@ -147,7 +155,6 @@
   "copied": "Kopiert!",
   "close": "Schliessen",
   "export_no_data": "Noch keine Daten vorhanden. Warte auf die erste Abfrage.",
-
   "login_title": "Anmeldung",
   "login_hint": "Gib das Admin-Passwort ein, um auf DOCSight zuzugreifen.",
   "login_failed": "Falsches Passwort",
@@ -155,13 +162,11 @@
   "logout": "Abmelden",
   "admin_password": "Admin-Passwort",
   "admin_password_hint": "Leer lassen um Authentifizierung zu deaktivieren",
-
   "bqm_title": "BQM-Graphen",
   "bqm_optional": "optional",
   "bqm_share_url": "BQM Share-URL",
   "bqm_url_hint": "ThinkBroadband BQM Share-Link einfuegen (.png)",
   "bqm_no_data": "Kein BQM-Graph fuer dieses Datum.",
-
   "card_signal_quality": "Downstream",
   "card_upstream": "Upstream",
   "card_errors": "Fehler",
@@ -176,5 +181,9 @@
   "card_uncorr_exact": "Unkorrigierbar (exakt)",
   "card_corr_exact": "Korrigierbar (exakt)",
   "card_errors_note": "Unkorrigierbare Fehler koennen nicht wiederhergestellt werden. Hohe und steigende Werte deuten auf ein Kabelproblem hin.",
-  "card_uptime": "Modem-Laufzeit"
+  "card_uptime": "Modem-Laufzeit",
+  "incident_report": "Störungsbericht",
+  "generate_report": "Bericht erstellen",
+  "report_days": "Berichtszeitraum (Tage)",
+  "report_description": "PDF-Bericht mit Signaldaten, Extremwerten und einem vorformulierten Beschwerdebrief an den Provider."
 }

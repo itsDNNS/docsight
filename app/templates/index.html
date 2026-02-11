@@ -496,6 +496,9 @@
         <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
             <span class="icon">&#128196;</span> {{ t.export_llm }}
         </a>
+        <a class="sidebar-link" id="report-link" onclick="openReportModal()">
+            <span class="icon">&#128203;</span> {{ t.incident_report }}
+        </a>
         {% if auth_enabled %}
         <a class="sidebar-link" href="/logout">
             <span class="icon">&#128682;</span> {{ t.logout }}
@@ -871,6 +874,31 @@
 </div><!-- /main-content -->
 </div><!-- /app-main -->
 </div><!-- /app-layout -->
+
+<!-- Report Modal -->
+<div class="modal-overlay" id="report-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>{{ t.incident_report }}</h2>
+            <button class="modal-close" onclick="closeReportModal()">&times;</button>
+        </div>
+        <p class="modal-hint">{{ t.report_description }}</p>
+        <div class="modal-body" style="padding: 10px 20px;">
+            <label for="report-days" style="font-size:14px;">{{ t.report_days }}:</label>
+            <select id="report-days" style="margin: 8px 0; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                <option value="1">1</option>
+                <option value="3">3</option>
+                <option value="7" selected>7</option>
+                <option value="14">14</option>
+                <option value="30">30</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-muted" onclick="closeReportModal()">{{ t.close }}</button>
+            <button class="btn btn-accent" onclick="downloadReport()">&#128203; {{ t.generate_report }}</button>
+        </div>
+    </div>
+</div>
 
 <!-- Export Modal -->
 <div class="modal-overlay" id="export-modal">
@@ -1344,6 +1372,18 @@ function exportForLLM() {
 }
 function closeExportModal() {
     document.getElementById('export-modal').classList.remove('open');
+}
+function openReportModal() {
+    document.getElementById('report-modal').classList.add('open');
+    closeSidebar();
+}
+function closeReportModal() {
+    document.getElementById('report-modal').classList.remove('open');
+}
+function downloadReport() {
+    var days = document.getElementById('report-days').value;
+    window.location.href = '/api/report?days=' + days;
+    closeReportModal();
 }
 function copyExport() {
     var T = {{ t|tojson }};
