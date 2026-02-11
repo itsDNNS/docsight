@@ -2,11 +2,14 @@
 
 import io
 import logging
+import os
 from datetime import datetime
 
 from fpdf import FPDF
 
 log = logging.getLogger("docsis.report")
+
+_FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
 
 # DIN thresholds for reference in reports
 THRESHOLDS = {
@@ -22,9 +25,9 @@ class IncidentReport(FPDF):
     def __init__(self, lang="en"):
         super().__init__()
         self.lang = lang
-        self.add_font("dejavu", "", "/usr/share/fonts/TTF/DejaVuSans.ttf")
-        self.add_font("dejavu", "B", "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf")
-        self.add_font("dejavu", "I", "/usr/share/fonts/TTF/DejaVuSans-Oblique.ttf")
+        self.add_font("dejavu", "", os.path.join(_FONT_DIR, "DejaVuSans.ttf"))
+        self.add_font("dejavu", "B", os.path.join(_FONT_DIR, "DejaVuSans-Bold.ttf"))
+        self.add_font("dejavu", "I", os.path.join(_FONT_DIR, "DejaVuSans-Oblique.ttf"))
         self.set_auto_page_break(auto=True, margin=20)
 
     def header(self):
