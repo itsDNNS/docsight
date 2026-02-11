@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, redirect, session, u
 from werkzeug.security import check_password_hash
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
-from .i18n import get_translations, LANGUAGES
+from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 
 def _server_tz_info():
     """Return server timezone name and UTC offset in minutes."""
@@ -226,7 +226,7 @@ def index():
                 uncorr_pct=_compute_uncorr_pct(snapshot),
                 has_us_ofdma=_has_us_ofdma(snapshot),
                 device_info=dev_info,
-                t=t, lang=lang, languages=LANGUAGES,
+                t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
             )
     return render_template(
         "index.html",
@@ -242,7 +242,7 @@ def index():
         uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         device_info=dev_info,
-        t=t, lang=lang, languages=LANGUAGES,
+        t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
     )
 
 
@@ -254,7 +254,7 @@ def setup():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset)
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset)
 
 
 @app.route("/settings")
@@ -265,7 +265,7 @@ def settings():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset)
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset)
 
 
 @app.route("/api/config", methods=["POST"])
@@ -526,6 +526,83 @@ def add_security_headers(response):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
+
+
+@app.route("/api/report")
+@require_auth
+def api_report():
+    """Generate a PDF incident report."""
+    from .report import generate_report
+
+    analysis = _state.get("analysis")
+    if not analysis:
+        return jsonify({"error": "No data available"}), 404
+
+    # Time range: default last 7 days, configurable via ?days=N
+    days = request.args.get("days", 7, type=int)
+    days = max(1, min(days, 90))
+    end_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    start_ts = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    snapshots = []
+    if _storage:
+        snapshots = _storage.get_range_data(start_ts, end_ts)
+
+    config = {}
+    if _config_manager:
+        config = {
+            "isp_name": _config_manager.get("isp_name", ""),
+            "modem_type": _config_manager.get("modem_type", ""),
+        }
+
+    conn_info = _state.get("connection_info") or {}
+    lang = _get_lang()
+
+    pdf_bytes = generate_report(snapshots, analysis, config, conn_info, lang)
+
+    response = make_response(pdf_bytes)
+    response.headers["Content-Type"] = "application/pdf"
+    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    response.headers["Content-Disposition"] = f'attachment; filename="docsight_incident_report_{ts}.pdf"'
+    return response
+
+
+@app.route("/api/complaint")
+@require_auth
+def api_complaint():
+    """Generate ISP complaint letter as text."""
+    from .report import generate_complaint_text
+
+    analysis = _state.get("analysis")
+    if not analysis:
+        return jsonify({"error": "No data available"}), 404
+
+    days = request.args.get("days", 7, type=int)
+    days = max(1, min(days, 90))
+    end_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    start_ts = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    snapshots = []
+    if _storage:
+        snapshots = _storage.get_range_data(start_ts, end_ts)
+
+    config = {}
+    if _config_manager:
+        config = {
+            "isp_name": _config_manager.get("isp_name", ""),
+            "modem_type": _config_manager.get("modem_type", ""),
+        }
+
+    lang = request.args.get("lang", _get_lang())
+    customer_name = request.args.get("name", "")
+    customer_number = request.args.get("number", "")
+    customer_address = request.args.get("address", "")
+
+    text = generate_complaint_text(
+        snapshots, config, None, lang,
+        customer_name, customer_number, customer_address
+    )
+    return jsonify({"text": text, "lang": lang})
 
 
 @app.route("/health")

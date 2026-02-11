@@ -1,6 +1,8 @@
 {
-  "_meta": { "language_name": "Español" },
-
+  "_meta": {
+    "language_name": "Español",
+    "flag": "🇪🇸"
+  },
   "nav": "Navegación",
   "live_dashboard": "Panel en vivo",
   "day_trend": "Tendencia diaria",
@@ -8,10 +10,8 @@
   "month_trend": "Tendencia mensual",
   "settings": "Configuración",
   "reference_values": "Valores de referencia",
-
   "open_calendar": "Abrir calendario",
   "last_update": "Última actualización",
-
   "health_good": "Bueno",
   "health_marginal": "Marginal",
   "health_poor": "Malo",
@@ -22,7 +22,6 @@
   "health_poor_msg": "Uno o más valores son críticos. Podrías experimentar problemas de conexión como velocidades lentas, cortes o alta latencia.",
   "all_ok": "Todos los canales funcionan con normalidad.",
   "issues_found": "Problemas detectados",
-
   "issue_ds_power_critical": "Potencia descendente fuera de especificación",
   "issue_ds_power_critical_desc": "El nivel de señal supera +/-10 dBmV. Esto suele indicar un problema de cableado o amplificador. Contacta con tu proveedor si el problema persiste.",
   "issue_us_power_critical": "Potencia ascendente críticamente alta",
@@ -35,19 +34,16 @@
   "issue_snr_warn_desc": "SNR entre 25-30 dB (ideal: superior a 30 dB). La conexión funciona pero con menor margen de error. Considera revisar la calidad del cable.",
   "issue_uncorr_errors_high": "Alto número de errores no corregibles",
   "issue_uncorr_errors_high_desc": "Más de 10.000 errores no corregibles detectados. No se pueden recuperar y causan pérdida de datos. Si este número crece rápidamente, contacta con tu proveedor.",
-
   "ch_power_critical": "Potencia críticamente fuera de rango",
   "ch_power_warning": "Potencia ligeramente elevada",
   "ch_snr_critical": "SNR críticamente bajo",
   "ch_snr_warning": "SNR por debajo del ideal",
-
   "ds_channels": "Canales descendentes",
   "us_channels": "Canales ascendentes",
   "ds_power_range": "Potencia DS (Mín / Prom / Máx)",
   "ds_snr_range": "SNR DS (Mín / Prom)",
   "ds_errors_label": "Errores DS (corr. / no corr.)",
   "us_power_range": "Potencia US (Mín / Prom / Máx)",
-
   "status": "Estado",
   "channel": "Canal",
   "frequency": "Frecuencia",
@@ -60,18 +56,15 @@
   "channels": "Canales",
   "downstream": "Descendente",
   "upstream": "Ascendente",
-
   "metric": "Métrica",
   "good": "Bueno",
   "marginal": "Marg.",
   "poor": "Malo",
   "low": "bajo",
-
   "historical_view": "Vista histórica",
   "back_to_live": "Volver a directo",
   "error_label": "Error",
   "waiting_msg": "Esperando la primera consulta DOCSIS...",
-
   "no_data": "No hay datos disponibles para este período.",
   "trend_error": "Error al cargar los datos de tendencia.",
   "correctable": "Corregibles",
@@ -80,14 +73,24 @@
   "ds_power_avg": "Potencia DS Prom (dBmV)",
   "ds_snr_avg": "SNR DS Prom (dB)",
   "us_power_avg": "Potencia US Prom (dBmV)",
-
   "live": "Directo",
   "day": "Día",
   "week": "Semana",
   "month": "Mes",
-  "months": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-             "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-
+  "months": [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre"
+  ],
   "initial_setup": "Configuración inicial",
   "modem_connection": "Conexión del módem",
   "modem_user_hint": "Consejo: Crea un usuario dedicado para DOCSight en lugar de usar tu cuenta de administrador principal.",
@@ -118,7 +121,6 @@
   "unknown_error": "Desconocido",
   "error_prefix": "Error",
   "default": "Predeterminado",
-
   "back_dashboard": "Volver al panel",
   "light_mode": "Modo claro",
   "dark_mode": "Modo oscuro",
@@ -127,19 +129,21 @@
   "settings_saved": "Configuración guardada",
   "save_failed": "Error al guardar",
   "saved_ph": "Guardado",
-
   "language": "Idioma",
-
   "isp_name": "Proveedor de internet",
   "isp_hint": "Se muestra en el informe de exportación LLM",
   "isp_other": "Otro",
   "isp_other_placeholder": "Nombre del proveedor",
   "isp_select": "Seleccionar proveedor",
-  "isp_options": ["Vodafone", "Euskaltel", "R", "Telecable"],
+  "isp_options": [
+    "Vodafone",
+    "Euskaltel",
+    "R",
+    "Telecable"
+  ],
   "tariff": "Tarifa",
   "max_downstream": "Bajada máxima",
   "max_upstream": "Subida máxima",
-
   "export_llm": "Exportar para LLM",
   "export_title": "Exportación para análisis LLM",
   "export_hint": "Copia este texto y pégalo en tu LLM favorito (ChatGPT, Claude, Gemini, ...) para obtener información sobre tu conexión.",
@@ -147,7 +151,6 @@
   "copied": "¡Copiado!",
   "close": "Cerrar",
   "export_no_data": "Aún no hay datos disponibles. Espera a la primera consulta.",
-
   "login_title": "Iniciar sesión",
   "login_hint": "Introduce la contraseña de administrador para acceder a DOCSight.",
   "login_failed": "Contraseña incorrecta",
@@ -155,13 +158,11 @@
   "logout": "Cerrar sesión",
   "admin_password": "Contraseña de admin",
   "admin_password_hint": "Dejar vacío para desactivar la autenticación",
-
   "bqm_title": "Gráficos BQM",
   "bqm_optional": "opcional",
   "bqm_share_url": "URL de compartir BQM",
   "bqm_url_hint": "Pega tu enlace de compartir ThinkBroadband BQM (.png)",
   "bqm_no_data": "No hay gráfico BQM para esta fecha.",
-
   "card_signal_quality": "Descendente",
   "card_upstream": "Ascendente",
   "card_errors": "Errores",
@@ -176,5 +177,29 @@
   "card_uncorr_exact": "No corregibles (exacto)",
   "card_corr_exact": "Corregibles (exacto)",
   "card_errors_note": "Los errores no corregibles no se pueden recuperar. Números altos y crecientes indican un problema de cable.",
-  "card_uptime": "Tiempo activo del módem"
+  "card_uptime": "Tiempo activo del módem",
+  "incident_report": "Informe de incidencia",
+  "generate_report": "Generar informe",
+  "report_days": "Periodo del informe (días)",
+  "report_description": "Informe PDF con datos de señal, valores extremos y carta de reclamación al ISP.",
+  "bqm_setup_title": "Broadband Quality Monitor (BQM)",
+  "bqm_setup_intro": "BQM de ThinkBroadband monitorea la calidad de tu conexión haciendo ping a tu IP pública desde servidores externos. DOCSight puede mostrar gráficos BQM junto a los datos de tu módem.",
+  "bqm_setup_benefits_title": "¿Por qué usar BQM?",
+  "bqm_setup_benefit_1": "Prueba independiente de problemas de conexión (no solo del lado del módem)",
+  "bqm_setup_benefit_2": "Monitorea latencia, pérdida de paquetes y rendimiento 24/7",
+  "bqm_setup_benefit_3": "Fortalece las quejas al ISP con evidencia de terceros",
+  "bqm_setup_howto_title": "Cómo configurarlo",
+  "bqm_setup_step_1": "Configura <b>DNS dinámico</b> en tu router (ej: MyFRITZ!) para que BQM pueda encontrar tu IP",
+  "bqm_setup_step_2": "Habilita el <b>ping WAN/ICMP</b> en tu router para que responda a pings externos",
+  "bqm_setup_step_3": "Ve a <b>thinkbroadband.com/broadband/monitoring</b>, crea una cuenta gratuita y registra tu dirección DynDNS",
+  "bqm_setup_step_4": "Una vez activo el monitoreo, copia tu <b>URL de compartir</b> (termina en .png) y pégala en DOCSight en <b>Configuración → BQM Share URL</b>",
+  "report_language": "Idioma del informe",
+  "report_customer_hint": "Opcional: añade tus datos para la carta de reclamación",
+  "report_name": "Tu nombre",
+  "report_customer_number": "Número de cliente/contrato",
+  "report_address": "Tu dirección",
+  "report_edit_hint": "Revisa y edita la carta de reclamación. Cópiala para enviarla por correo o descarga el informe técnico en PDF.",
+  "report_generate_letter": "Generar carta",
+  "report_copy_letter": "Copiar carta",
+  "report_download_pdf": "Descargar informe técnico (PDF)"
 }
