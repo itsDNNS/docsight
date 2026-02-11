@@ -49,7 +49,7 @@ docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnn
 | **Runs 100% locally** | No cloud, no external servers. DOCSight runs entirely on your own hardware. |
 | **Nothing leaves your network** | Your data is never uploaded anywhere. Everything stays on your machine. |
 | **Open source** | All code is public. Anyone can read it and verify exactly what it does. |
-| **Credentials stored locally** | Your router login is saved only on your device, inside a Docker volume. |
+| **Credentials encrypted** | Your router login is encrypted at rest (AES-128) and never stored in plain text. |
 
 ---
 
