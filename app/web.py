@@ -26,7 +26,17 @@ def _server_tz_info():
 log = logging.getLogger("docsis.web")
 
 def _get_version():
-    """Get version from git tag or fall back to 'dev'."""
+    """Get version from VERSION file, git tag, or fall back to 'dev'."""
+    # 1. Check VERSION file (written during Docker build)
+    for vpath in ("/app/VERSION", os.path.join(os.path.dirname(__file__), "..", "VERSION")):
+        try:
+            with open(vpath) as f:
+                v = f.read().strip()
+                if v:
+                    return v
+        except FileNotFoundError:
+            pass
+    # 2. Try git
     try:
         return subprocess.check_output(
             ["git", "describe", "--tags", "--abbrev=0"],
