@@ -549,7 +549,7 @@
     </span>
     <select class="lang-select" id="lang-select" title="Language">
         {% for code, name in languages.items() %}
-        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ code.upper() }}</option>
+        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ code.upper() }}</option>
         {% endfor %}
     </select>
     <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>

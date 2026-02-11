@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, jsonify, redirect, session, u
 from werkzeug.security import check_password_hash
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
-from .i18n import get_translations, LANGUAGES
+from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 
 def _server_tz_info():
     """Return server timezone name and UTC offset in minutes."""
@@ -226,7 +226,7 @@ def index():
                 uncorr_pct=_compute_uncorr_pct(snapshot),
                 has_us_ofdma=_has_us_ofdma(snapshot),
                 device_info=dev_info,
-                t=t, lang=lang, languages=LANGUAGES,
+                t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
             )
     return render_template(
         "index.html",
@@ -242,7 +242,7 @@ def index():
         uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         device_info=dev_info,
-        t=t, lang=lang, languages=LANGUAGES,
+        t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
     )
 
 
@@ -254,7 +254,7 @@ def setup():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset)
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset)
 
 
 @app.route("/settings")
@@ -265,7 +265,7 @@ def settings():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, server_tz=tz_name, server_tz_offset=tz_offset)
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset)
 
 
 @app.route("/api/config", methods=["POST"])

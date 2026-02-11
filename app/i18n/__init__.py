@@ -6,6 +6,7 @@ import os
 _DIR = os.path.dirname(__file__)
 _TRANSLATIONS = {}
 LANGUAGES = {}
+LANG_FLAGS = {}
 
 # Load all *.json files in this directory
 for _fname in sorted(os.listdir(_DIR)):
@@ -17,6 +18,7 @@ for _fname in sorted(os.listdir(_DIR)):
     _meta = _data.pop("_meta", {})
     _TRANSLATIONS[_code] = _data
     LANGUAGES[_code] = _meta.get("language_name", _code)
+    LANG_FLAGS[_code] = _meta.get("flag", "")
 
 
 def get_translations(lang="en"):
