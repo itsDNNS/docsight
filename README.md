@@ -249,7 +249,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes per version.
+See [GitHub Releases](https://github.com/itsDNNS/docsight/releases) for release notes and changelogs.
 
 ## License
 
