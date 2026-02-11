@@ -990,7 +990,7 @@
                 <option value="14">14 {{ t.day }}</option>
                 <option value="30">30 {{ t.day }}</option>
                 <option value="90">90 {{ t.day }}</option>
-                <option value="365">{{ t.fetch_all }}</option>
+                <option value="all">{{ t.fetch_all }}</option>
             </select>
             <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" onclick="loadSpeedtestHistory()">&#x1F504;</button>
         </div>
@@ -1967,7 +1967,7 @@ function filterSpeedtestData() {
     var table = document.getElementById('speedtest-table');
     var noData = document.getElementById('speedtest-no-data');
     _speedtestVisible = 50;
-    if (days === '365') {
+    if (days === 'all') {
         _speedtestAllData = _speedtestRawData.slice();
     } else {
         var cutoff = new Date(Date.now() - parseInt(days) * 86400000);
