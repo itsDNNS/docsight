@@ -1671,6 +1671,12 @@
 
     /* ── Init ── */
     updateDateLabel();
+
+    // Apply hash-based view routing (must be inside IIFE to access switchView)
+    var _initHash = location.hash.replace('#', '');
+    if (validViews.indexOf(_initHash) !== -1 && _initHash !== 'live') {
+        switchView(_initHash, true);
+    }
 })();
 
 /* ── Export for LLM ── */
@@ -2161,14 +2167,7 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
-// Apply hash-based view routing after all functions are defined
-(function() {
-    var validViews = ['live', 'day', 'week', 'month', 'bqm', 'speedtest'];
-    var h = location.hash.replace('#', '');
-    if (validViews.indexOf(h) !== -1 && h !== 'live') {
-        switchView(h, true);
-    }
-})();
+
 </script>
 
 </body>
