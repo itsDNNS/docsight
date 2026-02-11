@@ -1762,7 +1762,7 @@ function loadSpeedtestHistory() {
     if (moreWrap) moreWrap.style.display = 'none';
     _speedtestAllData = [];
     _speedtestVisible = 50;
-    fetch('/api/speedtest?days=' + days)
+    fetch('/api/speedtest?count=1000')
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (loading) loading.style.display = 'none';

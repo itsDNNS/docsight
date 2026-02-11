@@ -567,16 +567,14 @@ def api_speedtest():
     """Return speedtest results for N days as JSON."""
     if not _config_manager or not _config_manager.is_speedtest_configured():
         return jsonify([])
-    days = request.args.get("days", 7, type=int)
-    days = max(1, min(days, 365))
+    count = request.args.get("count", 100, type=int)
+    count = max(1, min(count, 2000))
     from .speedtest import SpeedtestClient
     client = SpeedtestClient(
         _config_manager.get("speedtest_tracker_url"),
         _config_manager.get("speedtest_tracker_token"),
     )
-    end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-    results = client.get_results(start_date, end_date, per_page=500)
+    results = client.get_results(per_page=count)
     return jsonify(results)
 
 

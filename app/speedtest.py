@@ -39,7 +39,7 @@ class SpeedtestClient:
         try:
             resp = self.session.get(
                 self.base_url + "/api/v1/results",
-                params={"per.page": count, "sort": "-created_at"},
+                params={"page[size]": count, "sort": "-created_at"},
                 timeout=15,
             )
             resp.raise_for_status()
@@ -49,22 +49,33 @@ class SpeedtestClient:
             log.warning("Failed to fetch speedtest results: %s", e)
             return []
 
-    def get_results(self, start_date, end_date, per_page=100):
-        """Fetch speed test results for a date range (YYYY-MM-DD)."""
+    def get_results(self, start_date=None, end_date=None, per_page=100):
+        """Fetch speed test results, newest first. Paginates to collect up to per_page results."""
+        all_results = []
+        page = 1
         try:
-            resp = self.session.get(
-                self.base_url + "/api/v1/results",
-                params={
-                    "per.page": per_page,
-                    "sort": "-created_at",
-                    "filter[start_at]": start_date,
-                    "filter[end_at]": end_date,
-                },
-                timeout=30,
-            )
-            resp.raise_for_status()
-            results = resp.json().get("data", [])
-            return [self._parse_result(r) for r in results]
+            while len(all_results) < per_page:
+                batch = min(per_page - len(all_results), 500)
+                resp = self.session.get(
+                    self.base_url + "/api/v1/results",
+                    params={
+                        "page[size]": batch,
+                        "page[number]": page,
+                        "sort": "-created_at",
+                    },
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                body = resp.json()
+                items = body.get("data", [])
+                if not items:
+                    break
+                all_results.extend(self._parse_result(r) for r in items)
+                meta = body.get("meta", {})
+                if page >= meta.get("last_page", 1):
+                    break
+                page += 1
+            return all_results
         except Exception as e:
             log.warning("Failed to fetch speedtest results: %s", e)
-            return []
+            return all_results
