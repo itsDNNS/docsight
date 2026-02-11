@@ -167,6 +167,10 @@ Copy `.env.example` to `.env` and edit:
 |---|---|
 | ![Trends](docs/screenshots/trends.png) | ![Health](docs/screenshots/health-banner.png) |
 
+| Speedtest Tracker | BQM Gallery |
+|---|---|
+| ![Speedtest](docs/screenshots/speedtest.png) | ![BQM](docs/screenshots/bqm.png) |
+
 </details>
 
 <details>
