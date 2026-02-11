@@ -139,23 +139,7 @@
         .recording-dot { color: #e74c3c; animation: blink-recording 1.5s ease-in-out infinite; }
         @keyframes blink-recording { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         .sidebar-divider { border-top: 1px solid var(--input-border); margin: 8px 0; }
-        .sidebar-ref { padding: 0 20px 16px; }
-        .sidebar-ref summary {
-            cursor: pointer; font-size: 0.9em; color: var(--muted);
-            padding: 10px 0; list-style: none; display: flex;
-            align-items: center; gap: 8px;
-        }
-        .sidebar-ref summary::-webkit-details-marker { display: none; }
-        .sidebar-ref summary::before {
-            content: "\25B6"; font-size: 0.6em; transition: transform 0.2s;
-        }
-        .sidebar-ref[open] summary::before { transform: rotate(90deg); }
-        .sidebar-ref table {
-            width: 100%; font-size: 0.78em; border-collapse: collapse; margin-top: 4px;
-        }
-        .sidebar-ref th, .sidebar-ref td { padding: 4px 6px; text-align: left; }
-        .sidebar-ref th { color: var(--accent); position: static; background: transparent; }
-        .sidebar-ref tr { border-bottom: 1px solid var(--input-border); }
+        /* sidebar-ref removed */
 
         /* ── Calendar Popup ── */
         .calendar-popup {
@@ -564,7 +548,7 @@
         {% endif %}
         <div class="sidebar-divider"></div>
         <a class="sidebar-link" id="report-link" onclick="openReportModal()">
-            <span class="icon">&#9888;</span> {{ t.incident_report }}
+            <span class="icon">&#128226;</span> {{ t.incident_report }}
         </a>
         <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
             <span class="icon">&#128203;</span> {{ t.export_llm }}
@@ -579,19 +563,11 @@
             <span class="icon">&#128682;</span> {{ t.logout }}
         </a>
         {% endif %}
-        <div class="sidebar-divider"></div>
-        <details class="sidebar-ref">
-            <summary>{{ t.reference_values }}</summary>
-            <table>
-                <thead><tr><th>{{ t.metric }}</th><th>{{ t.good }}</th><th>{{ t.marginal }}</th><th>{{ t.poor }}</th></tr></thead>
-                <tbody>
-                    <tr><td>DS Power</td><td>-7..+7</td><td>&plusmn;7..10</td><td>&gt;&plusmn;10 dBmV</td></tr>
-                    <tr><td>US Power</td><td>35..49</td><td>50..54</td><td>&gt;54 dBmV</td></tr>
-                    <tr><td>SNR/MER</td><td>&gt;30 dB</td><td>25..30</td><td>&lt;25 dB</td></tr>
-                    <tr><td>{{ t.uncorr }}</td><td>{{ t.low }}</td><td>-</td><td>&gt;10,000</td></tr>
-                </tbody>
-            </table>
-        </details>
+        <div style="padding: 8px 20px 12px;">
+            <a href="https://github.com/itsDNNS/docsight/releases" target="_blank"
+               style="color: var(--muted); font-size: 0.75em; text-decoration: none; opacity: 0.6;"
+               onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">{{ version }}</a>
+        </div>
     </div>
 </nav>
 

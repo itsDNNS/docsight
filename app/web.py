@@ -6,6 +6,7 @@ import math
 import os
 import re
 import stat
+import subprocess
 import time
 from datetime import datetime, timedelta
 
@@ -23,6 +24,18 @@ def _server_tz_info():
     return name, offset_min
 
 log = logging.getLogger("docsis.web")
+
+def _get_version():
+    """Get version from git tag or fall back to 'dev'."""
+    try:
+        return subprocess.check_output(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            stderr=subprocess.DEVNULL, text=True
+        ).strip()
+    except Exception:
+        return "dev"
+
+APP_VERSION = _get_version()
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.urandom(32)  # overwritten by _init_session_key
@@ -158,7 +171,7 @@ def logout():
 def inject_auth():
     """Make auth_enabled available in all templates."""
     auth_enabled = bool(_config_manager and _config_manager.get("admin_password", ""))
-    return {"auth_enabled": auth_enabled}
+    return {"auth_enabled": auth_enabled, "version": APP_VERSION}
 
 
 def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None):
