@@ -876,8 +876,8 @@
 </div><!-- /app-layout -->
 
 <!-- Report Modal -->
-<div class="modal-overlay" id="report-modal">
-    <div class="modal-content">
+<div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeReportModal()">
+    <div class="modal">
         <div class="modal-header">
             <h2>{{ t.incident_report }}</h2>
             <button class="modal-close" onclick="closeReportModal()">&times;</button>
@@ -893,7 +893,7 @@
                 <option value="30">30</option>
             </select>
         </div>
-        <div class="modal-actions">
+        <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeReportModal()">{{ t.close }}</button>
             <button class="btn btn-accent" onclick="downloadReport()">&#128203; {{ t.generate_report }}</button>
         </div>
