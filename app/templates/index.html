@@ -1331,9 +1331,6 @@
         var h = location.hash.replace('#', '');
         return validViews.indexOf(h) !== -1 ? h : null;
     }
-    var initialView = viewFromHash();
-    if (initialView) switchView(initialView, true);
-
     window.addEventListener('hashchange', function() {
         var v = viewFromHash();
         if (v && v !== currentView) switchView(v, true);
@@ -2108,29 +2105,29 @@ function renderSpeedtestChart() {
     drawLine(pings, yPing, '#f59e0b', 'rgba(245,158,11,0.10)');
     // Hover interaction
     var tooltip = document.getElementById('speedtest-chart-tooltip');
+    // Move tooltip to body so it's never clipped
+    if (tooltip.parentElement !== document.body) document.body.appendChild(tooltip);
+    tooltip.style.position = 'fixed';
     function onMouseMove(e) {
         var rect = canvas.getBoundingClientRect();
-        var mx = e.clientX - rect.left;
-        var my = e.clientY - rect.top;
+        var scaleX = w / rect.width;
+        var scaleY = h / rect.height;
+        var mx = (e.clientX - rect.left) * scaleX;
+        var my = (e.clientY - rect.top) * scaleY;
         if (mx < padL || mx > w - padR || my < padT || my > padT + ch) {
             tooltip.style.display = 'none'; return;
         }
-        // Find nearest data index
         var ratio = (mx - padL) / cw;
         var idx = Math.round(ratio * (data.length - 1));
         if (idx < 0) idx = 0;
         if (idx >= data.length) idx = data.length - 1;
-        tooltip.style.display = '';
+        tooltip.style.display = 'block';
         tooltip.innerHTML = '<strong>' + formatSpeedtestTimestamp(data[idx].timestamp) + '</strong><br>'
             + '<span style="color:#3b82f6">&#9660;</span> DL: ' + dls[idx].toFixed(2) + ' Mbps<br>'
             + '<span style="color:#22c55e">&#9650;</span> UL: ' + uls[idx].toFixed(2) + ' Mbps<br>'
             + '<span style="color:#f59e0b">&#9679;</span> Ping: ' + pings[idx].toFixed(1) + ' ms';
-        var tx = mx + 14;
-        var ty = my - 10;
-        if (tx + 180 > w) tx = mx - 180;
-        if (ty < 0) ty = 4;
-        tooltip.style.left = tx + 'px';
-        tooltip.style.top = ty + 'px';
+        tooltip.style.left = (e.clientX + 14) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
     }
     function onMouseLeave() { tooltip.style.display = 'none'; }
     if (canvas._chartMoveHandler) canvas.removeEventListener('mousemove', canvas._chartMoveHandler);
@@ -2163,6 +2160,15 @@ function escapeHtml(str) {
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
 }
+
+// Apply hash-based view routing after all functions are defined
+(function() {
+    var validViews = ['live', 'day', 'week', 'month', 'bqm', 'speedtest'];
+    var h = location.hash.replace('#', '');
+    if (validViews.indexOf(h) !== -1 && h !== 'live') {
+        switchView(h, true);
+    }
+})();
 </script>
 
 </body>
