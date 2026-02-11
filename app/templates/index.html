@@ -1698,11 +1698,29 @@
             var ctx = chart.ctx;
             var yAxis = chart.scales.y;
             var xAxis = chart.scales.x;
+            var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+            var lineColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
+            var drawn = {};
             chart.config._zones.forEach(function(z) {
                 var top = yAxis.getPixelForValue(z.max);
                 var bottom = yAxis.getPixelForValue(z.min);
                 ctx.fillStyle = z.color;
                 ctx.fillRect(xAxis.left, top, xAxis.width, bottom - top);
+                // Draw dashed boundary lines at zone edges
+                [z.min, z.max].forEach(function(val) {
+                    if (drawn[val]) return;
+                    drawn[val] = true;
+                    var py = yAxis.getPixelForValue(val);
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.setLineDash([6, 4]);
+                    ctx.strokeStyle = lineColor;
+                    ctx.lineWidth = 1;
+                    ctx.moveTo(xAxis.left, py);
+                    ctx.lineTo(xAxis.left + xAxis.width, py);
+                    ctx.stroke();
+                    ctx.restore();
+                });
             });
         }
     };
