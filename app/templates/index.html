@@ -1371,6 +1371,7 @@
     var dateNext = document.getElementById('date-next');
 
     function updateDateLabel() {
+        var trendTabs = document.getElementById('trend-tabs');
         if (currentView === 'live') {
             dateLabel.textContent = isHistorical ? formatDateDE('{{ snapshot_ts[:10] if snapshot_ts else "" }}') : T.live;
         } else if (currentView === 'bqm') {
@@ -1380,6 +1381,14 @@
         } else if (currentView === 'trends') {
             var rangeLabel = {day: T.day, week: T.week, month: T.month}[_trendRange] || '';
             dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
+            // Hide tabs when viewing historical data (not today)
+            if (trendTabs) {
+                trendTabs.style.display = (selectedDate === todayStr()) ? '' : 'none';
+            }
+        }
+        // Show tabs again when switching to trends with today's date
+        if (currentView !== 'trends' && trendTabs) {
+            trendTabs.style.display = '';
         }
     }
 
@@ -1409,6 +1418,10 @@
         } else if (currentView === 'bqm') {
             loadBqmGraph(selectedDate);
         } else if (currentView === 'trends') {
+            // Force day view when navigating to historical dates
+            if (selectedDate !== todayStr()) {
+                _trendRange = 'day';
+            }
             loadTrends(_trendRange, selectedDate);
         }
     }
