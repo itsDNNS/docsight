@@ -600,11 +600,12 @@ def api_speedtest():
                 _config_manager.get("speedtest_tracker_url"),
                 _config_manager.get("speedtest_tracker_token"),
             )
-            last_id = _storage.get_latest_speedtest_id()
-            if last_id == 0:
-                # First fetch: get newest results directly (descending)
-                new_results = client.get_results(per_page=count)
+            cached_count = _storage.get_speedtest_count()
+            if cached_count < 50:
+                # Initial or incomplete cache: full fetch (descending)
+                new_results = client.get_results(per_page=2000)
             else:
+                last_id = _storage.get_latest_speedtest_id()
                 new_results = client.get_newer_than(last_id)
             if new_results:
                 _storage.save_speedtest_results(new_results)

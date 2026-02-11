@@ -248,6 +248,12 @@ class SnapshotStorage:
             ).fetchall()
         return [dict(r) for r in rows]
 
+    def get_speedtest_count(self):
+        """Return number of cached speedtest results."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute("SELECT COUNT(*) FROM speedtest_results").fetchone()
+        return row[0] if row else 0
+
     def get_latest_speedtest_id(self):
         """Return the highest speedtest result id, or 0 if none."""
         with sqlite3.connect(self.db_path) as conn:
