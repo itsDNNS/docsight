@@ -568,7 +568,7 @@ def api_report():
 
 
 @app.route("/api/complaint")
-@_require_auth
+@require_auth
 def api_complaint():
     """Generate ISP complaint letter as text."""
     from .report import generate_complaint_text
