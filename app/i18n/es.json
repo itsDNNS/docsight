@@ -180,5 +180,16 @@
   "incident_report": "Informe de incidencia",
   "generate_report": "Generar informe",
   "report_days": "Periodo del informe (días)",
-  "report_description": "Informe PDF con datos de señal, valores extremos y carta de reclamación al ISP."
+  "report_description": "Informe PDF con datos de señal, valores extremos y carta de reclamación al ISP.",
+  "bqm_setup_title": "Broadband Quality Monitor (BQM)",
+  "bqm_setup_intro": "BQM de ThinkBroadband proporciona una verificación independiente de la calidad de tu conexión. DOCSight puede mostrar gráficos BQM junto a los datos de tu módem.",
+  "bqm_setup_benefits_title": "¿Por qué usar BQM?",
+  "bqm_setup_benefit_1": "Prueba independiente de problemas de conexión (no solo del lado del módem)",
+  "bqm_setup_benefit_2": "Monitorea latencia, pérdida de paquetes y rendimiento 24/7",
+  "bqm_setup_benefit_3": "Fortalece las quejas al ISP con evidencia de terceros",
+  "bqm_setup_howto_title": "Cómo configurarlo",
+  "bqm_setup_step_1": "Ve a <b>thinkbroadband.com/broadband/monitoring</b> y crea una cuenta gratuita",
+  "bqm_setup_step_2": "Instala el agente BQM en un dispositivo de tu red (se ejecuta en segundo plano)",
+  "bqm_setup_step_3": "Una vez activo el monitoreo, copia tu <b>URL de compartir</b> (termina en .png)",
+  "bqm_setup_step_4": "Pega la URL en DOCSight en <b>Configuración → BQM Share URL</b>"
 }
