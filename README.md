@@ -11,57 +11,107 @@
 </p>
 
 <p align="center">
-  Self-hosted cable internet monitoring and diagnostics. Track DOCSIS signal levels, detect problems, and get actionable health assessments — right in your browser.
+  <strong>Your cable internet is slow and your provider says everything is fine?<br>DOCSight proves them wrong.</strong>
+</p>
+
+<p align="center">
+  DOCSight monitors your cable internet connection 24/7 and collects the hard evidence you need to hold your ISP accountable. One click generates a complaint letter with real data your provider can't ignore.
+</p>
+
+<p align="center">
+  <em>For cable internet (DOCSIS/coax) only — Vodafone Kabel, Pyur, Tele Columbus, Virgin Media, Comcast, Spectrum, and others.</em>
 </p>
 
 ![Dashboard Dark Mode](docs/screenshots/dashboard-dark.png)
 
-## Why DOCSight
+---
 
-Cable internet dropping out, buffering, or slower than it should be? Your ISP says "everything looks fine"? DOCSight reads the DOCSIS signal levels directly from your modem and tells you whether the problem is on your end or your provider's. It gives you real data — power levels, signal-to-noise ratios, error counts — that you can show a technician or use to hold your ISP accountable.
+## How It Works
 
-## Table of Contents
+**Step 1: Install** — Run one command to start DOCSight on your computer or NAS:
 
-- [Why DOCSight](#why-docsight)
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Screenshots](#screenshots)
-- [Home Assistant Integration](#home-assistant-integration)
-- [Reference Values](#reference-values)
-- [Requirements](#requirements)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [Changelog](#changelog)
+```bash
+docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
+```
+
+> New to Docker? See the **[Installation Guide](INSTALL.md)** for step-by-step instructions (Windows, Mac, Linux, Synology NAS).
+
+**Step 2: Connect your router** — Open `http://localhost:8765` in your browser. The setup wizard asks for your router login — that's it. Takes 2 minutes.
+
+**Step 3: Sit back** — DOCSight monitors your connection around the clock. When something is wrong, you'll see it immediately — and you can generate a complaint letter backed by real data.
+
+---
+
+## Your Data Stays With You
+
+| | |
+|---|---|
+| **Runs 100% locally** | No cloud, no external servers. DOCSight runs entirely on your own hardware. |
+| **Nothing leaves your network** | Your data is never uploaded anywhere. Everything stays on your machine. |
+| **Open source** | All code is public. Anyone can read it and verify exactly what it does. |
+| **Credentials stored locally** | Your router login is saved only on your device, inside a Docker volume. |
+
+---
+
+## Is This For Me?
+
+| | |
+|---|---|
+| ✅ You have **cable internet** (coax/DOCSIS) | DOCSight is built for this |
+| ✅ Your internet **drops out or is slower** than what you're paying for | DOCSight documents it |
+| ✅ Your ISP says **"everything is fine on our end"** | DOCSight gives you proof |
+| ❌ You have **DSL or fiber** | This tool won't work for you |
+| ❌ Your internet **works perfectly** | You don't need this |
+
+---
+
+## Glossary — What Do These Numbers Mean?
+
+The DOCSight dashboard shows technical measurements from your cable modem. Here's what they mean in plain language:
+
+| Term | What it means |
+|---|---|
+| **DOCSIS** | The technology that makes cable internet work. Your internet signal travels through the same coaxial cable as TV. |
+| **Downstream / Upstream** | Downstream = download direction (Netflix, browsing). Upstream = upload direction (video calls, sending files). |
+| **SNR (Signal-to-Noise Ratio)** | How clear your signal is. Think of it like radio reception — high SNR means a clear signal, low SNR means static and interference. Measured in dB. |
+| **Power Level** | How strong your signal is. Too weak or too strong and your internet suffers. Measured in dBmV. |
+| **Uncorrectable Errors** | Data packets that were lost and couldn't be recovered. A few are normal, but many of these cause buffering, dropouts, and slow speeds. |
+| **Correctable Errors** | Data packets that arrived damaged but were automatically repaired. Lots of these are a warning sign. |
+| **QAM / Modulation** | How much data is packed into each signal. Higher QAM (like 256QAM or 4096QAM) means more speed. If your modem drops to a lower QAM, something is wrong with the signal. |
+| **Channels** | Your cable connection uses many frequencies at once (like lanes on a highway). Each lane is a "channel." More healthy channels = more bandwidth. |
+
+---
 
 ## Features
 
-**Monitoring & Diagnostics**
+<details>
+<summary><strong>Monitoring & Diagnostics</strong></summary>
+
 - **Web Dashboard**: Real-time channel data with health assessment, trend charts, and calendar navigation
 - **Health Assessment**: Automatic traffic-light evaluation with actionable recommendations
 - **Trend Charts**: Track signal quality over days, weeks, or months to spot recurring issues
 - **LLM Export**: Generate structured reports for AI analysis (ChatGPT, Claude, Gemini, etc.)
 - **ThinkBroadband BQM**: Daily fetch and archive of broadband quality graphs with gallery view
 
-**Ease of Use**
+</details>
+
+<details>
+<summary><strong>Ease of Use</strong></summary>
+
 - **Setup Wizard**: Browser-based configuration — no .env file needed
 - **4 Languages**: English, German, French, and Spanish UI
 - **Light/Dark Mode**: Persistent theme toggle
 - **Optional Authentication**: Password-protected web UI with scrypt hashing
 
-**Smart Home Integration** (optional)
+</details>
+
+<details>
+<summary><strong>Smart Home Integration</strong> (optional)</summary>
+
 - **MQTT Auto-Discovery**: Zero-config integration with Home Assistant
 - **Per-Channel + Summary Sensors**: Every DOCSIS channel and aggregated metrics as HA entities
 
-## Quick Start
-
-```bash
-docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
-```
-
-Open `http://localhost:8765` - the setup wizard guides you through configuration.
-
-For Docker Compose, Portainer, Dockhand, and detailed step-by-step instructions, see the **[Installation Guide](INSTALL.md)**.
+</details>
 
 <details>
 <summary><h2>Configuration</h2></summary>
