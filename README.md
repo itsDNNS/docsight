@@ -7,8 +7,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/github/license/itsDNNS/docsight" alt="License"></a>
   <a href="https://github.com/itsDNNS/docsight/pkgs/container/docsight"><img src="https://img.shields.io/github/v/tag/itsDNNS/docsight?label=version" alt="Version"></a>
-  <a href="https://github.com/itsDNNS/docsight"><img src="https://img.shields.io/github/last-commit/itsDNNS/docsight" alt="Last Commit"></a>
-  <a href="https://github.com/itsDNNS/docsight/stargazers"><img src="https://img.shields.io/github/stars/itsDNNS/docsight" alt="Stars"></a>
+  <a href="https://github.com/itsDNNS/docsight/stargazers"><img src="https://img.shields.io/github/stars/itsDNNS/docsight?style=flat" alt="Stars"></a>
 </p>
 
 <p align="center">
@@ -168,6 +167,10 @@ Copy `.env.example` to `.env` and edit:
 |---|---|
 | ![Trends](docs/screenshots/trends.png) | ![Health](docs/screenshots/health-banner.png) |
 
+| Speedtest Tracker | BQM Gallery |
+|---|---|
+| ![Speedtest](docs/screenshots/speedtest.png) | ![BQM](docs/screenshots/bqm.png) |
+
 </details>
 
 <details>
@@ -243,6 +246,7 @@ DOCSight can optionally publish all channel data to Home Assistant via MQTT Auto
 - [ ] **Smokeping Integration**: Import or display Smokeping latency data alongside DOCSIS metrics for end-to-end correlation
 
 ### Enhanced Dashboard
+- [ ] **Update Changelog Splash**: Show a "What's New" dialog on first login after a version update — highlights new features and changes so users stay informed without reading GitHub Releases
 - [ ] Combined timeline: DOCSIS health + speed tests + BQM graph + ping data on a single time axis
 - [ ] Mobile-responsive layout
 - [ ] Segment load indicator: Visualize peak-hour degradation patterns (e.g. 20:00-23:00 slowdowns)
