@@ -104,7 +104,7 @@
         .toast-error { background: var(--crit); color: #fff; }
 
         /* ── Layout ── */
-        .app-layout { display: flex; min-height: 100vh; }
+        .app-layout { display: flex; height: 100vh; overflow: hidden; }
 
         /* ── Sidebar ── */
         .sidebar {
@@ -127,7 +127,7 @@
             font-size: 1.2em; cursor: pointer; line-height: 1; padding: 2px 4px;
         }
         .sidebar-toggle:hover { color: var(--accent); }
-        .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; }
         .sidebar-link {
             display: flex; align-items: center; gap: 10px;
             padding: 12px 20px; color: var(--text); text-decoration: none;
