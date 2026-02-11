@@ -1673,13 +1673,13 @@
                     return d.date ? formatDateDE(d.date) : '';
                 });
                 renderChart('chart-ds-power', xLabels,
-                    [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#00adb5'}],
+                    [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#00e5f0'}],
                     null, DS_POWER_ZONES);
                 renderChart('chart-ds-snr', xLabels,
-                    [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#4caf50'}],
+                    [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#66ff77'}],
                     null, DS_SNR_ZONES);
                 renderChart('chart-us-power', xLabels,
-                    [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#ff9800'}],
+                    [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#ffbb33'}],
                     null, US_POWER_ZONES);
                 renderChart('chart-errors', xLabels, [
                     {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
@@ -1746,7 +1746,7 @@
                 label: ds.label, data: ds.data,
                 borderColor: ds.color,
                 backgroundColor: ds.color + (type === 'bar' ? 'cc' : '22'),
-                borderWidth: 2, tension: 0.3,
+                borderWidth: 3, tension: 0.3,
                 pointRadius: labels.length > 30 ? 0 : 3,
                 fill: type !== 'bar'
             };
