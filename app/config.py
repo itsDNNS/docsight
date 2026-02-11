@@ -13,7 +13,7 @@ log = logging.getLogger("docsis.config")
 POLL_MIN = 60
 POLL_MAX = 14400
 
-SECRET_KEYS = {"modem_password", "mqtt_password"}
+SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token"}
 HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
@@ -35,6 +35,8 @@ DEFAULTS = {
     "isp_name": "",
     "admin_password": "",
     "bqm_url": "",
+    "speedtest_tracker_url": "",
+    "speedtest_tracker_token": "",
 }
 
 ENV_MAP = {
@@ -52,6 +54,8 @@ ENV_MAP = {
     "data_dir": "DATA_DIR",
     "admin_password": "ADMIN_PASSWORD",
     "bqm_url": "BQM_URL",
+    "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
+    "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -233,6 +237,10 @@ class ConfigManager:
     def is_bqm_configured(self):
         """True if bqm_url is set (BQM is optional)."""
         return bool(self.get("bqm_url"))
+
+    def is_speedtest_configured(self):
+        """True if speedtest_tracker_url and token are set (optional)."""
+        return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token"))
 
     def get_theme(self):
         """Return 'dark' or 'light'."""

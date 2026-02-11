@@ -219,7 +219,7 @@
 
         /* ── Metric Cards Grid ── */
         .metric-cards {
-            display: grid; grid-template-columns: repeat(3, 1fr);
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 12px; margin-bottom: 16px;
         }
 
@@ -499,6 +499,15 @@
             <span class="icon">&#128200;</span> {{ t.bqm_title }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.bqm_optional }}</span>
         </a>
         {% endif %}
+        {% if speedtest_configured %}
+        <a class="sidebar-link" data-view="speedtest">
+            <span class="icon">&#9889;</span> {{ t.speedtest }}
+        </a>
+        {% else %}
+        <a class="sidebar-link" onclick="openSpeedtestSetupModal()">
+            <span class="icon">&#9889;</span> {{ t.speedtest }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.optional }}</span>
+        </a>
+        {% endif %}
         <div class="sidebar-divider"></div>
         <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
             <span class="icon">&#128196;</span> {{ t.export_llm }}
@@ -765,6 +774,48 @@
                 <div class="detail-note">{{ t.card_errors_note }}</div>
             </div>
         </div>
+
+        {# ── Card 4: Speed (Speedtest Tracker) ── #}
+        {% if speedtest_configured and speedtest_latest %}
+        <div class="metric-card health-good">
+            <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
+                <span class="status-dot"></span>
+                <span class="card-title">&#9889; {{ t.speed }}</span>
+                <span class="chevron">&#9654;</span>
+            </div>
+            <div class="metric-card-body">
+                <div class="metric-row">
+                    <div class="metric-item">
+                        <div class="metric-value val-good">{{ speedtest_latest.download_human or (speedtest_latest.download_mbps ~ ' Mbps') }}</div>
+                        <div class="metric-label">{{ t.download }}</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value val-good">{{ speedtest_latest.upload_human or (speedtest_latest.upload_mbps ~ ' Mbps') }}</div>
+                        <div class="metric-label">{{ t.upload }}</div>
+                    </div>
+                </div>
+                <div class="metric-secondary" style="margin-top:8px;">
+                    {{ t.ping }}: <strong>{{ speedtest_latest.ping_ms }} ms</strong>
+                    <span class="conn-sep">&middot;</span>
+                    {{ t.jitter }}: <strong>{{ speedtest_latest.jitter_ms }} ms</strong>
+                    {% if speedtest_latest.packet_loss_pct > 0 %}
+                    <span class="conn-sep">&middot;</span>
+                    <span class="val-warn">{{ t.packet_loss }}: {{ speedtest_latest.packet_loss_pct }}%</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="metric-card-detail">
+                <table class="detail-table">
+                    <tr><td>{{ t.download }}</td><td>{{ speedtest_latest.download_mbps }} Mbps</td></tr>
+                    <tr><td>{{ t.upload }}</td><td>{{ speedtest_latest.upload_mbps }} Mbps</td></tr>
+                    <tr><td>{{ t.ping }}</td><td>{{ speedtest_latest.ping_ms }} ms</td></tr>
+                    <tr><td>{{ t.jitter }}</td><td>{{ speedtest_latest.jitter_ms }} ms</td></tr>
+                    <tr><td>{{ t.packet_loss }}</td><td>{{ speedtest_latest.packet_loss_pct }}%</td></tr>
+                </table>
+                <div class="detail-note">{{ t.via_speedtest_tracker }}{% if speedtest_latest.timestamp %} &middot; {{ speedtest_latest.timestamp }}{% endif %}</div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <h2 class="section-title">{{ t.downstream }} ({{ ds|length }} {{ t.channels }})</h2>
@@ -888,9 +939,71 @@
     </div>
 </div>
 {% endif %}
+
+<!-- ═══ View: Speedtest ═══ -->
+{% if speedtest_configured %}
+<div id="view-speedtest" class="view">
+    <div class="trend-header">
+        <span class="trend-title">{{ t.speedtest_tracker }}</span>
+        <select id="speedtest-days" style="padding:6px 10px; border-radius:6px; border:1px solid var(--input-border); background:var(--surface); color:var(--text);" onchange="loadSpeedtestHistory()">
+            <option value="1">1 {{ t.day }}</option>
+            <option value="7" selected>7 {{ t.day }}</option>
+            <option value="14">14 {{ t.day }}</option>
+            <option value="30">30 {{ t.day }}</option>
+        </select>
+    </div>
+    <div id="speedtest-no-data" class="no-data-msg" style="display:none;"></div>
+    <div id="speedtest-table-wrap">
+        <table id="speedtest-table" class="sortable" style="display:none;">
+            <thead><tr>
+                <th>{{ t.status }}</th>
+                <th>{{ t.download }}</th>
+                <th>{{ t.upload }}</th>
+                <th>{{ t.ping }}</th>
+                <th>{{ t.jitter }}</th>
+                <th>{{ t.packet_loss }}</th>
+            </tr></thead>
+            <tbody id="speedtest-tbody"></tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 </div><!-- /main-content -->
 </div><!-- /app-main -->
 </div><!-- /app-layout -->
+
+<!-- Speedtest Setup Modal -->
+<div class="modal-overlay" id="speedtest-setup-modal" onclick="if(event.target===this)closeSpeedtestSetupModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>&#9889; {{ t.speedtest_setup_title }}</h2>
+            <button class="modal-close" onclick="closeSpeedtestSetupModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
+            <p style="margin-bottom:12px;">{{ t.speedtest_setup_intro }}</p>
+            <div style="background:var(--bg); border-radius:8px; padding:14px; margin-bottom:14px;">
+                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.speedtest_setup_benefits_title }}</p>
+                <ul style="list-style:none; padding:0;">
+                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_1 }}</li>
+                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_2 }}</li>
+                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_3 }}</li>
+                </ul>
+            </div>
+            <div style="background:var(--bg); border-radius:8px; padding:14px;">
+                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.speedtest_setup_howto_title }}</p>
+                <ol style="padding-left:20px;">
+                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_1|safe }}</li>
+                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_2|safe }}</li>
+                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_3|safe }}</li>
+                </ol>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" onclick="closeSpeedtestSetupModal()">{{ t.close }}</button>
+            <a class="btn btn-accent" href="/settings" style="text-decoration:none;">&#9881; {{ t.settings }}</a>
+        </div>
+    </div>
+</div>
 
 <!-- BQM Setup Modal -->
 <div class="modal-overlay" id="bqm-setup-modal" onclick="if(event.target===this)closeBqmSetupModal()">
@@ -1113,9 +1226,11 @@
         var dashView = document.getElementById('view-dashboard');
         var trendView = document.getElementById('view-trends');
         var bqmView = document.getElementById('view-bqm');
+        var speedtestView = document.getElementById('view-speedtest');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
+        if (speedtestView) speedtestView.classList.remove('active');
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
@@ -1125,6 +1240,10 @@
             if (bqmView) bqmView.classList.add('active');
             updateDateLabel();
             loadBqmGraph(selectedDate);
+        } else if (view === 'speedtest') {
+            if (speedtestView) speedtestView.classList.add('active');
+            updateDateLabel();
+            loadSpeedtestHistory();
         } else {
             trendView.classList.add('active');
             updateDateLabel();
@@ -1142,6 +1261,8 @@
             dateLabel.textContent = isHistorical ? formatDateDE('{{ snapshot_ts[:10] if snapshot_ts else "" }}') : T.live;
         } else if (currentView === 'bqm') {
             dateLabel.textContent = formatDateDE(selectedDate) + ' (BQM)';
+        } else if (currentView === 'speedtest') {
+            dateLabel.textContent = T.speedtest || 'Speedtest';
         } else {
             var rangeLabel = {day: T.day, week: T.week, month: T.month}[currentView] || '';
             dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
@@ -1549,6 +1670,48 @@ function fallbackCopy(textarea, btn, T) {
 }
 function toggleCard(el) {
     el.classList.toggle('open');
+}
+function openSpeedtestSetupModal() {
+    document.getElementById('speedtest-setup-modal').classList.add('open');
+}
+function closeSpeedtestSetupModal() {
+    document.getElementById('speedtest-setup-modal').classList.remove('open');
+}
+function loadSpeedtestHistory() {
+    var T = {{ t|tojson }};
+    var daysEl = document.getElementById('speedtest-days');
+    var days = daysEl ? daysEl.value : 7;
+    var tbody = document.getElementById('speedtest-tbody');
+    var table = document.getElementById('speedtest-table');
+    var noData = document.getElementById('speedtest-no-data');
+    if (!tbody || !table || !noData) return;
+    tbody.innerHTML = '';
+    table.style.display = 'none';
+    noData.style.display = 'none';
+    fetch('/api/speedtest?days=' + days)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data || data.length === 0) {
+                noData.textContent = T.speedtest_no_data || 'No speedtest data.';
+                noData.style.display = 'block';
+                return;
+            }
+            table.style.display = '';
+            data.forEach(function(r) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (r.timestamp || '') + '</td>'
+                    + '<td><strong>' + (r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
+                    + '<td><strong>' + (r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
+                    + '<td>' + r.ping_ms + ' ms</td>'
+                    + '<td>' + r.jitter_ms + ' ms</td>'
+                    + '<td>' + (r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>';
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(function() {
+            noData.textContent = T.network_error || 'Error';
+            noData.style.display = 'block';
+        });
 }
 </script>
 

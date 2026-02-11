@@ -6,6 +6,7 @@ import threading
 import time
 
 from . import fritzbox, analyzer, web, thinkbroadband
+from .speedtest import SpeedtestClient
 from .config import ConfigManager
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
@@ -59,6 +60,15 @@ def polling_loop(config_mgr, storage, stop_event):
     discovery_published = False
     bqm_last_date = None
 
+    # Speedtest Tracker (optional)
+    stt_client = None
+    if config_mgr.is_speedtest_configured():
+        stt_client = SpeedtestClient(
+            config_mgr.get("speedtest_tracker_url"),
+            config_mgr.get("speedtest_tracker_token"),
+        )
+        log.info("Speedtest Tracker: %s", config_mgr.get("speedtest_tracker_url"))
+
     while not stop_event.is_set():
         try:
             sid = fritzbox.login(
@@ -102,6 +112,12 @@ def polling_loop(config_mgr, storage, stop_event):
                     if image:
                         storage.save_bqm_graph(image)
                         bqm_last_date = today
+
+            # Fetch latest speedtest result
+            if stt_client:
+                results = stt_client.get_latest(1)
+                if results:
+                    web.update_state(speedtest_latest=results[0])
 
         except Exception as e:
             log.error("Poll error: %s", e)
