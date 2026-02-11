@@ -928,37 +928,53 @@
 
 <!-- Report Modal -->
 <div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeReportModal()">
-    <div class="modal">
+    <div class="modal" style="max-width:800px;">
         <div class="modal-header">
             <h2>{{ t.incident_report }}</h2>
             <button class="modal-close" onclick="closeReportModal()">&times;</button>
         </div>
         <p class="modal-hint">{{ t.report_description }}</p>
-        <div class="modal-body" style="padding: 10px 20px;">
-            <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
-                <div>
-                    <label for="report-days" style="font-size:14px;">{{ t.report_days }}:</label><br>
-                    <select id="report-days" style="margin: 8px 0; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
-                        <option value="1">1</option>
-                        <option value="3">3</option>
-                        <option value="7" selected>7</option>
-                        <option value="14">14</option>
-                        <option value="30">30</option>
-                    </select>
+        <div class="modal-body" style="padding: 10px 0;">
+            <!-- Step 1: Settings & Customer Info -->
+            <div id="report-step1">
+                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
+                    <div>
+                        <label style="font-size:13px; color:var(--muted);">{{ t.report_days }}</label><br>
+                        <select id="report-days" style="margin-top:4px; padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+                            <option value="1">1</option><option value="3">3</option>
+                            <option value="7" selected>7</option><option value="14">14</option>
+                            <option value="30">30</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:13px; color:var(--muted);">{{ t.report_language }}</label><br>
+                        <select id="report-lang" style="margin-top:4px; padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+                            {% for code, name in languages.items() %}
+                            <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label for="report-lang" style="font-size:14px;">{{ t.report_language }}:</label><br>
-                    <select id="report-lang" style="margin: 8px 0; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
-                        {% for code, name in languages.items() %}
-                        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
-                        {% endfor %}
-                    </select>
+                <div style="background:var(--bg); border-radius:8px; padding:14px; margin-bottom:10px;">
+                    <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">{{ t.report_customer_hint }}</p>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <input id="report-name" type="text" placeholder="{{ t.report_name }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
+                        <input id="report-number" type="text" placeholder="{{ t.report_customer_number }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
+                        <input id="report-address" type="text" placeholder="{{ t.report_address }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
+                    </div>
                 </div>
+            </div>
+            <!-- Step 2: Generated complaint text (hidden initially) -->
+            <div id="report-step2" style="display:none;">
+                <p style="font-size:13px; color:var(--muted); margin-bottom:8px;">{{ t.report_edit_hint }}</p>
+                <textarea id="report-complaint-text" style="width:100%; min-height:320px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:0.85em; font-family:'Consolas','Monaco',monospace; resize:vertical; line-height:1.5;"></textarea>
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeReportModal()">{{ t.close }}</button>
-            <button class="btn btn-accent" onclick="downloadReport()">&#128203; {{ t.generate_report }}</button>
+            <button class="btn btn-accent" id="report-generate-btn" onclick="generateComplaint()">&#9998; {{ t.report_generate_letter }}</button>
+            <button class="btn btn-accent" id="report-copy-btn" style="display:none;" onclick="copyComplaint()">&#128203; {{ t.report_copy_letter }}</button>
+            <button class="btn btn-accent" id="report-pdf-btn" style="display:none;" onclick="downloadReport()">&#128196; {{ t.report_download_pdf }}</button>
         </div>
     </div>
 </div>
@@ -1454,12 +1470,54 @@ function openReportModal() {
 }
 function closeReportModal() {
     document.getElementById('report-modal').classList.remove('open');
+    // Reset to step 1
+    document.getElementById('report-step1').style.display = '';
+    document.getElementById('report-step2').style.display = 'none';
+    document.getElementById('report-generate-btn').style.display = '';
+    document.getElementById('report-copy-btn').style.display = 'none';
+    document.getElementById('report-pdf-btn').style.display = 'none';
+}
+function generateComplaint() {
+    var days = document.getElementById('report-days').value;
+    var lang = document.getElementById('report-lang').value;
+    var name = encodeURIComponent(document.getElementById('report-name').value);
+    var number = encodeURIComponent(document.getElementById('report-number').value);
+    var address = encodeURIComponent(document.getElementById('report-address').value);
+    var btn = document.getElementById('report-generate-btn');
+    btn.disabled = true;
+    btn.textContent = '...';
+    fetch('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            document.getElementById('report-complaint-text').value = data.text;
+            document.getElementById('report-step1').style.display = 'none';
+            document.getElementById('report-step2').style.display = 'block';
+            document.getElementById('report-generate-btn').style.display = 'none';
+            document.getElementById('report-copy-btn').style.display = '';
+            document.getElementById('report-pdf-btn').style.display = '';
+        })
+        .catch(function(e) { alert('Error: ' + e); })
+        .finally(function() { btn.disabled = false; btn.textContent = '\u270E Generate Letter'; });
+}
+function copyComplaint() {
+    var textarea = document.getElementById('report-complaint-text');
+    var btn = document.getElementById('report-copy-btn');
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textarea.value).then(function() {
+            var orig = btn.innerHTML;
+            btn.innerHTML = '&#10003; Copied!';
+            setTimeout(function() { btn.innerHTML = orig; }, 2000);
+        });
+    } else {
+        document.execCommand('copy');
+    }
 }
 function downloadReport() {
     var days = document.getElementById('report-days').value;
     var lang = document.getElementById('report-lang').value;
     window.location.href = '/api/report?days=' + days + '&lang=' + lang;
-    closeReportModal();
 }
 function copyExport() {
     var T = {{ t|tojson }};

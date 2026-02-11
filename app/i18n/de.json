@@ -198,5 +198,13 @@
   "bqm_setup_step_2": "Aktiviere <b>WAN-Ping/ICMP</b> auf deinem Router, damit er auf externe Pings antwortet (Fritz!Box: Internet → Freigaben → \"Auf Ping reagieren\" aktivieren)",
   "bqm_setup_step_3": "Gehe zu <b>thinkbroadband.com/broadband/monitoring</b>, erstelle ein kostenloses Konto und registriere deine DynDNS-Adresse",
   "bqm_setup_step_4": "Sobald das Monitoring aktiv ist, kopiere deine <b>Share-URL</b> (endet auf .png) und füge sie in DOCSight unter <b>Einstellungen → BQM Share URL</b> ein",
-  "report_language": "Berichtssprache"
+  "report_language": "Berichtssprache",
+  "report_customer_hint": "Optional: Deine Daten für das Beschwerdeschreiben",
+  "report_name": "Dein Name",
+  "report_customer_number": "Kunden-/Vertragsnummer",
+  "report_address": "Deine Adresse",
+  "report_edit_hint": "Prüfe und bearbeite das Beschwerdeschreiben. Kopiere es zum Versand per E-Mail oder lade den technischen Bericht als PDF-Anhang herunter.",
+  "report_generate_letter": "Schreiben erstellen",
+  "report_copy_letter": "Schreiben kopieren",
+  "report_download_pdf": "Technischen Bericht (PDF) laden"
 }

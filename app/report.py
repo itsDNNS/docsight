@@ -97,6 +97,7 @@ REPORT_STRINGS = {
             "The full monitoring data is attached to this report. I reserve the right to escalate this matter "
             "to the Bundesnetzagentur (Federal Network Agency) if the issue is not resolved within a reasonable timeframe."
         ),
+        "complaint_closing_label": "Sincerely,",
         "complaint_closing": "Sincerely,\n[Your Name]\n[Customer Number]\n[Address]",
         "complaint_short_subject": "Subject: DOCSIS Signal Quality Issues",
         "complaint_short_greeting": "Dear Technical Support,",
@@ -177,6 +178,7 @@ REPORT_STRINGS = {
             "diese Angelegenheit an die Bundesnetzagentur weiterzuleiten, sofern das Problem nicht "
             "innerhalb einer angemessenen Frist behoben wird."
         ),
+        "complaint_closing_label": "Mit freundlichen Grüßen,",
         "complaint_closing": "Mit freundlichen Grüßen,\n[Ihr Name]\n[Kundennummer]\n[Adresse]",
         "complaint_short_subject": "Betreff: DOCSIS-Signalqualitätsprobleme",
         "complaint_short_greeting": "Sehr geehrte Damen und Herren,",
@@ -257,6 +259,7 @@ REPORT_STRINGS = {
             "l'ARCEP (Autorité de régulation des communications électroniques et des postes) si le problème "
             "n'est pas résolu dans un délai raisonnable."
         ),
+        "complaint_closing_label": "Veuillez agréer mes salutations distinguées,",
         "complaint_closing": "Veuillez agréer mes salutations distinguées,\n[Votre nom]\n[Numéro client]\n[Adresse]",
         "complaint_short_subject": "Objet : Problèmes de qualité du signal DOCSIS",
         "complaint_short_greeting": "Madame, Monsieur,",
@@ -337,6 +340,7 @@ REPORT_STRINGS = {
             "este asunto a la Secretaría de Estado de Telecomunicaciones e Infraestructuras Digitales "
             "si el problema no se resuelve en un plazo razonable."
         ),
+        "complaint_closing_label": "Atentamente,",
         "complaint_closing": "Atentamente,\n[Su nombre]\n[Número de cliente]\n[Dirección]",
         "complaint_short_subject": "Asunto: Problemas de calidad de señal DOCSIS",
         "complaint_short_greeting": "Estimado servicio técnico,",
@@ -649,3 +653,69 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
     buf = io.BytesIO()
     pdf.output(buf)
     return buf.getvalue()
+
+
+def generate_complaint_text(snapshots, config=None, connection_info=None, lang="en",
+                            customer_name="", customer_number="", customer_address=""):
+    """Generate ISP complaint letter as plain text.
+
+    Args:
+        snapshots: List of snapshot dicts
+        config: Config dict (isp_name, etc.)
+        connection_info: Connection info dict
+        lang: Language code
+        customer_name: Customer name for letter
+        customer_number: Customer/contract number
+        customer_address: Customer address
+
+    Returns:
+        str: Complaint letter text
+    """
+    config = config or {}
+    s = REPORT_STRINGS.get(lang, REPORT_STRINGS["en"])
+    isp = config.get("isp_name", "Unknown ISP")
+
+    # Build closing with actual customer data
+    closing_lines = []
+    closing_lines.append(s.get("complaint_closing_label", "Sincerely,"))
+    closing_lines.append(customer_name if customer_name else "[Your Name]")
+    if customer_number:
+        closing_lines.append(customer_number)
+    else:
+        closing_lines.append("[Customer Number]")
+    if customer_address:
+        closing_lines.append(customer_address)
+    else:
+        closing_lines.append("[Address]")
+    closing = "\n".join(closing_lines)
+
+    if snapshots:
+        worst = _compute_worst_values(snapshots)
+        start = snapshots[0]["timestamp"][:10]
+        end = snapshots[-1]["timestamp"][:10]
+        poor_pct = round(worst['health_poor_count'] / max(worst['total_snapshots'], 1) * 100)
+        return (
+            f"{s['complaint_subject']}\n\n"
+            f"{s['complaint_greeting'].format(isp=isp)}\n\n"
+            f"{s['complaint_body'].format(count=len(snapshots), start=start, end=end)}\n\n"
+            f"{s['complaint_findings']}\n"
+            f"- {s['complaint_poor_rate'].format(poor=worst['health_poor_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
+            f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=THRESHOLDS['ds_power']['warn'])}\n"
+            f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=THRESHOLDS['us_power']['warn'])}\n"
+            f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=THRESHOLDS['snr']['warn'])}\n"
+            f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
+            f"{s['complaint_exceed']}\n\n"
+            f"{s['complaint_request']}\n"
+            f"1. {s['complaint_req1']}\n"
+            f"2. {s['complaint_req2']}\n"
+            f"3. {s['complaint_req3']}\n\n"
+            f"{s['complaint_escalation']}\n\n"
+            f"{closing}"
+        )
+    else:
+        return (
+            f"{s['complaint_short_subject']}\n\n"
+            f"{s['complaint_short_greeting']}\n\n"
+            f"{s['complaint_short_body']}\n\n"
+            f"{closing}"
+        )

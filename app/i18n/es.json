@@ -193,5 +193,13 @@
   "bqm_setup_step_2": "Habilita el <b>ping WAN/ICMP</b> en tu router para que responda a pings externos",
   "bqm_setup_step_3": "Ve a <b>thinkbroadband.com/broadband/monitoring</b>, crea una cuenta gratuita y registra tu dirección DynDNS",
   "bqm_setup_step_4": "Una vez activo el monitoreo, copia tu <b>URL de compartir</b> (termina en .png) y pégala en DOCSight en <b>Configuración → BQM Share URL</b>",
-  "report_language": "Idioma del informe"
+  "report_language": "Idioma del informe",
+  "report_customer_hint": "Opcional: añade tus datos para la carta de reclamación",
+  "report_name": "Tu nombre",
+  "report_customer_number": "Número de cliente/contrato",
+  "report_address": "Tu dirección",
+  "report_edit_hint": "Revisa y edita la carta de reclamación. Cópiala para enviarla por correo o descarga el informe técnico en PDF.",
+  "report_generate_letter": "Generar carta",
+  "report_copy_letter": "Copiar carta",
+  "report_download_pdf": "Descargar informe técnico (PDF)"
 }
