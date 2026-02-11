@@ -65,6 +65,7 @@ _state = {
     "error": None,
     "connection_info": None,
     "device_info": None,
+    "speedtest_latest": None,
 }
 
 _storage = None
@@ -159,7 +160,7 @@ def inject_auth():
     return {"auth_enabled": auth_enabled}
 
 
-def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None):
+def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None):
     """Update the shared web state from the main loop."""
     if analysis is not None:
         _state["analysis"] = analysis
@@ -173,6 +174,8 @@ def update_state(analysis=None, error=None, poll_interval=None, connection_info=
         _state["connection_info"] = connection_info
     if device_info is not None:
         _state["device_info"] = device_info
+    if speedtest_latest is not None:
+        _state["speedtest_latest"] = speedtest_latest
 
 
 @app.route("/")
@@ -187,6 +190,8 @@ def index():
 
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
+    speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
+    speedtest_latest = _state.get("speedtest_latest")
     conn_info = _state.get("connection_info") or {}
     dev_info = _state.get("device_info") or {}
 
@@ -223,6 +228,8 @@ def index():
                 theme=theme,
                 isp_name=isp_name, connection_info=conn_info,
                 bqm_configured=bqm_configured,
+                speedtest_configured=speedtest_configured,
+                speedtest_latest=speedtest_latest,
                 uncorr_pct=_compute_uncorr_pct(snapshot),
                 has_us_ofdma=_has_us_ofdma(snapshot),
                 device_info=dev_info,
@@ -239,6 +246,8 @@ def index():
         theme=theme,
         isp_name=isp_name, connection_info=conn_info,
         bqm_configured=bqm_configured,
+        speedtest_configured=speedtest_configured,
+        speedtest_latest=speedtest_latest,
         uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         device_info=dev_info,
@@ -517,6 +526,25 @@ def api_bqm_image(date):
     resp.headers["Content-Type"] = "image/png"
     resp.headers["Cache-Control"] = "public, max-age=86400"
     return resp
+
+
+@app.route("/api/speedtest")
+@require_auth
+def api_speedtest():
+    """Return speedtest results for N days as JSON."""
+    if not _config_manager or not _config_manager.is_speedtest_configured():
+        return jsonify([])
+    days = request.args.get("days", 7, type=int)
+    days = max(1, min(days, 90))
+    from .speedtest import SpeedtestClient
+    client = SpeedtestClient(
+        _config_manager.get("speedtest_tracker_url"),
+        _config_manager.get("speedtest_tracker_token"),
+    )
+    end_date = datetime.now().strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+    results = client.get_results(start_date, end_date)
+    return jsonify(results)
 
 
 @app.after_request
