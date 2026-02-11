@@ -246,6 +246,7 @@ DOCSight can optionally publish all channel data to Home Assistant via MQTT Auto
 - [ ] **Smokeping Integration**: Import or display Smokeping latency data alongside DOCSIS metrics for end-to-end correlation
 
 ### Enhanced Dashboard
+- [ ] **Update Changelog Splash**: Show a "What's New" dialog on first login after a version update — highlights new features and changes so users stay informed without reading GitHub Releases
 - [ ] Combined timeline: DOCSIS health + speed tests + BQM graph + ping data on a single time axis
 - [ ] Mobile-responsive layout
 - [ ] Segment load indicator: Visualize peak-hour degradation patterns (e.g. 20:00-23:00 slowdowns)
