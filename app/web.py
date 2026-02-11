@@ -601,10 +601,14 @@ def api_speedtest():
                 _config_manager.get("speedtest_tracker_token"),
             )
             last_id = _storage.get_latest_speedtest_id()
-            new_results = client.get_newer_than(last_id)
+            if last_id == 0:
+                # First fetch: get newest results directly (descending)
+                new_results = client.get_results(per_page=count)
+            else:
+                new_results = client.get_newer_than(last_id)
             if new_results:
                 _storage.save_speedtest_results(new_results)
-                log.info("Cached %d new speedtest results (delta from id %d)", len(new_results), last_id)
+                log.info("Cached %d new speedtest results (last_id was %d)", len(new_results), last_id)
         except Exception as e:
             log.warning("Speedtest delta fetch failed: %s", e)
         return jsonify(_storage.get_speedtest_results(limit=count))
