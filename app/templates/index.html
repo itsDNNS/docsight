@@ -1693,7 +1693,7 @@
 
     var zonesPlugin = {
         id: 'zones',
-        beforeDraw: function(chart) {
+        beforeDatasetsDraw: function(chart) {
             if (!chart.config._zones) return;
             var ctx = chart.ctx;
             var yAxis = chart.scales.y;
