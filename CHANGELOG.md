@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 Versioning: `YYYY-MM-DD.N` (date + sequential build number per day)
 
+## [2026-02-11.19]
+
+### Added
+- **Incident Report Export**: Two-step flow — editable ISP complaint letter with customer data fields + downloadable technical PDF report with channel tables, worst values, and DIN threshold references
+- **Report i18n**: Full PDF report localization in 4 languages (EN/DE/FR/ES) with locale-appropriate regulatory authorities (Bundesnetzagentur, ARCEP, etc.)
+- **Language selector in topbar**: Country flag dropdown (🇬🇧🇩🇪🇫🇷🇪🇸) for quick language switching
+- **BQM setup guide**: Sidebar link always visible; when not configured, opens modal with benefits and step-by-step setup instructions (DynDNS, WAN ping, ThinkBroadband registration)
+- **Bundled DejaVu fonts**: PDF generation works in Docker without host font dependencies
+
+### Changed
+- **Settings moved to sidebar bottom**: Following common UI convention
+- **Report modal redesign**: Split into complaint letter (copyable text) + technical report (PDF attachment) for easier ISP communication
+
+### Fixed
+- **BQM modal HTML rendering**: i18n strings with HTML tags now render correctly via Jinja2 safe filter
+
 ## [2026-02-09.18]
 
 ### Added
