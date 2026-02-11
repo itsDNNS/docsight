@@ -92,28 +92,27 @@ class TestSpeedtestClient:
         assert results == []
 
     @patch("app.speedtest.requests.Session.get")
-    def test_get_results_date_range(self, mock_get):
+    def test_get_results_pagination(self, mock_get):
         mock_resp = MagicMock()
-        mock_resp.json.return_value = SAMPLE_API_RESPONSE
+        mock_resp.json.return_value = {**SAMPLE_API_RESPONSE, "meta": {"last_page": 1}}
         mock_resp.raise_for_status = MagicMock()
         mock_get.return_value = mock_resp
 
         client = self._make_client()
-        results = client.get_results("2025-01-14", "2025-01-15")
+        results = client.get_results(per_page=100)
 
         assert len(results) == 2
-        # Verify params sent
         call_kwargs = mock_get.call_args
         params = call_kwargs.kwargs.get("params") or call_kwargs[1].get("params")
-        assert params["filter[start_at]"] == "2025-01-14"
-        assert params["filter[end_at]"] == "2025-01-15"
+        assert params["page[size]"] == 100
+        assert params["page[number]"] == 1
 
     @patch("app.speedtest.requests.Session.get")
     def test_get_results_connection_error(self, mock_get):
         mock_get.side_effect = Exception("Timeout")
 
         client = self._make_client()
-        results = client.get_results("2025-01-14", "2025-01-15")
+        results = client.get_results()
         assert results == []
 
     @patch("app.speedtest.requests.Session.get")
