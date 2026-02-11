@@ -374,6 +374,29 @@
         .val-bad { color: #e74c3c; font-weight: 600; }
         #speedtest-table th { cursor: pointer; user-select: none; }
         #speedtest-table th:hover { background: var(--surface-hover, rgba(255,255,255,0.05)); }
+        .speedtest-chart-wrap {
+            position: relative; width: 100%; height: 250px;
+            border: 1px solid var(--input-border); border-radius: 8px;
+            background: var(--surface); margin-bottom: 16px; overflow: hidden;
+        }
+        .speedtest-chart-wrap canvas { display: block; width: 100%; height: 100%; }
+        .speedtest-chart-legend {
+            display: flex; gap: 18px; justify-content: center;
+            padding: 6px 0 2px; font-size: 0.78em; color: var(--muted);
+        }
+        .speedtest-chart-legend span::before {
+            content: ''; display: inline-block; width: 10px; height: 10px;
+            border-radius: 50%; margin-right: 5px; vertical-align: -1px;
+        }
+        .legend-dl::before { background: #3b82f6; }
+        .legend-ul::before { background: #22c55e; }
+        .legend-ping::before { background: #f59e0b; }
+        .legend-thresh::before { background: #ef4444; }
+        .speedtest-chart-tooltip {
+            position: absolute; pointer-events: none; display: none;
+            background: rgba(0,0,0,0.85); color: #e0e0e0; font-size: 0.78em;
+            padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 10;
+        }
         .sort-indicator { margin-left: 4px; font-size: 0.8em; opacity: 0.7; }
         .error-box {
             background: rgba(244,67,54,0.15); border: 1px solid var(--crit);
@@ -986,6 +1009,18 @@
         <p>{{ t.fetching }}</p>
     </div>
     <div id="speedtest-no-data" class="no-data-msg" style="display:none;"></div>
+    <div id="speedtest-chart-container" style="display:none;">
+        <div class="speedtest-chart-wrap">
+            <canvas id="speedtest-chart"></canvas>
+            <div class="speedtest-chart-tooltip" id="speedtest-chart-tooltip"></div>
+        </div>
+        <div class="speedtest-chart-legend">
+            <span class="legend-dl">Download (Mbps)</span>
+            <span class="legend-ul">Upload (Mbps)</span>
+            <span class="legend-ping">Ping (ms)</span>
+            <span class="legend-thresh">80% Median DL</span>
+        </div>
+    </div>
     <div id="speedtest-table-wrap">
         <table id="speedtest-table" class="sortable" style="display:none;">
             <thead><tr>
@@ -1821,10 +1856,13 @@ function filterSpeedtestData() {
             noData.textContent = T.speedtest_no_data || 'No speedtest data.';
             noData.style.display = 'block';
         }
+        var cc = document.getElementById('speedtest-chart-container');
+        if (cc) cc.style.display = 'none';
     } else {
         if (table) table.style.display = '';
         if (noData) noData.style.display = 'none';
         renderSpeedtestRows();
+        renderSpeedtestChart();
     }
 }
 
@@ -1867,6 +1905,7 @@ function handleSpeedtestSort(col) {
     sortSpeedtestData();
     _speedtestVisible = 50;
     renderSpeedtestRows();
+    renderSpeedtestChart();
 }
 
 function computeMedian(arr) {
@@ -1920,6 +1959,174 @@ function renderSpeedtestRows() {
         }
     }
 }
+
+function renderSpeedtestChart() {
+    var container = document.getElementById('speedtest-chart-container');
+    var canvas = document.getElementById('speedtest-chart');
+    if (!container || !canvas) return;
+    // Sort data chronologically for chart (oldest first)
+    var data = _speedtestAllData.slice().sort(function(a, b) {
+        return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+    if (data.length < 2) { container.style.display = 'none'; return; }
+    container.style.display = '';
+    var wrap = canvas.parentElement;
+    var dpr = window.devicePixelRatio || 1;
+    var w = wrap.clientWidth;
+    var h = wrap.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    // Padding
+    var padL = 60, padR = 60, padT = 20, padB = 30;
+    var cw = w - padL - padR;
+    var ch = h - padT - padB;
+    // Extract data arrays
+    var dls = [], uls = [], pings = [], times = [];
+    for (var i = 0; i < data.length; i++) {
+        dls.push(parseFloat(data[i].download_mbps) || 0);
+        uls.push(parseFloat(data[i].upload_mbps) || 0);
+        pings.push(parseFloat(data[i].ping_ms) || 0);
+        times.push(new Date(data[i].timestamp));
+    }
+    // Scales
+    var maxSpeed = Math.max.apply(null, dls.concat(uls)) * 1.1 || 1;
+    var maxPing = Math.max.apply(null, pings) * 1.1 || 1;
+    var medianDl = computeMedian(dls);
+    var threshold = medianDl * 0.8;
+    function xPos(idx) { return padL + (idx / (data.length - 1)) * cw; }
+    function ySpeed(v) { return padT + ch - (v / maxSpeed) * ch; }
+    function yPing(v) { return padT + ch - (v / maxPing) * ch; }
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+    // Background zones (green/red tint per segment)
+    for (var i = 0; i < data.length - 1; i++) {
+        var x1 = xPos(i), x2 = xPos(i + 1);
+        var isHealthy = dls[i] >= threshold && dls[i + 1] >= threshold;
+        ctx.fillStyle = isHealthy ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)';
+        ctx.fillRect(x1, padT, x2 - x1, ch);
+    }
+    // Grid lines + left Y axis labels (speed)
+    var cs = getComputedStyle(document.documentElement);
+    var mutedColor = cs.getPropertyValue('--muted').trim() || '#888';
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = 1;
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    var gridLines = 5;
+    for (var g = 0; g <= gridLines; g++) {
+        var gy = padT + (g / gridLines) * ch;
+        var speedVal = maxSpeed - (g / gridLines) * maxSpeed;
+        var pingVal = maxPing - (g / gridLines) * maxPing;
+        ctx.beginPath();
+        ctx.moveTo(padL, gy);
+        ctx.lineTo(w - padR, gy);
+        ctx.stroke();
+        ctx.fillStyle = mutedColor;
+        ctx.textAlign = 'right';
+        ctx.fillText(speedVal.toFixed(0), padL - 6, gy);
+        ctx.textAlign = 'left';
+        ctx.fillText(pingVal.toFixed(0), w - padR + 6, gy);
+    }
+    ctx.fillStyle = mutedColor;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.save();
+    ctx.translate(12, padT + ch / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Mbps', 0, 0);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(w - 10, padT + ch / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillText('ms', 0, 0);
+    ctx.restore();
+    // X axis labels (timestamps)
+    ctx.fillStyle = mutedColor;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    var labelCount = Math.min(6, data.length);
+    for (var li = 0; li < labelCount; li++) {
+        var idx = Math.round(li * (data.length - 1) / (labelCount - 1));
+        var t = times[idx];
+        var label = String(t.getDate()).padStart(2, '0') + '.' + String(t.getMonth() + 1).padStart(2, '0') + ' ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+        ctx.fillText(label, xPos(idx), padT + ch + 6);
+    }
+    // Threshold line (dashed red)
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    var threshY = ySpeed(threshold);
+    ctx.moveTo(padL, threshY);
+    ctx.lineTo(w - padR, threshY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Helper: draw filled line
+    function drawLine(values, yFn, color, fillColor) {
+        // Filled area
+        ctx.beginPath();
+        ctx.moveTo(xPos(0), padT + ch);
+        for (var i = 0; i < values.length; i++) {
+            ctx.lineTo(xPos(i), yFn(values[i]));
+        }
+        ctx.lineTo(xPos(values.length - 1), padT + ch);
+        ctx.closePath();
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+        // Line
+        ctx.beginPath();
+        for (var i = 0; i < values.length; i++) {
+            if (i === 0) ctx.moveTo(xPos(i), yFn(values[i]));
+            else ctx.lineTo(xPos(i), yFn(values[i]));
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+    drawLine(uls, ySpeed, '#22c55e', 'rgba(34,197,94,0.12)');
+    drawLine(dls, ySpeed, '#3b82f6', 'rgba(59,130,246,0.15)');
+    drawLine(pings, yPing, '#f59e0b', 'rgba(245,158,11,0.10)');
+    // Hover interaction
+    var tooltip = document.getElementById('speedtest-chart-tooltip');
+    function onMouseMove(e) {
+        var rect = canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+        if (mx < padL || mx > w - padR || my < padT || my > padT + ch) {
+            tooltip.style.display = 'none'; return;
+        }
+        // Find nearest data index
+        var ratio = (mx - padL) / cw;
+        var idx = Math.round(ratio * (data.length - 1));
+        if (idx < 0) idx = 0;
+        if (idx >= data.length) idx = data.length - 1;
+        tooltip.style.display = '';
+        tooltip.innerHTML = '<strong>' + formatSpeedtestTimestamp(data[idx].timestamp) + '</strong><br>'
+            + '<span style="color:#3b82f6">&#9660;</span> DL: ' + dls[idx].toFixed(2) + ' Mbps<br>'
+            + '<span style="color:#22c55e">&#9650;</span> UL: ' + uls[idx].toFixed(2) + ' Mbps<br>'
+            + '<span style="color:#f59e0b">&#9679;</span> Ping: ' + pings[idx].toFixed(1) + ' ms';
+        var tx = mx + 14;
+        var ty = my - 10;
+        if (tx + 180 > w) tx = mx - 180;
+        if (ty < 0) ty = 4;
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top = ty + 'px';
+    }
+    function onMouseLeave() { tooltip.style.display = 'none'; }
+    if (canvas._chartMoveHandler) canvas.removeEventListener('mousemove', canvas._chartMoveHandler);
+    if (canvas._chartLeaveHandler) canvas.removeEventListener('mouseleave', canvas._chartLeaveHandler);
+    canvas._chartMoveHandler = onMouseMove;
+    canvas._chartLeaveHandler = onMouseLeave;
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mouseleave', onMouseLeave);
+}
+window.addEventListener('resize', function() {
+    if (_speedtestAllData.length >= 2) renderSpeedtestChart();
+});
 
 function showMoreSpeedtest() {
     _speedtestVisible += 50;
