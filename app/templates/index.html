@@ -44,10 +44,16 @@
 
         /* ── Topbar ── */
         .topbar {
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; justify-content: space-between;
             padding: 10px 16px; background: var(--surface);
             border-bottom: 1px solid var(--input-border);
             position: sticky; top: 0; z-index: 50;
+        }
+        .topbar-left, .topbar-right {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .topbar-center {
+            position: absolute; left: 50%; transform: translateX(-50%);
         }
         .hamburger-btn {
             background: none; border: none; color: var(--text);
@@ -69,7 +75,7 @@
         }
         .date-label:hover { border-color: var(--accent); }
         .topbar-title {
-            flex: 1; font-size: 1.1em; color: var(--accent);
+            font-size: 1.1em; color: var(--accent);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .topbar-meta { font-size: 0.8em; color: var(--muted); white-space: nowrap; }
@@ -615,6 +621,8 @@
             body { font-size: 14px; }
             .topbar { gap: 6px; padding: 8px 10px; }
             .topbar-title { display: none; }
+            .topbar-center { position: static; transform: none; }
+            .topbar-meta { display: none; }
             .metric-cards { grid-template-columns: 1fr; }
             .metric-row { flex-direction: column; gap: 10px; }
             table { font-size: 0.8em; }
@@ -693,25 +701,31 @@
 
 <!-- Topbar -->
 <div class="topbar">
-    <button class="hamburger-btn" id="hamburger" title="Menu">&#9776;</button>
-    <div class="date-nav" id="date-nav">
-        <button id="date-prev">&#8249;</button>
-        <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
-        <button id="date-next">&#8250;</button>
+    <div class="topbar-left">
+        <button class="hamburger-btn" id="hamburger" title="Menu">&#9776;</button>
+        <span class="topbar-title">DOCSight</span>
     </div>
-    <span class="topbar-title">DOCSight</span>
-    <span class="topbar-meta" id="topbar-meta">
-        {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
-    </span>
-    {% if not historical %}
-    <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
-    {% endif %}
-    <select class="lang-select" id="lang-select" title="Language">
-        {% for code, name in languages.items() %}
-        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ code.upper() }}</option>
-        {% endfor %}
-    </select>
-    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
+    <div class="topbar-center" id="topbar-center">
+        <div class="date-nav" id="date-nav">
+            <button id="date-prev">&#8249;</button>
+            <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
+            <button id="date-next">&#8250;</button>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <span class="topbar-meta" id="topbar-meta">
+            {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
+        </span>
+        {% if not historical %}
+        <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
+        {% endif %}
+        <select class="lang-select" id="lang-select" title="Language">
+            {% for code, name in languages.items() %}
+            <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ code.upper() }}</option>
+            {% endfor %}
+        </select>
+        <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
+    </div>
 </div>
 
 <!-- Calendar Popup -->
