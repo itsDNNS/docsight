@@ -13,9 +13,10 @@ DS_POWER_CRIT = 10.0
 US_POWER_WARN = 50.0
 US_POWER_CRIT = 54.0
 
-# SNR / MER (dB): good >30, marginal 25-30, bad <25
-SNR_WARN = 30.0
-SNR_CRIT = 25.0
+# SNR / MER (dB): good >33, marginal 29-33, bad <29
+# Based on Vodafone VFKD guidelines: 256QAM regelkonform > 33.1 dB
+SNR_WARN = 33.0
+SNR_CRIT = 29.0
 
 # Uncorrectable errors threshold
 UNCORR_ERRORS_CRIT = 10000

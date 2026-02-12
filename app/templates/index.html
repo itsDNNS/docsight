@@ -1012,7 +1012,7 @@
                             <div class="range-zone range-good" style="width:50%"></div>
                             <div class="range-marker val-{{ snr_health }}" style="left:{{ snr_marker }}%"></div>
                         </div>
-                        <div class="range-labels"><span>15</span><span>25</span><span>30</span><span>45 dB</span></div>
+                        <div class="range-labels"><span>15</span><span>29</span><span>33</span><span>45 dB</span></div>
                     </div>
                 </div>
             </div>
@@ -1021,7 +1021,7 @@
                     <tr><td>{{ t.card_power_range }}</td><td>{{ s.ds_power_min }} ... {{ s.ds_power_max }} dBmV</td></tr>
                     <tr><td>SNR {{ t.card_power_range }}</td><td>{{ s.ds_snr_min }} ... {{ s.ds_snr_avg }} dB</td></tr>
                     <tr><td>{{ t.channels }}</td><td>{{ s.ds_total }} {{ t.downstream|lower }}</td></tr>
-                    <tr><td>{{ t.card_ideal_range }}</td><td>-7...+7 dBmV / SNR &gt;30 dB</td></tr>
+                    <tr><td>{{ t.card_ideal_range }}</td><td>-7...+7 dBmV / SNR &gt;33 dB</td></tr>
                 </table>
             </div>
         </div>
@@ -1190,7 +1190,7 @@
                 <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
                 <td data-sort="{{ ch.power if ch.power is not none else 0 }}" class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
-                <td data-sort="{{ ch.snr if ch.snr is not none else 0 }}" class="{% if ch.snr is not none %}{% if ch.snr < 25 %}val-crit{% elif ch.snr < 30 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
+                <td data-sort="{{ ch.snr if ch.snr is not none else 0 }}" class="{% if ch.snr is not none %}{% if ch.snr < 29 %}val-crit{% elif ch.snr < 33 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
                 <td>{{ ch.modulation }}</td>
                 <td data-sort="{{ ch.correctable_errors }}">{{ ch.correctable_errors|fmt_k }}</td>
                 <td data-sort="{{ ch.uncorrectable_errors }}">{{ ch.uncorrectable_errors|fmt_k }}</td>
@@ -2113,9 +2113,9 @@
         {yMin: -12, yMax: 12}
     ];
     var DS_SNR_ZONES = [
-        {min: 15, max: 30, color: "rgba(244,67,54,0.35)"},
-        {min: 30, max: 35, color: "rgba(255,152,0,0.30)"},
-        {min: 35, max: 50, color: "rgba(76,175,80,0.25)"},
+        {min: 15, max: 29, color: "rgba(244,67,54,0.35)"},
+        {min: 29, max: 33, color: "rgba(255,152,0,0.30)"},
+        {min: 33, max: 50, color: "rgba(76,175,80,0.25)"},
         {yMin: 25, yMax: 45}
     ];
     var US_POWER_ZONES = [
