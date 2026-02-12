@@ -1509,6 +1509,7 @@
         sidebarLinks.forEach(function(l) {
             l.classList.toggle('active', l.getAttribute('data-view') === view);
         });
+        document.getElementById('date-nav').style.display = (view === 'live' || view === 'bqm') ? 'flex' : 'none';
         var dashView = document.getElementById('view-dashboard');
         var trendView = document.getElementById('view-trends');
         var bqmView = document.getElementById('view-bqm');
