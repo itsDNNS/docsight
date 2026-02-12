@@ -516,6 +516,103 @@
         }
         .btn-muted:hover { background: var(--accent); color: #000; }
 
+        /* ── Journal ── */
+        .journal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+        }
+        .journal-header .trend-title { font-size: 1.2em; color: var(--accent); font-weight: bold; }
+        .btn-new-entry {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 18px; background: var(--accent); color: #000;
+            border: none; border-radius: 6px; cursor: pointer;
+            font-size: 0.9em; font-family: inherit; font-weight: bold;
+        }
+        .btn-new-entry:hover { filter: brightness(1.15); }
+        .incident-list { display: flex; flex-direction: column; gap: 10px; }
+        .incident-card {
+            background: var(--surface); border-radius: 8px; padding: 16px;
+            border: 1px solid var(--input-border); cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .incident-card:hover { border-color: var(--accent); background: var(--card); }
+        .incident-card-top {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 6px;
+        }
+        .incident-card-date { font-size: 0.82em; color: var(--muted); }
+        .incident-card-badge {
+            font-size: 0.78em; color: var(--muted); display: inline-flex;
+            align-items: center; gap: 3px;
+        }
+        .incident-card-title { font-weight: bold; font-size: 1em; margin-bottom: 4px; }
+        .incident-card-desc { font-size: 0.88em; color: var(--muted); line-height: 1.4; }
+        .journal-empty {
+            text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
+        }
+        .incident-form-group { margin-bottom: 14px; }
+        .incident-form-group label {
+            display: block; font-size: 0.85em; color: var(--muted);
+            margin-bottom: 4px; font-weight: bold;
+        }
+        .incident-form-group input,
+        .incident-form-group textarea {
+            width: 100%; padding: 10px 12px; background: var(--bg);
+            color: var(--text); border: 1px solid var(--input-border);
+            border-radius: 6px; font-family: inherit; font-size: 0.92em;
+        }
+        .incident-form-group textarea { min-height: 150px; resize: vertical; }
+        .incident-form-group input:focus,
+        .incident-form-group textarea:focus { outline: none; border-color: var(--accent); }
+        .attachment-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        .attachment-item {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--card); border-radius: 6px; padding: 6px 10px;
+            font-size: 0.82em; border: 1px solid var(--input-border);
+        }
+        .attachment-thumb {
+            width: 48px; height: 48px; object-fit: cover; border-radius: 4px;
+            background: var(--bg);
+        }
+        .attachment-icon {
+            width: 48px; height: 48px; display: flex; align-items: center;
+            justify-content: center; font-size: 1.5em; background: var(--bg);
+            border-radius: 4px;
+        }
+        .attachment-info { display: flex; flex-direction: column; gap: 2px; }
+        .attachment-name { color: var(--text); word-break: break-all; }
+        .attachment-actions { display: flex; gap: 4px; }
+        .attachment-actions a,
+        .attachment-actions button {
+            background: none; border: none; color: var(--muted); cursor: pointer;
+            font-size: 0.9em; padding: 2px 4px; text-decoration: none;
+        }
+        .attachment-actions a:hover,
+        .attachment-actions button:hover { color: var(--accent); }
+        .btn-upload {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; background: var(--card); color: var(--text);
+            border: 1px solid var(--input-border); border-radius: 6px;
+            cursor: pointer; font-size: 0.85em; font-family: inherit;
+        }
+        .btn-upload:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-danger {
+            background: var(--crit); color: #fff; border: none;
+            padding: 8px 18px; border-radius: 4px; cursor: pointer;
+            font-size: 0.9em; font-family: inherit; font-weight: bold;
+        }
+        .btn-danger:hover { filter: brightness(1.15); }
+        .modal-footer-left { display: flex; gap: 10px; flex: 1; }
+        .incident-modal-footer {
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        }
+        .upload-spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid var(--input-border); border-top: 2px solid var(--accent);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            vertical-align: middle; margin-left: 6px;
+        }
+
         /* ── Responsive ── */
         @media (max-width: 900px) {
             .charts-grid { grid-template-columns: 1fr; }
@@ -564,6 +661,9 @@
             <span class="icon">&#9889;</span> {{ t.speedtest }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.optional }}</span>
         </a>
         {% endif %}
+        <a class="sidebar-link" data-view="journal">
+            <span class="icon">&#128203;</span> {{ t.incident_journal }}
+        </a>
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
             <span class="icon">&#128225;</span> {{ t.bqm_title }}
@@ -1009,6 +1109,64 @@
 </div>
 {% endif %}
 
+<!-- ═══ View: Incident Journal ═══ -->
+<div id="view-journal" class="view">
+    <div class="journal-header">
+        <span class="trend-title">{{ t.incident_journal }}</span>
+        <button class="btn-new-entry" onclick="openIncidentModal()">+ {{ t.new_entry }}</button>
+    </div>
+    <div id="journal-loading" class="waiting" style="display:none;">
+        <div class="spinner"></div>
+    </div>
+    <div id="journal-empty" class="journal-empty" style="display:none;"></div>
+    <div id="journal-list" class="incident-list"></div>
+</div>
+
+<!-- ═══ Incident Modal ═══ -->
+<div class="modal-overlay" id="incident-modal" onclick="if(event.target===this)closeIncidentModal()">
+    <div class="modal" style="max-width:640px;">
+        <div class="modal-header">
+            <h2 id="incident-modal-title"></h2>
+            <button class="modal-close" onclick="closeIncidentModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto;">
+            <input type="hidden" id="incident-id">
+            <div class="incident-form-group">
+                <label for="incident-date">{{ t.incident_date }}</label>
+                <input type="date" id="incident-date">
+            </div>
+            <div class="incident-form-group">
+                <label for="incident-title-input">{{ t.incident_title }}</label>
+                <input type="text" id="incident-title-input" maxlength="200" placeholder="{{ t.incident_title }}">
+            </div>
+            <div class="incident-form-group">
+                <label for="incident-desc">{{ t.incident_description }}</label>
+                <textarea id="incident-desc" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
+            </div>
+            <div class="incident-form-group" id="incident-attachments-section">
+                <label>{{ t.attachments }}</label>
+                <div class="attachment-list" id="incident-attachment-list"></div>
+                <button class="btn-upload" id="incident-upload-btn" onclick="document.getElementById('incident-file-input').click()">
+                    &#128206; {{ t.upload_file }}
+                </button>
+                <span id="incident-upload-spinner" style="display:none;"><span class="upload-spinner"></span></span>
+                <input type="file" id="incident-file-input" style="display:none;" multiple
+                       accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain"
+                       onchange="handleIncidentFileUpload(this)">
+            </div>
+        </div>
+        <div class="incident-modal-footer">
+            <div class="modal-footer-left">
+                <button class="btn-danger" id="incident-delete-btn" onclick="deleteIncident()" style="display:none;">{{ t.delete_incident }}</button>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-muted" onclick="closeIncidentModal()">{{ t.cancel }}</button>
+                <button class="btn btn-accent" onclick="saveIncident()">{{ t.save }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ═══ View: Speedtest ═══ -->
 {% if speedtest_configured %}
 <div id="view-speedtest" class="view">
@@ -1358,10 +1516,12 @@
         var trendView = document.getElementById('view-trends');
         var bqmView = document.getElementById('view-bqm');
         var speedtestView = document.getElementById('view-speedtest');
+        var journalView = document.getElementById('view-journal');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
         if (speedtestView) speedtestView.classList.remove('active');
+        if (journalView) journalView.classList.remove('active');
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
@@ -1375,6 +1535,10 @@
             if (speedtestView) speedtestView.classList.add('active');
             updateDateLabel();
             loadSpeedtestHistory();
+        } else if (view === 'journal') {
+            if (journalView) journalView.classList.add('active');
+            updateDateLabel();
+            loadIncidents();
         } else if (view === 'trends') {
             trendView.classList.add('active');
             updateTrendTabs();
@@ -1399,7 +1563,7 @@
     });
 
     /* ── Hash-based view routing ── */
-    var validViews = ['live', 'trends', 'bqm', 'speedtest'];
+    var validViews = ['live', 'trends', 'bqm', 'speedtest', 'journal'];
     function viewFromHash() {
         var h = location.hash.replace('#', '');
         return validViews.indexOf(h) !== -1 ? h : null;
@@ -1422,6 +1586,8 @@
             dateLabel.textContent = formatDateDE(selectedDate) + ' (BQM)';
         } else if (currentView === 'speedtest') {
             dateLabel.textContent = T.speedtest || 'Speedtest';
+        } else if (currentView === 'journal') {
+            dateLabel.textContent = T.incident_journal || 'Incident Journal';
         } else if (currentView === 'trends') {
             var rangeLabel = {day: T.day, week: T.week, month: T.month}[_trendRange] || '';
             if (selectedDate === todayStr()) {
@@ -2446,6 +2612,223 @@ function escapeHtml(str) {
     var div = document.createElement('div');
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+}
+
+/* ── Incident Journal ── */
+var _incidentsLoaded = false;
+
+function loadIncidents() {
+    var list = document.getElementById('journal-list');
+    var empty = document.getElementById('journal-empty');
+    var loading = document.getElementById('journal-loading');
+    loading.style.display = '';
+    list.innerHTML = '';
+    empty.style.display = 'none';
+    fetch('/api/incidents')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading.style.display = 'none';
+            if (!data || data.length === 0) {
+                empty.textContent = T.no_incidents || 'No incidents logged yet.';
+                empty.style.display = '';
+                return;
+            }
+            _incidentsLoaded = true;
+            data.forEach(function(inc) {
+                var card = document.createElement('div');
+                card.className = 'incident-card';
+                card.setAttribute('data-id', inc.id);
+                card.onclick = function() { openIncidentModal(inc.id); };
+                var desc = inc.description || '';
+                if (desc.length > 150) desc = desc.substring(0, 150) + '...';
+                var badge = '';
+                if (inc.attachment_count > 0) {
+                    badge = '<span class="incident-card-badge">&#128206; ' + inc.attachment_count + '</span>';
+                }
+                card.innerHTML =
+                    '<div class="incident-card-top">' +
+                        '<span class="incident-card-date">' + formatDateDE(inc.date) + '</span>' +
+                        badge +
+                    '</div>' +
+                    '<div class="incident-card-title">' + escapeHtml(inc.title) + '</div>' +
+                    (desc ? '<div class="incident-card-desc">' + escapeHtml(desc) + '</div>' : '');
+                list.appendChild(card);
+            });
+        })
+        .catch(function() {
+            loading.style.display = 'none';
+            empty.textContent = T.network_error || 'Error';
+            empty.style.display = '';
+        });
+}
+
+function openIncidentModal(incidentId) {
+    var modal = document.getElementById('incident-modal');
+    var titleEl = document.getElementById('incident-modal-title');
+    var idEl = document.getElementById('incident-id');
+    var dateEl = document.getElementById('incident-date');
+    var titleInput = document.getElementById('incident-title-input');
+    var descEl = document.getElementById('incident-desc');
+    var deleteBtn = document.getElementById('incident-delete-btn');
+    var attachSection = document.getElementById('incident-attachments-section');
+    var attachList = document.getElementById('incident-attachment-list');
+
+    attachList.innerHTML = '';
+
+    if (incidentId) {
+        titleEl.textContent = T.edit_entry || 'Edit Entry';
+        deleteBtn.style.display = '';
+        fetch('/api/incidents/' + incidentId)
+            .then(function(r) { return r.json(); })
+            .then(function(inc) {
+                idEl.value = inc.id;
+                dateEl.value = inc.date;
+                titleInput.value = inc.title;
+                descEl.value = inc.description || '';
+                renderAttachments(inc.attachments || [], attachList, incidentId);
+                attachSection.style.display = '';
+                modal.classList.add('open');
+            });
+    } else {
+        titleEl.textContent = T.new_entry || 'New Entry';
+        idEl.value = '';
+        dateEl.value = todayStr();
+        titleInput.value = '';
+        descEl.value = '';
+        deleteBtn.style.display = 'none';
+        attachSection.style.display = 'none';
+        modal.classList.add('open');
+    }
+}
+
+function closeIncidentModal() {
+    document.getElementById('incident-modal').classList.remove('open');
+}
+
+function renderAttachments(attachments, container, incidentId) {
+    container.innerHTML = '';
+    attachments.forEach(function(att) {
+        var item = document.createElement('div');
+        item.className = 'attachment-item';
+        var isImage = att.mime_type && att.mime_type.indexOf('image/') === 0;
+        var thumbHtml = '';
+        if (isImage) {
+            thumbHtml = '<img class="attachment-thumb" src="/api/attachments/' + att.id + '" alt="">';
+        } else if (att.mime_type === 'application/pdf') {
+            thumbHtml = '<div class="attachment-icon">&#128196;</div>';
+        } else {
+            thumbHtml = '<div class="attachment-icon">&#128462;</div>';
+        }
+        item.innerHTML = thumbHtml +
+            '<div class="attachment-info">' +
+                '<span class="attachment-name">' + escapeHtml(att.filename) + '</span>' +
+                '<div class="attachment-actions">' +
+                    '<a href="/api/attachments/' + att.id + '" download title="Download">&#11015;</a>' +
+                    '<button onclick="deleteAttachment(' + att.id + ', ' + incidentId + ')" title="Delete">&#128465;</button>' +
+                '</div>' +
+            '</div>';
+        container.appendChild(item);
+    });
+}
+
+function saveIncident() {
+    var idEl = document.getElementById('incident-id');
+    var dateVal = document.getElementById('incident-date').value;
+    var titleVal = document.getElementById('incident-title-input').value.trim();
+    var descVal = document.getElementById('incident-desc').value.trim();
+    var incidentId = idEl.value;
+
+    if (!titleVal) {
+        showToast(T.incident_title + ' required', 'error');
+        return;
+    }
+
+    var payload = JSON.stringify({date: dateVal, title: titleVal, description: descVal});
+    var url = incidentId ? '/api/incidents/' + incidentId : '/api/incidents';
+    var method = incidentId ? 'PUT' : 'POST';
+
+    fetch(url, {method: method, headers: {'Content-Type': 'application/json'}, body: payload})
+        .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+        .then(function(res) {
+            if (res.status >= 400) {
+                showToast(res.data.error || 'Error', 'error');
+                return;
+            }
+            closeIncidentModal();
+            loadIncidents();
+            if (!incidentId && res.data.id) {
+                openIncidentModal(res.data.id);
+            }
+        })
+        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+}
+
+function deleteIncident() {
+    var incidentId = document.getElementById('incident-id').value;
+    if (!incidentId) return;
+    if (!confirm(T.confirm_delete || 'Are you sure?')) return;
+    fetch('/api/incidents/' + incidentId, {method: 'DELETE'})
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            closeIncidentModal();
+            loadIncidents();
+        })
+        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+}
+
+function handleIncidentFileUpload(input) {
+    var incidentId = document.getElementById('incident-id').value;
+    if (!incidentId || !input.files || input.files.length === 0) return;
+    var spinner = document.getElementById('incident-upload-spinner');
+    var uploadBtn = document.getElementById('incident-upload-btn');
+    spinner.style.display = 'inline';
+    uploadBtn.disabled = true;
+    var uploads = [];
+    for (var i = 0; i < input.files.length; i++) {
+        uploads.push(uploadOneFile(incidentId, input.files[i]));
+    }
+    Promise.all(uploads)
+        .then(function(results) {
+            var errors = results.filter(function(r) { return r.error; });
+            if (errors.length > 0) {
+                showToast(errors[0].error, 'error');
+            }
+            spinner.style.display = 'none';
+            uploadBtn.disabled = false;
+            input.value = '';
+            // Reload attachments
+            fetch('/api/incidents/' + incidentId)
+                .then(function(r) { return r.json(); })
+                .then(function(inc) {
+                    renderAttachments(inc.attachments || [], document.getElementById('incident-attachment-list'), incidentId);
+                });
+        })
+        .catch(function() {
+            spinner.style.display = 'none';
+            uploadBtn.disabled = false;
+            showToast(T.network_error || 'Error', 'error');
+        });
+}
+
+function uploadOneFile(incidentId, file) {
+    var formData = new FormData();
+    formData.append('file', file);
+    return fetch('/api/incidents/' + incidentId + '/attachments', {method: 'POST', body: formData})
+        .then(function(r) { return r.json().then(function(d) { return r.status >= 400 ? {error: d.error} : d; }); })
+        .catch(function() { return {error: T.network_error || 'Upload failed'}; });
+}
+
+function deleteAttachment(attachmentId, incidentId) {
+    fetch('/api/attachments/' + attachmentId, {method: 'DELETE'})
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            fetch('/api/incidents/' + incidentId)
+                .then(function(r) { return r.json(); })
+                .then(function(inc) {
+                    renderAttachments(inc.attachments || [], document.getElementById('incident-attachment-list'), incidentId);
+                });
+        })
+        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
 }
 
 

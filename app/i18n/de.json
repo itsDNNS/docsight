@@ -243,5 +243,20 @@
   "timestamp": "Zeitstempel",
   "whats_new": "Was ist neu",
   "got_it": "Verstanden",
-  "full_changelog": "Vollstaendiges Changelog auf GitHub"
+  "full_changelog": "Vollstaendiges Changelog auf GitHub",
+  "incident_journal": "Stoerungsprotokoll",
+  "new_entry": "Neuer Eintrag",
+  "edit_entry": "Eintrag bearbeiten",
+  "incident_date": "Datum",
+  "incident_title": "Titel",
+  "incident_description": "Beschreibung",
+  "attachments": "Anhaenge",
+  "upload_file": "Datei hochladen",
+  "no_incidents": "Noch keine Stoerungen protokolliert. Dokumentiere deine Verbindungsprobleme fuer ISP-Beschwerden.",
+  "delete_incident": "Eintrag loeschen",
+  "confirm_delete": "Bist du sicher, dass du diesen Eintrag loeschen moechtest?",
+  "cancel": "Abbrechen",
+  "file_too_large": "Datei zu gross (max. 10 MB)",
+  "too_many_attachments": "Zu viele Anhaenge (max. 10 pro Eintrag)",
+  "invalid_file_type": "Dateityp nicht erlaubt. Erlaubt: PNG, JPEG, GIF, WebP, PDF, TXT"
 }

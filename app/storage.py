@@ -6,6 +6,13 @@ import os
 import sqlite3
 from datetime import datetime, timedelta
 
+ALLOWED_MIME_TYPES = {
+    "image/png", "image/jpeg", "image/gif", "image/webp",
+    "application/pdf", "text/plain",
+}
+MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_ATTACHMENTS_PER_INCIDENT = 10
+
 log = logging.getLogger("docsis.storage")
 
 
@@ -52,6 +59,27 @@ class SnapshotStorage:
                     ping_ms REAL,
                     jitter_ms REAL,
                     packet_loss_pct REAL
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS incidents (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS incident_attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    incident_id INTEGER NOT NULL,
+                    filename TEXT NOT NULL,
+                    mime_type TEXT NOT NULL,
+                    data BLOB NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
                 )
             """)
 
@@ -261,6 +289,116 @@ class SnapshotStorage:
                 "SELECT MAX(id) FROM speedtest_results"
             ).fetchone()
         return row[0] or 0 if row else 0
+
+    # ── Incident Journal ──
+
+    def _connect(self):
+        """Return a connection with foreign keys enabled."""
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+
+    def save_incident(self, date, title, description):
+        """Create a new incident. Returns the new incident id."""
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        with self._connect() as conn:
+            cur = conn.execute(
+                "INSERT INTO incidents (date, title, description, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (date, title, description, now, now),
+            )
+            return cur.lastrowid
+
+    def update_incident(self, incident_id, date, title, description):
+        """Update an existing incident. Returns True if found."""
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        with self._connect() as conn:
+            rowcount = conn.execute(
+                "UPDATE incidents SET date=?, title=?, description=?, updated_at=? WHERE id=?",
+                (date, title, description, now, incident_id),
+            ).rowcount
+        return rowcount > 0
+
+    def delete_incident(self, incident_id):
+        """Delete an incident (CASCADE deletes attachments). Returns True if found."""
+        with self._connect() as conn:
+            rowcount = conn.execute(
+                "DELETE FROM incidents WHERE id=?", (incident_id,)
+            ).rowcount
+        return rowcount > 0
+
+    def get_incidents(self, limit=100, offset=0):
+        """Return list of incidents (newest first) with attachment_count."""
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT i.id, i.date, i.title, i.description, i.created_at, i.updated_at, "
+                "(SELECT COUNT(*) FROM incident_attachments WHERE incident_id = i.id) AS attachment_count "
+                "FROM incidents i ORDER BY i.date DESC, i.created_at DESC LIMIT ? OFFSET ?",
+                (limit, offset),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_incident(self, incident_id):
+        """Return single incident with attachment metadata (no blob data)."""
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT id, date, title, description, created_at, updated_at FROM incidents WHERE id=?",
+                (incident_id,),
+            ).fetchone()
+            if not row:
+                return None
+            incident = dict(row)
+            attachments = conn.execute(
+                "SELECT id, filename, mime_type, created_at FROM incident_attachments WHERE incident_id=? ORDER BY id",
+                (incident_id,),
+            ).fetchall()
+            incident["attachments"] = [dict(a) for a in attachments]
+        return incident
+
+    def save_attachment(self, incident_id, filename, mime_type, data):
+        """Save a file attachment for an incident. Returns attachment id."""
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        with self._connect() as conn:
+            cur = conn.execute(
+                "INSERT INTO incident_attachments (incident_id, filename, mime_type, data, created_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (incident_id, filename, mime_type, data, now),
+            )
+            return cur.lastrowid
+
+    def get_attachment(self, attachment_id):
+        """Return attachment dict with data bytes, or None."""
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT id, incident_id, filename, mime_type, data, created_at "
+                "FROM incident_attachments WHERE id=?",
+                (attachment_id,),
+            ).fetchone()
+        if not row:
+            return None
+        result = dict(row)
+        result["data"] = bytes(result["data"])
+        return result
+
+    def delete_attachment(self, attachment_id):
+        """Delete a single attachment. Returns True if found."""
+        with self._connect() as conn:
+            rowcount = conn.execute(
+                "DELETE FROM incident_attachments WHERE id=?", (attachment_id,)
+            ).rowcount
+        return rowcount > 0
+
+    def get_attachment_count(self, incident_id):
+        """Return number of attachments for an incident."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM incident_attachments WHERE incident_id=?",
+                (incident_id,),
+            ).fetchone()
+        return row[0] if row else 0
 
     def _cleanup(self):
         """Delete snapshots and BQM graphs older than max_days. 0 = keep all."""

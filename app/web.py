@@ -11,10 +11,13 @@ import subprocess
 import time
 from datetime import datetime, timedelta
 
-from flask import Flask, render_template, request, jsonify, redirect, session, url_for, make_response
+from flask import Flask, render_template, request, jsonify, redirect, session, url_for, make_response, send_file
 from werkzeug.security import check_password_hash
 
+from io import BytesIO
+
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
+from .storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_INCIDENT
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 
 def _server_tz_info():
@@ -634,6 +637,146 @@ def api_speedtest():
         _config_manager.get("speedtest_tracker_token"),
     )
     return jsonify(client.get_results(per_page=count))
+
+
+# ── Incident Journal API ──
+
+@app.route("/api/incidents", methods=["GET"])
+@require_auth
+def api_incidents_list():
+    """Return list of incidents with attachment counts."""
+    if not _storage:
+        return jsonify([])
+    limit = request.args.get("limit", 100, type=int)
+    offset = request.args.get("offset", 0, type=int)
+    return jsonify(_storage.get_incidents(limit=limit, offset=offset))
+
+
+@app.route("/api/incidents", methods=["POST"])
+@require_auth
+def api_incidents_create():
+    """Create a new incident."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data"}), 400
+    date = (data.get("date") or "").strip()
+    title = (data.get("title") or "").strip()
+    description = (data.get("description") or "").strip()
+    if not date or not _DATE_RE.match(date):
+        return jsonify({"error": "Invalid date format (YYYY-MM-DD)"}), 400
+    if not title:
+        return jsonify({"error": "Title is required"}), 400
+    if len(title) > 200:
+        return jsonify({"error": "Title too long (max 200 characters)"}), 400
+    if len(description) > 10000:
+        return jsonify({"error": "Description too long (max 10000 characters)"}), 400
+    incident_id = _storage.save_incident(date, title, description)
+    return jsonify({"id": incident_id}), 201
+
+
+@app.route("/api/incidents/<int:incident_id>", methods=["GET"])
+@require_auth
+def api_incident_get(incident_id):
+    """Return single incident with attachment metadata."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    incident = _storage.get_incident(incident_id)
+    if not incident:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(incident)
+
+
+@app.route("/api/incidents/<int:incident_id>", methods=["PUT"])
+@require_auth
+def api_incident_update(incident_id):
+    """Update an existing incident."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data"}), 400
+    date = (data.get("date") or "").strip()
+    title = (data.get("title") or "").strip()
+    description = (data.get("description") or "").strip()
+    if not date or not _DATE_RE.match(date):
+        return jsonify({"error": "Invalid date format (YYYY-MM-DD)"}), 400
+    if not title:
+        return jsonify({"error": "Title is required"}), 400
+    if len(title) > 200:
+        return jsonify({"error": "Title too long (max 200 characters)"}), 400
+    if len(description) > 10000:
+        return jsonify({"error": "Description too long (max 10000 characters)"}), 400
+    if not _storage.update_incident(incident_id, date, title, description):
+        return jsonify({"error": "Not found"}), 404
+    return jsonify({"success": True})
+
+
+@app.route("/api/incidents/<int:incident_id>", methods=["DELETE"])
+@require_auth
+def api_incident_delete(incident_id):
+    """Delete an incident (CASCADE deletes attachments)."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    if not _storage.delete_incident(incident_id):
+        return jsonify({"error": "Not found"}), 404
+    return jsonify({"success": True})
+
+
+@app.route("/api/incidents/<int:incident_id>/attachments", methods=["POST"])
+@require_auth
+def api_incident_upload(incident_id):
+    """Upload file attachment for an incident."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    incident = _storage.get_incident(incident_id)
+    if not incident:
+        return jsonify({"error": "Incident not found"}), 404
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    f = request.files["file"]
+    if not f.filename:
+        return jsonify({"error": "No file selected"}), 400
+    mime_type = f.content_type or "application/octet-stream"
+    if mime_type not in ALLOWED_MIME_TYPES:
+        return jsonify({"error": "File type not allowed"}), 400
+    current_count = _storage.get_attachment_count(incident_id)
+    if current_count >= MAX_ATTACHMENTS_PER_INCIDENT:
+        return jsonify({"error": "Too many attachments (max %d)" % MAX_ATTACHMENTS_PER_INCIDENT}), 400
+    file_data = f.read()
+    if len(file_data) > MAX_ATTACHMENT_SIZE:
+        return jsonify({"error": "File too large (max 10 MB)"}), 400
+    attachment_id = _storage.save_attachment(incident_id, f.filename, mime_type, file_data)
+    return jsonify({"id": attachment_id}), 201
+
+
+@app.route("/api/attachments/<int:attachment_id>", methods=["GET"])
+@require_auth
+def api_attachment_get(attachment_id):
+    """Download an attachment file."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    att = _storage.get_attachment(attachment_id)
+    if not att:
+        return jsonify({"error": "Not found"}), 404
+    return send_file(
+        BytesIO(att["data"]),
+        mimetype=att["mime_type"],
+        as_attachment=True,
+        download_name=att["filename"],
+    )
+
+
+@app.route("/api/attachments/<int:attachment_id>", methods=["DELETE"])
+@require_auth
+def api_attachment_delete(attachment_id):
+    """Delete a single attachment."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    if not _storage.delete_attachment(attachment_id):
+        return jsonify({"error": "Not found"}), 404
+    return jsonify({"success": True})
 
 
 @app.after_request
