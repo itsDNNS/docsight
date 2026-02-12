@@ -1,35 +1,78 @@
-"""DOCSIS channel health analysis with configurable thresholds."""
+"""DOCSIS channel health analysis with configurable thresholds.
 
+Thresholds are loaded from thresholds.json (Vodafone VFKD guidelines).
+The file supports per-modulation thresholds for DS power, US power, and SNR.
+"""
+
+import json
 import logging
+import os
 
 log = logging.getLogger("docsis.analyzer")
 
-# --- Reference thresholds (based on Vodafone VFKD guidelines, 256QAM) ---
-# Downstream Power (dBmV): asymmetric range
-# Regelkonform: -3.9 to 13.0, toleriert: -5.9/-4.0 / 13.1-18.0, sofort: <-8 / >20
-DS_POWER_LOW_GOOD = -4.0
-DS_POWER_HIGH_GOOD = 13.0
-DS_POWER_LOW_WARN = -6.0
-DS_POWER_HIGH_WARN = 18.0
-DS_POWER_LOW_CRIT = -8.0
-DS_POWER_HIGH_CRIT = 20.0
+# --- Load thresholds from JSON ---
+_THRESHOLDS_PATH = os.path.join(os.path.dirname(__file__), "thresholds.json")
+_thresholds = {}
 
-# Upstream Power (dBmV): based on VFKD 64QAM
-# Regelkonform: 41.1-47.0, toleriert: 38.1-41.0 / 47.1-50.0, sofort: <35 / >53
-US_POWER_LOW_GOOD = 41.0
-US_POWER_HIGH_GOOD = 47.0
-US_POWER_LOW_WARN = 38.0
-US_POWER_HIGH_WARN = 50.0
-US_POWER_LOW_CRIT = 35.0
-US_POWER_HIGH_CRIT = 53.0
 
-# SNR / MER (dB): good >33, marginal 29-33, bad <29
-# Based on Vodafone VFKD guidelines: 256QAM regelkonform > 33.1 dB
-SNR_WARN = 33.0
-SNR_CRIT = 29.0
+def _load_thresholds():
+    """Load thresholds from JSON file. Falls back to hardcoded defaults."""
+    global _thresholds
+    try:
+        with open(_THRESHOLDS_PATH, "r") as f:
+            _thresholds = json.load(f)
+        log.info("Loaded thresholds from %s", _THRESHOLDS_PATH)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        log.warning("Could not load thresholds.json (%s), using defaults", e)
+        _thresholds = {}
 
-# Uncorrectable errors threshold
-UNCORR_ERRORS_CRIT = 10000
+
+def _get_ds_power_thresholds(modulation=None):
+    """Get DS power thresholds for a given modulation."""
+    ds = _thresholds.get("downstream_power", {})
+    default_mod = ds.get("_default", "256QAM")
+    mod = modulation if modulation in ds else default_mod
+    t = ds.get(mod, {})
+    return {
+        "good_min": t.get("good_min", -4.0),
+        "good_max": t.get("good_max", 13.0),
+        "crit_min": t.get("immediate_min", -8.0),
+        "crit_max": t.get("immediate_max", 20.0),
+    }
+
+
+def _get_us_power_thresholds(modulation=None):
+    """Get US power thresholds for a given modulation."""
+    us = _thresholds.get("upstream_power", {})
+    default_mod = us.get("_default", "64QAM")
+    mod = modulation if modulation in us else default_mod
+    t = us.get(mod, {})
+    return {
+        "good_min": t.get("good_min", 41.0),
+        "good_max": t.get("good_max", 47.0),
+        "crit_min": t.get("immediate_min", 35.0),
+        "crit_max": t.get("immediate_max", 53.0),
+    }
+
+
+def _get_snr_thresholds(modulation=None):
+    """Get SNR thresholds for a given modulation."""
+    snr = _thresholds.get("snr", {})
+    default_mod = snr.get("_default", "256QAM")
+    mod = modulation if modulation in snr else default_mod
+    t = snr.get(mod, {})
+    return {
+        "good_min": t.get("good_min", 33.0),
+        "crit_min": t.get("immediate_min", 29.0),
+    }
+
+
+def _get_uncorr_threshold():
+    return _thresholds.get("errors", {}).get("uncorrectable_threshold", 10000)
+
+
+# Load on module import
+_load_thresholds()
 
 
 def _parse_float(val, default=0.0):
@@ -59,23 +102,25 @@ def _assess_ds_channel(ch, docsis_ver):
     """Assess a single downstream channel. Returns (health, health_detail)."""
     issues = []
     power = _parse_float(ch.get("powerLevel"))
+    modulation = (ch.get("modulation") or ch.get("type") or "").upper().replace("-", "")
 
-    if power < DS_POWER_LOW_CRIT or power > DS_POWER_HIGH_CRIT:
+    pt = _get_ds_power_thresholds(modulation)
+    if power < pt["crit_min"] or power > pt["crit_max"]:
         issues.append("power critical")
-    elif power < DS_POWER_LOW_GOOD or power > DS_POWER_HIGH_GOOD:
+    elif power < pt["good_min"] or power > pt["good_max"]:
         issues.append("power warning")
 
+    snr_val = None
     if docsis_ver == "3.0" and ch.get("mse"):
-        snr = abs(_parse_float(ch["mse"]))
-        if snr < SNR_CRIT:
-            issues.append("snr critical")
-        elif snr < SNR_WARN:
-            issues.append("snr warning")
+        snr_val = abs(_parse_float(ch["mse"]))
     elif docsis_ver == "3.1" and ch.get("mer"):
-        snr = _parse_float(ch["mer"])
-        if snr < SNR_CRIT:
+        snr_val = _parse_float(ch["mer"])
+
+    if snr_val is not None:
+        st = _get_snr_thresholds(modulation)
+        if snr_val < st["crit_min"]:
             issues.append("snr critical")
-        elif snr < SNR_WARN:
+        elif snr_val < st["good_min"]:
             issues.append("snr warning")
 
     return _channel_health(issues), _health_detail(issues)
@@ -85,10 +130,12 @@ def _assess_us_channel(ch):
     """Assess a single upstream channel. Returns (health, health_detail)."""
     issues = []
     power = _parse_float(ch.get("powerLevel"))
+    modulation = (ch.get("modulation") or ch.get("type") or "").upper().replace("-", "")
 
-    if power < US_POWER_LOW_CRIT or power > US_POWER_HIGH_CRIT:
+    pt = _get_us_power_thresholds(modulation)
+    if power < pt["crit_min"] or power > pt["crit_max"]:
         issues.append("power critical")
-    elif power < US_POWER_LOW_GOOD or power > US_POWER_HIGH_GOOD:
+    elif power < pt["good_min"] or power > pt["good_max"]:
         issues.append("power warning")
 
     return _channel_health(issues), _health_detail(issues)
@@ -201,19 +248,24 @@ def analyze(data: dict) -> dict:
 
     # --- Overall health ---
     issues = []
-    if ds_powers and (min(ds_powers) < DS_POWER_LOW_CRIT or max(ds_powers) > DS_POWER_HIGH_CRIT):
+    # Summary uses default (256QAM) thresholds for overall health
+    ds_pt = _get_ds_power_thresholds()
+    us_pt = _get_us_power_thresholds()
+    snr_t = _get_snr_thresholds()
+
+    if ds_powers and (min(ds_powers) < ds_pt["crit_min"] or max(ds_powers) > ds_pt["crit_max"]):
         issues.append("ds_power_critical")
-    elif ds_powers and (min(ds_powers) < DS_POWER_LOW_GOOD or max(ds_powers) > DS_POWER_HIGH_GOOD):
+    elif ds_powers and (min(ds_powers) < ds_pt["good_min"] or max(ds_powers) > ds_pt["good_max"]):
         issues.append("ds_power_warn")
-    if us_powers and (min(us_powers) < US_POWER_LOW_CRIT or max(us_powers) > US_POWER_HIGH_CRIT):
+    if us_powers and (min(us_powers) < us_pt["crit_min"] or max(us_powers) > us_pt["crit_max"]):
         issues.append("us_power_critical")
-    elif us_powers and (min(us_powers) < US_POWER_LOW_GOOD or max(us_powers) > US_POWER_HIGH_GOOD):
+    elif us_powers and (min(us_powers) < us_pt["good_min"] or max(us_powers) > us_pt["good_max"]):
         issues.append("us_power_warn")
-    if ds_snrs and min(ds_snrs) < SNR_CRIT:
+    if ds_snrs and min(ds_snrs) < snr_t["crit_min"]:
         issues.append("snr_critical")
-    elif ds_snrs and min(ds_snrs) < SNR_WARN:
+    elif ds_snrs and min(ds_snrs) < snr_t["good_min"]:
         issues.append("snr_warn")
-    if total_uncorr > UNCORR_ERRORS_CRIT:
+    if total_uncorr > _get_uncorr_threshold():
         issues.append("uncorr_errors_high")
 
     if not issues:

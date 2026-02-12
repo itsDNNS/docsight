@@ -1,0 +1,74 @@
+{
+  "_source": "Vodafone Kabel Deutschland (VFKD) guidelines, vodafonekabelforum.de/viewtopic.php?t=39941",
+  "_note": "All power values in dBmV (as shown by Fritz!Box). SNR/MER in dB.",
+
+  "downstream_power": {
+    "256QAM": {
+      "good_min": -3.9, "good_max": 13.0,
+      "tolerated_min": -5.9, "tolerated_max": 18.0,
+      "monthly_min": -7.9, "monthly_max": 20.0,
+      "immediate_min": -8.0, "immediate_max": 20.0
+    },
+    "64QAM": {
+      "good_min": -9.9, "good_max": 7.0,
+      "tolerated_min": -11.9, "tolerated_max": 12.0,
+      "monthly_min": -13.9, "monthly_max": 14.0,
+      "immediate_min": -14.0, "immediate_max": 14.0
+    },
+    "1024QAM": {
+      "good_min": -1.9, "good_max": 15.0,
+      "tolerated_min": -3.9, "tolerated_max": 20.0,
+      "monthly_min": -5.9, "monthly_max": 22.0,
+      "immediate_min": -6.0, "immediate_max": 22.0
+    },
+    "_default": "256QAM"
+  },
+
+  "upstream_power": {
+    "64QAM": {
+      "good_min": 41.1, "good_max": 47.0,
+      "tolerated_min": 38.1, "tolerated_max": 50.0,
+      "monthly_min": 35.1, "monthly_max": 53.0,
+      "immediate_min": 35.0, "immediate_max": 53.0
+    },
+    "128QAM": {
+      "good_min": 44.1, "good_max": 47.0,
+      "tolerated_min": 41.1, "tolerated_max": 50.0,
+      "monthly_min": 38.1, "monthly_max": 53.0,
+      "immediate_min": 38.0, "immediate_max": 53.0
+    },
+    "_default": "64QAM"
+  },
+
+  "snr": {
+    "256QAM": {
+      "good_min": 33.1,
+      "tolerated_min": 31.1,
+      "monthly_min": 29.1,
+      "immediate_min": 29.0
+    },
+    "64QAM": {
+      "good_min": 27.1,
+      "tolerated_min": 25.1,
+      "monthly_min": 23.1,
+      "immediate_min": 23.0
+    },
+    "1024QAM": {
+      "good_min": 37.1,
+      "tolerated_min": 35.1,
+      "monthly_min": 33.1,
+      "immediate_min": 33.0
+    },
+    "4096QAM": {
+      "good_min": 45.1,
+      "tolerated_min": 43.1,
+      "monthly_min": 41.1,
+      "immediate_min": 41.0
+    },
+    "_default": "256QAM"
+  },
+
+  "errors": {
+    "uncorrectable_threshold": 10000
+  }
+}
