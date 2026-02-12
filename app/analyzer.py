@@ -4,14 +4,24 @@ import logging
 
 log = logging.getLogger("docsis.analyzer")
 
-# --- Reference thresholds ---
-# Downstream Power (dBmV): ideal 0, good -7..+7, marginal -10..+10
-DS_POWER_WARN = 7.0
-DS_POWER_CRIT = 10.0
+# --- Reference thresholds (based on Vodafone VFKD guidelines, 256QAM) ---
+# Downstream Power (dBmV): asymmetric range
+# Regelkonform: -3.9 to 13.0, toleriert: -5.9/-4.0 / 13.1-18.0, sofort: <-8 / >20
+DS_POWER_LOW_GOOD = -4.0
+DS_POWER_HIGH_GOOD = 13.0
+DS_POWER_LOW_WARN = -6.0
+DS_POWER_HIGH_WARN = 18.0
+DS_POWER_LOW_CRIT = -8.0
+DS_POWER_HIGH_CRIT = 20.0
 
-# Upstream Power (dBmV): good 35-49, marginal 50-54, bad >54
-US_POWER_WARN = 50.0
-US_POWER_CRIT = 54.0
+# Upstream Power (dBmV): based on VFKD 64QAM
+# Regelkonform: 41.1-47.0, toleriert: 38.1-41.0 / 47.1-50.0, sofort: <35 / >53
+US_POWER_LOW_GOOD = 41.0
+US_POWER_HIGH_GOOD = 47.0
+US_POWER_LOW_WARN = 38.0
+US_POWER_HIGH_WARN = 50.0
+US_POWER_LOW_CRIT = 35.0
+US_POWER_HIGH_CRIT = 53.0
 
 # SNR / MER (dB): good >33, marginal 29-33, bad <29
 # Based on Vodafone VFKD guidelines: 256QAM regelkonform > 33.1 dB
@@ -50,9 +60,9 @@ def _assess_ds_channel(ch, docsis_ver):
     issues = []
     power = _parse_float(ch.get("powerLevel"))
 
-    if abs(power) > DS_POWER_CRIT:
+    if power < DS_POWER_LOW_CRIT or power > DS_POWER_HIGH_CRIT:
         issues.append("power critical")
-    elif abs(power) > DS_POWER_WARN:
+    elif power < DS_POWER_LOW_GOOD or power > DS_POWER_HIGH_GOOD:
         issues.append("power warning")
 
     if docsis_ver == "3.0" and ch.get("mse"):
@@ -76,9 +86,9 @@ def _assess_us_channel(ch):
     issues = []
     power = _parse_float(ch.get("powerLevel"))
 
-    if power > US_POWER_CRIT:
+    if power < US_POWER_LOW_CRIT or power > US_POWER_HIGH_CRIT:
         issues.append("power critical")
-    elif power > US_POWER_WARN:
+    elif power < US_POWER_LOW_GOOD or power > US_POWER_HIGH_GOOD:
         issues.append("power warning")
 
     return _channel_health(issues), _health_detail(issues)
@@ -191,11 +201,13 @@ def analyze(data: dict) -> dict:
 
     # --- Overall health ---
     issues = []
-    if ds_powers and (min(ds_powers) < -DS_POWER_CRIT or max(ds_powers) > DS_POWER_CRIT):
+    if ds_powers and (min(ds_powers) < DS_POWER_LOW_CRIT or max(ds_powers) > DS_POWER_HIGH_CRIT):
         issues.append("ds_power_critical")
-    if us_powers and max(us_powers) > US_POWER_CRIT:
+    elif ds_powers and (min(ds_powers) < DS_POWER_LOW_GOOD or max(ds_powers) > DS_POWER_HIGH_GOOD):
+        issues.append("ds_power_warn")
+    if us_powers and (min(us_powers) < US_POWER_LOW_CRIT or max(us_powers) > US_POWER_HIGH_CRIT):
         issues.append("us_power_critical")
-    elif us_powers and max(us_powers) > US_POWER_WARN:
+    elif us_powers and (min(us_powers) < US_POWER_LOW_GOOD or max(us_powers) > US_POWER_HIGH_GOOD):
         issues.append("us_power_warn")
     if ds_snrs and min(ds_snrs) < SNR_CRIT:
         issues.append("snr_critical")

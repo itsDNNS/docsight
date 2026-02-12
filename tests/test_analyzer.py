@@ -85,10 +85,10 @@ class TestHealthGood:
         assert result["summary"]["health_issues"] == []
 
     def test_power_at_boundary(self):
-        """Power exactly at 7.0 is still good."""
+        """Power exactly at 13.0 is still good (VFKD regelkonform)."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=7.0, mse="-35")],
-            us30=[_make_us30(1, power=49.0)],
+            ds30=[_make_ds30(1, power=13.0, mse="-35")],
+            us30=[_make_us30(1, power=44.0)],
         )
         result = analyze(data)
         assert result["summary"]["health"] == "good"
@@ -98,21 +98,20 @@ class TestHealthGood:
 
 class TestHealthMarginal:
     def test_ds_power_warning(self):
-        """DS power 8 dBmV is marginal (>7, <10)."""
+        """DS power 15 dBmV is marginal (>13, <20)."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=8.0, mse="-35")],
-            us30=[_make_us30(1, power=42.0)],
+            ds30=[_make_ds30(1, power=15.0, mse="-35")],
+            us30=[_make_us30(1, power=44.0)],
         )
         result = analyze(data)
-        # DS power between 7-10 doesn't trigger issue (only >10 does)
-        # But SNR is fine, so health depends on power assessment
-        assert result["summary"]["health"] in ("good", "marginal")
+        assert result["summary"]["health"] == "marginal"
+        assert "ds_power_warn" in result["summary"]["health_issues"]
 
     def test_us_power_warning(self):
-        """US power 52 dBmV triggers marginal."""
+        """US power 49 dBmV triggers marginal (>47, <53)."""
         data = _make_data(
             ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us30=[_make_us30(1, power=52.0)],
+            us30=[_make_us30(1, power=49.0)],
         )
         result = analyze(data)
         assert result["summary"]["health"] == "marginal"
@@ -133,30 +132,40 @@ class TestHealthMarginal:
 
 class TestHealthPoor:
     def test_ds_power_critical(self):
-        """DS power 12 dBmV is critical (>10)."""
+        """DS power 21 dBmV is critical (>20)."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=12.0, mse="-35")],
-            us30=[_make_us30(1, power=42.0)],
+            ds30=[_make_ds30(1, power=21.0, mse="-35")],
+            us30=[_make_us30(1, power=44.0)],
         )
         result = analyze(data)
         assert result["summary"]["health"] == "poor"
         assert "ds_power_critical" in result["summary"]["health_issues"]
 
     def test_ds_power_critical_negative(self):
-        """DS power -11 dBmV is also critical."""
+        """DS power -9 dBmV is also critical (<-8)."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=-11.0, mse="-35")],
-            us30=[_make_us30(1, power=42.0)],
+            ds30=[_make_ds30(1, power=-9.0, mse="-35")],
+            us30=[_make_us30(1, power=44.0)],
         )
         result = analyze(data)
         assert result["summary"]["health"] == "poor"
         assert "ds_power_critical" in result["summary"]["health_issues"]
 
-    def test_us_power_critical(self):
-        """US power 56 dBmV is critical (>54)."""
+    def test_us_power_critical_high(self):
+        """US power 55 dBmV is critical (>53)."""
         data = _make_data(
             ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us30=[_make_us30(1, power=56.0)],
+            us30=[_make_us30(1, power=55.0)],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "poor"
+        assert "us_power_critical" in result["summary"]["health_issues"]
+
+    def test_us_power_critical_low(self):
+        """US power 33 dBmV is critical (<35)."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=33.0)],
         )
         result = analyze(data)
         assert result["summary"]["health"] == "poor"
@@ -185,8 +194,8 @@ class TestHealthPoor:
     def test_multiple_issues(self):
         """Multiple issues can coexist."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=12.0, mse="-22", uncorr=20000)],
-            us30=[_make_us30(1, power=56.0)],
+            ds30=[_make_ds30(1, power=21.0, mse="-27", uncorr=20000)],
+            us30=[_make_us30(1, power=55.0)],
         )
         result = analyze(data)
         assert result["summary"]["health"] == "poor"
@@ -246,8 +255,8 @@ class TestChannelParsing:
         data = _make_data(
             ds30=[
                 _make_ds30(1, power=2.0, mse="-35"),  # good
-                _make_ds30(2, power=12.0, mse="-35"),  # power critical
-                _make_ds30(3, power=2.0, mse="-22"),  # snr critical
+                _make_ds30(2, power=21.0, mse="-35"),  # power critical
+                _make_ds30(3, power=2.0, mse="-27"),  # snr critical
             ],
             us30=[_make_us30(1)],
         )
