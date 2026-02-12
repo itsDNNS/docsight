@@ -665,6 +665,66 @@
         }
         .sidebar-backdrop.active { display: block; }
 
+        /* ── Info-tip tooltips (CSS-only) ── */
+        .info-tip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+        .info-tip .tip-icon {
+            font-size: 0.78em;
+            color: var(--muted);
+            opacity: 0.7;
+            font-style: normal;
+        }
+        .info-tip .tip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--input-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.78em;
+            font-weight: normal;
+            line-height: 1.4;
+            white-space: normal;
+            width: max-content;
+            max-width: 260px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: opacity 0.15s ease, visibility 0.15s ease;
+            pointer-events: none;
+        }
+        .info-tip .tip-text::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--input-border);
+        }
+        .info-tip:hover .tip-text,
+        .info-tip:focus-within .tip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        .info-tip .tip-icon:focus {
+            outline: 1px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+        [data-theme="light"] .info-tip .tip-text {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
         /* ── Responsive ── */
         @media (max-width: 900px) {
             .charts-grid { grid-template-columns: 1fr; }
@@ -859,7 +919,7 @@
         <div class="health-issues">
             {% for issue in s.health_issues %}
             <div class="health-issue">
-                <span class="health-issue-name">{{ issue_labels.get(issue, issue) }}</span>
+                <span class="health-issue-name">{{ issue_labels.get(issue, issue) }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ issue_descs.get(issue, '') }}</span></span></span>
                 <span class="health-issue-desc">{{ issue_descs.get(issue, '') }}</span>
             </div>
             {% endfor %}
@@ -909,7 +969,7 @@
                 <div class="metric-row">
                     <div class="metric-item">
                         <div class="metric-value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}<span class="metric-unit">dBmV</span></div>
-                        <div class="metric-label">{{ t.card_ds_power }}</div>
+                        <div class="metric-label">{{ t.card_ds_power }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_ds_power }}</span></span></div>
                         <div class="range-indicator">
                             <div class="range-zone range-crit" style="width:8.3%"></div>
                             <div class="range-zone range-warn" style="width:12.5%"></div>
@@ -922,7 +982,7 @@
                     </div>
                     <div class="metric-item">
                         <div class="metric-value val-{{ snr_health }}">{{ s.ds_snr_avg }}<span class="metric-unit">dB</span></div>
-                        <div class="metric-label">{{ t.card_snr }}</div>
+                        <div class="metric-label">{{ t.card_snr }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_snr }}</span></span></div>
                         <div class="range-indicator">
                             <div class="range-zone range-crit" style="width:33.3%"></div>
                             <div class="range-zone range-warn" style="width:16.7%"></div>
@@ -954,7 +1014,7 @@
                 <div class="metric-row">
                     <div class="metric-item">
                         <div class="metric-value val-{{ us_health }}">{{ s.us_power_avg }}<span class="metric-unit">dBmV</span></div>
-                        <div class="metric-label">{{ t.card_transmit_power }}</div>
+                        <div class="metric-label">{{ t.card_transmit_power }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_transmit_power }}</span></span></div>
                         <div class="range-indicator">
                             <div class="range-zone range-good" style="width:68.6%"></div>
                             <div class="range-zone range-warn" style="width:14.3%"></div>
@@ -984,9 +1044,9 @@
             <div class="metric-card-body">
                 <div class="metric-row">
                     <div class="metric-item">
-                        <div class="metric-value val-{{ error_health }}">{{ s.ds_uncorrectable_errors|fmt_k }}<span class="metric-unit">{{ t.card_uncorr_label }}</span></div>
+                        <div class="metric-value val-{{ error_health }}">{{ s.ds_uncorrectable_errors|fmt_k }}<span class="metric-unit">{{ t.card_uncorr_label }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_uncorrectable }}</span></span></span></div>
                         <div class="gauge-bar"><div class="gauge-fill val-{{ error_health }}" style="width:{{ uncorr_pct|int }}%"></div></div>
-                        <div class="metric-secondary">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}</div>
+                        <div class="metric-secondary">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_correctable }}</span></span></div>
                     </div>
                 </div>
                 {% if device_info and device_info.uptime_seconds is defined %}
@@ -1051,11 +1111,11 @@
                 <div class="metric-row">
                     <div class="metric-item">
                         <div class="metric-value {{ dl_val_class }}">{{ speedtest_latest.download_human or (speedtest_latest.download_mbps ~ ' Mbps') }}</div>
-                        <div class="metric-label">{{ t.download }}</div>
+                        <div class="metric-label">{{ t.download }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_download }}</span></span></div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-value {{ ul_val_class }}">{{ speedtest_latest.upload_human or (speedtest_latest.upload_mbps ~ ' Mbps') }}</div>
-                        <div class="metric-label">{{ t.upload }}</div>
+                        <div class="metric-label">{{ t.upload }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_upload }}</span></span></div>
                     </div>
                 </div>
                 <div class="metric-secondary" style="margin-top:8px;">
