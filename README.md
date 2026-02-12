@@ -33,7 +33,7 @@
 docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
 ```
 
-Open `http://localhost:8765`, enter your router login, done. [Full installation guide →](INSTALL.md)
+Open `http://localhost:8765`, enter your router login, done. [Full installation guide →](https://github.com/itsDNNS/docsight/wiki/Installation)
 
 ---
 
