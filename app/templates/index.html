@@ -1010,8 +1010,11 @@
         {# ── Card 4: Speed (Speedtest Tracker) ── #}
         {% if speedtest_configured and speedtest_latest %}
         {# Compute speed health based on booked speed: >=80% good, 50-80% warn, <50% crit #}
-        {% if booked_download and booked_download > 0 %}
-            {% set dl_ratio = speedtest_latest.download_mbps / booked_download %}
+        {# Use booked speed from settings, fall back to Fritz!Box connection_info #}
+        {% set eff_booked_dl = booked_download if (booked_download and booked_download > 0) else ((connection_info.max_downstream_kbps // 1000) if connection_info and connection_info.max_downstream_kbps else 0) %}
+        {% set eff_booked_ul = booked_upload if (booked_upload and booked_upload > 0) else ((connection_info.max_upstream_kbps // 1000) if connection_info and connection_info.max_upstream_kbps else 0) %}
+        {% if eff_booked_dl > 0 %}
+            {% set dl_ratio = speedtest_latest.download_mbps / eff_booked_dl %}
             {% if dl_ratio >= 0.8 %}
                 {% set speed_health = 'health-good' %}
                 {% set dl_val_class = 'val-good' %}
@@ -1026,8 +1029,8 @@
             {% set speed_health = 'health-good' %}
             {% set dl_val_class = 'val-good' %}
         {% endif %}
-        {% if booked_upload and booked_upload > 0 %}
-            {% set ul_ratio = speedtest_latest.upload_mbps / booked_upload %}
+        {% if eff_booked_ul > 0 %}
+            {% set ul_ratio = speedtest_latest.upload_mbps / eff_booked_ul %}
             {% if ul_ratio >= 0.8 %}
                 {% set ul_val_class = 'val-good' %}
             {% elif ul_ratio >= 0.5 %}
