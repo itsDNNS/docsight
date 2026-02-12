@@ -546,6 +546,51 @@
         .journal-empty {
             text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
         }
+        /* ── Event Log ── */
+        .events-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+        }
+        .events-header .trend-title { font-size: 1.2em; color: var(--accent); font-weight: bold; }
+        .events-filters {
+            display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .events-filters select {
+            padding: 6px 10px; border-radius: 6px; border: 1px solid var(--input-border);
+            background: var(--card); color: var(--text); font-size: 0.85em; font-family: inherit;
+        }
+        #events-table { margin-bottom: 0; }
+        #events-table tbody tr { transition: background 0.15s; }
+        #events-table tbody tr:hover { background: rgba(255,255,255,0.06); }
+        #events-table tbody tr.event-acked { opacity: 0.5; }
+        #events-table td.event-msg { max-width: 400px; word-break: break-word; }
+        #events-table td.event-actions { white-space: nowrap; }
+        .event-badge {
+            display: inline-block; min-width: 18px; height: 18px; line-height: 18px;
+            padding: 0 5px; border-radius: 9px; font-size: 0.7em; font-weight: bold;
+            text-align: center; background: var(--crit); color: #fff; margin-left: 6px;
+        }
+        .sev-info { color: var(--accent); }
+        .sev-warning { color: var(--warn); }
+        .sev-critical { color: var(--crit); }
+        .sev-badge-info { background: rgba(0,173,181,0.2); color: var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .sev-badge-warning { background: rgba(255,152,0,0.25); color: var(--warn); padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .sev-badge-critical { background: rgba(244,67,54,0.25); color: var(--crit); padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .btn-ack {
+            padding: 4px 10px; border: 1px solid var(--input-border); border-radius: 4px;
+            background: transparent; color: var(--muted); cursor: pointer; font-size: 0.8em; font-family: inherit;
+        }
+        .btn-ack:hover { background: var(--surface); color: var(--text); }
+        .btn-ack-all {
+            padding: 6px 14px; border: 1px solid var(--input-border); border-radius: 6px;
+            background: transparent; color: var(--text); cursor: pointer; font-size: 0.85em; font-family: inherit;
+        }
+        .btn-ack-all:hover { background: var(--surface); }
+        .event-detail-row td { padding: 8px 16px !important; background: var(--surface); font-size: 0.85em; }
+        .event-detail-row pre { margin: 0; white-space: pre-wrap; word-break: break-all; color: var(--muted); font-size: 0.9em; }
+        .events-empty {
+            text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
+        }
         .incident-form-group { margin-bottom: 14px; }
         .incident-form-group label {
             display: block; font-size: 0.85em; color: var(--muted);
@@ -661,6 +706,10 @@
         {% endif %}
         <a class="sidebar-link" data-view="journal">
             <span class="icon">&#128203;</span> {{ t.incident_journal }}
+        </a>
+        <a class="sidebar-link" data-view="events">
+            <span class="icon">&#128276;</span> {{ t.event_log }}
+            <span class="event-badge" id="event-badge" style="display:none;"></span>
         </a>
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
@@ -1133,6 +1182,48 @@
     </table>
 </div>
 
+<!-- ═══ View: Event Log ═══ -->
+<div id="view-events" class="view">
+    <div class="events-header">
+        <span class="trend-title">{{ t.event_log }}</span>
+        <button class="btn-ack-all" id="btn-ack-all" onclick="acknowledgeAllEvents()" style="display:none;">&#10003; {{ t.event_acknowledge_all }}</button>
+    </div>
+    <div class="events-filters">
+        <select id="events-filter-severity" onchange="loadEvents()">
+            <option value="">{{ t.event_all_severities }}</option>
+            <option value="info">{{ t.event_severity_info }}</option>
+            <option value="warning">{{ t.event_severity_warning }}</option>
+            <option value="critical">{{ t.event_severity_critical }}</option>
+        </select>
+        <select id="events-filter-type" onchange="loadEvents()">
+            <option value="">{{ t.event_all_types }}</option>
+            <option value="health_change">{{ t.event_type_health_change }}</option>
+            <option value="power_change">{{ t.event_type_power_change }}</option>
+            <option value="snr_change">{{ t.event_type_snr_change }}</option>
+            <option value="channel_change">{{ t.event_type_channel_change }}</option>
+            <option value="modulation_change">{{ t.event_type_modulation_change }}</option>
+            <option value="error_spike">{{ t.event_type_error_spike }}</option>
+        </select>
+    </div>
+    <div id="events-loading" class="waiting" style="display:none;">
+        <div class="spinner"></div>
+    </div>
+    <div id="events-empty" class="events-empty" style="display:none;"></div>
+    <table id="events-table" style="display:none;">
+        <thead><tr>
+            <th>{{ t.timestamp }}</th>
+            <th>{{ t.event_severity }}</th>
+            <th>{{ t.event_type }}</th>
+            <th>{{ t.event_message }}</th>
+            <th></th>
+        </tr></thead>
+        <tbody id="events-tbody"></tbody>
+    </table>
+    <div id="events-show-more" style="text-align:center; padding:16px; display:none;">
+        <button class="btn-ack-all" onclick="loadMoreEvents()">{{ t.show_more }}</button>
+    </div>
+</div>
+
 <!-- ═══ Incident Modal ═══ -->
 <div class="modal-overlay" id="incident-modal" onclick="if(event.target===this)closeIncidentModal()">
     <div class="modal" style="max-width:640px;">
@@ -1530,11 +1621,13 @@
         var bqmView = document.getElementById('view-bqm');
         var speedtestView = document.getElementById('view-speedtest');
         var journalView = document.getElementById('view-journal');
+        var eventsView = document.getElementById('view-events');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
         if (speedtestView) speedtestView.classList.remove('active');
         if (journalView) journalView.classList.remove('active');
+        if (eventsView) eventsView.classList.remove('active');
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
@@ -1552,6 +1645,10 @@
             if (journalView) journalView.classList.add('active');
             updateDateLabel();
             loadIncidents();
+        } else if (view === 'events') {
+            if (eventsView) eventsView.classList.add('active');
+            updateDateLabel();
+            loadEvents();
         } else if (view === 'trends') {
             trendView.classList.add('active');
             updateTrendTabs();
@@ -1576,7 +1673,7 @@
     });
 
     /* ── Hash-based view routing ── */
-    var validViews = ['live', 'trends', 'bqm', 'speedtest', 'journal'];
+    var validViews = ['live', 'trends', 'bqm', 'speedtest', 'journal', 'events'];
     function viewFromHash() {
         var h = location.hash.replace('#', '');
         return validViews.indexOf(h) !== -1 ? h : null;
@@ -2227,6 +2324,154 @@
             });
         }
     })();
+
+    /* ── Event Log ── */
+    var _eventsOffset = 0;
+    var _eventsPageSize = 50;
+    var _eventTypeLabels = {
+        health_change: T.event_type_health_change || 'Health Change',
+        power_change: T.event_type_power_change || 'Power Change',
+        snr_change: T.event_type_snr_change || 'SNR Change',
+        channel_change: T.event_type_channel_change || 'Channel Change',
+        modulation_change: T.event_type_modulation_change || 'Modulation Change',
+        error_spike: T.event_type_error_spike || 'Error Spike'
+    };
+    var _sevLabels = {
+        info: T.event_severity_info || 'Info',
+        warning: T.event_severity_warning || 'Warning',
+        critical: T.event_severity_critical || 'Critical'
+    };
+
+    function loadEvents(append) {
+        if (!append) _eventsOffset = 0;
+        var severity = document.getElementById('events-filter-severity').value;
+        var evType = document.getElementById('events-filter-type').value;
+        var params = '?limit=' + _eventsPageSize + '&offset=' + _eventsOffset;
+        if (severity) params += '&severity=' + severity;
+        if (evType) params += '&event_type=' + evType;
+
+        var tbody = document.getElementById('events-tbody');
+        var table = document.getElementById('events-table');
+        var empty = document.getElementById('events-empty');
+        var loading = document.getElementById('events-loading');
+        var moreBtn = document.getElementById('events-show-more');
+        var ackAllBtn = document.getElementById('btn-ack-all');
+
+        if (!append) {
+            loading.style.display = '';
+            tbody.innerHTML = '';
+            table.style.display = 'none';
+            empty.style.display = 'none';
+            moreBtn.style.display = 'none';
+        }
+
+        fetch('/api/events' + params)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                loading.style.display = 'none';
+                var events = data.events || [];
+                var unack = data.unacknowledged_count || 0;
+                updateEventBadge(unack);
+                ackAllBtn.style.display = unack > 0 ? '' : 'none';
+
+                if (events.length === 0 && !append) {
+                    empty.textContent = T.event_no_events || 'No events detected yet.';
+                    empty.style.display = '';
+                    return;
+                }
+                events.forEach(function(ev) {
+                    var tr = document.createElement('tr');
+                    if (ev.acknowledged) tr.className = 'event-acked';
+                    tr.setAttribute('data-event-id', ev.id);
+                    var sevClass = 'sev-badge-' + ev.severity;
+                    var sevLabel = _sevLabels[ev.severity] || ev.severity;
+                    var typeLabel = _eventTypeLabels[ev.event_type] || ev.event_type;
+                    var ackBtn = ev.acknowledged
+                        ? '<span style="color:var(--muted);font-size:0.8em;">&#10003;</span>'
+                        : '<button class="btn-ack" onclick="acknowledgeEvent(' + ev.id + ', event)">&#10003;</button>';
+                    tr.innerHTML =
+                        '<td style="white-space:nowrap;">' + escapeHtml(ev.timestamp.replace('T', ' ')) + '</td>' +
+                        '<td><span class="' + sevClass + '">' + sevLabel + '</span></td>' +
+                        '<td>' + escapeHtml(typeLabel) + '</td>' +
+                        '<td class="event-msg">' + escapeHtml(ev.message) + '</td>' +
+                        '<td class="event-actions">' + ackBtn + '</td>';
+                    if (ev.details) {
+                        tr.style.cursor = 'pointer';
+                        tr.onclick = function(e) {
+                            if (e.target.tagName === 'BUTTON') return;
+                            toggleEventDetail(ev.id, ev.details);
+                        };
+                    }
+                    tbody.appendChild(tr);
+                });
+                table.style.display = '';
+                moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
+            })
+            .catch(function() {
+                loading.style.display = 'none';
+                empty.textContent = T.network_error || 'Error';
+                empty.style.display = '';
+            });
+    }
+
+    function loadMoreEvents() {
+        _eventsOffset += _eventsPageSize;
+        loadEvents(true);
+    }
+
+    function toggleEventDetail(eventId, details) {
+        var existing = document.getElementById('event-detail-' + eventId);
+        if (existing) {
+            existing.remove();
+            return;
+        }
+        var eventRow = document.querySelector('tr[data-event-id="' + eventId + '"]');
+        if (!eventRow) return;
+        var detailRow = document.createElement('tr');
+        detailRow.id = 'event-detail-' + eventId;
+        detailRow.className = 'event-detail-row';
+        var td = document.createElement('td');
+        td.colSpan = 5;
+        var pre = document.createElement('pre');
+        pre.textContent = JSON.stringify(details, null, 2);
+        td.appendChild(pre);
+        detailRow.appendChild(td);
+        eventRow.parentNode.insertBefore(detailRow, eventRow.nextSibling);
+    }
+
+    function acknowledgeEvent(eventId, e) {
+        if (e) e.stopPropagation();
+        fetch('/api/events/' + eventId + '/acknowledge', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) loadEvents();
+            });
+    }
+
+    function acknowledgeAllEvents() {
+        fetch('/api/events/acknowledge-all', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) loadEvents();
+            });
+    }
+
+    function updateEventBadge(count) {
+        var badge = document.getElementById('event-badge');
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = '';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // Fetch badge count on page load
+    fetch('/api/events/count')
+        .then(function(r) { return r.json(); })
+        .then(function(data) { updateEventBadge(data.count || 0); })
+        .catch(function() {});
 
     function openIncidentModal(incidentId) {
         var modal = document.getElementById('incident-modal');
