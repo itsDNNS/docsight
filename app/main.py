@@ -9,6 +9,7 @@ import time
 from . import fritzbox, analyzer, web, thinkbroadband
 from .speedtest import SpeedtestClient
 from .config import ConfigManager
+from .event_detector import EventDetector
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
 from .notifier import Notifier, build_health_notification, build_digest
@@ -90,6 +91,8 @@ def polling_loop(config_mgr, storage, stop_event):
         log.info("Smokeping integration enabled: %s", config.get("smokeping_url"))
 
     web.update_state(poll_interval=config["poll_interval"])
+
+    event_detector = EventDetector()
 
     sid = None
     device_info = None
