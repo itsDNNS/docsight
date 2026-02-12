@@ -240,5 +240,8 @@
   "fetching": "Fetching...",
   "show_more": "Show more",
   "show_less": "Show less",
-  "timestamp": "Timestamp"
+  "timestamp": "Timestamp",
+  "whats_new": "What's New",
+  "got_it": "Got it",
+  "full_changelog": "Full Changelog on GitHub"
 }

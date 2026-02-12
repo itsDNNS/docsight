@@ -1,0 +1,11 @@
+[
+  {
+    "version": "v2026-02-12.1",
+    "date": "2026-02-12",
+    "highlights": [
+      {"icon": "\ud83d\udee0\ufe0f", "text": "Multi-platform Docker build (amd64 + arm64)"},
+      {"icon": "\ud83d\udce6", "text": "Optimized Dockerfile with multi-stage builds"},
+      {"icon": "\ud83d\udd0d", "text": "Chart zoom modal for detailed signal analysis"}
+    ]
+  }
+]
