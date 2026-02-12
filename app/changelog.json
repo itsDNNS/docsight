@@ -1,5 +1,23 @@
 [
   {
+    "version": "v2026-02-12.8",
+    "date": "2026-02-12",
+    "highlights": [
+      {
+        "icon": "🔗",
+        "text": "Speedtest-Signal Correlation: Expand any speedtest to see DOCSIS signal data at that time"
+      },
+      {
+        "icon": "ℹ️",
+        "text": "Plain-language tooltips explaining every metric on the dashboard"
+      },
+      {
+        "icon": "🔧",
+        "text": "Timezone fix for accurate speedtest-snapshot matching"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-12.7",
     "date": "2026-02-12",
     "highlights": [
