@@ -278,5 +278,10 @@
   "event_type_error_spike": "Error Spike",
   "event_acknowledged": "Acknowledged",
   "event_all_severities": "All Severities",
-  "event_all_types": "All Types"
+  "event_all_types": "All Types",
+  "sidebar_monitoring": "Monitoring",
+  "sidebar_external": "External",
+  "sidebar_documentation": "Documentation",
+  "speedtest_setup": "Speedtest Setup",
+  "bqm_setup": "BQM Setup"
 }

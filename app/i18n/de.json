@@ -278,5 +278,10 @@
   "event_type_error_spike": "Fehleranstieg",
   "event_acknowledged": "Bestaetigt",
   "event_all_severities": "Alle Schweregrade",
-  "event_all_types": "Alle Typen"
+  "event_all_types": "Alle Typen",
+  "sidebar_monitoring": "Ueberwachung",
+  "sidebar_external": "Extern",
+  "sidebar_documentation": "Dokumentation",
+  "speedtest_setup": "Speedtest Einrichtung",
+  "bqm_setup": "BQM Einrichtung"
 }
