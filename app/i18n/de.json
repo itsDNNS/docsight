@@ -240,5 +240,8 @@
   "fetching": "Lade...",
   "show_more": "Mehr anzeigen",
   "show_less": "Weniger anzeigen",
-  "timestamp": "Zeitstempel"
+  "timestamp": "Zeitstempel",
+  "whats_new": "Was ist neu",
+  "got_it": "Verstanden",
+  "full_changelog": "Vollstaendiges Changelog auf GitHub"
 }

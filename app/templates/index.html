@@ -1196,6 +1196,30 @@
     </div>
 </div>
 
+<!-- Changelog Modal -->
+{% if changelog %}
+<div class="modal-overlay" id="changelog-modal" onclick="if(event.target===this)closeChangelogModal()">
+    <div class="modal" style="max-width:480px;">
+        <div class="modal-header">
+            <h2>&#127881; {{ t.whats_new }}</h2>
+            <button class="modal-close" onclick="closeChangelogModal()">&times;</button>
+        </div>
+        <p style="color:var(--muted);margin:0 0 12px;font-size:0.85em;">{{ changelog.version }} &middot; {{ changelog.date }}</p>
+        <div class="modal-body" style="overflow-y:auto;">
+            <ul style="list-style:none;padding:0;margin:0;">
+            {% for h in changelog.highlights %}
+                <li style="padding:8px 0;border-bottom:1px solid var(--input-border);font-size:0.92em;">{{ h.icon }} {{ h.text }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        <div class="modal-footer" style="flex-direction:column;align-items:stretch;gap:8px;">
+            <button class="btn btn-accent" onclick="closeChangelogModal()" style="width:100%;">{{ t.got_it }}</button>
+            <a href="https://github.com/itsDNNS/docsight/releases" target="_blank" style="text-align:center;color:var(--muted);font-size:0.8em;text-decoration:none;">{{ t.full_changelog }} &rarr;</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Export Modal -->
 <div class="modal-overlay" id="export-modal">
     <div class="modal">
@@ -1884,7 +1908,31 @@
         if (e.key === 'Escape' && document.getElementById('chart-zoom-overlay').classList.contains('open')) {
             closeChartZoom();
         }
+        if (e.key === 'Escape' && document.getElementById('changelog-modal') && document.getElementById('changelog-modal').classList.contains('open')) {
+            closeChangelogModal();
+        }
     });
+
+    /* ── Changelog Modal ── */
+    {% if changelog %}
+    var _changelogVersion = {{ changelog.version|tojson }};
+    (function() {
+        var seen = localStorage.getItem('docsight-last-seen-version');
+        if (seen !== _changelogVersion) {
+            var modal = document.getElementById('changelog-modal');
+            if (modal) { modal.classList.add('open'); }
+        }
+    })();
+    {% endif %}
+
+    function closeChangelogModal() {
+        var modal = document.getElementById('changelog-modal');
+        if (modal) { modal.classList.remove('open'); }
+        {% if changelog %}
+        localStorage.setItem('docsight-last-seen-version', _changelogVersion);
+        {% endif %}
+    }
+    window.closeChangelogModal = closeChangelogModal;
 
     /* ── BQM Graph ── */
     function loadBqmGraph(date) {

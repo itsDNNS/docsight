@@ -235,5 +235,8 @@
   "fetching": "Cargando...",
   "show_more": "Mostrar mas",
   "show_less": "Mostrar menos",
-  "timestamp": "Marca de tiempo"
+  "timestamp": "Marca de tiempo",
+  "whats_new": "Novedades",
+  "got_it": "Entendido",
+  "full_changelog": "Changelog completo en GitHub"
 }
