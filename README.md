@@ -223,7 +223,7 @@ DOCSight can optionally publish all channel data to Home Assistant via MQTT Auto
 ## Roadmap
 
 ### Modulation & Signal Intelligence
-- [ ] **Modulation Watchdog**: Track and alert on QAM modulation changes per channel (e.g. 256QAM dropping to 16QAM) — the #1 symptom users report in cable forums
+- [x] **Modulation Watchdog**: Track and alert on QAM modulation changes per channel (e.g. 256QAM dropping to 16QAM) with severity based on QAM hierarchy — downgrades trigger warning/critical, upgrades show as info
 - [ ] **Channel Heatmap**: Visual grid of all channels color-coded by modulation quality — spot frequency-dependent issues at a glance
 - [ ] **OFDMA Analysis**: Detect whether the modem uses a wide OFDMA block vs. many narrow SC-QAMs; flag subcarrier count fluctuations as potential ingress indicators; track OFDMA enable/disable impact
 - [ ] **Adaptive Polling**: Automatically increase poll frequency (e.g. every 10-30s) when uncorrectable errors spike, to capture incidents in high resolution
