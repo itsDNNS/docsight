@@ -692,6 +692,10 @@
         <a class="sidebar-link active" data-view="live">
             <span class="icon recording-dot">&#9679;</span> {{ t.live_dashboard }}
         </a>
+        <a class="sidebar-link" data-view="events">
+            <span class="icon">&#128276;</span> {{ t.event_log }}
+            <span class="event-badge" id="event-badge" style="display:none;"></span>
+        </a>
         <a class="sidebar-link" data-view="trends">
             <span class="icon">&#128202;</span> {{ t.signal_trends }}
         </a>
@@ -706,10 +710,6 @@
         {% endif %}
         <a class="sidebar-link" data-view="journal">
             <span class="icon">&#128203;</span> {{ t.incident_journal }}
-        </a>
-        <a class="sidebar-link" data-view="events">
-            <span class="icon">&#128276;</span> {{ t.event_log }}
-            <span class="event-badge" id="event-badge" style="display:none;"></span>
         </a>
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
