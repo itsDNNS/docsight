@@ -41,12 +41,17 @@ def _get_ds_power_thresholds(modulation=None):
     }
 
 
-def _get_us_power_thresholds(modulation=None):
-    """Get US power thresholds for a given modulation."""
+def _get_us_power_thresholds(docsis_version=None):
+    """Get US power thresholds for a given DOCSIS version."""
     us = _thresholds.get("upstream_power", {})
-    default_mod = us.get("_default", "64QAM")
-    mod = modulation if modulation in us else default_mod
-    t = us.get(mod, {})
+    default_ver = us.get("_default", "EuroDOCSIS 3.0")
+    # Map version strings
+    ver = default_ver
+    if docsis_version in ("3.1", "DOCSIS 3.1"):
+        ver = "DOCSIS 3.1"
+    elif docsis_version in ("3.0", "EuroDOCSIS 3.0"):
+        ver = "EuroDOCSIS 3.0"
+    t = us.get(ver, us.get(default_ver, {}))
     return {
         "good_min": t.get("good_min", 41.0),
         "good_max": t.get("good_max", 47.0),
@@ -126,13 +131,12 @@ def _assess_ds_channel(ch, docsis_ver):
     return _channel_health(issues), _health_detail(issues)
 
 
-def _assess_us_channel(ch):
+def _assess_us_channel(ch, docsis_ver="3.0"):
     """Assess a single upstream channel. Returns (health, health_detail)."""
     issues = []
     power = _parse_float(ch.get("powerLevel"))
-    modulation = (ch.get("modulation") or ch.get("type") or "").upper().replace("-", "")
 
-    pt = _get_us_power_thresholds(modulation)
+    pt = _get_us_power_thresholds(docsis_ver)
     if power < pt["crit_min"] or power > pt["crit_max"]:
         issues.append("power critical")
     elif power < pt["good_min"] or power > pt["good_max"]:
@@ -197,7 +201,7 @@ def analyze(data: dict) -> dict:
     # --- Parse upstream channels ---
     us_channels = []
     for ch in us30:
-        health, health_detail = _assess_us_channel(ch)
+        health, health_detail = _assess_us_channel(ch, "3.0")
         us_channels.append({
             "channel_id": ch.get("channelID", 0),
             "frequency": ch.get("frequency", ""),
@@ -209,7 +213,7 @@ def analyze(data: dict) -> dict:
             "health_detail": health_detail,
         })
     for ch in us31:
-        health, health_detail = _assess_us_channel(ch)
+        health, health_detail = _assess_us_channel(ch, "3.1")
         us_channels.append({
             "channel_id": ch.get("channelID", 0),
             "frequency": ch.get("frequency", ""),
