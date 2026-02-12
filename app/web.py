@@ -1,6 +1,7 @@
 """Flask web UI for DOCSight – DOCSIS channel monitoring."""
 
 import functools
+import json
 import logging
 import math
 import os
@@ -46,6 +47,17 @@ def _get_version():
         return "dev"
 
 APP_VERSION = _get_version()
+
+def _load_changelog():
+    """Load changelog.json from the app directory."""
+    changelog_path = os.path.join(os.path.dirname(__file__), "changelog.json")
+    try:
+        with open(changelog_path) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+_changelog = _load_changelog()
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.urandom(32)  # overwritten by _init_session_key
@@ -258,6 +270,7 @@ def index():
                 has_us_ofdma=_has_us_ofdma(snapshot),
                 device_info=dev_info,
                 t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
+                changelog=_changelog[0] if _changelog else None,
             )
     return render_template(
         "index.html",
@@ -276,6 +289,7 @@ def index():
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         device_info=dev_info,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
+        changelog=_changelog[0] if _changelog else None,
     )
 
 
@@ -706,6 +720,13 @@ def api_complaint():
         customer_name, customer_number, customer_address
     )
     return jsonify({"text": text, "lang": lang})
+
+
+@app.route("/api/changelog")
+@require_auth
+def api_changelog():
+    """Return full changelog data."""
+    return jsonify(_changelog)
 
 
 @app.route("/health")
