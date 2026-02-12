@@ -1,4 +1,5 @@
-"""DOCSIS channel health analysis with configurable thresholds."""
+"""DOCSIS channel health analysis with configurable thresholds,
+OFDMA analysis, and channel heatmap data."""
 
 import logging
 
@@ -19,6 +20,21 @@ SNR_CRIT = 25.0
 
 # Uncorrectable errors threshold
 UNCORR_ERRORS_CRIT = 10000
+
+# QAM quality ranking (higher = better)
+QAM_QUALITY = {
+    "4096QAM": 100,
+    "2048QAM": 95,
+    "1024QAM": 90,
+    "512QAM": 80,
+    "256QAM": 70,
+    "128QAM": 55,
+    "64QAM": 40,
+    "32QAM": 30,
+    "16QAM": 20,
+    "QPSK": 10,
+    "BPSK": 5,
+}
 
 
 def _parse_float(val, default=0.0):
@@ -220,4 +236,241 @@ def analyze(data: dict) -> dict:
         "summary": summary,
         "ds_channels": ds_channels,
         "us_channels": us_channels,
+    }
+
+
+# ── OFDMA Analysis ──
+
+def analyze_ofdma(data: dict) -> dict:
+    """Analyze OFDMA (DOCSIS 3.1) channel usage.
+
+    Detects whether the modem uses wide OFDMA blocks vs many narrow SC-QAMs.
+    Returns dict with:
+        has_ofdma_ds: bool
+        has_ofdma_us: bool
+        ds_31_count: int (number of DOCSIS 3.1 DS channels)
+        ds_30_count: int (number of DOCSIS 3.0 DS channels)
+        us_31_count: int (number of DOCSIS 3.1 US channels)
+        us_30_count: int (number of DOCSIS 3.0 US channels)
+        ofdma_type: str ("wide_block", "narrow_scqam", "mixed", "none")
+        assessment: str (human-readable assessment)
+    """
+    ds = data.get("channelDs", {})
+    us = data.get("channelUs", {})
+
+    ds31_count = len(ds.get("docsis31", []))
+    ds30_count = len(ds.get("docsis30", []))
+    us31_count = len(us.get("docsis31", []))
+    us30_count = len(us.get("docsis30", []))
+
+    has_ofdma_ds = ds31_count > 0
+    has_ofdma_us = us31_count > 0
+
+    # Determine OFDMA type
+    total_ds = ds31_count + ds30_count
+    if not has_ofdma_ds:
+        ofdma_type = "none"
+        assessment = "No OFDMA (DOCSIS 3.1) channels detected. Using SC-QAM only (DOCSIS 3.0)."
+    elif ds30_count == 0:
+        ofdma_type = "wide_block"
+        assessment = "Using wide OFDMA block exclusively. All downstream on DOCSIS 3.1."
+    elif ds31_count <= 2 and ds30_count > 10:
+        ofdma_type = "narrow_scqam"
+        assessment = (
+            f"Primarily using narrow SC-QAM channels ({ds30_count} x DOCSIS 3.0) "
+            f"with {ds31_count} OFDMA channel(s). This is the typical hybrid config."
+        )
+    else:
+        ofdma_type = "mixed"
+        assessment = (
+            f"Mixed configuration: {ds31_count} OFDMA + {ds30_count} SC-QAM channels."
+        )
+
+    return {
+        "has_ofdma_ds": has_ofdma_ds,
+        "has_ofdma_us": has_ofdma_us,
+        "ds_31_count": ds31_count,
+        "ds_30_count": ds30_count,
+        "us_31_count": us31_count,
+        "us_30_count": us30_count,
+        "ofdma_type": ofdma_type,
+        "assessment": assessment,
+    }
+
+
+# ── Channel Heatmap ──
+
+def build_channel_heatmap(analysis: dict) -> dict:
+    """Build a heatmap data structure for all channels, color-coded by quality.
+
+    Returns dict with:
+        ds: list of {channel_id, frequency, quality, color, modulation, power, snr, health}
+        us: list of {channel_id, frequency, quality, color, modulation, power, health}
+
+    quality: 0-100 score based on power, SNR, and modulation
+    color: "green", "yellow", "orange", "red" based on quality
+    """
+    ds_heatmap = []
+    for ch in analysis.get("ds_channels", []):
+        quality = _compute_ds_quality(ch)
+        ds_heatmap.append({
+            "channel_id": ch["channel_id"],
+            "frequency": ch["frequency"],
+            "quality": quality,
+            "color": _quality_to_color(quality),
+            "modulation": ch["modulation"],
+            "power": ch["power"],
+            "snr": ch.get("snr"),
+            "health": ch["health"],
+            "correctable_errors": ch.get("correctable_errors", 0),
+            "uncorrectable_errors": ch.get("uncorrectable_errors", 0),
+            "docsis_version": ch["docsis_version"],
+        })
+
+    us_heatmap = []
+    for ch in analysis.get("us_channels", []):
+        quality = _compute_us_quality(ch)
+        us_heatmap.append({
+            "channel_id": ch["channel_id"],
+            "frequency": ch["frequency"],
+            "quality": quality,
+            "color": _quality_to_color(quality),
+            "modulation": ch["modulation"],
+            "power": ch["power"],
+            "health": ch["health"],
+            "docsis_version": ch["docsis_version"],
+        })
+
+    return {"ds": ds_heatmap, "us": us_heatmap}
+
+
+def _compute_ds_quality(ch: dict) -> int:
+    """Compute a 0-100 quality score for a downstream channel."""
+    score = 100
+
+    # Power penalty (ideal = 0, bad > ±10)
+    power = abs(ch.get("power", 0))
+    if power > DS_POWER_CRIT:
+        score -= 40
+    elif power > DS_POWER_WARN:
+        score -= 20
+    elif power > 3:
+        score -= 5
+
+    # SNR penalty
+    snr = ch.get("snr")
+    if snr is not None:
+        if snr < SNR_CRIT:
+            score -= 40
+        elif snr < SNR_WARN:
+            score -= 20
+        elif snr < 35:
+            score -= 5
+
+    # Modulation bonus/penalty
+    mod = ch.get("modulation", "")
+    mod_quality = QAM_QUALITY.get(mod, 50)
+    score = score * (mod_quality / 100)
+
+    return max(0, min(100, int(score)))
+
+
+def _compute_us_quality(ch: dict) -> int:
+    """Compute a 0-100 quality score for an upstream channel."""
+    score = 100
+
+    power = ch.get("power", 0)
+    if power > US_POWER_CRIT:
+        score -= 40
+    elif power > US_POWER_WARN:
+        score -= 20
+    elif power < 35:
+        score -= 10
+
+    # Modulation
+    mod = ch.get("modulation", "")
+    mod_quality = QAM_QUALITY.get(mod, 50)
+    score = score * (mod_quality / 100)
+
+    return max(0, min(100, int(score)))
+
+
+def _quality_to_color(quality: int) -> str:
+    """Map quality score to a color."""
+    if quality >= 80:
+        return "green"
+    elif quality >= 60:
+        return "yellow"
+    elif quality >= 40:
+        return "orange"
+    return "red"
+
+
+# ── Before/After Comparison ──
+
+def compare_periods(snapshots_before: list[dict], snapshots_after: list[dict]) -> dict:
+    """Compare two sets of snapshots (before/after a change).
+
+    Returns dict with:
+        before: averaged summary metrics
+        after: averaged summary metrics
+        changes: dict of metric -> {before, after, delta, improved}
+    """
+    def _avg_summary(snapshots):
+        if not snapshots:
+            return {}
+        keys = [
+            "ds_power_min", "ds_power_max", "ds_power_avg",
+            "us_power_min", "us_power_max", "us_power_avg",
+            "ds_snr_min", "ds_snr_avg",
+            "ds_correctable_errors", "ds_uncorrectable_errors",
+        ]
+        result = {}
+        for key in keys:
+            values = [s.get("summary", {}).get(key, 0) for s in snapshots]
+            if values:
+                result[key] = round(sum(values) / len(values), 2)
+        # Health distribution
+        healths = [s.get("summary", {}).get("health", "unknown") for s in snapshots]
+        result["health_distribution"] = {
+            h: healths.count(h) for h in set(healths)
+        }
+        result["total_snapshots"] = len(snapshots)
+        return result
+
+    before_avg = _avg_summary(snapshots_before)
+    after_avg = _avg_summary(snapshots_after)
+
+    changes = {}
+    improvement_metrics = {"ds_snr_min", "ds_snr_avg"}  # higher is better
+    degradation_metrics = {
+        "ds_power_max", "us_power_max",
+        "ds_correctable_errors", "ds_uncorrectable_errors",
+    }  # lower is better (for abs values)
+
+    for key in before_avg:
+        if key in ("health_distribution", "total_snapshots"):
+            continue
+        bval = before_avg.get(key, 0)
+        aval = after_avg.get(key, 0)
+        delta = round(aval - bval, 2)
+
+        if key in improvement_metrics:
+            improved = delta > 0
+        elif key in degradation_metrics:
+            improved = delta < 0
+        else:
+            improved = abs(aval) < abs(bval)
+
+        changes[key] = {
+            "before": bval,
+            "after": aval,
+            "delta": delta,
+            "improved": improved,
+        }
+
+    return {
+        "before": before_avg,
+        "after": after_avg,
+        "changes": changes,
     }
