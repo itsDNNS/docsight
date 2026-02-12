@@ -682,49 +682,28 @@
         .info-tip .tip-text {
             visibility: hidden;
             opacity: 0;
-            position: absolute;
-            bottom: calc(100% + 8px);
+            position: fixed;
             left: 50%;
-            transform: translateX(-50%);
+            top: 50%;
+            transform: translate(-50%, -50%);
             background: var(--surface);
             color: var(--text);
             border: 1px solid var(--input-border);
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 0.78em;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.82em;
             font-weight: normal;
-            line-height: 1.4;
+            line-height: 1.5;
             white-space: normal;
             width: max-content;
-            max-width: 260px;
-            z-index: 100;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            max-width: min(320px, 85vw);
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
             transition: opacity 0.15s ease, visibility 0.15s ease;
             pointer-events: none;
         }
-        @media (max-width: 900px) {
-            .info-tip .tip-text {
-                position: fixed;
-                bottom: auto;
-                left: 50% !important;
-                top: 50%;
-                transform: translate(-50%, -50%);
-                max-width: 85vw;
-                width: 85vw;
-                pointer-events: auto;
-            }
-            .info-tip .tip-text::after {
-                display: none;
-            }
-        }
         .info-tip .tip-text::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-top-color: var(--input-border);
+            display: none;
         }
         .info-tip:hover .tip-text,
         .info-tip:focus-within .tip-text {
