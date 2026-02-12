@@ -11,6 +11,23 @@ SNR_WARN_THRESHOLD = 30.0
 SNR_CRIT_THRESHOLD = 25.0
 UNCORR_SPIKE_THRESHOLD = 1000
 
+# QAM hierarchy: higher value = better modulation
+QAM_ORDER = {
+    "QPSK": 1, "4QAM": 1,
+    "8QAM": 2,
+    "16QAM": 3,
+    "32QAM": 4,
+    "64QAM": 5,
+    "128QAM": 6,
+    "256QAM": 7,
+    "512QAM": 8,
+    "1024QAM": 9,
+    "2048QAM": 10,
+    "4096QAM": 11,
+}
+# A drop of this many levels or more counts as critical (e.g. 256QAM → 16QAM = 4 levels)
+QAM_CRITICAL_DROP = 3
+
 
 class EventDetector:
     """Compare consecutive analyses and emit event dicts."""
@@ -165,21 +182,46 @@ class EventDetector:
         cur_us = {ch["channel_id"]: ch.get("modulation", "") for ch in cur_analysis.get("us_channels", [])}
         prev_us = {ch["channel_id"]: ch.get("modulation", "") for ch in prev_analysis.get("us_channels", [])}
 
-        changed = []
+        downgrades = []
+        upgrades = []
         for ch_id in set(cur_ds) & set(prev_ds):
             if cur_ds[ch_id] != prev_ds[ch_id]:
-                changed.append({"channel": ch_id, "direction": "DS", "prev": prev_ds[ch_id], "current": cur_ds[ch_id]})
+                entry = {"channel": ch_id, "direction": "DS", "prev": prev_ds[ch_id], "current": cur_ds[ch_id]}
+                cur_rank = QAM_ORDER.get(cur_ds[ch_id], 0)
+                prev_rank = QAM_ORDER.get(prev_ds[ch_id], 0)
+                entry["rank_drop"] = prev_rank - cur_rank
+                if cur_rank < prev_rank:
+                    downgrades.append(entry)
+                else:
+                    upgrades.append(entry)
         for ch_id in set(cur_us) & set(prev_us):
             if cur_us[ch_id] != prev_us[ch_id]:
-                changed.append({"channel": ch_id, "direction": "US", "prev": prev_us[ch_id], "current": cur_us[ch_id]})
+                entry = {"channel": ch_id, "direction": "US", "prev": prev_us[ch_id], "current": cur_us[ch_id]}
+                cur_rank = QAM_ORDER.get(cur_us[ch_id], 0)
+                prev_rank = QAM_ORDER.get(prev_us[ch_id], 0)
+                entry["rank_drop"] = prev_rank - cur_rank
+                if cur_rank < prev_rank:
+                    downgrades.append(entry)
+                else:
+                    upgrades.append(entry)
 
-        if changed:
+        if downgrades:
+            max_drop = max(d["rank_drop"] for d in downgrades)
+            severity = "critical" if max_drop >= QAM_CRITICAL_DROP else "warning"
+            events.append({
+                "timestamp": ts,
+                "severity": severity,
+                "event_type": "modulation_change",
+                "message": f"Modulation dropped on {len(downgrades)} channel(s)",
+                "details": {"changes": downgrades, "direction": "downgrade"},
+            })
+        if upgrades:
             events.append({
                 "timestamp": ts,
                 "severity": "info",
                 "event_type": "modulation_change",
-                "message": f"Modulation changed on {len(changed)} channel(s)",
-                "details": {"changes": changed},
+                "message": f"Modulation improved on {len(upgrades)} channel(s)",
+                "details": {"changes": upgrades, "direction": "upgrade"},
             })
 
     def _check_errors(self, events, ts, cur, prev):
