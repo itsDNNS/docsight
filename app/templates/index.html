@@ -146,6 +146,10 @@
         .recording-dot { color: #e74c3c; animation: blink-recording 1.5s ease-in-out infinite; }
         @keyframes blink-recording { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         .sidebar-divider { border-top: 1px solid var(--input-border); margin: 8px 0; }
+        .sidebar-section-label {
+            text-transform: uppercase; font-size: 0.7em; color: var(--muted);
+            padding: 12px 16px 4px; letter-spacing: 0.05em; pointer-events: none;
+        }
         /* sidebar-ref removed */
 
         /* ── Calendar Popup ── */
@@ -689,6 +693,7 @@
         <button class="sidebar-toggle" id="sidebar-collapse" title="Collapse">&#10094;</button>
     </div>
     <div class="sidebar-content">
+        <div class="sidebar-section-label">{{ t.sidebar_monitoring }}</div>
         <a class="sidebar-link active" data-view="live">
             <span class="icon recording-dot">&#9679;</span> {{ t.live_dashboard }}
         </a>
@@ -699,28 +704,27 @@
         <a class="sidebar-link" data-view="trends">
             <span class="icon">&#128202;</span> {{ t.signal_trends }}
         </a>
+        <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
         {% if speedtest_configured %}
         <a class="sidebar-link" data-view="speedtest">
             <span class="icon">&#9889;</span> {{ t.speedtest }}
         </a>
-        {% else %}
-        <a class="sidebar-link" onclick="openSpeedtestSetupModal()">
-            <span class="icon">&#9889;</span> {{ t.speedtest }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.optional }}</span>
-        </a>
         {% endif %}
-        <a class="sidebar-link" data-view="journal">
-            <span class="icon">&#128203;</span> {{ t.incident_journal }}
+        <a class="sidebar-link" onclick="openSpeedtestSetupModal()">
+            <span class="icon">&#9881;</span> {{ t.speedtest_setup }}
         </a>
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
             <span class="icon">&#128225;</span> {{ t.bqm_title }}
         </a>
-        {% else %}
-        <a class="sidebar-link" onclick="openBqmSetupModal()">
-            <span class="icon">&#128225;</span> {{ t.bqm_title }} <span style="font-size:0.7em; color:var(--muted); margin-left:4px;">{{ t.bqm_optional }}</span>
-        </a>
         {% endif %}
-        <div class="sidebar-divider"></div>
+        <a class="sidebar-link" onclick="openBqmSetupModal()">
+            <span class="icon">&#9881;</span> {{ t.bqm_setup }}
+        </a>
+        <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
+        <a class="sidebar-link" data-view="journal">
+            <span class="icon">&#128203;</span> {{ t.incident_journal }}
+        </a>
         <a class="sidebar-link" id="report-link" onclick="openReportModal()">
             <span class="icon">&#128226;</span> {{ t.incident_report }}
         </a>
