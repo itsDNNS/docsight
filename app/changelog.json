@@ -1,33 +1,86 @@
 [
   {
+    "version": "v2026-02-12.7",
+    "date": "2026-02-12",
+    "highlights": [
+      {
+        "icon": "🔔",
+        "text": "Modulation Watchdog: Downgrades trigger warning/critical alerts based on QAM hierarchy"
+      },
+      {
+        "icon": "📊",
+        "text": "Smart severity: 256QAM→16QAM = critical, 64QAM→256QAM upgrade = info"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-12.6",
     "date": "2026-02-12",
     "highlights": [
-      {"icon": "📱", "text": "Mobile: Hamburger menu now opens correctly as slide-in overlay"},
-      {"icon": "🎨", "text": "Speedtest card color reflects actual vs. booked speed (green/yellow/red)"},
-      {"icon": "🔔", "text": "Event badge updates correctly after acknowledging events"}
+      {
+        "icon": "📱",
+        "text": "Mobile: Hamburger menu now opens correctly as slide-in overlay"
+      },
+      {
+        "icon": "🎨",
+        "text": "Speedtest card color reflects actual vs. booked speed (green/yellow/red)"
+      },
+      {
+        "icon": "🔔",
+        "text": "Event badge updates correctly after acknowledging events"
+      }
     ]
   },
   {
     "version": "v2026-02-12.4",
     "date": "2026-02-12",
     "highlights": [
-      {"icon": "📋", "text": "Incident Journal: Document ISP issues with attachments"},
-      {"icon": "🔔", "text": "Event Log: Automatic signal anomaly detection with history"},
-      {"icon": "📂", "text": "Sidebar sections: Organized navigation with category labels"},
-      {"icon": "🔍", "text": "Chart zoom modal for detailed signal analysis"},
-      {"icon": "🆕", "text": "What's New splash on updates"},
-      {"icon": "📊", "text": "Interactive charts powered by Chart.js"},
-      {"icon": "🎨", "text": "Cleaner topbar and date navigation"}
+      {
+        "icon": "📋",
+        "text": "Incident Journal: Document ISP issues with attachments"
+      },
+      {
+        "icon": "🔔",
+        "text": "Event Log: Automatic signal anomaly detection with history"
+      },
+      {
+        "icon": "📂",
+        "text": "Sidebar sections: Organized navigation with category labels"
+      },
+      {
+        "icon": "🔍",
+        "text": "Chart zoom modal for detailed signal analysis"
+      },
+      {
+        "icon": "🆕",
+        "text": "What's New splash on updates"
+      },
+      {
+        "icon": "📊",
+        "text": "Interactive charts powered by Chart.js"
+      },
+      {
+        "icon": "🎨",
+        "text": "Cleaner topbar and date navigation"
+      }
     ]
   },
   {
     "version": "v2026-02-12.1",
     "date": "2026-02-12",
     "highlights": [
-      {"icon": "🛠️", "text": "Multi-platform Docker build (amd64 + arm64)"},
-      {"icon": "📦", "text": "Optimized Dockerfile with multi-stage builds"},
-      {"icon": "🔧", "text": "CI version injection fix"}
+      {
+        "icon": "🛠️",
+        "text": "Multi-platform Docker build (amd64 + arm64)"
+      },
+      {
+        "icon": "📦",
+        "text": "Optimized Dockerfile with multi-stage builds"
+      },
+      {
+        "icon": "🔧",
+        "text": "CI version injection fix"
+      }
     ]
   }
 ]
