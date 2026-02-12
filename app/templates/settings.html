@@ -132,6 +132,11 @@
             margin-bottom: 16px; display: none;
         }
         @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+        details.section > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+        details.section > summary::-webkit-details-marker { display: none; }
+        details.section > summary::before { content: '▶'; font-size: 0.7em; transition: transform 0.2s; }
+        details.section[open] > summary::before { transform: rotate(90deg); }
+        details.section > summary > h2 { margin: 0; }
     </style>
 </head>
 <body>
@@ -175,61 +180,6 @@
         <div class="btn-row">
             <button type="button" class="btn btn-secondary" onclick="testModem()">{{ t.test_connection }}</button>
             <span class="test-result" id="modem-test"></span>
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>{{ t.mqtt_broker }} <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.mqtt_optional_ha }})</span></h2>
-        <div class="form-grid">
-            <div class="form-row">
-                <label for="mqtt_host">Host</label>
-                <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_port">Port</label>
-                <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_user">{{ t.username_opt }}</label>
-                <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_password">{{ t.password_opt }}</label>
-                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
-            </div>
-            <div class="form-row full">
-                <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
-                <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
-            </div>
-        </div>
-        <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
-            <span class="test-result" id="mqtt-test"></span>
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>ThinkBroadband BQM <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.bqm_optional }})</span></h2>
-        <div class="form-row">
-            <label for="bqm_url">{{ t.bqm_share_url }}</label>
-            <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
-            <span class="hint">{{ t.bqm_url_hint }}</span>
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>Speedtest Tracker <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.optional }})</span></h2>
-        <div class="form-grid">
-            <div class="form-row full">
-                <label for="speedtest_tracker_url">{{ t.speedtest_url }}</label>
-                <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
-                <span class="hint">{{ t.speedtest_url_hint }}</span>
-            </div>
-            <div class="form-row full">
-                <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
-                <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
-                <span class="hint">{{ t.speedtest_token_hint }}</span>
-            </div>
         </div>
     </div>
 
@@ -281,6 +231,61 @@
             </div>
         </div>
     </div>
+
+    <details class="section">
+        <summary><h2>Speedtest Tracker <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.optional }})</span></h2></summary>
+        <div class="form-grid">
+            <div class="form-row full">
+                <label for="speedtest_tracker_url">{{ t.speedtest_url }}</label>
+                <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
+                <span class="hint">{{ t.speedtest_url_hint }}</span>
+            </div>
+            <div class="form-row full">
+                <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
+                <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
+                <span class="hint">{{ t.speedtest_token_hint }}</span>
+            </div>
+        </div>
+    </details>
+
+    <details class="section">
+        <summary><h2>ThinkBroadband BQM <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.bqm_optional }})</span></h2></summary>
+        <div class="form-row">
+            <label for="bqm_url">{{ t.bqm_share_url }}</label>
+            <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
+            <span class="hint">{{ t.bqm_url_hint }}</span>
+        </div>
+    </details>
+
+    <details class="section">
+        <summary><h2>{{ t.mqtt_broker }} <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.mqtt_optional_ha }})</span></h2></summary>
+        <div class="form-grid">
+            <div class="form-row">
+                <label for="mqtt_host">Host</label>
+                <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
+            </div>
+            <div class="form-row">
+                <label for="mqtt_port">Port</label>
+                <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
+            </div>
+            <div class="form-row">
+                <label for="mqtt_user">{{ t.username_opt }}</label>
+                <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
+            </div>
+            <div class="form-row">
+                <label for="mqtt_password">{{ t.password_opt }}</label>
+                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
+            </div>
+            <div class="form-row full">
+                <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
+                <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
+            </div>
+        </div>
+        <div class="btn-row">
+            <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
+            <span class="test-result" id="mqtt-test"></span>
+        </div>
+    </details>
 
     <div class="submit-row">
         <button type="submit" class="btn btn-primary">{{ t.save }}</button>
