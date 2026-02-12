@@ -259,15 +259,23 @@ class SnapshotStorage:
 
     def get_closest_snapshot(self, timestamp):
         """Find the snapshot closest to a given ISO timestamp (within 2 hours).
-        Returns analysis dict with timestamp, or None if nothing within range."""
+        Returns analysis dict with timestamp, or None if nothing within range.
+        Handles timezone differences: speedtest timestamps may have 'Z' (UTC)
+        while snapshots are stored in local time. We strip 'Z' and use localtime()
+        to normalize both to the same basis."""
+        # Normalize: if timestamp ends with Z, convert UTC to local via SQLite
+        # Snapshots are stored without timezone suffix (local time)
+        ts_expr = "datetime(?, 'localtime')" if timestamp.endswith("Z") else "datetime(?)"
+        # Strip Z for the parameter since SQLite datetime() handles it
+        ts_param = timestamp
         with sqlite3.connect(self.db_path) as conn:
             row = conn.execute(
-                """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
+                f"""SELECT timestamp, summary_json, ds_channels_json, us_channels_json
                    FROM snapshots
-                   WHERE ABS(julianday(timestamp) - julianday(?)) <= (2.0 / 24.0)
-                   ORDER BY ABS(julianday(timestamp) - julianday(?))
+                   WHERE ABS(julianday(timestamp) - julianday({ts_expr})) <= (2.0 / 24.0)
+                   ORDER BY ABS(julianday(timestamp) - julianday({ts_expr}))
                    LIMIT 1""",
-                (timestamp, timestamp),
+                (ts_param, ts_param),
             ).fetchone()
         if not row:
             return None
