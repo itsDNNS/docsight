@@ -1912,6 +1912,12 @@
 
                 // Re-init sortable tables (event listeners lost on innerHTML replace)
                 initSortableTables();
+
+                // Refresh event badge count
+                fetch('/api/events/count')
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { updateEventBadge(d.count || 0); })
+                    .catch(function() {});
             })
             .catch(function(err) {
                 console.warn('Auto-refresh failed:', err);
