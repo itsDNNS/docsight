@@ -273,5 +273,10 @@
   "event_type_error_spike": "Pico de errores",
   "event_acknowledged": "Confirmado",
   "event_all_severities": "Todas las severidades",
-  "event_all_types": "Todos los tipos"
+  "event_all_types": "Todos los tipos",
+  "sidebar_monitoring": "Monitoreo",
+  "sidebar_external": "Externo",
+  "sidebar_documentation": "Documentacion",
+  "speedtest_setup": "Config. Speedtest",
+  "bqm_setup": "Config. BQM"
 }

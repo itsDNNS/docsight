@@ -4,6 +4,8 @@
     "date": "2026-02-12",
     "highlights": [
       {"icon": "📋", "text": "Incident Journal: Document ISP issues with attachments"},
+      {"icon": "🔔", "text": "Event Log: Automatic signal anomaly detection with history"},
+      {"icon": "📂", "text": "Sidebar sections: Organized navigation with category labels"},
       {"icon": "🔍", "text": "Chart zoom modal for detailed signal analysis"},
       {"icon": "🆕", "text": "What's New splash on updates"},
       {"icon": "📊", "text": "Interactive charts powered by Chart.js"},
