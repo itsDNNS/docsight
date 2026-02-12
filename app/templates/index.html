@@ -60,8 +60,8 @@
         }
         .hamburger-btn:hover { color: var(--accent); }
         .date-nav {
-            display: flex; align-items: center; gap: 2px;
-            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            display: flex; align-items: center; justify-content: center; gap: 2px;
+            padding: 12px 0; text-align: center;
         }
         .date-nav button {
             background: none; border: 1px solid var(--input-border);
@@ -705,11 +705,6 @@
         <button class="hamburger-btn" id="hamburger" title="Menu">&#9776;</button>
         <span class="topbar-title">DOCSight</span>
     </div>
-    <div class="date-nav" id="date-nav">
-        <button id="date-prev">&#8249;</button>
-        <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
-        <button id="date-next">&#8250;</button>
-    </div>
     <div class="topbar-right">
         <span class="topbar-meta" id="topbar-meta">
             {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
@@ -737,6 +732,12 @@
         <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
     </div>
     <div class="cal-days" id="cal-days"></div>
+</div>
+
+<div class="date-nav" id="date-nav">
+    <button id="date-prev">&#8249;</button>
+    <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
+    <button id="date-next">&#8250;</button>
 </div>
 
 <!-- ═══ View: Dashboard ═══ -->
