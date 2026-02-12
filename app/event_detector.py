@@ -7,8 +7,8 @@ log = logging.getLogger("docsis.events")
 
 # Thresholds for event detection
 POWER_SHIFT_THRESHOLD = 2.0  # dBmV shift to trigger power_change
-SNR_WARN_THRESHOLD = 30.0
-SNR_CRIT_THRESHOLD = 25.0
+SNR_WARN_THRESHOLD = 33.0
+SNR_CRIT_THRESHOLD = 29.0
 UNCORR_SPIKE_THRESHOLD = 1000
 
 # QAM hierarchy: higher value = better modulation

@@ -119,9 +119,9 @@ class TestHealthMarginal:
         assert "us_power_warn" in result["summary"]["health_issues"]
 
     def test_snr_warning(self):
-        """SNR 28 dB is marginal (between 25-30)."""
+        """SNR 31 dB is marginal (between 29-33)."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-28")],
+            ds30=[_make_ds30(1, power=2.0, mse="-31")],
             us30=[_make_us30(1, power=42.0)],
         )
         result = analyze(data)
@@ -163,9 +163,9 @@ class TestHealthPoor:
         assert "us_power_critical" in result["summary"]["health_issues"]
 
     def test_snr_critical(self):
-        """SNR 22 dB is critical (<25)."""
+        """SNR 27 dB is critical (<29)."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-22")],
+            ds30=[_make_ds30(1, power=2.0, mse="-27")],
             us30=[_make_us30(1, power=42.0)],
         )
         result = analyze(data)
