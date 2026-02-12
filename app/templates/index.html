@@ -658,14 +658,25 @@
             vertical-align: middle; margin-left: 6px;
         }
 
+        /* ── Sidebar overlay backdrop ── */
+        .sidebar-backdrop {
+            display: none; position: fixed; inset: 0;
+            background: var(--overlay); z-index: 59;
+        }
+        .sidebar-backdrop.active { display: block; }
+
         /* ── Responsive ── */
         @media (max-width: 900px) {
             .charts-grid { grid-template-columns: 1fr; }
-            .sidebar { width: 0; min-width: 0; }
-            .sidebar.collapsed { width: 0; min-width: 0; }
-        }
-        @media (max-width: 900px) {
             .metric-cards { grid-template-columns: 1fr; }
+            .sidebar {
+                position: fixed; top: 0; left: 0; bottom: 0;
+                z-index: 60; width: 240px; min-width: 240px;
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+            }
+            .sidebar.collapsed { width: 240px; min-width: 240px; transform: translateX(-100%); }
+            .sidebar.mobile-open { transform: translateX(0); }
         }
         @media (max-width: 600px) {
             body { font-size: 14px; }
@@ -752,6 +763,7 @@
         </div>
     </div>
 </nav>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
 <!-- Main Area -->
 <div class="app-main">
@@ -1600,18 +1612,35 @@
 
     /* ── Sidebar ── */
     var sidebar = document.getElementById('sidebar');
+    var sidebarBackdrop = document.getElementById('sidebar-backdrop');
 
-    function collapseSidebar() { sidebar.classList.add('collapsed'); }
-    function expandSidebar() { sidebar.classList.remove('collapsed'); }
+    function isMobile() { return window.matchMedia('(max-width: 900px)').matches; }
+
+    function collapseSidebar() {
+        sidebar.classList.add('collapsed');
+        sidebar.classList.remove('mobile-open');
+        sidebarBackdrop.classList.remove('active');
+    }
+    function expandSidebar() {
+        sidebar.classList.remove('collapsed');
+    }
 
     document.getElementById('sidebar-collapse').addEventListener('click', collapseSidebar);
     document.getElementById('hamburger').addEventListener('click', function() {
-        sidebar.classList.toggle('collapsed');
+        if (isMobile()) {
+            var opening = !sidebar.classList.contains('mobile-open');
+            sidebar.classList.toggle('mobile-open', opening);
+            sidebarBackdrop.classList.toggle('active', opening);
+        } else {
+            sidebar.classList.toggle('collapsed');
+        }
     });
+    sidebarBackdrop.addEventListener('click', collapseSidebar);
 
     var sidebarLinks = document.querySelectorAll('.sidebar-link[data-view]');
     sidebarLinks.forEach(function(link) {
         link.addEventListener('click', function() {
+            if (isMobile()) { collapseSidebar(); }
             switchView(this.getAttribute('data-view'));
         });
     });
