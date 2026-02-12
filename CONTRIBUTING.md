@@ -70,13 +70,25 @@ Translations live in `app/i18n/` as JSON files:
 
 Each file has a `_meta` field with `language_name` and `flag`. When adding or changing UI strings, update **all 4 files**.
 
-## Guidelines
+## Before You Start
 
-- Keep changes focused and minimal
+**Please open an issue first** before working on any new feature or significant change. This lets us discuss the approach and make sure it fits the project direction. PRs without a prior issue may be closed.
+
+This is especially important for:
+- New features or modules
+- Architectural changes
+- Changes touching multiple files
+
+Small bugfixes and typo corrections are fine without an issue.
+
+## Pull Request Guidelines
+
+- **One PR per feature/fix.** Don't bundle unrelated changes.
+- **Keep changes focused and minimal.** Smaller PRs are easier to review and more likely to be merged.
 - Add tests for new functionality
 - Maintain all 4 language translations (EN/DE/FR/ES) in `app/i18n/*.json`
-- CHANGELOG entries must be in English
 - Run the full test suite before submitting a PR
+- AI-generated bulk PRs without prior discussion will not be merged
 
 ## Adding Modem Support
 
