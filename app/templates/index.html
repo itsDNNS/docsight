@@ -2481,6 +2481,10 @@
         }
     }
 
+    window.acknowledgeEvent = acknowledgeEvent;
+    window.acknowledgeAllEvents = acknowledgeAllEvents;
+    window.loadEvents = loadEvents;
+
     // Fetch badge count on page load
     fetch('/api/events/count')
         .then(function(r) { return r.json(); })
