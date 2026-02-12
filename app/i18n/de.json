@@ -295,5 +295,18 @@
   "sidebar_external": "Extern",
   "sidebar_documentation": "Dokumentation",
   "speedtest_setup": "Speedtest Einrichtung",
-  "bqm_setup": "BQM Einrichtung"
+  "bqm_setup": "BQM Einrichtung",
+  "signal_at_time": "Signal zum Testzeitpunkt",
+  "signal_no_snapshot": "Kein Signal-Snapshot innerhalb von 2 Stunden zu diesem Speedtest gefunden.",
+  "signal_health": "Zustand",
+  "signal_ds_power": "DS Pegel",
+  "signal_ds_snr": "DS SNR",
+  "signal_us_power": "US Pegel",
+  "signal_errors": "Fehler",
+  "signal_corr": "korr.",
+  "signal_uncorr": "unkorr.",
+  "signal_us_modulation": "US Modulation",
+  "signal_ds_channels": "DS Kanaele",
+  "signal_us_channels": "US Kanaele",
+  "signal_snapshot_time": "Snapshot"
 }

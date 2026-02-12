@@ -645,6 +645,51 @@ def api_speedtest():
     return jsonify(client.get_results(per_page=count))
 
 
+@app.route("/api/speedtest/<int:result_id>/signal")
+@require_auth
+def api_speedtest_signal(result_id):
+    """Return the closest DOCSIS snapshot signal data for a speedtest result."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    result = _storage.get_speedtest_by_id(result_id)
+    if not result:
+        return jsonify({"error": "Speedtest result not found"}), 404
+    snap = _storage.get_closest_snapshot(result["timestamp"])
+    if not snap:
+        lang = _get_lang()
+        t = get_translations(lang)
+        return jsonify({
+            "found": False,
+            "message": t.get("signal_no_snapshot", "No signal snapshot found within 2 hours of this speedtest."),
+        })
+    s = snap["summary"]
+    us_channels = []
+    for ch in snap.get("us_channels", []):
+        us_channels.append({
+            "channel_id": ch.get("channel_id"),
+            "modulation": ch.get("modulation", ""),
+            "power": ch.get("power"),
+        })
+    return jsonify({
+        "found": True,
+        "snapshot_timestamp": snap["timestamp"],
+        "health": s.get("health", "unknown"),
+        "ds_power_avg": s.get("ds_power_avg"),
+        "ds_power_min": s.get("ds_power_min"),
+        "ds_power_max": s.get("ds_power_max"),
+        "ds_snr_min": s.get("ds_snr_min"),
+        "ds_snr_avg": s.get("ds_snr_avg"),
+        "us_power_avg": s.get("us_power_avg"),
+        "us_power_min": s.get("us_power_min"),
+        "us_power_max": s.get("us_power_max"),
+        "ds_uncorrectable_errors": s.get("ds_uncorrectable_errors", 0),
+        "ds_correctable_errors": s.get("ds_correctable_errors", 0),
+        "ds_total": s.get("ds_total", 0),
+        "us_total": s.get("us_total", 0),
+        "us_channels": us_channels,
+    })
+
+
 # ── Incident Journal API ──
 
 @app.route("/api/incidents", methods=["GET"])
