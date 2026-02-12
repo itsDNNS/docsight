@@ -257,6 +257,27 @@ class SnapshotStorage:
             ).fetchone()
         return bytes(row[0]) if row else None
 
+    def get_closest_snapshot(self, timestamp):
+        """Find the snapshot closest to a given ISO timestamp (within 2 hours).
+        Returns analysis dict with timestamp, or None if nothing within range."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
+                   FROM snapshots
+                   WHERE ABS(julianday(timestamp) - julianday(?)) <= (2.0 / 24.0)
+                   ORDER BY ABS(julianday(timestamp) - julianday(?))
+                   LIMIT 1""",
+                (timestamp, timestamp),
+            ).fetchone()
+        if not row:
+            return None
+        return {
+            "timestamp": row[0],
+            "summary": json.loads(row[1]),
+            "ds_channels": json.loads(row[2]),
+            "us_channels": json.loads(row[3]),
+        }
+
     # ── Speedtest result caching ──
 
     def save_speedtest_results(self, results):
@@ -294,6 +315,18 @@ class SnapshotStorage:
                 (limit,),
             ).fetchall()
         return [dict(r) for r in rows]
+
+    def get_speedtest_by_id(self, result_id):
+        """Return a single speedtest result by id, or None."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
+                "upload_human, ping_ms, jitter_ms, packet_loss_pct "
+                "FROM speedtest_results WHERE id = ?",
+                (result_id,),
+            ).fetchone()
+        return dict(row) if row else None
 
     def get_speedtest_count(self):
         """Return number of cached speedtest results."""
