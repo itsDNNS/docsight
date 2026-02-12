@@ -26,12 +26,20 @@ class EventDetector:
         """
         prev = self._prev
         self._prev = analysis
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
         if prev is None:
-            return []
+            # First poll: generate baseline event
+            health = analysis.get("summary", {}).get("health", "unknown")
+            return [{
+                "timestamp": ts,
+                "severity": "info",
+                "event_type": "monitoring_started",
+                "message": f"Monitoring started (Health: {health})",
+                "details": {"health": health},
+            }]
 
         events = []
-        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         cur_s = analysis.get("summary", {})
         prev_s = prev.get("summary", {})
 

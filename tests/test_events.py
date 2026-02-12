@@ -150,10 +150,13 @@ class TestEventStorage:
 # ── EventDetector Tests ──
 
 class TestEventDetector:
-    def test_first_poll_no_events(self, detector):
+    def test_first_poll_monitoring_started(self, detector):
         analysis = _make_analysis()
         events = detector.check(analysis)
-        assert events == []
+        assert len(events) == 1
+        assert events[0]["event_type"] == "monitoring_started"
+        assert events[0]["severity"] == "info"
+        assert "Health:" in events[0]["message"]
 
     def test_no_change_no_events(self, detector):
         analysis = _make_analysis()
