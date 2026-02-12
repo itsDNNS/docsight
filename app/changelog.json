@@ -1,5 +1,23 @@
 [
   {
+    "version": "v2026-02-12.9",
+    "date": "2026-02-12",
+    "highlights": [
+      {
+        "icon": "🎯",
+        "text": "Modulation-aware thresholds: Each channel assessed by its actual modulation (256QAM, 64QAM, 1024QAM)"
+      },
+      {
+        "icon": "📋",
+        "text": "Configurable thresholds.json: Adjust signal limits to your ISP's guidelines"
+      },
+      {
+        "icon": "⚡",
+        "text": "DOCSIS 3.1 upstream: Fritz!Box 6 dB offset correctly applied"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-12.8",
     "date": "2026-02-12",
     "highlights": [
