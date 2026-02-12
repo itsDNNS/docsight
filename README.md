@@ -171,6 +171,10 @@ Copy `.env.example` to `.env` and edit:
 |---|---|
 | ![Speedtest](docs/screenshots/speedtest.png) | ![BQM](docs/screenshots/bqm.png) |
 
+| Incident Journal |
+|---|
+| ![Journal](docs/screenshots/journal.png) |
+
 </details>
 
 <details>
