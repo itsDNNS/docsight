@@ -435,9 +435,35 @@
         .trend-tab:hover { color: var(--text); background: rgba(0,173,181,0.05); }
         .trend-tab.active { background: var(--accent); color: #000; font-weight: bold; }
         .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .chart-card { background: var(--surface); border-radius: 8px; padding: 16px; }
+        .chart-card { background: var(--surface); border-radius: 8px; padding: 16px; position: relative; }
         .chart-card .chart-label { font-size: 0.85em; color: var(--muted); margin-bottom: 8px; }
         .chart-card canvas { width: 100% !important; }
+        .chart-expand-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: none; border: 1px solid transparent;
+            color: var(--muted); font-size: 1em; cursor: pointer;
+            padding: 2px 6px; border-radius: 4px; line-height: 1;
+            opacity: 0.5; transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+            z-index: 2;
+        }
+        .chart-expand-btn:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
+
+        /* ── Chart Zoom Modal ── */
+        .chart-zoom-overlay {
+            position: fixed; inset: 0; background: var(--overlay);
+            z-index: 200; display: none; justify-content: center; align-items: center;
+        }
+        .chart-zoom-overlay.open { display: flex; }
+        .chart-zoom-modal {
+            background: var(--surface); border-radius: 10px;
+            padding: 20px; width: 90vw; height: 80vh;
+            display: flex; flex-direction: column;
+            border: 1px solid var(--input-border);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+        .chart-zoom-modal .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .chart-zoom-modal .modal-header h2 { font-size: 1.1em; color: var(--accent); margin: 0; }
+        .chart-zoom-modal canvas { flex: 1; min-height: 0; width: 100% !important; }
         .no-data-msg {
             text-align: center; padding: 40px 20px;
             color: var(--muted); font-size: 0.95em;
@@ -508,6 +534,7 @@
             table { font-size: 0.8em; }
             th, td { padding: 4px 6px; }
             .calendar-popup { left: 10px; right: 10px; min-width: auto; }
+            .chart-zoom-modal { width: 95vw; height: 85vh; padding: 12px; }
         }
     </style>
 </head>
@@ -945,18 +972,22 @@
     <div id="trend-no-data" class="no-data-msg" style="display:none"></div>
     <div class="charts-grid" id="charts-grid">
         <div class="chart-card">
+            <button class="chart-expand-btn" data-chart="chart-ds-power" title="Expand">&#x26F6;</button>
             <div class="chart-label">{{ t.ds_power_avg }}</div>
             <canvas id="chart-ds-power"></canvas>
         </div>
         <div class="chart-card">
+            <button class="chart-expand-btn" data-chart="chart-ds-snr" title="Expand">&#x26F6;</button>
             <div class="chart-label">{{ t.ds_snr_avg }}</div>
             <canvas id="chart-ds-snr"></canvas>
         </div>
         <div class="chart-card">
+            <button class="chart-expand-btn" data-chart="chart-us-power" title="Expand">&#x26F6;</button>
             <div class="chart-label">{{ t.us_power_avg }}</div>
             <canvas id="chart-us-power"></canvas>
         </div>
         <div class="chart-card">
+            <button class="chart-expand-btn" data-chart="chart-errors" title="Expand">&#x26F6;</button>
             <div class="chart-label">{{ t.errors }}</div>
             <canvas id="chart-errors"></canvas>
         </div>
@@ -1151,6 +1182,17 @@
             <button class="btn btn-accent" id="report-copy-btn" style="display:none;" onclick="copyComplaint()">&#128203; {{ t.report_copy_letter }}</button>
             <button class="btn btn-accent" id="report-pdf-btn" style="display:none;" onclick="downloadReport()">&#128196; {{ t.report_download_pdf }}</button>
         </div>
+    </div>
+</div>
+
+<!-- Chart Zoom Modal -->
+<div class="chart-zoom-overlay" id="chart-zoom-overlay" onclick="if(event.target===this)closeChartZoom()">
+    <div class="chart-zoom-modal">
+        <div class="modal-header">
+            <h2 id="chart-zoom-title"></h2>
+            <button class="modal-close" onclick="closeChartZoom()">&times;</button>
+        </div>
+        <canvas id="chart-zoom-canvas"></canvas>
     </div>
 </div>
 
@@ -1758,7 +1800,91 @@
         if (zones) {
             charts[canvasId]._docsightZones = zones.filter(function(z) { return z.color; });
         }
+        /* Store render params so the zoom modal can re-render this chart */
+        charts[canvasId]._docsightParams = {labels: labels, datasets: datasets, type: type, zones: zones};
     }
+
+    /* ── Chart Zoom Modal ── */
+    var zoomChart = null;
+
+    window.closeChartZoom = closeChartZoom;
+
+    function openChartZoom(canvasId) {
+        var src = charts[canvasId];
+        if (!src || !src._docsightParams) return;
+        var params = src._docsightParams;
+        var card = document.getElementById(canvasId).closest('.chart-card');
+        var label = card ? card.querySelector('.chart-label') : null;
+        document.getElementById('chart-zoom-title').textContent = label ? label.textContent : '';
+        var overlay = document.getElementById('chart-zoom-overlay');
+        overlay.classList.add('open');
+        /* Re-render the chart on the modal canvas (maintainAspectRatio: false to fill) */
+        setTimeout(function() {
+            if (zoomChart) { zoomChart.destroy(); zoomChart = null; }
+            var ctx = document.getElementById('chart-zoom-canvas');
+            var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+            var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+            var textColor = isDark ? '#888' : '#666';
+            var chartDatasets = params.datasets.map(function(ds) {
+                return {
+                    label: ds.label, data: ds.data,
+                    borderColor: ds.color,
+                    backgroundColor: ds.color + (params.type === 'bar' ? 'cc' : '22'),
+                    borderWidth: 3, tension: 0.3,
+                    pointRadius: params.labels.length > 30 ? 2 : 4,
+                    fill: params.type !== 'bar'
+                };
+            });
+            var hasLegend = params.datasets.length > 1;
+            var cfg = {
+                type: params.type || 'line',
+                data: { labels: params.labels, datasets: chartDatasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: {
+                        legend: { display: hasLegend, position: 'bottom', labels: { color: textColor, font: { size: 12 } } },
+                        tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1 }
+                    },
+                    scales: {
+                        x: { ticks: { color: textColor, font: { size: 11 }, maxRotation: 45 }, grid: { color: gridColor } },
+                        y: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor } }
+                    }
+                },
+                plugins: params.zones ? [zonesPlugin] : []
+            };
+            if (params.zones) {
+                var zoneMeta = params.zones.find(function(z) { return z.yMin !== undefined; });
+                if (zoneMeta) {
+                    cfg.options.scales.y.suggestedMin = zoneMeta.yMin;
+                    cfg.options.scales.y.suggestedMax = zoneMeta.yMax;
+                }
+            }
+            zoomChart = new Chart(ctx, cfg);
+            if (params.zones) {
+                zoomChart._docsightZones = params.zones.filter(function(z) { return z.color; });
+            }
+        }, 50);
+    }
+
+    function closeChartZoom() {
+        document.getElementById('chart-zoom-overlay').classList.remove('open');
+        if (zoomChart) { zoomChart.destroy(); zoomChart = null; }
+    }
+
+    /* Expand button click handlers */
+    document.querySelectorAll('.chart-expand-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            openChartZoom(btn.getAttribute('data-chart'));
+        });
+    });
+
+    /* Close chart zoom on Escape */
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('chart-zoom-overlay').classList.contains('open')) {
+            closeChartZoom();
+        }
+    });
 
     /* ── BQM Graph ── */
     function loadBqmGraph(date) {
