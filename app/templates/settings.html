@@ -245,6 +245,16 @@
                 <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
                 <span class="hint">{{ t.speedtest_token_hint }}</span>
             </div>
+            <div class="form-row">
+                <label for="booked_download">{{ t.booked_download }}</label>
+                <input type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
+                <span class="hint">{{ t.booked_download_hint }}</span>
+            </div>
+            <div class="form-row">
+                <label for="booked_upload">{{ t.booked_upload }}</label>
+                <input type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
+                <span class="hint">{{ t.booked_upload_hint }}</span>
+            </div>
         </div>
     </details>
 
