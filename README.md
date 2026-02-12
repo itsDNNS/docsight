@@ -228,7 +228,7 @@ DOCSight can optionally publish all channel data to Home Assistant via MQTT Auto
 
 ### Diagnosis & Reporting
 - [x] **Incident Report Export**: Two-step flow — editable ISP complaint letter with customer data fields + downloadable technical PDF with channel tables, worst values, and DIN threshold references (EN/DE/FR/ES)
-- [ ] **Incident Journal**: Built-in log to document ISP issues over time — date, title, detailed description, screenshot uploads. Replaces spreadsheet-based tracking and feeds directly into complaint letters and reports.
+- [x] **Incident Journal**: Built-in log to document ISP issues over time — date, title, detailed description, screenshot uploads. Replaces spreadsheet-based tracking and feeds directly into complaint letters and reports.
 - [ ] **Ping Correlation**: Built-in latency monitor (ping to configurable targets) overlaid on error graphs to prove causality between physical layer issues and packet loss — replaces manual PingPlotter usage
 - [ ] **Before/After Comparison**: Side-by-side overlay of two time periods (e.g. week before vs. after technician visit) to quantify improvements
 - [ ] **FritzBox Event Log Parser**: Extract and display T3/T4 Timeout events, Ranging Request failures, and other DOCSIS error codes from the modem's event log
@@ -246,7 +246,7 @@ DOCSight can optionally publish all channel data to Home Assistant via MQTT Auto
 - [ ] **Smokeping Integration**: Import or display Smokeping latency data alongside DOCSIS metrics for end-to-end correlation
 
 ### Enhanced Dashboard
-- [ ] **Update Changelog Splash**: Show a "What's New" dialog on first login after a version update — highlights new features and changes so users stay informed without reading GitHub Releases
+- [x] **Update Changelog Splash**: Show a "What's New" dialog on first login after a version update — highlights new features and changes so users stay informed without reading GitHub Releases
 - [ ] Combined timeline: DOCSIS health + speed tests + BQM graph + ping data on a single time axis
 - [ ] Mobile-responsive layout
 - [ ] Segment load indicator: Visualize peak-hour degradation patterns (e.g. 20:00-23:00 slowdowns)
