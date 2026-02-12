@@ -51,12 +51,7 @@
         }
         .topbar-left, .topbar-right {
             display: flex; align-items: center; gap: 10px;
-        }
-        .date-nav-bar {
-            display: flex; justify-content: center; align-items: center;
-            padding: 5px 16px; background: var(--surface);
-            border-bottom: 1px solid var(--input-border);
-            position: sticky; top: 41px; z-index: 49;
+            position: relative; z-index: 1;
         }
         .hamburger-btn {
             background: none; border: none; color: var(--text);
@@ -64,7 +59,10 @@
             border-radius: 4px; line-height: 1;
         }
         .hamburger-btn:hover { color: var(--accent); }
-        .date-nav { display: flex; align-items: center; gap: 2px; }
+        .date-nav {
+            display: flex; align-items: center; gap: 2px;
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        }
         .date-nav button {
             background: none; border: 1px solid var(--input-border);
             color: var(--text); border-radius: 4px; cursor: pointer;
@@ -625,7 +623,6 @@
             .topbar { gap: 6px; padding: 8px 10px; }
             .topbar-title { display: none; }
             .topbar-meta { display: none; }
-            .date-nav-bar { top: 37px; }
             .metric-cards { grid-template-columns: 1fr; }
             .metric-row { flex-direction: column; gap: 10px; }
             table { font-size: 0.8em; }
@@ -708,6 +705,11 @@
         <button class="hamburger-btn" id="hamburger" title="Menu">&#9776;</button>
         <span class="topbar-title">DOCSight</span>
     </div>
+    <div class="date-nav" id="date-nav">
+        <button id="date-prev">&#8249;</button>
+        <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
+        <button id="date-next">&#8250;</button>
+    </div>
     <div class="topbar-right">
         <span class="topbar-meta" id="topbar-meta">
             {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
@@ -721,15 +723,6 @@
             {% endfor %}
         </select>
         <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
-    </div>
-</div>
-
-<!-- Date Navigation Bar -->
-<div class="date-nav-bar" id="date-nav-bar">
-    <div class="date-nav" id="date-nav">
-        <button id="date-prev">&#8249;</button>
-        <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
-        <button id="date-next">&#8250;</button>
     </div>
 </div>
 
@@ -1531,7 +1524,6 @@
         });
         var showDateNav = (view === 'live' || view === 'bqm');
         document.getElementById('date-nav').style.display = showDateNav ? 'flex' : 'none';
-        document.getElementById('date-nav-bar').style.display = showDateNav ? 'flex' : 'none';
         var dashView = document.getElementById('view-dashboard');
         var trendView = document.getElementById('view-trends');
         var bqmView = document.getElementById('view-bqm');
