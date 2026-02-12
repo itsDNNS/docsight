@@ -529,24 +529,13 @@
             font-size: 0.9em; font-family: inherit; font-weight: bold;
         }
         .btn-new-entry:hover { filter: brightness(1.15); }
-        .incident-list { display: flex; flex-direction: column; gap: 10px; }
-        .incident-card {
-            background: var(--surface); border-radius: 8px; padding: 16px;
-            border: 1px solid var(--input-border); cursor: pointer;
-            transition: border-color 0.15s, background 0.15s;
-        }
-        .incident-card:hover { border-color: var(--accent); background: var(--card); }
-        .incident-card-top {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 6px;
-        }
-        .incident-card-date { font-size: 0.82em; color: var(--muted); }
-        .incident-card-badge {
-            font-size: 0.78em; color: var(--muted); display: inline-flex;
-            align-items: center; gap: 3px;
-        }
-        .incident-card-title { font-weight: bold; font-size: 1em; margin-bottom: 4px; }
-        .incident-card-desc { font-size: 0.88em; color: var(--muted); line-height: 1.4; }
+        #journal-table { margin-bottom: 0; }
+        #journal-table th { cursor: pointer; user-select: none; white-space: nowrap; }
+        #journal-table th:hover { background: var(--surface-hover, rgba(255,255,255,0.05)); }
+        #journal-table tbody tr { cursor: pointer; transition: background 0.15s; }
+        #journal-table tbody tr:hover { background: rgba(255,255,255,0.06); }
+        #journal-table td.journal-desc { color: var(--muted); font-size: 0.88em; }
+        #journal-table td.journal-clip { color: var(--muted); font-size: 0.85em; text-align: center; }
         .journal-empty {
             text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
         }
@@ -632,6 +621,7 @@
             th, td { padding: 4px 6px; }
             .calendar-popup { left: 10px; right: 10px; min-width: auto; }
             .chart-zoom-modal { width: 95vw; height: 85vh; padding: 12px; }
+            .journal-hide-mobile { display: none; }
         }
     </style>
 </head>
@@ -1119,7 +1109,15 @@
         <div class="spinner"></div>
     </div>
     <div id="journal-empty" class="journal-empty" style="display:none;"></div>
-    <div id="journal-list" class="incident-list"></div>
+    <table id="journal-table" style="display:none;">
+        <thead><tr>
+            <th data-col="date">{{ t.incident_date }}<span class="sort-indicator"></span></th>
+            <th data-col="title">{{ t.incident_title }}<span class="sort-indicator"></span></th>
+            <th data-col="description" class="journal-hide-mobile">{{ t.incident_description }}<span class="sort-indicator"></span></th>
+            <th>&#128206;</th>
+        </tr></thead>
+        <tbody id="journal-tbody"></tbody>
+    </table>
 </div>
 
 <!-- ═══ Incident Modal ═══ -->
@@ -2126,13 +2124,17 @@
 
     /* ── Incident Journal ── */
     var _incidentsLoaded = false;
+    var _journalSortCol = 'date';
+    var _journalSortAsc = false;
 
     function loadIncidents() {
-        var list = document.getElementById('journal-list');
+        var table = document.getElementById('journal-table');
+        var tbody = document.getElementById('journal-tbody');
         var empty = document.getElementById('journal-empty');
         var loading = document.getElementById('journal-loading');
         loading.style.display = '';
-        list.innerHTML = '';
+        tbody.innerHTML = '';
+        table.style.display = 'none';
         empty.style.display = 'none';
         fetch('/api/incidents')
             .then(function(r) { return r.json(); })
@@ -2144,26 +2146,7 @@
                     return;
                 }
                 _incidentsLoaded = true;
-                data.forEach(function(inc) {
-                    var card = document.createElement('div');
-                    card.className = 'incident-card';
-                    card.setAttribute('data-id', inc.id);
-                    card.onclick = function() { openIncidentModal(inc.id); };
-                    var desc = inc.description || '';
-                    if (desc.length > 150) desc = desc.substring(0, 150) + '...';
-                    var badge = '';
-                    if (inc.attachment_count > 0) {
-                        badge = '<span class="incident-card-badge">&#128206; ' + inc.attachment_count + '</span>';
-                    }
-                    card.innerHTML =
-                        '<div class="incident-card-top">' +
-                            '<span class="incident-card-date">' + formatDateDE(inc.date) + '</span>' +
-                            badge +
-                        '</div>' +
-                        '<div class="incident-card-title">' + escapeHtml(inc.title) + '</div>' +
-                        (desc ? '<div class="incident-card-desc">' + escapeHtml(desc) + '</div>' : '');
-                    list.appendChild(card);
-                });
+                renderJournalTable(data);
             })
             .catch(function() {
                 loading.style.display = 'none';
@@ -2171,6 +2154,63 @@
                 empty.style.display = '';
             });
     }
+
+    function renderJournalTable(data) {
+        var table = document.getElementById('journal-table');
+        var tbody = document.getElementById('journal-tbody');
+        data.sort(function(a, b) {
+            var va, vb;
+            if (_journalSortCol === 'date') { va = a.date || ''; vb = b.date || ''; }
+            else if (_journalSortCol === 'title') { va = (a.title || '').toLowerCase(); vb = (b.title || '').toLowerCase(); }
+            else { va = (a.description || '').toLowerCase(); vb = (b.description || '').toLowerCase(); }
+            if (va < vb) return _journalSortAsc ? -1 : 1;
+            if (va > vb) return _journalSortAsc ? 1 : -1;
+            return 0;
+        });
+        tbody.innerHTML = '';
+        data.forEach(function(inc) {
+            var tr = document.createElement('tr');
+            tr.setAttribute('data-id', inc.id);
+            tr.onclick = function() { openIncidentModal(inc.id); };
+            var desc = inc.description || '';
+            if (desc.length > 80) desc = desc.substring(0, 80) + '…';
+            var clipCell = inc.attachment_count > 0 ? '&#128206; ' + inc.attachment_count : '';
+            tr.innerHTML =
+                '<td>' + formatDateDE(inc.date) + '</td>' +
+                '<td>' + escapeHtml(inc.title) + '</td>' +
+                '<td class="journal-desc journal-hide-mobile">' + escapeHtml(desc) + '</td>' +
+                '<td class="journal-clip">' + clipCell + '</td>';
+            tbody.appendChild(tr);
+        });
+        // Update sort indicators in header
+        var ths = table.querySelectorAll('thead th[data-col]');
+        for (var i = 0; i < ths.length; i++) {
+            ths[i].className = ths[i].getAttribute('data-col') === _journalSortCol ? (_journalSortAsc ? 'sort-asc' : 'sort-desc') : '';
+            // Preserve journal-hide-mobile on description column
+            if (ths[i].getAttribute('data-col') === 'description') {
+                ths[i].className = (ths[i].className ? ths[i].className + ' ' : '') + 'journal-hide-mobile';
+            }
+        }
+        table.style.display = '';
+    }
+
+    (function() {
+        var table = document.getElementById('journal-table');
+        if (table) {
+            table.addEventListener('click', function(e) {
+                var th = e.target.closest ? e.target.closest('th[data-col]') : null;
+                if (!th) return;
+                var col = th.getAttribute('data-col');
+                if (col === _journalSortCol) {
+                    _journalSortAsc = !_journalSortAsc;
+                } else {
+                    _journalSortCol = col;
+                    _journalSortAsc = col === 'date' ? false : true;
+                }
+                loadIncidents();
+            });
+        }
+    })();
 
     function openIncidentModal(incidentId) {
         var modal = document.getElementById('incident-modal');
@@ -2264,10 +2304,16 @@
                     showToast(res.data.error || 'Error', 'error');
                     return;
                 }
-                closeIncidentModal();
                 loadIncidents();
                 if (!incidentId && res.data.id) {
-                    openIncidentModal(res.data.id);
+                    // New entry: switch modal to edit mode in-place (keep it open)
+                    idEl.value = res.data.id;
+                    document.getElementById('incident-modal-title').textContent = T.edit_entry || 'Edit Entry';
+                    document.getElementById('incident-delete-btn').style.display = '';
+                    document.getElementById('incident-attachments-section').style.display = '';
+                    showToast(T.saved || 'Saved', 'ok');
+                } else {
+                    closeIncidentModal();
                 }
             })
             .catch(function() { showToast(T.network_error || 'Error', 'error'); });
