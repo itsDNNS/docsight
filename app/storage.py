@@ -82,6 +82,74 @@ class SnapshotStorage:
                     FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
                 )
             """)
+            # ── Watchdog events ──
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS watchdog_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    channel_id INTEGER,
+                    direction TEXT,
+                    message TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    details_json TEXT
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_watchdog_ts
+                ON watchdog_events(timestamp)
+            """)
+            # ── Ping results ──
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS ping_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    avg_ms REAL,
+                    min_ms REAL,
+                    max_ms REAL,
+                    jitter_ms REAL,
+                    loss_pct REAL,
+                    count INTEGER
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_ping_ts
+                ON ping_results(timestamp)
+            """)
+            # ── Smokeping data cache ──
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS smokeping_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    median_ms REAL,
+                    avg_ms REAL,
+                    min_ms REAL,
+                    max_ms REAL,
+                    loss_pct REAL,
+                    UNIQUE(timestamp, target)
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_smokeping_ts
+                ON smokeping_data(timestamp)
+            """)
+            # ── FritzBox event log cache ──
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS event_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    category TEXT,
+                    docsis_code TEXT,
+                    fetched_at TEXT NOT NULL
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_eventlog_ts
+                ON event_log(timestamp)
+            """)
 
     def save_snapshot(self, analysis):
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
@@ -420,3 +488,214 @@ class SnapshotStorage:
             ).rowcount
         if bqm_deleted:
             log.info("Cleaned up %d old BQM graphs (before %s)", bqm_deleted, cutoff_date)
+        # Cleanup watchdog events, ping results, smokeping data, event log
+        with sqlite3.connect(self.db_path) as conn:
+            for table in ("watchdog_events", "ping_results", "smokeping_data", "event_log"):
+                ts_col = "fetched_at" if table == "event_log" else "timestamp"
+                conn.execute(f"DELETE FROM {table} WHERE {ts_col} < ?", (cutoff,))
+
+    # ── Watchdog Events ──
+
+    def save_watchdog_event(self, event: dict):
+        """Save a watchdog event."""
+        try:
+            details = event.get("details")
+            details_json = json.dumps(details) if details else None
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT INTO watchdog_events "
+                    "(timestamp, event_type, channel_id, direction, message, severity, details_json) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        event["timestamp"], event["event_type"],
+                        event.get("channel_id"), event.get("direction"),
+                        event["message"], event["severity"], details_json,
+                    ),
+                )
+        except Exception as e:
+            log.error("Failed to save watchdog event: %s", e)
+
+    def get_watchdog_events(self, hours: int = 24, limit: int = 100) -> list[dict]:
+        """Return recent watchdog events."""
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, timestamp, event_type, channel_id, direction, message, severity, details_json "
+                "FROM watchdog_events WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?",
+                (cutoff, limit),
+            ).fetchall()
+        results = []
+        for r in rows:
+            d = dict(r)
+            d["details"] = json.loads(d.pop("details_json")) if d.get("details_json") else {}
+            results.append(d)
+        return results
+
+    def get_watchdog_event_counts(self, hours: int = 24) -> dict:
+        """Return counts of watchdog events by type."""
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT event_type, COUNT(*) as cnt FROM watchdog_events "
+                "WHERE timestamp >= ? GROUP BY event_type",
+                (cutoff,),
+            ).fetchall()
+        return {r[0]: r[1] for r in rows}
+
+    # ── Ping Results ──
+
+    def save_ping_result(self, result: dict):
+        """Save a ping measurement result."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "INSERT INTO ping_results "
+                    "(timestamp, target, avg_ms, min_ms, max_ms, jitter_ms, loss_pct, count) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        result["timestamp"], result["target"],
+                        result.get("avg_ms"), result.get("min_ms"),
+                        result.get("max_ms"), result.get("jitter_ms"),
+                        result.get("loss_pct"), result.get("count"),
+                    ),
+                )
+        except Exception as e:
+            log.error("Failed to save ping result: %s", e)
+
+    def get_ping_results(self, hours: int = 24, target: str | None = None,
+                         limit: int = 1000) -> list[dict]:
+        """Return ping results for the last N hours."""
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            if target:
+                rows = conn.execute(
+                    "SELECT timestamp, target, avg_ms, min_ms, max_ms, jitter_ms, loss_pct "
+                    "FROM ping_results WHERE timestamp >= ? AND target = ? "
+                    "ORDER BY timestamp DESC LIMIT ?",
+                    (cutoff, target, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT timestamp, target, avg_ms, min_ms, max_ms, jitter_ms, loss_pct "
+                    "FROM ping_results WHERE timestamp >= ? "
+                    "ORDER BY timestamp DESC LIMIT ?",
+                    (cutoff, limit),
+                ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_ping_stats(self, hours: int = 24) -> dict:
+        """Return aggregated ping statistics."""
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT AVG(avg_ms), AVG(jitter_ms), AVG(loss_pct), COUNT(*), "
+                "MIN(min_ms), MAX(max_ms) "
+                "FROM ping_results WHERE timestamp >= ?",
+                (cutoff,),
+            ).fetchone()
+        if not row or row[3] == 0:
+            return {}
+        return {
+            "avg_ms": round(row[0], 1) if row[0] else 0,
+            "jitter_ms": round(row[1], 1) if row[1] else 0,
+            "loss_pct": round(row[2], 1) if row[2] else 0,
+            "count": row[3],
+            "min_ms": round(row[4], 1) if row[4] else 0,
+            "max_ms": round(row[5], 1) if row[5] else 0,
+        }
+
+    # ── Smokeping Data ──
+
+    def save_smokeping_data(self, data_points: list[dict], target: str = ""):
+        """Save smokeping data points, ignoring duplicates by timestamp+target."""
+        if not data_points:
+            return
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                for dp in data_points:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO smokeping_data "
+                        "(timestamp, target, median_ms, avg_ms, min_ms, max_ms, loss_pct) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            dp["timestamp"], target,
+                            dp.get("median_ms"), dp.get("avg_ms"),
+                            dp.get("min_ms"), dp.get("max_ms"),
+                            dp.get("loss_pct"),
+                        ),
+                    )
+        except Exception as e:
+            log.error("Failed to save smokeping data: %s", e)
+
+    def get_smokeping_data(self, hours: int = 24) -> list[dict]:
+        """Return smokeping data for the last N hours."""
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT timestamp, target, median_ms, avg_ms, min_ms, max_ms, loss_pct "
+                "FROM smokeping_data WHERE timestamp >= ? ORDER BY timestamp",
+                (cutoff,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    # ── FritzBox Event Log ──
+
+    def save_event_log(self, events: list[dict]):
+        """Save FritzBox event log entries."""
+        if not events:
+            return
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                for evt in events:
+                    # Deduplicate by timestamp + message
+                    existing = conn.execute(
+                        "SELECT id FROM event_log WHERE timestamp = ? AND message = ?",
+                        (evt["timestamp"], evt["message"]),
+                    ).fetchone()
+                    if not existing:
+                        conn.execute(
+                            "INSERT INTO event_log "
+                            "(timestamp, message, category, docsis_code, fetched_at) "
+                            "VALUES (?, ?, ?, ?, ?)",
+                            (
+                                evt["timestamp"], evt["message"],
+                                evt.get("category"), evt.get("docsis_code"), now,
+                            ),
+                        )
+        except Exception as e:
+            log.error("Failed to save event log: %s", e)
+
+    def get_event_log(self, hours: int = 168, limit: int = 200) -> list[dict]:
+        """Return event log entries for the last N hours (default 7 days)."""
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, timestamp, message, category, docsis_code "
+                "FROM event_log WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?",
+                (cutoff, limit),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_event_log_counts(self, hours: int = 168) -> dict:
+        """Return counts of event log entries by category and docsis_code."""
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            cat_rows = conn.execute(
+                "SELECT category, COUNT(*) FROM event_log WHERE timestamp >= ? GROUP BY category",
+                (cutoff,),
+            ).fetchall()
+            code_rows = conn.execute(
+                "SELECT docsis_code, COUNT(*) FROM event_log "
+                "WHERE timestamp >= ? AND docsis_code IS NOT NULL GROUP BY docsis_code",
+                (cutoff,),
+            ).fetchall()
+        return {
+            "by_category": {r[0]: r[1] for r in cat_rows if r[0]},
+            "by_docsis_code": {r[0]: r[1] for r in code_rows if r[0]},
+            "total": sum(r[1] for r in cat_rows),
+        }

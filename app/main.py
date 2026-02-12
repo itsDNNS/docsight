@@ -1,4 +1,5 @@
-"""Main entrypoint: MQTT loop + Flask web server + FritzBox polling."""
+"""Main entrypoint: MQTT loop + Flask web server + FritzBox polling +
+watchdog + notifications + ping monitor + smokeping + event log."""
 
 import logging
 import os
@@ -10,6 +11,9 @@ from .speedtest import SpeedtestClient
 from .config import ConfigManager
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
+from .notifier import Notifier, build_health_notification, build_digest
+from .watchdog import Watchdog
+from .ping_monitor import PingMonitor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,6 +56,39 @@ def polling_loop(config_mgr, storage, stop_event):
     else:
         log.info("MQTT not configured, running without Home Assistant integration")
 
+    # Initialize notifier (optional)
+    notifier = None
+    if config_mgr.is_notifications_configured():
+        notifier = Notifier(config_mgr)
+        log.info("Notifications enabled")
+
+    # Initialize watchdog
+    watchdog = Watchdog(storage=storage, notifier=notifier)
+    log.info("Watchdog enabled (modulation, drift, channel count)")
+
+    # Initialize ping monitor (optional)
+    ping_monitor = None
+    if config_mgr.is_ping_configured():
+        targets = [t.strip() for t in config.get("ping_targets", "8.8.8.8,1.1.1.1").split(",") if t.strip()]
+        ping_monitor = PingMonitor(
+            storage=storage,
+            targets=targets,
+            interval=int(config.get("ping_interval", 60)),
+            count=int(config.get("ping_count", 5)),
+        )
+        ping_monitor.start()
+        log.info("Ping monitor started (targets: %s)", targets)
+
+    # Initialize smokeping client (optional)
+    smokeping_client = None
+    if config_mgr.is_smokeping_configured():
+        from .smokeping import SmokepingClient
+        smokeping_client = SmokepingClient(
+            config.get("smokeping_url", ""),
+            config.get("smokeping_target", ""),
+        )
+        log.info("Smokeping integration enabled: %s", config.get("smokeping_url"))
+
     web.update_state(poll_interval=config["poll_interval"])
 
     sid = None
@@ -59,6 +96,12 @@ def polling_loop(config_mgr, storage, stop_event):
     connection_info = None
     discovery_published = False
     bqm_last_date = None
+    prev_health = None
+    adaptive_polling = config.get("adaptive_polling") == "true"
+    current_poll_interval = int(config["poll_interval"])
+
+    # Digest scheduling
+    digest_last_date = None
 
     # Speedtest Tracker (optional, re-initialized on config change)
     stt_client = None
@@ -86,6 +129,9 @@ def polling_loop(config_mgr, storage, stop_event):
             data = fritzbox.get_docsis_data(config["modem_url"], sid)
             analysis = analyzer.analyze(data)
 
+            # Cache raw data for OFDMA analysis
+            web.update_ofdma_data(data)
+
             if mqtt_pub:
                 if not discovery_published:
                     mqtt_pub.publish_discovery(device_info)
@@ -99,6 +145,48 @@ def polling_loop(config_mgr, storage, stop_event):
             web.update_state(analysis=analysis)
             storage.save_snapshot(analysis)
 
+            # --- Watchdog checks ---
+            events = watchdog.check(analysis)
+            if events:
+                log.info("Watchdog: %d events detected", len(events))
+
+            # --- Health change notification ---
+            if notifier:
+                current_health = analysis["summary"].get("health", "good")
+                if prev_health and current_health != prev_health:
+                    notification = build_health_notification(analysis, prev_health)
+                    if notification:
+                        title, message, level = notification
+                        notifier.send(title, message, level, dedup_key=f"health_{current_health}")
+                prev_health = current_health
+
+            # --- Ingress score (publish via MQTT if available) ---
+            ingress = watchdog.compute_ingress_score(analysis)
+            if mqtt_pub:
+                import json as _json
+                mqtt_pub.client.publish(
+                    f"{config['mqtt_topic_prefix']}/ingress_score",
+                    _json.dumps(ingress), retain=True,
+                )
+
+            # --- Adaptive polling ---
+            if adaptive_polling:
+                new_interval = watchdog.get_adaptive_poll_interval(
+                    analysis, int(config["poll_interval"])
+                )
+                if new_interval != current_poll_interval:
+                    log.info("Adaptive polling: %ds → %ds", current_poll_interval, new_interval)
+                    current_poll_interval = new_interval
+
+            # --- FritzBox event log ---
+            if config_mgr.is_event_log_configured():
+                try:
+                    event_log = fritzbox.get_event_log(config["modem_url"], sid)
+                    if event_log:
+                        storage.save_event_log(event_log)
+                except Exception as e:
+                    log.warning("Event log fetch failed: %s", e)
+
             # Fetch BQM graph once per day
             if config_mgr.is_bqm_configured():
                 today = time.strftime("%Y-%m-%d")
@@ -107,6 +195,15 @@ def polling_loop(config_mgr, storage, stop_event):
                     if image:
                         storage.save_bqm_graph(image)
                         bqm_last_date = today
+
+            # --- Smokeping data fetch ---
+            if smokeping_client:
+                try:
+                    sp_data = smokeping_client.fetch_data("end-2h")
+                    if sp_data:
+                        storage.save_smokeping_data(sp_data, config.get("smokeping_target", ""))
+                except Exception as e:
+                    log.warning("Smokeping fetch failed: %s", e)
 
             # Re-initialize Speedtest client if URL changed
             current_stt_url = config_mgr.get("speedtest_tracker_url") if config_mgr.is_speedtest_configured() else ""
@@ -138,22 +235,51 @@ def polling_loop(config_mgr, storage, stop_event):
                 except Exception as e:
                     log.warning("Speedtest delta cache failed: %s", e)
 
+            # --- Scheduled health digest ---
+            if config_mgr.is_digest_configured() and notifier:
+                today = time.strftime("%Y-%m-%d")
+                current_time = time.strftime("%H:%M")
+                digest_time = config.get("digest_time", "08:00")
+                digest_schedule = config.get("digest_schedule", "daily")
+
+                should_send = False
+                if digest_schedule == "daily" and today != digest_last_date and current_time >= digest_time:
+                    should_send = True
+                elif digest_schedule == "weekly":
+                    # Send on Mondays
+                    import datetime as _dt
+                    if _dt.datetime.now().weekday() == 0 and today != digest_last_date and current_time >= digest_time:
+                        should_send = True
+
+                if should_send:
+                    try:
+                        watchdog_events = storage.get_watchdog_events(hours=24)
+                        ping_stats = storage.get_ping_stats(hours=24) if ping_monitor else None
+                        subject, body = build_digest(analysis, watchdog_events, ping_stats)
+                        notifier.send_digest(subject, body)
+                        digest_last_date = today
+                        log.info("Health digest sent")
+                    except Exception as e:
+                        log.warning("Failed to send health digest: %s", e)
+
         except Exception as e:
             log.error("Poll error: %s", e)
             web.update_state(error=e)
 
         # Wait for poll_interval, but check stop_event every second
-        for _ in range(int(config["poll_interval"])):
+        for _ in range(current_poll_interval):
             if stop_event.is_set():
                 break
             time.sleep(1)
 
-    # Cleanup MQTT
+    # Cleanup
     if mqtt_pub:
         try:
             mqtt_pub.disconnect()
         except Exception:
             pass
+    if ping_monitor:
+        ping_monitor.stop()
     log.info("Polling loop stopped")
 
 

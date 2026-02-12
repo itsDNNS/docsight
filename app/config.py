@@ -13,7 +13,12 @@ log = logging.getLogger("docsis.config")
 POLL_MIN = 60
 POLL_MAX = 14400
 
-SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token"}
+SECRET_KEYS = {
+    "modem_password", "mqtt_password", "speedtest_tracker_token",
+    "notify_telegram_token", "notify_discord_webhook_url",
+    "notify_email_smtp_password", "notify_gotify_token", "notify_ntfy_token",
+    "notify_webhook_url",
+}
 HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
@@ -37,6 +42,42 @@ DEFAULTS = {
     "bqm_url": "",
     "speedtest_tracker_url": "",
     "speedtest_tracker_token": "",
+    # Notifications
+    "notify_webhook_url": "",
+    "notify_telegram_token": "",
+    "notify_telegram_chat_id": "",
+    "notify_discord_webhook_url": "",
+    "notify_email_smtp_host": "",
+    "notify_email_smtp_port": 587,
+    "notify_email_smtp_user": "",
+    "notify_email_smtp_password": "",
+    "notify_email_from": "",
+    "notify_email_to": "",
+    "notify_email_tls": "true",
+    "notify_gotify_url": "",
+    "notify_gotify_token": "",
+    "notify_ntfy_url": "",
+    "notify_ntfy_token": "",
+    "notify_on_health_change": "true",
+    "notify_on_modulation_drop": "true",
+    "notify_on_channel_count_drop": "true",
+    "notify_on_power_drift": "true",
+    # Ping Monitor
+    "ping_enabled": "false",
+    "ping_targets": "8.8.8.8,1.1.1.1",
+    "ping_interval": 60,
+    "ping_count": 5,
+    # Adaptive Polling
+    "adaptive_polling": "true",
+    # Smokeping
+    "smokeping_url": "",
+    "smokeping_target": "",
+    # Scheduled Digest
+    "digest_enabled": "false",
+    "digest_schedule": "daily",
+    "digest_time": "08:00",
+    # Event Log
+    "event_log_enabled": "true",
 }
 
 ENV_MAP = {
@@ -72,7 +113,8 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days"}
+INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days",
+            "notify_email_smtp_port", "ping_interval", "ping_count"}
 
 
 class ConfigManager:
@@ -241,6 +283,33 @@ class ConfigManager:
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set (optional)."""
         return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token"))
+
+    def is_notifications_configured(self):
+        """True if at least one notification channel is configured."""
+        return any([
+            self.get("notify_webhook_url"),
+            self.get("notify_telegram_token") and self.get("notify_telegram_chat_id"),
+            self.get("notify_discord_webhook_url"),
+            self.get("notify_email_smtp_host"),
+            self.get("notify_gotify_url"),
+            self.get("notify_ntfy_url"),
+        ])
+
+    def is_ping_configured(self):
+        """True if ping monitoring is enabled."""
+        return self.get("ping_enabled") == "true"
+
+    def is_smokeping_configured(self):
+        """True if smokeping_url is set."""
+        return bool(self.get("smokeping_url"))
+
+    def is_digest_configured(self):
+        """True if scheduled digest is enabled."""
+        return self.get("digest_enabled") == "true"
+
+    def is_event_log_configured(self):
+        """True if event log fetching is enabled."""
+        return self.get("event_log_enabled") == "true"
 
     def get_theme(self):
         """Return 'dark' or 'light'."""

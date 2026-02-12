@@ -788,6 +788,260 @@ def add_security_headers(response):
     return response
 
 
+# ── Watchdog API ──
+
+@app.route("/api/watchdog/events")
+@require_auth
+def api_watchdog_events():
+    """Return recent watchdog events."""
+    if not _storage:
+        return jsonify([])
+    hours = request.args.get("hours", 24, type=int)
+    hours = max(1, min(hours, 720))
+    return jsonify(_storage.get_watchdog_events(hours=hours))
+
+
+@app.route("/api/watchdog/counts")
+@require_auth
+def api_watchdog_counts():
+    """Return watchdog event counts by type."""
+    if not _storage:
+        return jsonify({})
+    hours = request.args.get("hours", 24, type=int)
+    return jsonify(_storage.get_watchdog_event_counts(hours=hours))
+
+
+@app.route("/api/watchdog/ingress")
+@require_auth
+def api_watchdog_ingress():
+    """Return current ingress/return path score."""
+    analysis = _state.get("analysis")
+    if not analysis:
+        return jsonify({"error": "No data available"}), 404
+    from .watchdog import Watchdog
+    wd = Watchdog()
+    return jsonify(wd.compute_ingress_score(analysis))
+
+
+# ── Ping Monitor API ──
+
+@app.route("/api/ping/results")
+@require_auth
+def api_ping_results():
+    """Return ping results for the last N hours."""
+    if not _storage:
+        return jsonify([])
+    hours = request.args.get("hours", 24, type=int)
+    target = request.args.get("target")
+    return jsonify(_storage.get_ping_results(hours=hours, target=target))
+
+
+@app.route("/api/ping/stats")
+@require_auth
+def api_ping_stats():
+    """Return aggregated ping statistics."""
+    if not _storage:
+        return jsonify({})
+    hours = request.args.get("hours", 24, type=int)
+    return jsonify(_storage.get_ping_stats(hours=hours))
+
+
+@app.route("/api/ping/gaming-index")
+@require_auth
+def api_gaming_index():
+    """Return gaming/real-time quality index."""
+    from .ping_monitor import PingMonitor
+    pm = PingMonitor(storage=_storage)
+    hours = request.args.get("hours", 1, type=int)
+    return jsonify(pm.compute_gaming_index(hours=hours))
+
+
+# ── Channel Heatmap API ──
+
+@app.route("/api/heatmap")
+@require_auth
+def api_heatmap():
+    """Return channel heatmap data for the current analysis."""
+    from .analyzer import build_channel_heatmap
+    analysis = _state.get("analysis")
+    if not analysis:
+        return jsonify({"error": "No data available"}), 404
+    return jsonify(build_channel_heatmap(analysis))
+
+
+# ── OFDMA Analysis API ──
+
+_ofdma_cache = {"data": None}  # cache raw DOCSIS data for OFDMA analysis
+
+
+def update_ofdma_data(data):
+    """Cache raw DOCSIS data for OFDMA analysis (called from main loop)."""
+    _ofdma_cache["data"] = data
+
+
+@app.route("/api/ofdma")
+@require_auth
+def api_ofdma():
+    """Return OFDMA analysis."""
+    from .analyzer import analyze_ofdma
+    data = _ofdma_cache.get("data")
+    if not data:
+        return jsonify({"error": "No DOCSIS data available"}), 404
+    return jsonify(analyze_ofdma(data))
+
+
+# ── Before/After Comparison API ──
+
+@app.route("/api/compare")
+@require_auth
+def api_compare():
+    """Compare two time periods.
+    ?before_start=YYYY-MM-DD&before_end=YYYY-MM-DD&after_start=YYYY-MM-DD&after_end=YYYY-MM-DD
+    """
+    from .analyzer import compare_periods
+    if not _storage:
+        return jsonify({"error": "No storage"}), 500
+
+    before_start = request.args.get("before_start")
+    before_end = request.args.get("before_end")
+    after_start = request.args.get("after_start")
+    after_end = request.args.get("after_end")
+
+    if not all([before_start, before_end, after_start, after_end]):
+        return jsonify({"error": "Missing date parameters"}), 400
+
+    for d in [before_start, before_end, after_start, after_end]:
+        if not _DATE_RE.match(d):
+            return jsonify({"error": f"Invalid date format: {d}"}), 400
+
+    before_snapshots = _storage.get_range_data(
+        f"{before_start}T00:00:00", f"{before_end}T23:59:59"
+    )
+    after_snapshots = _storage.get_range_data(
+        f"{after_start}T00:00:00", f"{after_end}T23:59:59"
+    )
+
+    return jsonify(compare_periods(before_snapshots, after_snapshots))
+
+
+# ── FritzBox Event Log API ──
+
+@app.route("/api/eventlog")
+@require_auth
+def api_eventlog():
+    """Return DOCSIS-related event log entries."""
+    if not _storage:
+        return jsonify([])
+    hours = request.args.get("hours", 168, type=int)  # default 7 days
+    return jsonify(_storage.get_event_log(hours=hours))
+
+
+@app.route("/api/eventlog/counts")
+@require_auth
+def api_eventlog_counts():
+    """Return event log counts by category/code."""
+    if not _storage:
+        return jsonify({})
+    hours = request.args.get("hours", 168, type=int)
+    return jsonify(_storage.get_event_log_counts(hours=hours))
+
+
+@app.route("/api/eventlog/fetch", methods=["POST"])
+@require_auth
+def api_eventlog_fetch():
+    """Manually trigger event log fetch from FritzBox."""
+    if not _config_manager:
+        return jsonify({"error": "Not configured"}), 500
+    try:
+        from . import fritzbox
+        config = _config_manager.get_all()
+        sid = fritzbox.login(
+            config["modem_url"], config["modem_user"], config["modem_password"],
+        )
+        events = fritzbox.get_event_log(config["modem_url"], sid)
+        if _storage and events:
+            _storage.save_event_log(events)
+        return jsonify({"success": True, "count": len(events), "events": events[:20]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── Smokeping API ──
+
+@app.route("/api/smokeping/data")
+@require_auth
+def api_smokeping_data():
+    """Return cached smokeping data."""
+    if not _storage:
+        return jsonify([])
+    hours = request.args.get("hours", 24, type=int)
+    return jsonify(_storage.get_smokeping_data(hours=hours))
+
+
+@app.route("/api/smokeping/test", methods=["POST"])
+@require_auth
+def api_smokeping_test():
+    """Test smokeping connection."""
+    try:
+        from .smokeping import SmokepingClient
+        data = request.get_json() or {}
+        url = data.get("smokeping_url", "")
+        if not url:
+            return jsonify({"success": False, "error": "No URL provided"})
+        client = SmokepingClient(url)
+        ok = client.health_check()
+        return jsonify({"success": ok})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+# ── Notification Test API ──
+
+@app.route("/api/notifications/test", methods=["POST"])
+@require_auth
+def api_notifications_test():
+    """Send a test notification to all configured channels."""
+    if not _config_manager:
+        return jsonify({"error": "Not configured"}), 500
+    try:
+        from .notifier import Notifier
+        notifier = Notifier(_config_manager)
+        if not notifier.is_configured():
+            return jsonify({"success": False, "error": "No notification channels configured"})
+        notifier.send(
+            title="DOCSight Test Notification",
+            message="This is a test notification from DOCSight. If you see this, notifications are working!",
+            level="info",
+        )
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+# ── Plain-Language Explanations API ──
+
+@app.route("/api/explain/<metric>")
+@require_auth
+def api_explain(metric):
+    """Return a plain-language explanation for a technical metric."""
+    lang = _get_lang()
+    t = get_translations(lang)
+    explanations = {
+        "ds_power": t.get("explain_ds_power", "Downstream power shows how strong the signal from your ISP reaches your modem. Values should be close to 0 dBmV. High or low values indicate cable or amplifier problems."),
+        "us_power": t.get("explain_us_power", "Upstream power shows how hard your modem works to send data back. High values (>50 dBmV) mean the signal has to travel too far or passes through damaged cable."),
+        "snr": t.get("explain_snr", "Signal-to-Noise Ratio measures signal clarity. Think of it like trying to hear someone in a noisy room — the higher the SNR, the clearer the signal. Below 30 dB means noise is interfering."),
+        "correctable_errors": t.get("explain_correctable", "Correctable errors are data transmission errors that the modem could fix automatically. Some are normal, but rapid growth indicates cable quality issues."),
+        "uncorrectable_errors": t.get("explain_uncorrectable", "Uncorrectable errors are data packets too damaged to repair. These cause actual data loss — slow loading, video buffering, or dropped connections."),
+        "modulation": t.get("explain_modulation", "Modulation (like 256QAM) defines how much data fits in each signal pulse. Higher values = faster speed. If modulation drops (e.g. 256QAM → 16QAM), it means the line quality degraded."),
+        "ingress": t.get("explain_ingress", "The ingress score measures interference entering your cable from outside sources (other cables, electrical devices). Low scores indicate return path interference that can cause upload issues."),
+        "gaming_index": t.get("explain_gaming_index", "The gaming index rates your connection for real-time applications. It considers latency (response time), jitter (consistency), and packet loss. Grade A = excellent, F = poor."),
+        "ofdma": t.get("explain_ofdma", "OFDMA (Orthogonal Frequency Division Multiple Access) is a DOCSIS 3.1 technology that uses wider frequency blocks for higher throughput. If available, it means your modem supports the latest standard."),
+        "channel_count": t.get("explain_channel_count", "The number of active channels affects your maximum speed. More channels = more bandwidth. If channels drop suddenly, it may indicate a hardware or signal problem."),
+    }
+    text = explanations.get(metric, f"No explanation available for '{metric}'.")
+    return jsonify({"metric": metric, "explanation": text})
+
+
 @app.route("/api/report")
 @require_auth
 def api_report():
