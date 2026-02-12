@@ -8,6 +8,7 @@ import time
 from . import fritzbox, analyzer, web, thinkbroadband
 from .speedtest import SpeedtestClient
 from .config import ConfigManager
+from .event_detector import EventDetector
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
 
@@ -54,6 +55,8 @@ def polling_loop(config_mgr, storage, stop_event):
 
     web.update_state(poll_interval=config["poll_interval"])
 
+    event_detector = EventDetector()
+
     sid = None
     device_info = None
     connection_info = None
@@ -98,6 +101,12 @@ def polling_loop(config_mgr, storage, stop_event):
 
             web.update_state(analysis=analysis)
             storage.save_snapshot(analysis)
+
+            # Detect events
+            events = event_detector.check(analysis)
+            if events:
+                storage.save_events(events)
+                log.info("Detected %d event(s)", len(events))
 
             # Fetch BQM graph once per day
             if config_mgr.is_bqm_configured():
