@@ -14,6 +14,10 @@
       {
         "icon": "⚡",
         "text": "DOCSIS 3.1 upstream: Fritz!Box 6 dB offset correctly applied"
+      },
+      {
+        "icon": "🐛",
+        "text": "Fix: Crash when saving empty config values (e.g. MQTT port)"
       }
     ]
   },
