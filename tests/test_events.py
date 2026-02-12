@@ -208,15 +208,15 @@ class TestEventDetector:
         assert len(power_events) == 0
 
     def test_snr_drop_warning(self, detector):
-        detector.check(_make_analysis(ds_snr_min=32.0))
-        events = detector.check(_make_analysis(ds_snr_min=28.0))
+        detector.check(_make_analysis(ds_snr_min=35.0))
+        events = detector.check(_make_analysis(ds_snr_min=31.0))
         snr_events = [e for e in events if e["event_type"] == "snr_change"]
         assert len(snr_events) == 1
         assert snr_events[0]["severity"] == "warning"
 
     def test_snr_drop_critical(self, detector):
-        detector.check(_make_analysis(ds_snr_min=28.0))
-        events = detector.check(_make_analysis(ds_snr_min=23.0))
+        detector.check(_make_analysis(ds_snr_min=31.0))
+        events = detector.check(_make_analysis(ds_snr_min=27.0))
         snr_events = [e for e in events if e["event_type"] == "snr_change"]
         assert len(snr_events) == 1
         assert snr_events[0]["severity"] == "critical"
