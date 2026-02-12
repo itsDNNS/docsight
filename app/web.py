@@ -980,4 +980,4 @@ def health():
     """Simple health check endpoint."""
     if _state["analysis"]:
         return {"status": "ok", "docsis_health": _state["analysis"]["summary"]["health"]}
-    return {"status": "waiting"}, 503
+    return {"status": "ok", "docsis_health": "waiting"}

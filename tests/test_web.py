@@ -100,7 +100,8 @@ class TestHealthEndpoint:
         from app.web import _state
         _state["analysis"] = None
         resp = client.get("/health")
-        assert resp.status_code == 503
+        assert resp.status_code == 200
+        assert resp.get_json()["docsis_health"] == "waiting"
 
     def test_health_ok(self, client, sample_analysis):
         update_state(analysis=sample_analysis)
