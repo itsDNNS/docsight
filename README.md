@@ -104,7 +104,7 @@ The DOCSight dashboard shows technical measurements from your cable modem. Here'
 - **4 Languages**: English, German, French, and Spanish UI (181+ translation keys each)
 - **Light/Dark Mode**: Persistent theme toggle
 - **URL Hash Routing**: Bookmark and share specific views (#trends, #speedtest, #bqm)
-- **Zero JavaScript Dependencies**: All charts are pure HTML5 Canvas — no Chart.js, no libraries
+- **Lightweight Frontend**: Single dependency (Chart.js) for interactive trend charts
 - **Optional Authentication**: Password-protected web UI with scrypt hashing
 
 </details>
