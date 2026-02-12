@@ -1,8 +1,9 @@
 {
   "_source": "Vodafone Kabel Deutschland (VFKD) guidelines, vodafonekabelforum.de/viewtopic.php?t=39941",
-  "_note": "All power values in dBmV (as shown by Fritz!Box). SNR/MER in dB.",
+  "_note": "All power values in dBmV (as shown by Fritz!Box). SNR/MER in dB (absolute values).",
 
   "downstream_power": {
+    "_comment": "Asymmetric ranges per modulation",
     "256QAM": {
       "good_min": -3.9, "good_max": 13.0,
       "tolerated_min": -5.9, "tolerated_max": 18.0,
@@ -25,45 +26,42 @@
   },
 
   "upstream_power": {
-    "64QAM": {
+    "_comment_fritz": "Fritz!Box shows DOCSIS 3.1 upstream 6 dB lower than actual. Values here are as displayed by Fritz!Box.",
+    "EuroDOCSIS 3.0": {
       "good_min": 41.1, "good_max": 47.0,
-      "tolerated_min": 38.1, "tolerated_max": 50.0,
+      "tolerated_min": 37.1, "tolerated_max": 51.0,
       "monthly_min": 35.1, "monthly_max": 53.0,
       "immediate_min": 35.0, "immediate_max": 53.0
     },
-    "128QAM": {
-      "good_min": 44.1, "good_max": 47.0,
-      "tolerated_min": 41.1, "tolerated_max": 50.0,
-      "monthly_min": 38.1, "monthly_max": 53.0,
-      "immediate_min": 38.0, "immediate_max": 53.0
+    "DOCSIS 3.1": {
+      "_comment": "Values adjusted for Fritz!Box display (-6 dB from actual). Actual regelkonform: 44.1-47.0",
+      "good_min": 38.1, "good_max": 41.0,
+      "tolerated_min": 34.1, "tolerated_max": 44.0,
+      "monthly_min": 32.1, "monthly_max": 50.0,
+      "immediate_min": 32.0, "immediate_max": 50.0
     },
-    "_default": "64QAM"
+    "_default": "EuroDOCSIS 3.0"
   },
 
   "snr": {
+    "_comment": "Values as absolute dB (Fritz!Box shows MSE as negative, DOCSight uses abs())",
     "256QAM": {
-      "good_min": 33.1,
-      "tolerated_min": 31.1,
-      "monthly_min": 29.1,
-      "immediate_min": 29.0
+      "good_min": 33.0,
+      "tolerated_min": 32.0,
+      "monthly_min": 30.0,
+      "immediate_min": 30.0
     },
     "64QAM": {
-      "good_min": 27.1,
-      "tolerated_min": 25.1,
-      "monthly_min": 23.1,
-      "immediate_min": 23.0
+      "good_min": 27.0,
+      "tolerated_min": 26.0,
+      "monthly_min": 24.0,
+      "immediate_min": 24.0
     },
     "1024QAM": {
-      "good_min": 37.1,
-      "tolerated_min": 35.1,
-      "monthly_min": 33.1,
-      "immediate_min": 33.0
-    },
-    "4096QAM": {
-      "good_min": 45.1,
-      "tolerated_min": 43.1,
-      "monthly_min": 41.1,
-      "immediate_min": 41.0
+      "good_min": 39.0,
+      "tolerated_min": 38.0,
+      "monthly_min": 36.0,
+      "immediate_min": 36.0
     },
     "_default": "256QAM"
   },
