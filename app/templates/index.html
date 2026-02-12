@@ -702,6 +702,21 @@
             transition: opacity 0.15s ease, visibility 0.15s ease;
             pointer-events: none;
         }
+        @media (max-width: 900px) {
+            .info-tip .tip-text {
+                position: fixed;
+                bottom: auto;
+                left: 50% !important;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                max-width: 85vw;
+                width: 85vw;
+                pointer-events: auto;
+            }
+            .info-tip .tip-text::after {
+                display: none;
+            }
+        }
         .info-tip .tip-text::after {
             content: '';
             position: absolute;
