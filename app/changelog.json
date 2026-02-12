@@ -1,11 +1,22 @@
 [
   {
+    "version": "v2026-02-12.2",
+    "date": "2026-02-12",
+    "highlights": [
+      {"icon": "📋", "text": "Incident Journal: Document ISP issues with attachments"},
+      {"icon": "🔍", "text": "Chart zoom modal for detailed signal analysis"},
+      {"icon": "🆕", "text": "What's New splash on updates"},
+      {"icon": "📊", "text": "Interactive charts powered by Chart.js"},
+      {"icon": "🎨", "text": "Cleaner topbar and date navigation"}
+    ]
+  },
+  {
     "version": "v2026-02-12.1",
     "date": "2026-02-12",
     "highlights": [
-      {"icon": "\ud83d\udee0\ufe0f", "text": "Multi-platform Docker build (amd64 + arm64)"},
-      {"icon": "\ud83d\udce6", "text": "Optimized Dockerfile with multi-stage builds"},
-      {"icon": "\ud83d\udd0d", "text": "Chart zoom modal for detailed signal analysis"}
+      {"icon": "🛠️", "text": "Multi-platform Docker build (amd64 + arm64)"},
+      {"icon": "📦", "text": "Optimized Dockerfile with multi-stage builds"},
+      {"icon": "🔧", "text": "CI version injection fix"}
     ]
   }
 ]
