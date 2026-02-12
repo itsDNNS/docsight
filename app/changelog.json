@@ -1,5 +1,19 @@
 [
   {
+    "version": "v2026-02-13.1",
+    "date": "2026-02-13",
+    "highlights": [
+      {
+        "icon": "🐛",
+        "text": "Fix: Container going unhealthy on fresh installs before first data poll"
+      },
+      {
+        "icon": "🐛",
+        "text": "Fix: Crash when saving empty config values (e.g. MQTT port)"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-12.9",
     "date": "2026-02-12",
     "highlights": [
