@@ -7,9 +7,10 @@ log = logging.getLogger("docsis.events")
 
 # Thresholds for event detection
 POWER_SHIFT_THRESHOLD = 2.0  # dBmV shift to trigger power_change
-SNR_WARN_THRESHOLD = 33.0
-SNR_CRIT_THRESHOLD = 29.0
 UNCORR_SPIKE_THRESHOLD = 1000
+
+# Import SNR thresholds from analyzer (loaded from thresholds.json)
+from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
 # QAM hierarchy: higher value = better modulation
 QAM_ORDER = {
@@ -134,22 +135,26 @@ class EventDetector:
         if snr_cur == snr_prev:
             return
 
+        st = _snr_thresholds()
+        snr_crit = st["crit_min"]
+        snr_warn = st["good_min"]
+
         # Crossed critical threshold
-        if snr_cur < SNR_CRIT_THRESHOLD and snr_prev >= SNR_CRIT_THRESHOLD:
+        if snr_cur < snr_crit and snr_prev >= snr_crit:
             events.append({
                 "timestamp": ts,
                 "severity": "critical",
                 "event_type": "snr_change",
-                "message": f"DS SNR min dropped to {snr_cur} dB (critical threshold: {SNR_CRIT_THRESHOLD})",
+                "message": f"DS SNR min dropped to {snr_cur} dB (critical threshold: {snr_crit})",
                 "details": {"prev": snr_prev, "current": snr_cur, "threshold": "critical"},
             })
         # Crossed warning threshold
-        elif snr_cur < SNR_WARN_THRESHOLD and snr_prev >= SNR_WARN_THRESHOLD:
+        elif snr_cur < snr_warn and snr_prev >= snr_warn:
             events.append({
                 "timestamp": ts,
                 "severity": "warning",
                 "event_type": "snr_change",
-                "message": f"DS SNR min dropped to {snr_cur} dB (warning threshold: {SNR_WARN_THRESHOLD})",
+                "message": f"DS SNR min dropped to {snr_cur} dB (warning threshold: {snr_warn})",
                 "details": {"prev": snr_prev, "current": snr_cur, "threshold": "warning"},
             })
 
