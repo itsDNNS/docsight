@@ -1,5 +1,14 @@
 [
   {
+    "version": "v2026-02-12.6",
+    "date": "2026-02-12",
+    "highlights": [
+      {"icon": "📱", "text": "Mobile: Hamburger menu now opens correctly as slide-in overlay"},
+      {"icon": "🎨", "text": "Speedtest card color reflects actual vs. booked speed (green/yellow/red)"},
+      {"icon": "🔔", "text": "Event badge updates correctly after acknowledging events"}
+    ]
+  },
+  {
     "version": "v2026-02-12.4",
     "date": "2026-02-12",
     "highlights": [
