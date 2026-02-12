@@ -371,6 +371,35 @@
         .val-bad { color: #e74c3c; font-weight: 600; }
         #speedtest-table th { cursor: pointer; user-select: none; }
         #speedtest-table th:hover { background: var(--surface-hover, rgba(255,255,255,0.05)); }
+        #speedtest-table th.st-expand-col, #speedtest-table td.st-expand-col {
+            width: 32px; text-align: center; cursor: pointer; padding: 4px;
+        }
+        .st-expand-btn {
+            background: none; border: none; cursor: pointer; font-size: 0.7em;
+            color: var(--muted); transition: transform 0.2s; display: inline-block;
+            padding: 4px 6px; line-height: 1;
+        }
+        .st-expand-btn:hover { color: var(--accent); }
+        .st-expand-btn.open { transform: rotate(90deg); }
+        .st-signal-row td { padding: 0 !important; border-top: none !important; }
+        .st-signal-detail {
+            background: var(--surface); border-radius: 6px; margin: 4px 8px 8px;
+            padding: 10px 14px; font-size: 0.85em;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px;
+        }
+        .st-signal-detail .st-sig-item { display: flex; flex-direction: column; gap: 2px; }
+        .st-signal-detail .st-sig-label { color: var(--muted); font-size: 0.8em; }
+        .st-signal-detail .st-sig-value { font-weight: 600; }
+        .st-signal-detail .st-health-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.8em; font-weight: 600;
+        }
+        .st-health-badge.health-good { background: rgba(76,175,80,0.2); color: var(--good); }
+        .st-health-badge.health-marginal { background: rgba(255,152,0,0.2); color: var(--warn); }
+        .st-health-badge.health-poor { background: rgba(244,67,54,0.2); color: var(--crit); }
+        .st-signal-detail .st-sig-no-data { color: var(--muted); font-style: italic; grid-column: 1 / -1; }
+        .st-signal-detail .st-us-mods { grid-column: 1 / -1; }
+        .st-signal-detail .st-us-mods span { margin-right: 10px; }
         .speedtest-chart-wrap {
             position: relative; width: 100%;
             border: 1px solid var(--input-border); border-radius: 8px;
@@ -1412,6 +1441,7 @@
     <div id="speedtest-table-wrap">
         <table id="speedtest-table" class="sortable" style="display:none;">
             <thead><tr>
+                <th class="st-expand-col"></th>
                 <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
                 <th data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
                 <th data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
@@ -3074,7 +3104,8 @@ function renderSpeedtestRows() {
         var pingClass = pingVal > 50 ? ' class="val-warn"' : '';
         var jitterClass = jitterVal > 20 ? ' class="val-warn"' : '';
         var tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + escapeHtml(formatSpeedtestTimestamp(r.timestamp)) + '</td>'
+        tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" onclick="toggleSpeedtestSignal(this)">&#9654;</button></td>'
+            + '<td>' + escapeHtml(formatSpeedtestTimestamp(r.timestamp)) + '</td>'
             + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
             + '<td><strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
             + '<td' + pingClass + '>' + r.ping_ms + ' ms</td>'
@@ -3090,6 +3121,70 @@ function renderSpeedtestRows() {
             moreWrap.style.display = 'none';
         }
     }
+}
+
+function toggleSpeedtestSignal(btn) {
+    var T = {{ t|tojson }};
+    var id = btn.getAttribute('data-id');
+    var parentRow = btn.closest('tr');
+    var detailRow = parentRow.nextElementSibling;
+    // If detail row exists and belongs to this entry, toggle it
+    if (detailRow && detailRow.classList.contains('st-signal-row')) {
+        detailRow.remove();
+        btn.classList.remove('open');
+        return;
+    }
+    // Create detail row and fetch data
+    btn.classList.add('open');
+    var newRow = document.createElement('tr');
+    newRow.className = 'st-signal-row';
+    var cols = parentRow.children.length;
+    var td = document.createElement('td');
+    td.colSpan = cols;
+    td.innerHTML = '<div class="st-signal-detail"><span class="st-sig-no-data" style="text-align:center;">...</span></div>';
+    newRow.appendChild(td);
+    parentRow.after(newRow);
+    fetch('/api/speedtest/' + id + '/signal')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var container = newRow.querySelector('.st-signal-detail');
+            if (!data.found) {
+                container.innerHTML = '<span class="st-sig-no-data">' + escapeHtml(data.message || T.signal_no_snapshot) + '</span>';
+                return;
+            }
+            var healthClass = 'health-' + (data.health === 'good' ? 'good' : data.health === 'marginal' ? 'marginal' : 'poor');
+            var healthLabel = data.health === 'good' ? (T.health_good || 'Good')
+                : data.health === 'marginal' ? (T.health_marginal || 'Marginal')
+                : (T.health_poor || 'Poor');
+            var html = '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_health || 'Health') + '</span>'
+                + '<span class="st-health-badge ' + healthClass + '">' + escapeHtml(healthLabel) + '</span></div>'
+                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_ds_power || 'DS Power') + '</span>'
+                + '<span class="st-sig-value">' + data.ds_power_min + ' / ' + data.ds_power_avg + ' / ' + data.ds_power_max + ' dBmV</span></div>'
+                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_ds_snr || 'DS SNR') + '</span>'
+                + '<span class="st-sig-value">' + data.ds_snr_min + ' / ' + data.ds_snr_avg + ' dB</span></div>'
+                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_us_power || 'US Power') + '</span>'
+                + '<span class="st-sig-value">' + data.us_power_min + ' / ' + data.us_power_avg + ' / ' + data.us_power_max + ' dBmV</span></div>'
+                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_errors || 'Errors') + '</span>'
+                + '<span class="st-sig-value">' + (data.ds_correctable_errors || 0).toLocaleString() + ' ' + (T.signal_corr || 'corr.') + ' / '
+                + (data.ds_uncorrectable_errors || 0).toLocaleString() + ' ' + (T.signal_uncorr || 'uncorr.') + '</span></div>'
+                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_ds_channels || 'DS') + ' / ' + (T.signal_us_channels || 'US') + '</span>'
+                + '<span class="st-sig-value">' + (data.ds_total || 0) + ' / ' + (data.us_total || 0) + '</span></div>';
+            if (data.us_channels && data.us_channels.length > 0) {
+                html += '<div class="st-us-mods"><span class="st-sig-label">' + (T.signal_us_modulation || 'US Modulation') + ': </span>';
+                for (var c = 0; c < data.us_channels.length; c++) {
+                    var ch = data.us_channels[c];
+                    html += '<span>Ch' + (ch.channel_id || c) + ': ' + escapeHtml(ch.modulation || '?') + '</span>';
+                }
+                html += '</div>';
+            }
+            html += '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_snapshot_time || 'Snapshot') + '</span>'
+                + '<span class="st-sig-value" style="font-size:0.85em; color:var(--muted);">' + escapeHtml(data.snapshot_timestamp || '') + '</span></div>';
+            container.innerHTML = html;
+        })
+        .catch(function() {
+            var container = newRow.querySelector('.st-signal-detail');
+            if (container) container.innerHTML = '<span class="st-sig-no-data">Error loading signal data</span>';
+        });
 }
 
 function renderSpeedtestChart() {
