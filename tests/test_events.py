@@ -235,7 +235,8 @@ class TestEventDetector:
         assert len(ch_events) == 1
         assert "US" in ch_events[0]["message"]
 
-    def test_modulation_change(self, detector):
+    def test_modulation_downgrade_warning(self, detector):
+        """256QAM → 64QAM = 2-level drop = warning"""
         ds1 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
                 "correctable_errors": 10, "uncorrectable_errors": 5,
                 "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
@@ -246,7 +247,40 @@ class TestEventDetector:
         events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
         mod_events = [e for e in events if e["event_type"] == "modulation_change"]
         assert len(mod_events) == 1
+        assert mod_events[0]["severity"] == "warning"
+        assert "dropped" in mod_events[0]["message"]
+        assert mod_events[0]["details"]["direction"] == "downgrade"
+
+    def test_modulation_downgrade_critical(self, detector):
+        """256QAM → 16QAM = 4-level drop = critical"""
+        ds1 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
+                "correctable_errors": 10, "uncorrectable_errors": 5,
+                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
+        ds2 = [{"channel_id": 1, "modulation": "16QAM", "power": 3.0, "snr": 35.0,
+                "correctable_errors": 10, "uncorrectable_errors": 5,
+                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
+        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
+        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
+        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
+        assert len(mod_events) == 1
+        assert mod_events[0]["severity"] == "critical"
+        assert "dropped" in mod_events[0]["message"]
+
+    def test_modulation_upgrade_info(self, detector):
+        """64QAM → 256QAM = upgrade = info"""
+        ds1 = [{"channel_id": 1, "modulation": "64QAM", "power": 3.0, "snr": 35.0,
+                "correctable_errors": 10, "uncorrectable_errors": 5,
+                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
+        ds2 = [{"channel_id": 1, "modulation": "256QAM", "power": 3.0, "snr": 35.0,
+                "correctable_errors": 10, "uncorrectable_errors": 5,
+                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
+        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
+        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
+        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
+        assert len(mod_events) == 1
         assert mod_events[0]["severity"] == "info"
+        assert "improved" in mod_events[0]["message"]
+        assert mod_events[0]["details"]["direction"] == "upgrade"
 
     def test_error_spike(self, detector):
         detector.check(_make_analysis(ds_uncorrectable_errors=100))
