@@ -175,6 +175,8 @@ class ConfigManager:
         if key in self._file_config:
             val = self._file_config[key]
             if key in INT_KEYS and not isinstance(val, int):
+                if val == "" or val is None:
+                    return default if default is not None else 0
                 return int(val)
             if key in HASH_KEYS:
                 # Return werkzeug hash as-is; legacy Fernet-encrypted values get decrypted
