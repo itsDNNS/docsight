@@ -238,5 +238,20 @@
   "timestamp": "Marca de tiempo",
   "whats_new": "Novedades",
   "got_it": "Entendido",
-  "full_changelog": "Changelog completo en GitHub"
+  "full_changelog": "Changelog completo en GitHub",
+  "incident_journal": "Registro de incidencias",
+  "new_entry": "Nueva entrada",
+  "edit_entry": "Editar entrada",
+  "incident_date": "Fecha",
+  "incident_title": "Titulo",
+  "incident_description": "Descripcion",
+  "attachments": "Archivos adjuntos",
+  "upload_file": "Subir archivo",
+  "no_incidents": "Aun no hay incidencias registradas. Comienza a documentar tus problemas de conexion para quejas al ISP.",
+  "delete_incident": "Eliminar incidencia",
+  "confirm_delete": "Estas seguro de que quieres eliminar esta incidencia?",
+  "cancel": "Cancelar",
+  "file_too_large": "Archivo demasiado grande (max 10 MB)",
+  "too_many_attachments": "Demasiados archivos adjuntos (max 10 por incidencia)",
+  "invalid_file_type": "Tipo de archivo no permitido. Permitidos: PNG, JPEG, GIF, WebP, PDF, TXT"
 }

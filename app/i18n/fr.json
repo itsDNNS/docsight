@@ -235,5 +235,20 @@
   "timestamp": "Horodatage",
   "whats_new": "Nouveautés",
   "got_it": "Compris",
-  "full_changelog": "Changelog complet sur GitHub"
+  "full_changelog": "Changelog complet sur GitHub",
+  "incident_journal": "Journal des incidents",
+  "new_entry": "Nouvelle entree",
+  "edit_entry": "Modifier l'entree",
+  "incident_date": "Date",
+  "incident_title": "Titre",
+  "incident_description": "Description",
+  "attachments": "Pieces jointes",
+  "upload_file": "Telecharger un fichier",
+  "no_incidents": "Aucun incident enregistre. Commencez a documenter vos problemes de connexion pour vos reclamations FAI.",
+  "delete_incident": "Supprimer l'incident",
+  "confirm_delete": "Etes-vous sur de vouloir supprimer cet incident ?",
+  "cancel": "Annuler",
+  "file_too_large": "Fichier trop volumineux (max 10 Mo)",
+  "too_many_attachments": "Trop de pieces jointes (max 10 par incident)",
+  "invalid_file_type": "Type de fichier non autorise. Autorises : PNG, JPEG, GIF, WebP, PDF, TXT"
 }
