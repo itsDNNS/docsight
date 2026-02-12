@@ -231,6 +231,8 @@ def index():
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
     speedtest_latest = _state.get("speedtest_latest")
+    booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
+    booked_upload = _config_manager.get("booked_upload", 0) if _config_manager else 0
     conn_info = _state.get("connection_info") or {}
     dev_info = _state.get("device_info") or {}
 
@@ -269,6 +271,8 @@ def index():
                 bqm_configured=bqm_configured,
                 speedtest_configured=speedtest_configured,
                 speedtest_latest=speedtest_latest,
+                booked_download=booked_download,
+                booked_upload=booked_upload,
                 uncorr_pct=_compute_uncorr_pct(snapshot),
                 has_us_ofdma=_has_us_ofdma(snapshot),
                 device_info=dev_info,
@@ -288,6 +292,8 @@ def index():
         bqm_configured=bqm_configured,
         speedtest_configured=speedtest_configured,
         speedtest_latest=speedtest_latest,
+        booked_download=booked_download,
+        booked_upload=booked_upload,
         uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         device_info=dev_info,

@@ -37,6 +37,8 @@ DEFAULTS = {
     "bqm_url": "",
     "speedtest_tracker_url": "",
     "speedtest_tracker_token": "",
+    "booked_download": 0,
+    "booked_upload": 0,
 }
 
 ENV_MAP = {
@@ -72,7 +74,7 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days"}
+INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload"}
 
 
 class ConfigManager:

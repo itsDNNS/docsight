@@ -1009,7 +1009,36 @@
 
         {# ── Card 4: Speed (Speedtest Tracker) ── #}
         {% if speedtest_configured and speedtest_latest %}
-        <div class="metric-card health-good">
+        {# Compute speed health based on booked speed: >=80% good, 50-80% warn, <50% crit #}
+        {% if booked_download and booked_download > 0 %}
+            {% set dl_ratio = speedtest_latest.download_mbps / booked_download %}
+            {% if dl_ratio >= 0.8 %}
+                {% set speed_health = 'health-good' %}
+                {% set dl_val_class = 'val-good' %}
+            {% elif dl_ratio >= 0.5 %}
+                {% set speed_health = 'health-warn' %}
+                {% set dl_val_class = 'val-warn' %}
+            {% else %}
+                {% set speed_health = 'health-crit' %}
+                {% set dl_val_class = 'val-bad' %}
+            {% endif %}
+        {% else %}
+            {% set speed_health = 'health-good' %}
+            {% set dl_val_class = 'val-good' %}
+        {% endif %}
+        {% if booked_upload and booked_upload > 0 %}
+            {% set ul_ratio = speedtest_latest.upload_mbps / booked_upload %}
+            {% if ul_ratio >= 0.8 %}
+                {% set ul_val_class = 'val-good' %}
+            {% elif ul_ratio >= 0.5 %}
+                {% set ul_val_class = 'val-warn' %}
+            {% else %}
+                {% set ul_val_class = 'val-bad' %}
+            {% endif %}
+        {% else %}
+            {% set ul_val_class = 'val-good' %}
+        {% endif %}
+        <div class="metric-card {{ speed_health }}">
             <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
                 <span class="status-dot"></span>
                 <span class="card-title">&#9889; {{ t.speed }}</span>
@@ -1018,11 +1047,11 @@
             <div class="metric-card-body">
                 <div class="metric-row">
                     <div class="metric-item">
-                        <div class="metric-value val-good">{{ speedtest_latest.download_human or (speedtest_latest.download_mbps ~ ' Mbps') }}</div>
+                        <div class="metric-value {{ dl_val_class }}">{{ speedtest_latest.download_human or (speedtest_latest.download_mbps ~ ' Mbps') }}</div>
                         <div class="metric-label">{{ t.download }}</div>
                     </div>
                     <div class="metric-item">
-                        <div class="metric-value val-good">{{ speedtest_latest.upload_human or (speedtest_latest.upload_mbps ~ ' Mbps') }}</div>
+                        <div class="metric-value {{ ul_val_class }}">{{ speedtest_latest.upload_human or (speedtest_latest.upload_mbps ~ ' Mbps') }}</div>
                         <div class="metric-label">{{ t.upload }}</div>
                     </div>
                 </div>
