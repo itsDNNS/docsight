@@ -710,26 +710,30 @@
             <span class="icon">&#9889;</span> {{ t.speedtest }}
         </a>
         {% endif %}
+        {% if not speedtest_configured %}
         <a class="sidebar-link" onclick="openSpeedtestSetupModal()">
             <span class="icon">&#9881;</span> {{ t.speedtest_setup }}
         </a>
+        {% endif %}
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
             <span class="icon">&#128225;</span> {{ t.bqm_title }}
         </a>
         {% endif %}
+        {% if not bqm_configured %}
         <a class="sidebar-link" onclick="openBqmSetupModal()">
             <span class="icon">&#9881;</span> {{ t.bqm_setup }}
         </a>
+        {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
         <a class="sidebar-link" data-view="journal">
             <span class="icon">&#128203;</span> {{ t.incident_journal }}
         </a>
+        <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
+            <span class="icon">&#128190;</span> {{ t.export_llm }}
+        </a>
         <a class="sidebar-link" id="report-link" onclick="openReportModal()">
             <span class="icon">&#128226;</span> {{ t.incident_report }}
-        </a>
-        <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
-            <span class="icon">&#128203;</span> {{ t.export_llm }}
         </a>
         <div style="flex:1;"></div>
         <div class="sidebar-divider"></div>
