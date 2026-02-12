@@ -965,20 +965,22 @@
 
     {# ── Per-card health ── #}
     {% set signal_health = 'crit' if 'ds_power_critical' in s.health_issues or 'snr_critical' in s.health_issues
-       else ('warn' if 'snr_warn' in s.health_issues else 'good') %}
+       else ('warn' if 'ds_power_warn' in s.health_issues or 'snr_warn' in s.health_issues else 'good') %}
     {% set us_health = 'crit' if 'us_power_critical' in s.health_issues
        else ('warn' if 'us_power_warn' in s.health_issues else 'good') %}
     {% set error_health = 'crit' if 'uncorr_errors_high' in s.health_issues else 'good' %}
 
     {# ── DS Power health ── #}
-    {% set ds_pwr_health = 'crit' if 'ds_power_critical' in s.health_issues else 'good' %}
+    {% set ds_pwr_health = 'crit' if 'ds_power_critical' in s.health_issues else ('warn' if 'ds_power_warn' in s.health_issues else 'good') %}
     {# ── SNR health ── #}
     {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_warn' in s.health_issues else 'good') %}
 
     {# ── Range marker positions (clamped 2-98%) ── #}
-    {% set ds_pwr_marker = [2, [98, ((s.ds_power_avg + 12) / 24 * 100)|round|int]|min]|max %}
+    {# DS Power: range -12 to +25 = 37 units #}
+    {% set ds_pwr_marker = [2, [98, ((s.ds_power_avg + 12) / 37 * 100)|round|int]|min]|max %}
     {% set snr_marker = [2, [98, ((s.ds_snr_avg - 15) / 30 * 100)|round|int]|min]|max %}
-    {% set us_pwr_marker = [2, [98, ((s.us_power_avg - 25) / 35 * 100)|round|int]|min]|max %}
+    {# US Power: range 30 to 60 = 30 units #}
+    {% set us_pwr_marker = [2, [98, ((s.us_power_avg - 30) / 30 * 100)|round|int]|min]|max %}
 
     <div class="metric-cards">
         {# ── Card 1: Downstream ── #}
@@ -994,14 +996,14 @@
                         <div class="metric-value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}<span class="metric-unit">dBmV</span></div>
                         <div class="metric-label">{{ t.card_ds_power }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_ds_power }}</span></span></div>
                         <div class="range-indicator">
-                            <div class="range-zone range-crit" style="width:8.3%"></div>
-                            <div class="range-zone range-warn" style="width:12.5%"></div>
-                            <div class="range-zone range-good" style="width:58.3%"></div>
-                            <div class="range-zone range-warn" style="width:12.5%"></div>
-                            <div class="range-zone range-crit" style="width:8.4%"></div>
+                            <div class="range-zone range-crit" style="width:10.8%"></div>
+                            <div class="range-zone range-warn" style="width:10.8%"></div>
+                            <div class="range-zone range-good" style="width:45.9%"></div>
+                            <div class="range-zone range-warn" style="width:18.9%"></div>
+                            <div class="range-zone range-crit" style="width:13.6%"></div>
                             <div class="range-marker val-{{ ds_pwr_health }}" style="left:{{ ds_pwr_marker }}%"></div>
                         </div>
-                        <div class="range-labels"><span>-12</span><span>0</span><span>+12</span></div>
+                        <div class="range-labels"><span>-8</span><span>+13</span><span>+20</span></div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-value val-{{ snr_health }}">{{ s.ds_snr_avg }}<span class="metric-unit">dB</span></div>
@@ -1021,7 +1023,7 @@
                     <tr><td>{{ t.card_power_range }}</td><td>{{ s.ds_power_min }} ... {{ s.ds_power_max }} dBmV</td></tr>
                     <tr><td>SNR {{ t.card_power_range }}</td><td>{{ s.ds_snr_min }} ... {{ s.ds_snr_avg }} dB</td></tr>
                     <tr><td>{{ t.channels }}</td><td>{{ s.ds_total }} {{ t.downstream|lower }}</td></tr>
-                    <tr><td>{{ t.card_ideal_range }}</td><td>-7...+7 dBmV / SNR &gt;33 dB</td></tr>
+                    <tr><td>{{ t.card_ideal_range }}</td><td>-4...+13 dBmV / SNR &gt;33 dB</td></tr>
                 </table>
             </div>
         </div>
@@ -1039,12 +1041,14 @@
                         <div class="metric-value val-{{ us_health }}">{{ s.us_power_avg }}<span class="metric-unit">dBmV</span></div>
                         <div class="metric-label">{{ t.card_transmit_power }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_transmit_power }}</span></span></div>
                         <div class="range-indicator">
-                            <div class="range-zone range-good" style="width:68.6%"></div>
-                            <div class="range-zone range-warn" style="width:14.3%"></div>
-                            <div class="range-zone range-crit" style="width:17.1%"></div>
+                            <div class="range-zone range-crit" style="width:16.7%"></div>
+                            <div class="range-zone range-warn" style="width:20%"></div>
+                            <div class="range-zone range-good" style="width:20%"></div>
+                            <div class="range-zone range-warn" style="width:20%"></div>
+                            <div class="range-zone range-crit" style="width:23.3%"></div>
                             <div class="range-marker val-{{ us_health }}" style="left:{{ us_pwr_marker }}%"></div>
                         </div>
-                        <div class="range-labels"><span>25</span><span>35</span><span>49</span><span>54</span><span>60</span></div>
+                        <div class="range-labels"><span>30</span><span>41</span><span>47</span><span>53</span><span>60</span></div>
                     </div>
                 </div>
             </div>
@@ -1052,7 +1056,7 @@
                 <table class="detail-table">
                     <tr><td>{{ t.card_power_range }}</td><td>{{ s.us_power_min }} ... {{ s.us_power_max }} dBmV</td></tr>
                     <tr><td>{{ t.channels }}</td><td>{{ s.us_total }} {{ t.upstream|lower }}</td></tr>
-                    <tr><td>{{ t.card_ideal_range }}</td><td>35 ... 49 dBmV</td></tr>
+                    <tr><td>{{ t.card_ideal_range }}</td><td>41 ... 47 dBmV</td></tr>
                 </table>
             </div>
         </div>
@@ -1189,7 +1193,7 @@
                 </td>
                 <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
-                <td data-sort="{{ ch.power if ch.power is not none else 0 }}" class="{% if ch.power is not none %}{% if ch.power|abs > 10 %}val-crit{% elif ch.power|abs > 7 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
+                <td data-sort="{{ ch.power if ch.power is not none else 0 }}" class="{% if ch.power is not none %}{% if ch.power < -8 or ch.power > 20 %}val-crit{% elif ch.power < -4 or ch.power > 13 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
                 <td data-sort="{{ ch.snr if ch.snr is not none else 0 }}" class="{% if ch.snr is not none %}{% if ch.snr < 29 %}val-crit{% elif ch.snr < 33 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
                 <td>{{ ch.modulation }}</td>
                 <td data-sort="{{ ch.correctable_errors }}">{{ ch.correctable_errors|fmt_k }}</td>
@@ -1223,7 +1227,7 @@
                 </td>
                 <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
-                <td data-sort="{{ ch.power }}" class="{% if ch.power > 54 %}val-crit{% elif ch.power > 50 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
+                <td data-sort="{{ ch.power }}" class="{% if ch.power < 35 or ch.power > 53 %}val-crit{% elif ch.power < 41 or ch.power > 47 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
                 <td>{{ ch.modulation }}</td>
                 <td>{{ ch.multiplex }}</td>
             </tr>
@@ -2105,12 +2109,12 @@
 
     /* ── Trend Charts ── */
     var DS_POWER_ZONES = [
-        {min: -15, max: -10, color: "rgba(244,67,54,0.35)"},
-        {min: -10, max: -7, color: "rgba(255,152,0,0.30)"},
-        {min: -7, max: 7, color: "rgba(76,175,80,0.25)"},
-        {min: 7, max: 10, color: "rgba(255,152,0,0.30)"},
-        {min: 10, max: 15, color: "rgba(244,67,54,0.35)"},
-        {yMin: -12, yMax: 12}
+        {min: -15, max: -8, color: "rgba(244,67,54,0.35)"},
+        {min: -8, max: -4, color: "rgba(255,152,0,0.30)"},
+        {min: -4, max: 13, color: "rgba(76,175,80,0.25)"},
+        {min: 13, max: 20, color: "rgba(255,152,0,0.30)"},
+        {min: 20, max: 25, color: "rgba(244,67,54,0.35)"},
+        {yMin: -12, yMax: 22}
     ];
     var DS_SNR_ZONES = [
         {min: 15, max: 29, color: "rgba(244,67,54,0.35)"},
@@ -2119,12 +2123,12 @@
         {yMin: 25, yMax: 45}
     ];
     var US_POWER_ZONES = [
-        {min: 20, max: 30, color: "rgba(244,67,54,0.35)"},
-        {min: 30, max: 35, color: "rgba(255,152,0,0.30)"},
-        {min: 35, max: 50, color: "rgba(76,175,80,0.25)"},
-        {min: 50, max: 55, color: "rgba(255,152,0,0.30)"},
-        {min: 55, max: 65, color: "rgba(244,67,54,0.35)"},
-        {yMin: 25, yMax: 60}
+        {min: 20, max: 35, color: "rgba(244,67,54,0.35)"},
+        {min: 35, max: 41, color: "rgba(255,152,0,0.30)"},
+        {min: 41, max: 47, color: "rgba(76,175,80,0.25)"},
+        {min: 47, max: 53, color: "rgba(255,152,0,0.30)"},
+        {min: 53, max: 65, color: "rgba(244,67,54,0.35)"},
+        {yMin: 30, yMax: 60}
     ];
 
     function loadTrends(range, date) {
