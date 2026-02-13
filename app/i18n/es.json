@@ -333,5 +333,20 @@
   "integrations": "Integraciones",
   "appearance": "Apariencia",
   "welcome_desc": "Conectemos tu modem.",
-  "finish_setup": "Completar configuracion"
+  "finish_setup": "Completar configuracion",
+  "correlation_analysis": "Correlacion",
+  "correlation_title": "Correlacion multi-fuente",
+  "correlation_desc": "Correlaciona datos de senal del modem, resultados de speedtest y eventos detectados en una linea temporal unificada para identificar patrones y recopilar evidencia para quejas al ISP.",
+  "correlation_no_data": "No hay datos de correlacion disponibles para este periodo.",
+  "correlation_hours_24": "Ultimas 24 horas",
+  "correlation_hours_48": "Ultimas 48 horas",
+  "correlation_hours_168": "Ultimos 7 dias",
+  "correlation_source_modem": "Modem",
+  "correlation_source_speedtest": "Speedtest",
+  "correlation_source_events": "Eventos",
+  "correlation_signal_health": "Salud de la senal",
+  "correlation_speed_vs_signal": "Velocidad vs. Senal",
+  "correlation_all_sources": "Todas las fuentes",
+  "correlation_modem_health_good": "Senal saludable al momento del speedtest",
+  "correlation_modem_health_poor": "Senal degradada al momento del speedtest"
 }

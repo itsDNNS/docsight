@@ -801,6 +801,11 @@
         <a class="sidebar-link" data-view="channels">
             <span class="icon">&#128336;</span> {{ t.channel_timeline }}
         </a>
+        {% if speedtest_configured or bqm_configured %}
+        <a class="sidebar-link" data-view="correlation">
+            <span class="icon">&#128202;</span> {{ t.correlation_analysis }}
+        </a>
+        {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
         {% if speedtest_configured %}
         <a class="sidebar-link" data-view="speedtest">
@@ -1300,6 +1305,59 @@
         </div>
         <div id="bqm-no-data" class="no-data-msg" style="display:none;"></div>
     </div>
+</div>
+{% endif %}
+
+<!-- ═══ View: Correlation Analysis ═══ -->
+{% if speedtest_configured or bqm_configured %}
+<div id="view-correlation" class="view">
+    <div class="trend-header">
+        <span class="trend-title">{{ t.correlation_title }}</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <select id="correlation-hours" onchange="loadCorrelationData()">
+                <option value="24" selected>{{ t.correlation_hours_24 }}</option>
+                <option value="48">{{ t.correlation_hours_48 }}</option>
+                <option value="168">{{ t.correlation_hours_168 }}</option>
+            </select>
+        </div>
+    </div>
+    <p class="correlation-desc" style="color:var(--muted); font-size:0.85em; margin:0 0 16px;">{{ t.correlation_desc }}</p>
+
+    <div class="correlation-filters" style="display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap;">
+        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.85em;">
+            <input type="checkbox" id="corr-src-modem" checked onchange="loadCorrelationData()"> {{ t.correlation_source_modem }}
+        </label>
+        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.85em;">
+            <input type="checkbox" id="corr-src-speedtest" checked onchange="loadCorrelationData()"> {{ t.correlation_source_speedtest }}
+        </label>
+        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.85em;">
+            <input type="checkbox" id="corr-src-events" checked onchange="loadCorrelationData()"> {{ t.correlation_source_events }}
+        </label>
+    </div>
+
+    <div id="correlation-loading" class="waiting" style="display:none;">
+        <div class="spinner"></div>
+    </div>
+    <div id="correlation-no-data" class="no-data-msg" style="display:none;"></div>
+
+    <!-- Signal Health Timeline Chart -->
+    <div id="correlation-chart-container" style="display:none;">
+        <div class="speedtest-chart-wrap">
+            <canvas id="correlation-chart"></canvas>
+            <div class="speedtest-chart-legend" id="correlation-legend"></div>
+        </div>
+    </div>
+
+    <!-- Unified Timeline Table -->
+    <table id="correlation-table" style="display:none;">
+        <thead><tr>
+            <th>{{ t.timestamp }}</th>
+            <th style="width:90px;">Source</th>
+            <th>{{ t.event_message }}</th>
+            <th>{{ t.event_details }}</th>
+        </tr></thead>
+        <tbody id="correlation-tbody"></tbody>
+    </table>
 </div>
 {% endif %}
 
@@ -1832,6 +1890,7 @@
         var journalView = document.getElementById('view-journal');
         var eventsView = document.getElementById('view-events');
         var channelsView = document.getElementById('view-channels');
+        var correlationView = document.getElementById('view-correlation');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
@@ -1839,6 +1898,7 @@
         if (journalView) journalView.classList.remove('active');
         if (eventsView) eventsView.classList.remove('active');
         if (channelsView) channelsView.classList.remove('active');
+        if (correlationView) correlationView.classList.remove('active');
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
@@ -1864,6 +1924,10 @@
             if (channelsView) channelsView.classList.add('active');
             updateDateLabel();
             loadChannelList();
+        } else if (view === 'correlation') {
+            if (correlationView) correlationView.classList.add('active');
+            updateDateLabel();
+            loadCorrelationData();
         } else if (view === 'trends') {
             trendView.classList.add('active');
             updateTrendTabs();
@@ -3587,6 +3651,308 @@ function escapeHtml(str) {
     var div = document.createElement('div');
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+}
+
+/* ═══ Correlation Analysis ═══ */
+var _correlationData = [];
+var _correlationChart = null;
+
+function loadCorrelationData() {
+    var hours = document.getElementById('correlation-hours').value;
+    var sources = [];
+    if (document.getElementById('corr-src-modem').checked) sources.push('modem');
+    if (document.getElementById('corr-src-speedtest').checked) sources.push('speedtest');
+    if (document.getElementById('corr-src-events').checked) sources.push('events');
+    if (sources.length === 0) sources = ['modem', 'speedtest', 'events'];
+
+    var loading = document.getElementById('correlation-loading');
+    var noData = document.getElementById('correlation-no-data');
+    var chartContainer = document.getElementById('correlation-chart-container');
+    var table = document.getElementById('correlation-table');
+    loading.style.display = 'flex';
+    noData.style.display = 'none';
+    chartContainer.style.display = 'none';
+    table.style.display = 'none';
+
+    fetch('/api/correlation?hours=' + hours + '&sources=' + sources.join(','))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading.style.display = 'none';
+            _correlationData = data;
+            if (!data || data.length === 0) {
+                noData.textContent = {{ t.correlation_no_data | tojson }};
+                noData.style.display = 'block';
+                return;
+            }
+            chartContainer.style.display = 'block';
+            table.style.display = 'table';
+            renderCorrelationChart(data);
+            renderCorrelationTable(data);
+        })
+        .catch(function() {
+            loading.style.display = 'none';
+            noData.textContent = {{ t.correlation_no_data | tojson }};
+            noData.style.display = 'block';
+        });
+}
+
+function renderCorrelationChart(data) {
+    var canvas = document.getElementById('correlation-chart');
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.parentElement.getBoundingClientRect();
+    var W = rect.width;
+    var H = 280;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+
+    var pad = { top: 20, right: 60, bottom: 40, left: 60 };
+    var plotW = W - pad.left - pad.right;
+    var plotH = H - pad.top - pad.bottom;
+
+    var modem = data.filter(function(d) { return d.source === 'modem'; });
+    var speedtest = data.filter(function(d) { return d.source === 'speedtest'; });
+    var events = data.filter(function(d) { return d.source === 'event'; });
+
+    if (modem.length === 0 && speedtest.length === 0) {
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#888';
+        ctx.font = '13px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText({{ t.correlation_no_data | tojson }}, W / 2, H / 2);
+        return;
+    }
+
+    // Time range
+    var allTs = data.map(function(d) { return new Date(d.timestamp).getTime(); });
+    var tMin = Math.min.apply(null, allTs);
+    var tMax = Math.max.apply(null, allTs);
+    if (tMin === tMax) { tMax = tMin + 3600000; }
+
+    function xScale(ts) { return pad.left + (ts - tMin) / (tMax - tMin) * plotW; }
+
+    // SNR axis (left, for modem SNR)
+    var snrValues = modem.map(function(d) { return d.ds_snr_min || 0; }).filter(function(v) { return v > 0; });
+    var snrMin = snrValues.length ? Math.floor(Math.min.apply(null, snrValues) - 2) : 20;
+    var snrMax = snrValues.length ? Math.ceil(Math.max.apply(null, snrValues) + 2) : 45;
+    function ySnr(v) { return pad.top + plotH - (v - snrMin) / (snrMax - snrMin) * plotH; }
+
+    // Speed axis (right, for speedtest download)
+    var dlValues = speedtest.map(function(d) { return d.download_mbps || 0; });
+    var dlMax = dlValues.length ? Math.ceil(Math.max.apply(null, dlValues) * 1.1) : 500;
+    var dlMin = 0;
+    function yDl(v) { return pad.top + plotH - (v - dlMin) / (dlMax - dlMin) * plotH; }
+
+    var style = getComputedStyle(document.documentElement);
+    var textColor = style.getPropertyValue('--muted').trim() || '#888';
+    var gridColor = style.getPropertyValue('--input-border').trim() || '#333';
+    var goodColor = style.getPropertyValue('--good').trim() || '#4caf50';
+    var warnColor = style.getPropertyValue('--warn').trim() || '#ff9800';
+    var critColor = style.getPropertyValue('--crit').trim() || '#f44336';
+    var accentColor = style.getPropertyValue('--accent').trim() || '#2196f3';
+
+    // Grid lines
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([2, 4]);
+    for (var s = Math.ceil(snrMin); s <= snrMax; s += 5) {
+        var y = ySnr(s);
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Time axis labels
+    ctx.fillStyle = textColor;
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    var labelCount = Math.min(8, Math.floor(plotW / 80));
+    for (var i = 0; i <= labelCount; i++) {
+        var t = tMin + (tMax - tMin) * i / labelCount;
+        var d = new Date(t);
+        var hours = document.getElementById('correlation-hours').value;
+        var label;
+        if (parseInt(hours) > 48) {
+            label = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        } else {
+            label = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        }
+        ctx.fillText(label, xScale(t), H - pad.bottom + 18);
+    }
+
+    // Left axis labels (SNR)
+    ctx.textAlign = 'right';
+    ctx.fillStyle = accentColor;
+    for (var s = Math.ceil(snrMin); s <= snrMax; s += 5) {
+        ctx.fillText(s + ' dB', pad.left - 6, ySnr(s) + 3);
+    }
+    ctx.save();
+    ctx.translate(12, pad.top + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.fillText('SNR (dB)', 0, 0);
+    ctx.restore();
+
+    // Right axis labels (Speed)
+    if (speedtest.length > 0) {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = goodColor;
+        var dlStep = Math.max(1, Math.ceil(dlMax / 5 / 50) * 50);
+        for (var v = 0; v <= dlMax; v += dlStep) {
+            ctx.fillText(v + ' Mbps', pad.left + plotW + 6, yDl(v) + 3);
+        }
+        ctx.save();
+        ctx.translate(W - 8, pad.top + plotH / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.font = '11px system-ui, sans-serif';
+        ctx.fillText('Download', 0, 0);
+        ctx.restore();
+    }
+
+    // Draw modem SNR line
+    if (modem.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 2;
+        for (var i = 0; i < modem.length; i++) {
+            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var y = ySnr(modem[i].ds_snr_min || snrMin);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // Draw modem health background bands
+    for (var i = 0; i < modem.length; i++) {
+        var x1 = xScale(new Date(modem[i].timestamp).getTime());
+        var x2 = i < modem.length - 1 ? xScale(new Date(modem[i + 1].timestamp).getTime()) : x1 + 2;
+        var h = modem[i].health;
+        if (h === 'poor' || h === 'critical') {
+            ctx.fillStyle = 'rgba(244,67,54,0.08)';
+        } else if (h === 'marginal') {
+            ctx.fillStyle = 'rgba(255,152,0,0.06)';
+        } else {
+            continue;
+        }
+        ctx.fillRect(x1, pad.top, x2 - x1, plotH);
+    }
+
+    // Draw speedtest points
+    for (var i = 0; i < speedtest.length; i++) {
+        var x = xScale(new Date(speedtest[i].timestamp).getTime());
+        var y = yDl(speedtest[i].download_mbps || 0);
+        var mh = speedtest[i].modem_health;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = mh === 'poor' || mh === 'critical' ? critColor : mh === 'marginal' ? warnColor : goodColor;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    // Draw event markers (vertical dashed lines)
+    for (var i = 0; i < events.length; i++) {
+        var x = xScale(new Date(events[i].timestamp).getTime());
+        var sev = events[i].severity;
+        ctx.strokeStyle = sev === 'critical' ? critColor : sev === 'warning' ? warnColor : textColor;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x, pad.top);
+        ctx.lineTo(x, pad.top + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Triangle marker at top
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.beginPath();
+        ctx.moveTo(x, pad.top);
+        ctx.lineTo(x - 4, pad.top - 8);
+        ctx.lineTo(x + 4, pad.top - 8);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // Legend
+    var legend = document.getElementById('correlation-legend');
+    legend.innerHTML = '<span style="color:' + accentColor + ';">&#9644; SNR (dB)</span>'
+        + (speedtest.length > 0 ? '<span style="color:' + goodColor + ';">&#9679; Download (Mbps)</span>' : '')
+        + (events.length > 0 ? '<span style="color:' + warnColor + ';">&#9650; Events</span>' : '')
+        + '<span style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em;">Poor Signal</span>';
+}
+
+function renderCorrelationTable(data) {
+    var tbody = document.getElementById('correlation-tbody');
+    tbody.innerHTML = '';
+
+    // Show newest first in table
+    var sorted = data.slice().reverse();
+
+    var healthLabels = {
+        good: {{ t.health_good | tojson }},
+        marginal: {{ t.health_marginal | tojson }},
+        poor: {{ t.health_poor | tojson }},
+        critical: {{ t.health_critical | tojson }}
+    };
+    var sevLabels = {
+        info: {{ t.event_severity_info | tojson }},
+        warning: {{ t.event_severity_warning | tojson }},
+        critical: {{ t.event_severity_critical | tojson }}
+    };
+    var typeLabels = {
+        health_change: {{ t.event_type_health_change | tojson }},
+        power_change: {{ t.event_type_power_change | tojson }},
+        snr_change: {{ t.event_type_snr_change | tojson }},
+        channel_change: {{ t.event_type_channel_change | tojson }},
+        modulation_change: {{ t.event_type_modulation_change | tojson }},
+        error_spike: {{ t.event_type_error_spike | tojson }}
+    };
+
+    var maxRows = 200;
+    var count = 0;
+    for (var i = 0; i < sorted.length && count < maxRows; i++) {
+        var e = sorted[i];
+        var tr = document.createElement('tr');
+        var ts = escapeHtml(e.timestamp.replace('T', ' '));
+        var src = e.source;
+        var msg = '';
+        var details = '';
+
+        if (src === 'modem') {
+            var h = e.health || 'unknown';
+            var badge = '<span class="st-health-badge health-' + h + '">' + (healthLabels[h] || h) + '</span>';
+            src = '<span style="color:var(--accent);">Modem</span>';
+            msg = badge;
+            details = 'SNR ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : '') +
+                      ' | Power ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '') +
+                      ' | Errors ' + (e.ds_uncorrectable_errors || 0);
+        } else if (src === 'speedtest') {
+            src = '<span style="color:var(--good);">Speedtest</span>';
+            msg = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');
+            var mhBadge = '';
+            if (e.modem_health) {
+                mhBadge = ' <span class="st-health-badge health-' + e.modem_health + '" style="font-size:0.75em;">'
+                    + (healthLabels[e.modem_health] || e.modem_health) + '</span>';
+            }
+            details = 'Ping ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms' + mhBadge;
+        } else if (src === 'event') {
+            var sevColor = e.severity === 'critical' ? 'var(--crit)' : e.severity === 'warning' ? 'var(--warn)' : 'var(--muted)';
+            src = '<span style="color:' + sevColor + ';">' + (sevLabels[e.severity] || e.severity) + '</span>';
+            msg = escapeHtml(e.message || '');
+            details = typeLabels[e.event_type] || e.event_type || '';
+        }
+
+        tr.innerHTML = '<td style="white-space:nowrap; font-size:0.82em;">' + ts + '</td>'
+            + '<td>' + src + '</td>'
+            + '<td>' + msg + '</td>'
+            + '<td style="font-size:0.82em; color:var(--muted);">' + details + '</td>';
+        tbody.appendChild(tr);
+        count++;
+    }
 }
 
 </script>
