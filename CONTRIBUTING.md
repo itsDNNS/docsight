@@ -27,7 +27,7 @@ This runs on port **8766** (`http://localhost:8766`). Production uses `docker-co
 python -m pytest tests/ -v
 ```
 
-124+ tests cover analyzers, API endpoints, config, MQTT, i18n, and PDF generation.
+176+ tests cover analyzers, event detection, API endpoints, config, MQTT, i18n, and PDF generation.
 
 ## Running Locally
 
@@ -44,6 +44,8 @@ app/
   main.py            - Entrypoint, polling loop, thread management
   web.py             - Flask routes and API endpoints
   analyzer.py        - DOCSIS channel health analysis
+  event_detector.py  - Signal anomaly detection (power, SNR, modulation changes)
+  thresholds.json    - Configurable signal thresholds (VFKD guidelines)
   fritzbox.py        - FritzBox data.lua API client
   config.py          - Configuration management (env + config.json)
   storage.py         - SQLite snapshot storage
@@ -54,7 +56,8 @@ app/
   fonts/             - Bundled DejaVu fonts for PDF generation
   static/            - Static assets (icons, etc.)
   templates/         - Jinja2 HTML templates
-tests/               - pytest test suite (124+ tests)
+  changelog.json     - Release changelog for splash modal
+tests/               - pytest test suite (176+ tests)
 docker-compose.yml     - Production Docker setup
 docker-compose.dev.yml - Development Docker setup (port 8766)
 ```
