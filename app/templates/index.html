@@ -487,6 +487,10 @@
             z-index: 2;
         }
         .chart-expand-btn:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
+        .mod-timeline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .mod-badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.82em; font-weight: 600; background: rgba(0,173,181,0.15); color: var(--accent); }
+        .mod-badge-changed { background: rgba(255,152,0,0.2); color: var(--warn); }
+        .mod-badge .mod-ts { font-size: 0.8em; opacity: 0.7; margin-right: 4px; }
 
         /* ── Chart Zoom Modal ── */
         .chart-zoom-overlay {
@@ -1396,6 +1400,10 @@
             <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand">&#x26F6;</button>
             <div class="chart-label">{{ t.error_history }}</div>
             <canvas id="chart-ch-errors"></canvas>
+        </div>
+        <div class="chart-card" id="channel-modulation-card" style="grid-column:1/-1;">
+            <div class="chart-label">{{ t.modulation }}</div>
+            <div id="channel-modulation-badges" class="mod-timeline"></div>
         </div>
     </div>
 </div>
@@ -2768,6 +2776,33 @@
                     {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
                     {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
                 ], 'bar');
+
+                // Modulation badges
+                var modEl = document.getElementById('channel-modulation-badges');
+                var modCard = document.getElementById('channel-modulation-card');
+                var mods = data.filter(function(d) { return d.modulation; });
+                if (mods.length === 0) {
+                    modCard.style.display = 'none';
+                } else {
+                    modCard.style.display = '';
+                    var changes = [{ts: mods[0].timestamp, mod: mods[0].modulation}];
+                    for (var i = 1; i < mods.length; i++) {
+                        if (mods[i].modulation !== mods[i - 1].modulation) {
+                            changes.push({ts: mods[i].timestamp, mod: mods[i].modulation});
+                        }
+                    }
+                    var html = '';
+                    if (changes.length === 1) {
+                        html = '<span class="mod-badge">' + (T.modulation || 'Modulation') + ': ' + escapeHtml(changes[0].mod) + '</span>';
+                    } else {
+                        for (var j = 0; j < changes.length; j++) {
+                            var tsLabel = changes[j].ts.substring(5, 16).replace('T', ' ');
+                            var cls = j === 0 ? 'mod-badge' : 'mod-badge mod-badge-changed';
+                            html += '<span class="' + cls + '"><span class="mod-ts">' + escapeHtml(tsLabel) + '</span>' + escapeHtml(changes[j].mod) + '</span>';
+                        }
+                    }
+                    modEl.innerHTML = html;
+                }
             })
             .catch(function() {
                 loadingEl.style.display = 'none';
