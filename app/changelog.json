@@ -1,5 +1,19 @@
 [
   {
+    "version": "v2026-02-13.8",
+    "date": "2026-02-13",
+    "highlights": [
+      {
+        "icon": "🔧",
+        "text": "Fix: Channel value coloring (Power/SNR) now uses correct per modulation thresholds instead of hardcoded 256QAM values"
+      },
+      {
+        "icon": "🔧",
+        "text": "Fix: Summary cards and health banner now aggregate from per channel assessments, fixing false warnings for DOCSIS 3.1 and 64QAM channels"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-13.6",
     "date": "2026-02-13",
     "highlights": [
