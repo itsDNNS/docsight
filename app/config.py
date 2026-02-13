@@ -78,6 +78,9 @@ _LEGACY_KEY_MAP = {
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload"}
 
+# Keys where an empty string should fall back to the DEFAULTS value
+_NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
+
 
 class ConfigManager:
     """Loads config from config.json, env vars override file values.
@@ -176,6 +179,9 @@ class ConfigManager:
 
         if key in self._file_config:
             val = self._file_config[key]
+            # Keys that must not be empty: fall through to defaults
+            if key in _NON_EMPTY_KEYS and not val:
+                return DEFAULTS[key]
             if key in INT_KEYS and not isinstance(val, int):
                 if val == "" or val is None:
                     return default if default is not None else 0
@@ -212,6 +218,11 @@ class ConfigManager:
         for key in SECRET_KEYS:
             if key in data and data[key]:
                 data[key] = self._encrypt(data[key])
+
+        # Replace empty strings with defaults for keys that require a value
+        for key in _NON_EMPTY_KEYS:
+            if key in data and not data[key]:
+                data[key] = DEFAULTS[key]
 
         # Merge with existing config
         self._file_config.update(data)
