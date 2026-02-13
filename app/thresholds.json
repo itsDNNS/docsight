@@ -36,9 +36,9 @@
     "DOCSIS 3.1": {
       "_comment": "Values adjusted for Fritz!Box display (-6 dB from actual). Actual regelkonform: 44.1-47.0",
       "good_min": 38.1, "good_max": 41.0,
-      "tolerated_min": 34.1, "tolerated_max": 44.0,
-      "monthly_min": 32.1, "monthly_max": 50.0,
-      "immediate_min": 32.0, "immediate_max": 50.0
+      "tolerated_min": 34.1, "tolerated_max": 42.0,
+      "monthly_min": 32.1, "monthly_max": 44.0,
+      "immediate_min": 32.0, "immediate_max": 44.0
     },
     "_default": "EuroDOCSIS 3.0"
   },
