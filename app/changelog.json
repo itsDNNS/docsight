@@ -1,5 +1,27 @@
 [
   {
+    "version": "v2026-02-13.2",
+    "date": "2026-02-13",
+    "highlights": [
+      {
+        "icon": "📡",
+        "text": "New: Per-Channel Timeline — view power, SNR, errors, and modulation history for individual channels"
+      },
+      {
+        "icon": "🎯",
+        "text": "New: Modulation change timeline with upgrade/downgrade indicators"
+      },
+      {
+        "icon": "🔧",
+        "text": "Improved: US channels show power chart only (no empty error chart)"
+      },
+      {
+        "icon": "🎨",
+        "text": "Updated sidebar icons for Signal Trends and Channel Timeline"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-13.1",
     "date": "2026-02-13",
     "highlights": [
