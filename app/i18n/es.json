@@ -303,5 +303,14 @@
   "signal_us_modulation": "Modulacion US",
   "signal_ds_channels": "Canales DS",
   "signal_us_channels": "Canales US",
-  "signal_snapshot_time": "Snapshot"
+  "signal_snapshot_time": "Snapshot",
+  "channel_timeline": "Historial de canal",
+  "select_channel": "Seleccionar canal",
+  "downstream_channels": "Canales descendentes",
+  "upstream_channels": "Canales ascendentes",
+  "time_range": "Periodo",
+  "power_history": "Historial de potencia y SNR",
+  "snr_history": "Historial de SNR",
+  "error_history": "Historial de errores",
+  "no_channel_data": "No hay datos disponibles para este canal."
 }
