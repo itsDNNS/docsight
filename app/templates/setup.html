@@ -18,6 +18,12 @@
             --accent: #00adb5;
             --input-bg: #0d1b3e;
             --input-border: rgba(255,255,255,0.15);
+            --accent-dim: rgba(0, 173, 181, 0.1);
+            --accent-hover: rgba(0, 173, 181, 0.15);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+            --radius: 10px;
+            --radius-sm: 6px;
         }
         [data-theme="light"] {
             --bg: #f0f2f5;
@@ -31,6 +37,10 @@
             --accent: #00838f;
             --input-bg: #fff;
             --input-border: #ccc;
+            --accent-dim: rgba(0, 131, 143, 0.08);
+            --accent-hover: rgba(0, 131, 143, 0.12);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -38,55 +48,162 @@
             background: var(--bg);
             color: var(--text);
             padding: 16px;
-            max-width: 680px;
+            max-width: 720px;
             margin: 0 auto;
         }
-        h1 { font-size: 1.4em; color: var(--accent); margin-bottom: 4px; }
-        .subtitle { color: var(--muted); font-size: 0.9em; margin-bottom: 24px; }
+        h1 { font-size: 1.4em; color: var(--accent); margin-bottom: 2px; }
+        .subtitle { color: var(--muted); font-size: 0.9em; }
+
+        /* ── Header ── */
         .top-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-        }
-        h2 {
-            font-size: 1.05em;
-            color: var(--accent);
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid var(--input-border);
-        }
-        .step-num {
-            display: inline-block;
-            background: var(--accent);
-            color: #000;
-            width: 24px; height: 24px;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 24px;
-            font-size: 0.85em;
-            font-weight: bold;
-            margin-right: 8px;
+            margin-bottom: 24px;
         }
         .lang-select {
             background: var(--card);
             color: var(--text);
             border: 1px solid var(--input-border);
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             padding: 4px 8px;
             font-size: 0.85em;
             font-family: inherit;
             cursor: pointer;
         }
+
+        /* ── Stepper ── */
+        .stepper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 28px;
+            padding: 0 12px;
+        }
+        .stepper-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: default;
+            position: relative;
+            z-index: 1;
+        }
+        .stepper-circle {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            font-weight: bold;
+            border: 2px solid var(--input-border);
+            background: var(--surface);
+            color: var(--muted);
+            transition: all 0.3s;
+        }
+        .stepper-label {
+            font-size: 0.75em;
+            color: var(--muted);
+            white-space: nowrap;
+            transition: color 0.3s;
+        }
+        .stepper-step.active .stepper-circle {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 12px rgba(0,173,181,0.4);
+        }
+        .stepper-step.active .stepper-label { color: var(--accent); font-weight: bold; }
+        .stepper-step.done .stepper-circle {
+            border-color: var(--good);
+            background: var(--good);
+            color: #fff;
+        }
+        .stepper-step.done .stepper-label { color: var(--good); }
+        .stepper-line {
+            flex: 1;
+            height: 2px;
+            background: var(--input-border);
+            margin: 0 4px;
+            margin-bottom: 22px;
+            transition: background 0.3s;
+        }
+        .stepper-line.done { background: var(--good); }
+        @media (max-width: 480px) {
+            .stepper-circle { width: 30px; height: 30px; font-size: 0.8em; }
+            .stepper-label { font-size: 0.65em; }
+        }
+
+        /* ── Panels ── */
+        .wizard-viewport {
+            position: relative;
+            overflow: hidden;
+        }
+        .step-panel {
+            display: none;
+            opacity: 0;
+        }
+        .step-panel.active {
+            display: block;
+            animation: fadeSlideIn 0.3s ease-out forwards;
+        }
+        .step-panel.slide-out-left {
+            display: block;
+            animation: fadeSlideOutLeft 0.3s ease-out forwards;
+        }
+        .step-panel.slide-out-right {
+            display: block;
+            animation: fadeSlideOutRight 0.3s ease-out forwards;
+        }
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes fadeSlideOutLeft {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(-30px); }
+        }
+        @keyframes fadeSlideOutRight {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(30px); }
+        }
+
+        /* ── Section Cards ── */
         .section {
             background: var(--surface);
-            border-radius: 8px;
-            padding: 16px 20px;
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .section:hover { border-color: var(--accent-dim); }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             margin-bottom: 16px;
         }
+        .section-icon {
+            width: 40px; height: 40px;
+            border-radius: var(--radius-sm);
+            background: var(--accent-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+        .section-title { font-size: 1.05em; color: var(--accent); font-weight: bold; }
+        .section-desc { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
+
+        /* ── Form Elements ── */
         .form-row {
             display: flex;
             flex-direction: column;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
         .form-row label {
             font-size: 0.85em;
@@ -96,32 +213,61 @@
         .form-row input, .form-row select {
             background: var(--input-bg);
             border: 1px solid var(--input-border);
-            border-radius: 4px;
-            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
             color: var(--text);
             font-size: 0.95em;
             font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent); }
+        .form-row input:focus, .form-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
         .form-row .hint { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
+        .form-row .field-error {
+            font-size: 0.8em;
+            color: var(--crit);
+            margin-top: 2px;
+            display: none;
+        }
+        .form-row.has-error input, .form-row.has-error select {
+            border-color: var(--crit);
+            box-shadow: 0 0 0 3px rgba(244,67,54,0.15);
+        }
+        .form-row.has-error .field-error { display: block; }
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 0 16px;
         }
         .form-grid .full { grid-column: 1 / -1; }
+
+        /* ── Buttons ── */
         .btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             padding: 8px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 0.9em;
             font-family: inherit;
             font-weight: bold;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
         }
+        .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn:active { transform: translateY(0); }
         .btn-primary { background: var(--accent); color: #000; }
         .btn-primary:hover { filter: brightness(1.15); }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            box-shadow: none;
+        }
         .btn-secondary {
             background: var(--card);
             color: var(--text);
@@ -129,51 +275,153 @@
         }
         .btn-secondary:hover { background: var(--accent); color: #000; }
         .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+
+        /* ── Test Result ── */
         .test-result {
             font-size: 0.85em;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
             display: none;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
         }
-        .test-ok { display: inline-block; background: rgba(76,175,80,0.2); color: var(--good); }
-        .test-fail { display: inline-block; background: rgba(244,67,54,0.2); color: var(--crit); }
-        .submit-row { text-align: right; margin-top: 8px; }
-        .submit-row .btn-primary { padding: 10px 32px; font-size: 1em; }
+        .test-ok {
+            display: flex;
+            background: rgba(76,175,80,0.15);
+            color: var(--good);
+            border: 1px solid rgba(76,175,80,0.3);
+        }
+        .test-fail {
+            display: flex;
+            background: rgba(244,67,54,0.15);
+            color: var(--crit);
+            border: 1px solid rgba(244,67,54,0.3);
+        }
+        .test-loading {
+            display: flex;
+            color: var(--muted);
+        }
+
+        /* ── Checkmark animation ── */
+        .check-icon { display: inline-block; }
+        @keyframes checkPop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .test-ok .check-icon { animation: checkPop 0.3s ease-out; }
+
+        /* ── Navigation ── */
+        .nav-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 24px;
+            gap: 12px;
+        }
+        .nav-row .btn-primary { padding: 10px 28px; font-size: 0.95em; }
+        .gate-hint {
+            font-size: 0.8em;
+            color: var(--warn);
+            text-align: right;
+            flex: 1;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: var(--shadow-sm); }
+            50% { box-shadow: 0 0 16px rgba(0,173,181,0.5); }
+        }
+        .btn-pulse { animation: pulse 1.5s ease-in-out 3; }
+
+        /* ── Integration Cards ── */
+        .integration-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+            border: 1px solid var(--input-border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .integration-card:hover { border-color: var(--accent-hover); }
+        .integration-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .integration-header .arrow {
+            transition: transform 0.2s;
+            font-size: 0.7em;
+            color: var(--muted);
+        }
+        .integration-card.open .integration-header .arrow { transform: rotate(90deg); }
+        .integration-header .int-title { font-size: 0.95em; font-weight: bold; }
+        .integration-header .int-hint {
+            font-size: 0.8em;
+            color: var(--muted);
+            margin-left: auto;
+        }
+        .integration-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .integration-card.open .integration-body { max-height: 600px; }
+        .integration-body-inner { padding: 0 20px 16px; }
+
+        /* ── Review ── */
+        .review-section {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .review-header h3 { font-size: 0.95em; color: var(--accent); }
+        .review-header a {
+            font-size: 0.8em;
+            color: var(--accent);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .review-header a:hover { text-decoration: underline; }
+        .review-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.88em;
+            border-bottom: 1px solid var(--accent-dim);
+        }
+        .review-row:last-child { border-bottom: none; }
+        .review-key { color: var(--muted); }
+        .review-val { color: var(--text); font-weight: 500; text-align: right; max-width: 60%; word-break: break-all; }
+        .review-empty { color: var(--muted); font-size: 0.85em; font-style: italic; padding: 8px 0; }
+
+        /* ── Error ── */
         .error-msg {
             background: rgba(244,67,54,0.15);
             border: 1px solid var(--crit);
             color: var(--crit);
             padding: 10px;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             margin-bottom: 16px;
             display: none;
         }
-        .advanced-toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 12px 20px;
-            background: var(--surface);
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border: 1px dashed var(--input-border);
-            user-select: none;
-        }
-        .advanced-toggle:hover { border-color: var(--accent); }
-        .advanced-toggle .arrow {
-            transition: transform 0.2s;
-            font-size: 0.8em;
-            color: var(--muted);
-        }
-        .advanced-toggle.open .arrow { transform: rotate(90deg); }
-        .advanced-toggle .adv-label { font-size: 0.9em; color: var(--muted); }
-        .advanced-toggle .adv-hint { font-size: 0.8em; color: var(--muted); margin-left: auto; }
-        .advanced-content { display: none; }
-        .advanced-content.open { display: block; }
+
         @media (max-width: 600px) {
             .form-grid { grid-template-columns: 1fr; }
-            .advanced-toggle .adv-hint { display: none; }
+            .integration-header .int-hint { display: none; }
+            body { padding: 12px; }
+            .section { padding: 16px; }
         }
     </style>
 </head>
@@ -194,205 +442,502 @@
     </select>
 </div>
 
+<!-- Stepper -->
+<div class="stepper" id="stepper">
+    <div class="stepper-step active" data-step="1">
+        <div class="stepper-circle">1</div>
+        <span class="stepper-label">{{ t.step_modem }}</span>
+    </div>
+    <div class="stepper-line" data-line="1"></div>
+    <div class="stepper-step" data-step="2">
+        <div class="stepper-circle">2</div>
+        <span class="stepper-label">{{ t.step_general }}</span>
+    </div>
+    <div class="stepper-line" data-line="2"></div>
+    <div class="stepper-step" data-step="3">
+        <div class="stepper-circle">3</div>
+        <span class="stepper-label">{{ t.step_integrations }}</span>
+    </div>
+    <div class="stepper-line" data-line="3"></div>
+    <div class="stepper-step" data-step="4">
+        <div class="stepper-circle">4</div>
+        <span class="stepper-label">{{ t.step_review }}</span>
+    </div>
+</div>
+
 <div class="error-msg" id="global-error"></div>
 
 <form id="setup-form" autocomplete="off">
+<div class="wizard-viewport">
 
-    <div class="section">
-        <h2><span class="step-num">1</span>{{ t.modem_connection }}</h2>
-        <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.modem_user_hint }}</p>
-        <div class="form-grid">
-            <div class="form-row full">
-                <label for="modem_url">{{ t.url }}</label>
-                <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}" placeholder="http://192.168.178.1">
-            </div>
-            <div class="form-row">
-                <label for="modem_user">{{ t.username }}</label>
-                <input type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}" placeholder="admin">
-            </div>
-            <div class="form-row">
-                <label for="modem_password">{{ t.password }}</label>
-                <input type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
-            </div>
-        </div>
-        <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testModem()">{{ t.test_connection }}</button>
-            <span class="test-result" id="modem-test"></span>
-        </div>
-    </div>
-
-    <div class="section">
-        <h2><span class="step-num">2</span>{{ t.general }}</h2>
-        <div class="form-grid">
-            <div class="form-row">
-                <label for="isp_select">{{ t.isp_name }}</label>
-                <select id="isp_select" onchange="onIspChange()">
-                    <option value="">{{ t.isp_select }}</option>
-                    {% for isp in t.isp_options %}
-                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
-                    {% endfor %}
-                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
-                </select>
-                <span class="hint">{{ t.isp_hint }}</span>
-            </div>
-            <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
-                <label for="isp_other_input">{{ t.isp_other }}</label>
-                <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
-            </div>
-            <div class="form-row">
-                <label for="poll_interval">{{ t.interval_sec }}</label>
-                <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
-                <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s / {{ t.default }}: 900s</span>
-            </div>
-            <div class="form-row">
-                <label for="history_days">{{ t.history_days }}</label>
-                <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="0" max="3650">
-                <span class="hint">{{ t.history_hint }}</span>
-            </div>
-            <div class="form-row">
-                <label for="snapshot_time">{{ t.snapshot_time }}</label>
-                <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
-                <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="advanced-toggle" id="mqtt-toggle" onclick="toggleAdvanced('mqtt')">
-        <span class="arrow">&#9654;</span>
-        <span class="adv-label">{{ t.advanced_mqtt }}</span>
-        <span class="adv-hint">{{ t.optional }}</span>
-    </div>
-    <div class="advanced-content" id="mqtt-section">
+    <!-- ═══ Step 1: Modem Connection ═══ -->
+    <div class="step-panel active" id="step-1">
         <div class="section">
-            <h2>{{ t.mqtt_broker }}</h2>
-            <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.mqtt_desc }}</p>
+            <div class="section-header">
+                <div class="section-icon">&#128225;</div>
+                <div>
+                    <div class="section-title">{{ t.modem_connection }}</div>
+                    <div class="section-desc">{{ t.welcome_desc }}</div>
+                </div>
+            </div>
+            <p style="font-size:0.85em; color:var(--muted); margin-bottom:14px;">{{ t.modem_user_hint }}</p>
             <div class="form-grid">
-                <div class="form-row">
-                    <label for="mqtt_host">Host</label>
-                    <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}" placeholder="e.g. 192.168.178.10">
-                </div>
-                <div class="form-row">
-                    <label for="mqtt_port">Port</label>
-                    <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}" placeholder="1883">
-                </div>
-                <div class="form-row">
-                    <label for="mqtt_user">{{ t.username_opt }}</label>
-                    <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
-                </div>
-                <div class="form-row">
-                    <label for="mqtt_password">{{ t.password_opt }}</label>
-                    <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
+                <div class="form-row full">
+                    <label for="modem_type">{{ t.modem_type }}</label>
+                    <select id="modem_type" name="modem_type">
+                        {% for key, name in modem_types %}
+                        <option value="{{ key }}" {% if config.modem_type == key %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="form-row full">
-                    <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
-                    <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}" placeholder="docsight">
+                    <label for="modem_url">{{ t.url }}</label>
+                    <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}" placeholder="http://192.168.178.1">
                 </div>
-                <div class="form-row full">
-                    <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
-                    <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
-                    <span class="hint">{{ t.discovery_prefix_hint }}</span>
+                <div class="form-row">
+                    <label for="modem_user">{{ t.username }}</label>
+                    <input type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}" placeholder="admin">
+                </div>
+                <div class="form-row">
+                    <label for="modem_password">{{ t.password }}</label>
+                    <input type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
                 </div>
             </div>
             <div class="btn-row">
-                <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
-                <span class="test-result" id="mqtt-test"></span>
+                <button type="button" class="btn btn-secondary" id="btn-test-modem" onclick="testModem()">{{ t.test_connection }}</button>
             </div>
+            <div class="test-result" id="modem-test"></div>
+        </div>
+        <div class="nav-row">
+            <div></div>
+            <span class="gate-hint" id="gate-hint">{{ t.modem_test_required }}</span>
+            <button type="button" class="btn btn-primary" id="btn-next-1" disabled onclick="WizardState.goTo(2)">{{ t.next }} &#8594;</button>
         </div>
     </div>
 
-    <div class="advanced-toggle" id="bqm-toggle" onclick="toggleAdvanced('bqm')">
-        <span class="arrow">&#9654;</span>
-        <span class="adv-label">ThinkBroadband BQM</span>
-        <span class="adv-hint">{{ t.optional }}</span>
-    </div>
-    <div class="advanced-content" id="bqm-section">
+    <!-- ═══ Step 2: General Settings ═══ -->
+    <div class="step-panel" id="step-2">
         <div class="section">
-            <h2>ThinkBroadband BQM</h2>
-            <div class="form-row">
-                <label for="bqm_url">{{ t.bqm_share_url }}</label>
-                <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
-                <span class="hint">{{ t.bqm_url_hint }}</span>
+            <div class="section-header">
+                <div class="section-icon">&#9881;</div>
+                <div>
+                    <div class="section-title">{{ t.general }}</div>
+                    <div class="section-desc">{{ t.poll_interval }}, {{ t.history_days }}, {{ t.snapshot_time }}</div>
+                </div>
             </div>
+            <div class="form-grid">
+                <div class="form-row">
+                    <label for="isp_select">{{ t.isp_name }}</label>
+                    <select id="isp_select" onchange="onIspChange()">
+                        <option value="">{{ t.isp_select }}</option>
+                        {% for isp in t.isp_options %}
+                        <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                        {% endfor %}
+                        <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                    </select>
+                    <span class="hint">{{ t.isp_hint }}</span>
+                </div>
+                <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
+                    <label for="isp_other_input">{{ t.isp_other }}</label>
+                    <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
+                </div>
+                <div class="form-row">
+                    <label for="poll_interval">{{ t.interval_sec }}</label>
+                    <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
+                    <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s / {{ t.default }}: 900s</span>
+                    <span class="field-error" id="poll-error"></span>
+                </div>
+                <div class="form-row">
+                    <label for="history_days">{{ t.history_days }}</label>
+                    <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="0" max="3650">
+                    <span class="hint">{{ t.history_hint }}</span>
+                </div>
+                <div class="form-row">
+                    <label for="snapshot_time">{{ t.snapshot_time }}</label>
+                    <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
+                    <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="nav-row">
+            <button type="button" class="btn btn-secondary" onclick="WizardState.goTo(1)">&#8592; {{ t.back }}</button>
+            <div></div>
+            <button type="button" class="btn btn-primary" onclick="WizardState.goTo(3)">{{ t.next }} &#8594;</button>
         </div>
     </div>
 
-    <div class="submit-row">
-        <button type="submit" class="btn btn-primary">{{ t.complete_setup }}</button>
+    <!-- ═══ Step 3: Integrations ═══ -->
+    <div class="step-panel" id="step-3">
+        <div class="section" style="box-shadow:none; border:none; background:transparent; padding:0; margin-bottom:8px;">
+            <div class="section-header">
+                <div class="section-icon">&#128279;</div>
+                <div>
+                    <div class="section-title">{{ t.integrations }}</div>
+                    <div class="section-desc">{{ t.optional }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MQTT / Home Assistant -->
+        <div class="integration-card" id="mqtt-card">
+            <div class="integration-header" onclick="toggleIntegration('mqtt-card')">
+                <span class="arrow">&#9654;</span>
+                <span class="int-title">{{ t.advanced_mqtt }}</span>
+                <span class="int-hint">{{ t.mqtt_optional_ha }}</span>
+            </div>
+            <div class="integration-body">
+                <div class="integration-body-inner">
+                    <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.mqtt_desc }}</p>
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label for="mqtt_host">Host</label>
+                            <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}" placeholder="e.g. 192.168.178.10">
+                        </div>
+                        <div class="form-row">
+                            <label for="mqtt_port">Port</label>
+                            <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}" placeholder="1883">
+                        </div>
+                        <div class="form-row">
+                            <label for="mqtt_user">{{ t.username_opt }}</label>
+                            <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
+                        </div>
+                        <div class="form-row">
+                            <label for="mqtt_password">{{ t.password_opt }}</label>
+                            <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
+                        </div>
+                        <div class="form-row full">
+                            <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
+                            <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}" placeholder="docsight">
+                        </div>
+                        <div class="form-row full">
+                            <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
+                            <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
+                            <span class="hint">{{ t.discovery_prefix_hint }}</span>
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
+                    </div>
+                    <div class="test-result" id="mqtt-test"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Speedtest Tracker -->
+        <div class="integration-card" id="speedtest-card">
+            <div class="integration-header" onclick="toggleIntegration('speedtest-card')">
+                <span class="arrow">&#9654;</span>
+                <span class="int-title">Speedtest Tracker</span>
+                <span class="int-hint">{{ t.optional }}</span>
+            </div>
+            <div class="integration-body">
+                <div class="integration-body-inner">
+                    <div class="form-grid">
+                        <div class="form-row full">
+                            <label for="speedtest_tracker_url">{{ t.speedtest_url }}</label>
+                            <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
+                            <span class="hint">{{ t.speedtest_url_hint }}</span>
+                        </div>
+                        <div class="form-row full">
+                            <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
+                            <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
+                            <span class="hint">{{ t.speedtest_token_hint }}</span>
+                        </div>
+                        <div class="form-row">
+                            <label for="booked_download">{{ t.booked_download }}</label>
+                            <input type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
+                            <span class="hint">{{ t.booked_download_hint }}</span>
+                        </div>
+                        <div class="form-row">
+                            <label for="booked_upload">{{ t.booked_upload }}</label>
+                            <input type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
+                            <span class="hint">{{ t.booked_upload_hint }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ThinkBroadband BQM -->
+        <div class="integration-card" id="bqm-card">
+            <div class="integration-header" onclick="toggleIntegration('bqm-card')">
+                <span class="arrow">&#9654;</span>
+                <span class="int-title">ThinkBroadband BQM</span>
+                <span class="int-hint">{{ t.optional }}</span>
+            </div>
+            <div class="integration-body">
+                <div class="integration-body-inner">
+                    <div class="form-row">
+                        <label for="bqm_url">{{ t.bqm_share_url }}</label>
+                        <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
+                        <span class="hint">{{ t.bqm_url_hint }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-row">
+            <button type="button" class="btn btn-secondary" onclick="WizardState.goTo(2)">&#8592; {{ t.back }}</button>
+            <div></div>
+            <button type="button" class="btn btn-primary" onclick="WizardState.goTo(4)">{{ t.next }} &#8594;</button>
+        </div>
     </div>
+
+    <!-- ═══ Step 4: Review ═══ -->
+    <div class="step-panel" id="step-4">
+        <div class="section" style="box-shadow:none; border:none; background:transparent; padding:0; margin-bottom:8px;">
+            <div class="section-header">
+                <div class="section-icon">&#9989;</div>
+                <div>
+                    <div class="section-title">{{ t.step_review }}</div>
+                    <div class="section-desc">{{ t.review_desc }}</div>
+                </div>
+            </div>
+        </div>
+        <div id="review-content"></div>
+        <div class="nav-row">
+            <button type="button" class="btn btn-secondary" onclick="WizardState.goTo(3)">&#8592; {{ t.back }}</button>
+            <div></div>
+            <button type="submit" class="btn btn-primary" style="padding:10px 32px;font-size:1em;">{{ t.finish_setup }}</button>
+        </div>
+    </div>
+
+</div>
 </form>
 
 <script>
 var T = {{ t|tojson }};
+var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
+var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'speedtest_tracker_token'];
 
+/* ── Wizard State ── */
+var WizardState = {
+    currentStep: 1,
+    totalSteps: 4,
+    modemTestPassed: false,
+
+    canProceed: function(step) {
+        if (step === 1) return this.modemTestPassed;
+        return true;
+    },
+
+    goTo: function(step) {
+        if (step < 1 || step > this.totalSteps) return;
+        if (step > this.currentStep && !this.canProceed(this.currentStep)) return;
+
+        var oldStep = this.currentStep;
+        this.currentStep = step;
+
+        /* Animate panels */
+        var oldPanel = document.getElementById('step-' + oldStep);
+        var newPanel = document.getElementById('step-' + step);
+
+        oldPanel.classList.remove('active');
+        oldPanel.classList.add(step > oldStep ? 'slide-out-left' : 'slide-out-right');
+
+        setTimeout(function() {
+            oldPanel.classList.remove('slide-out-left', 'slide-out-right');
+            oldPanel.style.display = 'none';
+            oldPanel.style.opacity = '0';
+            newPanel.style.display = 'block';
+            newPanel.style.opacity = '0';
+            newPanel.classList.add('active');
+        }, 250);
+
+        /* Update stepper */
+        this.updateStepper();
+
+        /* Populate review on step 4 */
+        if (step === 4) this.populateReview();
+    },
+
+    updateStepper: function() {
+        for (var i = 1; i <= this.totalSteps; i++) {
+            var stepEl = document.querySelector('.stepper-step[data-step="'+i+'"]');
+            var circle = stepEl.querySelector('.stepper-circle');
+            stepEl.classList.remove('active', 'done');
+            if (i < this.currentStep) {
+                stepEl.classList.add('done');
+                circle.innerHTML = '&#10003;';
+            } else if (i === this.currentStep) {
+                stepEl.classList.add('active');
+                circle.textContent = i;
+            } else {
+                circle.textContent = i;
+            }
+        }
+        for (var j = 1; j < this.totalSteps; j++) {
+            var line = document.querySelector('.stepper-line[data-line="'+j+'"]');
+            if (j < this.currentStep) {
+                line.classList.add('done');
+            } else {
+                line.classList.remove('done');
+            }
+        }
+    },
+
+    updateNav: function() {
+        var btn = document.getElementById('btn-next-1');
+        var hint = document.getElementById('gate-hint');
+        if (this.modemTestPassed) {
+            btn.disabled = false;
+            btn.classList.add('btn-pulse');
+            hint.style.display = 'none';
+        } else {
+            btn.disabled = true;
+            btn.classList.remove('btn-pulse');
+            hint.style.display = '';
+        }
+    },
+
+    collectAllData: function() {
+        var data = {};
+        var form = document.getElementById('setup-form');
+        form.querySelectorAll('input:not(#isp_other_input), select:not(#isp_select)').forEach(function(inp) {
+            if (!inp.name) return;
+            if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
+                data[inp.name] = inp.value || MASK;
+            } else {
+                data[inp.name] = inp.value;
+            }
+        });
+        var ispSel = document.getElementById('isp_select');
+        if (ispSel.value === '__other__') {
+            data.isp_name = document.getElementById('isp_other_input').value;
+        } else {
+            data.isp_name = ispSel.value;
+        }
+        data.modem_type = document.getElementById('modem_type').value;
+        data.language = '{{ lang }}';
+        return data;
+    },
+
+    populateReview: function() {
+        var data = this.collectAllData();
+        var container = document.getElementById('review-content');
+        var html = '';
+
+        /* Modem */
+        var modemTypeName = document.getElementById('modem_type').selectedOptions[0].text;
+        html += '<div class="review-section"><div class="review-header"><h3>' + T.modem_connection + '</h3><a onclick="WizardState.goTo(1)">' + T.edit + '</a></div>';
+        html += reviewRow(T.modem_type, modemTypeName);
+        html += reviewRow(T.url, data.modem_url || '');
+        html += reviewRow(T.username, data.modem_user || '');
+        html += reviewRow(T.password, MASK);
+        html += '</div>';
+
+        /* General */
+        html += '<div class="review-section"><div class="review-header"><h3>' + T.general + '</h3><a onclick="WizardState.goTo(2)">' + T.edit + '</a></div>';
+        html += reviewRow(T.isp_name, data.isp_name || '');
+        html += reviewRow(T.interval_sec, data.poll_interval + 's');
+        html += reviewRow(T.history_days, data.history_days);
+        html += reviewRow(T.snapshot_time, data.snapshot_time || '');
+        html += '</div>';
+
+        /* Integrations */
+        var hasInt = (data.mqtt_host || data.speedtest_tracker_url || data.bqm_url);
+        if (hasInt) {
+            html += '<div class="review-section"><div class="review-header"><h3>' + T.integrations + '</h3><a onclick="WizardState.goTo(3)">' + T.edit + '</a></div>';
+            if (data.mqtt_host) {
+                html += reviewRow('MQTT Host', data.mqtt_host + ':' + (data.mqtt_port || '1883'));
+                html += reviewRow(T.topic_prefix, data.mqtt_topic_prefix || 'docsight');
+            }
+            if (data.speedtest_tracker_url) {
+                html += reviewRow('Speedtest Tracker', data.speedtest_tracker_url);
+            }
+            if (data.bqm_url) {
+                html += reviewRow('BQM', data.bqm_url);
+            }
+            html += '</div>';
+        }
+
+        container.innerHTML = html;
+    }
+};
+
+function reviewRow(key, val) {
+    return '<div class="review-row"><span class="review-key">' + escHtml(key) + '</span><span class="review-val">' + escHtml(val) + '</span></div>';
+}
+
+function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+/* ── Modem Gate ── */
+var modemFields = ['modem_type', 'modem_url', 'modem_user', 'modem_password'];
+modemFields.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('input', function() {
+            if (WizardState.modemTestPassed) {
+                WizardState.modemTestPassed = false;
+                WizardState.updateNav();
+                var testEl = document.getElementById('modem-test');
+                testEl.className = 'test-result';
+                testEl.style.display = 'none';
+            }
+        });
+    }
+});
+
+/* ── Integration Cards ── */
+function toggleIntegration(id) {
+    document.getElementById(id).classList.toggle('open');
+}
+
+/* ── ISP Change ── */
 function onIspChange() {
     var sel = document.getElementById('isp_select');
     var row = document.getElementById('isp-other-row');
     row.style.display = sel.value === '__other__' ? 'flex' : 'none';
 }
 
-function toggleAdvanced(id) {
-    var toggle = document.getElementById(id + '-toggle');
-    var section = document.getElementById(id + '-section');
-    toggle.classList.toggle('open');
-    section.classList.toggle('open');
-}
-
-var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-var SECRET_FIELDS = ['modem_password', 'mqtt_password'];
-
+/* ── Form Data (alias) ── */
 function getFormData() {
-    var form = document.getElementById('setup-form');
-    var data = {};
-    var inputs = form.querySelectorAll('input');
-    inputs.forEach(function(inp) {
-        if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
-            data[inp.name] = inp.value || MASK;
-        } else {
-            data[inp.name] = inp.value;
-        }
-    });
-    var ispSel = document.getElementById('isp_select');
-    if (ispSel.value === '__other__') {
-        data.isp_name = document.getElementById('isp_other_input').value;
-    } else {
-        data.isp_name = ispSel.value;
-    }
-    data.language = '{{ lang }}';
-    return data;
+    return WizardState.collectAllData();
 }
 
+/* ── Modem Test ── */
 function testModem() {
     var el = document.getElementById('modem-test');
-    el.className = 'test-result';
-    el.style.display = 'inline-block';
-    el.textContent = T.testing;
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.innerHTML = '<span>&#8987;</span> ' + T.testing;
     var data = getFormData();
     fetch('/api/test-modem', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
+        body: JSON.stringify({modem_type: data.modem_type, modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
     })
     .then(function(r) { return r.json(); })
     .then(function(res) {
         if (res.success) {
             el.className = 'test-result test-ok';
-            el.textContent = T.connected + ': ' + (res.model || 'OK');
+            el.innerHTML = '<span class="check-icon">&#10003;</span> ' + T.connected + ': ' + escHtml(res.model || 'OK') + '<br><small>' + T.modem_test_passed + '</small>';
+            WizardState.modemTestPassed = true;
         } else {
             el.className = 'test-result test-fail';
-            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
+            el.innerHTML = '<span>&#10007;</span> ' + T.error_prefix + ': ' + escHtml(res.error || T.unknown_error);
+            WizardState.modemTestPassed = false;
         }
+        WizardState.updateNav();
     })
     .catch(function() {
         el.className = 'test-result test-fail';
-        el.textContent = T.network_error;
+        el.innerHTML = '<span>&#10007;</span> ' + T.network_error;
+        WizardState.modemTestPassed = false;
+        WizardState.updateNav();
     });
 }
 
+/* ── MQTT Test ── */
 function testMqtt() {
     var el = document.getElementById('mqtt-test');
-    el.className = 'test-result';
-    el.style.display = 'inline-block';
-    el.textContent = T.testing;
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.innerHTML = '<span>&#8987;</span> ' + T.testing;
     var data = getFormData();
     fetch('/api/test-mqtt', {
         method: 'POST',
@@ -403,23 +948,25 @@ function testMqtt() {
     .then(function(res) {
         if (res.success) {
             el.className = 'test-result test-ok';
-            el.textContent = T.connected;
+            el.innerHTML = '<span class="check-icon">&#10003;</span> ' + T.connected;
         } else {
             el.className = 'test-result test-fail';
-            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
+            el.innerHTML = '<span>&#10007;</span> ' + T.error_prefix + ': ' + escHtml(res.error || T.unknown_error);
         }
     })
     .catch(function() {
         el.className = 'test-result test-fail';
-        el.textContent = T.network_error;
+        el.innerHTML = '<span>&#10007;</span> ' + T.network_error;
     });
 }
 
+/* ── Submit ── */
 document.getElementById('setup-form').addEventListener('submit', function(e) {
     e.preventDefault();
     var errEl = document.getElementById('global-error');
     errEl.style.display = 'none';
-    var data = getFormData();
+    var data = WizardState.collectAllData();
+
     var pwField = document.getElementById('modem_password');
     if (!pwField.value && !pwField.placeholder) {
         errEl.textContent = T.pw_required;
@@ -430,6 +977,7 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
     if (interval < {{ poll_min }}) interval = {{ poll_min }};
     if (interval > {{ poll_max }}) interval = {{ poll_max }};
     data.poll_interval = String(interval);
+
     fetch('/api/config', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -450,6 +998,7 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
     });
 });
 
+/* ── Timezone Hint ── */
 (function() {
     var serverOffsetMin = {{ server_tz_offset }};
     var browserOffsetMin = -new Date().getTimezoneOffset();
@@ -472,6 +1021,24 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
     }
     updateTzHint();
     inp.addEventListener('change', updateTzHint);
+})();
+
+/* ── Poll interval validation ── */
+(function() {
+    var inp = document.getElementById('poll_interval');
+    inp.addEventListener('input', function() {
+        var row = inp.closest('.form-row');
+        var errEl = document.getElementById('poll-error');
+        var val = parseInt(inp.value);
+        if (inp.value && (val < {{ poll_min }} || val > {{ poll_max }})) {
+            row.classList.add('has-error');
+            errEl.textContent = 'Min: {{ poll_min }}s / Max: {{ poll_max }}s';
+            errEl.style.display = 'block';
+        } else {
+            row.classList.remove('has-error');
+            errEl.style.display = 'none';
+        }
+    });
 })();
 </script>
 
