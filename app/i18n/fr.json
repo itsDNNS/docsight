@@ -150,6 +150,8 @@
   "copy_clipboard": "Copier dans le presse-papiers",
   "copied": "Copié !",
   "close": "Fermer",
+  "export_full": "Contexte complet (48h)",
+  "export_update": "Mise à jour (6h)",
   "export_no_data": "Aucune donnée disponible. Attendez la première interrogation.",
   "login_title": "Connexion",
   "login_hint": "Entrez le mot de passe administrateur pour accéder à DOCSight.",
