@@ -255,25 +255,27 @@ def analyze(data: dict) -> dict:
         "ds_uncorrectable_errors": total_uncorr,
     }
 
-    # --- Overall health ---
+    # --- Overall health (aggregate from per-channel assessments) ---
     issues = []
-    # Summary uses default (256QAM) thresholds for overall health
-    ds_pt = _get_ds_power_thresholds()
-    us_pt = _get_us_power_thresholds()
-    snr_t = _get_snr_thresholds()
 
-    if ds_powers and (min(ds_powers) < ds_pt["crit_min"] or max(ds_powers) > ds_pt["crit_max"]):
+    # DS power: aggregate from individual channel health_detail
+    if any("power critical" in c["health_detail"] for c in ds_channels):
         issues.append("ds_power_critical")
-    elif ds_powers and (min(ds_powers) < ds_pt["good_min"] or max(ds_powers) > ds_pt["good_max"]):
+    elif any("power warning" in c["health_detail"] for c in ds_channels):
         issues.append("ds_power_warn")
-    if us_powers and (min(us_powers) < us_pt["crit_min"] or max(us_powers) > us_pt["crit_max"]):
+
+    # US power: aggregate from individual channel health_detail
+    if any("power critical" in c["health_detail"] for c in us_channels):
         issues.append("us_power_critical")
-    elif us_powers and (min(us_powers) < us_pt["good_min"] or max(us_powers) > us_pt["good_max"]):
+    elif any("power warning" in c["health_detail"] for c in us_channels):
         issues.append("us_power_warn")
-    if ds_snrs and min(ds_snrs) < snr_t["crit_min"]:
+
+    # SNR: aggregate from individual channel health_detail
+    if any("snr critical" in c["health_detail"] for c in ds_channels):
         issues.append("snr_critical")
-    elif ds_snrs and min(ds_snrs) < snr_t["good_min"]:
+    elif any("snr warning" in c["health_detail"] for c in ds_channels):
         issues.append("snr_warn")
+
     if total_uncorr > _get_uncorr_threshold():
         issues.append("uncorr_errors_high")
 
