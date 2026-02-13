@@ -178,6 +178,32 @@ class TestConfigState:
         config.save({"mqtt_host": "broker.local"})
         assert config.is_mqtt_configured() is True
 
+    def test_empty_discovery_prefix_returns_default(self, tmp_data_dir):
+        """Empty mqtt_discovery_prefix should fall back to 'homeassistant'."""
+        config = ConfigManager(tmp_data_dir)
+        config.save({"mqtt_discovery_prefix": ""})
+        assert config.get("mqtt_discovery_prefix") == "homeassistant"
+
+    def test_empty_topic_prefix_returns_default(self, tmp_data_dir):
+        """Empty mqtt_topic_prefix should fall back to 'docsight'."""
+        config = ConfigManager(tmp_data_dir)
+        config.save({"mqtt_topic_prefix": ""})
+        assert config.get("mqtt_topic_prefix") == "docsight"
+
+    def test_custom_discovery_prefix_preserved(self, tmp_data_dir):
+        """Non-empty mqtt_discovery_prefix should be preserved."""
+        config = ConfigManager(tmp_data_dir)
+        config.save({"mqtt_discovery_prefix": "custom_ha"})
+        assert config.get("mqtt_discovery_prefix") == "custom_ha"
+
+    def test_empty_prefix_normalized_on_save(self, tmp_data_dir):
+        """Empty prefix keys should be replaced with defaults in config.json."""
+        config = ConfigManager(tmp_data_dir)
+        config.save({"mqtt_discovery_prefix": ""})
+        with open(os.path.join(tmp_data_dir, "config.json")) as f:
+            raw = json.load(f)
+        assert raw["mqtt_discovery_prefix"] == "homeassistant"
+
     def test_theme_validation(self, config):
         assert config.get_theme() == "dark"
         config.save({"theme": "light"})
