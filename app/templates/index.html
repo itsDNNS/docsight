@@ -1208,8 +1208,8 @@
                 </td>
                 <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
-                <td data-sort="{{ ch.power if ch.power is not none else 0 }}" class="{% if ch.power is not none %}{% if ch.power < -8 or ch.power > 20 %}val-crit{% elif ch.power < -4 or ch.power > 13 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
-                <td data-sort="{{ ch.snr if ch.snr is not none else 0 }}" class="{% if ch.snr is not none %}{% if ch.snr < 29 %}val-crit{% elif ch.snr < 33 %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
+                <td data-sort="{{ ch.power if ch.power is not none else 0 }}" class="{% if ch.power is not none %}{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power }}</td>
+                <td data-sort="{{ ch.snr if ch.snr is not none else 0 }}" class="{% if ch.snr is not none %}{% if 'snr critical' in ch.health_detail %}val-crit{% elif 'snr warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
                 <td>{{ ch.modulation }}</td>
                 <td data-sort="{{ ch.correctable_errors }}">{{ ch.correctable_errors|fmt_k }}</td>
                 <td data-sort="{{ ch.uncorrectable_errors }}">{{ ch.uncorrectable_errors|fmt_k }}</td>
@@ -1242,7 +1242,7 @@
                 </td>
                 <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
-                <td data-sort="{{ ch.power }}" class="{% if ch.power < 35 or ch.power > 53 %}val-crit{% elif ch.power < 41 or ch.power > 47 %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
+                <td data-sort="{{ ch.power }}" class="{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
                 <td>{{ ch.modulation }}</td>
                 <td>{{ ch.multiplex }}</td>
             </tr>
