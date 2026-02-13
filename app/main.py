@@ -43,7 +43,7 @@ def polling_loop(config_mgr, storage, stop_event):
             user=mqtt_user,
             password=mqtt_password,
             topic_prefix=config["mqtt_topic_prefix"],
-            ha_prefix=config["mqtt_discovery_prefix"],
+            ha_prefix=config["mqtt_discovery_prefix"] or "homeassistant",
         )
         try:
             mqtt_pub.connect()
