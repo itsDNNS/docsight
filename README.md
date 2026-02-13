@@ -130,7 +130,20 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 
 ## Roadmap
 
-See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki.
+**Next: [v2.0 — Unified Collector Architecture](https://github.com/itsDNNS/docsight/milestone/1)**
+
+| Feature | Issue |
+|---|---|
+| Unified Collector Architecture | [#23](https://github.com/itsDNNS/docsight/issues/23) |
+| FritzBox Event Log Integration | [#17](https://github.com/itsDNNS/docsight/issues/17) |
+| OFDMA Channel Analysis | [#18](https://github.com/itsDNNS/docsight/issues/18) |
+| Notification System | [#19](https://github.com/itsDNNS/docsight/issues/19) |
+| Ping Monitor | [#20](https://github.com/itsDNNS/docsight/issues/20) |
+| Modulation Watchdog & Power Drift | [#21](https://github.com/itsDNNS/docsight/issues/21) |
+| Smokeping Integration | [#22](https://github.com/itsDNNS/docsight/issues/22) |
+| Vodafone Station Support | [#14](https://github.com/itsDNNS/docsight/issues/14) |
+
+See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
 
 ## Changelog
 
