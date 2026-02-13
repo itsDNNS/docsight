@@ -76,6 +76,11 @@ def _get_uncorr_threshold():
     return _thresholds.get("errors", {}).get("uncorrectable_threshold", 10000)
 
 
+def get_thresholds():
+    """Return the currently loaded thresholds dict (read-only access)."""
+    return _thresholds
+
+
 # Load on module import
 _load_thresholds()
 
