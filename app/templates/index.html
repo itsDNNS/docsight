@@ -1681,6 +1681,16 @@
             <button class="modal-close" onclick="closeExportModal()">&times;</button>
         </div>
         <p class="modal-hint">{{ t.export_hint }}</p>
+        <div class="export-mode-selector" style="padding:0 1.5rem;display:flex;gap:1.2rem;margin-bottom:0.5rem;">
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                <input type="radio" name="export-mode" value="full" checked onchange="exportForLLM()">
+                &#128202; {{ t.export_full }}
+            </label>
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                <input type="radio" name="export-mode" value="update" onchange="exportForLLM()">
+                &#9200; {{ t.export_update }}
+            </label>
+        </div>
         <div class="modal-body">
             <textarea id="export-text" readonly></textarea>
         </div>
@@ -3030,9 +3040,11 @@ function exportForLLM() {
     var T = {{ t|tojson }};
     var modal = document.getElementById('export-modal');
     var textarea = document.getElementById('export-text');
+    var modeEl = document.querySelector('input[name="export-mode"]:checked');
+    var mode = modeEl ? modeEl.value : 'full';
     textarea.value = T.export_no_data;
     modal.classList.add('open');
-    fetch('/api/export')
+    fetch('/api/export?mode=' + mode)
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.text) {

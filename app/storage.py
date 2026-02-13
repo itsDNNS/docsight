@@ -550,6 +550,35 @@ class SnapshotStorage:
             ).rowcount
         return rowcount
 
+    def get_recent_events(self, hours=48):
+        """Return events from the last N hours, newest first."""
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, timestamp, severity, event_type, message, details, acknowledged "
+                "FROM events WHERE timestamp >= ? ORDER BY timestamp DESC",
+                (cutoff,),
+            ).fetchall()
+        results = []
+        for r in rows:
+            event = dict(r)
+            if event["details"]:
+                try:
+                    event["details"] = json.loads(event["details"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            results.append(event)
+        return results
+
+    def get_recent_speedtests(self, limit=10):
+        """Return the N most recent speedtest results."""
+        return self.get_speedtest_results(limit=limit)
+
+    def get_active_incidents(self):
+        """Return all incidents (for export context)."""
+        return self.get_incidents(limit=100)
+
     def delete_old_events(self, days):
         """Delete events older than given days. Returns count deleted."""
         if days <= 0:
