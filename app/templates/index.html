@@ -491,6 +491,14 @@
         .mod-badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.82em; font-weight: 600; background: rgba(0,173,181,0.15); color: var(--accent); }
         .mod-badge-changed { background: rgba(255,152,0,0.2); color: var(--warn); }
         .mod-badge .mod-ts { font-size: 0.8em; opacity: 0.7; margin-right: 4px; }
+        .mod-tl { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
+        .mod-tl-seg { display: flex; flex-direction: column; align-items: center; padding: 8px 14px; border-radius: 6px; font-weight: 600; min-width: 70px; }
+        .mod-tl-stable { background: rgba(0,173,181,0.15); color: var(--accent); }
+        .mod-tl-down { background: rgba(244,67,54,0.2); color: #f44336; }
+        .mod-tl-up { background: rgba(76,175,80,0.2); color: #4caf50; }
+        .mod-tl-time { font-size: 0.72em; opacity: 0.6; margin-bottom: 2px; }
+        .mod-tl-label { font-size: 0.9em; }
+        .mod-tl-arrow { color: var(--muted); font-size: 1.2em; }
 
         /* ── Chart Zoom Modal ── */
         .chart-zoom-overlay {
@@ -1396,7 +1404,7 @@
             <div class="chart-label">{{ t.power_history }}</div>
             <canvas id="chart-ch-power"></canvas>
         </div>
-        <div class="chart-card">
+        <div class="chart-card" id="channel-errors-card">
             <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand">&#x26F6;</button>
             <div class="chart-label">{{ t.error_history }}</div>
             <canvas id="chart-ch-errors"></canvas>
@@ -2768,20 +2776,23 @@
                 var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0'}];
                 var powerZones = direction === 'ds' ? DS_POWER_ZONES : US_POWER_ZONES;
                 var powerLabel = document.querySelector('#channel-charts .chart-card:first-child .chart-label');
+                var errorsCard = document.getElementById('channel-errors-card');
                 if (direction === 'ds') {
                     powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
                     powerZones = null;
                     if (powerLabel) powerLabel.textContent = (T.power_dbmv || 'Power') + ' & ' + (T.snr_db || 'SNR');
+                    errorsCard.style.display = '';
+                    renderChart('chart-ch-errors', xLabels, [
+                        {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
+                        {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
+                    ], 'bar');
                 } else {
                     if (powerLabel) powerLabel.textContent = T.power_dbmv || 'Power (dBmV)';
+                    errorsCard.style.display = 'none';
                 }
                 renderChart('chart-ch-power', xLabels, powerDatasets, null, powerZones);
-                renderChart('chart-ch-errors', xLabels, [
-                    {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
-                    {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
-                ], 'bar');
 
-                // Modulation badges
+                // Modulation timeline
                 var modEl = document.getElementById('channel-modulation-badges');
                 var modCard = document.getElementById('channel-modulation-card');
                 var mods = data.filter(function(d) { return d.modulation; });
@@ -2795,16 +2806,28 @@
                             changes.push({ts: mods[i].timestamp, mod: mods[i].modulation});
                         }
                     }
-                    var html = '';
+                    // Add end timestamp for timeline segments
+                    var html = '<div class="mod-tl">';
                     if (changes.length === 1) {
-                        html = '<span class="mod-badge">' + (T.modulation || 'Modulation') + ': ' + escapeHtml(changes[0].mod) + '</span>';
+                        html += '<div class="mod-tl-seg mod-tl-stable"><span class="mod-tl-label">' + escapeHtml(changes[0].mod) + '</span></div>';
                     } else {
                         for (var j = 0; j < changes.length; j++) {
-                            var tsLabel = changes[j].ts.substring(5, 16).replace('T', ' ');
-                            var cls = j === 0 ? 'mod-badge' : 'mod-badge mod-badge-changed';
-                            html += '<span class="' + cls + '"><span class="mod-ts">' + escapeHtml(tsLabel) + '</span>' + escapeHtml(changes[j].mod) + '</span>';
+                            var startTs = changes[j].ts.substring(5, 16).replace('T', ' ');
+                            var qamNum = function(s) { var m = s.match(/(\d+)/); return m ? parseInt(m[1]) : 0; };
+                            var isDowngrade = j > 0 && qamNum(changes[j].mod) < qamNum(changes[j-1].mod);
+                            var isUpgrade = j > 0 && qamNum(changes[j].mod) > qamNum(changes[j-1].mod);
+                            var segClass = 'mod-tl-seg';
+                            if (isDowngrade) segClass += ' mod-tl-down';
+                            else if (isUpgrade) segClass += ' mod-tl-up';
+                            else segClass += ' mod-tl-stable';
+                            html += '<div class="' + segClass + '">';
+                            html += '<span class="mod-tl-time">' + escapeHtml(startTs) + '</span>';
+                            html += '<span class="mod-tl-label">' + escapeHtml(changes[j].mod) + '</span>';
+                            html += '</div>';
+                            if (j < changes.length - 1) html += '<div class="mod-tl-arrow">→</div>';
                         }
                     }
+                    html += '</div>';
                     modEl.innerHTML = html;
                 }
             })
