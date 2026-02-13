@@ -361,13 +361,16 @@ def api_test_modem():
         password = data.get("modem_password", "")
         if password == PASSWORD_MASK and _config_manager:
             password = _config_manager.get("modem_password", "")
-        from . import fritzbox
-        sid = fritzbox.login(
+        from .drivers import load_driver
+        modem_type = data.get("modem_type", "fritzbox")
+        driver = load_driver(
+            modem_type,
             data.get("modem_url", "http://192.168.178.1"),
             data.get("modem_user", ""),
             password,
         )
-        info = fritzbox.get_device_info(data.get("modem_url"), sid)
+        driver.login()
+        info = driver.get_device_info()
         return jsonify({"success": True, "model": info.get("model", "OK")})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -399,7 +402,7 @@ def api_test_mqtt():
 @app.route("/api/poll", methods=["POST"])
 @require_auth
 def api_poll():
-    """Trigger an immediate FritzBox poll and return fresh analysis."""
+    """Trigger an immediate modem poll and return fresh analysis."""
     global _last_manual_poll
     if not _config_manager:
         return jsonify({"success": False, "error": "Not configured"}), 500
@@ -411,12 +414,15 @@ def api_poll():
         return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
 
     try:
-        from . import fritzbox, analyzer
+        from . import analyzer
+        from .drivers import load_driver
         config = _config_manager.get_all()
-        sid = fritzbox.login(
+        driver = load_driver(
+            config.get("modem_type", "fritzbox"),
             config["modem_url"], config["modem_user"], config["modem_password"],
         )
-        data = fritzbox.get_docsis_data(config["modem_url"], sid)
+        driver.login()
+        data = driver.get_docsis_data()
         analysis = analyzer.analyze(data)
         update_state(analysis=analysis)
         if _storage:
