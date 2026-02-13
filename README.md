@@ -95,6 +95,10 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 |---|---|
 | ![Speedtest](docs/screenshots/speedtest.png) | ![Journal](docs/screenshots/journal.png) |
 
+| Channel Timeline | Event Log |
+|---|---|
+| ![Channel Timeline](docs/screenshots/channel-timeline.png) | ![Events](docs/screenshots/events.png) |
+
 </details>
 
 ---
