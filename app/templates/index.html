@@ -2817,10 +2817,10 @@
                     modCard.style.display = '';
                     // Fixed QAM scales per channel direction and DOCSIS version
                     var is31 = docsisVersion === '3.1' || docsisVersion === '4.0';
-                    var usQam30 = [4, 16, 32, 64];
-                    var usQam31 = [16, 64, 256, 1024];
+                    var usQam30 = [4, 8, 16, 32, 64, 128];
+                    var usQam31 = [4, 8, 16, 32, 64, 128, 256, 512, 1024];
                     var dsQam30 = [64, 256];
-                    var dsQam31 = [64, 256, 1024, 4096];
+                    var dsQam31 = [16, 64, 256, 1024, 2048, 4096];
                     var qamSteps;
                     if (direction === 'us') { qamSteps = is31 ? usQam31 : usQam30; }
                     else { qamSteps = is31 ? dsQam31 : dsQam30; }
