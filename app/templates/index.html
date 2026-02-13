@@ -2302,7 +2302,8 @@
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
                     legend: { display: hasLegend, position: legendPos, labels: { color: textColor, font: { size: 11 } } },
-                    tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1 }
+                    tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1,
+                        callbacks: opts && opts.tooltipLabelCallback ? { label: opts.tooltipLabelCallback } : undefined }
                 },
                 scales: {
                     x: { ticks: { color: textColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
@@ -2372,7 +2373,8 @@
                     interaction: { intersect: false, mode: 'index' },
                     plugins: {
                         legend: { display: hasLegend, position: 'bottom', labels: { color: textColor, font: { size: 12 } } },
-                        tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1 }
+                        tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1,
+                            callbacks: params.opts && params.opts.tooltipLabelCallback ? { label: params.opts.tooltipLabelCallback } : undefined }
                     },
                     scales: {
                         x: { ticks: { color: textColor, font: { size: 11 }, maxRotation: 45 }, grid: { color: gridColor } },
@@ -2832,6 +2834,7 @@
                         {label: T.modulation || 'Modulation', data: modValues, color: '#ffab40', stepped: true}
                     ], null, null, {
                         yTickCallback: function(value) { return qamLabel[qamSteps[value]] || ''; },
+                        tooltipLabelCallback: function(ctx) { return (T.modulation || 'Modulation') + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw); },
                         yMin: -0.5,
                         yMax: qamSteps.length - 0.5,
                         yAfterBuildTicks: function(axis) {
