@@ -142,6 +142,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Modulation Watchdog & Power Drift | [#21](https://github.com/itsDNNS/docsight/issues/21) |
 | Smokeping Integration | [#22](https://github.com/itsDNNS/docsight/issues/22) |
 | Vodafone Station Support | [#14](https://github.com/itsDNNS/docsight/issues/14) |
+| Technicolor TC4400 Support | [#24](https://github.com/itsDNNS/docsight/issues/24) |
 
 See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
 
