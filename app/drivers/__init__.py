@@ -9,6 +9,10 @@ DRIVER_REGISTRY = {
     "fritzbox": "app.drivers.fritzbox.FritzBoxDriver",
 }
 
+DRIVER_DISPLAY_NAMES = {
+    "fritzbox": "AVM FRITZ!Box",
+}
+
 
 def load_driver(modem_type, url, user, password):
     """Instantiate a modem driver by type name."""

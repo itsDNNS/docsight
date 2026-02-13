@@ -310,7 +310,9 @@ def setup():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset)
+    from .drivers import DRIVER_REGISTRY, DRIVER_DISPLAY_NAMES
+    modem_types = [(k, DRIVER_DISPLAY_NAMES.get(k, k)) for k in sorted(DRIVER_REGISTRY)]
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types)
 
 
 @app.route("/settings")
@@ -321,7 +323,9 @@ def settings():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset)
+    from .drivers import DRIVER_REGISTRY, DRIVER_DISPLAY_NAMES
+    modem_types = [(k, DRIVER_DISPLAY_NAMES.get(k, k)) for k in sorted(DRIVER_REGISTRY)]
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types)
 
 
 @app.route("/api/config", methods=["POST"])

@@ -18,6 +18,12 @@
             --accent: #00adb5;
             --input-bg: #0d1b3e;
             --input-border: rgba(255,255,255,0.15);
+            --accent-dim: rgba(0, 173, 181, 0.1);
+            --accent-hover: rgba(0, 173, 181, 0.15);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+            --radius: 10px;
+            --radius-sm: 6px;
         }
         [data-theme="light"] {
             --bg: #f0f2f5;
@@ -31,6 +37,10 @@
             --accent: #00838f;
             --input-bg: #fff;
             --input-border: #ccc;
+            --accent-dim: rgba(0, 131, 143, 0.08);
+            --accent-hover: rgba(0, 131, 143, 0.12);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -38,17 +48,12 @@
             background: var(--bg);
             color: var(--text);
             padding: 16px;
-            max-width: 680px;
+            max-width: 860px;
             margin: 0 auto;
         }
         h1 { font-size: 1.4em; color: var(--accent); margin-bottom: 4px; }
-        h2 {
-            font-size: 1.05em;
-            color: var(--accent);
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid var(--input-border);
-        }
+
+        /* ── Header ── */
         .header {
             display: flex;
             justify-content: space-between;
@@ -57,16 +62,220 @@
         }
         .header a { color: var(--accent); text-decoration: none; font-size: 0.9em; }
         .header a:hover { text-decoration: underline; }
-        .theme-toggle {
+
+        /* ── Layout: Sidebar + Content ── */
+        .settings-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        /* ── Sidebar Tabs (Desktop) ── */
+        .tab-sidebar {
+            width: 180px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            position: sticky;
+            top: 16px;
+        }
+        .tab-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            padding: 10px 16px;
-            background: var(--surface);
-            border-radius: 8px;
+            gap: 10px;
+            padding: 10px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--muted);
+            font-size: 0.9em;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.2s, color 0.2s;
+            border: 1px solid transparent;
         }
-        .theme-toggle label { font-size: 0.9em; color: var(--muted); }
+        .tab-btn:hover { background: var(--accent-dim); color: var(--text); }
+        .tab-btn.active {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border-color: var(--accent);
+            font-weight: bold;
+        }
+        .tab-icon { font-size: 1.1em; width: 20px; text-align: center; }
+
+        /* ── Mobile Tabs ── */
+        .tab-bar-mobile {
+            display: none;
+            overflow-x: auto;
+            gap: 4px;
+            margin-bottom: 16px;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tab-bar-mobile .tab-btn {
+            white-space: nowrap;
+            flex-shrink: 0;
+            padding: 8px 14px;
+            font-size: 0.85em;
+        }
+
+        /* ── Content Area ── */
+        .tab-content { flex: 1; min-width: 0; }
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .tab-panel.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ── Section Cards ── */
+        .section {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .section:hover { border-color: var(--accent-dim); }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .section-icon {
+            width: 40px; height: 40px;
+            border-radius: var(--radius-sm);
+            background: var(--accent-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+        .section-title { font-size: 1.05em; color: var(--accent); font-weight: bold; }
+        .section-desc { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
+
+        /* ── Form Elements ── */
+        .form-row { display: flex; flex-direction: column; margin-bottom: 14px; }
+        .form-row label { font-size: 0.85em; color: var(--muted); margin-bottom: 4px; }
+        .form-row input, .form-row select {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            color: var(--text);
+            font-size: 0.95em;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-row input:focus, .form-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+        .form-row .hint { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+        .form-grid .full { grid-column: 1 / -1; }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.9em;
+            font-family: inherit;
+            font-weight: bold;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn:active { transform: translateY(0); }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { filter: brightness(1.15); }
+        .btn-secondary {
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid var(--input-border);
+        }
+        .btn-secondary:hover { background: var(--accent); color: #000; }
+        .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+
+        /* ── Test Result ── */
+        .test-result {
+            font-size: 0.85em;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .test-ok {
+            display: flex;
+            background: rgba(76,175,80,0.15);
+            color: var(--good);
+            border: 1px solid rgba(76,175,80,0.3);
+        }
+        .test-fail {
+            display: flex;
+            background: rgba(244,67,54,0.15);
+            color: var(--crit);
+            border: 1px solid rgba(244,67,54,0.3);
+        }
+        .test-loading { display: flex; color: var(--muted); }
+        .check-icon { display: inline-block; }
+        @keyframes checkPop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .test-ok .check-icon { animation: checkPop 0.3s ease-out; }
+
+        /* ── Submit Row ── */
+        .submit-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+        .submit-row .btn-primary { padding: 10px 32px; font-size: 1em; }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; top: 16px; right: 16px; padding: 12px 20px;
+            border-radius: var(--radius-sm); font-size: 0.9em; font-weight: bold;
+            z-index: 1000; display: none;
+            box-shadow: var(--shadow-md);
+        }
+        .toast-ok { background: rgba(76,175,80,0.95); color: #fff; }
+        .toast-fail { background: rgba(244,67,54,0.95); color: #fff; }
+
+        /* ── Error ── */
+        .error-msg {
+            background: rgba(244,67,54,0.15);
+            border: 1px solid var(--crit);
+            color: var(--crit);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        /* ── Theme Toggle ── */
+        .theme-toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+        }
+        .theme-toggle-row label { font-size: 0.9em; color: var(--muted); }
         .toggle-switch { position: relative; width: 48px; height: 24px; cursor: pointer; }
         .toggle-switch input { display: none; }
         .toggle-slider {
@@ -80,63 +289,55 @@
             border-radius: 50%; transition: transform 0.2s;
         }
         .toggle-switch input:checked + .toggle-slider::before { transform: translateX(24px); }
-        .section {
+
+        /* ── Integration Cards ── */
+        .integration-card {
             background: var(--surface);
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 16px;
-        }
-        .form-row { display: flex; flex-direction: column; margin-bottom: 12px; }
-        .form-row label { font-size: 0.85em; color: var(--muted); margin-bottom: 4px; }
-        .form-row input, .form-row select {
-            background: var(--input-bg);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
             border: 1px solid var(--input-border);
-            border-radius: 4px;
-            padding: 8px 10px;
-            color: var(--text);
-            font-size: 0.95em;
-            font-family: inherit;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: border-color 0.2s;
         }
-        .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent); }
-        .form-row .hint { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
-        .form-grid .full { grid-column: 1 / -1; }
-        .btn {
-            display: inline-block; padding: 8px 20px; border: none;
-            border-radius: 4px; cursor: pointer; font-size: 0.9em;
-            font-family: inherit; font-weight: bold;
+        .integration-card:hover { border-color: var(--accent-hover); }
+        .integration-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            cursor: pointer;
+            user-select: none;
         }
-        .btn-primary { background: var(--accent); color: #000; }
-        .btn-primary:hover { filter: brightness(1.15); }
-        .btn-secondary {
-            background: var(--card); color: var(--text);
-            border: 1px solid var(--input-border);
+        .integration-header .arrow {
+            transition: transform 0.2s;
+            font-size: 0.7em;
+            color: var(--muted);
         }
-        .btn-secondary:hover { background: var(--accent); color: #000; }
-        .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
-        .test-result { font-size: 0.85em; padding: 4px 8px; border-radius: 4px; display: none; }
-        .test-ok { display: inline-block; background: rgba(76,175,80,0.2); color: var(--good); }
-        .test-fail { display: inline-block; background: rgba(244,67,54,0.2); color: var(--crit); }
-        .submit-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
-        .submit-row .btn-primary { padding: 10px 32px; font-size: 1em; }
-        .toast {
-            position: fixed; top: 16px; right: 16px; padding: 12px 20px;
-            border-radius: 6px; font-size: 0.9em; font-weight: bold;
-            z-index: 1000; display: none;
+        .integration-card.open .integration-header .arrow { transform: rotate(90deg); }
+        .integration-header .int-title { font-size: 0.95em; font-weight: bold; }
+        .integration-header .int-hint {
+            font-size: 0.8em;
+            color: var(--muted);
+            margin-left: auto;
         }
-        .toast-ok { background: rgba(76,175,80,0.9); color: #fff; }
-        .toast-fail { background: rgba(244,67,54,0.9); color: #fff; }
-        .error-msg {
-            background: rgba(244,67,54,0.15); border: 1px solid var(--crit);
-            color: var(--crit); padding: 10px; border-radius: 6px;
-            margin-bottom: 16px; display: none;
+        .integration-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
         }
-        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
-        details.section > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
-        details.section > summary::-webkit-details-marker { display: none; }
-        details.section > summary::before { content: '▶'; font-size: 0.7em; transition: transform 0.2s; }
-        details.section[open] > summary::before { transform: rotate(90deg); }
-        details.section > summary > h2 { margin: 0; }
+        .integration-card.open .integration-body { max-height: 600px; }
+        .integration-body-inner { padding: 0 20px 16px; }
+
+        /* ── Responsive ── */
+        @media (max-width: 700px) {
+            .settings-layout { flex-direction: column; }
+            .tab-sidebar { display: none; }
+            .tab-bar-mobile { display: flex; }
+            .form-grid { grid-template-columns: 1fr; }
+            body { padding: 12px; }
+            .section { padding: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -149,167 +350,305 @@
 <div class="error-msg" id="global-error"></div>
 <div class="toast" id="toast"></div>
 
-<div class="theme-toggle">
-    <label>{{ t.light_mode }}</label>
-    <label class="toggle-switch">
-        <input type="checkbox" id="theme-check" {% if theme == 'dark' %}checked{% endif %}>
-        <span class="toggle-slider"></span>
-    </label>
-    <label>{{ t.dark_mode }}</label>
+<!-- Mobile Tab Bar -->
+<div class="tab-bar-mobile" id="tab-bar-mobile">
+    <button class="tab-btn active" onclick="switchTab('modem')" data-tab="modem">
+        <span class="tab-icon">&#128225;</span> {{ t.step_modem }}
+    </button>
+    <button class="tab-btn" onclick="switchTab('general')" data-tab="general">
+        <span class="tab-icon">&#9881;</span> {{ t.step_general }}
+    </button>
+    <button class="tab-btn" onclick="switchTab('integrations')" data-tab="integrations">
+        <span class="tab-icon">&#128279;</span> {{ t.step_integrations }}
+    </button>
+    <button class="tab-btn" onclick="switchTab('appearance')" data-tab="appearance">
+        <span class="tab-icon">&#127912;</span> {{ t.appearance }}
+    </button>
 </div>
 
-<form id="settings-form" autocomplete="off">
+<div class="settings-layout">
 
-    <div class="section">
-        <h2>{{ t.modem_connection }}</h2>
-        <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.modem_user_hint }}</p>
-        <div class="form-grid">
-            <div class="form-row full">
-                <label for="modem_url">{{ t.url }}</label>
-                <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}">
-            </div>
-            <div class="form-row">
-                <label for="modem_user">{{ t.username }}</label>
-                <input type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}">
-            </div>
-            <div class="form-row">
-                <label for="modem_password">{{ t.password }}</label>
-                <input type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
-            </div>
-        </div>
-        <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testModem()">{{ t.test_connection }}</button>
-            <span class="test-result" id="modem-test"></span>
-        </div>
+    <!-- Desktop Sidebar -->
+    <div class="tab-sidebar" id="tab-sidebar">
+        <button class="tab-btn active" onclick="switchTab('modem')" data-tab="modem">
+            <span class="tab-icon">&#128225;</span> {{ t.step_modem }}
+        </button>
+        <button class="tab-btn" onclick="switchTab('general')" data-tab="general">
+            <span class="tab-icon">&#9881;</span> {{ t.step_general }}
+        </button>
+        <button class="tab-btn" onclick="switchTab('integrations')" data-tab="integrations">
+            <span class="tab-icon">&#128279;</span> {{ t.step_integrations }}
+        </button>
+        <button class="tab-btn" onclick="switchTab('appearance')" data-tab="appearance">
+            <span class="tab-icon">&#127912;</span> {{ t.appearance }}
+        </button>
     </div>
 
-    <div class="section">
-        <h2>{{ t.general }}</h2>
-        <div class="form-grid">
-            <div class="form-row">
-                <label for="isp_select">{{ t.isp_name }}</label>
-                <select id="isp_select" name="isp_select" onchange="onIspChange()">
-                    <option value="">{{ t.isp_select }}</option>
-                    {% for isp in t.isp_options %}
-                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
-                    {% endfor %}
-                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
-                </select>
-                <span class="hint">{{ t.isp_hint }}</span>
+    <!-- Content Area -->
+    <div class="tab-content">
+        <form id="settings-form" autocomplete="off">
+
+            <!-- ═══ Tab: Modem ═══ -->
+            <div class="tab-panel active" id="panel-modem">
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">&#128225;</div>
+                        <div>
+                            <div class="section-title">{{ t.modem_connection }}</div>
+                            <div class="section-desc">{{ t.modem_user_hint }}</div>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-row full">
+                            <label for="modem_type">{{ t.modem_type }}</label>
+                            <select id="modem_type" name="modem_type">
+                                {% for key, name in modem_types %}
+                                <option value="{{ key }}" {% if config.modem_type == key %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-row full">
+                            <label for="modem_url">{{ t.url }}</label>
+                            <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}">
+                        </div>
+                        <div class="form-row">
+                            <label for="modem_user">{{ t.username }}</label>
+                            <input type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}">
+                        </div>
+                        <div class="form-row">
+                            <label for="modem_password">{{ t.password }}</label>
+                            <input type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button type="button" class="btn btn-secondary" onclick="testModem()">{{ t.test_connection }}</button>
+                    </div>
+                    <div class="test-result" id="modem-test"></div>
+                </div>
+                <div class="submit-row">
+                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
+                </div>
             </div>
-            <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
-                <label for="isp_other_input">{{ t.isp_other }}</label>
-                <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
+
+            <!-- ═══ Tab: General ═══ -->
+            <div class="tab-panel" id="panel-general">
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">&#9881;</div>
+                        <div>
+                            <div class="section-title">{{ t.general }}</div>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label for="isp_select">{{ t.isp_name }}</label>
+                            <select id="isp_select" name="isp_select" onchange="onIspChange()">
+                                <option value="">{{ t.isp_select }}</option>
+                                {% for isp in t.isp_options %}
+                                <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                                {% endfor %}
+                                <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                            </select>
+                            <span class="hint">{{ t.isp_hint }}</span>
+                        </div>
+                        <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
+                            <label for="isp_other_input">{{ t.isp_other }}</label>
+                            <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
+                        </div>
+                        <div class="form-row">
+                            <label for="poll_interval">{{ t.interval_sec }}</label>
+                            <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
+                            <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s</span>
+                        </div>
+                        <div class="form-row">
+                            <label for="history_days">{{ t.history_days }}</label>
+                            <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="0">
+                            <span class="hint">{{ t.history_hint }}</span>
+                        </div>
+                        <div class="form-row">
+                            <label for="snapshot_time">{{ t.snapshot_time }}</label>
+                            <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
+                            <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
+                        </div>
+                        <div class="form-row">
+                            <label for="language">{{ t.language }}</label>
+                            <select id="language" name="language">
+                                {% for code, name in languages.items() %}
+                                <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="admin_password">{{ t.admin_password }}</label>
+                            <input type="password" id="admin_password" name="admin_password" value="{{ config.admin_password }}" placeholder="{{ t.admin_password_hint }}">
+                            <span class="hint">{{ t.admin_password_hint }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="submit-row">
+                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
+                </div>
             </div>
-            <div class="form-row">
-                <label for="poll_interval">{{ t.interval_sec }}</label>
-                <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
-                <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s</span>
+
+            <!-- ═══ Tab: Integrations ═══ -->
+            <div class="tab-panel" id="panel-integrations">
+                <!-- Speedtest Tracker -->
+                <div class="integration-card open" id="speedtest-card">
+                    <div class="integration-header" onclick="toggleIntegration('speedtest-card')">
+                        <span class="arrow">&#9654;</span>
+                        <span class="int-title">Speedtest Tracker</span>
+                        <span class="int-hint">{{ t.optional }}</span>
+                    </div>
+                    <div class="integration-body">
+                        <div class="integration-body-inner">
+                            <div class="form-grid">
+                                <div class="form-row full">
+                                    <label for="speedtest_tracker_url">{{ t.speedtest_url }}</label>
+                                    <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
+                                    <span class="hint">{{ t.speedtest_url_hint }}</span>
+                                </div>
+                                <div class="form-row full">
+                                    <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
+                                    <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
+                                    <span class="hint">{{ t.speedtest_token_hint }}</span>
+                                </div>
+                                <div class="form-row">
+                                    <label for="booked_download">{{ t.booked_download }}</label>
+                                    <input type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
+                                    <span class="hint">{{ t.booked_download_hint }}</span>
+                                </div>
+                                <div class="form-row">
+                                    <label for="booked_upload">{{ t.booked_upload }}</label>
+                                    <input type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
+                                    <span class="hint">{{ t.booked_upload_hint }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ThinkBroadband BQM -->
+                <div class="integration-card" id="bqm-card">
+                    <div class="integration-header" onclick="toggleIntegration('bqm-card')">
+                        <span class="arrow">&#9654;</span>
+                        <span class="int-title">ThinkBroadband BQM</span>
+                        <span class="int-hint">{{ t.bqm_optional }}</span>
+                    </div>
+                    <div class="integration-body">
+                        <div class="integration-body-inner">
+                            <div class="form-row">
+                                <label for="bqm_url">{{ t.bqm_share_url }}</label>
+                                <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
+                                <span class="hint">{{ t.bqm_url_hint }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MQTT -->
+                <div class="integration-card" id="mqtt-card">
+                    <div class="integration-header" onclick="toggleIntegration('mqtt-card')">
+                        <span class="arrow">&#9654;</span>
+                        <span class="int-title">{{ t.mqtt_broker }}</span>
+                        <span class="int-hint">{{ t.mqtt_optional_ha }}</span>
+                    </div>
+                    <div class="integration-body">
+                        <div class="integration-body-inner">
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label for="mqtt_host">Host</label>
+                                    <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
+                                </div>
+                                <div class="form-row">
+                                    <label for="mqtt_port">Port</label>
+                                    <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
+                                </div>
+                                <div class="form-row">
+                                    <label for="mqtt_user">{{ t.username_opt }}</label>
+                                    <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
+                                </div>
+                                <div class="form-row">
+                                    <label for="mqtt_password">{{ t.password_opt }}</label>
+                                    <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
+                                </div>
+                                <div class="form-row full">
+                                    <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
+                                    <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
+                                </div>
+                                <div class="form-row full">
+                                    <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
+                                    <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
+                                    <span class="hint">{{ t.discovery_prefix_hint }}</span>
+                                </div>
+                            </div>
+                            <div class="btn-row">
+                                <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
+                            </div>
+                            <div class="test-result" id="mqtt-test"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="submit-row">
+                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
+                </div>
             </div>
-            <div class="form-row">
-                <label for="history_days">{{ t.history_days }}</label>
-                <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="0">
-                <span class="hint">{{ t.history_hint }}</span>
+
+            <!-- ═══ Tab: Appearance ═══ -->
+            <div class="tab-panel" id="panel-appearance">
+                <div class="section">
+                    <div class="section-header">
+                        <div class="section-icon">&#127912;</div>
+                        <div>
+                            <div class="section-title">{{ t.appearance }}</div>
+                        </div>
+                    </div>
+                    <div class="theme-toggle-row">
+                        <label>{{ t.light_mode }}</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="theme-check" {% if theme == 'dark' %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <label>{{ t.dark_mode }}</label>
+                    </div>
+                </div>
+                <div class="submit-row">
+                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
+                </div>
             </div>
-            <div class="form-row">
-                <label for="snapshot_time">{{ t.snapshot_time }}</label>
-                <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
-                <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
-            </div>
-            <div class="form-row">
-                <label for="language">{{ t.language }}</label>
-                <select id="language" name="language">
-                    {% for code, name in languages.items() %}
-                    <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-row">
-                <label for="admin_password">{{ t.admin_password }}</label>
-                <input type="password" id="admin_password" name="admin_password" value="{{ config.admin_password }}" placeholder="{{ t.admin_password_hint }}">
-                <span class="hint">{{ t.admin_password_hint }}</span>
-            </div>
-        </div>
+
+        </form>
     </div>
-
-    <details class="section">
-        <summary><h2>Speedtest Tracker <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.optional }})</span></h2></summary>
-        <div class="form-grid">
-            <div class="form-row full">
-                <label for="speedtest_tracker_url">{{ t.speedtest_url }}</label>
-                <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
-                <span class="hint">{{ t.speedtest_url_hint }}</span>
-            </div>
-            <div class="form-row full">
-                <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
-                <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
-                <span class="hint">{{ t.speedtest_token_hint }}</span>
-            </div>
-            <div class="form-row">
-                <label for="booked_download">{{ t.booked_download }}</label>
-                <input type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
-                <span class="hint">{{ t.booked_download_hint }}</span>
-            </div>
-            <div class="form-row">
-                <label for="booked_upload">{{ t.booked_upload }}</label>
-                <input type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
-                <span class="hint">{{ t.booked_upload_hint }}</span>
-            </div>
-        </div>
-    </details>
-
-    <details class="section">
-        <summary><h2>ThinkBroadband BQM <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.bqm_optional }})</span></h2></summary>
-        <div class="form-row">
-            <label for="bqm_url">{{ t.bqm_share_url }}</label>
-            <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
-            <span class="hint">{{ t.bqm_url_hint }}</span>
-        </div>
-    </details>
-
-    <details class="section">
-        <summary><h2>{{ t.mqtt_broker }} <span style="font-size:0.75em; font-weight:normal; color:var(--muted);">({{ t.mqtt_optional_ha }})</span></h2></summary>
-        <div class="form-grid">
-            <div class="form-row">
-                <label for="mqtt_host">Host</label>
-                <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_port">Port</label>
-                <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_user">{{ t.username_opt }}</label>
-                <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_password">{{ t.password_opt }}</label>
-                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
-            </div>
-            <div class="form-row full">
-                <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
-                <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
-            </div>
-            <div class="form-row full">
-                <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
-                <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
-                <span class="hint">{{ t.discovery_prefix_hint }}</span>
-            </div>
-        </div>
-        <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
-            <span class="test-result" id="mqtt-test"></span>
-        </div>
-    </details>
-
-    <div class="submit-row">
-        <button type="submit" class="btn btn-primary">{{ t.save }}</button>
-    </div>
-</form>
+</div>
 
 <script>
 var T = {{ t|tojson }};
 
+/* ── Tab Controller ── */
+function switchTab(tabId) {
+    /* Update sidebar buttons */
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+    });
+    /* Update panels */
+    document.querySelectorAll('.tab-panel').forEach(function(panel) {
+        panel.classList.remove('active');
+    });
+    var target = document.getElementById('panel-' + tabId);
+    if (target) target.classList.add('active');
+    /* Update URL hash */
+    history.replaceState(null, '', '#' + tabId);
+}
+
+/* Restore tab from URL hash */
+(function() {
+    var hash = location.hash.replace('#', '');
+    if (hash && document.getElementById('panel-' + hash)) {
+        switchTab(hash);
+    }
+})();
+
+/* ── Theme Toggle ── */
 var themeCheck = document.getElementById('theme-check');
 themeCheck.addEventListener('change', function() {
     var theme = themeCheck.checked ? 'dark' : 'light';
@@ -324,12 +663,19 @@ themeCheck.addEventListener('change', function() {
     }
 })();
 
+/* ── ISP Change ── */
 function onIspChange() {
     var sel = document.getElementById('isp_select');
     var row = document.getElementById('isp-other-row');
     row.style.display = sel.value === '__other__' ? 'flex' : 'none';
 }
 
+/* ── Integration Cards ── */
+function toggleIntegration(id) {
+    document.getElementById(id).classList.toggle('open');
+}
+
+/* ── Toast ── */
 function showToast(msg, ok) {
     var el = document.getElementById('toast');
     el.textContent = msg;
@@ -338,8 +684,15 @@ function showToast(msg, ok) {
     setTimeout(function() { el.style.display = 'none'; }, 3000);
 }
 
+/* ── Form Data ── */
 var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
 var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token'];
+
+function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
 
 function getFormData() {
     var form = document.getElementById('settings-form');
@@ -361,38 +714,40 @@ function getFormData() {
     return data;
 }
 
+/* ── Modem Test ── */
 function testModem() {
     var el = document.getElementById('modem-test');
-    el.className = 'test-result';
-    el.style.display = 'inline-block';
-    el.textContent = T.testing;
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.innerHTML = '<span>&#8987;</span> ' + T.testing;
     var data = getFormData();
     fetch('/api/test-modem', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
+        body: JSON.stringify({modem_type: data.modem_type, modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
     })
     .then(function(r) { return r.json(); })
     .then(function(res) {
         if (res.success) {
             el.className = 'test-result test-ok';
-            el.textContent = T.connected + ': ' + (res.model || 'OK');
+            el.innerHTML = '<span class="check-icon">&#10003;</span> ' + T.connected + ': ' + escHtml(res.model || 'OK');
         } else {
             el.className = 'test-result test-fail';
-            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
+            el.innerHTML = '<span>&#10007;</span> ' + T.error_prefix + ': ' + escHtml(res.error || T.unknown_error);
         }
     })
     .catch(function() {
         el.className = 'test-result test-fail';
-        el.textContent = T.network_error;
+        el.innerHTML = '<span>&#10007;</span> ' + T.network_error;
     });
 }
 
+/* ── MQTT Test ── */
 function testMqtt() {
     var el = document.getElementById('mqtt-test');
-    el.className = 'test-result';
-    el.style.display = 'inline-block';
-    el.textContent = T.testing;
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.innerHTML = '<span>&#8987;</span> ' + T.testing;
     var data = getFormData();
     fetch('/api/test-mqtt', {
         method: 'POST',
@@ -403,18 +758,19 @@ function testMqtt() {
     .then(function(res) {
         if (res.success) {
             el.className = 'test-result test-ok';
-            el.textContent = T.connected;
+            el.innerHTML = '<span class="check-icon">&#10003;</span> ' + T.connected;
         } else {
             el.className = 'test-result test-fail';
-            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
+            el.innerHTML = '<span>&#10007;</span> ' + T.error_prefix + ': ' + escHtml(res.error || T.unknown_error);
         }
     })
     .catch(function() {
         el.className = 'test-result test-fail';
-        el.textContent = T.network_error;
+        el.innerHTML = '<span>&#10007;</span> ' + T.network_error;
     });
 }
 
+/* ── Submit ── */
 document.getElementById('settings-form').addEventListener('submit', function(e) {
     e.preventDefault();
     var errEl = document.getElementById('global-error');
@@ -429,7 +785,6 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
     .then(function(res) {
         if (res.success) {
             showToast(T.settings_saved, true);
-            // Reload if language changed
             var newLang = document.getElementById('language').value;
             if (newLang !== '{{ lang }}') {
                 setTimeout(function() { location.reload(); }, 500);
@@ -445,6 +800,7 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
     });
 });
 
+/* ── Timezone Hint ── */
 (function() {
     var serverOffsetMin = {{ server_tz_offset }};
     var browserOffsetMin = -new Date().getTimezoneOffset();
