@@ -314,7 +314,7 @@
   "downstream_channels": "Downstream Channels",
   "upstream_channels": "Upstream Channels",
   "time_range": "Time Range",
-  "power_history": "Power & SNR History",
+  "power_history": "Power History",
   "snr_history": "SNR History",
   "error_history": "Error History",
   "no_channel_data": "No data available for this channel."
