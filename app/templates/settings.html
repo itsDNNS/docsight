@@ -290,6 +290,11 @@
                 <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
                 <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
             </div>
+            <div class="form-row full">
+                <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
+                <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
+                <span class="hint">{{ t.discovery_prefix_hint }}</span>
+            </div>
         </div>
         <div class="btn-row">
             <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
