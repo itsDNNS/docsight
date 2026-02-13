@@ -487,18 +487,6 @@
             z-index: 2;
         }
         .chart-expand-btn:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
-        .mod-timeline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-        .mod-badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.82em; font-weight: 600; background: rgba(0,173,181,0.15); color: var(--accent); }
-        .mod-badge-changed { background: rgba(255,152,0,0.2); color: var(--warn); }
-        .mod-badge .mod-ts { font-size: 0.8em; opacity: 0.7; margin-right: 4px; }
-        .mod-tl { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
-        .mod-tl-seg { display: flex; flex-direction: column; align-items: center; padding: 8px 14px; border-radius: 6px; font-weight: 600; min-width: 70px; }
-        .mod-tl-stable { background: rgba(0,173,181,0.15); color: var(--accent); }
-        .mod-tl-down { background: rgba(244,67,54,0.2); color: #f44336; }
-        .mod-tl-up { background: rgba(76,175,80,0.2); color: #4caf50; }
-        .mod-tl-time { font-size: 0.72em; opacity: 0.6; margin-bottom: 2px; }
-        .mod-tl-label { font-size: 0.9em; }
-        .mod-tl-arrow { color: var(--muted); font-size: 1.2em; }
 
         /* ── Chart Zoom Modal ── */
         .chart-zoom-overlay {
@@ -1409,9 +1397,10 @@
             <div class="chart-label">{{ t.error_history }}</div>
             <canvas id="chart-ch-errors"></canvas>
         </div>
-        <div class="chart-card" id="channel-modulation-card" style="grid-column:1/-1;">
+        <div class="chart-card" id="channel-modulation-card">
+            <button class="chart-expand-btn" data-chart="chart-ch-modulation">&#x26F6;</button>
             <div class="chart-label">{{ t.modulation }}</div>
-            <div id="channel-modulation-badges" class="mod-timeline"></div>
+            <canvas id="chart-ch-modulation"></canvas>
         </div>
     </div>
 </div>
@@ -2284,7 +2273,7 @@
         }
     };
 
-    function renderChart(canvasId, labels, datasets, type, zones) {
+    function renderChart(canvasId, labels, datasets, type, zones, opts) {
         if (charts[canvasId]) charts[canvasId].destroy();
         var ctx = document.getElementById(canvasId);
         if (!ctx) return;
@@ -2292,7 +2281,7 @@
         var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
         var textColor = isDark ? '#888' : '#666';
         var chartDatasets = datasets.map(function(ds) {
-            return {
+            var r = {
                 label: ds.label, data: ds.data,
                 borderColor: ds.color,
                 backgroundColor: ds.color + (type === 'bar' ? 'cc' : '22'),
@@ -2300,6 +2289,8 @@
                 pointRadius: labels.length > 30 ? 0 : 3,
                 fill: type !== 'bar'
             };
+            if (ds.stepped) { r.stepped = 'before'; r.tension = 0; }
+            return r;
         });
         var hasLegend = datasets.length > 1;
         var legendPos = hasLegend ? 'bottom' : 'top';
@@ -2315,11 +2306,14 @@
                 },
                 scales: {
                     x: { ticks: { color: textColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
-                    y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } }
+                    y: { ticks: { color: textColor, font: { size: 10 }, callback: opts && opts.yTickCallback ? opts.yTickCallback : undefined }, grid: { color: gridColor } }
                 }
             },
             plugins: zones ? [zonesPlugin] : []
         };
+        if (opts && opts.yMin !== undefined) chartConfig.options.scales.y.min = opts.yMin;
+        if (opts && opts.yMax !== undefined) chartConfig.options.scales.y.max = opts.yMax;
+        if (opts && opts.yAfterBuildTicks) chartConfig.options.scales.y.afterBuildTicks = opts.yAfterBuildTicks;
         if (zones) {
             // Filter out the yMin/yMax metadata entry and use it for axis limits
             var zoneMeta = zones.find(function(z) { return z.yMin !== undefined; });
@@ -2333,7 +2327,7 @@
             charts[canvasId]._docsightZones = zones.filter(function(z) { return z.color; });
         }
         /* Store render params so the zoom modal can re-render this chart */
-        charts[canvasId]._docsightParams = {labels: labels, datasets: datasets, type: type, zones: zones};
+        charts[canvasId]._docsightParams = {labels: labels, datasets: datasets, type: type, zones: zones, opts: opts};
     }
 
     /* ── Chart Zoom Modal ── */
@@ -2358,7 +2352,7 @@
             var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
             var textColor = isDark ? '#888' : '#666';
             var chartDatasets = params.datasets.map(function(ds) {
-                return {
+                var r = {
                     label: ds.label, data: ds.data,
                     borderColor: ds.color,
                     backgroundColor: ds.color + (params.type === 'bar' ? 'cc' : '22'),
@@ -2366,6 +2360,8 @@
                     pointRadius: params.labels.length > 30 ? 2 : 4,
                     fill: params.type !== 'bar'
                 };
+                if (ds.stepped) { r.stepped = 'before'; r.tension = 0; }
+                return r;
             });
             var hasLegend = params.datasets.length > 1;
             var cfg = {
@@ -2380,11 +2376,14 @@
                     },
                     scales: {
                         x: { ticks: { color: textColor, font: { size: 11 }, maxRotation: 45 }, grid: { color: gridColor } },
-                        y: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor } }
+                        y: { ticks: { color: textColor, font: { size: 11 }, callback: params.opts && params.opts.yTickCallback ? params.opts.yTickCallback : undefined }, grid: { color: gridColor } }
                     }
                 },
                 plugins: params.zones ? [zonesPlugin] : []
             };
+            if (params.opts && params.opts.yMin !== undefined) cfg.options.scales.y.min = params.opts.yMin;
+            if (params.opts && params.opts.yMax !== undefined) cfg.options.scales.y.max = params.opts.yMax;
+            if (params.opts && params.opts.yAfterBuildTicks) cfg.options.scales.y.afterBuildTicks = params.opts.yAfterBuildTicks;
             if (params.zones) {
                 var zoneMeta = params.zones.find(function(z) { return z.yMin !== undefined; });
                 if (zoneMeta) {
@@ -2727,6 +2726,7 @@
                     ds.forEach(function(ch) {
                         var opt = document.createElement('option');
                         opt.value = 'ds-' + ch.channel_id;
+                        opt.dataset.docsis = ch.docsis_version || '3.0';
                         opt.textContent = 'DS ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
                         grp.appendChild(opt);
                     });
@@ -2738,6 +2738,7 @@
                     us.forEach(function(ch) {
                         var opt = document.createElement('option');
                         opt.value = 'us-' + ch.channel_id;
+                        opt.dataset.docsis = ch.docsis_version || '3.0';
                         opt.textContent = 'US ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
                         grp2.appendChild(opt);
                     });
@@ -2762,6 +2763,8 @@
         var parts = val.split('-');
         var direction = parts[0];
         var channelId = parts[1];
+        var selectedOpt = sel.options[sel.selectedIndex];
+        var docsisVersion = selectedOpt ? selectedOpt.dataset.docsis || '3.0' : '3.0';
         var days = document.getElementById('channel-time-range').value;
 
         loadingEl.style.display = '';
@@ -2785,7 +2788,8 @@
                 });
                 var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0'}];
                 var powerZones = direction === 'ds' ? DS_POWER_ZONES : US_POWER_ZONES;
-                var powerLabel = document.querySelector('#channel-charts .chart-card:first-child .chart-label');
+                var powerCard = document.querySelector('#channel-charts .chart-card:first-child');
+                var powerLabel = powerCard ? powerCard.querySelector('.chart-label') : null;
                 var errorsCard = document.getElementById('channel-errors-card');
                 if (direction === 'ds') {
                     powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
@@ -2802,43 +2806,38 @@
                 }
                 renderChart('chart-ch-power', xLabels, powerDatasets, null, powerZones);
 
-                // Modulation timeline
-                var modEl = document.getElementById('channel-modulation-badges');
+                // Modulation timeline (stepped line chart)
                 var modCard = document.getElementById('channel-modulation-card');
                 var mods = data.filter(function(d) { return d.modulation; });
                 if (mods.length === 0) {
                     modCard.style.display = 'none';
                 } else {
                     modCard.style.display = '';
-                    var changes = [{ts: mods[0].timestamp, mod: mods[0].modulation}];
-                    for (var i = 1; i < mods.length; i++) {
-                        if (mods[i].modulation !== mods[i - 1].modulation) {
-                            changes.push({ts: mods[i].timestamp, mod: mods[i].modulation});
+                    // Fixed QAM scales per channel direction and DOCSIS version
+                    var is31 = docsisVersion === '3.1' || docsisVersion === '4.0';
+                    var usQam30 = [4, 16, 32, 64];
+                    var usQam31 = [16, 64, 256, 1024];
+                    var dsQam30 = [64, 256];
+                    var dsQam31 = [64, 256, 1024, 4096];
+                    var qamSteps;
+                    if (direction === 'us') { qamSteps = is31 ? usQam31 : usQam30; }
+                    else { qamSteps = is31 ? dsQam31 : dsQam30; }
+                    var qamLabel = {}; qamSteps.forEach(function(v) { qamLabel[v] = v + 'QAM'; });
+                    var qamMap = {}; qamSteps.forEach(function(v, i) { qamMap[v + 'QAM'] = i; });
+                    var modLabels = mods.map(function(d) { return d.timestamp.substring(5, 16).replace('T', ' '); });
+                    var modValues = mods.map(function(d) { return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : -1; });
+                    var tickValues = [];
+                    for (var qi = 0; qi < qamSteps.length; qi++) tickValues.push(qi);
+                    renderChart('chart-ch-modulation', modLabels, [
+                        {label: T.modulation || 'Modulation', data: modValues, color: '#ffab40', stepped: true}
+                    ], null, null, {
+                        yTickCallback: function(value) { return qamLabel[qamSteps[value]] || ''; },
+                        yMin: -0.5,
+                        yMax: qamSteps.length - 0.5,
+                        yAfterBuildTicks: function(axis) {
+                            axis.ticks = tickValues.map(function(v) { return {value: v}; });
                         }
-                    }
-                    // Add end timestamp for timeline segments
-                    var html = '<div class="mod-tl">';
-                    if (changes.length === 1) {
-                        html += '<div class="mod-tl-seg mod-tl-stable"><span class="mod-tl-label">' + escapeHtml(changes[0].mod) + '</span></div>';
-                    } else {
-                        for (var j = 0; j < changes.length; j++) {
-                            var startTs = changes[j].ts.substring(5, 16).replace('T', ' ');
-                            var qamNum = function(s) { var m = s.match(/(\d+)/); return m ? parseInt(m[1]) : 0; };
-                            var isDowngrade = j > 0 && qamNum(changes[j].mod) < qamNum(changes[j-1].mod);
-                            var isUpgrade = j > 0 && qamNum(changes[j].mod) > qamNum(changes[j-1].mod);
-                            var segClass = 'mod-tl-seg';
-                            if (isDowngrade) segClass += ' mod-tl-down';
-                            else if (isUpgrade) segClass += ' mod-tl-up';
-                            else segClass += ' mod-tl-stable';
-                            html += '<div class="' + segClass + '">';
-                            html += '<span class="mod-tl-time">' + escapeHtml(startTs) + '</span>';
-                            html += '<span class="mod-tl-label">' + escapeHtml(changes[j].mod) + '</span>';
-                            html += '</div>';
-                            if (j < changes.length - 1) html += '<div class="mod-tl-arrow">→</div>';
-                        }
-                    }
-                    html += '</div>';
-                    modEl.innerHTML = html;
+                    });
                 }
             })
             .catch(function() {
