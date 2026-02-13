@@ -98,10 +98,21 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 
 ---
 
+## Supported Hardware
+
+| | Status |
+|---|---|
+| **AVM Fritz!Box Cable** (6590, 6660, 6690) | ✅ Fully supported |
+| **Vodafone Station** (Arris TG3442DE) | 🔜 Planned ([roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)) |
+| **Technicolor / Sagemcom** | 🔜 Planned |
+| **Other DOCSIS modems** | Contributions welcome! See [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) |
+
+Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magenta (AT), UPC (CH), Virgin Media (UK), and others. Default signal thresholds are based on VFKD guidelines and can be customized in `thresholds.json` for your ISP.
+
 ## Requirements
 
 - Docker (or any OCI-compatible container runtime)
-- A DOCSIS cable modem or router with web interface (tested with AVM FRITZ!Box 6690 Cable)
+- A supported DOCSIS cable modem or router (see above)
 - MQTT broker (optional, for Home Assistant)
 
 ## Documentation
