@@ -798,6 +798,9 @@
         <a class="sidebar-link" data-view="trends">
             <span class="icon">&#128202;</span> {{ t.signal_trends }}
         </a>
+        <a class="sidebar-link" data-view="channels">
+            <span class="icon">&#128202;</span> {{ t.channel_timeline }}
+        </a>
         <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
         {% if speedtest_configured %}
         <a class="sidebar-link" data-view="speedtest">
@@ -1363,6 +1366,40 @@
     </div>
 </div>
 
+<!-- ═══ View: Channel Timeline ═══ -->
+<div id="view-channels" class="view">
+    <div class="events-header">
+        <span class="trend-title">{{ t.channel_timeline }}</span>
+    </div>
+    <div class="events-filters">
+        <select id="channel-select" onchange="loadChannelTimeline()">
+            <option value="">{{ t.select_channel }}</option>
+        </select>
+        <select id="channel-time-range" onchange="loadChannelTimeline()">
+            <option value="1">1 {{ t.day }}</option>
+            <option value="3">3 {{ t.day }}</option>
+            <option value="7" selected>7 {{ t.day }}</option>
+            <option value="30">30 {{ t.day }}</option>
+        </select>
+    </div>
+    <div id="channel-loading" class="waiting" style="display:none;">
+        <div class="spinner"></div>
+    </div>
+    <div id="channel-empty" class="events-empty" style="display:none;"></div>
+    <div id="channel-charts" class="charts-grid" style="display:none;">
+        <div class="chart-card">
+            <button class="chart-expand-btn" data-chart="chart-ch-power" title="Expand">&#x26F6;</button>
+            <div class="chart-label">{{ t.power_history }}</div>
+            <canvas id="chart-ch-power"></canvas>
+        </div>
+        <div class="chart-card">
+            <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand">&#x26F6;</button>
+            <div class="chart-label">{{ t.error_history }}</div>
+            <canvas id="chart-ch-errors"></canvas>
+        </div>
+    </div>
+</div>
+
 <!-- ═══ Incident Modal ═══ -->
 <div class="modal-overlay" id="incident-modal" onclick="if(event.target===this)closeIncidentModal()">
     <div class="modal" style="max-width:640px;">
@@ -1779,12 +1816,14 @@
         var speedtestView = document.getElementById('view-speedtest');
         var journalView = document.getElementById('view-journal');
         var eventsView = document.getElementById('view-events');
+        var channelsView = document.getElementById('view-channels');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
         if (speedtestView) speedtestView.classList.remove('active');
         if (journalView) journalView.classList.remove('active');
         if (eventsView) eventsView.classList.remove('active');
+        if (channelsView) channelsView.classList.remove('active');
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
@@ -1806,6 +1845,10 @@
             if (eventsView) eventsView.classList.add('active');
             updateDateLabel();
             loadEvents();
+        } else if (view === 'channels') {
+            if (channelsView) channelsView.classList.add('active');
+            updateDateLabel();
+            loadChannelList();
         } else if (view === 'trends') {
             trendView.classList.add('active');
             updateTrendTabs();
@@ -1830,7 +1873,7 @@
     });
 
     /* ── Hash-based view routing ── */
-    var validViews = ['live', 'trends', 'bqm', 'speedtest', 'journal', 'events'];
+    var validViews = ['live', 'trends', 'bqm', 'speedtest', 'journal', 'events', 'channels'];
     function viewFromHash() {
         var h = location.hash.replace('#', '');
         return validViews.indexOf(h) !== -1 ? h : null;
@@ -2639,6 +2682,100 @@
         .then(function(r) { return r.json(); })
         .then(function(data) { updateEventBadge(data.count || 0); })
         .catch(function() {});
+
+    /* ── Channel Timeline ── */
+    var _channelsLoaded = false;
+
+    function loadChannelList() {
+        if (_channelsLoaded) return;
+        var sel = document.getElementById('channel-select');
+        fetch('/api/channels')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                sel.innerHTML = '<option value="">' + (T.select_channel || 'Select Channel') + '</option>';
+                var ds = data.ds_channels || [];
+                var us = data.us_channels || [];
+                if (ds.length) {
+                    var grp = document.createElement('optgroup');
+                    grp.label = T.downstream_channels || 'Downstream Channels';
+                    ds.forEach(function(ch) {
+                        var opt = document.createElement('option');
+                        opt.value = 'ds-' + ch.channel_id;
+                        opt.textContent = 'DS ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
+                        grp.appendChild(opt);
+                    });
+                    sel.appendChild(grp);
+                }
+                if (us.length) {
+                    var grp2 = document.createElement('optgroup');
+                    grp2.label = T.upstream_channels || 'Upstream Channels';
+                    us.forEach(function(ch) {
+                        var opt = document.createElement('option');
+                        opt.value = 'us-' + ch.channel_id;
+                        opt.textContent = 'US ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
+                        grp2.appendChild(opt);
+                    });
+                    sel.appendChild(grp2);
+                }
+                _channelsLoaded = true;
+            })
+            .catch(function() {});
+    }
+
+    function loadChannelTimeline() {
+        var sel = document.getElementById('channel-select');
+        var val = sel.value;
+        var chartsEl = document.getElementById('channel-charts');
+        var emptyEl = document.getElementById('channel-empty');
+        var loadingEl = document.getElementById('channel-loading');
+        if (!val) {
+            chartsEl.style.display = 'none';
+            emptyEl.style.display = 'none';
+            return;
+        }
+        var parts = val.split('-');
+        var direction = parts[0];
+        var channelId = parts[1];
+        var days = document.getElementById('channel-time-range').value;
+
+        loadingEl.style.display = '';
+        chartsEl.style.display = 'none';
+        emptyEl.style.display = 'none';
+
+        fetch('/api/channel-history?channel_id=' + channelId + '&direction=' + direction + '&days=' + days)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                loadingEl.style.display = 'none';
+                if (!data || data.length === 0) {
+                    emptyEl.textContent = T.no_channel_data || 'No data available for this channel.';
+                    emptyEl.style.display = '';
+                    return;
+                }
+                chartsEl.style.display = '';
+                var xLabels = data.map(function(d) {
+                    if (!d.timestamp) return '';
+                    if (parseInt(days) <= 1) return d.timestamp.substring(11, 16);
+                    return d.timestamp.substring(5, 16).replace('T', ' ');
+                });
+                var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0'}];
+                var powerZones = direction === 'ds' ? DS_POWER_ZONES : US_POWER_ZONES;
+                if (direction === 'ds') {
+                    powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
+                    powerZones = null;
+                }
+                renderChart('chart-ch-power', xLabels, powerDatasets, null, powerZones);
+                renderChart('chart-ch-errors', xLabels, [
+                    {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
+                    {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
+                ], 'bar');
+            })
+            .catch(function() {
+                loadingEl.style.display = 'none';
+                emptyEl.textContent = T.trend_error || 'Error loading data.';
+                emptyEl.style.display = '';
+            });
+    }
+    window.loadChannelTimeline = loadChannelTimeline;
 
     function openIncidentModal(incidentId) {
         var modal = document.getElementById('incident-modal');
