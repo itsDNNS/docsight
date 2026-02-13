@@ -203,13 +203,13 @@
         <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.modem_user_hint }}</p>
         <div class="form-grid">
             <div class="form-row full">
-                <label for="modem_type">Modem Type</label>
+                <label for="modem_type">{{ t.modem_type }}</label>
                 <select id="modem_type" name="modem_type" onchange="onModemTypeChange()">
                     {% for driver in available_drivers %}
                     <option value="{{ driver }}" {% if config.modem_type == driver %}selected{% endif %}>{{ driver|capitalize }}</option>
                     {% endfor %}
                 </select>
-                <span class="hint" id="modem-type-hint">Select your modem/router type</span>
+                <span class="hint" id="modem-type-hint">{{ t.modem_type_hint }}</span>
             </div>
             <div class="form-row full">
                 <label for="modem_url">{{ t.url }}</label>
@@ -529,7 +529,7 @@ function onModemTypeChange() {
     var modemType = document.getElementById('modem_type').value;
     var hintEl = document.getElementById('modem-type-hint');
     if (modemType === 'vodafone') {
-        hintEl.textContent = 'Vodafone Station - Note: Error counters not available';
+        hintEl.textContent = '{{ t.vodafone_hint }}';
         hintEl.style.color = 'var(--warn)';
     }
 })();
