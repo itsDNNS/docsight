@@ -338,5 +338,20 @@
   "integrations": "Integrationen",
   "appearance": "Darstellung",
   "welcome_desc": "Verbinde dein Modem mit DOCSight.",
-  "finish_setup": "Einrichtung abschliessen"
+  "finish_setup": "Einrichtung abschliessen",
+  "correlation_analysis": "Korrelation",
+  "correlation_title": "Quellenuebergreifende Korrelation",
+  "correlation_desc": "Modemsignaldaten, Speedtest Ergebnisse und erkannte Ereignisse auf einer gemeinsamen Zeitachse korrelieren, um Muster zu erkennen und Belege fuer ISP Beschwerden zu sammeln.",
+  "correlation_no_data": "Keine Korrelationsdaten fuer diesen Zeitraum verfuegbar.",
+  "correlation_hours_24": "Letzte 24 Stunden",
+  "correlation_hours_48": "Letzte 48 Stunden",
+  "correlation_hours_168": "Letzte 7 Tage",
+  "correlation_source_modem": "Modem",
+  "correlation_source_speedtest": "Speedtest",
+  "correlation_source_events": "Ereignisse",
+  "correlation_signal_health": "Signalzustand",
+  "correlation_speed_vs_signal": "Speed vs. Signal",
+  "correlation_all_sources": "Alle Quellen",
+  "correlation_modem_health_good": "Signal gesund zum Speedtest Zeitpunkt",
+  "correlation_modem_health_poor": "Signal beeintraechtigt zum Speedtest Zeitpunkt"
 }
