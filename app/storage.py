@@ -561,6 +561,49 @@ class SnapshotStorage:
             ).rowcount
         return deleted
 
+    # ── Per-Channel History ──
+
+    def get_channel_history(self, channel_id, direction, days=7):
+        """Return time series for a single channel over the last N days.
+        direction: 'ds' or 'us'. Returns list of dicts with timestamp + channel fields."""
+        channel_id = int(channel_id)
+        col = "ds_channels_json" if direction == "ds" else "us_channels_json"
+        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                f"SELECT timestamp, {col} FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
+                (cutoff,),
+            ).fetchall()
+        results = []
+        for ts, channels_json in rows:
+            channels = json.loads(channels_json)
+            for ch in channels:
+                if ch.get("channel_id") == channel_id:
+                    results.append({
+                        "timestamp": ts,
+                        "power": ch.get("power"),
+                        "snr": ch.get("snr"),
+                        "correctable_errors": ch.get("correctable_errors", 0),
+                        "uncorrectable_errors": ch.get("uncorrectable_errors", 0),
+                        "modulation": ch.get("modulation", ""),
+                        "health": ch.get("health", ""),
+                    })
+                    break
+        return results
+
+    def get_current_channels(self):
+        """Return DS and US channels from the latest snapshot."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT ds_channels_json, us_channels_json FROM snapshots ORDER BY timestamp DESC LIMIT 1"
+            ).fetchone()
+        if not row:
+            return {"ds_channels": [], "us_channels": []}
+        return {
+            "ds_channels": json.loads(row[0]),
+            "us_channels": json.loads(row[1]),
+        }
+
     def _cleanup(self):
         """Delete snapshots, BQM graphs, and events older than max_days. 0 = keep all."""
         if self.max_days <= 0:

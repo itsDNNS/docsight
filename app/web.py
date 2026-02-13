@@ -882,6 +882,35 @@ def api_events_acknowledge_all():
     return jsonify({"success": True, "count": count})
 
 
+# ── Channel Timeline API ──
+
+@app.route("/api/channels")
+@require_auth
+def api_channels():
+    """Return current DS and US channels from the latest snapshot."""
+    if not _storage:
+        return jsonify({"ds_channels": [], "us_channels": []})
+    return jsonify(_storage.get_current_channels())
+
+
+@app.route("/api/channel-history")
+@require_auth
+def api_channel_history():
+    """Return per-channel time series data.
+    ?channel_id=X&direction=ds|us&days=7"""
+    if not _storage:
+        return jsonify([])
+    channel_id = request.args.get("channel_id", type=int)
+    direction = request.args.get("direction", "ds")
+    days = request.args.get("days", 7, type=int)
+    if channel_id is None:
+        return jsonify({"error": "channel_id is required"}), 400
+    if direction not in ("ds", "us"):
+        return jsonify({"error": "direction must be 'ds' or 'us'"}), 400
+    days = max(1, min(days, 90))
+    return jsonify(_storage.get_channel_history(channel_id, direction, days))
+
+
 @app.after_request
 def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
