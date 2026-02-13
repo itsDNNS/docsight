@@ -158,6 +158,8 @@
   "copy_clipboard": "Copy to Clipboard",
   "copied": "Copied!",
   "close": "Close",
+  "export_full": "Full Context (48h)",
+  "export_update": "Update (6h)",
   "export_no_data": "No data available yet. Wait for the first poll.",
   "login_title": "Login",
   "login_hint": "Enter the admin password to access DOCSight.",

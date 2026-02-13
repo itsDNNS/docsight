@@ -153,6 +153,8 @@
   "copy_clipboard": "Copiar al portapapeles",
   "copied": "¡Copiado!",
   "close": "Cerrar",
+  "export_full": "Contexto completo (48h)",
+  "export_update": "Actualización (6h)",
   "export_no_data": "Aún no hay datos disponibles. Espera a la primera consulta.",
   "login_title": "Iniciar sesión",
   "login_hint": "Introduce la contraseña de administrador para acceder a DOCSight.",
