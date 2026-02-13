@@ -2,11 +2,21 @@
 
 import json
 import logging
+import re
 import time
 
 import paho.mqtt.client as mqtt
 
 log = logging.getLogger("docsis.mqtt")
+
+_MQTT_UNSAFE_RE = re.compile(r"[#+\x00]")
+
+
+def _sanitize_topic(topic):
+    """Remove MQTT wildcard characters and normalize slashes."""
+    topic = _MQTT_UNSAFE_RE.sub("", topic)
+    topic = re.sub(r"/+", "/", topic).strip("/")
+    return topic[:200]
 
 
 class MQTTPublisher:
@@ -14,8 +24,8 @@ class MQTTPublisher:
                  topic_prefix="fritzbox/docsis", ha_prefix="homeassistant"):
         self.host = host
         self.port = port
-        self.topic_prefix = topic_prefix
-        self.ha_prefix = ha_prefix
+        self.topic_prefix = _sanitize_topic(topic_prefix)
+        self.ha_prefix = _sanitize_topic(ha_prefix)
 
         self.client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,

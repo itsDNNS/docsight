@@ -157,6 +157,7 @@
   "login_title": "Connexion",
   "login_hint": "Entrez le mot de passe administrateur pour accéder à DOCSight.",
   "login_failed": "Mot de passe incorrect",
+  "login_rate_limited": "Trop de tentatives. Veuillez reessayer plus tard.",
   "login_button": "Se connecter",
   "logout": "Déconnexion",
   "admin_password": "Mot de passe admin",

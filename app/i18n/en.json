@@ -165,6 +165,7 @@
   "login_title": "Login",
   "login_hint": "Enter the admin password to access DOCSight.",
   "login_failed": "Invalid password",
+  "login_rate_limited": "Too many attempts. Please try again later.",
   "login_button": "Login",
   "logout": "Logout",
   "admin_password": "Admin Password",
