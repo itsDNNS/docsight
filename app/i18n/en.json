@@ -114,6 +114,8 @@
   "username_opt": "Username (optional)",
   "password_opt": "Password (optional)",
   "topic_prefix": "Topic Prefix",
+  "discovery_prefix": "Discovery Prefix",
+  "discovery_prefix_hint": "Default: homeassistant. Only change if you customized it in HA.",
   "complete_setup": "Complete Setup",
   "testing": "Testing...",
   "connected": "Connected",
