@@ -1,5 +1,19 @@
 [
   {
+    "version": "v2026-02-13.4",
+    "date": "2026-02-13",
+    "highlights": [
+      {
+        "icon": "🧠",
+        "text": "New: Enhanced LLM Export — Includes historical Events (48h), Speedtests, and Incident Journal for deeper AI analysis"
+      },
+      {
+        "icon": "⏱️",
+        "text": "New: Export Mode selector (Full Context vs. Update) to save tokens"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-13.3",
     "date": "2026-02-13",
     "highlights": [
