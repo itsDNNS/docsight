@@ -18,6 +18,7 @@ HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
 DEFAULTS = {
+    "modem_type": "fritzbox",
     "modem_url": "http://192.168.178.1",
     "modem_user": "",
     "modem_password": "",
@@ -43,6 +44,7 @@ DEFAULTS = {
 }
 
 ENV_MAP = {
+    "modem_type": "MODEM_TYPE",
     "modem_url": "MODEM_URL",
     "modem_user": "MODEM_USER",
     "modem_password": "MODEM_PASSWORD",
