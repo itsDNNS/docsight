@@ -50,30 +50,54 @@ class Driver(ABC):
         Returns:
             Dict with standardized DOCSIS data format:
             {
-                "ds_channels": [
-                    {
-                        "channel_id": int,
-                        "frequency": str,  # e.g., "602 MHz"
-                        "power": float,    # dBmV
-                        "snr": float,      # dB
-                        "modulation": str, # e.g., "256QAM"
-                        "correctable_errors": int,
-                        "uncorrectable_errors": int,
-                        "docsis_version": str,  # "3.0", "3.1", "4.0"
-                    },
-                    ...
-                ],
-                "us_channels": [
-                    {
-                        "channel_id": int,
-                        "frequency": str,
-                        "power": float,    # dBmV
-                        "modulation": str,
-                        "multiplex": str,  # e.g., "ATDMA"
-                        "docsis_version": str,
-                    },
-                    ...
-                ],
+                "channelDs": {
+                    "docsis30": [
+                        {
+                            "channelID": int,
+                            "frequency": str,     # e.g., "602 MHz"
+                            "powerLevel": float,  # dBmV
+                            "mse": float,         # MSE (negative SNR) for DOCSIS 3.0
+                            "modulation": str,    # e.g., "256QAM"
+                            "corrErrors": int,
+                            "nonCorrErrors": int,
+                        },
+                        ...
+                    ],
+                    "docsis31": [
+                        {
+                            "channelID": int,
+                            "frequency": str,     # e.g., "612~680 MHz"
+                            "powerLevel": float,  # dBmV
+                            "mer": float,         # MER (SNR) for DOCSIS 3.1
+                            "modulation": str,    # e.g., "OFDM"
+                            "corrErrors": int,
+                            "nonCorrErrors": int,
+                        },
+                        ...
+                    ]
+                },
+                "channelUs": {
+                    "docsis30": [
+                        {
+                            "channelID": int,
+                            "frequency": str,
+                            "powerLevel": float,  # dBmV
+                            "modulation": str,    # e.g., "64QAM"
+                            "multiplex": str,     # e.g., "ATDMA"
+                        },
+                        ...
+                    ],
+                    "docsis31": [
+                        {
+                            "channelID": int,
+                            "frequency": str,
+                            "powerLevel": float,  # dBmV
+                            "modulation": str,    # e.g., "OFDMA"
+                            "multiplex": str,
+                        },
+                        ...
+                    ]
+                }
             }
             
         Raises:
