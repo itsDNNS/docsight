@@ -1,5 +1,19 @@
 [
   {
+    "version": "v2026-02-13.3",
+    "date": "2026-02-13",
+    "highlights": [
+      {
+        "icon": "⚙️",
+        "text": "New: Configurable HA Discovery Prefix in Settings (Advanced MQTT) — fixes Issue #12"
+      },
+      {
+        "icon": "🛠️",
+        "text": "Improved: MQTT config validation prevents empty prefixes"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-13.2",
     "date": "2026-02-13",
     "highlights": [
