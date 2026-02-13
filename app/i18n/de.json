@@ -158,6 +158,8 @@
   "copy_clipboard": "In Zwischenablage kopieren",
   "copied": "Kopiert!",
   "close": "Schliessen",
+  "export_full": "Vollständiger Kontext (48h)",
+  "export_update": "Update (6h)",
   "export_no_data": "Noch keine Daten vorhanden. Warte auf die erste Abfrage.",
   "login_title": "Anmeldung",
   "login_hint": "Gib das Admin-Passwort ein, um auf DOCSight zuzugreifen.",
