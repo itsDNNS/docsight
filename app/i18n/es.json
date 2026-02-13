@@ -309,7 +309,7 @@
   "downstream_channels": "Canales descendentes",
   "upstream_channels": "Canales ascendentes",
   "time_range": "Periodo",
-  "power_history": "Historial de potencia y SNR",
+  "power_history": "Historial de potencia",
   "snr_history": "Historial de SNR",
   "error_history": "Historial de errores",
   "no_channel_data": "No hay datos disponibles para este canal."

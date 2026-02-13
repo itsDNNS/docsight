@@ -314,7 +314,7 @@
   "downstream_channels": "Downstream Kanaele",
   "upstream_channels": "Upstream Kanaele",
   "time_range": "Zeitraum",
-  "power_history": "Pegel- & SNR-Verlauf",
+  "power_history": "Pegelverlauf",
   "snr_history": "SNR-Verlauf",
   "error_history": "Fehlerverlauf",
   "no_channel_data": "Keine Daten fuer diesen Kanal verfuegbar."

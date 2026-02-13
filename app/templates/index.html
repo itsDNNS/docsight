@@ -2767,9 +2767,13 @@
                 });
                 var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0'}];
                 var powerZones = direction === 'ds' ? DS_POWER_ZONES : US_POWER_ZONES;
+                var powerLabel = document.querySelector('#channel-charts .chart-card:first-child .chart-label');
                 if (direction === 'ds') {
                     powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
                     powerZones = null;
+                    if (powerLabel) powerLabel.textContent = (T.power_dbmv || 'Power') + ' & ' + (T.snr_db || 'SNR');
+                } else {
+                    if (powerLabel) powerLabel.textContent = T.power_dbmv || 'Power (dBmV)';
                 }
                 renderChart('chart-ch-power', xLabels, powerDatasets, null, powerZones);
                 renderChart('chart-ch-errors', xLabels, [
