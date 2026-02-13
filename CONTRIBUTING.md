@@ -2,6 +2,30 @@
 
 Thanks for your interest in contributing!
 
+## Before You Start
+
+**Please open an issue first** before working on any new feature or significant change. This lets us discuss the approach and make sure it fits the project architecture. PRs without a prior issue may be closed.
+
+This is especially important for:
+- New features or modules
+- Architectural changes
+- Changes touching multiple files
+
+Small bugfixes and typo corrections are fine without an issue.
+
+## Architecture
+
+DOCSight uses a single data flow pipeline. All data follows this path:
+
+```
+Modem (fritzbox.py) → Analyzer (analyzer.py) → Event Detector (event_detector.py)
+  → Storage (storage.py) → Web UI (web.py) / Reports (report.py)
+```
+
+**When contributing, your code must integrate into this pipeline.** Do not create parallel subsystems with separate storage, threading, or state management. New data sources should hook into the existing polling loop in `main.py`.
+
+See the [v2.0 Milestone](https://github.com/itsDNNS/docsight/milestone/1) for the planned Unified Collector Architecture ([#23](https://github.com/itsDNNS/docsight/issues/23)) that will formalize this pattern.
+
 ## Development Setup
 
 ```bash
@@ -27,7 +51,7 @@ This runs on port **8766** (`http://localhost:8766`). Production uses `docker-co
 python -m pytest tests/ -v
 ```
 
-176+ tests cover analyzers, event detection, API endpoints, config, MQTT, i18n, and PDF generation.
+196 tests cover analyzers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. All tests must pass before submitting a PR.
 
 ## Running Locally
 
@@ -57,7 +81,7 @@ app/
   static/            - Static assets (icons, etc.)
   templates/         - Jinja2 HTML templates
   changelog.json     - Release changelog for splash modal
-tests/               - pytest test suite (176+ tests)
+tests/               - pytest test suite (196 tests)
 docker-compose.yml     - Production Docker setup
 docker-compose.dev.yml - Development Docker setup (port 8766)
 ```
@@ -73,21 +97,11 @@ Translations live in `app/i18n/` as JSON files:
 
 Each file has a `_meta` field with `language_name` and `flag`. When adding or changing UI strings, update **all 4 files**.
 
-## Before You Start
-
-**Please open an issue first** before working on any new feature or significant change. This lets us discuss the approach and make sure it fits the project direction. PRs without a prior issue may be closed.
-
-This is especially important for:
-- New features or modules
-- Architectural changes
-- Changes touching multiple files
-
-Small bugfixes and typo corrections are fine without an issue.
-
 ## Pull Request Guidelines
 
 - **One PR per feature/fix.** Don't bundle unrelated changes.
 - **Keep changes focused and minimal.** Smaller PRs are easier to review and more likely to be merged.
+- **Follow the pipeline architecture.** New functionality must integrate into the existing data flow, not bypass it.
 - Add tests for new functionality
 - Maintain all 4 language translations (EN/DE/FR/ES) in `app/i18n/*.json`
 - Run the full test suite before submitting a PR
@@ -95,9 +109,4 @@ Small bugfixes and typo corrections are fine without an issue.
 
 ## Adding Modem Support
 
-DOCSight currently supports AVM FRITZ!Box Cable routers. To add support for another modem:
-
-1. Create a new module in `app/` (e.g., `app/arris.py`)
-2. Implement `login()`, `get_docsis_data()`, and `get_device_info()` matching the FritzBox API
-3. Return data in the same format as `fritzbox.get_docsis_data()` so the analyzer works unchanged
-4. Update `main.py` to select the modem driver based on configuration
+See the **[Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support)** wiki page for the full guide, including raw data format, analyzer output reference, and wanted drivers.
