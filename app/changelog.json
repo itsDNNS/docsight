@@ -1,5 +1,15 @@
 [
   {
+    "version": "v2026-02-13.5",
+    "date": "2026-02-13",
+    "highlights": [
+      {
+        "icon": "📝",
+        "text": "Fix: LLM Export now shows correct Modulation-Aware Thresholds (VFKD) in the 'Reference Values' section"
+      }
+    ]
+  },
+  {
     "version": "v2026-02-13.4",
     "date": "2026-02-13",
     "highlights": [
