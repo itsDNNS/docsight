@@ -603,16 +603,74 @@ def api_export():
                         lines.append(inc["description"])
                     lines.append("")
 
+    # ── Dynamic reference values from thresholds.json ──
+    from . import analyzer as _analyzer
+    _thresh = _analyzer.get_thresholds()
+
+    lines += ["", "## Reference Values (VFKD Guidelines)", ""]
+    _src = _thresh.get("_source", "")
+    if _src:
+        lines.append(f"Source: {_src}")
+        lines.append("")
+
+    lines += [
+        "### Downstream Power (dBmV)",
+        "| Modulation | Good | Tolerated | Monthly | Immediate |",
+        "|------------|------|-----------|---------|-----------|",
+    ]
+    _ds = _thresh.get("downstream_power", {})
+    for mod in sorted(k for k in _ds if not k.startswith("_")):
+        t = _ds[mod]
+        lines.append(
+            f"| {mod} "
+            f"| {t['good_min']} to {t['good_max']} "
+            f"| {t['tolerated_min']} to {t['tolerated_max']} "
+            f"| {t['monthly_min']} to {t['monthly_max']} "
+            f"| < {t['immediate_min']} or > {t['immediate_max']} |"
+        )
+
     lines += [
         "",
-        "## Reference Values",
-        "| Metric | Good | Marginal | Poor |",
-        "|--------|------|----------|------|",
-        "| DS Power | -7 to +7 dBmV | +/-7 to +/-10 | > +/-10 dBmV |",
-        "| US Power | 35 to 49 dBmV | 50 to 54 | > 54 dBmV |",
-        "| SNR/MER | > 30 dB | 25 to 30 | < 25 dB |",
-        "| Uncorr. Errors | low | - | > 10,000 |",
+        "### Upstream Power (dBmV)",
+        "| DOCSIS Version | Good | Tolerated | Monthly | Immediate |",
+        "|----------------|------|-----------|---------|-----------|",
+    ]
+    _us = _thresh.get("upstream_power", {})
+    for ver in sorted(k for k in _us if not k.startswith("_")):
+        t = _us[ver]
+        lines.append(
+            f"| {ver} "
+            f"| {t['good_min']} to {t['good_max']} "
+            f"| {t['tolerated_min']} to {t['tolerated_max']} "
+            f"| {t['monthly_min']} to {t['monthly_max']} "
+            f"| < {t['immediate_min']} or > {t['immediate_max']} |"
+        )
+
+    lines += [
         "",
+        "### SNR / MER (dB, absolute)",
+        "| Modulation | Good | Tolerated | Monthly | Immediate |",
+        "|------------|------|-----------|---------|-----------|",
+    ]
+    _snr = _thresh.get("snr", {})
+    for mod in sorted(k for k in _snr if not k.startswith("_")):
+        t = _snr[mod]
+        lines.append(
+            f"| {mod} "
+            f"| >= {t['good_min']} "
+            f"| >= {t['tolerated_min']} "
+            f"| >= {t['monthly_min']} "
+            f"| < {t['immediate_min']} |"
+        )
+
+    _uncorr = _thresh.get("errors", {}).get("uncorrectable_threshold")
+    if _uncorr is not None:
+        lines.append("")
+        lines.append(f"**Uncorrectable Errors Threshold**: > {_uncorr:,}")
+
+    lines.append("")
+
+    lines += [
         "## Questions",
         "Please analyze this data and provide:",
         "1. Overall connection health assessment",
