@@ -265,18 +265,26 @@ class SnapshotStorage:
         to normalize both to the same basis."""
         # Normalize: if timestamp ends with Z, convert UTC to local via SQLite
         # Snapshots are stored without timezone suffix (local time)
-        ts_expr = "datetime(?, 'localtime')" if timestamp.endswith("Z") else "datetime(?)"
-        # Strip Z for the parameter since SQLite datetime() handles it
         ts_param = timestamp
         with sqlite3.connect(self.db_path) as conn:
-            row = conn.execute(
-                f"""SELECT timestamp, summary_json, ds_channels_json, us_channels_json
-                   FROM snapshots
-                   WHERE ABS(julianday(timestamp) - julianday({ts_expr})) <= (2.0 / 24.0)
-                   ORDER BY ABS(julianday(timestamp) - julianday({ts_expr}))
-                   LIMIT 1""",
-                (ts_param, ts_param),
-            ).fetchone()
+            if timestamp.endswith("Z"):
+                row = conn.execute(
+                    """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
+                       FROM snapshots
+                       WHERE ABS(julianday(timestamp) - julianday(datetime(?, 'localtime'))) <= (2.0 / 24.0)
+                       ORDER BY ABS(julianday(timestamp) - julianday(datetime(?, 'localtime')))
+                       LIMIT 1""",
+                    (ts_param, ts_param),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
+                       FROM snapshots
+                       WHERE ABS(julianday(timestamp) - julianday(datetime(?))) <= (2.0 / 24.0)
+                       ORDER BY ABS(julianday(timestamp) - julianday(datetime(?)))
+                       LIMIT 1""",
+                    (ts_param, ts_param),
+                ).fetchone()
         if not row:
             return None
         return {
@@ -595,14 +603,21 @@ class SnapshotStorage:
     def get_channel_history(self, channel_id, direction, days=7):
         """Return time series for a single channel over the last N days.
         direction: 'ds' or 'us'. Returns list of dicts with timestamp + channel fields."""
+        _COL_MAP = {"ds": "ds_channels_json", "us": "us_channels_json"}
         channel_id = int(channel_id)
-        col = "ds_channels_json" if direction == "ds" else "us_channels_json"
+        col = _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
         cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
         with sqlite3.connect(self.db_path) as conn:
-            rows = conn.execute(
-                f"SELECT timestamp, {col} FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
-                (cutoff,),
-            ).fetchall()
+            if direction == "ds":
+                rows = conn.execute(
+                    "SELECT timestamp, ds_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
+                    (cutoff,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT timestamp, us_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
+                    (cutoff,),
+                ).fetchall()
         results = []
         for ts, channels_json in rows:
             channels = json.loads(channels_json)

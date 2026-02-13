@@ -160,6 +160,7 @@
   "login_title": "Iniciar sesión",
   "login_hint": "Introduce la contraseña de administrador para acceder a DOCSight.",
   "login_failed": "Contraseña incorrecta",
+  "login_rate_limited": "Demasiados intentos. Por favor, intentalo mas tarde.",
   "login_button": "Entrar",
   "logout": "Cerrar sesión",
   "admin_password": "Contraseña de admin",

@@ -13,10 +13,11 @@ from datetime import datetime, timedelta
 
 from flask import Flask, render_template, request, jsonify, redirect, session, url_for, make_response, send_file
 from werkzeug.security import check_password_hash
+from werkzeug.utils import secure_filename
 
 from io import BytesIO
 
-from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS
+from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS, HASH_KEYS
 from .storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_INCIDENT
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 
@@ -28,6 +29,43 @@ def _server_tz_info():
     return name, offset_min
 
 log = logging.getLogger("docsis.web")
+audit_log = logging.getLogger("docsis.audit")
+
+# ── Login rate limiting (in-memory) ──
+_login_attempts = {}  # IP -> [timestamp, ...]
+_LOGIN_MAX_ATTEMPTS = 5
+_LOGIN_WINDOW = 900  # 15 min
+_LOGIN_LOCKOUT_BASE = 30  # seconds, doubles each excess attempt
+
+
+def _get_client_ip():
+    """Get client IP, respecting X-Forwarded-For behind reverse proxy."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
+def _check_login_rate_limit(ip):
+    """Return seconds until retry allowed, or 0 if not limited."""
+    now = time.time()
+    attempts = _login_attempts.get(ip, [])
+    attempts = [t for t in attempts if now - t < _LOGIN_WINDOW]
+    _login_attempts[ip] = attempts
+    if len(attempts) >= _LOGIN_MAX_ATTEMPTS:
+        excess = len(attempts) - _LOGIN_MAX_ATTEMPTS
+        lockout = _LOGIN_LOCKOUT_BASE * (2 ** min(excess, 8))
+        remaining = lockout - (now - attempts[-1])
+        if remaining > 0:
+            return remaining
+    return 0
+
+
+def _record_failed_login(ip):
+    """Record a failed login attempt."""
+    if ip not in _login_attempts:
+        _login_attempts[ip] = []
+    _login_attempts[ip].append(time.time())
 
 def _get_version():
     """Get version from VERSION file, git tag, or fall back to 'dev'."""
@@ -64,9 +102,34 @@ _changelog = _load_changelog()
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.urandom(32)  # overwritten by _init_session_key
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Strict",
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=24),
+)
 
 _TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _valid_date(date_str):
+    """Validate date string format AND actual calendar validity."""
+    if not date_str or not _DATE_RE.match(date_str):
+        return False
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+_SAFE_HTML_RE = re.compile(r"<(?!/?(?:b|a|strong|em|br)\b)[^>]+>", re.IGNORECASE)
+
+
+@app.template_filter("safe_html")
+def safe_html_filter(value):
+    """Allow only <b>, <a>, <strong>, <em>, <br> tags — strip everything else."""
+    from markupsafe import Markup
+    cleaned = _SAFE_HTML_RE.sub("", str(value))
+    return Markup(cleaned)
 
 
 @app.template_filter("fmt_k")
@@ -173,15 +236,30 @@ def login():
     theme = _config_manager.get_theme() if _config_manager else "dark"
     error = None
     if request.method == "POST":
+        ip = _get_client_ip()
+        wait = _check_login_rate_limit(ip)
+        if wait > 0:
+            audit_log.warning("Login rate-limited: ip=%s (retry in %ds)", ip, int(wait))
+            error = t.get("login_rate_limited", "Too many attempts. Try again later.")
+            return render_template("login.html", t=t, lang=lang, theme=theme, error=error)
         pw = request.form.get("password", "")
         stored = _config_manager.get("admin_password", "")
         if stored.startswith(("scrypt:", "pbkdf2:")):
             success = check_password_hash(stored, pw)
         else:
-            success = (pw == stored)  # legacy plaintext / env var
+            success = (pw == stored)
+            if success:
+                # Auto-upgrade plaintext password to hash
+                _config_manager.save({"admin_password": pw})
+                audit_log.info("Auto-upgraded plaintext password to hash for ip=%s", ip)
         if success:
+            _login_attempts.pop(ip, None)
+            session.permanent = True
             session["authenticated"] = True
+            audit_log.info("Login successful: ip=%s", ip)
             return redirect("/")
+        _record_failed_login(ip)
+        audit_log.warning("Login failed: ip=%s", ip)
         error = t.get("login_failed", "Invalid password")
     return render_template("login.html", t=t, lang=lang, theme=theme, error=error)
 
@@ -345,7 +423,13 @@ def api_config():
                 data["poll_interval"] = max(POLL_MIN, min(POLL_MAX, pi))
             except (ValueError, TypeError):
                 pass
+        changed_keys = [k for k in data if k not in SECRET_KEYS and k not in HASH_KEYS]
+        secret_changed = [k for k in data if k in SECRET_KEYS or k in HASH_KEYS]
         _config_manager.save(data)
+        audit_log.info(
+            "Config changed: ip=%s keys=%s secrets_changed=%s",
+            _get_client_ip(), changed_keys, secret_changed,
+        )
         if _on_config_changed:
             _on_config_changed()
         return jsonify({"success": True})
@@ -376,8 +460,11 @@ def api_test_modem():
         driver.login()
         info = driver.get_device_info()
         return jsonify({"success": True, "model": info.get("model", "OK")})
-    except Exception as e:
+    except ValueError as e:
         return jsonify({"success": False, "error": str(e)})
+    except Exception as e:
+        log.warning("Modem test failed: %s", e)
+        return jsonify({"success": False, "error": type(e).__name__ + ": " + str(e).split("\n")[0][:200]})
 
 
 @app.route("/api/test-mqtt", methods=["POST"])
@@ -400,7 +487,8 @@ def api_test_mqtt():
         client.disconnect()
         return jsonify({"success": True})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        log.warning("MQTT test failed: %s", e)
+        return jsonify({"success": False, "error": type(e).__name__ + ": " + str(e).split("\n")[0][:200]})
 
 
 @app.route("/api/poll", methods=["POST"])
@@ -454,7 +542,7 @@ def api_snapshot_daily():
     date = request.args.get("date")
     if not date or not _storage:
         return jsonify(None)
-    if not _DATE_RE.match(date):
+    if not _valid_date(date):
         return jsonify({"error": "Invalid date format"}), 400
     target_time = _config_manager.get("snapshot_time", "06:00") if _config_manager else "06:00"
     snap = _storage.get_daily_snapshot(date, target_time)
@@ -713,7 +801,7 @@ def api_bqm_dates():
 @require_auth
 def api_bqm_image(date):
     """Return BQM graph PNG for a given date."""
-    if not _DATE_RE.match(date):
+    if not _valid_date(date):
         return jsonify({"error": "Invalid date format"}), 400
     if not _storage:
         return jsonify({"error": "No storage"}), 404
@@ -834,7 +922,7 @@ def api_incidents_create():
     date = (data.get("date") or "").strip()
     title = (data.get("title") or "").strip()
     description = (data.get("description") or "").strip()
-    if not date or not _DATE_RE.match(date):
+    if not _valid_date(date):
         return jsonify({"error": "Invalid date format (YYYY-MM-DD)"}), 400
     if not title:
         return jsonify({"error": "Title is required"}), 400
@@ -843,6 +931,7 @@ def api_incidents_create():
     if len(description) > 10000:
         return jsonify({"error": "Description too long (max 10000 characters)"}), 400
     incident_id = _storage.save_incident(date, title, description)
+    audit_log.info("Incident created: ip=%s id=%d title=%s", _get_client_ip(), incident_id, title[:50])
     return jsonify({"id": incident_id}), 201
 
 
@@ -870,7 +959,7 @@ def api_incident_update(incident_id):
     date = (data.get("date") or "").strip()
     title = (data.get("title") or "").strip()
     description = (data.get("description") or "").strip()
-    if not date or not _DATE_RE.match(date):
+    if not _valid_date(date):
         return jsonify({"error": "Invalid date format (YYYY-MM-DD)"}), 400
     if not title:
         return jsonify({"error": "Title is required"}), 400
@@ -880,6 +969,7 @@ def api_incident_update(incident_id):
         return jsonify({"error": "Description too long (max 10000 characters)"}), 400
     if not _storage.update_incident(incident_id, date, title, description):
         return jsonify({"error": "Not found"}), 404
+    audit_log.info("Incident updated: ip=%s id=%d", _get_client_ip(), incident_id)
     return jsonify({"success": True})
 
 
@@ -891,6 +981,7 @@ def api_incident_delete(incident_id):
         return jsonify({"error": "Storage not initialized"}), 500
     if not _storage.delete_incident(incident_id):
         return jsonify({"error": "Not found"}), 404
+    audit_log.info("Incident deleted: ip=%s id=%d", _get_client_ip(), incident_id)
     return jsonify({"success": True})
 
 
@@ -917,7 +1008,12 @@ def api_incident_upload(incident_id):
     file_data = f.read()
     if len(file_data) > MAX_ATTACHMENT_SIZE:
         return jsonify({"error": "File too large (max 10 MB)"}), 400
-    attachment_id = _storage.save_attachment(incident_id, f.filename, mime_type, file_data)
+    filename = secure_filename(f.filename) or "attachment"
+    attachment_id = _storage.save_attachment(incident_id, filename, mime_type, file_data)
+    audit_log.info(
+        "Attachment uploaded: ip=%s incident=%d file=%s size=%d",
+        _get_client_ip(), incident_id, filename, len(file_data),
+    )
     return jsonify({"id": attachment_id}), 201
 
 
@@ -946,6 +1042,7 @@ def api_attachment_delete(attachment_id):
         return jsonify({"error": "Storage not initialized"}), 500
     if not _storage.delete_attachment(attachment_id):
         return jsonify({"error": "Not found"}), 404
+    audit_log.info("Attachment deleted: ip=%s id=%d", _get_client_ip(), attachment_id)
     return jsonify({"success": True})
 
 
@@ -1036,6 +1133,14 @@ def add_security_headers(response):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self'"
+    )
     return response
 
 

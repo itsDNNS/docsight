@@ -165,6 +165,7 @@
   "login_title": "Anmeldung",
   "login_hint": "Gib das Admin-Passwort ein, um auf DOCSight zuzugreifen.",
   "login_failed": "Falsches Passwort",
+  "login_rate_limited": "Zu viele Versuche. Bitte versuche es spaeter erneut.",
   "login_button": "Anmelden",
   "logout": "Abmelden",
   "admin_password": "Admin-Passwort",
