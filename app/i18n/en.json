@@ -338,5 +338,20 @@
   "integrations": "Integrations",
   "appearance": "Appearance",
   "welcome_desc": "Let's connect to your modem.",
-  "finish_setup": "Complete Setup"
+  "finish_setup": "Complete Setup",
+  "correlation_analysis": "Correlation",
+  "correlation_title": "Cross-Source Correlation",
+  "correlation_desc": "Correlate modem signal data, speedtest results, and detected events on a unified timeline to identify patterns and build evidence for ISP complaints.",
+  "correlation_no_data": "No correlation data available for this period.",
+  "correlation_hours_24": "Last 24 Hours",
+  "correlation_hours_48": "Last 48 Hours",
+  "correlation_hours_168": "Last 7 Days",
+  "correlation_source_modem": "Modem",
+  "correlation_source_speedtest": "Speedtest",
+  "correlation_source_events": "Events",
+  "correlation_signal_health": "Signal Health",
+  "correlation_speed_vs_signal": "Speed vs. Signal",
+  "correlation_all_sources": "All Sources",
+  "correlation_modem_health_good": "Signal healthy at speedtest time",
+  "correlation_modem_health_poor": "Signal degraded at speedtest time"
 }

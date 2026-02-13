@@ -62,6 +62,10 @@ class SnapshotStorage:
                 )
             """)
             conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_speedtest_ts
+                ON speedtest_results(timestamp)
+            """)
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS incidents (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     date TEXT NOT NULL,
@@ -582,6 +586,106 @@ class SnapshotStorage:
     def get_recent_speedtests(self, limit=10):
         """Return the N most recent speedtest results."""
         return self.get_speedtest_results(limit=limit)
+
+    def get_speedtest_in_range(self, start_ts, end_ts):
+        """Return speedtest results within a time range, oldest first.
+        Handles both local timestamps and UTC timestamps (ending with Z)."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
+                "upload_human, ping_ms, jitter_ms, packet_loss_pct "
+                "FROM speedtest_results "
+                "WHERE datetime(REPLACE(timestamp, 'Z', ''), "
+                "CASE WHEN timestamp LIKE '%Z' THEN 'localtime' ELSE 'auto' END) "
+                "BETWEEN datetime(?) AND datetime(?) "
+                "ORDER BY timestamp",
+                (start_ts, end_ts),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_correlation_timeline(self, start_ts, end_ts, sources=None):
+        """Return unified timeline entries from all sources, sorted by timestamp.
+
+        Args:
+            start_ts: ISO 8601 start (local time, no Z suffix)
+            end_ts: ISO 8601 end (local time, no Z suffix)
+            sources: set of source names to include (modem, speedtest, events).
+                     None means all.
+
+        Returns list of dicts with 'timestamp', 'source', and source-specific fields.
+        """
+        if sources is None:
+            sources = {"modem", "speedtest", "events"}
+        timeline = []
+
+        if "modem" in sources:
+            for snap in self.get_range_data(start_ts, end_ts):
+                s = snap["summary"]
+                timeline.append({
+                    "timestamp": snap["timestamp"],
+                    "source": "modem",
+                    "health": s.get("health", "unknown"),
+                    "ds_power_avg": s.get("ds_power_avg"),
+                    "ds_power_max": s.get("ds_power_max"),
+                    "ds_snr_min": s.get("ds_snr_min"),
+                    "ds_snr_avg": s.get("ds_snr_avg"),
+                    "us_power_avg": s.get("us_power_avg"),
+                    "ds_correctable_errors": s.get("ds_correctable_errors", 0),
+                    "ds_uncorrectable_errors": s.get("ds_uncorrectable_errors", 0),
+                })
+
+        if "speedtest" in sources:
+            for st in self.get_speedtest_in_range(start_ts, end_ts):
+                # Normalize timestamp for display
+                ts = st["timestamp"]
+                if ts.endswith("Z"):
+                    try:
+                        from datetime import timezone
+                        utc_dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        local_dt = utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+                        ts = local_dt.strftime("%Y-%m-%dT%H:%M:%S")
+                    except (ValueError, TypeError):
+                        ts = ts.rstrip("Z")
+                elif "." in ts:
+                    ts = ts.split(".")[0]
+                timeline.append({
+                    "timestamp": ts,
+                    "source": "speedtest",
+                    "id": st["id"],
+                    "download_mbps": st.get("download_mbps"),
+                    "upload_mbps": st.get("upload_mbps"),
+                    "ping_ms": st.get("ping_ms"),
+                    "jitter_ms": st.get("jitter_ms"),
+                    "packet_loss_pct": st.get("packet_loss_pct"),
+                })
+
+        if "events" in sources:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute(
+                    "SELECT id, timestamp, severity, event_type, message, details "
+                    "FROM events WHERE timestamp >= ? AND timestamp <= ? "
+                    "ORDER BY timestamp",
+                    (start_ts, end_ts),
+                ).fetchall()
+            for r in rows:
+                event = {
+                    "timestamp": r["timestamp"],
+                    "source": "event",
+                    "severity": r["severity"],
+                    "event_type": r["event_type"],
+                    "message": r["message"],
+                }
+                if r["details"]:
+                    try:
+                        event["details"] = json.loads(r["details"])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                timeline.append(event)
+
+        timeline.sort(key=lambda x: x["timestamp"])
+        return timeline
 
     def get_active_incidents(self):
         """Return all incidents (for export context)."""

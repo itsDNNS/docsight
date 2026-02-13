@@ -330,5 +330,20 @@
   "integrations": "Integrations",
   "appearance": "Apparence",
   "welcome_desc": "Connectons votre modem.",
-  "finish_setup": "Terminer la configuration"
+  "finish_setup": "Terminer la configuration",
+  "correlation_analysis": "Correlation",
+  "correlation_title": "Correlation multi-sources",
+  "correlation_desc": "Correlez les donnees de signal modem, les resultats de speedtest et les evenements detectes sur une chronologie unifiee pour identifier les schemas et constituer des preuves pour les reclamations FAI.",
+  "correlation_no_data": "Aucune donnee de correlation disponible pour cette periode.",
+  "correlation_hours_24": "Dernieres 24 heures",
+  "correlation_hours_48": "Dernieres 48 heures",
+  "correlation_hours_168": "7 derniers jours",
+  "correlation_source_modem": "Modem",
+  "correlation_source_speedtest": "Speedtest",
+  "correlation_source_events": "Evenements",
+  "correlation_signal_health": "Sante du signal",
+  "correlation_speed_vs_signal": "Vitesse vs. Signal",
+  "correlation_all_sources": "Toutes les sources",
+  "correlation_modem_health_good": "Signal sain au moment du speedtest",
+  "correlation_modem_health_poor": "Signal degrade au moment du speedtest"
 }

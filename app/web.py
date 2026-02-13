@@ -701,6 +701,30 @@ def api_export():
                         lines.append(inc["description"])
                     lines.append("")
 
+        # ── Cross-source correlation ──
+        if speedtests:
+            corr_lines = []
+            for st in speedtests:
+                snap = _storage.get_closest_snapshot(st["timestamp"])
+                if snap:
+                    ss = snap["summary"]
+                    corr_lines.append(
+                        f"| {st['timestamp'][:16]} | {st.get('download_human', '')} "
+                        f"| {ss.get('health', '')} | {ss.get('ds_snr_min', '')} dB "
+                        f"| {ss.get('ds_power_avg', '')} dBmV "
+                        f"| {ss.get('ds_uncorrectable_errors', 0):,} |"
+                    )
+            if corr_lines:
+                lines += [
+                    "",
+                    "## Cross-Source Correlation",
+                    "Speedtest performance correlated with modem signal health at the time of each test.",
+                    "",
+                    "| Speedtest Time | Download | Modem Health | DS SNR Min | DS Power Avg | Uncorr. Errors |",
+                    "|---------------|----------|-------------|------------|-------------|----------------|",
+                ]
+                lines.extend(corr_lines)
+
     # ── Dynamic reference values from thresholds.json ──
     from . import analyzer as _analyzer
     _thresh = _analyzer.get_thresholds()
@@ -1125,6 +1149,54 @@ def api_channel_history():
         return jsonify({"error": "direction must be 'ds' or 'us'"}), 400
     days = max(1, min(days, 90))
     return jsonify(_storage.get_channel_history(channel_id, direction, days))
+
+
+# ── Cross-Source Correlation API ──
+
+@app.route("/api/correlation")
+@require_auth
+def api_correlation():
+    """Return unified timeline with data from all sources for cross-source correlation.
+    Query params:
+      hours: int (default 24, max 168)
+      sources: comma-separated list of modem,speedtest,events (default all)
+    """
+    if not _storage:
+        return jsonify([])
+    hours = request.args.get("hours", 24, type=int)
+    hours = max(1, min(hours, 168))
+    end_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    start_ts = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+
+    sources_param = request.args.get("sources", "")
+    if sources_param:
+        valid = {"modem", "speedtest", "events"}
+        sources = valid & set(s.strip() for s in sources_param.split(","))
+        if not sources:
+            sources = valid
+    else:
+        sources = None
+
+    timeline = _storage.get_correlation_timeline(start_ts, end_ts, sources)
+
+    # Enrich speedtest entries with closest modem health
+    modem_entries = [e for e in timeline if e["source"] == "modem"]
+    for entry in timeline:
+        if entry["source"] == "speedtest" and modem_entries:
+            closest = min(modem_entries, key=lambda m: abs(
+                datetime.fromisoformat(m["timestamp"]).timestamp() -
+                datetime.fromisoformat(entry["timestamp"]).timestamp()
+            ))
+            delta_min = abs(
+                datetime.fromisoformat(closest["timestamp"]).timestamp() -
+                datetime.fromisoformat(entry["timestamp"]).timestamp()
+            ) / 60
+            if delta_min <= 120:
+                entry["modem_health"] = closest.get("health")
+                entry["modem_ds_snr_min"] = closest.get("ds_snr_min")
+                entry["modem_ds_power_avg"] = closest.get("ds_power_avg")
+
+    return jsonify(timeline)
 
 
 @app.after_request
