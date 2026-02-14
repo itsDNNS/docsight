@@ -1282,3 +1282,128 @@ details.channel-group table {
         height: 180px;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   METRIC SUMMARY ROW - Phase 3 Task 3.2
+   Compact metric cards without expandable details
+   ══════════════════════════════════════════════════════════════════════════ */
+.metric-summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-md, 16px);
+    margin-bottom: var(--space-xl, 24px);
+}
+
+.metric-summary-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-md, 16px);
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.metric-summary-card:hover {
+    border-color: var(--accent-purple, var(--purple-500));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+}
+
+.metric-summary-card.health-good { 
+    border-left: 3px solid var(--color-good, var(--good)); 
+}
+.metric-summary-card.health-warn { 
+    border-left: 3px solid var(--color-warn, var(--warn)); 
+}
+.metric-summary-card.health-crit { 
+    border-left: 3px solid var(--color-crit, var(--crit)); 
+}
+
+.metric-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: var(--space-sm, 12px);
+}
+
+.metric-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary, var(--muted));
+    flex-shrink: 0;
+}
+
+.metric-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary, var(--muted));
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-summary-values {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+}
+
+.metric-value-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+}
+
+.metric-value-item .value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary, var(--text));
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.metric-value-item .unit {
+    font-size: 11px;
+    color: var(--text-secondary, var(--muted));
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metric-value-item .sublabel {
+    font-size: 11px;
+    color: var(--text-secondary, var(--muted));
+    margin-top: 4px;
+}
+
+.metric-value-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--input-border, rgba(255,255,255,0.15));
+    flex-shrink: 0;
+}
+
+/* Mobile: 2x2 Grid for Metric Summary */
+@media (max-width: 600px) {
+    .metric-summary-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-sm, 12px);
+    }
+    
+    .metric-summary-card {
+        padding: var(--space-sm, 12px);
+    }
+    
+    .metric-value-item .value {
+        font-size: 20px;
+    }
+    
+    .metric-label {
+        font-size: 11px;
+    }
+    
+    .metric-value-divider {
+        height: 30px;
+    }
+}
