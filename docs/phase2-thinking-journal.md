@@ -118,11 +118,50 @@ Document the iterative thinking process for Phase 2 implementation. Each session
 - Pattern recognition: If HTML is correct but resource doesn't appear → check CSP
 
 **Next Tasks (Phase 2 remaining):**
-- [ ] Task 2.4: Apply sidebar CSS redesign (colors, spacing, active states per mockup)
+- [x] Task 2.4: Apply sidebar CSS redesign (colors, spacing, active states per mockup) ✅
 - [ ] Task 2.5: Implement collapsed sidebar state (icon-only mode with tooltips)
 - [ ] Task 2.6: Redesign top bar (search input, action button, notification bell)
 - [ ] Task 2.7: Move language selector to settings, dark mode toggle to sidebar footer
 - [ ] Task 2.8: Mobile hamburger menu improvements (smooth animation, touch backdrop)
+
+---
+
+## Session 4: Phase 2.4 - Sidebar CSS Redesign
+**Started:** 2026-02-14 10:20:00
+**Status:** ✅ Completed - Modern dark sidebar with purple active states
+**Task:** Micro-task 4 - Sidebar CSS redesign
+
+### Implementation
+- **Who:** Nova (manual CSS editing)
+- **Duration:** ~4 minutes
+- **Changes:** Modernized sidebar styling based on UI mockup
+  - Ultra-dark background: `#0f1419` (vs old `#16213e`)
+  - Active states: rounded pills (12px) with purple highlight `rgba(168, 85, 247, 0.15)`
+  - Tighter spacing: using design tokens (`var(--space-md)`, etc.)
+  - Section labels: smaller (0.6875rem), more subtle (`rgba(255, 255, 255, 0.4)`)
+  - Icon sizing: 1.25rem, improved alignment
+  - Hover states: subtle `rgba(255, 255, 255, 0.05)` background
+  - Border colors: ultra-subtle `rgba(255, 255, 255, 0.05)`
+- **Commit:** `e832c8a` "Sidebar CSS redesign with modern dark theme (Phase 2.4)"
+- **Screenshots:**
+  - `docs/phase2.4-sidebar-redesign.png` (overview)
+  - `docs/phase2.4-active-state.png` (Live Dashboard active)
+  - `docs/phase2.4-events-active.png` (Event Log active - state switching works)
+
+### Design Decisions
+- **Mockup inspiration:** Borrowed dark aesthetic + rounded pill active states from ui-redesign-concept.jpg
+- **Purple accent:** Used `--purple-500` (`#a855f7`) for active states (matches modern design systems)
+- **Spacing consistency:** All spacing now uses design tokens (no hardcoded px values)
+- **Icon alignment:** Flexbox centering for icons (width: 20px, height: 20px, justify-content: center)
+
+### Testing
+- ✅ Live Dashboard active state renders correctly
+- ✅ Navigation state switching works (tested Event Log)
+- ✅ All icons render (Lucide)
+- ✅ Section labels styled correctly
+- ✅ No layout regressions
+
+**Next:** Task 2.5 (Collapsed sidebar) or wait for bugfix sub-agent to finish
 
 ---
 
@@ -140,7 +179,7 @@ Document the iterative thinking process for Phase 2 implementation. Each session
 
 ## Quality Criteria (for this phase)
 
-- [ ] Sidebar visually matches mockup design language
+- [x] Sidebar visually matches mockup design language ✅
 - [x] Icon library properly integrated (Lucide icons rendering) ✅
 - [ ] Collapsed/expanded sidebar states work smoothly
 - [ ] Top bar has modern search + action button layout
