@@ -1127,50 +1127,272 @@ details.channel-group {
 .journal-empty {
     text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
 }
-/* ── Event Log ── */
+/* ══════════════════════════════════════════════════════════════════════════
+   EVENT LOG - Phase 4.3: Modern Card Design with Pill Filters
+   ══════════════════════════════════════════════════════════════════════════ */
 .events-header {
     display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    margin-bottom: var(--space-lg, 20px); flex-wrap: wrap; gap: 10px;
 }
-.events-header .trend-title { font-size: 1.2em; color: var(--accent); font-weight: bold; }
-.events-filters {
-    display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;
+.events-header .trend-title { 
+    font-size: 1.5em; 
+    color: var(--accent-purple, var(--accent)); 
+    font-weight: bold; 
 }
-.events-filters select {
-    padding: 6px 10px; border-radius: 6px; border: 1px solid var(--input-border);
-    background: var(--card); color: var(--text); font-size: 0.85em; font-family: inherit;
+
+/* Phase 4.3: Pill filter section */
+.events-filter-section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 16px);
+    margin-bottom: var(--space-lg, 20px);
+    flex-wrap: wrap;
 }
-#events-table { margin-bottom: 0; }
-#events-table tbody tr { transition: background 0.15s; }
-#events-table tbody tr:hover { background: rgba(255,255,255,0.06); }
-#events-table tbody tr.event-acked { opacity: 0.5; }
-#events-table td.event-msg { max-width: 400px; word-break: break-word; }
-#events-table td.event-actions { white-space: nowrap; }
+.events-filter-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-secondary, var(--muted));
+}
+.events-severity-pills {
+    display: flex; 
+    gap: var(--space-xs, 6px); 
+    background: var(--card-bg, var(--card));
+    padding: 4px;
+    border-radius: 24px;
+    border: 1px solid var(--card-border, var(--input-border));
+}
+.severity-pill {
+    background: transparent; 
+    border: none; 
+    color: var(--text-secondary, var(--muted));
+    padding: 8px 20px; 
+    font-size: 0.85em; 
+    cursor: pointer;
+    font-family: inherit; 
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.severity-pill:hover { 
+    color: var(--text); 
+    background: rgba(168,85,247,0.1); 
+}
+.severity-pill.active { 
+    background: var(--accent-purple, var(--accent)); 
+    color: #fff; 
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+
+/* Phase 4.3: Table card wrapper */
+.table-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 12px);
+    overflow: hidden;
+    margin-bottom: var(--space-xl, 24px);
+}
+.table-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md, 16px) var(--space-lg, 20px);
+    background: rgba(0,0,0,0.15);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+.table-card-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--text);
+}
+.table-card-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--accent-purple, var(--accent));
+    flex-shrink: 0;
+}
+
+/* Phase 4.3: Events table styling */
+#events-table { 
+    width: 100%;
+    margin: 0;
+}
+#events-table thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+#events-table thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+#events-table tbody tr { 
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+#events-table tbody tr:hover { 
+    background: rgba(168,85,247,0.08);
+}
+#events-table tbody tr.event-acked { 
+    opacity: 0.5; 
+}
+#events-table tbody td {
+    padding: 12px 16px;
+    font-size: 0.85em;
+}
+#events-table td.event-msg { 
+    max-width: 400px; 
+    word-break: break-word; 
+}
+#events-table td.event-actions { 
+    white-space: nowrap; 
+}
+
+/* Phase 4.3: Event detail expansion row */
+.event-detail-row td { 
+    padding: 12px 16px !important; 
+    background: rgba(0,0,0,0.2) !important;
+    font-size: 0.85em; 
+    border-bottom: 1px solid var(--card-border, var(--input-border)) !important;
+}
+.event-detail-row pre { 
+    margin: 0; 
+    white-space: pre-wrap; 
+    word-break: break-all; 
+    color: var(--muted); 
+    font-size: 0.9em; 
+}
+
+/* Phase 4.3: Sidebar event badge (purple instead of red) */
 .event-badge {
     display: inline-block; min-width: 18px; height: 18px; line-height: 18px;
     padding: 0 5px; border-radius: 9px; font-size: 0.7em; font-weight: bold;
-    text-align: center; background: var(--crit); color: #fff; margin-left: 6px;
+    text-align: center; background: var(--accent-purple, var(--accent)); color: #fff; margin-left: 6px;
 }
-.sev-info { color: var(--accent); }
+
+/* Phase 4.3: Severity colors (updated to purple accent) */
+.sev-info { color: var(--info); }
 .sev-warning { color: var(--warn); }
 .sev-critical { color: var(--crit); }
-.sev-badge-info { background: rgba(0,173,181,0.2); color: var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
-.sev-badge-warning { background: rgba(255,152,0,0.25); color: var(--warn); padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
-.sev-badge-critical { background: rgba(244,67,54,0.25); color: var(--crit); padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+.sev-badge-info { 
+    background: rgba(59,130,246,0.2); 
+    color: var(--info); 
+    padding: 2px 8px; 
+    border-radius: 4px; 
+    font-size: 0.8em; 
+    font-weight: bold; 
+}
+.sev-badge-warning { 
+    background: rgba(245,158,11,0.25); 
+    color: var(--warn); 
+    padding: 2px 8px; 
+    border-radius: 4px; 
+    font-size: 0.8em; 
+    font-weight: bold; 
+}
+.sev-badge-critical { 
+    background: rgba(239,68,68,0.25); 
+    color: var(--crit); 
+    padding: 2px 8px; 
+    border-radius: 4px; 
+    font-size: 0.8em; 
+    font-weight: bold; 
+}
+
+/* Phase 4.3: Acknowledge button (modern pill style) */
 .btn-ack {
-    padding: 4px 10px; border: 1px solid var(--input-border); border-radius: 4px;
-    background: transparent; color: var(--muted); cursor: pointer; font-size: 0.8em; font-family: inherit;
+    padding: 4px 12px; 
+    border: 1px solid var(--input-border); 
+    border-radius: 16px;
+    background: transparent; 
+    color: var(--muted); 
+    cursor: pointer; 
+    font-size: 0.8em; 
+    font-family: inherit;
+    transition: all 0.2s ease;
 }
-.btn-ack:hover { background: var(--surface); color: var(--text); }
+.btn-ack:hover { 
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    border-color: var(--accent-purple, var(--accent));
+}
+
+/* Phase 4.3: Acknowledge All button (modern purple accent) */
 .btn-ack-all {
-    padding: 6px 14px; border: 1px solid var(--input-border); border-radius: 6px;
-    background: transparent; color: var(--text); cursor: pointer; font-size: 0.85em; font-family: inherit;
+    padding: 8px 16px; 
+    border: 1px solid var(--accent-purple, var(--accent));
+    border-radius: 20px;
+    background: transparent; 
+    color: var(--accent-purple, var(--accent));
+    cursor: pointer; 
+    font-size: 0.85em; 
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s ease;
 }
-.btn-ack-all:hover { background: var(--surface); }
-.event-detail-row td { padding: 8px 16px !important; background: var(--surface); font-size: 0.85em; }
-.event-detail-row pre { margin: 0; white-space: pre-wrap; word-break: break-all; color: var(--muted); font-size: 0.9em; }
+.btn-ack-all:hover { 
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+
+/* Phase 4.3: Show More button */
+.btn-show-more {
+    padding: 8px 24px;
+    border: 1px solid var(--input-border);
+    border-radius: 20px;
+    background: var(--card-bg, var(--card));
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.85em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-show-more:hover {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    border-color: var(--accent-purple, var(--accent));
+}
+
 .events-empty {
     text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
+}
+
+/* Phase 4.3: Mobile responsive */
+@media (max-width: 768px) {
+    .events-filter-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm, 12px);
+    }
+    .events-severity-pills {
+        width: 100%;
+        justify-content: center;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .severity-pill {
+        padding: 8px 16px;
+        font-size: 0.8em;
+        flex-shrink: 0;
+    }
+    .table-card-header {
+        flex-direction: column;
+        gap: var(--space-sm, 12px);
+        align-items: flex-start;
+    }
+    #events-table thead th,
+    #events-table tbody td {
+        padding: 8px 12px;
+        font-size: 0.8em;
+    }
 }
 .incident-form-group { margin-bottom: 14px; }
 .incident-form-group label {

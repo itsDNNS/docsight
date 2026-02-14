@@ -711,41 +711,49 @@
 <div id="view-events" class="view">
     <div class="events-header">
         <span class="trend-title">{{ t.event_log }}</span>
-        <button class="btn-ack-all" id="btn-ack-all" onclick="acknowledgeAllEvents()" style="display:none;">&#10003; {{ t.event_acknowledge_all }}</button>
     </div>
-    <div class="events-filters">
-        <select id="events-filter-severity" onchange="loadEvents()">
-            <option value="">{{ t.event_all_severities }}</option>
-            <option value="info">{{ t.event_severity_info }}</option>
-            <option value="warning">{{ t.event_severity_warning }}</option>
-            <option value="critical">{{ t.event_severity_critical }}</option>
-        </select>
-        <select id="events-filter-type" onchange="loadEvents()">
-            <option value="">{{ t.event_all_types }}</option>
-            <option value="health_change">{{ t.event_type_health_change }}</option>
-            <option value="power_change">{{ t.event_type_power_change }}</option>
-            <option value="snr_change">{{ t.event_type_snr_change }}</option>
-            <option value="channel_change">{{ t.event_type_channel_change }}</option>
-            <option value="modulation_change">{{ t.event_type_modulation_change }}</option>
-            <option value="error_spike">{{ t.event_type_error_spike }}</option>
-        </select>
+    
+    <!-- Phase 4.3: Pill filter toggles for severity -->
+    <div class="events-filter-section">
+        <div class="events-filter-label">{{ t.event_severity }}:</div>
+        <div class="events-severity-pills">
+            <button class="severity-pill active" data-severity="" onclick="filterEventsBySeverity('')">{{ t.event_all_severities }}</button>
+            <button class="severity-pill" data-severity="info" onclick="filterEventsBySeverity('info')">{{ t.event_severity_info }}</button>
+            <button class="severity-pill" data-severity="warning" onclick="filterEventsBySeverity('warning')">{{ t.event_severity_warning }}</button>
+            <button class="severity-pill" data-severity="critical" onclick="filterEventsBySeverity('critical')">{{ t.event_severity_critical }}</button>
+        </div>
     </div>
+    
     <div id="events-loading" class="waiting" style="display:none;">
         <div class="spinner"></div>
     </div>
     <div id="events-empty" class="events-empty" style="display:none;"></div>
-    <table id="events-table" style="display:none;">
-        <thead><tr>
-            <th>{{ t.timestamp }}</th>
-            <th>{{ t.event_severity }}</th>
-            <th>{{ t.event_type }}</th>
-            <th>{{ t.event_message }}</th>
-            <th></th>
-        </tr></thead>
-        <tbody id="events-tbody"></tbody>
-    </table>
+    
+    <!-- Phase 4.3: Card wrapper for events table -->
+    <div id="events-table-card" class="table-card" style="display:none;">
+        <div class="table-card-header">
+            <div class="table-card-title">
+                <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>{{ t.event_log }}</span>
+            </div>
+            <button class="btn-ack-all" id="btn-ack-all" onclick="acknowledgeAllEvents()" style="display:none;">&#10003; {{ t.event_acknowledge_all }}</button>
+        </div>
+        <table id="events-table">
+            <thead><tr>
+                <th>{{ t.timestamp }}</th>
+                <th>{{ t.event_severity }}</th>
+                <th>{{ t.event_type }}</th>
+                <th>{{ t.event_message }}</th>
+                <th></th>
+            </tr></thead>
+            <tbody id="events-tbody"></tbody>
+        </table>
+    </div>
+    
     <div id="events-show-more" style="text-align:center; padding:16px; display:none;">
-        <button class="btn-ack-all" onclick="loadMoreEvents()">{{ t.show_more }}</button>
+        <button class="btn-show-more" onclick="loadMoreEvents()">{{ t.show_more }}</button>
     </div>
 </div>
 
@@ -2118,15 +2126,32 @@
         critical: T.event_severity_critical || 'Critical'
     };
 
+    /* Phase 4.3: Pill filter toggle function */
+    var _currentSeverityFilter = '';
+    
+    function filterEventsBySeverity(severity) {
+        _currentSeverityFilter = severity;
+        // Update active pill state
+        var pills = document.querySelectorAll('.severity-pill');
+        pills.forEach(function(pill) {
+            if (pill.getAttribute('data-severity') === severity) {
+                pill.classList.add('active');
+            } else {
+                pill.classList.remove('active');
+            }
+        });
+        // Reload events with new filter
+        loadEvents();
+    }
+    
     function loadEvents(append) {
         if (!append) _eventsOffset = 0;
-        var severity = document.getElementById('events-filter-severity').value;
-        var evType = document.getElementById('events-filter-type').value;
+        var severity = _currentSeverityFilter;
         var params = '?limit=' + _eventsPageSize + '&offset=' + _eventsOffset;
         if (severity) params += '&severity=' + severity;
-        if (evType) params += '&event_type=' + evType;
 
         var tbody = document.getElementById('events-tbody');
+        var tableCard = document.getElementById('events-table-card');
         var table = document.getElementById('events-table');
         var empty = document.getElementById('events-empty');
         var loading = document.getElementById('events-loading');
@@ -2136,7 +2161,7 @@
         if (!append) {
             loading.style.display = '';
             tbody.innerHTML = '';
-            table.style.display = 'none';
+            tableCard.style.display = 'none';
             empty.style.display = 'none';
             moreBtn.style.display = 'none';
         }
@@ -2180,7 +2205,7 @@
                     }
                     tbody.appendChild(tr);
                 });
-                table.style.display = '';
+                tableCard.style.display = '';
                 moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
             })
             .catch(function() {
@@ -2246,6 +2271,7 @@
     window.acknowledgeEvent = acknowledgeEvent;
     window.acknowledgeAllEvents = acknowledgeAllEvents;
     window.loadEvents = loadEvents;
+    window.filterEventsBySeverity = filterEventsBySeverity;
 
     // Fetch badge count on page load
     fetch('/api/events/count')
