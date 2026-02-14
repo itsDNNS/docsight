@@ -772,6 +772,33 @@ details.channel-group {
     border-radius: var(--radius-md);
     overflow: hidden;
 }
+details.channel-group summary {
+    cursor: pointer; 
+    padding: 12px 16px; 
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 0.9375rem; 
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85); 
+    list-style: none;
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    user-select: none;
+    transition: background 0.2s ease;
+}
+details.channel-group summary:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+details.channel-group summary .badge { margin-left: auto; }
+details.channel-group summary::-webkit-details-marker { display: none; }
+details.channel-group summary::before {
+    content: "\25B6"; 
+    font-size: 0.625rem; 
+    transition: transform 0.2s;
+    color: rgba(255, 255, 255, 0.5);
+}
+details.channel-group[open] summary::before { transform: rotate(90deg); }
+details.channel-group table { 
     margin-top: 0; 
     margin-bottom: 0;
 }
