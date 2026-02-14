@@ -372,6 +372,46 @@
         {% endif %}
     </div>
 
+    {# ══════════════════════════════════════════════════════════════════════════
+       CHANNEL HEALTH OVERVIEW - Phase 3 Task 3.4
+       Donut charts showing health distribution for DS/US channels
+       ══════════════════════════════════════════════════════════════════════════ #}
+    <div class="channel-health-card">
+        <div class="channel-health-header">
+            <i data-lucide="pie-chart" class="channel-health-icon"></i>
+            <h3 class="channel-health-title">{{ t.get('channel_health_overview', 'Channel Health Overview') }}</h3>
+        </div>
+        
+        <div class="channel-health-charts">
+            <!-- Downstream Donut -->
+            <div class="health-chart-container">
+                <canvas id="ds-health-donut"></canvas>
+                <div class="chart-label">{{ t.downstream }}</div>
+            </div>
+            
+            <!-- Upstream Donut -->
+            <div class="health-chart-container">
+                <canvas id="us-health-donut"></canvas>
+                <div class="chart-label">{{ t.upstream }}</div>
+            </div>
+        </div>
+        
+        <div class="channel-health-legend">
+            <div class="legend-item">
+                <span class="legend-dot legend-good"></span>
+                <span class="legend-label">{{ t.health_good }}</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot legend-warn"></span>
+                <span class="legend-label">{{ t.health_warning }}</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot legend-crit"></span>
+                <span class="legend-label">{{ t.health_critical }}</span>
+            </div>
+        </div>
+    </div>
+
     {# ── Range marker positions (clamped 2-98%) ── #}
     {# DS Power: range -12 to +25 = 37 units #}
     {% set ds_pwr_marker = [2, [98, ((s.ds_power_avg + 12) / 37 * 100)|round|int]|min]|max %}
@@ -1193,6 +1233,99 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/hero-chart.js') }}"></script>
+
+{# ── Channel Health Donut Charts - Phase 3 Task 3.4 ── #}
+<script>
+(function() {
+    'use strict';
+    
+    // Wait for DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+        initChannelHealthDonuts();
+    });
+    
+    function initChannelHealthDonuts() {
+        // Prepare data from template
+        const dsHealthCounts = {
+            good: {{ ds|selectattr('health', 'equalto', 'good')|list|length }},
+            warn: {{ ds|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }},
+            crit: {{ ds|selectattr('health', 'equalto', 'critical')|list|length }}
+        };
+        
+        const usHealthCounts = {
+            good: {{ us|selectattr('health', 'equalto', 'good')|list|length }},
+            warn: {{ us|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }},
+            crit: {{ us|selectattr('health', 'equalto', 'critical')|list|length }}
+        };
+        
+        // Render charts
+        renderDonut('ds-health-donut', dsHealthCounts);
+        renderDonut('us-health-donut', usHealthCounts);
+    }
+    
+    function renderDonut(canvasId, counts) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) {
+            console.warn('[ChannelHealth] Canvas element #' + canvasId + ' not found');
+            return;
+        }
+        
+        const total = counts.good + counts.warn + counts.crit;
+        if (total === 0) {
+            console.warn('[ChannelHealth] No data for ' + canvasId);
+            return;
+        }
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Good', 'Warning', 'Critical'],
+                datasets: [{
+                    data: [counts.good, counts.warn, counts.crit],
+                    backgroundColor: [
+                        'rgba(76, 175, 80, 0.8)',
+                        'rgba(255, 152, 0, 0.8)',
+                        'rgba(244, 67, 54, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(76, 175, 80, 1)',
+                        'rgba(255, 152, 0, 1)',
+                        'rgba(244, 67, 54, 1)'
+                    ],
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '65%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,20,25,0.95)',
+                        titleColor: 'rgba(224,224,224,0.9)',
+                        bodyColor: 'rgba(224,224,224,0.8)',
+                        borderColor: 'rgba(168,85,247,0.3)',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return label + ': ' + value + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+})();
+</script>
+
 <script>
 (function() {
     'use strict';

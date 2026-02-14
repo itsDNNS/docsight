@@ -1549,3 +1549,112 @@ details.channel-group table {
         padding: var(--space-sm, 12px);
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CHANNEL HEALTH OVERVIEW - Phase 3 Task 3.4
+   Donut charts showing health distribution
+   ══════════════════════════════════════════════════════════════════════════ */
+.channel-health-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-lg, 20px);
+    margin-bottom: var(--space-xl, 24px);
+}
+
+.channel-health-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    margin-bottom: var(--space-lg, 20px);
+}
+
+.channel-health-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--accent-purple, var(--purple-500));
+    flex-shrink: 0;
+}
+
+.channel-health-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, var(--text));
+    margin: 0;
+}
+
+.channel-health-charts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xl, 24px);
+    margin-bottom: var(--space-lg, 20px);
+}
+
+.health-chart-container {
+    position: relative;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.health-chart-container canvas {
+    max-height: 180px;
+}
+
+.chart-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary, var(--muted));
+    margin-top: var(--space-sm, 8px);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.channel-health-legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-lg, 24px);
+    padding-top: var(--space-md, 16px);
+    border-top: 1px solid var(--card-border, var(--input-border));
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legend-dot.legend-good { background: var(--color-good, var(--good)); }
+.legend-dot.legend-warn { background: var(--color-warn, var(--warn)); }
+.legend-dot.legend-crit { background: var(--color-crit, var(--crit)); }
+
+.legend-label {
+    font-size: 13px;
+    color: var(--text-secondary, var(--muted));
+}
+
+/* Mobile: Stack donuts vertically */
+@media (max-width: 600px) {
+    .channel-health-charts {
+        grid-template-columns: 1fr;
+        gap: var(--space-md, 16px);
+    }
+    
+    .health-chart-container {
+        height: 180px;
+    }
+    
+    .channel-health-legend {
+        gap: var(--space-md, 16px);
+        flex-wrap: wrap;
+    }
+}
