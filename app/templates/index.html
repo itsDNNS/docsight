@@ -83,10 +83,15 @@
             <span class="icon">&#128682;</span> {{ t.logout }}
         </a>
         {% endif %}
-        <div style="padding: 8px 20px 12px;">
-            <a href="https://github.com/itsDNNS/docsight/releases" target="_blank"
-               style="color: var(--muted); font-size: 0.75em; text-decoration: none; opacity: 0.6;"
-               onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">{{ version }}</a>
+        <div class="sidebar-footer">
+            <div class="dark-mode-toggle">
+                <span class="dark-mode-label"><i data-lucide="moon"></i> {{ t.dark_mode or 'Dark mode' }}</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="theme-toggle-sidebar">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <a href="https://github.com/itsDNNS/docsight/releases" target="_blank" class="version-link">{{ version }}</a>
         </div>
     </div>
 </nav>
@@ -108,12 +113,6 @@
         {% if not historical %}
         <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
         {% endif %}
-        <select class="lang-select" id="lang-select" title="Language">
-            {% for code, name in languages.items() %}
-            <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ code.upper() }}</option>
-            {% endfor %}
-        </select>
-        <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
     </div>
 </div>
 
@@ -996,24 +995,16 @@
     var saved = localStorage.getItem('docsis-theme');
     if (saved) document.documentElement.setAttribute('data-theme', saved);
 
-    var themeBtn = document.getElementById('theme-toggle');
-    function updateThemeIcon() {
+    var themeToggle = document.getElementById('theme-toggle-sidebar');
+    function updateThemeState() {
         var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-        themeBtn.innerHTML = isDark ? '&#9788;' : '&#9790;';
+        themeToggle.checked = isDark;
     }
-    updateThemeIcon();
-    themeBtn.addEventListener('click', function() {
-        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-        var next = isDark ? 'light' : 'dark';
+    updateThemeState();
+    themeToggle.addEventListener('change', function() {
+        var next = this.checked ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('docsis-theme', next);
-        updateThemeIcon();
-    });
-
-    document.getElementById('lang-select').addEventListener('change', function() {
-        var url = new URL(window.location);
-        url.searchParams.set('lang', this.value);
-        window.location.href = url.toString();
     });
 
     /* ── State ── */
