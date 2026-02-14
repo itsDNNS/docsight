@@ -503,51 +503,100 @@ h2.section-title { font-size: 1.1em; margin: 16px 0 8px; color: var(--accent); }
 
 /* ── Metric Cards Grid ── */
 .metric-cards {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 12px; margin-bottom: 16px;
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px; 
+    margin-bottom: 20px;
 }
 
 /* ── Metric Card ── */
 .metric-card {
-    background: var(--surface); border-radius: 6px;
-    border-left: 4px solid var(--muted); overflow: hidden;
+    background: rgba(255, 255, 255, 0.03); 
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.metric-card.health-good { border-left-color: var(--good); }
-.metric-card.health-warn { border-left-color: var(--warn); }
-.metric-card.health-crit { border-left-color: var(--crit); }
+.metric-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.metric-card.health-good { 
+    border-top: 3px solid var(--good);
+}
+.metric-card.health-warn { 
+    border-top: 3px solid var(--warn);
+}
+.metric-card.health-crit { 
+    border-top: 3px solid var(--crit);
+}
 
 .metric-card-header {
-    display: flex; align-items: center; gap: 8px;
-    padding: 12px 14px 0; cursor: pointer; user-select: none;
+    display: flex; 
+    align-items: center; 
+    gap: 10px;
+    padding: 16px 18px 4px; 
+    cursor: pointer; 
+    user-select: none;
 }
 .metric-card-header .status-dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    width: 10px; 
+    height: 10px; 
+    border-radius: 50%; 
+    flex-shrink: 0;
 }
 .health-good .status-dot { background: var(--good); }
 .health-warn .status-dot { background: var(--warn); }
 .health-crit .status-dot { background: var(--crit); }
 .metric-card-header .card-title {
-    font-size: 0.75em; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; color: var(--muted); flex: 1;
+    font-size: 0.8125rem; 
+    font-weight: 700; 
+    text-transform: uppercase;
+    letter-spacing: 0.06em; 
+    color: rgba(255, 255, 255, 0.6); 
+    flex: 1;
 }
 .metric-card-header .chevron {
-    font-size: 0.7em; color: var(--muted); transition: transform 0.25s ease;
+    font-size: 0.625rem; 
+    color: rgba(255, 255, 255, 0.4); 
+    transition: transform 0.25s ease;
 }
-.metric-card.open .metric-card-header .chevron { transform: rotate(90deg); }
+.metric-card.open .metric-card-header .chevron { 
+    transform: rotate(90deg); 
+}
 
-.metric-card-body { padding: 8px 14px 14px; }
+.metric-card-body { 
+    padding: 12px 18px 18px; 
+}
 
 /* ── Metric Row (side-by-side metrics) ── */
-.metric-row { display: flex; gap: 20px; }
-.metric-item { flex: 1; min-width: 0; }
+.metric-row { 
+    display: flex; 
+    gap: 24px; 
+}
+.metric-item { 
+    flex: 1; 
+    min-width: 0; 
+}
 .metric-value {
-    font-size: 1.6em; font-weight: bold; line-height: 1.2;
+    font-size: 1.75rem; 
+    font-weight: 700; 
+    line-height: 1.2;
 }
 .metric-value.val-good { color: var(--good); }
 .metric-value.val-warn { color: var(--warn); }
 .metric-value.val-crit { color: var(--crit); }
-.metric-unit { font-size: 0.7em; font-weight: normal; color: var(--muted); margin-left: 2px; }
-.metric-label { font-size: 0.78em; color: var(--muted); margin-top: 2px; }
+.metric-unit { 
+    font-size: 0.6em; 
+    font-weight: 500; 
+    color: rgba(255, 255, 255, 0.5); 
+    margin-left: 3px; 
+}
+.metric-label { 
+    font-size: 0.8125rem; 
+    color: rgba(255, 255, 255, 0.6); 
+    margin-top: 4px; 
+}
 
 /* ── Range Indicator ── */
 .range-indicator {
