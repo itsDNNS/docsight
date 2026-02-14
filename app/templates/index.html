@@ -67,10 +67,10 @@
         <a class="sidebar-link" data-view="journal" data-tooltip="{{ t.incident_journal }}">
             <span class="icon"><i data-lucide="clipboard-list"></i></span> {{ t.incident_journal }}
         </a>
-        <a class="sidebar-link" id="export-link" onclick="exportForLLM()" data-tooltip="{{ t.export_llm }}">
+        <a class="sidebar-link" id="export-link" href="javascript:void(0)" onclick="exportForLLM()" data-tooltip="{{ t.export_llm }}">
             <span class="icon"><i data-lucide="file-output"></i></span> {{ t.export_llm }}
         </a>
-        <a class="sidebar-link" id="report-link" onclick="openReportModal()" data-tooltip="{{ t.incident_report }}">
+        <a class="sidebar-link" id="report-link" href="javascript:void(0)" onclick="openReportModal()" data-tooltip="{{ t.incident_report }}">
             <span class="icon"><i data-lucide="file-text"></i></span> {{ t.incident_report }}
         </a>
         <div style="flex:1;"></div>
@@ -1345,7 +1345,7 @@
     });
 
     /* ── Hash-based view routing ── */
-    var validViews = ['live', 'trends', 'bqm', 'speedtest', 'journal', 'events', 'channels'];
+    var validViews = ['live', 'trends', 'bqm', 'speedtest', 'journal', 'events', 'channels', 'correlation'];
     function viewFromHash() {
         var h = location.hash.replace('#', '');
         return validViews.indexOf(h) !== -1 ? h : null;
