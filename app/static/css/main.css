@@ -1601,6 +1601,8 @@ details.channel-group table {
 
 .health-chart-container canvas {
     max-height: 180px;
+    max-width: 100%;
+    width: 100%;
 }
 
 .chart-label {
