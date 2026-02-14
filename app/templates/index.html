@@ -1170,6 +1170,9 @@
             updateDateLabel();
             loadTrends(_trendRange, selectedDate);
         }
+        
+        // Re-initialize Lucide icons after view switch
+        lucide.createIcons();
     }
 
     /* ── Trend Tabs ── */
@@ -3194,8 +3197,10 @@ function renderCorrelationTable(data) {
 </script>
 
 <script>
-  // Initialize Lucide icons
-  lucide.createIcons();
+  // Initialize Lucide icons after DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+  });
 </script>
 </body>
 </html>
