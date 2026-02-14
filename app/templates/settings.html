@@ -5,236 +5,246 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DOCSight - {{ t.settings }}</title>
     <link rel="icon" type="image/png" href="/static/icon.png">
+    <link rel="stylesheet" href="/static/css/main.css">
     <style>
-        :root, [data-theme="dark"] {
-            --bg: #1a1a2e;
-            --surface: #16213e;
-            --card: #0f3460;
-            --text: #e0e0e0;
-            --muted: #888;
-            --good: #4caf50;
-            --warn: #ff9800;
-            --crit: #f44336;
-            --accent: #00adb5;
-            --input-bg: #0d1b3e;
-            --input-border: rgba(255,255,255,0.15);
-            --accent-dim: rgba(0, 173, 181, 0.1);
-            --accent-hover: rgba(0, 173, 181, 0.15);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
-            --radius: 10px;
-            --radius-sm: 6px;
-        }
-        [data-theme="light"] {
-            --bg: #f0f2f5;
-            --surface: #ffffff;
-            --card: #e8edf2;
-            --text: #1a1a2e;
-            --muted: #666;
-            --good: #2e7d32;
-            --warn: #e65100;
-            --crit: #c62828;
-            --accent: #00838f;
-            --input-bg: #fff;
-            --input-border: #ccc;
-            --accent-dim: rgba(0, 131, 143, 0.08);
-            --accent-hover: rgba(0, 131, 143, 0.12);
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Settings-specific overrides - uses main.css color palette */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-            background: var(--bg);
-            color: var(--text);
             padding: 16px;
-            max-width: 860px;
+            max-width: 900px;
             margin: 0 auto;
         }
-        h1 { font-size: 1.4em; color: var(--accent); margin-bottom: 4px; }
+        h1 { 
+            font-size: 1.5em; 
+            color: var(--text); 
+            margin-bottom: 4px; 
+            font-weight: 600;
+        }
 
         /* ── Header ── */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
-        .header a { color: var(--accent); text-decoration: none; font-size: 0.9em; }
-        .header a:hover { text-decoration: underline; }
-
-        /* ── Layout: Sidebar + Content ── */
-        .settings-layout {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-        }
-
-        /* ── Sidebar Tabs (Desktop) ── */
-        .tab-sidebar {
-            width: 180px;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            position: sticky;
-            top: 16px;
-        }
-        .tab-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            border: none;
-            border-radius: var(--radius-sm);
-            background: transparent;
-            color: var(--muted);
+        .header a { 
+            color: var(--accent); 
+            text-decoration: none; 
             font-size: 0.9em;
-            font-family: inherit;
-            cursor: pointer;
-            text-align: left;
-            transition: background 0.2s, color 0.2s;
-            border: 1px solid transparent;
+            transition: color 0.2s;
         }
-        .tab-btn:hover { background: var(--accent-dim); color: var(--text); }
-        .tab-btn.active {
-            background: var(--accent-dim);
-            color: var(--accent);
-            border-color: var(--accent);
-            font-weight: bold;
-        }
-        .tab-icon { font-size: 1.1em; width: 20px; text-align: center; }
+        .header a:hover { color: var(--accent-hover); }
 
-        /* ── Mobile Tabs ── */
-        .tab-bar-mobile {
-            display: none;
+        /* ── Pill-style Tabs (matching Phase 3/4 design) ── */
+        .settings-tabs {
+            display: flex; 
+            gap: 6px; 
+            background: var(--card-bg);
+            padding: 6px;
+            border-radius: 30px;
+            border: 1px solid var(--card-border);
+            margin-bottom: 24px;
             overflow-x: auto;
-            gap: 4px;
-            margin-bottom: 16px;
-            padding-bottom: 4px;
             -webkit-overflow-scrolling: touch;
         }
-        .tab-bar-mobile .tab-btn {
+        .tab-btn {
+            background: transparent; 
+            border: none; 
+            color: var(--text-secondary);
+            padding: 10px 20px; 
+            font-size: 0.9em; 
+            cursor: pointer;
+            font-family: inherit; 
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border-radius: 24px;
             white-space: nowrap;
-            flex-shrink: 0;
-            padding: 8px 14px;
-            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        .tab-btn:hover { 
+            color: var(--text); 
+            background: rgba(168,85,247,0.1); 
+        }
+        .tab-btn.active { 
+            background: var(--accent); 
+            color: #fff; 
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+        }
+        .tab-icon { font-size: 1.1em; }
 
         /* ── Content Area ── */
-        .tab-content { flex: 1; min-width: 0; }
         .tab-panel {
             display: none;
-            animation: fadeIn 0.2s ease-out;
+            animation: fadeIn 0.3s ease-out;
         }
         .tab-panel.active { display: block; }
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* ── Section Cards ── */
-        .section {
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 20px 24px;
-            margin-bottom: 16px;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid transparent;
-            transition: border-color 0.2s;
+        /* ── Settings Cards (Phase 3/4 design language) ── */
+        .settings-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--card-border);
+            transition: all 0.2s ease;
         }
-        .section:hover { border-color: var(--accent-dim); }
-        .section-header {
+        .settings-card:hover { 
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+        }
+        .settings-card-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: 14px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
         }
-        .section-icon {
-            width: 40px; height: 40px;
-            border-radius: var(--radius-sm);
-            background: var(--accent-dim);
+        .settings-card-icon {
+            width: 48px; 
+            height: 48px;
+            border-radius: var(--radius-md);
+            background: rgba(168,85,247,0.15);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2em;
+            font-size: 1.4em;
             flex-shrink: 0;
+            color: var(--accent);
         }
-        .section-title { font-size: 1.05em; color: var(--accent); font-weight: bold; }
-        .section-desc { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
+        .settings-card-title { 
+            font-size: 1.125em; 
+            color: var(--text); 
+            font-weight: 600; 
+        }
+        .settings-card-desc { 
+            font-size: 0.85em; 
+            color: var(--text-secondary); 
+            margin-top: 4px; 
+        }
 
-        /* ── Form Elements ── */
-        .form-row { display: flex; flex-direction: column; margin-bottom: 14px; }
-        .form-row label { font-size: 0.85em; color: var(--muted); margin-bottom: 4px; }
+        /* ── Form Elements (Purple accents) ── */
+        .form-row { 
+            display: flex; 
+            flex-direction: column; 
+            margin-bottom: 16px; 
+        }
+        .form-row label { 
+            font-size: 0.875em; 
+            color: var(--text-secondary); 
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
         .form-row input, .form-row select {
-            background: var(--input-bg);
+            background: var(--bg);
             border: 1px solid var(--input-border);
             border-radius: var(--radius-sm);
-            padding: 8px 12px;
+            padding: 10px 14px;
             color: var(--text);
             font-size: 0.95em;
             font-family: inherit;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: all 0.2s ease;
         }
         .form-row input:focus, .form-row select:focus {
             outline: none;
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-dim);
+            box-shadow: 0 0 0 3px rgba(168,85,247,0.15);
         }
-        .form-row .hint { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+        .form-row input:hover, .form-row select:hover {
+            border-color: rgba(168,85,247,0.3);
+        }
+        .form-row .hint { 
+            font-size: 0.8em; 
+            color: var(--muted); 
+            margin-top: 4px; 
+        }
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 0 20px; 
+        }
         .form-grid .full { grid-column: 1 / -1; }
 
-        /* ── Buttons ── */
+        /* ── Modern Buttons (Purple pill-style) ── */
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 20px;
+            gap: 8px;
+            padding: 10px 24px;
             border: none;
-            border-radius: var(--radius-sm);
+            border-radius: 50px;
             cursor: pointer;
             font-size: 0.9em;
             font-family: inherit;
-            font-weight: bold;
-            box-shadow: var(--shadow-sm);
-            transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+            font-weight: 600;
+            transition: all 0.2s ease;
         }
-        .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn:hover { transform: translateY(-1px); }
         .btn:active { transform: translateY(0); }
-        .btn-primary { background: var(--accent); color: #000; }
-        .btn-primary:hover { filter: brightness(1.15); }
-        .btn-secondary {
-            background: var(--card);
-            color: var(--text);
-            border: 1px solid var(--input-border);
+        
+        .btn-primary { 
+            background: var(--accent); 
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(168,85,247,0.3);
         }
-        .btn-secondary:hover { background: var(--accent); color: #000; }
-        .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+        .btn-primary:hover { 
+            background: var(--accent-hover);
+            box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+        .btn-secondary:hover { 
+            background: var(--accent); 
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+        }
+        
+        .btn-row { 
+            display: flex; 
+            gap: 12px; 
+            align-items: center; 
+            margin-top: 8px; 
+        }
 
         /* ── Test Result ── */
         .test-result {
-            font-size: 0.85em;
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
+            font-size: 0.875em;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
             display: none;
             align-items: center;
-            gap: 8px;
-            margin-top: 12px;
+            gap: 10px;
+            margin-top: 16px;
+            font-weight: 500;
         }
         .test-ok {
             display: flex;
-            background: rgba(76,175,80,0.15);
+            background: rgba(16,185,129,0.15);
             color: var(--good);
-            border: 1px solid rgba(76,175,80,0.3);
+            border: 1px solid var(--good);
         }
         .test-fail {
             display: flex;
-            background: rgba(244,67,54,0.15);
+            background: rgba(239,68,68,0.15);
             color: var(--crit);
-            border: 1px solid rgba(244,67,54,0.3);
+            border: 1px solid var(--crit);
         }
-        .test-loading { display: flex; color: var(--muted); }
+        .test-loading { 
+            display: flex; 
+            color: var(--text-secondary); 
+        }
         .check-icon { display: inline-block; }
         @keyframes checkPop {
             0% { transform: scale(0); }
@@ -244,78 +254,139 @@
         .test-ok .check-icon { animation: checkPop 0.3s ease-out; }
 
         /* ── Submit Row ── */
-        .submit-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
-        .submit-row .btn-primary { padding: 10px 32px; font-size: 1em; }
-
-        /* ── Toast ── */
-        .toast {
-            position: fixed; top: 16px; right: 16px; padding: 12px 20px;
-            border-radius: var(--radius-sm); font-size: 0.9em; font-weight: bold;
-            z-index: 1000; display: none;
-            box-shadow: var(--shadow-md);
+        .submit-row { 
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 12px; 
+            margin-top: 12px; 
         }
-        .toast-ok { background: rgba(76,175,80,0.95); color: #fff; }
-        .toast-fail { background: rgba(244,67,54,0.95); color: #fff; }
+        .submit-row .btn-primary { 
+            padding: 12px 36px; 
+            font-size: 1em; 
+        }
+
+        /* ── Toast (Purple theme) ── */
+        .toast {
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            padding: 14px 24px;
+            border-radius: var(--radius-lg); 
+            font-size: 0.9em; 
+            font-weight: 600;
+            z-index: 1000; 
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            backdrop-filter: blur(8px);
+        }
+        .toast-ok { 
+            background: rgba(16,185,129,0.95); 
+            color: #fff; 
+        }
+        .toast-fail { 
+            background: rgba(239,68,68,0.95); 
+            color: #fff; 
+        }
 
         /* ── Error ── */
         .error-msg {
-            background: rgba(244,67,54,0.15);
+            background: rgba(239,68,68,0.15);
             border: 1px solid var(--crit);
             color: var(--crit);
-            padding: 10px;
-            border-radius: var(--radius-sm);
-            margin-bottom: 16px;
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
             display: none;
+            font-weight: 500;
         }
 
-        /* ── Theme Toggle ── */
+        /* ── Theme Toggle (Purple accent) ── */
         .theme-toggle-row {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 0;
+            gap: 16px;
+            padding: 16px 0;
         }
-        .theme-toggle-row label { font-size: 0.9em; color: var(--muted); }
-        .toggle-switch { position: relative; width: 48px; height: 24px; cursor: pointer; }
+        .theme-toggle-row label { 
+            font-size: 0.9em; 
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .toggle-switch { 
+            position: relative; 
+            width: 52px; 
+            height: 28px; 
+            cursor: pointer; 
+        }
         .toggle-switch input { display: none; }
         .toggle-slider {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--card); border-radius: 12px;
-            border: 1px solid var(--input-border); transition: background 0.2s;
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0;
+            background: var(--card-bg); 
+            border-radius: 14px;
+            border: 1px solid var(--input-border); 
+            transition: all 0.3s;
         }
         .toggle-slider::before {
-            content: ""; position: absolute; width: 18px; height: 18px;
-            left: 2px; bottom: 2px; background: var(--accent);
-            border-radius: 50%; transition: transform 0.2s;
+            content: ""; 
+            position: absolute; 
+            width: 22px; 
+            height: 22px;
+            left: 2px; 
+            bottom: 2px; 
+            background: var(--accent);
+            border-radius: 50%; 
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(24px); }
+        .toggle-switch input:checked + .toggle-slider::before { 
+            transform: translateX(24px); 
+        }
+        .toggle-switch:hover .toggle-slider {
+            border-color: var(--accent);
+        }
 
-        /* ── Integration Cards ── */
+        /* ── Integration Cards (Modern collapsible) ── */
         .integration-card {
-            background: var(--surface);
-            border-radius: var(--radius);
-            margin-bottom: 12px;
-            border: 1px solid var(--input-border);
-            box-shadow: var(--shadow-sm);
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            margin-bottom: 16px;
+            border: 1px solid var(--card-border);
             overflow: hidden;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
         }
-        .integration-card:hover { border-color: var(--accent-hover); }
+        .integration-card:hover { 
+            border-color: rgba(168,85,247,0.3); 
+        }
         .integration-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 14px 20px;
+            gap: 12px;
+            padding: 16px 24px;
             cursor: pointer;
             user-select: none;
+            transition: background 0.2s;
+        }
+        .integration-header:hover {
+            background: rgba(168,85,247,0.05);
         }
         .integration-header .arrow {
-            transition: transform 0.2s;
+            transition: transform 0.3s ease;
             font-size: 0.7em;
-            color: var(--muted);
+            color: var(--text-secondary);
         }
-        .integration-card.open .integration-header .arrow { transform: rotate(90deg); }
-        .integration-header .int-title { font-size: 0.95em; font-weight: bold; }
+        .integration-card.open .integration-header .arrow { 
+            transform: rotate(90deg); 
+            color: var(--accent);
+        }
+        .integration-header .int-title { 
+            font-size: 1em; 
+            font-weight: 600; 
+            color: var(--text);
+        }
         .integration-header .int-hint {
             font-size: 0.8em;
             color: var(--muted);
@@ -326,17 +397,44 @@
             overflow: hidden;
             transition: max-height 0.3s ease-out;
         }
-        .integration-card.open .integration-body { max-height: 600px; }
-        .integration-body-inner { padding: 0 20px 16px; }
+        .integration-card.open .integration-body { 
+            max-height: 700px; 
+            border-top: 1px solid var(--card-border);
+        }
+        .integration-body-inner { 
+            padding: 20px 24px; 
+        }
 
         /* ── Responsive ── */
         @media (max-width: 700px) {
-            .settings-layout { flex-direction: column; }
-            .tab-sidebar { display: none; }
-            .tab-bar-mobile { display: flex; }
-            .form-grid { grid-template-columns: 1fr; }
             body { padding: 12px; }
-            .section { padding: 16px; }
+            .settings-tabs {
+                padding: 4px;
+                gap: 4px;
+            }
+            .tab-btn {
+                padding: 8px 16px;
+                font-size: 0.85em;
+            }
+            .settings-card { 
+                padding: 18px; 
+            }
+            .settings-card-header {
+                gap: 12px;
+                padding-bottom: 12px;
+            }
+            .settings-card-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2em;
+            }
+            .form-grid { 
+                grid-template-columns: 1fr; 
+            }
+            .integration-header,
+            .integration-body-inner {
+                padding: 14px 18px;
+            }
         }
     </style>
 </head>
@@ -350,52 +448,34 @@
 <div class="error-msg" id="global-error"></div>
 <div class="toast" id="toast"></div>
 
-<!-- Mobile Tab Bar -->
-<div class="tab-bar-mobile" id="tab-bar-mobile">
+<!-- Pill-style Tabs -->
+<div class="settings-tabs">
     <button class="tab-btn active" onclick="switchTab('modem')" data-tab="modem">
-        <span class="tab-icon">&#128225;</span> {{ t.step_modem }}
+        <span class="tab-icon">📡</span> {{ t.step_modem }}
     </button>
     <button class="tab-btn" onclick="switchTab('general')" data-tab="general">
-        <span class="tab-icon">&#9881;</span> {{ t.step_general }}
+        <span class="tab-icon">⚙️</span> {{ t.step_general }}
     </button>
     <button class="tab-btn" onclick="switchTab('integrations')" data-tab="integrations">
-        <span class="tab-icon">&#128279;</span> {{ t.step_integrations }}
+        <span class="tab-icon">🔗</span> {{ t.step_integrations }}
     </button>
     <button class="tab-btn" onclick="switchTab('appearance')" data-tab="appearance">
-        <span class="tab-icon">&#127912;</span> {{ t.appearance }}
+        <span class="tab-icon">🎨</span> {{ t.appearance }}
     </button>
 </div>
 
-<div class="settings-layout">
-
-    <!-- Desktop Sidebar -->
-    <div class="tab-sidebar" id="tab-sidebar">
-        <button class="tab-btn active" onclick="switchTab('modem')" data-tab="modem">
-            <span class="tab-icon">&#128225;</span> {{ t.step_modem }}
-        </button>
-        <button class="tab-btn" onclick="switchTab('general')" data-tab="general">
-            <span class="tab-icon">&#9881;</span> {{ t.step_general }}
-        </button>
-        <button class="tab-btn" onclick="switchTab('integrations')" data-tab="integrations">
-            <span class="tab-icon">&#128279;</span> {{ t.step_integrations }}
-        </button>
-        <button class="tab-btn" onclick="switchTab('appearance')" data-tab="appearance">
-            <span class="tab-icon">&#127912;</span> {{ t.appearance }}
-        </button>
-    </div>
-
-    <!-- Content Area -->
-    <div class="tab-content">
+<!-- Content Area -->
+<div class="tab-content">
         <form id="settings-form" autocomplete="off">
 
             <!-- ═══ Tab: Modem ═══ -->
             <div class="tab-panel active" id="panel-modem">
-                <div class="section">
-                    <div class="section-header">
-                        <div class="section-icon">&#128225;</div>
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">📡</div>
                         <div>
-                            <div class="section-title">{{ t.modem_connection }}</div>
-                            <div class="section-desc">{{ t.modem_user_hint }}</div>
+                            <div class="settings-card-title">{{ t.modem_connection }}</div>
+                            <div class="settings-card-desc">{{ t.modem_user_hint }}</div>
                         </div>
                     </div>
                     <div class="form-grid">
@@ -432,11 +512,11 @@
 
             <!-- ═══ Tab: General ═══ -->
             <div class="tab-panel" id="panel-general">
-                <div class="section">
-                    <div class="section-header">
-                        <div class="section-icon">&#9881;</div>
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">⚙️</div>
                         <div>
-                            <div class="section-title">{{ t.general }}</div>
+                            <div class="settings-card-title">{{ t.general }}</div>
                         </div>
                     </div>
                     <div class="form-grid">
@@ -596,11 +676,11 @@
 
             <!-- ═══ Tab: Appearance ═══ -->
             <div class="tab-panel" id="panel-appearance">
-                <div class="section">
-                    <div class="section-header">
-                        <div class="section-icon">&#127912;</div>
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">🎨</div>
                         <div>
-                            <div class="section-title">{{ t.appearance }}</div>
+                            <div class="settings-card-title">{{ t.appearance }}</div>
                         </div>
                     </div>
                     <div class="theme-toggle-row">
@@ -618,7 +698,6 @@
             </div>
 
         </form>
-    </div>
 </div>
 
 <script>
