@@ -50,8 +50,8 @@
     }
 
     function renderChart(ctx, data) {
-        // Prepare datasets
-        const labels = data.map(d => new Date(d.timestamp * 1000));
+        // Prepare datasets (timestamp is ISO string, not unix timestamp)
+        const labels = data.map(d => new Date(d.timestamp));
         const dsPower = data.map(d => d.ds_power_avg);
         const snr = data.map(d => d.ds_snr_avg);
 
