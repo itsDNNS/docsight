@@ -1223,13 +1223,22 @@
 
     function isMobile() { return window.matchMedia('(max-width: 900px)').matches; }
 
-    function collapseSidebar() {
-        sidebar.classList.add('collapsed');
+    function closeMobileSidebar() {
         sidebar.classList.remove('mobile-open');
         sidebarBackdrop.classList.remove('active');
-        var btn = document.getElementById('sidebar-collapse');
-        btn.innerHTML = '&#10095;'; // Right arrow >
-        btn.title = 'Expand';
+    }
+
+    function collapseSidebar() {
+        if (isMobile()) {
+            closeMobileSidebar();
+        } else {
+            sidebar.classList.add('collapsed');
+            sidebar.classList.remove('mobile-open');
+            sidebarBackdrop.classList.remove('active');
+            var btn = document.getElementById('sidebar-collapse');
+            btn.innerHTML = '&#10095;'; // Right arrow >
+            btn.title = 'Expand';
+        }
     }
     function expandSidebar() {
         sidebar.classList.remove('collapsed');
@@ -1248,6 +1257,8 @@
     document.getElementById('sidebar-collapse').addEventListener('click', toggleSidebar);
     document.getElementById('hamburger').addEventListener('click', function() {
         if (isMobile()) {
+            // On mobile, NEVER use .collapsed - always use .mobile-open
+            sidebar.classList.remove('collapsed');
             var opening = !sidebar.classList.contains('mobile-open');
             sidebar.classList.toggle('mobile-open', opening);
             sidebarBackdrop.classList.toggle('active', opening);
@@ -1255,12 +1266,12 @@
             sidebar.classList.toggle('collapsed');
         }
     });
-    sidebarBackdrop.addEventListener('click', collapseSidebar);
+    sidebarBackdrop.addEventListener('click', closeMobileSidebar);
 
     var sidebarLinks = document.querySelectorAll('.sidebar-link[data-view]');
     sidebarLinks.forEach(function(link) {
         link.addEventListener('click', function() {
-            if (isMobile()) { collapseSidebar(); }
+            if (isMobile()) { closeMobileSidebar(); }
             switchView(this.getAttribute('data-view'));
         });
     });
@@ -3024,6 +3035,18 @@ function renderSpeedtestChart() {
 }
 window.addEventListener('resize', function() {
     if (_speedtestAllData.length >= 2) renderSpeedtestChart();
+    
+    // Clean up sidebar state on resize
+    if (isMobile()) {
+        // On mobile, remove .collapsed if it exists (from desktop state)
+        sidebar.classList.remove('collapsed');
+        // Also close mobile sidebar on resize to avoid weird states
+        closeMobileSidebar();
+    } else {
+        // On desktop, remove mobile-specific classes
+        sidebar.classList.remove('mobile-open');
+        sidebarBackdrop.classList.remove('active');
+    }
 });
 
 function showMoreSpeedtest() {
