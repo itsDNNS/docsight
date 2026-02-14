@@ -1133,19 +1133,25 @@ details.channel-group {
         left: 0; 
         bottom: 0;
         z-index: 60; 
-        width: 240px; 
-        min-width: 240px;
+        width: 240px !important; 
+        min-width: 240px !important;
         transform: translateX(-100%);
         transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
         box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
     }
-    .sidebar.collapsed { 
-        width: 240px; 
-        min-width: 240px; 
-        transform: translateX(-100%); 
-    }
+    /* On mobile, .collapsed class is IGNORED - we only use .mobile-open */
     .sidebar.mobile-open { 
-        transform: translateX(0); 
+        transform: translateX(0) !important; 
+    }
+    /* Force collapsed sidebar elements to show on mobile (when sidebar is open) */
+    .sidebar.mobile-open .sidebar-header span,
+    .sidebar.mobile-open .sidebar-section-label,
+    .sidebar.mobile-open .event-badge {
+        display: block !important;
+    }
+    .sidebar.mobile-open .sidebar-link {
+        font-size: 0.9375rem !important;
+        justify-content: flex-start !important;
     }
 }
 @media (max-width: 600px) {
@@ -1276,29 +1282,69 @@ details.channel-group {
 @media (max-width: 600px) {
     .hero-card {
         padding: var(--space-md, 16px);
+        max-width: 100%;
+        overflow: hidden;
     }
     
     .hero-header {
         flex-direction: column;
         gap: var(--space-sm, 12px);
+        max-width: 100%;
+    }
+    
+    .hero-status {
+        max-width: 100%;
+    }
+    
+    .hero-status-text {
+        max-width: 100%;
+        overflow: hidden;
     }
     
     .hero-meta {
         text-align: left;
         align-items: flex-start;
+        max-width: 100%;
     }
     
     .hero-title {
         font-size: 22px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .hero-subtitle {
+        font-size: 13px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
     .hero-icon {
         width: 36px;
         height: 36px;
+        flex-shrink: 0;
+    }
+    
+    .hero-issues {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+        padding-bottom: 4px;
+    }
+    
+    .issue-badge {
+        flex-shrink: 0;
+        white-space: nowrap;
     }
     
     .hero-chart-container {
         height: 180px;
+        max-width: 100%;
+        overflow: hidden;
     }
 }
 
@@ -1408,18 +1454,33 @@ details.channel-group {
     .metric-summary-row {
         grid-template-columns: repeat(2, 1fr);
         gap: var(--space-sm, 12px);
+        max-width: 100%;
     }
     
     .metric-summary-card {
         padding: var(--space-sm, 12px);
+        max-width: 100%;
+        overflow: hidden;
     }
     
-    .metric-value-item .value {
-        font-size: 20px;
+    .metric-summary-header {
+        max-width: 100%;
+        overflow: hidden;
     }
     
     .metric-label {
         font-size: 11px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .metric-summary-values {
+        max-width: 100%;
+    }
+    
+    .metric-value-item .value {
+        font-size: 20px;
     }
     
     .metric-value-divider {
@@ -1543,29 +1604,65 @@ details.channel-group {
 @media (max-width: 600px) {
     .channel-section-header {
         flex-wrap: wrap;
+        max-width: 100%;
     }
     
     .section-icon {
         width: 20px;
         height: 20px;
+        flex-shrink: 0;
     }
     
     .section-title {
         font-size: 18px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .channel-card {
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    .channel-group summary {
+        max-width: 100%;
     }
     
     .channel-group-summary {
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
+        max-width: 100%;
+    }
+    
+    .channel-group-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
     
     .channel-group-badges {
         margin-left: 0;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .channel-table-wrapper {
         padding: var(--space-sm, 12px);
+        max-width: 100%;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        display: block !important;
+    }
+    
+    /* Ensure wrapper actually scrolls when table is wider */
+    .channel-card {
+        overflow: visible !important;
+    }
+    
+    details.channel-group {
+        overflow: visible !important;
     }
 }
 
@@ -1664,19 +1761,28 @@ details.channel-group {
 }
 
 /* Mobile: Stack donuts vertically */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .channel-health-charts {
-        grid-template-columns: 1fr;
-        gap: var(--space-md, 16px);
+        grid-template-columns: 1fr !important;
+        gap: var(--space-xl, 32px) !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
     
     .health-chart-container {
-        height: 180px;
+        height: 200px;
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
     }
     
     .channel-health-legend {
         gap: var(--space-md, 16px);
         flex-wrap: wrap;
+    }
+    
+    .channel-health-card {
+        padding: var(--space-md, 16px);
     }
 }
 
@@ -1689,49 +1795,61 @@ details.channel-group {
    for tables on small screens to ensure all content is accessible. */
 @media (max-width: 768px) {
     /* Fix main content area to prevent horizontal overflow */
-    .main-content {
+    body {
         overflow-x: hidden !important;
     }
     
-    /* CRITICAL: Force data tables to scroll horizontally instead of compressing
-       This prevents header text overlap on narrow mobile screens */
-    .view table,
-    .channel-card table,
-    #correlation-table,
-    #event-table,
-    #speedtest-table {
-        display: block !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
+    .app-main {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
     }
     
-    /* Force table content to maintain natural width (don't compress) */
-    .view table thead,
-    .view table tbody,
-    .channel-card table thead,
-    .channel-card table tbody {
-        display: table !important;
-        width: max-content !important;
-        min-width: 100% !important;
+    .main-content {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        padding: 12px !important;
     }
     
-    .view table tr,
-    .channel-card table tr {
-        display: table-row !important;
+    .view {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
     }
     
-    /* CRITICAL: Prevent text wrapping in table headers and cells
-       This is what fixes the "Status ChannelFrequencyPower" overlap issue */
+    /* CRITICAL: Tables must scroll horizontally on mobile
+       We wrap them in a scrollable container instead of making the table itself block-level
+       This preserves proper column alignment */
+    
+    /* Ensure table cells don't wrap (causes header overlap) */
     .view table th,
     .view table td,
     .channel-card table th,
     .channel-card table td {
-        display: table-cell !important;
         white-space: nowrap !important;
         padding: 8px 12px !important;
         vertical-align: middle !important;
-        min-width: 60px !important;
+    }
+    
+    /* Tables maintain their natural width (can be wider than container)
+       This allows parent container to scroll horizontally */
+    .view table,
+    .channel-card table {
+        width: auto !important;
+        min-width: 100% !important;
+        table-layout: auto !important;
+    }
+    
+    /* For tables WITHOUT explicit wrappers: make the view container scroll */
+    #view-correlation,
+    #view-events {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Speedtest table wrapper must scroll */
+    #speedtest-table-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
     }
     
     /* Exception: Event log messages can wrap (they're long text) */
