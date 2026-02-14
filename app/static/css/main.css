@@ -1,30 +1,62 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   COLOR PALETTE - v2.0 Design System
+   Charcoal + Purple theme with consistent color hierarchy
+   ══════════════════════════════════════════════════════════════════════════ */
+
 :root, [data-theme="dark"] {
-    --bg: #1a1a2e;
-    --surface: #16213e;
-    --card: #0f3460;
-    --text: #e0e0e0;
-    --muted: #888;
-    --good: #4caf50;
-    --warn: #ff9800;
-    --crit: #f44336;
-    --accent: #00adb5;
-    --info: #2196f3;
-    --input-border: rgba(255,255,255,0.15);
-    --overlay: rgba(0,0,0,0.5);
+    /* Backgrounds - Charcoal palette */
+    --bg: #111827;                              /* Deep charcoal background */
+    --surface: #1f2937;                         /* Elevated surface (sidebar, topbar) */
+    --card: #1e2330;                            /* Card background (slightly warmer) */
+    
+    /* Text hierarchy */
+    --text: #f0f0f0;                            /* Primary text (near-white) */
+    --text-secondary: #9ca3af;                  /* Secondary text (muted gray) */
+    --muted: #6b7280;                           /* Tertiary/disabled text */
+    
+    /* Status colors */
+    --good: #10b981;                            /* Success/healthy (emerald) */
+    --warn: #f59e0b;                            /* Warning (amber) */
+    --crit: #ef4444;                            /* Critical/error (red) */
+    
+    /* Brand & accent */
+    --accent: #a855f7;                          /* Primary accent (purple) */
+    --accent-hover: #9333ea;                    /* Accent hover state (darker purple) */
+    --accent-muted: rgba(168, 85, 247, 0.15);   /* Accent background (purple 15%) */
+    --info: #3b82f6;                            /* Info/links (blue) */
+    
+    /* UI elements */
+    --input-border: rgba(255,255,255,0.1);      /* Input/card borders */
+    --overlay: rgba(0,0,0,0.6);                 /* Modal overlay */
+    --hover-bg: rgba(255,255,255,0.05);         /* Hover background */
 }
+
 [data-theme="light"] {
-    --bg: #f0f2f5;
-    --surface: #ffffff;
-    --card: #e8edf2;
-    --text: #1a1a2e;
-    --muted: #666;
-    --good: #2e7d32;
-    --warn: #e65100;
-    --crit: #c62828;
-    --accent: #00838f;
-    --info: #1565c0;
-    --input-border: #ccc;
-    --overlay: rgba(0,0,0,0.3);
+    /* Backgrounds - Light palette */
+    --bg: #f9fafb;                              /* Light gray background */
+    --surface: #ffffff;                         /* White surface (sidebar, topbar) */
+    --card: #ffffff;                            /* White card background */
+    
+    /* Text hierarchy */
+    --text: #111827;                            /* Primary text (dark gray) */
+    --text-secondary: #6b7280;                  /* Secondary text */
+    --muted: #9ca3af;                           /* Tertiary/disabled text */
+    
+    /* Status colors */
+    --good: #059669;                            /* Success/healthy (darker emerald) */
+    --warn: #d97706;                            /* Warning (darker amber) */
+    --crit: #dc2626;                            /* Critical/error (darker red) */
+    
+    /* Brand & accent */
+    --accent: #9333ea;                          /* Primary accent (purple) */
+    --accent-hover: #7e22ce;                    /* Accent hover state */
+    --accent-muted: rgba(147, 51, 234, 0.1);    /* Accent background (purple 10%) */
+    --info: #2563eb;                            /* Info/links (darker blue) */
+    
+    /* UI elements */
+    --input-border: #e5e7eb;                    /* Input/card borders */
+    --overlay: rgba(0,0,0,0.4);                 /* Modal overlay */
+    --hover-bg: rgba(0,0,0,0.03);               /* Hover background */
 }
 
 /* ── Design Tokens for v2 Redesign ── */
