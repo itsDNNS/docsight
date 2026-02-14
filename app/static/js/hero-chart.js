@@ -17,20 +17,34 @@
             return;
         }
 
-        // Fetch last 24h of data
-        fetch('/api/history?hours=24')
+        // Fetch trend data (all snapshots, will filter to 24h)
+        fetch('/api/trends')
             .then(r => {
                 if (!r.ok) throw new Error(`API error: ${r.status}`);
                 return r.json();
             })
             .then(data => {
                 if (!data || !Array.isArray(data) || data.length === 0) {
-                    console.warn('[HeroChart] No history data available');
+                    console.warn('[HeroChart] No trend data available');
                     renderEmptyChart(ctx);
                     return;
                 }
 
-                renderChart(ctx, data);
+                // Filter to last 24h
+                const now = new Date();
+                const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                const filtered = data.filter(d => {
+                    const ts = new Date(d.timestamp);
+                    return ts >= twentyFourHoursAgo;
+                });
+
+                if (filtered.length === 0) {
+                    console.warn('[HeroChart] No data in last 24h');
+                    renderEmptyChart(ctx);
+                    return;
+                }
+
+                renderChart(ctx, filtered);
             })
             .catch(err => {
                 console.error('[HeroChart] Failed to load data:', err);
