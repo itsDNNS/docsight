@@ -4,12 +4,12 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 :root, [data-theme="dark"] {
-    /* Backgrounds - Unified charcoal palette */
+    /* Backgrounds - Unified charcoal palette (matching mockup) */
     --bg: #1f2937;                              /* Unified background (sidebar, topbar, main) */
     --surface: #1f2937;                         /* Elevated surface (same as bg) */
-    --card: #1e2330;                            /* Card background (elevated, lighter for contrast) */
-    --card-bg: #1e2330;                         /* Card background (alias) */
-    --card-border: rgba(255,255,255,0.08);      /* Card borders */
+    --card: #1f2937;                            /* Card background (same as bg, mockup-style) */
+    --card-bg: #1f2937;                         /* Card background (alias) */
+    --card-border: rgba(255,255,255,0.08);      /* Card borders for subtle separation */
     
     /* Text hierarchy */
     --text: #f0f0f0;                            /* Primary text (near-white) */
@@ -228,8 +228,18 @@ body {
 }
 .sidebar.collapsed .sidebar-link {
     justify-content: center;
-    padding: var(--space-sm);
+    padding: var(--space-md) var(--space-sm);
+    margin: var(--space-xs) 0;
     position: relative;
+    font-size: 0; /* Hide direct text nodes */
+    transition: all 0.2s ease;
+}
+.sidebar.collapsed .sidebar-link .icon {
+    font-size: 20px; /* Restore icon size */
+    transition: transform 0.2s ease;
+}
+.sidebar.collapsed .sidebar-link:hover .icon {
+    transform: scale(1.1);
 }
 .sidebar.collapsed .sidebar-link > span:not(.icon),
 .sidebar.collapsed .sidebar-link::after {
@@ -1157,7 +1167,7 @@ details.channel-group {
    Prominent health status card with inline trend chart
    ══════════════════════════════════════════════════════════════════════════ */
 .hero-card {
-    background: linear-gradient(135deg, var(--card-bg, var(--card)), rgba(168,85,247,0.03));
+    background: var(--card-bg, var(--card));
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-xl, 24px);
