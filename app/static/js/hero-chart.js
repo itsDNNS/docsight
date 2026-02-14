@@ -6,11 +6,10 @@
  */
 (function() {
     'use strict';
-
-    // Initialize hero chart after DOM ready
-    document.addEventListener('DOMContentLoaded', initHeroChart);
+    console.log('[HeroChart] Script loaded, initializing...');
 
     function initHeroChart() {
+        console.log('[HeroChart] initHeroChart() called');
         const ctx = document.getElementById('hero-trend-chart');
         if (!ctx) {
             console.warn('[HeroChart] Canvas element #hero-trend-chart not found');
@@ -217,4 +216,7 @@
         container.style.position = 'relative';
         container.appendChild(placeholder);
     }
+    
+    // Initialize immediately when script loads
+    initHeroChart();
 })();

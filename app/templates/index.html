@@ -1045,30 +1045,20 @@
 <script>
 (function() {
     'use strict';
+    console.log('[DonutCharts] Script running...');
     
-    // Wait for DOM ready
-    document.addEventListener('DOMContentLoaded', function() {
-        initChannelHealthDonuts();
-    });
+    // Prepare data from template
+    const dsHealthCounts = {
+        good: {{ ds|selectattr('health', 'equalto', 'good')|list|length }},
+        warn: {{ ds|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }},
+        crit: {{ ds|selectattr('health', 'equalto', 'critical')|list|length }}
+    };
     
-    function initChannelHealthDonuts() {
-        // Prepare data from template
-        const dsHealthCounts = {
-            good: {{ ds|selectattr('health', 'equalto', 'good')|list|length }},
-            warn: {{ ds|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }},
-            crit: {{ ds|selectattr('health', 'equalto', 'critical')|list|length }}
-        };
-        
-        const usHealthCounts = {
-            good: {{ us|selectattr('health', 'equalto', 'good')|list|length }},
-            warn: {{ us|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }},
-            crit: {{ us|selectattr('health', 'equalto', 'critical')|list|length }}
-        };
-        
-        // Render charts
-        renderDonut('ds-health-donut', dsHealthCounts);
-        renderDonut('us-health-donut', usHealthCounts);
-    }
+    const usHealthCounts = {
+        good: {{ us|selectattr('health', 'equalto', 'good')|list|length }},
+        warn: {{ us|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }},
+        crit: {{ us|selectattr('health', 'equalto', 'critical')|list|length }}
+    };
     
     function renderDonut(canvasId, counts) {
         const ctx = document.getElementById(canvasId);
@@ -1130,6 +1120,13 @@
             }
         });
     }
+    
+    // Render both donuts immediately
+    console.log('[DonutCharts] Calling renderDonut for DS...');
+    renderDonut('ds-health-donut', dsHealthCounts);
+    console.log('[DonutCharts] Calling renderDonut for US...');
+    renderDonut('us-health-donut', usHealthCounts);
+    console.log('[DonutCharts] Done!');
 })();
 </script>
 
