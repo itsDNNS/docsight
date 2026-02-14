@@ -1045,7 +1045,6 @@
 <script>
 (function() {
     'use strict';
-    console.log('[DonutCharts] Script running...');
     
     // Prepare data from template
     const dsHealthCounts = {
@@ -1122,11 +1121,8 @@
     }
     
     // Render both donuts immediately
-    console.log('[DonutCharts] Calling renderDonut for DS...');
     renderDonut('ds-health-donut', dsHealthCounts);
-    console.log('[DonutCharts] Calling renderDonut for US...');
     renderDonut('us-health-donut', usHealthCounts);
-    console.log('[DonutCharts] Done!');
 })();
 </script>
 
