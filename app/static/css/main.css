@@ -1142,3 +1142,143 @@ details.channel-group table {
     .chart-zoom-modal { width: 95vw; height: 85vh; padding: 12px; }
     .journal-hide-mobile { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HERO CARD - Phase 3 Task 3.1
+   Prominent health status card with inline trend chart
+   ══════════════════════════════════════════════════════════════════════════ */
+.hero-card {
+    background: linear-gradient(135deg, var(--card-bg, var(--card)), rgba(168,85,247,0.03));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-lg, 12px);
+    padding: var(--space-xl, 24px);
+    margin-bottom: var(--space-xl, 24px);
+    transition: all 0.2s ease;
+}
+
+.hero-card.health-good { 
+    border-left: 4px solid var(--color-good, var(--good)); 
+}
+.hero-card.health-warn { 
+    border-left: 4px solid var(--color-warn, var(--warn)); 
+}
+.hero-card.health-crit { 
+    border-left: 4px solid var(--color-crit, var(--crit)); 
+}
+
+.hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-md, 16px);
+    gap: var(--space-md, 16px);
+}
+
+.hero-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 16px);
+}
+
+.hero-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--accent-purple, var(--purple-500, #a855f7));
+    flex-shrink: 0;
+}
+
+.hero-status-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.hero-title {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary, var(--text));
+    line-height: 1.2;
+}
+
+.hero-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary, var(--muted));
+    margin: 4px 0 0 0;
+    line-height: 1.4;
+}
+
+.hero-meta {
+    text-align: right;
+    color: var(--text-secondary, var(--muted));
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+}
+
+.hero-sep {
+    margin: 0 6px;
+    opacity: 0.5;
+}
+
+.hero-issues {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: var(--space-md, 16px);
+}
+
+.issue-badge {
+    background: rgba(251,191,36,0.15);
+    color: var(--color-warn, var(--warn));
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: default;
+}
+
+.hero-card.health-crit .issue-badge {
+    background: rgba(244,67,54,0.15);
+    color: var(--color-crit, var(--crit));
+}
+
+.hero-chart-container {
+    height: 200px;
+    margin-top: var(--space-md, 16px);
+    position: relative;
+    background: rgba(0,0,0,0.2);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-sm, 8px);
+}
+
+/* Mobile responsiveness for Hero Card */
+@media (max-width: 600px) {
+    .hero-card {
+        padding: var(--space-md, 16px);
+    }
+    
+    .hero-header {
+        flex-direction: column;
+        gap: var(--space-sm, 12px);
+    }
+    
+    .hero-meta {
+        text-align: left;
+        align-items: flex-start;
+    }
+    
+    .hero-title {
+        font-size: 22px;
+    }
+    
+    .hero-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .hero-chart-container {
+        height: 180px;
+    }
+}

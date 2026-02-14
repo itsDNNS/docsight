@@ -175,7 +175,47 @@
         "uncorr_errors_high": t.issue_uncorr_errors_high_desc,
     } %}
 
-    <div class="health-banner health-{{ 'good' if s.health == 'good' else ('crit' if s.health == 'poor' else 'warn') }}">
+    {# ══════════════════════════════════════════════════════════════════════════
+       HERO CARD - Phase 3 Task 3.1
+       Health status + inline trend chart (SNR/Power, 24h)
+       ══════════════════════════════════════════════════════════════════════════ #}
+    <div class="hero-card health-{{ 'good' if s.health == 'good' else ('crit' if s.health == 'poor' else 'warn') }}">
+        <div class="hero-header">
+            <div class="hero-status">
+                <i data-lucide="activity" class="hero-icon"></i>
+                <div class="hero-status-text">
+                    <h1 class="hero-title">{{ health_label }}</h1>
+                    <p class="hero-subtitle">{{ health_msgs.get(s.health, '') }}</p>
+                </div>
+            </div>
+            <div class="hero-meta">
+                <span class="hero-channels">{{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channels|lower }}</span>
+                {% if isp_name %}
+                <span class="hero-sep">&middot;</span>
+                <span class="hero-isp">{{ isp_name }}</span>
+                {% endif %}
+                {% if connection_info and connection_info.max_downstream_kbps %}
+                <span class="hero-sep">&middot;</span>
+                <span class="hero-speed">{{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} Mbit/s</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if s.health_issues %}
+        <div class="hero-issues">
+            {% for issue in s.health_issues %}
+            <span class="issue-badge" title="{{ issue_descs.get(issue, '') }}">{{ issue_labels.get(issue, issue) }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="hero-chart-container">
+            <canvas id="hero-trend-chart"></canvas>
+        </div>
+    </div>
+
+    {# ── OLD Health Banner (DEPRECATED, replaced by Hero Card) ── #}
+    {# <div class="health-banner health-{{ 'good' if s.health == 'good' else ('crit' if s.health == 'poor' else 'warn') }}">
         <div class="health-status">
             <span class="health-icon">{% if s.health == 'good' %}&#10004;{% elif s.health == 'poor' %}&#10006;{% else %}&#9888;{% endif %}</span>
             <span class="health-title">{{ health_label }}</span>
@@ -191,10 +231,10 @@
             {% endfor %}
         </div>
         {% endif %}
-    </div>
+    </div> #}
 
-    {# ── Connection Info Bar ── #}
-    {% if isp_name or (connection_info and connection_info.max_downstream_kbps) %}
+    {# ── OLD Connection Info Bar (DEPRECATED, moved into Hero Card meta) ── #}
+    {# {% if isp_name or (connection_info and connection_info.max_downstream_kbps) %}
     <div class="conn-info-bar">
         {% if isp_name %}{{ isp_name }}{% endif %}
         {% if connection_info and connection_info.max_downstream_kbps %}
@@ -204,7 +244,7 @@
         <span class="conn-sep">|</span>
         {{ s.ds_total }} DS <span class="conn-sep">/</span> {{ s.us_total }} US {{ t.channels|lower }}
     </div>
-    {% endif %}
+    {% endif %} #}
 
     {# ── Per-card health ── #}
     {% set signal_health = 'crit' if 'ds_power_critical' in s.health_issues or 'snr_critical' in s.health_issues
@@ -985,6 +1025,8 @@
 
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/hero-chart.js') }}"></script>
 <script>
 (function() {
     'use strict';
