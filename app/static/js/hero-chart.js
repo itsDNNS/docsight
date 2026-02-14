@@ -6,10 +6,8 @@
  */
 (function() {
     'use strict';
-    console.log('[HeroChart] Script loaded, initializing...');
 
     function initHeroChart() {
-        console.log('[HeroChart] initHeroChart() called');
         const ctx = document.getElementById('hero-trend-chart');
         if (!ctx) {
             console.warn('[HeroChart] Canvas element #hero-trend-chart not found');
