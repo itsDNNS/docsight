@@ -1407,3 +1407,145 @@ details.channel-group table {
         height: 30px;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CHANNEL TABLES IN CARD CONTAINERS - Phase 3 Task 3.5
+   Modern card containers for downstream/upstream channel groups
+   ══════════════════════════════════════════════════════════════════════════ */
+.channel-section {
+    margin-bottom: var(--space-xl, 24px);
+}
+
+.channel-section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    margin-bottom: var(--space-md, 16px);
+}
+
+.section-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--accent-purple, var(--purple-500));
+    flex-shrink: 0;
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary, var(--text));
+    margin: 0;
+}
+
+.section-badge {
+    background: rgba(168,85,247,0.15);
+    color: var(--accent-purple, var(--purple-500));
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.channel-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    margin-bottom: var(--space-md, 16px);
+}
+
+.channel-group {
+    border: none;
+    margin: 0;
+}
+
+.channel-group summary {
+    cursor: pointer;
+    padding: var(--space-md, 16px);
+    background: rgba(0,0,0,0.15);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+    user-select: none;
+    transition: background 0.2s ease;
+    list-style: none;
+}
+
+.channel-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.channel-group summary:hover {
+    background: rgba(168,85,247,0.08);
+}
+
+.channel-group-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    flex-wrap: wrap;
+}
+
+.channel-group-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary, var(--text));
+}
+
+.channel-group-count {
+    font-size: 13px;
+    color: var(--text-secondary, var(--muted));
+}
+
+.channel-group-badges {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.channel-table-wrapper {
+    padding: var(--space-md, 16px);
+    overflow-x: auto;
+}
+
+/* Chevron indicator for collapsed/expanded state */
+.channel-group summary::before {
+    content: '▶';
+    display: inline-block;
+    margin-right: 8px;
+    transition: transform 0.2s ease;
+    color: var(--text-secondary, var(--muted));
+    font-size: 10px;
+}
+
+.channel-group[open] summary::before {
+    transform: rotate(90deg);
+}
+
+/* Mobile: Stack badges below, smaller section icon */
+@media (max-width: 600px) {
+    .channel-section-header {
+        flex-wrap: wrap;
+    }
+    
+    .section-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .section-title {
+        font-size: 18px;
+    }
+    
+    .channel-group-summary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .channel-group-badges {
+        margin-left: 0;
+    }
+    
+    .channel-table-wrapper {
+        padding: var(--space-sm, 12px);
+    }
+}
