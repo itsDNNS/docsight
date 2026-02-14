@@ -310,7 +310,12 @@ def setup():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset)
+    
+    # Get available modem drivers
+    from .drivers.loader import get_available_drivers
+    available_drivers = get_available_drivers()
+    
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, available_drivers=available_drivers)
 
 
 @app.route("/settings")
@@ -318,10 +323,14 @@ def setup():
 def settings():
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     theme = _config_manager.get_theme() if _config_manager else "dark"
+    
+    # Get available modem drivers
+    from .drivers.loader import get_available_drivers
+    available_drivers = get_available_drivers()
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset)
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, available_drivers=available_drivers)
 
 
 @app.route("/api/config", methods=["POST"])
@@ -361,13 +370,22 @@ def api_test_modem():
         password = data.get("modem_password", "")
         if password == PASSWORD_MASK and _config_manager:
             password = _config_manager.get("modem_password", "")
-        from . import fritzbox
-        sid = fritzbox.login(
+        
+        from .drivers.loader import load_driver
+        modem_type = data.get("modem_type") or (_config_manager.get("modem_type", "fritzbox") if _config_manager else "fritzbox")
+        driver = load_driver(modem_type)
+        if not driver:
+            return jsonify({"success": False, "error": f"Unknown modem type: {modem_type}"})
+        
+        session = driver.login(
             data.get("modem_url", "http://192.168.178.1"),
             data.get("modem_user", ""),
             password,
         )
-        info = fritzbox.get_device_info(data.get("modem_url"), sid)
+        if not session:
+            return jsonify({"success": False, "error": "Authentication failed"})
+        
+        info = driver.get_device_info(session, data.get("modem_url"))
         return jsonify({"success": True, "model": info.get("model", "OK")})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -396,10 +414,19 @@ def api_test_mqtt():
         return jsonify({"success": False, "error": str(e)})
 
 
+@app.route("/api/modem-defaults/<modem_type>")
+@require_auth
+def api_modem_defaults(modem_type):
+    """Get default configuration for a specific modem type."""
+    from .config import MODEM_DEFAULTS
+    defaults = MODEM_DEFAULTS.get(modem_type, {})
+    return jsonify(defaults)
+
+
 @app.route("/api/poll", methods=["POST"])
 @require_auth
 def api_poll():
-    """Trigger an immediate FritzBox poll and return fresh analysis."""
+    """Trigger an immediate modem poll and return fresh analysis."""
     global _last_manual_poll
     if not _config_manager:
         return jsonify({"success": False, "error": "Not configured"}), 500
@@ -411,12 +438,21 @@ def api_poll():
         return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
 
     try:
-        from . import fritzbox, analyzer
+        from . import analyzer
+        from .drivers.loader import load_driver
+        
         config = _config_manager.get_all()
-        sid = fritzbox.login(
+        driver = load_driver(config.get("modem_type", "fritzbox"))
+        if not driver:
+            return jsonify({"success": False, "error": "Failed to load modem driver"}), 500
+        
+        session = driver.login(
             config["modem_url"], config["modem_user"], config["modem_password"],
         )
-        data = fritzbox.get_docsis_data(config["modem_url"], sid)
+        if not session:
+            return jsonify({"success": False, "error": "Authentication failed"}), 401
+        
+        data = driver.get_docsis_data(session, config["modem_url"])
         analysis = analyzer.analyze(data)
         update_state(analysis=analysis)
         if _storage:

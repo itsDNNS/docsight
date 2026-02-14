@@ -10,3 +10,4 @@ deploy.sh
 .config_key
 config.json
 CLAUDE.md
+venv/

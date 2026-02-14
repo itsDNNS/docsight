@@ -5,15 +5,18 @@ import os
 import threading
 import time
 
-from . import fritzbox, analyzer, web, thinkbroadband
+from . import analyzer, web, thinkbroadband
+from .drivers.loader import load_driver
 from .speedtest import SpeedtestClient
 from .config import ConfigManager
 from .event_detector import EventDetector
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
 
+# Enable debug logging if DEBUG env var is set
+log_level = logging.DEBUG if os.environ.get("DEBUG") else logging.INFO
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 log = logging.getLogger("docsis.main")
@@ -26,10 +29,17 @@ def run_web(port):
 
 
 def polling_loop(config_mgr, storage, stop_event):
-    """Run the FritzBox polling loop until stop_event is set."""
+    """Run the modem polling loop until stop_event is set."""
     config = config_mgr.get_all()
 
-    log.info("Modem: %s (user: %s)", config["modem_url"], config["modem_user"])
+    log.info("Modem: %s (type: %s, user: %s)", config["modem_url"], config.get("modem_type", "fritzbox"), config["modem_user"])
+    
+    # Load the appropriate driver
+    driver = load_driver(config.get("modem_type", "fritzbox"))
+    if not driver:
+        log.error("Failed to load modem driver. Polling stopped.")
+        return
+    
     log.info("Poll interval: %ds", config["poll_interval"])
 
     # Connect MQTT (optional)
@@ -58,7 +68,7 @@ def polling_loop(config_mgr, storage, stop_event):
 
     event_detector = EventDetector()
 
-    sid = None
+    session = None
     device_info = None
     connection_info = None
     discovery_published = False
@@ -70,24 +80,27 @@ def polling_loop(config_mgr, storage, stop_event):
 
     while not stop_event.is_set():
         try:
-            sid = fritzbox.login(
+            session = driver.login(
                 config["modem_url"], config["modem_user"], config["modem_password"]
             )
+            
+            if not session:
+                raise RuntimeError("Authentication failed")
 
             if device_info is None:
-                device_info = fritzbox.get_device_info(config["modem_url"], sid)
-                log.info("FritzBox model: %s (%s)", device_info["model"], device_info["sw_version"])
+                device_info = driver.get_device_info(session, config["modem_url"])
+                log.info("Modem: %s (%s)", device_info.get("model", "Unknown"), device_info.get("sw_version", "Unknown"))
                 web.update_state(device_info=device_info)
 
             if connection_info is None:
-                connection_info = fritzbox.get_connection_info(config["modem_url"], sid)
+                connection_info = driver.get_connection_info(session, config["modem_url"])
                 if connection_info:
                     ds = connection_info.get("max_downstream_kbps", 0) // 1000
                     us = connection_info.get("max_upstream_kbps", 0) // 1000
                     log.info("Connection: %d/%d Mbit/s (%s)", ds, us, connection_info.get("connection_type", ""))
                     web.update_state(connection_info=connection_info)
 
-            data = fritzbox.get_docsis_data(config["modem_url"], sid)
+            data = driver.get_docsis_data(session, config["modem_url"])
             analysis = analyzer.analyze(data)
 
             if mqtt_pub:

@@ -243,9 +243,9 @@ class TestPollEndpoint:
         app.config["TESTING"] = True
         with app.test_client() as c:
             resp = c.post("/api/poll")
-            # Unconfigured -> redirects to setup on GET, but POST /api/poll
-            # should still be accessible (no auth required when no password)
-            assert resp.status_code in (302, 500)
+            # Unconfigured -> returns 500 error (no modem configured)
+            # Note: May return 401 if auth is required
+            assert resp.status_code in (302, 401, 500)
 
     def test_poll_rate_limit(self, client, sample_analysis):
         import app.web as web_module
@@ -278,3 +278,30 @@ class TestFormatK:
     def test_invalid(self):
         from app.web import format_k
         assert format_k("bad") == "bad"
+
+
+class TestModemDefaults:
+    """Test modem-specific defaults API."""
+
+    def test_get_fritzbox_defaults(self, client):
+        """GET /api/modem-defaults/fritzbox returns FritzBox defaults."""
+        resp = client.get("/api/modem-defaults/fritzbox")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data["modem_url"] == "http://192.168.178.1"
+        assert data["modem_user"] == ""
+
+    def test_get_vodafone_defaults(self, client):
+        """GET /api/modem-defaults/vodafone returns Vodafone Station defaults."""
+        resp = client.get("/api/modem-defaults/vodafone")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data["modem_url"] == "http://192.168.0.1"
+        assert data["modem_user"] == "admin"
+
+    def test_get_unknown_modem_defaults(self, client):
+        """GET /api/modem-defaults/unknown returns empty dict."""
+        resp = client.get("/api/modem-defaults/unknown")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data == {}

@@ -17,7 +17,20 @@ SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token"}
 HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
+# Modem-specific default configurations
+MODEM_DEFAULTS = {
+    "fritzbox": {
+        "modem_url": "http://192.168.178.1",
+        "modem_user": "",
+    },
+    "vodafone": {
+        "modem_url": "http://192.168.0.1",
+        "modem_user": "admin",
+    },
+}
+
 DEFAULTS = {
+    "modem_type": "fritzbox",
     "modem_url": "http://192.168.178.1",
     "modem_user": "",
     "modem_password": "",
@@ -43,6 +56,7 @@ DEFAULTS = {
 }
 
 ENV_MAP = {
+    "modem_type": "MODEM_TYPE",
     "modem_url": "MODEM_URL",
     "modem_user": "MODEM_USER",
     "modem_password": "MODEM_PASSWORD",

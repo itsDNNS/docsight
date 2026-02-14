@@ -3,4 +3,5 @@ paho-mqtt>=2.0
 flask>=3.0
 waitress>=3.0
 cryptography>=42.0
+pycryptodome>=3.15.0
 fpdf2>=2.8

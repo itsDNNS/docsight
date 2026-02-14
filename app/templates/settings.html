@@ -165,6 +165,15 @@
         <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.modem_user_hint }}</p>
         <div class="form-grid">
             <div class="form-row full">
+                <label for="modem_type">{{ t.modem_type }}</label>
+                <select id="modem_type" name="modem_type" onchange="onModemTypeChange()">
+                    {% for driver in available_drivers %}
+                    <option value="{{ driver }}" {% if config.modem_type == driver %}selected{% endif %}>{{ driver|capitalize }}</option>
+                    {% endfor %}
+                </select>
+                <span class="hint" id="modem-type-hint">{{ t.modem_type_hint }}</span>
+            </div>
+            <div class="form-row full">
                 <label for="modem_url">{{ t.url }}</label>
                 <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}">
             </div>
@@ -370,7 +379,7 @@ function testModem() {
     fetch('/api/test-modem', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
+        body: JSON.stringify({modem_type: data.modem_type, modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
     })
     .then(function(r) { return r.json(); })
     .then(function(res) {
@@ -467,6 +476,50 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
     }
     updateTzHint();
     inp.addEventListener('change', updateTzHint);
+})();
+
+// Modem type change handler - load modem-specific defaults
+function onModemTypeChange() {
+    var modemType = document.getElementById('modem_type').value;
+    if (!modemType) return;
+    
+    // Update hint based on modem type
+    var hintEl = document.getElementById('modem-type-hint');
+    if (modemType === 'vodafone') {
+        hintEl.textContent = '{{ t.vodafone_hint }}';
+        hintEl.style.color = 'var(--warn)';
+    } else {
+        hintEl.textContent = '{{ t.modem_type_hint }}';
+        hintEl.style.color = 'var(--muted)';
+    }
+    
+    fetch('/api/modem-defaults/' + modemType)
+        .then(function(r) { return r.json(); })
+        .then(function(defaults) {
+            // Only update if fields are empty or contain default values
+            var urlInput = document.getElementById('modem_url');
+            var userInput = document.getElementById('modem_user');
+            
+            if (defaults.modem_url && (!urlInput.value || urlInput.value === 'http://192.168.178.1' || urlInput.value === 'http://192.168.0.1')) {
+                urlInput.value = defaults.modem_url;
+            }
+            if (defaults.modem_user !== undefined && (!userInput.value || userInput.value === 'admin' || userInput.value === '')) {
+                userInput.value = defaults.modem_user;
+            }
+        })
+        .catch(function(err) {
+            console.error('Failed to load modem defaults:', err);
+        });
+}
+
+// Set initial hint on page load
+(function() {
+    var modemType = document.getElementById('modem_type').value;
+    var hintEl = document.getElementById('modem-type-hint');
+    if (modemType === 'vodafone') {
+        hintEl.textContent = '{{ t.vodafone_hint }}';
+        hintEl.style.color = 'var(--warn)';
+    }
 })();
 </script>
 

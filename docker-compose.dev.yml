@@ -11,6 +11,7 @@ services:
       - docsight_dev_data:/data
     environment:
       - TZ=Europe/Berlin
+      - DEBUG=1
 
 volumes:
   docsight_dev_data:
