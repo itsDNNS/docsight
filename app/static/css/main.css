@@ -1688,9 +1688,18 @@ details.channel-group {
    Tables are too wide for mobile viewports. Enable horizontal scrolling
    for tables on small screens to ensure all content is accessible. */
 @media (max-width: 768px) {
-    /* CRITICAL: Force ALL tables to scroll horizontally instead of compressing
+    /* Fix main content area to prevent horizontal overflow */
+    .main-content {
+        overflow-x: hidden !important;
+    }
+    
+    /* CRITICAL: Force data tables to scroll horizontally instead of compressing
        This prevents header text overlap on narrow mobile screens */
-    table {
+    .view table,
+    .channel-card table,
+    #correlation-table,
+    #event-table,
+    #speedtest-table {
         display: block !important;
         width: 100% !important;
         overflow-x: auto !important;
@@ -1698,30 +1707,30 @@ details.channel-group {
     }
     
     /* Force table content to maintain natural width (don't compress) */
-    table thead,
-    table tbody {
+    .view table thead,
+    .view table tbody,
+    .channel-card table thead,
+    .channel-card table tbody {
         display: table !important;
         width: max-content !important;
         min-width: 100% !important;
     }
     
-    table tr {
+    .view table tr,
+    .channel-card table tr {
         display: table-row !important;
     }
     
-    /* CRITICAL: Prevent text wrapping in ALL table headers and cells
+    /* CRITICAL: Prevent text wrapping in table headers and cells
        This is what fixes the "Status ChannelFrequencyPower" overlap issue */
-    table th,
-    table td {
+    .view table th,
+    .view table td,
+    .channel-card table th,
+    .channel-card table td {
         display: table-cell !important;
         white-space: nowrap !important;
         padding: 8px 12px !important;
         vertical-align: middle !important;
-    }
-    
-    /* Minimum widths for readability */
-    table th,
-    table td {
         min-width: 60px !important;
     }
     
@@ -1730,5 +1739,18 @@ details.channel-group {
         max-width: 250px !important;
         white-space: normal !important;
         word-wrap: break-word !important;
+    }
+    
+    /* Ensure metric summary grid doesn't overflow */
+    .metric-summary {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: var(--space-sm, 8px) !important;
+        width: 100% !important;
+        overflow: visible !important;
+    }
+    
+    .metric-card {
+        min-width: 0 !important;
+        overflow: hidden !important;
     }
 }
