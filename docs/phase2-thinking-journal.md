@@ -119,7 +119,7 @@ Document the iterative thinking process for Phase 2 implementation. Each session
 
 **Next Tasks (Phase 2 remaining):**
 - [x] Task 2.4: Apply sidebar CSS redesign (colors, spacing, active states per mockup) ✅
-- [ ] Task 2.5: Implement collapsed sidebar state (icon-only mode with tooltips)
+- [x] Task 2.5: Implement collapsed sidebar state (icon-only mode with tooltips) ✅
 - [ ] Task 2.6: Redesign top bar (search input, action button, notification bell)
 - [ ] Task 2.7: Move language selector to settings, dark mode toggle to sidebar footer
 - [ ] Task 2.8: Mobile hamburger menu improvements (smooth animation, touch backdrop)
@@ -162,6 +162,63 @@ Document the iterative thinking process for Phase 2 implementation. Each session
 - ✅ No layout regressions
 
 **Next:** Task 2.5 (Collapsed sidebar) or wait for bugfix sub-agent to finish
+
+---
+
+## Session 5: Phase 2.5 - Collapsed Sidebar + Bugfix
+**Started:** 2026-02-14 10:32:00
+**Status:** ✅ Completed - Icon-only collapsed mode with tooltips + Trends/Speedtest bugfix
+**Tasks:** Bugfix investigation + Micro-task 5 (Collapsed Sidebar)
+
+### Bugfix: Trends/Speedtest Charts
+- **Problem:** Signal Trends and Speedtest views showed "Error loading trend data"
+- **Investigation:** Sub-agent (sessions_spawn) identified CSP blocking Chart.js from `cdn.jsdelivr.net`
+- **Root Cause:** CSP in `app/web.py` only allowed `unpkg.com`, but Chart.js loads from `cdn.jsdelivr.net`
+- **Solution:** Added `https://cdn.jsdelivr.net` to `script-src` in CSP (already in commit e832c8a from Phase 2.4)
+- **Issue:** Container rebuild with `--build` didn't pick up changes (cache issue)
+- **Fix:** Full rebuild: `down` + `up -d --build` → CSP now active
+- **Result:** ✅ All 4 trend charts rendering (DS Power, DS SNR, US Power, Errors)
+- **Screenshots:** `docs/trends-working.png`, `docs/trends-final.png`
+
+### Phase 2.5: Collapsed Sidebar Implementation
+- **Who:** Nova (manual CSS + HTML + JS editing)
+- **Duration:** ~15 minutes
+- **Changes:**
+  - CSS: Collapsed state = 70px width (icon-only), expanded = 240px (full)
+  - Hide text/section labels in collapsed state (display: none)
+  - Tooltip system: `data-tooltip` attributes on all links, CSS ::after pseudo-element
+  - Toggle function: `toggleSidebar()` switches between states
+  - Button icon change: `<` (collapse) ↔ `>` (expand)
+  - Header adaptation: logo only in collapsed state
+  - All links include tooltip support (monitoring, external, documentation sections)
+- **Commit:** `431de0a` "Implement collapsed sidebar with icon-only mode and tooltips (Phase 2.5)"
+- **Screenshots:**
+  - `docs/phase2.5-normal.png` (expanded state)
+  - `docs/phase2.5-collapsed-clean.png` (icon-only with tooltips)
+  - `docs/phase2.5-before.png` / `after.png` (comparison)
+
+### Design Decisions
+- **Width:** 70px collapsed (comfortable for icons + padding)
+- **Tooltips:** CSS-only with ::after pseudo-element (no JS overhead)
+- **Positioning:** Tooltips left of sidebar (8px offset) with dark bg + border
+- **Toggle:** True toggle (not one-way collapse) with visual feedback
+- **Section labels:** Completely hidden in collapsed state (cleaner icon-only view)
+
+### Testing
+- ✅ Collapsed state width correct (70px)
+- ✅ Icons remain visible and clickable
+- ✅ Tooltips appear on hover (visible in screenshots)
+- ✅ Toggle button changes icon (< ↔ >)
+- ✅ Navigation still functional (view switching works)
+- ✅ No layout regressions
+
+### Lessons Learned
+- **Docker cache issue:** `docker-compose up -d --build` doesn't always rebuild when only Python code changes
+- **Solution:** Use `down` first, then `up -d --build` for guaranteed fresh build
+- **Tooltip approach:** CSS ::after is simpler than JavaScript for static tooltips
+- **agent-browser click issue:** Some interactive elements caused timeouts → used `eval` as fallback
+
+**Next:** Task 2.6 (Top Bar Redesign) - Dennis approved continuing
 
 ---
 
