@@ -625,8 +625,20 @@
         <span class="trend-title">{{ t.bqm_title }}</span>
     </div>
     <div id="bqm-content">
-        <div id="bqm-image-wrap" style="text-align:center;">
-            <img id="bqm-image" style="max-width:100%; border-radius:8px; display:none;" alt="BQM Graph">
+        <!-- Phase 4.5: Card wrapper for BQM image -->
+        <div id="bqm-card" class="bqm-card" style="display:none;">
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18"/>
+                        <path d="M7 12l4-4 4 4 4-4"/>
+                    </svg>
+                    <div class="chart-label">{{ t.bqm_title }}</div>
+                </div>
+            </div>
+            <div id="bqm-image-wrap" style="text-align:center;">
+                <img id="bqm-image" style="max-width:100%; border-radius:8px;" alt="BQM Graph">
+            </div>
         </div>
         <div id="bqm-no-data" class="no-data-msg" style="display:none;"></div>
     </div>
@@ -718,21 +730,39 @@
 <div id="view-journal" class="view">
     <div class="journal-header">
         <span class="trend-title">{{ t.incident_journal }}</span>
-        <button class="btn-new-entry" onclick="openIncidentModal()">+ {{ t.new_entry }}</button>
+        <button class="btn-new-entry" onclick="openIncidentModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                <path d="M12 5v14m-7-7h14"/>
+            </svg>
+            {{ t.new_entry }}
+        </button>
     </div>
     <div id="journal-loading" class="waiting" style="display:none;">
         <div class="spinner"></div>
     </div>
     <div id="journal-empty" class="journal-empty" style="display:none;"></div>
-    <table id="journal-table" style="display:none;">
-        <thead><tr>
-            <th data-col="date">{{ t.incident_date }}<span class="sort-indicator"></span></th>
-            <th data-col="title">{{ t.incident_title }}<span class="sort-indicator"></span></th>
-            <th data-col="description" class="journal-hide-mobile">{{ t.incident_description }}<span class="sort-indicator"></span></th>
-            <th>&#128206;</th>
-        </tr></thead>
-        <tbody id="journal-tbody"></tbody>
-    </table>
+    
+    <!-- Phase 4.5: Card wrapper for journal table -->
+    <div id="journal-table-card" class="table-card" style="display:none;">
+        <div class="table-card-header">
+            <div class="table-card-title">
+                <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/>
+                    <path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+                <span>{{ t.incident_journal }}</span>
+            </div>
+        </div>
+        <table id="journal-table">
+            <thead><tr>
+                <th data-col="date">{{ t.incident_date }}<span class="sort-indicator"></span></th>
+                <th data-col="title">{{ t.incident_title }}<span class="sort-indicator"></span></th>
+                <th data-col="description" class="journal-hide-mobile">{{ t.incident_description }}<span class="sort-indicator"></span></th>
+                <th>&#128206;</th>
+            </tr></thead>
+            <tbody id="journal-tbody"></tbody>
+        </table>
+    </div>
 </div>
 
 <!-- ═══ View: Event Log ═══ -->
@@ -787,10 +817,10 @@
 
 <!-- ═══ View: Channel Timeline ═══ -->
 <div id="view-channels" class="view">
-    <div class="events-header">
+    <div class="trend-header">
         <span class="trend-title">{{ t.channel_timeline }}</span>
     </div>
-    <div class="events-filters">
+    <div class="channel-filters" style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
         <select id="channel-select" onchange="loadChannelTimeline()">
             <option value="">{{ t.select_channel }}</option>
         </select>
@@ -806,19 +836,48 @@
     </div>
     <div id="channel-empty" class="events-empty" style="display:none;"></div>
     <div id="channel-charts" class="charts-grid" style="display:none;">
+        <!-- Power/SNR Chart -->
         <div class="chart-card">
-            <button class="chart-expand-btn" data-chart="chart-ch-power" title="Expand">&#x26F6;</button>
-            <div class="chart-label">{{ t.power_history }}</div>
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    <div class="chart-label">{{ t.power_history }}</div>
+                </div>
+                <button class="chart-expand-btn" data-chart="chart-ch-power" title="Expand">&#x26F6;</button>
+            </div>
             <canvas id="chart-ch-power"></canvas>
         </div>
+        
+        <!-- Errors Chart -->
         <div class="chart-card" id="channel-errors-card">
-            <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand">&#x26F6;</button>
-            <div class="chart-label">{{ t.error_history }}</div>
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <div class="chart-label">{{ t.error_history }}</div>
+                </div>
+                <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand">&#x26F6;</button>
+            </div>
             <canvas id="chart-ch-errors"></canvas>
         </div>
+        
+        <!-- Modulation Chart -->
         <div class="chart-card" id="channel-modulation-card">
-            <button class="chart-expand-btn" data-chart="chart-ch-modulation">&#x26F6;</button>
-            <div class="chart-label">{{ t.modulation }}</div>
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18"/>
+                        <path d="M7 12l4-4 4 4 4-4"/>
+                    </svg>
+                    <div class="chart-label">{{ t.modulation }}</div>
+                </div>
+                <button class="chart-expand-btn" data-chart="chart-ch-modulation" title="Expand">&#x26F6;</button>
+            </div>
             <canvas id="chart-ch-modulation"></canvas>
         </div>
     </div>
@@ -2026,12 +2085,15 @@
     function loadBqmGraph(date) {
         var img = document.getElementById('bqm-image');
         var noData = document.getElementById('bqm-no-data');
+        var card = document.getElementById('bqm-card');
         if (!img || !noData) return;
-        img.style.display = 'none';
+        if (card) card.style.display = 'none';
         noData.style.display = 'none';
-        img.onload = function() { img.style.display = 'inline-block'; };
+        img.onload = function() { 
+            if (card) card.style.display = 'block';
+        };
         img.onerror = function() {
-            img.style.display = 'none';
+            if (card) card.style.display = 'none';
             noData.textContent = T.bqm_no_data || 'No BQM graph for this date.';
             noData.style.display = 'block';
         };
@@ -2053,13 +2115,13 @@
     var _journalSortAsc = false;
 
     function loadIncidents() {
-        var table = document.getElementById('journal-table');
+        var tableCard = document.getElementById('journal-table-card');
         var tbody = document.getElementById('journal-tbody');
         var empty = document.getElementById('journal-empty');
         var loading = document.getElementById('journal-loading');
         loading.style.display = '';
         tbody.innerHTML = '';
-        table.style.display = 'none';
+        if (tableCard) tableCard.style.display = 'none';
         empty.style.display = 'none';
         fetch('/api/incidents')
             .then(function(r) { return r.json(); })
@@ -2116,7 +2178,8 @@
                 ths[i].className = (ths[i].className ? ths[i].className + ' ' : '') + 'journal-hide-mobile';
             }
         }
-        table.style.display = '';
+        var tableCard = document.getElementById('journal-table-card');
+        if (tableCard) tableCard.style.display = '';
     }
 
     (function() {
