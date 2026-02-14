@@ -1688,56 +1688,47 @@ details.channel-group {
    Tables are too wide for mobile viewports. Enable horizontal scrolling
    for tables on small screens to ensure all content is accessible. */
 @media (max-width: 768px) {
-    /* CRITICAL: Wrap ALL tables in scrollable containers on mobile
-       This catches dynamically generated channel tables too */
-    table,
-    #correlation-table,
-    #event-table,
-    #speedtest-table,
-    table.sortable {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    /* CRITICAL: Force ALL tables to scroll horizontally instead of compressing
+       This prevents header text overlap on narrow mobile screens */
+    table {
+        display: block !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
     }
     
-    /* Let table contents determine their natural width (prevents crushing) */
+    /* Force table content to maintain natural width (don't compress) */
     table thead,
-    table tbody,
-    table tr {
-        display: table;
-        width: max-content; /* Allow table to be wider than viewport */
-        min-width: 100%;    /* But at least as wide as container */
-        table-layout: auto; /* Let columns size naturally */
+    table tbody {
+        display: table !important;
+        width: max-content !important;
+        min-width: 100% !important;
     }
     
-    /* Minimum column widths to prevent text crushing on specific tables */
+    table tr {
+        display: table-row !important;
+    }
+    
+    /* CRITICAL: Prevent text wrapping in ALL table headers and cells
+       This is what fixes the "Status ChannelFrequencyPower" overlap issue */
     table th,
     table td {
-        white-space: nowrap; /* Prevent wrapping in table cells */
-        padding: 8px 12px;   /* Ensure readable spacing */
+        display: table-cell !important;
+        white-space: nowrap !important;
+        padding: 8px 12px !important;
+        vertical-align: middle !important;
     }
     
-    /* Channel table specific fixes (Live Dashboard) */
-    table th:first-child,
-    table td:first-child {
-        min-width: 60px; /* Status/Channel column */
+    /* Minimum widths for readability */
+    table th,
+    table td {
+        min-width: 60px !important;
     }
     
-    table th:nth-child(2),
-    table td:nth-child(2) {
-        min-width: 50px; /* Channel number */
-    }
-    
-    table th:nth-child(3),
-    table td:nth-child(3) {
-        min-width: 100px; /* Frequency */
-    }
-    
-    /* Event log message column */
+    /* Exception: Event log messages can wrap (they're long text) */
     #event-table td:nth-child(4) {
-        max-width: 250px;
-        white-space: normal; /* Allow wrapping for long messages */
-        word-wrap: break-word;
+        max-width: 250px !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
     }
 }
