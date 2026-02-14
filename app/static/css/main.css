@@ -1688,7 +1688,9 @@ details.channel-group {
    Tables are too wide for mobile viewports. Enable horizontal scrolling
    for tables on small screens to ensure all content is accessible. */
 @media (max-width: 768px) {
-    /* Wrap all data tables in scrollable containers */
+    /* CRITICAL: Wrap ALL tables in scrollable containers on mobile
+       This catches dynamically generated channel tables too */
+    table,
     #correlation-table,
     #event-table,
     #speedtest-table,
@@ -1699,41 +1701,43 @@ details.channel-group {
         -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
     
-    /* Ensure table headers and body scroll together */
-    #correlation-table thead,
-    #correlation-table tbody,
-    #correlation-table tr,
-    #event-table thead,
-    #event-table tbody,
-    #event-table tr,
-    #speedtest-table thead,
-    #speedtest-table tbody,
-    #speedtest-table tr,
-    table.sortable thead,
-    table.sortable tbody,
-    table.sortable tr {
+    /* Let table contents determine their natural width (prevents crushing) */
+    table thead,
+    table tbody,
+    table tr {
         display: table;
-        width: 100%;
-        table-layout: fixed;
+        width: max-content; /* Allow table to be wider than viewport */
+        min-width: 100%;    /* But at least as wide as container */
+        table-layout: auto; /* Let columns size naturally */
     }
     
-    /* Minimum column widths to prevent text crushing */
-    #event-table td:nth-child(1), /* Timestamp */
-    #speedtest-table td:nth-child(2) { /* Timestamp */
-        min-width: 120px;
+    /* Minimum column widths to prevent text crushing on specific tables */
+    table th,
+    table td {
+        white-space: nowrap; /* Prevent wrapping in table cells */
+        padding: 8px 12px;   /* Ensure readable spacing */
     }
     
-    #event-table td:nth-child(4), /* Message */
-    #correlation-table td:nth-child(3), /* Message */
-    #correlation-table td:nth-child(4) { /* Details */
-        min-width: 180px;
+    /* Channel table specific fixes (Live Dashboard) */
+    table th:first-child,
+    table td:first-child {
+        min-width: 60px; /* Status/Channel column */
     }
     
-    #speedtest-table td:nth-child(3), /* Download */
-    #speedtest-table td:nth-child(4), /* Upload */
-    #speedtest-table td:nth-child(5), /* Ping */
-    #speedtest-table td:nth-child(6), /* Jitter */
-    #speedtest-table td:nth-child(7) { /* Packet Loss */
-        min-width: 90px;
+    table th:nth-child(2),
+    table td:nth-child(2) {
+        min-width: 50px; /* Channel number */
+    }
+    
+    table th:nth-child(3),
+    table td:nth-child(3) {
+        min-width: 100px; /* Frequency */
+    }
+    
+    /* Event log message column */
+    #event-table td:nth-child(4) {
+        max-width: 250px;
+        white-space: normal; /* Allow wrapping for long messages */
+        word-wrap: break-word;
     }
 }
