@@ -71,6 +71,61 @@ Document the iterative thinking process for Phase 2 implementation. Each session
 
 ---
 
+## Session 3: Icon Rendering Debug
+**Started:** 2026-02-14 10:00:00
+**Status:** ✅ Completed - Icons rendering after CSP fix
+**Task:** Micro-task 2 & 3 - Replace sidebar icons + fix rendering
+
+### Phase 2.2: Sidebar Icon Migration
+- **Implementation:** Nova (manual edit)
+- **Duration:** ~5 minutes
+- **Changes:** Replaced 12 emoji icons with Lucide `<i data-lucide="...">` tags
+- **Commit:** `ec2ffca` "Replace sidebar navigation icons with Lucide (Phase 2.2)"
+- **Migrated icons:**
+  - 📻 → `radio` (Live Dashboard)
+  - 🔔 → `bell` (Event Log)
+  - 📈 → `trending-up` (Signal Trends)
+  - 🕐 → `clock` (Channel Timeline)
+  - ⚙️ → `settings` (Speedtest/BQM Setup)
+  - 📋 → `clipboard-list` (Incident Journal)
+  - 📄 → `file-output` (Data Export)
+  - 📄 → `file-text` (File Complaint)
+  - ⚙️ → `settings` (Settings)
+
+### Phase 2.3: Icon Rendering Fix (CSP Issue)
+- **Problem:** Icons in HTML (`<i data-lucide="...">`) but not rendering
+- **Initial hypothesis:** `lucide.createIcons()` not called correctly
+  - Added DOMContentLoaded wrapper for initial load
+  - Added call in `switchView()` for view transitions
+  - Still not rendering after rebuild
+- **Root cause discovered:** Content Security Policy blocking Lucide CDN
+  - CSP header: `script-src 'self' 'unsafe-inline'` (no external scripts allowed)
+  - Browser silently blocked `https://unpkg.com/lucide@latest`
+- **Solution:** Updated CSP in `app/web.py` (lines 1209-1214)
+  - Added `https://unpkg.com` to `script-src`
+  - Added `https://fonts.googleapis.com` to `style-src`
+  - Added `font-src 'self' https://fonts.gstatic.com`
+- **Result:** ✅ All sidebar icons rendering correctly
+- **Commit:** `cfd9a63` "Fix Lucide icon rendering with CSP policy update (Phase 2.3)"
+- **Screenshots:** 
+  - `docs/phase2-icons-fixed.png` (before fix - icons missing)
+  - `docs/phase2-icons-working.png` (after fix - icons visible)
+
+**Lesson Learned:**
+- Always check CSP headers when external resources (CDNs, fonts, scripts) don't load
+- Browser won't show visible error if CSP blocks resource - need to check headers
+- Network tab or curl headers reveal CSP blocks
+- Pattern recognition: If HTML is correct but resource doesn't appear → check CSP
+
+**Next Tasks (Phase 2 remaining):**
+- [ ] Task 2.4: Apply sidebar CSS redesign (colors, spacing, active states per mockup)
+- [ ] Task 2.5: Implement collapsed sidebar state (icon-only mode with tooltips)
+- [ ] Task 2.6: Redesign top bar (search input, action button, notification bell)
+- [ ] Task 2.7: Move language selector to settings, dark mode toggle to sidebar footer
+- [ ] Task 2.8: Mobile hamburger menu improvements (smooth animation, touch backdrop)
+
+---
+
 ## Instructions for Next Session (if timeout occurs)
 
 1. Read this entire journal
@@ -86,12 +141,12 @@ Document the iterative thinking process for Phase 2 implementation. Each session
 ## Quality Criteria (for this phase)
 
 - [ ] Sidebar visually matches mockup design language
-- [ ] Icon library properly integrated (Lucide icons rendering)
+- [x] Icon library properly integrated (Lucide icons rendering) ✅
 - [ ] Collapsed/expanded sidebar states work smoothly
 - [ ] Top bar has modern search + action button layout
 - [ ] Mobile hamburger menu works with smooth animations
-- [ ] All existing navigation still functional (no regressions)
+- [x] All existing navigation still functional (no regressions) ✅
 - [ ] Dark mode toggle moved to sidebar footer
 - [ ] Language selector moved to settings (topbar cleaned up)
-- [ ] CSS follows the established design tokens from Phase 1
-- [ ] Code is clean, documented, maintainable
+- [x] CSS follows the established design tokens from Phase 1 ✅
+- [x] Code is clean, documented, maintainable ✅
