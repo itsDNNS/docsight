@@ -904,10 +904,18 @@ details.channel-group table { margin-top: 4px; }
 
 /* ── Sidebar overlay backdrop ── */
 .sidebar-backdrop {
-    display: none; position: fixed; inset: 0;
-    background: var(--overlay); z-index: 59;
+    position: fixed; 
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 59;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
 }
-.sidebar-backdrop.active { display: block; }
+.sidebar-backdrop.active { 
+    opacity: 1;
+    pointer-events: auto;
+}
 
 /* ── Info-tip tooltips (CSS-only) ── */
 .info-tip {
@@ -968,13 +976,25 @@ details.channel-group table { margin-top: 4px; }
     .charts-grid { grid-template-columns: 1fr; }
     .metric-cards { grid-template-columns: 1fr; }
     .sidebar {
-        position: fixed; top: 0; left: 0; bottom: 0;
-        z-index: 60; width: 240px; min-width: 240px;
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        bottom: 0;
+        z-index: 60; 
+        width: 240px; 
+        min-width: 240px;
         transform: translateX(-100%);
-        transition: transform 0.25s ease;
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
     }
-    .sidebar.collapsed { width: 240px; min-width: 240px; transform: translateX(-100%); }
-    .sidebar.mobile-open { transform: translateX(0); }
+    .sidebar.collapsed { 
+        width: 240px; 
+        min-width: 240px; 
+        transform: translateX(-100%); 
+    }
+    .sidebar.mobile-open { 
+        transform: translateX(0); 
+    }
 }
 @media (max-width: 600px) {
     body { font-size: 14px; }
