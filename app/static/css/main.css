@@ -1679,3 +1679,61 @@ details.channel-group {
         flex-wrap: wrap;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE FIXES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* BUG FIX: Mobile Table Overflow (#2)
+   Tables are too wide for mobile viewports. Enable horizontal scrolling
+   for tables on small screens to ensure all content is accessible. */
+@media (max-width: 768px) {
+    /* Wrap all data tables in scrollable containers */
+    #correlation-table,
+    #event-table,
+    #speedtest-table,
+    table.sortable {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+    
+    /* Ensure table headers and body scroll together */
+    #correlation-table thead,
+    #correlation-table tbody,
+    #correlation-table tr,
+    #event-table thead,
+    #event-table tbody,
+    #event-table tr,
+    #speedtest-table thead,
+    #speedtest-table tbody,
+    #speedtest-table tr,
+    table.sortable thead,
+    table.sortable tbody,
+    table.sortable tr {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+    }
+    
+    /* Minimum column widths to prevent text crushing */
+    #event-table td:nth-child(1), /* Timestamp */
+    #speedtest-table td:nth-child(2) { /* Timestamp */
+        min-width: 120px;
+    }
+    
+    #event-table td:nth-child(4), /* Message */
+    #correlation-table td:nth-child(3), /* Message */
+    #correlation-table td:nth-child(4) { /* Details */
+        min-width: 180px;
+    }
+    
+    #speedtest-table td:nth-child(3), /* Download */
+    #speedtest-table td:nth-child(4), /* Upload */
+    #speedtest-table td:nth-child(5), /* Ping */
+    #speedtest-table td:nth-child(6), /* Jitter */
+    #speedtest-table td:nth-child(7) { /* Packet Loss */
+        min-width: 90px;
+    }
+}
