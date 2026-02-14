@@ -215,6 +215,11 @@
         container.appendChild(placeholder);
     }
     
-    // Initialize immediately when script loads
-    initHeroChart();
+    // Wait for DOM to be fully loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initHeroChart);
+    } else {
+        // DOM already loaded (script deferred or loaded late)
+        initHeroChart();
+    }
 })();

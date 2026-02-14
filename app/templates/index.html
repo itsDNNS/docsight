@@ -1120,9 +1120,18 @@
         });
     }
     
-    // Render both donuts immediately
-    renderDonut('ds-health-donut', dsHealthCounts);
-    renderDonut('us-health-donut', usHealthCounts);
+    function initDonuts() {
+        renderDonut('ds-health-donut', dsHealthCounts);
+        renderDonut('us-health-donut', usHealthCounts);
+    }
+    
+    // Wait for DOM to be fully loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDonuts);
+    } else {
+        // DOM already loaded (script deferred or loaded late)
+        initDonuts();
+    }
 })();
 </script>
 
