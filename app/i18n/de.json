@@ -271,7 +271,7 @@
   "attachments": "Anhaenge",
   "upload_file": "Datei hochladen",
   "no_incidents": "Noch keine Stoerungen protokolliert. Dokumentiere deine Verbindungsprobleme fuer ISP-Beschwerden.",
-  "delete_incident": "Eintrag loeschen",
+  "delete_incident": "Löschen",
   "confirm_delete": "Bist du sicher, dass du diesen Eintrag loeschen moechtest?",
   "cancel": "Abbrechen",
   "file_too_large": "Datei zu gross (max. 10 MB)",
