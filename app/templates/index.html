@@ -567,13 +567,35 @@
         {% endif %}
     </div> #}
 
-    <h2 class="section-title">{{ t.downstream }} ({{ ds|length }} {{ t.channels }})</h2>
-    {% for group in ds|groupby('docsis_version')|reverse %}
-    {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
-    {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
-    <details class="channel-group">
-        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }}) {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% elif g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% else %}<span class="badge badge-good">&#10003;</span>{% endif %}</summary>
-        <table class="sortable">
+    {# ══════════════════════════════════════════════════════════════════════════
+       DOWNSTREAM CHANNELS - Phase 3 Task 3.5
+       Modern card containers for channel tables
+       ══════════════════════════════════════════════════════════════════════════ #}
+    <div class="channel-section">
+        <div class="channel-section-header">
+            <i data-lucide="radio-tower" class="section-icon"></i>
+            <h2 class="section-title">{{ t.downstream }}</h2>
+            <span class="section-badge">{{ ds|length }} {{ t.channels }}</span>
+        </div>
+        
+        {% for group in ds|groupby('docsis_version')|reverse %}
+        {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
+        {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
+        <div class="channel-card">
+            <details class="channel-group" open>
+                <summary>
+                    <div class="channel-group-summary">
+                        <span class="channel-group-label">DOCSIS {{ group.grouper }}</span>
+                        <span class="channel-group-count">({{ group.list|length }} {{ t.channels }})</span>
+                        <div class="channel-group-badges">
+                            {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% endif %}
+                            {% if g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% endif %}
+                            {% if not g_crit and not g_warn %}<span class="badge badge-good">&#10003;</span>{% endif %}
+                        </div>
+                    </div>
+                </summary>
+                <div class="channel-table-wrapper">
+                    <table class="sortable">
             <thead><tr>
                 <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
                 <th>{{ t.snr_db }}</th><th>{{ t.modulation }}</th><th>{{ t.corr }}</th><th>{{ t.uncorr }}</th>
@@ -599,17 +621,42 @@
             </tr>
             {% endfor %}
             </tbody>
-        </table>
-    </details>
-    {% endfor %}
+                    </table>
+                </div>
+            </details>
+        </div>
+        {% endfor %}
+    </div>
 
-    <h2 class="section-title">{{ t.upstream }} ({{ us|length }} {{ t.channels }})</h2>
-    {% for group in us|groupby('docsis_version')|reverse %}
-    {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
-    {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
-    <details class="channel-group">
-        <summary>DOCSIS {{ group.grouper }} ({{ group.list|length }} {{ t.channels }}) {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% elif g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% else %}<span class="badge badge-good">&#10003;</span>{% endif %}</summary>
-        <table class="sortable">
+    {# ══════════════════════════════════════════════════════════════════════════
+       UPSTREAM CHANNELS - Phase 3 Task 3.5
+       Modern card containers for channel tables
+       ══════════════════════════════════════════════════════════════════════════ #}
+    <div class="channel-section">
+        <div class="channel-section-header">
+            <i data-lucide="radio-tower" class="section-icon"></i>
+            <h2 class="section-title">{{ t.upstream }}</h2>
+            <span class="section-badge">{{ us|length }} {{ t.channels }}</span>
+        </div>
+        
+        {% for group in us|groupby('docsis_version')|reverse %}
+        {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
+        {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
+        <div class="channel-card">
+            <details class="channel-group" open>
+                <summary>
+                    <div class="channel-group-summary">
+                        <span class="channel-group-label">DOCSIS {{ group.grouper }}</span>
+                        <span class="channel-group-count">({{ group.list|length }} {{ t.channels }})</span>
+                        <div class="channel-group-badges">
+                            {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% endif %}
+                            {% if g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% endif %}
+                            {% if not g_crit and not g_warn %}<span class="badge badge-good">&#10003;</span>{% endif %}
+                        </div>
+                    </div>
+                </summary>
+                <div class="channel-table-wrapper">
+                    <table class="sortable">
             <thead><tr>
                 <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
                 <th>{{ t.modulation }}</th><th>{{ t.multiplex }}</th>
@@ -631,9 +678,13 @@
             </tr>
             {% endfor %}
             </tbody>
-        </table>
-    </details>
-    {% endfor %}
+                    </table>
+                </div>
+            </details>
+        </div>
+        {% endfor %}
+    </div>
+    
     {% if not has_us_ofdma %}
     <div class="card-notice card-notice-warn" style="margin-top:8px;">
         <span>&#9888;</span> {{ t.card_no_docsis31 }}
