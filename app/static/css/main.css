@@ -675,7 +675,7 @@ table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 
 th, td { padding: 6px 10px; text-align: left; }
 th {
     background: var(--surface); color: var(--accent);
-    position: sticky; top: 52px; cursor: pointer; user-select: none;
+    cursor: pointer; user-select: none;
     white-space: nowrap;
 }
 th:hover { text-decoration: underline; }
