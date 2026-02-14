@@ -258,6 +258,120 @@
     {# ── SNR health ── #}
     {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_warn' in s.health_issues else 'good') %}
 
+    {# ── Speedtest health (for new Metric Summary Row) ── #}
+    {% if speedtest_configured and speedtest_latest %}
+        {% set eff_booked_dl = booked_download if (booked_download and booked_download > 0) else ((connection_info.max_downstream_kbps // 1000) if connection_info and connection_info.max_downstream_kbps else 0) %}
+        {% set eff_booked_ul = booked_upload if (booked_upload and booked_upload > 0) else ((connection_info.max_upstream_kbps // 1000) if connection_info and connection_info.max_upstream_kbps else 0) %}
+        {% if eff_booked_dl > 0 %}
+            {% set dl_ratio = speedtest_latest.download_mbps / eff_booked_dl %}
+            {% if dl_ratio >= 0.8 %}
+                {% set speed_health = 'health-good' %}
+                {% set dl_val_class = 'val-good' %}
+            {% elif dl_ratio >= 0.5 %}
+                {% set speed_health = 'health-warn' %}
+                {% set dl_val_class = 'val-warn' %}
+            {% else %}
+                {% set speed_health = 'health-crit' %}
+                {% set dl_val_class = 'val-bad' %}
+            {% endif %}
+        {% else %}
+            {% set speed_health = 'health-good' %}
+            {% set dl_val_class = 'val-good' %}
+        {% endif %}
+        {% if eff_booked_ul > 0 %}
+            {% set ul_ratio = speedtest_latest.upload_mbps / eff_booked_ul %}
+            {% if ul_ratio >= 0.8 %}
+                {% set ul_val_class = 'val-good' %}
+            {% elif ul_ratio >= 0.5 %}
+                {% set ul_val_class = 'val-warn' %}
+            {% else %}
+                {% set ul_val_class = 'val-bad' %}
+            {% endif %}
+        {% else %}
+            {% set ul_val_class = 'val-good' %}
+        {% endif %}
+    {% endif %}
+
+    {# ══════════════════════════════════════════════════════════════════════════
+       METRIC SUMMARY ROW - Phase 3 Task 3.2
+       Compact metric cards: DS, US, Errors, Speed (no expandable details)
+       ══════════════════════════════════════════════════════════════════════════ #}
+    <div class="metric-summary-row">
+        {# Card 1: Downstream Signal #}
+        <div class="metric-summary-card health-{{ signal_health }}">
+            <div class="metric-summary-header">
+                <i data-lucide="radio" class="metric-icon"></i>
+                <span class="metric-label">{{ t.downstream }}</span>
+            </div>
+            <div class="metric-summary-values">
+                <div class="metric-value-item">
+                    <span class="value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}</span>
+                    <span class="unit">dBmV</span>
+                    <span class="sublabel">{{ t.card_ds_power }}</span>
+                </div>
+                <div class="metric-value-divider"></div>
+                <div class="metric-value-item">
+                    <span class="value val-{{ snr_health }}">{{ s.ds_snr_avg }}</span>
+                    <span class="unit">dB</span>
+                    <span class="sublabel">{{ t.card_snr }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# Card 2: Upstream Signal #}
+        <div class="metric-summary-card health-{{ us_health }}">
+            <div class="metric-summary-header">
+                <i data-lucide="radio" class="metric-icon"></i>
+                <span class="metric-label">{{ t.upstream }}</span>
+            </div>
+            <div class="metric-summary-values">
+                <div class="metric-value-item">
+                    <span class="value val-{{ us_health }}">{{ s.us_power_avg }}</span>
+                    <span class="unit">dBmV</span>
+                    <span class="sublabel">{{ t.card_transmit_power }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# Card 3: Errors #}
+        <div class="metric-summary-card health-{{ error_health }}">
+            <div class="metric-summary-header">
+                <i data-lucide="alert-triangle" class="metric-icon"></i>
+                <span class="metric-label">{{ t.card_errors }}</span>
+            </div>
+            <div class="metric-summary-values">
+                <div class="metric-value-item">
+                    <span class="value val-{{ error_health }}">{{ s.ds_uncorrectable_errors|fmt_k }}</span>
+                    <span class="unit">{{ t.card_uncorr_label }}</span>
+                    <span class="sublabel">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# Card 4: Speedtest (conditional) #}
+        {% if speedtest_configured and speedtest_latest %}
+        <div class="metric-summary-card {{ speed_health }}">
+            <div class="metric-summary-header">
+                <i data-lucide="zap" class="metric-icon"></i>
+                <span class="metric-label">{{ t.speed }}</span>
+            </div>
+            <div class="metric-summary-values">
+                <div class="metric-value-item">
+                    <span class="value {{ dl_val_class }}">{{ speedtest_latest.download_mbps|round(0)|int }}</span>
+                    <span class="unit">Mbps</span>
+                    <span class="sublabel">{{ t.download }}</span>
+                </div>
+                <div class="metric-value-divider"></div>
+                <div class="metric-value-item">
+                    <span class="value {{ ul_val_class }}">{{ speedtest_latest.upload_mbps|round(0)|int }}</span>
+                    <span class="unit">Mbps</span>
+                    <span class="sublabel">{{ t.upload }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
     {# ── Range marker positions (clamped 2-98%) ── #}
     {# DS Power: range -12 to +25 = 37 units #}
     {% set ds_pwr_marker = [2, [98, ((s.ds_power_avg + 12) / 37 * 100)|round|int]|min]|max %}
@@ -265,7 +379,8 @@
     {# US Power: range 30 to 60 = 30 units #}
     {% set us_pwr_marker = [2, [98, ((s.us_power_avg - 30) / 30 * 100)|round|int]|min]|max %}
 
-    <div class="metric-cards">
+    {# ── OLD Metric Cards (DEPRECATED, replaced by Metric Summary Row) ── #}
+    {# <div class="metric-cards">
         {# ── Card 1: Downstream ── #}
         <div class="metric-card health-{{ signal_health }}">
             <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
@@ -450,7 +565,7 @@
             </div>
         </div>
         {% endif %}
-    </div>
+    </div> #}
 
     <h2 class="section-title">{{ t.downstream }} ({{ ds|length }} {{ t.channels }})</h2>
     {% for group in ds|groupby('docsis_version')|reverse %}
