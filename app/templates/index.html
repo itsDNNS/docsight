@@ -24,58 +24,58 @@
     </div>
     <div class="sidebar-content">
         <div class="sidebar-section-label">{{ t.sidebar_monitoring }}</div>
-        <a class="sidebar-link active" data-view="live">
+        <a class="sidebar-link active" data-view="live" data-tooltip="{{ t.live_dashboard }}">
             <span class="icon"><i data-lucide="radio"></i></span> {{ t.live_dashboard }}
         </a>
-        <a class="sidebar-link" data-view="events">
+        <a class="sidebar-link" data-view="events" data-tooltip="{{ t.event_log }}">
             <span class="icon"><i data-lucide="bell"></i></span> {{ t.event_log }}
             <span class="event-badge" id="event-badge" style="display:none;"></span>
         </a>
-        <a class="sidebar-link" data-view="trends">
+        <a class="sidebar-link" data-view="trends" data-tooltip="{{ t.signal_trends }}">
             <span class="icon"><i data-lucide="trending-up"></i></span> {{ t.signal_trends }}
         </a>
-        <a class="sidebar-link" data-view="channels">
+        <a class="sidebar-link" data-view="channels" data-tooltip="{{ t.channel_timeline }}">
             <span class="icon"><i data-lucide="clock"></i></span> {{ t.channel_timeline }}
         </a>
         {% if speedtest_configured or bqm_configured %}
-        <a class="sidebar-link" data-view="correlation">
+        <a class="sidebar-link" data-view="correlation" data-tooltip="{{ t.correlation_analysis }}">
             <span class="icon"><i data-lucide="bar-chart-3"></i></span> {{ t.correlation_analysis }}
         </a>
         {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
         {% if speedtest_configured %}
-        <a class="sidebar-link" data-view="speedtest">
+        <a class="sidebar-link" data-view="speedtest" data-tooltip="{{ t.speedtest }}">
             <span class="icon"><i data-lucide="zap"></i></span> {{ t.speedtest }}
         </a>
         {% endif %}
         {% if not speedtest_configured %}
-        <a class="sidebar-link" onclick="openSpeedtestSetupModal()">
+        <a class="sidebar-link" onclick="openSpeedtestSetupModal()" data-tooltip="{{ t.speedtest_setup }}">
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.speedtest_setup }}
         </a>
         {% endif %}
         {% if bqm_configured %}
-        <a class="sidebar-link" data-view="bqm">
+        <a class="sidebar-link" data-view="bqm" data-tooltip="{{ t.bqm_title }}">
             <span class="icon"><i data-lucide="activity"></i></span> {{ t.bqm_title }}
         </a>
         {% endif %}
         {% if not bqm_configured %}
-        <a class="sidebar-link" onclick="openBqmSetupModal()">
+        <a class="sidebar-link" onclick="openBqmSetupModal()" data-tooltip="{{ t.bqm_setup }}">
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.bqm_setup }}
         </a>
         {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
-        <a class="sidebar-link" data-view="journal">
+        <a class="sidebar-link" data-view="journal" data-tooltip="{{ t.incident_journal }}">
             <span class="icon"><i data-lucide="clipboard-list"></i></span> {{ t.incident_journal }}
         </a>
-        <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
+        <a class="sidebar-link" id="export-link" onclick="exportForLLM()" data-tooltip="{{ t.export_llm }}">
             <span class="icon"><i data-lucide="file-output"></i></span> {{ t.export_llm }}
         </a>
-        <a class="sidebar-link" id="report-link" onclick="openReportModal()">
+        <a class="sidebar-link" id="report-link" onclick="openReportModal()" data-tooltip="{{ t.incident_report }}">
             <span class="icon"><i data-lucide="file-text"></i></span> {{ t.incident_report }}
         </a>
         <div style="flex:1;"></div>
         <div class="sidebar-divider"></div>
-        <a class="sidebar-link" href="/settings">
+        <a class="sidebar-link" href="/settings" data-tooltip="{{ t.settings }}">
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.settings }}
         </a>
         {% if auth_enabled %}
@@ -1086,12 +1086,25 @@
         sidebar.classList.add('collapsed');
         sidebar.classList.remove('mobile-open');
         sidebarBackdrop.classList.remove('active');
+        var btn = document.getElementById('sidebar-collapse');
+        btn.innerHTML = '&#10095;'; // Right arrow >
+        btn.title = 'Expand';
     }
     function expandSidebar() {
         sidebar.classList.remove('collapsed');
+        var btn = document.getElementById('sidebar-collapse');
+        btn.innerHTML = '&#10094;'; // Left arrow <
+        btn.title = 'Collapse';
+    }
+    function toggleSidebar() {
+        if (sidebar.classList.contains('collapsed')) {
+            expandSidebar();
+        } else {
+            collapseSidebar();
+        }
     }
 
-    document.getElementById('sidebar-collapse').addEventListener('click', collapseSidebar);
+    document.getElementById('sidebar-collapse').addEventListener('click', toggleSidebar);
     document.getElementById('hamburger').addEventListener('click', function() {
         if (isMobile()) {
             var opening = !sidebar.classList.contains('mobile-open');
