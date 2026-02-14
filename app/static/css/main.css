@@ -771,22 +771,50 @@ tr:hover { background: rgba(255,255,255,0.03); }
 .st-signal-detail .st-sig-no-data { color: var(--muted); font-style: italic; grid-column: 1 / -1; }
 .st-signal-detail .st-us-mods { grid-column: 1 / -1; }
 .st-signal-detail .st-us-mods span { margin-right: 10px; }
-.speedtest-chart-wrap {
-    position: relative; width: 100%;
-    border: 1px solid var(--input-border); border-radius: 8px;
-    background: var(--surface); margin-bottom: 24px;
-    padding-bottom: 8px;
+/* ══════════════════════════════════════════════════════════════════════════
+   SPEEDTEST TRACKER - Phase 4.2: Modern Card Design
+   ══════════════════════════════════════════════════════════════════════════ */
+.speedtest-chart-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-lg, 12px);
+    padding: var(--space-lg, 20px);
+    margin-bottom: var(--space-xl, 24px);
+    transition: all 0.2s ease;
 }
-.speedtest-chart-wrap canvas { display: block; width: 100%; height: 250px; }
+.speedtest-chart-card:hover {
+    border-color: var(--accent-purple, #a855f7);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+}
+.speedtest-chart-wrap {
+    position: relative;
+    width: 100%;
+}
+.speedtest-chart-wrap canvas { 
+    display: block; 
+    width: 100%; 
+    height: 250px;
+}
 .speedtest-chart-legend {
-    display: flex; gap: 18px; justify-content: center;
-    padding: 8px 0 4px; font-size: 0.78em; color: var(--muted);
+    display: flex; 
+    gap: 18px; 
+    justify-content: center;
+    padding: 12px 0 4px; 
+    font-size: 0.78em; 
+    color: var(--muted);
 }
 .speedtest-chart-legend span::before {
-    content: ''; display: inline-block; width: 10px; height: 10px;
-    border-radius: 50%; margin-right: 5px; vertical-align: -1px;
+    content: ''; 
+    display: inline-block; 
+    width: 10px; 
+    height: 10px;
+    border-radius: 50%; 
+    margin-right: 5px; 
+    vertical-align: -1px;
 }
-.legend-dl::before { background: #3b82f6; }
+/* Phase 4.2: Updated colors - purple gradient theme */
+.legend-dl::before { background: #a855f7; }
 .legend-ul::before { background: #22c55e; }
 .legend-ping::before { background: #f59e0b; }
 .legend-thresh::before { background: #ef4444; }
@@ -794,6 +822,59 @@ tr:hover { background: rgba(255,255,255,0.03); }
     position: absolute; pointer-events: none; display: none;
     background: rgba(0,0,0,0.85); color: #e0e0e0; font-size: 0.78em;
     padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 1000;
+}
+
+/* Phase 4.2: Table card wrapper for speedtest table */
+#speedtest-table-wrap.table-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-lg, 12px);
+    overflow: hidden;
+}
+#speedtest-table {
+    width: 100%;
+    margin: 0;
+}
+#speedtest-table thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+#speedtest-table thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text-primary, var(--text));
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+#speedtest-table tbody tr {
+    transition: background 0.15s ease;
+}
+#speedtest-table tbody tr:hover {
+    background: var(--surface-2, rgba(0,0,0,0.1));
+}
+#speedtest-table tbody td {
+    padding: 12px 16px;
+    font-size: 0.85em;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+/* Signal detail rows (expanded) */
+#speedtest-table tbody tr.st-signal-row {
+    background: rgba(168,85,247,0.05);
+}
+#speedtest-table tbody tr.st-signal-row:hover {
+    background: rgba(168,85,247,0.08);
+}
+
+/* Responsive table card */
+@media (max-width: 768px) {
+    .speedtest-chart-card {
+        padding: var(--space-md, 16px);
+    }
+    #speedtest-table thead th,
+    #speedtest-table tbody td {
+        padding: 8px 12px;
+        font-size: 0.8em;
+    }
 }
 .sort-indicator { margin-left: 4px; font-size: 0.8em; opacity: 0.7; }
 .error-box {
@@ -822,38 +903,138 @@ details.channel-group {
     margin-bottom: 0;
 }
 
-/* ── Trends ── */
+/* ══════════════════════════════════════════════════════════════════════════
+   TRENDS VIEW - Phase 4.1
+   Modernized with pill tabs, card wrappers, and gradient area charts
+   ══════════════════════════════════════════════════════════════════════════ */
 .trend-header {
     display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    align-items: center; margin-bottom: var(--space-xl, 24px); 
+    flex-wrap: wrap; gap: var(--space-md, 16px);
 }
-.trend-title { font-size: 1.2em; color: var(--accent); font-weight: bold; }
+.trend-title { 
+    font-size: 1.5em; 
+    color: var(--accent-purple, var(--accent)); 
+    font-weight: bold; 
+}
+
+/* Pill-style tabs (Phase 3 design language) */
 .trend-tabs {
-    display: flex; gap: 0; border-radius: 6px; overflow: hidden;
-    border: 1px solid var(--input-border);
+    display: flex; 
+    gap: var(--space-xs, 6px); 
+    background: var(--card-bg, var(--card));
+    padding: 4px;
+    border-radius: 24px;
+    border: 1px solid var(--card-border, var(--input-border));
 }
 .trend-tab {
-    background: transparent; border: none; color: var(--muted);
-    padding: 6px 16px; font-size: 0.85em; cursor: pointer;
-    font-family: inherit; transition: background 0.15s, color 0.15s;
-    border-right: 1px solid var(--input-border);
+    background: transparent; 
+    border: none; 
+    color: var(--text-secondary, var(--muted));
+    padding: 8px 20px; 
+    font-size: 0.9em; 
+    cursor: pointer;
+    font-family: inherit; 
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 20px;
 }
-.trend-tab:last-child { border-right: none; }
-.trend-tab:hover { color: var(--text); background: rgba(0,173,181,0.05); }
-.trend-tab.active { background: var(--accent); color: #000; font-weight: bold; }
-.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.chart-card { background: var(--surface); border-radius: 8px; padding: 16px; position: relative; }
-.chart-card .chart-label { font-size: 0.85em; color: var(--muted); margin-bottom: 8px; }
-.chart-card canvas { width: 100% !important; }
+.trend-tab:hover { 
+    color: var(--text); 
+    background: rgba(168,85,247,0.1); 
+}
+.trend-tab.active { 
+    background: var(--accent-purple, var(--accent)); 
+    color: #fff; 
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+
+/* Chart grid (2x2 desktop, stack on mobile) */
+.charts-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: var(--space-lg, 20px); 
+}
+
+/* Phase 3 card styling */
+.chart-card { 
+    background: var(--card-bg, var(--card)); 
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px); 
+    padding: var(--space-lg, 20px); 
+    position: relative;
+    transition: all 0.2s ease;
+}
+.chart-card:hover {
+    border-color: var(--accent-purple, var(--accent));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+}
+
+/* Chart header with icon */
+.chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md, 16px);
+}
+.chart-header-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.chart-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--accent-purple, var(--accent));
+    flex-shrink: 0;
+}
+.chart-card .chart-label { 
+    font-size: 0.95em; 
+    color: var(--text); 
+    font-weight: 600;
+}
+.chart-card canvas { 
+    width: 100% !important; 
+    min-height: 200px;
+}
+
+/* Responsive: Mobile stacking */
+@media (max-width: 768px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    .trend-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .trend-tabs {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Chart expand button (Phase 3 style - subtle, right-aligned) */
 .chart-expand-btn {
-    position: absolute; top: 10px; right: 10px;
-    background: none; border: 1px solid transparent;
-    color: var(--muted); font-size: 1em; cursor: pointer;
-    padding: 2px 6px; border-radius: 4px; line-height: 1;
-    opacity: 0.5; transition: opacity 0.2s, color 0.2s, border-color 0.2s;
-    z-index: 2;
+    background: none; 
+    border: 1px solid transparent;
+    color: var(--text-secondary, var(--muted)); 
+    font-size: 1.1em; 
+    cursor: pointer;
+    padding: 4px 8px; 
+    border-radius: 6px; 
+    line-height: 1;
+    opacity: 0.6; 
+    transition: all 0.2s ease;
+    flex-shrink: 0;
 }
-.chart-expand-btn:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
+.chart-expand-btn:hover { 
+    opacity: 1; 
+    color: var(--accent-purple, var(--accent)); 
+    border-color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.1);
+}
 
 /* ── Chart Zoom Modal ── */
 .chart-zoom-overlay {
