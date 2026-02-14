@@ -648,15 +648,18 @@
     </div>
     <p class="correlation-desc" style="color:var(--muted); font-size:0.85em; margin:0 0 16px;">{{ t.correlation_desc }}</p>
 
-    <div class="correlation-filters" style="display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap;">
-        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.85em;">
-            <input type="checkbox" id="corr-src-modem" checked onchange="loadCorrelationData()"> {{ t.correlation_source_modem }}
+    <div class="correlation-filters">
+        <label class="filter-pill">
+            <input type="checkbox" id="corr-src-modem" checked onchange="loadCorrelationData()">
+            <span>{{ t.correlation_source_modem }}</span>
         </label>
-        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.85em;">
-            <input type="checkbox" id="corr-src-speedtest" checked onchange="loadCorrelationData()"> {{ t.correlation_source_speedtest }}
+        <label class="filter-pill">
+            <input type="checkbox" id="corr-src-speedtest" checked onchange="loadCorrelationData()">
+            <span>{{ t.correlation_source_speedtest }}</span>
         </label>
-        <label style="display:flex; align-items:center; gap:4px; cursor:pointer; font-size:0.85em;">
-            <input type="checkbox" id="corr-src-events" checked onchange="loadCorrelationData()"> {{ t.correlation_source_events }}
+        <label class="filter-pill">
+            <input type="checkbox" id="corr-src-events" checked onchange="loadCorrelationData()">
+            <span>{{ t.correlation_source_events }}</span>
         </label>
     </div>
 
@@ -667,22 +670,47 @@
 
     <!-- Signal Health Timeline Chart -->
     <div id="correlation-chart-container" style="display:none;">
-        <div class="speedtest-chart-wrap">
-            <canvas id="correlation-chart"></canvas>
-            <div class="speedtest-chart-legend" id="correlation-legend"></div>
+        <!-- Phase 4.4: Modern card wrapper for correlation chart -->
+        <div class="correlation-chart-card">
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18"/>
+                        <path d="M18 17V9"/>
+                        <path d="M13 17V5"/>
+                        <path d="M8 17v-3"/>
+                    </svg>
+                    <div class="chart-label">{{ t.correlation_chart_title }}</div>
+                </div>
+            </div>
+            <div class="correlation-chart-wrap">
+                <canvas id="correlation-chart"></canvas>
+                <div class="correlation-chart-legend" id="correlation-legend"></div>
+            </div>
         </div>
     </div>
 
     <!-- Unified Timeline Table -->
-    <table id="correlation-table" style="display:none;">
-        <thead><tr>
-            <th>{{ t.timestamp }}</th>
-            <th style="width:90px;">Source</th>
-            <th>{{ t.event_message }}</th>
-            <th>{{ t.event_details }}</th>
-        </tr></thead>
-        <tbody id="correlation-tbody"></tbody>
-    </table>
+    <div id="correlation-table-card" class="table-card" style="display:none;">
+        <div class="table-card-header">
+            <div class="table-card-title">
+                <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <span>{{ t.correlation_timeline }}</span>
+            </div>
+        </div>
+        <table id="correlation-table">
+            <thead><tr>
+                <th>{{ t.timestamp }}</th>
+                <th style="width:90px;">Source</th>
+                <th>{{ t.event_message }}</th>
+                <th>{{ t.event_details }}</th>
+            </tr></thead>
+            <tbody id="correlation-tbody"></tbody>
+        </table>
+    </div>
 </div>
 {% endif %}
 
@@ -3212,11 +3240,11 @@ function loadCorrelationData() {
     var loading = document.getElementById('correlation-loading');
     var noData = document.getElementById('correlation-no-data');
     var chartContainer = document.getElementById('correlation-chart-container');
-    var table = document.getElementById('correlation-table');
+    var tableCard = document.getElementById('correlation-table-card');
     loading.style.display = 'flex';
     noData.style.display = 'none';
     chartContainer.style.display = 'none';
-    table.style.display = 'none';
+    tableCard.style.display = 'none';
 
     fetch('/api/correlation?hours=' + hours + '&sources=' + sources.join(','))
         .then(function(r) { return r.json(); })
@@ -3229,7 +3257,7 @@ function loadCorrelationData() {
                 return;
             }
             chartContainer.style.display = 'block';
-            table.style.display = 'table';
+            tableCard.style.display = 'block';
             renderCorrelationChart(data);
             renderCorrelationTable(data);
         })
@@ -3357,16 +3385,43 @@ function renderCorrelationChart(data) {
         ctx.restore();
     }
 
-    // Draw modem SNR line
+    // Draw modem SNR line with gradient fill (Phase 4.4)
     if (modem.length > 1) {
+        // Create gradient fill
+        var gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+        gradient.addColorStop(0, 'rgba(168,85,247,0.3)');
+        gradient.addColorStop(1, 'rgba(168,85,247,0)');
+        
+        // Draw filled area
         ctx.beginPath();
-        ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 2;
+        ctx.moveTo(xScale(new Date(modem[0].timestamp).getTime()), pad.top + plotH);
         for (var i = 0; i < modem.length; i++) {
             var x = xScale(new Date(modem[i].timestamp).getTime());
             var y = ySnr(modem[i].ds_snr_min || snrMin);
-            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            ctx.lineTo(x, y);
         }
+        ctx.lineTo(xScale(new Date(modem[modem.length - 1].timestamp).getTime()), pad.top + plotH);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        // Draw border line with smooth curves
+        ctx.beginPath();
+        for (var i = 0; i < modem.length; i++) {
+            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var y = ySnr(modem[i].ds_snr_min || snrMin);
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                // Smooth curve with tension
+                var x0 = xScale(new Date(modem[i - 1].timestamp).getTime());
+                var y0 = ySnr(modem[i - 1].ds_snr_min || snrMin);
+                var cpx = x0 + (x - x0) * 0.4;
+                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+            }
+        }
+        ctx.strokeStyle = 'rgba(168,85,247,1)';  // Purple border
+        ctx.lineWidth = 2;
         ctx.stroke();
     }
 
