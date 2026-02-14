@@ -4,10 +4,12 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 :root, [data-theme="dark"] {
-    /* Backgrounds - Charcoal palette */
-    --bg: #111827;                              /* Deep charcoal background */
-    --surface: #1f2937;                         /* Elevated surface (sidebar, topbar) */
-    --card: #1e2330;                            /* Card background (slightly warmer) */
+    /* Backgrounds - Unified charcoal palette */
+    --bg: #1f2937;                              /* Unified background (sidebar, topbar, main) */
+    --surface: #1f2937;                         /* Elevated surface (same as bg) */
+    --card: #1e2330;                            /* Card background (elevated, lighter for contrast) */
+    --card-bg: #1e2330;                         /* Card background (alias) */
+    --card-border: rgba(255,255,255,0.08);      /* Card borders */
     
     /* Text hierarchy */
     --text: #f0f0f0;                            /* Primary text (near-white) */
@@ -33,9 +35,11 @@
 
 [data-theme="light"] {
     /* Backgrounds - Light palette */
-    --bg: #f9fafb;                              /* Light gray background */
+    --bg: #ffffff;                              /* White background (unified) */
     --surface: #ffffff;                         /* White surface (sidebar, topbar) */
-    --card: #ffffff;                            /* White card background */
+    --card: #f9fafb;                            /* Light gray card background */
+    --card-bg: #f9fafb;                         /* Card background (alias) */
+    --card-border: #e5e7eb;                     /* Card borders */
     
     /* Text hierarchy */
     --text: #111827;                            /* Primary text (dark gray) */
@@ -200,7 +204,7 @@ body {
 /* ── Sidebar ── */
 .sidebar {
     width: 240px; min-width: 240px;
-    background: #0f1419;
+    background: var(--surface);
     display: flex; flex-direction: column;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     transition: width 0.25s ease, min-width 0.25s ease;
