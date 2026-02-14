@@ -121,7 +121,7 @@ Document the iterative thinking process for Phase 2 implementation. Each session
 - [x] Task 2.4: Apply sidebar CSS redesign (colors, spacing, active states per mockup) ✅
 - [x] Task 2.5: Implement collapsed sidebar state (icon-only mode with tooltips) ✅
 - [x] Task 2.6: Modernize top bar styling (incremental update) ✅
-- [ ] Task 2.7: Move language selector to settings, dark mode toggle to sidebar footer
+- [x] Task 2.7: Move dark mode toggle to sidebar footer (language selector removed from top bar) ✅
 - [ ] Task 2.8: Mobile hamburger menu improvements (smooth animation, touch backdrop)
 
 ---
@@ -268,6 +268,73 @@ Task 2.6 was originally "Redesign top bar: search input, action button, notifica
 - **Design tokens pay off:** Changing `--radius-sm` updates everything consistently
 
 **Next:** Task 2.7 (Move language + dark mode) or Task 2.8 (Mobile improvements)
+
+---
+
+## Session 7: Phase 2.7 - Settings Migration (Dark Mode to Sidebar Footer)
+**Started:** 2026-02-14 10:46:00
+**Status:** ✅ Completed - Dark mode toggle moved to sidebar footer as slide switch
+**Task:** Micro-task 7 (Settings Migration)
+
+### Implementation
+- **Who:** Nova (HTML + CSS + JavaScript changes)
+- **Duration:** ~10 minutes
+- **Changes:**
+  - **Sidebar Footer:** New `.sidebar-footer` container with dark mode toggle
+  - **Slide Switch:** Modern toggle design (44px × 24px) with smooth transition
+  - **Icon:** Lucide moon icon + "Dark Mode" label
+  - **Colors:** Purple (`--purple-600`) when active, gray when inactive
+  - **JavaScript:** Checkbox `onChange` instead of button `click`
+  - **Top Bar Cleanup:** Removed language selector + theme toggle button
+  - **Collapsed State:** Toggle centered, labels hidden
+- **Commit:** `d4bd443` "Move dark mode toggle to sidebar footer as slide switch (Phase 2.7)"
+- **Screenshots:**
+  - `docs/phase2.7-sidebar-footer.png` (dark mode active, purple toggle)
+  - `docs/phase2.7-light-mode.png` (light mode, gray toggle)
+  - `docs/phase2.7-clean.png` (clean view without modal)
+
+### Design Decisions
+- **Language Selector:** Removed from top bar (already exists in Settings page)
+- **Slide Switch:** More modern than button, matches mockup design language
+- **Footer Placement:** Natural location for global settings (like many modern apps)
+- **Collapsed Behavior:** Toggle remains visible and functional (centered)
+- **Purple Accent:** Matches sidebar active state color
+
+### CSS Details
+```css
+.toggle-switch: 44px × 24px rounded container
+.toggle-slider: Semi-transparent background, purple when checked
+.toggle-slider:before: White knob (18px), translates 20px on toggle
+```
+
+### JavaScript Update
+**Old (Button):**
+```javascript
+themeBtn.addEventListener('click', function() { ... });
+```
+
+**New (Checkbox):**
+```javascript
+themeToggle.addEventListener('change', function() {
+    var next = this.checked ? 'dark' : 'light';
+});
+```
+
+### Testing
+- ✅ Dark mode toggle appears in sidebar footer
+- ✅ Toggle switch works (dark ↔ light)
+- ✅ Purple color when active, gray when inactive
+- ✅ Label + icon visible in expanded state
+- ✅ Collapsed state shows only toggle (centered)
+- ✅ Top bar cleaner (no language selector, no theme button)
+- ✅ Light mode background changes correctly
+
+### Lessons Learned
+- **Slide switch is CSS-only:** No JavaScript for animations, just checkbox state
+- **Checkbox > Button:** Semantic HTML for toggle state (better for accessibility)
+- **Footer is natural:** Settings-type controls belong at bottom (user expectation)
+
+**Next:** Task 2.8 (Mobile Hamburger Improvements) - last Phase 2 task!
 
 ---
 
