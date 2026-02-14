@@ -25,58 +25,58 @@
     <div class="sidebar-content">
         <div class="sidebar-section-label">{{ t.sidebar_monitoring }}</div>
         <a class="sidebar-link active" data-view="live">
-            <span class="icon recording-dot">&#9679;</span> {{ t.live_dashboard }}
+            <span class="icon"><i data-lucide="radio"></i></span> {{ t.live_dashboard }}
         </a>
         <a class="sidebar-link" data-view="events">
-            <span class="icon">&#128276;</span> {{ t.event_log }}
+            <span class="icon"><i data-lucide="bell"></i></span> {{ t.event_log }}
             <span class="event-badge" id="event-badge" style="display:none;"></span>
         </a>
         <a class="sidebar-link" data-view="trends">
-            <span class="icon">&#128200;</span> {{ t.signal_trends }}
+            <span class="icon"><i data-lucide="trending-up"></i></span> {{ t.signal_trends }}
         </a>
         <a class="sidebar-link" data-view="channels">
-            <span class="icon">&#128336;</span> {{ t.channel_timeline }}
+            <span class="icon"><i data-lucide="clock"></i></span> {{ t.channel_timeline }}
         </a>
         {% if speedtest_configured or bqm_configured %}
         <a class="sidebar-link" data-view="correlation">
-            <span class="icon">&#128202;</span> {{ t.correlation_analysis }}
+            <span class="icon"><i data-lucide="bar-chart-3"></i></span> {{ t.correlation_analysis }}
         </a>
         {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
         {% if speedtest_configured %}
         <a class="sidebar-link" data-view="speedtest">
-            <span class="icon">&#9889;</span> {{ t.speedtest }}
+            <span class="icon"><i data-lucide="zap"></i></span> {{ t.speedtest }}
         </a>
         {% endif %}
         {% if not speedtest_configured %}
         <a class="sidebar-link" onclick="openSpeedtestSetupModal()">
-            <span class="icon">&#9881;</span> {{ t.speedtest_setup }}
+            <span class="icon"><i data-lucide="settings"></i></span> {{ t.speedtest_setup }}
         </a>
         {% endif %}
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
-            <span class="icon">&#128225;</span> {{ t.bqm_title }}
+            <span class="icon"><i data-lucide="activity"></i></span> {{ t.bqm_title }}
         </a>
         {% endif %}
         {% if not bqm_configured %}
         <a class="sidebar-link" onclick="openBqmSetupModal()">
-            <span class="icon">&#9881;</span> {{ t.bqm_setup }}
+            <span class="icon"><i data-lucide="settings"></i></span> {{ t.bqm_setup }}
         </a>
         {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
         <a class="sidebar-link" data-view="journal">
-            <span class="icon">&#128203;</span> {{ t.incident_journal }}
+            <span class="icon"><i data-lucide="clipboard-list"></i></span> {{ t.incident_journal }}
         </a>
         <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
-            <span class="icon">&#128190;</span> {{ t.export_llm }}
+            <span class="icon"><i data-lucide="file-output"></i></span> {{ t.export_llm }}
         </a>
         <a class="sidebar-link" id="report-link" onclick="openReportModal()">
-            <span class="icon">&#128226;</span> {{ t.incident_report }}
+            <span class="icon"><i data-lucide="file-text"></i></span> {{ t.incident_report }}
         </a>
         <div style="flex:1;"></div>
         <div class="sidebar-divider"></div>
         <a class="sidebar-link" href="/settings">
-            <span class="icon">&#9881;</span> {{ t.settings }}
+            <span class="icon"><i data-lucide="settings"></i></span> {{ t.settings }}
         </a>
         {% if auth_enabled %}
         <a class="sidebar-link" href="/logout">
