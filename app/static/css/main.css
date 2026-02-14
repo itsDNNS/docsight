@@ -1036,6 +1036,25 @@ details.channel-group {
     background: rgba(168,85,247,0.1);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   BQM GRAPHS - Phase 4.5: Card Wrapper
+   ══════════════════════════════════════════════════════════════════════════ */
+.bqm-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-lg, 16px);
+    padding: var(--space-lg, 20px);
+    margin-bottom: var(--space-xl, 24px);
+    transition: all 0.2s ease;
+}
+.bqm-card:hover {
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+}
+.bqm-card #bqm-image-wrap {
+    margin-top: var(--space-md, 16px);
+}
+
 /* ── Chart Zoom Modal ── */
 .chart-zoom-overlay {
     position: fixed; inset: 0; background: var(--overlay);
@@ -1074,12 +1093,24 @@ details.channel-group {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 8px;
 }
-.modal-header h2 { font-size: 1.1em; color: var(--accent); margin: 0; }
-.modal-close {
-    background: none; border: none; color: var(--muted);
-    font-size: 1.4em; cursor: pointer; line-height: 1;
+.modal-header h2 { 
+    font-size: 1.2em; 
+    color: var(--accent-purple, var(--accent)); 
+    margin: 0; 
+    font-weight: 600;
 }
-.modal-close:hover { color: var(--text); }
+.modal-close {
+    background: none; 
+    border: none; 
+    color: var(--muted);
+    font-size: 1.4em; 
+    cursor: pointer; 
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+.modal-close:hover { 
+    color: var(--accent-purple, var(--accent)); 
+}
 .modal-hint { font-size: 0.85em; color: var(--muted); margin-bottom: 12px; }
 .modal-body {
     flex: 1; overflow-y: auto; margin-bottom: 12px;
@@ -1090,42 +1121,142 @@ details.channel-group {
     border-radius: 6px; padding: 12px; font-size: 0.82em;
     font-family: 'Consolas', 'Monaco', monospace; resize: vertical;
 }
-.modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
-.modal-footer .btn {
-    display: inline-block; padding: 8px 20px; border: none;
-    border-radius: 4px; cursor: pointer; font-size: 0.9em;
-    font-family: inherit; font-weight: bold;
+.modal-footer { 
+    display: flex; 
+    gap: 12px; 
+    justify-content: flex-end; 
+    margin-top: var(--space-md, 16px);
 }
-.btn-accent { background: var(--accent); color: #000; }
-.btn-accent:hover { filter: brightness(1.15); }
+.modal-footer .btn {
+    display: inline-block; 
+    padding: 10px 24px; 
+    border: none;
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 0.9em;
+    font-family: inherit; 
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-accent { 
+    background: var(--accent-purple, var(--accent)); 
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.btn-accent:hover { 
+    background: var(--accent-hover, var(--purple-600));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+}
 .btn-muted {
-    background: var(--card); color: var(--text);
+    background: transparent;
+    color: var(--text);
     border: 1px solid var(--input-border);
 }
-.btn-muted:hover { background: var(--accent); color: #000; }
+.btn-muted:hover { 
+    background: rgba(168,85,247,0.1);
+    border-color: var(--accent-purple, var(--accent));
+}
 
 /* ── Journal ── */
+/* ══════════════════════════════════════════════════════════════════════════
+   INCIDENT JOURNAL - Phase 4.5: Modern Table Card & Purple Button
+   ══════════════════════════════════════════════════════════════════════════ */
 .journal-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    margin-bottom: var(--space-lg, 20px); 
+    flex-wrap: wrap; 
+    gap: var(--space-md, 12px);
 }
-.journal-header .trend-title { font-size: 1.2em; color: var(--accent); font-weight: bold; }
+.journal-header .trend-title { 
+    font-size: 1.5em; 
+    color: var(--accent-purple, var(--accent)); 
+    font-weight: bold; 
+}
+
+/* Phase 4.5: Purple pill button (matching Acknowledge All style) */
 .btn-new-entry {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 18px; background: var(--accent); color: #000;
-    border: none; border-radius: 6px; cursor: pointer;
-    font-size: 0.9em; font-family: inherit; font-weight: bold;
+    display: inline-flex; 
+    align-items: center; 
+    gap: 8px;
+    padding: 10px 20px; 
+    background: var(--accent-purple, var(--accent)); 
+    color: #fff;
+    border: none; 
+    border-radius: 50px; 
+    cursor: pointer;
+    font-size: 0.9em; 
+    font-family: inherit; 
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
 }
-.btn-new-entry:hover { filter: brightness(1.15); }
-#journal-table { margin-bottom: 0; }
-#journal-table th { cursor: pointer; user-select: none; white-space: nowrap; }
-#journal-table th:hover { background: var(--surface-hover, rgba(255,255,255,0.05)); }
-#journal-table tbody tr { cursor: pointer; transition: background 0.15s; }
-#journal-table tbody tr:hover { background: rgba(255,255,255,0.06); }
-#journal-table td.journal-desc { color: var(--muted); font-size: 0.88em; }
-#journal-table td.journal-clip { color: var(--muted); font-size: 0.85em; text-align: center; }
+.btn-new-entry:hover { 
+    background: var(--accent-hover, var(--purple-600));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+}
+
+/* Phase 4.5: Journal table in card wrapper */
+#journal-table { 
+    width: 100%;
+    margin: 0;
+}
+#journal-table thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+#journal-table thead th { 
+    cursor: pointer; 
+    user-select: none; 
+    white-space: nowrap;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+#journal-table th:hover { 
+    background: rgba(168,85,247,0.1);
+}
+/* Phase 4.5: Card-style rows with clear separation */
+#journal-table tbody tr { 
+    cursor: pointer; 
+    transition: all 0.2s ease;
+    border-bottom: 8px solid var(--bg); /* Thick spacer between rows */
+    background: rgba(255,255,255,0.02);
+}
+#journal-table tbody tr:hover { 
+    background: rgba(168,85,247,0.15);
+    transform: translateX(2px);
+    box-shadow: -3px 0 0 0 var(--accent-purple);
+}
+#journal-table tbody td {
+    padding: 16px 20px; /* More breathing room */
+    vertical-align: top;
+    border-left: 1px solid rgba(255,255,255,0.03);
+}
+#journal-table tbody td:first-child {
+    border-left: none;
+    font-weight: 600;
+    color: var(--accent-purple);
+}
+#journal-table td.journal-desc { 
+    color: var(--text-secondary, var(--muted)); 
+    font-size: 0.88em; 
+}
+#journal-table td.journal-clip { 
+    color: var(--text-secondary, var(--muted)); 
+    font-size: 0.85em; 
+    text-align: center; 
+}
 .journal-empty {
-    text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
+    text-align: center; 
+    padding: 60px 20px; 
+    color: var(--muted); 
+    font-size: 0.95em;
 }
 /* ══════════════════════════════════════════════════════════════════════════
    EVENT LOG - Phase 4.3: Modern Card Design with Pill Filters
@@ -1556,20 +1687,39 @@ details.channel-group {
     }
 }
 
-.incident-form-group { margin-bottom: 14px; }
+/* Phase 4.5: Modernized form styling */
+.incident-form-group { 
+    margin-bottom: 16px; 
+}
 .incident-form-group label {
-    display: block; font-size: 0.85em; color: var(--muted);
-    margin-bottom: 4px; font-weight: bold;
+    display: block; 
+    font-size: 0.9em; 
+    color: var(--text-secondary, var(--muted));
+    margin-bottom: 6px; 
+    font-weight: 600;
 }
 .incident-form-group input,
 .incident-form-group textarea {
-    width: 100%; padding: 10px 12px; background: var(--bg);
-    color: var(--text); border: 1px solid var(--input-border);
-    border-radius: 6px; font-family: inherit; font-size: 0.92em;
+    width: 100%; 
+    padding: 12px 14px; 
+    background: var(--bg);
+    color: var(--text); 
+    border: 1px solid var(--input-border);
+    border-radius: 8px; 
+    font-family: inherit; 
+    font-size: 0.92em;
+    transition: border-color 0.2s ease;
 }
-.incident-form-group textarea { min-height: 150px; resize: vertical; }
+.incident-form-group textarea { 
+    min-height: 150px; 
+    resize: vertical; 
+}
 .incident-form-group input:focus,
-.incident-form-group textarea:focus { outline: none; border-color: var(--accent); }
+.incident-form-group textarea:focus { 
+    outline: none; 
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.1);
+}
 .attachment-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
 .attachment-item {
     display: flex; align-items: center; gap: 8px;
