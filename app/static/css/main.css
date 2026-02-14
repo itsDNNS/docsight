@@ -73,21 +73,39 @@ body {
 
 /* ── Topbar ── */
 .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 16px; background: var(--surface);
-    border-bottom: 1px solid var(--input-border);
-    position: sticky; top: 0; z-index: 50;
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between;
+    padding: 12px 20px; 
+    background: var(--surface);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: sticky; 
+    top: 0; 
+    z-index: 50;
+    height: 60px;
 }
 .topbar-left, .topbar-right {
-    display: flex; align-items: center; gap: 10px;
-    position: relative; z-index: 1;
+    display: flex; 
+    align-items: center; 
+    gap: 12px;
+    position: relative; 
+    z-index: 1;
 }
 .hamburger-btn {
-    background: none; border: none; color: var(--text);
-    font-size: 1.5em; cursor: pointer; padding: 2px 6px;
-    border-radius: 4px; line-height: 1;
+    background: none; 
+    border: none; 
+    color: var(--muted);
+    font-size: 1.3em; 
+    cursor: pointer; 
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    line-height: 1;
+    transition: all 0.2s;
 }
-.hamburger-btn:hover { color: var(--accent); }
+.hamburger-btn:hover { 
+    color: var(--text); 
+    background: rgba(255, 255, 255, 0.05);
+}
 .date-nav {
     display: flex; align-items: center; justify-content: center; gap: 2px;
     padding: 12px 0; text-align: center;
@@ -105,29 +123,66 @@ body {
 }
 .date-label:hover { border-color: var(--accent); }
 .topbar-title {
-    font-size: 1.1em; color: var(--accent);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 1.125rem; 
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis;
 }
-.topbar-meta { font-size: 0.8em; color: var(--muted); white-space: nowrap; }
+.topbar-meta { 
+    font-size: 0.8125rem; 
+    color: var(--muted); 
+    white-space: nowrap; 
+}
 .lang-select {
-    background: var(--surface); color: var(--muted); border: 1px solid var(--border);
-    border-radius: 6px; padding: 4px 6px; font-size: 0.8em; cursor: pointer;
+    background: rgba(255, 255, 255, 0.05); 
+    color: var(--muted); 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm); 
+    padding: 6px 10px; 
+    font-size: 0.8125rem; 
+    cursor: pointer;
     font-family: inherit;
+    transition: all 0.2s;
 }
-.lang-select:hover { color: var(--accent); border-color: var(--accent); }
+.lang-select:hover { 
+    color: var(--text); 
+    border-color: rgba(255, 255, 255, 0.2); 
+    background: rgba(255, 255, 255, 0.08);
+}
 .theme-toggle {
-    background: none; border: 1px solid var(--input-border);
-    color: var(--muted); font-size: 1.1em; cursor: pointer;
-    padding: 4px 8px; border-radius: 4px; line-height: 1;
+    background: rgba(255, 255, 255, 0.05); 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--muted); 
+    font-size: 1.1rem; 
+    cursor: pointer;
+    padding: 8px 10px; 
+    border-radius: var(--radius-sm); 
+    line-height: 1;
+    transition: all 0.2s;
 }
-.theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.theme-toggle:hover { 
+    color: var(--text); 
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+}
 .refresh-btn {
-    background: none; border: 1px solid var(--input-border);
-    color: var(--muted); font-size: 1.1em; cursor: pointer;
-    padding: 4px 8px; border-radius: 4px; line-height: 1;
-    transition: color 0.2s, border-color 0.2s;
+    background: rgba(255, 255, 255, 0.05); 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--muted); 
+    font-size: 1.1rem; 
+    cursor: pointer;
+    padding: 8px 10px; 
+    border-radius: var(--radius-sm); 
+    line-height: 1;
+    transition: all 0.2s;
 }
-.refresh-btn:hover { color: var(--accent); border-color: var(--accent); }
+.refresh-btn:hover { 
+    color: var(--text); 
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+}
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .refresh-btn.spinning { animation: spin 1s linear infinite; }
 .toast {
