@@ -482,7 +482,13 @@ body {
     margin-top: 4px; 
     display: block; 
 }
-h2.section-title { font-size: 1.1em; margin: 16px 0 8px; color: var(--accent); }
+h2.section-title { 
+    font-size: 1.125rem; 
+    font-weight: 700;
+    margin: 24px 0 12px; 
+    color: rgba(255, 255, 255, 0.9); 
+    letter-spacing: 0.02em;
+}
 /* ── Connection Info Bar ── */
 .conn-info-bar {
     background: rgba(255, 255, 255, 0.03); 
@@ -759,20 +765,43 @@ tr:hover { background: rgba(255,255,255,0.03); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Collapsible Channel Groups ── */
-details.channel-group { margin-bottom: 4px; }
+details.channel-group { 
+    margin-bottom: 8px; 
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
 details.channel-group summary {
-    cursor: pointer; padding: 8px 12px; background: var(--surface);
-    border-radius: 6px; font-size: 0.95em; font-weight: bold;
-    color: var(--accent); list-style: none;
-    display: flex; align-items: center; gap: 8px; user-select: none;
+    cursor: pointer; 
+    padding: 12px 16px; 
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 0.9375rem; 
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85); 
+    list-style: none;
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    user-select: none;
+    transition: background 0.2s ease;
+}
+details.channel-group summary:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 details.channel-group summary .badge { margin-left: auto; }
 details.channel-group summary::-webkit-details-marker { display: none; }
 details.channel-group summary::before {
-    content: "\25B6"; font-size: 0.65em; transition: transform 0.2s;
+    content: "\25B6"; 
+    font-size: 0.625rem; 
+    transition: transform 0.2s;
+    color: rgba(255, 255, 255, 0.5);
 }
 details.channel-group[open] summary::before { transform: rotate(90deg); }
-details.channel-group table { margin-top: 4px; }
+details.channel-group table { 
+    margin-top: 0; 
+    margin-bottom: 0;
+}
 
 /* ── Trends ── */
 .trend-header {
