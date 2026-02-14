@@ -353,5 +353,7 @@
   "correlation_speed_vs_signal": "Speed vs. Signal",
   "correlation_all_sources": "Alle Quellen",
   "correlation_modem_health_good": "Signal gesund zum Speedtest Zeitpunkt",
-  "correlation_modem_health_poor": "Signal beeintraechtigt zum Speedtest Zeitpunkt"
+  "correlation_modem_health_poor": "Signal beeintraechtigt zum Speedtest Zeitpunkt",
+  "correlation_chart_title": "Signal-Gesundheitsverlauf",
+  "correlation_timeline": "Zeitstrahl"
 }

@@ -353,5 +353,7 @@
   "correlation_speed_vs_signal": "Speed vs. Signal",
   "correlation_all_sources": "All Sources",
   "correlation_modem_health_good": "Signal healthy at speedtest time",
-  "correlation_modem_health_poor": "Signal degraded at speedtest time"
+  "correlation_modem_health_poor": "Signal degraded at speedtest time",
+  "correlation_chart_title": "Signal Health Timeline",
+  "correlation_timeline": "Unified Timeline"
 }

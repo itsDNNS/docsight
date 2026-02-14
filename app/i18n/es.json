@@ -348,5 +348,7 @@
   "correlation_speed_vs_signal": "Velocidad vs. Senal",
   "correlation_all_sources": "Todas las fuentes",
   "correlation_modem_health_good": "Senal saludable al momento del speedtest",
-  "correlation_modem_health_poor": "Senal degradada al momento del speedtest"
+  "correlation_modem_health_poor": "Senal degradada al momento del speedtest",
+  "correlation_chart_title": "Cronología de salud de señal",
+  "correlation_timeline": "Línea de tiempo unificada"
 }
