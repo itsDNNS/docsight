@@ -263,7 +263,7 @@
   "attachments": "Pieces jointes",
   "upload_file": "Telecharger un fichier",
   "no_incidents": "Aucun incident enregistre. Commencez a documenter vos problemes de connexion pour vos reclamations FAI.",
-  "delete_incident": "Supprimer l'incident",
+  "delete_incident": "Supprimer",
   "confirm_delete": "Etes-vous sur de vouloir supprimer cet incident ?",
   "cancel": "Annuler",
   "file_too_large": "Fichier trop volumineux (max 10 Mo)",

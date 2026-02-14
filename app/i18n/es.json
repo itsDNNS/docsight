@@ -266,7 +266,7 @@
   "attachments": "Archivos adjuntos",
   "upload_file": "Subir archivo",
   "no_incidents": "Aun no hay incidencias registradas. Comienza a documentar tus problemas de conexion para quejas al ISP.",
-  "delete_incident": "Eliminar incidencia",
+  "delete_incident": "Eliminar",
   "confirm_delete": "Estas seguro de que quieres eliminar esta incidencia?",
   "cancel": "Cancelar",
   "file_too_large": "Archivo demasiado grande (max 10 MB)",

@@ -271,7 +271,7 @@
   "attachments": "Attachments",
   "upload_file": "Upload File",
   "no_incidents": "No incidents logged yet. Start documenting your connection issues to build a history for ISP complaints.",
-  "delete_incident": "Delete Incident",
+  "delete_incident": "Delete",
   "confirm_delete": "Are you sure you want to delete this incident?",
   "cancel": "Cancel",
   "file_too_large": "File too large (max 10 MB)",
