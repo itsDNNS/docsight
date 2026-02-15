@@ -1976,6 +1976,13 @@ details.channel-group {
     align-items: flex-end;
 }
 
+.hero-meta > span,
+.hero-meta > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
 .hero-sep {
     display: none; /* Hide separators - not needed in column layout */
 }
