@@ -1597,6 +1597,46 @@ details.channel-group {
     height: 8px;
     border-radius: 50%;
 }
+.chart-export-buttons {
+    display: flex;
+    gap: 6px;
+}
+.chart-export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.72em;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.chart-export-btn:hover {
+    background: rgba(168,85,247,0.1);
+    border-color: var(--accent-purple, #a855f7);
+    color: var(--text);
+}
+.correlation-zoom-reset {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: var(--accent-purple, #a855f7);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.75em;
+    cursor: pointer;
+    z-index: 5;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+}
+.correlation-zoom-reset:hover {
+    opacity: 1;
+}
 .correlation-chart-legend {
     display: flex;
     gap: 18px;
