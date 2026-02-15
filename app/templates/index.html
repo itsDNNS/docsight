@@ -430,13 +430,19 @@
         
         <div class="channel-health-charts">
             <!-- Downstream Donut -->
-            <div class="health-chart-container">
+            <div class="health-chart-container" 
+                 data-good="{{ ds|selectattr('health', 'equalto', 'good')|list|length }}"
+                 data-warn="{{ ds|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }}"
+                 data-crit="{{ ds|selectattr('health', 'equalto', 'critical')|list|length }}">
                 <canvas id="ds-health-donut"></canvas>
                 <div class="chart-label">{{ t.downstream }}</div>
             </div>
             
             <!-- Upstream Donut -->
-            <div class="health-chart-container">
+            <div class="health-chart-container"
+                 data-good="{{ us|selectattr('health', 'equalto', 'good')|list|length }}"
+                 data-warn="{{ us|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }}"
+                 data-crit="{{ us|selectattr('health', 'equalto', 'critical')|list|length }}">
                 <canvas id="us-health-donut"></canvas>
                 <div class="chart-label">{{ t.upstream }}</div>
             </div>
@@ -1240,25 +1246,25 @@
     // Store chart instances globally to prevent memory leaks on refresh
     window.donutCharts = window.donutCharts || {};
     
-    // Prepare data from template
-    const dsHealthCounts = {
-        good: {{ ds|selectattr('health', 'equalto', 'good')|list|length }},
-        warn: {{ ds|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }},
-        crit: {{ ds|selectattr('health', 'equalto', 'critical')|list|length }}
-    };
-    
-    const usHealthCounts = {
-        good: {{ us|selectattr('health', 'equalto', 'good')|list|length }},
-        warn: {{ us|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }},
-        crit: {{ us|selectattr('health', 'equalto', 'critical')|list|length }}
-    };
-    
-    function renderDonut(canvasId, counts) {
+    function renderDonut(canvasId) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) {
             console.warn('[ChannelHealth] Canvas element #' + canvasId + ' not found');
             return;
         }
+        
+        // Read health counts from data-attributes (updated on refresh)
+        const container = ctx.parentElement;
+        if (!container) {
+            console.warn('[ChannelHealth] Container not found for #' + canvasId);
+            return;
+        }
+        
+        const counts = {
+            good: parseInt(container.getAttribute('data-good') || '0', 10),
+            warn: parseInt(container.getAttribute('data-warn') || '0', 10),
+            crit: parseInt(container.getAttribute('data-crit') || '0', 10)
+        };
         
         // Destroy existing chart instance to prevent rendering issues
         if (window.donutCharts[canvasId]) {
@@ -1321,9 +1327,12 @@
     }
     
     function initDonuts() {
-        renderDonut('ds-health-donut', dsHealthCounts);
-        renderDonut('us-health-donut', usHealthCounts);
+        renderDonut('ds-health-donut');
+        renderDonut('us-health-donut');
     }
+    
+    // Expose refresh function globally for manual updates (refreshData after innerHTML replace)
+    window.refreshDonuts = initDonuts;
     
     // Wait for DOM to be fully loaded
     if (document.readyState === 'loading') {
@@ -1791,6 +1800,11 @@
                 // Re-init hero chart (Chart.js instance lost on innerHTML replace)
                 if (typeof window.refreshHeroChart === 'function') {
                     window.refreshHeroChart();
+                }
+
+                // Re-init channel health donuts (Chart.js instances lost on innerHTML replace)
+                if (typeof window.refreshDonuts === 'function') {
+                    window.refreshDonuts();
                 }
 
                 // Refresh event badge count
