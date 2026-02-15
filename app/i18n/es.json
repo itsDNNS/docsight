@@ -353,5 +353,7 @@
   "correlation_chart_title": "Cronología de salud de señal",
   "correlation_timeline": "Línea de tiempo unificada",
   "demo_mode": "DEMO",
-  "demo_device": "DOCSight Router Demo"
+  "demo_device": "DOCSight Router Demo",
+  "not_required": "No requerido para este modem",
+  "vodafone_no_error_counters": "Los contadores de errores no estan disponibles para todos los modelos de Vodafone Station."
 }
