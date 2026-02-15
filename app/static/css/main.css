@@ -1409,9 +1409,10 @@ details.channel-group {
 
 /* Phase 4.3: Sidebar event badge (purple instead of red) */
 .event-badge {
-    display: inline-block; min-width: 18px; height: 18px; line-height: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px;
     padding: 0 5px; border-radius: 9px; font-size: 0.7em; font-weight: bold;
-    text-align: center; background: var(--accent-purple, var(--accent)); color: #fff; margin-left: 6px;
+    background: var(--accent-purple, var(--accent)); color: #fff; margin-left: 6px;
 }
 
 /* Phase 4.3: Severity colors (updated to purple accent) */
@@ -1980,6 +1981,10 @@ details.channel-group {
 .hero-meta > a {
     display: inline-flex;
     align-items: center;
+}
+
+.hero-isp {
+    padding-right: 15px; /* Align with speed/channels that have trailing info icons (12px + 3px margin) */
 }
 
 .hero-sep {
