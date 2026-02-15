@@ -931,7 +931,34 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
 // Initialize ISP icon preview on page load
 document.addEventListener('DOMContentLoaded', function() {
     onIspChange();
+    toggleUsernameField();
 });
+
+// Username field toggle for Ultra Hub 7
+function toggleUsernameField() {
+    const modemType = document.getElementById('modem_type');
+    if(!modemType) return; // Not on modem settings tab
+    
+    const usernameField = document.getElementById('modem_user');
+    
+    if(modemType.value === 'ultrahub7') {
+        usernameField.disabled = true;
+        usernameField.value = '';
+        usernameField.placeholder = '{{ t.not_required|default("Not required for Ultra Hub 7") }}';
+        usernameField.style.opacity = '0.5';
+        usernameField.style.cursor = 'not-allowed';
+    } else {
+        usernameField.disabled = false;
+        usernameField.placeholder = 'admin';
+        usernameField.style.opacity = '1';
+        usernameField.style.cursor = 'text';
+    }
+}
+
+// Attach change listener if modem_type exists
+if(document.getElementById('modem_type')) {
+    document.getElementById('modem_type').addEventListener('change', toggleUsernameField);
+}
 </script>
 
 </body>
