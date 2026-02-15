@@ -195,8 +195,13 @@
                 {% if isp_name %}
                 <span class="hero-sep">&middot;</span>
                 <span class="hero-isp">
-                    {% if 'vodafone' in isp_name.lower() %}
-                    <img src="/static/img/providers/vodafone.svg" alt="Vodafone" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
+                    {% set isp_lower = isp_name.lower() %}
+                    {% if 'vodafone' in isp_lower %}
+                    <img src="/static/img/providers/vodafone.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
+                    {% elif 'telekom' in isp_lower %}
+                    <img src="/static/img/providers/telekom.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
+                    {% elif 'o2' in isp_lower %}
+                    <img src="/static/img/providers/o2.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
                     {% endif %}
                     {{ isp_name }}
                 </span>

@@ -522,13 +522,16 @@
                     <div class="form-grid">
                         <div class="form-row">
                             <label for="isp_select">{{ t.isp_name }}</label>
-                            <select id="isp_select" name="isp_select" onchange="onIspChange()">
-                                <option value="">{{ t.isp_select }}</option>
-                                {% for isp in t.isp_options %}
-                                <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
-                                {% endfor %}
-                                <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
-                            </select>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <select id="isp_select" name="isp_select" onchange="onIspChange()" style="flex:1;">
+                                    <option value="">{{ t.isp_select }}</option>
+                                    {% for isp in t.isp_options %}
+                                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                                    {% endfor %}
+                                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                                </select>
+                                <img id="isp-icon-preview" src="" alt="" style="width:20px;height:20px;display:none;">
+                            </div>
                             <span class="hint">{{ t.isp_hint }}</span>
                         </div>
                         <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
@@ -746,7 +749,23 @@ themeCheck.addEventListener('change', function() {
 function onIspChange() {
     var sel = document.getElementById('isp_select');
     var row = document.getElementById('isp-other-row');
+    var icon = document.getElementById('isp-icon-preview');
     row.style.display = sel.value === '__other__' ? 'flex' : 'none';
+    
+    // Update icon preview
+    var isp = sel.value.toLowerCase();
+    var iconMap = {
+        'vodafone': '/static/img/providers/vodafone.svg',
+        'telekom': '/static/img/providers/telekom.svg',
+        'o2': '/static/img/providers/o2.svg'
+    };
+    if (iconMap[isp]) {
+        icon.src = iconMap[isp];
+        icon.alt = sel.value;
+        icon.style.display = 'block';
+    } else {
+        icon.style.display = 'none';
+    }
 }
 
 /* ── Integration Cards ── */
@@ -903,6 +922,13 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
     updateTzHint();
     inp.addEventListener('change', updateTzHint);
 })();
+</script>
+
+<script>
+// Initialize ISP icon preview on page load
+document.addEventListener('DOMContentLoaded', function() {
+    onIspChange();
+});
 </script>
 
 </body>
