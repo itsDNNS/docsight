@@ -2180,7 +2180,11 @@ details.channel-group {
     margin-top: 4px;
 }
 
-/* Secondary metrics (Ping/Jitter) - smaller display */
+/* Secondary metrics (Ping/Jitter) - smaller display with reduced opacity */
+.metric-value-item.secondary {
+    opacity: 0.7;
+}
+
 .metric-value-item.secondary .value {
     font-size: 16px;
     font-weight: 600;
