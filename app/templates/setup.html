@@ -604,23 +604,33 @@ function toggleTheme() {
     }
 })();
 
-// Username field toggle for Ultra Hub 7
+// Username field toggle and modem defaults
 function toggleUsernameField() {
     const modemType = document.getElementById('modem_type').value;
     const usernameField = document.getElementById('modem_user');
-    const usernameLabel = usernameField.parentElement.querySelector('label');
-    
+    const urlField = document.getElementById('modem_url');
+
     if(modemType === 'ultrahub7') {
         usernameField.disabled = true;
         usernameField.value = '';
-        usernameField.placeholder = '{{ t.not_required|default("Not required for Ultra Hub 7") }}';
+        usernameField.placeholder = '{{ t.not_required|default("Not required for this modem") }}';
         usernameField.style.opacity = '0.5';
         usernameField.style.cursor = 'not-allowed';
     } else {
         usernameField.disabled = false;
-        usernameField.placeholder = 'admin';
         usernameField.style.opacity = '1';
         usernameField.style.cursor = 'text';
+        if(modemType === 'vodafone_station') {
+            if(!urlField.value || urlField.value === 'http://192.168.178.1') {
+                urlField.value = 'http://192.168.0.1';
+            }
+            if(!usernameField.value) {
+                usernameField.value = 'admin';
+            }
+            usernameField.placeholder = 'admin';
+        } else {
+            usernameField.placeholder = 'admin';
+        }
     }
 }
 
