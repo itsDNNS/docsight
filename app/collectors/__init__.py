@@ -74,17 +74,17 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             poll_interval=config["poll_interval"],
         ))
     
-    # Speedtest collector (available if speedtest configured)
-    if config_mgr.is_speedtest_configured():
+    # Speedtest collector (available if speedtest configured, but not in demo mode)
+    if config_mgr.is_speedtest_configured() and not config_mgr.is_demo_mode():
         collectors.append(SpeedtestCollector(
             config_mgr=config_mgr,
             storage=storage,
             web=web,
             poll_interval=300,
         ))
-    
-    # BQM collector (available if BQM configured)
-    if config_mgr.is_bqm_configured():
+
+    # BQM collector (available if BQM configured, but not in demo mode)
+    if config_mgr.is_bqm_configured() and not config_mgr.is_demo_mode():
         collectors.append(BQMCollector(
             config_mgr=config_mgr,
             storage=storage,

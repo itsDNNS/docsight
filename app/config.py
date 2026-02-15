@@ -263,12 +263,12 @@ class ConfigManager:
         return bool(self.get("mqtt_host"))
 
     def is_bqm_configured(self):
-        """True if bqm_url is set (BQM is optional)."""
-        return bool(self.get("bqm_url"))
+        """True if bqm_url is set or demo mode is active (BQM is optional)."""
+        return bool(self.get("bqm_url")) or self.is_demo_mode()
 
     def is_speedtest_configured(self):
-        """True if speedtest_tracker_url and token are set (optional)."""
-        return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token"))
+        """True if speedtest_tracker_url and token are set, or demo mode is active."""
+        return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token")) or self.is_demo_mode()
 
     def get_theme(self):
         """Return 'dark' or 'light'."""
