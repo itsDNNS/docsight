@@ -37,11 +37,13 @@ def polling_loop(config_mgr, storage, stop_event):
     if config_mgr.is_mqtt_configured():
         mqtt_user = config["mqtt_user"] or None
         mqtt_password = config["mqtt_password"] or None
+        mqtt_tls_insecure = config.get("mqtt_tls_insecure", False)
         mqtt_pub = MQTTPublisher(
             host=config["mqtt_host"],
             port=int(config["mqtt_port"]),
             user=mqtt_user,
             password=mqtt_password,
+            tls_insecure=mqtt_tls_insecure,
             topic_prefix=config["mqtt_topic_prefix"],
             ha_prefix=config["mqtt_discovery_prefix"],
         )

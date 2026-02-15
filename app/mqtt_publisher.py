@@ -11,7 +11,7 @@ log = logging.getLogger("docsis.mqtt")
 
 class MQTTPublisher:
     def __init__(self, host, port=1883, user=None, password=None,
-                 topic_prefix="fritzbox/docsis", ha_prefix="homeassistant"):
+                 tls_insecure=False, topic_prefix="fritzbox/docsis", ha_prefix="homeassistant"):
         self.host = host
         self.port = port
         self.topic_prefix = topic_prefix
@@ -21,6 +21,14 @@ class MQTTPublisher:
             mqtt.CallbackAPIVersion.VERSION2,
             client_id="docsight",
         )
+        
+        # Enable TLS if using secure port (8883)
+        if port == 8883:
+            self.client.tls_set()
+            if tls_insecure:
+                self.client.tls_insecure_set(True)
+                log.warning("MQTT TLS certificate verification disabled (insecure mode)")
+        
         if user:
             self.client.username_pw_set(user, password)
 
