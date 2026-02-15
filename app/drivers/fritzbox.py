@@ -26,7 +26,9 @@ class FritzBoxDriver(ModemDriver):
         return fb.get_docsis_data(self._url, self._sid)
 
     def get_device_info(self) -> dict:
-        return fb.get_device_info(self._url, self._sid)
+        info = fb.get_device_info(self._url, self._sid)
+        info.setdefault("manufacturer", "AVM")
+        return info
 
     def get_connection_info(self) -> dict:
         return fb.get_connection_info(self._url, self._sid)

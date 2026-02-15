@@ -267,7 +267,8 @@ class UltraHub7Driver(ModemDriver):
         # Ultra Hub 7 doesn't expose device info via a dedicated endpoint
         # Return static info based on driver
         return {
-            "model": "Vodafone Ultra Hub 7 (Sercomm)",
+            "manufacturer": "Sercomm",
+            "model": "Vodafone Ultra Hub 7",
             "sw_version": "",  # Not available via API
         }
 
