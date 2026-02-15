@@ -149,7 +149,7 @@ class UltraHub7Driver(ModemDriver):
             login_payload = {
                 "__id": self._router_id,
                 "X_VODAFONE_Password": encrypted_password_json,
-                "Push": "false",  # Don't force logout other sessions
+                "Push": "true",  # Force logout stale sessions (DOCSight is primary client)
                 "csrf_token": self._csrf_token,
             }
 
@@ -232,6 +232,7 @@ class UltraHub7Driver(ModemDriver):
             )
             ds_response.raise_for_status()
             ds_data = ds_response.json()
+            log.info("DS response keys: %s, raw (first 500 chars): %.500s", list(ds_data.keys()) if isinstance(ds_data, dict) else type(ds_data).__name__, ds_data)
 
             # Fetch upstream channels
             us_url = f"{self._url}/api/docsis/upstream/list.jst"
@@ -242,6 +243,7 @@ class UltraHub7Driver(ModemDriver):
             )
             us_response.raise_for_status()
             us_data = us_response.json()
+            log.info("US response keys: %s, raw (first 500 chars): %.500s", list(us_data.keys()) if isinstance(us_data, dict) else type(us_data).__name__, us_data)
 
             # Parse and convert to DOCSight schema
             downstream = self._parse_downstream_channels(ds_data.get("channels", []))
