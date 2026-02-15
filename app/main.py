@@ -5,11 +5,11 @@ import os
 import threading
 import time
 
-from . import fritzbox, analyzer, web, thinkbroadband
-from .speedtest import SpeedtestClient
+from . import analyzer, fritzbox, thinkbroadband, web
 from .config import ConfigManager
 from .event_detector import EventDetector
 from .mqtt_publisher import MQTTPublisher
+from .speedtest import SpeedtestClient
 from .storage import SnapshotStorage
 
 logging.basicConfig(
@@ -22,6 +22,7 @@ log = logging.getLogger("docsis.main")
 def run_web(port):
     """Run production web server in a separate thread."""
     from waitress import serve
+
     serve(web.app, host="0.0.0.0", port=port, threads=4, _quiet=True)
 
 
@@ -37,17 +38,26 @@ def polling_loop(config_mgr, storage, stop_event):
     if config_mgr.is_mqtt_configured():
         mqtt_user = config["mqtt_user"] or None
         mqtt_password = config["mqtt_password"] or None
+        mqtt_tls_insecure = (
+            config["mqtt_tls_insecure"] or ""
+        ).strip().lower() == "true"
         mqtt_pub = MQTTPublisher(
             host=config["mqtt_host"],
             port=int(config["mqtt_port"]),
             user=mqtt_user,
             password=mqtt_password,
+            tls_insecure=mqtt_tls_insecure,
             topic_prefix=config["mqtt_topic_prefix"],
             ha_prefix=config["mqtt_discovery_prefix"],
         )
         try:
             mqtt_pub.connect()
-            log.info("MQTT: %s:%s (prefix: %s)", config["mqtt_host"], config["mqtt_port"], config["mqtt_topic_prefix"])
+            log.info(
+                "MQTT: %s:%s (prefix: %s)",
+                config["mqtt_host"],
+                config["mqtt_port"],
+                config["mqtt_topic_prefix"],
+            )
         except Exception as e:
             log.warning("MQTT connection failed: %s (continuing without MQTT)", e)
             mqtt_pub = None
@@ -76,7 +86,11 @@ def polling_loop(config_mgr, storage, stop_event):
 
             if device_info is None:
                 device_info = fritzbox.get_device_info(config["modem_url"], sid)
-                log.info("FritzBox model: %s (%s)", device_info["model"], device_info["sw_version"])
+                log.info(
+                    "FritzBox model: %s (%s)",
+                    device_info["model"],
+                    device_info["sw_version"],
+                )
                 web.update_state(device_info=device_info)
 
             if connection_info is None:
@@ -84,7 +98,12 @@ def polling_loop(config_mgr, storage, stop_event):
                 if connection_info:
                     ds = connection_info.get("max_downstream_kbps", 0) // 1000
                     us = connection_info.get("max_upstream_kbps", 0) // 1000
-                    log.info("Connection: %d/%d Mbit/s (%s)", ds, us, connection_info.get("connection_type", ""))
+                    log.info(
+                        "Connection: %d/%d Mbit/s (%s)",
+                        ds,
+                        us,
+                        connection_info.get("connection_type", ""),
+                    )
                     web.update_state(connection_info=connection_info)
 
             data = fritzbox.get_docsis_data(config["modem_url"], sid)
@@ -119,10 +138,16 @@ def polling_loop(config_mgr, storage, stop_event):
                         bqm_last_date = today
 
             # Re-initialize Speedtest client if URL changed
-            current_stt_url = config_mgr.get("speedtest_tracker_url") if config_mgr.is_speedtest_configured() else ""
+            current_stt_url = (
+                config_mgr.get("speedtest_tracker_url")
+                if config_mgr.is_speedtest_configured()
+                else ""
+            )
             if current_stt_url != stt_url:
                 if current_stt_url:
-                    stt_client = SpeedtestClient(current_stt_url, config_mgr.get("speedtest_tracker_token"))
+                    stt_client = SpeedtestClient(
+                        current_stt_url, config_mgr.get("speedtest_tracker_token")
+                    )
                     log.info("Speedtest Tracker: %s", current_stt_url)
                 else:
                     stt_client = None
@@ -144,7 +169,11 @@ def polling_loop(config_mgr, storage, stop_event):
                         new_results = stt_client.get_newer_than(last_id)
                     if new_results:
                         storage.save_speedtest_results(new_results)
-                        log.info("Cached %d new speedtest results (total: %d)", len(new_results), cached_count + len(new_results))
+                        log.info(
+                            "Cached %d new speedtest results (total: %d)",
+                            len(new_results),
+                            cached_count + len(new_results),
+                        )
                 except Exception as e:
                     log.warning("Speedtest delta cache failed: %s", e)
 

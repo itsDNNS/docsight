@@ -111,6 +111,7 @@
   "mqtt_broker": "Broker MQTT",
   "mqtt_desc": "Pour l'intégration Home Assistant via MQTT Auto-Discovery. Sans MQTT, seule l'interface web fonctionne.",
   "mqtt_optional_ha": "optionnel - pour Home Assistant",
+  "mqtt_tls_insecure": "TLS non sécurisé",
   "username_opt": "Nom d'utilisateur (optionnel)",
   "password_opt": "Mot de passe (optionnel)",
   "topic_prefix": "Préfixe de topic",

@@ -10,8 +10,16 @@ log = logging.getLogger("docsis.mqtt")
 
 
 class MQTTPublisher:
-    def __init__(self, host, port=1883, user=None, password=None,
-                 topic_prefix="fritzbox/docsis", ha_prefix="homeassistant"):
+    def __init__(
+        self,
+        host,
+        port=1883,
+        user=None,
+        password=None,
+        tls_insecure=False,
+        topic_prefix="fritzbox/docsis",
+        ha_prefix="homeassistant",
+    ):
         self.host = host
         self.port = port
         self.topic_prefix = topic_prefix
@@ -21,6 +29,7 @@ class MQTTPublisher:
             mqtt.CallbackAPIVersion.VERSION2,
             client_id="docsight",
         )
+        self.client.tls_insecure_set(tls_insecure)
         if user:
             self.client.username_pw_set(user, password)
 
@@ -48,7 +57,9 @@ class MQTTPublisher:
                 break
             time.sleep(0.25)
         if not self._connected:
-            raise ConnectionError(f"Could not connect to MQTT broker {self.host}:{self.port}")
+            raise ConnectionError(
+                f"Could not connect to MQTT broker {self.host}:{self.port}"
+            )
 
     def disconnect(self):
         self.client.loop_stop()
@@ -74,8 +85,18 @@ class MQTTPublisher:
             ("ds_power_avg", "DS Power Avg", "dBmV", "mdi:signal"),
             ("ds_snr_min", "DS SNR Min", "dB", "mdi:ear-hearing"),
             ("ds_snr_avg", "DS SNR Avg", "dB", "mdi:ear-hearing"),
-            ("ds_correctable_errors", "DS Correctable Errors", None, "mdi:alert-circle-check"),
-            ("ds_uncorrectable_errors", "DS Uncorrectable Errors", None, "mdi:alert-circle"),
+            (
+                "ds_correctable_errors",
+                "DS Correctable Errors",
+                None,
+                "mdi:alert-circle-check",
+            ),
+            (
+                "ds_uncorrectable_errors",
+                "DS Uncorrectable Errors",
+                None,
+                "mdi:alert-circle",
+            ),
             ("us_total", "Upstream Channels", None, "mdi:arrow-up-bold"),
             ("us_power_min", "US Power Min", "dBmV", "mdi:signal"),
             ("us_power_max", "US Power Max", "dBmV", "mdi:signal"),
@@ -97,7 +118,9 @@ class MQTTPublisher:
             if unit:
                 config["unit_of_measurement"] = unit
             if key == "health":
-                config["json_attributes_topic"] = f"{self.topic_prefix}/health/attributes"
+                config["json_attributes_topic"] = (
+                    f"{self.topic_prefix}/health/attributes"
+                )
             self.client.publish(topic, json.dumps(config), retain=True)
             count += 1
 
@@ -162,9 +185,7 @@ class MQTTPublisher:
 
         # Summary sensors
         for key, value in summary.items():
-            self.client.publish(
-                f"{self.topic_prefix}/{key}", str(value), retain=True
-            )
+            self.client.publish(f"{self.topic_prefix}/{key}", str(value), retain=True)
 
         # Health attributes
         attrs = {"last_update": time.strftime("%Y-%m-%d %H:%M:%S")}
@@ -211,5 +232,7 @@ class MQTTPublisher:
 
         log.info(
             "Published data: DS=%d US=%d Health=%s",
-            len(ds_channels), len(us_channels), summary.get("health", "?"),
+            len(ds_channels),
+            len(us_channels),
+            summary.get("health", "?"),
         )

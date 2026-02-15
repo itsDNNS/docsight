@@ -25,6 +25,7 @@ DEFAULTS = {
     "mqtt_port": 1883,
     "mqtt_user": "",
     "mqtt_password": "",
+    "mqtt_tls_insecure": False,
     "mqtt_topic_prefix": "docsight",
     "mqtt_discovery_prefix": "homeassistant",
     "poll_interval": 900,
@@ -50,6 +51,7 @@ ENV_MAP = {
     "mqtt_port": "MQTT_PORT",
     "mqtt_user": "MQTT_USER",
     "mqtt_password": "MQTT_PASSWORD",
+    "mqtt_tls_insecure": "MQTT_TLS_INSECURE",
     "mqtt_topic_prefix": "MQTT_TOPIC_PREFIX",
     "mqtt_discovery_prefix": "MQTT_DISCOVERY_PREFIX",
     "poll_interval": "POLL_INTERVAL",
@@ -76,7 +78,14 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload"}
+INT_KEYS = {
+    "mqtt_port",
+    "poll_interval",
+    "web_port",
+    "history_days",
+    "booked_download",
+    "booked_upload",
+}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
@@ -211,7 +220,9 @@ class ConfigManager:
         # Hash password keys (admin_password) before storing
         for key in HASH_KEYS:
             if key in data and data[key]:
-                if not (data[key].startswith("scrypt:") or data[key].startswith("pbkdf2:")):
+                if not (
+                    data[key].startswith("scrypt:") or data[key].startswith("pbkdf2:")
+                ):
                     data[key] = generate_password_hash(data[key])
 
         # Encrypt secret values before storing
@@ -257,7 +268,9 @@ class ConfigManager:
 
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set (optional)."""
-        return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token"))
+        return bool(
+            self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token")
+        )
 
     def get_theme(self):
         """Return 'dark' or 'light'."""
