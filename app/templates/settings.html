@@ -287,6 +287,13 @@
                 <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
             </div>
             <div class="form-row full">
+                <label>
+                    <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" {% if config.mqtt_tls_insecure %}checked{% endif %}>
+                    {{ t.mqtt_tls_insecure }}
+                </label>
+                <span class="hint" style="color: #ff9800;">⚠️ {{ t.mqtt_tls_insecure_desc }}</span>
+            </div>
+            <div class="form-row full">
                 <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
                 <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
             </div>

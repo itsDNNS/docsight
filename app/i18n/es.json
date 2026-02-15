@@ -111,6 +111,8 @@
   "mqtt_broker": "Broker MQTT",
   "mqtt_desc": "Para la integración con Home Assistant mediante MQTT Auto-Discovery. Sin MQTT solo funciona la interfaz web.",
   "mqtt_optional_ha": "opcional - para Home Assistant",
+  "mqtt_tls_insecure": "TLS inseguro",
+  "mqtt_tls_insecure_desc": "Desactiva la verificación de certificados para MQTTS (puerto 8883). Usar solo para certificados autofirmados.",
   "username_opt": "Usuario (opcional)",
   "password_opt": "Contraseña (opcional)",
   "topic_prefix": "Prefijo de topic",
