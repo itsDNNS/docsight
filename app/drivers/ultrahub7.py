@@ -41,10 +41,10 @@ class UltraHub7Driver(ModemDriver):
         """
         try:
             # Step 1: Initial request to get router ID and CSRF token
-            init_url = f"{self._url}/api/users/login.jst"
+            init_url = f"{self._url}/api/config/details.jst"
             r_init = requests.get(
                 init_url,
-                params={"X_INTERNAL_FIELDS": "X_RDK_ONT_Veip_1_OperationalState"},
+                params={"X_INTERNAL_FIELDS": "X_VODAFONE_ServiceStatus_1"},
                 timeout=10
             )
             r_init.raise_for_status()
