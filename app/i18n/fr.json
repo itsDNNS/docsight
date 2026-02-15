@@ -347,5 +347,7 @@
   "correlation_modem_health_good": "Signal sain au moment du speedtest",
   "correlation_modem_health_poor": "Signal degrade au moment du speedtest",
   "correlation_chart_title": "Chronologie de santé du signal",
-  "correlation_timeline": "Chronologie unifiée"
+  "correlation_timeline": "Chronologie unifiée",
+  "demo_mode": "DÉMO",
+  "demo_device": "DOCSight Routeur Démo"
 }

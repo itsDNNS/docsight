@@ -183,7 +183,7 @@
             <div class="hero-status">
                 <i data-lucide="activity" class="hero-icon"></i>
                 <div class="hero-status-text">
-                    <h1 class="hero-title">{{ health_label }}</h1>
+                    <h1 class="hero-title">{{ health_label }}{% if demo_mode %}<span class="demo-badge">{{ t.demo_mode|default('DEMO') }}</span>{% endif %}</h1>
                     <p class="hero-subtitle">{{ health_msgs.get(s.health, '') }}</p>
                 </div>
             </div>

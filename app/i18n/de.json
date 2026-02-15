@@ -355,5 +355,7 @@
   "correlation_modem_health_good": "Signal gesund zum Speedtest Zeitpunkt",
   "correlation_modem_health_poor": "Signal beeinträchtigt zum Speedtest Zeitpunkt",
   "correlation_chart_title": "Signal-Gesundheitsverlauf",
-  "correlation_timeline": "Zeitstrahl"
+  "correlation_timeline": "Zeitstrahl",
+  "demo_mode": "Demo-Modus",
+  "demo_device": "DOCSight Demo Router"
 }

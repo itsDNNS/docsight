@@ -63,7 +63,7 @@ def polling_loop(config_mgr, storage, stop_event):
     )
 
     # Inject collectors into web layer for manual polling and status endpoint
-    modem_collector = next((c for c in collectors if c.name == "modem"), None)
+    modem_collector = next((c for c in collectors if c.name in ("modem", "demo")), None)
     if modem_collector:
         web.init_collector(modem_collector)
     web.init_collectors(collectors)

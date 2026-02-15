@@ -41,6 +41,7 @@ DEFAULTS = {
     "speedtest_tracker_token": "",
     "booked_download": 0,
     "booked_upload": 0,
+    "demo_mode": False,
 }
 
 ENV_MAP = {
@@ -62,6 +63,7 @@ ENV_MAP = {
     "bqm_url": "BQM_URL",
     "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
+    "demo_mode": "DEMO_MODE",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -79,6 +81,7 @@ _LEGACY_KEY_MAP = {
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload"}
+BOOL_KEYS = {"demo_mode"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
@@ -171,6 +174,8 @@ class ConfigManager:
             if env_val is not None and env_val != "":
                 if key in INT_KEYS:
                     return int(env_val)
+                if key in BOOL_KEYS:
+                    return env_val.lower() in ("true", "1", "yes")
                 return env_val
         # Check deprecated FRITZ_* env vars as fallback
         legacy_env = _LEGACY_ENV_MAP.get(key)
@@ -246,8 +251,12 @@ class ConfigManager:
         log.info("Config saved to %s", self.config_path)
 
     def is_configured(self):
-        """True if modem_password is set (from env or config.json)."""
-        return bool(self.get("modem_password"))
+        """True if modem_password is set or demo_mode is active."""
+        return bool(self.get("modem_password")) or self.is_demo_mode()
+
+    def is_demo_mode(self):
+        """True if DEMO_MODE is enabled."""
+        return bool(self.get("demo_mode"))
 
     def is_mqtt_configured(self):
         """True if mqtt_host is set (MQTT is optional)."""
