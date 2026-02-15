@@ -1556,18 +1556,63 @@ details.channel-group {
     position: relative;
     width: 100%;
 }
-.correlation-chart-wrap canvas { 
-    display: block; 
-    width: 100%; 
+.correlation-chart-wrap canvas {
+    display: block;
+    width: 100%;
     height: 280px;
 }
+.correlation-chart-wrap canvas.correlation-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+}
+.correlation-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--card-bg, #1e1e2e);
+    border: 1px solid var(--accent-purple, #a855f7);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8em;
+    z-index: 10;
+    display: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    line-height: 1.6;
+}
+.correlation-tooltip .tt-time {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: var(--text, #fff);
+}
+.correlation-tooltip .tt-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.correlation-tooltip .tt-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
 .correlation-chart-legend {
-    display: flex; 
-    gap: 18px; 
+    display: flex;
+    gap: 18px;
     justify-content: center;
-    padding: 12px 0 4px; 
-    font-size: 0.78em; 
+    padding: 12px 0 4px;
+    font-size: 0.78em;
     color: var(--muted);
+}
+.correlation-chart-legend span {
+    cursor: pointer;
+    transition: opacity 0.2s;
+    user-select: none;
+}
+.correlation-chart-legend span.disabled {
+    opacity: 0.3;
+    text-decoration: line-through;
 }
 
 /* Correlation Filter Pills */
