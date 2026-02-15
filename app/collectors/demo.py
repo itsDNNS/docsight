@@ -48,7 +48,8 @@ class DemoCollector(Collector):
         self._discovery_published = False
         self._poll_count = 0
         self._device_info = {
-            "model": "DOCSight Demo Router",
+            "manufacturer": "DOCSight",
+            "model": "Demo Router",
             "sw_version": "Demo v2.0",
             "uptime_seconds": 0,
         }
