@@ -188,7 +188,10 @@
                 </div>
             </div>
             <div class="hero-meta">
-                <span class="hero-channels">{{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channels|lower }}</span>
+                <span class="hero-channels">
+                    {{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channels|lower }}
+                    <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;margin-left:3px;" title="Auto-detected from modem"></i>
+                </span>
                 {% if isp_name %}
                 <span class="hero-sep">&middot;</span>
                 <span class="hero-isp">
@@ -200,7 +203,10 @@
                 {% endif %}
                 {% if connection_info and connection_info.max_downstream_kbps %}
                 <span class="hero-sep">&middot;</span>
-                <span class="hero-speed">{{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} Mbit/s</span>
+                <span class="hero-speed">
+                    {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} Mbit/s
+                    <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;margin-left:3px;" title="Auto-detected from modem"></i>
+                </span>
                 {% endif %}
             </div>
         </div>
@@ -311,13 +317,13 @@
                 <div class="metric-value-item">
                     <span class="value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}</span>
                     <span class="unit">dBmV</span>
-                    <span class="sublabel">{{ t.card_ds_power }}</span>
+                    <span class="sublabel">Ø {{ t.card_ds_power }}</span>
                 </div>
                 <div class="metric-value-divider"></div>
                 <div class="metric-value-item">
                     <span class="value val-{{ snr_health }}">{{ s.ds_snr_avg }}</span>
                     <span class="unit">dB</span>
-                    <span class="sublabel">{{ t.card_snr }}</span>
+                    <span class="sublabel">Ø {{ t.card_snr }}</span>
                 </div>
             </div>
         </div>
@@ -332,7 +338,7 @@
                 <div class="metric-value-item">
                     <span class="value val-{{ us_health }}">{{ s.us_power_avg }}</span>
                     <span class="unit">dBmV</span>
-                    <span class="sublabel">{{ t.card_transmit_power }}</span>
+                    <span class="sublabel">Ø {{ t.card_transmit_power }}</span>
                 </div>
             </div>
         </div>
@@ -359,7 +365,7 @@
                 <i data-lucide="zap" class="metric-icon"></i>
                 <span class="metric-label">{{ t.speed }}</span>
             </div>
-            <div class="metric-summary-values">
+            <div class="metric-summary-values" style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;">
                 <div class="metric-value-item">
                     <span class="value {{ dl_val_class }}">{{ speedtest_latest.download_mbps|fmt_speed_value }}</span>
                     <span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }}</span>
@@ -370,6 +376,17 @@
                     <span class="value {{ ul_val_class }}">{{ speedtest_latest.upload_mbps|fmt_speed_value }}</span>
                     <span class="unit">{{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
                     <span class="sublabel">{{ t.upload }}</span>
+                </div>
+                <div class="metric-value-item" style="grid-column:1;">
+                    <span class="value">{{ speedtest_latest.ping_ms|round(0)|int }}</span>
+                    <span class="unit">ms</span>
+                    <span class="sublabel">Ping</span>
+                </div>
+                <div class="metric-value-divider"></div>
+                <div class="metric-value-item" style="grid-column:3;">
+                    <span class="value">{{ speedtest_latest.jitter_ms|round(1) }}</span>
+                    <span class="unit">ms</span>
+                    <span class="sublabel">Jitter</span>
                 </div>
             </div>
         </div>
