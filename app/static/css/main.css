@@ -2091,6 +2091,7 @@ details.channel-group {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: var(--space-md, 16px);
     margin-bottom: var(--space-xl, 24px);
+    align-items: stretch;
 }
 
 .metric-summary-card {
@@ -2100,6 +2101,9 @@ details.channel-group {
     padding: var(--space-md, 16px);
     transition: all 0.2s ease;
     cursor: default;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .metric-summary-card:hover {
