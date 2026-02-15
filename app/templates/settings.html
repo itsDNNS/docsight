@@ -759,10 +759,13 @@ function onIspChange() {
         'telekom': '/static/img/providers/telekom.svg',
         'o2': '/static/img/providers/o2.svg'
     };
-    if (iconMap[isp]) {
-        icon.src = iconMap[isp];
+    
+    if (sel.value && sel.value !== '__other__') {
+        // Show specific icon or generic fallback
+        icon.src = iconMap[isp] || '/static/img/providers/generic.svg';
         icon.alt = sel.value;
         icon.style.display = 'block';
+        icon.style.opacity = iconMap[isp] ? '1' : '0.7';
     } else {
         icon.style.display = 'none';
     }

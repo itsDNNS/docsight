@@ -202,6 +202,8 @@
                     <img src="/static/img/providers/telekom.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
                     {% elif 'o2' in isp_lower %}
                     <img src="/static/img/providers/o2.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
+                    {% else %}
+                    <img src="/static/img/providers/generic.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;opacity:0.7;">
                     {% endif %}
                     {{ isp_name }}
                 </span>
