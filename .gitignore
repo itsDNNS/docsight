@@ -20,3 +20,9 @@ PHASE-*.md
 QUICK-TEST-*.md
 phase*.png
 mockup*.png
+
+# Development artifacts
+*.backup*
+*.bak
+*.old
+*~
