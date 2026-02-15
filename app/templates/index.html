@@ -190,7 +190,9 @@
             <div class="hero-meta">
                 <span class="hero-channels">
                     {{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channels|lower }}
-                    <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;margin-left:3px;" title="Auto-detected from modem"></i>
+                    <span class="info-icon" data-tooltip="Auto-detected from modem">
+                        <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;"></i>
+                    </span>
                 </span>
                 {% if isp_name %}
                 <span class="hero-sep">&middot;</span>
@@ -212,7 +214,9 @@
                 <span class="hero-sep">&middot;</span>
                 <span class="hero-speed">
                     {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} Mbit/s
-                    <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;margin-left:3px;" title="Auto-detected from modem"></i>
+                    <span class="info-icon" data-tooltip="Auto-detected from modem">
+                        <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;"></i>
+                    </span>
                 </span>
                 {% endif %}
             </div>
