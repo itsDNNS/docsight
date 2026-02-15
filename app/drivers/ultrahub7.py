@@ -36,9 +36,13 @@ class UltraHub7Driver(ModemDriver):
 
     def login(self) -> None:
         """Authenticate with AES-CCM encrypted credentials.
-        
+
         Based on aiovodafone VodafoneStationUltraHubApi implementation.
         """
+        # Clear state from previous login cycles
+        self._session.cookies.clear()
+        self._csrf_token = None
+
         # Headers required for AJAX requests (CSRF protection + Priority)
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
