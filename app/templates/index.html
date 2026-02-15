@@ -3451,11 +3451,14 @@ function renderCorrelationChart(data) {
     var snrMax = snrValues.length ? Math.ceil(Math.max.apply(null, snrValues) + 2) : 45;
     function ySnr(v) { return pad.top + plotH - (v - snrMin) / (snrMax - snrMin) * plotH; }
 
-    // Speed axis (right, for speedtest download)
+    // Speed axis (right, for speedtest download/upload)
     var dlValues = speedtest.map(function(d) { return d.download_mbps || 0; });
-    var dlMax = dlValues.length ? Math.ceil(Math.max.apply(null, dlValues) * 1.1) : 500;
+    var ulValues = speedtest.map(function(d) { return d.upload_mbps || 0; });
+    var speedMax = dlValues.length ? Math.ceil(Math.max.apply(null, dlValues) * 1.1) : 500;
+    var dlMax = speedMax;
     var dlMin = 0;
     function yDl(v) { return pad.top + plotH - (v - dlMin) / (dlMax - dlMin) * plotH; }
+    var uploadColor = '#06b6d4'; // cyan
 
     var style = getComputedStyle(document.documentElement);
     var textColor = style.getPropertyValue('--muted').trim() || '#888';
@@ -3520,7 +3523,7 @@ function renderCorrelationChart(data) {
         ctx.rotate(Math.PI / 2);
         ctx.textAlign = 'center';
         ctx.font = '11px system-ui, sans-serif';
-        ctx.fillText('Download', 0, 0);
+        ctx.fillText('Mbps', 0, 0);
         ctx.restore();
     }
 
@@ -3579,18 +3582,82 @@ function renderCorrelationChart(data) {
         ctx.fillRect(x1, pad.top, x2 - x1, plotH);
     }
 
-    // Draw speedtest points
-    for (var i = 0; i < speedtest.length; i++) {
-        var x = xScale(new Date(speedtest[i].timestamp).getTime());
-        var y = yDl(speedtest[i].download_mbps || 0);
-        var mh = speedtest[i].modem_health;
+    // Draw speedtest download line
+    if (speedtest.length > 1) {
+        var sorted = speedtest.slice().sort(function(a, b) {
+            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        });
+        // Download line with gradient fill
+        var dlGrad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+        dlGrad.addColorStop(0, 'rgba(76,175,80,0.2)');
+        dlGrad.addColorStop(1, 'rgba(76,175,80,0)');
         ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = mh === 'poor' || mh === 'critical' ? critColor : mh === 'marginal' ? warnColor : goodColor;
+        ctx.moveTo(xScale(new Date(sorted[0].timestamp).getTime()), pad.top + plotH);
+        for (var i = 0; i < sorted.length; i++) {
+            var x = xScale(new Date(sorted[i].timestamp).getTime());
+            var y = yDl(sorted[i].download_mbps || 0);
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(xScale(new Date(sorted[sorted.length - 1].timestamp).getTime()), pad.top + plotH);
+        ctx.closePath();
+        ctx.fillStyle = dlGrad;
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 1;
+        // Download border line
+        ctx.beginPath();
+        for (var i = 0; i < sorted.length; i++) {
+            var x = xScale(new Date(sorted[i].timestamp).getTime());
+            var y = yDl(sorted[i].download_mbps || 0);
+            if (i === 0) { ctx.moveTo(x, y); }
+            else {
+                var x0 = xScale(new Date(sorted[i - 1].timestamp).getTime());
+                var y0 = yDl(sorted[i - 1].download_mbps || 0);
+                var cpx = x0 + (x - x0) * 0.4;
+                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+            }
+        }
+        ctx.strokeStyle = goodColor;
+        ctx.lineWidth = 2;
         ctx.stroke();
+        // Upload line
+        ctx.beginPath();
+        for (var i = 0; i < sorted.length; i++) {
+            var x = xScale(new Date(sorted[i].timestamp).getTime());
+            var y = yDl(sorted[i].upload_mbps || 0);
+            if (i === 0) { ctx.moveTo(x, y); }
+            else {
+                var x0 = xScale(new Date(sorted[i - 1].timestamp).getTime());
+                var y0 = yDl(sorted[i - 1].upload_mbps || 0);
+                var cpx = x0 + (x - x0) * 0.4;
+                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+            }
+        }
+        ctx.strokeStyle = uploadColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Data point dots
+        for (var i = 0; i < sorted.length; i++) {
+            var x = xScale(new Date(sorted[i].timestamp).getTime());
+            // Download dot
+            ctx.beginPath();
+            ctx.arc(x, yDl(sorted[i].download_mbps || 0), 3, 0, Math.PI * 2);
+            ctx.fillStyle = goodColor;
+            ctx.fill();
+            // Upload dot
+            ctx.beginPath();
+            ctx.arc(x, yDl(sorted[i].upload_mbps || 0), 3, 0, Math.PI * 2);
+            ctx.fillStyle = uploadColor;
+            ctx.fill();
+        }
+    } else if (speedtest.length === 1) {
+        var x = xScale(new Date(speedtest[0].timestamp).getTime());
+        ctx.beginPath();
+        ctx.arc(x, yDl(speedtest[0].download_mbps || 0), 5, 0, Math.PI * 2);
+        ctx.fillStyle = goodColor;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, yDl(speedtest[0].upload_mbps || 0), 5, 0, Math.PI * 2);
+        ctx.fillStyle = uploadColor;
+        ctx.fill();
     }
 
     // Draw event markers (vertical dashed lines)
@@ -3618,7 +3685,8 @@ function renderCorrelationChart(data) {
     // Legend
     var legend = document.getElementById('correlation-legend');
     legend.innerHTML = '<span style="color:' + accentColor + ';">&#9644; SNR (dB)</span>'
-        + (speedtest.length > 0 ? '<span style="color:' + goodColor + ';">&#9679; Download (Mbps)</span>' : '')
+        + (speedtest.length > 0 ? '<span style="color:' + goodColor + ';">&#9644; Download (Mbps)</span>' : '')
+        + (speedtest.length > 0 ? '<span style="color:' + uploadColor + ';">&#9644; Upload (Mbps)</span>' : '')
         + (events.length > 0 ? '<span style="color:' + warnColor + ';">&#9650; Events</span>' : '')
         + '<span style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em;">Poor Signal</span>';
 }
