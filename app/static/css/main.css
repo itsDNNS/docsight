@@ -1624,59 +1624,6 @@ details.channel-group {
     opacity: 0.5;
 }
 
-/* Correlation Filter Pills */
-.correlation-filters {
-    display: flex;
-    gap: 12px;
-    margin-bottom: var(--space-lg, 20px);
-    flex-wrap: wrap;
-}
-.correlation-filters .filter-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: var(--card-bg, var(--card));
-    border: 1px solid var(--card-border, var(--input-border));
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 0.85em;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-.correlation-filters .filter-pill:hover {
-    background: rgba(168,85,247,0.1);
-    border-color: var(--accent-purple, #a855f7);
-}
-.correlation-filters .filter-pill input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border: 2px solid var(--card-border, var(--input-border));
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-}
-.correlation-filters .filter-pill input[type="checkbox"]:checked {
-    background: var(--accent-purple, #a855f7);
-    border-color: var(--accent-purple, #a855f7);
-}
-.correlation-filters .filter-pill input[type="checkbox"]:checked::after {
-    content: '✓';
-    position: absolute;
-    top: -2px;
-    left: 2px;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
-}
-.correlation-filters .filter-pill input[type="checkbox"]:checked + span {
-    color: var(--accent-purple, #a855f7);
-    font-weight: 600;
-}
-
 /* Correlation Table Card */
 #correlation-table-card.table-card {
     margin-bottom: var(--space-xl, 24px);
@@ -1749,13 +1696,6 @@ details.channel-group {
 @media (max-width: 768px) {
     .correlation-chart-card {
         padding: var(--space-md, 16px);
-    }
-    .correlation-filters {
-        gap: 8px;
-    }
-    .correlation-filters .filter-pill {
-        padding: 6px 12px;
-        font-size: 0.8em;
     }
     #correlation-table thead th,
     #correlation-table tbody td {
