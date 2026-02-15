@@ -733,11 +733,22 @@
                     </svg>
                     <div class="chart-label">{{ t.correlation_chart_title }}</div>
                 </div>
+                <div class="chart-export-buttons">
+                    <button class="chart-export-btn" onclick="_corrExportPNG()" title="Export as PNG">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        PNG
+                    </button>
+                    <button class="chart-export-btn" onclick="_corrExportCSV()" title="Export as CSV">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        CSV
+                    </button>
+                </div>
             </div>
             <div class="correlation-chart-wrap">
                 <canvas id="correlation-chart"></canvas>
                 <canvas id="correlation-overlay" class="correlation-overlay"></canvas>
                 <div class="correlation-tooltip" id="correlation-tooltip"></div>
+                <div class="correlation-zoom-reset" id="correlation-zoom-reset" style="display:none;" onclick="_corrResetZoom()">Reset Zoom</div>
                 <div class="correlation-chart-legend" id="correlation-legend"></div>
             </div>
         </div>
@@ -3356,8 +3367,26 @@ function escapeHtml(str) {
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
 var _correlationChart = null;
-var _corrVisible = { snr: true, txPower: true, download: true, upload: true, events: true, poorSignal: true };
+var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: true, errors: true, poorSignal: true };
 var _corrChartState = null; // Stores scales/data for tooltip lookups
+var _corrZoom = null; // { tMin, tMax } when zoomed in
+
+// Re-render chart on container resize
+(function() {
+    var resizeTimer;
+    var observer = new ResizeObserver(function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            if (_correlationData && _correlationData.length > 0) {
+                renderCorrelationChart(_correlationData);
+            }
+        }, 150);
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+        var wrap = document.getElementById('correlation-chart');
+        if (wrap && wrap.parentElement) observer.observe(wrap.parentElement);
+    });
+})();
 
 function loadCorrelationData() {
     var hours = document.getElementById('correlation-hours').value;
@@ -3433,11 +3462,13 @@ function renderCorrelationChart(data) {
         return;
     }
 
-    // Time range
+    // Time range (with zoom support)
     var allTs = data.map(function(d) { return new Date(d.timestamp).getTime(); });
-    var tMin = Math.min.apply(null, allTs);
-    var tMax = Math.max.apply(null, allTs);
-    if (tMin === tMax) { tMax = tMin + 3600000; }
+    var tMinFull = Math.min.apply(null, allTs);
+    var tMaxFull = Math.max.apply(null, allTs);
+    if (tMinFull === tMaxFull) { tMaxFull = tMinFull + 3600000; }
+    var tMin = _corrZoom ? _corrZoom.tMin : tMinFull;
+    var tMax = _corrZoom ? _corrZoom.tMax : tMaxFull;
 
     function xScale(ts) { return pad.left + (ts - tMin) / (tMax - tMin) * plotW; }
 
@@ -3460,9 +3491,21 @@ function renderCorrelationChart(data) {
     var txMax = txValues.length ? Math.ceil(Math.max.apply(null, txValues) + 2) : 55;
     function yTx(v) { return pad.top + plotH - (v - txMin) / (txMax - txMin) * plotH; }
 
+    // DS Power axis (separate scale)
+    var dsPowerValues = modem.map(function(d) { return d.ds_power_avg || 0; }).filter(function(v) { return v !== 0; });
+    var dsPowerMin = dsPowerValues.length ? Math.floor(Math.min.apply(null, dsPowerValues) - 2) : -10;
+    var dsPowerMax = dsPowerValues.length ? Math.ceil(Math.max.apply(null, dsPowerValues) + 2) : 15;
+    function yDsPower(v) { return pad.top + plotH - (v - dsPowerMin) / (dsPowerMax - dsPowerMin) * plotH; }
+
+    // Uncorrectable errors (spike height relative to plotH)
+    var errorValues = modem.map(function(d) { return d.ds_uncorrectable_errors || 0; });
+    var errorMax = errorValues.length ? Math.max.apply(null, errorValues) : 0;
+
     var uploadColor = '#06b6d4'; // cyan
     var snrColor = 'rgba(168,85,247,1)'; // purple
     var txColor = '#f59e0b'; // amber/orange
+    var dsPowerColor = '#ec4899'; // pink
+    var errorColor = 'rgba(239,68,68,0.6)'; // red semi-transparent
 
     var style = getComputedStyle(document.documentElement);
     var textColor = style.getPropertyValue('--muted').trim() || '#888';
@@ -3478,11 +3521,13 @@ function renderCorrelationChart(data) {
     });
     _corrChartState = {
         pad: pad, plotW: plotW, plotH: plotH, W: W, H: H,
-        tMin: tMin, tMax: tMax,
-        snrMin: snrMin, snrMax: snrMax, txMin: txMin, txMax: txMax, dlMin: dlMin, dlMax: dlMax,
-        modem: modem, speedtest: sortedSpeedtest, events: events,
-        xScale: xScale, ySnr: ySnr, yTx: yTx, yDl: yDl,
-        colors: { snr: snrColor, txPower: txColor, download: goodColor, upload: uploadColor, event: warnColor, text: textColor, grid: gridColor },
+        tMin: tMin, tMax: tMax, tMinFull: tMinFull, tMaxFull: tMaxFull,
+        snrMin: snrMin, snrMax: snrMax, txMin: txMin, txMax: txMax,
+        dsPowerMin: dsPowerMin, dsPowerMax: dsPowerMax, errorMax: errorMax,
+        dlMin: dlMin, dlMax: dlMax,
+        modem: modem, speedtest: sortedSpeedtest, events: events, data: data,
+        xScale: xScale, ySnr: ySnr, yTx: yTx, yDsPower: yDsPower, yDl: yDl,
+        colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: goodColor, upload: uploadColor, event: warnColor, errors: errorColor, text: textColor, grid: gridColor },
         dpr: dpr
     };
 
@@ -3609,6 +3654,43 @@ function renderCorrelationChart(data) {
         ctx.setLineDash([6, 3]);
         ctx.stroke();
         ctx.setLineDash([]);
+    }
+
+    // Draw DS Power line (dotted pink)
+    if (_corrVisible.dsPower && modem.length > 1 && dsPowerValues.length > 0) {
+        ctx.beginPath();
+        var dsStarted = false;
+        for (var i = 0; i < modem.length; i++) {
+            var dsVal = modem[i].ds_power_avg;
+            if (dsVal == null) continue;
+            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var y = yDsPower(dsVal);
+            if (!dsStarted) {
+                ctx.moveTo(x, y);
+                dsStarted = true;
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.strokeStyle = dsPowerColor;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([2, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Draw uncorrectable error spikes (red bars from bottom)
+    if (_corrVisible.errors && errorMax > 0) {
+        var spikeMaxH = plotH * 0.3; // max 30% of plot height
+        for (var i = 0; i < modem.length; i++) {
+            var errVal = modem[i].ds_uncorrectable_errors || 0;
+            if (errVal === 0) continue;
+            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var spikeH = (errVal / errorMax) * spikeMaxH;
+            if (spikeH < 2) spikeH = 2;
+            ctx.fillStyle = errorColor;
+            ctx.fillRect(x - 1.5, pad.top + plotH - spikeH, 3, spikeH);
+        }
     }
 
     // Draw modem health background bands
@@ -3745,6 +3827,12 @@ function renderCorrelationChart(data) {
         if (txValues.length > 0) {
             legendItems.push({ metric: 'txPower', color: txColor, label: '&#9476; TX Power (dBmV)' });
         }
+        if (dsPowerValues.length > 0) {
+            legendItems.push({ metric: 'dsPower', color: dsPowerColor, label: '&#183;&#183; DS Power (dBmV)' });
+        }
+        if (errorMax > 0) {
+            legendItems.push({ metric: 'errors', color: 'rgba(239,68,68,0.8)', label: '&#9612; Errors' });
+        }
     }
     if (speedtest.length > 0) {
         legendItems.push({ metric: 'download', color: goodColor, label: '&#9644; Download (Mbps)' });
@@ -3772,8 +3860,19 @@ function renderCorrelationChart(data) {
         });
     }
 
+    // Show/hide zoom reset button
+    var zoomBtn = document.getElementById('correlation-zoom-reset');
+    if (zoomBtn) zoomBtn.style.display = _corrZoom ? 'block' : 'none';
+
     // Setup tooltip interaction on overlay canvas
     _setupCorrelationTooltip(overlay, octx);
+}
+
+function _corrResetZoom() {
+    _corrZoom = null;
+    if (_correlationData && _correlationData.length > 0) {
+        renderCorrelationChart(_correlationData);
+    }
 }
 
 function _setupCorrelationTooltip(overlay, octx) {
@@ -3787,12 +3886,58 @@ function _setupCorrelationTooltip(overlay, octx) {
     if (!st) return;
     newOctx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
 
+    // Drag-zoom state
+    var dragStart = null; // mouseX where drag started
+
+    newOverlay.addEventListener('mousedown', function(e) {
+        if (!_corrChartState) return;
+        var st = _corrChartState;
+        var rect = newOverlay.getBoundingClientRect();
+        var mouseX = e.clientX - rect.left;
+        if (mouseX >= st.pad.left && mouseX <= st.pad.left + st.plotW) {
+            dragStart = mouseX;
+        }
+    });
+
+    newOverlay.addEventListener('mouseup', function(e) {
+        if (!_corrChartState || dragStart === null) return;
+        var st = _corrChartState;
+        var rect = newOverlay.getBoundingClientRect();
+        var mouseX = e.clientX - rect.left;
+        var minDrag = 20; // minimum drag distance in px
+        if (Math.abs(mouseX - dragStart) > minDrag) {
+            var x1 = Math.max(st.pad.left, Math.min(dragStart, mouseX));
+            var x2 = Math.min(st.pad.left + st.plotW, Math.max(dragStart, mouseX));
+            var t1 = st.tMin + (x1 - st.pad.left) / st.plotW * (st.tMax - st.tMin);
+            var t2 = st.tMin + (x2 - st.pad.left) / st.plotW * (st.tMax - st.tMin);
+            _corrZoom = { tMin: t1, tMax: t2 };
+            dragStart = null;
+            renderCorrelationChart(st.data);
+            return;
+        }
+        dragStart = null;
+    });
+
     newOverlay.addEventListener('mousemove', function(e) {
         if (!_corrChartState) return;
         var st = _corrChartState;
         var rect = newOverlay.getBoundingClientRect();
         var mouseX = e.clientX - rect.left;
         var mouseY = e.clientY - rect.top;
+
+        // Draw drag selection overlay
+        if (dragStart !== null) {
+            newOctx.clearRect(0, 0, st.W, st.H);
+            var x1 = Math.max(st.pad.left, Math.min(dragStart, mouseX));
+            var x2 = Math.min(st.pad.left + st.plotW, Math.max(dragStart, mouseX));
+            newOctx.fillStyle = 'rgba(168,85,247,0.15)';
+            newOctx.fillRect(x1, st.pad.top, x2 - x1, st.plotH);
+            newOctx.strokeStyle = 'rgba(168,85,247,0.5)';
+            newOctx.lineWidth = 1;
+            newOctx.strokeRect(x1, st.pad.top, x2 - x1, st.plotH);
+            tooltip.style.display = 'none';
+            return;
+        }
 
         // Only interact within plot area
         if (mouseX < st.pad.left || mouseX > st.pad.left + st.plotW || mouseY < st.pad.top || mouseY > st.pad.top + st.plotH) {
@@ -3871,6 +4016,17 @@ function _setupCorrelationTooltip(overlay, octx) {
             newOctx.lineWidth = 2;
             newOctx.stroke();
         }
+        if (nearestModem && _corrVisible.dsPower && nearestModem.ds_power_avg != null) {
+            var dx = st.xScale(new Date(nearestModem.timestamp).getTime());
+            var dy = st.yDsPower(nearestModem.ds_power_avg);
+            newOctx.beginPath();
+            newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
+            newOctx.fillStyle = st.colors.dsPower;
+            newOctx.fill();
+            newOctx.strokeStyle = '#fff';
+            newOctx.lineWidth = 2;
+            newOctx.stroke();
+        }
         if (nearestSpeed) {
             if (_corrVisible.download) {
                 var dx = st.xScale(new Date(nearestSpeed.timestamp).getTime());
@@ -3918,6 +4074,12 @@ function _setupCorrelationTooltip(overlay, octx) {
         if (nearestModem && _corrVisible.txPower && nearestModem.us_power_avg) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.txPower + ';"></span> TX Power: ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
         }
+        if (nearestModem && _corrVisible.dsPower && nearestModem.ds_power_avg != null) {
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.dsPower + ';"></span> DS Power: ' + nearestModem.ds_power_avg.toFixed(1) + ' dBmV</div>';
+        }
+        if (nearestModem && _corrVisible.errors && (nearestModem.ds_uncorrectable_errors || 0) > 0) {
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.errors + ';"></span> Errors: ' + nearestModem.ds_uncorrectable_errors.toLocaleString() + '</div>';
+        }
         if (nearestSpeed && _corrVisible.download) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> Download: ' + (nearestSpeed.download_mbps || 0).toFixed(1) + ' Mbps</div>';
         }
@@ -3949,6 +4111,7 @@ function _setupCorrelationTooltip(overlay, octx) {
     });
 
     newOverlay.addEventListener('mouseleave', function() {
+        dragStart = null;
         if (!_corrChartState) return;
         var st = _corrChartState;
         newOctx.clearRect(0, 0, st.W, st.H);
@@ -4092,6 +4255,39 @@ function _corrClearChartHighlight() {
     var st = _corrChartState;
     octx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
     octx.clearRect(0, 0, st.W, st.H);
+}
+
+function _corrExportPNG() {
+    var canvas = document.getElementById('correlation-chart');
+    if (!canvas) return;
+    var link = document.createElement('a');
+    link.download = 'correlation-chart-' + new Date().toISOString().slice(0, 10) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+function _corrExportCSV() {
+    if (!_correlationData || _correlationData.length === 0) return;
+    var headers = ['timestamp', 'source', 'health', 'ds_snr_min', 'ds_power_avg', 'us_power_avg', 'ds_uncorrectable_errors', 'download_mbps', 'upload_mbps', 'ping_ms', 'severity', 'message'];
+    var rows = [headers.join(',')];
+    for (var i = 0; i < _correlationData.length; i++) {
+        var d = _correlationData[i];
+        var row = headers.map(function(h) {
+            var v = d[h];
+            if (v == null) return '';
+            if (typeof v === 'string' && (v.indexOf(',') !== -1 || v.indexOf('"') !== -1)) {
+                return '"' + v.replace(/"/g, '""') + '"';
+            }
+            return v;
+        });
+        rows.push(row.join(','));
+    }
+    var blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    var link = document.createElement('a');
+    link.download = 'correlation-data-' + new Date().toISOString().slice(0, 10) + '.csv';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
 }
 
 function renderCorrelationTable(data) {
