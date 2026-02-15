@@ -51,6 +51,25 @@ DOCSight v2.0 is currently in beta testing! We're looking for community feedback
 
 ---
 
+## 🎮 Demo Mode
+
+Want to try DOCSight without a real router? Demo mode generates realistic DOCSIS data so you can explore the full dashboard, trends, event log, and incident journal.
+
+```bash
+docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:v2-dev
+```
+
+Open `http://localhost:8765` — no setup required.
+
+**What you get:**
+- 25 downstream + 4 upstream channels with realistic signal values
+- 90 days of historical data with diurnal and seasonal patterns
+- Pre-populated event log and incident journal
+- Full trend charts, channel timeline, and correlation analysis
+- Works with MQTT (if configured)
+
+---
+
 ## Is This For Me?
 
 | | |
@@ -88,6 +107,7 @@ DOCSight v2.0 is currently in beta testing! We're looking for community feedback
 | **[Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant)** | MQTT Auto-Discovery with per-channel sensors |
 | **[BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM)** | ThinkBroadband broadband quality graphs |
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
+| **Demo Mode** | **NEW:** Try DOCSight without a router — 90 days of simulated data |
 
 4 languages (EN/DE/FR/ES) · Light/Dark mode · Setup wizard · Optional authentication
 
@@ -144,21 +164,21 @@ Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magent
 DOCSight uses a **modular collector-based architecture** for reliable data gathering from multiple sources:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Collector Registry                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Modem      │  │  Speedtest   │  │     BQM      │      │
-│  │  Collector   │  │  Collector   │  │  Collector   │      │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
-│         │                  │                  │              │
-│         ▼                  ▼                  ▼              │
+┌─────────────────────────────────────────────────────────────────────┐
+│                       Collector Registry                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────┐ │
+│  │   Modem      │  │    Demo      │  │  Speedtest   │  │   BQM   │ │
+│  │  Collector   │  │  Collector   │  │  Collector   │  │ Collect.│ │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └────┬────┘ │
+│         │                  │                  │              │     │
+│         ▼                  ▼                  ▼              ▼     │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │              Base Collector (Fail-Safe)              │   │
 │  │  • Exponential backoff (30s → 3600s max)            │   │
 │  │  • Auto-reset after 24h idle                        │   │
 │  │  • Health status monitoring                         │   │
 │  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────┘
                           │
                           ▼
          ┌────────────────────────────────────┐
@@ -219,6 +239,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Notification System | 🔜 Planned | [#19](https://github.com/itsDNNS/docsight/issues/19) |
 | Ping Monitor | 🔜 Planned | [#20](https://github.com/itsDNNS/docsight/issues/20) |
 | Modulation Watchdog & Power Drift | ✅ Complete (pending release) | [#21](https://github.com/itsDNNS/docsight/issues/21) |
+| Demo/Test Mode | ✅ Complete (pending release) | [#30](https://github.com/itsDNNS/docsight/issues/30) |
 | Smokeping Integration | 🔜 Planned | [#22](https://github.com/itsDNNS/docsight/issues/22) |
 | Vodafone Station Support | 🔜 Planned | [#14](https://github.com/itsDNNS/docsight/issues/14) |
 | Technicolor TC4400 Support | 🔜 Planned | [#24](https://github.com/itsDNNS/docsight/issues/24) |

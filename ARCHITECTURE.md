@@ -21,17 +21,17 @@ DOCSight is built around a **modular collector pattern** that separates data col
 │  │                           │ Config Check │                    │  │
 │  │                           └──────┬───────┘                    │  │
 │  │                                  │                            │  │
-│  │         ┌────────────────────────┼──────────────────────┐     │  │
-│  │         │                        │                      │     │  │
-│  │         ▼                        ▼                      ▼     │  │
-│  │  ┌────────────┐          ┌────────────┐        ┌────────────┐│  │
-│  │  │   Modem    │          │ Speedtest  │        │    BQM     ││  │
-│  │  │ Collector  │          │ Collector  │        │ Collector  ││  │
-│  │  │            │          │            │        │            ││  │
-│  │  │ Poll: 900s │          │ Poll: 300s │        │ Poll: 24h  ││  │
-│  │  └─────┬──────┘          └─────┬──────┘        └─────┬──────┘│  │
-│  │        │                       │                     │        │  │
-│  │        └───────────────────────┼─────────────────────┘        │  │
+│  │         ┌──────────┬─────────────┼──────────────────────┐     │  │
+│  │         │          │             │                      │     │  │
+│  │         ▼          ▼             ▼                      ▼     │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌────────────┐      ┌────────────┐│  │
+│  │  │  Modem   │ │   Demo   │ │ Speedtest  │      │    BQM     ││  │
+│  │  │ Collect. │ │ Collect. │ │ Collector  │      │ Collector  ││  │
+│  │  │          │ │          │ │            │      │            ││  │
+│  │  │ Poll:900s│ │ Poll:900s│ │ Poll: 300s │      │ Poll: 24h  ││  │
+│  │  └────┬─────┘ └────┬─────┘ └─────┬──────┘      └─────┬──────┘│  │
+│  │       │             │             │                   │        │  │
+│  │       └─────────────┴─────────────┼───────────────────┘        │  │
 │  │                                │                              │  │
 │  └────────────────────────────────┼──────────────────────────────┘  │
 │                                   │                                 │
@@ -222,11 +222,36 @@ Driver.get_docsis_data()
 - Local SQLite caching for performance
 - Correlation with DOCSIS signal snapshots
 
+### DemoCollector (`app/collectors/demo.py`)
+
+**Purpose:** Generate realistic DOCSIS data for testing without a real modem
+**Poll Interval:** Configurable (default 900s)
+**Data Source:** `app/fixtures/demo_channels.json` with per-poll random variation
+**Activation:** `DEMO_MODE=true` environment variable
+
+**Pipeline:**
+```
+_generate_data() (base channels + variation)
+  → analyzer.analyze() (real analysis!)
+    → event_detector.check()
+      → storage.save_snapshot()
+        → mqtt_pub.publish_data()
+          → web.update_state()
+```
+
+**Features:**
+- 25 DS channels (24× DOCSIS 3.0 + 1× DOCSIS 3.1) and 4 US channels
+- Per-poll variation: ±0.3 dBmV power, ±0.5 dB SNR, slowly accumulating errors
+- Seeds 90 days of historical snapshots on first run (8640 data points)
+- Pre-populated event log (48 events) and incident journal (6 entries)
+- Time-based patterns: diurnal cycles, seasonal drift, periodic "bad periods"
+- Device info: "DOCSight Demo Router", Connection: 250/40 Mbit/s Cable
+
 ### BQMCollector (`app/collectors/bqm.py`)
 
-**Purpose:** Download broadband quality graphs  
-**Poll Interval:** 86400s (24 hours)  
-**Data Source:** ThinkBroadband BQM service  
+**Purpose:** Download broadband quality graphs
+**Poll Interval:** 86400s (24 hours)
+**Data Source:** ThinkBroadband BQM service
 
 **Output:** PNG graph image saved to storage
 
@@ -441,6 +466,8 @@ GET /api/collectors/status
 
 **Override:** Environment variables take precedence over config.json
 
+**Demo Mode:** Set `DEMO_MODE=true` to run without a real modem. The DemoCollector replaces the ModemCollector and generates realistic simulated data. No modem password required, setup page is bypassed.
+
 ---
 
 ## Extending DOCSight
@@ -486,6 +513,7 @@ from .my_collector import MyCollector
 
 COLLECTOR_REGISTRY = {
     "modem": ModemCollector,
+    "demo": DemoCollector,
     "speedtest": SpeedtestCollector,
     "bqm": BQMCollector,
     "my_source": MyCollector,  # Add here
