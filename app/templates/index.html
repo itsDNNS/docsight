@@ -203,7 +203,6 @@
                     {% endif %}
                     {{ isp_name }}
                 </span>
-                <span class="hero-sep">&middot;</span>
                 {% endif %}
                 
                 {# 2. Speed #}
@@ -214,7 +213,6 @@
                         <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;"></i>
                     </span>
                 </span>
-                <span class="hero-sep">&middot;</span>
                 {% elif booked_download and booked_download > 0 %}
                 <span class="hero-speed">
                     {{ booked_download|int }}/{{ booked_upload|int }} MBit/s
@@ -222,13 +220,11 @@
                         <i data-lucide="settings" style="width:12px;height:12px;opacity:0.5;"></i>
                     </span>
                 </span>
-                <span class="hero-sep">&middot;</span>
                 {% else %}
                 <a href="/settings" style="color:var(--text-secondary);text-decoration:none;font-size:12px;opacity:0.7;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
                     <i data-lucide="settings" style="width:11px;height:11px;margin-right:4px;"></i>
                     <span>Set speed in Settings</span>
                 </a>
-                <span class="hero-sep">&middot;</span>
                 {% endif %}
                 
                 {# 3. Channels #}
