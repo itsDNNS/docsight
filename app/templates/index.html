@@ -714,21 +714,6 @@
     </div>
     <p class="correlation-desc" style="color:var(--muted); font-size:0.85em; margin:0 0 16px;">{{ t.correlation_desc }}</p>
 
-    <div class="correlation-filters">
-        <label class="filter-pill">
-            <input type="checkbox" id="corr-src-modem" checked onchange="loadCorrelationData()">
-            <span>{{ t.correlation_source_modem }}</span>
-        </label>
-        <label class="filter-pill">
-            <input type="checkbox" id="corr-src-speedtest" checked onchange="loadCorrelationData()">
-            <span>{{ t.correlation_source_speedtest }}</span>
-        </label>
-        <label class="filter-pill">
-            <input type="checkbox" id="corr-src-events" checked onchange="loadCorrelationData()">
-            <span>{{ t.correlation_source_events }}</span>
-        </label>
-    </div>
-
     <div id="correlation-loading" class="waiting" style="display:none;">
         <div class="spinner"></div>
     </div>
@@ -769,15 +754,17 @@
                 <span>{{ t.correlation_timeline }}</span>
             </div>
         </div>
-        <table id="correlation-table">
-            <thead><tr>
-                <th>{{ t.timestamp }}</th>
-                <th style="width:90px;">Source</th>
-                <th>{{ t.event_message }}</th>
-                <th>{{ t.event_details }}</th>
-            </tr></thead>
-            <tbody id="correlation-tbody"></tbody>
-        </table>
+        <div id="correlation-table-wrap">
+            <table id="correlation-table">
+                <thead><tr>
+                    <th>{{ t.timestamp }}</th>
+                    <th style="width:90px;">Source</th>
+                    <th>{{ t.event_message }}</th>
+                    <th>{{ t.event_details }}</th>
+                </tr></thead>
+                <tbody id="correlation-tbody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -3369,16 +3356,11 @@ function escapeHtml(str) {
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
 var _correlationChart = null;
-var _corrVisible = { snr: true, download: true, upload: true, events: true };
+var _corrVisible = { snr: true, download: true, upload: true, events: true, poorSignal: true };
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 
 function loadCorrelationData() {
     var hours = document.getElementById('correlation-hours').value;
-    var sources = [];
-    if (document.getElementById('corr-src-modem').checked) sources.push('modem');
-    if (document.getElementById('corr-src-speedtest').checked) sources.push('speedtest');
-    if (document.getElementById('corr-src-events').checked) sources.push('events');
-    if (sources.length === 0) sources = ['modem', 'speedtest', 'events'];
 
     var loading = document.getElementById('correlation-loading');
     var noData = document.getElementById('correlation-no-data');
@@ -3389,7 +3371,7 @@ function loadCorrelationData() {
     chartContainer.style.display = 'none';
     tableCard.style.display = 'none';
 
-    fetch('/api/correlation?hours=' + hours + '&sources=' + sources.join(','))
+    fetch('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events')
         .then(function(r) { return r.json(); })
         .then(function(data) {
             loading.style.display = 'none';
@@ -3592,8 +3574,8 @@ function renderCorrelationChart(data) {
         ctx.stroke();
     }
 
-    // Draw modem health background bands (always visible when SNR is on)
-    if (_corrVisible.snr) {
+    // Draw modem health background bands
+    if (_corrVisible.poorSignal) {
         for (var i = 0; i < modem.length; i++) {
             var x1 = xScale(new Date(modem[i].timestamp).getTime());
             var x2 = i < modem.length - 1 ? xScale(new Date(modem[i + 1].timestamp).getTime()) : x1 + 2;
@@ -3733,8 +3715,8 @@ function renderCorrelationChart(data) {
     }
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : ' disabled';
-        return '<span data-metric="' + item.metric + '" class="' + cls + '" style="color:' + item.color + ';">' + item.label + '</span>';
-    }).join('') + '<span style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em;">Poor Signal</span>';
+        return '<span data-metric="' + item.metric + '" class="' + cls + '" title="Klicken zum Ein-/Ausblenden" style="color:' + item.color + ';">' + item.label + '</span>';
+    }).join('') + '<span data-metric="poorSignal" class="' + (_corrVisible.poorSignal ? '' : 'disabled') + '" title="Klicken zum Ein-/Ausblenden" style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em; color:#f44336;">Poor Signal</span>';
 
     // Legend click handlers
     var legendSpans = legend.querySelectorAll('span[data-metric]');
@@ -3907,6 +3889,9 @@ function _setupCorrelationTooltip(overlay, octx) {
         if (ttY + ttH > st.H) ttY = st.H - ttH - 4;
         tooltip.style.left = ttX + 'px';
         tooltip.style.top = ttY + 'px';
+
+        // Highlight corresponding table rows
+        _corrHighlightTableRows(nearestModem, nearestSpeed, nearestEvent);
     });
 
     newOverlay.addEventListener('mouseleave', function() {
@@ -3914,7 +3899,133 @@ function _setupCorrelationTooltip(overlay, octx) {
         var st = _corrChartState;
         newOctx.clearRect(0, 0, st.W, st.H);
         tooltip.style.display = 'none';
+        _corrClearTableHighlight();
     });
+}
+
+// Highlight matching table rows when hovering on chart
+function _corrHighlightTableRows(modemPt, speedPt, eventPt) {
+    _corrClearTableHighlight();
+    var tbody = document.getElementById('correlation-tbody');
+    if (!tbody) return;
+    var rows = tbody.querySelectorAll('tr[data-ts]');
+    var timestamps = [];
+    if (modemPt) timestamps.push(modemPt.timestamp);
+    if (speedPt) timestamps.push(speedPt.timestamp);
+    if (eventPt) timestamps.push(eventPt.timestamp);
+    if (timestamps.length === 0) return;
+    var wrap = document.getElementById('correlation-table-wrap');
+    var firstMatch = null;
+    for (var i = 0; i < rows.length; i++) {
+        var rowTs = rows[i].getAttribute('data-ts');
+        if (timestamps.indexOf(rowTs) !== -1) {
+            rows[i].classList.add('corr-highlight');
+            if (!firstMatch) firstMatch = rows[i];
+        }
+    }
+    // Scroll first highlighted row into view within the table wrapper
+    if (firstMatch && wrap) {
+        var wrapRect = wrap.getBoundingClientRect();
+        var rowRect = firstMatch.getBoundingClientRect();
+        var thead = wrap.querySelector('thead');
+        var theadH = thead ? thead.offsetHeight : 0;
+        // Check if row is outside visible area of the wrapper
+        if (rowRect.top < wrapRect.top + theadH || rowRect.bottom > wrapRect.bottom) {
+            var scrollTarget = rowRect.top - wrapRect.top + wrap.scrollTop - theadH - 8;
+            wrap.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+        }
+    }
+}
+
+function _corrClearTableHighlight() {
+    var highlighted = document.querySelectorAll('#correlation-tbody tr.corr-highlight');
+    for (var i = 0; i < highlighted.length; i++) {
+        highlighted[i].classList.remove('corr-highlight');
+    }
+}
+
+// Draw highlight on chart overlay when hovering a table row
+function _corrHighlightFromTable(timestamp, source) {
+    var overlay = document.getElementById('correlation-overlay');
+    if (!overlay || !_corrChartState) return;
+    var octx = overlay.getContext('2d');
+    var st = _corrChartState;
+    octx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
+    octx.clearRect(0, 0, st.W, st.H);
+
+    var ts = new Date(timestamp).getTime();
+    var x = st.xScale(ts);
+
+    // Draw crosshair
+    octx.strokeStyle = 'rgba(255,255,255,0.3)';
+    octx.lineWidth = 1;
+    octx.setLineDash([4, 4]);
+    octx.beginPath();
+    octx.moveTo(x, st.pad.top);
+    octx.lineTo(x, st.pad.top + st.plotH);
+    octx.stroke();
+    octx.setLineDash([]);
+
+    // Draw highlight dot based on source
+    if (source === 'modem' && _corrVisible.snr) {
+        for (var i = 0; i < st.modem.length; i++) {
+            if (st.modem[i].timestamp === timestamp) {
+                var dy = st.ySnr(st.modem[i].ds_snr_min || st.snrMin);
+                octx.beginPath();
+                octx.arc(x, dy, 6, 0, Math.PI * 2);
+                octx.fillStyle = st.colors.snr;
+                octx.fill();
+                octx.strokeStyle = '#fff';
+                octx.lineWidth = 2;
+                octx.stroke();
+                break;
+            }
+        }
+    } else if (source === 'speedtest') {
+        for (var i = 0; i < st.speedtest.length; i++) {
+            if (st.speedtest[i].timestamp === timestamp) {
+                if (_corrVisible.download) {
+                    var dy = st.yDl(st.speedtest[i].download_mbps || 0);
+                    octx.beginPath();
+                    octx.arc(x, dy, 6, 0, Math.PI * 2);
+                    octx.fillStyle = st.colors.download;
+                    octx.fill();
+                    octx.strokeStyle = '#fff';
+                    octx.lineWidth = 2;
+                    octx.stroke();
+                }
+                if (_corrVisible.upload) {
+                    var dy = st.yDl(st.speedtest[i].upload_mbps || 0);
+                    octx.beginPath();
+                    octx.arc(x, dy, 6, 0, Math.PI * 2);
+                    octx.fillStyle = st.colors.upload;
+                    octx.fill();
+                    octx.strokeStyle = '#fff';
+                    octx.lineWidth = 2;
+                    octx.stroke();
+                }
+                break;
+            }
+        }
+    } else if (source === 'event' && _corrVisible.events) {
+        octx.strokeStyle = st.colors.event;
+        octx.lineWidth = 2;
+        octx.setLineDash([3, 3]);
+        octx.beginPath();
+        octx.moveTo(x, st.pad.top);
+        octx.lineTo(x, st.pad.top + st.plotH);
+        octx.stroke();
+        octx.setLineDash([]);
+    }
+}
+
+function _corrClearChartHighlight() {
+    var overlay = document.getElementById('correlation-overlay');
+    if (!overlay || !_corrChartState) return;
+    var octx = overlay.getContext('2d');
+    var st = _corrChartState;
+    octx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
+    octx.clearRect(0, 0, st.W, st.H);
 }
 
 function renderCorrelationTable(data) {
@@ -3949,6 +4060,8 @@ function renderCorrelationTable(data) {
     for (var i = 0; i < sorted.length && count < maxRows; i++) {
         var e = sorted[i];
         var tr = document.createElement('tr');
+        tr.setAttribute('data-ts', e.timestamp);
+        tr.setAttribute('data-src', e.source);
         var ts = escapeHtml(e.timestamp.replace('T', ' '));
         var src = e.source;
         var msg = '';
@@ -3982,6 +4095,14 @@ function renderCorrelationTable(data) {
             + '<td>' + src + '</td>'
             + '<td>' + msg + '</td>'
             + '<td style="font-size:0.82em; color:var(--muted);">' + details + '</td>';
+        tr.addEventListener('mouseenter', function() {
+            var rowTs = this.getAttribute('data-ts');
+            var rowSrc = this.getAttribute('data-src');
+            _corrHighlightFromTable(rowTs, rowSrc);
+        });
+        tr.addEventListener('mouseleave', function() {
+            _corrClearChartHighlight();
+        });
         tbody.appendChild(tr);
         count++;
     }
