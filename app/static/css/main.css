@@ -2180,6 +2180,20 @@ details.channel-group {
     margin-top: 4px;
 }
 
+/* Secondary metrics (Ping/Jitter) - smaller display */
+.metric-value-item.secondary .value {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.metric-value-item.secondary .unit {
+    font-size: 9px;
+}
+
+.metric-value-item.secondary .sublabel {
+    font-size: 9px;
+}
+
 .metric-value-divider {
     width: 1px;
     height: 40px;

@@ -384,13 +384,13 @@
                     <span class="unit">{{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
                     <span class="sublabel">{{ t.upload }}</span>
                 </div>
-                <div class="metric-value-item" style="grid-column:1;">
+                <div class="metric-value-item secondary" style="grid-column:1;">
                     <span class="value">{{ speedtest_latest.ping_ms|round(0)|int }}</span>
                     <span class="unit">ms</span>
                     <span class="sublabel">Ping</span>
                 </div>
                 <div class="metric-value-divider"></div>
-                <div class="metric-value-item" style="grid-column:3;">
+                <div class="metric-value-item secondary" style="grid-column:3;">
                     <span class="value">{{ speedtest_latest.jitter_ms|round(1) }}</span>
                     <span class="unit">ms</span>
                     <span class="sublabel">Jitter</span>
