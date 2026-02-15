@@ -122,6 +122,7 @@ DOCSight v2.0 is currently in beta testing! We're looking for community feedback
 | | Status |
 |---|---|
 | **AVM Fritz!Box Cable** (6590, 6660, 6690) | ✅ Fully supported |
+| **Vodafone Ultra Hub 7** (Sercomm) | 🧪 Available in [v2-dev](https://github.com/itsDNNS/docsight/pkgs/container/docsight) |
 | **Vodafone Station** (CGA6444VF, CGA4322DE, TG3442DE) | 🧪 Available in [v2-dev](https://github.com/itsDNNS/docsight/pkgs/container/docsight) |
 | **Technicolor / Sagemcom** | 🔜 Planned |
 | **Other DOCSIS modems** | Contributions welcome! See [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) |
