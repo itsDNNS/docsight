@@ -65,6 +65,7 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 |---|---|
 | **[Live Dashboard](https://github.com/itsDNNS/docsight/wiki/Features-Dashboard)** | Real-time channel data with health assessment and metric cards |
 | **[Signal Trends](https://github.com/itsDNNS/docsight/wiki/Features-Signal-Trends)** | Interactive charts with DOCSIS reference zones (day/week/month) |
+| **[Correlation Analysis](https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis)** | **NEW:** Unified timeline combining signal, speedtest, and event data |
 | **[Event Log](https://github.com/itsDNNS/docsight/wiki/Features-Event-Log)** | Automatic anomaly detection with modulation watchdog |
 | **[Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest)** | Speed test history from [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker) |
 | **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Document ISP issues with attachments |
@@ -98,6 +99,10 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 | Channel Timeline | Event Log |
 |---|---|
 | ![Channel Timeline](docs/screenshots/channel-timeline.png) | ![Events](docs/screenshots/events.png) |
+
+| Correlation Analysis (NEW) | Settings |
+|---|---|
+| ![Correlation](docs/screenshots/correlation.png) | ![Settings](docs/screenshots/settings.png) |
 
 </details>
 
