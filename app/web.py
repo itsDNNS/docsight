@@ -172,6 +172,8 @@ _state = {
 _storage = None
 _config_manager = None
 _on_config_changed = None
+_modem_collector = None
+_collectors = []
 _last_manual_poll = 0.0
 
 
@@ -179,6 +181,18 @@ def init_storage(storage):
     """Set the snapshot storage instance."""
     global _storage
     _storage = storage
+
+
+def init_collector(modem_collector):
+    """Set the modem collector instance for manual polling."""
+    global _modem_collector
+    _modem_collector = modem_collector
+
+
+def init_collectors(collectors):
+    """Set the list of all collectors for status reporting."""
+    global _collectors
+    _collectors = collectors
 
 
 def _init_session_key(data_dir):
@@ -494,10 +508,15 @@ def api_test_mqtt():
 @app.route("/api/poll", methods=["POST"])
 @require_auth
 def api_poll():
-    """Trigger an immediate modem poll and return fresh analysis."""
+    """Trigger an immediate modem poll via ModemCollector.
+    
+    Uses the same collector instance as automatic polling to ensure
+    consistent behavior and fail-safe application.
+    """
     global _last_manual_poll
-    if not _config_manager:
-        return jsonify({"success": False, "error": "Not configured"}), 500
+    
+    if not _modem_collector:
+        return jsonify({"success": False, "error": "Collector not initialized"}), 500
 
     now = time.time()
     if now - _last_manual_poll < 10:
@@ -506,24 +525,35 @@ def api_poll():
         return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
 
     try:
-        from . import analyzer
-        from .drivers import load_driver
-        config = _config_manager.get_all()
-        driver = load_driver(
-            config.get("modem_type", "fritzbox"),
-            config["modem_url"], config["modem_user"], config["modem_password"],
-        )
-        driver.login()
-        data = driver.get_docsis_data()
-        analysis = analyzer.analyze(data)
-        update_state(analysis=analysis)
-        if _storage:
-            _storage.save_snapshot(analysis)
+        # Use the collector instead of direct driver access
+        result = _modem_collector.collect()
+        
+        if not result.success:
+            return jsonify({"success": False, "error": result.error}), 500
+        
         _last_manual_poll = time.time()
-        return jsonify({"success": True, "analysis": analysis})
+        
+        # Return the analysis data from the collector result
+        # (ModemCollector already updated web state and saved snapshot)
+        return jsonify({"success": True, "analysis": result.data})
+        
     except Exception as e:
         log.error("Manual poll failed: %s", e)
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/collectors/status")
+@require_auth
+def api_collectors_status():
+    """Return health status of all collectors.
+    
+    Provides monitoring info: failure counts, penalties, next poll times.
+    Useful for debugging collector issues and fail-safe behavior.
+    """
+    if not _collectors:
+        return jsonify([])
+    
+    return jsonify([c.get_status() for c in _collectors])
 
 
 @app.route("/api/calendar")

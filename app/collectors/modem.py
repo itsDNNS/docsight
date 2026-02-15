@@ -14,10 +14,10 @@ class ModemCollector(Collector):
 
     name = "modem"
 
-    def __init__(self, driver, analyzer, event_detector, storage, mqtt_pub, web, poll_interval):
+    def __init__(self, driver, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval):
         super().__init__(poll_interval)
         self._driver = driver
-        self._analyzer = analyzer
+        self._analyzer = analyzer_fn  # Function reference, not module
         self._event_detector = event_detector
         self._storage = storage
         self._mqtt_pub = mqtt_pub
@@ -48,7 +48,7 @@ class ModemCollector(Collector):
                 self._web.update_state(connection_info=self._connection_info)
 
         data = self._driver.get_docsis_data()
-        analysis = self._analyzer.analyze(data)
+        analysis = self._analyzer(data)  # Call injected analyzer function
 
         # MQTT publishing
         if self._mqtt_pub:

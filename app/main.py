@@ -11,10 +11,7 @@ from .event_detector import EventDetector
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
 
-from .drivers import load_driver
-from .collectors.modem import ModemCollector
-from .collectors.speedtest import SpeedtestCollector
-from .collectors.bqm import BQMCollector
+from .collectors import discover_collectors
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,40 +24,6 @@ def run_web(port):
     """Run production web server in a separate thread."""
     from waitress import serve
     serve(web.app, host="0.0.0.0", port=port, threads=4, _quiet=True)
-
-
-def build_collectors(config_mgr, storage, event_detector, mqtt_pub):
-    """Build the list of collectors based on current config."""
-    config = config_mgr.get_all()
-
-    modem_type = config.get("modem_type", "fritzbox")
-    driver = load_driver(
-        modem_type, config["modem_url"], config["modem_user"], config["modem_password"]
-    )
-    log.info("Modem driver: %s", modem_type)
-
-    return [
-        ModemCollector(
-            driver=driver,
-            analyzer=analyzer,
-            event_detector=event_detector,
-            storage=storage,
-            mqtt_pub=mqtt_pub,
-            web=web,
-            poll_interval=config["poll_interval"],
-        ),
-        SpeedtestCollector(
-            config_mgr=config_mgr,
-            storage=storage,
-            web=web,
-            poll_interval=300,
-        ),
-        BQMCollector(
-            config_mgr=config_mgr,
-            storage=storage,
-            poll_interval=86400,
-        ),
-    ]
 
 
 def polling_loop(config_mgr, storage, stop_event):
@@ -95,7 +58,15 @@ def polling_loop(config_mgr, storage, stop_event):
     web.update_state(poll_interval=config["poll_interval"])
 
     event_detector = EventDetector()
-    collectors = build_collectors(config_mgr, storage, event_detector, mqtt_pub)
+    collectors = discover_collectors(
+        config_mgr, storage, event_detector, mqtt_pub, web, analyzer
+    )
+
+    # Inject collectors into web layer for manual polling and status endpoint
+    modem_collector = next((c for c in collectors if c.name == "modem"), None)
+    if modem_collector:
+        web.init_collector(modem_collector)
+    web.init_collectors(collectors)
 
     log.info(
         "Collectors: %s",
