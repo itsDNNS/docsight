@@ -6,14 +6,15 @@ and fetches DOCSIS channel data via clean JSON APIs.
 Based on HAR analysis from Tmo-Dev and aiovodafone patterns.
 """
 
-import hashlib
+import base64
 import json
 import logging
 import os
-import secrets
 
 import requests
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from .base import ModemDriver
 
@@ -33,67 +34,90 @@ class UltraHub7Driver(ModemDriver):
         self._csrf_token = None
 
     def login(self) -> None:
-        """Authenticate with AES-CCM encrypted credentials."""
+        """Authenticate with AES-CCM encrypted credentials.
+        
+        Based on aiovodafone VodafoneStationUltraHubApi implementation.
+        """
         try:
-            # Step 1: Get WebUISecret (salt) from device
+            # Step 1: Get WebUISecret from device
             details_url = f"{self._url}/api/users/details.jst"
             r = requests.get(details_url, timeout=10)
             r.raise_for_status()
             details = r.json()
 
-            web_ui_secret = details.get("WebUISecret", "")
+            web_ui_secret = details.get("X_VODAFONE_WebUISecret", "")
             if not web_ui_secret:
-                raise RuntimeError("WebUISecret not found in device response")
+                raise RuntimeError("X_VODAFONE_WebUISecret not found in device response")
 
-            # Step 2: Derive encryption key with PBKDF2-HMAC-SHA256
-            # Use salt from WebUISecret (first 16 bytes as hex)
-            salt = bytes.fromhex(web_ui_secret[:32])
-            
-            # PBKDF2: 1000 iterations, SHA256
-            key = hashlib.pbkdf2_hmac(
-                "sha256",
-                self._password.encode("utf-8"),
-                salt,
-                1000,
-                dklen=16  # AES-128
+            # Step 2: Parse WebUISecret
+            # Format: <salt_web_ui (10 chars)><salt (rest)>
+            salt_web_ui = web_ui_secret[:10]
+            salt = web_ui_secret[10:]
+
+            # Step 3: Derive encryption key with PBKDF2-HMAC-SHA256
+            # Key is derived FROM salt_web_ui WITH salt as PBKDF2 salt
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=16,  # AES-128
+                salt=bytes(salt, "utf-8"),
+                iterations=1000,
             )
+            key = kdf.derive(bytes(salt_web_ui, "utf-8"))
 
-            # Step 3: Encrypt password with AES-CCM
-            # Generate random nonce (13 bytes for CCM)
-            nonce = secrets.token_bytes(13)
+            # Step 4: Encrypt password with AES-CCM
+            # Generate 16-byte IV and truncate for CCM nonce
+            iv = os.urandom(16)
+            nonce = self._truncate_iv(iv, len(self._password) * 8, 8)
             
             aes_ccm = AESCCM(key, tag_length=8)
             encrypted_password = aes_ccm.encrypt(
                 nonce,
-                self._password.encode("utf-8"),
+                bytes(self._password, "utf-8"),
                 None  # No additional authenticated data
             )
 
-            # Step 4: Build login payload
-            # Format: nonce (hex) + encrypted_password (hex)
-            encrypted_hex = nonce.hex() + encrypted_password.hex()
+            # Step 5: Build encrypted password payload (base64-encoded JSON)
+            b64_ct = base64.b64encode(encrypted_password).decode("ascii").strip()
+            b64_iv = base64.b64encode(iv).decode("ascii").strip()
 
+            password_payload = {
+                "iv": b64_iv,
+                "v": 1,
+                "iter": 1000,
+                "ks": 128,
+                "ts": 64,
+                "mode": "ccm",
+                "adata": "",
+                "cipher": "aes",
+                "ct": b64_ct,
+            }
+            
+            # Convert to JSON string
+            encrypted_password_json = json.dumps(password_payload)
+
+            # Step 6: POST login request
+            login_url = f"{self._url}/api/users/login.jst"
             login_payload = {
-                "username": self._user,
-                "password": encrypted_hex
+                "X_VODAFONE_Password": encrypted_password_json,
+                "csrf_token": self._csrf_token if self._csrf_token else "",
             }
 
-            # Step 5: POST login request
-            login_url = f"{self._url}/api/users/login.jst"
             r2 = requests.post(
                 login_url,
-                json=login_payload,
+                data=login_payload,  # Form data, not JSON
                 timeout=10
             )
             r2.raise_for_status()
             
-            # Step 6: Extract session cookie and CSRF token
+            # Step 7: Extract session cookie and CSRF token
             login_response = r2.json()
             
-            if not login_response.get("success", False):
-                raise RuntimeError(
-                    f"Login failed: {login_response.get('error', 'Unknown error')}"
-                )
+            # Check for authentication errors
+            if login_response.get("X_INTERNAL_Password_Status") == "Invalid_PWD":
+                raise RuntimeError("Invalid password")
+            
+            if login_response.get("X_INTERNAL_Is_Duplicate") == "true":
+                raise RuntimeError("Already logged in (duplicate session)")
 
             # Extract DUKSID cookie
             cookies = r2.cookies
@@ -101,13 +125,41 @@ class UltraHub7Driver(ModemDriver):
                 raise RuntimeError("Session cookie (DUKSID) not found in response")
             
             self._session_cookie = cookies["DUKSID"]
-            self._csrf_token = login_response.get("csrf_token", "")
+            
+            # Update CSRF token from response
+            if "csrf_token" in login_response:
+                self._csrf_token = login_response["csrf_token"]
 
             log.info("Auth OK (DUKSID: %s...)", self._session_cookie[:12])
 
         except requests.RequestException as e:
             log.error("Login failed: %s", e)
             raise RuntimeError(f"Ultra Hub 7 authentication failed: {e}")
+
+    def _truncate_iv(self, iv: bytes, ol: int, tlen: int) -> bytes:
+        """Calculate CCM nonce by truncating IV.
+        
+        Based on aiovodafone implementation.
+        
+        Args:
+            iv: 16-byte initialization vector
+            ol: Output length in bits (including tag)
+            tlen: Tag length in bytes
+            
+        Returns:
+            Truncated nonce for AES-CCM
+        """
+        ivl = len(iv)  # IV length in bytes
+        ol = (ol - tlen) // 8  # Convert to bytes
+
+        # Compute the length of the length field (L parameter)
+        loop = 2
+        max_length_field_bytes = 4  # Maximum L per CCM spec
+        while (loop < max_length_field_bytes) and (ol >> (8 * loop)) > 0:
+            loop += 1
+        loop = max(loop, 15 - ivl)
+
+        return iv[: (15 - loop)]
 
     def get_docsis_data(self) -> dict:
         """Retrieve raw DOCSIS channel data."""
