@@ -38,8 +38,12 @@ class UltraHub7Driver(ModemDriver):
         """Authenticate with AES-CCM encrypted credentials.
 
         Based on aiovodafone VodafoneStationUltraHubApi implementation.
+        Called before each poll cycle — skips re-auth if session is still active.
         """
-        # Clear state from previous login cycles
+        if self._csrf_token and self._session.cookies:
+            log.debug("Session active, skipping login")
+            return
+
         self._session.cookies.clear()
         self._csrf_token = None
 
@@ -165,13 +169,15 @@ class UltraHub7Driver(ModemDriver):
                 raise RuntimeError("Invalid password")
             
             if login_response.get("X_INTERNAL_Is_Duplicate") == "true":
-                raise RuntimeError("Already logged in (duplicate session)")
+                log.info("Router reports active session, reusing")
+                if "csrf_token" in login_response:
+                    self._csrf_token = login_response["csrf_token"]
+                return
 
             # Update CSRF token from response if present
             if "csrf_token" in login_response:
                 self._csrf_token = login_response["csrf_token"]
 
-            # Session cookies are now stored in self._session.cookies
             log.info("Auth OK (session cookies: %s)", list(self._session.cookies.keys()))
 
         except requests.RequestException as e:
@@ -249,6 +255,9 @@ class UltraHub7Driver(ModemDriver):
 
         except requests.RequestException as e:
             log.error("Failed to fetch DOCSIS data: %s", e)
+            # Invalidate session so next poll triggers fresh login
+            self._csrf_token = None
+            self._session.cookies.clear()
             raise RuntimeError(f"DOCSIS data retrieval failed: {e}")
 
     def get_device_info(self) -> dict:
