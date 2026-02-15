@@ -7,10 +7,12 @@ log = logging.getLogger("docsis.drivers")
 
 DRIVER_REGISTRY = {
     "fritzbox": "app.drivers.fritzbox.FritzBoxDriver",
+    "ultrahub7": "app.drivers.ultrahub7.UltraHub7Driver",
 }
 
 DRIVER_DISPLAY_NAMES = {
     "fritzbox": "AVM FRITZ!Box",
+    "ultrahub7": "Vodafone Ultra Hub 7",
 }
 
 
