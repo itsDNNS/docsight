@@ -43,7 +43,7 @@ DOCSight v2.0 is currently in beta testing! We're looking for community feedback
 
 **Try it:** `docker run -d -p 8766:8765 -v docsight_v2_data:/data ghcr.io/itsdnns/docsight:v2-dev`
 
-**What's new:** Complete UI redesign, modular architecture, cross-source correlation
+**What's new:** Complete UI redesign, modular architecture, cross-source correlation, Vodafone Station support
 
 **Migration safe:** Your v1 data is automatically migrated. No data loss!
 
@@ -122,7 +122,7 @@ DOCSight v2.0 is currently in beta testing! We're looking for community feedback
 | | Status |
 |---|---|
 | **AVM Fritz!Box Cable** (6590, 6660, 6690) | ✅ Fully supported |
-| **Vodafone Station** (Arris TG3442DE) | 🔜 Planned ([roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)) |
+| **Vodafone Station** (CGA6444VF, CGA4322DE, TG3442DE) | 🧪 Available in [v2-dev](https://github.com/itsDNNS/docsight/pkgs/container/docsight) |
 | **Technicolor / Sagemcom** | 🔜 Planned |
 | **Other DOCSIS modems** | Contributions welcome! See [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) |
 
