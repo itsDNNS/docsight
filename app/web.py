@@ -134,12 +134,18 @@ def safe_html_filter(value):
 
 @app.template_filter("fmt_k")
 def format_k(value):
-    """Format large numbers with k suffix: 132007 -> 132k, 5929 -> 5.9k."""
+    """Format large numbers with k/M suffix: 1200000 -> 1.2M, 132007 -> 132k, 5929 -> 5.9k."""
     try:
         value = int(value)
     except (ValueError, TypeError):
         return str(value)
-    if value >= 100000:
+    if value >= 1000000:
+        # Million: 1.2M, 12M
+        formatted = f"{value / 1000000:.1f}"
+        if formatted.endswith(".0"):
+            formatted = formatted[:-2]
+        return formatted + "M"
+    elif value >= 100000:
         return f"{value // 1000}k"
     elif value >= 1000:
         formatted = f"{value / 1000:.1f}"
@@ -147,6 +153,31 @@ def format_k(value):
             formatted = formatted[:-2]
         return formatted + "k"
     return str(value)
+
+
+@app.template_filter("fmt_speed_value")
+def format_speed_value(value):
+    """Format speed value: >= 1000 Mbps -> GBit value."""
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        return str(value)
+    if value >= 1000:
+        # Convert to GBit: 1094 -> 1.1
+        return f"{value / 1000:.1f}"
+    else:
+        # Keep as Mbps: 544 -> 544
+        return str(int(round(value)))
+
+
+@app.template_filter("fmt_speed_unit")
+def format_speed_unit(value):
+    """Return speed unit: >= 1000 Mbps -> 'GBit/s', else 'MBit/s'."""
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        return "MBit/s"
+    return "GBit/s" if value >= 1000 else "MBit/s"
 
 
 def _get_lang():
