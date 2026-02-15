@@ -343,7 +343,8 @@ def update_state(analysis=None, error=None, poll_interval=None, connection_info=
 @app.route("/")
 @require_auth
 def index():
-    if _config_manager and not _config_manager.is_configured():
+    demo_mode = _config_manager.is_demo_mode() if _config_manager else False
+    if _config_manager and not demo_mode and not _config_manager.is_configured():
         return redirect("/setup")
 
     theme = _config_manager.get_theme() if _config_manager else "dark"
@@ -399,6 +400,7 @@ def index():
                 uncorr_pct=_compute_uncorr_pct(snapshot),
                 has_us_ofdma=_has_us_ofdma(snapshot),
                 device_info=dev_info,
+                demo_mode=demo_mode,
                 t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
                 changelog=_changelog[0] if _changelog else None,
             )
@@ -420,6 +422,7 @@ def index():
         uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         device_info=dev_info,
+        demo_mode=demo_mode,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         changelog=_changelog[0] if _changelog else None,
     )
@@ -427,7 +430,7 @@ def index():
 
 @app.route("/setup")
 def setup():
-    if _config_manager and _config_manager.is_configured():
+    if _config_manager and (_config_manager.is_configured() or _config_manager.is_demo_mode()):
         return redirect("/")
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
     lang = _get_lang()
