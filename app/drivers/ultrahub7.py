@@ -32,6 +32,7 @@ class UltraHub7Driver(ModemDriver):
         super().__init__(url, user, password)
         self._session_cookie = None
         self._csrf_token = None
+        self._router_id = "3"  # Default ID, will be updated from router
 
     def login(self) -> None:
         """Authenticate with AES-CCM encrypted credentials.
@@ -39,9 +40,39 @@ class UltraHub7Driver(ModemDriver):
         Based on aiovodafone VodafoneStationUltraHubApi implementation.
         """
         try:
-            # Step 1: Get WebUISecret from device
+            # Step 1: Initial request to get router ID and CSRF token
+            init_url = f"{self._url}/api/users/login.jst"
+            r_init = requests.get(
+                init_url,
+                params={"X_INTERNAL_FIELDS": "X_RDK_ONT_Veip_1_OperationalState"},
+                timeout=10
+            )
+            r_init.raise_for_status()
+            init_response = r_init.json()
+            
+            # Extract router ID if present
+            if "X_INTERNAL_ID" in init_response:
+                self._router_id = init_response["X_INTERNAL_ID"]
+            
+            # Extract CSRF token if present
+            if "csrf_token" in init_response:
+                self._csrf_token = init_response["csrf_token"]
+            
+            if not self._csrf_token:
+                raise RuntimeError("CSRF token not found in initial response")
+            
+            log.info("Got router ID: %s, CSRF token: %s...", self._router_id, self._csrf_token[:8])
+
+            # Step 2: Get WebUISecret from device
             details_url = f"{self._url}/api/users/details.jst"
-            r = requests.get(details_url, timeout=10)
+            r = requests.get(
+                details_url,
+                params={
+                    "__id": self._router_id,
+                    "X_INTERNAL_FIELDS": "X_VODAFONE_WebUISecret"
+                },
+                timeout=10
+            )
             r.raise_for_status()
             details = r.json()
 
@@ -98,8 +129,10 @@ class UltraHub7Driver(ModemDriver):
             # Step 6: POST login request
             login_url = f"{self._url}/api/users/login.jst"
             login_payload = {
+                "__id": self._router_id,
                 "X_VODAFONE_Password": encrypted_password_json,
-                "csrf_token": self._csrf_token if self._csrf_token else "",
+                "Push": "false",  # Don't force logout other sessions
+                "csrf_token": self._csrf_token,
             }
 
             r2 = requests.post(
