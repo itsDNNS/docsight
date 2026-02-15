@@ -37,13 +37,15 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 
 ---
 
-## 🧪 Beta Testing (v2.0)
+## 🧪 v2.0 Beta (active development)
 
-DOCSight v2.0 is currently in beta testing! We're looking for community feedback.
+> **DOCSight v1 is now in maintenance mode.** It will continue to receive critical bug fixes and security patches, but all new features and hardware support are developed exclusively for v2. We recommend trying v2 if you want the latest improvements.
+
+DOCSight v2.0 is currently in beta testing. We're looking for community feedback.
 
 **Try it:** `docker run -d -p 8766:8765 -v docsight_v2_data:/data ghcr.io/itsdnns/docsight:v2-dev`
 
-**What's new:** Complete UI redesign, modular architecture, cross-source correlation, Vodafone Station support
+**What's new:** Complete UI redesign, modular architecture, cross-source correlation, Vodafone Station + Ultra Hub 7 support
 
 **Migration safe:** Your v1 data is automatically migrated. No data loss!
 
