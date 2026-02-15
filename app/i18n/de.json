@@ -358,5 +358,7 @@
   "correlation_chart_title": "Signal-Gesundheitsverlauf",
   "correlation_timeline": "Zeitstrahl",
   "demo_mode": "Demo-Modus",
-  "demo_device": "DOCSight Demo Router"
+  "demo_device": "DOCSight Demo Router",
+  "not_required": "Nicht erforderlich fuer dieses Modem",
+  "vodafone_no_error_counters": "Fehlerzaehler sind nicht bei allen Vodafone Station Modellen verfuegbar."
 }

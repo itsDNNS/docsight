@@ -358,5 +358,7 @@
   "correlation_chart_title": "Signal Health Timeline",
   "correlation_timeline": "Unified Timeline",
   "demo_mode": "DEMO",
-  "demo_device": "DOCSight Demo Router"
+  "demo_device": "DOCSight Demo Router",
+  "not_required": "Not required for this modem",
+  "vodafone_no_error_counters": "Error counters are not available for all Vodafone Station models."
 }
