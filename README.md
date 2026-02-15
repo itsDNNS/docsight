@@ -184,19 +184,21 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 
 ## Roadmap
 
-**Next: [v2.0 — Unified Collector Architecture](https://github.com/itsDNNS/docsight/milestone/1)**
+**Current: [v2.0 — Unified Collector Architecture](https://github.com/itsDNNS/docsight/milestone/1)** (in development)
 
-| Feature | Issue |
-|---|---|
-| Unified Collector Architecture | [#23](https://github.com/itsDNNS/docsight/issues/23) |
-| FritzBox Event Log Integration | [#17](https://github.com/itsDNNS/docsight/issues/17) |
-| OFDMA Channel Analysis | [#18](https://github.com/itsDNNS/docsight/issues/18) |
-| Notification System | [#19](https://github.com/itsDNNS/docsight/issues/19) |
-| Ping Monitor | [#20](https://github.com/itsDNNS/docsight/issues/20) |
-| Modulation Watchdog & Power Drift | [#21](https://github.com/itsDNNS/docsight/issues/21) |
-| Smokeping Integration | [#22](https://github.com/itsDNNS/docsight/issues/22) |
-| Vodafone Station Support | [#14](https://github.com/itsDNNS/docsight/issues/14) |
-| Technicolor TC4400 Support | [#24](https://github.com/itsDNNS/docsight/issues/24) |
+| Feature | Status | Issue |
+|---|---|---|
+| Unified Collector Architecture | ✅ Complete (pending release) | [#23](https://github.com/itsDNNS/docsight/issues/23) |
+| Modern UI Redesign | ✅ Complete (pending release) | — |
+| Cross-Source Correlation | ✅ Complete (pending release) | — |
+| FritzBox Event Log Integration | 🔜 Planned | [#17](https://github.com/itsDNNS/docsight/issues/17) |
+| OFDMA Channel Analysis | 🔜 Planned | [#18](https://github.com/itsDNNS/docsight/issues/18) |
+| Notification System | 🔜 Planned | [#19](https://github.com/itsDNNS/docsight/issues/19) |
+| Ping Monitor | 🔜 Planned | [#20](https://github.com/itsDNNS/docsight/issues/20) |
+| Modulation Watchdog & Power Drift | ✅ Complete (pending release) | [#21](https://github.com/itsDNNS/docsight/issues/21) |
+| Smokeping Integration | 🔜 Planned | [#22](https://github.com/itsDNNS/docsight/issues/22) |
+| Vodafone Station Support | 🔜 Planned | [#14](https://github.com/itsDNNS/docsight/issues/14) |
+| Technicolor TC4400 Support | 🔜 Planned | [#24](https://github.com/itsDNNS/docsight/issues/24) |
 
 See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
 
