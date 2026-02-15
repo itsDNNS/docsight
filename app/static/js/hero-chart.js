@@ -7,11 +7,19 @@
 (function() {
     'use strict';
 
+    let heroChartInstance = null;
+
     function initHeroChart() {
         const ctx = document.getElementById('hero-trend-chart');
         if (!ctx) {
             console.warn('[HeroChart] Canvas element #hero-trend-chart not found');
             return;
+        }
+
+        // Destroy existing chart instance to prevent memory leaks and rendering issues
+        if (heroChartInstance) {
+            heroChartInstance.destroy();
+            heroChartInstance = null;
         }
 
         // Fetch trend data (all snapshots, will filter to 24h)
@@ -56,7 +64,7 @@
         const usPower = data.map(d => d.us_power_avg);
         const snr = data.map(d => d.ds_snr_avg);
 
-        new Chart(ctx, {
+        heroChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -195,7 +203,7 @@
 
     function renderEmptyChart(ctx) {
         // Render placeholder when no data available
-        new Chart(ctx, {
+        heroChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: [],
@@ -224,6 +232,9 @@
         container.appendChild(placeholder);
     }
     
+    // Expose refresh function globally for manual updates
+    window.refreshHeroChart = initHeroChart;
+
     // Wait for DOM to be fully loaded
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initHeroChart);

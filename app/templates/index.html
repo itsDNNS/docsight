@@ -1219,6 +1219,9 @@
 (function() {
     'use strict';
     
+    // Store chart instances globally to prevent memory leaks on refresh
+    window.donutCharts = window.donutCharts || {};
+    
     // Prepare data from template
     const dsHealthCounts = {
         good: {{ ds|selectattr('health', 'equalto', 'good')|list|length }},
@@ -1239,13 +1242,19 @@
             return;
         }
         
+        // Destroy existing chart instance to prevent rendering issues
+        if (window.donutCharts[canvasId]) {
+            window.donutCharts[canvasId].destroy();
+            delete window.donutCharts[canvasId];
+        }
+        
         const total = counts.good + counts.warn + counts.crit;
         if (total === 0) {
             console.warn('[ChannelHealth] No data for ' + canvasId);
             return;
         }
         
-        new Chart(ctx, {
+        window.donutCharts[canvasId] = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['Good', 'Warning', 'Critical'],
@@ -1760,6 +1769,11 @@
 
                 // Re-init sortable tables (event listeners lost on innerHTML replace)
                 initSortableTables();
+
+                // Re-init hero chart (Chart.js instance lost on innerHTML replace)
+                if (typeof window.refreshHeroChart === 'function') {
+                    window.refreshHeroChart();
+                }
 
                 // Refresh event badge count
                 fetch('/api/events/count')
