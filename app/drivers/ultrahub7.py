@@ -30,7 +30,7 @@ class UltraHub7Driver(ModemDriver):
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
-        self._session_cookie = None
+        self._session = requests.Session()  # Persistent session for cookie handling
         self._csrf_token = None
         self._router_id = "3"  # Default ID, will be updated from router
 
@@ -39,19 +39,20 @@ class UltraHub7Driver(ModemDriver):
         
         Based on aiovodafone VodafoneStationUltraHubApi implementation.
         """
-        # Headers required for AJAX requests (CSRF protection)
+        # Headers required for AJAX requests (CSRF protection + Priority)
         headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
+            "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
             "X-Requested-With": "XMLHttpRequest",
             "Accept-Language": "en-GB,en;q=0.5",
+            "Priority": "u=1",
         }
         
         try:
             # Step 1: Initial request to get router ID and CSRF token
             init_url = f"{self._url}/api/config/details.jst"
-            r_init = requests.get(
+            r_init = self._session.get(
                 init_url,
-                params={"X_INTERNAL_FIELDS": "X_VODAFONE_ServiceStatus_1"},
+                params={"X_INTERNAL_FIELDS": "X_RDK_ONT_Veip_1_OperationalState"},
                 headers=headers,
                 timeout=10
             )
@@ -73,7 +74,7 @@ class UltraHub7Driver(ModemDriver):
 
             # Step 2: Get WebUISecret from device
             details_url = f"{self._url}/api/users/details.jst"
-            r = requests.get(
+            r = self._session.get(
                 details_url,
                 params={
                     "__id": self._router_id,
@@ -144,7 +145,7 @@ class UltraHub7Driver(ModemDriver):
                 "csrf_token": self._csrf_token,
             }
 
-            r2 = requests.post(
+            r2 = self._session.post(
                 login_url,
                 data=login_payload,  # Form data, not JSON
                 headers=headers,  # AJAX headers for CSRF protection
@@ -152,7 +153,7 @@ class UltraHub7Driver(ModemDriver):
             )
             r2.raise_for_status()
             
-            # Step 7: Extract session cookie and CSRF token
+            # Step 7: Validate login response
             login_response = r2.json()
             
             # Check for authentication errors
@@ -162,18 +163,12 @@ class UltraHub7Driver(ModemDriver):
             if login_response.get("X_INTERNAL_Is_Duplicate") == "true":
                 raise RuntimeError("Already logged in (duplicate session)")
 
-            # Extract DUKSID cookie
-            cookies = r2.cookies
-            if "DUKSID" not in cookies:
-                raise RuntimeError("Session cookie (DUKSID) not found in response")
-            
-            self._session_cookie = cookies["DUKSID"]
-            
-            # Update CSRF token from response
+            # Update CSRF token from response if present
             if "csrf_token" in login_response:
                 self._csrf_token = login_response["csrf_token"]
 
-            log.info("Auth OK (DUKSID: %s...)", self._session_cookie[:12])
+            # Session cookies are now stored in self._session.cookies
+            log.info("Auth OK (session cookies: %s)", list(self._session.cookies.keys()))
 
         except requests.RequestException as e:
             log.error("Login failed: %s", e)
@@ -206,22 +201,22 @@ class UltraHub7Driver(ModemDriver):
 
     def get_docsis_data(self) -> dict:
         """Retrieve raw DOCSIS channel data."""
-        if not self._session_cookie:
+        if not self._csrf_token:
             raise RuntimeError("Not authenticated. Call login() first.")
 
         # Headers for AJAX requests
         headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
+            "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
             "X-Requested-With": "XMLHttpRequest",
             "Accept-Language": "en-GB,en;q=0.5",
+            "Priority": "u=1",
         }
 
         try:
             # Fetch downstream channels
             ds_url = f"{self._url}/api/docsis/downstream/list.jst"
-            ds_response = requests.get(
+            ds_response = self._session.get(
                 ds_url,
-                cookies={"DUKSID": self._session_cookie},
                 headers=headers,
                 timeout=10
             )
@@ -230,9 +225,8 @@ class UltraHub7Driver(ModemDriver):
 
             # Fetch upstream channels
             us_url = f"{self._url}/api/docsis/upstream/list.jst"
-            us_response = requests.get(
+            us_response = self._session.get(
                 us_url,
-                cookies={"DUKSID": self._session_cookie},
                 headers=headers,
                 timeout=10
             )
