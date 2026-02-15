@@ -104,6 +104,10 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 |---|---|
 | ![Correlation](docs/screenshots/correlation.png) | ![Settings](docs/screenshots/settings.png) |
 
+| BQM Integration | |
+|---|---|
+| ![BQM](docs/screenshots/bqm.png) | |
+
 </details>
 
 ---
