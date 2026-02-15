@@ -39,12 +39,20 @@ class UltraHub7Driver(ModemDriver):
         
         Based on aiovodafone VodafoneStationUltraHubApi implementation.
         """
+        # Headers required for AJAX requests (CSRF protection)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept-Language": "en-GB,en;q=0.5",
+        }
+        
         try:
             # Step 1: Initial request to get router ID and CSRF token
             init_url = f"{self._url}/api/config/details.jst"
             r_init = requests.get(
                 init_url,
                 params={"X_INTERNAL_FIELDS": "X_VODAFONE_ServiceStatus_1"},
+                headers=headers,
                 timeout=10
             )
             r_init.raise_for_status()
@@ -71,6 +79,7 @@ class UltraHub7Driver(ModemDriver):
                     "__id": self._router_id,
                     "X_INTERNAL_FIELDS": "X_VODAFONE_WebUISecret"
                 },
+                headers=headers,
                 timeout=10
             )
             r.raise_for_status()
@@ -138,6 +147,7 @@ class UltraHub7Driver(ModemDriver):
             r2 = requests.post(
                 login_url,
                 data=login_payload,  # Form data, not JSON
+                headers=headers,  # AJAX headers for CSRF protection
                 timeout=10
             )
             r2.raise_for_status()
@@ -199,12 +209,20 @@ class UltraHub7Driver(ModemDriver):
         if not self._session_cookie:
             raise RuntimeError("Not authenticated. Call login() first.")
 
+        # Headers for AJAX requests
+        headers = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept-Language": "en-GB,en;q=0.5",
+        }
+
         try:
             # Fetch downstream channels
             ds_url = f"{self._url}/api/docsis/downstream/list.jst"
             ds_response = requests.get(
                 ds_url,
                 cookies={"DUKSID": self._session_cookie},
+                headers=headers,
                 timeout=10
             )
             ds_response.raise_for_status()
@@ -215,6 +233,7 @@ class UltraHub7Driver(ModemDriver):
             us_response = requests.get(
                 us_url,
                 cookies={"DUKSID": self._session_cookie},
+                headers=headers,
                 timeout=10
             )
             us_response.raise_for_status()
