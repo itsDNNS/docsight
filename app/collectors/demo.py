@@ -6,6 +6,7 @@ import logging
 import os
 import random
 import time
+from datetime import datetime, timedelta
 
 from .base import Collector, CollectorResult
 
@@ -87,11 +88,12 @@ class DemoCollector(Collector):
         # Update simulated uptime
         self._device_info["uptime_seconds"] = int(time.time()) % 8640000
 
-        # Publish device/connection info on first poll
+        # First poll: publish device/connection info + seed demo history
         if self._poll_count == 1:
             log.info("Demo mode: %s (%s)", self._device_info["model"], self._device_info["sw_version"])
             self._web.update_state(device_info=self._device_info)
             self._web.update_state(connection_info=self._connection_info)
+            self._seed_demo_data()
 
         data = self._generate_data()
         analysis = self._analyzer(data)
@@ -118,3 +120,108 @@ class DemoCollector(Collector):
             log.info("Demo: detected %d event(s)", len(events))
 
         return CollectorResult(source=self.name, data=analysis)
+
+    def _seed_demo_data(self):
+        """Populate storage with sample events and journal entries on first run."""
+        now = datetime.now()
+
+        # ── Sample events (spread over the last 48h) ──
+        demo_events = [
+            {
+                "timestamp": (now - timedelta(hours=47)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "info",
+                "event_type": "monitoring_started",
+                "message": "Monitoring started (Health: good)",
+                "details": {"health": "good"},
+            },
+            {
+                "timestamp": (now - timedelta(hours=36)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "warning",
+                "event_type": "power_change",
+                "message": "DS power avg shifted from 4.5 to 6.8 dBmV",
+                "details": {"direction": "downstream", "prev": 4.5, "current": 6.8},
+            },
+            {
+                "timestamp": (now - timedelta(hours=36)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "warning",
+                "event_type": "health_change",
+                "message": "Health changed from good to marginal",
+                "details": {"prev": "good", "current": "marginal"},
+            },
+            {
+                "timestamp": (now - timedelta(hours=34)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "warning",
+                "event_type": "error_spike",
+                "message": "Uncorrectable errors jumped by 847 (from 12 to 859)",
+                "details": {"prev": 12, "current": 859, "delta": 847},
+            },
+            {
+                "timestamp": (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "info",
+                "event_type": "health_change",
+                "message": "Health recovered from marginal to good",
+                "details": {"prev": "marginal", "current": "good"},
+            },
+            {
+                "timestamp": (now - timedelta(hours=18)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "warning",
+                "event_type": "snr_change",
+                "message": "DS SNR min dropped to 33.2 dB (warning threshold: 33)",
+                "details": {"prev": 36.5, "current": 33.2, "threshold": "warning"},
+            },
+            {
+                "timestamp": (now - timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "info",
+                "event_type": "channel_change",
+                "message": "DS channel count changed from 25 to 24",
+                "details": {"direction": "downstream", "prev": 25, "current": 24},
+            },
+            {
+                "timestamp": (now - timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "info",
+                "event_type": "channel_change",
+                "message": "DS channel count changed from 24 to 25",
+                "details": {"direction": "downstream", "prev": 24, "current": 25},
+            },
+            {
+                "timestamp": (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "severity": "warning",
+                "event_type": "power_change",
+                "message": "US power avg shifted from 44.8 to 46.3 dBmV",
+                "details": {"direction": "upstream", "prev": 44.8, "current": 46.3},
+            },
+        ]
+        self._storage.save_events(demo_events)
+
+        # ── Sample journal entries ──
+        yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        three_days_ago = (now - timedelta(days=3)).strftime("%Y-%m-%d")
+        week_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+
+        incidents = [
+            (
+                week_ago,
+                "Intermittent packet loss during peak hours",
+                "Noticed buffering on video calls between 8-10 PM.\n"
+                "Downstream SNR dropped below 34 dB on channels 19-24.\n"
+                "Resolved after ISP maintenance window overnight.",
+            ),
+            (
+                three_days_ago,
+                "Uncorrectable error spike after firmware update",
+                "Router rebooted for firmware update at 03:00 AM.\n"
+                "Uncorrectable errors spiked to ~850 across multiple DS channels.\n"
+                "Errors stabilized after ~4 hours. Monitoring for recurrence.",
+            ),
+            (
+                yesterday,
+                "Brief upstream power fluctuation",
+                "US power jumped from 44.8 to 46.3 dBmV for about 2 hours.\n"
+                "Possibly related to temperature changes in the building.\n"
+                "No impact on speeds observed.",
+            ),
+        ]
+        for date, title, description in incidents:
+            self._storage.save_incident(date, title, description)
+
+        log.info("Demo: seeded %d events and %d journal entries", len(demo_events), len(incidents))
