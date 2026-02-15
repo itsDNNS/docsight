@@ -3,8 +3,10 @@
 import copy
 import json
 import logging
+import math
 import os
 import random
+import sqlite3
 import time
 from datetime import datetime, timedelta
 
@@ -122,99 +124,291 @@ class DemoCollector(Collector):
         return CollectorResult(source=self.name, data=analysis)
 
     def _seed_demo_data(self):
-        """Populate storage with sample events and journal entries on first run."""
+        """Populate storage with 90 days of snapshots, events, and journal entries."""
+        # Keep all demo data — don't let cleanup purge the seeded history
+        self._storage.max_days = 0
         now = datetime.now()
+        self._seed_history(now)
+        self._seed_events(now)
+        self._seed_incidents(now)
 
-        # ── Sample events (spread over the last 48h) ──
-        demo_events = [
+    def _seed_history(self, now):
+        """Generate 90 days of historical snapshots (every 15 min)."""
+        days = 90
+        interval_min = 15
+        total = days * 24 * 60 // interval_min  # 8640 snapshots
+        start = now - timedelta(days=days)
+
+        rows = []
+        for i in range(total):
+            ts = start + timedelta(minutes=i * interval_min)
+            ts_str = ts.strftime("%Y-%m-%dT%H:%M:%S")
+
+            # Time-based patterns for realistic variation
+            hour = ts.hour + ts.minute / 60.0
+            day_of_year = ts.timetuple().tm_yday
+
+            # Diurnal cycle: power drifts slightly during the day
+            diurnal = math.sin((hour - 6) * math.pi / 12) * 0.5
+
+            # Slow seasonal drift over weeks
+            seasonal = math.sin(day_of_year * math.pi / 45) * 0.3
+
+            # Occasional "bad periods" (every ~10 days, lasting ~6h)
+            bad_period = (day_of_year % 10 == 0 and 2 <= hour <= 8)
+
+            analysis = self._generate_historical_analysis(
+                i, diurnal, seasonal, bad_period
+            )
+            rows.append((
+                ts_str,
+                json.dumps(analysis["summary"]),
+                json.dumps(analysis["ds_channels"]),
+                json.dumps(analysis["us_channels"]),
+            ))
+
+        # Bulk insert for speed
+        with sqlite3.connect(self._storage.db_path) as conn:
+            conn.executemany(
+                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) "
+                "VALUES (?, ?, ?, ?)",
+                rows,
+            )
+        log.info("Demo: seeded %d historical snapshots (%d days)", len(rows), days)
+
+    def _generate_historical_analysis(self, index, diurnal, seasonal, bad_period):
+        """Generate a single analyzed snapshot for historical seeding."""
+        base = _load_base_data()
+
+        # Build DS channels
+        ds_channels = []
+        total_power = 0
+        total_snr = 0
+        total_corr = 0
+        total_uncorr = 0
+
+        for ch in base["channelDs"]["docsis30"]:
+            power = round(ch["powerLevel"] + diurnal + seasonal + random.uniform(-0.3, 0.3), 1)
+            snr = round(-ch["mse"] + diurnal * 0.3 + random.uniform(-0.5, 0.5), 1)
+            if bad_period:
+                power += random.uniform(1.5, 3.0)
+                snr -= random.uniform(2.0, 5.0)
+            corr = int(ch["corrErrors"] + index * random.randint(0, 3))
+            uncorr = int(random.randint(0, 2) if bad_period else 0)
+            total_power += power
+            total_snr += snr
+            total_corr += corr
+            total_uncorr += uncorr
+            ds_channels.append({
+                "channel_id": ch["channelID"],
+                "frequency": ch["frequency"],
+                "power": power,
+                "modulation": ch["modulation"],
+                "snr": round(snr, 1),
+                "correctable_errors": corr,
+                "uncorrectable_errors": uncorr,
+                "docsis_version": "3.0",
+                "health": "good",
+                "health_detail": "",
+            })
+
+        for ch in base["channelDs"].get("docsis31", []):
+            power = round(ch["powerLevel"] + diurnal + seasonal + random.uniform(-0.3, 0.3), 1)
+            snr = round(ch["mer"] + diurnal * 0.3 + random.uniform(-0.5, 0.5), 1)
+            if bad_period:
+                power += random.uniform(1.0, 2.0)
+                snr -= random.uniform(1.5, 3.0)
+            corr = int(ch["corrErrors"] + index * random.randint(0, 2))
+            uncorr = int(random.randint(0, 1) if bad_period else 0)
+            total_power += power
+            total_snr += snr
+            total_corr += corr
+            total_uncorr += uncorr
+            ds_channels.append({
+                "channel_id": ch["channelID"],
+                "frequency": ch["frequency"],
+                "power": power,
+                "modulation": ch["modulation"],
+                "snr": round(snr, 1),
+                "correctable_errors": corr,
+                "uncorrectable_errors": uncorr,
+                "docsis_version": "3.1",
+                "health": "good",
+                "health_detail": "",
+            })
+
+        # Build US channels
+        us_channels = []
+        us_total_power = 0
+        for ch in base["channelUs"]["docsis30"]:
+            power = round(ch["powerLevel"] + diurnal * 0.2 + random.uniform(-0.3, 0.3), 1)
+            if bad_period:
+                power += random.uniform(0.5, 1.5)
+            us_total_power += power
+            us_channels.append({
+                "channel_id": ch["channelID"],
+                "frequency": ch["frequency"],
+                "power": power,
+                "modulation": ch["modulation"],
+                "multiplex": ch.get("multiplex", "SC-QAM"),
+                "docsis_version": "3.0",
+                "health": "good",
+                "health_detail": "",
+            })
+
+        ds_count = len(ds_channels)
+        us_count = len(us_channels)
+        ds_powers = [ch["power"] for ch in ds_channels]
+        ds_snrs = [ch["snr"] for ch in ds_channels]
+        us_powers = [ch["power"] for ch in us_channels]
+
+        health = "good"
+        if bad_period:
+            health = "marginal"
+
+        return {
+            "summary": {
+                "ds_total": ds_count,
+                "us_total": us_count,
+                "ds_power_min": round(min(ds_powers), 1),
+                "ds_power_max": round(max(ds_powers), 1),
+                "ds_power_avg": round(total_power / ds_count, 1),
+                "us_power_min": round(min(us_powers), 1),
+                "us_power_max": round(max(us_powers), 1),
+                "us_power_avg": round(us_total_power / us_count, 1),
+                "ds_snr_min": round(min(ds_snrs), 1),
+                "ds_snr_avg": round(total_snr / ds_count, 1),
+                "ds_correctable_errors": total_corr,
+                "ds_uncorrectable_errors": total_uncorr,
+                "health": health,
+                "health_issues": [],
+            },
+            "ds_channels": ds_channels,
+            "us_channels": us_channels,
+        }
+
+    def _seed_events(self, now):
+        """Seed realistic events spread over 90 days."""
+        events = [
             {
-                "timestamp": (now - timedelta(hours=47)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "timestamp": (now - timedelta(days=89, hours=23)).strftime("%Y-%m-%dT%H:%M:%S"),
                 "severity": "info",
                 "event_type": "monitoring_started",
                 "message": "Monitoring started (Health: good)",
                 "details": {"health": "good"},
             },
-            {
-                "timestamp": (now - timedelta(hours=36)).strftime("%Y-%m-%dT%H:%M:%S"),
-                "severity": "warning",
-                "event_type": "power_change",
-                "message": "DS power avg shifted from 4.5 to 6.8 dBmV",
-                "details": {"direction": "downstream", "prev": 4.5, "current": 6.8},
-            },
-            {
-                "timestamp": (now - timedelta(hours=36)).strftime("%Y-%m-%dT%H:%M:%S"),
-                "severity": "warning",
-                "event_type": "health_change",
-                "message": "Health changed from good to marginal",
-                "details": {"prev": "good", "current": "marginal"},
-            },
-            {
-                "timestamp": (now - timedelta(hours=34)).strftime("%Y-%m-%dT%H:%M:%S"),
-                "severity": "warning",
-                "event_type": "error_spike",
-                "message": "Uncorrectable errors jumped by 847 (from 12 to 859)",
-                "details": {"prev": 12, "current": 859, "delta": 847},
-            },
-            {
-                "timestamp": (now - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%S"),
-                "severity": "info",
-                "event_type": "health_change",
-                "message": "Health recovered from marginal to good",
-                "details": {"prev": "marginal", "current": "good"},
-            },
-            {
-                "timestamp": (now - timedelta(hours=18)).strftime("%Y-%m-%dT%H:%M:%S"),
+        ]
+
+        # Generate events at "bad period" boundaries (~every 10 days)
+        for d in range(0, 90, 10):
+            t_start = now - timedelta(days=90 - d, hours=-2)
+            t_end = t_start + timedelta(hours=6)
+            events.extend([
+                {
+                    "timestamp": t_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "severity": "warning",
+                    "event_type": "health_change",
+                    "message": "Health changed from good to marginal",
+                    "details": {"prev": "good", "current": "marginal"},
+                },
+                {
+                    "timestamp": (t_start + timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "severity": "warning",
+                    "event_type": "power_change",
+                    "message": f"DS power avg shifted from 4.8 to {round(random.uniform(6.5, 8.0), 1)} dBmV",
+                    "details": {"direction": "downstream", "prev": 4.8, "current": round(random.uniform(6.5, 8.0), 1)},
+                },
+                {
+                    "timestamp": (t_start + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "severity": "warning",
+                    "event_type": "error_spike",
+                    "message": f"Uncorrectable errors jumped by {random.randint(200, 1200)}",
+                    "details": {"prev": 0, "current": random.randint(200, 1200)},
+                },
+                {
+                    "timestamp": t_end.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "severity": "info",
+                    "event_type": "health_change",
+                    "message": "Health recovered from marginal to good",
+                    "details": {"prev": "marginal", "current": "good"},
+                },
+            ])
+
+        # A few SNR and channel change events scattered around
+        for d in [75, 52, 33, 18, 5]:
+            t = now - timedelta(days=d, hours=random.randint(8, 22))
+            snr_val = round(random.uniform(32.0, 34.5), 1)
+            events.append({
+                "timestamp": t.strftime("%Y-%m-%dT%H:%M:%S"),
                 "severity": "warning",
                 "event_type": "snr_change",
-                "message": "DS SNR min dropped to 33.2 dB (warning threshold: 33)",
-                "details": {"prev": 36.5, "current": 33.2, "threshold": "warning"},
-            },
-            {
-                "timestamp": (now - timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M:%S"),
-                "severity": "info",
-                "event_type": "channel_change",
-                "message": "DS channel count changed from 25 to 24",
-                "details": {"direction": "downstream", "prev": 25, "current": 24},
-            },
-            {
-                "timestamp": (now - timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%S"),
-                "severity": "info",
-                "event_type": "channel_change",
-                "message": "DS channel count changed from 24 to 25",
-                "details": {"direction": "downstream", "prev": 24, "current": 25},
-            },
-            {
-                "timestamp": (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%S"),
-                "severity": "warning",
-                "event_type": "power_change",
-                "message": "US power avg shifted from 44.8 to 46.3 dBmV",
-                "details": {"direction": "upstream", "prev": 44.8, "current": 46.3},
-            },
-        ]
-        self._storage.save_events(demo_events)
+                "message": f"DS SNR min dropped to {snr_val} dB (warning threshold: 33)",
+                "details": {"prev": 37.0, "current": snr_val, "threshold": "warning"},
+            })
 
-        # ── Sample journal entries ──
-        yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-        three_days_ago = (now - timedelta(days=3)).strftime("%Y-%m-%d")
-        week_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+        for d in [60, 25, 3]:
+            t = now - timedelta(days=d, hours=random.randint(0, 23))
+            events.extend([
+                {
+                    "timestamp": t.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "severity": "info",
+                    "event_type": "channel_change",
+                    "message": "DS channel count changed from 25 to 24",
+                    "details": {"direction": "downstream", "prev": 25, "current": 24},
+                },
+                {
+                    "timestamp": (t + timedelta(hours=random.randint(2, 8))).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "severity": "info",
+                    "event_type": "channel_change",
+                    "message": "DS channel count changed from 24 to 25",
+                    "details": {"direction": "downstream", "prev": 24, "current": 25},
+                },
+            ])
 
+        self._storage.save_events(events)
+        log.info("Demo: seeded %d events", len(events))
+
+    def _seed_incidents(self, now):
+        """Seed journal entries spread over the demo period."""
         incidents = [
             (
-                week_ago,
+                (now - timedelta(days=82)).strftime("%Y-%m-%d"),
+                "Initial setup and baseline measurement",
+                "Installed DOCSight to monitor cable connection.\n"
+                "Baseline: 25 DS channels (256QAM), 4 US channels (64QAM).\n"
+                "All values within VFKD good-range. ISP: Vodafone Cable 250/40.",
+            ),
+            (
+                (now - timedelta(days=70)).strftime("%Y-%m-%d"),
                 "Intermittent packet loss during peak hours",
                 "Noticed buffering on video calls between 8-10 PM.\n"
                 "Downstream SNR dropped below 34 dB on channels 19-24.\n"
                 "Resolved after ISP maintenance window overnight.",
             ),
             (
-                three_days_ago,
+                (now - timedelta(days=50)).strftime("%Y-%m-%d"),
+                "Downstream channel temporarily dropped",
+                "Channel 24 disappeared for ~6 hours.\n"
+                "Came back on its own. Possibly ISP-side reconfiguration.\n"
+                "No noticeable impact on speeds during the outage.",
+            ),
+            (
+                (now - timedelta(days=30)).strftime("%Y-%m-%d"),
+                "ISP maintenance — brief signal degradation",
+                "Received ISP notification about planned maintenance.\n"
+                "DS power spiked to 7-8 dBmV for about 4 hours.\n"
+                "Uncorrectable errors increased during the window.\n"
+                "Fully recovered by morning.",
+            ),
+            (
+                (now - timedelta(days=10)).strftime("%Y-%m-%d"),
                 "Uncorrectable error spike after firmware update",
                 "Router rebooted for firmware update at 03:00 AM.\n"
                 "Uncorrectable errors spiked to ~850 across multiple DS channels.\n"
                 "Errors stabilized after ~4 hours. Monitoring for recurrence.",
             ),
             (
-                yesterday,
+                (now - timedelta(days=1)).strftime("%Y-%m-%d"),
                 "Brief upstream power fluctuation",
                 "US power jumped from 44.8 to 46.3 dBmV for about 2 hours.\n"
                 "Possibly related to temperature changes in the building.\n"
@@ -223,5 +417,4 @@ class DemoCollector(Collector):
         ]
         for date, title, description in incidents:
             self._storage.save_incident(date, title, description)
-
-        log.info("Demo: seeded %d events and %d journal entries", len(demo_events), len(incidents))
+        log.info("Demo: seeded %d journal entries", len(incidents))
