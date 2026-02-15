@@ -3356,7 +3356,7 @@ function escapeHtml(str) {
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
 var _correlationChart = null;
-var _corrVisible = { snr: true, download: true, upload: true, events: true, poorSignal: true };
+var _corrVisible = { snr: true, txPower: true, download: true, upload: true, events: true, poorSignal: true };
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 
 function loadCorrelationData() {
@@ -3454,8 +3454,15 @@ function renderCorrelationChart(data) {
     var dlMax = speedMax;
     var dlMin = 0;
     function yDl(v) { return pad.top + plotH - (v - dlMin) / (dlMax - dlMin) * plotH; }
+    // TX Power axis (shares left side, separate scale)
+    var txValues = modem.map(function(d) { return d.us_power_avg || 0; }).filter(function(v) { return v > 0; });
+    var txMin = txValues.length ? Math.floor(Math.min.apply(null, txValues) - 2) : 30;
+    var txMax = txValues.length ? Math.ceil(Math.max.apply(null, txValues) + 2) : 55;
+    function yTx(v) { return pad.top + plotH - (v - txMin) / (txMax - txMin) * plotH; }
+
     var uploadColor = '#06b6d4'; // cyan
     var snrColor = 'rgba(168,85,247,1)'; // purple
+    var txColor = '#f59e0b'; // amber/orange
 
     var style = getComputedStyle(document.documentElement);
     var textColor = style.getPropertyValue('--muted').trim() || '#888';
@@ -3472,10 +3479,10 @@ function renderCorrelationChart(data) {
     _corrChartState = {
         pad: pad, plotW: plotW, plotH: plotH, W: W, H: H,
         tMin: tMin, tMax: tMax,
-        snrMin: snrMin, snrMax: snrMax, dlMin: dlMin, dlMax: dlMax,
+        snrMin: snrMin, snrMax: snrMax, txMin: txMin, txMax: txMax, dlMin: dlMin, dlMax: dlMax,
         modem: modem, speedtest: sortedSpeedtest, events: events,
-        xScale: xScale, ySnr: ySnr, yDl: yDl,
-        colors: { snr: snrColor, download: goodColor, upload: uploadColor, event: warnColor, text: textColor, grid: gridColor },
+        xScale: xScale, ySnr: ySnr, yTx: yTx, yDl: yDl,
+        colors: { snr: snrColor, txPower: txColor, download: goodColor, upload: uploadColor, event: warnColor, text: textColor, grid: gridColor },
         dpr: dpr
     };
 
@@ -3572,6 +3579,36 @@ function renderCorrelationChart(data) {
         ctx.strokeStyle = snrColor;
         ctx.lineWidth = 2;
         ctx.stroke();
+    }
+
+    // Draw upstream TX power line
+    if (_corrVisible.txPower && modem.length > 1 && txValues.length > 0) {
+        ctx.beginPath();
+        for (var i = 0; i < modem.length; i++) {
+            var txVal = modem[i].us_power_avg;
+            if (!txVal) continue;
+            var x = xScale(new Date(modem[i].timestamp).getTime());
+            var y = yTx(txVal);
+            if (ctx._txStarted) {
+                var x0 = ctx._txLastX;
+                var y0 = ctx._txLastY;
+                var cpx = x0 + (x - x0) * 0.4;
+                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+            } else {
+                ctx.moveTo(x, y);
+                ctx._txStarted = true;
+            }
+            ctx._txLastX = x;
+            ctx._txLastY = y;
+        }
+        delete ctx._txStarted;
+        delete ctx._txLastX;
+        delete ctx._txLastY;
+        ctx.strokeStyle = txColor;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
     }
 
     // Draw modem health background bands
@@ -3705,6 +3742,9 @@ function renderCorrelationChart(data) {
     var legendItems = [];
     if (modem.length > 0) {
         legendItems.push({ metric: 'snr', color: snrColor, label: '&#9644; SNR (dB)' });
+        if (txValues.length > 0) {
+            legendItems.push({ metric: 'txPower', color: txColor, label: '&#9476; TX Power (dBmV)' });
+        }
     }
     if (speedtest.length > 0) {
         legendItems.push({ metric: 'download', color: goodColor, label: '&#9644; Download (Mbps)' });
@@ -3820,6 +3860,17 @@ function _setupCorrelationTooltip(overlay, octx) {
             newOctx.lineWidth = 2;
             newOctx.stroke();
         }
+        if (nearestModem && _corrVisible.txPower && nearestModem.us_power_avg) {
+            var dx = st.xScale(new Date(nearestModem.timestamp).getTime());
+            var dy = st.yTx(nearestModem.us_power_avg);
+            newOctx.beginPath();
+            newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
+            newOctx.fillStyle = st.colors.txPower;
+            newOctx.fill();
+            newOctx.strokeStyle = '#fff';
+            newOctx.lineWidth = 2;
+            newOctx.stroke();
+        }
         if (nearestSpeed) {
             if (_corrVisible.download) {
                 var dx = st.xScale(new Date(nearestSpeed.timestamp).getTime());
@@ -3863,6 +3914,9 @@ function _setupCorrelationTooltip(overlay, octx) {
 
         if (nearestModem && _corrVisible.snr) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.snr + ';"></span> SNR: ' + (nearestModem.ds_snr_min || 0).toFixed(1) + ' dB</div>';
+        }
+        if (nearestModem && _corrVisible.txPower && nearestModem.us_power_avg) {
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.txPower + ';"></span> TX Power: ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
         }
         if (nearestSpeed && _corrVisible.download) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> Download: ' + (nearestSpeed.download_mbps || 0).toFixed(1) + ' Mbps</div>';
@@ -3967,17 +4021,29 @@ function _corrHighlightFromTable(timestamp, source) {
     octx.setLineDash([]);
 
     // Draw highlight dot based on source
-    if (source === 'modem' && _corrVisible.snr) {
+    if (source === 'modem') {
         for (var i = 0; i < st.modem.length; i++) {
             if (st.modem[i].timestamp === timestamp) {
-                var dy = st.ySnr(st.modem[i].ds_snr_min || st.snrMin);
-                octx.beginPath();
-                octx.arc(x, dy, 6, 0, Math.PI * 2);
-                octx.fillStyle = st.colors.snr;
-                octx.fill();
-                octx.strokeStyle = '#fff';
-                octx.lineWidth = 2;
-                octx.stroke();
+                if (_corrVisible.snr) {
+                    var dy = st.ySnr(st.modem[i].ds_snr_min || st.snrMin);
+                    octx.beginPath();
+                    octx.arc(x, dy, 6, 0, Math.PI * 2);
+                    octx.fillStyle = st.colors.snr;
+                    octx.fill();
+                    octx.strokeStyle = '#fff';
+                    octx.lineWidth = 2;
+                    octx.stroke();
+                }
+                if (_corrVisible.txPower && st.modem[i].us_power_avg) {
+                    var dy = st.yTx(st.modem[i].us_power_avg);
+                    octx.beginPath();
+                    octx.arc(x, dy, 6, 0, Math.PI * 2);
+                    octx.fillStyle = st.colors.txPower;
+                    octx.fill();
+                    octx.strokeStyle = '#fff';
+                    octx.lineWidth = 2;
+                    octx.stroke();
+                }
                 break;
             }
         }
@@ -4055,10 +4121,31 @@ function renderCorrelationTable(data) {
         error_spike: {{ t.event_type_error_spike | tojson }}
     };
 
+    // Pre-filter modem entries: only show health transitions (not repeated same-status)
+    // Data is chronological, sorted is reversed (newest first)
+    var chronological = data.slice().sort(function(a, b) {
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+    });
+    var modemTransitionTs = {};
+    var lastModemHealth = null;
+    for (var i = 0; i < chronological.length; i++) {
+        if (chronological[i].source !== 'modem') continue;
+        var h = chronological[i].health || 'unknown';
+        if (h !== lastModemHealth) {
+            modemTransitionTs[chronological[i].timestamp] = true;
+            lastModemHealth = h;
+        }
+    }
+
+    var sorted = data.slice().reverse();
     var maxRows = 200;
     var count = 0;
     for (var i = 0; i < sorted.length && count < maxRows; i++) {
         var e = sorted[i];
+
+        // Skip modem entries that are not health transitions
+        if (e.source === 'modem' && !modemTransitionTs[e.timestamp]) continue;
+
         var tr = document.createElement('tr');
         tr.setAttribute('data-ts', e.timestamp);
         tr.setAttribute('data-src', e.source);
@@ -4074,6 +4161,7 @@ function renderCorrelationTable(data) {
             msg = badge;
             details = 'SNR ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : '') +
                       ' | Power ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '') +
+                      ' | TX ' + (e.us_power_avg != null ? e.us_power_avg + ' dBmV' : '') +
                       ' | Errors ' + (e.ds_uncorrectable_errors || 0);
         } else if (src === 'speedtest') {
             src = '<span style="color:var(--good);">Speedtest</span>';
