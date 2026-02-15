@@ -1977,8 +1977,7 @@ details.channel-group {
 }
 
 .hero-sep {
-    margin: 0 6px;
-    opacity: 0.5;
+    display: none; /* Hide separators - not needed in column layout */
 }
 
 /* Info icon tooltip for auto-detected values */
