@@ -59,25 +59,25 @@ class DemoCollector(Collector):
         data = copy.deepcopy(base)
 
         for ch in data["channelDs"]["docsis30"]:
-            ch["powerLevel"] += random.uniform(-0.3, 0.3)
-            ch["mse"] += random.uniform(-0.5, 0.5)
+            ch["powerLevel"] = round(ch["powerLevel"] + random.uniform(-0.3, 0.3), 1)
+            ch["mse"] = round(ch["mse"] + random.uniform(-0.5, 0.5), 1)
             # Errors slowly accumulate
             ch["corrErrors"] += random.randint(0, 5) * self._poll_count
             if random.random() < 0.02:
                 ch["nonCorrErrors"] += random.randint(1, 3)
 
         for ch in data["channelDs"].get("docsis31", []):
-            ch["powerLevel"] += random.uniform(-0.3, 0.3)
-            ch["mer"] += random.uniform(-0.5, 0.5)
+            ch["powerLevel"] = round(ch["powerLevel"] + random.uniform(-0.3, 0.3), 1)
+            ch["mer"] = round(ch["mer"] + random.uniform(-0.5, 0.5), 1)
             ch["corrErrors"] += random.randint(0, 3) * self._poll_count
             if random.random() < 0.01:
                 ch["nonCorrErrors"] += random.randint(1, 2)
 
         for ch in data["channelUs"]["docsis30"]:
-            ch["powerLevel"] += random.uniform(-0.3, 0.3)
+            ch["powerLevel"] = round(ch["powerLevel"] + random.uniform(-0.3, 0.3), 1)
 
         for ch in data["channelUs"].get("docsis31", []):
-            ch["powerLevel"] += random.uniform(-0.3, 0.3)
+            ch["powerLevel"] = round(ch["powerLevel"] + random.uniform(-0.3, 0.3), 1)
 
         return data
 
