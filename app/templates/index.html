@@ -229,7 +229,7 @@
                 
                 {# 3. Channels #}
                 <span class="hero-channels">
-                    {{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channels }}
+                    {{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channel if (s.ds_total + s.us_total) == 1 else t.channels }}
                     <span class="info-icon" data-tooltip="Auto-detected from modem" style="margin-left:3px;">
                         <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;"></i>
                     </span>
@@ -475,9 +475,9 @@
         <div class="channel-section-header">
             <i data-lucide="radio-tower" class="section-icon"></i>
             <h2 class="section-title">{{ t.downstream }}</h2>
-            <span class="section-badge">{{ ds|length }} {{ t.channels }}</span>
+            <span class="section-badge">{{ ds|length }} {{ t.channel if ds|length == 1 else t.channels }}</span>
         </div>
-        
+
         {% for group in ds|groupby('docsis_version')|reverse %}
         {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
         {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
@@ -486,7 +486,7 @@
                 <summary>
                     <div class="channel-group-summary">
                         <span class="channel-group-label">DOCSIS {{ group.grouper }}</span>
-                        <span class="channel-group-count">({{ group.list|length }} {{ t.channels }})</span>
+                        <span class="channel-group-count">({{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }})</span>
                         <div class="channel-group-badges">
                             {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% endif %}
                             {% if g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% endif %}
@@ -536,9 +536,9 @@
         <div class="channel-section-header">
             <i data-lucide="radio-tower" class="section-icon"></i>
             <h2 class="section-title">{{ t.upstream }}</h2>
-            <span class="section-badge">{{ us|length }} {{ t.channels }}</span>
+            <span class="section-badge">{{ us|length }} {{ t.channel if us|length == 1 else t.channels }}</span>
         </div>
-        
+
         {% for group in us|groupby('docsis_version')|reverse %}
         {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
         {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
@@ -547,7 +547,7 @@
                 <summary>
                     <div class="channel-group-summary">
                         <span class="channel-group-label">DOCSIS {{ group.grouper }}</span>
-                        <span class="channel-group-count">({{ group.list|length }} {{ t.channels }})</span>
+                        <span class="channel-group-count">({{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }})</span>
                         <div class="channel-group-badges">
                             {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% endif %}
                             {% if g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% endif %}
