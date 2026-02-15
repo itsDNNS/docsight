@@ -193,13 +193,13 @@
                 <span class="hero-isp">
                     {% set isp_lower = isp_name.lower() %}
                     {% if 'vodafone' in isp_lower %}
-                    <img src="/static/img/providers/vodafone.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
+                    <img src="/static/img/providers/vodafone.svg" alt="{{ isp_name }}" style="width:14px;height:14px;">
                     {% elif 'telekom' in isp_lower %}
-                    <img src="/static/img/providers/telekom.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
+                    <img src="/static/img/providers/telekom.svg" alt="{{ isp_name }}" style="width:14px;height:14px;">
                     {% elif 'o2' in isp_lower %}
-                    <img src="/static/img/providers/o2.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
+                    <img src="/static/img/providers/o2.svg" alt="{{ isp_name }}" style="width:14px;height:14px;">
                     {% else %}
-                    <img src="/static/img/providers/generic.svg" alt="{{ isp_name }}" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;opacity:0.7;">
+                    <img src="/static/img/providers/generic.svg" alt="{{ isp_name }}" style="width:14px;height:14px;opacity:0.7;">
                     {% endif %}
                     {{ isp_name }}
                 </span>
@@ -211,7 +211,7 @@
                 <span class="hero-speed">
                     {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} MBit/s
                     <span class="info-icon" data-tooltip="Auto-detected from modem">
-                        <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;"></i>
+                        <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;"></i>
                     </span>
                 </span>
                 <span class="hero-sep">&middot;</span>
@@ -219,12 +219,12 @@
                 <span class="hero-speed">
                     {{ booked_download|int }}/{{ booked_upload|int }} MBit/s
                     <span class="info-icon" data-tooltip="Configured in Settings">
-                        <i data-lucide="settings" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;"></i>
+                        <i data-lucide="settings" style="width:12px;height:12px;opacity:0.5;"></i>
                     </span>
                 </span>
                 <span class="hero-sep">&middot;</span>
                 {% else %}
-                <a href="/settings" style="color:var(--text-secondary);text-decoration:none;font-size:12px;opacity:0.7;display:flex;align-items:center;gap:4px;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+                <a href="/settings" style="color:var(--text-secondary);text-decoration:none;font-size:12px;opacity:0.7;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
                     <i data-lucide="settings" style="width:11px;height:11px;"></i>
                     <span>Set speed in Settings</span>
                 </a>
@@ -235,7 +235,7 @@
                 <span class="hero-channels">
                     {{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channels }}
                     <span class="info-icon" data-tooltip="Auto-detected from modem">
-                        <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;vertical-align:middle;"></i>
+                        <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;"></i>
                     </span>
                 </span>
             </div>
