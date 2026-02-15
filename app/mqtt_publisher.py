@@ -21,7 +21,8 @@ def _sanitize_topic(topic):
 
 class MQTTPublisher:
     def __init__(self, host, port=1883, user=None, password=None,
-                 topic_prefix="fritzbox/docsis", ha_prefix="homeassistant"):
+                 topic_prefix="fritzbox/docsis", ha_prefix="homeassistant",
+                 tls_insecure=False):
         self.host = host
         self.port = port
         self.topic_prefix = _sanitize_topic(topic_prefix)
@@ -31,6 +32,7 @@ class MQTTPublisher:
             mqtt.CallbackAPIVersion.VERSION2,
             client_id="docsight",
         )
+        self.client.tls_insecure_set(tls_insecure)
         if user:
             self.client.username_pw_set(user, password)
 

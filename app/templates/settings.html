@@ -648,6 +648,11 @@
                                     <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
                                 </div>
                                 <div class="form-row">
+                                    <label for="mqtt_tls_insecure">{{ t.mqtt_tls_insecure }}</label>
+                                    <input type="hidden" name="mqtt_tls_insecure" value="false">
+                                    <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" value="true" {% if config.mqtt_tls_insecure %}checked{% endif %}>
+                                </div>
+                                <div class="form-row">
                                     <label for="mqtt_user">{{ t.username_opt }}</label>
                                     <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
                                 </div>
