@@ -114,6 +114,60 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 
 Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magenta (AT), UPC (CH), Virgin Media (UK), and others. Default signal thresholds are based on VFKD guidelines and can be customized in `thresholds.json` for your ISP.
 
+---
+
+## Architecture
+
+DOCSight uses a **modular collector-based architecture** for reliable data gathering from multiple sources:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Collector Registry                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   Modem      │  │  Speedtest   │  │     BQM      │      │
+│  │  Collector   │  │  Collector   │  │  Collector   │      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│         │                  │                  │              │
+│         ▼                  ▼                  ▼              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              Base Collector (Fail-Safe)              │   │
+│  │  • Exponential backoff (30s → 3600s max)            │   │
+│  │  • Auto-reset after 24h idle                        │   │
+│  │  • Health status monitoring                         │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+         ┌────────────────────────────────────┐
+         │         Event Detector             │
+         │  (Anomaly detection & alerting)    │
+         └────────────┬───────────────────────┘
+                      │
+                      ▼
+         ┌────────────────────────────────────┐
+         │      SQLite Storage + MQTT          │
+         │  (Snapshots, trends, Home Assistant)│
+         └────────────┬───────────────────────┘
+                      │
+                      ▼
+         ┌────────────────────────────────────┐
+         │          Web UI (Flask)             │
+         │  (Dashboard, charts, reports)       │
+         └─────────────────────────────────────┘
+```
+
+### Key Design Principles
+
+- **Modular collectors**: Each data source (modem, speedtest, BQM) is an independent collector with standardized interface
+- **Built-in fail-safe**: Exponential backoff prevents hammering failing endpoints, with automatic recovery
+- **Config-driven**: Collectors enable/disable based on configuration without code changes
+- **Separation of concerns**: Data collection, analysis, storage, and presentation are cleanly separated
+- **Extensible**: New data sources can be added by implementing the `Collector` base class
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation.
+
+---
+
 ## Requirements
 
 - Docker (or any OCI-compatible container runtime)

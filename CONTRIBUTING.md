@@ -15,16 +15,18 @@ Small bugfixes and typo corrections are fine without an issue.
 
 ## Architecture
 
-DOCSight uses a single data flow pipeline. All data follows this path:
+DOCSight v2.0 uses a **modular collector-based architecture**. All data collection follows this pattern:
 
 ```
-Modem (fritzbox.py) → Analyzer (analyzer.py) → Event Detector (event_detector.py)
-  → Storage (storage.py) → Web UI (web.py) / Reports (report.py)
+Collector Registry → Base Collector (Fail-Safe) → Analyzer/Storage → Web UI
 ```
 
-**When contributing, your code must integrate into this pipeline.** Do not create parallel subsystems with separate storage, threading, or state management. New data sources should hook into the existing polling loop in `main.py`.
+**When contributing:**
+- New data sources must implement the `Collector` base class
+- Do not create parallel subsystems with separate threading or state
+- Use the collector pattern for automatic fail-safe and health monitoring
 
-See the [v2.0 Milestone](https://github.com/itsDNNS/docsight/milestone/1) for the planned Unified Collector Architecture ([#23](https://github.com/itsDNNS/docsight/issues/23)) that will formalize this pattern.
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation and data flow diagrams.
 
 ## Development Setup
 
