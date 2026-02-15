@@ -10,3 +10,13 @@ deploy.sh
 .config_key
 config.json
 CLAUDE.md
+
+# Internal development docs (belong in workspace, not repo)
+PHASE-*.md
+*-review-*.md
+*-audit-*.md
+*-status.md
+*-tomorrow.md
+QUICK-TEST-*.md
+phase*.png
+mockup*.png
