@@ -37,6 +37,20 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 
 ---
 
+## 🧪 Beta Testing (v2.0)
+
+DOCSight v2.0 is currently in beta testing! We're looking for community feedback.
+
+**Try it:** `docker run -d -p 8766:8765 -v docsight_v2_data:/data ghcr.io/itsdnns/docsight:v2-dev`
+
+**What's new:** Complete UI redesign, modular architecture, cross-source correlation
+
+**Migration safe:** Your v1 data is automatically migrated. No data loss!
+
+**Report issues:** [GitHub Issues](https://github.com/itsDNNS/docsight/issues) with tag `v2-preview`
+
+---
+
 ## Is This For Me?
 
 | | |
