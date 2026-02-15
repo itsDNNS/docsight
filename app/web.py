@@ -358,6 +358,12 @@ def index():
     booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
     booked_upload = _config_manager.get("booked_upload", 0) if _config_manager else 0
     conn_info = _state.get("connection_info") or {}
+    # Demo mode: derive booked speeds from connection info if not explicitly set
+    if demo_mode:
+        if not booked_download:
+            booked_download = conn_info.get("max_downstream_kbps", 250000) // 1000
+        if not booked_upload:
+            booked_upload = conn_info.get("max_upstream_kbps", 40000) // 1000
     dev_info = _state.get("device_info") or {}
 
     def _compute_uncorr_pct(analysis):
@@ -910,6 +916,9 @@ def api_speedtest():
         return jsonify([])
     count = request.args.get("count", 2000, type=int)
     count = max(1, min(count, 5000))
+    # Demo mode: return seeded data without external API call
+    if _config_manager.is_demo_mode() and _storage:
+        return jsonify(_storage.get_speedtest_results(limit=count))
     # Delta fetch: get new results from STT API and cache them
     if _storage:
         try:

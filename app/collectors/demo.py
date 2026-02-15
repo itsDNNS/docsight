@@ -7,7 +7,9 @@ import math
 import os
 import random
 import sqlite3
+import struct
 import time
+import zlib
 from datetime import datetime, timedelta
 
 from .base import Collector, CollectorResult
@@ -124,13 +126,15 @@ class DemoCollector(Collector):
         return CollectorResult(source=self.name, data=analysis)
 
     def _seed_demo_data(self):
-        """Populate storage with 90 days of snapshots, events, and journal entries."""
+        """Populate storage with 90 days of snapshots, events, journal, speedtest, and BQM."""
         # Keep all demo data — don't let cleanup purge the seeded history
         self._storage.max_days = 0
         now = datetime.now()
         self._seed_history(now)
         self._seed_events(now)
         self._seed_incidents(now)
+        self._seed_speedtest_results(now)
+        self._seed_bqm_graphs(now)
 
     def _seed_history(self, now):
         """Generate 90 days of historical snapshots (every 15 min)."""
@@ -418,3 +422,115 @@ class DemoCollector(Collector):
         for date, title, description in incidents:
             self._storage.save_incident(date, title, description)
         log.info("Demo: seeded %d journal entries", len(incidents))
+
+    def _seed_speedtest_results(self, now):
+        """Seed 90 days of speedtest results (~3 per day, correlated with bad periods)."""
+        days = 90
+        results = []
+        result_id = 1
+
+        for d in range(days):
+            ts_day = now - timedelta(days=days - d)
+            day_of_year = ts_day.timetuple().tm_yday
+            bad_day = (day_of_year % 10 == 0)
+
+            # 3 tests per day: morning, afternoon, evening
+            for hour in [8, 14, 21]:
+                ts = ts_day.replace(hour=hour, minute=random.randint(0, 59),
+                                    second=random.randint(0, 59), microsecond=0)
+                # Skip some tests randomly (~15%) for realism
+                if random.random() < 0.15:
+                    continue
+
+                # Bad period: 2-8 AM on bad days
+                is_bad = bad_day and 2 <= hour <= 8
+
+                if is_bad:
+                    dl = round(random.uniform(150, 200), 2)
+                    ul = round(random.uniform(25, 35), 2)
+                    ping = round(random.uniform(15, 35), 1)
+                    jitter = round(random.uniform(3, 8), 1)
+                    loss = round(random.uniform(0, 2), 1)
+                else:
+                    dl = round(random.uniform(220, 265), 2)
+                    ul = round(random.uniform(36, 42), 2)
+                    ping = round(random.uniform(8, 15), 1)
+                    jitter = round(random.uniform(1, 4), 1)
+                    loss = 0.0
+
+                results.append({
+                    "id": result_id,
+                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "download_mbps": dl,
+                    "upload_mbps": ul,
+                    "download_human": f"{dl} Mbps",
+                    "upload_human": f"{ul} Mbps",
+                    "ping_ms": ping,
+                    "jitter_ms": jitter,
+                    "packet_loss_pct": loss,
+                })
+                result_id += 1
+
+        self._storage.save_speedtest_results(results)
+
+        # Set latest result in web state for dashboard card
+        if results:
+            self._web.update_state(speedtest_latest=results[-1])
+
+        log.info("Demo: seeded %d speedtest results (%d days)", len(results), days)
+
+    def _seed_bqm_graphs(self, now):
+        """Seed BQM placeholder graphs for the last 14 days."""
+        for d in range(14):
+            date = (now - timedelta(days=d)).strftime("%Y-%m-%d")
+            ts = (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%S")
+            png = self._generate_bqm_png(seed=d)
+            with sqlite3.connect(self._storage.db_path) as conn:
+                conn.execute(
+                    "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob) "
+                    "VALUES (?, ?, ?)",
+                    (date, ts, png),
+                )
+        log.info("Demo: seeded 14 BQM graphs")
+
+    @staticmethod
+    def _generate_bqm_png(width=800, height=200, seed=0):
+        """Generate a simple BQM-style quality graph as PNG bytes."""
+        rng = random.Random(seed)
+
+        def _png_chunk(chunk_type, data):
+            c = chunk_type + data
+            crc = struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
+            return struct.pack(">I", len(data)) + c + crc
+
+        # Generate pixel data: quality bar chart with green/yellow/red bands
+        raw = b""
+        for y in range(height):
+            row = b"\x00"  # PNG filter: None
+            for x in range(width):
+                # Simulate quality: mostly green, some yellow/red sections
+                quality = 0.8 + 0.2 * math.sin(x * 0.02 + seed) + rng.uniform(-0.05, 0.05)
+                quality = max(0, min(1, quality))
+
+                # Quality bar: bottom portion filled, top portion background
+                bar_height = int(quality * height * 0.8)
+                if y > height - bar_height:
+                    if quality > 0.7:
+                        r, g, b = 46, 160, 67  # green
+                    elif quality > 0.4:
+                        r, g, b = 200, 170, 40  # yellow
+                    else:
+                        r, g, b = 200, 50, 50  # red
+                    # Slight vertical gradient
+                    fade = 0.7 + 0.3 * (height - y) / height
+                    r, g, b = int(r * fade), int(g * fade), int(b * fade)
+                else:
+                    r, g, b = 30, 30, 40  # dark background
+                row += bytes([r, g, b])
+            raw += row
+
+        sig = b"\x89PNG\r\n\x1a\n"
+        ihdr = _png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        idat = _png_chunk(b"IDAT", zlib.compress(raw, 6))
+        iend = _png_chunk(b"IEND", b"")
+        return sig + ihdr + idat + iend
