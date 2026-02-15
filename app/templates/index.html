@@ -104,7 +104,6 @@
 <div class="topbar">
     <div class="topbar-left">
         <button class="hamburger-btn" id="hamburger" title="Menu">&#9776;</button>
-        <span class="topbar-title">DOCSight</span>
     </div>
     <div class="topbar-right">
         <span class="topbar-meta" id="topbar-meta">
@@ -192,7 +191,12 @@
                 <span class="hero-channels">{{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channels|lower }}</span>
                 {% if isp_name %}
                 <span class="hero-sep">&middot;</span>
-                <span class="hero-isp">{{ isp_name }}</span>
+                <span class="hero-isp">
+                    {% if 'vodafone' in isp_name.lower() %}
+                    <img src="/static/img/providers/vodafone.svg" alt="Vodafone" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;">
+                    {% endif %}
+                    {{ isp_name }}
+                </span>
                 {% endif %}
                 {% if connection_info and connection_info.max_downstream_kbps %}
                 <span class="hero-sep">&middot;</span>
@@ -357,14 +361,14 @@
             </div>
             <div class="metric-summary-values">
                 <div class="metric-value-item">
-                    <span class="value {{ dl_val_class }}">{{ speedtest_latest.download_mbps|round(0)|int }}</span>
-                    <span class="unit">Mbps</span>
+                    <span class="value {{ dl_val_class }}">{{ speedtest_latest.download_mbps|fmt_speed_value }}</span>
+                    <span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }}</span>
                     <span class="sublabel">{{ t.download }}</span>
                 </div>
                 <div class="metric-value-divider"></div>
                 <div class="metric-value-item">
-                    <span class="value {{ ul_val_class }}">{{ speedtest_latest.upload_mbps|round(0)|int }}</span>
-                    <span class="unit">Mbps</span>
+                    <span class="value {{ ul_val_class }}">{{ speedtest_latest.upload_mbps|fmt_speed_value }}</span>
+                    <span class="unit">{{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
                     <span class="sublabel">{{ t.upload }}</span>
                 </div>
             </div>

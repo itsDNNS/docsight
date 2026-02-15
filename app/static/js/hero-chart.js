@@ -53,6 +53,7 @@
         // Prepare datasets (timestamp is ISO string, not unix timestamp)
         const labels = data.map(d => new Date(d.timestamp));
         const dsPower = data.map(d => d.ds_power_avg);
+        const usPower = data.map(d => d.us_power_avg);
         const snr = data.map(d => d.ds_snr_avg);
 
         new Chart(ctx, {
@@ -64,6 +65,16 @@
                     data: dsPower,
                     borderColor: 'rgba(168,85,247,0.9)',
                     backgroundColor: 'rgba(168,85,247,0.15)',
+                    yAxisID: 'y-power',
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 2,
+                    fill: true
+                }, {
+                    label: 'US Power (dBmV)',
+                    data: usPower,
+                    borderColor: 'rgba(245,158,11,0.9)',
+                    backgroundColor: 'rgba(245,158,11,0.15)',
                     yAxisID: 'y-power',
                     tension: 0.3,
                     pointRadius: 0,
@@ -143,8 +154,6 @@
                     'y-power': {
                         type: 'linear',
                         position: 'left',
-                        min: -15,
-                        max: 25,
                         title: { 
                             display: true, 
                             text: 'Power (dBmV)',
