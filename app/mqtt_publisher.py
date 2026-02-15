@@ -22,11 +22,12 @@ def _sanitize_topic(topic):
 class MQTTPublisher:
     def __init__(self, host, port=1883, user=None, password=None,
                  topic_prefix="fritzbox/docsis", ha_prefix="homeassistant",
-                 tls_insecure=False):
+                 tls_insecure=False, web_port=8765):
         self.host = host
         self.port = port
         self.topic_prefix = _sanitize_topic(topic_prefix)
         self.ha_prefix = _sanitize_topic(ha_prefix)
+        self.web_port = web_port
 
         self.client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,
@@ -45,10 +46,10 @@ class MQTTPublisher:
             log.info("MQTT connected to %s:%d", self.host, self.port)
             self._connected = True
         else:
-            log.error("MQTT connect failed: rc=%d", rc)
+            log.error("MQTT connect failed: rc=%s", rc)
 
     def _on_disconnect(self, client, userdata, flags, rc, properties=None):
-        log.warning("MQTT disconnected (rc=%d)", rc)
+        log.warning("MQTT disconnected (rc=%s)", rc)
         self._connected = False
 
     def connect(self):
@@ -66,19 +67,26 @@ class MQTTPublisher:
         self.client.loop_stop()
         self.client.disconnect()
 
-    def publish_discovery(self, device_info=None):
-        """Publish HA MQTT Auto-Discovery for all sensors."""
+    def _build_device(self, device_info=None):
+        """Build HA device object from device_info."""
+        info = device_info or {}
         device = {
             "identifiers": ["docsight"],
             "name": "DOCSight",
-            "manufacturer": "AVM",
-            "model": (device_info or {}).get("model", "FRITZ!Box"),
+            "manufacturer": info.get("manufacturer", "Unknown"),
+            "model": info.get("model", "Cable Modem"),
+            "configuration_url": f"http://docsight:{self.web_port}",
         }
-        sw = (device_info or {}).get("sw_version", "")
+        sw = info.get("sw_version", "")
         if sw:
             device["sw_version"] = sw
+        return device
 
-        # --- Summary sensors ---
+    def publish_discovery(self, device_info=None):
+        """Publish HA MQTT Auto-Discovery for all sensors."""
+        device = self._build_device(device_info)
+
+        # --- Summary sensors (key, name, unit, icon) ---
         summary_sensors = [
             ("ds_total", "Downstream Channels", None, "mdi:arrow-down-bold"),
             ("ds_power_min", "DS Power Min", "dBmV", "mdi:signal"),
@@ -92,7 +100,6 @@ class MQTTPublisher:
             ("us_power_min", "US Power Min", "dBmV", "mdi:signal"),
             ("us_power_max", "US Power Max", "dBmV", "mdi:signal"),
             ("us_power_avg", "US Power Avg", "dBmV", "mdi:signal"),
-            ("health", "DOCSIS Health", None, "mdi:heart-pulse"),
             ("health_details", "DOCSIS Details", None, "mdi:information"),
         ]
 
@@ -105,27 +112,35 @@ class MQTTPublisher:
                 "state_topic": f"{self.topic_prefix}/{key}",
                 "icon": icon,
                 "device": device,
+                "entity_category": "diagnostic",
             }
             if unit:
                 config["unit_of_measurement"] = unit
-            if key == "health":
-                config["json_attributes_topic"] = f"{self.topic_prefix}/health/attributes"
+                config["state_class"] = "measurement"
             self.client.publish(topic, json.dumps(config), retain=True)
             count += 1
 
-        log.info("Published HA discovery for %d summary sensors", count)
+        # --- Health as binary_sensor with device_class=problem ---
+        health_topic = f"{self.ha_prefix}/binary_sensor/docsight/health/config"
+        health_config = {
+            "name": "DOCSIS Health",
+            "unique_id": "docsight_health",
+            "state_topic": f"{self.topic_prefix}/health",
+            "value_template": "{{ 'ON' if value not in ['Good', 'good'] else 'OFF' }}",
+            "device_class": "problem",
+            "icon": "mdi:heart-pulse",
+            "device": device,
+            "entity_category": "diagnostic",
+            "json_attributes_topic": f"{self.topic_prefix}/health/attributes",
+        }
+        self.client.publish(health_topic, json.dumps(health_config), retain=True)
+        count += 1
+
+        log.info("Published HA discovery for %d sensors", count)
 
     def publish_channel_discovery(self, ds_channels, us_channels, device_info=None):
         """Publish HA MQTT Auto-Discovery for per-channel sensors."""
-        device = {
-            "identifiers": ["docsight"],
-            "name": "DOCSight",
-            "manufacturer": "AVM",
-            "model": (device_info or {}).get("model", "FRITZ!Box"),
-        }
-        sw = (device_info or {}).get("sw_version", "")
-        if sw:
-            device["sw_version"] = sw
+        device = self._build_device(device_info)
 
         count = 0
         for ch in ds_channels:
@@ -140,8 +155,10 @@ class MQTTPublisher:
                 "json_attributes_topic": f"{self.topic_prefix}/channel/{obj_id}",
                 "json_attributes_template": "{{ value_json | tojson }}",
                 "unit_of_measurement": "dBmV",
+                "state_class": "measurement",
                 "icon": "mdi:arrow-down-bold",
                 "device": device,
+                "entity_category": "diagnostic",
             }
             self.client.publish(topic, json.dumps(config), retain=True)
             count += 1
@@ -158,8 +175,10 @@ class MQTTPublisher:
                 "json_attributes_topic": f"{self.topic_prefix}/channel/{obj_id}",
                 "json_attributes_template": "{{ value_json | tojson }}",
                 "unit_of_measurement": "dBmV",
+                "state_class": "measurement",
                 "icon": "mdi:arrow-up-bold",
                 "device": device,
+                "entity_category": "diagnostic",
             }
             self.client.publish(topic, json.dumps(config), retain=True)
             count += 1
