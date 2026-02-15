@@ -751,6 +751,8 @@
             </div>
             <div class="correlation-chart-wrap">
                 <canvas id="correlation-chart"></canvas>
+                <canvas id="correlation-overlay" class="correlation-overlay"></canvas>
+                <div class="correlation-tooltip" id="correlation-tooltip"></div>
                 <div class="correlation-chart-legend" id="correlation-legend"></div>
             </div>
         </div>
@@ -3367,6 +3369,8 @@ function escapeHtml(str) {
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
 var _correlationChart = null;
+var _corrVisible = { snr: true, download: true, upload: true, events: true };
+var _corrChartState = null; // Stores scales/data for tooltip lookups
 
 function loadCorrelationData() {
     var hours = document.getElementById('correlation-hours').value;
@@ -3421,6 +3425,16 @@ function renderCorrelationChart(data) {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
 
+    // Setup overlay canvas to match main canvas
+    var overlay = document.getElementById('correlation-overlay');
+    overlay.width = W * dpr;
+    overlay.height = H * dpr;
+    overlay.style.width = W + 'px';
+    overlay.style.height = H + 'px';
+    var octx = overlay.getContext('2d');
+    octx.scale(dpr, dpr);
+    octx.clearRect(0, 0, W, H);
+
     var pad = { top: 20, right: 60, bottom: 40, left: 60 };
     var plotW = W - pad.left - pad.right;
     var plotH = H - pad.top - pad.bottom;
@@ -3459,6 +3473,7 @@ function renderCorrelationChart(data) {
     var dlMin = 0;
     function yDl(v) { return pad.top + plotH - (v - dlMin) / (dlMax - dlMin) * plotH; }
     var uploadColor = '#06b6d4'; // cyan
+    var snrColor = 'rgba(168,85,247,1)'; // purple
 
     var style = getComputedStyle(document.documentElement);
     var textColor = style.getPropertyValue('--muted').trim() || '#888';
@@ -3467,6 +3482,20 @@ function renderCorrelationChart(data) {
     var warnColor = style.getPropertyValue('--warn').trim() || '#ff9800';
     var critColor = style.getPropertyValue('--crit').trim() || '#f44336';
     var accentColor = style.getPropertyValue('--accent').trim() || '#2196f3';
+
+    // Store chart state for tooltip lookups
+    var sortedSpeedtest = speedtest.slice().sort(function(a, b) {
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+    });
+    _corrChartState = {
+        pad: pad, plotW: plotW, plotH: plotH, W: W, H: H,
+        tMin: tMin, tMax: tMax,
+        snrMin: snrMin, snrMax: snrMax, dlMin: dlMin, dlMax: dlMax,
+        modem: modem, speedtest: sortedSpeedtest, events: events,
+        xScale: xScale, ySnr: ySnr, yDl: yDl,
+        colors: { snr: snrColor, download: goodColor, upload: uploadColor, event: warnColor, text: textColor, grid: gridColor },
+        dpr: dpr
+    };
 
     // Grid lines
     ctx.strokeStyle = gridColor;
@@ -3496,22 +3525,24 @@ function renderCorrelationChart(data) {
         ctx.fillText(label, xScale(t), H - pad.bottom + 18);
     }
 
-    // Left axis labels (SNR)
-    ctx.textAlign = 'right';
-    ctx.fillStyle = accentColor;
-    for (var s = Math.ceil(snrMin); s <= snrMax; s += 5) {
-        ctx.fillText(s + ' dB', pad.left - 6, ySnr(s) + 3);
+    // Left axis labels (SNR) — only if SNR visible
+    if (_corrVisible.snr && modem.length > 0) {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = accentColor;
+        for (var s = Math.ceil(snrMin); s <= snrMax; s += 5) {
+            ctx.fillText(s + ' dB', pad.left - 6, ySnr(s) + 3);
+        }
+        ctx.save();
+        ctx.translate(12, pad.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.font = '11px system-ui, sans-serif';
+        ctx.fillText('SNR (dB)', 0, 0);
+        ctx.restore();
     }
-    ctx.save();
-    ctx.translate(12, pad.top + plotH / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textAlign = 'center';
-    ctx.font = '11px system-ui, sans-serif';
-    ctx.fillText('SNR (dB)', 0, 0);
-    ctx.restore();
 
-    // Right axis labels (Speed)
-    if (speedtest.length > 0) {
+    // Right axis labels (Speed) — only if download or upload visible
+    if ((_corrVisible.download || _corrVisible.upload) && speedtest.length > 0) {
         ctx.textAlign = 'left';
         ctx.fillStyle = goodColor;
         var dlStep = Math.max(1, Math.ceil(dlMax / 5 / 50) * 50);
@@ -3527,14 +3558,11 @@ function renderCorrelationChart(data) {
         ctx.restore();
     }
 
-    // Draw modem SNR line with gradient fill (Phase 4.4)
-    if (modem.length > 1) {
-        // Create gradient fill
+    // Draw modem SNR line with gradient fill
+    if (_corrVisible.snr && modem.length > 1) {
         var gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
         gradient.addColorStop(0, 'rgba(168,85,247,0.3)');
         gradient.addColorStop(1, 'rgba(168,85,247,0)');
-        
-        // Draw filled area
         ctx.beginPath();
         ctx.moveTo(xScale(new Date(modem[0].timestamp).getTime()), pad.top + plotH);
         for (var i = 0; i < modem.length; i++) {
@@ -3546,8 +3574,6 @@ function renderCorrelationChart(data) {
         ctx.closePath();
         ctx.fillStyle = gradient;
         ctx.fill();
-        
-        // Draw border line with smooth curves
         ctx.beginPath();
         for (var i = 0; i < modem.length; i++) {
             var x = xScale(new Date(modem[i].timestamp).getTime());
@@ -3555,140 +3581,340 @@ function renderCorrelationChart(data) {
             if (i === 0) {
                 ctx.moveTo(x, y);
             } else {
-                // Smooth curve with tension
                 var x0 = xScale(new Date(modem[i - 1].timestamp).getTime());
                 var y0 = ySnr(modem[i - 1].ds_snr_min || snrMin);
                 var cpx = x0 + (x - x0) * 0.4;
                 ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
             }
         }
-        ctx.strokeStyle = 'rgba(168,85,247,1)';  // Purple border
+        ctx.strokeStyle = snrColor;
         ctx.lineWidth = 2;
         ctx.stroke();
     }
 
-    // Draw modem health background bands
-    for (var i = 0; i < modem.length; i++) {
-        var x1 = xScale(new Date(modem[i].timestamp).getTime());
-        var x2 = i < modem.length - 1 ? xScale(new Date(modem[i + 1].timestamp).getTime()) : x1 + 2;
-        var h = modem[i].health;
-        if (h === 'poor' || h === 'critical') {
-            ctx.fillStyle = 'rgba(244,67,54,0.08)';
-        } else if (h === 'marginal') {
-            ctx.fillStyle = 'rgba(255,152,0,0.06)';
-        } else {
-            continue;
+    // Draw modem health background bands (always visible when SNR is on)
+    if (_corrVisible.snr) {
+        for (var i = 0; i < modem.length; i++) {
+            var x1 = xScale(new Date(modem[i].timestamp).getTime());
+            var x2 = i < modem.length - 1 ? xScale(new Date(modem[i + 1].timestamp).getTime()) : x1 + 2;
+            var h = modem[i].health;
+            if (h === 'poor' || h === 'critical') {
+                ctx.fillStyle = 'rgba(244,67,54,0.08)';
+            } else if (h === 'marginal') {
+                ctx.fillStyle = 'rgba(255,152,0,0.06)';
+            } else {
+                continue;
+            }
+            ctx.fillRect(x1, pad.top, x2 - x1, plotH);
         }
-        ctx.fillRect(x1, pad.top, x2 - x1, plotH);
     }
 
-    // Draw speedtest download line
-    if (speedtest.length > 1) {
-        var sorted = speedtest.slice().sort(function(a, b) {
-            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-        });
+    // Draw speedtest lines
+    if (sortedSpeedtest.length > 1) {
         // Download line with gradient fill
-        var dlGrad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
-        dlGrad.addColorStop(0, 'rgba(76,175,80,0.2)');
-        dlGrad.addColorStop(1, 'rgba(76,175,80,0)');
-        ctx.beginPath();
-        ctx.moveTo(xScale(new Date(sorted[0].timestamp).getTime()), pad.top + plotH);
-        for (var i = 0; i < sorted.length; i++) {
-            var x = xScale(new Date(sorted[i].timestamp).getTime());
-            var y = yDl(sorted[i].download_mbps || 0);
-            ctx.lineTo(x, y);
-        }
-        ctx.lineTo(xScale(new Date(sorted[sorted.length - 1].timestamp).getTime()), pad.top + plotH);
-        ctx.closePath();
-        ctx.fillStyle = dlGrad;
-        ctx.fill();
-        // Download border line
-        ctx.beginPath();
-        for (var i = 0; i < sorted.length; i++) {
-            var x = xScale(new Date(sorted[i].timestamp).getTime());
-            var y = yDl(sorted[i].download_mbps || 0);
-            if (i === 0) { ctx.moveTo(x, y); }
-            else {
-                var x0 = xScale(new Date(sorted[i - 1].timestamp).getTime());
-                var y0 = yDl(sorted[i - 1].download_mbps || 0);
-                var cpx = x0 + (x - x0) * 0.4;
-                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
-            }
-        }
-        ctx.strokeStyle = goodColor;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        // Upload line
-        ctx.beginPath();
-        for (var i = 0; i < sorted.length; i++) {
-            var x = xScale(new Date(sorted[i].timestamp).getTime());
-            var y = yDl(sorted[i].upload_mbps || 0);
-            if (i === 0) { ctx.moveTo(x, y); }
-            else {
-                var x0 = xScale(new Date(sorted[i - 1].timestamp).getTime());
-                var y0 = yDl(sorted[i - 1].upload_mbps || 0);
-                var cpx = x0 + (x - x0) * 0.4;
-                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
-            }
-        }
-        ctx.strokeStyle = uploadColor;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        // Data point dots
-        for (var i = 0; i < sorted.length; i++) {
-            var x = xScale(new Date(sorted[i].timestamp).getTime());
-            // Download dot
+        if (_corrVisible.download) {
+            var dlGrad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
+            dlGrad.addColorStop(0, 'rgba(76,175,80,0.2)');
+            dlGrad.addColorStop(1, 'rgba(76,175,80,0)');
             ctx.beginPath();
-            ctx.arc(x, yDl(sorted[i].download_mbps || 0), 3, 0, Math.PI * 2);
+            ctx.moveTo(xScale(new Date(sortedSpeedtest[0].timestamp).getTime()), pad.top + plotH);
+            for (var i = 0; i < sortedSpeedtest.length; i++) {
+                var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
+                var y = yDl(sortedSpeedtest[i].download_mbps || 0);
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(xScale(new Date(sortedSpeedtest[sortedSpeedtest.length - 1].timestamp).getTime()), pad.top + plotH);
+            ctx.closePath();
+            ctx.fillStyle = dlGrad;
+            ctx.fill();
+            ctx.beginPath();
+            for (var i = 0; i < sortedSpeedtest.length; i++) {
+                var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
+                var y = yDl(sortedSpeedtest[i].download_mbps || 0);
+                if (i === 0) { ctx.moveTo(x, y); }
+                else {
+                    var x0 = xScale(new Date(sortedSpeedtest[i - 1].timestamp).getTime());
+                    var y0 = yDl(sortedSpeedtest[i - 1].download_mbps || 0);
+                    var cpx = x0 + (x - x0) * 0.4;
+                    ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+                }
+            }
+            ctx.strokeStyle = goodColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Upload line
+        if (_corrVisible.upload) {
+            ctx.beginPath();
+            for (var i = 0; i < sortedSpeedtest.length; i++) {
+                var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
+                var y = yDl(sortedSpeedtest[i].upload_mbps || 0);
+                if (i === 0) { ctx.moveTo(x, y); }
+                else {
+                    var x0 = xScale(new Date(sortedSpeedtest[i - 1].timestamp).getTime());
+                    var y0 = yDl(sortedSpeedtest[i - 1].upload_mbps || 0);
+                    var cpx = x0 + (x - x0) * 0.4;
+                    ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+                }
+            }
+            ctx.strokeStyle = uploadColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Data point dots
+        for (var i = 0; i < sortedSpeedtest.length; i++) {
+            var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
+            if (_corrVisible.download) {
+                ctx.beginPath();
+                ctx.arc(x, yDl(sortedSpeedtest[i].download_mbps || 0), 3, 0, Math.PI * 2);
+                ctx.fillStyle = goodColor;
+                ctx.fill();
+            }
+            if (_corrVisible.upload) {
+                ctx.beginPath();
+                ctx.arc(x, yDl(sortedSpeedtest[i].upload_mbps || 0), 3, 0, Math.PI * 2);
+                ctx.fillStyle = uploadColor;
+                ctx.fill();
+            }
+        }
+    } else if (sortedSpeedtest.length === 1) {
+        var x = xScale(new Date(sortedSpeedtest[0].timestamp).getTime());
+        if (_corrVisible.download) {
+            ctx.beginPath();
+            ctx.arc(x, yDl(sortedSpeedtest[0].download_mbps || 0), 5, 0, Math.PI * 2);
             ctx.fillStyle = goodColor;
             ctx.fill();
-            // Upload dot
+        }
+        if (_corrVisible.upload) {
             ctx.beginPath();
-            ctx.arc(x, yDl(sorted[i].upload_mbps || 0), 3, 0, Math.PI * 2);
+            ctx.arc(x, yDl(sortedSpeedtest[0].upload_mbps || 0), 5, 0, Math.PI * 2);
             ctx.fillStyle = uploadColor;
             ctx.fill();
         }
-    } else if (speedtest.length === 1) {
-        var x = xScale(new Date(speedtest[0].timestamp).getTime());
-        ctx.beginPath();
-        ctx.arc(x, yDl(speedtest[0].download_mbps || 0), 5, 0, Math.PI * 2);
-        ctx.fillStyle = goodColor;
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x, yDl(speedtest[0].upload_mbps || 0), 5, 0, Math.PI * 2);
-        ctx.fillStyle = uploadColor;
-        ctx.fill();
     }
 
     // Draw event markers (vertical dashed lines)
-    for (var i = 0; i < events.length; i++) {
-        var x = xScale(new Date(events[i].timestamp).getTime());
-        var sev = events[i].severity;
-        ctx.strokeStyle = sev === 'critical' ? critColor : sev === 'warning' ? warnColor : textColor;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 3]);
-        ctx.beginPath();
-        ctx.moveTo(x, pad.top);
-        ctx.lineTo(x, pad.top + plotH);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        // Triangle marker at top
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.beginPath();
-        ctx.moveTo(x, pad.top);
-        ctx.lineTo(x - 4, pad.top - 8);
-        ctx.lineTo(x + 4, pad.top - 8);
-        ctx.closePath();
-        ctx.fill();
+    if (_corrVisible.events) {
+        for (var i = 0; i < events.length; i++) {
+            var x = xScale(new Date(events[i].timestamp).getTime());
+            var sev = events[i].severity;
+            ctx.strokeStyle = sev === 'critical' ? critColor : sev === 'warning' ? warnColor : textColor;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(x, pad.top);
+            ctx.lineTo(x, pad.top + plotH);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.beginPath();
+            ctx.moveTo(x, pad.top);
+            ctx.lineTo(x - 4, pad.top - 8);
+            ctx.lineTo(x + 4, pad.top - 8);
+            ctx.closePath();
+            ctx.fill();
+        }
     }
 
-    // Legend
+    // Interactive Legend
     var legend = document.getElementById('correlation-legend');
-    legend.innerHTML = '<span style="color:' + accentColor + ';">&#9644; SNR (dB)</span>'
-        + (speedtest.length > 0 ? '<span style="color:' + goodColor + ';">&#9644; Download (Mbps)</span>' : '')
-        + (speedtest.length > 0 ? '<span style="color:' + uploadColor + ';">&#9644; Upload (Mbps)</span>' : '')
-        + (events.length > 0 ? '<span style="color:' + warnColor + ';">&#9650; Events</span>' : '')
-        + '<span style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em;">Poor Signal</span>';
+    var legendItems = [];
+    if (modem.length > 0) {
+        legendItems.push({ metric: 'snr', color: snrColor, label: '&#9644; SNR (dB)' });
+    }
+    if (speedtest.length > 0) {
+        legendItems.push({ metric: 'download', color: goodColor, label: '&#9644; Download (Mbps)' });
+        legendItems.push({ metric: 'upload', color: uploadColor, label: '&#9644; Upload (Mbps)' });
+    }
+    if (events.length > 0) {
+        legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; Events' });
+    }
+    legend.innerHTML = legendItems.map(function(item) {
+        var cls = _corrVisible[item.metric] ? '' : ' disabled';
+        return '<span data-metric="' + item.metric + '" class="' + cls + '" style="color:' + item.color + ';">' + item.label + '</span>';
+    }).join('') + '<span style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em;">Poor Signal</span>';
+
+    // Legend click handlers
+    var legendSpans = legend.querySelectorAll('span[data-metric]');
+    for (var li = 0; li < legendSpans.length; li++) {
+        legendSpans[li].addEventListener('click', function(e) {
+            var metric = this.getAttribute('data-metric');
+            // Prevent disabling all metrics
+            var visibleCount = 0;
+            for (var k in _corrVisible) { if (_corrVisible[k]) visibleCount++; }
+            if (_corrVisible[metric] && visibleCount <= 1) return;
+            _corrVisible[metric] = !_corrVisible[metric];
+            renderCorrelationChart(data);
+        });
+    }
+
+    // Setup tooltip interaction on overlay canvas
+    _setupCorrelationTooltip(overlay, octx);
+}
+
+function _setupCorrelationTooltip(overlay, octx) {
+    var tooltip = document.getElementById('correlation-tooltip');
+
+    // Remove old listeners by replacing the overlay node
+    var newOverlay = overlay.cloneNode(true);
+    overlay.parentNode.replaceChild(newOverlay, overlay);
+    var newOctx = newOverlay.getContext('2d');
+    var st = _corrChartState;
+    if (!st) return;
+    newOctx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
+
+    newOverlay.addEventListener('mousemove', function(e) {
+        if (!_corrChartState) return;
+        var st = _corrChartState;
+        var rect = newOverlay.getBoundingClientRect();
+        var mouseX = e.clientX - rect.left;
+        var mouseY = e.clientY - rect.top;
+
+        // Only interact within plot area
+        if (mouseX < st.pad.left || mouseX > st.pad.left + st.plotW || mouseY < st.pad.top || mouseY > st.pad.top + st.plotH) {
+            newOctx.clearRect(0, 0, st.W, st.H);
+            tooltip.style.display = 'none';
+            return;
+        }
+
+        // Convert mouseX to timestamp
+        var tHover = st.tMin + (mouseX - st.pad.left) / st.plotW * (st.tMax - st.tMin);
+
+        // Find nearest modem point
+        var nearestModem = null;
+        if (st.modem.length > 0 && _corrVisible.snr) {
+            var bestDist = Infinity;
+            for (var i = 0; i < st.modem.length; i++) {
+                var ts = new Date(st.modem[i].timestamp).getTime();
+                var dist = Math.abs(ts - tHover);
+                if (dist < bestDist) { bestDist = dist; nearestModem = st.modem[i]; }
+            }
+        }
+
+        // Find nearest speedtest point
+        var nearestSpeed = null;
+        if (st.speedtest.length > 0 && (_corrVisible.download || _corrVisible.upload)) {
+            var bestDist = Infinity;
+            for (var i = 0; i < st.speedtest.length; i++) {
+                var ts = new Date(st.speedtest[i].timestamp).getTime();
+                var dist = Math.abs(ts - tHover);
+                if (dist < bestDist) { bestDist = dist; nearestSpeed = st.speedtest[i]; }
+            }
+        }
+
+        // Find nearest event
+        var nearestEvent = null;
+        if (st.events.length > 0 && _corrVisible.events) {
+            var bestDist = Infinity;
+            for (var i = 0; i < st.events.length; i++) {
+                var ts = new Date(st.events[i].timestamp).getTime();
+                var dist = Math.abs(ts - tHover);
+                if (dist < bestDist) { bestDist = dist; nearestEvent = st.events[i]; }
+            }
+        }
+
+        // Draw crosshair on overlay
+        newOctx.clearRect(0, 0, st.W, st.H);
+        newOctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        newOctx.lineWidth = 1;
+        newOctx.setLineDash([4, 4]);
+        newOctx.beginPath();
+        newOctx.moveTo(mouseX, st.pad.top);
+        newOctx.lineTo(mouseX, st.pad.top + st.plotH);
+        newOctx.stroke();
+        newOctx.setLineDash([]);
+
+        // Draw highlight dots at nearest data points
+        if (nearestModem && _corrVisible.snr) {
+            var dx = st.xScale(new Date(nearestModem.timestamp).getTime());
+            var dy = st.ySnr(nearestModem.ds_snr_min || st.snrMin);
+            newOctx.beginPath();
+            newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
+            newOctx.fillStyle = st.colors.snr;
+            newOctx.fill();
+            newOctx.strokeStyle = '#fff';
+            newOctx.lineWidth = 2;
+            newOctx.stroke();
+        }
+        if (nearestSpeed) {
+            if (_corrVisible.download) {
+                var dx = st.xScale(new Date(nearestSpeed.timestamp).getTime());
+                var dy = st.yDl(nearestSpeed.download_mbps || 0);
+                newOctx.beginPath();
+                newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
+                newOctx.fillStyle = st.colors.download;
+                newOctx.fill();
+                newOctx.strokeStyle = '#fff';
+                newOctx.lineWidth = 2;
+                newOctx.stroke();
+            }
+            if (_corrVisible.upload) {
+                var dx = st.xScale(new Date(nearestSpeed.timestamp).getTime());
+                var dy = st.yDl(nearestSpeed.upload_mbps || 0);
+                newOctx.beginPath();
+                newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
+                newOctx.fillStyle = st.colors.upload;
+                newOctx.fill();
+                newOctx.strokeStyle = '#fff';
+                newOctx.lineWidth = 2;
+                newOctx.stroke();
+            }
+        }
+
+        // Build tooltip content
+        var html = '';
+        // Use the closest data point's timestamp as the display time
+        var displayTs = tHover;
+        if (nearestModem) displayTs = new Date(nearestModem.timestamp).getTime();
+        if (nearestSpeed) {
+            var spTs = new Date(nearestSpeed.timestamp).getTime();
+            if (!nearestModem || Math.abs(spTs - tHover) < Math.abs(new Date(nearestModem.timestamp).getTime() - tHover)) {
+                displayTs = spTs;
+            }
+        }
+        var dDate = new Date(displayTs);
+        var timeStr = String(dDate.getHours()).padStart(2, '0') + ':' + String(dDate.getMinutes()).padStart(2, '0') + ':' + String(dDate.getSeconds()).padStart(2, '0');
+        var dateStr = dDate.getFullYear() + '-' + String(dDate.getMonth() + 1).padStart(2, '0') + '-' + String(dDate.getDate()).padStart(2, '0');
+        html += '<div class="tt-time">' + dateStr + ' ' + timeStr + '</div>';
+
+        if (nearestModem && _corrVisible.snr) {
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.snr + ';"></span> SNR: ' + (nearestModem.ds_snr_min || 0).toFixed(1) + ' dB</div>';
+        }
+        if (nearestSpeed && _corrVisible.download) {
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> Download: ' + (nearestSpeed.download_mbps || 0).toFixed(1) + ' Mbps</div>';
+        }
+        if (nearestSpeed && _corrVisible.upload) {
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.upload + ';"></span> Upload: ' + (nearestSpeed.upload_mbps || 0).toFixed(1) + ' Mbps</div>';
+        }
+        if (nearestEvent && _corrVisible.events) {
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> Event: ' + (nearestEvent.message || nearestEvent.severity || '') + '</div>';
+        }
+
+        tooltip.innerHTML = html;
+        tooltip.style.display = 'block';
+
+        // Position tooltip — flip to left side if near right edge
+        var ttW = tooltip.offsetWidth;
+        var ttH = tooltip.offsetHeight;
+        var ttX = mouseX + 12;
+        var ttY = mouseY - ttH / 2;
+        if (ttX + ttW > st.W - 10) {
+            ttX = mouseX - ttW - 12;
+        }
+        if (ttY < 0) ttY = 4;
+        if (ttY + ttH > st.H) ttY = st.H - ttH - 4;
+        tooltip.style.left = ttX + 'px';
+        tooltip.style.top = ttY + 'px';
+    });
+
+    newOverlay.addEventListener('mouseleave', function() {
+        if (!_corrChartState) return;
+        var st = _corrChartState;
+        newOctx.clearRect(0, 0, st.W, st.H);
+        tooltip.style.display = 'none';
+    });
 }
 
 function renderCorrelationTable(data) {
