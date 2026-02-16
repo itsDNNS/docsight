@@ -106,6 +106,7 @@ Open `http://localhost:8765` — no setup required.
 | **[Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline)** | Per-channel power, SNR, error, and modulation history over time |
 | **[Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant)** | MQTT Auto-Discovery with per-channel sensors |
 | **[BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM)** | ThinkBroadband broadband quality graphs |
+| **[Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping)** | Live latency graphs from your Smokeping instance |
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
 | **Demo Mode** | **NEW:** Try DOCSight without a router — 90 days of simulated data |
 
@@ -150,9 +151,10 @@ Open `http://localhost:8765` — no setup required.
 
 | | Status |
 |---|---|
-| **AVM Fritz!Box Cable** (6590, 6660, 6690) | ✅ Fully supported |
-| **Vodafone Station** (Arris TG3442DE) | 🔜 Planned ([roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)) |
-| **Technicolor / Sagemcom** | 🔜 Planned |
+| **AVM Fritz!Box Cable** (6490, 6590, 6591, 6660, 6690) | ✅ Fully supported |
+| **Vodafone Station** (CGA4233, TG3442DE) | ✅ Fully supported |
+| **Technicolor TC4400** | ✅ Fully supported |
+| **Virgin Media Ultra Hub 7** | ✅ Fully supported |
 | **Other DOCSIS modems** | Contributions welcome! See [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) |
 
 Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magenta (AT), UPC (CH), Virgin Media (UK), and others. Default signal thresholds are based on VFKD guidelines and can be customized in `thresholds.json` for your ISP.
@@ -166,10 +168,10 @@ DOCSight uses a **modular collector-based architecture** for reliable data gathe
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                       Collector Registry                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────┐ │
-│  │   Modem      │  │    Demo      │  │  Speedtest   │  │   BQM   │ │
-│  │  Collector   │  │  Collector   │  │  Collector   │  │ Collect.│ │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └────┬────┘ │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐  ┌──────────┐ │
+│  │  Modem   │  │   Demo   │  │ Speedtest│  │   BQM   │  │Smokeping │ │
+│  │ Collector│  │ Collector│  │ Collector│  │ Collect.│  │  (Proxy) │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬────┘  └────┬─────┘ │
 │         │                  │                  │              │     │
 │         ▼                  ▼                  ▼              ▼     │
 │  ┌──────────────────────────────────────────────────────┐   │
@@ -240,9 +242,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Ping Monitor | 🔜 Planned | [#20](https://github.com/itsDNNS/docsight/issues/20) |
 | Modulation Watchdog & Power Drift | ✅ Complete (pending release) | [#21](https://github.com/itsDNNS/docsight/issues/21) |
 | Demo/Test Mode | ✅ Complete (pending release) | [#30](https://github.com/itsDNNS/docsight/issues/30) |
-| Smokeping Integration | 🔜 Planned | [#22](https://github.com/itsDNNS/docsight/issues/22) |
-| Vodafone Station Support | 🔜 Planned | [#14](https://github.com/itsDNNS/docsight/issues/14) |
-| Technicolor TC4400 Support | 🔜 Planned | [#24](https://github.com/itsDNNS/docsight/issues/24) |
+| Smokeping Integration | ✅ Complete (pending release) | [#22](https://github.com/itsDNNS/docsight/issues/22) |
+| Vodafone Station Support | ✅ Complete (pending release) | [#14](https://github.com/itsDNNS/docsight/issues/14) |
+| Technicolor TC4400 Support | ✅ Complete (pending release) | [#24](https://github.com/itsDNNS/docsight/issues/24) |
 
 See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
 
