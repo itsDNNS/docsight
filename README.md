@@ -43,7 +43,7 @@ DOCSight v2.0 is currently in beta testing! We're looking for community feedback
 
 **Try it:** `docker run -d -p 8766:8765 -v docsight_v2_data:/data ghcr.io/itsdnns/docsight:v2-dev`
 
-**What's new:** Complete UI redesign, modular architecture, cross source correlation
+**What's new:** Complete UI redesign, modular architecture, cross-source correlation, gaming quality index
 
 **Migration safe:** Your v1 data is automatically migrated. No data loss!
 
@@ -98,7 +98,8 @@ Open `http://localhost:8765` — no setup required.
 |---|---|
 | **[Live Dashboard](https://github.com/itsDNNS/docsight/wiki/Features-Dashboard)** | Real-time channel data with health assessment and metric cards |
 | **[Signal Trends](https://github.com/itsDNNS/docsight/wiki/Features-Signal-Trends)** | Interactive charts with DOCSIS reference zones (day/week/month) |
-| **[Correlation Analysis](https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis)** | **NEW:** Unified timeline combining signal, speedtest, and event data |
+| **[Correlation Analysis](https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis)** | Unified timeline combining signal, speedtest, and event data |
+| **[Gaming Quality Index](https://github.com/itsDNNS/docsight/wiki/Features-Gaming-Quality)** | **NEW:** A-F grade for gaming readiness based on latency, jitter, and signal health |
 | **[Event Log](https://github.com/itsDNNS/docsight/wiki/Features-Event-Log)** | Automatic anomaly detection with modulation watchdog |
 | **[Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest)** | Speed test history from [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker) |
 | **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Document ISP issues with attachments |
@@ -239,7 +240,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | FritzBox Event Log Integration | 🔜 Planned | [#17](https://github.com/itsDNNS/docsight/issues/17) |
 | OFDMA Channel Analysis | 🔜 Planned | [#18](https://github.com/itsDNNS/docsight/issues/18) |
 | Notification System | 🔜 Planned | [#19](https://github.com/itsDNNS/docsight/issues/19) |
-| Ping Monitor | 🔜 Planned | [#20](https://github.com/itsDNNS/docsight/issues/20) |
+| Gaming Quality Index | ✅ Complete (pending release) | [#20](https://github.com/itsDNNS/docsight/issues/20) |
 | Modulation Watchdog & Power Drift | ✅ Complete (pending release) | [#21](https://github.com/itsDNNS/docsight/issues/21) |
 | Demo/Test Mode | ✅ Complete (pending release) | [#30](https://github.com/itsDNNS/docsight/issues/30) |
 | Smokeping Integration | ✅ Complete (pending release) | [#22](https://github.com/itsDNNS/docsight/issues/22) |
