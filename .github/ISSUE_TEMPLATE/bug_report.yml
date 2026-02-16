@@ -1,0 +1,111 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below.
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: DOCSight Version
+      description: Which version are you using?
+      options:
+        - v2-dev (latest development)
+        - Latest release (main branch)
+        - Older release (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: version_specific
+    attributes:
+      label: Specific Version
+      description: "If using an older release, specify the version tag (e.g., v2026-02-13.10)"
+      placeholder: v2026-02-13.10
+
+  - type: dropdown
+    id: modem
+    attributes:
+      label: Cable Modem
+      description: Which modem are you using?
+      options:
+        - Fritz!Box Cable (6490/6590/6591/6660/6690)
+        - Vodafone Station (CGA6444VF/CGA4322DE)
+        - Vodafone Station (TG3442DE)
+        - Vodafone Ultra Hub 7
+        - Technicolor TC4400
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: modem_other
+    attributes:
+      label: Other Modem
+      description: If you selected "Other", specify the modem model
+      placeholder: e.g., Netgear CM1000
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment Method
+      description: How are you running DOCSight?
+      options:
+        - Docker (docker-compose)
+        - Docker (docker run)
+        - Synology NAS
+        - Unraid
+        - Proxmox
+        - Python (local)
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: When I click X, Y happens instead of Z
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this behavior?
+      placeholder: |
+        1. Go to Dashboard
+        2. Click on "Export"
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The export should download successfully
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Paste relevant logs here (check Docker logs with `docker logs docsight`).
+        If sensitive information is present, redact IP addresses and credentials.
+      render: shell
+      placeholder: |
+        [ERROR] docsis.main: ...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or information about the problem
+      placeholder: This started happening after upgrading to v2026-02-13.10

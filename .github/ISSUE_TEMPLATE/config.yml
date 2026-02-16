@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Community Discussions
+    url: https://github.com/itsDNNS/docsight/discussions
+    about: Ask questions, share ideas, or discuss DOCSight with the community
+  - name: 📚 Documentation
+    url: https://github.com/itsDNNS/docsight/wiki
+    about: Read the full documentation and setup guides
+  - name: ☕ Support the Project
+    url: https://ko-fi.com/itsdnns
+    about: Buy me a coffee if DOCSight helps you fight your ISP!
