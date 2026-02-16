@@ -14,6 +14,7 @@ References:
 import json
 import logging
 import re
+import time
 
 import requests
 from cryptography.hazmat.primitives import hashes
@@ -88,8 +89,7 @@ class VodafoneStationDriver(ModemDriver):
             return
         except Exception as e:
             log.warning("CGA login attempt failed: %s — trying TG variant", e)
-            self._session.cookies.clear()
-            self._cga_token = None
+            self._invalidate_cga_session()
 
         # Try TG
         try:
@@ -114,11 +114,12 @@ class VodafoneStationDriver(ModemDriver):
         """CGA auth: double PBKDF2-SHA256 (CGA6444VF / CGA4322DE).
 
         Based on ZahrtheMad's CGA6444VF documentation and fthomys reference:
-        1. Set cwd=No cookie, POST form-encoded seeksalthash -> salt + saltwebui
-        2. hash1 = PBKDF2(password, salt, 1000, 16).hex()
-        3. hash2 = PBKDF2(hash1_hex_string, saltwebui, 1000, 16).hex()
-        4. POST form-encoded hash2 + logout=true
-        5. Initialize session via /api/v1/session/menu
+        1. Set session headers + cwd=No cookie
+        2. POST form-encoded seeksalthash+logout=true -> salt + saltwebui
+        3. hash1 = PBKDF2(password, salt, 1000, 16).hex()
+        4. hash2 = PBKDF2(hash1_hex_string, saltwebui, 1000, 16).hex()
+        5. POST form-encoded hash2 + logout=true
+        6. Initialize session via /api/v1/session/menu
         """
         if self._cga_token and self._session.cookies:
             log.debug("CGA session active, skipping login")
@@ -127,23 +128,36 @@ class VodafoneStationDriver(ModemDriver):
         self._session.cookies.clear()
         self._cga_token = None
 
+        # Session-level headers sent with ALL requests (matches browser behavior).
+        # Critical: the CGA firmware checks User-Agent, X-Requested-With, and
+        # Referer on every request including /session/menu initialization.
+        self._session.headers.update({
+            "User-Agent": "Mozilla/5.0",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"{self._url}/",
+        })
+
         # Required cookie before first request
         self._session.cookies.set("cwd", "No")
 
-        cga_headers = {
+        form_headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "X-Requested-With": "XMLHttpRequest",
         }
 
-        # Step 1: Request salts
+        # Step 1: Request salts (logout=true terminates any existing session)
         r1 = self._session.post(
             f"{self._url}/api/v1/session/login",
-            data={"username": self._user, "password": "seeksalthash"},
-            headers=cga_headers,
+            data={
+                "username": self._user,
+                "password": "seeksalthash",
+                "logout": "true",
+            },
+            headers=form_headers,
             timeout=10,
         )
         r1.raise_for_status()
         salt_data = r1.json()
+        log.debug("CGA salt response: %s", salt_data)
 
         salt = salt_data.get("salt", "")
         salt_webui = salt_data.get("saltwebui", "")
@@ -178,11 +192,13 @@ class VodafoneStationDriver(ModemDriver):
                 "password": hash2,
                 "logout": "true",
             },
-            headers=cga_headers,
+            headers=form_headers,
             timeout=10,
         )
         r2.raise_for_status()
         login_data = r2.json()
+        log.debug("CGA login response: error=%s keys=%s",
+                   login_data.get("error"), list(login_data.keys()))
 
         error = login_data.get("error")
         if error and error != "ok":
@@ -190,28 +206,40 @@ class VodafoneStationDriver(ModemDriver):
 
         self._cga_token = login_data.get("token", "")
 
-        # Step 5: Initialize session
+        # Step 5: Initialize session menu (headers sent via session defaults)
         try:
-            self._session.get(
+            r3 = self._session.get(
                 f"{self._url}/api/v1/session/menu",
                 timeout=10,
             )
-        except Exception:
-            pass  # Non-critical
+            log.debug("CGA menu init: HTTP %s", r3.status_code)
+        except Exception as e:
+            log.debug("CGA menu init failed (non-critical): %s", e)
 
-        log.info("CGA auth OK (cookies: %s)", list(self._session.cookies.keys()))
+        log.info("CGA auth OK (cookies: %s, token: %s)",
+                 list(self._session.cookies.keys()),
+                 "present" if self._cga_token else "absent")
 
     def _cga_request(self, method: str, path: str, **kwargs) -> requests.Response:
-        """Make an authenticated request to the CGA API."""
+        """Make an authenticated request to the CGA API.
+
+        Session already has User-Agent, X-Requested-With, and Referer headers
+        set from _login_cga(). This method adds CSRF token and cache-busting.
+        """
         headers = kwargs.pop("headers", {})
-        headers["X-Requested-With"] = "XMLHttpRequest"
-        headers["Referer"] = f"{self._url}/"
         if self._cga_token:
             headers["X-CSRF-TOKEN"] = self._cga_token
+
+        # Cache-busting timestamp parameter (matches CGA web UI behavior)
+        params = kwargs.pop("params", {})
+        if method.upper() == "GET":
+            params["_"] = int(time.time() * 1000)
+
         r = self._session.request(
             method,
             f"{self._url}{path}",
             headers=headers,
+            params=params,
             timeout=10,
             **kwargs,
         )
@@ -321,9 +349,12 @@ class VodafoneStationDriver(ModemDriver):
             }
 
     def _invalidate_cga_session(self) -> None:
-        """Clear CGA session state."""
+        """Clear CGA session state and session-level headers."""
         self._cga_token = None
         self._session.cookies.clear()
+        # Remove CGA-specific session headers to not interfere with TG fallback
+        for key in ("User-Agent", "X-Requested-With", "Referer"):
+            self._session.headers.pop(key, None)
 
     # ── TG Variant (TG3442DE) ─────────────────────────────────
 
