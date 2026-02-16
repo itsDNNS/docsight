@@ -375,5 +375,10 @@
   "gaming_grade_c": "Moyen",
   "gaming_grade_d": "Mauvais",
   "gaming_grade_f": "Tres mauvais",
-  "gaming_no_speedtest": "DOCSIS uniquement"
+  "gaming_no_speedtest": "DOCSIS uniquement",
+  "gaming_tooltip_a": "Excellent pour tous les jeux en ligne",
+  "gaming_tooltip_b": "Bon pour la plupart des jeux",
+  "gaming_tooltip_c": "Jouable, mais des problemes occasionnels possibles",
+  "gaming_tooltip_d": "Lag frequent et problemes de connexion",
+  "gaming_tooltip_f": "Non adapte aux jeux en ligne"
 }

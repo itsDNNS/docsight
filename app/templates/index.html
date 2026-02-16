@@ -249,7 +249,7 @@
                 {# 4. Gaming Quality Index #}
                 {% if gaming_quality_enabled and gaming_index %}
                 <span class="hero-gaming gaming-{{ gaming_index.grade|lower }}"
-                      data-tooltip="{{ gaming_index.score }}/100{% if not gaming_index.has_speedtest %} ({{ t.gaming_no_speedtest }}){% endif %}">
+                      data-tooltip="{{ gaming_index.score }}/100 — {{ t['gaming_tooltip_' ~ gaming_index.grade|lower] }}{% if not gaming_index.has_speedtest %} ({{ t.gaming_no_speedtest }}){% endif %}">
                     <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i>
                     <span class="gaming-grade">{{ gaming_index.grade }}</span>
                     <span class="gaming-label">Gaming</span>
