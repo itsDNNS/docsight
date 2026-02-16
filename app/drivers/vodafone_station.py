@@ -224,8 +224,20 @@ class VodafoneStationDriver(ModemDriver):
             r = self._cga_request("GET", "/api/v1/sta_docsis_status")
             data = r.json()
         except requests.RequestException as e:
-            self._invalidate_cga_session()
-            raise RuntimeError(f"CGA DOCSIS data retrieval failed: {e}")
+            # Stale session: re-login and retry once
+            if hasattr(e, 'response') and e.response is not None and e.response.status_code in (400, 401, 403):
+                log.warning("CGA DOCSIS request failed (%s), re-authenticating and retrying", e.response.status_code)
+                self._invalidate_cga_session()
+                try:
+                    self._login_cga()
+                    r = self._cga_request("GET", "/api/v1/sta_docsis_status")
+                    data = r.json()
+                except Exception as retry_err:
+                    self._invalidate_cga_session()
+                    raise RuntimeError(f"CGA DOCSIS data retrieval failed after retry: {retry_err}")
+            else:
+                self._invalidate_cga_session()
+                raise RuntimeError(f"CGA DOCSIS data retrieval failed: {e}")
 
         downstream = []
         upstream = []
@@ -437,18 +449,21 @@ class VodafoneStationDriver(ModemDriver):
             raise RuntimeError("TG: Not authenticated. Call login() first.")
 
         try:
-            r = self._session.get(
-                f"{self._url}/php/status_docsis_data.php",
-                headers={
-                    "csrfNonce": self._tg_nonce,
-                    "Referer": f"{self._url}/?status_docsis&mid=StatusDocsis",
-                },
-                timeout=10,
-            )
-            r.raise_for_status()
+            r = self._tg_docsis_request()
         except requests.RequestException as e:
-            self._invalidate_tg_session()
-            raise RuntimeError(f"TG DOCSIS data retrieval failed: {e}")
+            # Stale session from previous run: re-login and retry once
+            if hasattr(e, 'response') and e.response is not None and e.response.status_code in (400, 401, 403):
+                log.warning("TG DOCSIS request failed (%s), re-authenticating and retrying", e.response.status_code)
+                self._invalidate_tg_session()
+                try:
+                    self._login_tg()
+                    r = self._tg_docsis_request()
+                except Exception as retry_err:
+                    self._invalidate_tg_session()
+                    raise RuntimeError(f"TG DOCSIS data retrieval failed after retry: {retry_err}")
+            else:
+                self._invalidate_tg_session()
+                raise RuntimeError(f"TG DOCSIS data retrieval failed: {e}")
 
         html = r.text
 
@@ -525,6 +540,19 @@ class VodafoneStationDriver(ModemDriver):
             "downstream": downstream,
             "upstream": upstream,
         }
+
+    def _tg_docsis_request(self) -> requests.Response:
+        """Make a single TG DOCSIS data request."""
+        r = self._session.get(
+            f"{self._url}/php/status_docsis_data.php",
+            headers={
+                "csrfNonce": self._tg_nonce,
+                "Referer": f"{self._url}/?status_docsis&mid=StatusDocsis",
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r
 
     def _invalidate_tg_session(self) -> None:
         """Clear TG session state."""
