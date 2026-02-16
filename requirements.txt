@@ -5,3 +5,4 @@ waitress>=3.0
 cryptography>=42.0
 pycryptodome>=3.20
 fpdf2>=2.8
+beautifulsoup4>=4.12

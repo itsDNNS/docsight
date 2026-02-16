@@ -7,12 +7,14 @@ log = logging.getLogger("docsis.drivers")
 
 DRIVER_REGISTRY = {
     "fritzbox": "app.drivers.fritzbox.FritzBoxDriver",
+    "tc4400": "app.drivers.tc4400.TC4400Driver",
     "ultrahub7": "app.drivers.ultrahub7.UltraHub7Driver",
     "vodafone_station": "app.drivers.vodafone_station.VodafoneStationDriver",
 }
 
 DRIVER_DISPLAY_NAMES = {
     "fritzbox": "AVM FRITZ!Box",
+    "tc4400": "Technicolor TC4400",
     "ultrahub7": "Vodafone Ultra Hub 7",
     "vodafone_station": "Vodafone Station",
 }

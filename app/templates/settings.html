@@ -966,6 +966,14 @@ function toggleUsernameField() {
                 usernameField.value = 'admin';
             }
             usernameField.placeholder = 'admin';
+        } else if(modemType.value === 'tc4400') {
+            if(urlField && (!urlField.value || urlField.value === 'http://192.168.178.1')) {
+                urlField.value = 'http://192.168.100.1';
+            }
+            if(!usernameField.value) {
+                usernameField.value = 'admin';
+            }
+            usernameField.placeholder = 'admin';
         } else {
             usernameField.placeholder = 'admin';
         }
