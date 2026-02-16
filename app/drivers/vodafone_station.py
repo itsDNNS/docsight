@@ -205,6 +205,7 @@ class VodafoneStationDriver(ModemDriver):
         """Make an authenticated request to the CGA API."""
         headers = kwargs.pop("headers", {})
         headers["X-Requested-With"] = "XMLHttpRequest"
+        headers["Referer"] = f"{self._url}/"
         if self._cga_token:
             headers["X-CSRF-TOKEN"] = self._cga_token
         r = self._session.request(
