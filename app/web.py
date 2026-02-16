@@ -608,7 +608,6 @@ def api_trends():
         return jsonify([])
     range_type = request.args.get("range", "day")
     date_str = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
-    target_time = _config_manager.get("snapshot_time", "06:00") if _config_manager else "06:00"
 
     try:
         ref_date = datetime.strptime(date_str, "%Y-%m-%d")
@@ -616,19 +615,13 @@ def api_trends():
         return jsonify({"error": "Invalid date format"}), 400
 
     if range_type == "day":
-        # All snapshots for a single day (intraday)
         return jsonify(_storage.get_intraday_data(date_str))
     elif range_type == "week":
-        start = (ref_date - timedelta(days=ref_date.weekday())).strftime("%Y-%m-%d")
-        end = (ref_date + timedelta(days=6 - ref_date.weekday())).strftime("%Y-%m-%d")
-        return jsonify(_storage.get_trend_data(start, end, target_time))
+        start = (ref_date - timedelta(days=6)).strftime("%Y-%m-%d")
+        return jsonify(_storage.get_summary_range(start, date_str))
     elif range_type == "month":
-        start = ref_date.replace(day=1).strftime("%Y-%m-%d")
-        if ref_date.month == 12:
-            end = ref_date.replace(year=ref_date.year + 1, month=1, day=1) - timedelta(days=1)
-        else:
-            end = ref_date.replace(month=ref_date.month + 1, day=1) - timedelta(days=1)
-        return jsonify(_storage.get_trend_data(start, end.strftime("%Y-%m-%d"), target_time))
+        start = (ref_date - timedelta(days=29)).strftime("%Y-%m-%d")
+        return jsonify(_storage.get_summary_range(start, date_str))
     else:
         return jsonify({"error": "Invalid range (use day, week, month)"}), 400
 
