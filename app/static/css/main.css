@@ -414,6 +414,18 @@ body {
 .version-link:hover {
     opacity: 1;
 }
+.update-badge {
+    display: inline-block;
+    background: var(--accent-purple, #a855f7);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.02em;
+}
 .sponsor-link {
     color: var(--muted);
     opacity: 0.4;
