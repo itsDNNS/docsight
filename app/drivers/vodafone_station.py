@@ -41,6 +41,7 @@ class VodafoneStationDriver(ModemDriver):
         # TG-specific state
         self._tg_nonce = None
         self._tg_key = None
+        self._tg_iv = None
 
     # ── Public API ────────────────────────────────────────────
 
@@ -289,12 +290,13 @@ class VodafoneStationDriver(ModemDriver):
     # ── TG Variant (TG3442DE) ─────────────────────────────────
 
     def _login_tg(self) -> None:
-        """TG auth: AES-CCM encrypted credentials.
+        """TG auth: AES-CCM encrypted credentials (Arris TG3442DE).
 
-        1. GET login page → extract currentSessionId, iv, salt from JS
-        2. PBKDF2 key derivation (1000 iterations, 16 bytes)
-        3. AES-CCM encrypt {"Password": pw, "Nonce": sessionId}
-        4. POST /php/ajaxSet_Password.php with encrypted payload
+        Based on arris-tg3442de-exporter and vodafone-station-cli:
+        1. GET login page -> extract currentSessionId, myIv, mySalt from JS
+        2. PBKDF2 key derivation (SHA256, 1000 iterations, 16 bytes)
+        3. AES-CCM encrypt with AAD "loginPassword"
+        4. POST /php/ajaxSet_Password.php as JSON
         5. Decrypt CSRF nonce from response
         """
         from Crypto.Cipher import AES
@@ -306,6 +308,7 @@ class VodafoneStationDriver(ModemDriver):
         self._session.cookies.clear()
         self._tg_nonce = None
         self._tg_key = None
+        self._tg_iv = None
 
         # Step 1: Get login page and extract JS variables
         r = self._session.get(f"{self._url}/", timeout=10)
@@ -313,14 +316,21 @@ class VodafoneStationDriver(ModemDriver):
         html = r.text
 
         session_id = self._extract_js_var(html, "currentSessionId")
-        iv_hex = self._extract_js_var(html, "iv")
-        salt_hex = self._extract_js_var(html, "salt")
+        iv_hex = self._extract_js_var(html, "myIv")
+        salt_hex = self._extract_js_var(html, "mySalt")
 
         if not all([session_id, iv_hex, salt_hex]):
             raise RuntimeError(
                 "TG: Could not extract session variables from login page "
-                f"(sessionId={bool(session_id)}, iv={bool(iv_hex)}, salt={bool(salt_hex)})"
+                f"(sessionId={bool(session_id)}, myIv={bool(iv_hex)}, "
+                f"mySalt={bool(salt_hex)})"
             )
+
+        # Validate hex format before parsing
+        self._validate_hex(salt_hex, "mySalt")
+        self._validate_hex(iv_hex, "myIv")
+        log.debug("TG extracted: sessionId=%s..., myIv=%s, mySalt=%s",
+                   session_id[:8], iv_hex, salt_hex)
 
         # Step 2: Derive AES key via PBKDF2
         kdf = PBKDF2HMAC(
@@ -332,23 +342,26 @@ class VodafoneStationDriver(ModemDriver):
         key = kdf.derive(self._password.encode("utf-8"))
 
         # Step 3: Encrypt credentials with AES-CCM
+        # Full IV as nonce (8 bytes from 16 hex chars), 16-byte tag, AAD
         payload_str = json.dumps({"Password": self._password, "Nonce": session_id})
         iv_bytes = bytes.fromhex(iv_hex)
-        nonce = iv_bytes[:7]  # CCM nonce (7 bytes for 8-byte tag)
+        auth_data = "loginPassword"
 
-        cipher = AES.new(key, AES.MODE_CCM, nonce=nonce, mac_len=8)
-        ciphertext, tag = cipher.encrypt_and_digest(payload_str.encode("utf-8"))
+        cipher = AES.new(key, AES.MODE_CCM, nonce=iv_bytes, mac_len=16)
+        cipher.update(auth_data.encode("utf-8"))
+        ciphertext = cipher.encrypt(payload_str.encode("utf-8"))
+        tag = cipher.digest()
         encrypted_hex = (ciphertext + tag).hex()
 
-        # Step 4: POST login
+        # Step 4: POST login as JSON
         r2 = self._session.post(
             f"{self._url}/php/ajaxSet_Password.php",
-            data={
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({
                 "EncryptData": encrypted_hex,
                 "Name": self._user,
-                "AuthorizationData": iv_hex,
-                "SessionId": session_id,
-            },
+                "AuthData": auth_data,
+            }),
             timeout=10,
         )
         r2.raise_for_status()
@@ -359,21 +372,28 @@ class VodafoneStationDriver(ModemDriver):
         except json.JSONDecodeError:
             raise RuntimeError("TG: Login response is not valid JSON")
 
+        if resp.get("p_status") == "Lockout":
+            raise RuntimeError(
+                "TG: Account locked out (too many failed attempts). "
+                "Wait a few minutes or reboot the modem."
+            )
         if resp.get("p_status") == "Fail":
             raise RuntimeError("TG: Authentication failed (invalid password)")
 
         encrypted_nonce = resp.get("encryptData", "")
         if encrypted_nonce:
             enc_bytes = bytes.fromhex(encrypted_nonce)
-            ct_part = enc_bytes[:-8]
-            tag_part = enc_bytes[-8:]
-            decipher = AES.new(key, AES.MODE_CCM, nonce=nonce, mac_len=8)
+            ct_part = enc_bytes[:-16]
+            tag_part = enc_bytes[-16:]
+            decipher = AES.new(key, AES.MODE_CCM, nonce=iv_bytes, mac_len=16)
+            decipher.update(b"nonce")
             decrypted = decipher.decrypt_and_verify(ct_part, tag_part)
-            self._tg_nonce = decrypted.decode("utf-8")
+            self._tg_nonce = decrypted.decode("utf-8")[:32]
         else:
             self._tg_nonce = resp.get("nonce", session_id)
 
         self._tg_key = key
+        self._tg_iv = iv_bytes
         log.info("TG auth OK")
 
     def _get_docsis_tg(self) -> dict:
@@ -513,6 +533,7 @@ class VodafoneStationDriver(ModemDriver):
         """Clear TG session state."""
         self._tg_nonce = None
         self._tg_key = None
+        self._tg_iv = None
         self._session.cookies.clear()
 
     # ── Helpers ───────────────────────────────────────────────
@@ -520,9 +541,17 @@ class VodafoneStationDriver(ModemDriver):
     @staticmethod
     def _extract_js_var(html: str, var_name: str) -> str | None:
         """Extract JavaScript variable value from HTML source."""
-        pattern = rf"""(?:var\s+)?{re.escape(var_name)}\s*=\s*['"]([^'"]+)['"]"""
+        pattern = rf"""var\s+{re.escape(var_name)}\s*=\s*['"]([^'"]+)['"]"""
         match = re.search(pattern, html)
         return match.group(1) if match else None
+
+    @staticmethod
+    def _validate_hex(value: str, name: str) -> None:
+        """Validate that a string contains only hex characters."""
+        if not all(c in "0123456789abcdefABCDEF" for c in value):
+            raise RuntimeError(
+                f"TG: {name} is not a valid hex string: {value!r}"
+            )
 
     @staticmethod
     def _parse_number(value) -> float:
