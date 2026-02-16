@@ -169,10 +169,22 @@ class UltraHub7Driver(ModemDriver):
                 raise RuntimeError("Invalid password")
             
             if login_response.get("X_INTERNAL_Is_Duplicate") == "true":
-                log.info("Router reports active session, reusing")
+                if "DUKSID" in self._session.cookies:
+                    log.info("Router reports active session, cookies present - reusing")
+                    if "csrf_token" in login_response:
+                        self._csrf_token = login_response["csrf_token"]
+                    return
+                # Push=true killed old session but router didn't issue new cookie.
+                # Retry login immediately - old session is gone now.
+                log.info("Duplicate session without cookie, retrying login...")
                 if "csrf_token" in login_response:
                     self._csrf_token = login_response["csrf_token"]
-                return
+                    login_payload["csrf_token"] = self._csrf_token
+                r2 = self._session.post(login_url, data=login_payload, headers=headers, timeout=10)
+                r2.raise_for_status()
+                login_response = r2.json()
+                if login_response.get("X_INTERNAL_Password_Status") == "Invalid_PWD":
+                    raise RuntimeError("Invalid password")
 
             # Update CSRF token from response if present
             if "csrf_token" in login_response:
@@ -232,7 +244,7 @@ class UltraHub7Driver(ModemDriver):
             )
             ds_response.raise_for_status()
             ds_data = ds_response.json()
-            log.info("DS response keys: %s, raw (first 500 chars): %.500s", list(ds_data.keys()) if isinstance(ds_data, dict) else type(ds_data).__name__, ds_data)
+
 
             # Fetch upstream channels
             us_url = f"{self._url}/api/docsis/upstream/list.jst"
@@ -243,7 +255,7 @@ class UltraHub7Driver(ModemDriver):
             )
             us_response.raise_for_status()
             us_data = us_response.json()
-            log.info("US response keys: %s, raw (first 500 chars): %.500s", list(us_data.keys()) if isinstance(us_data, dict) else type(us_data).__name__, us_data)
+
 
             # Parse and convert to DOCSight schema
             downstream = self._parse_downstream_channels(ds_data.get("channels", []))
