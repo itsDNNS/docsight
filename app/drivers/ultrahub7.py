@@ -301,8 +301,8 @@ class UltraHub7Driver(ModemDriver):
                     "mer": snr if snr > 0 else None,  # DOCSIS 3.1 uses MER
                     "mse": None,  # Not provided
                     "latency": 0,
-                    "corrError": 0,  # Not provided by Ultra Hub 7 API
-                    "nonCorrError": 0  # Not provided by Ultra Hub 7 API
+                    "corrErrors": 0,  # Not provided by Ultra Hub 7 API
+                    "nonCorrErrors": 0  # Not provided by Ultra Hub 7 API
                 })
 
             except (ValueError, TypeError) as e:
@@ -391,24 +391,12 @@ class UltraHub7Driver(ModemDriver):
     def _normalize_modulation(self, modulation: str) -> str:
         """Normalize modulation string to match analyzer expectations.
         
-        Ultra Hub 7 uses: "256QAM", "64QAM", "4096QAM", "32QAM", etc.
-        Analyzer expects: "qam_256", "qam_64", "ofdm", etc.
+        Ultra Hub 7 API returns: "256QAM", "64QAM", "4096QAM", "OFDM", "OFDMA"
+        Analyzer expects: "256QAM", "64QAM", etc. (uppercase, no hyphens)
         """
         if not modulation:
             return ""
         
-        # Remove hyphens and convert to uppercase
-        mod_upper = modulation.upper().replace("-", "")
-        
-        # Map common values (check OFDMA before OFDM!)
-        if "OFDMA" in mod_upper:
-            return "ofdma"
-        elif "OFDM" in mod_upper:
-            return "ofdm"
-        elif "QAM" in mod_upper:
-            # Extract number: "256QAM" → "qam_256"
-            num = mod_upper.replace("QAM", "")
-            return f"qam_{num}"
-        
-        # Return as-is if unknown
-        return modulation.lower()
+        # Remove hyphens and normalize to uppercase
+        # "256-QAM" → "256QAM", "OFDM" → "OFDM"
+        return modulation.upper().replace("-", "")
