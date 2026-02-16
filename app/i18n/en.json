@@ -423,5 +423,9 @@
   "bnetz_parse_error": "Could not read PDF. Is it an official BNetzA measurement protocol?",
   "bnetz_measurements": "Measurements",
   "bnetz_provider": "Provider",
-  "bnetz_download_pdf": "Download original PDF"
+  "bnetz_download_pdf": "Download original PDF",
+  "bnetz_measurement_nr": "No.",
+  "bnetz_measurement_time": "Time",
+  "bnetz_measurement_speed": "Speed",
+  "bnetz_show_details": "Show individual measurements"
 }

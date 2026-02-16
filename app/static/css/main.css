@@ -1318,6 +1318,15 @@ details.channel-group {
     box-shadow: 0 2px 8px rgba(168,85,247,0.3);
 }
 
+/* BNetzA expand arrow */
+.bnetz-expand-arrow {
+    display: inline-block;
+    font-size: 0.7em;
+    transition: transform 0.2s;
+    color: var(--text-secondary);
+    margin-right: 4px;
+}
+
 /* Phase 4.3: Table card wrapper */
 .table-card {
     background: var(--card-bg, var(--card));
