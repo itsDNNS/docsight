@@ -401,5 +401,20 @@
   "gaming_genre_strategy_b": "Sin ningun problema.",
   "gaming_genre_strategy_c": "Totalmente jugable. Sin impacto en el gameplay.",
   "gaming_genre_strategy_d": "Por turnos OK. Tiempo real puede tartamudear.",
-  "gaming_genre_strategy_f": "Por turnos OK, pero posibles caidas de conexion."
+  "gaming_genre_strategy_f": "Por turnos OK, pero posibles caidas de conexion.",
+  "bnetz_title": "Medicion de banda ancha (BNetzA)",
+  "bnetz_upload": "Subir protocolo de medicion",
+  "bnetz_upload_hint": "PDF de la herramienta oficial de medicion BNetzA",
+  "bnetz_date": "Fecha de medicion",
+  "bnetz_download_target": "Velocidad de descarga contratada",
+  "bnetz_download_actual": "Velocidad de descarga medida",
+  "bnetz_upload_target": "Velocidad de subida contratada",
+  "bnetz_upload_actual": "Velocidad de subida medida",
+  "bnetz_verdict": "Resultado",
+  "bnetz_verdict_ok": "Sin desviacion",
+  "bnetz_verdict_deviation": "Desviacion detectada",
+  "bnetz_no_measurements": "Aun no se han subido mediciones",
+  "bnetz_delete_confirm": "Realmente eliminar esta medicion?",
+  "bnetz_parse_error": "No se pudo leer el PDF. Es un protocolo de medicion BNetzA oficial?",
+  "bnetz_measurements": "Mediciones"
 }

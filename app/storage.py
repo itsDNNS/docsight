@@ -106,6 +106,28 @@ class SnapshotStorage:
                 CREATE INDEX IF NOT EXISTS idx_events_ack
                 ON events(acknowledged)
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS bnetz_measurements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    provider TEXT,
+                    tariff TEXT,
+                    download_max_tariff REAL,
+                    download_normal_tariff REAL,
+                    download_min_tariff REAL,
+                    upload_max_tariff REAL,
+                    upload_normal_tariff REAL,
+                    upload_min_tariff REAL,
+                    download_measured_avg REAL,
+                    upload_measured_avg REAL,
+                    measurement_count INTEGER,
+                    verdict_download TEXT,
+                    verdict_upload TEXT,
+                    measurements_json TEXT,
+                    pdf_blob BLOB NOT NULL
+                )
+            """)
 
     def save_snapshot(self, analysis):
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
@@ -600,6 +622,109 @@ class SnapshotStorage:
             results.append(event)
         return results
 
+    # ── Breitbandmessung (BNetzA) ──
+
+    def save_bnetz_measurement(self, parsed_data, pdf_bytes):
+        """Save a parsed BNetzA measurement with the original PDF. Returns the new id."""
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        measurements = {
+            "download": parsed_data.get("measurements_download", []),
+            "upload": parsed_data.get("measurements_upload", []),
+        }
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "INSERT INTO bnetz_measurements "
+                "(date, timestamp, provider, tariff, "
+                "download_max_tariff, download_normal_tariff, download_min_tariff, "
+                "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+                "download_measured_avg, upload_measured_avg, measurement_count, "
+                "verdict_download, verdict_upload, measurements_json, pdf_blob) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    parsed_data.get("date", now[:10]),
+                    now,
+                    parsed_data.get("provider"),
+                    parsed_data.get("tariff"),
+                    parsed_data.get("download_max"),
+                    parsed_data.get("download_normal"),
+                    parsed_data.get("download_min"),
+                    parsed_data.get("upload_max"),
+                    parsed_data.get("upload_normal"),
+                    parsed_data.get("upload_min"),
+                    parsed_data.get("download_measured_avg"),
+                    parsed_data.get("upload_measured_avg"),
+                    parsed_data.get("measurement_count"),
+                    parsed_data.get("verdict_download"),
+                    parsed_data.get("verdict_upload"),
+                    json.dumps(measurements),
+                    pdf_bytes,
+                ),
+            )
+            return cur.lastrowid
+
+    def get_bnetz_measurements(self, limit=50):
+        """Return list of BNetzA measurements (without PDF blob), newest first."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, date, timestamp, provider, tariff, "
+                "download_max_tariff, download_normal_tariff, download_min_tariff, "
+                "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+                "download_measured_avg, upload_measured_avg, measurement_count, "
+                "verdict_download, verdict_upload "
+                "FROM bnetz_measurements ORDER BY date DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_bnetz_pdf(self, measurement_id):
+        """Return the original PDF bytes for a BNetzA measurement, or None."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT pdf_blob FROM bnetz_measurements WHERE id = ?",
+                (measurement_id,),
+            ).fetchone()
+        return bytes(row[0]) if row else None
+
+    def delete_bnetz_measurement(self, measurement_id):
+        """Delete a BNetzA measurement. Returns True if found."""
+        with sqlite3.connect(self.db_path) as conn:
+            rowcount = conn.execute(
+                "DELETE FROM bnetz_measurements WHERE id = ?",
+                (measurement_id,),
+            ).rowcount
+        return rowcount > 0
+
+    def get_bnetz_in_range(self, start_ts, end_ts):
+        """Return BNetzA measurements within a time range, oldest first."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, date, timestamp, provider, tariff, "
+                "download_max_tariff, download_measured_avg, "
+                "upload_max_tariff, upload_measured_avg, "
+                "verdict_download, verdict_upload "
+                "FROM bnetz_measurements "
+                "WHERE timestamp >= ? AND timestamp <= ? "
+                "ORDER BY timestamp",
+                (start_ts, end_ts),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_latest_bnetz(self):
+        """Return the most recent BNetzA measurement (without blob), or None."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT id, date, timestamp, provider, tariff, "
+                "download_max_tariff, download_normal_tariff, download_min_tariff, "
+                "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+                "download_measured_avg, upload_measured_avg, measurement_count, "
+                "verdict_download, verdict_upload "
+                "FROM bnetz_measurements ORDER BY date DESC LIMIT 1",
+            ).fetchone()
+        return dict(row) if row else None
+
     def get_recent_speedtests(self, limit=10):
         """Return the N most recent speedtest results."""
         return self.get_speedtest_results(limit=limit)
@@ -633,7 +758,7 @@ class SnapshotStorage:
         Returns list of dicts with 'timestamp', 'source', and source-specific fields.
         """
         if sources is None:
-            sources = {"modem", "speedtest", "events"}
+            sources = {"modem", "speedtest", "events", "bnetz"}
         timeline = []
 
         if "modem" in sources:
@@ -700,6 +825,19 @@ class SnapshotStorage:
                     except (json.JSONDecodeError, TypeError):
                         pass
                 timeline.append(event)
+
+        if "bnetz" in sources:
+            for m in self.get_bnetz_in_range(start_ts, end_ts):
+                timeline.append({
+                    "timestamp": m["timestamp"],
+                    "source": "bnetz",
+                    "download_tariff": m.get("download_max_tariff"),
+                    "download_avg": m.get("download_measured_avg"),
+                    "upload_tariff": m.get("upload_max_tariff"),
+                    "upload_avg": m.get("upload_measured_avg"),
+                    "verdict_download": m.get("verdict_download"),
+                    "verdict_upload": m.get("verdict_upload"),
+                })
 
         timeline.sort(key=lambda x: x["timestamp"])
         return timeline

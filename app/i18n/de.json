@@ -406,5 +406,20 @@
   "gaming_genre_strategy_b": "Keinerlei Probleme.",
   "gaming_genre_strategy_c": "Voll spielbar. Kein Einfluss aufs Gameplay.",
   "gaming_genre_strategy_d": "Rundenbasiert OK. Echtzeit kann ruckeln.",
-  "gaming_genre_strategy_f": "Rundenbasiert OK, aber Verbindungsabbrueche moeglich."
+  "gaming_genre_strategy_f": "Rundenbasiert OK, aber Verbindungsabbrueche moeglich.",
+  "bnetz_title": "Breitbandmessung (BNetzA)",
+  "bnetz_upload": "Messprotokoll hochladen",
+  "bnetz_upload_hint": "PDF vom offiziellen BNetzA Breitbandmessung-Tool",
+  "bnetz_date": "Messdatum",
+  "bnetz_download_target": "Vertragliche Download-Rate",
+  "bnetz_download_actual": "Gemessene Download-Rate",
+  "bnetz_upload_target": "Vertragliche Upload-Rate",
+  "bnetz_upload_actual": "Gemessene Upload-Rate",
+  "bnetz_verdict": "Bewertung",
+  "bnetz_verdict_ok": "Keine Abweichung",
+  "bnetz_verdict_deviation": "Abweichung festgestellt",
+  "bnetz_no_measurements": "Noch keine Messungen hochgeladen",
+  "bnetz_delete_confirm": "Messung wirklich loeschen?",
+  "bnetz_parse_error": "PDF konnte nicht gelesen werden. Ist es ein offizielles BNetzA-Messprotokoll?",
+  "bnetz_measurements": "Messungen"
 }
