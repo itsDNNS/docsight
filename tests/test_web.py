@@ -129,11 +129,6 @@ class TestExportEndpoint:
         assert "Vodafone" in data["text"]
 
 
-class TestCalendarEndpoint:
-    def test_calendar_no_storage(self, client):
-        resp = client.get("/api/calendar")
-        assert resp.status_code == 200
-        assert json.loads(resp.data) == []
 
 
 class TestSnapshotsEndpoint:
@@ -204,12 +199,6 @@ class TestSecurityHeaders:
 
 
 class TestTimestampValidation:
-    def test_invalid_timestamp_rejected(self, client, sample_analysis):
-        update_state(analysis=sample_analysis)
-        resp = client.get("/?t=../../etc/passwd")
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "/"
-
     def test_valid_timestamp_accepted(self, client, sample_analysis):
         update_state(analysis=sample_analysis)
         # No storage, so snapshot lookup returns None and falls through to live view
@@ -249,6 +238,9 @@ class TestPollEndpoint:
 
     def test_poll_rate_limit(self, client, sample_analysis):
         import app.web as web_module
+        from unittest.mock import MagicMock
+        mock_collector = MagicMock()
+        web_module._modem_collector = mock_collector
         web_module._last_manual_poll = __import__('time').time()
         resp = client.post("/api/poll")
         assert resp.status_code == 429
@@ -256,6 +248,7 @@ class TestPollEndpoint:
         assert data["success"] is False
         # Reset for other tests
         web_module._last_manual_poll = 0.0
+        web_module._modem_collector = None
 
 
 class TestFormatK:

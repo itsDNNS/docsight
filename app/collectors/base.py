@@ -21,7 +21,7 @@ class CollectorResult:
     timestamp: float = field(default_factory=time.time)
 
     @classmethod
-    def success(cls, source: str, data: Any) -> "CollectorResult":
+    def ok(cls, source: str, data: Any) -> "CollectorResult":
         """Create a successful result."""
         return cls(source=source, data=data, success=True)
 
