@@ -155,7 +155,7 @@ Open `http://localhost:8765` — no setup required.
 | **AVM Fritz!Box Cable** (6490, 6590, 6591, 6660, 6690) | ✅ Fully supported |
 | **Vodafone Station** (CGA4233, TG3442DE) | ✅ Fully supported |
 | **Technicolor TC4400** | ✅ Fully supported |
-| **Virgin Media Ultra Hub 7** | ✅ Fully supported |
+| **Vodafone Ultra Hub 7** (Sercomm) | ✅ Fully supported |
 | **Other DOCSIS modems** | Contributions welcome! See [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) |
 
 Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magenta (AT), UPC (CH), Virgin Media (UK), and others. Default signal thresholds are based on VFKD guidelines and can be customized in `thresholds.json` for your ISP.
@@ -246,6 +246,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Smokeping Integration | ✅ Complete (pending release) | [#22](https://github.com/itsDNNS/docsight/issues/22) |
 | Vodafone Station Support | ✅ Complete (pending release) | [#14](https://github.com/itsDNNS/docsight/issues/14) |
 | Technicolor TC4400 Support | ✅ Complete (pending release) | [#24](https://github.com/itsDNNS/docsight/issues/24) |
+| Vodafone Ultra Hub 7 Support | ✅ Complete (pending release) | [#29](https://github.com/itsDNNS/docsight/issues/29) |
 
 See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
 
