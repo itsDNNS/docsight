@@ -727,6 +727,14 @@
                         </label>
                         <label>{{ t.dark_mode }}</label>
                     </div>
+                    <div class="form-row">
+                        <label>{{ t.gaming_quality_label }}</label>
+                        <select id="gaming_quality_enabled" name="gaming_quality_enabled">
+                            <option value="false">{{ t.disabled }}</option>
+                            <option value="true" {{ 'selected' if config.gaming_quality_enabled }}>{{ t.enabled }}</option>
+                        </select>
+                        <small class="form-hint">{{ t.gaming_quality_hint }}</small>
+                    </div>
                 </div>
                 <div class="submit-row">
                     <button type="submit" class="btn btn-primary">{{ t.save }}</button>

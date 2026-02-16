@@ -20,6 +20,7 @@ from werkzeug.utils import secure_filename
 from io import BytesIO
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS, HASH_KEYS
+from .gaming_index import compute_gaming_index
 from .storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_INCIDENT
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 
@@ -357,6 +358,7 @@ def index():
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
     smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
+    gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
     speedtest_latest = _state.get("speedtest_latest")
     booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
     booked_upload = _config_manager.get("booked_upload", 0) if _config_manager else 0
@@ -368,6 +370,7 @@ def index():
         if not booked_upload:
             booked_upload = conn_info.get("max_upstream_kbps", 40000) // 1000
     dev_info = _state.get("device_info") or {}
+    gaming_index = compute_gaming_index(_state["analysis"], speedtest_latest) if gaming_quality_enabled else None
 
     def _compute_uncorr_pct(analysis):
         """Compute log-scale percentage for uncorrectable errors gauge."""
@@ -411,6 +414,8 @@ def index():
                 has_us_ofdma=_has_us_ofdma(snapshot),
                 device_info=dev_info,
                 demo_mode=demo_mode,
+                gaming_quality_enabled=gaming_quality_enabled,
+                gaming_index=compute_gaming_index(snapshot, speedtest_latest) if gaming_quality_enabled else None,
                 t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
                 changelog=_changelog[0] if _changelog else None,
             )
@@ -434,6 +439,8 @@ def index():
         has_us_ofdma=_has_us_ofdma(_state["analysis"]),
         device_info=dev_info,
         demo_mode=demo_mode,
+        gaming_quality_enabled=gaming_quality_enabled,
+        gaming_index=gaming_index,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         changelog=_changelog[0] if _changelog else None,
     )
