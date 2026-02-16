@@ -281,10 +281,12 @@ class VodafoneStationDriver(ModemDriver):
         data = raw.get("data", raw)
         log.debug("CGA DOCSIS response keys: %s", list(data.keys()))
 
-        downstream = []
-        upstream = []
+        ds_30 = []
+        ds_31 = []
+        us_30 = []
+        us_31 = []
 
-        # SC-QAM Downstream channels
+        # SC-QAM Downstream channels (DOCSIS 3.0)
         for ch in data.get("downstream", []) or []:
             try:
                 channel_id = str(self._parse_number(ch.get("channelid", "0")))
@@ -298,7 +300,7 @@ class VodafoneStationDriver(ModemDriver):
                 if freq > 1_000_000:
                     freq = freq / 1_000_000
 
-                downstream.append({
+                ds_30.append({
                     "channelID": channel_id,
                     "type": modulation,
                     "frequency": f"{int(freq)} MHz" if freq else "",
@@ -312,7 +314,7 @@ class VodafoneStationDriver(ModemDriver):
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse CGA DS channel %s: %s", ch, e)
 
-        # OFDM Downstream channels
+        # OFDM Downstream channels (DOCSIS 3.1)
         for ch in data.get("ofdm_downstream", []) or []:
             try:
                 channel_id = str(self._parse_number(ch.get("channelid_ofdm", "0")))
@@ -325,7 +327,7 @@ class VodafoneStationDriver(ModemDriver):
                 if freq > 1_000_000:
                     freq = freq / 1_000_000
 
-                downstream.append({
+                ds_31.append({
                     "channelID": channel_id,
                     "type": "ofdm",
                     "frequency": f"{int(freq)} MHz" if freq else "",
@@ -339,7 +341,7 @@ class VodafoneStationDriver(ModemDriver):
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse CGA OFDM DS channel %s: %s", ch, e)
 
-        # SC-QAM Upstream channels
+        # SC-QAM Upstream channels (DOCSIS 3.0)
         for ch in data.get("upstream", []) or []:
             try:
                 channel_id = str(self._parse_number(ch.get("channelidup", "0")))
@@ -350,7 +352,7 @@ class VodafoneStationDriver(ModemDriver):
                 if freq > 1_000_000:
                     freq = freq / 1_000_000
 
-                upstream.append({
+                us_30.append({
                     "channelID": channel_id,
                     "type": modulation,
                     "frequency": f"{int(freq)} MHz" if freq else "",
@@ -360,7 +362,7 @@ class VodafoneStationDriver(ModemDriver):
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse CGA US channel %s: %s", ch, e)
 
-        # OFDMA Upstream channels
+        # OFDMA Upstream channels (DOCSIS 3.1)
         for ch in data.get("ofdma_upstream", []) or []:
             try:
                 channel_id = str(self._parse_number(ch.get("channelidup", "0")))
@@ -370,7 +372,7 @@ class VodafoneStationDriver(ModemDriver):
                 if freq > 1_000_000:
                     freq = freq / 1_000_000
 
-                upstream.append({
+                us_31.append({
                     "channelID": channel_id,
                     "type": "ofdma",
                     "frequency": f"{int(freq)} MHz" if freq else "",
@@ -380,12 +382,14 @@ class VodafoneStationDriver(ModemDriver):
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse CGA OFDMA US channel %s: %s", ch, e)
 
-        log.debug("CGA DOCSIS parsed: %d DS + %d US channels", len(downstream), len(upstream))
+        log.debug(
+            "CGA DOCSIS parsed: %d DS3.0 + %d DS3.1 + %d US3.0 + %d US3.1 channels",
+            len(ds_30), len(ds_31), len(us_30), len(us_31),
+        )
 
         return {
-            "docsis": "3.1",
-            "downstream": downstream,
-            "upstream": upstream,
+            "channelDs": {"docsis30": ds_30, "docsis31": ds_31},
+            "channelUs": {"docsis30": us_30, "docsis31": us_31},
         }
 
     def _get_device_info_cga(self) -> dict:
@@ -571,8 +575,10 @@ class VodafoneStationDriver(ModemDriver):
 
         log.debug("TG DOCSIS: %d DS channels, %d US channels", len(ds_raw), len(us_raw))
 
-        downstream = []
-        upstream = []
+        ds_30 = []
+        ds_31 = []
+        us_30 = []
+        us_31 = []
 
         for ch in ds_raw:
             try:
@@ -584,11 +590,12 @@ class VodafoneStationDriver(ModemDriver):
                 if snr < 0:
                     snr = abs(snr)
                 modulation = self._normalize_modulation(ch.get("Modulation", ""))
+                is_ofdm = "OFDM" in ch_type.upper()
 
-                if "OFDM" in ch_type.upper():
+                if is_ofdm:
                     modulation = modulation or "ofdm"
 
-                downstream.append({
+                ch_dict = {
                     "channelID": channel_id,
                     "type": modulation,
                     "frequency": f"{freq:.3f} MHz" if freq else "",
@@ -598,7 +605,8 @@ class VodafoneStationDriver(ModemDriver):
                     "latency": 0,
                     "corrError": 0,
                     "nonCorrError": 0,
-                })
+                }
+                (ds_31 if is_ofdm else ds_30).append(ch_dict)
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse TG DS channel %s: %s", ch, e)
 
@@ -609,24 +617,30 @@ class VodafoneStationDriver(ModemDriver):
                 freq = self._parse_tg_frequency(ch.get("Frequency", "0"))
                 power = self._parse_tg_power(ch.get("PowerLevel", "0"))
                 modulation = self._normalize_modulation(ch.get("Modulation", ""))
+                is_ofdma = "OFDMA" in ch_type.upper()
 
-                if "OFDMA" in ch_type.upper():
+                if is_ofdma:
                     modulation = modulation or "ofdma"
 
-                upstream.append({
+                ch_dict = {
                     "channelID": channel_id,
                     "type": modulation,
                     "frequency": f"{freq:.3f} MHz" if freq else "",
                     "powerLevel": power,
                     "multiplex": "",
-                })
+                }
+                (us_31 if is_ofdma else us_30).append(ch_dict)
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse TG US channel %s: %s", ch, e)
 
+        log.debug(
+            "TG DOCSIS parsed: %d DS3.0 + %d DS3.1 + %d US3.0 + %d US3.1 channels",
+            len(ds_30), len(ds_31), len(us_30), len(us_31),
+        )
+
         return {
-            "docsis": "3.1",
-            "downstream": downstream,
-            "upstream": upstream,
+            "channelDs": {"docsis30": ds_30, "docsis31": ds_31},
+            "channelUs": {"docsis30": us_30, "docsis31": us_31},
         }
 
     def _tg_docsis_request(self) -> requests.Response:
