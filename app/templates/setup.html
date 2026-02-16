@@ -529,7 +529,7 @@ async function testConnection() {
             modem_password: document.getElementById('modem_password').value
         };
         
-        const response = await fetch('/api/test-connection', {
+        const response = await fetch('/api/test-modem', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
