@@ -1878,6 +1878,9 @@
                     window.refreshDonuts();
                 }
 
+                // Re-init Lucide icons (lost on innerHTML replace)
+                lucide.createIcons();
+
                 // Refresh event badge count
                 fetch('/api/events/count')
                     .then(function(r) { return r.json(); })
