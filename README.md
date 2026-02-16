@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/docsight.png" alt="DOCSight" width="128">
+  <img src="docs/docsight-logo-v2.svg" alt="DOCSight" width="128">
 </p>
 
 <h1 align="center">DOCSight</h1>
