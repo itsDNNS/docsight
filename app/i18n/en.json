@@ -373,5 +373,15 @@
   "smokeping_setup_intro": "Smokeping measures network latency by sending pings to configured targets. DOCSight can display these graphs alongside your modem data.",
   "smokeping_setup_step_1": "Install and configure <b>Smokeping</b> on your network",
   "smokeping_setup_step_2": "Note the <b>base URL</b> of your Smokeping web interface",
-  "smokeping_setup_step_3": "Enter the URL and <b>target names</b> in DOCSight Settings"
+  "smokeping_setup_step_3": "Enter the URL and <b>target names</b> in DOCSight Settings",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "gaming_quality_label": "Gaming Quality Index",
+  "gaming_quality_hint": "Show a gaming quality badge in the dashboard hero card based on latency, jitter, and signal health.",
+  "gaming_grade_a": "Excellent",
+  "gaming_grade_b": "Good",
+  "gaming_grade_c": "Fair",
+  "gaming_grade_d": "Poor",
+  "gaming_grade_f": "Bad",
+  "gaming_no_speedtest": "DOCSIS only"
 }

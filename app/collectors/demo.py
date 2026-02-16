@@ -13,6 +13,7 @@ import zlib
 from datetime import datetime, timedelta
 
 from .base import Collector, CollectorResult
+from ..gaming_index import compute_gaming_index
 
 log = logging.getLogger("docsis.collector.demo")
 
@@ -112,7 +113,9 @@ class DemoCollector(Collector):
                 )
                 self._discovery_published = True
                 time.sleep(1)
-            self._mqtt_pub.publish_data(analysis)
+            speedtest = self._web._state.get("speedtest_latest")
+            gi = compute_gaming_index(analysis, speedtest)
+            self._mqtt_pub.publish_data(analysis, gaming_index=gi)
 
         # Web state + persistent storage
         self._web.update_state(analysis=analysis)

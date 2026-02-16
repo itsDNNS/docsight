@@ -46,6 +46,7 @@ DEFAULTS = {
     "booked_download": 0,
     "booked_upload": 0,
     "demo_mode": False,
+    "gaming_quality_enabled": False,
 }
 
 ENV_MAP = {
@@ -72,6 +73,7 @@ ENV_MAP = {
     "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
     "demo_mode": "DEMO_MODE",
+    "gaming_quality_enabled": "GAMING_QUALITY_ENABLED",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -89,7 +91,7 @@ _LEGACY_KEY_MAP = {
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload"}
-BOOL_KEYS = {"demo_mode"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
@@ -250,6 +252,13 @@ class ConfigManager:
                 except (ValueError, TypeError):
                     pass
 
+        # Cast bool keys
+        for key in BOOL_KEYS:
+            if key in self._file_config:
+                val = self._file_config[key]
+                if isinstance(val, str):
+                    self._file_config[key] = val.lower() in ("true", "1", "yes")
+
         with open(self.config_path, "w") as f:
             json.dump(self._file_config, f, indent=2)
         try:
@@ -277,6 +286,13 @@ class ConfigManager:
     def is_bqm_configured(self):
         """True if bqm_url is set or demo mode is active (BQM is optional)."""
         return bool(self.get("bqm_url")) or self.is_demo_mode()
+
+    def is_gaming_quality_enabled(self):
+        """True if gaming quality index is enabled, or demo mode is active."""
+        val = self.get("gaming_quality_enabled")
+        if isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes")
+        return bool(val) or self.is_demo_mode()
 
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set, or demo mode is active."""
