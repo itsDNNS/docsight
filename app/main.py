@@ -48,6 +48,7 @@ def polling_loop(config_mgr, storage, stop_event):
             ha_prefix=config["mqtt_discovery_prefix"],
             tls_insecure=mqtt_tls_insecure,
             web_port=int(config["web_port"]),
+            public_url=config.get("public_url", ""),
         )
         try:
             mqtt_pub.connect()

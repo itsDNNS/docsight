@@ -22,12 +22,12 @@ def _sanitize_topic(topic):
 class MQTTPublisher:
     def __init__(self, host, port=1883, user=None, password=None,
                  topic_prefix="fritzbox/docsis", ha_prefix="homeassistant",
-                 tls_insecure=False, web_port=8765):
+                 tls_insecure=False, web_port=8765, public_url=""):
         self.host = host
         self.port = port
         self.topic_prefix = _sanitize_topic(topic_prefix)
         self.ha_prefix = _sanitize_topic(ha_prefix)
-        self.web_port = web_port
+        self.public_url = public_url.rstrip("/") if public_url else f"http://docsight:{web_port}"
 
         self.client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,
@@ -90,7 +90,7 @@ class MQTTPublisher:
             "name": "DOCSight",
             "manufacturer": info.get("manufacturer", "Unknown"),
             "model": info.get("model", "Cable Modem"),
-            "configuration_url": f"http://docsight:{self.web_port}",
+            "configuration_url": self.public_url,
         }
         sw = info.get("sw_version", "")
         if sw:
