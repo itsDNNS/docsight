@@ -644,7 +644,22 @@ class VodafoneStationDriver(ModemDriver):
         }
 
     def _tg_docsis_request(self) -> requests.Response:
-        """Make a single TG DOCSIS data request."""
+        """Make a single TG DOCSIS data request.
+
+        Some TG firmware versions require navigating to the DOCSIS status
+        page before the data endpoint will respond.  We replicate the
+        browser flow: load the parent page first, then fetch the data.
+        """
+        # Navigate to DOCSIS status page first (sets server-side page state)
+        self._session.get(
+            f"{self._url}/?status_docsis&mid=StatusDocsis",
+            headers={
+                "csrfNonce": self._tg_nonce,
+                "X-Requested-With": "XMLHttpRequest",
+                "User-Agent": "Mozilla/5.0",
+            },
+            timeout=10,
+        )
         r = self._session.get(
             f"{self._url}/php/status_docsis_data.php",
             headers={
@@ -655,6 +670,8 @@ class VodafoneStationDriver(ModemDriver):
             },
             timeout=10,
         )
+        if r.status_code != 200:
+            log.warning("TG DOCSIS data response %d: %s", r.status_code, r.text[:200])
         r.raise_for_status()
         return r
 
