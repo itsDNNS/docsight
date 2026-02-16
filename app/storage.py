@@ -231,6 +231,22 @@ class SnapshotStorage:
             results.append(entry)
         return results
 
+    def get_summary_range(self, start_date, end_date):
+        """Get all snapshots (summary only) between two dates. Like get_intraday_data but multi-day."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT timestamp, summary_json FROM snapshots "
+                "WHERE substr(timestamp, 1, 10) >= ? AND substr(timestamp, 1, 10) <= ? "
+                "ORDER BY timestamp",
+                (start_date, end_date),
+            ).fetchall()
+        results = []
+        for row in rows:
+            entry = {"timestamp": row[0]}
+            entry.update(json.loads(row[1]))
+            results.append(entry)
+        return results
+
     def save_bqm_graph(self, image_data):
         """Save BQM graph for today. Skips if already exists (UNIQUE date)."""
         today = datetime.now().strftime("%Y-%m-%d")

@@ -1759,28 +1759,6 @@
     }
 
     /* ── Trend Charts ── */
-    var DS_POWER_ZONES = [
-        {min: -15, max: -8, color: "rgba(244,67,54,0.35)"},
-        {min: -8, max: -4, color: "rgba(255,152,0,0.30)"},
-        {min: -4, max: 13, color: "rgba(76,175,80,0.25)"},
-        {min: 13, max: 20, color: "rgba(255,152,0,0.30)"},
-        {min: 20, max: 25, color: "rgba(244,67,54,0.35)"},
-        {yMin: -12, yMax: 22}
-    ];
-    var DS_SNR_ZONES = [
-        {min: 15, max: 29, color: "rgba(244,67,54,0.35)"},
-        {min: 29, max: 33, color: "rgba(255,152,0,0.30)"},
-        {min: 33, max: 50, color: "rgba(76,175,80,0.25)"},
-        {yMin: 25, yMax: 45}
-    ];
-    var US_POWER_ZONES = [
-        {min: 20, max: 35, color: "rgba(244,67,54,0.35)"},
-        {min: 35, max: 41, color: "rgba(255,152,0,0.30)"},
-        {min: 41, max: 47, color: "rgba(76,175,80,0.25)"},
-        {min: 47, max: 53, color: "rgba(255,152,0,0.30)"},
-        {min: 53, max: 65, color: "rgba(244,67,54,0.35)"},
-        {yMin: 30, yMax: 60}
-    ];
 
     function loadTrends(range) {
         var date = todayStr();
@@ -1802,19 +1780,20 @@
                 noData.style.display = 'none';
                 grid.style.display = '';
                 var xLabels = data.map(function(d) {
-                    if (range === 'day') return d.timestamp ? d.timestamp.substring(11, 16) : '';
-                    return d.date ? formatDateDE(d.date) : '';
+                    if (!d.timestamp) return '';
+                    if (range === 'day') return d.timestamp.substring(11, 16);
+                    if (range === 'week') return d.timestamp.substring(5, 16).replace('T', ' ');
+                    return d.date ? formatDateDE(d.date) : formatDateDE(d.timestamp.substring(0, 10));
                 });
-                /* Phase 4.1: Remove zone backgrounds to show gradient fills */
                 renderChart('chart-ds-power', xLabels,
                     [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7'}],
-                    null, null);
+                    null, DS_POWER_THRESHOLDS);
                 renderChart('chart-ds-snr', xLabels,
                     [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7'}],
-                    null, null);
+                    null, DS_SNR_THRESHOLDS);
                 renderChart('chart-us-power', xLabels,
                     [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7'}],
-                    null, null);
+                    null, US_POWER_THRESHOLDS);
                 renderChart('chart-errors', xLabels, [
                     {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
                     {label: T.uncorrectable, data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
@@ -1834,10 +1813,6 @@
             if (!zones) return;
             var ctx = chart.ctx;
             var yAxis = chart.scales.y;
-            var xAxis = chart.scales.x;
-            var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-            var lineColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)';
-            // Clip to chart area only (don't bleed into axis labels)
             var chartArea = chart.chartArea;
             ctx.save();
             ctx.beginPath();
@@ -1845,20 +1820,23 @@
             ctx.clip();
             var drawn = {};
             zones.forEach(function(z) {
-                var top = yAxis.getPixelForValue(z.max);
-                var bottom = yAxis.getPixelForValue(z.min);
-                ctx.fillStyle = z.color;
-                ctx.fillRect(chartArea.left, top, chartArea.right - chartArea.left, bottom - top);
-                // Draw dashed boundary lines at zone edges in zone color
-                var zoneBaseColor = z.color.replace(/[\d.]+\)$/, '0.7)');
-                [z.min, z.max].forEach(function(val) {
-                    if (drawn[val]) return;
+                if (z.yMin !== undefined) return; /* skip metadata entries */
+                if (z.fill !== false) {
+                    var top = yAxis.getPixelForValue(z.max);
+                    var bottom = yAxis.getPixelForValue(z.min);
+                    ctx.fillStyle = z.color;
+                    ctx.fillRect(chartArea.left, top, chartArea.right - chartArea.left, bottom - top);
+                }
+                var lineColor = z.lineColor || z.color.replace(/[\d.]+\)$/, '0.7)');
+                var vals = z.fill === false ? [z.value] : [z.min, z.max];
+                vals.forEach(function(val) {
+                    if (val === undefined || drawn[val]) return;
                     drawn[val] = true;
                     var py = yAxis.getPixelForValue(val);
                     ctx.beginPath();
                     ctx.setLineDash([6, 4]);
-                    ctx.strokeStyle = zoneBaseColor;
-                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = lineColor;
+                    ctx.lineWidth = 1;
                     ctx.moveTo(chartArea.left, py);
                     ctx.lineTo(chartArea.right, py);
                     ctx.stroke();
@@ -1867,6 +1845,31 @@
             ctx.restore();
         }
     };
+
+    var DS_POWER_THRESHOLDS = [
+        {value: -4, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
+        {value: 13, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
+        {value: -8, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
+        {value: 20, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
+        {value: -15, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
+        {value: 25, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
+        {yMin: -18, yMax: 28}
+    ];
+    var DS_SNR_THRESHOLDS = [
+        {value: 33, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
+        {value: 29, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
+        {value: 25, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
+        {yMin: 20, yMax: 50}
+    ];
+    var US_POWER_THRESHOLDS = [
+        {value: 41, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
+        {value: 47, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
+        {value: 35, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
+        {value: 53, fill: false, lineColor: 'rgba(255,152,0,0.5)'},
+        {value: 20, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
+        {value: 60, fill: false, lineColor: 'rgba(244,67,54,0.4)'},
+        {yMin: 17, yMax: 63}
+    ];
 
     function renderChart(canvasId, labels, datasets, type, zones, opts) {
         if (charts[canvasId]) charts[canvasId].destroy();
@@ -1879,23 +1882,12 @@
         var chartDatasets = datasets.map(function(ds, idx) {
             var r = {
                 label: ds.label, data: ds.data,
-                borderColor: type === 'bar' ? ds.color : 'rgba(168,85,247,0.9)', /* Purple for area charts */
-                backgroundColor: type === 'bar' ? ds.color + 'cc' : function(context) {
-                    /* Phase 4.1: Create gradient dynamically during render */
-                    var chart = context.chart;
-                    var ctx = chart.ctx;
-                    var chartArea = chart.chartArea;
-                    if (!chartArea) return 'rgba(168,85,247,0.25)'; /* Fallback */
-                    var gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                    gradient.addColorStop(0, 'rgba(168,85,247,0.5)');  /* Increased from 0.3 */
-                    gradient.addColorStop(0.7, 'rgba(168,85,247,0.1)');
-                    gradient.addColorStop(1, 'rgba(168,85,247,0)');
-                    return gradient;
-                },
+                borderColor: type === 'bar' ? ds.color : (ds.color || 'rgba(168,85,247,0.9)'),
+                backgroundColor: type === 'bar' ? ds.color + 'cc' : 'transparent',
                 borderWidth: type === 'bar' ? 3 : 2,
-                tension: type === 'bar' ? 0 : 0.4, /* Smooth curves for area charts */
+                tension: type === 'bar' ? 0 : 0.4,
                 pointRadius: labels.length > 30 ? 0 : 3,
-                fill: type !== 'bar'
+                fill: false
             };
             if (ds.stepped) { r.stepped = 'before'; r.tension = 0; }
             return r;
@@ -1923,7 +1915,6 @@
         if (opts && opts.yMax !== undefined) chartConfig.options.scales.y.max = opts.yMax;
         if (opts && opts.yAfterBuildTicks) chartConfig.options.scales.y.afterBuildTicks = opts.yAfterBuildTicks;
         if (zones) {
-            // Filter out the yMin/yMax metadata entry and use it for axis limits
             var zoneMeta = zones.find(function(z) { return z.yMin !== undefined; });
             if (zoneMeta) {
                 chartConfig.options.scales.y.suggestedMin = zoneMeta.yMin;
@@ -1932,7 +1923,7 @@
         }
         charts[canvasId] = new Chart(ctx, chartConfig);
         if (zones) {
-            charts[canvasId]._docsightZones = zones.filter(function(z) { return z.color; });
+            charts[canvasId]._docsightZones = zones;
         }
         /* Store render params so the zoom modal can re-render this chart */
         charts[canvasId]._docsightParams = {labels: labels, datasets: datasets, type: type, zones: zones, opts: opts};
@@ -2014,7 +2005,7 @@
             }
             zoomChart = new Chart(ctx, cfg);
             if (params.zones) {
-                zoomChart._docsightZones = params.zones.filter(function(z) { return z.color; });
+                zoomChart._docsightZones = params.zones;
             }
         }, 50);
     }
@@ -2462,13 +2453,13 @@
                     return d.timestamp.substring(5, 16).replace('T', ' ');
                 });
                 var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0'}];
-                var powerZones = direction === 'ds' ? DS_POWER_ZONES : US_POWER_ZONES;
+                var powerThresholds = direction === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
                 var powerCard = document.querySelector('#channel-charts .chart-card:first-child');
                 var powerLabel = powerCard ? powerCard.querySelector('.chart-label') : null;
                 var errorsCard = document.getElementById('channel-errors-card');
                 if (direction === 'ds') {
                     powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
-                    powerZones = null;
+                    powerThresholds = null; /* DS combines Power + SNR, thresholds don't apply */
                     if (powerLabel) powerLabel.textContent = (T.power_dbmv || 'Power') + ' & ' + (T.snr_db || 'SNR');
                     errorsCard.style.display = '';
                     renderChart('chart-ch-errors', xLabels, [
@@ -2479,7 +2470,7 @@
                     if (powerLabel) powerLabel.textContent = T.power_dbmv || 'Power (dBmV)';
                     errorsCard.style.display = 'none';
                 }
-                renderChart('chart-ch-power', xLabels, powerDatasets, null, powerZones);
+                renderChart('chart-ch-power', xLabels, powerDatasets, null, powerThresholds);
 
                 // Modulation timeline (stepped line chart)
                 var modCard = document.getElementById('channel-modulation-card');
