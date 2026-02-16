@@ -110,25 +110,25 @@ class MQTTPublisher:
         device = self._build_device(device_info)
         avail = self._availability()
 
-        # --- Summary sensors (key, name, unit, icon) ---
+        # --- Summary sensors (key, name, unit, icon, enabled_by_default) ---
         summary_sensors = [
-            ("ds_total", "Downstream Channels", None, "mdi:arrow-down-bold"),
-            ("ds_power_min", "DS Power Min", "dBmV", "mdi:signal"),
-            ("ds_power_max", "DS Power Max", "dBmV", "mdi:signal"),
-            ("ds_power_avg", "DS Power Avg", "dBmV", "mdi:signal"),
-            ("ds_snr_min", "DS SNR Min", "dB", "mdi:ear-hearing"),
-            ("ds_snr_avg", "DS SNR Avg", "dB", "mdi:ear-hearing"),
-            ("ds_correctable_errors", "DS Correctable Errors", None, "mdi:alert-circle-check"),
-            ("ds_uncorrectable_errors", "DS Uncorrectable Errors", None, "mdi:alert-circle"),
-            ("us_total", "Upstream Channels", None, "mdi:arrow-up-bold"),
-            ("us_power_min", "US Power Min", "dBmV", "mdi:signal"),
-            ("us_power_max", "US Power Max", "dBmV", "mdi:signal"),
-            ("us_power_avg", "US Power Avg", "dBmV", "mdi:signal"),
-            ("health_details", "DOCSIS Details", None, "mdi:information"),
+            ("ds_total", "Downstream Channels", None, "mdi:arrow-down-bold", False),
+            ("ds_power_min", "DS Power Min", "dBmV", "mdi:signal", False),
+            ("ds_power_max", "DS Power Max", "dBmV", "mdi:signal", False),
+            ("ds_power_avg", "DS Power Avg", "dBmV", "mdi:signal", True),
+            ("ds_snr_min", "DS SNR Min", "dB", "mdi:ear-hearing", True),
+            ("ds_snr_avg", "DS SNR Avg", "dB", "mdi:ear-hearing", True),
+            ("ds_correctable_errors", "DS Correctable Errors", None, "mdi:alert-circle-check", True),
+            ("ds_uncorrectable_errors", "DS Uncorrectable Errors", None, "mdi:alert-circle", True),
+            ("us_total", "Upstream Channels", None, "mdi:arrow-up-bold", False),
+            ("us_power_min", "US Power Min", "dBmV", "mdi:signal", False),
+            ("us_power_max", "US Power Max", "dBmV", "mdi:signal", False),
+            ("us_power_avg", "US Power Avg", "dBmV", "mdi:signal", True),
+            ("health_details", "DOCSIS Details", None, "mdi:information", True),
         ]
 
         count = 0
-        for key, name, unit, icon in summary_sensors:
+        for key, name, unit, icon, enabled in summary_sensors:
             topic = f"{self.ha_prefix}/sensor/docsight/{key}/config"
             config = {
                 "name": name,
@@ -137,6 +137,7 @@ class MQTTPublisher:
                 "icon": icon,
                 "device": device,
                 "entity_category": "diagnostic",
+                "enabled_by_default": enabled,
                 **avail,
             }
             if unit:
@@ -209,6 +210,7 @@ class MQTTPublisher:
                 "icon": "mdi:arrow-down-bold",
                 "device": device,
                 "entity_category": "diagnostic",
+                "enabled_by_default": False,
                 **avail,
             }
             self.client.publish(topic, json.dumps(config), retain=True)
@@ -230,6 +232,7 @@ class MQTTPublisher:
                 "icon": "mdi:arrow-up-bold",
                 "device": device,
                 "entity_category": "diagnostic",
+                "enabled_by_default": False,
                 **avail,
             }
             self.client.publish(topic, json.dumps(config), retain=True)
