@@ -44,157 +44,152 @@ class UltraHub7Driver(ModemDriver):
             log.debug("Session active, skipping login")
             return
 
-        self._session.cookies.clear()
-        self._csrf_token = None
+        # Up to 2 attempts: initial login + 1 retry if duplicate session detected.
+        # The initial GET to fetch the CSRF token sets a DUKSID cookie that is NOT
+        # an authenticated session cookie. If the router reports a duplicate session
+        # (e.g. from the setup wizard), we must clear the stale cookie and retry.
+        for attempt in range(2):
+            self._session.cookies.clear()
+            self._csrf_token = None
 
-        # Headers required for AJAX requests (CSRF protection + Priority)
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
-            "X-Requested-With": "XMLHttpRequest",
-            "Accept-Language": "en-GB,en;q=0.5",
-            "Priority": "u=1",
-        }
-        
-        try:
-            # Step 1: Initial request to get router ID and CSRF token
-            init_url = f"{self._url}/api/config/details.jst"
-            r_init = self._session.get(
-                init_url,
-                params={"X_INTERNAL_FIELDS": "X_RDK_ONT_Veip_1_OperationalState"},
-                headers=headers,
-                timeout=10
-            )
-            r_init.raise_for_status()
-            init_response = r_init.json()
-            
-            # Extract router ID if present
-            if "X_INTERNAL_ID" in init_response:
-                self._router_id = init_response["X_INTERNAL_ID"]
-            
-            # Extract CSRF token if present
-            if "csrf_token" in init_response:
-                self._csrf_token = init_response["csrf_token"]
-            
-            if not self._csrf_token:
-                raise RuntimeError("CSRF token not found in initial response")
-            
-            log.info("Got router ID: %s, CSRF token: %s...", self._router_id, self._csrf_token[:8])
+            # Headers required for AJAX requests (CSRF protection + Priority)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
+                "X-Requested-With": "XMLHttpRequest",
+                "Accept-Language": "en-GB,en;q=0.5",
+                "Priority": "u=1",
+            }
 
-            # Step 2: Get WebUISecret from device
-            details_url = f"{self._url}/api/users/details.jst"
-            r = self._session.get(
-                details_url,
-                params={
+            try:
+                # Step 1: Initial request to get router ID and CSRF token
+                init_url = f"{self._url}/api/config/details.jst"
+                r_init = self._session.get(
+                    init_url,
+                    params={"X_INTERNAL_FIELDS": "X_RDK_ONT_Veip_1_OperationalState"},
+                    headers=headers,
+                    timeout=10
+                )
+                r_init.raise_for_status()
+                init_response = r_init.json()
+
+                # Extract router ID if present
+                if "X_INTERNAL_ID" in init_response:
+                    self._router_id = init_response["X_INTERNAL_ID"]
+
+                # Extract CSRF token if present
+                if "csrf_token" in init_response:
+                    self._csrf_token = init_response["csrf_token"]
+
+                if not self._csrf_token:
+                    raise RuntimeError("CSRF token not found in initial response")
+
+                log.info("Got router ID: %s, CSRF token: %s...", self._router_id, self._csrf_token[:8])
+
+                # Step 2: Get WebUISecret from device
+                details_url = f"{self._url}/api/users/details.jst"
+                r = self._session.get(
+                    details_url,
+                    params={
+                        "__id": self._router_id,
+                        "X_INTERNAL_FIELDS": "X_VODAFONE_WebUISecret"
+                    },
+                    headers=headers,
+                    timeout=10
+                )
+                r.raise_for_status()
+                details = r.json()
+
+                web_ui_secret = details.get("X_VODAFONE_WebUISecret", "")
+                if not web_ui_secret:
+                    raise RuntimeError("X_VODAFONE_WebUISecret not found in device response")
+
+                # Parse WebUISecret: <salt_web_ui (10 chars)><salt (rest)>
+                salt_web_ui = web_ui_secret[:10]
+                salt = web_ui_secret[10:]
+
+                # Step 3: Derive encryption key with PBKDF2-HMAC-SHA256
+                kdf = PBKDF2HMAC(
+                    algorithm=hashes.SHA256(),
+                    length=16,  # AES-128
+                    salt=bytes(salt, "utf-8"),
+                    iterations=1000,
+                )
+                key = kdf.derive(bytes(salt_web_ui, "utf-8"))
+
+                # Step 4: Encrypt password with AES-CCM
+                iv = os.urandom(16)
+                nonce = self._truncate_iv(iv, len(self._password) * 8, 8)
+
+                aes_ccm = AESCCM(key, tag_length=8)
+                encrypted_password = aes_ccm.encrypt(
+                    nonce,
+                    bytes(self._password, "utf-8"),
+                    None  # No additional authenticated data
+                )
+
+                # Step 5: Build encrypted password payload (base64-encoded JSON)
+                b64_ct = base64.b64encode(encrypted_password).decode("ascii").strip()
+                b64_iv = base64.b64encode(iv).decode("ascii").strip()
+
+                password_payload = {
+                    "iv": b64_iv,
+                    "v": 1,
+                    "iter": 1000,
+                    "ks": 128,
+                    "ts": 64,
+                    "mode": "ccm",
+                    "adata": "",
+                    "cipher": "aes",
+                    "ct": b64_ct,
+                }
+
+                encrypted_password_json = json.dumps(password_payload)
+
+                # Step 6: POST login request
+                login_url = f"{self._url}/api/users/login.jst"
+                login_payload = {
                     "__id": self._router_id,
-                    "X_INTERNAL_FIELDS": "X_VODAFONE_WebUISecret"
-                },
-                headers=headers,
-                timeout=10
-            )
-            r.raise_for_status()
-            details = r.json()
+                    "X_VODAFONE_Password": encrypted_password_json,
+                    "Push": "true",  # Force logout stale sessions (DOCSight is primary client)
+                    "csrf_token": self._csrf_token,
+                }
 
-            web_ui_secret = details.get("X_VODAFONE_WebUISecret", "")
-            if not web_ui_secret:
-                raise RuntimeError("X_VODAFONE_WebUISecret not found in device response")
-
-            # Step 2: Parse WebUISecret
-            # Format: <salt_web_ui (10 chars)><salt (rest)>
-            salt_web_ui = web_ui_secret[:10]
-            salt = web_ui_secret[10:]
-
-            # Step 3: Derive encryption key with PBKDF2-HMAC-SHA256
-            # Key is derived FROM salt_web_ui WITH salt as PBKDF2 salt
-            kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=16,  # AES-128
-                salt=bytes(salt, "utf-8"),
-                iterations=1000,
-            )
-            key = kdf.derive(bytes(salt_web_ui, "utf-8"))
-
-            # Step 4: Encrypt password with AES-CCM
-            # Generate 16-byte IV and truncate for CCM nonce
-            iv = os.urandom(16)
-            nonce = self._truncate_iv(iv, len(self._password) * 8, 8)
-            
-            aes_ccm = AESCCM(key, tag_length=8)
-            encrypted_password = aes_ccm.encrypt(
-                nonce,
-                bytes(self._password, "utf-8"),
-                None  # No additional authenticated data
-            )
-
-            # Step 5: Build encrypted password payload (base64-encoded JSON)
-            b64_ct = base64.b64encode(encrypted_password).decode("ascii").strip()
-            b64_iv = base64.b64encode(iv).decode("ascii").strip()
-
-            password_payload = {
-                "iv": b64_iv,
-                "v": 1,
-                "iter": 1000,
-                "ks": 128,
-                "ts": 64,
-                "mode": "ccm",
-                "adata": "",
-                "cipher": "aes",
-                "ct": b64_ct,
-            }
-            
-            # Convert to JSON string
-            encrypted_password_json = json.dumps(password_payload)
-
-            # Step 6: POST login request
-            login_url = f"{self._url}/api/users/login.jst"
-            login_payload = {
-                "__id": self._router_id,
-                "X_VODAFONE_Password": encrypted_password_json,
-                "Push": "true",  # Force logout stale sessions (DOCSight is primary client)
-                "csrf_token": self._csrf_token,
-            }
-
-            r2 = self._session.post(
-                login_url,
-                data=login_payload,  # Form data, not JSON
-                headers=headers,  # AJAX headers for CSRF protection
-                timeout=10
-            )
-            r2.raise_for_status()
-            
-            # Step 7: Validate login response
-            login_response = r2.json()
-            
-            # Check for authentication errors
-            if login_response.get("X_INTERNAL_Password_Status") == "Invalid_PWD":
-                raise RuntimeError("Invalid password")
-            
-            if login_response.get("X_INTERNAL_Is_Duplicate") == "true":
-                if "DUKSID" in self._session.cookies:
-                    log.info("Router reports active session, cookies present - reusing")
-                    if "csrf_token" in login_response:
-                        self._csrf_token = login_response["csrf_token"]
-                    return
-                # Push=true killed old session but router didn't issue new cookie.
-                # Retry login immediately - old session is gone now.
-                log.info("Duplicate session without cookie, retrying login...")
-                if "csrf_token" in login_response:
-                    self._csrf_token = login_response["csrf_token"]
-                    login_payload["csrf_token"] = self._csrf_token
-                r2 = self._session.post(login_url, data=login_payload, headers=headers, timeout=10)
+                r2 = self._session.post(
+                    login_url,
+                    data=login_payload,  # Form data, not JSON
+                    headers=headers,  # AJAX headers for CSRF protection
+                    timeout=10
+                )
                 r2.raise_for_status()
+
+                # Step 7: Validate login response
                 login_response = r2.json()
+
                 if login_response.get("X_INTERNAL_Password_Status") == "Invalid_PWD":
                     raise RuntimeError("Invalid password")
 
-            # Update CSRF token from response if present
-            if "csrf_token" in login_response:
-                self._csrf_token = login_response["csrf_token"]
+                if login_response.get("X_INTERNAL_Is_Duplicate") == "true":
+                    if attempt > 0:
+                        raise RuntimeError(
+                            "Router still reports duplicate session after retry. "
+                            "Another client may be logged in. Try again in a few minutes."
+                        )
+                    # Push=true should have killed the old session, but the DUKSID
+                    # cookie from the initial GET is NOT an authenticated cookie.
+                    # Clear everything and redo the full login flow.
+                    log.info("Duplicate session detected, clearing cookies and retrying full login...")
+                    continue
 
-            log.info("Auth OK (session cookies: %s)", list(self._session.cookies.keys()))
+                # Update CSRF token from response if present
+                if "csrf_token" in login_response:
+                    self._csrf_token = login_response["csrf_token"]
 
-        except requests.RequestException as e:
-            log.error("Login failed: %s", e)
-            raise RuntimeError(f"Ultra Hub 7 authentication failed: {e}")
+                log.info("Auth OK (session cookies: %s)", list(self._session.cookies.keys()))
+                return  # Success
+
+            except requests.RequestException as e:
+                log.error("Login failed: %s", e)
+                raise RuntimeError(f"Ultra Hub 7 authentication failed: {e}")
 
     def _truncate_iv(self, iv: bytes, ol: int, tlen: int) -> bytes:
         """Calculate CCM nonce by truncating IV.
