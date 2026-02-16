@@ -383,5 +383,10 @@
   "gaming_grade_c": "Fair",
   "gaming_grade_d": "Poor",
   "gaming_grade_f": "Bad",
-  "gaming_no_speedtest": "DOCSIS only"
+  "gaming_no_speedtest": "DOCSIS only",
+  "gaming_tooltip_a": "Excellent for all online games",
+  "gaming_tooltip_b": "Good for most games",
+  "gaming_tooltip_c": "Playable, but may have occasional issues",
+  "gaming_tooltip_d": "Frequent lag and connection problems",
+  "gaming_tooltip_f": "Not suitable for online gaming"
 }
