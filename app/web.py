@@ -136,7 +136,6 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=24),
 )
 
-_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$")
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -413,44 +412,12 @@ def index():
                 return True
         return False
 
-    ts = request.args.get("t")
-    if ts and not _TS_RE.match(ts):
-        return redirect("/")
-    if ts and _storage:
-        snapshot = _storage.get_snapshot(ts)
-        if snapshot:
-            return render_template(
-                "index.html",
-                analysis=snapshot,
-                last_update=ts.replace("T", " "),
-                poll_interval=_state["poll_interval"],
-                error=None,
-                historical=True,
-                snapshot_ts=ts,
-                theme=theme,
-                isp_name=isp_name, connection_info=conn_info,
-                bqm_configured=bqm_configured,
-                smokeping_configured=smokeping_configured,
-                speedtest_configured=speedtest_configured,
-                speedtest_latest=speedtest_latest,
-                booked_download=booked_download,
-                booked_upload=booked_upload,
-                uncorr_pct=_compute_uncorr_pct(snapshot),
-                has_us_ofdma=_has_us_ofdma(snapshot),
-                device_info=dev_info,
-                demo_mode=demo_mode,
-                gaming_quality_enabled=gaming_quality_enabled,
-                gaming_index=compute_gaming_index(snapshot, speedtest_latest) if gaming_quality_enabled else None,
-                t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
-            )
     return render_template(
         "index.html",
         analysis=_state["analysis"],
         last_update=_state["last_update"],
         poll_interval=_state["poll_interval"],
         error=_state["error"],
-        historical=False,
-        snapshot_ts=None,
         theme=theme,
         isp_name=isp_name, connection_info=conn_info,
         bqm_configured=bqm_configured,
@@ -630,28 +597,6 @@ def api_collectors_status():
     
     return jsonify([c.get_status() for c in _collectors])
 
-
-@app.route("/api/calendar")
-@require_auth
-def api_calendar():
-    """Return dates that have snapshot data."""
-    if _storage:
-        return jsonify(_storage.get_dates_with_data())
-    return jsonify([])
-
-
-@app.route("/api/snapshot/daily")
-@require_auth
-def api_snapshot_daily():
-    """Return the daily snapshot closest to the configured snapshot_time."""
-    date = request.args.get("date")
-    if not date or not _storage:
-        return jsonify(None)
-    if not _valid_date(date):
-        return jsonify({"error": "Invalid date format"}), 400
-    target_time = _config_manager.get("snapshot_time", "06:00") if _config_manager else "06:00"
-    snap = _storage.get_daily_snapshot(date, target_time)
-    return jsonify(snap)
 
 
 @app.route("/api/trends")

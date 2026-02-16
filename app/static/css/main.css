@@ -142,22 +142,6 @@ body {
     color: var(--text); 
     background: rgba(255, 255, 255, 0.05);
 }
-.date-nav {
-    display: flex; align-items: center; justify-content: center; gap: 2px;
-    padding: 12px 0; text-align: center;
-}
-.date-nav button {
-    background: none; border: 1px solid var(--input-border);
-    color: var(--text); border-radius: 4px; cursor: pointer;
-    font-size: 0.85em; padding: 4px 8px;
-}
-.date-nav button:hover { border-color: var(--accent); color: var(--accent); }
-.date-label {
-    font-size: 0.9em; font-weight: bold; padding: 4px 10px;
-    cursor: pointer; border: 1px solid transparent;
-    border-radius: 4px; white-space: nowrap;
-}
-.date-label:hover { border-color: var(--accent); }
 .topbar-title {
     font-size: 1.125rem; 
     font-weight: 600;
@@ -448,38 +432,6 @@ body {
 /* sidebar-ref removed */
 
 /* ── Calendar Popup ── */
-.calendar-popup {
-    position: fixed; top: 52px; left: 80px;
-    background: var(--surface); border: 1px solid var(--input-border);
-    border-radius: 8px; padding: 12px; z-index: 80; display: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3); min-width: 280px;
-}
-.calendar-popup.open { display: block; }
-.cal-nav {
-    display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: 8px;
-}
-.cal-nav button {
-    background: none; border: 1px solid var(--input-border);
-    color: var(--text); border-radius: 4px; cursor: pointer;
-    padding: 4px 10px; font-size: 0.9em;
-}
-.cal-nav button:hover { border-color: var(--accent); }
-.cal-nav span { font-weight: bold; font-size: 0.95em; }
-.cal-weekdays {
-    display: grid; grid-template-columns: repeat(7, 1fr);
-    text-align: center; font-size: 0.75em; color: var(--muted); margin-bottom: 4px;
-}
-.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-.cal-day {
-    text-align: center; padding: 6px 2px; font-size: 0.85em;
-    border-radius: 4px; cursor: default; color: var(--muted);
-}
-.cal-day.has-data { color: var(--text); cursor: pointer; font-weight: bold; }
-.cal-day.has-data:hover { background: var(--card); }
-.cal-day.today { border: 1px solid var(--accent); }
-.cal-day.selected { background: var(--accent); color: #000; }
-.cal-day.empty { visibility: hidden; }
 
 /* ── Main Content ── */
 .main-content { padding: 16px; max-width: 1400px; margin: 0 auto; }
@@ -487,13 +439,6 @@ body {
 .view.active { display: block; }
 
 /* ── Dashboard ── */
-.history-banner {
-    padding: 10px 16px; border-radius: 6px;
-    background: rgba(33,150,243,0.15); border: 1px solid var(--info);
-    color: var(--info); font-size: 0.95em; margin-bottom: 16px;
-    display: flex; justify-content: space-between; align-items: center;
-}
-.history-banner a { color: var(--info); font-size: 0.85em; }
 .health-banner {
     padding: 24px 28px; 
     border-radius: var(--radius-lg); 
@@ -1073,6 +1018,19 @@ details.channel-group {
 /* ══════════════════════════════════════════════════════════════════════════
    BQM GRAPHS - Phase 4.5: Card Wrapper
    ══════════════════════════════════════════════════════════════════════════ */
+.bqm-date-nav {
+    display: inline-flex; align-items: center; gap: 4px; margin-left: 16px;
+}
+.bqm-date-nav button {
+    background: none; border: 1px solid var(--input-border);
+    color: var(--text); border-radius: 4px; cursor: pointer;
+    font-size: 0.85em; padding: 4px 8px; line-height: 1;
+}
+.bqm-date-nav button:hover { border-color: var(--accent); color: var(--accent); }
+.bqm-date-label {
+    font-size: 0.85em; font-weight: 600; padding: 4px 8px;
+    white-space: nowrap;
+}
 .bqm-card {
     background: var(--card-bg, var(--card));
     border: 1px solid var(--card-border, var(--input-border));
@@ -1981,8 +1939,7 @@ details.channel-group {
     .metric-row { flex-direction: column; gap: 10px; }
     table { font-size: 0.8em; }
     th, td { padding: 4px 6px; }
-    .calendar-popup { left: 10px; right: 10px; min-width: auto; }
-    .chart-zoom-modal { width: 95vw; height: 85vh; padding: 12px; }
+.chart-zoom-modal { width: 95vw; height: 85vh; padding: 12px; }
     .journal-hide-mobile { display: none; }
 }
 
