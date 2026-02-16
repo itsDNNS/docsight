@@ -130,44 +130,16 @@
         <span class="topbar-meta" id="topbar-meta">
             {% if last_update %}{{ t.last_update }}: {{ last_update }}{% endif %}
         </span>
-        {% if not historical %}
         <span class="topbar-countdown" id="topbar-countdown"></span>
-        {% endif %}
-        {% if not historical %}
         <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
-        {% endif %}
     </div>
 </div>
 
-<!-- Calendar Popup -->
-<div class="calendar-popup" id="calendar-popup">
-    <div class="cal-nav">
-        <button id="cal-prev">&lsaquo;</button>
-        <span id="cal-month-label"></span>
-        <button id="cal-next">&rsaquo;</button>
-    </div>
-    <div class="cal-weekdays">
-        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
-    </div>
-    <div class="cal-days" id="cal-days"></div>
-</div>
-
-<div class="date-nav" id="date-nav">
-    <button id="date-prev">&#8249;</button>
-    <span class="date-label" id="date-label" title="{{ t.open_calendar }}">{{ t.live }}</span>
-    <button id="date-next">&#8250;</button>
-</div>
 
 <!-- ═══ View: Dashboard ═══ -->
 <div class="main-content">
 <div id="view-dashboard" class="view active">
 
-{% if historical %}
-<div class="history-banner">
-    {{ t.historical_view }}: {{ snapshot_ts.replace("T", " ") }}
-    <a href="/">{{ t.back_to_live }} &rarr;</a>
-</div>
-{% endif %}
 
 {% if error %}
 <div class="error-box">{{ t.error_label }}: {{ error }}</div>
@@ -710,6 +682,11 @@
 <div id="view-bqm" class="view">
     <div class="trend-header">
         <span class="trend-title">{{ t.bqm_title }}</span>
+        <div class="bqm-date-nav" id="bqm-date-nav">
+            <button id="bqm-prev">&#8249;</button>
+            <span class="bqm-date-label" id="bqm-date-label"></span>
+            <button id="bqm-next">&#8250;</button>
+        </div>
     </div>
     <div id="bqm-content">
         <!-- Phase 4.5: Card wrapper for BQM image -->
@@ -1422,13 +1399,9 @@
 
     /* ── State ── */
     var currentView = 'live';
-    var selectedDate = todayStr();
-    var calendarMonth = new Date();
-    var datesWithData = [];
     var charts = {};
-    var calendarLoaded = false;
     var _trendRange = 'day';
-    var isHistorical = {{ 'true' if historical else 'false' }};
+    var bqmDate = todayStr();
 
     function todayStr() {
         var d = new Date();
@@ -1545,8 +1518,6 @@
         sidebarLinks.forEach(function(l) {
             l.classList.toggle('active', l.getAttribute('data-view') === view);
         });
-        var showDateNav = (view === 'live' || view === 'bqm');
-        document.getElementById('date-nav').style.display = showDateNav ? 'flex' : 'none';
         var dashView = document.getElementById('view-dashboard');
         var trendView = document.getElementById('view-trends');
         var bqmView = document.getElementById('view-bqm');
@@ -1568,41 +1539,33 @@
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
-            updateDateLabel();
-            if (!isHistorical) startAutoRefresh();
+            startAutoRefresh();
         } else if (view === 'bqm') {
             if (bqmView) bqmView.classList.add('active');
-            updateDateLabel();
-            loadBqmGraph(selectedDate);
+            updateBqmDateLabel();
+            loadBqmGraph(bqmDate);
         } else if (view === 'smokeping') {
             if (smokepingView) smokepingView.classList.add('active');
-            updateDateLabel();
             loadSmokepingGraphs();
         } else if (view === 'speedtest') {
             if (speedtestView) speedtestView.classList.add('active');
-            updateDateLabel();
             loadSpeedtestHistory();
         } else if (view === 'journal') {
             if (journalView) journalView.classList.add('active');
-            updateDateLabel();
             loadIncidents();
         } else if (view === 'events') {
             if (eventsView) eventsView.classList.add('active');
-            updateDateLabel();
             loadEvents();
         } else if (view === 'channels') {
             if (channelsView) channelsView.classList.add('active');
-            updateDateLabel();
             loadChannelList();
         } else if (view === 'correlation') {
             if (correlationView) correlationView.classList.add('active');
-            updateDateLabel();
             loadCorrelationData();
         } else if (view === 'trends') {
             trendView.classList.add('active');
             updateTrendTabs();
-            updateDateLabel();
-            loadTrends(_trendRange, selectedDate);
+            loadTrends(_trendRange);
         }
         
         // Re-initialize Lucide icons after view switch
@@ -1619,8 +1582,7 @@
         btn.addEventListener('click', function() {
             _trendRange = this.getAttribute('data-range');
             updateTrendTabs();
-            updateDateLabel();
-            loadTrends(_trendRange, selectedDate);
+            loadTrends(_trendRange);
         });
     });
 
@@ -1635,164 +1597,25 @@
         if (v && v !== currentView) switchView(v, true);
     });
 
-    /* ── Date Navigation ── */
-    var dateLabel = document.getElementById('date-label');
-    var datePrev = document.getElementById('date-prev');
-    var dateNext = document.getElementById('date-next');
+    /* ── BQM Date Navigation ── */
+    var bqmDateLabel = document.getElementById('bqm-date-label');
+    var bqmPrev = document.getElementById('bqm-prev');
+    var bqmNext = document.getElementById('bqm-next');
 
-    function updateDateLabel() {
-        var trendTabs = document.getElementById('trend-tabs');
-        if (currentView === 'live') {
-            dateLabel.textContent = isHistorical ? formatDateDE('{{ snapshot_ts[:10] if snapshot_ts else "" }}') : T.live;
-        } else if (currentView === 'bqm') {
-            dateLabel.textContent = formatDateDE(selectedDate) + ' (BQM)';
-        } else if (currentView === 'speedtest') {
-            dateLabel.textContent = T.speedtest || 'Speedtest';
-        } else if (currentView === 'journal') {
-            dateLabel.textContent = T.incident_journal || 'Incident Journal';
-        } else if (currentView === 'trends') {
-            var rangeLabel = {day: T.day, week: T.week, month: T.month}[_trendRange] || '';
-            if (selectedDate === todayStr()) {
-                dateLabel.textContent = T.live + ' (' + rangeLabel + ')';
-            } else {
-                dateLabel.textContent = formatDateDE(selectedDate) + ' (' + rangeLabel + ')';
-            }
-            // Hide tabs when viewing historical data (not today)
-            if (trendTabs) {
-                trendTabs.style.display = (selectedDate === todayStr()) ? '' : 'none';
-            }
-        }
-        // Show tabs again when switching to trends with today's date
-        if (currentView !== 'trends' && trendTabs) {
-            trendTabs.style.display = '';
-        }
+    function updateBqmDateLabel() {
+        if (bqmDateLabel) bqmDateLabel.textContent = formatDateDE(bqmDate);
     }
 
-    datePrev.addEventListener('click', function() { dateNav(-1); });
-    dateNext.addEventListener('click', function() { dateNav(1); });
-
-    function dateNav(dir) {
-        var d = new Date(selectedDate + 'T12:00:00');
-        var navRange = currentView === 'trends' ? _trendRange : currentView;
-        if (navRange === 'live' || navRange === 'day' || navRange === 'bqm') {
-            d.setDate(d.getDate() + dir);
-        } else if (navRange === 'week') {
-            d.setDate(d.getDate() + dir * 7);
-        } else if (navRange === 'month') {
-            d.setMonth(d.getMonth() + dir);
-        }
-        selectedDate = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
-        updateDateLabel();
-        if (currentView === 'live') {
-            fetch('/api/snapshot/daily?date=' + selectedDate)
-                .then(function(r) { return r.json(); })
-                .then(function(snap) {
-                    if (snap && snap.timestamp) {
-                        window.location.href = '/?t=' + encodeURIComponent(snap.timestamp);
-                    }
-                });
-        } else if (currentView === 'bqm') {
-            loadBqmGraph(selectedDate);
-        } else if (currentView === 'trends') {
-            // Force day view when navigating to historical dates
-            if (selectedDate !== todayStr()) {
-                _trendRange = 'day';
-            }
-            loadTrends(_trendRange, selectedDate);
-        }
+    function bqmDateNav(dir) {
+        var d = new Date(bqmDate + 'T12:00:00');
+        d.setDate(d.getDate() + dir);
+        bqmDate = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+        updateBqmDateLabel();
+        loadBqmGraph(bqmDate);
     }
 
-    /* ── Calendar ── */
-    var calPopup = document.getElementById('calendar-popup');
-
-    dateLabel.addEventListener('click', function(e) {
-        e.stopPropagation();
-        calPopup.classList.toggle('open');
-        if (calPopup.classList.contains('open') && !calendarLoaded) {
-            loadCalendarData();
-        } else if (calPopup.classList.contains('open')) {
-            renderCalendar();
-        }
-    });
-    document.addEventListener('click', function(e) {
-        if (!calPopup.contains(e.target) && e.target !== dateLabel) {
-            calPopup.classList.remove('open');
-        }
-    });
-    document.getElementById('cal-prev').addEventListener('click', function() {
-        calendarMonth.setMonth(calendarMonth.getMonth() - 1);
-        renderCalendar();
-    });
-    document.getElementById('cal-next').addEventListener('click', function() {
-        calendarMonth.setMonth(calendarMonth.getMonth() + 1);
-        renderCalendar();
-    });
-
-    var bqmDates = [];
-
-    function loadCalendarData() {
-        fetch('/api/calendar')
-            .then(function(r) { return r.json(); })
-            .then(function(dates) {
-                datesWithData = dates;
-                calendarLoaded = true;
-                renderCalendar();
-            });
-        fetch('/api/bqm/dates')
-            .then(function(r) { return r.json(); })
-            .then(function(dates) { bqmDates = dates || []; })
-            .catch(function() {});
-    }
-
-    function renderCalendar() {
-        var year = calendarMonth.getFullYear();
-        var month = calendarMonth.getMonth();
-        document.getElementById('cal-month-label').textContent = T.months[month] + ' ' + year;
-        var grid = document.getElementById('cal-days');
-        grid.innerHTML = '';
-        var firstDay = new Date(year, month, 1).getDay();
-        var offset = (firstDay === 0) ? 6 : firstDay - 1;
-        var daysInMonth = new Date(year, month + 1, 0).getDate();
-        var today = todayStr();
-        for (var i = 0; i < offset; i++) {
-            var empty = document.createElement('span');
-            empty.className = 'cal-day empty';
-            grid.appendChild(empty);
-        }
-        for (var d = 1; d <= daysInMonth; d++) {
-            var dateStr = year + '-' + pad(month + 1) + '-' + pad(d);
-            var el = document.createElement('span');
-            el.className = 'cal-day';
-            el.textContent = d;
-            var activeDates = (currentView === 'bqm') ? bqmDates : datesWithData;
-            if (activeDates.indexOf(dateStr) !== -1) el.classList.add('has-data');
-            if (dateStr === today) el.classList.add('today');
-            if (dateStr === selectedDate) el.classList.add('selected');
-            el.setAttribute('data-date', dateStr);
-            el.addEventListener('click', function() {
-                var date = this.getAttribute('data-date');
-                if (!this.classList.contains('has-data')) return;
-                selectedDate = date;
-                calPopup.classList.remove('open');
-                if (currentView === 'live') {
-                    fetch('/api/snapshot/daily?date=' + date)
-                        .then(function(r) { return r.json(); })
-                        .then(function(snap) {
-                            if (snap && snap.timestamp) {
-                                window.location.href = '/?t=' + encodeURIComponent(snap.timestamp);
-                            }
-                        });
-                } else if (currentView === 'bqm') {
-                    updateDateLabel();
-                    loadBqmGraph(selectedDate);
-                } else if (currentView === 'trends') {
-                    updateDateLabel();
-                    loadTrends(_trendRange, selectedDate);
-                }
-            });
-            grid.appendChild(el);
-        }
-    }
+    if (bqmPrev) bqmPrev.addEventListener('click', function() { bqmDateNav(-1); });
+    if (bqmNext) bqmNext.addEventListener('click', function() { bqmDateNav(1); });
 
     /* ── Auto Refresh with Countdown ── */
     var refreshTimer = null;
@@ -1810,7 +1633,7 @@
         countdownSeconds = REFRESH_INTERVAL;
         updateCountdown();
         countdownTimer = setInterval(function() {
-            if (currentView !== 'live' || isHistorical || document.hidden) return;
+            if (currentView !== 'live' || document.hidden) return;
             countdownSeconds--;
             if (countdownSeconds <= 0) {
                 countdownSeconds = REFRESH_INTERVAL;
@@ -1901,7 +1724,7 @@
             });
     }
 
-    if (!isHistorical && currentView === 'live') startAutoRefresh();
+    if (currentView === 'live') startAutoRefresh();
 
     /* ── Manual Poll (Refresh Button) ── */
     var refreshBtn = document.getElementById('refresh-btn');
@@ -1959,7 +1782,8 @@
         {yMin: 30, yMax: 60}
     ];
 
-    function loadTrends(range, date) {
+    function loadTrends(range) {
+        var date = todayStr();
         var title = document.getElementById('trend-title');
         var noData = document.getElementById('trend-no-data');
         var grid = document.getElementById('charts-grid');
@@ -2292,8 +2116,6 @@
     window.loadSmokepingGraphs = loadSmokepingGraphs;
 
     /* ── Init ── */
-    updateDateLabel();
-
     // Apply hash-based view routing (must be inside IIFE to access switchView)
     var _initHash = location.hash.replace('#', '');
     if (validViews.indexOf(_initHash) !== -1 && _initHash !== 'live') {
