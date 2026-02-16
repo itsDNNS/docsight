@@ -737,12 +737,10 @@
 <div id="view-correlation" class="view">
     <div class="trend-header">
         <span class="trend-title">{{ t.correlation_title }}</span>
-        <div style="display:flex; gap:8px; align-items:center;">
-            <select id="correlation-hours" onchange="loadCorrelationData()">
-                <option value="24" selected>{{ t.correlation_hours_24 }}</option>
-                <option value="48">{{ t.correlation_hours_48 }}</option>
-                <option value="168">{{ t.correlation_hours_168 }}</option>
-            </select>
+        <div class="trend-tabs" id="correlation-tabs">
+            <button class="trend-tab active" data-value="24" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_24 }}</button>
+            <button class="trend-tab" data-value="48" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_48 }}</button>
+            <button class="trend-tab" data-value="168" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_168 }}</button>
         </div>
     </div>
     <p class="correlation-desc" style="color:var(--muted); font-size:0.85em; margin:0 0 16px;">{{ t.correlation_desc }}</p>
@@ -907,16 +905,16 @@
     <div class="trend-header">
         <span class="trend-title">{{ t.channel_timeline }}</span>
     </div>
-    <div class="channel-filters" style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+    <div class="channel-filters" style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
         <select id="channel-select" onchange="loadChannelTimeline()">
             <option value="">{{ t.select_channel }}</option>
         </select>
-        <select id="channel-time-range" onchange="loadChannelTimeline()">
-            <option value="1">1 {{ t.day }}</option>
-            <option value="3">3 {{ t.day }}</option>
-            <option value="7" selected>7 {{ t.day }}</option>
-            <option value="30">30 {{ t.day }}</option>
-        </select>
+        <div class="trend-tabs" id="channel-time-tabs">
+            <button class="trend-tab" data-value="1" onclick="selectPill(this, loadChannelTimeline)">1d</button>
+            <button class="trend-tab" data-value="3" onclick="selectPill(this, loadChannelTimeline)">3d</button>
+            <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadChannelTimeline)">7d</button>
+            <button class="trend-tab" data-value="30" onclick="selectPill(this, loadChannelTimeline)">30d</button>
+        </div>
     </div>
     <div id="channel-loading" class="waiting" style="display:none;">
         <div class="spinner"></div>
@@ -1021,14 +1019,14 @@
     <div class="trend-header">
         <span class="trend-title">{{ t.speedtest_tracker }}</span>
         <div style="display:flex; gap:8px; align-items:center;">
-            <select id="speedtest-days" style="padding:6px 10px; border-radius:6px; border:1px solid var(--input-border); background:var(--surface); color:var(--text);" onchange="filterSpeedtestData()">
-                <option value="1">1 {{ t.day }}</option>
-                <option value="7" selected>7 {{ t.day }}</option>
-                <option value="14">14 {{ t.day }}</option>
-                <option value="30">30 {{ t.day }}</option>
-                <option value="90">90 {{ t.day }}</option>
-                <option value="all">{{ t.fetch_all }}</option>
-            </select>
+            <div class="trend-tabs" id="speedtest-tabs">
+                <button class="trend-tab" data-value="1" onclick="selectPill(this, filterSpeedtestData)">1d</button>
+                <button class="trend-tab active" data-value="7" onclick="selectPill(this, filterSpeedtestData)">7d</button>
+                <button class="trend-tab" data-value="14" onclick="selectPill(this, filterSpeedtestData)">14d</button>
+                <button class="trend-tab" data-value="30" onclick="selectPill(this, filterSpeedtestData)">30d</button>
+                <button class="trend-tab" data-value="90" onclick="selectPill(this, filterSpeedtestData)">90d</button>
+                <button class="trend-tab" data-value="all" onclick="selectPill(this, filterSpeedtestData)">{{ t.fetch_all }}</button>
+            </div>
             <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" onclick="loadSpeedtestHistory()">&#x1F504;</button>
         </div>
     </div>
@@ -1608,6 +1606,17 @@
             switchView(this.getAttribute('data-view'));
         });
     });
+
+    /* ── Pill tab helpers ── */
+    window.selectPill = function(btn, callback) {
+        btn.parentElement.querySelectorAll('.trend-tab').forEach(function(t) { t.classList.remove('active'); });
+        btn.classList.add('active');
+        if (callback) callback();
+    };
+    window.getPillValue = function(containerId) {
+        var active = document.querySelector('#' + containerId + ' .trend-tab.active');
+        return active ? active.dataset.value : null;
+    };
 
     function switchView(view, skipHash) {
         currentView = view;
@@ -2532,7 +2541,7 @@
         var channelId = parts[1];
         var selectedOpt = sel.options[sel.selectedIndex];
         var docsisVersion = selectedOpt ? selectedOpt.dataset.docsis || '3.0' : '3.0';
-        var days = document.getElementById('channel-time-range').value;
+        var days = getPillValue('channel-time-tabs');
 
         loadingEl.style.display = '';
         chartsEl.style.display = 'none';
@@ -2985,8 +2994,7 @@ function loadSpeedtestHistory() {
 
 function filterSpeedtestData() {
     var T = {{ t|tojson }};
-    var daysEl = document.getElementById('speedtest-days');
-    var days = daysEl ? daysEl.value : '7';
+    var days = getPillValue('speedtest-tabs') || '7';
     var table = document.getElementById('speedtest-table');
     var noData = document.getElementById('speedtest-no-data');
     _speedtestVisible = 50;
@@ -3424,7 +3432,7 @@ var _corrZoom = null; // { tMin, tMax } when zoomed in
 })();
 
 function loadCorrelationData() {
-    var hours = document.getElementById('correlation-hours').value;
+    var hours = getPillValue('correlation-tabs');
 
     var loading = document.getElementById('correlation-loading');
     var noData = document.getElementById('correlation-no-data');
@@ -3584,7 +3592,7 @@ function renderCorrelationChart(data) {
     for (var i = 0; i <= labelCount; i++) {
         var t = tMin + (tMax - tMin) * i / labelCount;
         var d = new Date(t);
-        var hours = document.getElementById('correlation-hours').value;
+        var hours = getPillValue('correlation-tabs');
         var label;
         if (parseInt(hours) > 48) {
             label = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
