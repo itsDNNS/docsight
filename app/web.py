@@ -1491,9 +1491,28 @@ def api_complaint():
     customer_number = request.args.get("number", "")
     customer_address = request.args.get("address", "")
 
+    include_bnetz = request.args.get("include_bnetz", "false") == "true"
+    bnetz_id = request.args.get("bnetz_id", None, type=int)
+
+    bnetz_data = None
+    if _storage and (include_bnetz or bnetz_id):
+        if bnetz_id:
+            all_bnetz = _storage.get_bnetz_measurements(limit=100)
+            bnetz_data = next((m for m in all_bnetz if m["id"] == bnetz_id), None)
+        else:
+            in_range = _storage.get_bnetz_in_range(start_ts, end_ts)
+            # Prefer most recent with deviation
+            for m in reversed(in_range):
+                if m.get("verdict_download") == "deviation" or m.get("verdict_upload") == "deviation":
+                    bnetz_data = m
+                    break
+            if not bnetz_data and in_range:
+                bnetz_data = in_range[-1]
+
     text = generate_complaint_text(
         snapshots, config, None, lang,
-        customer_name, customer_number, customer_address
+        customer_name, customer_number, customer_address,
+        bnetz_data=bnetz_data,
     )
     return jsonify({"text": text, "lang": lang})
 
