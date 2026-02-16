@@ -1091,29 +1091,17 @@
     <div class="gaming-overview">
         <div class="gaming-gauge">
             {% set s = gaming_index.score %}
-            {% if s >= 90 %}
-                {% set seg_idx = 4 %}{% set seg_low = 90 %}{% set seg_high = 100 %}
-            {% elif s >= 75 %}
-                {% set seg_idx = 3 %}{% set seg_low = 75 %}{% set seg_high = 90 %}
-            {% elif s >= 50 %}
-                {% set seg_idx = 2 %}{% set seg_low = 50 %}{% set seg_high = 75 %}
-            {% elif s >= 25 %}
-                {% set seg_idx = 1 %}{% set seg_low = 25 %}{% set seg_high = 50 %}
-            {% else %}
-                {% set seg_idx = 0 %}{% set seg_low = 0 %}{% set seg_high = 25 %}
-            {% endif %}
-            {% set norm_pct = 100.0 / 5.5 %}
-            {% set active_pct = norm_pct * 1.5 %}
-            {% set gauge_pos = seg_idx * norm_pct + (s - seg_low) / (seg_high - seg_low) * active_pct %}
             <div class="gaming-gauge-band">
-                <div class="gaming-gauge-segment gauge-f{% if seg_idx == 0 %} gauge-active{% endif %}"><span>F</span></div>
-                <div class="gaming-gauge-segment gauge-d{% if seg_idx == 1 %} gauge-active{% endif %}"><span>D</span></div>
-                <div class="gaming-gauge-segment gauge-c{% if seg_idx == 2 %} gauge-active{% endif %}"><span>C</span></div>
-                <div class="gaming-gauge-segment gauge-b{% if seg_idx == 3 %} gauge-active{% endif %}"><span>B</span></div>
-                <div class="gaming-gauge-segment gauge-a{% if seg_idx == 4 %} gauge-active{% endif %}"><span>A</span></div>
-                <div class="gaming-gauge-marker" style="left:{{ gauge_pos|round(1) }}%;">
+                <div class="gaming-gauge-segment gauge-f"><span>F</span></div>
+                <div class="gaming-gauge-segment gauge-d"><span>D</span></div>
+                <div class="gaming-gauge-segment gauge-c"><span>C</span></div>
+                <div class="gaming-gauge-segment gauge-b"><span>B</span></div>
+                <div class="gaming-gauge-segment gauge-a"><span>A</span></div>
+            </div>
+            <div class="gaming-gauge-track">
+                <div class="gaming-gauge-marker" style="left:{{ s }}%;">
                     <div class="gaming-gauge-needle"></div>
-                    <div class="gaming-gauge-score">{{ gaming_index.score }}</div>
+                    <div class="gaming-gauge-score">{{ s }}</div>
                 </div>
             </div>
             {% if not gaming_index.has_speedtest %}
@@ -1127,7 +1115,7 @@
     </div>
     <div class="gaming-components">
         <h3 class="gaming-section-title">{{ t.gaming_components_title }}</h3>
-        {% for key, comp in gaming_index.components.items() %}
+        {% for key, comp in gaming_index.components.items()|sort(attribute='1.weight', reverse=true) %}
         <div class="gaming-component-card">
             <div class="gaming-comp-header">
                 <span class="gaming-comp-icon">
