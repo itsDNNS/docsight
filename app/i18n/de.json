@@ -421,5 +421,7 @@
   "bnetz_no_measurements": "Noch keine Messungen hochgeladen",
   "bnetz_delete_confirm": "Messung wirklich loeschen?",
   "bnetz_parse_error": "PDF konnte nicht gelesen werden. Ist es ein offizielles BNetzA-Messprotokoll?",
-  "bnetz_measurements": "Messungen"
+  "bnetz_measurements": "Messungen",
+  "bnetz_provider": "Anbieter",
+  "bnetz_download_pdf": "Original-PDF herunterladen"
 }

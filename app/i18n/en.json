@@ -421,5 +421,7 @@
   "bnetz_no_measurements": "No measurements uploaded yet",
   "bnetz_delete_confirm": "Really delete this measurement?",
   "bnetz_parse_error": "Could not read PDF. Is it an official BNetzA measurement protocol?",
-  "bnetz_measurements": "Measurements"
+  "bnetz_measurements": "Measurements",
+  "bnetz_provider": "Provider",
+  "bnetz_download_pdf": "Download original PDF"
 }
