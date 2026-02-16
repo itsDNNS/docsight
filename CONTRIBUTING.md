@@ -23,7 +23,8 @@ Collector Registry → Base Collector (Fail-Safe) → Analyzer/Storage → Web U
 
 **When contributing:**
 - New data sources must implement the `Collector` base class
-- Do not create parallel subsystems with separate threading or state
+- New modem types must implement the `ModemDriver` base class (`app/drivers/base.py`)
+- Collectors run in **parallel threads** via `ThreadPoolExecutor`. Protect shared state with locks.
 - Use the collector pattern for automatic fail-safe and health monitoring
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation and data flow diagrams.
@@ -53,7 +54,7 @@ This runs on port **8766** (`http://localhost:8766`). Production uses `docker-co
 python -m pytest tests/ -v
 ```
 
-196 tests cover analyzers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. All tests must pass before submitting a PR.
+268 tests cover analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. All tests must pass before submitting a PR.
 
 ## Running Locally
 
@@ -67,24 +68,32 @@ Open `http://localhost:8765` to access the setup wizard.
 
 ```
 app/
-  main.py            - Entrypoint, polling loop, thread management
-  web.py             - Flask routes and API endpoints
+  main.py            - Entrypoint, ThreadPoolExecutor polling loop
+  web.py             - Flask routes and API endpoints (thread-safe state)
   analyzer.py        - DOCSIS channel health analysis
-  event_detector.py  - Signal anomaly detection (power, SNR, modulation changes)
+  event_detector.py  - Signal anomaly detection (thread-safe)
   thresholds.json    - Configurable signal thresholds (VFKD guidelines)
-  fritzbox.py        - FritzBox data.lua API client
   config.py          - Configuration management (env + config.json)
-  storage.py         - SQLite snapshot storage
+  storage.py         - SQLite snapshot storage (WAL mode)
   mqtt_publisher.py  - MQTT Auto-Discovery for Home Assistant
   report.py          - Incident Report PDF generator (fpdf2)
   thinkbroadband.py  - BQM integration
+  collectors/        - Collector implementations (modem, demo, speedtest, bqm)
+    base.py          - Abstract Collector with fail-safe and locking
+    __init__.py      - Registry and discover_collectors()
+  drivers/           - Modem driver implementations
+    base.py          - Abstract ModemDriver interface
+    fritzbox.py      - AVM FRITZ!Box (data.lua / TR-064)
+    tc4400.py        - Technicolor TC4400 (SNMP)
+    ultrahub7.py     - Vodafone Ultra Hub 7
+    vodafone_station.py - Vodafone Station (CGA + TG auto-detection)
   i18n/              - Translation files (EN/DE/FR/ES JSON)
   fonts/             - Bundled DejaVu fonts for PDF generation
   static/            - Static assets (icons, etc.)
   templates/         - Jinja2 HTML templates
-tests/               - pytest test suite (196 tests)
+tests/               - pytest test suite (268 tests)
 docker-compose.yml     - Production Docker setup
-docker-compose.dev.yml - Development Docker setup (port 8766)
+docker-compose.dev.yml - Development Docker setup
 ```
 
 ## Internationalization (i18n)
