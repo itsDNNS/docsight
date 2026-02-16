@@ -416,5 +416,7 @@
   "bnetz_no_measurements": "Aun no se han subido mediciones",
   "bnetz_delete_confirm": "Realmente eliminar esta medicion?",
   "bnetz_parse_error": "No se pudo leer el PDF. Es un protocolo de medicion BNetzA oficial?",
-  "bnetz_measurements": "Mediciones"
+  "bnetz_measurements": "Mediciones",
+  "bnetz_provider": "Proveedor",
+  "bnetz_download_pdf": "Descargar PDF original"
 }

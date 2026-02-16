@@ -413,5 +413,7 @@
   "bnetz_no_measurements": "Aucune mesure telechargee",
   "bnetz_delete_confirm": "Vraiment supprimer cette mesure ?",
   "bnetz_parse_error": "Impossible de lire le PDF. Est-ce un protocole de mesure BNetzA officiel ?",
-  "bnetz_measurements": "Mesures"
+  "bnetz_measurements": "Mesures",
+  "bnetz_provider": "Fournisseur",
+  "bnetz_download_pdf": "Telecharger le PDF original"
 }

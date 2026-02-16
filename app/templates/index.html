@@ -79,6 +79,9 @@
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.smokeping_setup }}
         </a>
         {% endif %}
+        <a class="sidebar-link" data-view="bnetz" data-tooltip="{{ t.bnetz_title }}">
+            <span class="icon"><i data-lucide="file-check"></i></span> {{ t.bnetz_title }}
+        </a>
         <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
         <a class="sidebar-link" data-view="journal" data-tooltip="{{ t.incident_journal }}">
             <span class="icon"><i data-lucide="clipboard-list"></i></span> {{ t.incident_journal }}
@@ -1207,6 +1210,41 @@
 </div>
 {% endif %}
 
+<!-- ═══ View: Breitbandmessung (BNetzA) ═══ -->
+<div id="view-bnetz" class="view">
+    <div class="trend-header">
+        <span class="trend-title">{{ t.bnetz_title }}</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <label class="btn btn-muted" style="cursor:pointer;">
+                <i data-lucide="upload" style="width:14px;height:14px;vertical-align:-2px;"></i> {{ t.bnetz_upload }}
+                <input type="file" accept=".pdf" id="bnetz-file-input" style="display:none;" onchange="uploadBnetzFromView(this)">
+            </label>
+            <button class="refresh-btn" title="{{ t.refresh }}" onclick="loadBnetzData()">&#x1F504;</button>
+        </div>
+    </div>
+    <div id="bnetz-loading" class="waiting" style="display:none;">
+        <div class="spinner"></div>
+    </div>
+    <div id="bnetz-empty" class="no-data-msg" style="display:none;">
+        {{ t.bnetz_no_measurements }}
+    </div>
+    <div id="bnetz-table-card" class="table-card" style="display:none;">
+        <table id="bnetz-table">
+            <thead><tr>
+                <th>{{ t.bnetz_date }}</th>
+                <th>{{ t.bnetz_provider }}</th>
+                <th>{{ t.bnetz_download_target }}</th>
+                <th>{{ t.bnetz_download_actual }}</th>
+                <th>{{ t.bnetz_upload_target }}</th>
+                <th>{{ t.bnetz_upload_actual }}</th>
+                <th>{{ t.bnetz_verdict }}</th>
+                <th></th>
+            </tr></thead>
+            <tbody id="bnetz-tbody"></tbody>
+        </table>
+    </div>
+</div>
+
 </div><!-- /main-content -->
 </div><!-- /app-main -->
 </div><!-- /app-layout -->
@@ -1670,6 +1708,7 @@
         var smokepingView = document.getElementById('view-smokeping');
         var correlationView = document.getElementById('view-correlation');
         var gamingView = document.getElementById('view-gaming');
+        var bnetzView = document.getElementById('view-bnetz');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
@@ -1680,6 +1719,7 @@
         if (channelsView) channelsView.classList.remove('active');
         if (correlationView) correlationView.classList.remove('active');
         if (gamingView) gamingView.classList.remove('active');
+        if (bnetzView) bnetzView.classList.remove('active');
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
@@ -1708,6 +1748,9 @@
             loadCorrelationData();
         } else if (view === 'gaming') {
             if (gamingView) gamingView.classList.add('active');
+        } else if (view === 'bnetz') {
+            if (bnetzView) bnetzView.classList.add('active');
+            loadBnetzData();
         } else if (view === 'trends') {
             trendView.classList.add('active');
             updateTrendTabs();
@@ -1733,7 +1776,7 @@
     });
 
     /* ── Hash-based view routing ── */
-    var validViews = ['live', 'trends', 'bqm', 'smokeping', 'speedtest', 'journal', 'events', 'channels', 'correlation', 'gaming'];
+    var validViews = ['live', 'trends', 'bqm', 'smokeping', 'speedtest', 'journal', 'events', 'channels', 'correlation', 'gaming', 'bnetz'];
     function viewFromHash() {
         var h = location.hash.replace('#', '');
         return validViews.indexOf(h) !== -1 ? h : null;
@@ -1742,6 +1785,72 @@
         var v = viewFromHash();
         if (v && v !== currentView) switchView(v, true);
     });
+
+    /* ── BNetzA Breitbandmessung ── */
+    function loadBnetzData() {
+        var loading = document.getElementById('bnetz-loading');
+        var empty = document.getElementById('bnetz-empty');
+        var card = document.getElementById('bnetz-table-card');
+        var tbody = document.getElementById('bnetz-tbody');
+        if (!loading) return;
+        loading.style.display = 'block';
+        empty.style.display = 'none';
+        card.style.display = 'none';
+        fetch('/api/bnetz/measurements').then(function(r) { return r.json(); }).then(function(data) {
+            loading.style.display = 'none';
+            if (!data || data.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            card.style.display = 'block';
+            tbody.innerHTML = '';
+            data.forEach(function(m) {
+                var hasDeviation = m.verdict_download === 'deviation' || m.verdict_upload === 'deviation';
+                var verdictText = hasDeviation ? T.bnetz_verdict_deviation : T.bnetz_verdict_ok;
+                var verdictClass = hasDeviation ? 'val-crit' : 'val-good';
+                var dlPct = m.download_max_tariff ? Math.round(m.download_measured_avg / m.download_max_tariff * 100) : 0;
+                var ulPct = m.upload_max_tariff ? Math.round(m.upload_measured_avg / m.upload_max_tariff * 100) : 0;
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + m.date + '</td>' +
+                    '<td>' + (m.provider || '-') + '</td>' +
+                    '<td>' + Math.round(m.download_max_tariff || 0) + ' Mbit/s</td>' +
+                    '<td>' + Math.round(m.download_measured_avg || 0) + ' Mbit/s (' + dlPct + '%)</td>' +
+                    '<td>' + Math.round(m.upload_max_tariff || 0) + ' Mbit/s</td>' +
+                    '<td>' + Math.round(m.upload_measured_avg || 0) + ' Mbit/s (' + ulPct + '%)</td>' +
+                    '<td class="' + verdictClass + '">' + verdictText + '</td>' +
+                    '<td style="white-space:nowrap;">' +
+                        '<a href="/api/bnetz/pdf/' + m.id + '" title="PDF" style="margin-right:8px;">&#128196;</a>' +
+                        '<a href="javascript:void(0)" onclick="deleteBnetzFromView(' + m.id + ')" title="' + T.delete + '">&#128465;</a>' +
+                    '</td>';
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }).catch(function() {
+            loading.style.display = 'none';
+            empty.style.display = 'block';
+            empty.textContent = 'Error loading data';
+        });
+    }
+
+    function uploadBnetzFromView(input) {
+        if (!input.files || !input.files[0]) return;
+        var fd = new FormData();
+        fd.append('file', input.files[0]);
+        fetch('/api/bnetz/upload', {method: 'POST', body: fd})
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                input.value = '';
+                if (data.error) { alert(data.error); return; }
+                loadBnetzData();
+            })
+            .catch(function(e) { alert('Upload failed: ' + e); input.value = ''; });
+    }
+
+    function deleteBnetzFromView(id) {
+        if (!confirm(T.bnetz_delete_confirm)) return;
+        fetch('/api/bnetz/' + id, {method: 'DELETE'})
+            .then(function() { loadBnetzData(); });
+    }
 
     /* ── BQM Date Navigation ── */
     var bqmDateLabel = document.getElementById('bqm-date-label');
