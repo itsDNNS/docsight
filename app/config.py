@@ -46,7 +46,7 @@ DEFAULTS = {
     "booked_download": 0,
     "booked_upload": 0,
     "demo_mode": False,
-    "gaming_quality_enabled": False,
+    "gaming_quality_enabled": True,
 }
 
 ENV_MAP = {
