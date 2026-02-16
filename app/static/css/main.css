@@ -887,14 +887,19 @@ details.channel-group {
    Modernized with pill tabs, card wrappers, and gradient area charts
    ══════════════════════════════════════════════════════════════════════════ */
 .trend-header {
-    display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: var(--space-xl, 24px); 
-    flex-wrap: wrap; gap: var(--space-md, 16px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--space-xl, 24px);
+    gap: var(--space-sm, 10px);
 }
-.trend-title { 
-    font-size: 1.5em; 
-    color: var(--accent-purple, var(--accent)); 
-    font-weight: bold; 
+.trend-title {
+    font-size: 1.5em;
+    color: var(--accent-purple, var(--accent));
+    font-weight: bold;
+    display: block;
+    width: 100%;
+    text-align: center;
 }
 
 /* Pill-style tabs (Phase 3 design language) */
@@ -983,10 +988,6 @@ details.channel-group {
 @media (max-width: 768px) {
     .charts-grid {
         grid-template-columns: 1fr;
-    }
-    .trend-header {
-        flex-direction: column;
-        align-items: flex-start;
     }
     .trend-tabs {
         width: 100%;
@@ -1162,12 +1163,11 @@ details.channel-group {
    INCIDENT JOURNAL - Phase 4.5: Modern Table Card & Purple Button
    ══════════════════════════════════════════════════════════════════════════ */
 .journal-header {
-    display: flex; 
-    justify-content: space-between; 
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: var(--space-lg, 20px); 
-    flex-wrap: wrap; 
-    gap: var(--space-md, 12px);
+    margin-bottom: var(--space-lg, 20px);
+    gap: var(--space-sm, 10px);
 }
 .journal-header .trend-title { 
     font-size: 1.5em; 
@@ -1261,8 +1261,11 @@ details.channel-group {
    EVENT LOG - Phase 4.3: Modern Card Design with Pill Filters
    ══════════════════════════════════════════════════════════════════════════ */
 .events-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: var(--space-lg, 20px); flex-wrap: wrap; gap: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--space-lg, 20px);
+    gap: var(--space-sm, 10px);
 }
 .events-header .trend-title { 
     font-size: 1.5em; 
