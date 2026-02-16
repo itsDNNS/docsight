@@ -4,6 +4,7 @@ import logging
 import os
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from . import analyzer, web
 from .config import ConfigManager
@@ -81,28 +82,55 @@ def polling_loop(config_mgr, storage, stop_event):
         ),
     )
 
-    while not stop_event.is_set():
-        for collector in collectors:
-            if stop_event.is_set():
-                break
-            if not collector.is_enabled():
-                continue
-            if not collector.should_poll():
-                continue
-            try:
-                result = collector.collect()
-                if result.success:
-                    collector.record_success()
-                else:
-                    collector.record_failure()
-                    log.warning("%s: %s", collector.name, result.error)
-            except Exception as e:
-                collector.record_failure()
-                log.error("%s error: %s", collector.name, e)
-                if collector.name == "modem":
-                    web.update_state(error=e)
+    def _run_collector(collector):
+        """Run a single collector with _collect_lock to prevent overlap with manual poll."""
+        if not collector._collect_lock.acquire(timeout=0):
+            log.debug("%s: skipped (collect already in progress)", collector.name)
+            return collector, None
+        try:
+            return collector, collector.collect()
+        finally:
+            collector._collect_lock.release()
 
-        stop_event.wait(1)
+    with ThreadPoolExecutor(
+        max_workers=len(collectors), thread_name_prefix="collector"
+    ) as executor:
+        while not stop_event.is_set():
+            futures = {}
+            for collector in collectors:
+                if stop_event.is_set():
+                    break
+                if not collector.is_enabled():
+                    continue
+                if not collector.should_poll():
+                    continue
+                future = executor.submit(_run_collector, collector)
+                futures[future] = collector
+
+            try:
+                for future in as_completed(futures, timeout=120):
+                    collector = futures[future]
+                    try:
+                        _, result = future.result()
+                        if result is None:
+                            continue  # skipped (collect lock busy)
+                        if result.success:
+                            collector.record_success()
+                        else:
+                            collector.record_failure()
+                            log.warning("%s: %s", collector.name, result.error)
+                    except Exception as e:
+                        collector.record_failure()
+                        log.error("%s error: %s", collector.name, e)
+                        if collector.name in ("modem", "demo"):
+                            web.update_state(error=e)
+            except TimeoutError:
+                for future, collector in futures.items():
+                    if not future.done():
+                        log.error("%s: timed out after 120s", collector.name)
+                        future.cancel()
+
+            stop_event.wait(1)
 
     # Cleanup MQTT
     if mqtt_pub:

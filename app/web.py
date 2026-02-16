@@ -8,6 +8,7 @@ import os
 import re
 import stat
 import subprocess
+import threading
 import time
 from datetime import datetime, timedelta
 
@@ -225,6 +226,7 @@ def _get_lang():
     return "en"
 
 # Shared state (updated from main loop)
+_state_lock = threading.Lock()
 _state = {
     "analysis": None,
     "last_update": None,
@@ -358,21 +360,28 @@ def inject_auth():
 
 
 def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None):
-    """Update the shared web state from the main loop."""
-    if analysis is not None:
-        _state["analysis"] = analysis
-        _state["last_update"] = time.strftime("%Y-%m-%d %H:%M:%S")
-        _state["error"] = None
-    if error is not None:
-        _state["error"] = str(error)
-    if poll_interval is not None:
-        _state["poll_interval"] = poll_interval
-    if connection_info is not None:
-        _state["connection_info"] = connection_info
-    if device_info is not None:
-        _state["device_info"] = device_info
-    if speedtest_latest is not None:
-        _state["speedtest_latest"] = speedtest_latest
+    """Update the shared web state from the main loop (thread-safe)."""
+    with _state_lock:
+        if analysis is not None:
+            _state["analysis"] = analysis
+            _state["last_update"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            _state["error"] = None
+        if error is not None:
+            _state["error"] = str(error)
+        if poll_interval is not None:
+            _state["poll_interval"] = poll_interval
+        if connection_info is not None:
+            _state["connection_info"] = connection_info
+        if device_info is not None:
+            _state["device_info"] = device_info
+        if speedtest_latest is not None:
+            _state["speedtest_latest"] = speedtest_latest
+
+
+def get_state() -> dict:
+    """Return a snapshot of the shared web state (thread-safe)."""
+    with _state_lock:
+        return dict(_state)
 
 
 @app.route("/")
@@ -391,18 +400,20 @@ def index():
     smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
     gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
-    speedtest_latest = _state.get("speedtest_latest")
+    state = get_state()
+    speedtest_latest = state.get("speedtest_latest")
     booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
     booked_upload = _config_manager.get("booked_upload", 0) if _config_manager else 0
-    conn_info = _state.get("connection_info") or {}
+    conn_info = state.get("connection_info") or {}
     # Demo mode: derive booked speeds from connection info if not explicitly set
     if demo_mode:
         if not booked_download:
             booked_download = conn_info.get("max_downstream_kbps", 250000) // 1000
         if not booked_upload:
             booked_upload = conn_info.get("max_upstream_kbps", 40000) // 1000
-    dev_info = _state.get("device_info") or {}
-    gaming_index = compute_gaming_index(_state["analysis"], speedtest_latest) if gaming_quality_enabled else None
+    dev_info = state.get("device_info") or {}
+    analysis = state["analysis"]
+    gaming_index = compute_gaming_index(analysis, speedtest_latest) if gaming_quality_enabled else None
 
     def _compute_uncorr_pct(analysis):
         """Compute log-scale percentage for uncorrectable errors gauge."""
@@ -422,10 +433,10 @@ def index():
 
     return render_template(
         "index.html",
-        analysis=_state["analysis"],
-        last_update=_state["last_update"],
-        poll_interval=_state["poll_interval"],
-        error=_state["error"],
+        analysis=analysis,
+        last_update=state["last_update"],
+        poll_interval=state["poll_interval"],
+        error=state["error"],
         theme=theme,
         isp_name=isp_name, connection_info=conn_info,
         bqm_configured=bqm_configured,
@@ -434,8 +445,8 @@ def index():
         speedtest_latest=speedtest_latest,
         booked_download=booked_download,
         booked_upload=booked_upload,
-        uncorr_pct=_compute_uncorr_pct(_state["analysis"]),
-        has_us_ofdma=_has_us_ofdma(_state["analysis"]),
+        uncorr_pct=_compute_uncorr_pct(analysis),
+        has_us_ofdma=_has_us_ofdma(analysis),
         device_info=dev_info,
         demo_mode=demo_mode,
         gaming_quality_enabled=gaming_quality_enabled,
@@ -559,12 +570,13 @@ def api_test_mqtt():
 @require_auth
 def api_poll():
     """Trigger an immediate modem poll via ModemCollector.
-    
+
     Uses the same collector instance as automatic polling to ensure
     consistent behavior and fail-safe application.
+    Uses _collect_lock to prevent collision with parallel auto-poll.
     """
     global _last_manual_poll
-    
+
     if not _modem_collector:
         return jsonify({"success": False, "error": "Collector not initialized"}), 500
 
@@ -574,22 +586,26 @@ def api_poll():
         t = get_translations(lang)
         return jsonify({"success": False, "error": t.get("refresh_rate_limit", "Rate limited")}), 429
 
+    if not _modem_collector._collect_lock.acquire(timeout=0):
+        return jsonify({"success": False, "error": "Poll already in progress"}), 429
+
     try:
-        # Use the collector instead of direct driver access
         result = _modem_collector.collect()
-        
+
         if not result.success:
             return jsonify({"success": False, "error": result.error}), 500
-        
+
         _last_manual_poll = time.time()
-        
+
         # Return the analysis data from the collector result
         # (ModemCollector already updated web state and saved snapshot)
         return jsonify({"success": True, "analysis": result.data})
-        
+
     except Exception as e:
         log.error("Manual poll failed: %s", e)
         return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        _modem_collector._collect_lock.release()
 
 
 @app.route("/api/collectors/status")
@@ -638,7 +654,8 @@ def api_trends():
 @require_auth
 def api_export():
     """Generate a structured markdown report for LLM analysis."""
-    analysis = _state.get("analysis")
+    state = get_state()
+    analysis = state.get("analysis")
     if not analysis:
         return jsonify({"error": "No data available"}), 404
 
@@ -649,10 +666,10 @@ def api_export():
     s = analysis["summary"]
     ds = analysis["ds_channels"]
     us = analysis["us_channels"]
-    ts = _state.get("last_update", "unknown")
+    ts = state.get("last_update", "unknown")
 
     isp = _config_manager.get("isp_name", "") if _config_manager else ""
-    conn = _state.get("connection_info") or {}
+    conn = state.get("connection_info") or {}
     ds_mbps = conn.get("max_downstream_kbps", 0) // 1000 if conn else 0
     us_mbps = conn.get("max_upstream_kbps", 0) // 1000 if conn else 0
 
@@ -1330,7 +1347,8 @@ def api_report():
     """Generate a PDF incident report."""
     from .report import generate_report
 
-    analysis = _state.get("analysis")
+    state = get_state()
+    analysis = state.get("analysis")
     if not analysis:
         return jsonify({"error": "No data available"}), 404
 
@@ -1351,7 +1369,7 @@ def api_report():
             "modem_type": _config_manager.get("modem_type", ""),
         }
 
-    conn_info = _state.get("connection_info") or {}
+    conn_info = state.get("connection_info") or {}
     lang = _get_lang()
 
     pdf_bytes = generate_report(snapshots, analysis, config, conn_info, lang)
@@ -1369,7 +1387,7 @@ def api_complaint():
     """Generate ISP complaint letter as text."""
     from .report import generate_complaint_text
 
-    analysis = _state.get("analysis")
+    analysis = get_state().get("analysis")
     if not analysis:
         return jsonify({"error": "No data available"}), 404
 
@@ -1404,6 +1422,7 @@ def api_complaint():
 @app.route("/health")
 def health():
     """Simple health check endpoint."""
-    if _state["analysis"]:
-        return {"status": "ok", "docsis_health": _state["analysis"]["summary"]["health"]}
+    state = get_state()
+    if state["analysis"]:
+        return {"status": "ok", "docsis_health": state["analysis"]["summary"]["health"]}
     return {"status": "ok", "docsis_health": "waiting"}
