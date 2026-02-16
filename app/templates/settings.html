@@ -656,6 +656,28 @@
                     </div>
                 </div>
 
+                <!-- Breitbandmessung (BNetzA) -->
+                <div class="integration-card" id="bnetz-card">
+                    <div class="integration-header" onclick="toggleIntegration('bnetz-card')">
+                        <span class="arrow">&#9654;</span>
+                        <span class="int-title">{{ t.bnetz_title }}</span>
+                        <span class="int-hint">{{ t.optional }}</span>
+                    </div>
+                    <div class="integration-body">
+                        <div class="integration-body-inner">
+                            <p style="font-size:0.85em;color:var(--text-secondary);margin:0 0 16px;">
+                                {{ t.bnetz_upload_hint }}
+                            </p>
+                            <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+                                <input type="file" id="bnetz-file" accept=".pdf" style="flex:1;font-size:0.9em;">
+                                <button type="button" class="btn btn-secondary" onclick="uploadBnetzPDF()">{{ t.bnetz_upload }}</button>
+                            </div>
+                            <div class="test-result" id="bnetz-upload-result"></div>
+                            <div id="bnetz-list" style="margin-top:12px;"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- MQTT -->
                 <div class="integration-card" id="mqtt-card">
                     <div class="integration-header" onclick="toggleIntegration('mqtt-card')">
@@ -911,6 +933,96 @@ function testMqtt() {
         el.innerHTML = '<span>&#10007;</span> ' + T.network_error;
     });
 }
+
+/* ── BNetzA Upload ── */
+function uploadBnetzPDF() {
+    var fileInput = document.getElementById('bnetz-file');
+    var resultEl = document.getElementById('bnetz-upload-result');
+    if (!fileInput.files.length) return;
+    var formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    resultEl.className = 'test-result test-loading';
+    resultEl.style.display = 'flex';
+    resultEl.innerHTML = '<span>&#8987;</span> ' + T.testing;
+    fetch('/api/bnetz/upload', { method: 'POST', body: formData })
+    .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
+    .then(function(res) {
+        if (res.ok) {
+            resultEl.className = 'test-result test-ok';
+            var p = res.data.parsed;
+            resultEl.innerHTML = '<span class="check-icon">&#10003;</span> ' +
+                escHtml((p.provider || '') + ' ' + (p.date || '') +
+                ' - DL: ' + (p.download_measured_avg || 0).toFixed(0) + '/' + (p.download_max || 0).toFixed(0) + ' Mbit/s');
+            fileInput.value = '';
+            loadBnetzList();
+        } else {
+            resultEl.className = 'test-result test-fail';
+            resultEl.innerHTML = '<span>&#10007;</span> ' + escHtml(res.data.error || T.unknown_error);
+        }
+    })
+    .catch(function() {
+        resultEl.className = 'test-result test-fail';
+        resultEl.innerHTML = '<span>&#10007;</span> ' + T.network_error;
+    });
+}
+
+function loadBnetzList() {
+    fetch('/api/bnetz/measurements')
+    .then(function(r) { return r.json(); })
+    .then(function(list) {
+        var el = document.getElementById('bnetz-list');
+        if (!list.length) { el.innerHTML = '<p style="font-size:0.85em;color:var(--muted);">' + T.bnetz_no_measurements + '</p>'; return; }
+        var html = '<table style="width:100%;font-size:0.85em;border-collapse:collapse;">';
+        html += '<tr style="border-bottom:1px solid var(--card-border);color:var(--text-secondary);">' +
+            '<th style="text-align:left;padding:6px 8px;">' + T.bnetz_date + '</th>' +
+            '<th style="text-align:right;padding:6px 8px;">DL</th>' +
+            '<th style="text-align:right;padding:6px 8px;">UL</th>' +
+            '<th style="text-align:center;padding:6px 8px;">' + T.bnetz_verdict + '</th>' +
+            '<th style="text-align:center;padding:6px 8px;"></th></tr>';
+        list.forEach(function(m) {
+            var dlPct = m.download_max_tariff ? Math.round((m.download_measured_avg / m.download_max_tariff) * 100) : '-';
+            var ulPct = m.upload_max_tariff ? Math.round((m.upload_measured_avg / m.upload_max_tariff) * 100) : '-';
+            var vDl = m.verdict_download === 'deviation' ? '&#10007;' : '&#10003;';
+            var vUl = m.verdict_upload === 'deviation' ? '&#10007;' : '&#10003;';
+            var vColor = (m.verdict_download === 'deviation' || m.verdict_upload === 'deviation') ? 'var(--crit)' : 'var(--good)';
+            html += '<tr style="border-bottom:1px solid var(--card-border);">' +
+                '<td style="padding:6px 8px;">' + escHtml(m.date) + '</td>' +
+                '<td style="text-align:right;padding:6px 8px;">' + (m.download_measured_avg || 0).toFixed(0) + '/' + (m.download_max_tariff || 0).toFixed(0) + ' (' + dlPct + '%)</td>' +
+                '<td style="text-align:right;padding:6px 8px;">' + (m.upload_measured_avg || 0).toFixed(0) + '/' + (m.upload_max_tariff || 0).toFixed(0) + ' (' + ulPct + '%)</td>' +
+                '<td style="text-align:center;padding:6px 8px;color:' + vColor + ';">DL ' + vDl + ' UL ' + vUl + '</td>' +
+                '<td style="text-align:center;padding:6px 8px;">' +
+                    '<a href="/api/bnetz/pdf/' + m.id + '" title="PDF" style="color:var(--accent);margin-right:8px;">&#128196;</a>' +
+                    '<span onclick="deleteBnetz(' + m.id + ')" style="cursor:pointer;color:var(--crit);" title="Delete">&#128465;</span>' +
+                '</td></tr>';
+        });
+        html += '</table>';
+        el.innerHTML = html;
+    });
+}
+
+function deleteBnetz(id) {
+    if (!confirm(T.bnetz_delete_confirm)) return;
+    fetch('/api/bnetz/' + id, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function() { loadBnetzList(); });
+}
+
+// Load BNetzA list when integrations tab opens
+(function() {
+    var origSwitch = window.switchTab;
+    // Defer loading until tab is shown
+    var bnetzLoaded = false;
+    var observer = new MutationObserver(function() {
+        var panel = document.getElementById('panel-integrations');
+        if (panel && panel.classList.contains('active') && !bnetzLoaded) {
+            bnetzLoaded = true;
+            loadBnetzList();
+        }
+    });
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    // Also load if integrations tab is active on page load
+    if (location.hash === '#integrations') { setTimeout(loadBnetzList, 100); }
+})();
 
 /* ── Submit ── */
 document.getElementById('settings-form').addEventListener('submit', function(e) {

@@ -414,6 +414,7 @@ def index():
     dev_info = state.get("device_info") or {}
     analysis = state["analysis"]
     gaming_index = compute_gaming_index(analysis, speedtest_latest) if gaming_quality_enabled else None
+    bnetz_latest = _storage.get_latest_bnetz() if _storage else None
 
     def _compute_uncorr_pct(analysis):
         """Compute log-scale percentage for uncorrectable errors gauge."""
@@ -451,6 +452,7 @@ def index():
         demo_mode=demo_mode,
         gaming_quality_enabled=gaming_quality_enabled,
         gaming_index=gaming_index,
+        bnetz_latest=bnetz_latest,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
     )
 
@@ -1194,6 +1196,81 @@ def api_attachment_delete(attachment_id):
     return jsonify({"success": True})
 
 
+# ── Breitbandmessung (BNetzA) API ──
+
+@app.route("/api/bnetz/upload", methods=["POST"])
+@require_auth
+def api_bnetz_upload():
+    """Upload a BNetzA Messprotokoll PDF, parse it, and store the results."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    f = request.files["file"]
+    if not f.filename:
+        return jsonify({"error": "No file selected"}), 400
+    if f.content_type and f.content_type != "application/pdf":
+        return jsonify({"error": "Only PDF files are accepted"}), 400
+    pdf_bytes = f.read()
+    if len(pdf_bytes) > MAX_ATTACHMENT_SIZE:
+        return jsonify({"error": "File too large (max 10 MB)"}), 400
+    if not pdf_bytes[:5] == b"%PDF-":
+        return jsonify({"error": "Not a valid PDF file"}), 400
+    try:
+        from .bnetz_parser import parse_bnetz_pdf
+        parsed = parse_bnetz_pdf(pdf_bytes)
+    except ValueError as e:
+        lang = _get_lang()
+        t = get_translations(lang)
+        return jsonify({"error": t.get("bnetz_parse_error", str(e))}), 400
+    measurement_id = _storage.save_bnetz_measurement(parsed, pdf_bytes)
+    audit_log.info(
+        "BNetzA measurement uploaded: ip=%s id=%d provider=%s date=%s",
+        _get_client_ip(), measurement_id,
+        parsed.get("provider", "?"), parsed.get("date", "?"),
+    )
+    return jsonify({"id": measurement_id, "parsed": parsed}), 201
+
+
+@app.route("/api/bnetz/measurements")
+@require_auth
+def api_bnetz_list():
+    """Return list of BNetzA measurements (without PDF blob)."""
+    if not _storage:
+        return jsonify([])
+    limit = request.args.get("limit", 50, type=int)
+    return jsonify(_storage.get_bnetz_measurements(limit=limit))
+
+
+@app.route("/api/bnetz/pdf/<int:measurement_id>")
+@require_auth
+def api_bnetz_pdf(measurement_id):
+    """Download the original BNetzA Messprotokoll PDF."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    pdf = _storage.get_bnetz_pdf(measurement_id)
+    if not pdf:
+        return jsonify({"error": "Not found"}), 404
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"bnetz_messprotokoll_{measurement_id}.pdf",
+    )
+
+
+@app.route("/api/bnetz/<int:measurement_id>", methods=["DELETE"])
+@require_auth
+def api_bnetz_delete(measurement_id):
+    """Delete a BNetzA measurement."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    if not _storage.delete_bnetz_measurement(measurement_id):
+        return jsonify({"error": "Not found"}), 404
+    audit_log.info("BNetzA measurement deleted: ip=%s id=%d", _get_client_ip(), measurement_id)
+    return jsonify({"success": True})
+
+
 # ── Event Log API ──
 
 @app.route("/api/events", methods=["GET"])
@@ -1294,7 +1371,7 @@ def api_correlation():
 
     sources_param = request.args.get("sources", "")
     if sources_param:
-        valid = {"modem", "speedtest", "events"}
+        valid = {"modem", "speedtest", "events", "bnetz"}
         sources = valid & set(s.strip() for s in sources_param.split(","))
         if not sources:
             sources = valid
