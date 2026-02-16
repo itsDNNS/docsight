@@ -43,6 +43,11 @@
             <span class="icon"><i data-lucide="bar-chart-3"></i></span> {{ t.correlation_analysis }}
         </a>
         {% endif %}
+        {% if gaming_quality_enabled %}
+        <a class="sidebar-link" data-view="gaming" data-tooltip="{{ t.gaming_quality_label }}">
+            <span class="icon"><i data-lucide="gamepad-2"></i></span> {{ t.gaming_quality_label }}
+        </a>
+        {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
         {% if speedtest_configured %}
         <a class="sidebar-link" data-view="speedtest" data-tooltip="{{ t.speedtest }}">
@@ -1076,6 +1081,110 @@
     </div>
 </div>
 {% endif %}
+
+{% if gaming_quality_enabled %}
+<div id="view-gaming" class="view">
+    <div class="trend-header">
+        <span class="trend-title">{{ t.gaming_quality_label }}</span>
+    </div>
+    {% if gaming_index %}
+    <div class="gaming-overview">
+        <div class="gaming-gauge">
+            {% set s = gaming_index.score %}
+            {% if s >= 90 %}
+                {% set seg_idx = 4 %}{% set seg_low = 90 %}{% set seg_high = 100 %}
+            {% elif s >= 75 %}
+                {% set seg_idx = 3 %}{% set seg_low = 75 %}{% set seg_high = 90 %}
+            {% elif s >= 50 %}
+                {% set seg_idx = 2 %}{% set seg_low = 50 %}{% set seg_high = 75 %}
+            {% elif s >= 25 %}
+                {% set seg_idx = 1 %}{% set seg_low = 25 %}{% set seg_high = 50 %}
+            {% else %}
+                {% set seg_idx = 0 %}{% set seg_low = 0 %}{% set seg_high = 25 %}
+            {% endif %}
+            {% set norm_pct = 100.0 / 5.5 %}
+            {% set active_pct = norm_pct * 1.5 %}
+            {% set gauge_pos = seg_idx * norm_pct + (s - seg_low) / (seg_high - seg_low) * active_pct %}
+            <div class="gaming-gauge-band">
+                <div class="gaming-gauge-segment gauge-f{% if seg_idx == 0 %} gauge-active{% endif %}"><span>F</span></div>
+                <div class="gaming-gauge-segment gauge-d{% if seg_idx == 1 %} gauge-active{% endif %}"><span>D</span></div>
+                <div class="gaming-gauge-segment gauge-c{% if seg_idx == 2 %} gauge-active{% endif %}"><span>C</span></div>
+                <div class="gaming-gauge-segment gauge-b{% if seg_idx == 3 %} gauge-active{% endif %}"><span>B</span></div>
+                <div class="gaming-gauge-segment gauge-a{% if seg_idx == 4 %} gauge-active{% endif %}"><span>A</span></div>
+                <div class="gaming-gauge-marker" style="left:{{ gauge_pos|round(1) }}%;">
+                    <div class="gaming-gauge-needle"></div>
+                    <div class="gaming-gauge-score">{{ gaming_index.score }}</div>
+                </div>
+            </div>
+            {% if not gaming_index.has_speedtest %}
+            <p class="gaming-no-speedtest-hint"><i data-lucide="info" style="width:14px;height:14px;vertical-align:-2px;"></i> {{ t.gaming_no_speedtest_detail }}</p>
+            {% endif %}
+        </div>
+        <div class="gaming-grade-big gaming-{{ gaming_index.grade|lower }}">
+            <span class="gaming-grade-letter">{{ gaming_index.grade }}</span>
+            <span class="gaming-grade-text">{{ t['gaming_grade_' ~ gaming_index.grade|lower] }}</span>
+        </div>
+    </div>
+    <div class="gaming-components">
+        <h3 class="gaming-section-title">{{ t.gaming_components_title }}</h3>
+        {% for key, comp in gaming_index.components.items() %}
+        <div class="gaming-component-card">
+            <div class="gaming-comp-header">
+                <span class="gaming-comp-icon">
+                    {% if key == 'latency' %}<i data-lucide="timer" style="width:16px;height:16px;"></i>
+                    {% elif key == 'jitter' %}<i data-lucide="waves" style="width:16px;height:16px;"></i>
+                    {% elif key == 'packet_loss' %}<i data-lucide="package-x" style="width:16px;height:16px;"></i>
+                    {% elif key == 'docsis_health' %}<i data-lucide="heart-pulse" style="width:16px;height:16px;"></i>
+                    {% elif key == 'snr_headroom' %}<i data-lucide="signal" style="width:16px;height:16px;"></i>
+                    {% endif %}
+                </span>
+                <span class="gaming-comp-name">{{ t['gaming_comp_' ~ key] }}</span>
+                <span class="gaming-comp-weight">{{ comp.weight }}%</span>
+                <span class="gaming-comp-score {% if comp.score >= 80 %}score-good{% elif comp.score >= 50 %}score-warn{% else %}score-crit{% endif %}">{{ comp.score }}</span>
+            </div>
+            <div class="gaming-comp-bar">
+                <div class="gaming-comp-fill {% if comp.score >= 80 %}fill-good{% elif comp.score >= 50 %}fill-warn{% else %}fill-crit{% endif %}" style="width:{{ comp.score }}%;"></div>
+            </div>
+            <p class="gaming-comp-detail">{{ t['gaming_comp_' ~ key ~ '_detail'] }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="gaming-genres">
+        <h3 class="gaming-section-title">{{ t.gaming_genres_title }}</h3>
+        {% set g = gaming_index.grade|lower %}
+        <div class="gaming-genre-cards">
+            <div class="gaming-genre-card {% if g in ['a'] %}genre-ok{% elif g in ['b'] %}genre-ok{% elif g in ['c'] %}genre-warn{% else %}genre-bad{% endif %}">
+                <span class="gaming-genre-icon"><i data-lucide="crosshair" style="width:18px;height:18px;"></i></span>
+                <span class="gaming-genre-name">{{ t.gaming_genre_fps }}</span>
+                <span class="gaming-genre-examples">CS2, Valorant, Fortnite</span>
+                <span class="gaming-genre-verdict">{{ t['gaming_genre_fps_' ~ g] }}</span>
+            </div>
+            <div class="gaming-genre-card {% if g in ['a', 'b'] %}genre-ok{% elif g in ['c'] %}genre-ok{% else %}genre-bad{% endif %}">
+                <span class="gaming-genre-icon"><i data-lucide="swords" style="width:18px;height:18px;"></i></span>
+                <span class="gaming-genre-name">{{ t.gaming_genre_moba }}</span>
+                <span class="gaming-genre-examples">LoL, Dota 2, HotS</span>
+                <span class="gaming-genre-verdict">{{ t['gaming_genre_moba_' ~ g] }}</span>
+            </div>
+            <div class="gaming-genre-card {% if g in ['a', 'b'] %}genre-ok{% elif g in ['c', 'd'] %}genre-ok{% else %}genre-bad{% endif %}">
+                <span class="gaming-genre-icon"><i data-lucide="globe" style="width:18px;height:18px;"></i></span>
+                <span class="gaming-genre-name">{{ t.gaming_genre_mmo }}</span>
+                <span class="gaming-genre-examples">WoW, FFXIV, GW2</span>
+                <span class="gaming-genre-verdict">{{ t['gaming_genre_mmo_' ~ g] }}</span>
+            </div>
+            <div class="gaming-genre-card {% if g in ['a', 'b', 'c'] %}genre-ok{% elif g in ['d'] %}genre-warn{% else %}genre-bad{% endif %}">
+                <span class="gaming-genre-icon"><i data-lucide="crown" style="width:18px;height:18px;"></i></span>
+                <span class="gaming-genre-name">{{ t.gaming_genre_strategy }}</span>
+                <span class="gaming-genre-examples">Civilization, AoE, Chess</span>
+                <span class="gaming-genre-verdict">{{ t['gaming_genre_strategy_' ~ g] }}</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="no-data-msg">{{ t.gaming_no_data }}</div>
+    {% endif %}
+</div>
+{% endif %}
+
 </div><!-- /main-content -->
 </div><!-- /app-main -->
 </div><!-- /app-layout -->
@@ -1527,6 +1636,7 @@
         var channelsView = document.getElementById('view-channels');
         var smokepingView = document.getElementById('view-smokeping');
         var correlationView = document.getElementById('view-correlation');
+        var gamingView = document.getElementById('view-gaming');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
@@ -1536,6 +1646,7 @@
         if (eventsView) eventsView.classList.remove('active');
         if (channelsView) channelsView.classList.remove('active');
         if (correlationView) correlationView.classList.remove('active');
+        if (gamingView) gamingView.classList.remove('active');
         stopAutoRefresh();
         if (view === 'live') {
             dashView.classList.add('active');
@@ -1562,6 +1673,8 @@
         } else if (view === 'correlation') {
             if (correlationView) correlationView.classList.add('active');
             loadCorrelationData();
+        } else if (view === 'gaming') {
+            if (gamingView) gamingView.classList.add('active');
         } else if (view === 'trends') {
             trendView.classList.add('active');
             updateTrendTabs();
@@ -1587,7 +1700,7 @@
     });
 
     /* ── Hash-based view routing ── */
-    var validViews = ['live', 'trends', 'bqm', 'smokeping', 'speedtest', 'journal', 'events', 'channels', 'correlation'];
+    var validViews = ['live', 'trends', 'bqm', 'smokeping', 'speedtest', 'journal', 'events', 'channels', 'correlation', 'gaming'];
     function viewFromHash() {
         var h = location.hash.replace('#', '');
         return validViews.indexOf(h) !== -1 ? h : null;
