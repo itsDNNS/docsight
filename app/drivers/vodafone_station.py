@@ -635,7 +635,9 @@ class VodafoneStationDriver(ModemDriver):
             f"{self._url}/php/status_docsis_data.php",
             headers={
                 "csrfNonce": self._tg_nonce,
+                "X-Requested-With": "XMLHttpRequest",
                 "Referer": f"{self._url}/?status_docsis&mid=StatusDocsis",
+                "User-Agent": "Mozilla/5.0",
             },
             timeout=10,
         )
