@@ -92,16 +92,6 @@ def _get_version():
 
 APP_VERSION = _get_version()
 
-def _load_changelog():
-    """Load changelog.json from the app directory."""
-    changelog_path = os.path.join(os.path.dirname(__file__), "changelog.json")
-    try:
-        with open(changelog_path) as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
-
-_changelog = _load_changelog()
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.urandom(32)  # overwritten by _init_session_key
@@ -417,7 +407,6 @@ def index():
                 gaming_quality_enabled=gaming_quality_enabled,
                 gaming_index=compute_gaming_index(snapshot, speedtest_latest) if gaming_quality_enabled else None,
                 t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
-                changelog=_changelog[0] if _changelog else None,
             )
     return render_template(
         "index.html",
@@ -442,7 +431,6 @@ def index():
         gaming_quality_enabled=gaming_quality_enabled,
         gaming_index=gaming_index,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
-        changelog=_changelog[0] if _changelog else None,
     )
 
 
@@ -1430,13 +1418,6 @@ def api_complaint():
         customer_name, customer_number, customer_address
     )
     return jsonify({"text": text, "lang": lang})
-
-
-@app.route("/api/changelog")
-@require_auth
-def api_changelog():
-    """Return full changelog data."""
-    return jsonify(_changelog)
 
 
 @app.route("/health")

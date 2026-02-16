@@ -82,7 +82,6 @@ app/
   fonts/             - Bundled DejaVu fonts for PDF generation
   static/            - Static assets (icons, etc.)
   templates/         - Jinja2 HTML templates
-  changelog.json     - Release changelog for splash modal
 tests/               - pytest test suite (196 tests)
 docker-compose.yml     - Production Docker setup
 docker-compose.dev.yml - Development Docker setup (port 8766)
