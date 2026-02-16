@@ -418,5 +418,9 @@
   "bnetz_parse_error": "No se pudo leer el PDF. Es un protocolo de medicion BNetzA oficial?",
   "bnetz_measurements": "Mediciones",
   "bnetz_provider": "Proveedor",
-  "bnetz_download_pdf": "Descargar PDF original"
+  "bnetz_download_pdf": "Descargar PDF original",
+  "bnetz_measurement_nr": "Nr.",
+  "bnetz_measurement_time": "Hora",
+  "bnetz_measurement_speed": "Velocidad",
+  "bnetz_show_details": "Mostrar mediciones individuales"
 }

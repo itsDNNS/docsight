@@ -47,6 +47,7 @@ DEFAULTS = {
     "booked_upload": 0,
     "demo_mode": False,
     "gaming_quality_enabled": True,
+    "bnetz_enabled": True,
 }
 
 ENV_MAP = {
@@ -74,6 +75,7 @@ ENV_MAP = {
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
     "demo_mode": "DEMO_MODE",
     "gaming_quality_enabled": "GAMING_QUALITY_ENABLED",
+    "bnetz_enabled": "BNETZ_ENABLED",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -91,7 +93,7 @@ _LEGACY_KEY_MAP = {
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
@@ -293,6 +295,13 @@ class ConfigManager:
         if isinstance(val, str):
             val = val.lower() in ("true", "1", "yes")
         return bool(val) or self.is_demo_mode()
+
+    def is_bnetz_enabled(self):
+        """True if BNetzA broadband measurement feature is enabled."""
+        val = self.get("bnetz_enabled")
+        if isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes")
+        return bool(val)
 
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set, or demo mode is active."""

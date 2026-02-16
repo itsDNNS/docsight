@@ -671,11 +671,23 @@ class SnapshotStorage:
                 "download_max_tariff, download_normal_tariff, download_min_tariff, "
                 "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
                 "download_measured_avg, upload_measured_avg, measurement_count, "
-                "verdict_download, verdict_upload "
+                "verdict_download, verdict_upload, measurements_json "
                 "FROM bnetz_measurements ORDER BY date DESC LIMIT ?",
                 (limit,),
             ).fetchall()
-        return [dict(r) for r in rows]
+        results = []
+        for r in rows:
+            d = dict(r)
+            raw = d.pop("measurements_json", None)
+            if raw:
+                try:
+                    d["measurements"] = json.loads(raw)
+                except (json.JSONDecodeError, TypeError):
+                    d["measurements"] = None
+            else:
+                d["measurements"] = None
+            results.append(d)
+        return results
 
     def get_bnetz_pdf(self, measurement_id):
         """Return the original PDF bytes for a BNetzA measurement, or None."""

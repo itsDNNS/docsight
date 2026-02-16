@@ -400,6 +400,7 @@ def index():
     smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
     gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
+    bnetz_enabled = _config_manager.is_bnetz_enabled() if _config_manager else True
     state = get_state()
     speedtest_latest = state.get("speedtest_latest")
     booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
@@ -414,7 +415,7 @@ def index():
     dev_info = state.get("device_info") or {}
     analysis = state["analysis"]
     gaming_index = compute_gaming_index(analysis, speedtest_latest) if gaming_quality_enabled else None
-    bnetz_latest = _storage.get_latest_bnetz() if _storage else None
+    bnetz_latest = _storage.get_latest_bnetz() if _storage and bnetz_enabled else None
 
     def _compute_uncorr_pct(analysis):
         """Compute log-scale percentage for uncorrectable errors gauge."""
@@ -452,6 +453,7 @@ def index():
         demo_mode=demo_mode,
         gaming_quality_enabled=gaming_quality_enabled,
         gaming_index=gaming_index,
+        bnetz_enabled=bnetz_enabled,
         bnetz_latest=bnetz_latest,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
     )

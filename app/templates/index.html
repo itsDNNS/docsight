@@ -79,9 +79,11 @@
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.smokeping_setup }}
         </a>
         {% endif %}
+        {% if bnetz_enabled %}
         <a class="sidebar-link" data-view="bnetz" data-tooltip="{{ t.bnetz_title }}">
             <span class="icon"><i data-lucide="file-check"></i></span> {{ t.bnetz_title }}
         </a>
+        {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
         <a class="sidebar-link" data-view="journal" data-tooltip="{{ t.incident_journal }}">
             <span class="icon"><i data-lucide="clipboard-list"></i></span> {{ t.incident_journal }}
@@ -436,7 +438,7 @@
     {# ══════════════════════════════════════════════════════════════════════════
        BREITBANDMESSUNG (BNetzA) - Conditional card, only shown when data exists
        ══════════════════════════════════════════════════════════════════════════ #}
-    {% if bnetz_latest %}
+    {% if bnetz_enabled and bnetz_latest %}
     {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff else 0 %}
     {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff else 0 %}
     {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
@@ -1211,6 +1213,7 @@
 {% endif %}
 
 <!-- ═══ View: Breitbandmessung (BNetzA) ═══ -->
+{% if bnetz_enabled %}
 <div id="view-bnetz" class="view">
     <div class="trend-header">
         <span class="trend-title">{{ t.bnetz_title }}</span>
@@ -1244,6 +1247,7 @@
         </table>
     </div>
 </div>
+{% endif %}
 
 </div><!-- /main-content -->
 </div><!-- /app-main -->
@@ -1804,25 +1808,45 @@
             }
             card.style.display = 'block';
             tbody.innerHTML = '';
-            data.forEach(function(m) {
+            data.forEach(function(m, idx) {
                 var hasDeviation = m.verdict_download === 'deviation' || m.verdict_upload === 'deviation';
                 var verdictText = hasDeviation ? T.bnetz_verdict_deviation : T.bnetz_verdict_ok;
                 var verdictClass = hasDeviation ? 'val-crit' : 'val-good';
                 var dlPct = m.download_max_tariff ? Math.round(m.download_measured_avg / m.download_max_tariff * 100) : 0;
                 var ulPct = m.upload_max_tariff ? Math.round(m.upload_measured_avg / m.upload_max_tariff * 100) : 0;
+                var hasMeasurements = m.measurements && (
+                    (m.measurements.download && m.measurements.download.length > 0) ||
+                    (m.measurements.upload && m.measurements.upload.length > 0));
                 var tr = document.createElement('tr');
-                tr.innerHTML = '<td>' + m.date + '</td>' +
+                tr.style.cursor = hasMeasurements ? 'pointer' : 'default';
+                tr.setAttribute('data-bnetz-idx', idx);
+                if (hasMeasurements) {
+                    tr.onclick = function() { toggleBnetzDetail(idx); };
+                }
+                tr.innerHTML = '<td>' + (hasMeasurements ? '<span class="bnetz-expand-arrow" id="bnetz-arrow-' + idx + '">&#9654;</span> ' : '') + m.date + '</td>' +
                     '<td>' + (m.provider || '-') + '</td>' +
                     '<td>' + Math.round(m.download_max_tariff || 0) + ' Mbit/s</td>' +
                     '<td>' + Math.round(m.download_measured_avg || 0) + ' Mbit/s (' + dlPct + '%)</td>' +
                     '<td>' + Math.round(m.upload_max_tariff || 0) + ' Mbit/s</td>' +
                     '<td>' + Math.round(m.upload_measured_avg || 0) + ' Mbit/s (' + ulPct + '%)</td>' +
                     '<td class="' + verdictClass + '">' + verdictText + '</td>' +
-                    '<td style="white-space:nowrap;">' +
+                    '<td style="white-space:nowrap;" onclick="event.stopPropagation();">' +
                         '<a href="/api/bnetz/pdf/' + m.id + '" title="PDF" style="margin-right:8px;">&#128196;</a>' +
-                        '<a href="javascript:void(0)" onclick="deleteBnetzFromView(' + m.id + ')" title="' + T.delete + '">&#128465;</a>' +
+                        '<a href="javascript:void(0)" onclick="deleteBnetzFromView(' + m.id + ')" title="' + (T.delete_incident || 'Delete') + '">&#128465;</a>' +
                     '</td>';
                 tbody.appendChild(tr);
+                // Detail expand row (hidden by default)
+                if (hasMeasurements) {
+                    var detailTr = document.createElement('tr');
+                    detailTr.id = 'bnetz-detail-' + idx;
+                    detailTr.style.display = 'none';
+                    var detailTd = document.createElement('td');
+                    detailTd.colSpan = 8;
+                    detailTd.style.padding = '0 8px 12px 24px';
+                    detailTd.innerHTML = buildBnetzDetailHtml(m);
+                    detailTr.appendChild(detailTd);
+                    tbody.appendChild(detailTr);
+                }
             });
             lucide.createIcons();
         }).catch(function() {
@@ -1830,6 +1854,64 @@
             empty.style.display = 'block';
             empty.textContent = 'Error loading data';
         });
+    }
+
+    function toggleBnetzDetail(idx) {
+        var row = document.getElementById('bnetz-detail-' + idx);
+        var arrow = document.getElementById('bnetz-arrow-' + idx);
+        if (!row) return;
+        var isOpen = row.style.display !== 'none';
+        row.style.display = isOpen ? 'none' : 'table-row';
+        if (arrow) arrow.innerHTML = isOpen ? '&#9654;' : '&#9660;';
+    }
+
+    function buildBnetzDetailHtml(m) {
+        var ms = m.measurements || {};
+        var dlList = ms.download || [];
+        var ulList = ms.upload || [];
+        var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">';
+        // Download measurements
+        if (dlList.length > 0) {
+            html += '<div><strong style="font-size:0.85em;color:var(--text-secondary);">' + (T.download || 'Download') + '</strong>';
+            html += '<table style="width:100%;font-size:0.8em;border-collapse:collapse;margin-top:4px;">';
+            html += '<tr style="color:var(--text-secondary);border-bottom:1px solid var(--card-border);">' +
+                '<th style="text-align:left;padding:3px 6px;">' + (T.bnetz_measurement_nr || 'Nr.') + '</th>' +
+                '<th style="text-align:left;padding:3px 6px;">' + (T.bnetz_measurement_time || 'Time') + '</th>' +
+                '<th style="text-align:right;padding:3px 6px;">' + (T.bnetz_measurement_speed || 'Speed') + '</th></tr>';
+            dlList.forEach(function(meas, i) {
+                var speed = meas.speed || meas.value || 0;
+                var color = 'var(--text)';
+                if (m.download_min_tariff && speed < m.download_min_tariff) color = 'var(--crit)';
+                else if (m.download_normal_tariff && speed < m.download_normal_tariff) color = 'var(--warn, orange)';
+                html += '<tr style="border-bottom:1px solid var(--card-border);">' +
+                    '<td style="padding:3px 6px;">' + (i + 1) + '</td>' +
+                    '<td style="padding:3px 6px;">' + (meas.date || '') + ' ' + (meas.time || '') + '</td>' +
+                    '<td style="text-align:right;padding:3px 6px;color:' + color + ';">' + (typeof speed === 'number' ? speed.toFixed(1) : speed) + ' Mbit/s</td></tr>';
+            });
+            html += '</table></div>';
+        }
+        // Upload measurements
+        if (ulList.length > 0) {
+            html += '<div><strong style="font-size:0.85em;color:var(--text-secondary);">' + (T.upload || 'Upload') + '</strong>';
+            html += '<table style="width:100%;font-size:0.8em;border-collapse:collapse;margin-top:4px;">';
+            html += '<tr style="color:var(--text-secondary);border-bottom:1px solid var(--card-border);">' +
+                '<th style="text-align:left;padding:3px 6px;">' + (T.bnetz_measurement_nr || 'Nr.') + '</th>' +
+                '<th style="text-align:left;padding:3px 6px;">' + (T.bnetz_measurement_time || 'Time') + '</th>' +
+                '<th style="text-align:right;padding:3px 6px;">' + (T.bnetz_measurement_speed || 'Speed') + '</th></tr>';
+            ulList.forEach(function(meas, i) {
+                var speed = meas.speed || meas.value || 0;
+                var color = 'var(--text)';
+                if (m.upload_min_tariff && speed < m.upload_min_tariff) color = 'var(--crit)';
+                else if (m.upload_normal_tariff && speed < m.upload_normal_tariff) color = 'var(--warn, orange)';
+                html += '<tr style="border-bottom:1px solid var(--card-border);">' +
+                    '<td style="padding:3px 6px;">' + (i + 1) + '</td>' +
+                    '<td style="padding:3px 6px;">' + (meas.date || '') + ' ' + (meas.time || '') + '</td>' +
+                    '<td style="text-align:right;padding:3px 6px;color:' + color + ';">' + (typeof speed === 'number' ? speed.toFixed(1) : speed) + ' Mbit/s</td></tr>';
+            });
+            html += '</table></div>';
+        }
+        html += '</div>';
+        return html;
     }
 
     function uploadBnetzFromView(input) {
