@@ -118,8 +118,11 @@
     </div>
     <div class="topbar-right">
         <span class="topbar-meta" id="topbar-meta">
-            {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
+            {% if last_update %}{{ t.last_update }}: {{ last_update }}{% endif %}
         </span>
+        {% if not historical %}
+        <span class="topbar-countdown" id="topbar-countdown"></span>
+        {% endif %}
         {% if not historical %}
         <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
         {% endif %}
@@ -1805,17 +1808,33 @@
         }
     }
 
-    /* ── Auto Refresh ── */
+    /* ── Auto Refresh with Countdown ── */
     var refreshTimer = null;
+    var countdownTimer = null;
+    var countdownSeconds = 60;
+    var REFRESH_INTERVAL = 60;
+    var countdownEl = document.getElementById('topbar-countdown');
+
+    function updateCountdown() {
+        if (countdownEl) countdownEl.textContent = countdownSeconds + 's';
+    }
+
     function startAutoRefresh() {
         stopAutoRefresh();
-        refreshTimer = setInterval(function() {
-            if (currentView === 'live' && !isHistorical && !document.hidden) {
+        countdownSeconds = REFRESH_INTERVAL;
+        updateCountdown();
+        countdownTimer = setInterval(function() {
+            if (currentView !== 'live' || isHistorical || document.hidden) return;
+            countdownSeconds--;
+            if (countdownSeconds <= 0) {
+                countdownSeconds = REFRESH_INTERVAL;
                 refreshData();
             }
-        }, 60000);
+            updateCountdown();
+        }, 1000);
     }
     function stopAutoRefresh() {
+        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
         if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
     }
 
@@ -1851,6 +1870,10 @@
                 if (freshMeta && currentMeta) {
                     currentMeta.innerHTML = freshMeta.innerHTML;
                 }
+
+                // Reset countdown after refresh
+                countdownSeconds = REFRESH_INTERVAL;
+                updateCountdown();
 
                 // Restore expanded metric cards
                 document.querySelectorAll('.metric-card').forEach(function(el, i) {

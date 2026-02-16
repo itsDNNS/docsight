@@ -166,10 +166,18 @@ body {
     overflow: hidden; 
     text-overflow: ellipsis;
 }
-.topbar-meta { 
-    font-size: 0.8125rem; 
-    color: var(--muted); 
-    white-space: nowrap; 
+.topbar-meta {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.topbar-countdown {
+    font-size: 0.75rem;
+    color: var(--muted);
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+    min-width: 2.5em;
+    text-align: right;
 }
 .refresh-btn {
     background: rgba(255, 255, 255, 0.05); 
@@ -1942,7 +1950,7 @@ details.channel-group {
     body { font-size: 14px; }
     .topbar { gap: 6px; padding: 8px 10px; }
     .topbar-title { display: none; }
-    .topbar-meta { display: none; }
+    .topbar-meta, .topbar-countdown { display: none; }
     .metric-cards { grid-template-columns: 1fr; }
     .metric-row { flex-direction: column; gap: 10px; }
     table { font-size: 0.8em; }
