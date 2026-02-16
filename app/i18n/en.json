@@ -406,5 +406,20 @@
   "gaming_genre_strategy_b": "No issues whatsoever.",
   "gaming_genre_strategy_c": "Fully playable. No impact on gameplay.",
   "gaming_genre_strategy_d": "Turn-based fine. Real-time may stutter.",
-  "gaming_genre_strategy_f": "Turn-based OK, but connection drops possible."
+  "gaming_genre_strategy_f": "Turn-based OK, but connection drops possible.",
+  "bnetz_title": "Broadband Measurement (BNetzA)",
+  "bnetz_upload": "Upload measurement protocol",
+  "bnetz_upload_hint": "PDF from the official BNetzA broadband measurement tool",
+  "bnetz_date": "Measurement date",
+  "bnetz_download_target": "Contracted download rate",
+  "bnetz_download_actual": "Measured download rate",
+  "bnetz_upload_target": "Contracted upload rate",
+  "bnetz_upload_actual": "Measured upload rate",
+  "bnetz_verdict": "Verdict",
+  "bnetz_verdict_ok": "No deviation",
+  "bnetz_verdict_deviation": "Deviation found",
+  "bnetz_no_measurements": "No measurements uploaded yet",
+  "bnetz_delete_confirm": "Really delete this measurement?",
+  "bnetz_parse_error": "Could not read PDF. Is it an official BNetzA measurement protocol?",
+  "bnetz_measurements": "Measurements"
 }

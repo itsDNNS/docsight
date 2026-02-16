@@ -398,5 +398,20 @@
   "gaming_genre_strategy_b": "Aucun probleme.",
   "gaming_genre_strategy_c": "Entierement jouable. Aucun impact sur le gameplay.",
   "gaming_genre_strategy_d": "Tour par tour OK. Temps reel peut saccader.",
-  "gaming_genre_strategy_f": "Tour par tour OK, mais deconnexions possibles."
+  "gaming_genre_strategy_f": "Tour par tour OK, mais deconnexions possibles.",
+  "bnetz_title": "Mesure haut debit (BNetzA)",
+  "bnetz_upload": "Telecharger le protocole de mesure",
+  "bnetz_upload_hint": "PDF de l'outil officiel BNetzA de mesure haut debit",
+  "bnetz_date": "Date de mesure",
+  "bnetz_download_target": "Debit descendant contractuel",
+  "bnetz_download_actual": "Debit descendant mesure",
+  "bnetz_upload_target": "Debit montant contractuel",
+  "bnetz_upload_actual": "Debit montant mesure",
+  "bnetz_verdict": "Verdict",
+  "bnetz_verdict_ok": "Aucun ecart",
+  "bnetz_verdict_deviation": "Ecart constate",
+  "bnetz_no_measurements": "Aucune mesure telechargee",
+  "bnetz_delete_confirm": "Vraiment supprimer cette mesure ?",
+  "bnetz_parse_error": "Impossible de lire le PDF. Est-ce un protocole de mesure BNetzA officiel ?",
+  "bnetz_measurements": "Mesures"
 }

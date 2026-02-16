@@ -431,6 +431,42 @@
     </div>
 
     {# ══════════════════════════════════════════════════════════════════════════
+       BREITBANDMESSUNG (BNetzA) - Conditional card, only shown when data exists
+       ══════════════════════════════════════════════════════════════════════════ #}
+    {% if bnetz_latest %}
+    {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff else 0 %}
+    {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff else 0 %}
+    {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
+    <div class="metric-summary-row">
+        <div class="metric-summary-card {{ 'health-crit' if bnetz_has_deviation else 'health-good' }}" style="flex:1;">
+            <div class="metric-summary-header">
+                <i data-lucide="file-check" class="metric-icon"></i>
+                <span class="metric-label">{{ t.bnetz_title }}</span>
+            </div>
+            <div class="metric-summary-values" style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;">
+                <div class="metric-value-item">
+                    <span class="value">{{ bnetz_latest.download_measured_avg|round(0)|int }}</span>
+                    <span class="unit">/ {{ bnetz_latest.download_max_tariff|round(0)|int }} Mbit/s ({{ bnetz_dl_pct }}%)</span>
+                    <span class="sublabel">{{ t.download }}</span>
+                </div>
+                <div class="metric-value-divider"></div>
+                <div class="metric-value-item">
+                    <span class="value">{{ bnetz_latest.upload_measured_avg|round(0)|int }}</span>
+                    <span class="unit">/ {{ bnetz_latest.upload_max_tariff|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%)</span>
+                    <span class="sublabel">{{ t.upload }}</span>
+                </div>
+                <div class="metric-value-item secondary" style="grid-column:1/-1;text-align:center;">
+                    <span class="value" style="font-size:0.8em;color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">
+                        {{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}
+                    </span>
+                    <span class="sublabel">{{ bnetz_latest.date }} &middot; {{ bnetz_latest.provider }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ══════════════════════════════════════════════════════════════════════════
        CHANNEL HEALTH OVERVIEW - Phase 3 Task 3.4
        Donut charts showing health distribution for DS/US channels
        ══════════════════════════════════════════════════════════════════════════ #}
