@@ -247,10 +247,20 @@ class VodafoneStationDriver(ModemDriver):
         return r
 
     def _get_docsis_cga(self) -> dict:
-        """CGA: Fetch DOCSIS data from JSON API."""
+        """CGA: Fetch DOCSIS data from JSON API.
+
+        Response format: {"error": "ok", "data": {"downstream": [...], "upstream": [...],
+        "ofdm_downstream": [...], "ofdma_upstream": [...], "operational": "..."}}
+
+        Field names per channel type:
+        - SC-QAM DS: channelid, CentralFrequency, power, SNR, FFT, locked, ChannelType
+        - OFDM DS:   channelid_ofdm, CentralFrequency_ofdm, power_ofdm, SNR_ofdm, FFT_ofdm
+        - SC-QAM US: channelidup, CentralFrequency, power, FFT, ChannelType
+        - OFDMA US:  channelidup, CentralFrequency, power, FFT, ChannelType
+        """
         try:
             r = self._cga_request("GET", "/api/v1/sta_docsis_status")
-            data = r.json()
+            raw = r.json()
         except requests.RequestException as e:
             # Stale session: re-login and retry once
             if hasattr(e, 'response') and e.response is not None and e.response.status_code in (400, 401, 403):
@@ -259,7 +269,7 @@ class VodafoneStationDriver(ModemDriver):
                 try:
                     self._login_cga()
                     r = self._cga_request("GET", "/api/v1/sta_docsis_status")
-                    data = r.json()
+                    raw = r.json()
                 except Exception as retry_err:
                     self._invalidate_cga_session()
                     raise RuntimeError(f"CGA DOCSIS data retrieval failed after retry: {retry_err}")
@@ -267,26 +277,23 @@ class VodafoneStationDriver(ModemDriver):
                 self._invalidate_cga_session()
                 raise RuntimeError(f"CGA DOCSIS data retrieval failed: {e}")
 
+        # CGA API wraps channel data inside "data" key
+        data = raw.get("data", raw)
+        log.debug("CGA DOCSIS response keys: %s", list(data.keys()))
+
         downstream = []
         upstream = []
 
-        for ch in data.get("downstream", []):
+        # SC-QAM Downstream channels
+        for ch in data.get("downstream", []) or []:
             try:
-                channel_id = str(ch.get("channelID", ch.get("channelId", "")))
-                freq = self._parse_number(ch.get("frequency", "0"))
-                power = self._parse_number(ch.get("powerLevel", ch.get("power", "0")))
-                snr = self._parse_number(
-                    ch.get("snr", ch.get("mer", ch.get("mse", "0")))
-                )
+                channel_id = str(self._parse_number(ch.get("channelid", "0")))
+                freq = self._parse_number(ch.get("CentralFrequency", "0"))
+                power = self._parse_number(ch.get("power", "0"))
+                snr = self._parse_number(ch.get("SNR", "0"))
                 if snr < 0:
                     snr = abs(snr)
-                modulation = self._normalize_modulation(ch.get("modulation", ""))
-                corr = int(self._parse_number(
-                    ch.get("correctedErrors", ch.get("corrErrors", "0"))
-                ))
-                uncorr = int(self._parse_number(
-                    ch.get("uncorrectedErrors", ch.get("nonCorrErrors", "0"))
-                ))
+                modulation = self._normalize_modulation(ch.get("FFT", ""))
 
                 if freq > 1_000_000:
                     freq = freq / 1_000_000
@@ -299,18 +306,46 @@ class VodafoneStationDriver(ModemDriver):
                     "mse": -snr if snr else None,
                     "mer": snr if snr else None,
                     "latency": 0,
-                    "corrError": corr,
-                    "nonCorrError": uncorr,
+                    "corrError": 0,
+                    "nonCorrError": 0,
                 })
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse CGA DS channel %s: %s", ch, e)
 
-        for ch in data.get("upstream", []):
+        # OFDM Downstream channels
+        for ch in data.get("ofdm_downstream", []) or []:
             try:
-                channel_id = str(ch.get("channelID", ch.get("channelId", "")))
-                freq = self._parse_number(ch.get("frequency", "0"))
-                power = self._parse_number(ch.get("powerLevel", ch.get("power", "0")))
-                modulation = self._normalize_modulation(ch.get("modulation", ""))
+                channel_id = str(self._parse_number(ch.get("channelid_ofdm", "0")))
+                freq = self._parse_number(ch.get("CentralFrequency_ofdm", "0"))
+                power = self._parse_number(ch.get("power_ofdm", "0"))
+                snr = self._parse_number(ch.get("SNR_ofdm", "0"))
+                if snr < 0:
+                    snr = abs(snr)
+
+                if freq > 1_000_000:
+                    freq = freq / 1_000_000
+
+                downstream.append({
+                    "channelID": channel_id,
+                    "type": "ofdm",
+                    "frequency": f"{int(freq)} MHz" if freq else "",
+                    "powerLevel": power,
+                    "mse": -snr if snr else None,
+                    "mer": snr if snr else None,
+                    "latency": 0,
+                    "corrError": 0,
+                    "nonCorrError": 0,
+                })
+            except (ValueError, TypeError) as e:
+                log.warning("Failed to parse CGA OFDM DS channel %s: %s", ch, e)
+
+        # SC-QAM Upstream channels
+        for ch in data.get("upstream", []) or []:
+            try:
+                channel_id = str(self._parse_number(ch.get("channelidup", "0")))
+                freq = self._parse_number(ch.get("CentralFrequency", "0"))
+                power = self._parse_number(ch.get("power", "0"))
+                modulation = self._normalize_modulation(ch.get("FFT", ""))
 
                 if freq > 1_000_000:
                     freq = freq / 1_000_000
@@ -320,10 +355,32 @@ class VodafoneStationDriver(ModemDriver):
                     "type": modulation,
                     "frequency": f"{int(freq)} MHz" if freq else "",
                     "powerLevel": power,
-                    "multiplex": ch.get("multiplex", ""),
+                    "multiplex": "",
                 })
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse CGA US channel %s: %s", ch, e)
+
+        # OFDMA Upstream channels
+        for ch in data.get("ofdma_upstream", []) or []:
+            try:
+                channel_id = str(self._parse_number(ch.get("channelidup", "0")))
+                freq = self._parse_number(ch.get("CentralFrequency", "0"))
+                power = self._parse_number(ch.get("power", "0"))
+
+                if freq > 1_000_000:
+                    freq = freq / 1_000_000
+
+                upstream.append({
+                    "channelID": channel_id,
+                    "type": "ofdma",
+                    "frequency": f"{int(freq)} MHz" if freq else "",
+                    "powerLevel": power,
+                    "multiplex": "",
+                })
+            except (ValueError, TypeError) as e:
+                log.warning("Failed to parse CGA OFDMA US channel %s: %s", ch, e)
+
+        log.debug("CGA DOCSIS parsed: %d DS + %d US channels", len(downstream), len(upstream))
 
         return {
             "docsis": "3.1",
