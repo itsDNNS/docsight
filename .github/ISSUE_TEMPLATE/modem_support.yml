@@ -1,0 +1,119 @@
+name: Modem Support Request
+description: Request support for a new cable modem model
+labels: ["modem support", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for requesting support for a new modem! To add modem support, we need technical details about how to access the modem's DOCSIS status page.
+        
+        Please read the [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) guide first.
+
+  - type: input
+    id: manufacturer
+    attributes:
+      label: Manufacturer
+      description: Who makes the modem?
+      placeholder: e.g., Arris, Technicolor, Netgear, Motorola
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model Number
+      description: Full model number (check the label on the device)
+      placeholder: e.g., Arris TG3442DE, Netgear CM1000
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware Version
+      description: Current firmware version (usually shown in the web interface)
+      placeholder: e.g., 01.05.063.13.EURO.PC20
+
+  - type: input
+    id: isp
+    attributes:
+      label: Internet Provider
+      description: Which ISP provides this modem?
+      placeholder: e.g., Vodafone Kabel, PYUR, Comcast
+
+  - type: dropdown
+    id: docsis
+    attributes:
+      label: DOCSIS Version
+      description: Which DOCSIS standard does the modem support?
+      options:
+        - DOCSIS 3.0
+        - DOCSIS 3.1
+        - Don't know
+    validations:
+      required: true
+
+  - type: input
+    id: web_url
+    attributes:
+      label: Modem Web Interface URL
+      description: What URL do you use to access the modem settings?
+      placeholder: e.g., http://192.168.0.1 or http://192.168.100.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: authentication
+    attributes:
+      label: Authentication
+      description: Does the web interface require login?
+      options:
+        - Yes (username + password)
+        - Yes (password only)
+        - No authentication required
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: DOCSIS Status Page Screenshot
+      description: |
+        Upload a screenshot of the DOCSIS status page showing downstream/upstream channels.
+        Redact any sensitive information (MAC address, IP, serial number).
+      placeholder: Drag and drop a screenshot here
+
+  - type: textarea
+    id: har_file
+    attributes:
+      label: HAR File (Optional but Helpful)
+      description: |
+        A HAR file shows exactly how the web interface works. 
+        
+        **How to capture:**
+        1. Open Chrome/Firefox Developer Tools (F12)
+        2. Go to Network tab
+        3. Navigate to DOCSIS status page in the modem
+        4. Right-click in Network tab → Save as HAR
+        5. Upload the .har file here (redact sensitive data)
+        
+        This helps us understand authentication and API endpoints.
+      placeholder: Drag and drop .har file or paste the content
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: I am willing to help
+      description: Can you help with testing once we have a driver?
+      options:
+        - label: I can test the driver with my modem
+          required: false
+        - label: I can provide additional debug logs if needed
+          required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any other details that might help (known quirks, alternative access methods, etc.)
+      placeholder: This modem also supports SNMP...
