@@ -427,5 +427,7 @@
   "bnetz_measurement_nr": "Nr.",
   "bnetz_measurement_time": "Uhrzeit",
   "bnetz_measurement_speed": "Geschwindigkeit",
-  "bnetz_show_details": "Einzelmessungen anzeigen"
+  "bnetz_show_details": "Einzelmessungen anzeigen",
+  "report_include_bnetz": "BNetzA-Messdaten einbeziehen",
+  "bnetz_generate_complaint": "Beschwerde erstellen"
 }

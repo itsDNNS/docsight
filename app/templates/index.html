@@ -1382,6 +1382,15 @@
                         <input id="report-address" type="text" placeholder="{{ t.report_address }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
                     </div>
                 </div>
+                {% if bnetz_enabled %}
+                <div style="margin-top:10px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text);">
+                        <input type="checkbox" id="report-include-bnetz" checked>
+                        {{ t.report_include_bnetz }}
+                    </label>
+                </div>
+                {% endif %}
+                <input type="hidden" id="report-bnetz-id" value="">
             </div>
             <!-- Step 2: Generated complaint text (hidden initially) -->
             <div id="report-step2" style="display:none;">
@@ -1823,6 +1832,12 @@
                 if (hasMeasurements) {
                     tr.onclick = function() { toggleBnetzDetail(idx); };
                 }
+                var complaintBtn = '';
+                if (hasDeviation) {
+                    complaintBtn = '<a href="javascript:void(0)" onclick="generateBnetzComplaint(' + m.id + ')" ' +
+                        'title="' + (T.bnetz_generate_complaint || 'Generate complaint') + '" ' +
+                        'style="margin-right:8px;">&#9998;</a>';
+                }
                 tr.innerHTML = '<td>' + (hasMeasurements ? '<span class="bnetz-expand-arrow" id="bnetz-arrow-' + idx + '">&#9654;</span> ' : '') + m.date + '</td>' +
                     '<td>' + (m.provider || '-') + '</td>' +
                     '<td>' + Math.round(m.download_max_tariff || 0) + ' Mbit/s</td>' +
@@ -1831,6 +1846,7 @@
                     '<td>' + Math.round(m.upload_measured_avg || 0) + ' Mbit/s (' + ulPct + '%)</td>' +
                     '<td class="' + verdictClass + '">' + verdictText + '</td>' +
                     '<td style="white-space:nowrap;" onclick="event.stopPropagation();">' +
+                        complaintBtn +
                         '<a href="/api/bnetz/pdf/' + m.id + '" title="PDF" style="margin-right:8px;">&#128196;</a>' +
                         '<a href="javascript:void(0)" onclick="deleteBnetzFromView(' + m.id + ')" title="' + (T.delete_incident || 'Delete') + '">&#128465;</a>' +
                     '</td>';
@@ -3080,6 +3096,9 @@ function closeReportModal() {
     document.getElementById('report-generate-btn').style.display = '';
     document.getElementById('report-copy-btn').style.display = 'none';
     document.getElementById('report-pdf-btn').style.display = 'none';
+    // Reset BNetzA complaint source
+    var bnetzIdField = document.getElementById('report-bnetz-id');
+    if (bnetzIdField) bnetzIdField.value = '';
 }
 function generateComplaint() {
     var days = document.getElementById('report-days').value;
@@ -3087,10 +3106,16 @@ function generateComplaint() {
     var name = encodeURIComponent(document.getElementById('report-name').value);
     var number = encodeURIComponent(document.getElementById('report-number').value);
     var address = encodeURIComponent(document.getElementById('report-address').value);
+    var includeBnetz = document.getElementById('report-include-bnetz');
+    var bnetzParam = (includeBnetz && includeBnetz.checked) ? '&include_bnetz=true' : '';
+    var bnetzIdField = document.getElementById('report-bnetz-id');
+    if (bnetzIdField && bnetzIdField.value) {
+        bnetzParam = '&bnetz_id=' + bnetzIdField.value;
+    }
     var btn = document.getElementById('report-generate-btn');
     btn.disabled = true;
     btn.textContent = '...';
-    fetch('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address)
+    fetch('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address + bnetzParam)
         .then(function(r) { return r.json(); })
         .then(function(data) {
             document.getElementById('report-complaint-text').value = data.text;
@@ -3102,6 +3127,13 @@ function generateComplaint() {
         })
         .catch(function(e) { alert('Error: ' + e); })
         .finally(function() { btn.disabled = false; btn.textContent = '\u270E Generate Letter'; });
+}
+function generateBnetzComplaint(bnetzId) {
+    var bnetzIdField = document.getElementById('report-bnetz-id');
+    if (bnetzIdField) bnetzIdField.value = bnetzId;
+    var checkbox = document.getElementById('report-include-bnetz');
+    if (checkbox) checkbox.checked = true;
+    openReportModal();
 }
 function copyComplaint() {
     var textarea = document.getElementById('report-complaint-text');
