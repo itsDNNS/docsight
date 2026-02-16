@@ -2049,6 +2049,21 @@ details.channel-group {
     padding-right: 15px; /* Align with speed/channels that have trailing info icons (12px + 3px margin) */
 }
 
+.hero-gaming {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    gap: 6px;
+    cursor: help;
+}
+.hero-gaming .gaming-grade { font-size: 16px; font-weight: 700; }
+.hero-gaming .gaming-label { font-size: 11px; opacity: 0.8; }
+.gaming-a, .gaming-b { background: rgba(76,175,80,0.15); color: var(--color-good, var(--good)); }
+.gaming-c { background: rgba(255,152,0,0.15); color: var(--color-warn, var(--warn)); }
+.gaming-d, .gaming-f { background: rgba(244,67,54,0.15); color: var(--color-crit, var(--crit)); }
+
 .hero-sep {
     display: none; /* Hide separators - not needed in column layout */
 }

@@ -373,5 +373,15 @@
   "smokeping_setup_intro": "Smokeping misst Netzwerk-Latenz durch Pings an konfigurierte Ziele. DOCSight kann diese Graphen neben deinen Modemdaten anzeigen.",
   "smokeping_setup_step_1": "Installiere und konfiguriere <b>Smokeping</b> in deinem Netzwerk",
   "smokeping_setup_step_2": "Notiere die <b>Basis-URL</b> deiner Smokeping-Weboberflaeche",
-  "smokeping_setup_step_3": "Trage die URL und die <b>Target-Namen</b> in den DOCSight-Einstellungen ein"
+  "smokeping_setup_step_3": "Trage die URL und die <b>Target-Namen</b> in den DOCSight-Einstellungen ein",
+  "enabled": "Aktiviert",
+  "disabled": "Deaktiviert",
+  "gaming_quality_label": "Gaming-Qualitaetsindex",
+  "gaming_quality_hint": "Zeigt ein Gaming-Qualitaets-Badge in der Hero Card basierend auf Latenz, Jitter und Signalzustand.",
+  "gaming_grade_a": "Ausgezeichnet",
+  "gaming_grade_b": "Gut",
+  "gaming_grade_c": "Befriedigend",
+  "gaming_grade_d": "Schlecht",
+  "gaming_grade_f": "Ungenuegend",
+  "gaming_no_speedtest": "Nur DOCSIS"
 }

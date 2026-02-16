@@ -162,6 +162,29 @@ class MQTTPublisher:
         self.client.publish(health_topic, json.dumps(health_config), retain=True)
         count += 1
 
+        # --- Gaming Quality sensors ---
+        gaming_sensors = [
+            ("gaming_quality_score", "Gaming Quality Score", "%", "mdi:gamepad-variant", "measurement"),
+            ("gaming_quality_grade", "Gaming Quality Grade", None, "mdi:gamepad-variant", None),
+        ]
+        for key, name, unit, icon, state_class in gaming_sensors:
+            topic = f"{self.ha_prefix}/sensor/docsight/{key}/config"
+            config = {
+                "name": name,
+                "unique_id": f"docsight_{key}",
+                "state_topic": f"{self.topic_prefix}/{key}",
+                "icon": icon,
+                "device": device,
+                "entity_category": "diagnostic",
+                **avail,
+            }
+            if unit:
+                config["unit_of_measurement"] = unit
+            if state_class:
+                config["state_class"] = state_class
+            self.client.publish(topic, json.dumps(config), retain=True)
+            count += 1
+
         log.info("Published HA discovery for %d sensors", count)
 
     def publish_channel_discovery(self, ds_channels, us_channels, device_info=None):
@@ -214,7 +237,7 @@ class MQTTPublisher:
 
         log.info("Published HA discovery for %d per-channel sensors", count)
 
-    def publish_data(self, analysis):
+    def publish_data(self, analysis, gaming_index=None):
         """Publish all DOCSIS data via MQTT."""
         summary = analysis["summary"]
         ds_channels = analysis["ds_channels"]
@@ -286,6 +309,19 @@ class MQTTPublisher:
             self.client.publish(
                 f"{self.topic_prefix}/channel/us_ch{ch_id}",
                 json.dumps(payload),
+                retain=True,
+            )
+
+        # Gaming Quality Index
+        if gaming_index:
+            self.client.publish(
+                f"{self.topic_prefix}/gaming_quality_score",
+                str(gaming_index["score"]),
+                retain=True,
+            )
+            self.client.publish(
+                f"{self.topic_prefix}/gaming_quality_grade",
+                gaming_index["grade"],
                 retain=True,
             )
 
