@@ -92,6 +92,41 @@ def _get_version():
 
 APP_VERSION = _get_version()
 
+# GitHub update check (cached)
+_update_cache = {"latest": None, "checked_at": 0}
+_UPDATE_CACHE_TTL = 3600  # 1 hour
+
+def _check_for_update():
+    """Check GitHub for a newer release. Returns latest tag or None."""
+    now = time.time()
+    if now - _update_cache["checked_at"] < _UPDATE_CACHE_TTL:
+        return _update_cache["latest"]
+    _update_cache["checked_at"] = now
+    if APP_VERSION == "dev":
+        return None
+    try:
+        r = _requests.get(
+            "https://api.github.com/repos/itsDNNS/docsight/releases/latest",
+            headers={"Accept": "application/vnd.github.v3+json"},
+            timeout=5,
+        )
+        if r.status_code == 200:
+            tag = r.json().get("tag_name", "")
+            # Strip leading 'v' for comparison
+            cur = APP_VERSION.lstrip("v")
+            lat = tag.lstrip("v")
+            if lat and lat != cur and _version_newer(lat, cur):
+                _update_cache["latest"] = tag
+            else:
+                _update_cache["latest"] = None
+    except Exception:
+        _update_cache["latest"] = None
+    return _update_cache["latest"]
+
+def _version_newer(latest, current):
+    """Compare date-based version strings (e.g. '2026-02-16.1' > '2026-02-13.8')."""
+    return latest > current
+
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.urandom(32)  # overwritten by _init_session_key
@@ -312,7 +347,7 @@ def logout():
 def inject_auth():
     """Make auth_enabled available in all templates."""
     auth_enabled = bool(_config_manager and _config_manager.get("admin_password", ""))
-    return {"auth_enabled": auth_enabled, "version": APP_VERSION}
+    return {"auth_enabled": auth_enabled, "version": APP_VERSION, "update_available": _check_for_update()}
 
 
 def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None):

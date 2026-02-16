@@ -103,7 +103,12 @@
                 </label>
             </div>
             <div class="sidebar-version-row">
-                <a href="https://github.com/itsDNNS/docsight/releases" target="_blank" class="version-link">{{ version }}</a>
+                <a href="https://github.com/itsDNNS/docsight/releases" target="_blank" class="version-link">
+                    {{ version }}
+                    {% if update_available %}
+                    <span class="update-badge" title="{{ update_available }}">Update</span>
+                    {% endif %}
+                </a>
                 <a href="https://github.com/sponsors/itsDNNS" target="_blank" class="sponsor-link" title="Sponsor">
                     <i data-lucide="heart" style="width:14px;height:14px;"></i>
                 </a>
