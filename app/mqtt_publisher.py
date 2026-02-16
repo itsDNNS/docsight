@@ -58,7 +58,13 @@ class MQTTPublisher:
         log.warning("MQTT disconnected (rc=%s)", rc)
         self._connected = False
 
+    @property
+    def _status_topic(self):
+        return f"{self.topic_prefix}/status"
+
     def connect(self):
+        # LWT: broker publishes "offline" if we disconnect unexpectedly
+        self.client.will_set(self._status_topic, "offline", retain=True)
         self.client.connect(self.host, self.port, 60)
         self.client.loop_start()
         # Wait briefly for connection
@@ -68,8 +74,11 @@ class MQTTPublisher:
             time.sleep(0.25)
         if not self._connected:
             raise ConnectionError(f"Could not connect to MQTT broker {self.host}:{self.port}")
+        # Birth message
+        self.client.publish(self._status_topic, "online", retain=True)
 
     def disconnect(self):
+        self.client.publish(self._status_topic, "offline", retain=True)
         self.client.loop_stop()
         self.client.disconnect()
 
@@ -88,9 +97,18 @@ class MQTTPublisher:
             device["sw_version"] = sw
         return device
 
+    def _availability(self):
+        """Return HA availability config block."""
+        return {
+            "availability_topic": self._status_topic,
+            "payload_available": "online",
+            "payload_not_available": "offline",
+        }
+
     def publish_discovery(self, device_info=None):
         """Publish HA MQTT Auto-Discovery for all sensors."""
         device = self._build_device(device_info)
+        avail = self._availability()
 
         # --- Summary sensors (key, name, unit, icon) ---
         summary_sensors = [
@@ -119,6 +137,7 @@ class MQTTPublisher:
                 "icon": icon,
                 "device": device,
                 "entity_category": "diagnostic",
+                **avail,
             }
             if unit:
                 config["unit_of_measurement"] = unit
@@ -138,6 +157,7 @@ class MQTTPublisher:
             "device": device,
             "entity_category": "diagnostic",
             "json_attributes_topic": f"{self.topic_prefix}/health/attributes",
+            **avail,
         }
         self.client.publish(health_topic, json.dumps(health_config), retain=True)
         count += 1
@@ -147,6 +167,7 @@ class MQTTPublisher:
     def publish_channel_discovery(self, ds_channels, us_channels, device_info=None):
         """Publish HA MQTT Auto-Discovery for per-channel sensors."""
         device = self._build_device(device_info)
+        avail = self._availability()
 
         count = 0
         for ch in ds_channels:
@@ -165,6 +186,7 @@ class MQTTPublisher:
                 "icon": "mdi:arrow-down-bold",
                 "device": device,
                 "entity_category": "diagnostic",
+                **avail,
             }
             self.client.publish(topic, json.dumps(config), retain=True)
             count += 1
@@ -185,6 +207,7 @@ class MQTTPublisher:
                 "icon": "mdi:arrow-up-bold",
                 "device": device,
                 "entity_category": "diagnostic",
+                **avail,
             }
             self.client.publish(topic, json.dumps(config), retain=True)
             count += 1
