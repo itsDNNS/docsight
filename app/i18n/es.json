@@ -422,5 +422,7 @@
   "bnetz_measurement_nr": "Nr.",
   "bnetz_measurement_time": "Hora",
   "bnetz_measurement_speed": "Velocidad",
-  "bnetz_show_details": "Mostrar mediciones individuales"
+  "bnetz_show_details": "Mostrar mediciones individuales",
+  "report_include_bnetz": "Incluir datos de medicion BNetzA",
+  "bnetz_generate_complaint": "Generar reclamacion"
 }

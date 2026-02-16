@@ -427,5 +427,7 @@
   "bnetz_measurement_nr": "No.",
   "bnetz_measurement_time": "Time",
   "bnetz_measurement_speed": "Speed",
-  "bnetz_show_details": "Show individual measurements"
+  "bnetz_show_details": "Show individual measurements",
+  "report_include_bnetz": "Include BNetzA measurement data",
+  "bnetz_generate_complaint": "Generate complaint"
 }

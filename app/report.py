@@ -106,6 +106,20 @@ REPORT_STRINGS = {
             "Please see the attached monitoring data for details."
         ),
         "complaint_short_closing": "Sincerely,\n[Your Name]",
+        # BNetzA complaint section
+        "complaint_bnetz_header": "Official Broadband Measurement (Bundesnetzagentur):",
+        "complaint_bnetz_body": (
+            "According to the official measurement protocol dated {date}, conducted in compliance with "
+            "the Breitbandmessung methodology, the following contractual deviations were recorded:"
+        ),
+        "complaint_bnetz_tariff": "Tariff: {tariff} ({provider})",
+        "complaint_bnetz_dl": "Contracted download speed: {max} Mbit/s / Measured average download: {avg} Mbit/s ({pct}% of contracted maximum)",
+        "complaint_bnetz_ul": "Contracted upload speed: {max} Mbit/s / Measured average upload: {avg} Mbit/s ({pct}% of contracted maximum)",
+        "complaint_bnetz_verdict": "Verdict: Download {verdict_dl} / Upload {verdict_ul}",
+        "complaint_bnetz_legal": (
+            "Under Section 57(4) TKG, the consistently measured speeds fall below the contractually "
+            "guaranteed service levels, establishing grounds for fee reduction or contract termination."
+        ),
     },
     "de": {
         "report_title": "DOCSight Störungsbericht",
@@ -187,6 +201,20 @@ REPORT_STRINGS = {
             "Bitte entnehmen Sie die Details den beigefügten Überwachungsdaten."
         ),
         "complaint_short_closing": "Mit freundlichen Grüßen,\n[Ihr Name]",
+        # BNetzA complaint section
+        "complaint_bnetz_header": "Offizielle Breitbandmessung (Bundesnetzagentur):",
+        "complaint_bnetz_body": (
+            "Laut dem offiziellen Messprotokoll vom {date}, durchgeführt gemäß der "
+            "Breitbandmessung-Methodik, wurden folgende vertragliche Abweichungen festgestellt:"
+        ),
+        "complaint_bnetz_tariff": "Tarif: {tariff} ({provider})",
+        "complaint_bnetz_dl": "Vertragliche Download-Geschwindigkeit: {max} Mbit/s / Gemessener Durchschnitt: {avg} Mbit/s ({pct}% des vertraglichen Maximums)",
+        "complaint_bnetz_ul": "Vertragliche Upload-Geschwindigkeit: {max} Mbit/s / Gemessener Durchschnitt: {avg} Mbit/s ({pct}% des vertraglichen Maximums)",
+        "complaint_bnetz_verdict": "Bewertung: Download {verdict_dl} / Upload {verdict_ul}",
+        "complaint_bnetz_legal": (
+            "Gemäß § 57 Abs. 4 TKG unterschreiten die gemessenen Geschwindigkeiten dauerhaft die vertraglich "
+            "zugesicherten Leistungswerte, was eine Grundlage für Entgeltminderung oder Vertragskündigung darstellt."
+        ),
     },
     "fr": {
         "report_title": "DOCSight Rapport d'incident",
@@ -268,6 +296,21 @@ REPORT_STRINGS = {
             "Veuillez consulter les données de surveillance jointes pour plus de détails."
         ),
         "complaint_short_closing": "Veuillez agréer mes salutations distinguées,\n[Votre nom]",
+        # BNetzA complaint section
+        "complaint_bnetz_header": "Mesure officielle du haut débit (Bundesnetzagentur) :",
+        "complaint_bnetz_body": (
+            "Selon le protocole de mesure officiel du {date}, réalisé conformément à la "
+            "méthodologie Breitbandmessung, les écarts contractuels suivants ont été constatés :"
+        ),
+        "complaint_bnetz_tariff": "Forfait : {tariff} ({provider})",
+        "complaint_bnetz_dl": "Débit descendant contractuel : {max} Mbit/s / Débit descendant mesuré : {avg} Mbit/s ({pct}% du maximum contractuel)",
+        "complaint_bnetz_ul": "Débit montant contractuel : {max} Mbit/s / Débit montant mesuré : {avg} Mbit/s ({pct}% du maximum contractuel)",
+        "complaint_bnetz_verdict": "Verdict : Descendant {verdict_dl} / Montant {verdict_ul}",
+        "complaint_bnetz_legal": (
+            "Conformément aux dispositions de l'ARCEP relatives aux obligations de qualité de service, "
+            "les débits mesurés sont systématiquement inférieurs aux niveaux de service contractuels, "
+            "établissant un fondement pour une réduction tarifaire ou la résiliation du contrat."
+        ),
     },
     "es": {
         "report_title": "DOCSight Informe de incidencia",
@@ -349,6 +392,22 @@ REPORT_STRINGS = {
             "Consulte los datos de monitorización adjuntos para más detalles."
         ),
         "complaint_short_closing": "Atentamente,\n[Su nombre]",
+        # BNetzA complaint section
+        "complaint_bnetz_header": "Medición oficial de banda ancha (Bundesnetzagentur):",
+        "complaint_bnetz_body": (
+            "Según el protocolo de medición oficial del {date}, realizado conforme a la "
+            "metodología Breitbandmessung, se registraron las siguientes desviaciones contractuales:"
+        ),
+        "complaint_bnetz_tariff": "Tarifa: {tariff} ({provider})",
+        "complaint_bnetz_dl": "Velocidad de descarga contratada: {max} Mbit/s / Promedio medido: {avg} Mbit/s ({pct}% del máximo contratado)",
+        "complaint_bnetz_ul": "Velocidad de subida contratada: {max} Mbit/s / Promedio medido: {avg} Mbit/s ({pct}% del máximo contratado)",
+        "complaint_bnetz_verdict": "Resultado: Descarga {verdict_dl} / Subida {verdict_ul}",
+        "complaint_bnetz_legal": (
+            "De acuerdo con las disposiciones de la Secretaría de Estado de Telecomunicaciones "
+            "e Infraestructuras Digitales sobre obligaciones de calidad del servicio, las velocidades "
+            "medidas se encuentran por debajo de los niveles contractuales, lo que constituye fundamento "
+            "para una reducción de la tarifa o la terminación del contrato."
+        ),
     },
 }
 
@@ -656,7 +715,8 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
 
 
 def generate_complaint_text(snapshots, config=None, connection_info=None, lang="en",
-                            customer_name="", customer_number="", customer_address=""):
+                            customer_name="", customer_number="", customer_address="",
+                            bnetz_data=None):
     """Generate ISP complaint letter as plain text.
 
     Args:
@@ -667,6 +727,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
         customer_name: Customer name for letter
         customer_number: Customer/contract number
         customer_address: Customer address
+        bnetz_data: Optional BNetzA measurement dict
 
     Returns:
         str: Complaint letter text
@@ -689,6 +750,34 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
         closing_lines.append("[Address]")
     closing = "\n".join(closing_lines)
 
+    # Build BNetzA section if data provided
+    bnetz_section = ""
+    if bnetz_data:
+        has_deviation = (
+            bnetz_data.get("verdict_download") == "deviation"
+            or bnetz_data.get("verdict_upload") == "deviation"
+        )
+        dl_max = round(bnetz_data.get("download_max_tariff") or 0)
+        dl_avg = round(bnetz_data.get("download_measured_avg") or 0)
+        dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
+        ul_max = round(bnetz_data.get("upload_max_tariff") or 0)
+        ul_avg = round(bnetz_data.get("upload_measured_avg") or 0)
+        ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
+        bnetz_lines = [
+            s.get("complaint_bnetz_header", ""),
+            "",
+            s.get("complaint_bnetz_body", "").format(date=bnetz_data.get("date", "")),
+            "",
+            f"- {s.get('complaint_bnetz_tariff', '').format(tariff=bnetz_data.get('tariff', '-'), provider=bnetz_data.get('provider', '-'))}",
+            f"- {s.get('complaint_bnetz_dl', '').format(max=dl_max, avg=dl_avg, pct=dl_pct)}",
+            f"- {s.get('complaint_bnetz_ul', '').format(max=ul_max, avg=ul_avg, pct=ul_pct)}",
+            f"- {s.get('complaint_bnetz_verdict', '').format(verdict_dl=bnetz_data.get('verdict_download', '-'), verdict_ul=bnetz_data.get('verdict_upload', '-'))}",
+        ]
+        if has_deviation:
+            bnetz_lines.append("")
+            bnetz_lines.append(s.get("complaint_bnetz_legal", ""))
+        bnetz_section = "\n".join(bnetz_lines) + "\n\n"
+
     if snapshots:
         worst = _compute_worst_values(snapshots)
         start = snapshots[0]["timestamp"][:10]
@@ -704,7 +793,21 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
             f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=THRESHOLDS['us_power']['warn'])}\n"
             f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=THRESHOLDS['snr']['warn'])}\n"
             f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
+            f"{bnetz_section}"
             f"{s['complaint_exceed']}\n\n"
+            f"{s['complaint_request']}\n"
+            f"1. {s['complaint_req1']}\n"
+            f"2. {s['complaint_req2']}\n"
+            f"3. {s['complaint_req3']}\n\n"
+            f"{s['complaint_escalation']}\n\n"
+            f"{closing}"
+        )
+    elif bnetz_section:
+        # No DOCSIS snapshots but BNetzA data available
+        return (
+            f"{s['complaint_subject']}\n\n"
+            f"{s['complaint_greeting'].format(isp=isp)}\n\n"
+            f"{bnetz_section}"
             f"{s['complaint_request']}\n"
             f"1. {s['complaint_req1']}\n"
             f"2. {s['complaint_req2']}\n"
