@@ -111,12 +111,14 @@ class VodafoneStationDriver(ModemDriver):
     # ── CGA Variant (CGA6444VF / CGA4322DE) ──────────────────
 
     def _login_cga(self) -> None:
-        """CGA auth: double PBKDF2-SHA256.
+        """CGA auth: double PBKDF2-SHA256 (CGA6444VF / CGA4322DE).
 
-        1. POST /api/v1/session/login with password=seeksalthash → salt + saltwebui
+        Based on ZahrtheMad's CGA6444VF documentation and fthomys reference:
+        1. Set cwd=No cookie, POST form-encoded seeksalthash -> salt + saltwebui
         2. hash1 = PBKDF2(password, salt, 1000, 16).hex()
-        3. hash2 = PBKDF2(hash1, saltwebui, 1000, 16).hex()
-        4. POST /api/v1/session/login with password=hash2 + logout=true
+        3. hash2 = PBKDF2(hash1_hex_string, saltwebui, 1000, 16).hex()
+        4. POST form-encoded hash2 + logout=true
+        5. Initialize session via /api/v1/session/menu
         """
         if self._cga_token and self._session.cookies:
             log.debug("CGA session active, skipping login")
@@ -125,10 +127,19 @@ class VodafoneStationDriver(ModemDriver):
         self._session.cookies.clear()
         self._cga_token = None
 
+        # Required cookie before first request
+        self._session.cookies.set("cwd", "No")
+
+        cga_headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+        }
+
         # Step 1: Request salts
         r1 = self._session.post(
             f"{self._url}/api/v1/session/login",
-            json={"username": self._user, "password": "seeksalthash"},
+            data={"username": self._user, "password": "seeksalthash"},
+            headers=cga_headers,
             timeout=10,
         )
         r1.raise_for_status()
@@ -137,9 +148,11 @@ class VodafoneStationDriver(ModemDriver):
         salt = salt_data.get("salt", "")
         salt_webui = salt_data.get("saltwebui", "")
         if not salt or not salt_webui:
-            raise RuntimeError("CGA: No salt/saltwebui in response")
+            raise RuntimeError(
+                f"CGA: No salt/saltwebui in response (got: {salt_data})"
+            )
 
-        # Step 2: First PBKDF2 — password + salt → hash1
+        # Step 2: First PBKDF2 -- password + salt -> hash1
         kdf1 = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=16,
@@ -148,7 +161,7 @@ class VodafoneStationDriver(ModemDriver):
         )
         hash1 = kdf1.derive(self._password.encode("utf-8")).hex()
 
-        # Step 3: Second PBKDF2 — hash1 + saltwebui → hash2
+        # Step 3: Second PBKDF2 -- hash1 (as hex string) + saltwebui -> hash2
         kdf2 = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=16,
@@ -160,26 +173,38 @@ class VodafoneStationDriver(ModemDriver):
         # Step 4: Login with derived hash
         r2 = self._session.post(
             f"{self._url}/api/v1/session/login",
-            json={
+            data={
                 "username": self._user,
                 "password": hash2,
-                "logout": True,  # Force logout stale sessions
+                "logout": "true",
             },
+            headers=cga_headers,
             timeout=10,
         )
         r2.raise_for_status()
         login_data = r2.json()
 
         error = login_data.get("error")
-        if error:
+        if error and error != "ok":
             raise RuntimeError(f"CGA login error: {error}")
 
         self._cga_token = login_data.get("token", "")
+
+        # Step 5: Initialize session
+        try:
+            self._session.get(
+                f"{self._url}/api/v1/session/menu",
+                timeout=10,
+            )
+        except Exception:
+            pass  # Non-critical
+
         log.info("CGA auth OK (cookies: %s)", list(self._session.cookies.keys()))
 
     def _cga_request(self, method: str, path: str, **kwargs) -> requests.Response:
         """Make an authenticated request to the CGA API."""
         headers = kwargs.pop("headers", {})
+        headers["X-Requested-With"] = "XMLHttpRequest"
         if self._cga_token:
             headers["X-CSRF-TOKEN"] = self._cga_token
         r = self._session.request(
