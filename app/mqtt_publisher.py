@@ -163,6 +163,22 @@ class MQTTPublisher:
         self.client.publish(health_topic, json.dumps(health_config), retain=True)
         count += 1
 
+        # --- DOCSight Status as binary_sensor with device_class=running ---
+        status_topic = f"{self.ha_prefix}/binary_sensor/docsight/status/config"
+        status_config = {
+            "name": "DOCSight Status",
+            "unique_id": "docsight_status",
+            "state_topic": self._status_topic,
+            "payload_on": "online",
+            "payload_off": "offline",
+            "device_class": "running",
+            "icon": "mdi:monitor-eye",
+            "device": device,
+            "entity_category": "diagnostic",
+        }
+        self.client.publish(status_topic, json.dumps(status_config), retain=True)
+        count += 1
+
         # --- Gaming Quality sensors ---
         gaming_sensors = [
             ("gaming_quality_score", "Gaming Quality Score", "%", "mdi:gamepad-variant", "measurement"),
