@@ -23,6 +23,10 @@
   <em>For cable internet (DOCSIS/coax) only — Vodafone Kabel, Pyur, Tele Columbus, Virgin Media, Comcast, Spectrum, and others.</em>
 </p>
 
+<p align="center">
+  <sub><strong>DOCSight</strong> = <strong>DOCS</strong>IS + In<strong>sight</strong> (+ a quiet <em>sigh</em> from every cable internet user)</sub>
+</p>
+
 ![Dashboard Dark Mode](docs/screenshots/dashboard-dark.png)
 
 ---
