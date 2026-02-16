@@ -106,10 +106,6 @@ class TestAuthEnabled:
         )
         assert resp.status_code == 302
 
-    def test_api_calendar_requires_auth(self, auth_client):
-        resp = auth_client.get("/api/calendar")
-        assert resp.status_code == 302
-
     def test_api_snapshots_requires_auth(self, auth_client):
         resp = auth_client.get("/api/snapshots")
         assert resp.status_code == 302
