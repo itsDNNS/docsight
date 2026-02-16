@@ -39,10 +39,10 @@ DOCSight is built around a **modular collector pattern** that separates data col
 │                      ┌─────────────────────────┐                    │
 │                      │  Polling Loop (1s tick) │                    │
 │                      │                         │                    │
-│                      │  for collector:         │                    │
-│                      │    if should_poll():    │                    │
-│                      │      result = collect() │                    │
-│                      │      record_success()   │                    │
+│                      │  ThreadPoolExecutor:    │                    │
+│                      │    submit all due       │                    │
+│                      │    collectors in        │                    │
+│                      │    parallel threads     │                    │
 │                      └────────────┬────────────┘                    │
 │                                   │                                 │
 └───────────────────────────────────┼─────────────────────────────────┘
@@ -170,6 +170,38 @@ class Collector(ABC):
 └───────────────────────────────────────────────────────────────┘
 ```
 
+### Parallel Execution
+
+Collectors run in parallel via `concurrent.futures.ThreadPoolExecutor` (one thread per collector). A blocking external call (e.g. Speedtest Tracker timeout) never delays the local modem poll.
+
+```python
+# main.py (simplified)
+with ThreadPoolExecutor(max_workers=len(collectors)) as executor:
+    while not stop_event.is_set():
+        futures = {}
+        for c in collectors:
+            if c.is_enabled() and c.should_poll():
+                futures[executor.submit(_run_collector, c)] = c
+        for future in as_completed(futures, timeout=120):
+            collector = futures[future]
+            result = future.result()
+            # record_success() or record_failure()
+        stop_event.wait(1)
+```
+
+### Thread Safety
+
+All shared state is protected by locks:
+
+| Lock | Location | Protects |
+|------|----------|----------|
+| `_lock` | `Collector` base | Scheduling state (`_last_poll`, `_consecutive_failures`) |
+| `_collect_lock` | `Collector` base | Prevents concurrent `collect()` (manual poll vs auto-poll) |
+| `_state_lock` | `web.py` | Shared `_state` dict (written by collectors, read by Flask) |
+| `_lock` | `EventDetector` | Previous snapshot comparison (`_prev`) |
+
+SQLite uses **WAL mode** (`PRAGMA journal_mode=WAL`) for concurrent reads during writes.
+
 ### Fail-Safe Mechanism
 
 **Exponential Backoff:**
@@ -195,9 +227,9 @@ After 24h idle: auto-reset to 0
 
 ### ModemCollector (`app/collectors/modem.py`)
 
-**Purpose:** Fetch DOCSIS channel data from cable modem/router  
-**Poll Interval:** 900s (15 minutes, configurable)  
-**Data Source:** FritzBox data.lua API (TR-064 protocol)  
+**Purpose:** Fetch DOCSIS channel data from cable modem/router
+**Poll Interval:** 900s (15 minutes, configurable)
+**Data Source:** Pluggable modem driver (see Driver Architecture below)
 
 **Pipeline:**
 ```
@@ -254,6 +286,51 @@ _generate_data() (base channels + variation)
 **Data Source:** ThinkBroadband BQM service
 
 **Output:** PNG graph image saved to storage
+
+---
+
+## Driver Architecture
+
+Modem drivers live in `app/drivers/` and implement the `ModemDriver` base class:
+
+```python
+class ModemDriver(ABC):
+    def __init__(self, url: str, user: str, password: str): ...
+
+    @abstractmethod
+    def login(self) -> None: ...
+
+    @abstractmethod
+    def get_docsis_data(self) -> dict: ...
+
+    @abstractmethod
+    def get_device_info(self) -> dict: ...
+
+    @abstractmethod
+    def get_connection_info(self) -> dict: ...
+```
+
+### Supported Drivers
+
+| Driver | Module | Hardware | Auth |
+|--------|--------|----------|------|
+| `fritzbox` | `fritzbox.py` | AVM FRITZ!Box | SID-based (data.lua) |
+| `tc4400` | `tc4400.py` | Technicolor TC4400 | SNMP |
+| `ultrahub7` | `ultrahub7.py` | Vodafone Ultra Hub 7 | Session cookie |
+| `vodafone_station` | `vodafone_station.py` | CGA6444VF, CGA4322DE, TG3442DE | Auto-detected (see below) |
+
+### Driver Registry (`app/drivers/__init__.py`)
+
+Drivers are loaded by name via `load_driver(modem_type, url, user, password)`. The registry maps type strings to fully qualified class paths for lazy importing.
+
+### Vodafone Station Auto-Detection
+
+The Vodafone Station driver supports two hardware variants with different auth flows:
+
+- **CGA** (CGA6444VF / CGA4322DE): Double PBKDF2-SHA256 + JSON REST API
+- **TG** (TG3442DE): AES-CCM encrypted credentials + HTML/AJAX endpoints
+
+Variant is auto-detected on first login: CGA is tried first, then TG on failure.
 
 ---
 
@@ -315,7 +392,8 @@ POST /api/poll  (web.py)
     │
     ├─ Rate limit check (10s cooldown)
     │
-    ├─ Inject modem_collector
+    ├─ Acquire _collect_lock (non-blocking)
+    │   └─ If busy → 429 "Poll already in progress"
     │
     ▼
 result = modem_collector.collect()
@@ -326,13 +404,13 @@ result = modem_collector.collect()
 Return JSON { success: true, analysis: {...} }
 ```
 
-**Key:** Manual refresh uses the **same collector** as automatic polling, ensuring consistent fail-safe behavior.
+**Key:** Manual refresh uses the **same collector** as automatic polling, ensuring consistent fail-safe behavior. The `_collect_lock` prevents collision with a parallel auto-poll.
 
 ---
 
 ## Storage Layer
 
-**Database:** SQLite (`/data/docsis_history.db`)
+**Database:** SQLite (`/data/docsis_history.db`) with WAL mode for concurrent access
 
 **Schema:**
 
@@ -403,7 +481,7 @@ CREATE TABLE bqm_graphs (
 | `/api/config` | POST | Save configuration |
 | `/api/test-modem` | POST | Test modem connection |
 | `/api/collectors/status` | GET | **NEW:** Collector health monitoring |
-| `/api/calendar` | GET | Dates with snapshot data |
+| `/api/snapshots` | GET | Available snapshot timestamps |
 | `/api/trends` | GET | Trend data (day/week/month) |
 | `/api/speedtest` | GET | Cached speedtest results |
 | `/api/speedtest/<id>/signal` | GET | Correlated DOCSIS snapshot |
@@ -496,7 +574,7 @@ class MyCollector(Collector):
             # Store results
             self._storage.save_my_data(data)
             
-            return CollectorResult.success(self.name, data)
+            return CollectorResult.ok(self.name, data)
         except Exception as e:
             return CollectorResult.failure(self.name, str(e))
     
@@ -560,7 +638,7 @@ def test_my_collector_success():
 ## Security
 
 **Password Storage:**
-- Admin password: bcrypt hashed
+- Admin password: scrypt/pbkdf2 hashed
 - Modem password: AES-128 encrypted
 - MQTT password: AES-128 encrypted
 - Config file: chmod 600 (owner-only)
@@ -584,8 +662,8 @@ def test_my_collector_success():
 
 ## Testing
 
-**Framework:** pytest  
-**Coverage:** 176 tests
+**Framework:** pytest
+**Coverage:** 268 tests
 
 **Run tests:**
 ```bash
