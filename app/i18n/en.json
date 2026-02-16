@@ -360,5 +360,18 @@
   "demo_mode": "DEMO",
   "demo_device": "DOCSight Demo Router",
   "not_required": "Not required for this modem",
-  "vodafone_no_error_counters": "Error counters are not available for all Vodafone Station models."
+  "vodafone_no_error_counters": "Error counters are not available for all Vodafone Station models.",
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "optional",
+  "smokeping_url_label": "Smokeping URL",
+  "smokeping_url_hint": "Base URL of your Smokeping instance (without /cache/)",
+  "smokeping_targets_label": "Targets",
+  "smokeping_targets_hint": "Comma-separated list of targets (e.g. Global.Google, Vodafone.Hop2)",
+  "smokeping_no_data": "Could not load Smokeping graphs.",
+  "smokeping_setup": "Smokeping Setup",
+  "smokeping_setup_title": "Smokeping Latency Monitoring",
+  "smokeping_setup_intro": "Smokeping measures network latency by sending pings to configured targets. DOCSight can display these graphs alongside your modem data.",
+  "smokeping_setup_step_1": "Install and configure <b>Smokeping</b> on your network",
+  "smokeping_setup_step_2": "Note the <b>base URL</b> of your Smokeping web interface",
+  "smokeping_setup_step_3": "Enter the URL and <b>target names</b> in DOCSight Settings"
 }

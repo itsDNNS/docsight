@@ -64,6 +64,16 @@
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.bqm_setup }}
         </a>
         {% endif %}
+        {% if smokeping_configured %}
+        <a class="sidebar-link" data-view="smokeping" data-tooltip="{{ t.smokeping_title }}">
+            <span class="icon"><i data-lucide="radar"></i></span> {{ t.smokeping_title }}
+        </a>
+        {% endif %}
+        {% if not smokeping_configured %}
+        <a class="sidebar-link" onclick="openSmokepingSetupModal()" data-tooltip="{{ t.smokeping_setup }}">
+            <span class="icon"><i data-lucide="settings"></i></span> {{ t.smokeping_setup }}
+        </a>
+        {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
         <a class="sidebar-link" data-view="journal" data-tooltip="{{ t.incident_journal }}">
             <span class="icon"><i data-lucide="clipboard-list"></i></span> {{ t.incident_journal }}
@@ -699,6 +709,24 @@
 </div>
 {% endif %}
 
+<!-- ═══ View: Smokeping Graphs ═══ -->
+{% if smokeping_configured %}
+<div id="view-smokeping" class="view">
+    <div style="text-align:center; margin-bottom:24px;">
+        <span class="trend-title">{{ t.smokeping_title }}</span>
+        <div class="trend-tabs" id="smokeping-tabs" style="display:inline-flex; margin-top:12px;">
+            <button class="trend-tab active" data-span="3h">3h</button>
+            <button class="trend-tab" data-span="30h">30h</button>
+            <button class="trend-tab" data-span="10d">10d</button>
+            <button class="trend-tab" data-span="1y">1y</button>
+        </div>
+    </div>
+    <div id="smokeping-content" class="bqm-card-grid">
+    </div>
+    <div id="smokeping-no-data" class="no-data-msg" style="display:none;"></div>
+</div>
+{% endif %}
+
 <!-- ═══ View: Correlation Analysis ═══ -->
 {% if speedtest_configured or bqm_configured %}
 <div id="view-correlation" class="view">
@@ -1119,6 +1147,31 @@
     </div>
 </div>
 
+<!-- Smokeping Setup Modal -->
+<div class="modal-overlay" id="smokeping-setup-modal" onclick="if(event.target===this)closeSmokepingSetupModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>&#128225; {{ t.smokeping_setup_title }}</h2>
+            <button class="modal-close" onclick="closeSmokepingSetupModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
+            <p style="margin-bottom:12px;">{{ t.smokeping_setup_intro }}</p>
+            <div style="background:var(--bg); border-radius:8px; padding:14px;">
+                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.bqm_setup_howto_title }}</p>
+                <ol style="padding-left:20px;">
+                    <li style="margin-bottom:6px;">{{ t.smokeping_setup_step_1|safe_html }}</li>
+                    <li style="margin-bottom:6px;">{{ t.smokeping_setup_step_2|safe_html }}</li>
+                    <li style="margin-bottom:6px;">{{ t.smokeping_setup_step_3|safe_html }}</li>
+                </ol>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" onclick="closeSmokepingSetupModal()">{{ t.close }}</button>
+            <a class="btn btn-accent" href="/settings#integrations" style="text-decoration:none;">&#9881; {{ t.settings }}</a>
+        </div>
+    </div>
+</div>
+
 <!-- Report Modal -->
 <div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeReportModal()">
     <div class="modal" style="max-width:800px;">
@@ -1502,10 +1555,12 @@
         var journalView = document.getElementById('view-journal');
         var eventsView = document.getElementById('view-events');
         var channelsView = document.getElementById('view-channels');
+        var smokepingView = document.getElementById('view-smokeping');
         var correlationView = document.getElementById('view-correlation');
         dashView.classList.remove('active');
         trendView.classList.remove('active');
         if (bqmView) bqmView.classList.remove('active');
+        if (smokepingView) smokepingView.classList.remove('active');
         if (speedtestView) speedtestView.classList.remove('active');
         if (journalView) journalView.classList.remove('active');
         if (eventsView) eventsView.classList.remove('active');
@@ -1520,6 +1575,10 @@
             if (bqmView) bqmView.classList.add('active');
             updateDateLabel();
             loadBqmGraph(selectedDate);
+        } else if (view === 'smokeping') {
+            if (smokepingView) smokepingView.classList.add('active');
+            updateDateLabel();
+            loadSmokepingGraphs();
         } else if (view === 'speedtest') {
             if (speedtestView) speedtestView.classList.add('active');
             updateDateLabel();
@@ -1567,7 +1626,7 @@
     });
 
     /* ── Hash-based view routing ── */
-    var validViews = ['live', 'trends', 'bqm', 'speedtest', 'journal', 'events', 'channels', 'correlation'];
+    var validViews = ['live', 'trends', 'bqm', 'smokeping', 'speedtest', 'journal', 'events', 'channels', 'correlation'];
     function viewFromHash() {
         var h = location.hash.replace('#', '');
         return validViews.indexOf(h) !== -1 ? h : null;
@@ -2175,6 +2234,64 @@
         };
         img.src = '/api/bqm/image/' + date;
     }
+
+    /* ── Smokeping Graphs ── */
+    var _smokepingSpan = '3h';
+    var smokepingTabs = document.querySelectorAll('#smokeping-tabs .trend-tab');
+    smokepingTabs.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            _smokepingSpan = this.getAttribute('data-span');
+            smokepingTabs.forEach(function(b) {
+                b.classList.toggle('active', b.getAttribute('data-span') === _smokepingSpan);
+            });
+            loadSmokepingGraphs();
+        });
+    });
+
+    function loadSmokepingGraphs() {
+        var content = document.getElementById('smokeping-content');
+        var noData = document.getElementById('smokeping-no-data');
+        if (!content || !noData) return;
+        content.innerHTML = '';
+        noData.style.display = 'none';
+
+        fetch('/api/smokeping/targets')
+            .then(function(r) { return r.json(); })
+            .then(function(targets) {
+                if (!targets || targets.length === 0) {
+                    noData.textContent = T.smokeping_no_data || 'Could not load Smokeping graphs.';
+                    noData.style.display = 'block';
+                    return;
+                }
+                targets.forEach(function(target) {
+                    var card = document.createElement('div');
+                    card.className = 'bqm-card';
+                    var header = document.createElement('div');
+                    header.className = 'chart-card-header';
+                    header.innerHTML = '<div class="chart-header-content"><div class="chart-label">' + target + '</div></div>';
+                    card.appendChild(header);
+                    var wrap = document.createElement('div');
+                    wrap.style.textAlign = 'center';
+                    var img = document.createElement('img');
+                    img.style.maxWidth = '100%';
+                    img.style.borderRadius = '8px';
+                    img.alt = target;
+                    img.src = '/api/smokeping/graph/' + encodeURIComponent(target) + '/' + _smokepingSpan;
+                    img.onerror = function() {
+                        wrap.innerHTML = '<div class="no-data-msg" style="display:block;">' + (T.smokeping_no_data || 'Could not load graph.') + '</div>';
+                    };
+                    wrap.appendChild(img);
+                    card.appendChild(wrap);
+                    content.appendChild(card);
+                });
+            })
+            .catch(function() {
+                noData.textContent = T.smokeping_no_data || 'Could not load Smokeping graphs.';
+                noData.style.display = 'block';
+            });
+    }
+
+    window.loadSmokepingGraphs = loadSmokepingGraphs;
 
     /* ── Init ── */
     updateDateLabel();
@@ -2888,6 +3005,12 @@ function fallbackCopy(textarea, btn, T) {
 }
 function toggleCard(el) {
     el.classList.toggle('open');
+}
+function openSmokepingSetupModal() {
+    document.getElementById('smokeping-setup-modal').classList.add('open');
+}
+function closeSmokepingSetupModal() {
+    document.getElementById('smokeping-setup-modal').classList.remove('open');
 }
 function openSpeedtestSetupModal() {
     document.getElementById('speedtest-setup-modal').classList.add('open');
