@@ -150,13 +150,13 @@ Open `http://localhost:8765` — no setup required.
 
 ## Supported Hardware
 
-| | Status |
-|---|---|
-| **AVM Fritz!Box Cable** (6490, 6590, 6591, 6660, 6690) | ✅ Fully supported |
-| **Vodafone Station** (CGA4233, TG3442DE) | ✅ Fully supported |
-| **Technicolor TC4400** | ✅ Fully supported |
-| **Vodafone Ultra Hub 7** (Sercomm) | ✅ Fully supported |
-| **Other DOCSIS modems** | Contributions welcome! See [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) |
+| | Status | Notes |
+|---|---|---|
+| **AVM Fritz!Box Cable** (6490, 6590, 6591, 6660, 6690) | ✅ Fully supported | |
+| **Vodafone Station** (CGA4233, TG3442DE) | ✅ Fully supported | Bridge mode compatible |
+| **Technicolor TC4400** | ✅ Fully supported | |
+| **Vodafone Ultra Hub 7** (Sercomm) | ✅ Fully supported | |
+| **Other DOCSIS modems** | Contributions welcome! See [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) | |
 
 Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magenta (AT), UPC (CH), Virgin Media (UK), and others. Default signal thresholds are based on VFKD guidelines and can be customized in `thresholds.json` for your ISP.
 
