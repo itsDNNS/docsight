@@ -397,131 +397,102 @@ class VodafoneStationDriver(ModemDriver):
         log.info("TG auth OK")
 
     def _get_docsis_tg(self) -> dict:
-        """TG: Fetch DOCSIS data via AJAX endpoint."""
+        """TG: Fetch DOCSIS data from status_docsis_data.php.
+
+        The endpoint returns HTML with embedded JS variables:
+        - json_dsData = [...] (downstream channels)
+        - json_usData = [...] (upstream channels)
+
+        Channel fields: ChannelID, ChannelType (SC-QAM/OFDM/OFDMA),
+        Frequency (Hz or "start~end"), Modulation, PowerLevel
+        ("-1.2 dBmV/1158.8 dBuV"), SNRLevel (downstream only).
+        """
         if not self._tg_nonce:
             raise RuntimeError("TG: Not authenticated. Call login() first.")
 
         try:
-            r = self._session.post(
-                f"{self._url}/php/ajaxGet_device_networkstatus_498.html",
-                data={"csrfNonce": self._tg_nonce, "columns": "all"},
+            r = self._session.get(
+                f"{self._url}/php/status_docsis_data.php",
+                headers={
+                    "csrfNonce": self._tg_nonce,
+                    "Referer": f"{self._url}/?status_docsis&mid=StatusDocsis",
+                },
                 timeout=10,
             )
             r.raise_for_status()
-            data = r.json()
         except requests.RequestException as e:
             self._invalidate_tg_session()
             raise RuntimeError(f"TG DOCSIS data retrieval failed: {e}")
-        except json.JSONDecodeError:
+
+        html = r.text
+
+        # Extract JSON arrays from embedded JS variables
+        ds_match = re.search(r"json_dsData\s*=\s*(\[.+?\])\s*;", html, re.DOTALL)
+        us_match = re.search(r"json_usData\s*=\s*(\[.+?\])\s*;", html, re.DOTALL)
+
+        if not ds_match and not us_match:
             self._invalidate_tg_session()
-            raise RuntimeError("TG: DOCSIS response is not valid JSON")
+            raise RuntimeError(
+                "TG: Could not extract DOCSIS data from response "
+                "(json_dsData/json_usData not found)"
+            )
+
+        ds_raw = json.loads(ds_match.group(1)) if ds_match else []
+        us_raw = json.loads(us_match.group(1)) if us_match else []
+
+        log.debug("TG DOCSIS: %d DS channels, %d US channels", len(ds_raw), len(us_raw))
 
         downstream = []
         upstream = []
 
-        # Downstream SC-QAM channels (DOCSIS 3.0)
-        for ch in data.get("ds_sc_qam", data.get("downstream", [])):
+        for ch in ds_raw:
             try:
-                channel_id = str(ch.get("channelID", ch.get("channelId", "")))
-                freq = self._parse_number(ch.get("frequency", "0"))
-                power = self._parse_number(ch.get("powerLevel", ch.get("power", "0")))
-                snr = self._parse_number(ch.get("snr", ch.get("mse", "0")))
+                channel_id = str(ch.get("ChannelID", ""))
+                ch_type = ch.get("ChannelType", "SC-QAM")
+                freq = self._parse_tg_frequency(ch.get("Frequency", "0"))
+                power = self._parse_tg_power(ch.get("PowerLevel", "0"))
+                snr = self._parse_number(ch.get("SNRLevel", "0"))
                 if snr < 0:
                     snr = abs(snr)
-                modulation = self._normalize_modulation(ch.get("modulation", ""))
-                corr = int(self._parse_number(
-                    ch.get("correctedErrors", ch.get("corrErrors", "0"))
-                ))
-                uncorr = int(self._parse_number(
-                    ch.get("uncorrectedErrors", ch.get("nonCorrErrors", "0"))
-                ))
+                modulation = self._normalize_modulation(ch.get("Modulation", ""))
 
-                if freq > 1_000_000:
-                    freq = freq / 1_000_000
+                if "OFDM" in ch_type.upper():
+                    modulation = modulation or "ofdm"
 
                 downstream.append({
                     "channelID": channel_id,
                     "type": modulation,
-                    "frequency": f"{int(freq)} MHz" if freq else "",
+                    "frequency": f"{freq:.3f} MHz" if freq else "",
                     "powerLevel": power,
                     "mse": -snr if snr else None,
                     "mer": snr if snr else None,
                     "latency": 0,
-                    "corrError": corr,
-                    "nonCorrError": uncorr,
+                    "corrError": 0,
+                    "nonCorrError": 0,
                 })
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse TG DS channel %s: %s", ch, e)
 
-        # Downstream OFDM channels (DOCSIS 3.1)
-        for ch in data.get("ds_ofdm", []):
+        for ch in us_raw:
             try:
-                channel_id = str(ch.get("channelID", ch.get("channelId", "")))
-                freq = self._parse_number(ch.get("frequency", "0"))
-                power = self._parse_number(ch.get("powerLevel", ch.get("power", "0")))
-                mer = self._parse_number(ch.get("mer", ch.get("snr", "0")))
-                modulation = self._normalize_modulation(ch.get("modulation", "ofdm"))
-                corr = int(self._parse_number(ch.get("correctedErrors", "0")))
-                uncorr = int(self._parse_number(ch.get("uncorrectedErrors", "0")))
+                channel_id = str(ch.get("ChannelID", ""))
+                ch_type = ch.get("ChannelType", "SC-QAM")
+                freq = self._parse_tg_frequency(ch.get("Frequency", "0"))
+                power = self._parse_tg_power(ch.get("PowerLevel", "0"))
+                modulation = self._normalize_modulation(ch.get("Modulation", ""))
 
-                if freq > 1_000_000:
-                    freq = freq / 1_000_000
-
-                downstream.append({
-                    "channelID": channel_id,
-                    "type": modulation or "ofdm",
-                    "frequency": f"{int(freq)} MHz" if freq else "",
-                    "powerLevel": power,
-                    "mse": None,
-                    "mer": mer if mer else None,
-                    "latency": 0,
-                    "corrError": corr,
-                    "nonCorrError": uncorr,
-                })
-            except (ValueError, TypeError) as e:
-                log.warning("Failed to parse TG DS OFDM channel %s: %s", ch, e)
-
-        # Upstream SC-QAM channels
-        for ch in data.get("us_sc_qam", data.get("upstream", [])):
-            try:
-                channel_id = str(ch.get("channelID", ch.get("channelId", "")))
-                freq = self._parse_number(ch.get("frequency", "0"))
-                power = self._parse_number(ch.get("powerLevel", ch.get("power", "0")))
-                modulation = self._normalize_modulation(ch.get("modulation", ""))
-
-                if freq > 1_000_000:
-                    freq = freq / 1_000_000
+                if "OFDMA" in ch_type.upper():
+                    modulation = modulation or "ofdma"
 
                 upstream.append({
                     "channelID": channel_id,
                     "type": modulation,
-                    "frequency": f"{int(freq)} MHz" if freq else "",
+                    "frequency": f"{freq:.3f} MHz" if freq else "",
                     "powerLevel": power,
-                    "multiplex": ch.get("multiplex", ""),
+                    "multiplex": "",
                 })
             except (ValueError, TypeError) as e:
                 log.warning("Failed to parse TG US channel %s: %s", ch, e)
-
-        # Upstream OFDMA channels (DOCSIS 3.1)
-        for ch in data.get("us_ofdma", []):
-            try:
-                channel_id = str(ch.get("channelID", ch.get("channelId", "")))
-                freq = self._parse_number(ch.get("frequency", "0"))
-                power = self._parse_number(ch.get("powerLevel", ch.get("power", "0")))
-                modulation = self._normalize_modulation(ch.get("modulation", "ofdma"))
-
-                if freq > 1_000_000:
-                    freq = freq / 1_000_000
-
-                upstream.append({
-                    "channelID": channel_id,
-                    "type": modulation or "ofdma",
-                    "frequency": f"{int(freq)} MHz" if freq else "",
-                    "powerLevel": power,
-                    "multiplex": ch.get("multiplex", ""),
-                })
-            except (ValueError, TypeError) as e:
-                log.warning("Failed to parse TG US OFDMA channel %s: %s", ch, e)
 
         return {
             "docsis": "3.1",
@@ -565,6 +536,44 @@ class VodafoneStationDriver(ModemDriver):
             return float(parts[0])
         except (IndexError, ValueError):
             return 0.0
+
+    @staticmethod
+    def _parse_tg_power(value) -> float:
+        """Parse TG power level string like '-1.2 dBmV/1158.8 dBuV'."""
+        if isinstance(value, (int, float)):
+            return float(value)
+        if not value or not isinstance(value, str):
+            return 0.0
+        # Extract dBmV part (before the slash)
+        parts = value.split("/")
+        return VodafoneStationDriver._parse_number(
+            parts[0].replace("dBmV", "").replace("dBuV", "").strip()
+        )
+
+    @staticmethod
+    def _parse_tg_frequency(value) -> float:
+        """Parse TG frequency: Hz number or 'start~end' OFDM range.
+
+        Returns frequency in MHz.
+        """
+        if isinstance(value, (int, float)):
+            freq = float(value)
+            return freq / 1_000_000 if freq > 1_000_000 else freq
+        if not value or not isinstance(value, str):
+            return 0.0
+        # OFDM range format: "start~end" (in Hz)
+        if "~" in value:
+            parts = value.split("~")
+            try:
+                start = float(parts[0].strip())
+                end = float(parts[1].strip())
+                # Use center frequency, convert to MHz
+                freq = (start + end) / 2
+                return freq / 1_000_000 if freq > 1_000_000 else freq
+            except (ValueError, IndexError):
+                return 0.0
+        freq = VodafoneStationDriver._parse_number(value)
+        return freq / 1_000_000 if freq > 1_000_000 else freq
 
     @staticmethod
     def _normalize_modulation(modulation: str) -> str:
