@@ -87,7 +87,7 @@ class VodafoneStationDriver(ModemDriver):
             log.info("Detected Vodafone Station variant: CGA (CGA6444VF/CGA4322DE)")
             return
         except Exception as e:
-            log.debug("CGA login attempt failed: %s — trying TG variant", e)
+            log.warning("CGA login attempt failed: %s — trying TG variant", e)
             self._session.cookies.clear()
             self._cga_token = None
 
