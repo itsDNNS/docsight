@@ -11,6 +11,8 @@ import subprocess
 import time
 from datetime import datetime, timedelta
 
+import requests as _requests
+
 from flask import Flask, render_template, request, jsonify, redirect, session, url_for, make_response, send_file
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
@@ -353,6 +355,7 @@ def index():
 
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
+    smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
     speedtest_latest = _state.get("speedtest_latest")
     booked_download = _config_manager.get("booked_download", 0) if _config_manager else 0
@@ -399,6 +402,7 @@ def index():
                 theme=theme,
                 isp_name=isp_name, connection_info=conn_info,
                 bqm_configured=bqm_configured,
+                smokeping_configured=smokeping_configured,
                 speedtest_configured=speedtest_configured,
                 speedtest_latest=speedtest_latest,
                 booked_download=booked_download,
@@ -421,6 +425,7 @@ def index():
         theme=theme,
         isp_name=isp_name, connection_info=conn_info,
         bqm_configured=bqm_configured,
+        smokeping_configured=smokeping_configured,
         speedtest_configured=speedtest_configured,
         speedtest_latest=speedtest_latest,
         booked_download=booked_download,
@@ -880,6 +885,59 @@ def api_snapshots():
     if _storage:
         return jsonify(_storage.get_snapshot_list())
     return jsonify([])
+
+
+SMOKEPING_TIMESPANS = {
+    "3h": "last_10800",
+    "30h": "last_108000",
+    "10d": "last_864000",
+    "1y": "last_31104000",
+}
+
+
+@app.route("/api/smokeping/targets")
+@require_auth
+def api_smokeping_targets():
+    """Return list of configured Smokeping targets."""
+    if not _config_manager or not _config_manager.is_smokeping_configured():
+        return jsonify([])
+    raw = _config_manager.get("smokeping_targets", "")
+    targets = [t.strip() for t in raw.split(",") if t.strip()]
+    return jsonify(targets)
+
+
+@app.route("/api/smokeping/graph/<path:target>/<timespan>")
+@require_auth
+def api_smokeping_graph(target, timespan):
+    """Proxy a Smokeping graph PNG."""
+    if not _config_manager or not _config_manager.is_smokeping_configured():
+        return jsonify({"error": "Smokeping not configured"}), 404
+
+    timespan_code = SMOKEPING_TIMESPANS.get(timespan)
+    if not timespan_code:
+        return jsonify({"error": "Invalid timespan"}), 400
+
+    configured = [t.strip() for t in _config_manager.get("smokeping_targets", "").split(",")]
+    if target not in configured:
+        return jsonify({"error": "Unknown target"}), 404
+
+    base_url = _config_manager.get("smokeping_url", "").rstrip("/")
+    target_path = target.replace(".", "/")
+    cache_url = f"{base_url}/cache/{target_path}_{timespan_code}.png"
+
+    try:
+        # Always trigger CGI to regenerate cache with fresh data
+        _requests.get(f"{base_url}/?target={target}", timeout=10)
+        r = _requests.get(cache_url, timeout=10)
+        r.raise_for_status()
+    except Exception as e:
+        log.warning("Smokeping proxy failed for %s/%s: %s", target, timespan, e)
+        return jsonify({"error": "Failed to fetch graph"}), 502
+
+    resp = make_response(r.content)
+    resp.headers["Content-Type"] = "image/png"
+    resp.headers["Cache-Control"] = "public, max-age=60"
+    return resp
 
 
 @app.route("/api/bqm/dates")

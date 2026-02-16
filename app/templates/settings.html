@@ -629,6 +629,33 @@
                     </div>
                 </div>
 
+                <!-- Smokeping -->
+                <div class="integration-card" id="smokeping-card">
+                    <div class="integration-header" onclick="toggleIntegration('smokeping-card')">
+                        <span class="arrow">&#9654;</span>
+                        <span class="int-title">Smokeping</span>
+                        <span class="int-hint">{{ t.smokeping_optional }}</span>
+                    </div>
+                    <div class="integration-body">
+                        <div class="integration-body-inner">
+                            <div class="form-row">
+                                <label for="smokeping_url">{{ t.smokeping_url_label }}</label>
+                                <input type="url" id="smokeping_url" name="smokeping_url"
+                                       value="{{ config.smokeping_url }}"
+                                       placeholder="https://smokeping.example.com/smokeping">
+                                <span class="hint">{{ t.smokeping_url_hint }}</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="smokeping_targets">{{ t.smokeping_targets_label }}</label>
+                                <input type="text" id="smokeping_targets" name="smokeping_targets"
+                                       value="{{ config.smokeping_targets }}"
+                                       placeholder="Global.Google, Global.Cloudflare, Vodafone.Hop2">
+                                <span class="hint">{{ t.smokeping_targets_hint }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- MQTT -->
                 <div class="integration-card" id="mqtt-card">
                     <div class="integration-header" onclick="toggleIntegration('mqtt-card')">

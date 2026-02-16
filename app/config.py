@@ -39,6 +39,8 @@ DEFAULTS = {
     "isp_name": "",
     "admin_password": "",
     "bqm_url": "",
+    "smokeping_url": "",
+    "smokeping_targets": "",
     "speedtest_tracker_url": "",
     "speedtest_tracker_token": "",
     "booked_download": 0,
@@ -65,6 +67,8 @@ ENV_MAP = {
     "data_dir": "DATA_DIR",
     "admin_password": "ADMIN_PASSWORD",
     "bqm_url": "BQM_URL",
+    "smokeping_url": "SMOKEPING_URL",
+    "smokeping_targets": "SMOKEPING_TARGETS",
     "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
     "demo_mode": "DEMO_MODE",
@@ -265,6 +269,10 @@ class ConfigManager:
     def is_mqtt_configured(self):
         """True if mqtt_host is set (MQTT is optional)."""
         return bool(self.get("mqtt_host"))
+
+    def is_smokeping_configured(self):
+        """True if smokeping_url and smokeping_targets are set, or demo mode is active."""
+        return bool(self.get("smokeping_url") and self.get("smokeping_targets")) or self.is_demo_mode()
 
     def is_bqm_configured(self):
         """True if bqm_url is set or demo mode is active (BQM is optional)."""
