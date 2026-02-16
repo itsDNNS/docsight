@@ -192,10 +192,30 @@ class MQTTPublisher:
         us_channels = analysis["us_channels"]
 
         # Summary sensors
+        health_issues = summary.get("health_issues", [])
         for key, value in summary.items():
+            if key == "health_issues":
+                continue
             self.client.publish(
                 f"{self.topic_prefix}/{key}", str(value), retain=True
             )
+
+        # Health details (human-readable summary of issues)
+        _ISSUE_LABELS = {
+            "ds_power_critical": "DS power critical",
+            "ds_power_warn": "DS power warning",
+            "us_power_critical": "US power critical",
+            "us_power_warn": "US power warning",
+            "snr_critical": "SNR critical",
+            "snr_warn": "SNR warning",
+            "uncorr_errors_high": "High uncorrectable errors",
+        }
+        details = ", ".join(_ISSUE_LABELS.get(i, i) for i in health_issues)
+        self.client.publish(
+            f"{self.topic_prefix}/health_details",
+            details or "No issues",
+            retain=True,
+        )
 
         # Health attributes
         attrs = {"last_update": time.strftime("%Y-%m-%d %H:%M:%S")}
