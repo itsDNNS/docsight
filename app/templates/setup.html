@@ -344,7 +344,7 @@
     </div>
 </div>
 
-<form id="setup-form" method="POST" action="/api/setup">
+<form id="setup-form" method="POST" action="/api/config">
 
 <!-- Step 1: Modem Connection -->
 <div class="step-content active" data-step="1">
@@ -567,7 +567,7 @@ document.getElementById('setup-form').addEventListener('submit', async function(
     const data = Object.fromEntries(formData.entries());
     
     try {
-        const response = await fetch('/api/setup', {
+        const response = await fetch('/api/config', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
