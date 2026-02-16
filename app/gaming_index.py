@@ -104,14 +104,14 @@ def compute_gaming_index(analysis, speedtest):
 
     # DOCSIS components (always available)
     docsis_score = _score_docsis_health(health)
-    components["docsis_health"] = {"score": docsis_score, "weight": 25}
-    total_score += docsis_score * 25
-    total_weight += 25
+    components["docsis_health"] = {"score": docsis_score, "weight": 15}
+    total_score += docsis_score * 15
+    total_weight += 15
 
     snr_score = _score_snr_headroom(min_snr)
-    components["snr_headroom"] = {"score": snr_score, "weight": 15}
-    total_score += snr_score * 15
-    total_weight += 15
+    components["snr_headroom"] = {"score": snr_score, "weight": 10}
+    total_score += snr_score * 10
+    total_weight += 10
 
     has_speedtest = speedtest is not None and "ping_ms" in (speedtest or {})
 
@@ -121,19 +121,19 @@ def compute_gaming_index(analysis, speedtest):
         loss = float(speedtest.get("packet_loss_pct", 0))
 
         lat_score = _score_latency(ping)
-        components["latency"] = {"score": lat_score, "weight": 25}
-        total_score += lat_score * 25
-        total_weight += 25
+        components["latency"] = {"score": lat_score, "weight": 30}
+        total_score += lat_score * 30
+        total_weight += 30
 
         jit_score = _score_jitter(jitter)
-        components["jitter"] = {"score": jit_score, "weight": 20}
-        total_score += jit_score * 20
-        total_weight += 20
+        components["jitter"] = {"score": jit_score, "weight": 25}
+        total_score += jit_score * 25
+        total_weight += 25
 
         loss_score = _score_packet_loss(loss)
-        components["packet_loss"] = {"score": loss_score, "weight": 15}
-        total_score += loss_score * 15
-        total_weight += 15
+        components["packet_loss"] = {"score": loss_score, "weight": 20}
+        total_score += loss_score * 20
+        total_weight += 20
 
     score = round(total_score / total_weight) if total_weight > 0 else 0
 
