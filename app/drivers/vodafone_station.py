@@ -428,6 +428,7 @@ class VodafoneStationDriver(ModemDriver):
         3. AES-CCM encrypt with AAD "loginPassword"
         4. POST /php/ajaxSet_Password.php as JSON
         5. Decrypt CSRF nonce from response
+        6. Set credential cookie from base_95x.js
         """
         from Crypto.Cipher import AES
 
@@ -543,6 +544,11 @@ class VodafoneStationDriver(ModemDriver):
                   self._tg_nonce[:8] if self._tg_nonce else "None",
                   len(self._session.cookies),
                   list(self._session.cookies.keys()))
+
+        # Step 6: Set credential cookie from base_95x.js
+        # The modem's JS sets this cookie after login. Without it,
+        # data endpoints return 400 "session lost".
+        self._set_tg_credential_cookie()
 
     def _get_docsis_tg(self) -> dict:
         """TG: Fetch DOCSIS data from status_docsis_data.php.
@@ -755,21 +761,39 @@ class VodafoneStationDriver(ModemDriver):
         r.raise_for_status()
         return r
 
+    def _set_tg_credential_cookie(self):
+        """Fetch and set the credential cookie from the modem's base_95x.js.
+
+        The TG3442DE firmware requires this cookie for authenticated data
+        requests. The browser's login JavaScript sets it via createCookie().
+        """
+        try:
+            r = self._session.get(f"{self._url}/base_95x.js", timeout=10)
+            if r.status_code == 200:
+                match = re.search(
+                    r'createCookie\(\s*"credential"\s*,\s*["\'](.+?)["\']\s*',
+                    r.text,
+                )
+                if match:
+                    credential = match.group(1)
+                    self._session.cookies.set("credential", credential)
+                    log.debug("TG credential cookie set (%d chars)", len(credential))
+                else:
+                    log.debug("TG base_95x.js: no credential found in %d bytes",
+                              len(r.text))
+            else:
+                log.debug("TG base_95x.js: HTTP %d", r.status_code)
+        except Exception as e:
+            log.debug("TG credential cookie fetch failed: %s", e)
+
     def _logout_tg(self) -> None:
         """Attempt to cleanly end the TG session."""
         if not self._tg_nonce:
             return
         try:
-            # TG uses PHP logout, not CGA REST API
             self._session.post(
-                f"{self._url}/php/ajaxSet_Password.php",
-                headers={
-                    "csrfNonce": self._tg_nonce,
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Content-Type": "application/json",
-                    "User-Agent": "Mozilla/5.0",
-                },
-                data=json.dumps({"Logout": "true"}),
+                f"{self._url}/php/logout.php",
+                headers={"User-Agent": "Mozilla/5.0"},
                 timeout=5,
             )
         except Exception:
