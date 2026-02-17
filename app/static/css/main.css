@@ -3056,6 +3056,18 @@ details.channel-group {
     margin-left: 6px;
     text-decoration: none;
 }
+.import-table tbody tr.import-row-skipped {
+    opacity: 0.7;
+}
+.import-skipped-badge {
+    display: inline-block;
+    font-size: 0.7em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--danger, #ef4444);
+    color: #fff;
+    margin-left: 6px;
+}
 
 /* ── Journal Search ── */
 .journal-search-wrap {
