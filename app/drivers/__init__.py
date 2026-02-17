@@ -10,6 +10,7 @@ DRIVER_REGISTRY = {
     "tc4400": "app.drivers.tc4400.TC4400Driver",
     "ultrahub7": "app.drivers.ultrahub7.UltraHub7Driver",
     "vodafone_station": "app.drivers.vodafone_station.VodafoneStationDriver",
+    "ch7465": "app.drivers.ch7465.CH7465Driver",
 }
 
 DRIVER_DISPLAY_NAMES = {
@@ -17,6 +18,7 @@ DRIVER_DISPLAY_NAMES = {
     "tc4400": "Technicolor TC4400",
     "ultrahub7": "Vodafone Ultra Hub 7",
     "vodafone_station": "Vodafone Station",
+    "ch7465": "Unitymedia Connect Box (CH7465)",
 }
 
 
