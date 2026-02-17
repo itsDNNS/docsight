@@ -87,23 +87,26 @@ def parse_file(file_bytes, filename):
         # Normalize date
         norm_date = _normalize_date(raw_date, year_context.get(i))
 
-        if not norm_date:
-            skipped += 1
-            continue
-
         # Clean up "None" strings
         if title == "None":
             title = ""
         if description == "None":
             description = ""
 
-        result_rows.append({
+        entry = {
             "idx": i,
-            "date": norm_date,
+            "date": norm_date or "",
             "title": title,
             "description": description,
             "raw": raw,
-        })
+        }
+
+        if not norm_date:
+            skipped += 1
+            entry["skipped"] = True
+            entry["raw_date"] = raw_date
+
+        result_rows.append(entry)
 
     return {
         "columns": columns,

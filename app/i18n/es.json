@@ -440,6 +440,7 @@
   "import_duplicate": "duplicado",
   "import_success": "incidencias importadas",
   "import_duplicates_skipped": "duplicados omitidos",
+  "import_no_date": "sin fecha",
   "import_file_unsupported": "Solo se admiten archivos .xlsx y .csv",
   "import_file_too_large": "Archivo demasiado grande (max 5 MB)",
   "delete_all": "Eliminar todo",

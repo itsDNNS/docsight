@@ -445,6 +445,7 @@
   "import_duplicate": "duplicate",
   "import_success": "incidents imported",
   "import_duplicates_skipped": "duplicates skipped",
+  "import_no_date": "no date",
   "import_file_unsupported": "Only .xlsx and .csv files are supported",
   "import_file_too_large": "File too large (max 5 MB)",
   "delete_all": "Delete All",

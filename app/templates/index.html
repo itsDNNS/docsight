@@ -3418,6 +3418,7 @@
         tbody.innerHTML = '';
 
         var dupeCount = data.duplicates || 0;
+        var validCount = data.total - data.skipped;
         var info = data.total + ' ' + T.import_entries_found;
         if (data.skipped > 0) info += ', ' + data.skipped + ' ' + T.import_skipped;
         if (dupeCount > 0) info += ', ' + dupeCount + ' ' + T.import_duplicates;
@@ -3425,17 +3426,30 @@
 
         data.rows.forEach(function(row, i) {
             var tr = document.createElement('tr');
-            if (row.duplicate) tr.className = 'import-row-duplicate';
-            var checked = row.duplicate ? '' : 'checked';
+            var isSkipped = row.skipped;
+            var isDupe = row.duplicate;
+            if (isDupe) tr.className = 'import-row-duplicate';
+            if (isSkipped) tr.className = 'import-row-skipped';
+            var checked = (isDupe || isSkipped) ? '' : 'checked';
             var desc = row.description || '';
             if (desc.length > 60) desc = desc.substring(0, 60) + '...';
-            var dupeBadge = row.duplicate ? '<span class="import-duplicate-badge">' + T.import_duplicate + '</span>' : '';
+            var dupeBadge = isDupe ? '<span class="import-duplicate-badge">' + T.import_duplicate + '</span>' : '';
             var iconMatch = detectIncidentIcon(row.title, row.description);
             var iconHtml = iconMatch ? iconMatch.icon : '';
+            var dateCell;
+            if (isSkipped) {
+                var rawHint = row.raw_date ? ' placeholder="' + escapeHtml(row.raw_date) + '"' : '';
+                dateCell = '<input type="date" class="import-date-fix" data-idx="' + i + '"' + rawHint +
+                    ' style="width:140px;padding:2px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--bg);color:var(--fg);font-size:0.85em;"' +
+                    ' onchange="fixImportDate(this,' + i + ')">' +
+                    '<span class="import-skipped-badge">' + (T.import_no_date || 'no date') + '</span>';
+            } else {
+                dateCell = escapeHtml(row.date);
+            }
             tr.innerHTML =
                 '<td><input type="checkbox" class="import-row-cb" data-idx="' + i + '" ' + checked + '></td>' +
                 '<td style="text-align:center;">' + iconHtml + '</td>' +
-                '<td>' + escapeHtml(row.date) + '</td>' +
+                '<td>' + dateCell + '</td>' +
                 '<td>' + escapeHtml(row.title) + dupeBadge + '</td>' +
                 '<td class="journal-hide-mobile">' + escapeHtml(desc) + '</td>';
             tbody.appendChild(tr);
@@ -3444,6 +3458,23 @@
         document.getElementById('import-select-all').checked = true;
         document.getElementById('import-preview').style.display = '';
         document.getElementById('import-footer').style.display = '';
+    }
+
+    function fixImportDate(input, idx) {
+        if (!_importPreviewData || !_importPreviewData.rows[idx]) return;
+        var val = input.value;
+        if (val) {
+            _importPreviewData.rows[idx].date = val;
+            _importPreviewData.rows[idx].skipped = false;
+            var tr = input.closest('tr');
+            if (tr) {
+                tr.classList.remove('import-row-skipped');
+                var cb = tr.querySelector('.import-row-cb');
+                if (cb) cb.checked = true;
+            }
+            var badge = tr.querySelector('.import-skipped-badge');
+            if (badge) badge.style.display = 'none';
+        }
     }
 
     function toggleImportAll(checked) {
@@ -3461,7 +3492,7 @@
             if (cbs[i].checked) {
                 var idx = parseInt(cbs[i].getAttribute('data-idx'));
                 var row = _importPreviewData.rows[idx];
-                if (row) {
+                if (row && row.date) {
                     selectedRows.push({
                         date: row.date,
                         title: row.title,
@@ -3545,6 +3576,7 @@
     window.handleImportFile = handleImportFile;
     window.confirmImport = confirmImport;
     window.toggleImportAll = toggleImportAll;
+    window.fixImportDate = fixImportDate;
     window.deleteAllIncidents = deleteAllIncidents;
     window.clearJournalSearch = clearJournalSearch;
 
