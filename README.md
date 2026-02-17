@@ -99,7 +99,7 @@ Open `http://localhost:8765` — no setup required.
 | **[BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM)** | ThinkBroadband broadband quality graphs |
 | **[Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping)** | Live latency graphs from your Smokeping instance |
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
-| **Demo Mode** | **NEW:** Try DOCSight without a router — 90 days of simulated data |
+| **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | **NEW:** Try DOCSight without a router — 90 days of simulated data |
 
 4 languages (EN/DE/FR/ES) · Light/Dark mode · Setup wizard · Optional authentication
 
