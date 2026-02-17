@@ -41,26 +41,12 @@ Open `http://localhost:8765`, enter your router login, done. [Full installation 
 
 ---
 
-## 🧪 Beta Testing (v2.0)
-
-DOCSight v2.0 is currently in beta testing! We're looking for community feedback.
-
-**Try it:** `docker run -d -p 8766:8765 -v docsight_v2_data:/data ghcr.io/itsdnns/docsight:v2-dev`
-
-**What's new:** Complete UI redesign, modular architecture, cross-source correlation, gaming quality index
-
-**Migration safe:** Your v1 data is automatically migrated. No data loss!
-
-**Report issues:** [GitHub Issues](https://github.com/itsDNNS/docsight/issues) with tag `v2-preview`
-
----
-
 ## 🎮 Demo Mode
 
 Want to try DOCSight without a real router? Demo mode generates realistic DOCSIS data so you can explore the full dashboard, trends, event log, and incident journal.
 
 ```bash
-docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:v2-dev
+docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:latest
 ```
 
 Open `http://localhost:8765` — no setup required.
@@ -234,23 +220,29 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 
 ## Roadmap
 
-**Current: [v2.0 — Unified Collector Architecture](https://github.com/itsDNNS/docsight/milestone/1)** (in development)
+**Released: [v2.0 — Complete Platform Redesign](https://github.com/itsDNNS/docsight/milestone/1)**
 
 | Feature | Status | Issue |
 |---|---|---|
-| Unified Collector Architecture | ✅ Complete (pending release) | [#23](https://github.com/itsDNNS/docsight/issues/23) |
-| Modern UI Redesign | ✅ Complete (pending release) | — |
-| Cross-Source Correlation | ✅ Complete (pending release) | — |
-| FritzBox Event Log Integration | 🔜 Planned | [#17](https://github.com/itsDNNS/docsight/issues/17) |
-| OFDMA Channel Analysis | 🔜 Planned | [#18](https://github.com/itsDNNS/docsight/issues/18) |
-| Notification System | 🔜 Planned | [#19](https://github.com/itsDNNS/docsight/issues/19) |
-| Gaming Quality Index | ✅ Complete (pending release) | [#20](https://github.com/itsDNNS/docsight/issues/20) |
-| Modulation Watchdog & Power Drift | ✅ Complete (pending release) | [#21](https://github.com/itsDNNS/docsight/issues/21) |
-| Demo/Test Mode | ✅ Complete (pending release) | [#30](https://github.com/itsDNNS/docsight/issues/30) |
-| Smokeping Integration | ✅ Complete (pending release) | [#22](https://github.com/itsDNNS/docsight/issues/22) |
-| Vodafone Station Support | ✅ Complete (pending release) | [#14](https://github.com/itsDNNS/docsight/issues/14) |
-| Technicolor TC4400 Support | ✅ Complete (pending release) | [#24](https://github.com/itsDNNS/docsight/issues/24) |
-| Vodafone Ultra Hub 7 Support | ✅ Complete (pending release) | [#29](https://github.com/itsDNNS/docsight/issues/29) |
+| Unified Collector Architecture | ✅ Released | [#23](https://github.com/itsDNNS/docsight/issues/23) |
+| Modern UI Redesign | ✅ Released | — |
+| Cross-Source Correlation | ✅ Released | — |
+| FritzBox Event Log Integration | ✅ Released | [#17](https://github.com/itsDNNS/docsight/issues/17) |
+| OFDMA Channel Analysis | ✅ Released | [#18](https://github.com/itsDNNS/docsight/issues/18) |
+| Gaming Quality Index | ✅ Released | [#20](https://github.com/itsDNNS/docsight/issues/20) |
+| Modulation Watchdog & Power Drift | ✅ Released | [#21](https://github.com/itsDNNS/docsight/issues/21) |
+| Demo/Test Mode | ✅ Released | [#30](https://github.com/itsDNNS/docsight/issues/30) |
+| Smokeping Integration | ✅ Released | [#22](https://github.com/itsDNNS/docsight/issues/22) |
+| Vodafone Station Support | ✅ Released | [#14](https://github.com/itsDNNS/docsight/issues/14) |
+| Technicolor TC4400 Support | ✅ Released | [#24](https://github.com/itsDNNS/docsight/issues/24) |
+| Vodafone Ultra Hub 7 Support | ✅ Released | [#29](https://github.com/itsDNNS/docsight/issues/29) |
+
+**Planned:**
+
+| Feature | Issue |
+|---|---|
+| Notification System | [#19](https://github.com/itsDNNS/docsight/issues/19) |
+| Before/After Comparison | [#50](https://github.com/itsDNNS/docsight/issues/50) |
 
 See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
 
