@@ -2255,7 +2255,8 @@
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
                     legend: { display: hasLegend, position: legendPos, labels: { color: textColor, font: { size: 11 } } },
-                    tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1 }
+                    tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1,
+                        callbacks: opts && opts.tooltipLabelCallback ? { label: opts.tooltipLabelCallback } : undefined }
                 },
                 scales: {
                     x: { ticks: { color: textColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
@@ -2337,7 +2338,8 @@
                     interaction: { intersect: false, mode: 'index' },
                     plugins: {
                         legend: { display: hasLegend, position: 'bottom', labels: { color: textColor, font: { size: 12 } } },
-                        tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1 }
+                        tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1,
+                            callbacks: params.opts && params.opts.tooltipLabelCallback ? { label: params.opts.tooltipLabelCallback } : undefined }
                     },
                     scales: {
                         x: { ticks: { color: textColor, font: { size: 11 }, maxRotation: 45 }, grid: { color: gridColor } },
@@ -2834,10 +2836,10 @@
                     modCard.style.display = '';
                     // Fixed QAM scales per channel direction and DOCSIS version
                     var is31 = docsisVersion === '3.1' || docsisVersion === '4.0';
-                    var usQam30 = [4, 16, 32, 64];
-                    var usQam31 = [16, 64, 256, 1024];
+                    var usQam30 = [4, 8, 16, 32, 64, 128];
+                    var usQam31 = [4, 8, 16, 32, 64, 128, 256, 512, 1024];
                     var dsQam30 = [64, 256];
-                    var dsQam31 = [64, 256, 1024, 4096];
+                    var dsQam31 = [16, 64, 256, 1024, 2048, 4096];
                     var qamSteps;
                     if (direction === 'us') { qamSteps = is31 ? usQam31 : usQam30; }
                     else { qamSteps = is31 ? dsQam31 : dsQam30; }
@@ -2851,6 +2853,7 @@
                         {label: T.modulation || 'Modulation', data: modValues, color: '#ffab40', stepped: true}
                     ], null, null, {
                         yTickCallback: function(value) { return qamLabel[qamSteps[value]] || ''; },
+                        tooltipLabelCallback: function(ctx) { return (T.modulation || 'Modulation') + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw); },
                         yMin: -0.5,
                         yMax: qamSteps.length - 0.5,
                         yAfterBuildTicks: function(axis) {
