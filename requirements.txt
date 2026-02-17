@@ -7,3 +7,4 @@ pycryptodome>=3.20
 fpdf2>=2.8
 beautifulsoup4>=4.12
 pypdf>=4.0
+openpyxl>=3.1
