@@ -15,14 +15,15 @@ class ModemCollector(Collector):
 
     name = "modem"
 
-    def __init__(self, driver, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval):
+    def __init__(self, driver, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier=None):
         super().__init__(poll_interval)
         self._driver = driver
-        self._analyzer = analyzer_fn  # Function reference, not module
+        self._analyzer = analyzer_fn
         self._event_detector = event_detector
         self._storage = storage
         self._mqtt_pub = mqtt_pub
         self._web = web
+        self._notifier = notifier
         self._device_info = None
         self._connection_info = None
         self._discovery_published = False
@@ -73,5 +74,7 @@ class ModemCollector(Collector):
         if events:
             self._storage.save_events(events)
             log.info("Detected %d event(s)", len(events))
+            if self._notifier:
+                self._notifier.dispatch(events)
 
         return CollectorResult(source=self.name, data=analysis)

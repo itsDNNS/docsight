@@ -60,11 +60,19 @@ def polling_loop(config_mgr, storage, stop_event):
     else:
         log.info("MQTT not configured, running without Home Assistant integration")
 
+    # Notifications (optional)
+    notifier = None
+    if config_mgr.is_notify_configured():
+        from .notifier import NotificationDispatcher
+        notifier = NotificationDispatcher(config_mgr)
+        log.info("Notifications: webhook configured")
+
     web.update_state(poll_interval=config["poll_interval"])
 
     event_detector = EventDetector()
     collectors = discover_collectors(
-        config_mgr, storage, event_detector, mqtt_pub, web, analyzer
+        config_mgr, storage, event_detector, mqtt_pub, web, analyzer,
+        notifier=notifier,
     )
 
     # Inject collectors into web layer for manual polling and status endpoint
