@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DOCSight - {{ t.initial_setup }}</title>
     <link rel="icon" type="image/png" href="/static/icon.png">
+    <script src="/static/lucide.js"></script>
     <style>
         :root, [data-theme="dark"] {
             --bg: #1a1a2e;
@@ -258,7 +259,7 @@
     </div>
 
     <div class="advanced-toggle" id="mqtt-toggle" onclick="toggleAdvanced('mqtt')">
-        <span class="arrow">&#9654;</span>
+        <span class="arrow"><i data-lucide="chevron-right"></i></span>
         <span class="adv-label">{{ t.advanced_mqtt }}</span>
         <span class="adv-hint">{{ t.optional }}</span>
     </div>
@@ -288,7 +289,7 @@
                         <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" {% if config.mqtt_tls_insecure %}checked{% endif %}>
                         {{ t.mqtt_tls_insecure }}
                     </label>
-                    <span class="hint" style="color: #ff9800;">⚠️ {{ t.mqtt_tls_insecure_desc }}</span>
+                    <span class="hint" style="color: #ff9800;"><i data-lucide="alert-triangle"></i> {{ t.mqtt_tls_insecure_desc }}</span>
                 </div>
                 <div class="form-row full">
                     <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
@@ -308,7 +309,7 @@
     </div>
 
     <div class="advanced-toggle" id="bqm-toggle" onclick="toggleAdvanced('bqm')">
-        <span class="arrow">&#9654;</span>
+        <span class="arrow"><i data-lucide="chevron-right"></i></span>
         <span class="adv-label">ThinkBroadband BQM</span>
         <span class="adv-hint">{{ t.optional }}</span>
     </div>
@@ -480,6 +481,10 @@ document.getElementById('setup-form').addEventListener('submit', function(e) {
     updateTzHint();
     inp.addEventListener('change', updateTzHint);
 })();
+</script>
+
+<script>
+    lucide.createIcons();
 </script>
 
 </body>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DOCSight</title>
     <link rel="icon" type="image/png" href="/static/icon.png">
+    <script src="/static/lucide.js"></script>
     <style>
         :root, [data-theme="dark"] {
             --bg: #1a1a2e;
@@ -784,62 +785,62 @@
     <div class="sidebar-header">
         <img src="/static/icon.png" alt="DOCSight" style="width:28px;height:28px;border-radius:6px;vertical-align:middle;margin-right:8px;">
         <span>DOCSight</span>
-        <button class="sidebar-toggle" id="sidebar-collapse" title="Collapse">&#10094;</button>
+        <button class="sidebar-toggle" id="sidebar-collapse" title="Collapse"><i data-lucide="chevron-left"></i></button>
     </div>
     <div class="sidebar-content">
         <div class="sidebar-section-label">{{ t.sidebar_monitoring }}</div>
         <a class="sidebar-link active" data-view="live">
-            <span class="icon recording-dot">&#9679;</span> {{ t.live_dashboard }}
+            <span class="icon recording-dot"><i data-lucide="disc" style="color:#e74c3c;"></i></span> {{ t.live_dashboard }}
         </a>
         <a class="sidebar-link" data-view="events">
-            <span class="icon">&#128276;</span> {{ t.event_log }}
+            <span class="icon"><i data-lucide="activity"></i></span> {{ t.event_log }}
             <span class="event-badge" id="event-badge" style="display:none;"></span>
         </a>
         <a class="sidebar-link" data-view="trends">
-            <span class="icon">&#128200;</span> {{ t.signal_trends }}
+            <span class="icon"><i data-lucide="trending-up"></i></span> {{ t.signal_trends }}
         </a>
         <a class="sidebar-link" data-view="channels">
-            <span class="icon">&#128336;</span> {{ t.channel_timeline }}
+            <span class="icon"><i data-lucide="clock"></i></span> {{ t.channel_timeline }}
         </a>
         <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
         {% if speedtest_configured %}
         <a class="sidebar-link" data-view="speedtest">
-            <span class="icon">&#9889;</span> {{ t.speedtest }}
+            <span class="icon"><i data-lucide="activity"></i></span> {{ t.speedtest }}
         </a>
         {% endif %}
         {% if not speedtest_configured %}
         <a class="sidebar-link" onclick="openSpeedtestSetupModal()">
-            <span class="icon">&#9881;</span> {{ t.speedtest_setup }}
+            <span class="icon"><i data-lucide="settings"></i></span> {{ t.speedtest_setup }}
         </a>
         {% endif %}
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm">
-            <span class="icon">&#128225;</span> {{ t.bqm_title }}
+            <span class="icon"><i data-lucide="gauge"></i></span> {{ t.bqm_title }}
         </a>
         {% endif %}
         {% if not bqm_configured %}
         <a class="sidebar-link" onclick="openBqmSetupModal()">
-            <span class="icon">&#9881;</span> {{ t.bqm_setup }}
+            <span class="icon"><i data-lucide="settings"></i></span> {{ t.bqm_setup }}
         </a>
         {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
         <a class="sidebar-link" data-view="journal">
-            <span class="icon">&#128203;</span> {{ t.incident_journal }}
+            <span class="icon"><i data-lucide="book-text"></i></span> {{ t.incident_journal }}
         </a>
         <a class="sidebar-link" id="export-link" onclick="exportForLLM()">
-            <span class="icon">&#128190;</span> {{ t.export_llm }}
+            <span class="icon"><i data-lucide="download"></i></span> {{ t.export_llm }}
         </a>
         <a class="sidebar-link" id="report-link" onclick="openReportModal()">
-            <span class="icon">&#128226;</span> {{ t.incident_report }}
+            <span class="icon"><i data-lucide="file-warning"></i></span> {{ t.incident_report }}
         </a>
         <div style="flex:1;"></div>
         <div class="sidebar-divider"></div>
         <a class="sidebar-link" href="/settings">
-            <span class="icon">&#9881;</span> {{ t.settings }}
+            <span class="icon"><i data-lucide="settings"></i></span> {{ t.settings }}
         </a>
         {% if auth_enabled %}
         <a class="sidebar-link" href="/logout">
-            <span class="icon">&#128682;</span> {{ t.logout }}
+            <span class="icon"><i data-lucide="log-out"></i></span> {{ t.logout }}
         </a>
         {% endif %}
         <div style="padding: 8px 20px 12px;">
@@ -857,7 +858,7 @@
 <!-- Topbar -->
 <div class="topbar">
     <div class="topbar-left">
-        <button class="hamburger-btn" id="hamburger" title="Menu">&#9776;</button>
+        <button class="hamburger-btn" id="hamburger" title="Menu"><i data-lucide="menu" style="vertical-align:middle;"></i></button>
         <span class="topbar-title">DOCSight</span>
     </div>
     <div class="topbar-right">
@@ -865,14 +866,14 @@
             {% if last_update %}{{ t.last_update }}: {{ last_update }} | {{ poll_interval }}s{% endif %}
         </span>
         {% if not historical %}
-        <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
+        <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}"><i data-lucide="refresh-cw" style="vertical-align:middle;"></i></button>
         {% endif %}
         <select class="lang-select" id="lang-select" title="Language">
             {% for code, name in languages.items() %}
             <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ code.upper() }}</option>
             {% endfor %}
         </select>
-        <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
+        <button class="theme-toggle" id="theme-toggle" title="Toggle theme"><i data-lucide="moon" style="vertical-align:middle;"></i></button>
     </div>
 </div>
 
@@ -937,7 +938,7 @@
 
     <div class="health-banner health-{{ 'good' if s.health == 'good' else ('crit' if s.health == 'poor' else 'warn') }}">
         <div class="health-status">
-            <span class="health-icon">{% if s.health == 'good' %}&#10004;{% elif s.health == 'poor' %}&#10006;{% else %}&#9888;{% endif %}</span>
+            <span class="health-icon">{% if s.health == 'good' %}<i data-lucide="check-circle-2"></i>{% elif s.health == 'poor' %}<i data-lucide="x-circle"></i>{% else %}<i data-lucide="alert-triangle"></i>{% endif %}</span>
             <span class="health-title">{{ health_label }}</span>
         </div>
         <div class="health-msg">{{ health_msgs.get(s.health, '') }}</div>
@@ -945,7 +946,7 @@
         <div class="health-issues">
             {% for issue in s.health_issues %}
             <div class="health-issue">
-                <span class="health-issue-name">{{ issue_labels.get(issue, issue) }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ issue_descs.get(issue, '') }}</span></span></span>
+                <span class="health-issue-name">{{ issue_labels.get(issue, issue) }}<span class="info-tip"><i data-lucide="info" class="tip-icon" tabindex="0"></i><span class="tip-text">{{ issue_descs.get(issue, '') }}</span></span></span>
                 <span class="health-issue-desc">{{ issue_descs.get(issue, '') }}</span>
             </div>
             {% endfor %}
@@ -990,14 +991,14 @@
         <div class="metric-card health-{{ signal_health }}">
             <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
                 <span class="status-dot"></span>
-                <span class="card-title">&#8595; {{ t.card_signal_quality }}</span>
-                <span class="chevron">&#9654;</span>
+                <span class="card-title"><i data-lucide="arrow-down-to-line" style="vertical-align:middle;"></i> {{ t.card_signal_quality }}</span>
+                <span class="chevron"><i data-lucide="chevron-right"></i></span>
             </div>
             <div class="metric-card-body">
                 <div class="metric-row">
                     <div class="metric-item">
                         <div class="metric-value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}<span class="metric-unit">dBmV</span></div>
-                        <div class="metric-label">{{ t.card_ds_power }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_ds_power }}</span></span></div>
+                        <div class="metric-label">{{ t.card_ds_power }}<span class="info-tip"><i data-lucide="info" class="tip-icon" tabindex="0"></i><span class="tip-text">{{ t.tip_ds_power }}</span></span></div>
                         <div class="range-indicator">
                             <div class="range-zone range-crit" style="width:10.8%"></div>
                             <div class="range-zone range-warn" style="width:10.8%"></div>
@@ -1010,7 +1011,7 @@
                     </div>
                     <div class="metric-item">
                         <div class="metric-value val-{{ snr_health }}">{{ s.ds_snr_avg }}<span class="metric-unit">dB</span></div>
-                        <div class="metric-label">{{ t.card_snr }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_snr }}</span></span></div>
+                        <div class="metric-label">{{ t.card_snr }}<span class="info-tip"><i data-lucide="info" class="tip-icon" tabindex="0"></i><span class="tip-text">{{ t.tip_snr }}</span></span></div>
                         <div class="range-indicator">
                             <div class="range-zone range-crit" style="width:33.3%"></div>
                             <div class="range-zone range-warn" style="width:16.7%"></div>
@@ -1035,14 +1036,14 @@
         <div class="metric-card health-{{ us_health }}">
             <div class="metric-card-header" onclick="toggleCard(this.parentNode)">
                 <span class="status-dot"></span>
-                <span class="card-title">&#8593; {{ t.card_upstream }}</span>
-                <span class="chevron">&#9654;</span>
+                <span class="card-title"><i data-lucide="arrow-up-from-line" style="vertical-align:middle;"></i> {{ t.card_upstream }}</span>
+                <span class="chevron"><i data-lucide="chevron-right"></i></span>
             </div>
             <div class="metric-card-body">
                 <div class="metric-row">
                     <div class="metric-item">
                         <div class="metric-value val-{{ us_health }}">{{ s.us_power_avg }}<span class="metric-unit">dBmV</span></div>
-                        <div class="metric-label">{{ t.card_transmit_power }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_transmit_power }}</span></span></div>
+                        <div class="metric-label">{{ t.card_transmit_power }}<span class="info-tip"><i data-lucide="info" class="tip-icon" tabindex="0"></i><span class="tip-text">{{ t.tip_transmit_power }}</span></span></div>
                         <div class="range-indicator">
                             <div class="range-zone range-crit" style="width:16.7%"></div>
                             <div class="range-zone range-warn" style="width:20%"></div>
@@ -1074,9 +1075,9 @@
             <div class="metric-card-body">
                 <div class="metric-row">
                     <div class="metric-item">
-                        <div class="metric-value val-{{ error_health }}">{{ s.ds_uncorrectable_errors|fmt_k }}<span class="metric-unit">{{ t.card_uncorr_label }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_uncorrectable }}</span></span></span></div>
+                        <div class="metric-value val-{{ error_health }}">{{ s.ds_uncorrectable_errors|fmt_k }}<span class="metric-unit">{{ t.card_uncorr_label }}<span class="info-tip"><i data-lucide="info" class="tip-icon" tabindex="0"></i><span class="tip-text">{{ t.tip_uncorrectable }}</span></span></span></div>
                         <div class="gauge-bar"><div class="gauge-fill val-{{ error_health }}" style="width:{{ uncorr_pct|int }}%"></div></div>
-                        <div class="metric-secondary">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_correctable }}</span></span></div>
+                        <div class="metric-secondary">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}<span class="info-tip"><i data-lucide="info" class="tip-icon" tabindex="0"></i><span class="tip-text">{{ t.tip_correctable }}</span></span></div>
                     </div>
                 </div>
                 {% if device_info and device_info.uptime_seconds is defined %}
@@ -1084,7 +1085,7 @@
                 {% set ut_d = ut // 86400 %}
                 {% set ut_h = (ut % 86400) // 3600 %}
                 <div class="metric-secondary" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--input-border);">
-                    &#9201; {{ t.card_uptime }}: <strong>{% if ut_d %}{{ ut_d }}d {% endif %}{{ ut_h }}h</strong>
+                    <i data-lucide="timer" style="vertical-align:middle;"></i> {{ t.card_uptime }}: <strong>{% if ut_d %}{{ ut_d }}d {% endif %}{{ ut_h }}h</strong>
                 </div>
                 {% endif %}
             </div>
@@ -1141,11 +1142,11 @@
                 <div class="metric-row">
                     <div class="metric-item">
                         <div class="metric-value {{ dl_val_class }}">{{ speedtest_latest.download_human or (speedtest_latest.download_mbps ~ ' Mbps') }}</div>
-                        <div class="metric-label">{{ t.download }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_download }}</span></span></div>
+                        <div class="metric-label">{{ t.download }}<span class="info-tip"><i data-lucide="info" class="tip-icon" tabindex="0"></i><span class="tip-text">{{ t.tip_download }}</span></span></div>
                     </div>
                     <div class="metric-item">
                         <div class="metric-value {{ ul_val_class }}">{{ speedtest_latest.upload_human or (speedtest_latest.upload_mbps ~ ' Mbps') }}</div>
-                        <div class="metric-label">{{ t.upload }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ t.tip_upload }}</span></span></div>
+                        <div class="metric-label">{{ t.upload }}<span class="info-tip"><i data-lucide="info" class="tip-icon" tabindex="0"></i><span class="tip-text">{{ t.tip_upload }}</span></span></div>
                     </div>
                 </div>
                 <div class="metric-secondary" style="margin-top:8px;">
@@ -1266,22 +1267,22 @@
     <div id="trend-no-data" class="no-data-msg" style="display:none"></div>
     <div class="charts-grid" id="charts-grid">
         <div class="chart-card">
-            <button class="chart-expand-btn" data-chart="chart-ds-power" title="Expand">&#x26F6;</button>
+            <button class="chart-expand-btn" data-chart="chart-ds-power" title="Expand"><i data-lucide="maximize-2" style="width:16px;height:16px;"></i></button>
             <div class="chart-label">{{ t.ds_power_avg }}</div>
             <canvas id="chart-ds-power"></canvas>
         </div>
         <div class="chart-card">
-            <button class="chart-expand-btn" data-chart="chart-ds-snr" title="Expand">&#x26F6;</button>
+            <button class="chart-expand-btn" data-chart="chart-ds-snr" title="Expand"><i data-lucide="maximize-2" style="width:16px;height:16px;"></i></button>
             <div class="chart-label">{{ t.ds_snr_avg }}</div>
             <canvas id="chart-ds-snr"></canvas>
         </div>
         <div class="chart-card">
-            <button class="chart-expand-btn" data-chart="chart-us-power" title="Expand">&#x26F6;</button>
+            <button class="chart-expand-btn" data-chart="chart-us-power" title="Expand"><i data-lucide="maximize-2" style="width:16px;height:16px;"></i></button>
             <div class="chart-label">{{ t.us_power_avg }}</div>
             <canvas id="chart-us-power"></canvas>
         </div>
         <div class="chart-card">
-            <button class="chart-expand-btn" data-chart="chart-errors" title="Expand">&#x26F6;</button>
+            <button class="chart-expand-btn" data-chart="chart-errors" title="Expand"><i data-lucide="maximize-2" style="width:16px;height:16px;"></i></button>
             <div class="chart-label">{{ t.errors }}</div>
             <canvas id="chart-errors"></canvas>
         </div>
@@ -1318,7 +1319,7 @@
             <th data-col="date">{{ t.incident_date }}<span class="sort-indicator"></span></th>
             <th data-col="title">{{ t.incident_title }}<span class="sort-indicator"></span></th>
             <th data-col="description" class="journal-hide-mobile">{{ t.incident_description }}<span class="sort-indicator"></span></th>
-            <th>&#128206;</th>
+            <th><i data-lucide="paperclip" style="width:14px;height:14px;"></i></th>
         </tr></thead>
         <tbody id="journal-tbody"></tbody>
     </table>
@@ -1328,7 +1329,7 @@
 <div id="view-events" class="view">
     <div class="events-header">
         <span class="trend-title">{{ t.event_log }}</span>
-        <button class="btn-ack-all" id="btn-ack-all" onclick="acknowledgeAllEvents()" style="display:none;">&#10003; {{ t.event_acknowledge_all }}</button>
+        <button class="btn-ack-all" id="btn-ack-all" onclick="acknowledgeAllEvents()" style="display:none;"><i data-lucide="check"></i> {{ t.event_acknowledge_all }}</button>
     </div>
     <div class="events-filters">
         <select id="events-filter-severity" onchange="loadEvents()">
@@ -1388,17 +1389,17 @@
     <div id="channel-empty" class="events-empty" style="display:none;"></div>
     <div id="channel-charts" class="charts-grid" style="display:none;">
         <div class="chart-card">
-            <button class="chart-expand-btn" data-chart="chart-ch-power" title="Expand">&#x26F6;</button>
+            <button class="chart-expand-btn" data-chart="chart-ch-power" title="Expand"><i data-lucide="maximize-2" style="width:16px;height:16px;"></i></button>
             <div class="chart-label">{{ t.power_history }}</div>
             <canvas id="chart-ch-power"></canvas>
         </div>
         <div class="chart-card" id="channel-errors-card">
-            <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand">&#x26F6;</button>
+            <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand"><i data-lucide="maximize-2" style="width:16px;height:16px;"></i></button>
             <div class="chart-label">{{ t.error_history }}</div>
             <canvas id="chart-ch-errors"></canvas>
         </div>
         <div class="chart-card" id="channel-modulation-card">
-            <button class="chart-expand-btn" data-chart="chart-ch-modulation">&#x26F6;</button>
+            <button class="chart-expand-btn" data-chart="chart-ch-modulation"><i data-lucide="maximize-2" style="width:16px;height:16px;"></i></button>
             <div class="chart-label">{{ t.modulation }}</div>
             <canvas id="chart-ch-modulation"></canvas>
         </div>
@@ -1430,7 +1431,7 @@
                 <label>{{ t.attachments }}</label>
                 <div class="attachment-list" id="incident-attachment-list"></div>
                 <button class="btn-upload" id="incident-upload-btn" onclick="document.getElementById('incident-file-input').click()">
-                    &#128206; {{ t.upload_file }}
+                    <i data-lucide="paperclip"></i> {{ t.upload_file }}
                 </button>
                 <span id="incident-upload-spinner" style="display:none;"><span class="upload-spinner"></span></span>
                 <input type="file" id="incident-file-input" style="display:none;" multiple
@@ -1519,9 +1520,9 @@
             <div style="background:var(--bg); border-radius:8px; padding:14px; margin-bottom:14px;">
                 <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.speedtest_setup_benefits_title }}</p>
                 <ul style="list-style:none; padding:0;">
-                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_1 }}</li>
-                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_2 }}</li>
-                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_3 }}</li>
+                    <li style="margin-bottom:6px;"><i data-lucide="check" style="width:14px;height:14px;"></i> {{ t.speedtest_setup_benefit_1 }}</li>
+                    <li style="margin-bottom:6px;"><i data-lucide="check" style="width:14px;height:14px;"></i> {{ t.speedtest_setup_benefit_2 }}</li>
+                    <li style="margin-bottom:6px;"><i data-lucide="check" style="width:14px;height:14px;"></i> {{ t.speedtest_setup_benefit_3 }}</li>
                 </ul>
             </div>
             <div style="background:var(--bg); border-radius:8px; padding:14px;">
@@ -1620,9 +1621,9 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeReportModal()">{{ t.close }}</button>
-            <button class="btn btn-accent" id="report-generate-btn" onclick="generateComplaint()">&#9998; {{ t.report_generate_letter }}</button>
-            <button class="btn btn-accent" id="report-copy-btn" style="display:none;" onclick="copyComplaint()">&#128203; {{ t.report_copy_letter }}</button>
-            <button class="btn btn-accent" id="report-pdf-btn" style="display:none;" onclick="downloadReport()">&#128196; {{ t.report_download_pdf }}</button>
+            <button class="btn btn-accent" id="report-generate-btn" onclick="generateComplaint()"><i data-lucide="pencil"></i> {{ t.report_generate_letter }}</button>
+            <button class="btn" id="report-copy-btn" onclick="copyReportToClipboard()">{{ t.report_copy_clipboard }}</button>
+            <button class="btn btn-accent" id="report-pdf-btn" style="display:none;" onclick="downloadReport()"><i data-lucide="file-text"></i> {{ t.report_download_pdf }}</button>
         </div>
     </div>
 </div>
@@ -1673,11 +1674,11 @@
         <div class="export-mode-selector" style="padding:0 1.5rem;display:flex;gap:1.2rem;margin-bottom:0.5rem;">
             <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
                 <input type="radio" name="export-mode" value="full" checked onchange="exportForLLM()">
-                &#128202; {{ t.export_full }}
+                <i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i> {{ t.export_full }}
             </label>
             <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
                 <input type="radio" name="export-mode" value="update" onchange="exportForLLM()">
-                &#9200; {{ t.export_update }}
+                <i data-lucide="clock"></i> {{ t.export_update }}
             </label>
         </div>
         <div class="modal-body">
@@ -1696,6 +1697,8 @@
 (function() {
     'use strict';
 
+    lucide.createIcons();
+
     var T = {{ t|tojson }};
 
     /* ── Theme ── */
@@ -1705,7 +1708,7 @@
     var themeBtn = document.getElementById('theme-toggle');
     function updateThemeIcon() {
         var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-        themeBtn.innerHTML = isDark ? '&#9788;' : '&#9790;';
+        themeBtn.innerHTML = isDark ? '<i data-lucide="sun"></i>' : '<i data-lucide="moon"></i>';
     }
     updateThemeIcon();
     themeBtn.addEventListener('click', function() {
@@ -3111,7 +3114,8 @@ function copyComplaint() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textarea.value).then(function() {
             var orig = btn.innerHTML;
-            btn.innerHTML = '&#10003; Copied!';
+            btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"></i> Copied!';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             setTimeout(function() { btn.innerHTML = orig; }, 2000);
         });
     } else {
@@ -3321,7 +3325,7 @@ function renderSpeedtestRows() {
         var pingClass = pingVal > 50 ? ' class="val-warn"' : '';
         var jitterClass = jitterVal > 20 ? ' class="val-warn"' : '';
         var tr = document.createElement('tr');
-        tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" onclick="toggleSpeedtestSignal(this)">&#9654;</button></td>'
+        tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" onclick="toggleSpeedtestSignal(this)"><i data-lucide="chevron-right" style="width:14px;height:14px;display:inline;vertical-align:middle;"></i></button></td>'
             + '<td>' + escapeHtml(formatSpeedtestTimestamp(r.timestamp)) + '</td>'
             + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
             + '<td><strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
@@ -3554,9 +3558,9 @@ function renderSpeedtestChart() {
         if (idx >= data.length) idx = data.length - 1;
         tooltip.style.display = 'block';
         tooltip.innerHTML = '<strong>' + formatSpeedtestTimestamp(data[idx].timestamp) + '</strong><br>'
-            + '<span style="color:#3b82f6">&#9660;</span> DL: ' + dls[idx].toFixed(2) + ' Mbps<br>'
-            + '<span style="color:#22c55e">&#9650;</span> UL: ' + uls[idx].toFixed(2) + ' Mbps<br>'
-            + '<span style="color:#f59e0b">&#9679;</span> Ping: ' + pings[idx].toFixed(1) + ' ms';
+            + '<span style="color:#3b82f6"><i data-lucide="arrow-down-to-line" style="width:10px;height:10px;display:inline;vertical-align:middle;"></i></span> DL: ' + dls[idx].toFixed(2) + ' Mbps<br>'
+            + '<span style="color:#22c55e"><i data-lucide="arrow-up-from-line" style="width:10px;height:10px;display:inline;vertical-align:middle;"></i></span> UL: ' + uls[idx].toFixed(2) + ' Mbps<br>'
+            + '<span style="color:#f59e0b"><i data-lucide="circle" style="width:10px;height:10px;display:inline;vertical-align:middle;"></i></span> Ping: ' + pings[idx].toFixed(1) + ' ms';
         tooltip.style.left = (e.clientX + 14) + 'px';
         tooltip.style.top = (e.clientY - 10) + 'px';
     }
