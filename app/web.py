@@ -570,6 +570,18 @@ def api_test_mqtt():
         return jsonify({"success": False, "error": type(e).__name__ + ": " + str(e).split("\n")[0][:200]})
 
 
+@app.route("/api/notifications/test", methods=["POST"])
+@require_auth
+def api_notifications_test():
+    """Send a test notification to all configured channels."""
+    if not _config_manager or not _config_manager.is_notify_configured():
+        return jsonify({"success": False, "error": "Notifications not configured"}), 400
+    from .notifier import NotificationDispatcher
+    dispatcher = NotificationDispatcher(_config_manager)
+    result = dispatcher.test()
+    return jsonify(result)
+
+
 @app.route("/api/poll", methods=["POST"])
 @require_auth
 def api_poll():

@@ -7,87 +7,224 @@
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <link rel="icon" type="image/png" href="/static/icon.png">
     <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Settings-specific overrides - uses main.css color palette */
-        body {
-            padding: 16px;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        h1 { 
-            font-size: 1.5em; 
-            color: var(--text); 
-            margin-bottom: 4px; 
-            font-weight: 600;
+        /* ── Settings Layout ── */
+        body { margin: 0; padding: 0; overflow: hidden; }
+
+        .settings-layout {
+            display: flex;
+            height: 100vh;
+            width: 100%;
         }
 
-        /* ── Header ── */
-        .header {
+        /* ── Sidebar ── */
+        .settings-sidebar {
+            width: 260px;
+            min-width: 260px;
+            background: var(--surface);
+            border-right: 1px solid var(--input-border);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
+            flex-direction: column;
+            z-index: 60;
         }
-        .header a { 
-            color: var(--accent); 
-            text-decoration: none; 
-            font-size: 0.9em;
+
+        .settings-sidebar-header {
+            padding: 1.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .settings-sidebar-header a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text);
+            font-size: 1.1rem;
+            font-weight: 600;
             transition: color 0.2s;
         }
-        .header a:hover { color: var(--accent-hover); }
+        .settings-sidebar-header a:hover { color: var(--accent); }
+        .settings-sidebar-header a .icon { display: flex; align-items: center; }
+        .settings-sidebar-header a .icon svg { width: 20px; height: 20px; }
 
-        /* ── Pill-style Tabs (matching Phase 3/4 design) ── */
-        .settings-tabs {
-            display: flex; 
-            gap: 6px; 
-            background: var(--card-bg);
-            padding: 6px;
-            border-radius: 30px;
-            border: 1px solid var(--card-border);
-            margin-bottom: 24px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+        .settings-sidebar-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            padding: 0.75rem 1rem 0.5rem;
         }
-        .tab-btn {
-            background: transparent; 
-            border: none; 
-            color: var(--text-secondary);
-            padding: 10px 20px; 
-            font-size: 0.9em; 
-            cursor: pointer;
-            font-family: inherit; 
+
+        .settings-sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-section-label {
+            text-transform: uppercase;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: var(--muted);
+            padding: 1rem 1rem 0.5rem;
+            letter-spacing: 0.05em;
+            pointer-events: none;
+        }
+        .settings-section-label:first-child { padding-top: 0; }
+
+        .settings-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 1rem;
+            margin-bottom: 2px;
+            font-size: 0.9375rem;
             font-weight: 500;
+            color: var(--text-secondary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
             transition: all 0.2s ease;
-            border-radius: 24px;
-            white-space: nowrap;
+            text-decoration: none;
+            position: relative;
+        }
+        .settings-nav-link:hover {
+            background: var(--hover-bg);
+            color: var(--text);
+        }
+        .settings-nav-link.active {
+            color: var(--text);
+            background: rgba(168, 85, 247, 0.15);
+        }
+        .settings-nav-link .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .settings-nav-link .icon svg { width: 18px; height: 18px; }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--good);
+            margin-left: auto;
+            flex-shrink: 0;
+            display: none;
+        }
+        .status-dot.visible { display: block; }
+
+        .settings-sidebar-divider {
+            border-top: 1px solid var(--input-border);
+            margin: 0.75rem 0;
+        }
+
+        .settings-sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid var(--input-border);
+        }
+        .settings-sidebar-footer .dark-mode-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .settings-sidebar-footer .dark-mode-label {
             display: flex;
             align-items: center;
             gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
-        .tab-btn:hover { 
-            color: var(--text); 
-            background: rgba(168,85,247,0.1); 
-        }
-        .tab-btn.active { 
-            background: var(--accent); 
-            color: #fff; 
-            font-weight: 600;
-            box-shadow: 0 2px 8px rgba(168,85,247,0.3);
-        }
-        .tab-icon { font-size: 1.1em; }
+        .settings-sidebar-footer .dark-mode-label svg { width: 16px; height: 16px; }
 
-        /* ── Content Area ── */
-        .tab-panel {
+        /* ── Backdrop (mobile) ── */
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 59;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .sidebar-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ── Main Content ── */
+        .settings-main {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .settings-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--surface);
+            border-bottom: 1px solid var(--input-border);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .settings-topbar-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .hamburger-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.3em;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+        }
+        .hamburger-btn:hover {
+            background: var(--hover-bg);
+            color: var(--text);
+        }
+
+        /* ── Content Panels ── */
+        .settings-content {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+            box-sizing: border-box;
+            flex: 1;
+        }
+
+        .settings-panel {
             display: none;
             animation: fadeIn 0.3s ease-out;
         }
-        .tab-panel.active { display: block; }
+        .settings-panel.active { display: block; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* ── Settings Cards (Phase 3/4 design language) ── */
+        /* ── Settings Cards ── */
         .settings-card {
             background: var(--card-bg);
             border-radius: var(--radius-lg);
@@ -96,7 +233,7 @@
             border: 1px solid var(--card-border);
             transition: all 0.2s ease;
         }
-        .settings-card:hover { 
+        .settings-card:hover {
             border-color: var(--accent);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(168,85,247,0.15);
@@ -110,7 +247,7 @@
             border-bottom: 1px solid var(--card-border);
         }
         .settings-card-icon {
-            width: 48px; 
+            width: 48px;
             height: 48px;
             border-radius: var(--radius-md);
             background: rgba(168,85,247,0.15);
@@ -121,26 +258,27 @@
             flex-shrink: 0;
             color: var(--accent);
         }
-        .settings-card-title { 
-            font-size: 1.125em; 
-            color: var(--text); 
-            font-weight: 600; 
+        .settings-card-icon svg { width: 24px; height: 24px; }
+        .settings-card-title {
+            font-size: 1.125em;
+            color: var(--text);
+            font-weight: 600;
         }
-        .settings-card-desc { 
-            font-size: 0.85em; 
-            color: var(--text-secondary); 
-            margin-top: 4px; 
+        .settings-card-desc {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-top: 4px;
         }
 
-        /* ── Form Elements (Purple accents) ── */
-        .form-row { 
-            display: flex; 
-            flex-direction: column; 
-            margin-bottom: 16px; 
+        /* ── Form Elements ── */
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 16px;
         }
-        .form-row label { 
-            font-size: 0.875em; 
-            color: var(--text-secondary); 
+        .form-row label {
+            font-size: 0.875em;
+            color: var(--text-secondary);
             margin-bottom: 6px;
             font-weight: 500;
         }
@@ -162,19 +300,19 @@
         .form-row input:hover, .form-row select:hover {
             border-color: rgba(168,85,247,0.3);
         }
-        .form-row .hint { 
-            font-size: 0.8em; 
-            color: var(--muted); 
-            margin-top: 4px; 
+        .form-row .hint {
+            font-size: 0.8em;
+            color: var(--muted);
+            margin-top: 4px;
         }
-        .form-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 0 20px; 
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 20px;
         }
         .form-grid .full { grid-column: 1 / -1; }
 
-        /* ── Modern Buttons (Purple pill-style) ── */
+        /* ── Modern Buttons ── */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -190,33 +328,30 @@
         }
         .btn:hover { transform: translateY(-1px); }
         .btn:active { transform: translateY(0); }
-        
-        .btn-primary { 
-            background: var(--accent); 
+        .btn-primary {
+            background: var(--accent);
             color: #fff;
             box-shadow: 0 2px 8px rgba(168,85,247,0.3);
         }
-        .btn-primary:hover { 
+        .btn-primary:hover {
             background: var(--accent-hover);
             box-shadow: 0 4px 12px rgba(168,85,247,0.4);
         }
-        
         .btn-secondary {
             background: transparent;
             color: var(--accent);
             border: 1px solid var(--accent);
         }
-        .btn-secondary:hover { 
-            background: var(--accent); 
+        .btn-secondary:hover {
+            background: var(--accent);
             color: #fff;
             box-shadow: 0 2px 8px rgba(168,85,247,0.3);
         }
-        
-        .btn-row { 
-            display: flex; 
-            gap: 12px; 
-            align-items: center; 
-            margin-top: 8px; 
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 8px;
         }
 
         /* ── Test Result ── */
@@ -242,9 +377,9 @@
             color: var(--crit);
             border: 1px solid var(--crit);
         }
-        .test-loading { 
-            display: flex; 
-            color: var(--text-secondary); 
+        .test-loading {
+            display: flex;
+            color: var(--text-secondary);
         }
         .check-icon { display: inline-block; }
         @keyframes checkPop {
@@ -254,40 +389,37 @@
         }
         .test-ok .check-icon { animation: checkPop 0.3s ease-out; }
 
-        /* ── Submit Row ── */
-        .submit-row { 
-            display: flex; 
-            justify-content: flex-end; 
-            gap: 12px; 
-            margin-top: 12px; 
+        /* ── Save Footer ── */
+        .settings-save-footer {
+            position: sticky;
+            bottom: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--input-border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: flex-end;
         }
-        .submit-row .btn-primary { 
-            padding: 12px 36px; 
-            font-size: 1em; 
+        .settings-save-footer .btn-primary {
+            padding: 12px 36px;
+            font-size: 1em;
         }
 
-        /* ── Toast (Purple theme) ── */
+        /* ── Toast ── */
         .toast {
-            position: fixed; 
-            top: 20px; 
-            right: 20px; 
+            position: fixed;
+            top: 20px;
+            right: 20px;
             padding: 14px 24px;
-            border-radius: var(--radius-lg); 
-            font-size: 0.9em; 
+            border-radius: var(--radius-lg);
+            font-size: 0.9em;
             font-weight: 600;
-            z-index: 1000; 
+            z-index: 1000;
             display: none;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             backdrop-filter: blur(8px);
         }
-        .toast-ok { 
-            background: rgba(16,185,129,0.95); 
-            color: #fff; 
-        }
-        .toast-fail { 
-            background: rgba(239,68,68,0.95); 
-            color: #fff; 
-        }
+        .toast-ok { background: rgba(16,185,129,0.95); color: #fff; }
+        .toast-fail { background: rgba(239,68,68,0.95); color: #fff; }
 
         /* ── Error ── */
         .error-msg {
@@ -301,483 +433,554 @@
             font-weight: 500;
         }
 
-        /* ── Theme Toggle (Purple accent) ── */
-        .theme-toggle-row {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px 0;
-        }
-        .theme-toggle-row label { 
-            font-size: 0.9em; 
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-        .toggle-switch { 
-            position: relative; 
-            width: 52px; 
-            height: 28px; 
-            cursor: pointer; 
-        }
-        .toggle-switch input { display: none; }
-        .toggle-slider {
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            bottom: 0;
-            background: var(--card-bg); 
-            border-radius: 14px;
-            border: 1px solid var(--input-border); 
-            transition: all 0.3s;
-        }
-        .toggle-slider::before {
-            content: ""; 
-            position: absolute; 
-            width: 22px; 
-            height: 22px;
-            left: 2px; 
-            bottom: 2px; 
-            background: var(--accent);
-            border-radius: 50%; 
-            transition: transform 0.3s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .toggle-switch input:checked + .toggle-slider::before { 
-            transform: translateX(24px); 
-        }
-        .toggle-switch:hover .toggle-slider {
-            border-color: var(--accent);
-        }
+        /* toggle-switch styles inherited from main.css */
 
-        /* ── Integration Cards (Modern collapsible) ── */
-        .integration-card {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            margin-bottom: 16px;
-            border: 1px solid var(--card-border);
-            overflow: hidden;
-            transition: all 0.2s ease;
-        }
-        .integration-card:hover { 
-            border-color: rgba(168,85,247,0.3); 
-        }
-        .integration-header {
+        /* ── Toggle Option Row ── */
+        .toggle-option-row {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 16px 24px;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--card-border);
         }
-        .integration-header:hover {
-            background: rgba(168,85,247,0.05);
+        .toggle-option-row:last-child { border-bottom: none; }
+        .toggle-option-text {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-right: 16px;
         }
-        .integration-header .arrow {
-            transition: transform 0.3s ease;
-            font-size: 0.7em;
-            color: var(--text-secondary);
-        }
-        .integration-card.open .integration-header .arrow { 
-            transform: rotate(90deg); 
-            color: var(--accent);
-        }
-        .integration-header .int-title { 
-            font-size: 1em; 
-            font-weight: 600; 
+        .toggle-option-label {
+            font-size: 0.9em;
+            font-weight: 500;
             color: var(--text);
         }
-        .integration-header .int-hint {
+        .toggle-option-hint {
             font-size: 0.8em;
             color: var(--muted);
-            margin-left: auto;
-        }
-        .integration-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
-        .integration-card.open .integration-body { 
-            max-height: 700px; 
-            border-top: 1px solid var(--card-border);
-        }
-        .integration-body-inner { 
-            padding: 20px 24px; 
         }
 
         /* ── Responsive ── */
-        @media (max-width: 700px) {
-            body { padding: 12px; }
-            .settings-tabs {
-                padding: 4px;
-                gap: 4px;
+        @media (max-width: 768px) {
+            .settings-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+                box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
             }
-            .tab-btn {
-                padding: 8px 16px;
-                font-size: 0.85em;
+            .settings-sidebar.mobile-open {
+                transform: translateX(0);
             }
-            .settings-card { 
-                padding: 18px; 
-            }
-            .settings-card-header {
-                gap: 12px;
-                padding-bottom: 12px;
-            }
-            .settings-card-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 1.2em;
-            }
-            .form-grid { 
-                grid-template-columns: 1fr; 
-            }
-            .integration-header,
-            .integration-body-inner {
-                padding: 14px 18px;
-            }
+            .hamburger-btn { display: block; }
+            .settings-content { padding: 1.5rem 1rem; }
+            .settings-topbar { padding: 1rem; }
+            .settings-save-footer { padding: 1rem; }
+            .settings-card { padding: 18px; }
+            .settings-card-header { gap: 12px; padding-bottom: 12px; }
+            .settings-card-icon { width: 40px; height: 40px; font-size: 1.2em; }
+            .form-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>{{ t.settings }}</h1>
-    <a href="/">&larr; {{ t.back_dashboard }}</a>
-</div>
-
 <div class="error-msg" id="global-error"></div>
 <div class="toast" id="toast"></div>
 
-<!-- Pill-style Tabs -->
-<div class="settings-tabs">
-    <button class="tab-btn active" onclick="switchTab('modem')" data-tab="modem">
-        <span class="tab-icon">📡</span> {{ t.step_modem }}
-    </button>
-    <button class="tab-btn" onclick="switchTab('general')" data-tab="general">
-        <span class="tab-icon">⚙️</span> {{ t.step_general }}
-    </button>
-    <button class="tab-btn" onclick="switchTab('integrations')" data-tab="integrations">
-        <span class="tab-icon">🔗</span> {{ t.step_integrations }}
-    </button>
-    <button class="tab-btn" onclick="switchTab('appearance')" data-tab="appearance">
-        <span class="tab-icon">🎨</span> {{ t.appearance }}
-    </button>
-</div>
+<div class="settings-layout">
+    <!-- ═══ Sidebar ═══ -->
+    <nav class="settings-sidebar" id="settings-sidebar">
+        <div class="settings-sidebar-header">
+            <a href="/">
+                <span class="icon"><i data-lucide="arrow-left"></i></span>
+                DOCSight
+            </a>
+        </div>
 
-<!-- Content Area -->
-<div class="tab-content">
+        <div class="settings-sidebar-title">{{ t.settings }}</div>
+
+        <div class="settings-sidebar-nav">
+            <div class="settings-section-label">Connection</div>
+            <a class="settings-nav-link active" data-section="modem" onclick="switchSection('modem')">
+                <span class="icon"><i data-lucide="radio"></i></span>
+                {{ t.step_modem }}
+            </a>
+
+            <div class="settings-section-label">Configuration</div>
+            <a class="settings-nav-link" data-section="general" onclick="switchSection('general')">
+                <span class="icon"><i data-lucide="settings"></i></span>
+                {{ t.step_general }}
+            </a>
+
+            <div class="settings-section-label">Integrations</div>
+            <a class="settings-nav-link" data-section="notifications" onclick="switchSection('notifications')">
+                <span class="icon"><i data-lucide="bell"></i></span>
+                Notifications
+                <span class="status-dot" id="dot-notifications"></span>
+            </a>
+            <a class="settings-nav-link" data-section="speedtest" onclick="switchSection('speedtest')">
+                <span class="icon"><i data-lucide="gauge"></i></span>
+                Speedtest
+                <span class="status-dot" id="dot-speedtest"></span>
+            </a>
+            <a class="settings-nav-link" data-section="bqm" onclick="switchSection('bqm')">
+                <span class="icon"><i data-lucide="activity"></i></span>
+                BQM
+                <span class="status-dot" id="dot-bqm"></span>
+            </a>
+            <a class="settings-nav-link" data-section="smokeping" onclick="switchSection('smokeping')">
+                <span class="icon"><i data-lucide="wifi"></i></span>
+                Smokeping
+                <span class="status-dot" id="dot-smokeping"></span>
+            </a>
+            <a class="settings-nav-link" data-section="mqtt" onclick="switchSection('mqtt')">
+                <span class="icon"><i data-lucide="radio-tower"></i></span>
+                MQTT
+                <span class="status-dot" id="dot-mqtt"></span>
+            </a>
+
+            <div class="settings-sidebar-divider"></div>
+
+            <a class="settings-nav-link" data-section="appearance" onclick="switchSection('appearance')">
+                <span class="icon"><i data-lucide="palette"></i></span>
+                {{ t.appearance }}
+            </a>
+        </div>
+
+        <div class="settings-sidebar-footer">
+            <div class="dark-mode-toggle">
+                <span class="dark-mode-label">
+                    <i data-lucide="moon"></i>
+                    {{ t.dark_mode }}
+                </span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="theme-check" {% if theme == 'dark' %}checked{% endif %}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══ Mobile Backdrop ═══ -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- ═══ Main Content ═══ -->
+    <div class="settings-main">
+        <div class="settings-topbar">
+            <button class="hamburger-btn" id="hamburger" title="Menu" onclick="openMobileSidebar()">&#9776;</button>
+            <span class="settings-topbar-title" id="topbar-title">{{ t.step_modem }}</span>
+        </div>
+
         <form id="settings-form" autocomplete="off">
+            <div class="settings-content">
 
-            <!-- ═══ Tab: Modem ═══ -->
-            <div class="tab-panel active" id="panel-modem">
-                <div class="settings-card">
-                    <div class="settings-card-header">
-                        <div class="settings-card-icon">📡</div>
-                        <div>
-                            <div class="settings-card-title">{{ t.modem_connection }}</div>
-                            <div class="settings-card-desc">{{ t.modem_user_hint }}</div>
+                <!-- ═══ Panel: Modem ═══ -->
+                <div class="settings-panel active" id="panel-modem">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="radio"></i></div>
+                            <div>
+                                <div class="settings-card-title">{{ t.modem_connection }}</div>
+                                <div class="settings-card-desc">{{ t.modem_user_hint }}</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-row full">
-                            <label for="modem_type">{{ t.modem_type }}</label>
-                            <select id="modem_type" name="modem_type">
-                                {% for key, name in modem_types %}
-                                <option value="{{ key }}" {% if config.modem_type == key %}selected{% endif %}>{{ name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-row full">
-                            <label for="modem_url">{{ t.url }}</label>
-                            <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}">
-                        </div>
-                        <div class="form-row">
-                            <label for="modem_user">{{ t.username }}</label>
-                            <input type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}">
-                        </div>
-                        <div class="form-row">
-                            <label for="modem_password">{{ t.password }}</label>
-                            <input type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
-                        </div>
-                    </div>
-                    <div class="btn-row">
-                        <button type="button" class="btn btn-secondary" onclick="testModem()">{{ t.test_connection }}</button>
-                    </div>
-                    <div class="test-result" id="modem-test"></div>
-                </div>
-                <div class="submit-row">
-                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
-                </div>
-            </div>
-
-            <!-- ═══ Tab: General ═══ -->
-            <div class="tab-panel" id="panel-general">
-                <div class="settings-card">
-                    <div class="settings-card-header">
-                        <div class="settings-card-icon">⚙️</div>
-                        <div>
-                            <div class="settings-card-title">{{ t.general }}</div>
-                        </div>
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-row">
-                            <label for="isp_select">{{ t.isp_name }}</label>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <select id="isp_select" name="isp_select" onchange="onIspChange()" style="flex:1;">
-                                    <option value="">{{ t.isp_select }}</option>
-                                    {% for isp in t.isp_options %}
-                                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                        <div class="form-grid">
+                            <div class="form-row full">
+                                <label for="modem_type">{{ t.modem_type }}</label>
+                                <select id="modem_type" name="modem_type">
+                                    {% for key, name in modem_types %}
+                                    <option value="{{ key }}" {% if config.modem_type == key %}selected{% endif %}>{{ name }}</option>
                                     {% endfor %}
-                                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
                                 </select>
-                                <img id="isp-icon-preview" src="" alt="" style="width:20px;height:20px;display:none;">
                             </div>
-                            <span class="hint">{{ t.isp_hint }}</span>
-                        </div>
-                        <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
-                            <label for="isp_other_input">{{ t.isp_other }}</label>
-                            <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
-                        </div>
-                        <div class="form-row">
-                            <label for="poll_interval">{{ t.interval_sec }}</label>
-                            <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
-                            <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s</span>
-                        </div>
-                        <div class="form-row">
-                            <label for="history_days">{{ t.history_days }}</label>
-                            <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="0">
-                            <span class="hint">{{ t.history_hint }}</span>
-                        </div>
-                        <div class="form-row">
-                            <label for="snapshot_time">{{ t.snapshot_time }}</label>
-                            <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
-                            <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
-                        </div>
-                        <div class="form-row">
-                            <label for="language">{{ t.language }}</label>
-                            <select id="language" name="language">
-                                {% for code, name in languages.items() %}
-                                <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label for="admin_password">{{ t.admin_password }}</label>
-                            <input type="password" id="admin_password" name="admin_password" value="{{ config.admin_password }}" placeholder="{{ t.admin_password_hint }}">
-                            <span class="hint">{{ t.admin_password_hint }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="submit-row">
-                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
-                </div>
-            </div>
-
-            <!-- ═══ Tab: Integrations ═══ -->
-            <div class="tab-panel" id="panel-integrations">
-                <!-- Speedtest Tracker -->
-                <div class="integration-card open" id="speedtest-card">
-                    <div class="integration-header" onclick="toggleIntegration('speedtest-card')">
-                        <span class="arrow">&#9654;</span>
-                        <span class="int-title">Speedtest Tracker</span>
-                        <span class="int-hint">{{ t.optional }}</span>
-                    </div>
-                    <div class="integration-body">
-                        <div class="integration-body-inner">
-                            <div class="form-grid">
-                                <div class="form-row full">
-                                    <label for="speedtest_tracker_url">{{ t.speedtest_url }}</label>
-                                    <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
-                                    <span class="hint">{{ t.speedtest_url_hint }}</span>
-                                </div>
-                                <div class="form-row full">
-                                    <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
-                                    <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
-                                    <span class="hint">{{ t.speedtest_token_hint }}</span>
-                                </div>
-                                <div class="form-row">
-                                    <label for="booked_download">{{ t.booked_download }}</label>
-                                    <input type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
-                                    <span class="hint">{{ t.booked_download_hint }}</span>
-                                </div>
-                                <div class="form-row">
-                                    <label for="booked_upload">{{ t.booked_upload }}</label>
-                                    <input type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
-                                    <span class="hint">{{ t.booked_upload_hint }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ThinkBroadband BQM -->
-                <div class="integration-card" id="bqm-card">
-                    <div class="integration-header" onclick="toggleIntegration('bqm-card')">
-                        <span class="arrow">&#9654;</span>
-                        <span class="int-title">ThinkBroadband BQM</span>
-                        <span class="int-hint">{{ t.bqm_optional }}</span>
-                    </div>
-                    <div class="integration-body">
-                        <div class="integration-body-inner">
-                            <div class="form-row">
-                                <label for="bqm_url">{{ t.bqm_share_url }}</label>
-                                <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
-                                <span class="hint">{{ t.bqm_url_hint }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Smokeping -->
-                <div class="integration-card" id="smokeping-card">
-                    <div class="integration-header" onclick="toggleIntegration('smokeping-card')">
-                        <span class="arrow">&#9654;</span>
-                        <span class="int-title">Smokeping</span>
-                        <span class="int-hint">{{ t.smokeping_optional }}</span>
-                    </div>
-                    <div class="integration-body">
-                        <div class="integration-body-inner">
-                            <div class="form-row">
-                                <label for="smokeping_url">{{ t.smokeping_url_label }}</label>
-                                <input type="url" id="smokeping_url" name="smokeping_url"
-                                       value="{{ config.smokeping_url }}"
-                                       placeholder="https://smokeping.example.com/smokeping">
-                                <span class="hint">{{ t.smokeping_url_hint }}</span>
+                            <div class="form-row full">
+                                <label for="modem_url">{{ t.url }}</label>
+                                <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}">
                             </div>
                             <div class="form-row">
-                                <label for="smokeping_targets">{{ t.smokeping_targets_label }}</label>
-                                <input type="text" id="smokeping_targets" name="smokeping_targets"
-                                       value="{{ config.smokeping_targets }}"
-                                       placeholder="Global.Google, Global.Cloudflare, Vodafone.Hop2">
-                                <span class="hint">{{ t.smokeping_targets_hint }}</span>
+                                <label for="modem_user">{{ t.username }}</label>
+                                <input type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}">
+                            </div>
+                            <div class="form-row">
+                                <label for="modem_password">{{ t.password }}</label>
+                                <input type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
+                            </div>
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" class="btn btn-secondary" onclick="testModem()">{{ t.test_connection }}</button>
+                        </div>
+                        <div class="test-result" id="modem-test"></div>
+                    </div>
+                </div>
+
+                <!-- ═══ Panel: General ═══ -->
+                <div class="settings-panel" id="panel-general">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="settings"></i></div>
+                            <div>
+                                <div class="settings-card-title">{{ t.general }}</div>
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label for="isp_select">{{ t.isp_name }}</label>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <select id="isp_select" name="isp_select" onchange="onIspChange()" style="flex:1;">
+                                        <option value="">{{ t.isp_select }}</option>
+                                        {% for isp in t.isp_options %}
+                                        <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                                        {% endfor %}
+                                        <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                                    </select>
+                                    <img id="isp-icon-preview" src="" alt="" style="width:20px;height:20px;display:none;">
+                                </div>
+                                <span class="hint">{{ t.isp_hint }}</span>
+                            </div>
+                            <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
+                                <label for="isp_other_input">{{ t.isp_other }}</label>
+                                <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
+                            </div>
+                            <div class="form-row">
+                                <label for="poll_interval">{{ t.interval_sec }}</label>
+                                <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
+                                <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="history_days">{{ t.history_days }}</label>
+                                <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="0">
+                                <span class="hint">{{ t.history_hint }}</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="snapshot_time">{{ t.snapshot_time }}</label>
+                                <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
+                                <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="language">{{ t.language }}</label>
+                                <select id="language" name="language">
+                                    {% for code, name in languages.items() %}
+                                    <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label for="admin_password">{{ t.admin_password }}</label>
+                                <input type="password" id="admin_password" name="admin_password" value="{{ config.admin_password }}" placeholder="{{ t.admin_password_hint }}">
+                                <span class="hint">{{ t.admin_password_hint }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- MQTT -->
-                <div class="integration-card" id="mqtt-card">
-                    <div class="integration-header" onclick="toggleIntegration('mqtt-card')">
-                        <span class="arrow">&#9654;</span>
-                        <span class="int-title">{{ t.mqtt_broker }}</span>
-                        <span class="int-hint">{{ t.mqtt_optional_ha }}</span>
+                <!-- ═══ Panel: Notifications ═══ -->
+                <div class="settings-panel" id="panel-notifications">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="bell"></i></div>
+                            <div>
+                                <div class="settings-card-title">Notifications</div>
+                                <div class="settings-card-desc">Webhook notifications (ntfy, Discord, Gotify, custom)</div>
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-row full">
+                                <label for="notify_webhook_url">Webhook URL</label>
+                                <input type="url" id="notify_webhook_url" name="notify_webhook_url" value="{{ config.notify_webhook_url }}" placeholder="https://ntfy.sh/docsight">
+                                <span class="hint">HTTP POST endpoint (ntfy, Discord, Gotify, custom)</span>
+                            </div>
+                            <div class="form-row full">
+                                <label for="notify_webhook_token">Webhook Token</label>
+                                <input type="password" id="notify_webhook_token" name="notify_webhook_token" value="" placeholder="{% if config.notify_webhook_token %}{{ t.saved_ph|default('Saved') }}{% endif %}">
+                                <span class="hint">Optional Bearer token for authentication</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="notify_min_severity">Min. Severity</label>
+                                <select id="notify_min_severity" name="notify_min_severity">
+                                    <option value="info" {% if config.notify_min_severity == 'info' %}selected{% endif %}>Info</option>
+                                    <option value="warning" {% if config.notify_min_severity == 'warning' or not config.notify_min_severity %}selected{% endif %}>Warning</option>
+                                    <option value="critical" {% if config.notify_min_severity == 'critical' %}selected{% endif %}>Critical</option>
+                                </select>
+                                <span class="hint">Only send events at or above this severity</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="notify_cooldown">Default Cooldown (s)</label>
+                                <input type="number" id="notify_cooldown" name="notify_cooldown" value="{{ config.notify_cooldown or 3600 }}" min="0" step="1">
+                                <span class="hint">Min. seconds between same event type (0 = never send)</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:16px;">
+                            <label style="font-size:0.875em;color:var(--text-secondary);font-weight:500;margin-bottom:8px;display:block;">Per-Event Cooldowns</label>
+                            <table style="width:100%;font-size:0.85em;border-collapse:collapse;">
+                                <thead>
+                                    <tr style="text-align:left;color:var(--text-secondary);">
+                                        <th style="padding:8px;">Active</th>
+                                        <th style="padding:8px;">Event Type</th>
+                                        <th style="padding:8px;width:100px;">Cooldown (s)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="notify-event-row" data-event="health_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="health_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Health Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">Health status changes</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="health_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                                    <tr class="notify-event-row" data-event="power_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="power_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Power Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">DS/US power shift &gt; 2dBmV</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="power_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                                    <tr class="notify-event-row" data-event="snr_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="snr_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">SNR Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">SNR below threshold</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="snr_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                                    <tr class="notify-event-row" data-event="channel_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="channel_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Channel Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">Channel count changes</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="channel_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                                    <tr class="notify-event-row" data-event="modulation_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="modulation_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Modulation Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">QAM modulation changes</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="modulation_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                                    <tr class="notify-event-row" data-event="error_spike"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="error_spike" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Error Spike</span><br><span style="color:var(--text-secondary);font-size:0.8em;">Uncorrectable errors spike</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="error_spike" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                                    <tr class="notify-event-row" data-event="monitoring_started"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="monitoring_started" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Monitoring Started</span><br><span style="color:var(--text-secondary);font-size:0.8em;">Monitoring started</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="monitoring_started" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                                </tbody>
+                            </table>
+                            <span class="hint" style="display:block;margin-top:6px;">Disabled events will never be sent. Cooldown empty = use default.</span>
+                        </div>
+
+                        <div class="btn-row" style="margin-top:16px;">
+                            <button type="button" class="btn btn-secondary" onclick="testNotifications()">Test Notification</button>
+                        </div>
+                        <div class="test-result" id="notify-test"></div>
                     </div>
-                    <div class="integration-body">
-                        <div class="integration-body-inner">
-                            <div class="form-grid">
-                                <div class="form-row">
-                                    <label for="mqtt_host">Host</label>
-                                    <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
-                                </div>
-                                <div class="form-row">
-                                    <label for="mqtt_port">Port</label>
-                                    <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
-                                </div>
-                                <div class="form-row">
-                                    <label for="mqtt_tls_insecure">{{ t.mqtt_tls_insecure }}</label>
-                                    <input type="hidden" name="mqtt_tls_insecure" value="false">
-                                    <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" value="true" {% if config.mqtt_tls_insecure %}checked{% endif %}>
-                                </div>
-                                <div class="form-row">
-                                    <label for="mqtt_user">{{ t.username_opt }}</label>
-                                    <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
-                                </div>
-                                <div class="form-row">
-                                    <label for="mqtt_password">{{ t.password_opt }}</label>
-                                    <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
-                                </div>
-                                <div class="form-row full">
-                                    <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
-                                    <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
-                                </div>
-                                <div class="form-row full">
-                                    <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
-                                    <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
-                                    <span class="hint">{{ t.discovery_prefix_hint }}</span>
-                                </div>
+                </div>
+
+                <!-- ═══ Panel: Speedtest ═══ -->
+                <div class="settings-panel" id="panel-speedtest">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="gauge"></i></div>
+                            <div>
+                                <div class="settings-card-title">Speedtest Tracker</div>
+                                <div class="settings-card-desc">{{ t.optional }}</div>
                             </div>
-                            <div class="btn-row">
-                                <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-row full">
+                                <label for="speedtest_tracker_url">{{ t.speedtest_url }}</label>
+                                <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
+                                <span class="hint">{{ t.speedtest_url_hint }}</span>
                             </div>
-                            <div class="test-result" id="mqtt-test"></div>
+                            <div class="form-row full">
+                                <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
+                                <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
+                                <span class="hint">{{ t.speedtest_token_hint }}</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="booked_download">{{ t.booked_download }}</label>
+                                <input type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
+                                <span class="hint">{{ t.booked_download_hint }}</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="booked_upload">{{ t.booked_upload }}</label>
+                                <input type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
+                                <span class="hint">{{ t.booked_upload_hint }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="submit-row">
-                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
+                <!-- ═══ Panel: BQM ═══ -->
+                <div class="settings-panel" id="panel-bqm">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="activity"></i></div>
+                            <div>
+                                <div class="settings-card-title">ThinkBroadband BQM</div>
+                                <div class="settings-card-desc">{{ t.bqm_optional }}</div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="bqm_url">{{ t.bqm_share_url }}</label>
+                            <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
+                            <span class="hint">{{ t.bqm_url_hint }}</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- ═══ Panel: Smokeping ═══ -->
+                <div class="settings-panel" id="panel-smokeping">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="wifi"></i></div>
+                            <div>
+                                <div class="settings-card-title">Smokeping</div>
+                                <div class="settings-card-desc">{{ t.smokeping_optional }}</div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label for="smokeping_url">{{ t.smokeping_url_label }}</label>
+                            <input type="url" id="smokeping_url" name="smokeping_url"
+                                   value="{{ config.smokeping_url }}"
+                                   placeholder="https://smokeping.example.com/smokeping">
+                            <span class="hint">{{ t.smokeping_url_hint }}</span>
+                        </div>
+                        <div class="form-row">
+                            <label for="smokeping_targets">{{ t.smokeping_targets_label }}</label>
+                            <input type="text" id="smokeping_targets" name="smokeping_targets"
+                                   value="{{ config.smokeping_targets }}"
+                                   placeholder="Global.Google, Global.Cloudflare, Vodafone.Hop2">
+                            <span class="hint">{{ t.smokeping_targets_hint }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ Panel: MQTT ═══ -->
+                <div class="settings-panel" id="panel-mqtt">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="radio-tower"></i></div>
+                            <div>
+                                <div class="settings-card-title">{{ t.mqtt_broker }}</div>
+                                <div class="settings-card-desc">{{ t.mqtt_optional_ha }}</div>
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-row">
+                                <label for="mqtt_host">Host</label>
+                                <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
+                            </div>
+                            <div class="form-row">
+                                <label for="mqtt_port">Port</label>
+                                <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
+                            </div>
+                            <div class="form-row">
+                                <label for="mqtt_tls_insecure">{{ t.mqtt_tls_insecure }}</label>
+                                <input type="hidden" name="mqtt_tls_insecure" value="false">
+                                <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" value="true" {% if config.mqtt_tls_insecure %}checked{% endif %}>
+                            </div>
+                            <div class="form-row">
+                                <label for="mqtt_user">{{ t.username_opt }}</label>
+                                <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
+                            </div>
+                            <div class="form-row">
+                                <label for="mqtt_password">{{ t.password_opt }}</label>
+                                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
+                            </div>
+                            <div class="form-row full">
+                                <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
+                                <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
+                            </div>
+                            <div class="form-row full">
+                                <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
+                                <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
+                                <span class="hint">{{ t.discovery_prefix_hint }}</span>
+                            </div>
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
+                        </div>
+                        <div class="test-result" id="mqtt-test"></div>
+                    </div>
+                </div>
+
+                <!-- ═══ Panel: Appearance ═══ -->
+                <div class="settings-panel" id="panel-appearance">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="palette"></i></div>
+                            <div>
+                                <div class="settings-card-title">{{ t.appearance }}</div>
+                            </div>
+                        </div>
+                        <div class="toggle-option-row">
+                            <div class="toggle-option-text">
+                                <span class="toggle-option-label">{{ t.gaming_quality_label }}</span>
+                                <span class="toggle-option-hint">{{ t.gaming_quality_hint }}</span>
+                            </div>
+                            <input type="hidden" name="gaming_quality_enabled" value="false">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="gaming_quality_enabled" name="gaming_quality_enabled" value="true" {% if config.gaming_quality_enabled %}checked{% endif %}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-option-row">
+                            <div class="toggle-option-text">
+                                <span class="toggle-option-label">{{ t.bnetz_title }}</span>
+                                <span class="toggle-option-hint">{{ t.bnetz_upload_hint }}</span>
+                            </div>
+                            <input type="hidden" name="bnetz_enabled" value="false">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="bnetz_enabled" name="bnetz_enabled" value="true" {% if config.bnetz_enabled %}checked{% endif %}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- ═══ Tab: Appearance ═══ -->
-            <div class="tab-panel" id="panel-appearance">
-                <div class="settings-card">
-                    <div class="settings-card-header">
-                        <div class="settings-card-icon">🎨</div>
-                        <div>
-                            <div class="settings-card-title">{{ t.appearance }}</div>
-                        </div>
-                    </div>
-                    <div class="theme-toggle-row">
-                        <label>{{ t.light_mode }}</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="theme-check" {% if theme == 'dark' %}checked{% endif %}>
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <label>{{ t.dark_mode }}</label>
-                    </div>
-                    <div class="form-row">
-                        <label>{{ t.gaming_quality_label }}</label>
-                        <select id="gaming_quality_enabled" name="gaming_quality_enabled">
-                            <option value="false">{{ t.disabled }}</option>
-                            <option value="true" {{ 'selected' if config.gaming_quality_enabled }}>{{ t.enabled }}</option>
-                        </select>
-                        <small class="form-hint">{{ t.gaming_quality_hint }}</small>
-                    </div>
-                    <div class="form-row">
-                        <label>{{ t.bnetz_title }}</label>
-                        <select id="bnetz_enabled" name="bnetz_enabled">
-                            <option value="false">{{ t.disabled }}</option>
-                            <option value="true" {{ 'selected' if config.bnetz_enabled }}>{{ t.enabled }}</option>
-                        </select>
-                        <small class="form-hint">{{ t.bnetz_upload_hint }}</small>
-                    </div>
-                </div>
-                <div class="submit-row">
-                    <button type="submit" class="btn btn-primary">{{ t.save }}</button>
-                </div>
+            <div class="settings-save-footer">
+                <button type="submit" class="btn btn-primary">{{ t.save }}</button>
             </div>
-
         </form>
+    </div>
 </div>
 
 <script>
 var T = {{ t|tojson }};
 
-/* ── Tab Controller ── */
-function switchTab(tabId) {
-    /* Update sidebar buttons */
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+/* ── Section names for topbar ── */
+var SECTION_TITLES = {
+    modem: T.step_modem || 'Modem',
+    general: T.step_general || 'General',
+    notifications: 'Notifications',
+    speedtest: 'Speedtest Tracker',
+    bqm: 'ThinkBroadband BQM',
+    smokeping: 'Smokeping',
+    mqtt: T.mqtt_broker || 'MQTT',
+    appearance: T.appearance || 'Appearance'
+};
+
+/* ── Section Controller ── */
+function switchSection(id) {
+    document.querySelectorAll('.settings-nav-link').forEach(function(link) {
+        link.classList.toggle('active', link.getAttribute('data-section') === id);
     });
-    /* Update panels */
-    document.querySelectorAll('.tab-panel').forEach(function(panel) {
+    document.querySelectorAll('.settings-panel').forEach(function(panel) {
         panel.classList.remove('active');
     });
-    var target = document.getElementById('panel-' + tabId);
+    var target = document.getElementById('panel-' + id);
     if (target) target.classList.add('active');
-    /* Update URL hash */
-    history.replaceState(null, '', '#' + tabId);
+    document.getElementById('topbar-title').textContent = SECTION_TITLES[id] || id;
+    history.replaceState(null, '', '#' + id);
+    closeMobileSidebar();
 }
 
-/* Restore tab from URL hash */
+/* Restore section from URL hash */
 (function() {
     var hash = location.hash.replace('#', '');
     if (hash && document.getElementById('panel-' + hash)) {
-        switchTab(hash);
+        switchSection(hash);
     }
 })();
+
+/* ── Status Dots ── */
+function updateStatusDots() {
+    var dots = {
+        notifications: 'notify_webhook_url',
+        speedtest: 'speedtest_tracker_url',
+        bqm: 'bqm_url',
+        smokeping: 'smokeping_url',
+        mqtt: 'mqtt_host'
+    };
+    for (var section in dots) {
+        var el = document.getElementById(dots[section]);
+        var dot = document.getElementById('dot-' + section);
+        if (el && dot) {
+            dot.classList.toggle('visible', el.value.trim() !== '');
+        }
+    }
+}
+
+/* ── Mobile Sidebar ── */
+function openMobileSidebar() {
+    document.getElementById('settings-sidebar').classList.add('mobile-open');
+    document.getElementById('sidebar-backdrop').classList.add('active');
+}
+function closeMobileSidebar() {
+    document.getElementById('settings-sidebar').classList.remove('mobile-open');
+    document.getElementById('sidebar-backdrop').classList.remove('active');
+}
+document.getElementById('sidebar-backdrop').addEventListener('click', closeMobileSidebar);
 
 /* ── Theme Toggle ── */
 var themeCheck = document.getElementById('theme-check');
@@ -800,17 +1003,13 @@ function onIspChange() {
     var row = document.getElementById('isp-other-row');
     var icon = document.getElementById('isp-icon-preview');
     row.style.display = sel.value === '__other__' ? 'flex' : 'none';
-    
-    // Update icon preview
     var isp = sel.value.toLowerCase();
     var iconMap = {
         'vodafone': '/static/img/providers/vodafone.svg',
         'telekom': '/static/img/providers/telekom.svg',
         'o2': '/static/img/providers/o2.svg'
     };
-    
     if (sel.value && sel.value !== '__other__') {
-        // Show specific icon or generic fallback
         icon.src = iconMap[isp] || '/static/img/providers/generic.svg';
         icon.alt = sel.value;
         icon.style.display = 'block';
@@ -818,11 +1017,6 @@ function onIspChange() {
     } else {
         icon.style.display = 'none';
     }
-}
-
-/* ── Integration Cards ── */
-function toggleIntegration(id) {
-    document.getElementById(id).classList.toggle('open');
 }
 
 /* ── Toast ── */
@@ -836,7 +1030,7 @@ function showToast(msg, ok) {
 
 /* ── Form Data ── */
 var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token'];
+var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token', 'notify_webhook_token'];
 
 function escHtml(s) {
     var d = document.createElement('div');
@@ -847,7 +1041,12 @@ function escHtml(s) {
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
-    form.querySelectorAll('input:not(#theme-check):not(#isp_other_input), select:not(#isp_select)').forEach(function(inp) {
+    form.querySelectorAll('input:not(#theme-check):not(#isp_other_input):not(.notify-toggle):not(.notify-cooldown-input), select:not(#isp_select)').forEach(function(inp) {
+        if (inp.type === 'checkbox') {
+            data[inp.name] = inp.checked ? inp.value : 'false';
+            return;
+        }
+        if (inp.type === 'hidden' && data[inp.name] !== undefined) return;
         if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
             data[inp.name] = inp.value || MASK;
         } else {
@@ -861,6 +1060,18 @@ function getFormData() {
         data.isp_name = ispSel.value;
     }
     data.theme = themeCheck.checked ? 'dark' : 'light';
+    var cooldowns = {};
+    document.querySelectorAll('.notify-event-row').forEach(function(row) {
+        var key = row.getAttribute('data-event');
+        var toggle = row.querySelector('.notify-toggle');
+        var inp = row.querySelector('.notify-cooldown-input');
+        if (!toggle.checked) {
+            cooldowns[key] = 0;
+        } else if (inp.value.trim() !== '') {
+            cooldowns[key] = parseInt(inp.value, 10) || 1;
+        }
+    });
+    data.notify_cooldowns = JSON.stringify(cooldowns);
     return data;
 }
 
@@ -912,6 +1123,33 @@ function testMqtt() {
         } else {
             el.className = 'test-result test-fail';
             el.innerHTML = '<span>&#10007;</span> ' + T.error_prefix + ': ' + escHtml(res.error || T.unknown_error);
+        }
+    })
+    .catch(function() {
+        el.className = 'test-result test-fail';
+        el.innerHTML = '<span>&#10007;</span> ' + T.network_error;
+    });
+}
+
+/* ── Notification Test ── */
+function testNotifications() {
+    var el = document.getElementById('notify-test');
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.innerHTML = '<span>&#8987;</span> Sending test notification...';
+    fetch('/api/notifications/test', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: '{}'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            el.className = 'test-result test-ok';
+            el.innerHTML = '<span class="check-icon">&#10003;</span> Test notification sent';
+        } else {
+            el.className = 'test-result test-fail';
+            el.innerHTML = '<span>&#10007;</span> ' + escHtml(res.error || 'Unknown error');
         }
     })
     .catch(function() {
@@ -977,10 +1215,40 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
 </script>
 
 <script>
-// Initialize ISP icon preview on page load
 document.addEventListener('DOMContentLoaded', function() {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
     onIspChange();
     toggleUsernameField();
+    updateStatusDots();
+
+    // Listen for input changes on integration fields to update dots
+    ['notify_webhook_url', 'speedtest_tracker_url', 'bqm_url', 'smokeping_url', 'mqtt_host'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateStatusDots);
+    });
+
+    // Populate per-event toggles + cooldown inputs from saved config
+    try {
+        var saved = JSON.parse('{{ config.notify_cooldowns|default("{}")|e }}');
+        document.querySelectorAll('.notify-event-row').forEach(function(row) {
+            var key = row.getAttribute('data-event');
+            var toggle = row.querySelector('.notify-toggle');
+            var inp = row.querySelector('.notify-cooldown-input');
+            if (saved[key] !== undefined) {
+                if (saved[key] === 0) {
+                    toggle.checked = false;
+                    inp.disabled = true;
+                    inp.style.opacity = '0.4';
+                } else {
+                    inp.value = saved[key];
+                }
+            }
+            toggle.addEventListener('change', function() {
+                inp.disabled = !toggle.checked;
+                inp.style.opacity = toggle.checked ? '1' : '0.4';
+            });
+        });
+    } catch(e) {}
 });
 
 // Username field toggle and modem defaults
@@ -1023,7 +1291,6 @@ function toggleUsernameField() {
     }
 }
 
-// Attach change listener if modem_type exists
 if(document.getElementById('modem_type')) {
     document.getElementById('modem_type').addEventListener('change', toggleUsernameField);
 }

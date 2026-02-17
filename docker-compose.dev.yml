@@ -1,16 +1,17 @@
 services:
-  docsight-dev:
+  docsight-v2-dev:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: docsight-dev
+    container_name: docsight-v2-dev
     restart: unless-stopped
     ports:
-      - "8766:8765"
+      - "8767:8765"
     volumes:
-      - docsight_dev_data:/data
+      - docsight_v2_dev_data:/data
     environment:
       - TZ=Europe/Berlin
+      - DEMO_MODE=true
 
 volumes:
-  docsight_dev_data:
+  docsight_v2_dev_data:
