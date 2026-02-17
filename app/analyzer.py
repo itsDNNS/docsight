@@ -158,6 +158,19 @@ def analyze(data: dict) -> dict:
         ds_channels: list of downstream channel dicts
         us_channels: list of upstream channel dicts
     """
+    # Handle new driver format (TC4400, Ultra Hub 7, Vodafone Station, etc.)
+    # These drivers return {"docsis": "3.1", "downstream": [...], "upstream": [...]}
+    # Convert to FritzBox-compatible format for unified processing
+    if "downstream" in data and "upstream" in data:
+        docsis_version = data.get("docsis", "3.1")
+        ds_key = "docsis31" if docsis_version == "3.1" else "docsis30"
+        us_key = "docsis31" if docsis_version == "3.1" else "docsis30"
+        
+        data = {
+            "channelDs": {ds_key: data["downstream"]},
+            "channelUs": {us_key: data["upstream"]},
+        }
+    
     ds = data.get("channelDs", {})
     ds31 = ds.get("docsis31", [])
     ds30 = ds.get("docsis30", [])

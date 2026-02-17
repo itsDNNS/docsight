@@ -1,19 +1,21 @@
-"""Main entrypoint: MQTT loop + Flask web server + FritzBox polling."""
+"""Main entrypoint: collector orchestrator + Flask web server."""
 
 import logging
 import os
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from . import fritzbox, analyzer, web, thinkbroadband
-from .speedtest import SpeedtestClient
+from . import analyzer, web
 from .config import ConfigManager
 from .event_detector import EventDetector
 from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
 
+from .collectors import discover_collectors
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 log = logging.getLogger("docsis.main")
@@ -26,7 +28,7 @@ def run_web(port):
 
 
 def polling_loop(config_mgr, storage, stop_event):
-    """Run the FritzBox polling loop until stop_event is set."""
+    """Flat orchestrator: tick every second, let each collector decide when to poll."""
     config = config_mgr.get_all()
 
     log.info("Modem: %s (user: %s)", config["modem_url"], config["modem_user"])
@@ -37,15 +39,17 @@ def polling_loop(config_mgr, storage, stop_event):
     if config_mgr.is_mqtt_configured():
         mqtt_user = config["mqtt_user"] or None
         mqtt_password = config["mqtt_password"] or None
-        mqtt_tls_insecure = config.get("mqtt_tls_insecure", False)
+        mqtt_tls_insecure = (config["mqtt_tls_insecure"] or "").strip().lower() == "true"
         mqtt_pub = MQTTPublisher(
             host=config["mqtt_host"],
             port=int(config["mqtt_port"]),
             user=mqtt_user,
             password=mqtt_password,
-            tls_insecure=mqtt_tls_insecure,
             topic_prefix=config["mqtt_topic_prefix"],
             ha_prefix=config["mqtt_discovery_prefix"],
+            tls_insecure=mqtt_tls_insecure,
+            web_port=int(config["web_port"]),
+            public_url=config.get("public_url", ""),
         )
         try:
             mqtt_pub.connect()
@@ -59,106 +63,74 @@ def polling_loop(config_mgr, storage, stop_event):
     web.update_state(poll_interval=config["poll_interval"])
 
     event_detector = EventDetector()
+    collectors = discover_collectors(
+        config_mgr, storage, event_detector, mqtt_pub, web, analyzer
+    )
 
-    sid = None
-    device_info = None
-    connection_info = None
-    discovery_published = False
-    bqm_last_date = None
+    # Inject collectors into web layer for manual polling and status endpoint
+    modem_collector = next((c for c in collectors if c.name in ("modem", "demo")), None)
+    if modem_collector:
+        web.init_collector(modem_collector)
+    web.init_collectors(collectors)
 
-    # Speedtest Tracker (optional, re-initialized on config change)
-    stt_client = None
-    stt_url = None
+    log.info(
+        "Collectors: %s",
+        ", ".join(
+            f"{c.name} ({c.poll_interval_seconds}s)"
+            for c in collectors
+            if c.is_enabled()
+        ),
+    )
 
-    while not stop_event.is_set():
+    def _run_collector(collector):
+        """Run a single collector with _collect_lock to prevent overlap with manual poll."""
+        if not collector._collect_lock.acquire(timeout=0):
+            log.debug("%s: skipped (collect already in progress)", collector.name)
+            return collector, None
         try:
-            sid = fritzbox.login(
-                config["modem_url"], config["modem_user"], config["modem_password"]
-            )
+            return collector, collector.collect()
+        finally:
+            collector._collect_lock.release()
 
-            if device_info is None:
-                device_info = fritzbox.get_device_info(config["modem_url"], sid)
-                log.info("FritzBox model: %s (%s)", device_info["model"], device_info["sw_version"])
-                web.update_state(device_info=device_info)
+    with ThreadPoolExecutor(
+        max_workers=len(collectors), thread_name_prefix="collector"
+    ) as executor:
+        while not stop_event.is_set():
+            futures = {}
+            for collector in collectors:
+                if stop_event.is_set():
+                    break
+                if not collector.is_enabled():
+                    continue
+                if not collector.should_poll():
+                    continue
+                future = executor.submit(_run_collector, collector)
+                futures[future] = collector
 
-            if connection_info is None:
-                connection_info = fritzbox.get_connection_info(config["modem_url"], sid)
-                if connection_info:
-                    ds = connection_info.get("max_downstream_kbps", 0) // 1000
-                    us = connection_info.get("max_upstream_kbps", 0) // 1000
-                    log.info("Connection: %d/%d Mbit/s (%s)", ds, us, connection_info.get("connection_type", ""))
-                    web.update_state(connection_info=connection_info)
+            try:
+                for future in as_completed(futures, timeout=120):
+                    collector = futures[future]
+                    try:
+                        _, result = future.result()
+                        if result is None:
+                            continue  # skipped (collect lock busy)
+                        if result.success:
+                            collector.record_success()
+                        else:
+                            collector.record_failure()
+                            log.warning("%s: %s", collector.name, result.error)
+                    except Exception as e:
+                        collector.record_failure()
+                        log.error("%s error: %s", collector.name, e)
+                        if collector.name in ("modem", "demo"):
+                            web.update_state(error=e)
+            except TimeoutError:
+                for future, collector in futures.items():
+                    if not future.done():
+                        log.error("%s: timed out after 120s", collector.name)
+                        future.cancel()
 
-            data = fritzbox.get_docsis_data(config["modem_url"], sid)
-            analysis = analyzer.analyze(data)
-
-            if mqtt_pub:
-                if not discovery_published:
-                    mqtt_pub.publish_discovery(device_info)
-                    mqtt_pub.publish_channel_discovery(
-                        analysis["ds_channels"], analysis["us_channels"], device_info
-                    )
-                    discovery_published = True
-                    time.sleep(1)
-                mqtt_pub.publish_data(analysis)
-
-            web.update_state(analysis=analysis)
-            storage.save_snapshot(analysis)
-
-            # Detect events
-            events = event_detector.check(analysis)
-            if events:
-                storage.save_events(events)
-                log.info("Detected %d event(s)", len(events))
-
-            # Fetch BQM graph once per day
-            if config_mgr.is_bqm_configured():
-                today = time.strftime("%Y-%m-%d")
-                if today != bqm_last_date:
-                    image = thinkbroadband.fetch_graph(config_mgr.get("bqm_url"))
-                    if image:
-                        storage.save_bqm_graph(image)
-                        bqm_last_date = today
-
-            # Re-initialize Speedtest client if URL changed
-            current_stt_url = config_mgr.get("speedtest_tracker_url") if config_mgr.is_speedtest_configured() else ""
-            if current_stt_url != stt_url:
-                if current_stt_url:
-                    stt_client = SpeedtestClient(current_stt_url, config_mgr.get("speedtest_tracker_token"))
-                    log.info("Speedtest Tracker: %s", current_stt_url)
-                else:
-                    stt_client = None
-                stt_url = current_stt_url
-
-            # Fetch latest speedtest result + delta cache
-            if stt_client:
-                results = stt_client.get_latest(1)
-                if results:
-                    web.update_state(speedtest_latest=results[0])
-                # Delta fetch: cache new results in storage
-                try:
-                    last_id = storage.get_latest_speedtest_id()
-                    cached_count = storage.get_speedtest_count()
-                    if cached_count < 50:
-                        # Initial or incomplete cache: full fetch (descending)
-                        new_results = stt_client.get_results(per_page=2000)
-                    else:
-                        new_results = stt_client.get_newer_than(last_id)
-                    if new_results:
-                        storage.save_speedtest_results(new_results)
-                        log.info("Cached %d new speedtest results (total: %d)", len(new_results), cached_count + len(new_results))
-                except Exception as e:
-                    log.warning("Speedtest delta cache failed: %s", e)
-
-        except Exception as e:
-            log.error("Poll error: %s", e)
-            web.update_state(error=e)
-
-        # Wait for poll_interval, but check stop_event every second
-        for _ in range(int(config["poll_interval"])):
-            if stop_event.is_set():
-                break
-            time.sleep(1)
+            stop_event.wait(1)
 
     # Cleanup MQTT
     if mqtt_pub:

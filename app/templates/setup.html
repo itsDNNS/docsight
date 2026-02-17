@@ -4,482 +4,649 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DOCSight - {{ t.initial_setup }}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <link rel="icon" type="image/png" href="/static/icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
     <style>
-        :root, [data-theme="dark"] {
-            --bg: #1a1a2e;
-            --surface: #16213e;
-            --card: #0f3460;
-            --text: #e0e0e0;
-            --muted: #888;
-            --good: #4caf50;
-            --warn: #ff9800;
-            --crit: #f44336;
-            --accent: #00adb5;
-            --input-bg: #0d1b3e;
-            --input-border: rgba(255,255,255,0.15);
-        }
-        [data-theme="light"] {
-            --bg: #f0f2f5;
-            --surface: #ffffff;
-            --card: #e8edf2;
-            --text: #1a1a2e;
-            --muted: #666;
-            --good: #2e7d32;
-            --warn: #e65100;
-            --crit: #c62828;
-            --accent: #00838f;
-            --input-bg: #fff;
-            --input-border: #ccc;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Setup-specific styles using v2 design language */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-            background: var(--bg);
-            color: var(--text);
-            padding: 16px;
-            max-width: 680px;
+            padding: 20px;
+            max-width: 800px;
             margin: 0 auto;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-        h1 { font-size: 1.4em; color: var(--accent); margin-bottom: 4px; }
-        .subtitle { color: var(--muted); font-size: 0.9em; margin-bottom: 24px; }
-        .top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        h2 {
-            font-size: 1.05em;
-            color: var(--accent);
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid var(--input-border);
-        }
-        .step-num {
-            display: inline-block;
-            background: var(--accent);
-            color: #000;
-            width: 24px; height: 24px;
-            border-radius: 50%;
+
+        /* ── Header ── */
+        .setup-header {
             text-align: center;
-            line-height: 24px;
-            font-size: 0.85em;
-            font-weight: bold;
-            margin-right: 8px;
+            margin-bottom: 40px;
+            padding: 20px;
         }
-        .lang-select {
-            background: var(--card);
-            color: var(--text);
-            border: 1px solid var(--input-border);
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 0.85em;
-            font-family: inherit;
-            cursor: pointer;
+        .setup-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent) 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
         }
-        .section {
-            background: var(--surface);
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 16px;
+        .setup-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
         }
-        .form-row {
+
+        /* ── Language/Theme Controls ── */
+        .controls-bar {
             display: flex;
-            flex-direction: column;
-            margin-bottom: 12px;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-bottom: 24px;
         }
-        .form-row label {
-            font-size: 0.85em;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-        .form-row input, .form-row select {
-            background: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 4px;
-            padding: 8px 10px;
+        .control-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 8px 16px;
             color: var(--text);
-            font-size: 0.95em;
-            font-family: inherit;
-        }
-        .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent); }
-        .form-row .hint { font-size: 0.8em; color: var(--muted); margin-top: 2px; }
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0 16px;
-        }
-        .form-grid .full { grid-column: 1 / -1; }
-        .btn {
-            display: inline-block;
-            padding: 8px 20px;
-            border: none;
-            border-radius: 4px;
+            font-size: 0.875rem;
             cursor: pointer;
-            font-size: 0.9em;
+            transition: all 0.2s;
             font-family: inherit;
-            font-weight: bold;
         }
-        .btn-primary { background: var(--accent); color: #000; }
-        .btn-primary:hover { filter: brightness(1.15); }
-        .btn-secondary {
-            background: var(--card);
-            color: var(--text);
-            border: 1px solid var(--input-border);
+        .control-btn:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
         }
-        .btn-secondary:hover { background: var(--accent); color: #000; }
-        .btn-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
-        .test-result {
-            font-size: 0.85em;
-            padding: 4px 8px;
-            border-radius: 4px;
-            display: none;
-        }
-        .test-ok { display: inline-block; background: rgba(76,175,80,0.2); color: var(--good); }
-        .test-fail { display: inline-block; background: rgba(244,67,54,0.2); color: var(--crit); }
-        .submit-row { text-align: right; margin-top: 8px; }
-        .submit-row .btn-primary { padding: 10px 32px; font-size: 1em; }
-        .error-msg {
-            background: rgba(244,67,54,0.15);
-            border: 1px solid var(--crit);
-            color: var(--crit);
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            display: none;
-        }
-        .advanced-toggle {
+
+        /* ── Stepper (v2 Purple Style) ── */
+        .stepper {
             display: flex;
             align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+            padding: 0 20px;
+        }
+        .stepper-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             gap: 8px;
+            position: relative;
+            flex: 1;
+            max-width: 200px;
+        }
+        .stepper-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border: 2px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+        .stepper-step.active .stepper-circle {
+            background: linear-gradient(135deg, var(--accent) 0%, #ec4899 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+        }
+        .stepper-step.done .stepper-circle {
+            background: var(--accent);
+            border-color: transparent;
+            color: #fff;
+        }
+        .stepper-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-align: center;
+        }
+        .stepper-step.active .stepper-label {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .stepper-line {
+            height: 2px;
+            background: var(--card-border);
+            flex: 1;
+            position: relative;
+            top: -20px;
+            margin: 0 -10px;
+        }
+        .stepper-step.done + .stepper-line {
+            background: var(--accent);
+        }
+
+        /* ── Content Cards ── */
+        .step-content {
+            display: none;
+        }
+        .step-content.active {
+            display: block;
+            animation: fadeInUp 0.3s ease-out;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .setup-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            margin-bottom: 20px;
+            border: 1px solid var(--card-border);
+            transition: all 0.2s;
+        }
+        .setup-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(168,85,247,0.12);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            background: rgba(168,85,247,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .card-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* ── Form Elements ── */
+        .form-row {
+            margin-bottom: 20px;
+        }
+        .form-row label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .form-row input,
+        .form-row select {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .form-row input:focus,
+        .form-row select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(168,85,247,0.1);
+        }
+        .form-row input[type="password"] {
+            font-family: monospace;
+        }
+
+        /* ── Info Box ── */
+        .info-box {
+            background: rgba(168,85,247,0.08);
+            border: 1px solid rgba(168,85,247,0.2);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .info-box strong {
+            color: var(--accent);
+        }
+
+        /* ── Buttons ── */
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+        .btn {
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
             cursor: pointer;
-            padding: 12px 20px;
-            background: var(--surface);
-            border-radius: 8px;
-            margin-bottom: 16px;
-            border: 1px dashed var(--input-border);
-            user-select: none;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
         }
-        .advanced-toggle:hover { border-color: var(--accent); }
-        .advanced-toggle .arrow {
-            transition: transform 0.2s;
-            font-size: 0.8em;
-            color: var(--muted);
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #ec4899 100%);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(168,85,247,0.3);
         }
-        .advanced-toggle.open .arrow { transform: rotate(90deg); }
-        .advanced-toggle .adv-label { font-size: 0.9em; color: var(--muted); }
-        .advanced-toggle .adv-hint { font-size: 0.8em; color: var(--muted); margin-left: auto; }
-        .advanced-content { display: none; }
-        .advanced-content.open { display: block; }
-        @media (max-width: 600px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .advanced-toggle .adv-hint { display: none; }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(168,85,247,0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--card-border);
+        }
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .btn-test {
+            background: rgba(76,175,80,0.15);
+            color: #4caf50;
+            border: 1px solid rgba(76,175,80,0.3);
+        }
+        .btn-test:hover {
+            background: rgba(76,175,80,0.25);
+        }
+
+        /* ── Test Result ── */
+        .test-result {
+            margin-top: 16px;
+            padding: 14px;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            display: none;
+        }
+        .test-result.success {
+            background: rgba(76,175,80,0.15);
+            border: 1px solid rgba(76,175,80,0.3);
+            color: #4caf50;
+        }
+        .test-result.error {
+            background: rgba(244,67,54,0.15);
+            border: 1px solid rgba(244,67,54,0.3);
+            color: #f44336;
+        }
+
+        /* ── Mobile Responsive ── */
+        @media (max-width: 768px) {
+            .setup-title { font-size: 1.5rem; }
+            .stepper { padding: 0; }
+            .stepper-circle { width: 40px; height: 40px; font-size: 0.95rem; }
+            .stepper-label { font-size: 0.75rem; }
+            .setup-card { padding: 20px; }
+            .button-group { flex-direction: column; }
+            .btn { width: 100%; }
         }
     </style>
 </head>
 <body>
 
-<div class="top-row">
-    <div style="display:flex;align-items:center;gap:12px;">
-        <img src="/static/icon.png" alt="DOCSight" style="width:48px;height:48px;border-radius:10px;">
-        <div>
-            <h1>DOCSight</h1>
-            <p class="subtitle">{{ t.initial_setup }}</p>
-        </div>
-    </div>
-    <select class="lang-select" onchange="location.href='?lang='+this.value">
+<!-- Controls Bar -->
+<div class="controls-bar">
+    <select class="control-btn" id="lang-select" onchange="location.href='?lang='+this.value">
         {% for code, name in languages.items() %}
-        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
+        <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
         {% endfor %}
     </select>
+    <button class="control-btn" onclick="toggleTheme()">🌓 Theme</button>
 </div>
 
-<div class="error-msg" id="global-error"></div>
+<!-- Header -->
+<div class="setup-header">
+    <h1 class="setup-title">{{ t.initial_setup }}</h1>
+    <p class="setup-subtitle">{{ t.setup_welcome|default('Configure your DOCSight instance') }}</p>
+</div>
 
-<form id="setup-form" autocomplete="off">
+<!-- Stepper -->
+<div class="stepper">
+    <div class="stepper-step active" data-step="1">
+        <div class="stepper-circle">1</div>
+        <span class="stepper-label">{{ t.modem_connection|default('Modem') }}</span>
+    </div>
+    <div class="stepper-line"></div>
+    <div class="stepper-step" data-step="2">
+        <div class="stepper-circle">2</div>
+        <span class="stepper-label">{{ t.settings|default('Settings') }}</span>
+    </div>
+    <div class="stepper-line"></div>
+    <div class="stepper-step" data-step="3">
+        <div class="stepper-circle">3</div>
+        <span class="stepper-label">{{ t.review|default('Review') }}</span>
+    </div>
+</div>
 
-    <div class="section">
-        <h2><span class="step-num">1</span>{{ t.modem_connection }}</h2>
-        <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.modem_user_hint }}</p>
-        <div class="form-grid">
-            <div class="form-row full">
-                <label for="modem_url">{{ t.url }}</label>
-                <input type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}" placeholder="http://192.168.178.1">
-            </div>
-            <div class="form-row">
-                <label for="modem_user">{{ t.username }}</label>
-                <input type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}" placeholder="admin">
-            </div>
-            <div class="form-row">
-                <label for="modem_password">{{ t.password }}</label>
-                <input type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
+<form id="setup-form" method="POST" action="/api/config">
+
+<!-- Step 1: Modem Connection -->
+<div class="step-content active" data-step="1">
+    <div class="setup-card">
+        <div class="card-header">
+            <div class="card-icon">📡</div>
+            <div>
+                <div class="card-title">{{ t.modem_connection }}</div>
+                <div class="card-desc">{{ t.modem_connection_desc|default('Configure your cable modem connection') }}</div>
             </div>
         </div>
-        <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testModem()">{{ t.test_connection }}</button>
-            <span class="test-result" id="modem-test"></span>
+
+        <div class="form-row">
+            <label for="modem_type">{{ t.modem_type }}</label>
+            <select id="modem_type" name="modem_type" required>
+                {% for key, name in modem_types %}
+                <option value="{{ key }}" {% if config.modem_type == key %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row">
+            <label for="modem_url">{{ t.modem_url }}</label>
+            <input type="text" id="modem_url" name="modem_url" 
+                   value="{{ config.modem_url or 'http://192.168.178.1' }}" 
+                   placeholder="http://192.168.178.1" required>
+        </div>
+
+        <div class="form-row">
+            <label for="modem_user">{{ t.username }}</label>
+            <input type="text" id="modem_user" name="modem_user" 
+                   value="{{ config.modem_user or '' }}" 
+                   placeholder="admin">
+        </div>
+
+        <div class="form-row">
+            <label for="modem_password">{{ t.password }}</label>
+            <input type="password" id="modem_password" name="modem_password" 
+                   value="{{ config.modem_password or '' }}" 
+                   placeholder="••••••••">
+        </div>
+
+        <button type="button" class="btn btn-test" onclick="testConnection()">
+            🔌 {{ t.test_connection }}
+        </button>
+        <div class="test-result" id="test-result"></div>
+
+        <div class="button-group">
+            <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                {{ t.next|default('Next') }} →
+            </button>
         </div>
     </div>
+</div>
 
-    <div class="section">
-        <h2><span class="step-num">2</span>{{ t.general }}</h2>
-        <div class="form-grid">
-            <div class="form-row">
-                <label for="isp_select">{{ t.isp_name }}</label>
-                <select id="isp_select" onchange="onIspChange()">
-                    <option value="">{{ t.isp_select }}</option>
-                    {% for isp in t.isp_options %}
-                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
-                    {% endfor %}
-                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
-                </select>
-                <span class="hint">{{ t.isp_hint }}</span>
-            </div>
-            <div class="form-row" id="isp-other-row" style="display:{% if config.isp_name and config.isp_name not in t.isp_options %}flex{% else %}none{% endif %}">
-                <label for="isp_other_input">{{ t.isp_other }}</label>
-                <input type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
-            </div>
-            <div class="form-row">
-                <label for="poll_interval">{{ t.interval_sec }}</label>
-                <input type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
-                <span class="hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s / {{ t.default }}: 900s</span>
-            </div>
-            <div class="form-row">
-                <label for="history_days">{{ t.history_days }}</label>
-                <input type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="0" max="3650">
-                <span class="hint">{{ t.history_hint }}</span>
-            </div>
-            <div class="form-row">
-                <label for="snapshot_time">{{ t.snapshot_time }}</label>
-                <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
-                <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
+<!-- Step 2: Settings -->
+<div class="step-content" data-step="2">
+    <div class="setup-card">
+        <div class="card-header">
+            <div class="card-icon">⚙️</div>
+            <div>
+                <div class="card-title">{{ t.general_settings }}</div>
+                <div class="card-desc">{{ t.general_settings_desc|default('Configure polling and display options') }}</div>
             </div>
         </div>
-    </div>
 
-    <div class="advanced-toggle" id="mqtt-toggle" onclick="toggleAdvanced('mqtt')">
-        <span class="arrow">&#9654;</span>
-        <span class="adv-label">{{ t.advanced_mqtt }}</span>
-        <span class="adv-hint">{{ t.optional }}</span>
-    </div>
-    <div class="advanced-content" id="mqtt-section">
-        <div class="section">
-            <h2>{{ t.mqtt_broker }}</h2>
-            <p style="font-size:0.85em; color:var(--muted); margin-bottom:12px;">{{ t.mqtt_desc }}</p>
-            <div class="form-grid">
-                <div class="form-row">
-                    <label for="mqtt_host">Host</label>
-                    <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}" placeholder="e.g. 192.168.178.10">
-                </div>
-                <div class="form-row">
-                    <label for="mqtt_port">Port</label>
-                    <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}" placeholder="1883">
-                </div>
-                <div class="form-row">
-                    <label for="mqtt_user">{{ t.username_opt }}</label>
-                    <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
-                </div>
-                <div class="form-row">
-                    <label for="mqtt_password">{{ t.password_opt }}</label>
-                    <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
-                </div>
-                <div class="form-row full">
-                    <label>
-                        <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" {% if config.mqtt_tls_insecure %}checked{% endif %}>
-                        {{ t.mqtt_tls_insecure }}
-                    </label>
-                    <span class="hint" style="color: #ff9800;">⚠️ {{ t.mqtt_tls_insecure_desc }}</span>
-                </div>
-                <div class="form-row full">
-                    <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
-                    <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}" placeholder="docsight">
-                </div>
-                <div class="form-row full">
-                    <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
-                    <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
-                    <span class="hint">{{ t.discovery_prefix_hint }}</span>
-                </div>
-            </div>
-            <div class="btn-row">
-                <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
-                <span class="test-result" id="mqtt-test"></span>
-            </div>
+        <div class="form-row">
+            <label for="poll_interval">{{ t.poll_interval }} ({{ t.minutes }})</label>
+            <input type="number" id="poll_interval" name="poll_interval" 
+                   min="{{ poll_min }}" max="{{ poll_max }}" 
+                   value="{{ config.poll_interval or 5 }}" required>
+            <small style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px; display: block;">
+                {{ t.poll_interval_desc|default('How often to fetch DOCSIS data (min: ' + poll_min|string + ', max: ' + poll_max|string + ')') }}
+            </small>
+        </div>
+
+        <div class="form-row">
+            <label for="timezone">{{ t.timezone }}</label>
+            <input type="text" id="timezone" name="timezone" 
+                   value="{{ config.timezone or server_tz }}" 
+                   placeholder="{{ server_tz }}" required>
+            <small style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px; display: block;">
+                {{ t.server_timezone|default('Server timezone') }}: {{ server_tz }} ({{ server_tz_offset }})
+            </small>
+        </div>
+
+        <div class="button-group">
+            <button type="button" class="btn btn-secondary" onclick="prevStep(1)">
+                ← {{ t.back|default('Back') }}
+            </button>
+            <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                {{ t.next|default('Next') }} →
+            </button>
         </div>
     </div>
+</div>
 
-    <div class="advanced-toggle" id="bqm-toggle" onclick="toggleAdvanced('bqm')">
-        <span class="arrow">&#9654;</span>
-        <span class="adv-label">ThinkBroadband BQM</span>
-        <span class="adv-hint">{{ t.optional }}</span>
-    </div>
-    <div class="advanced-content" id="bqm-section">
-        <div class="section">
-            <h2>ThinkBroadband BQM</h2>
-            <div class="form-row">
-                <label for="bqm_url">{{ t.bqm_share_url }}</label>
-                <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
-                <span class="hint">{{ t.bqm_url_hint }}</span>
+<!-- Step 3: Review -->
+<div class="step-content" data-step="3">
+    <div class="setup-card">
+        <div class="card-header">
+            <div class="card-icon">✓</div>
+            <div>
+                <div class="card-title">{{ t.review_settings|default('Review & Complete') }}</div>
+                <div class="card-desc">{{ t.review_settings_desc|default('Review your configuration and complete setup') }}</div>
             </div>
         </div>
-    </div>
 
-    <div class="submit-row">
-        <button type="submit" class="btn btn-primary">{{ t.complete_setup }}</button>
+        <div class="info-box">
+            <strong>{{ t.modem_connection }}:</strong><br>
+            <span id="review-modem-type"></span> @ <span id="review-modem-url"></span><br><br>
+            <strong>{{ t.poll_interval }}:</strong> <span id="review-poll"></span> {{ t.minutes }}<br>
+            <strong>{{ t.timezone }}:</strong> <span id="review-tz"></span>
+        </div>
+
+        <div class="button-group">
+            <button type="button" class="btn btn-secondary" onclick="prevStep(2)">
+                ← {{ t.back|default('Back') }}
+            </button>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                ✓ {{ t.complete_setup|default('Complete Setup') }}
+            </button>
+        </div>
     </div>
+</div>
+
 </form>
 
 <script>
-var T = {{ t|tojson }};
+let currentStep = 1;
 
-function onIspChange() {
-    var sel = document.getElementById('isp_select');
-    var row = document.getElementById('isp-other-row');
-    row.style.display = sel.value === '__other__' ? 'flex' : 'none';
-}
-
-function toggleAdvanced(id) {
-    var toggle = document.getElementById(id + '-toggle');
-    var section = document.getElementById(id + '-section');
-    toggle.classList.toggle('open');
-    section.classList.toggle('open');
-}
-
-var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-var SECRET_FIELDS = ['modem_password', 'mqtt_password'];
-
-function getFormData() {
-    var form = document.getElementById('setup-form');
-    var data = {};
-    var inputs = form.querySelectorAll('input');
-    inputs.forEach(function(inp) {
-        if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
-            data[inp.name] = inp.value || MASK;
-        } else {
-            data[inp.name] = inp.value;
-        }
-    });
-    var ispSel = document.getElementById('isp_select');
-    if (ispSel.value === '__other__') {
-        data.isp_name = document.getElementById('isp_other_input').value;
-    } else {
-        data.isp_name = ispSel.value;
+function nextStep(step) {
+    // Hide current
+    document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.stepper-step').forEach(el => el.classList.remove('active'));
+    
+    // Mark previous as done
+    for(let i = 1; i < step; i++) {
+        document.querySelector(`.stepper-step[data-step="${i}"]`).classList.add('done');
     }
-    data.language = '{{ lang }}';
-    return data;
+    
+    // Show new
+    document.querySelector(`.step-content[data-step="${step}"]`).classList.add('active');
+    document.querySelector(`.stepper-step[data-step="${step}"]`).classList.add('active');
+    
+    // Update review if step 3
+    if(step === 3) {
+        updateReview();
+    }
+    
+    currentStep = step;
+    window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
-function testModem() {
-    var el = document.getElementById('modem-test');
-    el.className = 'test-result';
-    el.style.display = 'inline-block';
-    el.textContent = T.testing;
-    var data = getFormData();
-    fetch('/api/test-modem', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({modem_url: data.modem_url, modem_user: data.modem_user, modem_password: data.modem_password})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-        if (res.success) {
-            el.className = 'test-result test-ok';
-            el.textContent = T.connected + ': ' + (res.model || 'OK');
+function prevStep(step) {
+    nextStep(step);
+}
+
+function updateReview() {
+    const modemType = document.getElementById('modem_type');
+    const selectedOption = modemType.options[modemType.selectedIndex].text;
+    
+    document.getElementById('review-modem-type').textContent = selectedOption;
+    document.getElementById('review-modem-url').textContent = document.getElementById('modem_url').value;
+    document.getElementById('review-poll').textContent = document.getElementById('poll_interval').value;
+    document.getElementById('review-tz').textContent = document.getElementById('timezone').value;
+}
+
+async function testConnection() {
+    const btn = event.target;
+    const resultDiv = document.getElementById('test-result');
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ {{ t.testing|default("Testing...") }}';
+    resultDiv.style.display = 'none';
+    
+    try {
+        const data = {
+            modem_type: document.getElementById('modem_type').value,
+            modem_url: document.getElementById('modem_url').value,
+            modem_user: document.getElementById('modem_user').value,
+            modem_password: document.getElementById('modem_password').value
+        };
+        
+        const response = await fetch('/api/test-modem', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if(result.success) {
+            resultDiv.className = 'test-result success';
+            resultDiv.textContent = '✓ ' + (result.message || '{{ t.connection_successful|default("Connection successful!") }}');
         } else {
-            el.className = 'test-result test-fail';
-            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
+            resultDiv.className = 'test-result error';
+            resultDiv.textContent = '✗ ' + (result.error || '{{ t.connection_failed|default("Connection failed") }}');
         }
-    })
-    .catch(function() {
-        el.className = 'test-result test-fail';
-        el.textContent = T.network_error;
-    });
+        resultDiv.style.display = 'block';
+    } catch(err) {
+        resultDiv.className = 'test-result error';
+        resultDiv.textContent = '✗ {{ t.connection_error|default("Network error") }}: ' + err.message;
+        resultDiv.style.display = 'block';
+    }
+    
+    btn.disabled = false;
+    btn.textContent = '🔌 {{ t.test_connection }}';
 }
 
-function testMqtt() {
-    var el = document.getElementById('mqtt-test');
-    el.className = 'test-result';
-    el.style.display = 'inline-block';
-    el.textContent = T.testing;
-    var data = getFormData();
-    fetch('/api/test-mqtt', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({mqtt_host: data.mqtt_host, mqtt_port: data.mqtt_port, mqtt_user: data.mqtt_user, mqtt_password: data.mqtt_password})
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-        if (res.success) {
-            el.className = 'test-result test-ok';
-            el.textContent = T.connected;
-        } else {
-            el.className = 'test-result test-fail';
-            el.textContent = T.error_prefix + ': ' + (res.error || T.unknown_error);
-        }
-    })
-    .catch(function() {
-        el.className = 'test-result test-fail';
-        el.textContent = T.network_error;
-    });
-}
-
-document.getElementById('setup-form').addEventListener('submit', function(e) {
+// Form submission
+document.getElementById('setup-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    var errEl = document.getElementById('global-error');
-    errEl.style.display = 'none';
-    var data = getFormData();
-    var pwField = document.getElementById('modem_password');
-    if (!pwField.value && !pwField.placeholder) {
-        errEl.textContent = T.pw_required;
-        errEl.style.display = 'block';
-        return;
-    }
-    var interval = parseInt(data.poll_interval) || 900;
-    if (interval < {{ poll_min }}) interval = {{ poll_min }};
-    if (interval > {{ poll_max }}) interval = {{ poll_max }};
-    data.poll_interval = String(interval);
-    fetch('/api/config', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-        if (res.success) {
+    
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ {{ t.saving|default("Saving...") }}';
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if(response.ok) {
             window.location.href = '/';
         } else {
-            errEl.textContent = res.error || T.save_failed;
-            errEl.style.display = 'block';
+            alert('{{ t.setup_failed|default("Setup failed. Please try again.") }}');
+            btn.disabled = false;
+            btn.textContent = '✓ {{ t.complete_setup|default("Complete Setup") }}';
         }
-    })
-    .catch(function() {
-        errEl.textContent = T.network_error;
-        errEl.style.display = 'block';
-    });
+    } catch(err) {
+        alert('{{ t.setup_error|default("Error") }}: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '✓ {{ t.complete_setup|default("Complete Setup") }}';
+    }
 });
 
+// Theme toggle
+function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+}
+
+// Load theme preference
 (function() {
-    var serverOffsetMin = {{ server_tz_offset }};
-    var browserOffsetMin = -new Date().getTimezoneOffset();
-    var diffMin = browserOffsetMin - serverOffsetMin;
-    if (diffMin === 0) return;
-
-    var serverTz = '{{ server_tz }}';
-    var inp = document.getElementById('snapshot_time');
-    var hint = document.getElementById('snapshot-tz-hint');
-
-    function updateTzHint() {
-        var parts = inp.value.split(':');
-        if (parts.length < 2) return;
-        var h = parseInt(parts[0]), m = parseInt(parts[1]);
-        var totalMin = h * 60 + m + diffMin;
-        totalMin = ((totalMin % 1440) + 1440) % 1440;
-        var lh = String(Math.floor(totalMin / 60)).padStart(2, '0');
-        var lm = String(totalMin % 60).padStart(2, '0');
-        hint.textContent = T.snapshot_hint + ' — ' + inp.value + ' ' + serverTz + ' = ' + lh + ':' + lm + ' ' + T.snapshot_your_time;
+    const saved = localStorage.getItem('theme');
+    if(saved) {
+        document.documentElement.setAttribute('data-theme', saved);
     }
-    updateTzHint();
-    inp.addEventListener('change', updateTzHint);
 })();
+
+// Username field toggle and modem defaults
+function toggleUsernameField() {
+    const modemType = document.getElementById('modem_type').value;
+    const usernameField = document.getElementById('modem_user');
+    const urlField = document.getElementById('modem_url');
+
+    if(modemType === 'ultrahub7') {
+        usernameField.disabled = true;
+        usernameField.value = '';
+        usernameField.placeholder = '{{ t.not_required|default("Not required for this modem") }}';
+        usernameField.style.opacity = '0.5';
+        usernameField.style.cursor = 'not-allowed';
+    } else {
+        usernameField.disabled = false;
+        usernameField.style.opacity = '1';
+        usernameField.style.cursor = 'text';
+        if(modemType === 'vodafone_station') {
+            if(!urlField.value || urlField.value === 'http://192.168.178.1') {
+                urlField.value = 'http://192.168.0.1';
+            }
+            if(!usernameField.value) {
+                usernameField.value = 'admin';
+            }
+            usernameField.placeholder = 'admin';
+        } else if(modemType === 'tc4400') {
+            if(!urlField.value || urlField.value === 'http://192.168.178.1') {
+                urlField.value = 'http://192.168.100.1';
+            }
+            if(!usernameField.value) {
+                usernameField.value = 'admin';
+            }
+            usernameField.placeholder = 'admin';
+        } else {
+            usernameField.placeholder = 'admin';
+        }
+    }
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleUsernameField();
+    document.getElementById('modem_type').addEventListener('change', toggleUsernameField);
+});
 </script>
 
 </body>
