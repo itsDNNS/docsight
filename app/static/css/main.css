@@ -1169,6 +1169,16 @@ details.channel-group {
     margin-bottom: var(--space-lg, 20px);
     gap: var(--space-sm, 10px);
 }
+.journal-header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.btn-delete-all {
+    font-size: 0.85em;
+    padding: 8px 16px;
+}
 .journal-header .trend-title { 
     font-size: 1.5em; 
     color: var(--accent-purple, var(--accent)); 
@@ -2962,4 +2972,244 @@ details.channel-group {
         min-width: 0 !important;
         overflow: hidden !important;
     }
+}
+
+/* ── Import Modal ── */
+.import-upload-zone {
+    border: 2px dashed var(--input-border);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.import-upload-zone:hover,
+.import-upload-zone.dragover {
+    border-color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.05);
+}
+.import-upload-zone p { margin: 8px 0 0; }
+.import-info {
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: var(--surface-2, rgba(0,0,0,0.15));
+    font-size: 0.9em;
+    color: var(--text);
+}
+.import-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.import-select-all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    cursor: pointer;
+    color: var(--text);
+}
+.import-table-wrap {
+    max-height: 400px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid var(--card-border, var(--input-border));
+}
+.import-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.import-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-2, rgba(0,0,0,0.3));
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 0.85em;
+    font-weight: 600;
+    z-index: 1;
+}
+.import-table tbody td {
+    padding: 8px 12px;
+    border-top: 1px solid var(--card-border, rgba(255,255,255,0.05));
+    font-size: 0.85em;
+    vertical-align: top;
+}
+.import-table tbody tr:hover {
+    background: rgba(168,85,247,0.08);
+}
+.import-table tbody tr.import-row-duplicate {
+    opacity: 0.5;
+}
+.import-table tbody tr.import-row-duplicate td {
+    text-decoration: line-through;
+}
+.import-duplicate-badge {
+    display: inline-block;
+    font-size: 0.75em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--warn, #f59e0b);
+    color: #000;
+    margin-left: 6px;
+    text-decoration: none;
+}
+
+/* ── Journal Search ── */
+.journal-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: var(--space-md, 14px);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.journal-search-box {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    background: var(--surface-2, rgba(0,0,0,0.2));
+    border: 1px solid var(--input-border);
+    border-radius: 50px;
+    padding: 0 16px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+.journal-search-box:focus-within {
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.15), 0 2px 12px rgba(168,85,247,0.1);
+}
+.journal-search-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: color 0.3s ease;
+}
+.journal-search-box:focus-within .journal-search-icon {
+    color: var(--accent-purple, var(--accent));
+}
+.journal-search-box input {
+    flex: 1;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 0.9em;
+    font-family: inherit;
+    padding: 10px 12px;
+    outline: none;
+}
+.journal-search-box input::placeholder {
+    color: var(--muted);
+    opacity: 0.7;
+}
+.journal-search-clear {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.3em;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.journal-search-clear:hover {
+    color: var(--text);
+}
+.journal-search-count {
+    font-size: 0.8em;
+    color: var(--muted);
+    white-space: nowrap;
+}
+mark.search-highlight {
+    background: rgba(168,85,247,0.35);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+/* ── Incident Icons ── */
+.incident-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--accent-purple, var(--accent));
+    flex-shrink: 0;
+}
+.incident-icon-placeholder {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+}
+.journal-icon-cell {
+    width: 36px;
+    text-align: center;
+    padding: 12px 8px !important;
+}
+.incident-modal-icon {
+    display: flex;
+    align-items: center;
+}
+.incident-modal-icon .incident-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* ── Icon Picker ── */
+.icon-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.icon-pick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 2px solid var(--input-border);
+    background: var(--surface-2, rgba(0,0,0,0.15));
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    color: var(--muted);
+}
+.icon-pick:hover {
+    border-color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.08);
+    color: var(--text);
+}
+.icon-pick.active {
+    border-color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.18);
+    color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
+}
+.icon-pick .incident-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* ── Journal Month/Year Grouping ── */
+.journal-month-header td {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface-2, rgba(0,0,0,0.3));
+    padding: 8px 16px !important;
+    font-weight: 700;
+    font-size: 0.85em;
+    color: var(--accent-purple, var(--accent));
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--accent-purple, var(--accent)) !important;
+    cursor: default;
+}
+.journal-month-header:hover {
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
 }

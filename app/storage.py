@@ -72,10 +72,16 @@ class SnapshotStorage:
                     date TEXT NOT NULL,
                     title TEXT NOT NULL,
                     description TEXT,
+                    icon TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
             """)
+            # Migration: add icon column if missing
+            try:
+                conn.execute("ALTER TABLE incidents ADD COLUMN icon TEXT")
+            except Exception:
+                pass  # column already exists
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS incident_attachments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -409,24 +415,24 @@ class SnapshotStorage:
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
-    def save_incident(self, date, title, description):
+    def save_incident(self, date, title, description, icon=None):
         """Create a new incident. Returns the new incident id."""
         now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         with self._connect() as conn:
             cur = conn.execute(
-                "INSERT INTO incidents (date, title, description, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (date, title, description, now, now),
+                "INSERT INTO incidents (date, title, description, icon, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (date, title, description, icon, now, now),
             )
             return cur.lastrowid
 
-    def update_incident(self, incident_id, date, title, description):
+    def update_incident(self, incident_id, date, title, description, icon=None):
         """Update an existing incident. Returns True if found."""
         now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         with self._connect() as conn:
             rowcount = conn.execute(
-                "UPDATE incidents SET date=?, title=?, description=?, updated_at=? WHERE id=?",
-                (date, title, description, now, incident_id),
+                "UPDATE incidents SET date=?, title=?, description=?, icon=?, updated_at=? WHERE id=?",
+                (date, title, description, icon, now, incident_id),
             ).rowcount
         return rowcount > 0
 
@@ -438,16 +444,23 @@ class SnapshotStorage:
             ).rowcount
         return rowcount > 0
 
-    def get_incidents(self, limit=100, offset=0):
+    def get_incidents(self, limit=100, offset=0, search=None):
         """Return list of incidents (newest first) with attachment_count."""
+        query = (
+            "SELECT i.id, i.date, i.title, i.description, i.icon, i.created_at, i.updated_at, "
+            "(SELECT COUNT(*) FROM incident_attachments WHERE incident_id = i.id) AS attachment_count "
+            "FROM incidents i"
+        )
+        params = []
+        if search:
+            query += " WHERE (i.title LIKE ? OR i.description LIKE ? OR i.date LIKE ?)"
+            like = "%" + search + "%"
+            params.extend([like, like, like])
+        query += " ORDER BY i.date DESC, i.created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row
-            rows = conn.execute(
-                "SELECT i.id, i.date, i.title, i.description, i.created_at, i.updated_at, "
-                "(SELECT COUNT(*) FROM incident_attachments WHERE incident_id = i.id) AS attachment_count "
-                "FROM incidents i ORDER BY i.date DESC, i.created_at DESC LIMIT ? OFFSET ?",
-                (limit, offset),
-            ).fetchall()
+            rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_incident(self, incident_id):
@@ -455,7 +468,7 @@ class SnapshotStorage:
         with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
-                "SELECT id, date, title, description, created_at, updated_at FROM incidents WHERE id=?",
+                "SELECT id, date, title, description, icon, created_at, updated_at FROM incidents WHERE id=?",
                 (incident_id,),
             ).fetchone()
             if not row:
@@ -510,6 +523,32 @@ class SnapshotStorage:
                 (incident_id,),
             ).fetchone()
         return row[0] if row else 0
+
+    def check_incident_exists(self, date, title):
+        """Check if an incident with same date + title exists. Returns True/False."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM incidents WHERE date=? AND title=? LIMIT 1",
+                (date, title),
+            ).fetchone()
+        return row is not None
+
+    def delete_all_incidents(self):
+        """Delete all incidents (CASCADE deletes attachments). Returns count."""
+        with self._connect() as conn:
+            rowcount = conn.execute("DELETE FROM incidents").rowcount
+        return rowcount
+
+    def delete_incidents_batch(self, ids):
+        """Delete incidents by list of IDs. Returns count of deleted."""
+        if not ids:
+            return 0
+        placeholders = ",".join("?" for _ in ids)
+        with self._connect() as conn:
+            rowcount = conn.execute(
+                "DELETE FROM incidents WHERE id IN (%s)" % placeholders, ids
+            ).rowcount
+        return rowcount
 
     # ── Events ──
 
