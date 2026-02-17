@@ -18,6 +18,7 @@ HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
 DEFAULTS = {
+    "modem_type": "fritzbox",
     "modem_url": "http://192.168.178.1",
     "modem_user": "",
     "modem_password": "",
@@ -30,6 +31,7 @@ DEFAULTS = {
     "mqtt_discovery_prefix": "homeassistant",
     "poll_interval": 900,
     "web_port": 8765,
+    "public_url": "",
     "history_days": 0,
     "snapshot_time": "06:00",
     "theme": "dark",
@@ -37,13 +39,19 @@ DEFAULTS = {
     "isp_name": "",
     "admin_password": "",
     "bqm_url": "",
+    "smokeping_url": "",
+    "smokeping_targets": "",
     "speedtest_tracker_url": "",
     "speedtest_tracker_token": "",
     "booked_download": 0,
     "booked_upload": 0,
+    "demo_mode": False,
+    "gaming_quality_enabled": True,
+    "bnetz_enabled": True,
 }
 
 ENV_MAP = {
+    "modem_type": "MODEM_TYPE",
     "modem_url": "MODEM_URL",
     "modem_user": "MODEM_USER",
     "modem_password": "MODEM_PASSWORD",
@@ -56,12 +64,18 @@ ENV_MAP = {
     "mqtt_discovery_prefix": "MQTT_DISCOVERY_PREFIX",
     "poll_interval": "POLL_INTERVAL",
     "web_port": "WEB_PORT",
+    "public_url": "PUBLIC_URL",
     "history_days": "HISTORY_DAYS",
     "data_dir": "DATA_DIR",
     "admin_password": "ADMIN_PASSWORD",
     "bqm_url": "BQM_URL",
+    "smokeping_url": "SMOKEPING_URL",
+    "smokeping_targets": "SMOKEPING_TARGETS",
     "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
+    "demo_mode": "DEMO_MODE",
+    "gaming_quality_enabled": "GAMING_QUALITY_ENABLED",
+    "bnetz_enabled": "BNETZ_ENABLED",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -79,6 +93,7 @@ _LEGACY_KEY_MAP = {
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
@@ -171,6 +186,8 @@ class ConfigManager:
             if env_val is not None and env_val != "":
                 if key in INT_KEYS:
                     return int(env_val)
+                if key in BOOL_KEYS:
+                    return env_val.lower() in ("true", "1", "yes")
                 return env_val
         # Check deprecated FRITZ_* env vars as fallback
         legacy_env = _LEGACY_ENV_MAP.get(key)
@@ -237,6 +254,13 @@ class ConfigManager:
                 except (ValueError, TypeError):
                     pass
 
+        # Cast bool keys
+        for key in BOOL_KEYS:
+            if key in self._file_config:
+                val = self._file_config[key]
+                if isinstance(val, str):
+                    self._file_config[key] = val.lower() in ("true", "1", "yes")
+
         with open(self.config_path, "w") as f:
             json.dump(self._file_config, f, indent=2)
         try:
@@ -246,20 +270,42 @@ class ConfigManager:
         log.info("Config saved to %s", self.config_path)
 
     def is_configured(self):
-        """True if modem_password is set (from env or config.json)."""
-        return bool(self.get("modem_password"))
+        """True if modem_password is set or demo_mode is active."""
+        return bool(self.get("modem_password")) or self.is_demo_mode()
+
+    def is_demo_mode(self):
+        """True if DEMO_MODE is enabled."""
+        return bool(self.get("demo_mode"))
 
     def is_mqtt_configured(self):
         """True if mqtt_host is set (MQTT is optional)."""
         return bool(self.get("mqtt_host"))
 
+    def is_smokeping_configured(self):
+        """True if smokeping_url and smokeping_targets are set, or demo mode is active."""
+        return bool(self.get("smokeping_url") and self.get("smokeping_targets")) or self.is_demo_mode()
+
     def is_bqm_configured(self):
-        """True if bqm_url is set (BQM is optional)."""
-        return bool(self.get("bqm_url"))
+        """True if bqm_url is set or demo mode is active (BQM is optional)."""
+        return bool(self.get("bqm_url")) or self.is_demo_mode()
+
+    def is_gaming_quality_enabled(self):
+        """True if gaming quality index is enabled, or demo mode is active."""
+        val = self.get("gaming_quality_enabled")
+        if isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes")
+        return bool(val) or self.is_demo_mode()
+
+    def is_bnetz_enabled(self):
+        """True if BNetzA broadband measurement feature is enabled."""
+        val = self.get("bnetz_enabled")
+        if isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes")
+        return bool(val)
 
     def is_speedtest_configured(self):
-        """True if speedtest_tracker_url and token are set (optional)."""
-        return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token"))
+        """True if speedtest_tracker_url and token are set, or demo mode is active."""
+        return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token")) or self.is_demo_mode()
 
     def get_theme(self):
         """Return 'dark' or 'light'."""

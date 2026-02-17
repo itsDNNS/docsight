@@ -1,6 +1,7 @@
 """Detect significant signal changes between consecutive DOCSIS snapshots."""
 
 import logging
+import threading
 from datetime import datetime
 
 log = logging.getLogger("docsis.events")
@@ -35,6 +36,7 @@ class EventDetector:
 
     def __init__(self):
         self._prev = None
+        self._lock = threading.Lock()
 
     def check(self, analysis):
         """Compare current analysis with previous, return list of event dicts.
@@ -42,8 +44,9 @@ class EventDetector:
         Called after each poll. On first call (no previous), stores baseline
         and returns empty list.
         """
-        prev = self._prev
-        self._prev = analysis
+        with self._lock:
+            prev = self._prev
+            self._prev = analysis
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
         if prev is None:

@@ -1,0 +1,813 @@
+"""Vodafone Station driver for DOCSight.
+
+Supports two hardware variants with auto-detection:
+- CGA (CGA6444VF, CGA4322DE): Clean JSON API + double PBKDF2 auth
+- TG (TG3442DE): HTML parsing + AES-CCM auth
+
+Variant is auto-detected on first login attempt.
+
+References:
+- CGA6444VF: ZahrtheMad (tested & confirmed), aiovodafone patterns
+- TG3442DE: PR #13 (Arris AES-CCM flow), vodafone-station-cli
+"""
+
+import json
+import logging
+import re
+import time
+
+import requests
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+from .base import ModemDriver
+
+log = logging.getLogger("docsis.driver.vodafone_station")
+
+
+class VodafoneStationDriver(ModemDriver):
+    """Driver for Vodafone Station (Arris TG3442DE, CGA6444VF, Technicolor CGA4322DE)."""
+
+    VARIANT_CGA = "cga"  # CGA6444VF / CGA4322DE (JSON API + double PBKDF2)
+    VARIANT_TG = "tg"    # TG3442DE (HTML + AES-CCM)
+
+    def __init__(self, url: str, user: str, password: str):
+        super().__init__(url, user, password)
+        self._session = requests.Session()
+        self._variant = None  # Auto-detected on first login
+
+        # CGA-specific state
+        self._cga_token = None
+
+        # TG-specific state
+        self._tg_nonce = None
+        self._tg_key = None
+        self._tg_iv = None
+
+    # ── Public API ────────────────────────────────────────────
+
+    def login(self) -> None:
+        """Authenticate with the modem. Auto-detects hardware variant on first call."""
+        if self._variant is None:
+            self._auto_detect_and_login()
+        elif self._variant == self.VARIANT_CGA:
+            self._login_cga()
+        else:
+            self._login_tg()
+
+    def get_docsis_data(self) -> dict:
+        """Retrieve DOCSIS channel data."""
+        if self._variant == self.VARIANT_CGA:
+            return self._get_docsis_cga()
+        elif self._variant == self.VARIANT_TG:
+            return self._get_docsis_tg()
+        raise RuntimeError("Not authenticated. Call login() first.")
+
+    def get_device_info(self) -> dict:
+        """Retrieve device model and firmware info."""
+        if self._variant == self.VARIANT_CGA:
+            return self._get_device_info_cga()
+        return {
+            "manufacturer": "Arris",
+            "model": "Vodafone Station (TG3442DE)",
+            "sw_version": "",
+        }
+
+    def get_connection_info(self) -> dict:
+        """Retrieve internet connection info."""
+        return {}
+
+    # ── Auto-Detection ────────────────────────────────────────
+
+    def _auto_detect_and_login(self) -> None:
+        """Try CGA first, then TG. Store detected variant."""
+        # Try CGA (simpler flow, has active tester)
+        try:
+            self._login_cga()
+            self._variant = self.VARIANT_CGA
+            log.info("Detected Vodafone Station variant: CGA (CGA6444VF/CGA4322DE)")
+            return
+        except Exception as e:
+            log.warning("CGA login attempt failed: %s — trying TG variant", e)
+            self._invalidate_cga_session()
+
+        # Try TG
+        try:
+            self._login_tg()
+            self._variant = self.VARIANT_TG
+            log.info("Detected Vodafone Station variant: TG (TG3442DE)")
+            return
+        except Exception as e:
+            log.error("TG login attempt also failed: %s", e)
+            self._session.cookies.clear()
+            self._tg_nonce = None
+            self._tg_key = None
+            raise RuntimeError(
+                "Vodafone Station authentication failed. "
+                "Could not detect hardware variant (tried CGA and TG flows). "
+                "Check URL, username, and password."
+            )
+
+    # ── CGA Variant (CGA6444VF / CGA4322DE) ──────────────────
+
+    def _login_cga(self) -> None:
+        """CGA auth: double PBKDF2-SHA256 (CGA6444VF / CGA4322DE).
+
+        Based on ZahrtheMad's CGA6444VF documentation and fthomys reference:
+        1. Set session headers + cwd=No cookie
+        2. POST form-encoded seeksalthash+logout=true -> salt + saltwebui
+        3. hash1 = PBKDF2(password, salt, 1000, 16).hex()
+        4. hash2 = PBKDF2(hash1_hex_string, saltwebui, 1000, 16).hex()
+        5. POST form-encoded hash2 + logout=true
+        6. Initialize session via /api/v1/session/menu
+        """
+        if self._cga_token and self._session.cookies:
+            log.debug("CGA session active, skipping login")
+            return
+
+        self._session.cookies.clear()
+        self._cga_token = None
+
+        # Session-level headers sent with ALL requests (matches browser behavior).
+        # Critical: the CGA firmware checks User-Agent, X-Requested-With, and
+        # Referer on every request including /session/menu initialization.
+        self._session.headers.update({
+            "User-Agent": "Mozilla/5.0",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"{self._url}/",
+        })
+
+        # Required cookie before first request
+        self._session.cookies.set("cwd", "No")
+
+        form_headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        }
+
+        # Step 1: Request salts (logout=true terminates any existing session)
+        r1 = self._session.post(
+            f"{self._url}/api/v1/session/login",
+            data={
+                "username": self._user,
+                "password": "seeksalthash",
+                "logout": "true",
+            },
+            headers=form_headers,
+            timeout=10,
+        )
+        r1.raise_for_status()
+        salt_data = r1.json()
+        log.debug("CGA salt response: %s", salt_data)
+
+        salt = salt_data.get("salt", "")
+        salt_webui = salt_data.get("saltwebui", "")
+        if not salt or not salt_webui:
+            raise RuntimeError(
+                f"CGA: No salt/saltwebui in response (got: {salt_data})"
+            )
+
+        # Step 2: First PBKDF2 -- password + salt -> hash1
+        kdf1 = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=16,
+            salt=salt.encode("utf-8"),
+            iterations=1000,
+        )
+        hash1 = kdf1.derive(self._password.encode("utf-8")).hex()
+
+        # Step 3: Second PBKDF2 -- hash1 (as hex string) + saltwebui -> hash2
+        kdf2 = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=16,
+            salt=salt_webui.encode("utf-8"),
+            iterations=1000,
+        )
+        hash2 = kdf2.derive(hash1.encode("utf-8")).hex()
+
+        # Step 4: Login with derived hash
+        r2 = self._session.post(
+            f"{self._url}/api/v1/session/login",
+            data={
+                "username": self._user,
+                "password": hash2,
+                "logout": "true",
+            },
+            headers=form_headers,
+            timeout=10,
+        )
+        r2.raise_for_status()
+        login_data = r2.json()
+        log.debug("CGA login response: error=%s keys=%s",
+                   login_data.get("error"), list(login_data.keys()))
+
+        error = login_data.get("error")
+        if error and error != "ok":
+            raise RuntimeError(f"CGA login error: {error}")
+
+        self._cga_token = login_data.get("token", "")
+
+        # Step 5: Initialize session menu (headers sent via session defaults)
+        try:
+            r3 = self._session.get(
+                f"{self._url}/api/v1/session/menu",
+                timeout=10,
+            )
+            log.debug("CGA menu init: HTTP %s", r3.status_code)
+        except Exception as e:
+            log.debug("CGA menu init failed (non-critical): %s", e)
+
+        log.info("CGA auth OK (cookies: %s, token: %s)",
+                 list(self._session.cookies.keys()),
+                 "present" if self._cga_token else "absent")
+
+    def _cga_request(self, method: str, path: str, **kwargs) -> requests.Response:
+        """Make an authenticated request to the CGA API.
+
+        Session already has User-Agent, X-Requested-With, and Referer headers
+        set from _login_cga(). This method adds CSRF token and cache-busting.
+        """
+        headers = kwargs.pop("headers", {})
+        if self._cga_token:
+            headers["X-CSRF-TOKEN"] = self._cga_token
+
+        # Cache-busting timestamp parameter (matches CGA web UI behavior)
+        params = kwargs.pop("params", {})
+        if method.upper() == "GET":
+            params["_"] = int(time.time() * 1000)
+
+        r = self._session.request(
+            method,
+            f"{self._url}{path}",
+            headers=headers,
+            params=params,
+            timeout=10,
+            **kwargs,
+        )
+        r.raise_for_status()
+        return r
+
+    def _get_docsis_cga(self) -> dict:
+        """CGA: Fetch DOCSIS data from JSON API.
+
+        Response format: {"error": "ok", "data": {"downstream": [...], "upstream": [...],
+        "ofdm_downstream": [...], "ofdma_upstream": [...], "operational": "..."}}
+
+        Field names per channel type:
+        - SC-QAM DS: channelid, CentralFrequency, power, SNR, FFT, locked, ChannelType
+        - OFDM DS:   channelid_ofdm, CentralFrequency_ofdm, power_ofdm, SNR_ofdm, FFT_ofdm
+        - SC-QAM US: channelidup, CentralFrequency, power, FFT, ChannelType
+        - OFDMA US:  channelidup, CentralFrequency, power, FFT, ChannelType
+        """
+        try:
+            r = self._cga_request("GET", "/api/v1/sta_docsis_status")
+            raw = r.json()
+        except requests.RequestException as e:
+            # Stale session: re-login and retry once
+            if hasattr(e, 'response') and e.response is not None and e.response.status_code in (400, 401, 403):
+                log.warning("CGA DOCSIS request failed (%s), re-authenticating and retrying", e.response.status_code)
+                self._invalidate_cga_session()
+                try:
+                    self._login_cga()
+                    r = self._cga_request("GET", "/api/v1/sta_docsis_status")
+                    raw = r.json()
+                except Exception as retry_err:
+                    self._invalidate_cga_session()
+                    raise RuntimeError(f"CGA DOCSIS data retrieval failed after retry: {retry_err}")
+            else:
+                self._invalidate_cga_session()
+                raise RuntimeError(f"CGA DOCSIS data retrieval failed: {e}")
+
+        # CGA API wraps channel data inside "data" key
+        data = raw.get("data", raw)
+        log.debug("CGA DOCSIS response keys: %s", list(data.keys()))
+
+        ds_30 = []
+        ds_31 = []
+        us_30 = []
+        us_31 = []
+
+        # SC-QAM Downstream channels (DOCSIS 3.0)
+        for ch in data.get("downstream", []) or []:
+            try:
+                channel_id = str(self._parse_number(ch.get("channelid", "0")))
+                freq = self._parse_number(ch.get("CentralFrequency", "0"))
+                power = self._parse_number(ch.get("power", "0"))
+                snr = self._parse_number(ch.get("SNR", "0"))
+                if snr < 0:
+                    snr = abs(snr)
+                modulation = self._normalize_modulation(ch.get("FFT", ""))
+
+                if freq > 1_000_000:
+                    freq = freq / 1_000_000
+
+                ds_30.append({
+                    "channelID": channel_id,
+                    "type": modulation,
+                    "frequency": f"{int(freq)} MHz" if freq else "",
+                    "powerLevel": power,
+                    "mse": -snr if snr else None,
+                    "mer": snr if snr else None,
+                    "latency": 0,
+                    "corrError": 0,
+                    "nonCorrError": 0,
+                })
+            except (ValueError, TypeError) as e:
+                log.warning("Failed to parse CGA DS channel %s: %s", ch, e)
+
+        # OFDM Downstream channels (DOCSIS 3.1)
+        for ch in data.get("ofdm_downstream", []) or []:
+            try:
+                channel_id = str(self._parse_number(ch.get("channelid_ofdm", "0")))
+                freq = self._parse_number(ch.get("CentralFrequency_ofdm", "0"))
+                power = self._parse_number(ch.get("power_ofdm", "0"))
+                snr = self._parse_number(ch.get("SNR_ofdm", "0"))
+                if snr < 0:
+                    snr = abs(snr)
+
+                if freq > 1_000_000:
+                    freq = freq / 1_000_000
+
+                ds_31.append({
+                    "channelID": channel_id,
+                    "type": "ofdm",
+                    "frequency": f"{int(freq)} MHz" if freq else "",
+                    "powerLevel": power,
+                    "mse": -snr if snr else None,
+                    "mer": snr if snr else None,
+                    "latency": 0,
+                    "corrError": 0,
+                    "nonCorrError": 0,
+                })
+            except (ValueError, TypeError) as e:
+                log.warning("Failed to parse CGA OFDM DS channel %s: %s", ch, e)
+
+        # SC-QAM Upstream channels (DOCSIS 3.0)
+        for ch in data.get("upstream", []) or []:
+            try:
+                channel_id = str(self._parse_number(ch.get("channelidup", "0")))
+                freq = self._parse_number(ch.get("CentralFrequency", "0"))
+                power = self._parse_number(ch.get("power", "0"))
+                modulation = self._normalize_modulation(ch.get("FFT", ""))
+
+                if freq > 1_000_000:
+                    freq = freq / 1_000_000
+
+                us_30.append({
+                    "channelID": channel_id,
+                    "type": modulation,
+                    "frequency": f"{int(freq)} MHz" if freq else "",
+                    "powerLevel": power,
+                    "multiplex": "",
+                })
+            except (ValueError, TypeError) as e:
+                log.warning("Failed to parse CGA US channel %s: %s", ch, e)
+
+        # OFDMA Upstream channels (DOCSIS 3.1)
+        for ch in data.get("ofdma_upstream", []) or []:
+            try:
+                channel_id = str(self._parse_number(ch.get("channelidup", "0")))
+                freq = self._parse_number(ch.get("CentralFrequency", "0"))
+                power = self._parse_number(ch.get("power", "0"))
+
+                if freq > 1_000_000:
+                    freq = freq / 1_000_000
+
+                us_31.append({
+                    "channelID": channel_id,
+                    "type": "ofdma",
+                    "frequency": f"{int(freq)} MHz" if freq else "",
+                    "powerLevel": power,
+                    "multiplex": "",
+                })
+            except (ValueError, TypeError) as e:
+                log.warning("Failed to parse CGA OFDMA US channel %s: %s", ch, e)
+
+        log.debug(
+            "CGA DOCSIS parsed: %d DS3.0 + %d DS3.1 + %d US3.0 + %d US3.1 channels",
+            len(ds_30), len(ds_31), len(us_30), len(us_31),
+        )
+
+        return {
+            "channelDs": {"docsis30": ds_30, "docsis31": ds_31},
+            "channelUs": {"docsis30": us_30, "docsis31": us_31},
+        }
+
+    def _get_device_info_cga(self) -> dict:
+        """CGA: Retrieve device info from API."""
+        try:
+            r = self._cga_request("GET", "/api/v1/sta_device_info")
+            info = r.json()
+            return {
+                "manufacturer": info.get("manufacturer", "Arris"),
+                "model": info.get("modelName", info.get("model", "Vodafone Station")),
+                "sw_version": info.get("softwareVersion", info.get("swVersion", "")),
+            }
+        except Exception:
+            return {
+                "manufacturer": "Arris",
+                "model": "Vodafone Station (CGA)",
+                "sw_version": "",
+            }
+
+    def _invalidate_cga_session(self) -> None:
+        """Clear CGA session state and session-level headers."""
+        self._cga_token = None
+        self._session.cookies.clear()
+        # Remove CGA-specific session headers to not interfere with TG fallback
+        for key in ("User-Agent", "X-Requested-With", "Referer"):
+            self._session.headers.pop(key, None)
+
+    # ── TG Variant (TG3442DE) ─────────────────────────────────
+
+    def _login_tg(self) -> None:
+        """TG auth: AES-CCM encrypted credentials (Arris TG3442DE).
+
+        Based on arris-tg3442de-exporter and vodafone-station-cli:
+        1. GET login page -> extract currentSessionId, myIv, mySalt from JS
+        2. PBKDF2 key derivation (SHA256, 1000 iterations, 16 bytes)
+        3. AES-CCM encrypt with AAD "loginPassword"
+        4. POST /php/ajaxSet_Password.php as JSON
+        5. Decrypt CSRF nonce from response
+        """
+        from Crypto.Cipher import AES
+
+        if self._tg_nonce and self._session.cookies:
+            log.debug("TG session active, skipping login")
+            return
+
+        self._logout_tg()
+        self._session.cookies.clear()
+        self._tg_nonce = None
+        self._tg_key = None
+        self._tg_iv = None
+
+        # Step 1: Get login page and extract JS variables
+        r = self._session.get(f"{self._url}/", timeout=10)
+        r.raise_for_status()
+        html = r.text
+
+        session_id = self._extract_js_var(html, "currentSessionId")
+        iv_hex = self._extract_js_var(html, "myIv")
+        salt_hex = self._extract_js_var(html, "mySalt")
+
+        if not all([session_id, iv_hex, salt_hex]):
+            raise RuntimeError(
+                "TG: Could not extract session variables from login page "
+                f"(sessionId={bool(session_id)}, myIv={bool(iv_hex)}, "
+                f"mySalt={bool(salt_hex)})"
+            )
+
+        # Validate hex format before parsing
+        self._validate_hex(salt_hex, "mySalt")
+        self._validate_hex(iv_hex, "myIv")
+        log.debug("TG extracted: sessionId=%s..., myIv=%s, mySalt=%s",
+                   session_id[:8], iv_hex, salt_hex)
+
+        # Step 2: Derive AES key via PBKDF2
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=16,
+            salt=bytes.fromhex(salt_hex),
+            iterations=1000,
+        )
+        key = kdf.derive(self._password.encode("utf-8"))
+
+        # Step 3: Encrypt credentials with AES-CCM
+        # Full IV as nonce (8 bytes from 16 hex chars), 16-byte tag, AAD
+        payload_str = json.dumps({"Password": self._password, "Nonce": session_id})
+        iv_bytes = bytes.fromhex(iv_hex)
+        auth_data = "loginPassword"
+
+        cipher = AES.new(key, AES.MODE_CCM, nonce=iv_bytes, mac_len=16)
+        cipher.update(auth_data.encode("utf-8"))
+        ciphertext = cipher.encrypt(payload_str.encode("utf-8"))
+        tag = cipher.digest()
+        encrypted_hex = (ciphertext + tag).hex()
+
+        # Step 4: POST login as JSON
+        r2 = self._session.post(
+            f"{self._url}/php/ajaxSet_Password.php",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({
+                "EncryptData": encrypted_hex,
+                "Name": self._user,
+                "AuthData": auth_data,
+            }),
+            timeout=10,
+        )
+        r2.raise_for_status()
+
+        # Step 5: Parse response and extract CSRF nonce
+        try:
+            resp = r2.json()
+        except json.JSONDecodeError:
+            raise RuntimeError("TG: Login response is not valid JSON")
+
+        if resp.get("p_status") == "Lockout":
+            raise RuntimeError(
+                "TG: Account locked out (too many failed attempts). "
+                "Wait a few minutes or reboot the modem."
+            )
+        if resp.get("p_status") == "Fail":
+            raise RuntimeError("TG: Authentication failed (invalid password)")
+
+        p_status = resp.get("p_status", "")
+        if p_status and p_status not in ("OK", "Lockout", "Fail", ""):
+            log.warning("TG login: unexpected p_status=%r (full response: %s)",
+                        p_status, {k: v for k, v in resp.items() if k != "encryptData"})
+
+        encrypted_nonce = resp.get("encryptData", "")
+        if encrypted_nonce:
+            enc_bytes = bytes.fromhex(encrypted_nonce)
+            ct_part = enc_bytes[:-16]
+            tag_part = enc_bytes[-16:]
+            decipher = AES.new(key, AES.MODE_CCM, nonce=iv_bytes, mac_len=16)
+            decipher.update(b"nonce")
+            decrypted = decipher.decrypt_and_verify(ct_part, tag_part)
+            self._tg_nonce = decrypted.decode("utf-8")[:32]
+        else:
+            self._tg_nonce = resp.get("nonce", session_id)
+
+        self._tg_key = key
+        self._tg_iv = iv_bytes
+        log.info("TG auth OK")
+        log.debug("TG login: p_status=%s, keys=%s, nonce=%s..., cookies=%d",
+                  resp.get("p_status", "?"), list(resp.keys()),
+                  self._tg_nonce[:8] if self._tg_nonce else "None",
+                  len(self._session.cookies))
+
+    def _get_docsis_tg(self) -> dict:
+        """TG: Fetch DOCSIS data from status_docsis_data.php.
+
+        The endpoint returns HTML with embedded JS variables:
+        - json_dsData = [...] (downstream channels)
+        - json_usData = [...] (upstream channels)
+
+        Channel fields: ChannelID, ChannelType (SC-QAM/OFDM/OFDMA),
+        Frequency (Hz or "start~end"), Modulation, PowerLevel
+        ("-1.2 dBmV/1158.8 dBuV"), SNRLevel (downstream only).
+        """
+        if not self._tg_nonce:
+            raise RuntimeError("TG: Not authenticated. Call login() first.")
+
+        try:
+            r = self._tg_docsis_request()
+        except requests.RequestException as e:
+            # Stale session from previous run: re-login and retry once
+            if hasattr(e, 'response') and e.response is not None and e.response.status_code in (400, 401, 403):
+                log.warning("TG DOCSIS request failed (%s), re-authenticating and retrying", e.response.status_code)
+                self._invalidate_tg_session()
+                try:
+                    self._login_tg()
+                    r = self._tg_docsis_request()
+                except Exception as retry_err:
+                    self._invalidate_tg_session()
+                    raise RuntimeError(f"TG DOCSIS data retrieval failed after retry: {retry_err}")
+            else:
+                self._invalidate_tg_session()
+                raise RuntimeError(f"TG DOCSIS data retrieval failed: {e}")
+
+        html = r.text
+
+        # Extract JSON arrays from embedded JS variables
+        ds_match = re.search(r"json_dsData\s*=\s*(\[.+?\])\s*;", html, re.DOTALL)
+        us_match = re.search(r"json_usData\s*=\s*(\[.+?\])\s*;", html, re.DOTALL)
+
+        if not ds_match and not us_match:
+            self._invalidate_tg_session()
+            raise RuntimeError(
+                "TG: Could not extract DOCSIS data from response "
+                "(json_dsData/json_usData not found)"
+            )
+
+        ds_raw = json.loads(ds_match.group(1)) if ds_match else []
+        us_raw = json.loads(us_match.group(1)) if us_match else []
+
+        log.debug("TG DOCSIS: %d DS channels, %d US channels", len(ds_raw), len(us_raw))
+
+        ds_30 = []
+        ds_31 = []
+        us_30 = []
+        us_31 = []
+
+        for ch in ds_raw:
+            try:
+                channel_id = str(ch.get("ChannelID", ""))
+                ch_type = ch.get("ChannelType", "SC-QAM")
+                freq = self._parse_tg_frequency(ch.get("Frequency", "0"))
+                power = self._parse_tg_power(ch.get("PowerLevel", "0"))
+                snr = self._parse_number(ch.get("SNRLevel", "0"))
+                if snr < 0:
+                    snr = abs(snr)
+                modulation = self._normalize_modulation(ch.get("Modulation", ""))
+                is_ofdm = "OFDM" in ch_type.upper()
+
+                if is_ofdm:
+                    modulation = modulation or "ofdm"
+
+                ch_dict = {
+                    "channelID": channel_id,
+                    "type": modulation,
+                    "frequency": f"{freq:.3f} MHz" if freq else "",
+                    "powerLevel": power,
+                    "mse": -snr if snr else None,
+                    "mer": snr if snr else None,
+                    "latency": 0,
+                    "corrError": 0,
+                    "nonCorrError": 0,
+                }
+                (ds_31 if is_ofdm else ds_30).append(ch_dict)
+            except (ValueError, TypeError) as e:
+                log.warning("Failed to parse TG DS channel %s: %s", ch, e)
+
+        for ch in us_raw:
+            try:
+                channel_id = str(ch.get("ChannelID", ""))
+                ch_type = ch.get("ChannelType", "SC-QAM")
+                freq = self._parse_tg_frequency(ch.get("Frequency", "0"))
+                power = self._parse_tg_power(ch.get("PowerLevel", "0"))
+                modulation = self._normalize_modulation(ch.get("Modulation", ""))
+                is_ofdma = "OFDMA" in ch_type.upper()
+
+                if is_ofdma:
+                    modulation = modulation or "ofdma"
+
+                ch_dict = {
+                    "channelID": channel_id,
+                    "type": modulation,
+                    "frequency": f"{freq:.3f} MHz" if freq else "",
+                    "powerLevel": power,
+                    "multiplex": "",
+                }
+                (us_31 if is_ofdma else us_30).append(ch_dict)
+            except (ValueError, TypeError) as e:
+                log.warning("Failed to parse TG US channel %s: %s", ch, e)
+
+        log.debug(
+            "TG DOCSIS parsed: %d DS3.0 + %d DS3.1 + %d US3.0 + %d US3.1 channels",
+            len(ds_30), len(ds_31), len(us_30), len(us_31),
+        )
+
+        return {
+            "channelDs": {"docsis30": ds_30, "docsis31": ds_31},
+            "channelUs": {"docsis30": us_30, "docsis31": us_31},
+        }
+
+    def _tg_docsis_request(self) -> requests.Response:
+        """Make a single TG DOCSIS data request.
+
+        Replicates the real browser flow:
+        1. Navigate to the DOCSIS status page as a regular browser GET
+           (no csrfNonce/X-Requested-With -- these mark an AJAX call and
+           would cause the modem to rotate or invalidate the CSRF nonce).
+        2. If the navigation response contains a rotated nonce, adopt it.
+        3. Fetch actual DOCSIS data via AJAX with the (possibly updated) nonce.
+        """
+        # Navigate to DOCSIS status page (regular browser navigation, no AJAX headers)
+        warmup = self._session.get(
+            f"{self._url}/?status_docsis&mid=StatusDocsis",
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Referer": f"{self._url}/",
+            },
+            timeout=10,
+        )
+
+        # Check if warmup response contains a rotated nonce
+        if warmup.status_code == 200:
+            new_nonce = self._extract_js_var(warmup.text, "csrfNonce")
+            if not new_nonce:
+                new_nonce = self._extract_js_var(warmup.text, "nonce")
+            if new_nonce and new_nonce != self._tg_nonce:
+                log.debug("TG nonce rotated: %s... -> %s...",
+                          self._tg_nonce[:8] if self._tg_nonce else "?",
+                          new_nonce[:8])
+                self._tg_nonce = new_nonce
+
+        # Actual data fetch (AJAX call with csrfNonce)
+        r = self._session.get(
+            f"{self._url}/php/status_docsis_data.php",
+            headers={
+                "csrfNonce": self._tg_nonce,
+                "X-Requested-With": "XMLHttpRequest",
+                "Referer": f"{self._url}/?status_docsis&mid=StatusDocsis",
+                "User-Agent": "Mozilla/5.0",
+            },
+            timeout=10,
+        )
+        if r.status_code != 200:
+            log.warning("TG DOCSIS data response %d: %s", r.status_code, r.text[:200])
+        r.raise_for_status()
+        return r
+
+    def _logout_tg(self) -> None:
+        """Attempt to cleanly end the TG session."""
+        if not self._tg_nonce:
+            return
+        try:
+            self._session.post(
+                f"{self._url}/api/v1/session/logout",
+                headers={
+                    "csrfNonce": self._tg_nonce,
+                    "X-Requested-With": "XMLHttpRequest",
+                    "User-Agent": "Mozilla/5.0",
+                },
+                timeout=5,
+            )
+        except Exception:
+            pass  # Best-effort
+
+    def _invalidate_tg_session(self) -> None:
+        """Clear TG session state."""
+        self._logout_tg()
+        self._tg_nonce = None
+        self._tg_key = None
+        self._tg_iv = None
+        self._session.cookies.clear()
+
+    # ── Helpers ───────────────────────────────────────────────
+
+    @staticmethod
+    def _extract_js_var(html: str, var_name: str) -> str | None:
+        """Extract JavaScript variable value from HTML source."""
+        pattern = rf"""var\s+{re.escape(var_name)}\s*=\s*['"]([^'"]+)['"]"""
+        match = re.search(pattern, html)
+        return match.group(1) if match else None
+
+    @staticmethod
+    def _validate_hex(value: str, name: str) -> None:
+        """Validate that a string contains only hex characters."""
+        if not all(c in "0123456789abcdefABCDEF" for c in value):
+            raise RuntimeError(
+                f"TG: {name} is not a valid hex string: {value!r}"
+            )
+
+    @staticmethod
+    def _parse_number(value) -> float:
+        """Parse numeric value from string, handling units and whitespace."""
+        if isinstance(value, (int, float)):
+            return float(value)
+        if not value or not isinstance(value, str):
+            return 0.0
+        parts = value.strip().split()
+        try:
+            return float(parts[0])
+        except (IndexError, ValueError):
+            return 0.0
+
+    @staticmethod
+    def _parse_tg_power(value) -> float:
+        """Parse TG power level string like '-1.2 dBmV/1158.8 dBuV'."""
+        if isinstance(value, (int, float)):
+            return float(value)
+        if not value or not isinstance(value, str):
+            return 0.0
+        # Extract dBmV part (before the slash)
+        parts = value.split("/")
+        return VodafoneStationDriver._parse_number(
+            parts[0].replace("dBmV", "").replace("dBuV", "").strip()
+        )
+
+    @staticmethod
+    def _parse_tg_frequency(value) -> float:
+        """Parse TG frequency: Hz number or 'start~end' OFDM range.
+
+        Returns frequency in MHz.
+        """
+        if isinstance(value, (int, float)):
+            freq = float(value)
+            return freq / 1_000_000 if freq > 1_000_000 else freq
+        if not value or not isinstance(value, str):
+            return 0.0
+        # OFDM range format: "start~end" (in Hz)
+        if "~" in value:
+            parts = value.split("~")
+            try:
+                start = float(parts[0].strip())
+                end = float(parts[1].strip())
+                # Use center frequency, convert to MHz
+                freq = (start + end) / 2
+                return freq / 1_000_000 if freq > 1_000_000 else freq
+            except (ValueError, IndexError):
+                return 0.0
+        freq = VodafoneStationDriver._parse_number(value)
+        return freq / 1_000_000 if freq > 1_000_000 else freq
+
+    @staticmethod
+    def _normalize_modulation(modulation: str) -> str:
+        """Normalize modulation string to analyzer format.
+
+        Input: "256QAM", "64QAM", "OFDM", "4096QAM"
+        Output: "qam_256", "qam_64", "ofdm", "qam_4096"
+        """
+        if not modulation:
+            return ""
+        mod = modulation.upper().replace("-", "")
+        if "OFDMA" in mod:
+            return "ofdma"
+        if "OFDM" in mod:
+            return "ofdm"
+        if "QAM" in mod:
+            num = mod.replace("QAM", "")
+            return f"qam_{num}" if num else "qam"
+        return modulation.lower()

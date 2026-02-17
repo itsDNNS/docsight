@@ -27,6 +27,7 @@ class SnapshotStorage:
 
     def _init_db(self):
         with sqlite3.connect(self.db_path) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS snapshots (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,6 +61,10 @@ class SnapshotStorage:
                     jitter_ms REAL,
                     packet_loss_pct REAL
                 )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_speedtest_ts
+                ON speedtest_results(timestamp)
             """)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS incidents (
@@ -100,6 +105,28 @@ class SnapshotStorage:
             conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_events_ack
                 ON events(acknowledged)
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS bnetz_measurements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    provider TEXT,
+                    tariff TEXT,
+                    download_max_tariff REAL,
+                    download_normal_tariff REAL,
+                    download_min_tariff REAL,
+                    upload_max_tariff REAL,
+                    upload_normal_tariff REAL,
+                    upload_min_tariff REAL,
+                    download_measured_avg REAL,
+                    upload_measured_avg REAL,
+                    measurement_count INTEGER,
+                    verdict_download TEXT,
+                    verdict_upload TEXT,
+                    measurements_json TEXT,
+                    pdf_blob BLOB NOT NULL
+                )
             """)
 
     def save_snapshot(self, analysis):
@@ -227,6 +254,22 @@ class SnapshotStorage:
             results.append(entry)
         return results
 
+    def get_summary_range(self, start_date, end_date):
+        """Get all snapshots (summary only) between two dates. Like get_intraday_data but multi-day."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT timestamp, summary_json FROM snapshots "
+                "WHERE substr(timestamp, 1, 10) >= ? AND substr(timestamp, 1, 10) <= ? "
+                "ORDER BY timestamp",
+                (start_date, end_date),
+            ).fetchall()
+        results = []
+        for row in rows:
+            entry = {"timestamp": row[0]}
+            entry.update(json.loads(row[1]))
+            results.append(entry)
+        return results
+
     def save_bqm_graph(self, image_data):
         """Save BQM graph for today. Skips if already exists (UNIQUE date)."""
         today = datetime.now().strftime("%Y-%m-%d")
@@ -265,18 +308,26 @@ class SnapshotStorage:
         to normalize both to the same basis."""
         # Normalize: if timestamp ends with Z, convert UTC to local via SQLite
         # Snapshots are stored without timezone suffix (local time)
-        ts_expr = "datetime(?, 'localtime')" if timestamp.endswith("Z") else "datetime(?)"
-        # Strip Z for the parameter since SQLite datetime() handles it
         ts_param = timestamp
         with sqlite3.connect(self.db_path) as conn:
-            row = conn.execute(
-                f"""SELECT timestamp, summary_json, ds_channels_json, us_channels_json
-                   FROM snapshots
-                   WHERE ABS(julianday(timestamp) - julianday({ts_expr})) <= (2.0 / 24.0)
-                   ORDER BY ABS(julianday(timestamp) - julianday({ts_expr}))
-                   LIMIT 1""",
-                (ts_param, ts_param),
-            ).fetchone()
+            if timestamp.endswith("Z"):
+                row = conn.execute(
+                    """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
+                       FROM snapshots
+                       WHERE ABS(julianday(timestamp) - julianday(datetime(?, 'localtime'))) <= (2.0 / 24.0)
+                       ORDER BY ABS(julianday(timestamp) - julianday(datetime(?, 'localtime')))
+                       LIMIT 1""",
+                    (ts_param, ts_param),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
+                       FROM snapshots
+                       WHERE ABS(julianday(timestamp) - julianday(datetime(?))) <= (2.0 / 24.0)
+                       ORDER BY ABS(julianday(timestamp) - julianday(datetime(?)))
+                       LIMIT 1""",
+                    (ts_param, ts_param),
+                ).fetchone()
         if not row:
             return None
         return {
@@ -571,9 +622,237 @@ class SnapshotStorage:
             results.append(event)
         return results
 
+    # ── Breitbandmessung (BNetzA) ──
+
+    def save_bnetz_measurement(self, parsed_data, pdf_bytes):
+        """Save a parsed BNetzA measurement with the original PDF. Returns the new id."""
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        measurements = {
+            "download": parsed_data.get("measurements_download", []),
+            "upload": parsed_data.get("measurements_upload", []),
+        }
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "INSERT INTO bnetz_measurements "
+                "(date, timestamp, provider, tariff, "
+                "download_max_tariff, download_normal_tariff, download_min_tariff, "
+                "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+                "download_measured_avg, upload_measured_avg, measurement_count, "
+                "verdict_download, verdict_upload, measurements_json, pdf_blob) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    parsed_data.get("date", now[:10]),
+                    now,
+                    parsed_data.get("provider"),
+                    parsed_data.get("tariff"),
+                    parsed_data.get("download_max"),
+                    parsed_data.get("download_normal"),
+                    parsed_data.get("download_min"),
+                    parsed_data.get("upload_max"),
+                    parsed_data.get("upload_normal"),
+                    parsed_data.get("upload_min"),
+                    parsed_data.get("download_measured_avg"),
+                    parsed_data.get("upload_measured_avg"),
+                    parsed_data.get("measurement_count"),
+                    parsed_data.get("verdict_download"),
+                    parsed_data.get("verdict_upload"),
+                    json.dumps(measurements),
+                    pdf_bytes,
+                ),
+            )
+            return cur.lastrowid
+
+    def get_bnetz_measurements(self, limit=50):
+        """Return list of BNetzA measurements (without PDF blob), newest first."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, date, timestamp, provider, tariff, "
+                "download_max_tariff, download_normal_tariff, download_min_tariff, "
+                "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+                "download_measured_avg, upload_measured_avg, measurement_count, "
+                "verdict_download, verdict_upload, measurements_json "
+                "FROM bnetz_measurements ORDER BY date DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        results = []
+        for r in rows:
+            d = dict(r)
+            raw = d.pop("measurements_json", None)
+            if raw:
+                try:
+                    d["measurements"] = json.loads(raw)
+                except (json.JSONDecodeError, TypeError):
+                    d["measurements"] = None
+            else:
+                d["measurements"] = None
+            results.append(d)
+        return results
+
+    def get_bnetz_pdf(self, measurement_id):
+        """Return the original PDF bytes for a BNetzA measurement, or None."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT pdf_blob FROM bnetz_measurements WHERE id = ?",
+                (measurement_id,),
+            ).fetchone()
+        return bytes(row[0]) if row else None
+
+    def delete_bnetz_measurement(self, measurement_id):
+        """Delete a BNetzA measurement. Returns True if found."""
+        with sqlite3.connect(self.db_path) as conn:
+            rowcount = conn.execute(
+                "DELETE FROM bnetz_measurements WHERE id = ?",
+                (measurement_id,),
+            ).rowcount
+        return rowcount > 0
+
+    def get_bnetz_in_range(self, start_ts, end_ts):
+        """Return BNetzA measurements within a time range, oldest first."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, date, timestamp, provider, tariff, "
+                "download_max_tariff, download_measured_avg, "
+                "upload_max_tariff, upload_measured_avg, "
+                "verdict_download, verdict_upload "
+                "FROM bnetz_measurements "
+                "WHERE timestamp >= ? AND timestamp <= ? "
+                "ORDER BY timestamp",
+                (start_ts, end_ts),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_latest_bnetz(self):
+        """Return the most recent BNetzA measurement (without blob), or None."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT id, date, timestamp, provider, tariff, "
+                "download_max_tariff, download_normal_tariff, download_min_tariff, "
+                "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+                "download_measured_avg, upload_measured_avg, measurement_count, "
+                "verdict_download, verdict_upload "
+                "FROM bnetz_measurements ORDER BY date DESC LIMIT 1",
+            ).fetchone()
+        return dict(row) if row else None
+
     def get_recent_speedtests(self, limit=10):
         """Return the N most recent speedtest results."""
         return self.get_speedtest_results(limit=limit)
+
+    def get_speedtest_in_range(self, start_ts, end_ts):
+        """Return speedtest results within a time range, oldest first.
+        Handles both local timestamps and UTC timestamps (ending with Z)."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
+                "upload_human, ping_ms, jitter_ms, packet_loss_pct "
+                "FROM speedtest_results "
+                "WHERE datetime(REPLACE(timestamp, 'Z', ''), "
+                "CASE WHEN timestamp LIKE '%Z' THEN 'localtime' ELSE 'auto' END) "
+                "BETWEEN datetime(?) AND datetime(?) "
+                "ORDER BY timestamp",
+                (start_ts, end_ts),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_correlation_timeline(self, start_ts, end_ts, sources=None):
+        """Return unified timeline entries from all sources, sorted by timestamp.
+
+        Args:
+            start_ts: ISO 8601 start (local time, no Z suffix)
+            end_ts: ISO 8601 end (local time, no Z suffix)
+            sources: set of source names to include (modem, speedtest, events).
+                     None means all.
+
+        Returns list of dicts with 'timestamp', 'source', and source-specific fields.
+        """
+        if sources is None:
+            sources = {"modem", "speedtest", "events", "bnetz"}
+        timeline = []
+
+        if "modem" in sources:
+            for snap in self.get_range_data(start_ts, end_ts):
+                s = snap["summary"]
+                timeline.append({
+                    "timestamp": snap["timestamp"],
+                    "source": "modem",
+                    "health": s.get("health", "unknown"),
+                    "ds_power_avg": s.get("ds_power_avg"),
+                    "ds_power_max": s.get("ds_power_max"),
+                    "ds_snr_min": s.get("ds_snr_min"),
+                    "ds_snr_avg": s.get("ds_snr_avg"),
+                    "us_power_avg": s.get("us_power_avg"),
+                    "ds_correctable_errors": s.get("ds_correctable_errors", 0),
+                    "ds_uncorrectable_errors": s.get("ds_uncorrectable_errors", 0),
+                })
+
+        if "speedtest" in sources:
+            for st in self.get_speedtest_in_range(start_ts, end_ts):
+                # Normalize timestamp for display
+                ts = st["timestamp"]
+                if ts.endswith("Z"):
+                    try:
+                        from datetime import timezone
+                        utc_dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        local_dt = utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+                        ts = local_dt.strftime("%Y-%m-%dT%H:%M:%S")
+                    except (ValueError, TypeError):
+                        ts = ts.rstrip("Z")
+                elif "." in ts:
+                    ts = ts.split(".")[0]
+                timeline.append({
+                    "timestamp": ts,
+                    "source": "speedtest",
+                    "id": st["id"],
+                    "download_mbps": st.get("download_mbps"),
+                    "upload_mbps": st.get("upload_mbps"),
+                    "ping_ms": st.get("ping_ms"),
+                    "jitter_ms": st.get("jitter_ms"),
+                    "packet_loss_pct": st.get("packet_loss_pct"),
+                })
+
+        if "events" in sources:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute(
+                    "SELECT id, timestamp, severity, event_type, message, details "
+                    "FROM events WHERE timestamp >= ? AND timestamp <= ? "
+                    "ORDER BY timestamp",
+                    (start_ts, end_ts),
+                ).fetchall()
+            for r in rows:
+                event = {
+                    "timestamp": r["timestamp"],
+                    "source": "event",
+                    "severity": r["severity"],
+                    "event_type": r["event_type"],
+                    "message": r["message"],
+                }
+                if r["details"]:
+                    try:
+                        event["details"] = json.loads(r["details"])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                timeline.append(event)
+
+        if "bnetz" in sources:
+            for m in self.get_bnetz_in_range(start_ts, end_ts):
+                timeline.append({
+                    "timestamp": m["timestamp"],
+                    "source": "bnetz",
+                    "download_tariff": m.get("download_max_tariff"),
+                    "download_avg": m.get("download_measured_avg"),
+                    "upload_tariff": m.get("upload_max_tariff"),
+                    "upload_avg": m.get("upload_measured_avg"),
+                    "verdict_download": m.get("verdict_download"),
+                    "verdict_upload": m.get("verdict_upload"),
+                })
+
+        timeline.sort(key=lambda x: x["timestamp"])
+        return timeline
 
     def get_active_incidents(self):
         """Return all incidents (for export context)."""
@@ -595,14 +874,21 @@ class SnapshotStorage:
     def get_channel_history(self, channel_id, direction, days=7):
         """Return time series for a single channel over the last N days.
         direction: 'ds' or 'us'. Returns list of dicts with timestamp + channel fields."""
+        _COL_MAP = {"ds": "ds_channels_json", "us": "us_channels_json"}
         channel_id = int(channel_id)
-        col = "ds_channels_json" if direction == "ds" else "us_channels_json"
+        col = _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
         cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
         with sqlite3.connect(self.db_path) as conn:
-            rows = conn.execute(
-                f"SELECT timestamp, {col} FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
-                (cutoff,),
-            ).fetchall()
+            if direction == "ds":
+                rows = conn.execute(
+                    "SELECT timestamp, ds_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
+                    (cutoff,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT timestamp, us_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
+                    (cutoff,),
+                ).fetchall()
         results = []
         for ts, channels_json in rows:
             channels = json.loads(channels_json)
