@@ -13,7 +13,10 @@ log = logging.getLogger("docsis.config")
 POLL_MIN = 60
 POLL_MAX = 14400
 
-SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token"}
+SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token", "notify_webhook_token"}
+DEMO_HIDE_KEYS = {"bqm_url", "smokeping_url", "smokeping_targets", "speedtest_tracker_url",
+                  "notify_webhook_url", "mqtt_host", "mqtt_user", "mqtt_topic_prefix",
+                  "mqtt_discovery_prefix"}
 HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
@@ -48,6 +51,11 @@ DEFAULTS = {
     "demo_mode": False,
     "gaming_quality_enabled": True,
     "bnetz_enabled": True,
+    "notify_webhook_url": "",
+    "notify_webhook_token": "",
+    "notify_min_severity": "warning",
+    "notify_cooldown": 3600,
+    "notify_cooldowns": "{}",
 }
 
 ENV_MAP = {
@@ -78,6 +86,11 @@ ENV_MAP = {
     "demo_mode": "DEMO_MODE",
     "gaming_quality_enabled": "GAMING_QUALITY_ENABLED",
     "bnetz_enabled": "BNETZ_ENABLED",
+    "notify_webhook_url": "NOTIFY_WEBHOOK_URL",
+    "notify_webhook_token": "NOTIFY_WEBHOOK_TOKEN",
+    "notify_min_severity": "NOTIFY_MIN_SEVERITY",
+    "notify_cooldown": "NOTIFY_COOLDOWN",
+    "notify_cooldowns": "NOTIFY_COOLDOWNS",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -94,7 +107,7 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload"}
+INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown"}
 BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
@@ -229,6 +242,12 @@ class ConfigManager:
             if key in data and data[key] == PASSWORD_MASK:
                 del data[key]
 
+        # In demo mode, don't overwrite hidden private values with empty strings
+        if self.is_demo_mode():
+            for key in DEMO_HIDE_KEYS:
+                if key in data and not data[key]:
+                    del data[key]
+
         # Hash password keys (admin_password) before storing
         for key in HASH_KEYS:
             if key in data and data[key]:
@@ -305,6 +324,10 @@ class ConfigManager:
             val = val.lower() in ("true", "1", "yes")
         return bool(val)
 
+    def is_notify_configured(self):
+        """True if a notification webhook URL is set."""
+        return bool(self.get("notify_webhook_url"))
+
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set, or demo mode is active."""
         return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token")) or self.is_demo_mode()
@@ -316,12 +339,16 @@ class ConfigManager:
 
     def get_all(self, mask_secrets=False):
         """Return all config values as dict.
-        If mask_secrets=True, password fields show a mask instead of real values."""
+        If mask_secrets=True, password fields show a mask instead of real values.
+        In demo mode, private integration URLs/hosts are hidden."""
+        demo = self.is_demo_mode()
         result = {}
         for key in DEFAULTS:
             val = self.get(key)
             if mask_secrets and key in (SECRET_KEYS | HASH_KEYS) and val:
                 result[key] = PASSWORD_MASK
+            elif mask_secrets and demo and key in DEMO_HIDE_KEYS:
+                result[key] = ""
             else:
                 result[key] = val
         result["data_dir"] = os.environ.get("DATA_DIR", self.data_dir)

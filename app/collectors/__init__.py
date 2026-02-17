@@ -23,9 +23,9 @@ COLLECTOR_REGISTRY = {
 }
 
 
-def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, analyzer):
+def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, analyzer, notifier=None):
     """Discover and instantiate all available collectors based on config.
-    
+
     Args:
         config_mgr: Configuration manager instance
         storage: SnapshotStorage instance
@@ -33,7 +33,8 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
         mqtt_pub: MQTTPublisher instance (or None)
         web: Web module reference
         analyzer: Analyzer module reference
-    
+        notifier: NotificationDispatcher instance (or None)
+
     Returns:
         List of instantiated Collector objects ready to poll.
     """
@@ -50,6 +51,7 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             mqtt_pub=mqtt_pub,
             web=web,
             poll_interval=config["poll_interval"],
+            notifier=notifier,
         ))
     # Modem collector (available if modem configured)
     elif config_mgr.is_configured():
@@ -66,12 +68,13 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
 
         collectors.append(ModemCollector(
             driver=driver,
-            analyzer_fn=analyzer.analyze,  # Inject analyzer function
+            analyzer_fn=analyzer.analyze,
             event_detector=event_detector,
             storage=storage,
             mqtt_pub=mqtt_pub,
             web=web,
             poll_interval=config["poll_interval"],
+            notifier=notifier,
         ))
     
     # Speedtest collector (available if speedtest configured, but not in demo mode)
