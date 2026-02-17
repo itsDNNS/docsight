@@ -428,7 +428,9 @@ class VodafoneStationDriver(ModemDriver):
         3. AES-CCM encrypt with AAD "loginPassword"
         4. POST /php/ajaxSet_Password.php as JSON
         5. Decrypt CSRF nonce from response
-        6. Set credential cookie from base_95x.js
+        6. Set session-level headers (csrfNonce, Origin, etc.)
+        7. POST /php/ajaxSet_Session.php to establish session
+        8. Set credential cookie from base_95x.js
         """
         from Crypto.Cipher import AES
 
@@ -537,6 +539,26 @@ class VodafoneStationDriver(ModemDriver):
 
         self._tg_key = key
         self._tg_iv = iv_bytes
+
+        # Step 6: Set session-level headers (matches arris-tg3442de-exporter)
+        self._session.headers.update({
+            "X-Requested-With": "XMLHttpRequest",
+            "csrfNonce": self._tg_nonce,
+            "Origin": f"{self._url}/",
+            "Referer": f"{self._url}/",
+            "User-Agent": "Mozilla/5.0",
+        })
+
+        # Step 7: Establish session (required on some firmware versions)
+        try:
+            r3 = self._session.post(
+                f"{self._url}/php/ajaxSet_Session.php",
+                timeout=10,
+            )
+            log.debug("TG session init: HTTP %d", r3.status_code)
+        except Exception as e:
+            log.debug("TG session init failed (non-critical): %s", e)
+
         log.info("TG auth OK")
         log.debug("TG login: p_status=%s, keys=%s, nonce=%s..., cookies=%d, "
                   "cookie_names=%s",
@@ -545,9 +567,7 @@ class VodafoneStationDriver(ModemDriver):
                   len(self._session.cookies),
                   list(self._session.cookies.keys()))
 
-        # Step 6: Set credential cookie from base_95x.js
-        # The modem's JS sets this cookie after login. Without it,
-        # data endpoints return 400 "session lost".
+        # Step 8: Set credential cookie from base_95x.js
         self._set_tg_credential_cookie()
 
     def _get_docsis_tg(self) -> dict:
@@ -567,24 +587,13 @@ class VodafoneStationDriver(ModemDriver):
         try:
             r = self._tg_docsis_request()
         except requests.RequestException as e:
-            # Stale session from previous run: re-login and retry once
+            # Stale session: re-login and retry once
             if hasattr(e, 'response') and e.response is not None and e.response.status_code in (400, 401, 403):
                 log.warning("TG DOCSIS request failed (%s), re-authenticating and retrying", e.response.status_code)
                 self._invalidate_tg_session()
                 try:
                     self._login_tg()
                     r = self._tg_docsis_request()
-                except requests.RequestException as retry_err:
-                    # Second failure: try without warmup (some firmwares rotate
-                    # the nonce on page navigation, invalidating it immediately)
-                    if hasattr(retry_err, 'response') and retry_err.response is not None and retry_err.response.status_code == 400:
-                        log.warning("TG DOCSIS retry also failed, attempting direct fetch without warmup")
-                        self._invalidate_tg_session()
-                        self._login_tg()
-                        r = self._tg_docsis_request_direct()
-                    else:
-                        self._invalidate_tg_session()
-                        raise RuntimeError(f"TG DOCSIS data retrieval failed after retry: {retry_err}")
                 except Exception as retry_err:
                     self._invalidate_tg_session()
                     raise RuntimeError(f"TG DOCSIS data retrieval failed after retry: {retry_err}")
@@ -681,83 +690,15 @@ class VodafoneStationDriver(ModemDriver):
     def _tg_docsis_request(self) -> requests.Response:
         """Make a single TG DOCSIS data request.
 
-        Replicates the real browser flow:
-        1. Navigate to the DOCSIS status page as a regular browser GET
-           (no csrfNonce/X-Requested-With -- these mark an AJAX call and
-           would cause the modem to rotate or invalidate the CSRF nonce).
-        2. If the navigation response contains a rotated nonce, adopt it.
-        3. Fetch actual DOCSIS data via AJAX with the (possibly updated) nonce.
+        Session headers (csrfNonce, X-Requested-With, Origin, etc.) are
+        set at login time, so this is a simple authenticated GET.
         """
-        # Navigate to DOCSIS status page (regular browser navigation, no AJAX headers)
-        warmup = self._session.get(
-            f"{self._url}/?status_docsis&mid=StatusDocsis",
-            headers={
-                "User-Agent": "Mozilla/5.0",
-                "Referer": f"{self._url}/",
-            },
-            timeout=10,
-        )
-
-        # Check if warmup response contains a rotated nonce
-        if warmup.status_code == 200:
-            new_nonce = self._extract_js_var(warmup.text, "csrfNonce")
-            if not new_nonce:
-                new_nonce = self._extract_js_var(warmup.text, "nonce")
-            if new_nonce and new_nonce != self._tg_nonce:
-                log.debug("TG nonce rotated: %s... -> %s...",
-                          self._tg_nonce[:8] if self._tg_nonce else "?",
-                          new_nonce[:8])
-                self._tg_nonce = new_nonce
-            elif not new_nonce:
-                log.debug("TG warmup: no nonce found in %d bytes HTML, "
-                          "keeping login nonce %s...",
-                          len(warmup.text),
-                          self._tg_nonce[:8] if self._tg_nonce else "None")
-                # Dump lines containing nonce/csrf for diagnostics
-                for line in warmup.text.split("\n"):
-                    stripped = line.strip()
-                    if stripped and ("nonce" in stripped.lower()
-                                    or "csrf" in stripped.lower()):
-                        log.debug("TG warmup nonce-hint: %s", stripped[:200])
-
-        # Actual data fetch (AJAX call with csrfNonce)
         r = self._session.get(
             f"{self._url}/php/status_docsis_data.php",
-            headers={
-                "csrfNonce": self._tg_nonce,
-                "X-Requested-With": "XMLHttpRequest",
-                "Referer": f"{self._url}/?status_docsis&mid=StatusDocsis",
-                "User-Agent": "Mozilla/5.0",
-            },
             timeout=10,
         )
         if r.status_code != 200:
             log.warning("TG DOCSIS data response %d: %s", r.status_code, r.text[:200])
-        r.raise_for_status()
-        return r
-
-    def _tg_docsis_request_direct(self) -> requests.Response:
-        """Direct DOCSIS data fetch without warmup page navigation.
-
-        Fallback for firmwares where the warmup page navigation invalidates
-        the CSRF nonce. Skips straight to the AJAX data fetch.
-        """
-        log.debug("TG direct fetch with nonce %s..., cookies=%s",
-                  self._tg_nonce[:8] if self._tg_nonce else "None",
-                  list(self._session.cookies.keys()))
-        r = self._session.get(
-            f"{self._url}/php/status_docsis_data.php",
-            headers={
-                "csrfNonce": self._tg_nonce,
-                "X-Requested-With": "XMLHttpRequest",
-                "Referer": f"{self._url}/",
-                "User-Agent": "Mozilla/5.0",
-            },
-            timeout=10,
-        )
-        if r.status_code != 200:
-            log.warning("TG direct DOCSIS data response %d: %s",
-                        r.status_code, r.text[:200])
         r.raise_for_status()
         return r
 
@@ -800,12 +741,14 @@ class VodafoneStationDriver(ModemDriver):
             pass  # Best-effort
 
     def _invalidate_tg_session(self) -> None:
-        """Clear TG session state."""
+        """Clear TG session state and session-level headers."""
         self._logout_tg()
         self._tg_nonce = None
         self._tg_key = None
         self._tg_iv = None
         self._session.cookies.clear()
+        for key in ("X-Requested-With", "csrfNonce", "Origin", "Referer", "User-Agent"):
+            self._session.headers.pop(key, None)
 
     # ── Helpers ───────────────────────────────────────────────
 
