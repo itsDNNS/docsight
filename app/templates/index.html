@@ -1491,6 +1491,7 @@
             return;
         }
         
+        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
         window.donutCharts[canvasId] = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -1518,10 +1519,10 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(15,20,25,0.95)',
-                        titleColor: 'rgba(224,224,224,0.9)',
-                        bodyColor: 'rgba(224,224,224,0.8)',
-                        borderColor: 'rgba(168,85,247,0.3)',
+                        backgroundColor: isDark ? 'rgba(15,20,25,0.95)' : 'rgba(255,255,255,0.95)',
+                        titleColor: isDark ? 'rgba(224,224,224,0.9)' : 'rgba(30,30,30,0.9)',
+                        bodyColor: isDark ? 'rgba(224,224,224,0.8)' : 'rgba(30,30,30,0.8)',
+                        borderColor: isDark ? 'rgba(168,85,247,0.3)' : 'rgba(168,85,247,0.4)',
                         borderWidth: 1,
                         padding: 12,
                         displayColors: true,
@@ -1577,6 +1578,10 @@
         var next = this.checked ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('docsis-theme', next);
+        // Re-render charts with updated theme colors
+        if (typeof window.refreshDonuts === 'function') {
+            setTimeout(window.refreshDonuts, 50);
+        }
     });
 
     /* ── State ── */
