@@ -512,7 +512,9 @@ class VodafoneStationDriver(ModemDriver):
             raise RuntimeError("TG: Authentication failed (invalid password)")
 
         p_status = resp.get("p_status", "")
-        if p_status and p_status not in ("OK", "Lockout", "Fail", ""):
+        if p_status == "AdminMatch":
+            log.info("TG login: AdminMatch (existing admin session detected)")
+        elif p_status and p_status not in ("OK", "Lockout", "Fail", ""):
             log.warning("TG login: unexpected p_status=%r (full response: %s)",
                         p_status, {k: v for k, v in resp.items() if k != "encryptData"})
 
@@ -524,17 +526,23 @@ class VodafoneStationDriver(ModemDriver):
             decipher = AES.new(key, AES.MODE_CCM, nonce=iv_bytes, mac_len=16)
             decipher.update(b"nonce")
             decrypted = decipher.decrypt_and_verify(ct_part, tag_part)
-            self._tg_nonce = decrypted.decode("utf-8")[:32]
+            nonce_full = decrypted.decode("utf-8")
+            self._tg_nonce = nonce_full[:32]
+            if len(nonce_full) > 32:
+                log.debug("TG nonce decrypted: %d chars (using first 32): %s",
+                          len(nonce_full), repr(nonce_full[:64]))
         else:
             self._tg_nonce = resp.get("nonce", session_id)
 
         self._tg_key = key
         self._tg_iv = iv_bytes
         log.info("TG auth OK")
-        log.debug("TG login: p_status=%s, keys=%s, nonce=%s..., cookies=%d",
+        log.debug("TG login: p_status=%s, keys=%s, nonce=%s..., cookies=%d, "
+                  "cookie_names=%s",
                   resp.get("p_status", "?"), list(resp.keys()),
                   self._tg_nonce[:8] if self._tg_nonce else "None",
-                  len(self._session.cookies))
+                  len(self._session.cookies),
+                  list(self._session.cookies.keys()))
 
     def _get_docsis_tg(self) -> dict:
         """TG: Fetch DOCSIS data from status_docsis_data.php.
@@ -560,6 +568,17 @@ class VodafoneStationDriver(ModemDriver):
                 try:
                     self._login_tg()
                     r = self._tg_docsis_request()
+                except requests.RequestException as retry_err:
+                    # Second failure: try without warmup (some firmwares rotate
+                    # the nonce on page navigation, invalidating it immediately)
+                    if hasattr(retry_err, 'response') and retry_err.response is not None and retry_err.response.status_code == 400:
+                        log.warning("TG DOCSIS retry also failed, attempting direct fetch without warmup")
+                        self._invalidate_tg_session()
+                        self._login_tg()
+                        r = self._tg_docsis_request_direct()
+                    else:
+                        self._invalidate_tg_session()
+                        raise RuntimeError(f"TG DOCSIS data retrieval failed after retry: {retry_err}")
                 except Exception as retry_err:
                     self._invalidate_tg_session()
                     raise RuntimeError(f"TG DOCSIS data retrieval failed after retry: {retry_err}")
@@ -708,6 +727,31 @@ class VodafoneStationDriver(ModemDriver):
         )
         if r.status_code != 200:
             log.warning("TG DOCSIS data response %d: %s", r.status_code, r.text[:200])
+        r.raise_for_status()
+        return r
+
+    def _tg_docsis_request_direct(self) -> requests.Response:
+        """Direct DOCSIS data fetch without warmup page navigation.
+
+        Fallback for firmwares where the warmup page navigation invalidates
+        the CSRF nonce. Skips straight to the AJAX data fetch.
+        """
+        log.debug("TG direct fetch with nonce %s..., cookies=%s",
+                  self._tg_nonce[:8] if self._tg_nonce else "None",
+                  list(self._session.cookies.keys()))
+        r = self._session.get(
+            f"{self._url}/php/status_docsis_data.php",
+            headers={
+                "csrfNonce": self._tg_nonce,
+                "X-Requested-With": "XMLHttpRequest",
+                "Referer": f"{self._url}/",
+                "User-Agent": "Mozilla/5.0",
+            },
+            timeout=10,
+        )
+        if r.status_code != 200:
+            log.warning("TG direct DOCSIS data response %d: %s",
+                        r.status_code, r.text[:200])
         r.raise_for_status()
         return r
 
