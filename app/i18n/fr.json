@@ -437,6 +437,7 @@
   "import_duplicate": "doublon",
   "import_success": "incidents importes",
   "import_duplicates_skipped": "doublons ignores",
+  "import_no_date": "pas de date",
   "import_file_unsupported": "Seuls les fichiers .xlsx et .csv sont pris en charge",
   "import_file_too_large": "Fichier trop volumineux (max 5 Mo)",
   "delete_all": "Tout supprimer",
