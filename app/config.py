@@ -73,6 +73,8 @@ ENV_MAP = {
     "smokeping_targets": "SMOKEPING_TARGETS",
     "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
+    "booked_download": "BOOKED_DOWNLOAD",
+    "booked_upload": "BOOKED_UPLOAD",
     "demo_mode": "DEMO_MODE",
     "gaming_quality_enabled": "GAMING_QUALITY_ENABLED",
     "bnetz_enabled": "BNETZ_ENABLED",
