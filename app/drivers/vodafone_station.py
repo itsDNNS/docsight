@@ -435,6 +435,7 @@ class VodafoneStationDriver(ModemDriver):
             log.debug("TG session active, skipping login")
             return
 
+        self._logout_tg()
         self._session.cookies.clear()
         self._tg_nonce = None
         self._tg_key = None
@@ -510,6 +511,11 @@ class VodafoneStationDriver(ModemDriver):
         if resp.get("p_status") == "Fail":
             raise RuntimeError("TG: Authentication failed (invalid password)")
 
+        p_status = resp.get("p_status", "")
+        if p_status and p_status not in ("OK", "Lockout", "Fail", ""):
+            log.warning("TG login: unexpected p_status=%r (full response: %s)",
+                        p_status, {k: v for k, v in resp.items() if k != "encryptData"})
+
         encrypted_nonce = resp.get("encryptData", "")
         if encrypted_nonce:
             enc_bytes = bytes.fromhex(encrypted_nonce)
@@ -525,6 +531,10 @@ class VodafoneStationDriver(ModemDriver):
         self._tg_key = key
         self._tg_iv = iv_bytes
         log.info("TG auth OK")
+        log.debug("TG login: p_status=%s, keys=%s, nonce=%s..., cookies=%d",
+                  resp.get("p_status", "?"), list(resp.keys()),
+                  self._tg_nonce[:8] if self._tg_nonce else "None",
+                  len(self._session.cookies))
 
     def _get_docsis_tg(self) -> dict:
         """TG: Fetch DOCSIS data from status_docsis_data.php.
@@ -646,20 +656,35 @@ class VodafoneStationDriver(ModemDriver):
     def _tg_docsis_request(self) -> requests.Response:
         """Make a single TG DOCSIS data request.
 
-        Some TG firmware versions require navigating to the DOCSIS status
-        page before the data endpoint will respond.  We replicate the
-        browser flow: load the parent page first, then fetch the data.
+        Replicates the real browser flow:
+        1. Navigate to the DOCSIS status page as a regular browser GET
+           (no csrfNonce/X-Requested-With -- these mark an AJAX call and
+           would cause the modem to rotate or invalidate the CSRF nonce).
+        2. If the navigation response contains a rotated nonce, adopt it.
+        3. Fetch actual DOCSIS data via AJAX with the (possibly updated) nonce.
         """
-        # Navigate to DOCSIS status page first (sets server-side page state)
-        self._session.get(
+        # Navigate to DOCSIS status page (regular browser navigation, no AJAX headers)
+        warmup = self._session.get(
             f"{self._url}/?status_docsis&mid=StatusDocsis",
             headers={
-                "csrfNonce": self._tg_nonce,
-                "X-Requested-With": "XMLHttpRequest",
                 "User-Agent": "Mozilla/5.0",
+                "Referer": f"{self._url}/",
             },
             timeout=10,
         )
+
+        # Check if warmup response contains a rotated nonce
+        if warmup.status_code == 200:
+            new_nonce = self._extract_js_var(warmup.text, "csrfNonce")
+            if not new_nonce:
+                new_nonce = self._extract_js_var(warmup.text, "nonce")
+            if new_nonce and new_nonce != self._tg_nonce:
+                log.debug("TG nonce rotated: %s... -> %s...",
+                          self._tg_nonce[:8] if self._tg_nonce else "?",
+                          new_nonce[:8])
+                self._tg_nonce = new_nonce
+
+        # Actual data fetch (AJAX call with csrfNonce)
         r = self._session.get(
             f"{self._url}/php/status_docsis_data.php",
             headers={
@@ -675,8 +700,26 @@ class VodafoneStationDriver(ModemDriver):
         r.raise_for_status()
         return r
 
+    def _logout_tg(self) -> None:
+        """Attempt to cleanly end the TG session."""
+        if not self._tg_nonce:
+            return
+        try:
+            self._session.post(
+                f"{self._url}/api/v1/session/logout",
+                headers={
+                    "csrfNonce": self._tg_nonce,
+                    "X-Requested-With": "XMLHttpRequest",
+                    "User-Agent": "Mozilla/5.0",
+                },
+                timeout=5,
+            )
+        except Exception:
+            pass  # Best-effort
+
     def _invalidate_tg_session(self) -> None:
         """Clear TG session state."""
+        self._logout_tg()
         self._tg_nonce = None
         self._tg_key = None
         self._tg_iv = None
