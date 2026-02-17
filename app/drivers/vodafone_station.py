@@ -683,6 +683,17 @@ class VodafoneStationDriver(ModemDriver):
                           self._tg_nonce[:8] if self._tg_nonce else "?",
                           new_nonce[:8])
                 self._tg_nonce = new_nonce
+            elif not new_nonce:
+                log.debug("TG warmup: no nonce found in %d bytes HTML, "
+                          "keeping login nonce %s...",
+                          len(warmup.text),
+                          self._tg_nonce[:8] if self._tg_nonce else "None")
+                # Dump lines containing nonce/csrf for diagnostics
+                for line in warmup.text.split("\n"):
+                    stripped = line.strip()
+                    if stripped and ("nonce" in stripped.lower()
+                                    or "csrf" in stripped.lower()):
+                        log.debug("TG warmup nonce-hint: %s", stripped[:200])
 
         # Actual data fetch (AJAX call with csrfNonce)
         r = self._session.get(
@@ -705,13 +716,16 @@ class VodafoneStationDriver(ModemDriver):
         if not self._tg_nonce:
             return
         try:
+            # TG uses PHP logout, not CGA REST API
             self._session.post(
-                f"{self._url}/api/v1/session/logout",
+                f"{self._url}/php/ajaxSet_Password.php",
                 headers={
                     "csrfNonce": self._tg_nonce,
                     "X-Requested-With": "XMLHttpRequest",
+                    "Content-Type": "application/json",
                     "User-Agent": "Mozilla/5.0",
                 },
+                data=json.dumps({"Logout": "true"}),
                 timeout=5,
             )
         except Exception:
@@ -729,10 +743,22 @@ class VodafoneStationDriver(ModemDriver):
 
     @staticmethod
     def _extract_js_var(html: str, var_name: str) -> str | None:
-        """Extract JavaScript variable value from HTML source."""
-        pattern = rf"""var\s+{re.escape(var_name)}\s*=\s*['"]([^'"]+)['"]"""
-        match = re.search(pattern, html)
-        return match.group(1) if match else None
+        """Extract JavaScript variable value from HTML source.
+
+        Handles: var x = '...', let x = '...', const x = '...',
+        window.x = '...', and bare x = '...' assignments.
+        """
+        escaped = re.escape(var_name)
+        patterns = [
+            rf"""(?:var|let|const)\s+{escaped}\s*=\s*['"]([^'"]+)['"]""",
+            rf"""(?:window\.){escaped}\s*=\s*['"]([^'"]+)['"]""",
+            rf"""{escaped}\s*=\s*['"]([a-fA-F0-9]{{8,}})['"]""",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, html)
+            if match:
+                return match.group(1)
+        return None
 
     @staticmethod
     def _validate_hex(value: str, name: str) -> None:
