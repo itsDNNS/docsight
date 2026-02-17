@@ -791,12 +791,15 @@ class SnapshotStorage:
 
         if "speedtest" in sources:
             for st in self.get_speedtest_in_range(start_ts, end_ts):
-                # Normalize timestamp for display
+                # Normalize timestamp for display (UTC -> local)
                 ts = st["timestamp"]
                 if ts.endswith("Z"):
                     try:
                         from datetime import timezone
-                        utc_dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        ts_clean = ts[:-1]  # Strip Z
+                        if "." in ts_clean:
+                            ts_clean = ts_clean.split(".")[0]
+                        utc_dt = datetime.strptime(ts_clean, "%Y-%m-%dT%H:%M:%S")
                         local_dt = utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
                         ts = local_dt.strftime("%Y-%m-%dT%H:%M:%S")
                     except (ValueError, TypeError):
