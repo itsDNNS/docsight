@@ -166,7 +166,7 @@ class MQTTPublisher:
         # --- DOCSight Status as binary_sensor with device_class=running ---
         status_topic = f"{self.ha_prefix}/binary_sensor/docsight/status/config"
         status_config = {
-            "name": "DOCSight Status",
+            "name": "Status",
             "unique_id": "docsight_status",
             "state_topic": self._status_topic,
             "payload_on": "online",
