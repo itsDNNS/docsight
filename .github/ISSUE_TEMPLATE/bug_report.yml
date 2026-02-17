@@ -13,8 +13,7 @@ body:
       label: DOCSight Version
       description: Which version are you using?
       options:
-        - v2-dev (latest development)
-        - Latest release (main branch)
+        - Latest release
         - Older release (specify below)
     validations:
       required: true

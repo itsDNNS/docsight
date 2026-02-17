@@ -7,10 +7,9 @@ We release security updates for the following versions:
 | Version | Supported          |
 | ------- | ------------------ |
 | v2.x (main) | :white_check_mark: |
-| v2-dev (feature branches) | :white_check_mark: |
-| v1.x (legacy) | :x: (maintenance mode) |
+| v1.x (legacy) | :x: (no longer supported) |
 
-**Recommendation:** Always use the latest release from the `main` branch or `v2-dev` for the newest features and security fixes.
+**Recommendation:** Always use the latest release from the `main` branch for the newest features and security fixes.
 
 ## Reporting a Vulnerability
 
