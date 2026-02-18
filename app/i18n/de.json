@@ -488,5 +488,16 @@
   "incident_filter_all": "Alle",
   "incident_filter_unassigned": "Nicht zugeordnet",
   "incident_assign": "Vorfall zuweisen",
-  "incident_none": "Kein Vorfall"
+  "incident_none": "Kein Vorfall",
+  "bulk_select": "Auswaehlen",
+  "bulk_cancel": "Abbrechen",
+  "bulk_assign": "Zuweisen",
+  "bulk_unassign": "Zuordnung aufheben",
+  "bulk_deselect": "Alle abwaehlen",
+  "bulk_select_all": "Alle auswaehlen",
+  "bulk_select_incident": "Waehle zuerst einen Vorfall aus",
+  "entry_selected": "Eintrag ausgewaehlt",
+  "entries_selected": "Eintraege ausgewaehlt",
+  "entries_assigned": "Eintraege zugewiesen",
+  "entries_unassigned": "Eintraege geloest"
 }
