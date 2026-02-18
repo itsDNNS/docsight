@@ -882,6 +882,16 @@
     </div>
     <div class="incident-filter-bar" id="incident-filter-bar" style="display:none;"></div>
     <div class="incident-summary" id="incident-summary" style="display:none;"></div>
+    <div class="journal-bulk-bar" id="journal-bulk-bar" style="display:none;">
+        <span class="journal-bulk-count" id="journal-bulk-count"></span>
+        <select id="journal-bulk-incident-select" class="journal-bulk-select">
+            <option value="" disabled selected>{{ t.incident_assign }}…</option>
+        </select>
+        <button class="btn-small btn-accent" onclick="bulkAssign()">{{ t.bulk_assign }}</button>
+        <button class="btn-small btn-muted" onclick="bulkUnassign()">{{ t.bulk_unassign }}</button>
+        <span class="journal-bulk-sep"></span>
+        <button class="btn-small btn-ghost" onclick="clearBulkSelection()">{{ t.bulk_deselect }}</button>
+    </div>
     <div class="journal-search-wrap" id="journal-search-wrap" style="display:none;">
         <div class="journal-search-box">
             <svg class="journal-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -908,9 +918,16 @@
                 </svg>
                 <span>{{ t.incident_journal }}</span>
             </div>
+            <button class="btn-bulk-toggle" id="btn-bulk-toggle" onclick="toggleBulkMode()" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <polyline points="9 11 12 14 22 4"/>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+                <span id="btn-bulk-toggle-label">{{ t.bulk_select }}</span>
+            </button>
         </div>
         <table id="journal-table">
-            <thead><tr>
+            <thead><tr id="journal-thead-row">
                 <th style="width:36px;"></th>
                 <th data-col="date">{{ t.incident_date }}<span class="sort-indicator"></span></th>
                 <th data-col="title">{{ t.incident_title }}<span class="sort-indicator"></span></th>
@@ -2638,6 +2655,8 @@
     var _journalSortCol = 'date';
     var _journalSortAsc = false;
     var _activeIncidentFilter = null; // null=all, 0=unassigned, N=incident id
+    var _selectedEntryIds = []; // bulk selection state
+    var _bulkMode = false;
     var _incidentsData = []; // cached incident containers
 
     var INCIDENT_ICONS = [
@@ -2750,7 +2769,15 @@
         if (tableCard) tableCard.style.display = 'none';
         empty.style.display = 'none';
         if (deleteAllBtn) deleteAllBtn.style.display = 'none';
+        var bulkToggle = document.getElementById('btn-bulk-toggle');
+        if (bulkToggle) bulkToggle.style.display = 'none';
         if (searchCount) searchCount.textContent = '';
+        /* Reset bulk selection on reload */
+        _selectedEntryIds = [];
+        var master = document.getElementById('journal-select-all');
+        if (master) master.checked = false;
+        var bulkBar = document.getElementById('journal-bulk-bar');
+        if (bulkBar) bulkBar.style.display = 'none';
 
         var url = '/api/journal?limit=1000';
         if (searchQuery) url += '&search=' + encodeURIComponent(searchQuery);
@@ -2775,6 +2802,8 @@
                 _journalLoaded = true;
                 if (searchWrap) searchWrap.style.display = '';
                 if (deleteAllBtn && !searchQuery) deleteAllBtn.style.display = '';
+                var bulkToggle = document.getElementById('btn-bulk-toggle');
+                if (bulkToggle && !searchQuery) bulkToggle.style.display = '';
                 if (searchQuery && searchCount) {
                     searchCount.textContent = data.length + ' ' + (data.length !== 1 ? T.search_results : T.search_result);
                 }
@@ -2832,13 +2861,18 @@
                     var monthLabel = MONTH_NAMES[monthIdx] + ' ' + parts[0];
                     var groupTr = document.createElement('tr');
                     groupTr.className = 'journal-month-header';
-                    groupTr.innerHTML = '<td colspan="5">' + monthLabel + '</td>';
+                    groupTr.innerHTML = '<td colspan="' + (_bulkMode ? 6 : 5) + '">' + monthLabel + '</td>';
                     tbody.appendChild(groupTr);
                 }
             }
             var tr = document.createElement('tr');
             tr.setAttribute('data-id', inc.id);
-            tr.onclick = function() { openEntryModal(inc.id); };
+            var isSelected = _selectedEntryIds.indexOf(inc.id) !== -1;
+            if (isSelected) tr.classList.add('journal-row-selected');
+            tr.onclick = function(e) {
+                if (e.target.closest('.journal-check-cell')) return;
+                openEntryModal(inc.id);
+            };
             var desc = inc.description || '';
             if (desc.length > 80) desc = desc.substring(0, 80) + '…';
             var clipCell = inc.attachment_count > 0 ? '&#128206; ' + inc.attachment_count : '';
@@ -2848,6 +2882,7 @@
             var descHtml = q ? highlightText(desc, q) : escapeHtml(desc);
             var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
             tr.innerHTML =
+                (_bulkMode ? '<td class="journal-check-cell"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' onclick="toggleEntrySelection(this, ' + inc.id + ')"></td>' : '') +
                 '<td class="journal-icon-cell">' + iconHtml + '</td>' +
                 '<td>' + dateHtml + '</td>' +
                 '<td>' + titleHtml + '</td>' +
@@ -3884,6 +3919,151 @@
             .catch(function() { showToast(T.network_error || 'Error', 'error'); });
     }
 
+    /* ── Bulk Selection & Assignment ── */
+
+    function toggleBulkMode() {
+        if (_bulkMode) {
+            exitBulkMode();
+        } else {
+            _bulkMode = true;
+            var label = document.getElementById('btn-bulk-toggle-label');
+            var btn = document.getElementById('btn-bulk-toggle');
+            label.textContent = T.bulk_cancel || 'Cancel';
+            btn.classList.add('btn-bulk-active');
+            // Insert checkbox header column
+            var headRow = document.getElementById('journal-thead-row');
+            var th = document.createElement('th');
+            th.className = 'journal-check-col';
+            th.style.width = '36px';
+            th.innerHTML = '<input type="checkbox" id="journal-select-all" onclick="toggleSelectAll(this)" title="' + (T.bulk_select_all || 'Select All') + '">';
+            headRow.insertBefore(th, headRow.firstChild);
+            // Re-render table with checkboxes
+            if (_journalAllData) renderJournalTable(_journalAllData, _journalSearchQuery);
+        }
+    }
+
+    function exitBulkMode() {
+        _bulkMode = false;
+        _selectedEntryIds = [];
+        var label = document.getElementById('btn-bulk-toggle-label');
+        var btn = document.getElementById('btn-bulk-toggle');
+        if (label) label.textContent = T.bulk_select || 'Select';
+        if (btn) btn.classList.remove('btn-bulk-active');
+        // Remove checkbox header column
+        var headRow = document.getElementById('journal-thead-row');
+        var checkTh = headRow.querySelector('.journal-check-col');
+        if (checkTh) headRow.removeChild(checkTh);
+        // Re-render table without checkboxes
+        var bulkBar = document.getElementById('journal-bulk-bar');
+        if (bulkBar) bulkBar.style.display = 'none';
+        if (_journalAllData) renderJournalTable(_journalAllData, _journalSearchQuery);
+    }
+
+    function toggleEntrySelection(checkbox, entryId) {
+        var idx = _selectedEntryIds.indexOf(entryId);
+        if (checkbox.checked && idx === -1) {
+            _selectedEntryIds.push(entryId);
+        } else if (!checkbox.checked && idx !== -1) {
+            _selectedEntryIds.splice(idx, 1);
+        }
+        var row = checkbox.closest('tr');
+        if (row) row.classList.toggle('journal-row-selected', checkbox.checked);
+        updateBulkBar();
+    }
+
+    function toggleSelectAll(masterCheckbox) {
+        var checkboxes = document.querySelectorAll('.journal-row-check');
+        _selectedEntryIds = [];
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = masterCheckbox.checked;
+            var row = checkboxes[i].closest('tr');
+            if (row) row.classList.toggle('journal-row-selected', masterCheckbox.checked);
+            if (masterCheckbox.checked) {
+                _selectedEntryIds.push(parseInt(checkboxes[i].getAttribute('data-entry-id')));
+            }
+        }
+        updateBulkBar();
+    }
+
+    function clearBulkSelection() {
+        _selectedEntryIds = [];
+        var checkboxes = document.querySelectorAll('.journal-row-check');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = false;
+            var row = checkboxes[i].closest('tr');
+            if (row) row.classList.remove('journal-row-selected');
+        }
+        var master = document.getElementById('journal-select-all');
+        if (master) master.checked = false;
+        updateBulkBar();
+    }
+
+    function updateBulkBar() {
+        var bar = document.getElementById('journal-bulk-bar');
+        var count = _selectedEntryIds.length;
+        if (count === 0) {
+            bar.style.display = 'none';
+            return;
+        }
+        bar.style.display = '';
+        var countEl = document.getElementById('journal-bulk-count');
+        countEl.textContent = count + ' ' + (count === 1 ? (T.entry_selected || 'entry selected') : (T.entries_selected || 'entries selected'));
+        populateBulkIncidentSelect();
+    }
+
+    function populateBulkIncidentSelect() {
+        var sel = document.getElementById('journal-bulk-incident-select');
+        var prev = sel.value;
+        sel.innerHTML = '<option value="" disabled selected>' + (T.incident_assign || 'Assign to Incident') + '…</option>';
+        _incidentsData.forEach(function(inc) {
+            var opt = document.createElement('option');
+            opt.value = inc.id;
+            opt.textContent = inc.name + ' (' + (T['incident_status_' + inc.status] || inc.status) + ')';
+            sel.appendChild(opt);
+        });
+        if (prev) sel.value = prev;
+    }
+
+    function bulkAssign() {
+        var sel = document.getElementById('journal-bulk-incident-select');
+        var incidentId = sel.value;
+        if (!incidentId) {
+            showToast(T.bulk_select_incident || 'Select an incident first', 'warning');
+            return;
+        }
+        if (_selectedEntryIds.length === 0) return;
+        fetch('/api/incidents/' + incidentId + '/assign', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({entry_ids: _selectedEntryIds})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            showToast((data.updated || 0) + ' ' + (T.entries_assigned || 'entries assigned'), 'success');
+            exitBulkMode();
+            loadIncidents();
+            loadJournal();
+        })
+        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+    }
+
+    function bulkUnassign() {
+        if (_selectedEntryIds.length === 0) return;
+        fetch('/api/journal/unassign', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({entry_ids: _selectedEntryIds})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            showToast((data.updated || 0) + ' ' + (T.entries_unassigned || 'entries unassigned'), 'success');
+            exitBulkMode();
+            loadIncidents();
+            loadJournal();
+        })
+        .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+    }
+
     /* Expose Journal functions for HTML onclick/onchange handlers */
     window.openEntryModal = openEntryModal;
     window.closeEntryModal = closeEntryModal;
@@ -3906,6 +4086,12 @@
     window.saveIncident = saveIncident;
     window.deleteIncident = deleteIncident;
     window.filterByIncident = filterByIncident;
+    window.toggleBulkMode = toggleBulkMode;
+    window.toggleEntrySelection = toggleEntrySelection;
+    window.toggleSelectAll = toggleSelectAll;
+    window.clearBulkSelection = clearBulkSelection;
+    window.bulkAssign = bulkAssign;
+    window.bulkUnassign = bulkUnassign;
 
     /* ── Journal Search ── */
     function clearJournalSearch() {

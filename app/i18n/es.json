@@ -483,5 +483,16 @@
   "incident_filter_all": "Todos",
   "incident_filter_unassigned": "Sin asignar",
   "incident_assign": "Asignar a incidente",
-  "incident_none": "Sin incidente"
+  "incident_none": "Sin incidente",
+  "bulk_select": "Seleccionar",
+  "bulk_cancel": "Cancelar",
+  "bulk_assign": "Asignar",
+  "bulk_unassign": "Desasignar",
+  "bulk_deselect": "Deseleccionar todo",
+  "bulk_select_all": "Seleccionar todo",
+  "bulk_select_incident": "Seleccione primero un incidente",
+  "entry_selected": "entrada seleccionada",
+  "entries_selected": "entradas seleccionadas",
+  "entries_assigned": "entradas asignadas",
+  "entries_unassigned": "entradas desasignadas"
 }
