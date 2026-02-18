@@ -740,14 +740,41 @@
 <div id="view-bqm" class="view">
     <div class="trend-header">
         <span class="trend-title">{{ t.bqm_title }}</span>
-        <div class="bqm-date-nav" id="bqm-date-nav">
-            <button id="bqm-prev">&#8249;</button>
-            <span class="bqm-date-label" id="bqm-date-label"></span>
-            <button id="bqm-next">&#8250;</button>
+    </div>
+    <!-- BQM Toolbar: quick-jump + month nav -->
+    <div id="bqm-toolbar" class="bqm-toolbar">
+        <button class="trend-tab bqm-quick" id="bqm-today-btn">{{ t.bqm_today }}</button>
+        <button class="trend-tab bqm-quick" id="bqm-yesterday-btn">{{ t.bqm_yesterday }}</button>
+        <div class="bqm-month-nav">
+            <button id="bqm-month-prev" class="bqm-nav-btn">&#8249;</button>
+            <span id="bqm-month-label" class="bqm-month-label"></span>
+            <button id="bqm-month-next" class="bqm-nav-btn">&#8250;</button>
         </div>
     </div>
+    <!-- Calendar grid -->
+    <div id="bqm-calendar" class="bqm-calendar">
+        <div class="bqm-weekday-header">
+            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+        </div>
+        <div id="bqm-calendar-grid" class="bqm-calendar-grid"></div>
+    </div>
+    <!-- Slideshow controls -->
+    <div id="bqm-slideshow-controls" class="bqm-slideshow-controls">
+        <button id="bqm-play-btn" class="bqm-ctrl-btn" title="{{ t.bqm_play }}">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,4 20,12 6,20"/></svg>
+        </button>
+        <button id="bqm-stop-btn" class="bqm-ctrl-btn" title="{{ t.bqm_stop }}" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+        </button>
+        <div class="bqm-speed-tabs" id="bqm-speed-tabs">
+            <span class="bqm-speed-label">{{ t.bqm_speed }}:</span>
+            <button class="trend-tab" data-speed="1000">1s</button>
+            <button class="trend-tab active" data-speed="2000">2s</button>
+            <button class="trend-tab" data-speed="5000">5s</button>
+        </div>
+        <span id="bqm-range-label" class="bqm-range-label"></span>
+    </div>
     <div id="bqm-content">
-        <!-- Phase 4.5: Card wrapper for BQM image -->
         <div id="bqm-card" class="bqm-card" style="display:none;">
             <div class="chart-card-header">
                 <div class="chart-header-content">
@@ -756,6 +783,8 @@
                         <path d="M7 12l4-4 4 4 4-4"/>
                     </svg>
                     <div class="chart-label">{{ t.bqm_title }}</div>
+                    <span id="bqm-live-badge" class="bqm-live-badge" style="display:none;">{{ t.bqm_live }}</span>
+                    <span id="bqm-last-updated" class="bqm-last-updated" style="display:none;"></span>
                 </div>
             </div>
             <div id="bqm-image-wrap" style="text-align:center;">
@@ -1805,6 +1834,15 @@
     var charts = {};
     var _trendRange = 'day';
     var bqmDate = todayStr();
+    var _bqmAvailableDates = new Set();
+    var _bqmCalYear = new Date().getFullYear();
+    var _bqmCalMonth = new Date().getMonth(); // 0-based
+    var _bqmDatesLoaded = false;
+    var _bqmLiveTimer = null;
+    var _BQM_LIVE_INTERVAL = 300000; // 5 min
+    var _bqmSlideshow = { playing: false, speed: 2000, range: [], currentIdx: 0, timer: null };
+    var _bqmRangeStart = null;
+    var _bqmRangeEnd = null;
 
     function todayStr() {
         var d = new Date();
@@ -1955,13 +1993,30 @@
         if (gamingView) gamingView.classList.remove('active');
         if (bnetzView) bnetzView.classList.remove('active');
         stopAutoRefresh();
+        stopBqmLiveRefresh();
+        stopBqmSlideshow();
         if (view === 'live') {
             dashView.classList.add('active');
             startAutoRefresh();
         } else if (view === 'bqm') {
             if (bqmView) bqmView.classList.add('active');
-            updateBqmDateLabel();
-            loadBqmGraph(bqmDate);
+            // Cross-view date linking (Phase 4)
+            if (window._selectedDateRange) {
+                _bqmRangeStart = window._selectedDateRange.start;
+                _bqmRangeEnd = window._selectedDateRange.end;
+                updateBqmRangeLabel();
+            }
+            if (!_bqmDatesLoaded) {
+                initBqmCalendar();
+            } else {
+                renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
+            }
+            if (bqmDate === todayStr()) {
+                loadBqmLive();
+                startBqmLiveRefresh();
+            } else {
+                loadBqmGraph(bqmDate);
+            }
         } else if (view === 'smokeping') {
             if (smokepingView) smokepingView.classList.add('active');
             loadSmokepingGraphs();
@@ -2196,25 +2251,304 @@
             .then(function() { loadBnetzData(); });
     }
 
-    /* ── BQM Date Navigation ── */
-    var bqmDateLabel = document.getElementById('bqm-date-label');
-    var bqmPrev = document.getElementById('bqm-prev');
-    var bqmNext = document.getElementById('bqm-next');
-
-    function updateBqmDateLabel() {
-        if (bqmDateLabel) bqmDateLabel.textContent = formatDateDE(bqmDate);
+    /* ── BQM Calendar Navigation ── */
+    function fetchBqmDates(cb) {
+        fetch('/api/bqm/dates').then(function(r) { return r.json(); }).then(function(dates) {
+            _bqmAvailableDates = new Set(dates);
+            _bqmDatesLoaded = true;
+            if (cb) cb();
+        }).catch(function() { _bqmDatesLoaded = true; if (cb) cb(); });
     }
 
-    function bqmDateNav(dir) {
+    function renderBqmCalendar(year, month) {
+        var grid = document.getElementById('bqm-calendar-grid');
+        var label = document.getElementById('bqm-month-label');
+        if (!grid || !label) return;
+        var monthNames = T.month_names || ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        label.textContent = monthNames[month] + ' ' + year;
+        grid.innerHTML = '';
+        var firstDay = new Date(year, month, 1);
+        // Monday-start: 0=Mon..6=Sun
+        var startDow = (firstDay.getDay() + 6) % 7;
+        var daysInMonth = new Date(year, month + 1, 0).getDate();
+        var today = todayStr();
+        // Fill leading empty cells
+        for (var e = 0; e < startDow; e++) {
+            var empty = document.createElement('div');
+            empty.className = 'bqm-day other-month';
+            grid.appendChild(empty);
+        }
+        for (var d = 1; d <= daysInMonth; d++) {
+            var dateStr = year + '-' + pad(month + 1) + '-' + pad(d);
+            var cell = document.createElement('div');
+            cell.className = 'bqm-day';
+            cell.textContent = d;
+            cell.setAttribute('data-date', dateStr);
+            if (_bqmAvailableDates.has(dateStr)) cell.classList.add('has-data');
+            if (dateStr === today) cell.classList.add('today');
+            if (dateStr === bqmDate) cell.classList.add('selected');
+            // Range highlighting
+            if (_bqmRangeStart && _bqmRangeEnd) {
+                if (dateStr === _bqmRangeStart) cell.classList.add('range-start');
+                else if (dateStr === _bqmRangeEnd) cell.classList.add('range-end');
+                else if (dateStr > _bqmRangeStart && dateStr < _bqmRangeEnd) cell.classList.add('in-range');
+            }
+            cell.addEventListener('click', (function(ds, ev) {
+                return function(e) {
+                    if (!_bqmAvailableDates.has(ds)) return;
+                    if (e.shiftKey && bqmDate) {
+                        // Range selection
+                        var a = bqmDate < ds ? bqmDate : ds;
+                        var b = bqmDate < ds ? ds : bqmDate;
+                        _bqmRangeStart = a;
+                        _bqmRangeEnd = b;
+                        updateBqmRangeLabel();
+                        renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
+                    } else {
+                        _bqmRangeStart = null;
+                        _bqmRangeEnd = null;
+                        selectBqmDate(ds);
+                    }
+                };
+            })(dateStr));
+            grid.appendChild(cell);
+        }
+    }
+
+    function selectBqmDate(date) {
+        bqmDate = date;
+        stopBqmSlideshow();
+        renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
+        if (date === todayStr()) {
+            loadBqmLive();
+        } else {
+            hideBqmLiveBadge();
+            loadBqmGraph(date);
+        }
+    }
+
+    function bqmMonthNav(dir) {
+        _bqmCalMonth += dir;
+        if (_bqmCalMonth < 0) { _bqmCalMonth = 11; _bqmCalYear--; }
+        if (_bqmCalMonth > 11) { _bqmCalMonth = 0; _bqmCalYear++; }
+        renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
+    }
+
+    function initBqmCalendar() {
+        // Set calendar month to match selected date
         var d = new Date(bqmDate + 'T12:00:00');
-        d.setDate(d.getDate() + dir);
-        bqmDate = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
-        updateBqmDateLabel();
-        loadBqmGraph(bqmDate);
+        _bqmCalYear = d.getFullYear();
+        _bqmCalMonth = d.getMonth();
+        fetchBqmDates(function() {
+            renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
+        });
     }
 
-    if (bqmPrev) bqmPrev.addEventListener('click', function() { bqmDateNav(-1); });
-    if (bqmNext) bqmNext.addEventListener('click', function() { bqmDateNav(1); });
+    // Quick-jump buttons
+    var bqmTodayBtn = document.getElementById('bqm-today-btn');
+    var bqmYesterdayBtn = document.getElementById('bqm-yesterday-btn');
+    if (bqmTodayBtn) bqmTodayBtn.addEventListener('click', function() {
+        var t = todayStr();
+        _bqmCalYear = new Date().getFullYear();
+        _bqmCalMonth = new Date().getMonth();
+        selectBqmDate(t);
+    });
+    if (bqmYesterdayBtn) bqmYesterdayBtn.addEventListener('click', function() {
+        var d = new Date(); d.setDate(d.getDate() - 1);
+        var yd = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+        _bqmCalYear = d.getFullYear();
+        _bqmCalMonth = d.getMonth();
+        selectBqmDate(yd);
+    });
+
+    // Month nav
+    var bqmMonthPrev = document.getElementById('bqm-month-prev');
+    var bqmMonthNext = document.getElementById('bqm-month-next');
+    if (bqmMonthPrev) bqmMonthPrev.addEventListener('click', function() { bqmMonthNav(-1); });
+    if (bqmMonthNext) bqmMonthNext.addEventListener('click', function() { bqmMonthNav(1); });
+
+    /* ── BQM Live Refresh ── */
+    function loadBqmLive() {
+        var img = document.getElementById('bqm-image');
+        var noData = document.getElementById('bqm-no-data');
+        var card = document.getElementById('bqm-card');
+        if (!img || !noData) return;
+        if (card) card.style.display = 'none';
+        noData.style.display = 'none';
+        fetch('/api/bqm/live').then(function(r) {
+            if (!r.ok) throw new Error('Live fetch failed');
+            var source = r.headers.get('X-BQM-Source') || 'cached';
+            var ts = r.headers.get('X-BQM-Timestamp');
+            return r.blob().then(function(blob) {
+                return { blob: blob, source: source, timestamp: ts };
+            });
+        }).then(function(data) {
+            var url = URL.createObjectURL(data.blob);
+            img.onload = function() {
+                if (card) card.style.display = 'block';
+                URL.revokeObjectURL(url);
+            };
+            img.onerror = function() {
+                if (card) card.style.display = 'none';
+                noData.textContent = T.bqm_no_data || 'No BQM graph for this date.';
+                noData.style.display = 'block';
+                URL.revokeObjectURL(url);
+            };
+            img.src = url;
+            showBqmLiveBadge(data.source, data.timestamp);
+        }).catch(function() {
+            // Fallback to cached
+            hideBqmLiveBadge();
+            loadBqmGraph(todayStr());
+        });
+    }
+
+    function showBqmLiveBadge(source, timestamp) {
+        var badge = document.getElementById('bqm-live-badge');
+        var updated = document.getElementById('bqm-last-updated');
+        if (badge) badge.style.display = source === 'live' ? 'inline' : 'none';
+        if (updated && timestamp) {
+            var d = new Date(timestamp);
+            updated.textContent = (T.bqm_last_updated || 'Last updated') + ': ' + d.toLocaleTimeString();
+            updated.style.display = 'inline';
+        }
+    }
+
+    function hideBqmLiveBadge() {
+        var badge = document.getElementById('bqm-live-badge');
+        var updated = document.getElementById('bqm-last-updated');
+        if (badge) badge.style.display = 'none';
+        if (updated) updated.style.display = 'none';
+    }
+
+    function startBqmLiveRefresh() {
+        stopBqmLiveRefresh();
+        if (bqmDate === todayStr()) {
+            _bqmLiveTimer = setInterval(function() {
+                if (currentView !== 'bqm' || document.hidden || bqmDate !== todayStr()) return;
+                loadBqmLive();
+            }, _BQM_LIVE_INTERVAL);
+        }
+    }
+
+    function stopBqmLiveRefresh() {
+        if (_bqmLiveTimer) { clearInterval(_bqmLiveTimer); _bqmLiveTimer = null; }
+    }
+
+    /* ── BQM Slideshow ── */
+    function getBqmRangeDates() {
+        if (!_bqmRangeStart || !_bqmRangeEnd) {
+            // Use all available dates
+            return Array.from(_bqmAvailableDates).sort();
+        }
+        return Array.from(_bqmAvailableDates).filter(function(d) {
+            return d >= _bqmRangeStart && d <= _bqmRangeEnd;
+        }).sort();
+    }
+
+    function startBqmSlideshow() {
+        var dates = getBqmRangeDates();
+        if (dates.length === 0) return;
+        _bqmSlideshow.range = dates;
+        _bqmSlideshow.currentIdx = 0;
+        _bqmSlideshow.playing = true;
+        updateBqmSlideshowUI();
+        selectBqmSlideshowFrame();
+        _bqmSlideshow.timer = setInterval(function() {
+            _bqmSlideshow.currentIdx++;
+            if (_bqmSlideshow.currentIdx >= _bqmSlideshow.range.length) {
+                _bqmSlideshow.currentIdx = 0; // loop
+            }
+            selectBqmSlideshowFrame();
+        }, _bqmSlideshow.speed);
+    }
+
+    function pauseBqmSlideshow() {
+        if (_bqmSlideshow.timer) { clearInterval(_bqmSlideshow.timer); _bqmSlideshow.timer = null; }
+        _bqmSlideshow.playing = false;
+        updateBqmSlideshowUI();
+    }
+
+    function stopBqmSlideshow() {
+        if (_bqmSlideshow.timer) { clearInterval(_bqmSlideshow.timer); _bqmSlideshow.timer = null; }
+        _bqmSlideshow.playing = false;
+        _bqmSlideshow.range = [];
+        _bqmSlideshow.currentIdx = 0;
+        updateBqmSlideshowUI();
+    }
+
+    function selectBqmSlideshowFrame() {
+        var date = _bqmSlideshow.range[_bqmSlideshow.currentIdx];
+        if (!date) return;
+        bqmDate = date;
+        // Update calendar to show the month of the current frame
+        var d = new Date(date + 'T12:00:00');
+        _bqmCalYear = d.getFullYear();
+        _bqmCalMonth = d.getMonth();
+        renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
+        hideBqmLiveBadge();
+        loadBqmGraph(date);
+    }
+
+    function updateBqmSlideshowUI() {
+        var playBtn = document.getElementById('bqm-play-btn');
+        var stopBtn = document.getElementById('bqm-stop-btn');
+        if (!playBtn) return;
+        if (_bqmSlideshow.playing) {
+            // Show pause icon
+            playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="15" y="4" width="4" height="16" rx="1"/></svg>';
+            playBtn.classList.add('playing');
+            playBtn.title = T.bqm_pause || 'Pause';
+            if (stopBtn) stopBtn.style.display = 'inline-flex';
+        } else {
+            // Show play icon
+            playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,4 20,12 6,20"/></svg>';
+            playBtn.classList.remove('playing');
+            playBtn.title = T.bqm_play || 'Play';
+            if (stopBtn) stopBtn.style.display = _bqmSlideshow.range.length ? 'inline-flex' : 'none';
+        }
+    }
+
+    function updateBqmRangeLabel() {
+        var label = document.getElementById('bqm-range-label');
+        if (!label) return;
+        if (_bqmRangeStart && _bqmRangeEnd) {
+            var count = getBqmRangeDates().length;
+            label.textContent = formatDateDE(_bqmRangeStart) + ' \u2013 ' + formatDateDE(_bqmRangeEnd) + ' (' + count + ')';
+        } else {
+            label.textContent = '';
+        }
+    }
+
+    // Play/Pause button
+    var bqmPlayBtn = document.getElementById('bqm-play-btn');
+    if (bqmPlayBtn) bqmPlayBtn.addEventListener('click', function() {
+        if (_bqmSlideshow.playing) {
+            pauseBqmSlideshow();
+        } else {
+            startBqmSlideshow();
+        }
+    });
+
+    // Stop button
+    var bqmStopBtn = document.getElementById('bqm-stop-btn');
+    if (bqmStopBtn) bqmStopBtn.addEventListener('click', function() {
+        stopBqmSlideshow();
+    });
+
+    // Speed tabs
+    var bqmSpeedTabs = document.querySelectorAll('#bqm-speed-tabs .trend-tab');
+    bqmSpeedTabs.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            _bqmSlideshow.speed = parseInt(this.getAttribute('data-speed'), 10);
+            bqmSpeedTabs.forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            if (_bqmSlideshow.playing) {
+                pauseBqmSlideshow();
+                startBqmSlideshow();
+            }
+        });
+    });
 
     /* ── Auto Refresh with Countdown ── */
     var refreshTimer = null;
@@ -2623,10 +2957,39 @@
         });
     });
 
-    /* Close chart zoom on Escape */
+    /* Close chart zoom on Escape + BQM keyboard shortcuts */
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && document.getElementById('chart-zoom-overlay').classList.contains('open')) {
             closeChartZoom();
+            return;
+        }
+        // BQM slideshow keyboard shortcuts (only when BQM view active)
+        if (currentView !== 'bqm') return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+        if (e.key === ' ' || e.code === 'Space') {
+            e.preventDefault();
+            if (_bqmSlideshow.playing) pauseBqmSlideshow();
+            else startBqmSlideshow();
+        } else if (e.key === 'Escape') {
+            stopBqmSlideshow();
+        } else if (e.key === 'ArrowLeft') {
+            if (_bqmSlideshow.playing || _bqmSlideshow.range.length) {
+                e.preventDefault();
+                if (_bqmSlideshow.playing) pauseBqmSlideshow();
+                if (_bqmSlideshow.currentIdx > 0) {
+                    _bqmSlideshow.currentIdx--;
+                    selectBqmSlideshowFrame();
+                }
+            }
+        } else if (e.key === 'ArrowRight') {
+            if (_bqmSlideshow.playing || _bqmSlideshow.range.length) {
+                e.preventDefault();
+                if (_bqmSlideshow.playing) pauseBqmSlideshow();
+                if (_bqmSlideshow.currentIdx < _bqmSlideshow.range.length - 1) {
+                    _bqmSlideshow.currentIdx++;
+                    selectBqmSlideshowFrame();
+                }
+            }
         }
     });
 

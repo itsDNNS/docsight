@@ -535,5 +535,14 @@
   "demo_migrate_desc": "DOCSight läuft im Demo-Modus mit Beispieldaten. Wechsle in den Live-Modus, um dein echtes Modem zu überwachen. Eigene Journal-Einträge und Vorfälle bleiben erhalten.",
   "demo_migrate_button": "Zum Live-Modus wechseln",
   "demo_migrate_confirm": "Alle Demo-Daten werden gelöscht und der Live-Modus aktiviert. Eigene Einträge bleiben erhalten. Fortfahren?",
-  "demo_migrate_success": "Erfolgreich zum Live-Modus gewechselt. Demo-Daten wurden entfernt."
+  "demo_migrate_success": "Erfolgreich zum Live-Modus gewechselt. Demo-Daten wurden entfernt.",
+  "bqm_today": "Heute",
+  "bqm_yesterday": "Gestern",
+  "bqm_live": "Live",
+  "bqm_last_updated": "Zuletzt aktualisiert",
+  "bqm_play": "Abspielen",
+  "bqm_pause": "Pause",
+  "bqm_stop": "Stopp",
+  "bqm_speed": "Geschwindigkeit",
+  "bqm_no_data_range": "Keine BQM-Daten in diesem Zeitraum"
 }

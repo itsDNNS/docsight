@@ -535,5 +535,14 @@
   "demo_migrate_desc": "You are running in demo mode with sample data. Switch to live mode to start monitoring your real modem. Your own journal entries and incidents will be preserved.",
   "demo_migrate_button": "Switch to Live Mode",
   "demo_migrate_confirm": "This will delete all demo data and switch to live mode. Your own entries will be kept. Continue?",
-  "demo_migrate_success": "Successfully switched to live mode. Demo data has been removed."
+  "demo_migrate_success": "Successfully switched to live mode. Demo data has been removed.",
+  "bqm_today": "Today",
+  "bqm_yesterday": "Yesterday",
+  "bqm_live": "Live",
+  "bqm_last_updated": "Last updated",
+  "bqm_play": "Play",
+  "bqm_pause": "Pause",
+  "bqm_stop": "Stop",
+  "bqm_speed": "Speed",
+  "bqm_no_data_range": "No BQM data in this range"
 }

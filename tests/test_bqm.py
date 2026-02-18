@@ -214,3 +214,51 @@ class TestBQMAPI:
             resp = client.get("/api/bqm/dates")
             assert resp.status_code == 200
             assert resp.get_json() == []
+
+
+class TestBQMLive:
+    """Tests for the /api/bqm/live endpoint."""
+
+    @patch("app.thinkbroadband.urllib.request.urlopen")
+    def test_live_success(self, mock_urlopen, bqm_client, sample_png):
+        """Live fetch succeeds: returns fresh PNG with live source header."""
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = sample_png
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
+
+        client, _ = bqm_client
+        resp = client.get("/api/bqm/live")
+        assert resp.status_code == 200
+        assert resp.content_type == "image/png"
+        assert resp.headers.get("X-BQM-Source") == "live"
+        assert resp.headers.get("X-BQM-Timestamp") is not None
+        assert resp.data == sample_png
+
+    @patch("app.thinkbroadband.urllib.request.urlopen")
+    def test_live_fallback_to_cached(self, mock_urlopen, bqm_client, sample_png):
+        """Live fetch fails: falls back to today's cached image."""
+        mock_urlopen.side_effect = Exception("Network error")
+
+        client, _ = bqm_client
+        resp = client.get("/api/bqm/live")
+        assert resp.status_code == 200
+        assert resp.content_type == "image/png"
+        assert resp.headers.get("X-BQM-Source") == "cached"
+        assert resp.data == sample_png
+
+    @patch("app.thinkbroadband.urllib.request.urlopen")
+    def test_live_both_fail(self, mock_urlopen, tmp_path):
+        """Both live and cached fail: returns 404."""
+        mock_urlopen.side_effect = Exception("Network error")
+
+        data_dir = str(tmp_path / "data_live")
+        mgr = ConfigManager(data_dir)
+        mgr.save({"modem_password": "test", "bqm_url": "https://example.com/graph.png"})
+        init_config(mgr)
+        init_storage(None)
+        app.config["TESTING"] = True
+        with app.test_client() as client:
+            resp = client.get("/api/bqm/live")
+            assert resp.status_code == 404
