@@ -382,6 +382,14 @@
                     <span class="unit">dBmV</span>
                     <span class="sublabel">Ø {{ t.card_transmit_power }}</span>
                 </div>
+                {% if s.us_capacity_mbps is not none %}
+                <div class="metric-value-divider"></div>
+                <div class="metric-value-item">
+                    <span class="value val-{{ us_health }}">{{ s.us_capacity_mbps }}</span>
+                    <span class="unit">Mbit/s</span>
+                    <span class="sublabel">{{ t.card_us_capacity or 'Capacity' }}</span>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -611,7 +619,7 @@
                     <table class="sortable">
             <thead><tr>
                 <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
-                <th>{{ t.modulation }}</th><th>{{ t.multiplex }}</th>
+                <th>{{ t.modulation }}</th><th>{{ t.bitrate or 'Bitrate' }}</th><th>{{ t.multiplex }}</th>
             </tr></thead>
             <tbody>
             {% for ch in group.list %}
@@ -629,6 +637,7 @@
                 <td>{{ ch.frequency }}</td>
                 <td data-sort="{{ ch.power }}" class="{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
                 <td class="{% if 'modulation critical' in ch.health_detail %}val-crit{% elif 'modulation warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}">{{ ch.modulation }}</td>
+                <td class="{% if 'modulation critical' in ch.health_detail %}val-crit{% elif 'modulation warning' in ch.health_detail %}val-warn{% endif %}">{% if ch.theoretical_bitrate %}{{ ch.theoretical_bitrate }} Mbit/s{% else %}—{% endif %}</td>
                 <td>{{ ch.multiplex }}</td>
             </tr>
             {% endfor %}
