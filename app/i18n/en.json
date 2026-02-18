@@ -511,5 +511,19 @@
   "timeline_source_modem": "Modem",
   "timeline_source_speedtest": "Speedtest",
   "timeline_source_event": "Event",
-  "timeline_no_data": "No signal data for this period"
+  "timeline_no_data": "No signal data for this period",
+  "bnetz_watcher_title": "BNetzA File Watcher",
+  "bnetz_watcher_desc": "Automatic import of measurement files",
+  "bnetz_watcher_hint": "Automatically imports BNetzA measurement PDFs and CSVs from a watched directory",
+  "bnetz_watch_dir_label": "Watch directory",
+  "bnetz_watch_dir_hint": "Path where measurement files are placed (e.g., by a sidecar container)",
+  "bnetz_watcher_active": "File watcher active",
+  "bnetz_watcher_inactive": "File watcher not configured",
+  "bnetz_watcher_watching": "Watching {dir}",
+  "bnetz_watcher_last_import": "{count} file(s) imported",
+  "bnetz_source_upload": "Manual upload",
+  "bnetz_source_watcher": "Auto-imported",
+  "bnetz_source_csv": "CSV import",
+  "bnetz_upload_csv_hint": "Upload PDF or CSV measurement files",
+  "bnetz_docker_hint": "Use docker-compose.bnetz.yml for automated measurement with the official BNetzA Desktop App"
 }
