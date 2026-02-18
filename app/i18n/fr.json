@@ -36,6 +36,8 @@
   "issue_uncorr_errors_high_desc": "Plus de 10 000 erreurs non corrigeables détectées. Elles ne peuvent pas être récupérées et causent des pertes de données. Si ce nombre augmente rapidement, contactez votre FAI.",
   "ch_power_critical": "Puissance critique hors plage",
   "ch_power_warning": "Puissance légèrement élevée",
+  "ch_modulation_critical": "Modulation critique (perturbateur voie retour)",
+  "ch_modulation_warning": "Modulation degradee",
   "ch_snr_critical": "SNR critique",
   "ch_snr_warning": "SNR sous l'idéal",
   "ds_channels": "Canaux descendants",

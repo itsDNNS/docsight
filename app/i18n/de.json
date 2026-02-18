@@ -36,6 +36,8 @@
   "issue_uncorr_errors_high_desc": "Über 10.000 unkorrigierbare Fehler erkannt. Diese können nicht repariert werden und verursachen Datenverlust. Wenn diese Zahl schnell wächst, kontaktiere deinen Anbieter.",
   "ch_power_critical": "Pegel kritisch außerhalb des Bereichs",
   "ch_power_warning": "Pegel leicht erhöht",
+  "ch_modulation_critical": "Modulation kritisch degradiert (Rückwegstörer)",
+  "ch_modulation_warning": "Modulation degradiert",
   "ch_snr_critical": "SNR kritisch niedrig",
   "ch_snr_warning": "SNR unter Idealwert",
   "ds_channels": "Downstream Kanäle",

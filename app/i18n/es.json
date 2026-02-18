@@ -36,6 +36,8 @@
   "issue_uncorr_errors_high_desc": "Más de 10.000 errores no corregibles detectados. No se pueden recuperar y causan pérdida de datos. Si este número crece rápidamente, contacta con tu proveedor.",
   "ch_power_critical": "Potencia críticamente fuera de rango",
   "ch_power_warning": "Potencia ligeramente elevada",
+  "ch_modulation_critical": "Modulacion criticamente degradada (interferencia retorno)",
+  "ch_modulation_warning": "Modulacion degradada",
   "ch_snr_critical": "SNR críticamente bajo",
   "ch_snr_warning": "SNR por debajo del ideal",
   "ds_channels": "Canales descendentes",
