@@ -97,9 +97,10 @@ Open `http://localhost:8765` — no setup required.
 | **[Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline)** | Per-channel power, SNR, error, and modulation history over time |
 | **[Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant)** | MQTT Auto-Discovery with per-channel sensors |
 | **[BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM)** | ThinkBroadband broadband quality graphs |
+| **[BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA)** | **NEW:** Upload or auto-import official BNetzA broadband measurement protocols (PDF/CSV) with file watcher and sidecar support |
 | **[Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping)** | Live latency graphs from your Smokeping instance |
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
-| **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | **NEW:** Try DOCSight without a router — 90 days of simulated data |
+| **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | Try DOCSight without a router — 90 days of simulated data |
 
 4 languages (EN/DE/FR/ES) · Light/Dark mode · Setup wizard · Optional authentication
 
@@ -164,12 +165,12 @@ DOCSight uses a **modular collector-based architecture** for reliable data gathe
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                             Collector Registry                              │
 │                                                                             │
-│    ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
-│    │  Modem   │  │   Demo   │  │ Speedtest│  │   BQM    │  │Smokeping │     │
-│    │ Collector│  │ Collector│  │ Collector│  │ Collector│  │  (Proxy) │     │
-│    └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
-│         │             │             │             │             │           │
-│         └─────────────┴─────────────┴─────────────┴─────────────┘           │
+│    ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐│
+│    │  Modem   │ │   Demo   │ │ Speedtest│ │   BQM    │ │Smokeping │ │  BNetzA  ││
+│    │ Collector│ │ Collector│ │ Collector│ │ Collector│ │  (Proxy) │ │ Watcher  ││
+│    └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘│
+│         │            │            │            │            │            │      │
+│         └────────────┴────────────┴────────────┴────────────┴────────────┘      │
 │                                     │                                       │
 │                                     ▼                                       │
 │         ┌──────────────────────────────────────────────────────────┐        │
@@ -242,6 +243,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Smokeping Integration | ✅ Released | [#22](https://github.com/itsDNNS/docsight/issues/22) |
 | Incident Import, Icons & Search | ✅ Released | [#58](https://github.com/itsDNNS/docsight/issues/58) |
 | Incident Groups | ✅ Released | [#66](https://github.com/itsDNNS/docsight/issues/66) |
+| BNetzA Automated Measurements | ✅ Released | [#63](https://github.com/itsDNNS/docsight/issues/63) |
 | Vodafone Station Support | ✅ Released | [#14](https://github.com/itsDNNS/docsight/issues/14) |
 | Technicolor TC4400 Support | ✅ Released | [#24](https://github.com/itsDNNS/docsight/issues/24) |
 | Vodafone Ultra Hub 7 Support | ✅ Released | [#29](https://github.com/itsDNNS/docsight/issues/29) |
@@ -262,6 +264,16 @@ See [GitHub Releases](https://github.com/itsDNNS/docsight/releases).
 ## Support
 
 If DOCSight helps you, consider [buying me a coffee](https://ko-fi.com/itsdnns) ☕
+
+## Documentation
+
+Documentation current as of **v2026-02-18.4**.
+
+| Document | Scope |
+|---|---|
+| [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and extension guide |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development and contribution guidelines |
 
 ## License
 
