@@ -231,6 +231,7 @@
   "upload": "Upload",
   "ping": "Ping",
   "jitter": "Jitter",
+  "server": "Server",
   "packet_loss": "Packet Loss",
   "via_speedtest_tracker": "via Speedtest Tracker",
   "speedtest_no_data": "No speed test results available.",

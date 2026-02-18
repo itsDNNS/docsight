@@ -1308,6 +1308,7 @@
             <thead><tr>
                 <th class="st-expand-col"></th>
                 <th data-col="timestamp">{{ t.timestamp }}<span class="sort-indicator">▼</span></th>
+                <th data-col="server_id">{{ t.server or 'Server' }}<span class="sort-indicator"></span></th>
                 <th data-col="download_mbps">{{ t.download }}<span class="sort-indicator"></span></th>
                 <th data-col="upload_mbps">{{ t.upload }}<span class="sort-indicator"></span></th>
                 <th data-col="ping_ms">{{ t.ping }}<span class="sort-indicator"></span></th>
@@ -4984,8 +4985,12 @@ function renderSpeedtestRows() {
         var pingClass = pingVal > 50 ? ' class="val-warn"' : '';
         var jitterClass = jitterVal > 20 ? ' class="val-warn"' : '';
         var tr = document.createElement('tr');
+        var serverCell = r.server_id
+            ? '<td title="' + escapeHtml(r.server_name || '') + '">#' + r.server_id + '</td>'
+            : '<td></td>';
         tr.innerHTML = '<td class="st-expand-col"><button class="st-expand-btn" data-id="' + r.id + '" onclick="toggleSpeedtestSignal(this)">&#9654;</button></td>'
             + '<td>' + escapeHtml(formatSpeedtestTimestamp(r.timestamp)) + '</td>'
+            + serverCell
             + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
             + '<td><strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
             + '<td' + pingClass + '>' + r.ping_ms + ' ms</td>'
