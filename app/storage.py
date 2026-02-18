@@ -195,9 +195,19 @@ class SnapshotStorage:
                     verdict_download TEXT,
                     verdict_upload TEXT,
                     measurements_json TEXT,
-                    pdf_blob BLOB NOT NULL
+                    pdf_blob BLOB,
+                    source TEXT DEFAULT 'upload'
                 )
             """)
+
+            # ── Migration: add source column to bnetz_measurements ──
+            try:
+                cols = [r[1] for r in conn.execute("PRAGMA table_info(bnetz_measurements)").fetchall()]
+                if "source" not in cols:
+                    conn.execute("ALTER TABLE bnetz_measurements ADD COLUMN source TEXT DEFAULT 'upload'")
+                    log.info("Migration: added source column to bnetz_measurements")
+            except Exception as e:
+                log.warning("Failed to migrate bnetz_measurements: %s", e)
 
     def save_snapshot(self, analysis):
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
@@ -846,8 +856,8 @@ class SnapshotStorage:
 
     # ── Breitbandmessung (BNetzA) ──
 
-    def save_bnetz_measurement(self, parsed_data, pdf_bytes):
-        """Save a parsed BNetzA measurement with the original PDF. Returns the new id."""
+    def save_bnetz_measurement(self, parsed_data, pdf_bytes=None, source="upload"):
+        """Save a parsed BNetzA measurement with optional PDF. Returns the new id."""
         now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         measurements = {
             "download": parsed_data.get("measurements_download", []),
@@ -860,8 +870,8 @@ class SnapshotStorage:
                 "download_max_tariff, download_normal_tariff, download_min_tariff, "
                 "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
                 "download_measured_avg, upload_measured_avg, measurement_count, "
-                "verdict_download, verdict_upload, measurements_json, pdf_blob) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "verdict_download, verdict_upload, measurements_json, pdf_blob, source) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     parsed_data.get("date", now[:10]),
                     now,
@@ -880,6 +890,7 @@ class SnapshotStorage:
                     parsed_data.get("verdict_upload"),
                     json.dumps(measurements),
                     pdf_bytes,
+                    source,
                 ),
             )
             return cur.lastrowid
@@ -893,7 +904,7 @@ class SnapshotStorage:
                 "download_max_tariff, download_normal_tariff, download_min_tariff, "
                 "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
                 "download_measured_avg, upload_measured_avg, measurement_count, "
-                "verdict_download, verdict_upload, measurements_json "
+                "verdict_download, verdict_upload, measurements_json, source "
                 "FROM bnetz_measurements ORDER BY date DESC LIMIT ?",
                 (limit,),
             ).fetchall()
@@ -918,7 +929,7 @@ class SnapshotStorage:
                 "SELECT pdf_blob FROM bnetz_measurements WHERE id = ?",
                 (measurement_id,),
             ).fetchone()
-        return bytes(row[0]) if row else None
+        return bytes(row[0]) if row and row[0] else None
 
     def delete_bnetz_measurement(self, measurement_id):
         """Delete a BNetzA measurement. Returns True if found."""
