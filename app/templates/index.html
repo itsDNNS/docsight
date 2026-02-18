@@ -615,7 +615,10 @@
             </tr></thead>
             <tbody>
             {% for ch in group.list %}
-            {% set ch_tip = t.ch_power_critical if 'power critical' in ch.health_detail else (t.ch_power_warning if 'power warning' in ch.health_detail else '') %}
+            {% set ch_tips = [] %}
+            {% if 'power critical' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical) %}{% elif 'power warning' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning) %}{% endif %}
+            {% if 'modulation critical' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_critical) %}{% elif 'modulation warning' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_warning) %}{% endif %}
+            {% set ch_tip = ch_tips|join(', ') %}
             <tr>
                 <td data-sort="{{ 0 if ch.health == 'good' else (2 if ch.health == 'critical' else 1) }}">
                     {% if ch.health == "good" %}<span class="badge badge-good">{{ t.health_good }}</span>
@@ -625,7 +628,7 @@
                 <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
                 <td>{{ ch.frequency }}</td>
                 <td data-sort="{{ ch.power }}" class="{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}">{{ ch.power }}</td>
-                <td>{{ ch.modulation }}</td>
+                <td class="{% if 'modulation critical' in ch.health_detail %}val-crit{% elif 'modulation warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}">{{ ch.modulation }}</td>
                 <td>{{ ch.multiplex }}</td>
             </tr>
             {% endfor %}
