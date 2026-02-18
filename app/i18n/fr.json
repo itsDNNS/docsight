@@ -491,5 +491,16 @@
   "entry_selected": "entree selectionnee",
   "entries_selected": "entrees selectionnees",
   "entries_assigned": "entrees assignees",
-  "entries_unassigned": "entrees desassignees"
+  "entries_unassigned": "entrees desassignees",
+  "incident_view_timeline": "Voir la chronologie",
+  "incident_back_journal": "Retour au journal",
+  "incident_signal_timeline": "Signal & Evenements",
+  "incident_journal_entries": "Entrees du journal",
+  "incident_bnetz_measurements": "Mesures BNetzA",
+  "incident_duration_ongoing": "en cours",
+  "incident_duration_days": "jours",
+  "timeline_source_modem": "Modem",
+  "timeline_source_speedtest": "Speedtest",
+  "timeline_source_event": "Evenement",
+  "timeline_no_data": "Aucune donnee de signal pour cette periode"
 }

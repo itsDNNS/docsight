@@ -3490,3 +3490,264 @@ mark.search-highlight {
     color: var(--text);
     font-size: 0.9rem;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INCIDENT TIMELINE VIEW
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Back Button */
+.incident-timeline-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--input-border);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 16px;
+}
+.incident-timeline-back:hover {
+    color: var(--text);
+    border-color: var(--accent);
+    background: var(--accent-muted);
+}
+
+/* Timeline Cards */
+.incident-timeline-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-lg, 20px);
+    margin-bottom: 16px;
+}
+
+/* Header Card */
+.incident-timeline-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.incident-timeline-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+.incident-timeline-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.incident-timeline-meta-item svg {
+    width: 14px;
+    height: 14px;
+    color: var(--muted);
+}
+.incident-timeline-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+/* Section Title */
+.incident-timeline-section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.incident-timeline-section-title svg {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+}
+
+/* Entry Cards (Journal Entries in Timeline) */
+.incident-timeline-entries-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.incident-timeline-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--card-border);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.incident-timeline-entry:hover {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+}
+.incident-timeline-entry-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--accent-muted);
+    color: var(--accent);
+}
+.incident-timeline-entry-icon svg {
+    width: 14px;
+    height: 14px;
+}
+.incident-timeline-entry-body {
+    flex: 1;
+    min-width: 0;
+}
+.incident-timeline-entry-date {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 2px;
+}
+.incident-timeline-entry-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.incident-timeline-entry-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+.incident-timeline-entry-att {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* Chart Wrapper */
+.incident-timeline-chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+.incident-timeline-chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Signal Timeline Table */
+.incident-timeline-signals table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.incident-timeline-signals th,
+.incident-timeline-signals td {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    text-align: left;
+    border-bottom: 1px solid var(--card-border);
+}
+.incident-timeline-signals th {
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+}
+
+/* Source Badges */
+.timeline-source-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.timeline-source-badge-modem {
+    background: rgba(59,130,246,0.15);
+    color: var(--info);
+}
+.timeline-source-badge-speedtest {
+    background: rgba(16,185,129,0.15);
+    color: var(--good);
+}
+.timeline-source-badge-event {
+    background: rgba(245,158,11,0.15);
+    color: var(--warn);
+}
+
+/* Timeline Button in Summary */
+.incident-summary-timeline-btn {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 3px 12px;
+    border-radius: 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.incident-summary-timeline-btn:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* Empty state for timeline */
+.incident-timeline-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* BNetzA section in timeline */
+.incident-timeline-bnetz-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 0.85rem;
+}
+.incident-timeline-bnetz-item:last-child {
+    border-bottom: none;
+}
+.incident-timeline-bnetz-verdict {
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .incident-timeline-entry {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .incident-timeline-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
