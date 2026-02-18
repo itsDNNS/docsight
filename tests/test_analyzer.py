@@ -1,7 +1,7 @@
 """Tests for DOCSIS channel health analyzer."""
 
 import pytest
-from app.analyzer import analyze, _parse_float, _parse_qam_order
+from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation
 
 
 # -- Helper to build FritzBox-style channel data --
@@ -447,3 +447,77 @@ class TestUpstreamModulation:
         us_ch = result["us_channels"][0]
         assert "power critical" in us_ch["health_detail"]
         assert "modulation critical" in us_ch["health_detail"]
+
+
+# -- OFDM / 4096QAM threshold resolution --
+
+class TestOFDMThresholds:
+    def test_resolve_ofdm_to_4096qam(self):
+        """OFDM modulation string maps to 4096QAM thresholds."""
+        section = {"256QAM": {}, "4096QAM": {}, "_default": "256QAM"}
+        assert _resolve_modulation("OFDM", section) == "4096QAM"
+
+    def test_resolve_ofdma_to_4096qam(self):
+        """OFDMA modulation string maps to 4096QAM thresholds."""
+        section = {"256QAM": {}, "4096QAM": {}, "_default": "256QAM"}
+        assert _resolve_modulation("OFDMA", section) == "4096QAM"
+
+    def test_resolve_4096qam_direct(self):
+        """4096QAM modulation string resolves directly."""
+        section = {"256QAM": {}, "4096QAM": {}, "_default": "256QAM"}
+        assert _resolve_modulation("4096QAM", section) == "4096QAM"
+
+    def test_resolve_unknown_falls_back(self):
+        """Unknown modulation falls back to _default."""
+        section = {"256QAM": {}, "_default": "256QAM"}
+        assert _resolve_modulation("UNKNOWN", section) == "256QAM"
+
+    def test_4096qam_snr_good(self):
+        """4096QAM channel with MER 46 dB is good (threshold: 45)."""
+        data = _make_data(
+            ds31=[_make_ds31(100, power=5.0, mer="46.0")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+        ch = result["ds_channels"][0]
+        assert ch["health"] == "good"
+
+    def test_4096qam_snr_warning(self):
+        """4096QAM channel with MER 44 dB triggers SNR warning (threshold: 45)."""
+        data = _make_data(
+            ds31=[_make_ds31(100, power=5.0, mer="44.0")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+        ch = result["ds_channels"][0]
+        assert "snr warning" in ch["health_detail"]
+
+    def test_4096qam_snr_critical(self):
+        """4096QAM channel with MER 41 dB is critical (threshold: 42)."""
+        data = _make_data(
+            ds31=[_make_ds31(100, power=5.0, mer="41.0")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+        ch = result["ds_channels"][0]
+        assert "snr critical" in ch["health_detail"]
+
+    def test_ofdm_type_field_uses_4096qam_thresholds(self):
+        """Channel with type=OFDM (no modulation field) uses 4096QAM thresholds."""
+        ds_ofdm = {
+            "channelID": 200,
+            "frequency": "134-325 MHz",
+            "powerLevel": "5.0",
+            "type": "OFDM",
+            "mer": "44.0",
+            "corrErrors": 0,
+            "nonCorrErrors": 0,
+        }
+        data = _make_data(
+            ds31=[ds_ofdm],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+        ch = result["ds_channels"][0]
+        # MER 44 is below 4096QAM good_min (45) but above crit (42), so warning
+        assert "snr warning" in ch["health_detail"]
