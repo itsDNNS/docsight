@@ -7,6 +7,7 @@ The file supports per-modulation thresholds for DS power, US power, and SNR.
 import json
 import logging
 import os
+import re
 
 log = logging.getLogger("docsis.analyzer")
 
@@ -70,6 +71,28 @@ def _get_snr_thresholds(modulation=None):
         "good_min": t.get("good_min", 33.0),
         "crit_min": t.get("immediate_min", 29.0),
     }
+
+
+def _get_us_modulation_thresholds():
+    """Get upstream modulation QAM order thresholds."""
+    us_mod = _thresholds.get("upstream_modulation", {})
+    return {
+        "critical_max_qam": us_mod.get("critical_max_qam", 4),
+        "warning_max_qam": us_mod.get("warning_max_qam", 16),
+    }
+
+
+def _parse_qam_order(modulation_str):
+    """Extract QAM order from modulation string. Returns None if unparseable."""
+    if not modulation_str:
+        return None
+    mod = modulation_str.upper().replace("-", "").strip()
+    if mod in ("QPSK",):
+        return 4
+    m = re.match(r"(\d+)\s*QAM", mod)
+    if m:
+        return int(m.group(1))
+    return None
 
 
 def _get_uncorr_threshold():
@@ -146,6 +169,15 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
         issues.append("power critical")
     elif power < pt["good_min"] or power > pt["good_max"]:
         issues.append("power warning")
+
+    modulation = ch.get("modulation") or ch.get("type") or ""
+    qam_order = _parse_qam_order(modulation)
+    if qam_order is not None:
+        mt = _get_us_modulation_thresholds()
+        if qam_order <= mt["critical_max_qam"]:
+            issues.append("modulation critical")
+        elif qam_order <= mt["warning_max_qam"]:
+            issues.append("modulation warning")
 
     return _channel_health(issues), _health_detail(issues)
 
@@ -282,6 +314,12 @@ def analyze(data: dict) -> dict:
         issues.append("us_power_critical")
     elif any("power warning" in c["health_detail"] for c in us_channels):
         issues.append("us_power_warn")
+
+    # US modulation: aggregate from individual channel health_detail
+    if any("modulation critical" in c["health_detail"] for c in us_channels):
+        issues.append("us_modulation_critical")
+    elif any("modulation warning" in c["health_detail"] for c in us_channels):
+        issues.append("us_modulation_warn")
 
     # SNR: aggregate from individual channel health_detail
     if any("snr critical" in c["health_detail"] for c in ds_channels):

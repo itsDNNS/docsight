@@ -1,7 +1,7 @@
 """Tests for DOCSIS channel health analyzer."""
 
 import pytest
-from app.analyzer import analyze, _parse_float
+from app.analyzer import analyze, _parse_float, _parse_qam_order
 
 
 # -- Helper to build FritzBox-style channel data --
@@ -30,12 +30,12 @@ def _make_ds31(channel_id=100, power=5.0, mer="38.0", corr=0, uncorr=0):
     }
 
 
-def _make_us30(channel_id=1, power=42.0):
+def _make_us30(channel_id=1, power=42.0, modulation="64QAM"):
     return {
         "channelID": channel_id,
         "frequency": "37 MHz",
         "powerLevel": str(power),
-        "modulation": "64QAM",
+        "modulation": modulation,
         "multiplex": "ATDMA",
     }
 
@@ -314,3 +314,136 @@ class TestSummaryMetrics:
         assert result["summary"]["ds_total"] == 0
         assert result["summary"]["us_total"] == 0
         assert result["summary"]["health"] == "good"
+
+
+# -- QAM order parsing --
+
+class TestParseQamOrder:
+    def test_standard_qam(self):
+        assert _parse_qam_order("64QAM") == 64
+
+    def test_lower_qam(self):
+        assert _parse_qam_order("16QAM") == 16
+        assert _parse_qam_order("4QAM") == 4
+
+    def test_high_qam(self):
+        assert _parse_qam_order("256QAM") == 256
+        assert _parse_qam_order("1024QAM") == 1024
+
+    def test_qpsk(self):
+        assert _parse_qam_order("QPSK") == 4
+
+    def test_case_insensitive(self):
+        assert _parse_qam_order("64qam") == 64
+        assert _parse_qam_order("qpsk") == 4
+
+    def test_none_and_empty(self):
+        assert _parse_qam_order(None) is None
+        assert _parse_qam_order("") is None
+
+    def test_unparseable(self):
+        assert _parse_qam_order("OFDMA") is None
+        assert _parse_qam_order("SC-QAM") is None
+
+
+# -- Upstream modulation health --
+
+class TestUpstreamModulation:
+    def test_64qam_good(self):
+        """64-QAM is normal for Vodafone upstream."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0, modulation="64QAM")],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "good"
+        us_ch = result["us_channels"][0]
+        assert us_ch["health"] == "good"
+
+    def test_32qam_good(self):
+        """32-QAM is tolerated, no warning."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0, modulation="32QAM")],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "good"
+
+    def test_16qam_warning(self):
+        """16-QAM triggers modulation warning."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0, modulation="16QAM")],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "marginal"
+        assert "us_modulation_warn" in result["summary"]["health_issues"]
+        us_ch = result["us_channels"][0]
+        assert us_ch["health"] == "warning"
+        assert "modulation warning" in us_ch["health_detail"]
+
+    def test_8qam_warning(self):
+        """8-QAM triggers modulation warning."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0, modulation="8QAM")],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "marginal"
+        assert "us_modulation_warn" in result["summary"]["health_issues"]
+
+    def test_4qam_critical(self):
+        """4-QAM is critical (Rueckwegstoerer indicator)."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0, modulation="4QAM")],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "poor"
+        assert "us_modulation_critical" in result["summary"]["health_issues"]
+        us_ch = result["us_channels"][0]
+        assert us_ch["health"] == "critical"
+        assert "modulation critical" in us_ch["health_detail"]
+
+    def test_qpsk_critical(self):
+        """QPSK (= 4-QAM) is critical."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0, modulation="QPSK")],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "poor"
+        assert "us_modulation_critical" in result["summary"]["health_issues"]
+
+    def test_mixed_channels(self):
+        """One degraded channel is enough to affect overall health."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[
+                _make_us30(1, power=42.0, modulation="64QAM"),
+                _make_us30(2, power=42.0, modulation="64QAM"),
+                _make_us30(3, power=42.0, modulation="4QAM"),
+                _make_us30(4, power=42.0, modulation="64QAM"),
+            ],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "poor"
+        assert "us_modulation_critical" in result["summary"]["health_issues"]
+        healths = [c["health"] for c in result["us_channels"]]
+        assert healths.count("critical") == 1
+        assert healths.count("good") == 3
+
+    def test_modulation_and_power_combined(self):
+        """Both power and modulation issues can coexist."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=55.0, modulation="4QAM")],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "poor"
+        issues = result["summary"]["health_issues"]
+        assert "us_power_critical" in issues
+        assert "us_modulation_critical" in issues
+        us_ch = result["us_channels"][0]
+        assert "power critical" in us_ch["health_detail"]
+        assert "modulation critical" in us_ch["health_detail"]
