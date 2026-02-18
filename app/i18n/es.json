@@ -502,6 +502,7 @@
   "incident_bnetz_measurements": "Mediciones BNetzA",
   "incident_duration_ongoing": "en curso",
   "incident_duration_days": "dias",
+  "incident_download_pdf": "Descargar informe PDF",
   "timeline_source_modem": "Modem",
   "timeline_source_speedtest": "Speedtest",
   "timeline_source_event": "Evento",

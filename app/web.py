@@ -1504,6 +1504,62 @@ def api_incident_timeline(incident_id):
     })
 
 
+@app.route("/api/incidents/<int:incident_id>/report")
+@require_auth
+def api_incident_report(incident_id):
+    """Generate PDF complaint report for a specific incident."""
+    from .report import generate_incident_report
+
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+
+    incident = _storage.get_incident(incident_id)
+    if not incident:
+        return jsonify({"error": "Not found"}), 404
+
+    entries = _storage.get_entries(limit=9999, incident_id=incident_id)
+
+    # For entries with attachments, load full attachment metadata
+    for entry in entries:
+        full = _storage.get_entry(entry["id"])
+        if full:
+            entry["attachments"] = full.get("attachments", [])
+
+    snapshots = []
+    speedtests = []
+    bnetz = []
+    if incident.get("start_date"):
+        start_ts = incident["start_date"] + "T00:00:00"
+        end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
+        end_ts = end_date + "T23:59:59"
+        snapshots = _storage.get_range_data(start_ts, end_ts)
+        speedtests = _storage.get_speedtest_in_range(start_ts, end_ts)
+        bnetz = _storage.get_bnetz_in_range(start_ts, end_ts)
+
+    config = {}
+    if _config_manager:
+        config = {
+            "isp_name": _config_manager.get("isp_name", ""),
+            "modem_type": _config_manager.get("modem_type", ""),
+        }
+
+    conn_info = get_state().get("connection_info") or {}
+    lang = _get_lang()
+
+    pdf_bytes = generate_incident_report(
+        incident, entries, snapshots, speedtests, bnetz,
+        config, conn_info, lang,
+        attachment_loader=_storage.get_attachment,
+    )
+
+    response = make_response(pdf_bytes)
+    response.headers["Content-Type"] = "application/pdf"
+    safe_name = re.sub(r'[^a-zA-Z0-9]', '_', incident.get("name", "incident"))
+    ts = datetime.now().strftime("%Y-%m-%d")
+    response.headers["Content-Disposition"] = f'attachment; filename="DOCSight_Beschwerde_{safe_name}_{ts}.pdf"'
+    return response
+
+
 @app.route("/api/incidents/<int:incident_id>/assign", methods=["POST"])
 @require_auth
 def api_incident_assign(incident_id):

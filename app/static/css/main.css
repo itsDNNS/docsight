@@ -3562,6 +3562,39 @@ mark.search-highlight {
     margin-top: 8px;
 }
 
+/* PDF Download Button */
+.incident-timeline-pdf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.incident-timeline-pdf-btn:hover {
+    background: var(--accent-hover, var(--purple-600));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+}
+.incident-timeline-pdf-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+.incident-timeline-pdf-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
 /* Section Title */
 .incident-timeline-section-title {
     font-size: 0.95rem;
