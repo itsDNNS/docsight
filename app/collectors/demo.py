@@ -145,6 +145,7 @@ class DemoCollector(Collector):
         self._seed_speedtest_results(now)
         self._seed_bqm_graphs(now)
         self._seed_incident_containers(now)
+        self._seed_bnetz_measurements(now)
 
     def _seed_history(self, now):
         """Generate 9 months of historical snapshots (every 15 min)."""
@@ -608,6 +609,90 @@ class DemoCollector(Collector):
                     (date, ts, png),
                 )
         log.info("Demo: seeded 30 BQM graphs")
+
+    def _seed_bnetz_measurements(self, now):
+        """Seed 9 BNetzA measurement campaigns over 9 months (matching 250/40 Cable tariff)."""
+        # Campaign dates: roughly monthly, spread over the demo period
+        campaign_offsets_days = [250, 220, 190, 160, 130, 100, 70, 40, 10]
+        # Campaigns where download shows deviation (correlate with bad signal periods)
+        bad_campaigns = {2, 5, 7}  # indices into campaign_offsets_days
+
+        rows = []
+        for idx, offset in enumerate(campaign_offsets_days):
+            campaign_date = now - timedelta(days=offset)
+            is_bad = idx in bad_campaigns
+
+            # Generate 5 individual measurements spread over several days
+            dl_values = []
+            ul_values = []
+            measurements_dl = []
+            measurements_ul = []
+            for m in range(5):
+                m_date = campaign_date + timedelta(days=m)
+                if is_bad:
+                    dl = round(random.uniform(150, 185), 2)
+                    ul = round(random.uniform(28, 38), 2)
+                else:
+                    dl = round(random.uniform(200, 250), 2)
+                    ul = round(random.uniform(30, 40), 2)
+                dl_values.append(dl)
+                ul_values.append(ul)
+                measurements_dl.append({
+                    "date": m_date.strftime("%Y-%m-%d"),
+                    "value": dl,
+                })
+                measurements_ul.append({
+                    "date": m_date.strftime("%Y-%m-%d"),
+                    "value": ul,
+                })
+
+            dl_avg = round(sum(dl_values) / len(dl_values), 2)
+            ul_avg = round(sum(ul_values) / len(ul_values), 2)
+
+            # BNetzA verdicts: "ok" or "deviation"
+            # Deviation if avg < normal (200 for DL, 30 for UL)
+            verdict_dl = "deviation" if dl_avg < 200 else "ok"
+            verdict_ul = "deviation" if ul_avg < 30 else "ok"
+
+            measurements_json = json.dumps({
+                "download": measurements_dl,
+                "upload": measurements_ul,
+            })
+
+            rows.append((
+                campaign_date.strftime("%Y-%m-%d"),
+                campaign_date.strftime("%Y-%m-%dT%H:%M:%S"),
+                "Vodafone Kabel",     # provider
+                "Cable 250",          # tariff
+                250.0,                # download_max_tariff
+                200.0,                # download_normal_tariff
+                150.0,                # download_min_tariff
+                40.0,                 # upload_max_tariff
+                30.0,                 # upload_normal_tariff
+                10.0,                 # upload_min_tariff
+                dl_avg,               # download_measured_avg
+                ul_avg,               # upload_measured_avg
+                5,                    # measurement_count
+                verdict_dl,           # verdict_download
+                verdict_ul,           # verdict_upload
+                measurements_json,    # measurements_json
+                None,                 # pdf_blob (no PDF for demo)
+                "upload",             # source
+                1,                    # is_demo
+            ))
+
+        with sqlite3.connect(self._storage.db_path) as conn:
+            conn.executemany(
+                "INSERT INTO bnetz_measurements "
+                "(date, timestamp, provider, tariff, "
+                "download_max_tariff, download_normal_tariff, download_min_tariff, "
+                "upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+                "download_measured_avg, upload_measured_avg, measurement_count, "
+                "verdict_download, verdict_upload, measurements_json, pdf_blob, source, is_demo) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                rows,
+            )
+        log.info("Demo: seeded %d BNetzA measurement campaigns", len(rows))
 
     @staticmethod
     def _generate_bqm_png(width=800, height=200, seed=0):
