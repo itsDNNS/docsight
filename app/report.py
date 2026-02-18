@@ -106,6 +106,25 @@ REPORT_STRINGS = {
             "Please see the attached monitoring data for details."
         ),
         "complaint_short_closing": "Sincerely,\n[Your Name]",
+        # Incident-scoped report
+        "incident_report_title": "DOCSight Complaint Report",
+        "section_incident_summary": "Incident Summary",
+        "incident_name": "Incident",
+        "incident_status": "Status",
+        "incident_period": "Period",
+        "incident_duration": "Duration",
+        "incident_duration_days": "{days} days",
+        "incident_duration_ongoing": "ongoing",
+        "section_speedtest": "Speed Test Results",
+        "speedtest_date": "Date",
+        "speedtest_download": "Download",
+        "speedtest_upload": "Upload",
+        "speedtest_ping": "Ping",
+        "speedtest_avg": "Average",
+        "speedtest_min": "Minimum",
+        "section_bnetz": "BNetzA Measurements",
+        "section_journal": "Journal Entries",
+        "journal_attachments": "{count} attachment(s)",
         # BNetzA complaint section
         "complaint_bnetz_header": "Official Broadband Measurement (Bundesnetzagentur):",
         "complaint_bnetz_body": (
@@ -201,6 +220,25 @@ REPORT_STRINGS = {
             "Bitte entnehmen Sie die Details den beigefügten Überwachungsdaten."
         ),
         "complaint_short_closing": "Mit freundlichen Grüßen,\n[Ihr Name]",
+        # Incident-scoped report
+        "incident_report_title": "DOCSight Beschwerdebericht",
+        "section_incident_summary": "Zusammenfassung",
+        "incident_name": "Vorfall",
+        "incident_status": "Status",
+        "incident_period": "Zeitraum",
+        "incident_duration": "Dauer",
+        "incident_duration_days": "{days} Tage",
+        "incident_duration_ongoing": "andauernd",
+        "section_speedtest": "Geschwindigkeitstests",
+        "speedtest_date": "Datum",
+        "speedtest_download": "Download",
+        "speedtest_upload": "Upload",
+        "speedtest_ping": "Ping",
+        "speedtest_avg": "Durchschnitt",
+        "speedtest_min": "Minimum",
+        "section_bnetz": "BNetzA-Messungen",
+        "section_journal": "Journal-Eintraege",
+        "journal_attachments": "{count} Anhang/Anhaenge",
         # BNetzA complaint section
         "complaint_bnetz_header": "Offizielle Breitbandmessung (Bundesnetzagentur):",
         "complaint_bnetz_body": (
@@ -296,6 +334,25 @@ REPORT_STRINGS = {
             "Veuillez consulter les données de surveillance jointes pour plus de détails."
         ),
         "complaint_short_closing": "Veuillez agréer mes salutations distinguées,\n[Votre nom]",
+        # Incident-scoped report
+        "incident_report_title": "DOCSight Rapport de plainte",
+        "section_incident_summary": "Resume de l'incident",
+        "incident_name": "Incident",
+        "incident_status": "Statut",
+        "incident_period": "Periode",
+        "incident_duration": "Duree",
+        "incident_duration_days": "{days} jours",
+        "incident_duration_ongoing": "en cours",
+        "section_speedtest": "Tests de debit",
+        "speedtest_date": "Date",
+        "speedtest_download": "Telechargement",
+        "speedtest_upload": "Envoi",
+        "speedtest_ping": "Ping",
+        "speedtest_avg": "Moyenne",
+        "speedtest_min": "Minimum",
+        "section_bnetz": "Mesures BNetzA",
+        "section_journal": "Entrees du journal",
+        "journal_attachments": "{count} piece(s) jointe(s)",
         # BNetzA complaint section
         "complaint_bnetz_header": "Mesure officielle du haut débit (Bundesnetzagentur) :",
         "complaint_bnetz_body": (
@@ -392,6 +449,25 @@ REPORT_STRINGS = {
             "Consulte los datos de monitorización adjuntos para más detalles."
         ),
         "complaint_short_closing": "Atentamente,\n[Su nombre]",
+        # Incident-scoped report
+        "incident_report_title": "DOCSight Informe de queja",
+        "section_incident_summary": "Resumen del incidente",
+        "incident_name": "Incidente",
+        "incident_status": "Estado",
+        "incident_period": "Periodo",
+        "incident_duration": "Duracion",
+        "incident_duration_days": "{days} dias",
+        "incident_duration_ongoing": "en curso",
+        "section_speedtest": "Pruebas de velocidad",
+        "speedtest_date": "Fecha",
+        "speedtest_download": "Descarga",
+        "speedtest_upload": "Subida",
+        "speedtest_ping": "Ping",
+        "speedtest_avg": "Promedio",
+        "speedtest_min": "Minimo",
+        "section_bnetz": "Mediciones BNetzA",
+        "section_journal": "Entradas del diario",
+        "journal_attachments": "{count} adjunto(s)",
         # BNetzA complaint section
         "complaint_bnetz_header": "Medición oficial de banda ancha (Bundesnetzagentur):",
         "complaint_bnetz_body": (
@@ -705,6 +781,319 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
             f"{s['complaint_short_body']}\n\n"
             f"{s['complaint_short_closing']}"
         )
+
+    pdf.multi_cell(0, 4, complaint)
+
+    # Output
+    buf = io.BytesIO()
+    pdf.output(buf)
+    return buf.getvalue()
+
+
+def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_list,
+                              config=None, connection_info=None, lang="en",
+                              attachment_loader=None):
+    """Generate PDF complaint report scoped to a specific incident.
+
+    Args:
+        incident: Incident dict (name, status, description, start_date, end_date)
+        entries: List of journal entry dicts (with attachment_count, attachments list)
+        snapshots: List of snapshot dicts from storage.get_range_data()
+        speedtests: List of speedtest result dicts
+        bnetz_list: List of BNetzA measurement dicts
+        config: Config dict (isp_name, modem_type)
+        connection_info: Connection info dict
+        lang: Language code
+        attachment_loader: Optional callable(attachment_id) -> dict with 'data', 'mime_type'
+
+    Returns:
+        bytes: PDF file content
+    """
+    config = config or {}
+    connection_info = connection_info or {}
+    s = REPORT_STRINGS.get(lang, REPORT_STRINGS["en"])
+    pdf = IncidentReport(lang=lang)
+    # Override the header title for incident reports
+    pdf._s = dict(pdf._s)
+    pdf._s["report_title"] = s["incident_report_title"]
+    pdf._s["footer"] = s["incident_report_title"]
+    pdf.alias_nb_pages()
+
+    # ── Page 1: Incident Summary ──
+    pdf.add_page()
+    pdf._section_title(s["section_incident_summary"])
+
+    pdf._key_value(s["incident_name"], incident.get("name", ""))
+    status = incident.get("status", "open")
+    pdf._key_value(s["incident_status"], status.upper(), bold_value=True)
+
+    if incident.get("start_date"):
+        start_str = incident["start_date"]
+        end_str = incident.get("end_date") or ""
+        period = start_str
+        if end_str:
+            period += f"  {s.get('period_to', 'to')}  {end_str}"
+            try:
+                d1 = datetime.strptime(start_str, "%Y-%m-%d")
+                d2 = datetime.strptime(end_str, "%Y-%m-%d")
+                days = (d2 - d1).days
+                duration = s["incident_duration_days"].format(days=days)
+            except ValueError:
+                duration = ""
+        else:
+            period += f"  {s.get('period_to', 'to')}  ..."
+            duration = s["incident_duration_ongoing"]
+        pdf._key_value(s["incident_period"], period)
+        if duration:
+            pdf._key_value(s["incident_duration"], duration)
+
+    if incident.get("description"):
+        pdf.ln(2)
+        pdf.set_font("dejavu", "", 10)
+        pdf.multi_cell(0, 5, incident["description"])
+
+    # Connection info
+    pdf.ln(3)
+    pdf._section_title(s["section_connection_info"])
+    isp = config.get("isp_name", "Unknown ISP")
+    pdf._key_value(s["isp"], isp)
+    ds_mbps = connection_info.get("max_downstream_kbps", 0) // 1000 if connection_info.get("max_downstream_kbps") else "N/A"
+    us_mbps = connection_info.get("max_upstream_kbps", 0) // 1000 if connection_info.get("max_upstream_kbps") else "N/A"
+    pdf._key_value(s["tariff"], f"{ds_mbps} / {us_mbps} Mbit/s (Down / Up)")
+    device = config.get("modem_type", connection_info.get("device_name", "Unknown"))
+    pdf._key_value(s["modem"], device)
+
+    # ── Page 2: Signal Analysis (if snapshots available) ──
+    if snapshots:
+        pdf.add_page()
+        pdf._section_title(s["section_historical"])
+        worst = _compute_worst_values(snapshots)
+
+        pdf._key_value(s["total_measurements"], str(worst["total_snapshots"]))
+        pdf._key_value(s["measurements_poor"], str(worst["health_poor_count"]), bold_value=True)
+        pdf._key_value(s["measurements_marginal"], str(worst["health_marginal_count"]))
+        pdf.ln(2)
+
+        pdf.set_font("dejavu", "B", 10)
+        pdf.cell(0, 6, s["worst_recorded"], new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("dejavu", "", 10)
+
+        pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {THRESHOLDS['ds_power']['warn']})")
+        pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {THRESHOLDS['us_power']['warn']})")
+        pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {THRESHOLDS['snr']['warn']})")
+        pdf._key_value(s["uncorr_err_max"], f"{worst['ds_uncorrectable_max']:,}")
+        pdf._key_value(s["corr_err_max"], f"{worst['ds_correctable_max']:,}")
+        pdf.ln(3)
+
+        # Worst channels
+        ds_worst, us_worst = _find_worst_channels(snapshots)
+        if ds_worst:
+            pdf.set_font("dejavu", "B", 10)
+            pdf.cell(0, 6, s["worst_ds_channels"], new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("dejavu", "", 9)
+            for cid, count in ds_worst:
+                pct = round(count / len(snapshots) * 100)
+                pdf.cell(0, 5, f"  {s['channel_unhealthy'].format(cid=cid, count=count, total=len(snapshots), pct=pct)}", new_x="LMARGIN", new_y="NEXT")
+        if us_worst:
+            pdf.ln(2)
+            pdf.set_font("dejavu", "B", 10)
+            pdf.cell(0, 6, s["worst_us_channels"], new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("dejavu", "", 9)
+            for cid, count in us_worst:
+                pct = round(count / len(snapshots) * 100)
+                pdf.cell(0, 5, f"  {s['channel_unhealthy'].format(cid=cid, count=count, total=len(snapshots), pct=pct)}", new_x="LMARGIN", new_y="NEXT")
+
+    # ── Page 3: Speedtest Results (if available) ──
+    if speedtests:
+        pdf.add_page()
+        pdf._section_title(s["section_speedtest"])
+
+        cols = [s["speedtest_date"], s["speedtest_download"], s["speedtest_upload"], s["speedtest_ping"], "Jitter", "Loss"]
+        widths = [35, 30, 30, 25, 25, 25]
+        pdf._table_header(cols, widths)
+
+        dl_vals = []
+        ul_vals = []
+        for st in speedtests:
+            ts = st.get("timestamp", "")[:16].replace("T", " ")
+            dl = st.get("download_mbps") or st.get("download_human", "")
+            ul = st.get("upload_mbps") or st.get("upload_human", "")
+            ping = st.get("ping_ms", "-")
+            jitter = st.get("jitter_ms", "-")
+            loss = st.get("packet_loss_pct", "-")
+            dl_display = f"{dl}" if dl else "-"
+            ul_display = f"{ul}" if ul else "-"
+            pdf._table_row([ts, dl_display, ul_display, str(ping), str(jitter), f"{loss}%"], widths)
+            try:
+                dl_vals.append(float(dl) if dl else 0)
+            except (ValueError, TypeError):
+                pass
+            try:
+                ul_vals.append(float(ul) if ul else 0)
+            except (ValueError, TypeError):
+                pass
+
+        # Summary
+        if dl_vals or ul_vals:
+            pdf.ln(3)
+            pdf.set_font("dejavu", "B", 10)
+            if dl_vals:
+                avg_dl = round(sum(dl_vals) / len(dl_vals), 1)
+                min_dl = round(min(dl_vals), 1)
+                pdf._key_value(f"{s['speedtest_avg']} {s['speedtest_download']}", f"{avg_dl} Mbit/s")
+                pdf._key_value(f"{s['speedtest_min']} {s['speedtest_download']}", f"{min_dl} Mbit/s")
+            if ul_vals:
+                avg_ul = round(sum(ul_vals) / len(ul_vals), 1)
+                min_ul = round(min(ul_vals), 1)
+                pdf._key_value(f"{s['speedtest_avg']} {s['speedtest_upload']}", f"{avg_ul} Mbit/s")
+                pdf._key_value(f"{s['speedtest_min']} {s['speedtest_upload']}", f"{min_ul} Mbit/s")
+
+    # ── Page 4: BNetzA Measurements (if available) ──
+    if bnetz_list:
+        pdf.add_page()
+        pdf._section_title(s["section_bnetz"])
+
+        has_deviation = False
+        for m in bnetz_list:
+            pdf.set_font("dejavu", "B", 10)
+            pdf.cell(0, 6, f"{m.get('date', '')} - {m.get('tariff', '')} ({m.get('provider', '')})", new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("dejavu", "", 9)
+
+            dl_max = round(m.get("download_max_tariff") or 0)
+            dl_avg = round(m.get("download_measured_avg") or 0)
+            dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
+            ul_max = round(m.get("upload_max_tariff") or 0)
+            ul_avg = round(m.get("upload_measured_avg") or 0)
+            ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
+
+            pdf.cell(0, 5, f"  Download: {dl_avg} / {dl_max} Mbit/s ({dl_pct}%)", new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, f"  Upload: {ul_avg} / {ul_max} Mbit/s ({ul_pct}%)", new_x="LMARGIN", new_y="NEXT")
+
+            verdict_dl = m.get("verdict_download", "-")
+            verdict_ul = m.get("verdict_upload", "-")
+            pdf.cell(0, 5, f"  Verdict: DL {verdict_dl} / UL {verdict_ul}", new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(2)
+
+            if verdict_dl == "deviation" or verdict_ul == "deviation":
+                has_deviation = True
+
+        if has_deviation:
+            pdf.ln(2)
+            pdf.set_font("dejavu", "B", 9)
+            pdf.set_text_color(231, 76, 60)
+            pdf.multi_cell(0, 4, s.get("complaint_bnetz_legal", ""))
+            pdf.set_text_color(0, 0, 0)
+
+    # ── Page 5: Journal Entries ──
+    if entries:
+        pdf.add_page()
+        pdf._section_title(s["section_journal"])
+
+        for entry in entries:
+            pdf.set_font("dejavu", "B", 10)
+            date_str = entry.get("date", "")
+            title = entry.get("title", "")
+            pdf.cell(0, 6, f"{date_str}  -  {title}", new_x="LMARGIN", new_y="NEXT")
+
+            desc = entry.get("description", "")
+            if desc:
+                if len(desc) > 500:
+                    desc = desc[:500] + "..."
+                pdf.set_font("dejavu", "", 9)
+                pdf.multi_cell(0, 4, desc)
+
+            att_count = entry.get("attachment_count", 0)
+            if att_count:
+                pdf.set_font("dejavu", "I", 8)
+                pdf.set_text_color(128, 128, 128)
+                pdf.cell(0, 4, s["journal_attachments"].format(count=att_count), new_x="LMARGIN", new_y="NEXT")
+                pdf.set_text_color(0, 0, 0)
+
+            # Embed image attachments if loader provided
+            if attachment_loader and entry.get("attachments"):
+                for att_meta in entry["attachments"]:
+                    mime = att_meta.get("mime_type", "")
+                    if mime not in ("image/jpeg", "image/png"):
+                        continue
+                    try:
+                        att = attachment_loader(att_meta["id"])
+                        if not att or len(att.get("data", b"")) > 500 * 1024:
+                            continue
+                        img_buf = io.BytesIO(att["data"])
+                        ext = "jpeg" if "jpeg" in mime else "png"
+                        # Check remaining page space
+                        if pdf.get_y() > 220:
+                            pdf.add_page()
+                        pdf.image(img_buf, x=pdf.l_margin, w=min(170, pdf.epw), type=ext)
+                        pdf.ln(3)
+                    except Exception:
+                        log.warning("Failed to embed attachment %d in incident report", att_meta.get("id", 0))
+
+            pdf.ln(3)
+
+    # ── Last Page: Complaint Template ──
+    pdf.add_page()
+    pdf._section_title(s["section_complaint"])
+    pdf.set_font("dejavu", "", 9)
+
+    if snapshots:
+        worst = _compute_worst_values(snapshots)
+        start = snapshots[0]["timestamp"][:10]
+        end = snapshots[-1]["timestamp"][:10]
+        poor_pct = round(worst['health_poor_count'] / max(worst['total_snapshots'], 1) * 100)
+        complaint = (
+            f"{s['complaint_subject']}\n\n"
+            f"{s['complaint_greeting'].format(isp=isp)}\n\n"
+            f"{s['complaint_body'].format(count=len(snapshots), start=start, end=end)}\n\n"
+            f"{s['complaint_findings']}\n"
+            f"- {s['complaint_poor_rate'].format(poor=worst['health_poor_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
+            f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=THRESHOLDS['ds_power']['warn'])}\n"
+            f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=THRESHOLDS['us_power']['warn'])}\n"
+            f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=THRESHOLDS['snr']['warn'])}\n"
+            f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
+            f"{s['complaint_exceed']}\n\n"
+            f"{s['complaint_request']}\n"
+            f"1. {s['complaint_req1']}\n"
+            f"2. {s['complaint_req2']}\n"
+            f"3. {s['complaint_req3']}\n\n"
+        )
+    else:
+        complaint = (
+            f"{s['complaint_short_subject']}\n\n"
+            f"{s['complaint_short_greeting']}\n\n"
+            f"{s['complaint_short_body']}\n\n"
+        )
+
+    # Add BNetzA reference if measurements exist
+    if bnetz_list:
+        # Pick best measurement (prefer deviation)
+        bnetz_data = None
+        for m in reversed(bnetz_list):
+            if m.get("verdict_download") == "deviation" or m.get("verdict_upload") == "deviation":
+                bnetz_data = m
+                break
+        if not bnetz_data:
+            bnetz_data = bnetz_list[-1]
+
+        dl_max = round(bnetz_data.get("download_max_tariff") or 0)
+        dl_avg = round(bnetz_data.get("download_measured_avg") or 0)
+        dl_pct = round(dl_avg / dl_max * 100) if dl_max else 0
+        ul_max = round(bnetz_data.get("upload_max_tariff") or 0)
+        ul_avg = round(bnetz_data.get("upload_measured_avg") or 0)
+        ul_pct = round(ul_avg / ul_max * 100) if ul_max else 0
+
+        complaint += (
+            f"\n{s.get('complaint_bnetz_header', '')}\n\n"
+            f"{s.get('complaint_bnetz_body', '').format(date=bnetz_data.get('date', ''))}\n"
+            f"- {s.get('complaint_bnetz_dl', '').format(max=dl_max, avg=dl_avg, pct=dl_pct)}\n"
+            f"- {s.get('complaint_bnetz_ul', '').format(max=ul_max, avg=ul_avg, pct=ul_pct)}\n"
+            f"- {s.get('complaint_bnetz_verdict', '').format(verdict_dl=bnetz_data.get('verdict_download', '-'), verdict_ul=bnetz_data.get('verdict_upload', '-'))}\n\n"
+        )
+        has_dev = bnetz_data.get("verdict_download") == "deviation" or bnetz_data.get("verdict_upload") == "deviation"
+        if has_dev:
+            complaint += s.get("complaint_bnetz_legal", "") + "\n\n"
+
+    complaint += f"{s['complaint_escalation']}\n\n{s['complaint_closing']}"
 
     pdf.multi_cell(0, 4, complaint)
 
