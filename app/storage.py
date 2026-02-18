@@ -218,6 +218,52 @@ class SnapshotStorage:
             except Exception as e:
                 log.warning("Failed to migrate bnetz_measurements: %s", e)
 
+            # ── Migration: remove NOT NULL from pdf_blob (allows NULL for demo/CSV) ──
+            try:
+                schema = conn.execute(
+                    "SELECT sql FROM sqlite_master WHERE name='bnetz_measurements'"
+                ).fetchone()
+                if schema and "NOT NULL" in schema[0] and "pdf_blob BLOB NOT NULL" in schema[0]:
+                    conn.execute("ALTER TABLE bnetz_measurements RENAME TO _bnetz_old")
+                    conn.execute("""
+                        CREATE TABLE bnetz_measurements (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            date TEXT NOT NULL,
+                            timestamp TEXT NOT NULL,
+                            provider TEXT,
+                            tariff TEXT,
+                            download_max_tariff REAL,
+                            download_normal_tariff REAL,
+                            download_min_tariff REAL,
+                            upload_max_tariff REAL,
+                            upload_normal_tariff REAL,
+                            upload_min_tariff REAL,
+                            download_measured_avg REAL,
+                            upload_measured_avg REAL,
+                            measurement_count INTEGER,
+                            verdict_download TEXT,
+                            verdict_upload TEXT,
+                            measurements_json TEXT,
+                            pdf_blob BLOB,
+                            source TEXT DEFAULT 'upload',
+                            is_demo INTEGER NOT NULL DEFAULT 0
+                        )
+                    """)
+                    conn.execute("""
+                        INSERT INTO bnetz_measurements
+                        SELECT id, date, timestamp, provider, tariff,
+                               download_max_tariff, download_normal_tariff, download_min_tariff,
+                               upload_max_tariff, upload_normal_tariff, upload_min_tariff,
+                               download_measured_avg, upload_measured_avg, measurement_count,
+                               verdict_download, verdict_upload, measurements_json, pdf_blob,
+                               source, is_demo
+                        FROM _bnetz_old
+                    """)
+                    conn.execute("DROP TABLE _bnetz_old")
+                    log.info("Migration: removed NOT NULL from bnetz_measurements.pdf_blob")
+            except Exception as e:
+                log.warning("Failed to migrate bnetz_measurements pdf_blob: %s", e)
+
             # ── Migration: add is_demo column to demo-seeded tables ──
             _demo_tables = ["snapshots", "events", "journal_entries", "incidents", "speedtest_results", "bqm_graphs", "bnetz_measurements"]
             for tbl in _demo_tables:
