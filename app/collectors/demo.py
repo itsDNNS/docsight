@@ -13,6 +13,7 @@ import zlib
 from datetime import datetime, timedelta
 
 from .base import Collector, CollectorResult
+from ..analyzer import _channel_bitrate_mbps
 from ..gaming_index import compute_gaming_index
 
 log = logging.getLogger("docsis.collector.demo")
@@ -261,6 +262,7 @@ class DemoCollector(Collector):
             if bad_period:
                 power += random.uniform(0.5, 1.5)
             us_total_power += power
+            bitrate = _channel_bitrate_mbps(ch["modulation"])
             us_channels.append({
                 "channel_id": ch["channelID"],
                 "frequency": ch["frequency"],
@@ -270,6 +272,7 @@ class DemoCollector(Collector):
                 "docsis_version": "3.0",
                 "health": "good",
                 "health_detail": "",
+                "theoretical_bitrate": bitrate,
             })
 
         ds_count = len(ds_channels)
@@ -281,6 +284,9 @@ class DemoCollector(Collector):
         health = "good"
         if bad_period:
             health = "marginal"
+
+        us_bitrates = [ch["theoretical_bitrate"] for ch in us_channels if ch.get("theoretical_bitrate")]
+        us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None
 
         return {
             "summary": {
@@ -296,6 +302,7 @@ class DemoCollector(Collector):
                 "ds_snr_avg": round(total_snr / ds_count, 1),
                 "ds_correctable_errors": total_corr,
                 "ds_uncorrectable_errors": total_uncorr,
+                "us_capacity_mbps": us_capacity,
                 "health": health,
                 "health_issues": [],
             },
