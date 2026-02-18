@@ -3368,6 +3368,93 @@ mark.search-highlight {
     line-height: 1.4;
 }
 
+/* ── Journal Bulk Selection ── */
+.btn-bulk-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--input-border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+}
+.btn-bulk-toggle:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.btn-bulk-active {
+    background: var(--accent-purple, var(--accent)) !important;
+    color: #fff !important;
+    border-color: var(--accent-purple, var(--accent)) !important;
+}
+.journal-check-col { width: 36px; text-align: center; }
+.journal-check-cell { text-align: center; width: 36px; }
+.journal-check-cell input[type="checkbox"],
+.journal-check-col input[type="checkbox"] {
+    width: 16px; height: 16px; cursor: pointer;
+    accent-color: var(--accent-purple, var(--accent));
+}
+.journal-row-selected {
+    background: rgba(168,85,247,0.08) !important;
+}
+.journal-bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    background: var(--card);
+    border: 1px solid var(--accent-purple, var(--accent));
+    border-radius: var(--radius-sm, 8px);
+    margin-bottom: 12px;
+    animation: fadeIn 0.15s ease;
+}
+.journal-bulk-count {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--accent-purple, var(--accent));
+    white-space: nowrap;
+}
+.journal-bulk-select {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 0.85rem;
+    min-width: 180px;
+}
+.journal-bulk-sep {
+    flex: 1;
+}
+.btn-small {
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+}
+.btn-accent {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+}
+.btn-accent:hover { opacity: 0.85; }
+.btn-muted {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+    border: 1px solid var(--input-border);
+}
+.btn-muted:hover { background: rgba(255,255,255,0.14); }
+.btn-ghost {
+    background: none;
+    color: var(--muted);
+}
+.btn-ghost:hover { color: var(--text); }
+
 /* ── Incident Container Modal ── */
 .incident-container-modal .incident-form-group {
     margin-bottom: 16px;
