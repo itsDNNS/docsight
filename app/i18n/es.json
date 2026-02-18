@@ -226,6 +226,7 @@
   "upload": "Subida",
   "ping": "Ping",
   "jitter": "Jitter",
+  "server": "Servidor",
   "packet_loss": "Pérdida de paquetes",
   "via_speedtest_tracker": "vía Speedtest Tracker",
   "speedtest_no_data": "No hay resultados de speedtest disponibles.",

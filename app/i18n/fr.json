@@ -223,6 +223,7 @@
   "upload": "Envoi",
   "ping": "Ping",
   "jitter": "Gigue",
+  "server": "Serveur",
   "packet_loss": "Perte de paquets",
   "via_speedtest_tracker": "via Speedtest Tracker",
   "speedtest_no_data": "Aucun résultat de speedtest disponible.",

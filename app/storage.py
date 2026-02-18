@@ -110,6 +110,15 @@ class SnapshotStorage:
                 CREATE INDEX IF NOT EXISTS idx_speedtest_ts
                 ON speedtest_results(timestamp)
             """)
+            # Migration: add server_id/server_name columns if missing
+            try:
+                conn.execute("ALTER TABLE speedtest_results ADD COLUMN server_id INTEGER")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE speedtest_results ADD COLUMN server_name TEXT")
+            except Exception:
+                pass
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS journal_entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -439,13 +448,15 @@ class SnapshotStorage:
                 conn.executemany(
                     "INSERT OR IGNORE INTO speedtest_results "
                     "(id, timestamp, download_mbps, upload_mbps, download_human, "
-                    "upload_human, ping_ms, jitter_ms, packet_loss_pct) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
+                    "server_id, server_name) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     [
                         (
                             r["id"], r["timestamp"], r["download_mbps"],
                             r["upload_mbps"], r["download_human"], r["upload_human"],
                             r["ping_ms"], r["jitter_ms"], r["packet_loss_pct"],
+                            r.get("server_id"), r.get("server_name", ""),
                         )
                         for r in results
                     ],
@@ -460,7 +471,8 @@ class SnapshotStorage:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
-                "upload_human, ping_ms, jitter_ms, packet_loss_pct "
+                "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
+                "server_id, server_name "
                 "FROM speedtest_results ORDER BY id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
@@ -472,7 +484,8 @@ class SnapshotStorage:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
-                "upload_human, ping_ms, jitter_ms, packet_loss_pct "
+                "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
+                "server_id, server_name "
                 "FROM speedtest_results WHERE id = ?",
                 (result_id,),
             ).fetchone()
