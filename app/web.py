@@ -997,6 +997,41 @@ def api_bqm_image(date):
     return resp
 
 
+@app.route("/api/bqm/live")
+@require_auth
+def api_bqm_live():
+    """Fetch live BQM graph PNG from ThinkBroadband, fallback to today's cached."""
+    from . import thinkbroadband
+
+    bqm_url = _config_manager.get("bqm_url") if _config_manager else None
+    image = None
+    source = "cached"
+    ts = None
+
+    if bqm_url and not (_config_manager and _config_manager.is_demo_mode()):
+        image = thinkbroadband.fetch_graph(bqm_url)
+        if image:
+            source = "live"
+            ts = datetime.now().isoformat()
+
+    if not image and _storage:
+        today = datetime.now().strftime("%Y-%m-%d")
+        image = _storage.get_bqm_graph(today)
+        if image:
+            source = "cached"
+
+    if not image:
+        return jsonify({"error": "No BQM graph available"}), 404
+
+    resp = make_response(image)
+    resp.headers["Content-Type"] = "image/png"
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["X-BQM-Source"] = source
+    if ts:
+        resp.headers["X-BQM-Timestamp"] = ts
+    return resp
+
+
 @app.route("/api/speedtest")
 @require_auth
 def api_speedtest():
