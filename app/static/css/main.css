@@ -1023,12 +1023,13 @@ details.channel-group {
 /* Toolbar */
 .bqm-toolbar {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-bottom: 12px;
+    margin-bottom: 12px; max-width: 420px; margin-left: auto; margin-right: auto;
 }
 .bqm-quick { flex-shrink: 0; }
 .bqm-month-nav {
     display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
 }
+.bqm-slideshow-controls { max-width: 420px; margin-left: auto; margin-right: auto; }
 .bqm-nav-btn {
     background: none; border: 1px solid var(--input-border);
     color: var(--text); border-radius: 4px; cursor: pointer;
@@ -1047,6 +1048,7 @@ details.channel-group {
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: var(--radius-lg, 16px);
     padding: 16px; margin-bottom: 16px;
+    max-width: 420px; margin-left: auto; margin-right: auto;
 }
 .bqm-weekday-header {
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
