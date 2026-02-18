@@ -494,5 +494,16 @@
   "entry_selected": "entrada seleccionada",
   "entries_selected": "entradas seleccionadas",
   "entries_assigned": "entradas asignadas",
-  "entries_unassigned": "entradas desasignadas"
+  "entries_unassigned": "entradas desasignadas",
+  "incident_view_timeline": "Ver cronologia",
+  "incident_back_journal": "Volver al diario",
+  "incident_signal_timeline": "Senal & Eventos",
+  "incident_journal_entries": "Entradas del diario",
+  "incident_bnetz_measurements": "Mediciones BNetzA",
+  "incident_duration_ongoing": "en curso",
+  "incident_duration_days": "dias",
+  "timeline_source_modem": "Modem",
+  "timeline_source_speedtest": "Speedtest",
+  "timeline_source_event": "Evento",
+  "timeline_no_data": "Sin datos de senal para este periodo"
 }
