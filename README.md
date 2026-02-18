@@ -54,7 +54,7 @@ Open `http://localhost:8765` — no setup required.
 **What you get:**
 - 25 downstream + 4 upstream channels with realistic signal values
 - 90 days of historical data with diurnal and seasonal patterns
-- Pre-populated event log and incident journal
+- Pre-populated event log, incident journal, and incident groups
 - Full trend charts, channel timeline, and correlation analysis
 - Works with MQTT (if configured)
 
@@ -92,7 +92,7 @@ Open `http://localhost:8765` — no setup required.
 | **[Gaming Quality Index](https://github.com/itsDNNS/docsight/wiki/Features-Gaming-Quality)** | **NEW:** A-F grade for gaming readiness based on latency, jitter, and signal health |
 | **[Event Log](https://github.com/itsDNNS/docsight/wiki/Features-Event-Log)** | Automatic anomaly detection with modulation watchdog |
 | **[Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest)** | Speed test history from [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker) |
-| **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Document ISP issues with icons, Excel/CSV import, search, and attachments |
+| **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Document ISP issues with icons, Excel/CSV import, search, attachments, and **incident groups** for organizing entries |
 | **[Complaint Generator](https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint)** | Editable ISP letter + downloadable technical PDF |
 | **[Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline)** | Per-channel power, SNR, error, and modulation history over time |
 | **[Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant)** | MQTT Auto-Discovery with per-channel sensors |
@@ -241,6 +241,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Demo/Test Mode | ✅ Released | [#30](https://github.com/itsDNNS/docsight/issues/30) |
 | Smokeping Integration | ✅ Released | [#22](https://github.com/itsDNNS/docsight/issues/22) |
 | Incident Import, Icons & Search | ✅ Released | [#58](https://github.com/itsDNNS/docsight/issues/58) |
+| Incident Groups | ✅ Released | [#66](https://github.com/itsDNNS/docsight/issues/66) |
 | Vodafone Station Support | ✅ Released | [#14](https://github.com/itsDNNS/docsight/issues/14) |
 | Technicolor TC4400 Support | ✅ Released | [#24](https://github.com/itsDNNS/docsight/issues/24) |
 | Vodafone Ultra Hub 7 Support | ✅ Released | [#29](https://github.com/itsDNNS/docsight/issues/29) |
