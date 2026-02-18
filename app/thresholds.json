@@ -66,6 +66,12 @@
     "_default": "256QAM"
   },
 
+  "upstream_modulation": {
+    "_comment": "Upstream modulation health assessment based on QAM order. Normal for Vodafone: 64-QAM. CMTS downgrades modulation when upstream path is too noisy (Rueckwegstoerer).",
+    "critical_max_qam": 4,
+    "warning_max_qam": 16
+  },
+
   "errors": {
     "uncorrectable_threshold": 10000
   }
