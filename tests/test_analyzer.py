@@ -1,7 +1,7 @@
 """Tests for DOCSIS channel health analyzer."""
 
 import pytest
-from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation
+from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps
 
 
 # -- Helper to build FritzBox-style channel data --
@@ -521,3 +521,93 @@ class TestOFDMThresholds:
         ch = result["ds_channels"][0]
         # MER 44 is below 4096QAM good_min (45) but above crit (42), so warning
         assert "snr warning" in ch["health_detail"]
+
+
+# -- Upstream bitrate calculation --
+
+class TestChannelBitrate:
+    def test_64qam_default_rate(self):
+        """64-QAM at 5120 kSym/s = 30.72 Mbit/s."""
+        assert _channel_bitrate_mbps("64QAM") == 30.72
+
+    def test_4qam(self):
+        """4-QAM at 5120 kSym/s = 10.24 Mbit/s."""
+        assert _channel_bitrate_mbps("4QAM") == 10.24
+
+    def test_qpsk(self):
+        """QPSK (= 4-QAM) at 5120 kSym/s = 10.24 Mbit/s."""
+        assert _channel_bitrate_mbps("QPSK") == 10.24
+
+    def test_16qam(self):
+        """16-QAM at 5120 kSym/s = 20.48 Mbit/s."""
+        assert _channel_bitrate_mbps("16QAM") == 20.48
+
+    def test_256qam(self):
+        """256-QAM at 5120 kSym/s = 40.96 Mbit/s."""
+        assert _channel_bitrate_mbps("256QAM") == 40.96
+
+    def test_custom_symbol_rate(self):
+        """Custom symbol rate overrides default."""
+        assert _channel_bitrate_mbps("64QAM", 2560) == 15.36
+
+    def test_ofdma_returns_none(self):
+        """OFDMA modulation has no simple QAM order, returns None."""
+        assert _channel_bitrate_mbps("OFDMA") is None
+
+    def test_none_returns_none(self):
+        assert _channel_bitrate_mbps(None) is None
+
+    def test_empty_returns_none(self):
+        assert _channel_bitrate_mbps("") is None
+
+
+class TestUpstreamCapacity:
+    def test_aggregate_4x64qam(self):
+        """4 channels at 64-QAM = 122.88 Mbit/s."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(i, power=42.0, modulation="64QAM") for i in range(1, 5)],
+        )
+        result = analyze(data)
+        assert result["summary"]["us_capacity_mbps"] == 122.9
+
+    def test_aggregate_4x4qam(self):
+        """4 channels at 4-QAM = 40.96 Mbit/s (degraded)."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(i, power=42.0, modulation="4QAM") for i in range(1, 5)],
+        )
+        result = analyze(data)
+        assert result["summary"]["us_capacity_mbps"] == 41.0
+
+    def test_per_channel_bitrate(self):
+        """Each US channel has theoretical_bitrate field."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0, modulation="64QAM")],
+        )
+        ch = analyze(data)["us_channels"][0]
+        assert ch["theoretical_bitrate"] == 30.72
+
+    def test_mixed_modulation(self):
+        """Mixed 64-QAM and 4-QAM channels sum correctly."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[
+                _make_us30(1, power=42.0, modulation="64QAM"),
+                _make_us30(2, power=42.0, modulation="64QAM"),
+                _make_us30(3, power=42.0, modulation="4QAM"),
+                _make_us30(4, power=42.0, modulation="64QAM"),
+            ],
+        )
+        result = analyze(data)
+        # 3 * 30.72 + 1 * 10.24 = 102.4
+        assert result["summary"]["us_capacity_mbps"] == 102.4
+
+    def test_no_us_channels(self):
+        """No US channels -> us_capacity_mbps is None."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+        )
+        result = analyze(data)
+        assert result["summary"]["us_capacity_mbps"] is None

@@ -110,6 +110,36 @@ def _get_uncorr_threshold():
     return _thresholds.get("errors", {}).get("uncorrectable_threshold", 10000)
 
 
+# EuroDOCSIS default symbol rate (kSym/s)
+_DEFAULT_SYMBOL_RATE = 5120
+
+_BITS_PER_SYMBOL = {
+    4: 2,      # QPSK / 4-QAM
+    8: 3,
+    16: 4,
+    32: 5,
+    64: 6,
+    128: 7,
+    256: 8,
+    512: 9,
+    1024: 10,
+    2048: 11,
+    4096: 12,
+}
+
+
+def _channel_bitrate_mbps(modulation_str, symbol_rate_ksym=None):
+    """Calculate theoretical bitrate for a channel in Mbit/s.
+
+    Returns None if modulation is unparseable (e.g. OFDMA).
+    """
+    qam_order = _parse_qam_order(modulation_str)
+    if qam_order is None or qam_order not in _BITS_PER_SYMBOL:
+        return None
+    rate = symbol_rate_ksym or _DEFAULT_SYMBOL_RATE
+    return round(rate * _BITS_PER_SYMBOL[qam_order] / 1000, 2)
+
+
 def get_thresholds():
     """Return the currently loaded thresholds dict (read-only access)."""
     return _thresholds
@@ -263,27 +293,33 @@ def analyze(data: dict) -> dict:
     us_channels = []
     for ch in us30:
         health, health_detail = _assess_us_channel(ch, "3.0")
+        mod = ch.get("modulation") or ch.get("type", "")
+        bitrate = _channel_bitrate_mbps(mod, ch.get("symbolRate"))
         us_channels.append({
             "channel_id": ch.get("channelID", 0),
             "frequency": ch.get("frequency", ""),
             "power": _parse_float(ch.get("powerLevel")),
-            "modulation": ch.get("modulation") or ch.get("type", ""),
+            "modulation": mod,
             "multiplex": ch.get("multiplex", ""),
             "docsis_version": "3.0",
             "health": health,
             "health_detail": health_detail,
+            "theoretical_bitrate": bitrate,
         })
     for ch in us31:
         health, health_detail = _assess_us_channel(ch, "3.1")
+        mod = ch.get("modulation") or ch.get("type", "")
+        bitrate = _channel_bitrate_mbps(mod, ch.get("symbolRate"))
         us_channels.append({
             "channel_id": ch.get("channelID", 0),
             "frequency": ch.get("frequency", ""),
             "power": _parse_float(ch.get("powerLevel")),
-            "modulation": ch.get("modulation") or ch.get("type", ""),
+            "modulation": mod,
             "multiplex": ch.get("multiplex", ""),
             "docsis_version": "3.1",
             "health": health,
             "health_detail": health_detail,
+            "theoretical_bitrate": bitrate,
         })
 
     us_channels.sort(key=lambda c: c["channel_id"])
@@ -295,6 +331,9 @@ def analyze(data: dict) -> dict:
 
     total_corr = sum(c["correctable_errors"] for c in ds_channels)
     total_uncorr = sum(c["uncorrectable_errors"] for c in ds_channels)
+
+    us_bitrates = [c["theoretical_bitrate"] for c in us_channels if c["theoretical_bitrate"] is not None]
+    us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None
 
     summary = {
         "ds_total": len(ds_channels),
@@ -309,6 +348,7 @@ def analyze(data: dict) -> dict:
         "ds_snr_avg": round(sum(ds_snrs) / len(ds_snrs), 1) if ds_snrs else 0,
         "ds_correctable_errors": total_corr,
         "ds_uncorrectable_errors": total_uncorr,
+        "us_capacity_mbps": us_capacity,
     }
 
     # --- Overall health (aggregate from per-channel assessments) ---
