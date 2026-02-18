@@ -1,6 +1,8 @@
 # DOCSight Architecture
 
-This document describes the technical architecture of DOCSight v2.0.
+> Documentation current as of **v2026-02-18.4**
+
+This document describes the technical architecture of DOCSight.
 
 ## Overview
 
@@ -21,17 +23,17 @@ DOCSight is built around a **modular collector pattern** that separates data col
 │  │                           │ Config Check │                    │  │
 │  │                           └──────┬───────┘                    │  │
 │  │                                  │                            │  │
-│  │         ┌──────────┬─────────────┼──────────────────────┐     │  │
-│  │         │          │             │                      │     │  │
-│  │         ▼          ▼             ▼                      ▼     │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌────────────┐      ┌────────────┐│  │
-│  │  │  Modem   │ │   Demo   │ │ Speedtest  │      │    BQM     ││  │
-│  │  │ Collect. │ │ Collect. │ │ Collector  │      │ Collector  ││  │
-│  │  │          │ │          │ │            │      │            ││  │
-│  │  │ Poll:900s│ │ Poll:900s│ │ Poll: 300s │      │ Poll: 24h  ││  │
-│  │  └────┬─────┘ └────┬─────┘ └─────┬──────┘      └─────┬──────┘│  │
-│  │       │             │             │                   │        │  │
-│  │       └─────────────┴─────────────┼───────────────────┘        │  │
+│  │         ┌──────────┬─────────────┼──────────────┬───────────┐  │  │
+│  │         │          │             │              │           │  │  │
+│  │         ▼          ▼             ▼              ▼           ▼  │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐│
+│  │  │  Modem   │ │   Demo   │ │ Speedtest  │ │    BQM     │ │  BNetzA    ││
+│  │  │ Collect. │ │ Collect. │ │ Collector  │ │ Collector  │ │  Watcher   ││
+│  │  │          │ │          │ │            │ │            │ │            ││
+│  │  │ Poll:900s│ │ Poll:900s│ │ Poll: 300s │ │ Poll: 24h  │ │ Poll: 300s ││
+│  │  └────┬─────┘ └────┬─────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘│
+│  │       │             │             │              │              │       │
+│  │       └─────────────┴─────────────┼──────────────┴──────────────┘       │
 │  │                                │                              │  │
 │  └────────────────────────────────┼──────────────────────────────┘  │
 │                                   │                                 │
@@ -287,6 +289,36 @@ _generate_data() (base channels + variation)
 
 **Output:** PNG graph image saved to storage
 
+### BnetzWatcherCollector (`app/collectors/bnetz_watcher.py`)
+
+**Purpose:** Auto-import BNetzA measurement protocols from a watched directory
+**Poll Interval:** 300s (5 minutes)
+**Data Source:** Local filesystem (PDF and CSV files)
+**Activation:** `BNETZ_WATCH_ENABLED=true` + `BNETZ_WATCH_DIR=/data/bnetz`
+
+**Pipeline:**
+```
+Scan watch_dir for new .pdf/.csv files (not in .imported marker)
+  -> PDF: parse_bnetz_pdf(bytes) -> storage.save_bnetz_measurement(parsed, pdf_bytes, source="watcher")
+  -> CSV: parse_bnetz_csv(content) -> storage.save_bnetz_measurement(parsed, None, source="csv_import")
+    -> Move processed files to processed/ subdirectory
+      -> Append filenames to .imported marker
+```
+
+**Features:**
+- Watches for `.pdf` and `.csv` files in configured directory
+- Tracks already-imported files via `.imported` marker (set of filenames)
+- Moves processed files to `processed/` subdirectory
+- PDF parsing: reuses `app/bnetz_parser.py` (official BNetzA Messprotokoll format)
+- CSV parsing: `app/bnetz_csv_parser.py` (semicolon-separated, German locale numbers)
+- Partial failure handling: continues importing remaining files on individual errors
+- `get_status()` includes `watch_dir` and `last_import_count` for UI banner
+
+**Related files:**
+- `app/bnetz_parser.py` - PDF parser for official BNetzA Messprotokolle
+- `app/bnetz_csv_parser.py` - CSV parser for BNetzA Desktop App exports
+- `docker-compose.bnetz.yml` - Sidecar compose for automated measurements
+
 ---
 
 ## Driver Architecture
@@ -485,6 +517,29 @@ CREATE TABLE bqm_graphs (
     date TEXT UNIQUE,
     image_blob BLOB
 );
+
+-- BNetzA broadband measurements
+CREATE TABLE bnetz_measurements (
+    id INTEGER PRIMARY KEY,
+    date TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    provider TEXT,
+    tariff TEXT,
+    download_max_tariff REAL,
+    download_normal_tariff REAL,
+    download_min_tariff REAL,
+    upload_max_tariff REAL,
+    upload_normal_tariff REAL,
+    upload_min_tariff REAL,
+    download_measured_avg REAL,
+    upload_measured_avg REAL,
+    measurement_count INTEGER,
+    verdict_download TEXT,
+    verdict_upload TEXT,
+    measurements_json TEXT,
+    pdf_blob BLOB,               -- NULL for CSV imports
+    source TEXT DEFAULT 'upload'  -- 'upload', 'watcher', 'csv_import'
+);
 ```
 
 **Retention:** Configurable via `history_days` setting (default: 7 days)
@@ -522,6 +577,10 @@ CREATE TABLE bqm_graphs (
 | `/api/incidents/<id>/assign` | POST | Assign entries to incident |
 | `/api/export` | GET | LLM-optimized report |
 | `/api/report` | GET | PDF incident report |
+| `/api/bnetz/upload` | POST | Upload BNetzA measurement (PDF or CSV) |
+| `/api/bnetz/measurements` | GET | List BNetzA measurements |
+| `/api/bnetz/pdf/<id>` | GET | Download original measurement PDF |
+| `/api/bnetz/<id>` | DELETE | Delete a BNetzA measurement |
 
 **New in v2.0:**
 
@@ -627,6 +686,7 @@ COLLECTOR_REGISTRY = {
     "demo": DemoCollector,
     "speedtest": SpeedtestCollector,
     "bqm": BQMCollector,
+    "bnetz_watcher": BnetzWatcherCollector,
     "my_source": MyCollector,  # Add here
 }
 
@@ -696,7 +756,7 @@ def test_my_collector_success():
 ## Testing
 
 **Framework:** pytest
-**Coverage:** 268 tests
+**Coverage:** 330 tests
 
 **Run tests:**
 ```bash
@@ -710,6 +770,7 @@ python -m pytest tests/ -v
 - Web: API endpoints and auth
 - Event detection: Anomaly detection
 - Config: Configuration management
+- BNetzA: PDF/CSV parsing and file watcher
 - i18n: Translation completeness
 
 ---
