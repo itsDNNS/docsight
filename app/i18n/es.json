@@ -520,5 +520,10 @@
   "bnetz_source_watcher": "Importado automaticamente",
   "bnetz_source_csv": "Importacion CSV",
   "bnetz_upload_csv_hint": "Subir archivos de medicion PDF o CSV",
-  "bnetz_docker_hint": "Use docker-compose.bnetz.yml para medicion automatizada con la app oficial BNetzA"
+  "bnetz_docker_hint": "Use docker-compose.bnetz.yml para medicion automatizada con la app oficial BNetzA",
+  "demo_migrate_title": "Modo demo activo",
+  "demo_migrate_desc": "DOCSight esta funcionando en modo demo con datos de ejemplo. Cambia al modo real para monitorear tu modem. Tus propias entradas e incidentes se conservaran.",
+  "demo_migrate_button": "Cambiar a modo real",
+  "demo_migrate_confirm": "Se eliminaran todos los datos de demo y se activara el modo real. Tus propias entradas se conservaran. Continuar?",
+  "demo_migrate_success": "Cambio a modo real exitoso. Los datos de demo han sido eliminados."
 }

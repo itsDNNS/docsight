@@ -517,5 +517,10 @@
   "bnetz_source_watcher": "Importe automatiquement",
   "bnetz_source_csv": "Import CSV",
   "bnetz_upload_csv_hint": "Telecharger des fichiers de mesure PDF ou CSV",
-  "bnetz_docker_hint": "Utilisez docker-compose.bnetz.yml pour la mesure automatisee avec l'application BNetzA officielle"
+  "bnetz_docker_hint": "Utilisez docker-compose.bnetz.yml pour la mesure automatisee avec l'application BNetzA officielle",
+  "demo_migrate_title": "Mode demo actif",
+  "demo_migrate_desc": "DOCSight fonctionne en mode demo avec des donnees d'exemple. Passez en mode reel pour surveiller votre modem. Vos propres entrees et incidents seront conserves.",
+  "demo_migrate_button": "Passer en mode reel",
+  "demo_migrate_confirm": "Toutes les donnees de demo seront supprimees et le mode reel sera active. Vos propres entrees seront conservees. Continuer?",
+  "demo_migrate_success": "Passage en mode reel reussi. Les donnees de demo ont ete supprimees."
 }

@@ -482,7 +482,8 @@ def settings():
     tz_name, tz_offset = _server_tz_info()
     from .drivers import DRIVER_REGISTRY, DRIVER_DISPLAY_NAMES
     modem_types = [(k, DRIVER_DISPLAY_NAMES.get(k, k)) for k in sorted(DRIVER_REGISTRY)]
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types)
+    demo_mode = _config_manager.is_demo_mode() if _config_manager else False
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, demo_mode=demo_mode)
 
 
 @app.route("/api/config", methods=["POST"])
@@ -637,6 +638,27 @@ def api_collectors_status():
     
     return jsonify([c.get_status() for c in _collectors])
 
+
+
+@app.route("/api/demo/migrate", methods=["POST"])
+@require_auth
+def api_demo_migrate():
+    """Switch from demo to live mode. Removes demo data, keeps user data."""
+    if not _config_manager or not _config_manager.is_demo_mode():
+        return jsonify({"success": False, "error": "Not in demo mode"}), 400
+    if not _storage:
+        return jsonify({"success": False, "error": "Storage not initialized"}), 500
+    try:
+        purged = _storage.purge_demo_data()
+        _config_manager.save({"demo_mode": False})
+        _storage.max_days = _config_manager.get("history_days", 7)
+        audit_log.info("Demo migration: ip=%s purged=%d rows", _get_client_ip(), purged)
+        if _on_config_changed:
+            _on_config_changed()
+        return jsonify({"success": True, "purged": purged})
+    except Exception as e:
+        log.error("Demo migration failed: %s", e)
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/trends")

@@ -582,6 +582,28 @@
         <form id="settings-form" autocomplete="off">
             <div class="settings-content">
 
+                {% if demo_mode %}
+                <!-- ═══ Demo Mode Migration Banner ═══ -->
+                <div class="settings-card" style="border-color: var(--warn); background: rgba(234, 179, 8, 0.08);" id="demo-migrate-banner">
+                    <div class="settings-card-header" style="border-bottom-color: rgba(234, 179, 8, 0.2);">
+                        <div class="settings-card-icon" style="background: rgba(234, 179, 8, 0.15); color: var(--warn);">
+                            <i data-lucide="flask-conical"></i>
+                        </div>
+                        <div>
+                            <div class="settings-card-title">{{ t.demo_migrate_title }}</div>
+                            <div class="settings-card-desc">{{ t.demo_migrate_desc }}</div>
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button type="button" class="btn btn-secondary" style="border-color: var(--warn); color: var(--warn);" onclick="migrateToLive()">
+                            <i data-lucide="arrow-right-circle" style="width:16px;height:16px;"></i>
+                            {{ t.demo_migrate_button }}
+                        </button>
+                    </div>
+                    <div class="test-result" id="migrate-result"></div>
+                </div>
+                {% endif %}
+
                 <!-- ═══ Panel: Modem ═══ -->
                 <div class="settings-panel active" id="panel-modem">
                     <div class="settings-card">
@@ -1192,6 +1214,36 @@ function testNotifications() {
         if (res.success) {
             el.className = 'test-result test-ok';
             el.innerHTML = '<span class="check-icon">&#10003;</span> Test notification sent';
+        } else {
+            el.className = 'test-result test-fail';
+            el.innerHTML = '<span>&#10007;</span> ' + escHtml(res.error || 'Unknown error');
+        }
+    })
+    .catch(function() {
+        el.className = 'test-result test-fail';
+        el.innerHTML = '<span>&#10007;</span> ' + T.network_error;
+    });
+}
+
+/* ── Demo Migration ── */
+function migrateToLive() {
+    var msg = T.demo_migrate_confirm || 'This will delete all demo data and switch to live mode. Your own entries will be kept. Continue?';
+    if (!confirm(msg)) return;
+    var el = document.getElementById('migrate-result');
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.innerHTML = '<span>&#8987;</span> Migrating...';
+    fetch('/api/demo/migrate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: '{}'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            el.className = 'test-result test-ok';
+            el.innerHTML = '<span class="check-icon">&#10003;</span> ' + (T.demo_migrate_success || 'Migration complete');
+            setTimeout(function() { location.reload(); }, 1500);
         } else {
             el.className = 'test-result test-fail';
             el.innerHTML = '<span>&#10007;</span> ' + escHtml(res.error || 'Unknown error');
