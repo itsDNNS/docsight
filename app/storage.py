@@ -210,7 +210,7 @@ class SnapshotStorage:
                 log.warning("Failed to migrate bnetz_measurements: %s", e)
 
             # ── Migration: add is_demo column to demo-seeded tables ──
-            _demo_tables = ["snapshots", "events", "journal_entries", "incidents", "speedtest_results", "bqm_graphs"]
+            _demo_tables = ["snapshots", "events", "journal_entries", "incidents", "speedtest_results", "bqm_graphs", "bnetz_measurements"]
             for tbl in _demo_tables:
                 try:
                     cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
@@ -1182,7 +1182,7 @@ class SnapshotStorage:
             )
             # 3. Delete from each demo-seeded table
             tables = ["journal_entries", "incidents", "events", "snapshots",
-                       "speedtest_results", "bqm_graphs"]
+                       "speedtest_results", "bqm_graphs", "bnetz_measurements"]
             total = 0
             for tbl in tables:
                 deleted = conn.execute(
