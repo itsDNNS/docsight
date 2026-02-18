@@ -1475,6 +1475,35 @@ def api_incident_delete(incident_id):
     return jsonify({"success": True})
 
 
+@app.route("/api/incidents/<int:incident_id>/timeline")
+@require_auth
+def api_incident_timeline(incident_id):
+    """Return bundled timeline data for a single incident."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    incident = _storage.get_incident(incident_id)
+    if not incident:
+        return jsonify({"error": "Not found"}), 404
+
+    entries = _storage.get_entries(limit=9999, incident_id=incident_id)
+
+    timeline = []
+    bnetz = []
+    if incident.get("start_date"):
+        start_ts = incident["start_date"] + "T00:00:00"
+        end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
+        end_ts = end_date + "T23:59:59"
+        timeline = _storage.get_correlation_timeline(start_ts, end_ts)
+        bnetz = _storage.get_bnetz_in_range(start_ts, end_ts)
+
+    return jsonify({
+        "incident": incident,
+        "entries": entries,
+        "timeline": timeline,
+        "bnetz": bnetz,
+    })
+
+
 @app.route("/api/incidents/<int:incident_id>/assign", methods=["POST"])
 @require_auth
 def api_incident_assign(incident_id):
