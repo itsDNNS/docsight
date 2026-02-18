@@ -209,6 +209,17 @@ class SnapshotStorage:
             except Exception as e:
                 log.warning("Failed to migrate bnetz_measurements: %s", e)
 
+            # ── Migration: add is_demo column to demo-seeded tables ──
+            _demo_tables = ["snapshots", "events", "journal_entries", "incidents", "speedtest_results", "bqm_graphs"]
+            for tbl in _demo_tables:
+                try:
+                    cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
+                    if "is_demo" not in cols:
+                        conn.execute(f"ALTER TABLE {tbl} ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
+                        log.info("Migration: added is_demo column to %s", tbl)
+                except Exception as e:
+                    log.warning("Failed to add is_demo to %s: %s", tbl, e)
+
     def save_snapshot(self, analysis):
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -489,14 +500,14 @@ class SnapshotStorage:
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
-    def save_entry(self, date, title, description, icon=None, incident_id=None):
+    def save_entry(self, date, title, description, icon=None, incident_id=None, is_demo=False):
         """Create a new journal entry. Returns the new entry id."""
         now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         with self._connect() as conn:
             cur = conn.execute(
-                "INSERT INTO journal_entries (date, title, description, icon, incident_id, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (date, title, description, icon, incident_id, now, now),
+                "INSERT INTO journal_entries (date, title, description, icon, incident_id, created_at, updated_at, is_demo) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (date, title, description, icon, incident_id, now, now, int(is_demo)),
             )
             return cur.lastrowid
 
@@ -645,14 +656,14 @@ class SnapshotStorage:
 
     # ── Incident Containers (NEW) ──
 
-    def save_incident(self, name, description=None, status="open", start_date=None, end_date=None, icon=None):
+    def save_incident(self, name, description=None, status="open", start_date=None, end_date=None, icon=None, is_demo=False):
         """Create a new incident container. Returns the new incident id."""
         now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         with self._connect() as conn:
             cur = conn.execute(
-                "INSERT INTO incidents (name, description, status, start_date, end_date, icon, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (name, description, status, start_date, end_date, icon, now, now),
+                "INSERT INTO incidents (name, description, status, start_date, end_date, icon, created_at, updated_at, is_demo) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (name, description, status, start_date, end_date, icon, now, now, int(is_demo)),
             )
             return cur.lastrowid
 
@@ -756,17 +767,18 @@ class SnapshotStorage:
             )
             return cur.lastrowid
 
-    def save_events(self, events_list):
+    def save_events(self, events_list, is_demo=False):
         """Bulk insert events. Returns count of inserted rows."""
         if not events_list:
             return 0
         with sqlite3.connect(self.db_path) as conn:
             conn.executemany(
-                "INSERT INTO events (timestamp, severity, event_type, message, details) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO events (timestamp, severity, event_type, message, details, is_demo) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
                 [
                     (e["timestamp"], e["severity"], e["event_type"], e["message"],
-                     json.dumps(e.get("details")) if e.get("details") else None)
+                     json.dumps(e.get("details")) if e.get("details") else None,
+                     int(is_demo))
                     for e in events_list
                 ],
             )
@@ -1150,6 +1162,36 @@ class SnapshotStorage:
             "ds_channels": json.loads(row[0]),
             "us_channels": json.loads(row[1]),
         }
+
+    def purge_demo_data(self):
+        """Delete all rows with is_demo=1 from all demo-seeded tables.
+
+        Order matters: delete attachments for demo journal entries first,
+        unassign entries from demo incidents, then delete from each table.
+        """
+        with self._connect() as conn:
+            # 1. Delete attachments belonging to demo journal entries
+            conn.execute(
+                "DELETE FROM journal_attachments WHERE entry_id IN "
+                "(SELECT id FROM journal_entries WHERE is_demo = 1)"
+            )
+            # 2. Unassign entries from demo incidents (so they become orphan-free)
+            conn.execute(
+                "UPDATE journal_entries SET incident_id = NULL WHERE incident_id IN "
+                "(SELECT id FROM incidents WHERE is_demo = 1)"
+            )
+            # 3. Delete from each demo-seeded table
+            tables = ["journal_entries", "incidents", "events", "snapshots",
+                       "speedtest_results", "bqm_graphs"]
+            total = 0
+            for tbl in tables:
+                deleted = conn.execute(
+                    f"DELETE FROM {tbl} WHERE is_demo = 1"
+                ).rowcount
+                if deleted:
+                    log.info("Purged %d demo rows from %s", deleted, tbl)
+                    total += deleted
+        return total
 
     def _cleanup(self):
         """Delete snapshots, BQM graphs, and events older than max_days. 0 = keep all."""

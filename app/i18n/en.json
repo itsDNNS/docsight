@@ -525,5 +525,10 @@
   "bnetz_source_watcher": "Auto-imported",
   "bnetz_source_csv": "CSV import",
   "bnetz_upload_csv_hint": "Upload PDF or CSV measurement files",
-  "bnetz_docker_hint": "Use docker-compose.bnetz.yml for automated measurement with the official BNetzA Desktop App"
+  "bnetz_docker_hint": "Use docker-compose.bnetz.yml for automated measurement with the official BNetzA Desktop App",
+  "demo_migrate_title": "Demo Mode Active",
+  "demo_migrate_desc": "You are running in demo mode with sample data. Switch to live mode to start monitoring your real modem. Your own journal entries and incidents will be preserved.",
+  "demo_migrate_button": "Switch to Live Mode",
+  "demo_migrate_confirm": "This will delete all demo data and switch to live mode. Your own entries will be kept. Continue?",
+  "demo_migrate_success": "Successfully switched to live mode. Demo data has been removed."
 }
