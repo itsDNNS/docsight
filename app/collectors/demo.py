@@ -133,7 +133,7 @@ class DemoCollector(Collector):
         return CollectorResult(source=self.name, data=analysis)
 
     def _seed_demo_data(self):
-        """Populate storage with 90 days of snapshots, events, journal, speedtest, and BQM."""
+        """Populate storage with 9 months of snapshots, events, journal, speedtest, and BQM."""
         # Purge any existing demo data first (handles container rebuilds with persisted volume)
         self._storage.purge_demo_data()
         # Keep all demo data — don't let cleanup purge the seeded history
@@ -147,8 +147,8 @@ class DemoCollector(Collector):
         self._seed_incident_containers(now)
 
     def _seed_history(self, now):
-        """Generate 90 days of historical snapshots (every 15 min)."""
-        days = 90
+        """Generate 9 months of historical snapshots (every 15 min)."""
+        days = 270
         interval_min = 15
         total = days * 24 * 60 // interval_min  # 8640 snapshots
         start = now - timedelta(days=days)
@@ -303,10 +303,11 @@ class DemoCollector(Collector):
         }
 
     def _seed_events(self, now):
-        """Seed realistic events spread over 90 days."""
+        """Seed realistic events spread over 9 months."""
+        days = 270
         events = [
             {
-                "timestamp": (now - timedelta(days=89, hours=23)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "timestamp": (now - timedelta(days=days - 1, hours=23)).strftime("%Y-%m-%dT%H:%M:%S"),
                 "severity": "info",
                 "event_type": "monitoring_started",
                 "message": "Monitoring started (Health: good)",
@@ -315,8 +316,8 @@ class DemoCollector(Collector):
         ]
 
         # Generate events at "bad period" boundaries (~every 10 days)
-        for d in range(0, 90, 10):
-            t_start = now - timedelta(days=90 - d, hours=-2)
+        for d in range(0, days, 10):
+            t_start = now - timedelta(days=days - d, hours=-2)
             t_end = t_start + timedelta(hours=6)
             events.extend([
                 {
@@ -349,8 +350,8 @@ class DemoCollector(Collector):
                 },
             ])
 
-        # A few SNR and channel change events scattered around
-        for d in [75, 52, 33, 18, 5]:
+        # SNR events scattered across 9 months
+        for d in [250, 200, 150, 100, 75, 52, 33, 18, 5]:
             t = now - timedelta(days=d, hours=random.randint(8, 22))
             snr_val = round(random.uniform(32.0, 34.5), 1)
             events.append({
@@ -361,7 +362,8 @@ class DemoCollector(Collector):
                 "details": {"prev": 37.0, "current": snr_val, "threshold": "warning"},
             })
 
-        for d in [60, 25, 3]:
+        # Channel change events scattered across 9 months
+        for d in [240, 180, 120, 60, 25, 3]:
             t = now - timedelta(days=d, hours=random.randint(0, 23))
             events.extend([
                 {
@@ -384,36 +386,78 @@ class DemoCollector(Collector):
         log.info("Demo: seeded %d events", len(events))
 
     def _seed_journal_entries(self, now):
-        """Seed journal entries spread over the demo period."""
+        """Seed journal entries spread over the 9-month demo period."""
         entries = [
             (
-                (now - timedelta(days=82)).strftime("%Y-%m-%d"),
+                (now - timedelta(days=265)).strftime("%Y-%m-%d"),
                 "Initial setup and baseline measurement",
                 "Installed DOCSight to monitor cable connection.\n"
                 "Baseline: 25 DS channels (256QAM), 4 US channels (64QAM).\n"
                 "All values within VFKD good-range. ISP: Vodafone Cable 250/40.",
             ),
             (
-                (now - timedelta(days=70)).strftime("%Y-%m-%d"),
+                (now - timedelta(days=240)).strftime("%Y-%m-%d"),
+                "First month review — connection stable",
+                "After 4 weeks of monitoring: signal levels consistently good.\n"
+                "DS power avg 3-5 dBmV, SNR min >35 dB.\n"
+                "No uncorrectable errors outside of periodic bad windows.",
+            ),
+            (
+                (now - timedelta(days=210)).strftime("%Y-%m-%d"),
                 "Intermittent packet loss during peak hours",
                 "Noticed buffering on video calls between 8-10 PM.\n"
                 "Downstream SNR dropped below 34 dB on channels 19-24.\n"
                 "Resolved after ISP maintenance window overnight.",
             ),
             (
-                (now - timedelta(days=50)).strftime("%Y-%m-%d"),
+                (now - timedelta(days=180)).strftime("%Y-%m-%d"),
+                "Seasonal signal drift observed",
+                "Temperature increase seems to affect upstream power levels.\n"
+                "US power drifted from 43 to 46 dBmV over the last 2 weeks.\n"
+                "Still within tolerance, but monitoring closely.",
+            ),
+            (
+                (now - timedelta(days=150)).strftime("%Y-%m-%d"),
+                "ISP network upgrade — brief outage",
+                "ISP announced DOCSIS 3.1 capacity upgrade in our area.\n"
+                "Connection dropped for ~45 minutes during the window.\n"
+                "Post-upgrade: slightly improved SNR values on OFDM channels.",
+            ),
+            (
+                (now - timedelta(days=120)).strftime("%Y-%m-%d"),
                 "Downstream channel temporarily dropped",
                 "Channel 24 disappeared for ~6 hours.\n"
                 "Came back on its own. Possibly ISP-side reconfiguration.\n"
                 "No noticeable impact on speeds during the outage.",
             ),
             (
-                (now - timedelta(days=30)).strftime("%Y-%m-%d"),
+                (now - timedelta(days=90)).strftime("%Y-%m-%d"),
+                "Recurring upstream noise — ISP notified",
+                "Pattern of upstream noise during evening hours (7-11 PM).\n"
+                "US power fluctuations of 2-3 dBmV. Packet loss on VoIP calls.\n"
+                "Opened support ticket with ISP. Technician visit scheduled.",
+            ),
+            (
+                (now - timedelta(days=75)).strftime("%Y-%m-%d"),
+                "ISP technician visit — partial fix",
+                "Technician replaced the building amplifier.\n"
+                "Upstream noise reduced but not eliminated.\n"
+                "ISP escalated to regional network team.",
+            ),
+            (
+                (now - timedelta(days=50)).strftime("%Y-%m-%d"),
                 "ISP maintenance — brief signal degradation",
                 "Received ISP notification about planned maintenance.\n"
                 "DS power spiked to 7-8 dBmV for about 4 hours.\n"
                 "Uncorrectable errors increased during the window.\n"
                 "Fully recovered by morning.",
+            ),
+            (
+                (now - timedelta(days=30)).strftime("%Y-%m-%d"),
+                "Speedtest results consistently below tariff",
+                "Multiple speedtests showing 180-200 Mbps instead of booked 250.\n"
+                "Correlated with elevated DS power levels during these times.\n"
+                "Gathering evidence for potential BNetzA complaint.",
             ),
             (
                 (now - timedelta(days=10)).strftime("%Y-%m-%d"),
@@ -436,17 +480,25 @@ class DemoCollector(Collector):
 
     def _seed_incident_containers(self, now):
         """Seed demo incident containers and assign entries by date range."""
-        # Create two demo incidents
         inc1_id = self._storage.save_incident(
-            name="Upstream Noise Issue",
-            description="Recurring upstream noise causing packet loss during peak hours. "
-                        "ISP has been notified and is investigating.",
-            status="open",
-            start_date=(now - timedelta(days=75)).strftime("%Y-%m-%d"),
-            end_date=None,
+            name="Seasonal Signal Drift",
+            description="Temperature-related upstream power drift observed over summer months. "
+                        "Values stayed within tolerance but were monitored closely.",
+            status="resolved",
+            start_date=(now - timedelta(days=200)).strftime("%Y-%m-%d"),
+            end_date=(now - timedelta(days=140)).strftime("%Y-%m-%d"),
             is_demo=True,
         )
         inc2_id = self._storage.save_incident(
+            name="Upstream Noise Issue",
+            description="Recurring upstream noise causing packet loss during peak hours. "
+                        "ISP has been notified and is investigating. Technician visit partially fixed it.",
+            status="open",
+            start_date=(now - timedelta(days=90)).strftime("%Y-%m-%d"),
+            end_date=None,
+            is_demo=True,
+        )
+        inc3_id = self._storage.save_incident(
             name="Firmware Update Issues",
             description="Router firmware update caused temporary error spikes. "
                         "Resolved after stabilization period.",
@@ -458,19 +510,24 @@ class DemoCollector(Collector):
         # Assign entries by date range
         count1 = self._storage.assign_entries_by_date_range(
             inc1_id,
-            (now - timedelta(days=75)).strftime("%Y-%m-%d"),
-            (now - timedelta(days=25)).strftime("%Y-%m-%d"),
+            (now - timedelta(days=200)).strftime("%Y-%m-%d"),
+            (now - timedelta(days=140)).strftime("%Y-%m-%d"),
         )
         count2 = self._storage.assign_entries_by_date_range(
             inc2_id,
+            (now - timedelta(days=90)).strftime("%Y-%m-%d"),
+            (now - timedelta(days=40)).strftime("%Y-%m-%d"),
+        )
+        count3 = self._storage.assign_entries_by_date_range(
+            inc3_id,
             (now - timedelta(days=15)).strftime("%Y-%m-%d"),
             (now - timedelta(days=5)).strftime("%Y-%m-%d"),
         )
-        log.info("Demo: seeded 2 incident containers (assigned %d + %d entries)", count1, count2)
+        log.info("Demo: seeded 3 incident containers (assigned %d + %d + %d entries)", count1, count2, count3)
 
     def _seed_speedtest_results(self, now):
-        """Seed 90 days of speedtest results (~3 per day, correlated with bad periods)."""
-        days = 90
+        """Seed 9 months of speedtest results (~3 per day, correlated with bad periods)."""
+        days = 270
         results = []
         result_id = 1
 
@@ -539,8 +596,8 @@ class DemoCollector(Collector):
         log.info("Demo: seeded %d speedtest results (%d days)", len(results), days)
 
     def _seed_bqm_graphs(self, now):
-        """Seed BQM placeholder graphs for the last 14 days."""
-        for d in range(14):
+        """Seed BQM placeholder graphs for the last 30 days."""
+        for d in range(30):
             date = (now - timedelta(days=d)).strftime("%Y-%m-%d")
             ts = (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%S")
             png = self._generate_bqm_png(seed=d)
@@ -550,7 +607,7 @@ class DemoCollector(Collector):
                     "VALUES (?, ?, ?, 1)",
                     (date, ts, png),
                 )
-        log.info("Demo: seeded 14 BQM graphs")
+        log.info("Demo: seeded 30 BQM graphs")
 
     @staticmethod
     def _generate_bqm_png(width=800, height=200, seed=0):
