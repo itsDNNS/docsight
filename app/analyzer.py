@@ -28,11 +28,23 @@ def _load_thresholds():
         _thresholds = {}
 
 
+_MODULATION_ALIASES = {
+    "OFDM": "4096QAM",
+    "OFDMA": "4096QAM",
+}
+
+
+def _resolve_modulation(modulation, section):
+    """Resolve modulation string to a key in thresholds config."""
+    if modulation in section:
+        return modulation
+    return _MODULATION_ALIASES.get(modulation, section.get("_default", "256QAM"))
+
+
 def _get_ds_power_thresholds(modulation=None):
     """Get DS power thresholds for a given modulation."""
     ds = _thresholds.get("downstream_power", {})
-    default_mod = ds.get("_default", "256QAM")
-    mod = modulation if modulation in ds else default_mod
+    mod = _resolve_modulation(modulation, ds)
     t = ds.get(mod, {})
     return {
         "good_min": t.get("good_min", -4.0),
@@ -64,8 +76,7 @@ def _get_us_power_thresholds(docsis_version=None):
 def _get_snr_thresholds(modulation=None):
     """Get SNR thresholds for a given modulation."""
     snr = _thresholds.get("snr", {})
-    default_mod = snr.get("_default", "256QAM")
-    mod = modulation if modulation in snr else default_mod
+    mod = _resolve_modulation(modulation, snr)
     t = snr.get(mod, {})
     return {
         "good_min": t.get("good_min", 33.0),
