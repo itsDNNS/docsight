@@ -530,5 +530,14 @@
   "demo_migrate_desc": "DOCSight esta funcionando en modo demo con datos de ejemplo. Cambia al modo real para monitorear tu modem. Tus propias entradas e incidentes se conservaran.",
   "demo_migrate_button": "Cambiar a modo real",
   "demo_migrate_confirm": "Se eliminaran todos los datos de demo y se activara el modo real. Tus propias entradas se conservaran. Continuar?",
-  "demo_migrate_success": "Cambio a modo real exitoso. Los datos de demo han sido eliminados."
+  "demo_migrate_success": "Cambio a modo real exitoso. Los datos de demo han sido eliminados.",
+  "bqm_today": "Hoy",
+  "bqm_yesterday": "Ayer",
+  "bqm_live": "En vivo",
+  "bqm_last_updated": "Ultima actualizacion",
+  "bqm_play": "Reproducir",
+  "bqm_pause": "Pausa",
+  "bqm_stop": "Detener",
+  "bqm_speed": "Velocidad",
+  "bqm_no_data_range": "No hay datos BQM en este periodo"
 }

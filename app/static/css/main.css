@@ -1017,21 +1017,127 @@ details.channel-group {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   BQM GRAPHS - Phase 4.5: Card Wrapper
+   BQM GRAPHS - Calendar View
    ══════════════════════════════════════════════════════════════════════════ */
-.bqm-date-nav {
-    display: inline-flex; align-items: center; gap: 4px; margin-left: 16px;
+
+/* Toolbar */
+.bqm-toolbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 12px;
 }
-.bqm-date-nav button {
+.bqm-quick { flex-shrink: 0; }
+.bqm-month-nav {
+    display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+}
+.bqm-nav-btn {
     background: none; border: 1px solid var(--input-border);
     color: var(--text); border-radius: 4px; cursor: pointer;
-    font-size: 0.85em; padding: 4px 8px; line-height: 1;
+    font-size: 1em; padding: 4px 10px; line-height: 1;
+    transition: all 0.15s ease;
 }
-.bqm-date-nav button:hover { border-color: var(--accent); color: var(--accent); }
-.bqm-date-label {
-    font-size: 0.85em; font-weight: 600; padding: 4px 8px;
-    white-space: nowrap;
+.bqm-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+.bqm-month-label {
+    font-size: 0.9em; font-weight: 600; padding: 4px 8px;
+    white-space: nowrap; min-width: 120px; text-align: center;
 }
+
+/* Calendar */
+.bqm-calendar {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-lg, 16px);
+    padding: 16px; margin-bottom: 16px;
+}
+.bqm-weekday-header {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    text-align: center; font-size: 0.75em; font-weight: 600;
+    color: var(--text-muted, #888); margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.bqm-calendar-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+}
+.bqm-day {
+    aspect-ratio: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    border-radius: 8px; font-size: 0.85em; position: relative;
+    color: var(--text-muted, #888); user-select: none;
+    transition: all 0.15s ease;
+}
+.bqm-day.has-data {
+    color: var(--text); cursor: pointer; font-weight: 500;
+}
+.bqm-day.has-data::after {
+    content: ''; position: absolute; bottom: 4px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent-purple, var(--accent));
+    opacity: 0.6;
+}
+.bqm-day.has-data:hover {
+    background: rgba(168,85,247,0.1);
+}
+.bqm-day.selected {
+    background: var(--accent-purple, var(--accent));
+    color: #fff; font-weight: 700;
+}
+.bqm-day.selected::after { opacity: 0; }
+.bqm-day.today {
+    box-shadow: inset 0 0 0 2px var(--accent-purple, var(--accent));
+}
+.bqm-day.in-range {
+    background: rgba(168,85,247,0.12);
+}
+.bqm-day.range-start, .bqm-day.range-end {
+    background: var(--accent-purple, var(--accent));
+    color: #fff; font-weight: 700;
+}
+.bqm-day.range-start::after, .bqm-day.range-end::after { opacity: 0; }
+.bqm-day.other-month { opacity: 0.3; }
+
+/* Slideshow controls */
+.bqm-slideshow-controls {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.bqm-ctrl-btn {
+    background: none; border: 1px solid var(--input-border);
+    color: var(--text); border-radius: 6px; cursor: pointer;
+    padding: 6px 10px; display: inline-flex; align-items: center;
+    transition: all 0.15s ease;
+}
+.bqm-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+.bqm-ctrl-btn svg { width: 16px; height: 16px; }
+.bqm-ctrl-btn.playing {
+    border-color: var(--accent-purple, var(--accent));
+    color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.1);
+}
+.bqm-speed-tabs {
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.bqm-speed-label {
+    font-size: 0.8em; color: var(--text-muted, #888); margin-right: 2px;
+}
+.bqm-range-label {
+    font-size: 0.8em; color: var(--text-muted, #888); margin-left: auto;
+}
+
+/* Live badge */
+.bqm-live-badge {
+    background: #ef4444; color: #fff; font-size: 0.7em; font-weight: 700;
+    padding: 2px 8px; border-radius: 10px; margin-left: 8px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    animation: bqm-pulse 2s ease-in-out infinite;
+}
+@keyframes bqm-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+.bqm-last-updated {
+    font-size: 0.75em; color: var(--text-muted, #888); margin-left: 8px;
+}
+
+/* Card (kept from Phase 4.5) */
 .bqm-card {
     background: var(--card-bg, var(--card));
     border: 1px solid var(--card-border, var(--input-border));
