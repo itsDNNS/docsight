@@ -275,7 +275,7 @@ _generate_data() (base channels + variation)
 - 25 DS channels (24× DOCSIS 3.0 + 1× DOCSIS 3.1) and 4 US channels
 - Per-poll variation: ±0.3 dBmV power, ±0.5 dB SNR, slowly accumulating errors
 - Seeds 90 days of historical snapshots on first run (8640 data points)
-- Pre-populated event log (48 events) and incident journal (6 entries)
+- Pre-populated event log (48 events), journal entries (6), and incident groups (2 containers with assigned entries)
 - Time-based patterns: diurnal cycles, seasonal drift, periodic "bad periods"
 - Device info: "DOCSight Demo Router", Connection: 250/40 Mbit/s Cable
 
@@ -444,13 +444,39 @@ CREATE TABLE events (
     acknowledged INTEGER
 );
 
--- Incident journal
+-- Incident containers (groups)
 CREATE TABLE incidents (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'open',  -- open|resolved|escalated
+    start_date TEXT,
+    end_date TEXT,
+    icon TEXT,
+    created_at TEXT,
+    updated_at TEXT
+);
+
+-- Journal entries (formerly "incidents")
+CREATE TABLE journal_entries (
     id INTEGER PRIMARY KEY,
     date TEXT,
     title TEXT,
     description TEXT,
-    ...
+    icon TEXT,
+    incident_id INTEGER,  -- FK to incidents.id, nullable
+    created_at TEXT,
+    updated_at TEXT
+);
+
+-- Journal attachments
+CREATE TABLE journal_attachments (
+    id INTEGER PRIMARY KEY,
+    entry_id INTEGER,  -- FK to journal_entries.id
+    filename TEXT,
+    mime_type TEXT,
+    data BLOB,
+    created_at TEXT
 );
 
 -- BQM graphs
@@ -487,6 +513,13 @@ CREATE TABLE bqm_graphs (
 | `/api/speedtest/<id>/signal` | GET | Correlated DOCSIS snapshot |
 | `/api/events` | GET | Event log with filters |
 | `/api/correlation` | GET | Cross-source timeline |
+| `/api/journal` | GET/POST | Journal entries (list, create) |
+| `/api/journal/<id>` | GET/PUT/DELETE | Single journal entry CRUD |
+| `/api/journal/<id>/attachments` | POST | Upload entry attachments |
+| `/api/journal/import/*` | POST | Excel/CSV import (preview + confirm) |
+| `/api/incidents` | GET/POST | Incident containers (list, create) |
+| `/api/incidents/<id>` | GET/PUT/DELETE | Single incident container CRUD |
+| `/api/incidents/<id>/assign` | POST | Assign entries to incident |
 | `/api/export` | GET | LLM-optimized report |
 | `/api/report` | GET | PDF incident report |
 
