@@ -507,6 +507,7 @@
   "incident_bnetz_measurements": "BNetzA-Messungen",
   "incident_duration_ongoing": "laufend",
   "incident_duration_days": "Tage",
+  "incident_download_pdf": "PDF-Bericht herunterladen",
   "timeline_source_modem": "Modem",
   "timeline_source_speedtest": "Speedtest",
   "timeline_source_event": "Ereignis",

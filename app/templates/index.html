@@ -3863,6 +3863,30 @@
         loadJournal();
     };
 
+    window.downloadIncidentPdf = function(incidentId, incidentName) {
+        var btn = document.querySelector('.incident-timeline-pdf-btn');
+        var origHtml = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.textContent = '\u23F3'; }
+        fetch('/api/incidents/' + incidentId + '/report')
+            .then(function(r) {
+                if (!r.ok) throw new Error('Failed');
+                return r.blob();
+            })
+            .then(function(blob) {
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'DOCSight_Beschwerde_' + incidentName.replace(/[^a-zA-Z0-9]/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            })
+            .catch(function() {
+                alert(T.network_error || 'Error generating report');
+            })
+            .finally(function() {
+                if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+            });
+    };
+
     function renderIncidentTimeline(data) {
         var inc = data.incident;
         var entries = data.entries || [];
@@ -3913,6 +3937,10 @@
         if (inc.description) {
             hHtml += '<div class="incident-timeline-desc">' + escapeHtml(inc.description) + '</div>';
         }
+        hHtml += '<button class="incident-timeline-pdf-btn" onclick="downloadIncidentPdf(' + inc.id + ', \'' + escapeHtml(inc.name).replace(/'/g, "\\'") + '\')">';
+        hHtml += '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ';
+        hHtml += (T.incident_download_pdf || 'Download PDF Report');
+        hHtml += '</button>';
         header.innerHTML = hHtml;
 
         // ── 2. Journal Entries as Cards ──
