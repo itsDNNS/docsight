@@ -105,6 +105,14 @@ class TestDriverInit:
         assert d._user == "admin"
         assert d._password == "pass123"
 
+    def test_upgrades_http_to_https(self):
+        d = CM3500Driver("http://192.168.100.1", "admin", "pass123")
+        assert d._url == "https://192.168.100.1"
+
+    def test_keeps_https_unchanged(self):
+        d = CM3500Driver("https://192.168.100.1", "admin", "pass123")
+        assert d._url == "https://192.168.100.1"
+
     def test_load_via_registry(self):
         from app.drivers import load_driver
         d = load_driver("cm3500", "https://192.168.100.1", "admin", "pass")
@@ -140,18 +148,20 @@ class TestLogin:
 # -- DOCSIS data parsing --
 
 class TestDocsisData:
-    def test_returns_docsis_31(self, mock_status):
+    def test_returns_pre_split_format(self, mock_status):
         data = mock_status.get_docsis_data()
-        assert data["docsis"] == "3.1"
+        assert "channelDs" in data
+        assert "channelUs" in data
+        assert "docsis30" in data["channelDs"]
+        assert "docsis31" in data["channelDs"]
 
     def test_downstream_qam_count(self, mock_status):
         data = mock_status.get_docsis_data()
-        ds_qam = [ch for ch in data["downstream"] if ch.get("type") != "OFDM"]
-        assert len(ds_qam) == 3
+        assert len(data["channelDs"]["docsis30"]) == 3
 
     def test_downstream_qam_fields(self, mock_status):
         data = mock_status.get_docsis_data()
-        ch = data["downstream"][0]
+        ch = data["channelDs"]["docsis30"][0]
         assert ch["channelID"] == 3
         assert ch["frequency"] == "570 MHz"
         assert ch["powerLevel"] == 4.70
@@ -163,13 +173,11 @@ class TestDocsisData:
 
     def test_downstream_ofdm_count(self, mock_status):
         data = mock_status.get_docsis_data()
-        ds_ofdm = [ch for ch in data["downstream"] if ch.get("type") == "OFDM"]
-        assert len(ds_ofdm) == 2
+        assert len(data["channelDs"]["docsis31"]) == 2
 
     def test_downstream_ofdm_fields(self, mock_status):
         data = mock_status.get_docsis_data()
-        ofdm = [ch for ch in data["downstream"] if ch.get("type") == "OFDM"]
-        ch = ofdm[0]
+        ch = data["channelDs"]["docsis31"][0]
         assert ch["channelID"] == 200
         assert ch["frequency"] == "135-324 MHz"
         assert ch["mer"] == 41.0
@@ -177,11 +185,11 @@ class TestDocsisData:
 
     def test_upstream_qam_count(self, mock_status):
         data = mock_status.get_docsis_data()
-        assert len(data["upstream"]) == 3
+        assert len(data["channelUs"]["docsis30"]) == 3
 
     def test_upstream_qam_fields(self, mock_status):
         data = mock_status.get_docsis_data()
-        ch = data["upstream"][0]
+        ch = data["channelUs"]["docsis30"][0]
         assert ch["channelID"] == 9
         assert ch["frequency"] == "30 MHz"
         assert ch["powerLevel"] == 39.50
@@ -191,8 +199,7 @@ class TestDocsisData:
     def test_upstream_ofdm_empty(self, mock_status):
         """Upstream OFDM table exists but has no data rows."""
         data = mock_status.get_docsis_data()
-        us_ofdma = [ch for ch in data["upstream"] if ch.get("type") == "OFDMA"]
-        assert len(us_ofdma) == 0
+        assert len(data["channelUs"]["docsis31"]) == 0
 
 
 # -- Device info --
@@ -265,3 +272,26 @@ class TestAnalyzerIntegration:
         assert result["summary"]["health"] in ("good", "marginal", "poor")
         assert len(result["ds_channels"]) == 5
         assert len(result["us_channels"]) == 3
+
+    def test_qam_channels_labeled_docsis30(self, mock_status):
+        """QAM channels must be DOCSIS 3.0, not 3.1."""
+        from app.analyzer import analyze
+        data = mock_status.get_docsis_data()
+        result = analyze(data)
+
+        qam_ds = [c for c in result["ds_channels"] if c["channel_id"] < 200]
+        for ch in qam_ds:
+            assert ch["docsis_version"] == "3.0", f"DS QAM ch {ch['channel_id']} should be 3.0"
+
+        for ch in result["us_channels"]:
+            assert ch["docsis_version"] == "3.0", f"US QAM ch {ch['channel_id']} should be 3.0"
+
+    def test_ofdm_channels_labeled_docsis31(self, mock_status):
+        """OFDM channels must be DOCSIS 3.1."""
+        from app.analyzer import analyze
+        data = mock_status.get_docsis_data()
+        result = analyze(data)
+
+        ofdm_ds = [c for c in result["ds_channels"] if c["channel_id"] >= 200]
+        for ch in ofdm_ds:
+            assert ch["docsis_version"] == "3.1", f"DS OFDM ch {ch['channel_id']} should be 3.1"
