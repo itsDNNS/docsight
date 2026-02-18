@@ -531,6 +531,12 @@ class DemoCollector(Collector):
         days = 270
         results = []
         result_id = 1
+        # Realistic demo server pool
+        demo_servers = [
+            (12345, "Vodafone DE - Frankfurt"),
+            (23456, "Deutsche Telekom - Berlin"),
+            (34567, "1&1 Versatel - Dusseldorf"),
+        ]
 
         for d in range(days):
             ts_day = now - timedelta(days=days - d)
@@ -561,6 +567,7 @@ class DemoCollector(Collector):
                     jitter = round(random.uniform(1, 4), 1)
                     loss = 0.0
 
+                srv = random.choice(demo_servers)
                 results.append({
                     "id": result_id,
                     "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -571,6 +578,8 @@ class DemoCollector(Collector):
                     "ping_ms": ping,
                     "jitter_ms": jitter,
                     "packet_loss_pct": loss,
+                    "server_id": srv[0],
+                    "server_name": srv[1],
                 })
                 result_id += 1
 
@@ -580,12 +589,14 @@ class DemoCollector(Collector):
                 conn.executemany(
                     "INSERT OR IGNORE INTO speedtest_results "
                     "(id, timestamp, download_mbps, upload_mbps, download_human, "
-                    "upload_human, ping_ms, jitter_ms, packet_loss_pct, is_demo) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                    "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
+                    "server_id, server_name, is_demo) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
                     [
                         (r["id"], r["timestamp"], r["download_mbps"],
                          r["upload_mbps"], r["download_human"], r["upload_human"],
-                         r["ping_ms"], r["jitter_ms"], r["packet_loss_pct"])
+                         r["ping_ms"], r["jitter_ms"], r["packet_loss_pct"],
+                         r["server_id"], r["server_name"])
                         for r in results
                     ],
                 )

@@ -23,6 +23,7 @@ class SpeedtestClient:
         """Extract relevant fields from a single API result object."""
         data = item.get("data") or {}
         ping_obj = data.get("ping") or {}
+        server = data.get("server") or {}
         return {
             "id": item.get("id"),
             "timestamp": data.get("timestamp") or item.get("created_at", ""),
@@ -33,6 +34,8 @@ class SpeedtestClient:
             "ping_ms": round(float(item.get("ping", 0)), 2),
             "jitter_ms": round(float(ping_obj.get("jitter", 0)), 2),
             "packet_loss_pct": round(float(data.get("packetLoss") or 0), 2),
+            "server_id": server.get("id"),
+            "server_name": server.get("name", ""),
         }
 
     def get_latest(self, count=1):
