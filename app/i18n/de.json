@@ -472,5 +472,21 @@
   "icon_hardware": "Hardware",
   "icon_documentation": "Dokumentation",
   "icon_legal": "Rechtliches",
-  "month_names": ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+  "month_names": ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"],
+  "incidents": "Vorfälle",
+  "incident_name": "Vorfallname",
+  "incident_status": "Status",
+  "incident_status_open": "Offen",
+  "incident_status_resolved": "Gelöst",
+  "incident_status_escalated": "Eskaliert",
+  "incident_start_date": "Startdatum",
+  "incident_end_date": "Enddatum",
+  "incident_entry_count": "Einträge",
+  "incident_new": "Neuer Vorfall",
+  "incident_edit": "Vorfall bearbeiten",
+  "incident_delete_confirm": "Diesen Vorfall löschen? Einträge werden nicht zugeordnet.",
+  "incident_filter_all": "Alle",
+  "incident_filter_unassigned": "Nicht zugeordnet",
+  "incident_assign": "Vorfall zuweisen",
+  "incident_none": "Kein Vorfall"
 }

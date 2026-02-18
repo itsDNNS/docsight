@@ -139,9 +139,10 @@ class DemoCollector(Collector):
         now = datetime.now()
         self._seed_history(now)
         self._seed_events(now)
-        self._seed_incidents(now)
+        self._seed_journal_entries(now)
         self._seed_speedtest_results(now)
         self._seed_bqm_graphs(now)
+        self._seed_incident_containers(now)
 
     def _seed_history(self, now):
         """Generate 90 days of historical snapshots (every 15 min)."""
@@ -379,9 +380,9 @@ class DemoCollector(Collector):
         self._storage.save_events(events)
         log.info("Demo: seeded %d events", len(events))
 
-    def _seed_incidents(self, now):
+    def _seed_journal_entries(self, now):
         """Seed journal entries spread over the demo period."""
-        incidents = [
+        entries = [
             (
                 (now - timedelta(days=82)).strftime("%Y-%m-%d"),
                 "Initial setup and baseline measurement",
@@ -426,9 +427,41 @@ class DemoCollector(Collector):
                 "No impact on speeds observed.",
             ),
         ]
-        for date, title, description in incidents:
-            self._storage.save_incident(date, title, description)
-        log.info("Demo: seeded %d journal entries", len(incidents))
+        for date, title, description in entries:
+            self._storage.save_entry(date, title, description)
+        log.info("Demo: seeded %d journal entries", len(entries))
+
+    def _seed_incident_containers(self, now):
+        """Seed demo incident containers and assign entries by date range."""
+        # Create two demo incidents
+        inc1_id = self._storage.save_incident(
+            name="Upstream Noise Issue",
+            description="Recurring upstream noise causing packet loss during peak hours. "
+                        "ISP has been notified and is investigating.",
+            status="open",
+            start_date=(now - timedelta(days=75)).strftime("%Y-%m-%d"),
+            end_date=None,
+        )
+        inc2_id = self._storage.save_incident(
+            name="Firmware Update Issues",
+            description="Router firmware update caused temporary error spikes. "
+                        "Resolved after stabilization period.",
+            status="resolved",
+            start_date=(now - timedelta(days=15)).strftime("%Y-%m-%d"),
+            end_date=(now - timedelta(days=5)).strftime("%Y-%m-%d"),
+        )
+        # Assign entries by date range
+        count1 = self._storage.assign_entries_by_date_range(
+            inc1_id,
+            (now - timedelta(days=75)).strftime("%Y-%m-%d"),
+            (now - timedelta(days=25)).strftime("%Y-%m-%d"),
+        )
+        count2 = self._storage.assign_entries_by_date_range(
+            inc2_id,
+            (now - timedelta(days=15)).strftime("%Y-%m-%d"),
+            (now - timedelta(days=5)).strftime("%Y-%m-%d"),
+        )
+        log.info("Demo: seeded 2 incident containers (assigned %d + %d entries)", count1, count2)
 
     def _seed_speedtest_results(self, now):
         """Seed 90 days of speedtest results (~3 per day, correlated with bad periods)."""
