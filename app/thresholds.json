@@ -23,7 +23,7 @@
       "immediate_min": -6.0, "immediate_max": 22.0
     },
     "4096QAM": {
-      "_comment": "OFDM (DOCSIS 3.1). Not in VFKD guidelines; extrapolated from CableLabs PHY spec. Power same as 1024QAM.",
+      "_comment": "OFDM (DOCSIS 3.1). Not in VFKD guidelines. Power same as 1024QAM.",
       "good_min": -1.9, "good_max": 15.0,
       "tolerated_min": -3.9, "tolerated_max": 20.0,
       "monthly_min": -5.9, "monthly_max": 22.0,
@@ -70,11 +70,11 @@
       "immediate_min": 36.0
     },
     "4096QAM": {
-      "_comment": "OFDM (DOCSIS 3.1). Not in VFKD guidelines; extrapolated +6 dB over 1024QAM per CableLabs PHY spec.",
-      "good_min": 45.0,
-      "tolerated_min": 44.0,
-      "monthly_min": 42.0,
-      "immediate_min": 42.0
+      "_comment": "OFDM (DOCSIS 3.1). CableLabs PHYv3.1 Table 46: minimum 39 dB MER for 4096-QAM.",
+      "good_min": 40.0,
+      "tolerated_min": 39.0,
+      "monthly_min": 37.0,
+      "immediate_min": 36.0
     },
     "_default": "256QAM"
   },

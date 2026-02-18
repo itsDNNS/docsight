@@ -473,9 +473,9 @@ class TestOFDMThresholds:
         assert _resolve_modulation("UNKNOWN", section) == "256QAM"
 
     def test_4096qam_snr_good(self):
-        """4096QAM channel with MER 46 dB is good (threshold: 45)."""
+        """4096QAM channel with MER 41 dB is good (threshold: good_min=40)."""
         data = _make_data(
-            ds31=[_make_ds31(100, power=5.0, mer="46.0")],
+            ds31=[_make_ds31(100, power=5.0, mer="41.0")],
             us30=[_make_us30(1, power=42.0)],
         )
         result = analyze(data)
@@ -483,9 +483,9 @@ class TestOFDMThresholds:
         assert ch["health"] == "good"
 
     def test_4096qam_snr_warning(self):
-        """4096QAM channel with MER 44 dB triggers SNR warning (threshold: 45)."""
+        """4096QAM channel with MER 39.5 dB triggers SNR warning (good_min=40, crit=36)."""
         data = _make_data(
-            ds31=[_make_ds31(100, power=5.0, mer="44.0")],
+            ds31=[_make_ds31(100, power=5.0, mer="39.5")],
             us30=[_make_us30(1, power=42.0)],
         )
         result = analyze(data)
@@ -493,9 +493,9 @@ class TestOFDMThresholds:
         assert "snr warning" in ch["health_detail"]
 
     def test_4096qam_snr_critical(self):
-        """4096QAM channel with MER 41 dB is critical (threshold: 42)."""
+        """4096QAM channel with MER 35 dB is critical (threshold: immediate_min=36)."""
         data = _make_data(
-            ds31=[_make_ds31(100, power=5.0, mer="41.0")],
+            ds31=[_make_ds31(100, power=5.0, mer="35.0")],
             us30=[_make_us30(1, power=42.0)],
         )
         result = analyze(data)
@@ -509,7 +509,7 @@ class TestOFDMThresholds:
             "frequency": "134-325 MHz",
             "powerLevel": "5.0",
             "type": "OFDM",
-            "mer": "44.0",
+            "mer": "39.5",
             "corrErrors": 0,
             "nonCorrErrors": 0,
         }
@@ -519,7 +519,7 @@ class TestOFDMThresholds:
         )
         result = analyze(data)
         ch = result["ds_channels"][0]
-        # MER 44 is below 4096QAM good_min (45) but above crit (42), so warning
+        # MER 39.5 is below 4096QAM good_min (40) but above crit (36), so warning
         assert "snr warning" in ch["health_detail"]
 
 
