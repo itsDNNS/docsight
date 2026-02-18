@@ -161,42 +161,42 @@ Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magent
 DOCSight uses a **modular collector-based architecture** for reliable data gathering from multiple sources:
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                          Collector Registry                              │
-│                                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │  Modem   │  │   Demo   │  │ Speedtest│  │   BQM    │  │Smokeping │  │
-│  │ Collector│  │ Collector│  │ Collector│  │ Collector│  │  (Proxy) │  │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  │
-│       │              │              │              │              │       │
-│       └──────────────┴──────────────┴──────────────┴──────────────┘      │
-│                                     │                                    │
-│                                     ▼                                    │
-│       ┌──────────────────────────────────────────────────────────┐       │
-│       │              Base Collector (Fail-Safe)                  │       │
-│       │  • Exponential backoff (30s → 3600s max)                │       │
-│       │  • Auto-reset after 24h idle                            │       │
-│       │  • Health status monitoring                             │       │
-│       └──────────────────────────────────────────────────────────┘       │
-└──────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-              ┌────────────────────────────────────┐
-              │         Event Detector             │
-              │  (Anomaly detection & alerting)    │
-              └────────────────┬───────────────────┘
-                               │
-                               ▼
-              ┌────────────────────────────────────┐
-              │      SQLite Storage + MQTT         │
-              │  (Snapshots, trends, Home Assistant)│
-              └────────────────┬───────────────────┘
-                               │
-                               ▼
-              ┌────────────────────────────────────┐
-              │          Web UI (Flask)            │
-              │  (Dashboard, charts, reports)      │
-              └────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             Collector Registry                              │
+│                                                                             │
+│    ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+│    │  Modem   │  │   Demo   │  │ Speedtest│  │   BQM    │  │Smokeping │     │
+│    │ Collector│  │ Collector│  │ Collector│  │ Collector│  │  (Proxy) │     │
+│    └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘     │
+│         │             │             │             │             │           │
+│         └─────────────┴─────────────┴─────────────┴─────────────┘           │
+│                                     │                                       │
+│                                     ▼                                       │
+│         ┌──────────────────────────────────────────────────────────┐        │
+│         │                Base Collector (Fail Safe)                │        │
+│         │   • Exponential backoff (30s → 3600s max)                │        │
+│         │   • Auto reset after 24h idle                            │        │
+│         │   • Health status monitoring                             │        │
+│         └──────────────────────────────────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+                ┌────────────────────────────────────┐
+                │           Event Detector           │
+                │   (Anomaly detection & alerting)   │
+                └────────────────┬───────────────────┘
+                                 │
+                                 ▼
+                ┌────────────────────────────────────┐
+                │        SQLite Storage + MQTT       │
+                │  (Snapshots, trends, Home Assistant)│
+                └────────────────┬───────────────────┘
+                                 │
+                                 ▼
+                ┌────────────────────────────────────┐
+                │           Web UI (Flask)           │
+                │    (Dashboard, charts, reports)    │
+                └────────────────────────────────────┘
 ```
 
 ### Key Design Principles
