@@ -525,5 +525,10 @@
   "bnetz_source_watcher": "Automatisch importiert",
   "bnetz_source_csv": "CSV-Import",
   "bnetz_upload_csv_hint": "PDF- oder CSV-Messdateien hochladen",
-  "bnetz_docker_hint": "Nutze docker-compose.bnetz.yml fuer automatisierte Messung mit der offiziellen BNetzA Desktop-App"
+  "bnetz_docker_hint": "Nutze docker-compose.bnetz.yml fuer automatisierte Messung mit der offiziellen BNetzA Desktop-App",
+  "demo_migrate_title": "Demo-Modus aktiv",
+  "demo_migrate_desc": "DOCSight laeuft im Demo-Modus mit Beispieldaten. Wechsle in den Live-Modus, um dein echtes Modem zu ueberwachen. Eigene Journal-Eintraege und Vorfaelle bleiben erhalten.",
+  "demo_migrate_button": "Zum Live-Modus wechseln",
+  "demo_migrate_confirm": "Alle Demo-Daten werden geloescht und der Live-Modus aktiviert. Eigene Eintraege bleiben erhalten. Fortfahren?",
+  "demo_migrate_success": "Erfolgreich zum Live-Modus gewechselt. Demo-Daten wurden entfernt."
 }

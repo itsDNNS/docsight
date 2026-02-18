@@ -134,6 +134,8 @@ class DemoCollector(Collector):
 
     def _seed_demo_data(self):
         """Populate storage with 90 days of snapshots, events, journal, speedtest, and BQM."""
+        # Purge any existing demo data first (handles container rebuilds with persisted volume)
+        self._storage.purge_demo_data()
         # Keep all demo data — don't let cleanup purge the seeded history
         self._storage.max_days = 0
         now = datetime.now()
@@ -177,13 +179,14 @@ class DemoCollector(Collector):
                 json.dumps(analysis["summary"]),
                 json.dumps(analysis["ds_channels"]),
                 json.dumps(analysis["us_channels"]),
+                1,  # is_demo
             ))
 
         # Bulk insert for speed
         with sqlite3.connect(self._storage.db_path) as conn:
             conn.executemany(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) "
-                "VALUES (?, ?, ?, ?)",
+                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
+                "VALUES (?, ?, ?, ?, ?)",
                 rows,
             )
         log.info("Demo: seeded %d historical snapshots (%d days)", len(rows), days)
@@ -377,7 +380,7 @@ class DemoCollector(Collector):
                 },
             ])
 
-        self._storage.save_events(events)
+        self._storage.save_events(events, is_demo=True)
         log.info("Demo: seeded %d events", len(events))
 
     def _seed_journal_entries(self, now):
@@ -428,7 +431,7 @@ class DemoCollector(Collector):
             ),
         ]
         for date, title, description in entries:
-            self._storage.save_entry(date, title, description)
+            self._storage.save_entry(date, title, description, is_demo=True)
         log.info("Demo: seeded %d journal entries", len(entries))
 
     def _seed_incident_containers(self, now):
@@ -441,6 +444,7 @@ class DemoCollector(Collector):
             status="open",
             start_date=(now - timedelta(days=75)).strftime("%Y-%m-%d"),
             end_date=None,
+            is_demo=True,
         )
         inc2_id = self._storage.save_incident(
             name="Firmware Update Issues",
@@ -449,6 +453,7 @@ class DemoCollector(Collector):
             status="resolved",
             start_date=(now - timedelta(days=15)).strftime("%Y-%m-%d"),
             end_date=(now - timedelta(days=5)).strftime("%Y-%m-%d"),
+            is_demo=True,
         )
         # Assign entries by date range
         count1 = self._storage.assign_entries_by_date_range(
@@ -511,7 +516,21 @@ class DemoCollector(Collector):
                 })
                 result_id += 1
 
-        self._storage.save_speedtest_results(results)
+        # Bulk insert with is_demo=1 directly (save_speedtest_results doesn't support is_demo)
+        if results:
+            with sqlite3.connect(self._storage.db_path) as conn:
+                conn.executemany(
+                    "INSERT OR IGNORE INTO speedtest_results "
+                    "(id, timestamp, download_mbps, upload_mbps, download_human, "
+                    "upload_human, ping_ms, jitter_ms, packet_loss_pct, is_demo) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                    [
+                        (r["id"], r["timestamp"], r["download_mbps"],
+                         r["upload_mbps"], r["download_human"], r["upload_human"],
+                         r["ping_ms"], r["jitter_ms"], r["packet_loss_pct"])
+                        for r in results
+                    ],
+                )
 
         # Set latest result in web state for dashboard card
         if results:
@@ -527,8 +546,8 @@ class DemoCollector(Collector):
             png = self._generate_bqm_png(seed=d)
             with sqlite3.connect(self._storage.db_path) as conn:
                 conn.execute(
-                    "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob) "
-                    "VALUES (?, ?, ?)",
+                    "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob, is_demo) "
+                    "VALUES (?, ?, ?, 1)",
                     (date, ts, png),
                 )
         log.info("Demo: seeded 14 BQM graphs")
