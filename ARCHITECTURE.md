@@ -277,7 +277,7 @@ _generate_data() (base channels + variation)
 - 25 DS channels (24× DOCSIS 3.0 + 1× DOCSIS 3.1) and 4 US channels
 - Per-poll variation: ±0.3 dBmV power, ±0.5 dB SNR, slowly accumulating errors
 - Seeds 9 months (270 days) of historical snapshots retroactive from current date
-- Pre-populated event log, journal entries (12), incident groups (3), speedtest results (270 days), and BQM graphs (30 days)
+- Pre-populated event log, journal entries (12), incident groups (3), speedtest results (270 days), BQM graphs (30 days), and BNetzA measurement campaigns (9 monthly)
 - Time-based patterns: diurnal cycles, seasonal drift, periodic "bad periods"
 - All demo rows marked with `is_demo=1` flag for clean separation from user data
 - Purge-before-seed on container rebuild prevents duplicate data

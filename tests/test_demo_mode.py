@@ -36,7 +36,7 @@ def client(config_mgr, storage):
 # ── Helper: seed some demo rows via storage directly ──
 
 def _seed_demo_rows(storage):
-    """Insert demo-flagged rows into all 6 tables."""
+    """Insert demo-flagged rows into all 7 tables."""
     with sqlite3.connect(storage.db_path) as conn:
         conn.execute(
             "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
@@ -58,6 +58,15 @@ def _seed_demo_rows(storage):
         conn.execute(
             "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob, is_demo) "
             "VALUES ('2025-01-01', '2025-01-01T00:00:00', X'89504E47', 1)"
+        )
+        conn.execute(
+            "INSERT INTO bnetz_measurements "
+            "(date, timestamp, provider, tariff, download_max_tariff, download_normal_tariff, "
+            "download_min_tariff, upload_max_tariff, upload_normal_tariff, upload_min_tariff, "
+            "download_measured_avg, upload_measured_avg, measurement_count, "
+            "verdict_download, verdict_upload, measurements_json, source, is_demo) "
+            "VALUES ('2025-01-01', '2025-01-01T00:00:00', 'Vodafone Kabel', 'Cable 250', "
+            "250, 200, 150, 40, 30, 10, 220, 35, 5, 'ok', 'ok', '{}', 'upload', 1)"
         )
 
 
@@ -91,9 +100,9 @@ def _count_rows(storage, table, is_demo=None):
 
 class TestIsDemoColumn:
     def test_is_demo_column_exists(self, storage):
-        """All 6 demo-seeded tables should have an is_demo column."""
+        """All 7 demo-seeded tables should have an is_demo column."""
         tables = ["snapshots", "events", "journal_entries", "incidents",
-                   "speedtest_results", "bqm_graphs"]
+                   "speedtest_results", "bqm_graphs", "bnetz_measurements"]
         with sqlite3.connect(storage.db_path) as conn:
             for tbl in tables:
                 cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
@@ -176,6 +185,7 @@ class TestPurgeDemoData:
         assert _count_rows(storage, "incidents", is_demo=1) == 0
         assert _count_rows(storage, "speedtest_results", is_demo=1) == 0
         assert _count_rows(storage, "bqm_graphs", is_demo=1) == 0
+        assert _count_rows(storage, "bnetz_measurements", is_demo=1) == 0
 
         # User rows survive
         assert _count_rows(storage, "snapshots", is_demo=0) == 1
@@ -186,7 +196,7 @@ class TestPurgeDemoData:
     def test_purge_returns_count(self, storage):
         _seed_demo_rows(storage)
         total = storage.purge_demo_data()
-        assert total >= 6  # at least one row per table
+        assert total >= 7  # at least one row per table
 
     def test_purge_on_empty_db(self, storage):
         """Purge on empty DB should not error."""
