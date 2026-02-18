@@ -11,6 +11,7 @@ from .modem import ModemCollector
 from .demo import DemoCollector
 from .speedtest import SpeedtestCollector
 from .bqm import BQMCollector
+from .bnetz_watcher import BnetzWatcherCollector
 
 log = logging.getLogger("docsis.collectors")
 
@@ -20,6 +21,7 @@ COLLECTOR_REGISTRY = {
     "demo": DemoCollector,
     "speedtest": SpeedtestCollector,
     "bqm": BQMCollector,
+    "bnetz_watcher": BnetzWatcherCollector,
 }
 
 
@@ -93,7 +95,14 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             storage=storage,
             poll_interval=86400,
         ))
-    
+
+    # BNetzA watcher collector (available if watch dir configured, not in demo mode)
+    if config_mgr.is_bnetz_watch_configured() and not config_mgr.is_demo_mode():
+        collectors.append(BnetzWatcherCollector(
+            config_mgr=config_mgr,
+            storage=storage,
+        ))
+
     return collectors
 
 
@@ -106,4 +115,5 @@ __all__ = [
     "DemoCollector",
     "SpeedtestCollector",
     "BQMCollector",
+    "BnetzWatcherCollector",
 ]

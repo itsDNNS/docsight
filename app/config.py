@@ -56,6 +56,8 @@ DEFAULTS = {
     "notify_min_severity": "warning",
     "notify_cooldown": 3600,
     "notify_cooldowns": "{}",
+    "bnetz_watch_enabled": False,
+    "bnetz_watch_dir": "/data/bnetz",
 }
 
 ENV_MAP = {
@@ -91,6 +93,8 @@ ENV_MAP = {
     "notify_min_severity": "NOTIFY_MIN_SEVERITY",
     "notify_cooldown": "NOTIFY_COOLDOWN",
     "notify_cooldowns": "NOTIFY_COOLDOWNS",
+    "bnetz_watch_enabled": "BNETZ_WATCH_ENABLED",
+    "bnetz_watch_dir": "BNETZ_WATCH_DIR",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -108,7 +112,7 @@ _LEGACY_KEY_MAP = {
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
@@ -323,6 +327,13 @@ class ConfigManager:
         if isinstance(val, str):
             val = val.lower() in ("true", "1", "yes")
         return bool(val)
+
+    def is_bnetz_watch_configured(self):
+        """True if BNetzA file watcher is enabled and BNetzA feature is enabled."""
+        val = self.get("bnetz_watch_enabled")
+        if isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes")
+        return bool(val) and self.is_bnetz_enabled()
 
     def is_notify_configured(self):
         """True if a notification webhook URL is set."""

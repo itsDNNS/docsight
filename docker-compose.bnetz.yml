@@ -1,0 +1,33 @@
+# Optional addon: BNetzA automated measurement sidecar
+# Usage: docker compose -f docker-compose.yml -f docker-compose.bnetz.yml up -d
+#
+# This adds the official Breitbandmessung Desktop App as a sidecar container
+# that runs automated speed measurements according to BNetzA specifications.
+# Results are written to a shared volume that DOCSight watches for auto-import.
+#
+# After first start, open http://localhost:5800 to complete the initial setup
+# of the Breitbandmessung app (accept terms, configure provider/tariff).
+
+services:
+  docsight:
+    volumes:
+      - bnetz_data:/data/bnetz
+    environment:
+      - BNETZ_WATCH_ENABLED=true
+      - BNETZ_WATCH_DIR=/data/bnetz
+
+  breitbandmessung:
+    image: fabianbees/breitbandmessung:latest
+    container_name: breitbandmessung
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+      - TIME_START=13:00
+      - TIME_END=22:30
+    volumes:
+      - bnetz_data:/config/xdg/config/Breitbandmessung
+    ports:
+      - "5800:5800"  # noVNC web UI for initial setup
+
+volumes:
+  bnetz_data:

@@ -409,12 +409,13 @@ class TestBQMCollector:
 
 
 class TestDiscoverCollectors:
-    def _make_config_mgr(self, poll_interval=60):
+    def _make_config_mgr(self, poll_interval=60, bnetz_watch=False):
         mgr = MagicMock()
         mgr.is_demo_mode.return_value = False
         mgr.is_configured.return_value = True
         mgr.is_speedtest_configured.return_value = True
         mgr.is_bqm_configured.return_value = True
+        mgr.is_bnetz_watch_configured.return_value = bnetz_watch
         mgr.get_all.return_value = {
             "modem_type": "fritzbox",
             "modem_url": "http://fritz.box",
@@ -440,6 +441,21 @@ class TestDiscoverCollectors:
         assert "modem" in names
         assert "speedtest" in names
         assert "bqm" in names
+
+    @patch("app.drivers.load_driver")
+    def test_discover_includes_bnetz_watcher(self, mock_load):
+        from app.collectors import discover_collectors
+
+        mock_load.return_value = MagicMock()
+        config_mgr = self._make_config_mgr(bnetz_watch=True)
+        analyzer = MagicMock()
+
+        collectors = discover_collectors(
+            config_mgr, MagicMock(), MagicMock(), None, MagicMock(), analyzer
+        )
+        assert len(collectors) == 4
+        names = [c.name for c in collectors]
+        assert "bnetz_watcher" in names
 
     @patch("app.drivers.load_driver")
     def test_modem_collector_gets_poll_interval(self, mock_load):

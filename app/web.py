@@ -1594,25 +1594,44 @@ def api_bnetz_upload():
     f = request.files["file"]
     if not f.filename:
         return jsonify({"error": "No file selected"}), 400
-    if f.content_type and f.content_type != "application/pdf":
-        return jsonify({"error": "Only PDF files are accepted"}), 400
-    pdf_bytes = f.read()
-    if len(pdf_bytes) > MAX_ATTACHMENT_SIZE:
+
+    filename = f.filename.lower()
+    is_csv = filename.endswith(".csv")
+    is_pdf = filename.endswith(".pdf") or (f.content_type and f.content_type == "application/pdf")
+
+    if not is_csv and not is_pdf:
+        return jsonify({"error": "Only PDF and CSV files are accepted"}), 400
+
+    file_bytes = f.read()
+    if len(file_bytes) > MAX_ATTACHMENT_SIZE:
         return jsonify({"error": "File too large (max 10 MB)"}), 400
-    if not pdf_bytes[:5] == b"%PDF-":
-        return jsonify({"error": "Not a valid PDF file"}), 400
-    try:
-        from .bnetz_parser import parse_bnetz_pdf
-        parsed = parse_bnetz_pdf(pdf_bytes)
-    except ValueError as e:
-        lang = _get_lang()
-        t = get_translations(lang)
-        return jsonify({"error": t.get("bnetz_parse_error", str(e))}), 400
-    measurement_id = _storage.save_bnetz_measurement(parsed, pdf_bytes)
+
+    lang = _get_lang()
+    t = get_translations(lang)
+
+    if is_csv:
+        try:
+            from .bnetz_csv_parser import parse_bnetz_csv
+            csv_content = file_bytes.decode("utf-8-sig")
+            parsed = parse_bnetz_csv(csv_content)
+        except (ValueError, UnicodeDecodeError) as e:
+            return jsonify({"error": t.get("bnetz_parse_error", str(e))}), 400
+        measurement_id = _storage.save_bnetz_measurement(parsed, pdf_bytes=None, source="upload")
+    else:
+        if not file_bytes[:5] == b"%PDF-":
+            return jsonify({"error": "Not a valid PDF file"}), 400
+        try:
+            from .bnetz_parser import parse_bnetz_pdf
+            parsed = parse_bnetz_pdf(file_bytes)
+        except ValueError as e:
+            return jsonify({"error": t.get("bnetz_parse_error", str(e))}), 400
+        measurement_id = _storage.save_bnetz_measurement(parsed, file_bytes, source="upload")
+
     audit_log.info(
-        "BNetzA measurement uploaded: ip=%s id=%d provider=%s date=%s",
+        "BNetzA measurement uploaded: ip=%s id=%d provider=%s date=%s type=%s",
         _get_client_ip(), measurement_id,
         parsed.get("provider", "?"), parsed.get("date", "?"),
+        "csv" if is_csv else "pdf",
     )
     return jsonify({"id": measurement_id, "parsed": parsed}), 201
 

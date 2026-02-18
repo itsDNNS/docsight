@@ -531,6 +531,11 @@
                 BQM
                 <span class="status-dot" id="dot-bqm"></span>
             </a>
+            <a class="settings-nav-link" data-section="bnetz" onclick="switchSection('bnetz')">
+                <span class="icon"><i data-lucide="file-check"></i></span>
+                BNetzA
+                <span class="status-dot" id="dot-bnetz"></span>
+            </a>
             <a class="settings-nav-link" data-section="smokeping" onclick="switchSection('smokeping')">
                 <span class="icon"><i data-lucide="wifi"></i></span>
                 Smokeping
@@ -796,6 +801,39 @@
                     </div>
                 </div>
 
+                <!-- ═══ Panel: BNetzA ═══ -->
+                <div class="settings-panel" id="panel-bnetz">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="file-check"></i></div>
+                            <div>
+                                <div class="settings-card-title">{{ t.bnetz_watcher_title }}</div>
+                                <div class="settings-card-desc">{{ t.bnetz_watcher_desc }}</div>
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-row full">
+                                <label class="toggle-row">
+                                    <span>{{ t.enabled }}</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="bnetz_watch_enabled" name="bnetz_watch_enabled" {% if config.bnetz_watch_enabled %}checked{% endif %}>
+                                        <span class="slider"></span>
+                                    </label>
+                                </label>
+                                <span class="hint">{{ t.bnetz_watcher_hint }}</span>
+                            </div>
+                            <div class="form-row full">
+                                <label for="bnetz_watch_dir">{{ t.bnetz_watch_dir_label }}</label>
+                                <input type="text" id="bnetz_watch_dir" name="bnetz_watch_dir" value="{{ config.bnetz_watch_dir }}" placeholder="/data/bnetz">
+                                <span class="hint">{{ t.bnetz_watch_dir_hint }}</span>
+                            </div>
+                            <div class="form-row full">
+                                <span class="hint" style="font-style:italic;">{{ t.bnetz_docker_hint }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ═══ Panel: Smokeping ═══ -->
                 <div class="settings-panel" id="panel-smokeping">
                     <div class="settings-card">
@@ -925,6 +963,7 @@ var SECTION_TITLES = {
     notifications: 'Notifications',
     speedtest: 'Speedtest Tracker',
     bqm: 'ThinkBroadband BQM',
+    bnetz: T.bnetz_watcher_title || 'BNetzA',
     smokeping: 'Smokeping',
     mqtt: T.mqtt_broker || 'MQTT',
     appearance: T.appearance || 'Appearance'
@@ -968,6 +1007,12 @@ function updateStatusDots() {
         if (el && dot) {
             dot.classList.toggle('visible', el.value.trim() !== '');
         }
+    }
+    /* BNetzA dot: based on checkbox */
+    var bnetzCheck = document.getElementById('bnetz_watch_enabled');
+    var bnetzDot = document.getElementById('dot-bnetz');
+    if (bnetzCheck && bnetzDot) {
+        bnetzDot.classList.toggle('visible', bnetzCheck.checked);
     }
 }
 
@@ -1226,6 +1271,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var el = document.getElementById(id);
         if (el) el.addEventListener('input', updateStatusDots);
     });
+    var bnetzWatchCheck = document.getElementById('bnetz_watch_enabled');
+    if (bnetzWatchCheck) bnetzWatchCheck.addEventListener('change', updateStatusDots);
 
     // Populate per-event toggles + cooldown inputs from saved config
     try {

@@ -1419,10 +1419,14 @@
         <div style="display:flex;gap:8px;align-items:center;">
             <label class="btn btn-muted" style="cursor:pointer;">
                 <i data-lucide="upload" style="width:14px;height:14px;vertical-align:-2px;"></i> {{ t.bnetz_upload }}
-                <input type="file" accept=".pdf" id="bnetz-file-input" style="display:none;" onchange="uploadBnetzFromView(this)">
+                <input type="file" accept=".pdf,.csv" id="bnetz-file-input" style="display:none;" onchange="uploadBnetzFromView(this)">
             </label>
             <button class="refresh-btn" title="{{ t.refresh }}" onclick="loadBnetzData()">&#x1F504;</button>
         </div>
+    </div>
+    <div id="bnetz-watcher-status" style="display:none;padding:8px 14px;margin-bottom:10px;border-radius:8px;background:var(--card-bg);border:1px solid var(--input-border);font-size:0.85em;color:var(--text-muted);align-items:center;gap:8px;">
+        <i data-lucide="eye" style="width:14px;height:14px;flex-shrink:0;"></i>
+        <span id="bnetz-watcher-text"></span>
     </div>
     <div id="bnetz-loading" class="waiting" style="display:none;">
         <div class="spinner"></div>
@@ -2053,7 +2057,7 @@
                     '<td class="' + verdictClass + '">' + verdictText + '</td>' +
                     '<td style="white-space:nowrap;" onclick="event.stopPropagation();">' +
                         complaintBtn +
-                        '<a href="/api/bnetz/pdf/' + m.id + '" title="PDF" style="margin-right:8px;">&#128196;</a>' +
+                        (m.source !== 'csv_import' ? '<a href="/api/bnetz/pdf/' + m.id + '" title="PDF" style="margin-right:8px;">&#128196;</a>' : '') +
                         '<a href="javascript:void(0)" onclick="deleteBnetzFromView(' + m.id + ')" title="' + (T.delete_incident || 'Delete') + '">&#128465;</a>' +
                     '</td>';
                 tbody.appendChild(tr);
@@ -2076,6 +2080,29 @@
             empty.style.display = 'block';
             empty.textContent = 'Error loading data';
         });
+
+        /* Fetch watcher status for the banner */
+        var watcherBanner = document.getElementById('bnetz-watcher-status');
+        var watcherText = document.getElementById('bnetz-watcher-text');
+        if (watcherBanner) {
+            fetch('/api/collectors/status').then(function(r) { return r.json(); }).then(function(collectors) {
+                var watcher = null;
+                for (var i = 0; i < collectors.length; i++) {
+                    if (collectors[i].name === 'bnetz_watcher') { watcher = collectors[i]; break; }
+                }
+                if (watcher && watcher.enabled) {
+                    watcherBanner.style.display = 'flex';
+                    var parts = [(T.bnetz_watcher_active || 'File watcher active')];
+                    if (watcher.watch_dir) parts.push((T.bnetz_watcher_watching || 'Watching {dir}').replace('{dir}', watcher.watch_dir));
+                    if (watcher.last_import_count > 0) parts.push((T.bnetz_watcher_last_import || '{count} file(s) imported').replace('{count}', watcher.last_import_count));
+                    if (watcher.next_poll_in > 0) parts.push('Next check in ' + Math.round(watcher.next_poll_in / 60) + 'min');
+                    watcherText.textContent = parts.join(' · ');
+                    lucide.createIcons();
+                } else {
+                    watcherBanner.style.display = 'none';
+                }
+            }).catch(function() { watcherBanner.style.display = 'none'; });
+        }
     }
 
     function toggleBnetzDetail(idx) {
