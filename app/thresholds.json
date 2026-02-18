@@ -23,7 +23,7 @@
       "immediate_min": -6.0, "immediate_max": 22.0
     },
     "4096QAM": {
-      "_comment": "OFDM (DOCSIS 3.1). Power ranges same as 1024QAM; SNR requirements are higher (see snr section).",
+      "_comment": "OFDM (DOCSIS 3.1). Not in VFKD guidelines; extrapolated from CableLabs PHY spec. Power same as 1024QAM.",
       "good_min": -1.9, "good_max": 15.0,
       "tolerated_min": -3.9, "tolerated_max": 20.0,
       "monthly_min": -5.9, "monthly_max": 22.0,
@@ -33,7 +33,7 @@
   },
 
   "upstream_power": {
-    "_comment_fritz": "Fritz!Box shows DOCSIS 3.1 upstream 6 dB lower than actual. Values here are as displayed by Fritz!Box.",
+    "_comment": "Real VFKD values. Fritz!Box -6 dB display bug is compensated in the FritzBox driver, not here.",
     "EuroDOCSIS 3.0": {
       "good_min": 41.1, "good_max": 47.0,
       "tolerated_min": 37.1, "tolerated_max": 51.0,
@@ -41,11 +41,10 @@
       "immediate_min": 35.0, "immediate_max": 53.0
     },
     "DOCSIS 3.1": {
-      "_comment": "Values adjusted for Fritz!Box display (-6 dB from actual). Actual regelkonform: 44.1-47.0",
-      "good_min": 38.1, "good_max": 41.0,
-      "tolerated_min": 34.1, "tolerated_max": 42.0,
-      "monthly_min": 32.1, "monthly_max": 44.0,
-      "immediate_min": 32.0, "immediate_max": 44.0
+      "good_min": 44.1, "good_max": 47.0,
+      "tolerated_min": 40.1, "tolerated_max": 48.0,
+      "monthly_min": 38.1, "monthly_max": 50.0,
+      "immediate_min": 38.0, "immediate_max": 50.0
     },
     "_default": "EuroDOCSIS 3.0"
   },
@@ -71,7 +70,7 @@
       "immediate_min": 36.0
     },
     "4096QAM": {
-      "_comment": "OFDM (DOCSIS 3.1). +6 dB over 1024QAM per CableLabs PHY spec.",
+      "_comment": "OFDM (DOCSIS 3.1). Not in VFKD guidelines; extrapolated +6 dB over 1024QAM per CableLabs PHY spec.",
       "good_min": 45.0,
       "tolerated_min": 44.0,
       "monthly_min": 42.0,
