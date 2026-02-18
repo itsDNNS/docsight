@@ -276,10 +276,15 @@ _generate_data() (base channels + variation)
 **Features:**
 - 25 DS channels (24× DOCSIS 3.0 + 1× DOCSIS 3.1) and 4 US channels
 - Per-poll variation: ±0.3 dBmV power, ±0.5 dB SNR, slowly accumulating errors
-- Seeds 90 days of historical snapshots on first run (8640 data points)
-- Pre-populated event log (48 events), journal entries (6), and incident groups (2 containers with assigned entries)
+- Seeds 9 months (270 days) of historical snapshots retroactive from current date
+- Pre-populated event log, journal entries (12), incident groups (3), speedtest results (270 days), and BQM graphs (30 days)
 - Time-based patterns: diurnal cycles, seasonal drift, periodic "bad periods"
+- All demo rows marked with `is_demo=1` flag for clean separation from user data
+- Purge-before-seed on container rebuild prevents duplicate data
 - Device info: "DOCSight Demo Router", Connection: 250/40 Mbit/s Cable
+
+**Live Migration:**
+Users can switch from demo to live mode via Settings UI or `POST /api/demo/migrate`. This purges all `is_demo=1` rows while preserving user-created entries, disables demo mode, and restarts polling for real modem data.
 
 ### BQMCollector (`app/collectors/bqm.py`)
 
@@ -453,7 +458,8 @@ CREATE TABLE snapshots (
     timestamp TEXT NOT NULL,
     summary_json TEXT,
     ds_channels_json TEXT,
-    us_channels_json TEXT
+    us_channels_json TEXT,
+    is_demo INTEGER NOT NULL DEFAULT 0
 );
 
 -- Speed test results (cached from Speedtest Tracker)
@@ -463,7 +469,8 @@ CREATE TABLE speedtest_results (
     download_mbps REAL,
     upload_mbps REAL,
     ping_ms REAL,
-    ...
+    ...,
+    is_demo INTEGER NOT NULL DEFAULT 0
 );
 
 -- Event log (anomaly detection)
@@ -473,7 +480,8 @@ CREATE TABLE events (
     severity TEXT,  -- info|warning|critical
     event_type TEXT,  -- health_change, power_shift, snr_drop, etc.
     message TEXT,
-    acknowledged INTEGER
+    acknowledged INTEGER,
+    is_demo INTEGER NOT NULL DEFAULT 0
 );
 
 -- Incident containers (groups)
@@ -486,7 +494,8 @@ CREATE TABLE incidents (
     end_date TEXT,
     icon TEXT,
     created_at TEXT,
-    updated_at TEXT
+    updated_at TEXT,
+    is_demo INTEGER NOT NULL DEFAULT 0
 );
 
 -- Journal entries (formerly "incidents")
@@ -498,7 +507,8 @@ CREATE TABLE journal_entries (
     icon TEXT,
     incident_id INTEGER,  -- FK to incidents.id, nullable
     created_at TEXT,
-    updated_at TEXT
+    updated_at TEXT,
+    is_demo INTEGER NOT NULL DEFAULT 0
 );
 
 -- Journal attachments
@@ -515,7 +525,9 @@ CREATE TABLE journal_attachments (
 CREATE TABLE bqm_graphs (
     id INTEGER PRIMARY KEY,
     date TEXT UNIQUE,
-    image_blob BLOB
+    timestamp TEXT,
+    image_blob BLOB,
+    is_demo INTEGER NOT NULL DEFAULT 0
 );
 
 -- BNetzA broadband measurements
@@ -581,6 +593,7 @@ CREATE TABLE bnetz_measurements (
 | `/api/bnetz/measurements` | GET | List BNetzA measurements |
 | `/api/bnetz/pdf/<id>` | GET | Download original measurement PDF |
 | `/api/bnetz/<id>` | DELETE | Delete a BNetzA measurement |
+| `/api/demo/migrate` | POST | Switch from demo to live mode (purges demo data, preserves user data) |
 
 **New in v2.0:**
 
@@ -636,7 +649,7 @@ GET /api/collectors/status
 
 **Override:** Environment variables take precedence over config.json
 
-**Demo Mode:** Set `DEMO_MODE=true` to run without a real modem. The DemoCollector replaces the ModemCollector and generates realistic simulated data. No modem password required, setup page is bypassed.
+**Demo Mode:** Set `DEMO_MODE=true` to run without a real modem. The DemoCollector replaces the ModemCollector and generates 9 months of realistic simulated data. No modem password required, setup page is bypassed. All demo-seeded rows are tagged with `is_demo=1` so they can be cleanly purged when switching to live mode via `POST /api/demo/migrate`.
 
 ---
 
@@ -756,7 +769,7 @@ def test_my_collector_success():
 ## Testing
 
 **Framework:** pytest
-**Coverage:** 330 tests
+**Coverage:** 344 tests
 
 **Run tests:**
 ```bash
@@ -771,6 +784,7 @@ python -m pytest tests/ -v
 - Event detection: Anomaly detection
 - Config: Configuration management
 - BNetzA: PDF/CSV parsing and file watcher
+- Demo mode: is_demo marking, purge, migration, idempotency
 - i18n: Translation completeness
 
 ---
