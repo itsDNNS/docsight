@@ -1,6 +1,6 @@
 # DOCSight Architecture
 
-> Documentation current as of **v2026-02-18.4**
+> Documentation current as of **v2026-02-18.8**
 
 This document describes the technical architecture of DOCSight.
 

@@ -148,7 +148,9 @@ Open `http://localhost:8765` — no setup required.
 
 | | Status | Notes |
 |---|---|---|
+| **Arris CM3500B** | ✅ Fully supported | HTTPS enforced, mixed DOCSIS 3.0/3.1 |
 | **AVM Fritz!Box Cable** (6490, 6590, 6591, 6660, 6690) | ✅ Fully supported | |
+| **Unitymedia Connect Box** (CH7465) | ✅ Fully supported | |
 | **Vodafone Station** (CGA4233, TG3442DE) | ✅ Fully supported | Bridge mode compatible |
 | **Technicolor TC4400** | ✅ Fully supported | |
 | **Vodafone Ultra Hub 7** (Sercomm) | ✅ Fully supported | |
@@ -248,6 +250,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Vodafone Station Support | ✅ Released | [#14](https://github.com/itsDNNS/docsight/issues/14) |
 | Technicolor TC4400 Support | ✅ Released | [#24](https://github.com/itsDNNS/docsight/issues/24) |
 | Vodafone Ultra Hub 7 Support | ✅ Released | [#29](https://github.com/itsDNNS/docsight/issues/29) |
+| Arris CM3500B Support | ✅ Released | [#77](https://github.com/itsDNNS/docsight/issues/77) |
+| Unitymedia Connect Box (CH7465) | ✅ Released | |
+| Speedtest Server Tracking | ✅ Released | [#79](https://github.com/itsDNNS/docsight/issues/79) |
 
 **Planned:**
 
@@ -268,7 +273,7 @@ If DOCSight helps you, consider [buying me a coffee](https://ko-fi.com/itsdnns) 
 
 ## Documentation
 
-Documentation current as of **v2026-02-18.4**.
+Documentation current as of **v2026-02-18.8**.
 
 | Document | Scope |
 |---|---|
