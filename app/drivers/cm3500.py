@@ -32,6 +32,10 @@ class CM3500Driver(ModemDriver):
     """
 
     def __init__(self, url: str, user: str, password: str):
+        # CM3500B requires HTTPS; upgrade silently if user provided HTTP
+        if url.startswith("http://"):
+            url = "https://" + url[len("http://"):]
+            log.info("CM3500 requires HTTPS, upgraded URL to %s", url)
         super().__init__(url, user, password)
         self._session = requests.Session()
         self._session.verify = False
@@ -50,26 +54,31 @@ class CM3500Driver(ModemDriver):
             raise RuntimeError(f"CM3500 authentication failed: {e}")
 
     def get_docsis_data(self) -> dict:
-        """Retrieve DOCSIS channel data from HTML tables on status page."""
+        """Retrieve DOCSIS channel data from HTML tables on status page.
+
+        Returns pre-split format so the analyzer correctly labels
+        QAM channels as DOCSIS 3.0 and OFDM/OFDMA channels as 3.1.
+        """
         soup = self._fetch_status_page()
         sections = self._find_table_sections(soup)
 
-        downstream = []
+        ds30 = []
+        ds31 = []
         if "downstream qam" in sections:
-            downstream.extend(self._parse_ds_qam(sections["downstream qam"]))
+            ds30.extend(self._parse_ds_qam(sections["downstream qam"]))
         if "downstream ofdm" in sections:
-            downstream.extend(self._parse_ds_ofdm(sections["downstream ofdm"]))
+            ds31.extend(self._parse_ds_ofdm(sections["downstream ofdm"]))
 
-        upstream = []
+        us30 = []
+        us31 = []
         if "upstream qam" in sections:
-            upstream.extend(self._parse_us_qam(sections["upstream qam"]))
+            us30.extend(self._parse_us_qam(sections["upstream qam"]))
         if "upstream ofdm" in sections:
-            upstream.extend(self._parse_us_ofdm(sections["upstream ofdm"]))
+            us31.extend(self._parse_us_ofdm(sections["upstream ofdm"]))
 
         return {
-            "docsis": "3.1",
-            "downstream": downstream,
-            "upstream": upstream,
+            "channelDs": {"docsis30": ds30, "docsis31": ds31},
+            "channelUs": {"docsis30": us30, "docsis31": us31},
         }
 
     def get_device_info(self) -> dict:
