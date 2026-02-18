@@ -152,12 +152,35 @@ class TestFritzBoxDriver:
     @patch("app.drivers.fritzbox.fb")
     def test_get_docsis_data(self, mock_fb):
         mock_fb.login.return_value = "sid1"
-        mock_fb.get_docsis_data.return_value = {"channels": []}
+        mock_fb.get_docsis_data.return_value = {"channelUs": {"docsis31": []}}
         d = FritzBoxDriver("http://fritz.box", "admin", "pass")
         d.login()
         result = d.get_docsis_data()
         mock_fb.get_docsis_data.assert_called_once_with("http://fritz.box", "sid1")
-        assert result == {"channels": []}
+
+    @patch("app.drivers.fritzbox.fb")
+    def test_us31_power_compensated(self, mock_fb):
+        """Fritz!Box DOCSIS 3.1 upstream power is 6 dB too low; driver adds +6."""
+        mock_fb.login.return_value = "sid1"
+        mock_fb.get_docsis_data.return_value = {
+            "channelUs": {
+                "docsis30": [{"channelID": 1, "powerLevel": "44.0"}],
+                "docsis31": [{"channelID": 2, "powerLevel": "38.0"}],
+            },
+        }
+        d = FritzBoxDriver("http://fritz.box", "admin", "pass")
+        d.login()
+        result = d.get_docsis_data()
+        # 3.0 channel unchanged
+        assert result["channelUs"]["docsis30"][0]["powerLevel"] == "44.0"
+        # 3.1 channel compensated: 38.0 + 6.0 = 44.0
+        assert result["channelUs"]["docsis31"][0]["powerLevel"] == "44.0"
+
+    def test_compensate_no_us31(self):
+        """No crash when channelUs or docsis31 is missing."""
+        FritzBoxDriver._compensate_us31_power({})
+        FritzBoxDriver._compensate_us31_power({"channelUs": {}})
+        FritzBoxDriver._compensate_us31_power({"channelUs": {"docsis30": []}})
 
     @patch("app.drivers.fritzbox.fb")
     def test_get_device_info(self, mock_fb):
