@@ -53,9 +53,10 @@ Open `http://localhost:8765` — no setup required.
 
 **What you get:**
 - 25 downstream + 4 upstream channels with realistic signal values
-- 90 days of historical data with diurnal and seasonal patterns
-- Pre-populated event log, incident journal, and incident groups
+- 9 months of historical data with diurnal and seasonal patterns
+- Pre-populated event log, journal entries (12), incident groups (3), and speedtest history
 - Full trend charts, channel timeline, and correlation analysis
+- Switch to live mode anytime (Settings > Migrate) -- your own entries are preserved
 - Works with MQTT (if configured)
 
 ---
@@ -100,7 +101,7 @@ Open `http://localhost:8765` — no setup required.
 | **[BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA)** | **NEW:** Upload or auto-import official BNetzA broadband measurement protocols (PDF/CSV) with file watcher and sidecar support |
 | **[Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping)** | Live latency graphs from your Smokeping instance |
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
-| **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | Try DOCSight without a router — 90 days of simulated data |
+| **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | Try DOCSight without a router — 9 months of simulated data with live migration |
 
 4 languages (EN/DE/FR/ES) · Light/Dark mode · Setup wizard · Optional authentication
 
