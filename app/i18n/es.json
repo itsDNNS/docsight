@@ -467,5 +467,21 @@
   "icon_hardware": "Hardware",
   "icon_documentation": "Documentacion",
   "icon_legal": "Legal",
-  "month_names": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+  "month_names": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+  "incidents": "Incidentes",
+  "incident_name": "Nombre del incidente",
+  "incident_status": "Estado",
+  "incident_status_open": "Abierto",
+  "incident_status_resolved": "Resuelto",
+  "incident_status_escalated": "Escalado",
+  "incident_start_date": "Fecha de inicio",
+  "incident_end_date": "Fecha de fin",
+  "incident_entry_count": "Entradas",
+  "incident_new": "Nuevo incidente",
+  "incident_edit": "Editar incidente",
+  "incident_delete_confirm": "Eliminar este incidente? Las entradas quedaran sin asignar.",
+  "incident_filter_all": "Todos",
+  "incident_filter_unassigned": "Sin asignar",
+  "incident_assign": "Asignar a incidente",
+  "incident_none": "Sin incidente"
 }

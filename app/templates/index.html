@@ -857,7 +857,7 @@
     <div class="journal-header">
         <span class="trend-title">{{ t.incident_journal }}</span>
         <div class="journal-header-actions">
-            <button class="btn-new-entry" onclick="openIncidentModal()">
+            <button class="btn-new-entry" onclick="openEntryModal()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
                     <path d="M12 5v14m-7-7h14"/>
                 </svg>
@@ -871,7 +871,7 @@
                 </svg>
                 {{ t.import }}
             </button>
-            <button class="btn-danger btn-delete-all" id="btn-delete-all-incidents" onclick="deleteAllIncidents()" style="display:none;">
+            <button class="btn-danger btn-delete-all" id="btn-delete-all-entries" onclick="deleteAllEntries()" style="display:none;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
                     <polyline points="3 6 5 6 21 6"/>
                     <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
@@ -880,6 +880,8 @@
             </button>
         </div>
     </div>
+    <div class="incident-filter-bar" id="incident-filter-bar" style="display:none;"></div>
+    <div class="incident-summary" id="incident-summary" style="display:none;"></div>
     <div class="journal-search-wrap" id="journal-search-wrap" style="display:none;">
         <div class="journal-search-box">
             <svg class="journal-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1038,50 +1040,113 @@
     </div>
 </div>
 
-<!-- ═══ Incident Modal ═══ -->
-<div class="modal-overlay" id="incident-modal" onclick="if(event.target===this)closeIncidentModal()">
+<!-- ═══ Entry Modal ═══ -->
+<div class="modal-overlay" id="entry-modal" onclick="if(event.target===this)closeEntryModal()">
     <div class="modal" style="max-width:640px;">
         <div class="modal-header">
             <div style="display:flex;align-items:center;gap:10px;">
-                <span id="incident-modal-icon" class="incident-modal-icon"></span>
-                <h2 id="incident-modal-title"></h2>
+                <span id="entry-modal-icon" class="incident-modal-icon"></span>
+                <h2 id="entry-modal-title"></h2>
             </div>
-            <button class="modal-close" onclick="closeIncidentModal()">&times;</button>
+            <button class="modal-close" onclick="closeEntryModal()">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
-            <input type="hidden" id="incident-id">
+            <input type="hidden" id="entry-id">
             <div class="incident-form-group">
-                <label for="incident-date">{{ t.incident_date }}</label>
-                <input type="date" id="incident-date">
+                <label for="entry-date">{{ t.incident_date }}</label>
+                <input type="date" id="entry-date">
             </div>
             <div class="incident-form-group">
-                <label for="incident-title-input">{{ t.incident_title }}</label>
-                <input type="text" id="incident-title-input" maxlength="200" placeholder="{{ t.incident_title }}">
+                <label for="entry-title-input">{{ t.incident_title }}</label>
+                <input type="text" id="entry-title-input" maxlength="200" placeholder="{{ t.incident_title }}">
             </div>
             <div class="incident-form-group">
                 <label>{{ t.icon }}</label>
-                <input type="hidden" id="incident-icon-value">
-                <div class="icon-picker" id="incident-icon-picker"></div>
+                <input type="hidden" id="entry-icon-value">
+                <div class="icon-picker" id="entry-icon-picker"></div>
             </div>
             <div class="incident-form-group">
-                <label for="incident-desc">{{ t.incident_description }}</label>
-                <textarea id="incident-desc" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
+                <label for="entry-desc">{{ t.incident_description }}</label>
+                <textarea id="entry-desc" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
             </div>
-            <div class="incident-form-group" id="incident-attachments-section">
+            <div class="incident-form-group">
+                <label for="entry-incident-select">{{ t.incident_assign }}</label>
+                <select id="entry-incident-select" class="entry-incident-select">
+                    <option value="">{{ t.incident_none }}</option>
+                </select>
+            </div>
+            <div class="incident-form-group" id="entry-attachments-section">
                 <label>{{ t.attachments }}</label>
-                <div class="attachment-list" id="incident-attachment-list"></div>
-                <button class="btn-upload" id="incident-upload-btn" onclick="document.getElementById('incident-file-input').click()">
+                <div class="attachment-list" id="entry-attachment-list"></div>
+                <button class="btn-upload" id="entry-upload-btn" onclick="document.getElementById('entry-file-input').click()">
                     &#128206; {{ t.upload_file }}
                 </button>
-                <span id="incident-upload-spinner" style="display:none;"><span class="upload-spinner"></span></span>
-                <input type="file" id="incident-file-input" style="display:none;" multiple
+                <span id="entry-upload-spinner" style="display:none;"><span class="upload-spinner"></span></span>
+                <input type="file" id="entry-file-input" style="display:none;" multiple
                        accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain"
-                       onchange="handleIncidentFileUpload(this)">
+                       onchange="handleEntryFileUpload(this)">
             </div>
         </div>
         <div class="incident-modal-footer">
             <div class="modal-footer-left">
-                <button class="btn-danger" id="incident-delete-btn" onclick="deleteIncident()" style="display:none;">{{ t.delete_incident }}</button>
+                <button class="btn-danger" id="entry-delete-btn" onclick="deleteEntry()" style="display:none;">{{ t.delete_incident }}</button>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-muted" onclick="closeEntryModal()">{{ t.cancel }}</button>
+                <button class="btn btn-accent" onclick="saveEntry()">{{ t.save }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Incident Container Modal ═══ -->
+<div class="modal-overlay" id="incident-container-modal" onclick="if(event.target===this)closeIncidentModal()">
+    <div class="modal incident-container-modal" style="max-width:560px;">
+        <div class="modal-header">
+            <h2 id="incident-container-modal-title"></h2>
+            <button class="modal-close" onclick="closeIncidentModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto;">
+            <input type="hidden" id="incident-container-id">
+            <div class="incident-form-group">
+                <label for="incident-container-name">{{ t.incident_name }}</label>
+                <input type="text" id="incident-container-name" maxlength="200" placeholder="{{ t.incident_name }}">
+            </div>
+            <div class="incident-form-group">
+                <label for="incident-container-status">{{ t.incident_status }}</label>
+                <select id="incident-container-status">
+                    <option value="open">{{ t.incident_status_open }}</option>
+                    <option value="resolved">{{ t.incident_status_resolved }}</option>
+                    <option value="escalated">{{ t.incident_status_escalated }}</option>
+                </select>
+            </div>
+            <div class="incident-form-group" style="display:flex;gap:12px;">
+                <div style="flex:1;">
+                    <label for="incident-container-start">{{ t.incident_start_date }}</label>
+                    <input type="date" id="incident-container-start">
+                </div>
+                <div style="flex:1;">
+                    <label for="incident-container-end">{{ t.incident_end_date }}</label>
+                    <input type="date" id="incident-container-end">
+                </div>
+            </div>
+            <div class="incident-form-group">
+                <label>{{ t.icon }}</label>
+                <input type="hidden" id="incident-container-icon-value">
+                <div class="icon-picker" id="incident-container-icon-picker"></div>
+            </div>
+            <div class="incident-form-group">
+                <label for="incident-container-desc">{{ t.incident_description }}</label>
+                <textarea id="incident-container-desc" maxlength="5000" placeholder="{{ t.incident_description }}"></textarea>
+            </div>
+            <div class="incident-form-group" id="incident-container-entry-count-section" style="display:none;">
+                <label>{{ t.incident_entry_count }}</label>
+                <span id="incident-container-entry-count" style="font-weight:600;"></span>
+            </div>
+        </div>
+        <div class="incident-modal-footer">
+            <div class="modal-footer-left">
+                <button class="btn-danger" id="incident-container-delete-btn" onclick="deleteIncident()" style="display:none;">{{ t.delete }}</button>
             </div>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-muted" onclick="closeIncidentModal()">{{ t.cancel }}</button>
@@ -1849,6 +1914,7 @@
         } else if (view === 'journal') {
             if (journalView) journalView.classList.add('active');
             loadIncidents();
+            loadJournal();
         } else if (view === 'events') {
             if (eventsView) eventsView.classList.add('active');
             loadEvents();
@@ -2568,9 +2634,11 @@
     }
 
     /* ── Incident Journal ── */
-    var _incidentsLoaded = false;
+    var _journalLoaded = false;
     var _journalSortCol = 'date';
     var _journalSortAsc = false;
+    var _activeIncidentFilter = null; // null=all, 0=unassigned, N=incident id
+    var _incidentsData = []; // cached incident containers
 
     var INCIDENT_ICONS = [
         {keys: ['telefon', 'anruf', 'hotline', 'telefonat', 'angerufen', 'rückruf', 'callcenter'], icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="incident-icon"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>', label: 'phone'},
@@ -2601,7 +2669,7 @@
         return _iconRegexCache[keyword];
     }
 
-    function detectIncidentIcon(title, description) {
+    function detectIcon(title, description) {
         if (!title && !description) return null;
         var text = ' ' + ((title || '') + ' ' + (description || '')).toLowerCase() + ' ';
         for (var i = 0; i < INCIDENT_ICONS.length; i++) {
@@ -2623,14 +2691,14 @@
         return null;
     }
 
-    function resolveIncidentIcon(incident) {
+    function resolveIcon(incident) {
         if (incident.icon) return getIconByLabel(incident.icon);
-        return detectIncidentIcon(incident.title, incident.description);
+        return detectIcon(incident.title, incident.description);
     }
 
     function renderIconPicker(selectedLabel) {
-        var picker = document.getElementById('incident-icon-picker');
-        var hiddenInput = document.getElementById('incident-icon-value');
+        var picker = document.getElementById('entry-icon-picker');
+        var hiddenInput = document.getElementById('entry-icon-value');
         picker.innerHTML = '';
         // "None" button
         var noneBtn = document.createElement('button');
@@ -2669,12 +2737,12 @@
     var _journalSearchTimer = null;
     var _journalAllData = null;
 
-    function loadIncidents(searchQuery) {
+    function loadJournal(searchQuery) {
         var tableCard = document.getElementById('journal-table-card');
         var tbody = document.getElementById('journal-tbody');
         var empty = document.getElementById('journal-empty');
         var loading = document.getElementById('journal-loading');
-        var deleteAllBtn = document.getElementById('btn-delete-all-incidents');
+        var deleteAllBtn = document.getElementById('btn-delete-all-entries');
         var searchWrap = document.getElementById('journal-search-wrap');
         var searchCount = document.getElementById('journal-search-count');
         loading.style.display = '';
@@ -2684,8 +2752,9 @@
         if (deleteAllBtn) deleteAllBtn.style.display = 'none';
         if (searchCount) searchCount.textContent = '';
 
-        var url = '/api/incidents?limit=1000';
+        var url = '/api/journal?limit=1000';
         if (searchQuery) url += '&search=' + encodeURIComponent(searchQuery);
+        if (_activeIncidentFilter !== null) url += '&incident_id=' + _activeIncidentFilter;
 
         fetch(url)
             .then(function(r) { return r.json(); })
@@ -2703,7 +2772,7 @@
                     if (searchWrap && !searchQuery) searchWrap.style.display = 'none';
                     return;
                 }
-                _incidentsLoaded = true;
+                _journalLoaded = true;
                 if (searchWrap) searchWrap.style.display = '';
                 if (deleteAllBtn && !searchQuery) deleteAllBtn.style.display = '';
                 if (searchQuery && searchCount) {
@@ -2769,11 +2838,11 @@
             }
             var tr = document.createElement('tr');
             tr.setAttribute('data-id', inc.id);
-            tr.onclick = function() { openIncidentModal(inc.id); };
+            tr.onclick = function() { openEntryModal(inc.id); };
             var desc = inc.description || '';
             if (desc.length > 80) desc = desc.substring(0, 80) + '…';
             var clipCell = inc.attachment_count > 0 ? '&#128206; ' + inc.attachment_count : '';
-            var iconMatch = resolveIncidentIcon(inc);
+            var iconMatch = resolveIcon(inc);
             var iconHtml = iconMatch ? iconMatch.icon : '<span class="incident-icon-placeholder"></span>';
             var titleHtml = q ? highlightText(inc.title, q) : escapeHtml(inc.title);
             var descHtml = q ? highlightText(desc, q) : escapeHtml(desc);
@@ -2812,7 +2881,7 @@
                     _journalSortCol = col;
                     _journalSortAsc = col === 'date' ? false : true;
                 }
-                loadIncidents();
+                loadJournal();
             });
         }
     })();
@@ -3129,47 +3198,60 @@
     window.loadChannelTimeline = loadChannelTimeline;
 
     function updateModalIcon() {
-        var iconEl = document.getElementById('incident-modal-icon');
-        var manualIcon = document.getElementById('incident-icon-value').value;
+        var iconEl = document.getElementById('entry-modal-icon');
+        var manualIcon = document.getElementById('entry-icon-value').value;
         var match;
         if (manualIcon) {
             match = getIconByLabel(manualIcon);
         } else {
-            var title = document.getElementById('incident-title-input').value;
-            var desc = document.getElementById('incident-desc').value;
-            match = detectIncidentIcon(title, desc);
+            var title = document.getElementById('entry-title-input').value;
+            var desc = document.getElementById('entry-desc').value;
+            match = detectIcon(title, desc);
         }
         iconEl.innerHTML = match ? match.icon : '';
     }
 
-    function openIncidentModal(incidentId) {
-        var modal = document.getElementById('incident-modal');
-        var titleEl = document.getElementById('incident-modal-title');
-        var idEl = document.getElementById('incident-id');
-        var dateEl = document.getElementById('incident-date');
-        var titleInput = document.getElementById('incident-title-input');
-        var descEl = document.getElementById('incident-desc');
-        var iconVal = document.getElementById('incident-icon-value');
-        var deleteBtn = document.getElementById('incident-delete-btn');
-        var attachSection = document.getElementById('incident-attachments-section');
-        var attachList = document.getElementById('incident-attachment-list');
+    function populateIncidentSelect(selectedId) {
+        var sel = document.getElementById('entry-incident-select');
+        sel.innerHTML = '<option value="">' + (T.incident_none || 'No Incident') + '</option>';
+        _incidentsData.forEach(function(inc) {
+            var opt = document.createElement('option');
+            opt.value = inc.id;
+            opt.textContent = inc.name + ' (' + (T['incident_status_' + inc.status] || inc.status) + ')';
+            if (selectedId && parseInt(selectedId) === inc.id) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+
+    function openEntryModal(entryId) {
+        var modal = document.getElementById('entry-modal');
+        var titleEl = document.getElementById('entry-modal-title');
+        var idEl = document.getElementById('entry-id');
+        var dateEl = document.getElementById('entry-date');
+        var titleInput = document.getElementById('entry-title-input');
+        var descEl = document.getElementById('entry-desc');
+        var iconVal = document.getElementById('entry-icon-value');
+        var deleteBtn = document.getElementById('entry-delete-btn');
+        var attachSection = document.getElementById('entry-attachments-section');
+        var attachList = document.getElementById('entry-attachment-list');
 
         attachList.innerHTML = '';
 
-        if (incidentId) {
+        if (entryId) {
             titleEl.textContent = T.edit_entry || 'Edit Entry';
             deleteBtn.style.display = '';
-            fetch('/api/incidents/' + incidentId)
+            fetch('/api/journal/' + entryId)
                 .then(function(r) { return r.json(); })
-                .then(function(inc) {
-                    idEl.value = inc.id;
-                    dateEl.value = inc.date;
-                    titleInput.value = inc.title;
-                    descEl.value = inc.description || '';
-                    iconVal.value = inc.icon || '';
-                    renderIconPicker(inc.icon || '');
+                .then(function(entry) {
+                    idEl.value = entry.id;
+                    dateEl.value = entry.date;
+                    titleInput.value = entry.title;
+                    descEl.value = entry.description || '';
+                    iconVal.value = entry.icon || '';
+                    renderIconPicker(entry.icon || '');
                     updateModalIcon();
-                    renderAttachments(inc.attachments || [], attachList, incidentId);
+                    populateIncidentSelect(entry.incident_id);
+                    renderAttachments(entry.attachments || [], attachList, entryId);
                     attachSection.style.display = '';
                     modal.classList.add('open');
                 });
@@ -3182,6 +3264,7 @@
             iconVal.value = '';
             renderIconPicker('');
             updateModalIcon();
+            populateIncidentSelect(_activeIncidentFilter > 0 ? _activeIncidentFilter : null);
             deleteBtn.style.display = 'none';
             attachSection.style.display = 'none';
             modal.classList.add('open');
@@ -3190,12 +3273,12 @@
 
     // Live icon update when typing title
     (function() {
-        var ti = document.getElementById('incident-title-input');
+        var ti = document.getElementById('entry-title-input');
         if (ti) ti.addEventListener('input', updateModalIcon);
     })();
 
-    function closeIncidentModal() {
-        document.getElementById('incident-modal').classList.remove('open');
+    function closeEntryModal() {
+        document.getElementById('entry-modal').classList.remove('open');
     }
 
     function renderAttachments(attachments, container, incidentId) {
@@ -3224,22 +3307,24 @@
         });
     }
 
-    function saveIncident() {
-        var idEl = document.getElementById('incident-id');
-        var dateVal = document.getElementById('incident-date').value;
-        var titleVal = document.getElementById('incident-title-input').value.trim();
-        var descVal = document.getElementById('incident-desc').value.trim();
-        var incidentId = idEl.value;
+    function saveEntry() {
+        var idEl = document.getElementById('entry-id');
+        var dateVal = document.getElementById('entry-date').value;
+        var titleVal = document.getElementById('entry-title-input').value.trim();
+        var descVal = document.getElementById('entry-desc').value.trim();
+        var entryId = idEl.value;
 
         if (!titleVal) {
             showToast(T.incident_title + ' required', 'error');
             return;
         }
 
-        var iconVal = document.getElementById('incident-icon-value').value || '';
-        var payload = JSON.stringify({date: dateVal, title: titleVal, description: descVal, icon: iconVal});
-        var url = incidentId ? '/api/incidents/' + incidentId : '/api/incidents';
-        var method = incidentId ? 'PUT' : 'POST';
+        var iconVal = document.getElementById('entry-icon-value').value || '';
+        var incidentSel = document.getElementById('entry-incident-select');
+        var incidentIdVal = incidentSel ? incidentSel.value : '';
+        var payload = JSON.stringify({date: dateVal, title: titleVal, description: descVal, icon: iconVal, incident_id: incidentIdVal ? parseInt(incidentIdVal) : null});
+        var url = entryId ? '/api/journal/' + entryId : '/api/journal';
+        var method = entryId ? 'PUT' : 'POST';
 
         fetch(url, {method: method, headers: {'Content-Type': 'application/json'}, body: payload})
             .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
@@ -3248,39 +3333,40 @@
                     showToast(res.data.error || 'Error', 'error');
                     return;
                 }
+                loadJournal();
                 loadIncidents();
-                if (!incidentId && res.data.id) {
+                if (!entryId && res.data.id) {
                     // New entry: switch modal to edit mode in-place (keep it open)
                     idEl.value = res.data.id;
-                    document.getElementById('incident-modal-title').textContent = T.edit_entry || 'Edit Entry';
-                    document.getElementById('incident-delete-btn').style.display = '';
-                    document.getElementById('incident-attachments-section').style.display = '';
+                    document.getElementById('entry-modal-title').textContent = T.edit_entry || 'Edit Entry';
+                    document.getElementById('entry-delete-btn').style.display = '';
+                    document.getElementById('entry-attachments-section').style.display = '';
                     showToast(T.saved || 'Saved', 'ok');
                 } else {
-                    closeIncidentModal();
+                    closeEntryModal();
                 }
             })
             .catch(function() { showToast(T.network_error || 'Error', 'error'); });
     }
 
-    function deleteIncident() {
-        var incidentId = document.getElementById('incident-id').value;
-        if (!incidentId) return;
+    function deleteEntry() {
+        var entryId = document.getElementById('entry-id').value;
+        if (!entryId) return;
         if (!confirm(T.confirm_delete || 'Are you sure?')) return;
-        fetch('/api/incidents/' + incidentId, {method: 'DELETE'})
+        fetch('/api/journal/' + entryId, {method: 'DELETE'})
             .then(function(r) { return r.json(); })
             .then(function() {
-                closeIncidentModal();
-                loadIncidents();
+                closeEntryModal();
+                loadJournal();
             })
             .catch(function() { showToast(T.network_error || 'Error', 'error'); });
     }
 
-    function handleIncidentFileUpload(input) {
-        var incidentId = document.getElementById('incident-id').value;
+    function handleEntryFileUpload(input) {
+        var incidentId = document.getElementById('entry-id').value;
         if (!incidentId || !input.files || input.files.length === 0) return;
-        var spinner = document.getElementById('incident-upload-spinner');
-        var uploadBtn = document.getElementById('incident-upload-btn');
+        var spinner = document.getElementById('entry-upload-spinner');
+        var uploadBtn = document.getElementById('entry-upload-btn');
         spinner.style.display = 'inline';
         uploadBtn.disabled = true;
         var uploads = [];
@@ -3297,10 +3383,10 @@
                 uploadBtn.disabled = false;
                 input.value = '';
                 // Reload attachments
-                fetch('/api/incidents/' + incidentId)
+                fetch('/api/journal/' + incidentId)
                     .then(function(r) { return r.json(); })
                     .then(function(inc) {
-                        renderAttachments(inc.attachments || [], document.getElementById('incident-attachment-list'), incidentId);
+                        renderAttachments(inc.attachments || [], document.getElementById('entry-attachment-list'), incidentId);
                     });
             })
             .catch(function() {
@@ -3313,7 +3399,7 @@
     function uploadOneFile(incidentId, file) {
         var formData = new FormData();
         formData.append('file', file);
-        return fetch('/api/incidents/' + incidentId + '/attachments', {method: 'POST', body: formData})
+        return fetch('/api/journal/' + incidentId + '/attachments', {method: 'POST', body: formData})
             .then(function(r) { return r.json().then(function(d) { return r.status >= 400 ? {error: d.error} : d; }); })
             .catch(function() { return {error: T.network_error || 'Upload failed'}; });
     }
@@ -3322,10 +3408,10 @@
         fetch('/api/attachments/' + attachmentId, {method: 'DELETE'})
             .then(function(r) { return r.json(); })
             .then(function() {
-                fetch('/api/incidents/' + incidentId)
+                fetch('/api/journal/' + incidentId)
                     .then(function(r) { return r.json(); })
                     .then(function(inc) {
-                        renderAttachments(inc.attachments || [], document.getElementById('incident-attachment-list'), incidentId);
+                        renderAttachments(inc.attachments || [], document.getElementById('entry-attachment-list'), incidentId);
                     });
             })
             .catch(function() { showToast(T.network_error || 'Error', 'error'); });
@@ -3394,7 +3480,7 @@
         var formData = new FormData();
         formData.append('file', file);
 
-        fetch('/api/incidents/import/preview', {method: 'POST', body: formData})
+        fetch('/api/journal/import/preview', {method: 'POST', body: formData})
             .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
             .then(function(res) {
                 document.getElementById('import-loading').style.display = 'none';
@@ -3434,7 +3520,7 @@
             var desc = row.description || '';
             if (desc.length > 60) desc = desc.substring(0, 60) + '...';
             var dupeBadge = isDupe ? '<span class="import-duplicate-badge">' + T.import_duplicate + '</span>' : '';
-            var iconMatch = detectIncidentIcon(row.title, row.description);
+            var iconMatch = detectIcon(row.title, row.description);
             var iconHtml = iconMatch ? iconMatch.icon : '';
             var dateCell;
             if (isSkipped) {
@@ -3510,7 +3596,7 @@
         btn.disabled = true;
         btn.textContent = T.import_importing;
 
-        fetch('/api/incidents/import/confirm', {
+        fetch('/api/journal/import/confirm', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({rows: selectedRows})
@@ -3527,7 +3613,7 @@
                 if (res.data.duplicates > 0) msg += ', ' + res.data.duplicates + ' ' + T.import_duplicates_skipped;
                 showToast(msg, 'ok');
                 closeImportModal();
-                loadIncidents();
+                loadJournal();
             })
             .catch(function() {
                 btn.disabled = false;
@@ -3537,7 +3623,7 @@
     }
 
     /* ── Delete All ── */
-    function deleteAllIncidents() {
+    function deleteAllEntries() {
         var count = document.querySelectorAll('#journal-tbody tr').length;
         if (count === 0) return;
         if (!confirm(T.delete_all_confirm.replace('{n}', count))) return;
@@ -3546,7 +3632,7 @@
             showToast(T.delete_all_cancelled, 'error');
             return;
         }
-        fetch('/api/incidents/batch', {
+        fetch('/api/journal/batch', {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({all: true, confirm: 'DELETE_ALL'})
@@ -3558,27 +3644,268 @@
                     return;
                 }
                 showToast(res.data.deleted + ' ' + T.delete_all_success, 'ok');
+                loadJournal();
+            })
+            .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+    }
+
+    /* ── Incident Containers ── */
+    function loadIncidents() {
+        fetch('/api/incidents')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                _incidentsData = data || [];
+                renderIncidentBar(_incidentsData);
+            })
+            .catch(function() { _incidentsData = []; });
+    }
+
+    function renderIncidentBar(incidents) {
+        var bar = document.getElementById('incident-filter-bar');
+        if (!bar) return;
+        bar.innerHTML = '';
+        bar.style.display = '';
+
+        // "All" pill
+        var totalCount = 0;
+        incidents.forEach(function(inc) { totalCount += (inc.entry_count || 0); });
+        var allPill = document.createElement('button');
+        allPill.className = 'incident-pill' + (_activeIncidentFilter === null ? ' active' : '');
+        allPill.innerHTML = (T.incident_filter_all || 'All');
+        allPill.onclick = function() { filterByIncident(null); };
+        bar.appendChild(allPill);
+
+        // "Unassigned" pill
+        var unPill = document.createElement('button');
+        unPill.className = 'incident-pill' + (_activeIncidentFilter === 0 ? ' active' : '');
+        unPill.innerHTML = (T.incident_filter_unassigned || 'Unassigned');
+        unPill.onclick = function() { filterByIncident(0); };
+        bar.appendChild(unPill);
+
+        // Incident pills
+        incidents.forEach(function(inc) {
+            var pill = document.createElement('button');
+            pill.className = 'incident-pill incident-pill-has-edit' + (_activeIncidentFilter === inc.id ? ' active' : '');
+            var statusDot = '<span class="incident-pill-status incident-pill-status-' + inc.status + '"></span>';
+            pill.innerHTML = statusDot + ' ' + escapeHtml(inc.name) + ' <span class="incident-pill-count">(' + (inc.entry_count || 0) + ')</span>' +
+                '<span class="incident-pill-edit" title="' + (T.incident_edit || 'Edit') + '">&#9998;</span>';
+            pill.onclick = function(e) {
+                if (e.target.closest('.incident-pill-edit')) { e.stopPropagation(); openIncidentModal(inc.id); return; }
+                filterByIncident(inc.id);
+            };
+            bar.appendChild(pill);
+        });
+
+        // "+" add pill
+        var addPill = document.createElement('button');
+        addPill.className = 'incident-pill incident-pill-add';
+        addPill.innerHTML = '+';
+        addPill.title = T.incident_new || 'New Incident';
+        addPill.onclick = function() { openIncidentModal(); };
+        bar.appendChild(addPill);
+    }
+
+    function filterByIncident(incidentId) {
+        _activeIncidentFilter = incidentId;
+        renderIncidentBar(_incidentsData);
+        renderIncidentSummary(incidentId);
+        loadJournal();
+    }
+
+    function renderIncidentSummary(incidentId) {
+        var el = document.getElementById('incident-summary');
+        if (!el) return;
+        if (!incidentId || incidentId === 0) {
+            el.style.display = 'none';
+            el.innerHTML = '';
+            return;
+        }
+        var inc = null;
+        for (var i = 0; i < _incidentsData.length; i++) {
+            if (_incidentsData[i].id === incidentId) { inc = _incidentsData[i]; break; }
+        }
+        if (!inc) { el.style.display = 'none'; return; }
+
+        var statusLabel = T['incident_status_' + inc.status] || inc.status;
+        var statusClass = 'incident-summary-status-' + inc.status;
+        var dateRange = '';
+        if (inc.start_date) {
+            dateRange = formatDateDE(inc.start_date);
+            if (inc.end_date) dateRange += ' \u2013 ' + formatDateDE(inc.end_date);
+            else dateRange += ' \u2013 ' + (T.incident_status_open || 'ongoing').toLowerCase();
+        }
+
+        var html = '<div class="incident-summary-header">';
+        html += '<div class="incident-summary-title">' + escapeHtml(inc.name) + '</div>';
+        html += '<span class="incident-summary-badge ' + statusClass + '">' + statusLabel + '</span>';
+        if (dateRange) html += '<span class="incident-summary-date">' + dateRange + '</span>';
+        html += '<span class="incident-summary-count">' + (inc.entry_count || 0) + ' ' + (T.incident_entry_count || 'Entries') + '</span>';
+        html += '<button class="incident-summary-edit" onclick="openIncidentModal(' + inc.id + ')" title="' + (T.incident_edit || 'Edit') + '">&#9998;</button>';
+        html += '</div>';
+        if (inc.description) {
+            var desc = inc.description.length > 200 ? inc.description.substring(0, 200) + '\u2026' : inc.description;
+            html += '<div class="incident-summary-desc">' + escapeHtml(desc) + '</div>';
+        }
+        el.innerHTML = html;
+        el.style.display = '';
+    }
+
+    function renderContainerIconPicker(selectedLabel) {
+        var picker = document.getElementById('incident-container-icon-picker');
+        var hiddenInput = document.getElementById('incident-container-icon-value');
+        picker.innerHTML = '';
+        var noneBtn = document.createElement('button');
+        noneBtn.type = 'button';
+        noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
+        noneBtn.title = T.icon_auto || 'Auto';
+        noneBtn.innerHTML = '<span style="font-size:14px;color:var(--muted);">' + (T.icon_auto || 'auto').toLowerCase() + '</span>';
+        noneBtn.onclick = function() {
+            hiddenInput.value = '';
+            picker.querySelectorAll('.icon-pick').forEach(function(b) { b.classList.remove('active'); });
+            noneBtn.classList.add('active');
+        };
+        picker.appendChild(noneBtn);
+        INCIDENT_ICONS.forEach(function(entry) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'icon-pick' + (selectedLabel === entry.label ? ' active' : '');
+            btn.title = T['icon_' + entry.label] || entry.label;
+            btn.innerHTML = entry.icon;
+            btn.onclick = function() {
+                hiddenInput.value = entry.label;
+                picker.querySelectorAll('.icon-pick').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+            };
+            picker.appendChild(btn);
+        });
+    }
+
+    function openIncidentModal(incidentId) {
+        var modal = document.getElementById('incident-container-modal');
+        var titleEl = document.getElementById('incident-container-modal-title');
+        var idEl = document.getElementById('incident-container-id');
+        var nameEl = document.getElementById('incident-container-name');
+        var statusEl = document.getElementById('incident-container-status');
+        var startEl = document.getElementById('incident-container-start');
+        var endEl = document.getElementById('incident-container-end');
+        var descEl = document.getElementById('incident-container-desc');
+        var iconVal = document.getElementById('incident-container-icon-value');
+        var deleteBtn = document.getElementById('incident-container-delete-btn');
+        var countSection = document.getElementById('incident-container-entry-count-section');
+        var countEl = document.getElementById('incident-container-entry-count');
+
+        if (incidentId) {
+            titleEl.textContent = T.incident_edit || 'Edit Incident';
+            deleteBtn.style.display = '';
+            fetch('/api/incidents/' + incidentId)
+                .then(function(r) { return r.json(); })
+                .then(function(inc) {
+                    idEl.value = inc.id;
+                    nameEl.value = inc.name;
+                    statusEl.value = inc.status;
+                    startEl.value = inc.start_date || '';
+                    endEl.value = inc.end_date || '';
+                    descEl.value = inc.description || '';
+                    iconVal.value = inc.icon || '';
+                    renderContainerIconPicker(inc.icon || '');
+                    if (inc.entry_count !== undefined) {
+                        countEl.textContent = inc.entry_count;
+                        countSection.style.display = '';
+                    } else {
+                        countSection.style.display = 'none';
+                    }
+                    modal.classList.add('open');
+                });
+        } else {
+            titleEl.textContent = T.incident_new || 'New Incident';
+            idEl.value = '';
+            nameEl.value = '';
+            statusEl.value = 'open';
+            startEl.value = todayStr();
+            endEl.value = '';
+            descEl.value = '';
+            iconVal.value = '';
+            renderContainerIconPicker('');
+            deleteBtn.style.display = 'none';
+            countSection.style.display = 'none';
+            modal.classList.add('open');
+        }
+    }
+
+    function closeIncidentModal() {
+        document.getElementById('incident-container-modal').classList.remove('open');
+    }
+
+    function saveIncident() {
+        var idEl = document.getElementById('incident-container-id');
+        var nameVal = document.getElementById('incident-container-name').value.trim();
+        var statusVal = document.getElementById('incident-container-status').value;
+        var startVal = document.getElementById('incident-container-start').value;
+        var endVal = document.getElementById('incident-container-end').value;
+        var descVal = document.getElementById('incident-container-desc').value.trim();
+        var iconVal = document.getElementById('incident-container-icon-value').value || '';
+        var incidentId = idEl.value;
+
+        if (!nameVal) {
+            showToast((T.incident_name || 'Name') + ' required', 'error');
+            return;
+        }
+
+        var payload = JSON.stringify({name: nameVal, description: descVal, status: statusVal, start_date: startVal, end_date: endVal, icon: iconVal});
+        var url = incidentId ? '/api/incidents/' + incidentId : '/api/incidents';
+        var method = incidentId ? 'PUT' : 'POST';
+
+        fetch(url, {method: method, headers: {'Content-Type': 'application/json'}, body: payload})
+            .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+            .then(function(res) {
+                if (res.status >= 400) {
+                    showToast(res.data.error || 'Error', 'error');
+                    return;
+                }
+                closeIncidentModal();
                 loadIncidents();
+                loadJournal();
+            })
+            .catch(function() { showToast(T.network_error || 'Error', 'error'); });
+    }
+
+    function deleteIncident() {
+        var incidentId = document.getElementById('incident-container-id').value;
+        if (!incidentId) return;
+        if (!confirm(T.incident_delete_confirm || 'Delete this incident? Entries will become unassigned.')) return;
+        fetch('/api/incidents/' + incidentId, {method: 'DELETE'})
+            .then(function(r) { return r.json(); })
+            .then(function() {
+                closeIncidentModal();
+                _activeIncidentFilter = null;
+                loadIncidents();
+                loadJournal();
             })
             .catch(function() { showToast(T.network_error || 'Error', 'error'); });
     }
 
     /* Expose Journal functions for HTML onclick/onchange handlers */
-    window.openIncidentModal = openIncidentModal;
-    window.closeIncidentModal = closeIncidentModal;
-    window.saveIncident = saveIncident;
-    window.deleteIncident = deleteIncident;
+    window.openEntryModal = openEntryModal;
+    window.closeEntryModal = closeEntryModal;
+    window.saveEntry = saveEntry;
+    window.deleteEntry = deleteEntry;
     window.deleteAttachment = deleteAttachment;
-    window.handleIncidentFileUpload = handleIncidentFileUpload;
-    window.loadIncidents = loadIncidents;
+    window.handleEntryFileUpload = handleEntryFileUpload;
+    window.loadJournal = loadJournal;
     window.openImportModal = openImportModal;
     window.closeImportModal = closeImportModal;
     window.handleImportFile = handleImportFile;
     window.confirmImport = confirmImport;
     window.toggleImportAll = toggleImportAll;
     window.fixImportDate = fixImportDate;
-    window.deleteAllIncidents = deleteAllIncidents;
+    window.deleteAllEntries = deleteAllEntries;
     window.clearJournalSearch = clearJournalSearch;
+    window.loadIncidents = loadIncidents;
+    window.openIncidentModal = openIncidentModal;
+    window.closeIncidentModal = closeIncidentModal;
+    window.saveIncident = saveIncident;
+    window.deleteIncident = deleteIncident;
+    window.filterByIncident = filterByIncident;
 
     /* ── Journal Search ── */
     function clearJournalSearch() {
@@ -3587,7 +3914,7 @@
         _journalSearchQuery = '';
         document.getElementById('journal-search-clear').style.display = 'none';
         document.getElementById('journal-search-count').textContent = '';
-        loadIncidents();
+        loadJournal();
     }
 
     (function() {
@@ -3601,9 +3928,9 @@
             _journalSearchTimer = setTimeout(function() {
                 _journalSearchQuery = val;
                 if (val.length === 0) {
-                    loadIncidents();
+                    loadJournal();
                 } else if (val.length >= 2) {
-                    loadIncidents(val);
+                    loadJournal(val);
                 }
             }, 300);
         });

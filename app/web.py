@@ -22,7 +22,7 @@ from io import BytesIO
 
 from .config import POLL_MIN, POLL_MAX, PASSWORD_MASK, SECRET_KEYS, HASH_KEYS
 from .gaming_index import compute_gaming_index
-from .storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_INCIDENT
+from .storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_ENTRY
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 
 def _server_tz_info():
@@ -776,10 +776,10 @@ def api_export():
                 )
 
         if mode == "full":
-            incidents = _storage.get_active_incidents()
-            if incidents:
+            entries = _storage.get_active_entries()
+            if entries:
                 lines += ["", "## Incident Journal"]
-                for inc in incidents:
+                for inc in entries:
                     lines.append(f"### [{inc['date']}] {inc['title']}")
                     if inc.get("description"):
                         lines.append(inc["description"])
@@ -1061,24 +1061,31 @@ def api_speedtest_signal(result_id):
     })
 
 
-# ── Incident Journal API ──
+# ── Journal Entries API (renamed from /api/incidents) ──
 
-@app.route("/api/incidents", methods=["GET"])
+@app.route("/api/journal", methods=["GET"])
 @require_auth
-def api_incidents_list():
-    """Return list of incidents with attachment counts."""
+def api_journal_list():
+    """Return list of journal entries with attachment counts."""
     if not _storage:
         return jsonify([])
     limit = request.args.get("limit", 100, type=int)
     offset = request.args.get("offset", 0, type=int)
     search = request.args.get("search", "", type=str).strip() or None
-    return jsonify(_storage.get_incidents(limit=limit, offset=offset, search=search))
+    incident_id_param = request.args.get("incident_id", None, type=str)
+    incident_id = None
+    if incident_id_param is not None and incident_id_param != "":
+        try:
+            incident_id = int(incident_id_param)
+        except (ValueError, TypeError):
+            pass
+    return jsonify(_storage.get_entries(limit=limit, offset=offset, search=search, incident_id=incident_id))
 
 
-@app.route("/api/incidents", methods=["POST"])
+@app.route("/api/journal", methods=["POST"])
 @require_auth
-def api_incidents_create():
-    """Create a new incident."""
+def api_journal_create():
+    """Create a new journal entry."""
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -1096,27 +1103,33 @@ def api_incidents_create():
     if len(description) > 10000:
         return jsonify({"error": "Description too long (max 10000 characters)"}), 400
     icon = (data.get("icon") or "").strip() or None
-    incident_id = _storage.save_incident(date, title, description, icon=icon)
-    audit_log.info("Incident created: ip=%s id=%d title=%s", _get_client_ip(), incident_id, title[:50])
-    return jsonify({"id": incident_id}), 201
+    inc_id = data.get("incident_id")
+    if inc_id is not None:
+        try:
+            inc_id = int(inc_id) if inc_id else None
+        except (ValueError, TypeError):
+            inc_id = None
+    entry_id = _storage.save_entry(date, title, description, icon=icon, incident_id=inc_id)
+    audit_log.info("Journal entry created: ip=%s id=%d title=%s", _get_client_ip(), entry_id, title[:50])
+    return jsonify({"id": entry_id}), 201
 
 
-@app.route("/api/incidents/<int:incident_id>", methods=["GET"])
+@app.route("/api/journal/<int:entry_id>", methods=["GET"])
 @require_auth
-def api_incident_get(incident_id):
-    """Return single incident with attachment metadata."""
+def api_journal_get(entry_id):
+    """Return single journal entry with attachment metadata."""
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
-    incident = _storage.get_incident(incident_id)
-    if not incident:
+    entry = _storage.get_entry(entry_id)
+    if not entry:
         return jsonify({"error": "Not found"}), 404
-    return jsonify(incident)
+    return jsonify(entry)
 
 
-@app.route("/api/incidents/<int:incident_id>", methods=["PUT"])
+@app.route("/api/journal/<int:entry_id>", methods=["PUT"])
 @require_auth
-def api_incident_update(incident_id):
-    """Update an existing incident."""
+def api_journal_update(entry_id):
+    """Update an existing journal entry."""
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -1134,33 +1147,39 @@ def api_incident_update(incident_id):
     if len(description) > 10000:
         return jsonify({"error": "Description too long (max 10000 characters)"}), 400
     icon = (data.get("icon") or "").strip() or None
-    if not _storage.update_incident(incident_id, date, title, description, icon=icon):
+    inc_id = data.get("incident_id")
+    if inc_id is not None:
+        try:
+            inc_id = int(inc_id) if inc_id else None
+        except (ValueError, TypeError):
+            inc_id = None
+    if not _storage.update_entry(entry_id, date, title, description, icon=icon, incident_id=inc_id):
         return jsonify({"error": "Not found"}), 404
-    audit_log.info("Incident updated: ip=%s id=%d", _get_client_ip(), incident_id)
+    audit_log.info("Journal entry updated: ip=%s id=%d", _get_client_ip(), entry_id)
     return jsonify({"success": True})
 
 
-@app.route("/api/incidents/<int:incident_id>", methods=["DELETE"])
+@app.route("/api/journal/<int:entry_id>", methods=["DELETE"])
 @require_auth
-def api_incident_delete(incident_id):
-    """Delete an incident (CASCADE deletes attachments)."""
+def api_journal_delete(entry_id):
+    """Delete a journal entry (CASCADE deletes attachments)."""
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
-    if not _storage.delete_incident(incident_id):
+    if not _storage.delete_entry(entry_id):
         return jsonify({"error": "Not found"}), 404
-    audit_log.info("Incident deleted: ip=%s id=%d", _get_client_ip(), incident_id)
+    audit_log.info("Journal entry deleted: ip=%s id=%d", _get_client_ip(), entry_id)
     return jsonify({"success": True})
 
 
-@app.route("/api/incidents/<int:incident_id>/attachments", methods=["POST"])
+@app.route("/api/journal/<int:entry_id>/attachments", methods=["POST"])
 @require_auth
-def api_incident_upload(incident_id):
-    """Upload file attachment for an incident."""
+def api_journal_upload(entry_id):
+    """Upload file attachment for a journal entry."""
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
-    incident = _storage.get_incident(incident_id)
-    if not incident:
-        return jsonify({"error": "Incident not found"}), 404
+    entry = _storage.get_entry(entry_id)
+    if not entry:
+        return jsonify({"error": "Entry not found"}), 404
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files["file"]
@@ -1169,17 +1188,17 @@ def api_incident_upload(incident_id):
     mime_type = f.content_type or "application/octet-stream"
     if mime_type not in ALLOWED_MIME_TYPES:
         return jsonify({"error": "File type not allowed"}), 400
-    current_count = _storage.get_attachment_count(incident_id)
-    if current_count >= MAX_ATTACHMENTS_PER_INCIDENT:
-        return jsonify({"error": "Too many attachments (max %d)" % MAX_ATTACHMENTS_PER_INCIDENT}), 400
+    current_count = _storage.get_attachment_count(entry_id)
+    if current_count >= MAX_ATTACHMENTS_PER_ENTRY:
+        return jsonify({"error": "Too many attachments (max %d)" % MAX_ATTACHMENTS_PER_ENTRY}), 400
     file_data = f.read()
     if len(file_data) > MAX_ATTACHMENT_SIZE:
         return jsonify({"error": "File too large (max 10 MB)"}), 400
     filename = secure_filename(f.filename) or "attachment"
-    attachment_id = _storage.save_attachment(incident_id, filename, mime_type, file_data)
+    attachment_id = _storage.save_attachment(entry_id, filename, mime_type, file_data)
     audit_log.info(
-        "Attachment uploaded: ip=%s incident=%d file=%s size=%d",
-        _get_client_ip(), incident_id, filename, len(file_data),
+        "Attachment uploaded: ip=%s entry=%d file=%s size=%d",
+        _get_client_ip(), entry_id, filename, len(file_data),
     )
     return jsonify({"id": attachment_id}), 201
 
@@ -1213,11 +1232,11 @@ def api_attachment_delete(attachment_id):
     return jsonify({"success": True})
 
 
-# ── Incident Import API ──
+# ── Journal Import API ──
 
-@app.route("/api/incidents/import/preview", methods=["POST"])
+@app.route("/api/journal/import/preview", methods=["POST"])
 @require_auth
-def api_incidents_import_preview():
+def api_journal_import_preview():
     """Upload Excel/CSV file and return parsed preview with auto-detected mapping."""
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
@@ -1246,7 +1265,7 @@ def api_incidents_import_preview():
 
     # Mark duplicates
     for row in result["rows"]:
-        row["duplicate"] = _storage.check_incident_exists(row["date"], row["title"])
+        row["duplicate"] = _storage.check_entry_exists(row["date"], row["title"])
 
     duplicates = sum(1 for r in result["rows"] if r["duplicate"])
     result["duplicates"] = duplicates
@@ -1258,10 +1277,10 @@ def api_incidents_import_preview():
     return jsonify(result)
 
 
-@app.route("/api/incidents/import/confirm", methods=["POST"])
+@app.route("/api/journal/import/confirm", methods=["POST"])
 @require_auth
-def api_incidents_import_confirm():
-    """Bulk-import confirmed incident rows."""
+def api_journal_import_confirm():
+    """Bulk-import confirmed journal entry rows."""
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -1288,11 +1307,11 @@ def api_incidents_import_confirm():
         if len(description) > 10000:
             description = description[:10000]
 
-        if _storage.check_incident_exists(date, title):
+        if _storage.check_entry_exists(date, title):
             duplicates += 1
             continue
 
-        _storage.save_incident(date, title, description)
+        _storage.save_entry(date, title, description)
         imported += 1
 
     audit_log.info(
@@ -1302,10 +1321,10 @@ def api_incidents_import_confirm():
     return jsonify({"imported": imported, "duplicates": duplicates})
 
 
-@app.route("/api/incidents/batch", methods=["DELETE"])
+@app.route("/api/journal/batch", methods=["DELETE"])
 @require_auth
-def api_incidents_batch_delete():
-    """Batch delete incidents by IDs or delete all."""
+def api_journal_batch_delete():
+    """Batch delete journal entries by IDs or delete all."""
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -1315,8 +1334,8 @@ def api_incidents_batch_delete():
     if data.get("all"):
         if data.get("confirm") != "DELETE_ALL":
             return jsonify({"error": "Confirmation required: set confirm to 'DELETE_ALL'"}), 400
-        deleted = _storage.delete_all_incidents()
-        audit_log.info("All incidents deleted: ip=%s count=%d", _get_client_ip(), deleted)
+        deleted = _storage.delete_all_entries()
+        audit_log.info("All journal entries deleted: ip=%s count=%d", _get_client_ip(), deleted)
         return jsonify({"deleted": deleted})
 
     ids = data.get("ids")
@@ -1326,9 +1345,155 @@ def api_incidents_batch_delete():
     if not ids:
         return jsonify({"error": "No valid IDs"}), 400
 
-    deleted = _storage.delete_incidents_batch(ids)
-    audit_log.info("Batch delete incidents: ip=%s ids=%s deleted=%d", _get_client_ip(), ids, deleted)
+    deleted = _storage.delete_entries_batch(ids)
+    audit_log.info("Batch delete journal entries: ip=%s ids=%s deleted=%d", _get_client_ip(), ids, deleted)
     return jsonify({"deleted": deleted})
+
+
+# ── Journal Entry Unassign ──
+
+@app.route("/api/journal/unassign", methods=["POST"])
+@require_auth
+def api_journal_unassign():
+    """Remove incident assignment from journal entries."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data"}), 400
+    entry_ids = data.get("entry_ids", [])
+    if not entry_ids or not isinstance(entry_ids, list):
+        return jsonify({"error": "Provide entry_ids list"}), 400
+    entry_ids = [int(i) for i in entry_ids if isinstance(i, (int, float))]
+    count = _storage.unassign_entries(entry_ids)
+    return jsonify({"updated": count})
+
+
+# ── Incident Container API (NEW) ──
+
+_VALID_INCIDENT_STATUSES = {"open", "resolved", "escalated"}
+
+
+@app.route("/api/incidents", methods=["GET"])
+@require_auth
+def api_incidents_list():
+    """Return list of incident containers with entry_count."""
+    if not _storage:
+        return jsonify([])
+    status = request.args.get("status", None, type=str)
+    if status and status not in _VALID_INCIDENT_STATUSES:
+        status = None
+    return jsonify(_storage.get_incidents(status=status))
+
+
+@app.route("/api/incidents", methods=["POST"])
+@require_auth
+def api_incidents_create():
+    """Create a new incident container."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data"}), 400
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+    if len(name) > 200:
+        return jsonify({"error": "Name too long (max 200 characters)"}), 400
+    description = (data.get("description") or "").strip()
+    if len(description) > 5000:
+        return jsonify({"error": "Description too long (max 5000 characters)"}), 400
+    status = (data.get("status") or "open").strip()
+    if status not in _VALID_INCIDENT_STATUSES:
+        return jsonify({"error": "Invalid status (open, resolved, escalated)"}), 400
+    start_date = (data.get("start_date") or "").strip() or None
+    end_date = (data.get("end_date") or "").strip() or None
+    if start_date and not _valid_date(start_date):
+        return jsonify({"error": "Invalid start_date format (YYYY-MM-DD)"}), 400
+    if end_date and not _valid_date(end_date):
+        return jsonify({"error": "Invalid end_date format (YYYY-MM-DD)"}), 400
+    icon = (data.get("icon") or "").strip() or None
+    incident_id = _storage.save_incident(name, description, status, start_date, end_date, icon)
+    audit_log.info("Incident created: ip=%s id=%d name=%s", _get_client_ip(), incident_id, name[:50])
+    return jsonify({"id": incident_id}), 201
+
+
+@app.route("/api/incidents/<int:incident_id>", methods=["GET"])
+@require_auth
+def api_incident_get(incident_id):
+    """Return single incident container with entry_count."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    incident = _storage.get_incident(incident_id)
+    if not incident:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(incident)
+
+
+@app.route("/api/incidents/<int:incident_id>", methods=["PUT"])
+@require_auth
+def api_incident_update(incident_id):
+    """Update an existing incident container."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data"}), 400
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+    if len(name) > 200:
+        return jsonify({"error": "Name too long (max 200 characters)"}), 400
+    description = (data.get("description") or "").strip()
+    if len(description) > 5000:
+        return jsonify({"error": "Description too long (max 5000 characters)"}), 400
+    status = (data.get("status") or "open").strip()
+    if status not in _VALID_INCIDENT_STATUSES:
+        return jsonify({"error": "Invalid status (open, resolved, escalated)"}), 400
+    start_date = (data.get("start_date") or "").strip() or None
+    end_date = (data.get("end_date") or "").strip() or None
+    if start_date and not _valid_date(start_date):
+        return jsonify({"error": "Invalid start_date format (YYYY-MM-DD)"}), 400
+    if end_date and not _valid_date(end_date):
+        return jsonify({"error": "Invalid end_date format (YYYY-MM-DD)"}), 400
+    icon = (data.get("icon") or "").strip() or None
+    if not _storage.update_incident(incident_id, name, description, status, start_date, end_date, icon):
+        return jsonify({"error": "Not found"}), 404
+    audit_log.info("Incident updated: ip=%s id=%d", _get_client_ip(), incident_id)
+    return jsonify({"success": True})
+
+
+@app.route("/api/incidents/<int:incident_id>", methods=["DELETE"])
+@require_auth
+def api_incident_delete(incident_id):
+    """Delete an incident container (entries become unassigned)."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    if not _storage.delete_incident(incident_id):
+        return jsonify({"error": "Not found"}), 404
+    audit_log.info("Incident deleted: ip=%s id=%d", _get_client_ip(), incident_id)
+    return jsonify({"success": True})
+
+
+@app.route("/api/incidents/<int:incident_id>/assign", methods=["POST"])
+@require_auth
+def api_incident_assign(incident_id):
+    """Assign journal entries to an incident."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    incident = _storage.get_incident(incident_id)
+    if not incident:
+        return jsonify({"error": "Incident not found"}), 404
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data"}), 400
+    entry_ids = data.get("entry_ids", [])
+    if not entry_ids or not isinstance(entry_ids, list):
+        return jsonify({"error": "Provide entry_ids list"}), 400
+    entry_ids = [int(i) for i in entry_ids if isinstance(i, (int, float))]
+    count = _storage.assign_entries_to_incident(entry_ids, incident_id)
+    audit_log.info("Entries assigned: ip=%s incident=%d count=%d", _get_client_ip(), incident_id, count)
+    return jsonify({"updated": count})
 
 
 # ── Breitbandmessung (BNetzA) API ──

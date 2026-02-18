@@ -3225,3 +3225,181 @@ mark.search-highlight {
     transform: none !important;
     box-shadow: none !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INCIDENT FILTER BAR
+   ══════════════════════════════════════════════════════════════════════════ */
+.incident-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 0 16px 0;
+    align-items: center;
+}
+.incident-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.incident-pill:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent);
+    color: var(--text);
+}
+.incident-pill.active {
+    background: var(--accent-muted);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+.incident-pill-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.incident-pill-status-open { background: var(--crit); }
+.incident-pill-status-resolved { background: var(--good); }
+.incident-pill-status-escalated { background: var(--warn); }
+.incident-pill-count {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-left: 2px;
+}
+.incident-pill-edit {
+    display: none;
+    margin-left: 4px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    transition: color 0.15s;
+}
+.incident-pill-has-edit:hover .incident-pill-edit {
+    display: inline;
+}
+.incident-pill-edit:hover {
+    color: var(--accent);
+}
+.incident-pill-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px dashed var(--card-border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.incident-pill-add:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-muted);
+}
+
+/* ── Incident Summary ── */
+.incident-summary {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+.incident-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.incident-summary-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+.incident-summary-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.incident-summary-status-open { background: rgba(239,68,68,0.15); color: var(--crit); }
+.incident-summary-status-resolved { background: rgba(34,197,94,0.15); color: var(--good); }
+.incident-summary-status-escalated { background: rgba(245,158,11,0.15); color: var(--warn); }
+.incident-summary-date {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+.incident-summary-count {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+}
+.incident-summary-edit {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+.incident-summary-edit:hover {
+    color: var(--accent);
+}
+.incident-summary-desc {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* ── Incident Container Modal ── */
+.incident-container-modal .incident-form-group {
+    margin-bottom: 16px;
+}
+.incident-container-modal select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--input-border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+}
+.incident-container-modal .entry-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--accent-muted);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* ── Entry Modal: Incident Select ── */
+.entry-incident-select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--input-border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+}
