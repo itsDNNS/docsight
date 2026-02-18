@@ -1376,7 +1376,7 @@ function toggleUsernameField() {
                 usernameField.value = 'admin';
             }
             usernameField.placeholder = 'admin';
-        } else if(modemType.value === 'tc4400') {
+        } else if(modemType.value === 'tc4400' || modemType.value === 'cm3500') {
             if(urlField && (!urlField.value || urlField.value === 'http://192.168.178.1')) {
                 urlField.value = 'http://192.168.100.1';
             }

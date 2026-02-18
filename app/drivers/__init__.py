@@ -11,6 +11,7 @@ DRIVER_REGISTRY = {
     "ultrahub7": "app.drivers.ultrahub7.UltraHub7Driver",
     "vodafone_station": "app.drivers.vodafone_station.VodafoneStationDriver",
     "ch7465": "app.drivers.ch7465.CH7465Driver",
+    "cm3500": "app.drivers.cm3500.CM3500Driver",
 }
 
 DRIVER_DISPLAY_NAMES = {
@@ -19,6 +20,7 @@ DRIVER_DISPLAY_NAMES = {
     "ultrahub7": "Vodafone Ultra Hub 7",
     "vodafone_station": "Vodafone Station",
     "ch7465": "Unitymedia Connect Box (CH7465)",
+    "cm3500": "Arris CM3500B",
 }
 
 
