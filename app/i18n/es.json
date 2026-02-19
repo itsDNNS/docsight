@@ -560,5 +560,7 @@
   "bqm_delete_range": "Eliminar {0} imagenes del {1} al {2}?",
   "bqm_delete_all": "Eliminar las {0} imagenes BQM?",
   "bqm_delete_confirm": "Escriba DELETE para confirmar",
-  "bqm_delete_success": "{0} imagenes eliminadas"
+  "bqm_delete_success": "{0} imagenes eliminadas",
+  "bqm_collect_time": "Hora de recopilacion diaria",
+  "bqm_collect_time_hint": "Hora del dia para obtener el grafico BQM (zona horaria del contenedor)"
 }

@@ -42,6 +42,7 @@ DEFAULTS = {
     "isp_name": "",
     "admin_password": "",
     "bqm_url": "",
+    "bqm_collect_time": "02:00",
     "smokeping_url": "",
     "smokeping_targets": "",
     "speedtest_tracker_url": "",

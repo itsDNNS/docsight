@@ -565,5 +565,7 @@
   "bqm_delete_range": "Delete {0} images from {1} to {2}?",
   "bqm_delete_all": "Delete all {0} BQM images?",
   "bqm_delete_confirm": "Type DELETE to confirm",
-  "bqm_delete_success": "{0} images deleted"
+  "bqm_delete_success": "{0} images deleted",
+  "bqm_collect_time": "Daily collection time",
+  "bqm_collect_time_hint": "Time of day to fetch the BQM graph (container timezone)"
 }

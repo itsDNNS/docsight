@@ -565,5 +565,7 @@
   "bqm_delete_range": "{0} Bilder von {1} bis {2} loeschen?",
   "bqm_delete_all": "Alle {0} BQM-Bilder loeschen?",
   "bqm_delete_confirm": "DELETE eingeben zum Bestaetigen",
-  "bqm_delete_success": "{0} Bilder geloescht"
+  "bqm_delete_success": "{0} Bilder geloescht",
+  "bqm_collect_time": "Taegliche Erfassungszeit",
+  "bqm_collect_time_hint": "Uhrzeit fuer den taeglichen BQM-Abruf (Container-Zeitzone)"
 }
