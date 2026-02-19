@@ -92,6 +92,11 @@ def test_format_threshold_table_uses_real_values():
     assert len(ds_256) == 1
     assert "-3.9" in ds_256[0]["good"]
     assert "13.0" in ds_256[0]["good"]
+    # Upstream modulation thresholds
+    us_mod = [r for r in rows if r["category"] == "US Modulation"]
+    assert len(us_mod) == 1
+    assert "16" in us_mod[0]["warn"]
+    assert "4" in us_mod[0]["warn"]
 
 
 def test_default_warn_thresholds():

@@ -57,6 +57,18 @@ def _format_threshold_table():
             "warn": f">= {v['tolerated_min']} dB",
             "ref": "VFKD",
         })
+    # US Modulation - QAM order health
+    us_mod = t.get("upstream_modulation", {})
+    warn_qam = us_mod.get("warning_max_qam")
+    crit_qam = us_mod.get("critical_max_qam")
+    if warn_qam is not None and crit_qam is not None:
+        rows.append({
+            "category": "US Modulation",
+            "variant": "QAM Order",
+            "good": f"> {warn_qam}-QAM",
+            "warn": f"<= {warn_qam}-QAM / <= {crit_qam}-QAM crit.",
+            "ref": "VFKD",
+        })
     return rows
 
 
