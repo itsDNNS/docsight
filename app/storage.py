@@ -430,6 +430,28 @@ class SnapshotStorage:
         except Exception as e:
             log.error("Failed to save BQM graph: %s", e)
 
+    def import_bqm_graph(self, date, image_data, overwrite=False):
+        """Import a BQM graph for a specific date.
+        Returns: 'imported', 'skipped', or 'replaced'."""
+        ts = date + "T00:00:00"
+        with sqlite3.connect(self.db_path) as conn:
+            existing = conn.execute(
+                "SELECT 1 FROM bqm_graphs WHERE date = ?", (date,)
+            ).fetchone()
+            if existing:
+                if not overwrite:
+                    return "skipped"
+                conn.execute(
+                    "UPDATE bqm_graphs SET timestamp = ?, image_blob = ? WHERE date = ?",
+                    (ts, image_data, date),
+                )
+                return "replaced"
+            conn.execute(
+                "INSERT INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
+                (date, ts, image_data),
+            )
+        return "imported"
+
     def get_bqm_dates(self):
         """Return list of dates with BQM graphs (newest first)."""
         with sqlite3.connect(self.db_path) as conn:
