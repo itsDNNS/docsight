@@ -131,8 +131,59 @@ class CM3500Driver(ModemDriver):
             return {"manufacturer": "Arris", "model": "CM3500B", "sw_version": ""}
 
     def get_connection_info(self) -> dict:
-        """Not applicable for standalone modem."""
-        return {}
+        """Parse provisioned speeds from config_params_cgi service flows."""
+        try:
+            r = self._session.get(
+                f"{self._url}/cgi-bin/config_params_cgi",
+                timeout=30,
+            )
+            r.raise_for_status()
+        except requests.RequestException as e:
+            log.warning("CM3500 config params unavailable: %s", e)
+            return {}
+
+        return self._parse_service_flows(r.text)
+
+    @staticmethod
+    def _parse_service_flows(html: str) -> dict:
+        """Extract max downstream/upstream speeds from service flow config.
+
+        The config_params_cgi page contains a <pre> block with service flows.
+        Each flow has a direction (Downstream/Upstream) and SfMaxTrafficRate
+        in bps.  The highest rate per direction is the provisioned speed.
+        """
+        ds_rates = []
+        us_rates = []
+        current_dir = None
+
+        for line in html.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("DownstreamServiceFlow"):
+                current_dir = "ds"
+            elif stripped.startswith("UpstreamServiceFlow"):
+                current_dir = "us"
+            elif stripped.startswith(("DownstreamPacketClassification",
+                                     "UpstreamPacketClassification")):
+                current_dir = None
+            elif current_dir and stripped.startswith("SfMaxTrafficRate"):
+                match = re.search(r"=\s*(\d+)", stripped)
+                if match:
+                    rate = int(match.group(1))
+                    if current_dir == "ds":
+                        ds_rates.append(rate)
+                    else:
+                        us_rates.append(rate)
+
+        if not ds_rates and not us_rates:
+            return {}
+
+        result = {}
+        if ds_rates:
+            result["max_downstream_kbps"] = max(ds_rates) // 1000
+        if us_rates:
+            result["max_upstream_kbps"] = max(us_rates) // 1000
+        result["connection_type"] = "DOCSIS"
+        return result
 
     # -- Internal helpers --
 
