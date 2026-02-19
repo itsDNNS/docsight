@@ -55,7 +55,7 @@ Open `http://localhost:8765` — no setup required.
 - 25 downstream + 4 upstream channels with realistic signal values
 - 9 months of historical data with diurnal and seasonal patterns
 - Pre-populated event log, journal entries (12), incident groups (3), and speedtest history
-- Full trend charts, channel timeline, and correlation analysis
+- Full trend charts, channel timeline, channel compare, and correlation analysis
 - Switch to live mode anytime (Settings > Migrate) -- your own entries are preserved
 - Works with MQTT (if configured)
 
@@ -95,7 +95,7 @@ Open `http://localhost:8765` — no setup required.
 | **[Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest)** | Speed test history from [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker) |
 | **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Document ISP issues with icons, Excel/CSV import, search, attachments, and **incident groups** for organizing entries |
 | **[Complaint Generator](https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint)** | Editable ISP letter + downloadable technical PDF |
-| **[Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline)** | Per-channel power, SNR, error, and modulation history over time |
+| **[Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline)** | Per-channel power, SNR, error, and modulation history over time with multi-channel comparison overlay |
 | **[Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant)** | MQTT Auto-Discovery with per-channel sensors |
 | **[BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM)** | ThinkBroadband broadband quality graphs |
 | **[BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA)** | **NEW:** Upload or auto-import official BNetzA broadband measurement protocols (PDF/CSV) with file watcher and sidecar support |
@@ -253,6 +253,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Arris CM3500B Support | ✅ Released | [#77](https://github.com/itsDNNS/docsight/issues/77) |
 | Unitymedia Connect Box (CH7465) | ✅ Released | |
 | Speedtest Server Tracking | ✅ Released | [#79](https://github.com/itsDNNS/docsight/issues/79) |
+| Multi-Channel Comparison | ✅ Released | [#80](https://github.com/itsDNNS/docsight/issues/80) |
 
 **Planned:**
 
@@ -273,7 +274,7 @@ If DOCSight helps you, consider [buying me a coffee](https://ko-fi.com/itsdnns) 
 
 ## Documentation
 
-Documentation current as of **v2026-02-18.8**.
+Documentation current as of **v2026-02-19.1**.
 
 | Document | Scope |
 |---|---|
