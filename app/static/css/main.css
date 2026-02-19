@@ -1022,12 +1022,12 @@ details.channel-group {
 
 /* Toolbar */
 .bqm-toolbar {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-bottom: 12px; max-width: 420px; margin-left: auto; margin-right: auto;
+    display: flex; align-items: center; gap: 8px; justify-content: center;
+    margin-bottom: 12px;
 }
 .bqm-quick { flex-shrink: 0; }
 .bqm-month-nav {
-    display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+    display: inline-flex; align-items: center; gap: 4px;
 }
 .bqm-slideshow-controls { max-width: 420px; margin-left: auto; margin-right: auto; }
 .bqm-nav-btn {
@@ -3973,4 +3973,62 @@ mark.search-highlight {
 }
 .compare-chip-remove:hover {
     color: #fff;
+}
+
+/* ── BQM Import ── */
+.bqm-import-btn { padding: 4px 7px; }
+.bqm-import-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+}
+.bqm-import-table th {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--input-border);
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.85em;
+}
+.bqm-import-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    vertical-align: middle;
+}
+.bqm-import-thumb {
+    width: 60px;
+    height: 36px;
+    border-radius: 4px;
+    object-fit: cover;
+    display: block;
+}
+.bqm-import-filename {
+    display: block;
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+.bqm-import-conflict {
+    display: inline-block;
+    background: rgba(234,179,8,0.15);
+    color: #eab308;
+    font-size: 0.75em;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-top: 2px;
+}
+.bqm-import-date-missing {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 1px rgba(239,68,68,0.3);
+}
+.bqm-import-table input[type="date"] {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+    border: 1px solid var(--input-border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.9em;
+    width: 100%;
 }

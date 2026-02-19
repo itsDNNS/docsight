@@ -549,5 +549,15 @@
   "add_channel": "Hinzufuegen",
   "max_channels_reached": "Maximal 6 Kanaele",
   "select_direction": "Richtung waehlen",
-  "no_channels_selected": "Kanaele zum Vergleich auswaehlen"
+  "no_channels_selected": "Kanaele zum Vergleich auswaehlen",
+  "bqm_import": "Importieren",
+  "bqm_import_title": "BQM-Bilder importieren",
+  "bqm_import_drop": "Bilder hierher ziehen oder klicken zum Auswaehlen",
+  "bqm_import_formats": "PNG / JPEG",
+  "bqm_import_overwrite": "Vorhandene Daten ueberschreiben",
+  "bqm_import_no_date": "Datum erforderlich",
+  "bqm_import_conflict": "Bereits vorhanden",
+  "bqm_import_btn": "{0} Bilder importieren",
+  "bqm_import_success": "{0} importiert, {1} uebersprungen",
+  "bqm_import_invalid": "Nur PNG- und JPEG-Bilder"
 }
