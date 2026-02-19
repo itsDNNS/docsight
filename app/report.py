@@ -7,16 +7,70 @@ from datetime import datetime
 
 from fpdf import FPDF
 
+from .analyzer import get_thresholds
+
 log = logging.getLogger("docsis.report")
 
 _FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
 
-# DIN thresholds for reference in reports
-THRESHOLDS = {
-    "ds_power": {"good": "±7 dBmV", "warn": "±10 dBmV", "ref": "EN 50083-7, IEC 60728-1-2"},
-    "us_power": {"good": "35–49 dBmV", "warn": "50–54 dBmV", "ref": "DOCSIS 3.0/3.1 PHY Spec"},
-    "snr": {"good": ">30 dB", "warn": "25–30 dB", "ref": "DOCSIS 3.0/3.1 PHY Spec"},
-}
+
+def _format_threshold_table():
+    """Build display-ready threshold rows from thresholds.json."""
+    t = get_thresholds()
+    rows = []
+    # DS Power - per modulation
+    ds = t.get("downstream_power", {})
+    for mod in ("256QAM", "64QAM", "1024QAM", "4096QAM"):
+        v = ds.get(mod)
+        if not v:
+            continue
+        rows.append({
+            "category": "DS Power",
+            "variant": mod,
+            "good": f"{v['good_min']} to {v['good_max']} dBmV",
+            "warn": f"{v['tolerated_min']} to {v['tolerated_max']} dBmV",
+            "ref": "VFKD",
+        })
+    # US Power - per DOCSIS version
+    us = t.get("upstream_power", {})
+    for ver in ("EuroDOCSIS 3.0", "DOCSIS 3.1"):
+        v = us.get(ver)
+        if not v:
+            continue
+        rows.append({
+            "category": "US Power",
+            "variant": ver,
+            "good": f"{v['good_min']} to {v['good_max']} dBmV",
+            "warn": f"{v['tolerated_min']} to {v['tolerated_max']} dBmV",
+            "ref": "VFKD",
+        })
+    # SNR - per modulation
+    snr = t.get("snr", {})
+    for mod in ("256QAM", "64QAM", "1024QAM", "4096QAM"):
+        v = snr.get(mod)
+        if not v:
+            continue
+        rows.append({
+            "category": "SNR/MER",
+            "variant": mod,
+            "good": f">= {v['good_min']} dB",
+            "warn": f">= {v['tolerated_min']} dB",
+            "ref": "VFKD",
+        })
+    return rows
+
+
+def _default_warn_thresholds():
+    """Get default warning thresholds as display strings for report."""
+    t = get_thresholds()
+    ds = t.get("downstream_power", {}).get("256QAM", {})
+    us = t.get("upstream_power", {}).get("EuroDOCSIS 3.0", {})
+    snr = t.get("snr", {}).get("256QAM", {})
+    return {
+        "ds_power": f"{ds.get('tolerated_min', -5.9)} to {ds.get('tolerated_max', 18.0)} dBmV",
+        "us_power": f"{us.get('tolerated_min', 37.1)} to {us.get('tolerated_max', 51.0)} dBmV",
+        "snr": f">= {snr.get('tolerated_min', 32.0)} dB",
+    }
 
 # ---------------------------------------------------------------------------
 # Localised strings for PDF reports
@@ -55,6 +109,7 @@ REPORT_STRINGS = {
         "col_health": "Health",
         "col_multiplex": "Multiplex",
         "col_parameter": "Parameter",
+        "col_modulation": "Modulation",
         "col_good": "Good",
         "col_warning": "Warning",
         "col_reference": "Reference",
@@ -170,6 +225,7 @@ REPORT_STRINGS = {
         "col_health": "Zustand",
         "col_multiplex": "Multiplex",
         "col_parameter": "Parameter",
+        "col_modulation": "Modulation",
         "col_good": "Gut",
         "col_warning": "Warnung",
         "col_reference": "Referenz",
@@ -284,6 +340,7 @@ REPORT_STRINGS = {
         "col_health": "État",
         "col_multiplex": "Multiplex",
         "col_parameter": "Paramètre",
+        "col_modulation": "Modulation",
         "col_good": "Bon",
         "col_warning": "Alerte",
         "col_reference": "Référence",
@@ -399,6 +456,7 @@ REPORT_STRINGS = {
         "col_health": "Estado",
         "col_multiplex": "Multiplex",
         "col_parameter": "Parámetro",
+        "col_modulation": "Modulación",
         "col_good": "Bueno",
         "col_warning": "Alerta",
         "col_reference": "Referencia",
@@ -710,9 +768,10 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
         pdf.cell(0, 6, s["worst_recorded"], new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("dejavu", "", 10)
 
-        pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {THRESHOLDS['ds_power']['warn']})")
-        pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {THRESHOLDS['us_power']['warn']})")
-        pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {THRESHOLDS['snr']['warn']})")
+        warn = _default_warn_thresholds()
+        pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {warn['ds_power']})")
+        pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {warn['us_power']})")
+        pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {warn['snr']})")
         pdf._key_value(s["uncorr_err_max"], f"{worst['ds_uncorrectable_max']:,}")
         pdf._key_value(s["corr_err_max"], f"{worst['ds_correctable_max']:,}")
         pdf.ln(3)
@@ -739,12 +798,11 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
     pdf.add_page()
     pdf._section_title(s["section_thresholds"])
     pdf.set_font("dejavu", "", 9)
-    cols_ref = [s["col_parameter"], s["col_good"], s["col_warning"], s["col_reference"]]
-    widths_ref = [45, 35, 35, 55]
+    cols_ref = [s["col_parameter"], s["col_modulation"], s["col_good"], s["col_warning"], s["col_reference"]]
+    widths_ref = [30, 35, 40, 40, 25]
     pdf._table_header(cols_ref, widths_ref)
-    for param, vals in THRESHOLDS.items():
-        label = param.replace("_", " ").title()
-        pdf._table_row([label, vals["good"], vals["warn"], vals["ref"]], widths_ref)
+    for row in _format_threshold_table():
+        pdf._table_row([row["category"], row["variant"], row["good"], row["warn"], row["ref"]], widths_ref)
     pdf.ln(5)
 
     # --- ISP Complaint Template ---
@@ -753,6 +811,7 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
+        warn = _default_warn_thresholds()
         start = snapshots[0]["timestamp"][:10]
         end = snapshots[-1]["timestamp"][:10]
         poor_pct = round(worst['health_poor_count'] / max(worst['total_snapshots'], 1) * 100)
@@ -762,9 +821,9 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
             f"{s['complaint_body'].format(count=len(snapshots), start=start, end=end)}\n\n"
             f"{s['complaint_findings']}\n"
             f"- {s['complaint_poor_rate'].format(poor=worst['health_poor_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
-            f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=THRESHOLDS['ds_power']['warn'])}\n"
-            f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=THRESHOLDS['us_power']['warn'])}\n"
-            f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=THRESHOLDS['snr']['warn'])}\n"
+            f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=warn['ds_power'])}\n"
+            f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=warn['us_power'])}\n"
+            f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=warn['snr'])}\n"
             f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
             f"{s['complaint_exceed']}\n\n"
             f"{s['complaint_request']}\n"
@@ -878,9 +937,10 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
         pdf.cell(0, 6, s["worst_recorded"], new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("dejavu", "", 10)
 
-        pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {THRESHOLDS['ds_power']['warn']})")
-        pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {THRESHOLDS['us_power']['warn']})")
-        pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {THRESHOLDS['snr']['warn']})")
+        warn = _default_warn_thresholds()
+        pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {warn['ds_power']})")
+        pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {warn['us_power']})")
+        pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {warn['snr']})")
         pdf._key_value(s["uncorr_err_max"], f"{worst['ds_uncorrectable_max']:,}")
         pdf._key_value(s["corr_err_max"], f"{worst['ds_correctable_max']:,}")
         pdf.ln(3)
@@ -1038,6 +1098,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
+        warn = _default_warn_thresholds()
         start = snapshots[0]["timestamp"][:10]
         end = snapshots[-1]["timestamp"][:10]
         poor_pct = round(worst['health_poor_count'] / max(worst['total_snapshots'], 1) * 100)
@@ -1047,9 +1108,9 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
             f"{s['complaint_body'].format(count=len(snapshots), start=start, end=end)}\n\n"
             f"{s['complaint_findings']}\n"
             f"- {s['complaint_poor_rate'].format(poor=worst['health_poor_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
-            f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=THRESHOLDS['ds_power']['warn'])}\n"
-            f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=THRESHOLDS['us_power']['warn'])}\n"
-            f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=THRESHOLDS['snr']['warn'])}\n"
+            f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=warn['ds_power'])}\n"
+            f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=warn['us_power'])}\n"
+            f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=warn['snr'])}\n"
             f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
             f"{s['complaint_exceed']}\n\n"
             f"{s['complaint_request']}\n"
@@ -1169,6 +1230,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
+        warn = _default_warn_thresholds()
         start = snapshots[0]["timestamp"][:10]
         end = snapshots[-1]["timestamp"][:10]
         poor_pct = round(worst['health_poor_count'] / max(worst['total_snapshots'], 1) * 100)
@@ -1178,9 +1240,9 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
             f"{s['complaint_body'].format(count=len(snapshots), start=start, end=end)}\n\n"
             f"{s['complaint_findings']}\n"
             f"- {s['complaint_poor_rate'].format(poor=worst['health_poor_count'], total=worst['total_snapshots'], pct=poor_pct)}\n"
-            f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=THRESHOLDS['ds_power']['warn'])}\n"
-            f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=THRESHOLDS['us_power']['warn'])}\n"
-            f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=THRESHOLDS['snr']['warn'])}\n"
+            f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=warn['ds_power'])}\n"
+            f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=warn['us_power'])}\n"
+            f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=warn['snr'])}\n"
             f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
             f"{bnetz_section}"
             f"{s['complaint_exceed']}\n\n"
