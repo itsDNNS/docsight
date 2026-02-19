@@ -41,17 +41,31 @@ class CM3500Driver(ModemDriver):
         self._session.verify = False
 
     def login(self) -> None:
-        """Authenticate via form POST to /cgi-bin/login_cgi."""
-        try:
-            r = self._session.post(
-                f"{self._url}/cgi-bin/login_cgi",
-                data={"username": self._user, "password": self._password},
-                timeout=30,
-            )
-            r.raise_for_status()
-            log.info("CM3500 auth OK")
-        except requests.RequestException as e:
-            raise RuntimeError(f"CM3500 authentication failed: {e}")
+        """Authenticate via form POST to /cgi-bin/login_cgi.
+
+        Retries once with a fresh connection if the modem drops a stale
+        TCP connection (common after container restarts).
+        """
+        for attempt in range(2):
+            try:
+                r = self._session.post(
+                    f"{self._url}/cgi-bin/login_cgi",
+                    data={"username": self._user, "password": self._password},
+                    timeout=30,
+                )
+                r.raise_for_status()
+                log.info("CM3500 auth OK")
+                return
+            except requests.ConnectionError:
+                if attempt == 0:
+                    log.warning("CM3500 connection lost, retrying with fresh session")
+                    self._session.close()
+                    self._session = requests.Session()
+                    self._session.verify = False
+                    continue
+                raise RuntimeError("CM3500 authentication failed: connection refused after retry")
+            except requests.RequestException as e:
+                raise RuntimeError(f"CM3500 authentication failed: {e}")
 
     def get_docsis_data(self) -> dict:
         """Retrieve DOCSIS channel data from HTML tables on status page.
@@ -208,7 +222,7 @@ class CM3500Driver(ModemDriver):
                     "channelID": chan_id,
                     "type": "OFDM",
                     "frequency": f"{int(first_freq)}-{int(last_freq)} MHz",
-                    "powerLevel": 0.0,
+                    "powerLevel": None,
                     "mer": mer_data,
                     "mse": None,
                     "corrErrors": 0,

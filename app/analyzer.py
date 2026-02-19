@@ -175,14 +175,16 @@ def _health_detail(issues):
 def _assess_ds_channel(ch, docsis_ver):
     """Assess a single downstream channel. Returns (health, health_detail)."""
     issues = []
-    power = _parse_float(ch.get("powerLevel"))
+    raw_power = ch.get("powerLevel")
     modulation = (ch.get("modulation") or ch.get("type") or "").upper().replace("-", "")
 
-    pt = _get_ds_power_thresholds(modulation)
-    if power < pt["crit_min"] or power > pt["crit_max"]:
-        issues.append("power critical")
-    elif power < pt["good_min"] or power > pt["good_max"]:
-        issues.append("power warning")
+    if raw_power is not None:
+        power = _parse_float(raw_power)
+        pt = _get_ds_power_thresholds(modulation)
+        if power < pt["crit_min"] or power > pt["crit_max"]:
+            issues.append("power critical")
+        elif power < pt["good_min"] or power > pt["good_max"]:
+            issues.append("power warning")
 
     snr_val = None
     if docsis_ver == "3.0" and ch.get("mse"):
@@ -203,13 +205,15 @@ def _assess_ds_channel(ch, docsis_ver):
 def _assess_us_channel(ch, docsis_ver="3.0"):
     """Assess a single upstream channel. Returns (health, health_detail)."""
     issues = []
-    power = _parse_float(ch.get("powerLevel"))
+    raw_power = ch.get("powerLevel")
 
-    pt = _get_us_power_thresholds(docsis_ver)
-    if power < pt["crit_min"] or power > pt["crit_max"]:
-        issues.append("power critical")
-    elif power < pt["good_min"] or power > pt["good_max"]:
-        issues.append("power warning")
+    if raw_power is not None:
+        power = _parse_float(raw_power)
+        pt = _get_us_power_thresholds(docsis_ver)
+        if power < pt["crit_min"] or power > pt["crit_max"]:
+            issues.append("power critical")
+        elif power < pt["good_min"] or power > pt["good_max"]:
+            issues.append("power warning")
 
     modulation = ch.get("modulation") or ch.get("type") or ""
     qam_order = _parse_qam_order(modulation)
@@ -271,7 +275,8 @@ def analyze(data: dict) -> dict:
             "health_detail": health_detail,
         })
     for ch in ds31:
-        power = _parse_float(ch.get("powerLevel"))
+        raw_power = ch.get("powerLevel")
+        power = _parse_float(raw_power) if raw_power is not None else None
         snr = _parse_float(ch.get("mer")) if ch.get("mer") else None
         health, health_detail = _assess_ds_channel(ch, "3.1")
         ds_channels.append({
@@ -310,10 +315,11 @@ def analyze(data: dict) -> dict:
         health, health_detail = _assess_us_channel(ch, "3.1")
         mod = ch.get("modulation") or ch.get("type", "")
         bitrate = _channel_bitrate_mbps(mod, ch.get("symbolRate"))
+        raw_power = ch.get("powerLevel")
         us_channels.append({
             "channel_id": ch.get("channelID", 0),
             "frequency": ch.get("frequency", ""),
-            "power": _parse_float(ch.get("powerLevel")),
+            "power": _parse_float(raw_power) if raw_power is not None else None,
             "modulation": mod,
             "multiplex": ch.get("multiplex", ""),
             "docsis_version": "3.1",
@@ -325,8 +331,8 @@ def analyze(data: dict) -> dict:
     us_channels.sort(key=lambda c: c["channel_id"])
 
     # --- Summary metrics ---
-    ds_powers = [c["power"] for c in ds_channels]
-    us_powers = [c["power"] for c in us_channels]
+    ds_powers = [c["power"] for c in ds_channels if c["power"] is not None]
+    us_powers = [c["power"] for c in us_channels if c["power"] is not None]
     ds_snrs = [c["snr"] for c in ds_channels if c["snr"] is not None]
 
     total_corr = sum(c["correctable_errors"] for c in ds_channels)
