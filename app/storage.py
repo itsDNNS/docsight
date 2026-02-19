@@ -452,6 +452,27 @@ class SnapshotStorage:
             )
         return "imported"
 
+    def delete_bqm_graph(self, date):
+        """Delete a single BQM graph. Returns True if deleted."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute("DELETE FROM bqm_graphs WHERE date = ?", (date,))
+        return cur.rowcount > 0
+
+    def delete_bqm_graphs_range(self, start_date, end_date):
+        """Delete BQM graphs in date range (inclusive). Returns count."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "DELETE FROM bqm_graphs WHERE date >= ? AND date <= ?",
+                (start_date, end_date),
+            )
+        return cur.rowcount
+
+    def delete_all_bqm_graphs(self):
+        """Delete all BQM graphs. Returns count."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute("DELETE FROM bqm_graphs")
+        return cur.rowcount
+
     def get_bqm_dates(self):
         """Return list of dates with BQM graphs (newest first)."""
         with sqlite3.connect(self.db_path) as conn:

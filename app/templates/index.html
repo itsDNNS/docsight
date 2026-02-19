@@ -755,6 +755,11 @@
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
         </button>
+        <button class="bqm-nav-btn bqm-import-btn bqm-delete-btn" onclick="deleteBqmImages()" title="{{ t.bqm_delete }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+        </button>
     </div>
     <!-- Calendar grid -->
     <div id="bqm-calendar" class="bqm-calendar">
@@ -820,12 +825,18 @@
                 <p style="font-size:0.8em;color:var(--muted);">{{ t.bqm_import_formats }}</p>
                 <input type="file" id="bqm-import-file-input" style="display:none;" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple>
             </div>
-            <!-- Overwrite toggle -->
+            <!-- Options: overwrite + date offset -->
             <div id="bqm-import-options" style="display:none; margin:10px 0;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;cursor:pointer;">
-                    <input type="checkbox" id="bqm-import-overwrite">
-                    {{ t.bqm_import_overwrite }}
-                </label>
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;cursor:pointer;">
+                        <input type="checkbox" id="bqm-import-overwrite">
+                        {{ t.bqm_import_overwrite }}
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;">
+                        {{ t.bqm_import_offset }}:
+                        <input type="number" id="bqm-import-offset" class="bqm-offset-input" min="-30" max="30" value="0" step="1">
+                    </label>
+                </div>
             </div>
             <!-- Status line -->
             <div id="bqm-import-status" class="import-info" style="display:none;"></div>
@@ -3188,6 +3199,7 @@
         document.getElementById('bqm-import-preview').style.display = 'none';
         document.getElementById('bqm-import-footer').style.display = 'none';
         document.getElementById('bqm-import-overwrite').checked = false;
+        document.getElementById('bqm-import-offset').value = '0';
         document.getElementById('bqm-import-tbody').innerHTML = '';
         modal.classList.add('open');
     }
@@ -3197,6 +3209,23 @@
         // Revoke thumb URLs
         _bqmImportFiles.forEach(function(f) { if (f.thumbUrl) URL.revokeObjectURL(f.thumbUrl); });
         _bqmImportFiles = [];
+    }
+
+    function offsetDate(isoDate, days) {
+        if (!isoDate || !days) return isoDate;
+        var d = new Date(isoDate + 'T12:00:00');
+        d.setDate(d.getDate() + days);
+        return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+    }
+
+    function applyBqmImportOffset() {
+        var days = parseInt(document.getElementById('bqm-import-offset').value) || 0;
+        _bqmImportFiles.forEach(function(entry) {
+            if (entry.originalDate) {
+                entry.date = offsetDate(entry.originalDate, days);
+            }
+        });
+        renderBqmImportPreview();
     }
 
     function handleBqmImportFiles(fileList) {
@@ -3210,10 +3239,19 @@
             if (!validMime && !validExt) { rejected++; continue; }
             var date = detectDateFromFilename(f.name);
             var thumbUrl = URL.createObjectURL(f);
-            _bqmImportFiles.push({ file: f, date: date, thumbUrl: thumbUrl });
+            _bqmImportFiles.push({ file: f, date: date, originalDate: date, thumbUrl: thumbUrl });
         }
         if (rejected > 0) showToast(T.bqm_import_invalid || 'Only PNG and JPEG images', 'error');
-        if (_bqmImportFiles.length > 0) renderBqmImportPreview();
+        if (_bqmImportFiles.length > 0) {
+            // Apply current offset to newly added files
+            var days = parseInt(document.getElementById('bqm-import-offset').value) || 0;
+            if (days !== 0) {
+                _bqmImportFiles.forEach(function(entry) {
+                    if (entry.originalDate) entry.date = offsetDate(entry.originalDate, days);
+                });
+            }
+            renderBqmImportPreview();
+        }
     }
 
     function renderBqmImportPreview() {
@@ -3414,6 +3452,77 @@
             if (e.dataTransfer.files.length) handleBqmImportFiles(e.dataTransfer.files);
         });
     })();
+    // Offset change handler
+    (function() {
+        var offsetInput = document.getElementById('bqm-import-offset');
+        if (offsetInput) {
+            offsetInput.addEventListener('change', applyBqmImportOffset);
+            offsetInput.addEventListener('input', applyBqmImportOffset);
+        }
+    })();
+
+    function deleteBqmImages() {
+        var totalCount = _bqmAvailableDates.size;
+        if (totalCount === 0) {
+            showToast(T.bqm_no_data_range || 'No BQM data in this range', 'info');
+            return;
+        }
+
+        if (_bqmRangeStart && _bqmRangeEnd) {
+            // Count dates in range
+            var rangeDates = [];
+            _bqmAvailableDates.forEach(function(d) {
+                if (d >= _bqmRangeStart && d <= _bqmRangeEnd) rangeDates.push(d);
+            });
+            if (rangeDates.length === 0) {
+                showToast(T.bqm_no_data_range || 'No BQM data in this range', 'info');
+                return;
+            }
+            var msg = (T.bqm_delete_range || 'Delete {0} images from {1} to {2}?')
+                .replace('{0}', rangeDates.length)
+                .replace('{1}', _bqmRangeStart)
+                .replace('{2}', _bqmRangeEnd);
+            if (!confirm(msg)) return;
+
+            fetch('/api/bqm/images', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start: _bqmRangeStart, end: _bqmRangeEnd })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var successMsg = (T.bqm_delete_success || '{0} images deleted').replace('{0}', data.deleted);
+                showToast(successMsg, 'success');
+                _bqmRangeStart = null;
+                _bqmRangeEnd = null;
+                fetchBqmDates(function() { renderBqmCalendar(_bqmCalYear, _bqmCalMonth); });
+            })
+            .catch(function(err) { showToast('Delete failed: ' + err.message, 'error'); });
+        } else {
+            // Delete all
+            var msg = (T.bqm_delete_all || 'Delete all {0} BQM images?').replace('{0}', totalCount);
+            if (!confirm(msg)) return;
+            var confirmText = prompt(T.bqm_delete_confirm || 'Type DELETE to confirm');
+            if (confirmText !== 'DELETE') return;
+
+            fetch('/api/bqm/images', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ all: true, confirm: 'DELETE_ALL' })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var successMsg = (T.bqm_delete_success || '{0} images deleted').replace('{0}', data.deleted);
+                showToast(successMsg, 'success');
+                _bqmRangeStart = null;
+                _bqmRangeEnd = null;
+                fetchBqmDates(function() { renderBqmCalendar(_bqmCalYear, _bqmCalMonth); });
+            })
+            .catch(function(err) { showToast('Delete failed: ' + err.message, 'error'); });
+        }
+    }
+
+    window.deleteBqmImages = deleteBqmImages;
     window.openBqmImportModal = openBqmImportModal;
     window.closeBqmImportModal = closeBqmImportModal;
     window.executeBqmImport = executeBqmImport;

@@ -1099,6 +1099,43 @@ def api_bqm_import():
     })
 
 
+@app.route("/api/bqm/images", methods=["DELETE"])
+@require_auth
+def api_bqm_delete():
+    """Delete BQM images: single date, range, or all."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data"}), 400
+
+    if data.get("all"):
+        if data.get("confirm") != "DELETE_ALL":
+            return jsonify({"error": "Confirmation required: set confirm to 'DELETE_ALL'"}), 400
+        deleted = _storage.delete_all_bqm_graphs()
+        audit_log.info("All BQM images deleted: ip=%s count=%d", _get_client_ip(), deleted)
+        return jsonify({"deleted": deleted})
+
+    start = data.get("start")
+    end = data.get("end")
+    if start and end:
+        if not _valid_date(start) or not _valid_date(end):
+            return jsonify({"error": "Invalid date format"}), 400
+        deleted = _storage.delete_bqm_graphs_range(start, end)
+        audit_log.info("BQM images deleted range: ip=%s start=%s end=%s count=%d", _get_client_ip(), start, end, deleted)
+        return jsonify({"deleted": deleted})
+
+    date = data.get("date")
+    if date:
+        if not _valid_date(date):
+            return jsonify({"error": "Invalid date format"}), 400
+        deleted = 1 if _storage.delete_bqm_graph(date) else 0
+        audit_log.info("BQM image deleted: ip=%s date=%s", _get_client_ip(), date)
+        return jsonify({"deleted": deleted})
+
+    return jsonify({"error": "Provide 'all', 'start'+'end', or 'date'"}), 400
+
+
 @app.route("/api/speedtest")
 @require_auth
 def api_speedtest():
