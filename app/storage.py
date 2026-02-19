@@ -1209,6 +1209,35 @@ class SnapshotStorage:
                     break
         return results
 
+    def get_multi_channel_history(self, channel_ids, direction, days=7):
+        """Return time series for multiple channels over the last N days.
+        direction: 'ds' or 'us'. Returns dict {channel_id: [{timestamp, power, snr, ...}, ...]}"""
+        channel_ids = [int(c) for c in channel_ids]
+        channel_set = set(channel_ids)
+        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+        col = "ds_channels_json" if direction == "ds" else "us_channels_json"
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                f"SELECT timestamp, {col} FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
+                (cutoff,),
+            ).fetchall()
+        results = {cid: [] for cid in channel_ids}
+        for ts, channels_json in rows:
+            channels = json.loads(channels_json)
+            for ch in channels:
+                cid = ch.get("channel_id")
+                if cid in channel_set:
+                    results[cid].append({
+                        "timestamp": ts,
+                        "power": ch.get("power"),
+                        "snr": ch.get("snr"),
+                        "correctable_errors": ch.get("correctable_errors", 0),
+                        "uncorrectable_errors": ch.get("uncorrectable_errors", 0),
+                        "modulation": ch.get("modulation", ""),
+                        "frequency": ch.get("frequency", ""),
+                    })
+        return results
+
     def get_current_channels(self):
         """Return DS and US channels from the latest snapshot."""
         with sqlite3.connect(self.db_path) as conn:
