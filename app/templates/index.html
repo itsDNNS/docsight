@@ -35,8 +35,8 @@
         <a class="sidebar-link" data-view="trends" data-tooltip="{{ t.signal_trends }}">
             <span class="icon"><i data-lucide="trending-up"></i></span> {{ t.signal_trends }}
         </a>
-        <a class="sidebar-link" data-view="channels" data-tooltip="{{ t.channel_timeline }}">
-            <span class="icon"><i data-lucide="clock"></i></span> {{ t.channel_timeline }}
+        <a class="sidebar-link" data-view="channels" data-tooltip="{{ t.channels }}">
+            <span class="icon"><i data-lucide="clock"></i></span> {{ t.channels }}
         </a>
         {% if speedtest_configured or bqm_configured %}
         <a class="sidebar-link" data-view="correlation" data-tooltip="{{ t.correlation_analysis }}">
@@ -1055,68 +1055,149 @@
 
 <!-- ═══ View: Channel Timeline ═══ -->
 <div id="view-channels" class="view">
-    <div class="trend-header">
-        <span class="trend-title">{{ t.channel_timeline }}</span>
-    </div>
-    <div class="channel-filters" style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
-        <select id="channel-select" onchange="loadChannelTimeline()">
-            <option value="">{{ t.select_channel }}</option>
-        </select>
-        <div class="trend-tabs" id="channel-time-tabs">
-            <button class="trend-tab" data-value="1" onclick="selectPill(this, loadChannelTimeline)">1d</button>
-            <button class="trend-tab" data-value="3" onclick="selectPill(this, loadChannelTimeline)">3d</button>
-            <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadChannelTimeline)">7d</button>
-            <button class="trend-tab" data-value="30" onclick="selectPill(this, loadChannelTimeline)">30d</button>
+    <div class="trend-header" style="margin-bottom:12px;">
+        <span class="trend-title">{{ t.channels }}</span>
+        <div class="trend-tabs" id="channel-mode-tabs" style="margin-left:auto;">
+            <button class="trend-tab active" data-value="timeline" onclick="selectPill(this, switchChannelMode)">{{ t.channel_timeline }}</button>
+            <button class="trend-tab" data-value="compare" onclick="selectPill(this, switchChannelMode)">{{ t.channel_compare }}</button>
         </div>
     </div>
-    <div id="channel-loading" class="waiting" style="display:none;">
-        <div class="spinner"></div>
+
+    <!-- ── Timeline Sub-View ── -->
+    <div id="channel-panel-timeline">
+        <div class="channel-filters" style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
+            <select id="channel-select" class="channel-select-styled" onchange="loadChannelTimeline()">
+                <option value="">{{ t.select_channel }}</option>
+            </select>
+            <div class="trend-tabs" id="channel-time-tabs">
+                <button class="trend-tab" data-value="1" onclick="selectPill(this, loadChannelTimeline)">1d</button>
+                <button class="trend-tab" data-value="3" onclick="selectPill(this, loadChannelTimeline)">3d</button>
+                <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadChannelTimeline)">7d</button>
+                <button class="trend-tab" data-value="30" onclick="selectPill(this, loadChannelTimeline)">30d</button>
+            </div>
+        </div>
+        <div id="channel-loading" class="waiting" style="display:none;">
+            <div class="spinner"></div>
+        </div>
+        <div id="channel-empty" class="events-empty" style="display:none;"></div>
+        <div id="channel-charts" class="charts-grid" style="display:none;">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <div class="chart-header-content">
+                        <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <div class="chart-label">{{ t.power_history }}</div>
+                    </div>
+                    <button class="chart-expand-btn" data-chart="chart-ch-power" title="Expand">&#x26F6;</button>
+                </div>
+                <canvas id="chart-ch-power"></canvas>
+            </div>
+            <div class="chart-card" id="channel-errors-card">
+                <div class="chart-card-header">
+                    <div class="chart-header-content">
+                        <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div class="chart-label">{{ t.error_history }}</div>
+                    </div>
+                    <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand">&#x26F6;</button>
+                </div>
+                <canvas id="chart-ch-errors"></canvas>
+            </div>
+            <div class="chart-card" id="channel-modulation-card">
+                <div class="chart-card-header">
+                    <div class="chart-header-content">
+                        <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18"/>
+                            <path d="M7 12l4-4 4 4 4-4"/>
+                        </svg>
+                        <div class="chart-label">{{ t.modulation }}</div>
+                    </div>
+                    <button class="chart-expand-btn" data-chart="chart-ch-modulation" title="Expand">&#x26F6;</button>
+                </div>
+                <canvas id="chart-ch-modulation"></canvas>
+            </div>
+        </div>
     </div>
-    <div id="channel-empty" class="events-empty" style="display:none;"></div>
-    <div id="channel-charts" class="charts-grid" style="display:none;">
-        <!-- Power/SNR Chart -->
-        <div class="chart-card">
-            <div class="chart-card-header">
-                <div class="chart-header-content">
-                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                    </svg>
-                    <div class="chart-label">{{ t.power_history }}</div>
-                </div>
-                <button class="chart-expand-btn" data-chart="chart-ch-power" title="Expand">&#x26F6;</button>
+
+    <!-- ── Compare Sub-View ── -->
+    <div id="channel-panel-compare" style="display:none;">
+        <div class="compare-controls">
+            <div class="trend-tabs" id="compare-dir-tabs">
+                <button class="trend-tab active" data-value="ds" onclick="selectPill(this, onCompareDirectionChange)">{{ t.downstream }}</button>
+                <button class="trend-tab" data-value="us" onclick="selectPill(this, onCompareDirectionChange)">{{ t.upstream }}</button>
             </div>
-            <canvas id="chart-ch-power"></canvas>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <select id="compare-channel-select"><option value="">{{ t.select_channel }}</option></select>
+                <button class="compare-add-btn" onclick="addCompareChannel()">+ {{ t.add_channel }}</button>
+            </div>
+            <div class="trend-tabs" id="compare-time-tabs">
+                <button class="trend-tab" data-value="1" onclick="selectPill(this, loadCompareCharts)">1d</button>
+                <button class="trend-tab" data-value="3" onclick="selectPill(this, loadCompareCharts)">3d</button>
+                <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadCompareCharts)">7d</button>
+                <button class="trend-tab" data-value="30" onclick="selectPill(this, loadCompareCharts)">30d</button>
+            </div>
         </div>
-        
-        <!-- Errors Chart -->
-        <div class="chart-card" id="channel-errors-card">
-            <div class="chart-card-header">
-                <div class="chart-header-content">
-                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <div class="chart-label">{{ t.error_history }}</div>
-                </div>
-                <button class="chart-expand-btn" data-chart="chart-ch-errors" title="Expand">&#x26F6;</button>
-            </div>
-            <canvas id="chart-ch-errors"></canvas>
+        <div id="compare-chips" class="compare-chips"></div>
+        <div id="compare-empty" class="events-empty" style="display:none;"></div>
+        <div id="compare-loading" class="waiting" style="display:none;">
+            <div class="spinner"></div>
         </div>
-        
-        <!-- Modulation Chart -->
-        <div class="chart-card" id="channel-modulation-card">
-            <div class="chart-card-header">
-                <div class="chart-header-content">
-                    <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 3v18h18"/>
-                        <path d="M7 12l4-4 4 4 4-4"/>
-                    </svg>
-                    <div class="chart-label">{{ t.modulation }}</div>
+        <div id="compare-charts" class="charts-grid" style="display:none;">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <div class="chart-header-content">
+                        <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <div class="chart-label">{{ t.power_history }}</div>
+                    </div>
+                    <button class="chart-expand-btn" data-chart="chart-cmp-power" title="Expand">&#x26F6;</button>
                 </div>
-                <button class="chart-expand-btn" data-chart="chart-ch-modulation" title="Expand">&#x26F6;</button>
+                <canvas id="chart-cmp-power"></canvas>
             </div>
-            <canvas id="chart-ch-modulation"></canvas>
+            <div class="chart-card" id="compare-snr-card">
+                <div class="chart-card-header">
+                    <div class="chart-header-content">
+                        <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        <div class="chart-label">{{ t.snr_history }}</div>
+                    </div>
+                    <button class="chart-expand-btn" data-chart="chart-cmp-snr" title="Expand">&#x26F6;</button>
+                </div>
+                <canvas id="chart-cmp-snr"></canvas>
+            </div>
+            <div class="chart-card" id="compare-errors-card">
+                <div class="chart-card-header">
+                    <div class="chart-header-content">
+                        <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div class="chart-label">{{ t.error_history }}</div>
+                    </div>
+                    <button class="chart-expand-btn" data-chart="chart-cmp-errors" title="Expand">&#x26F6;</button>
+                </div>
+                <canvas id="chart-cmp-errors"></canvas>
+            </div>
+            <div class="chart-card" id="compare-modulation-card">
+                <div class="chart-card-header">
+                    <div class="chart-header-content">
+                        <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18"/>
+                            <path d="M7 12l4-4 4 4 4-4"/>
+                        </svg>
+                        <div class="chart-label">{{ t.modulation }}</div>
+                    </div>
+                    <button class="chart-expand-btn" data-chart="chart-cmp-modulation" title="Expand">&#x26F6;</button>
+                </div>
+                <canvas id="chart-cmp-modulation"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -2034,6 +2115,8 @@
         } else if (view === 'channels') {
             if (channelsView) channelsView.classList.add('active');
             loadChannelList();
+            var mode = getPillValue('channel-mode-tabs') || 'timeline';
+            if (mode === 'compare') loadCompareChannelList();
         } else if (view === 'correlation') {
             if (correlationView) correlationView.classList.add('active');
             loadCorrelationData();
@@ -2823,6 +2906,8 @@
                 fill: false
             };
             if (ds.stepped) { r.stepped = 'before'; r.tension = 0; }
+            if (ds.dashed) { r.borderDash = [5, 5]; }
+            if (ds.spanGaps !== undefined) { r.spanGaps = ds.spanGaps; }
             return r;
         });
         var hasLegend = datasets.length > 1;
@@ -2885,28 +2970,30 @@
             var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
             var textColor = isDark ? '#888' : '#666';
             
+            var isMulti = params.datasets.length > 1;
             var chartDatasets = params.datasets.map(function(ds) {
+                var lineColor = ds.color || 'rgba(168,85,247,0.9)';
                 var r = {
                     label: ds.label, data: ds.data,
-                    borderColor: params.type === 'bar' ? ds.color : 'rgba(168,85,247,0.9)',
-                    backgroundColor: params.type === 'bar' ? ds.color + 'cc' : function(context) {
-                        /* Phase 4.1: Create gradient dynamically during render */
+                    borderColor: params.type === 'bar' ? ds.color : lineColor,
+                    backgroundColor: params.type === 'bar' ? ds.color + 'cc' : (isMulti ? 'transparent' : function(context) {
                         var chart = context.chart;
                         var ctx = chart.ctx;
                         var chartArea = chart.chartArea;
-                        if (!chartArea) return 'rgba(168,85,247,0.25)'; /* Fallback */
+                        if (!chartArea) return 'rgba(168,85,247,0.25)';
                         var gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                        gradient.addColorStop(0, 'rgba(168,85,247,0.5)');  /* Increased from 0.3 */
+                        gradient.addColorStop(0, 'rgba(168,85,247,0.5)');
                         gradient.addColorStop(0.7, 'rgba(168,85,247,0.1)');
                         gradient.addColorStop(1, 'rgba(168,85,247,0)');
                         return gradient;
-                    },
+                    }),
                     borderWidth: params.type === 'bar' ? 3 : 2,
                     tension: params.type === 'bar' ? 0.3 : 0.4,
                     pointRadius: params.labels.length > 30 ? 2 : 4,
-                    fill: params.type !== 'bar'
+                    fill: isMulti ? false : params.type !== 'bar'
                 };
                 if (ds.stepped) { r.stepped = 'before'; r.tension = 0; }
+                if (ds.dashed) { r.borderDash = [5, 5]; }
                 return r;
             });
             var hasLegend = params.datasets.length > 1;
@@ -3518,6 +3605,22 @@
         .then(function(data) { updateEventBadge(data.count || 0); })
         .catch(function() {});
 
+    /* ── Channel Mode Switch (Timeline / Compare) ── */
+    function switchChannelMode() {
+        var mode = getPillValue('channel-mode-tabs') || 'timeline';
+        var timelinePanel = document.getElementById('channel-panel-timeline');
+        var comparePanel = document.getElementById('channel-panel-compare');
+        if (mode === 'compare') {
+            timelinePanel.style.display = 'none';
+            comparePanel.style.display = '';
+            loadCompareChannelList();
+        } else {
+            timelinePanel.style.display = '';
+            comparePanel.style.display = 'none';
+        }
+    }
+    window.switchChannelMode = switchChannelMode;
+
     /* ── Channel Timeline ── */
     var _channelsLoaded = false;
 
@@ -3658,6 +3761,263 @@
             });
     }
     window.loadChannelTimeline = loadChannelTimeline;
+
+    /* ── Channel Compare ── */
+    var _compareChannels = [];
+    var _compareColors = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4'];
+    var _compareChannelData = null;
+
+    function loadCompareChannelList() {
+        var dir = getPillValue('compare-dir-tabs') || 'ds';
+        var sel = document.getElementById('compare-channel-select');
+        fetch('/api/channels')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                sel.innerHTML = '<option value="">' + (T.select_channel || 'Select Channel') + '</option>';
+                var channels = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
+                channels.forEach(function(ch) {
+                    var already = _compareChannels.some(function(c) { return c.id === ch.channel_id; });
+                    if (already) return;
+                    var opt = document.createElement('option');
+                    opt.value = ch.channel_id;
+                    opt.dataset.docsis = ch.docsis_version || '3.0';
+                    opt.dataset.freq = ch.frequency || '';
+                    var prefix = dir === 'ds' ? 'DS' : 'US';
+                    opt.textContent = prefix + ' ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
+                    sel.appendChild(opt);
+                });
+            })
+            .catch(function() {});
+    }
+
+    function onCompareDirectionChange() {
+        _compareChannels = [];
+        renderCompareChips();
+        var chartsEl = document.getElementById('compare-charts');
+        var emptyEl = document.getElementById('compare-empty');
+        chartsEl.style.display = 'none';
+        emptyEl.style.display = 'none';
+        // Destroy existing compare charts
+        ['chart-cmp-power', 'chart-cmp-snr', 'chart-cmp-errors', 'chart-cmp-modulation'].forEach(function(id) {
+            if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+        });
+        loadCompareChannelList();
+    }
+    window.onCompareDirectionChange = onCompareDirectionChange;
+
+    function addCompareChannel() {
+        var sel = document.getElementById('compare-channel-select');
+        var opt = sel.options[sel.selectedIndex];
+        if (!opt || !opt.value) return;
+        if (_compareChannels.length >= 6) {
+            alert(T.max_channels_reached || 'Maximum 6 channels');
+            return;
+        }
+        var id = parseInt(opt.value);
+        if (_compareChannels.some(function(c) { return c.id === id; })) return;
+        var dir = getPillValue('compare-dir-tabs') || 'ds';
+        var prefix = dir === 'ds' ? 'DS' : 'US';
+        _compareChannels.push({
+            id: id,
+            label: prefix + ' ' + id + ' (' + (opt.dataset.freq || '') + ')',
+            color: _compareColors[_compareChannels.length],
+            docsis: opt.dataset.docsis || '3.0'
+        });
+        renderCompareChips();
+        loadCompareChannelList();
+        loadCompareCharts();
+    }
+    window.addCompareChannel = addCompareChannel;
+
+    function removeCompareChannel(id) {
+        _compareChannels = _compareChannels.filter(function(c) { return c.id !== id; });
+        // Re-assign colors sequentially
+        _compareChannels.forEach(function(c, i) { c.color = _compareColors[i]; });
+        renderCompareChips();
+        loadCompareChannelList();
+        if (_compareChannels.length > 0) {
+            loadCompareCharts();
+        } else {
+            document.getElementById('compare-charts').style.display = 'none';
+            ['chart-cmp-power', 'chart-cmp-snr', 'chart-cmp-errors', 'chart-cmp-modulation'].forEach(function(id) {
+                if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+            });
+        }
+    }
+    window.removeCompareChannel = removeCompareChannel;
+
+    function renderCompareChips() {
+        var container = document.getElementById('compare-chips');
+        container.innerHTML = '';
+        _compareChannels.forEach(function(ch) {
+            var chip = document.createElement('span');
+            chip.className = 'compare-chip';
+            chip.style.backgroundColor = ch.color;
+            chip.innerHTML = ch.label + ' <button class="compare-chip-remove" onclick="removeCompareChannel(' + ch.id + ')">&times;</button>';
+            container.appendChild(chip);
+        });
+    }
+
+    function loadCompareCharts() {
+        var chartsEl = document.getElementById('compare-charts');
+        var emptyEl = document.getElementById('compare-empty');
+        var loadingEl = document.getElementById('compare-loading');
+        if (_compareChannels.length === 0) {
+            chartsEl.style.display = 'none';
+            emptyEl.textContent = T.no_channels_selected || 'Select channels to compare';
+            emptyEl.style.display = '';
+            return;
+        }
+        var dir = getPillValue('compare-dir-tabs') || 'ds';
+        var days = getPillValue('compare-time-tabs') || '7';
+        var ids = _compareChannels.map(function(c) { return c.id; }).join(',');
+
+        loadingEl.style.display = '';
+        chartsEl.style.display = 'none';
+        emptyEl.style.display = 'none';
+
+        fetch('/api/channel-compare?channels=' + ids + '&direction=' + dir + '&days=' + days)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                loadingEl.style.display = 'none';
+                _compareChannelData = data;
+
+                // Build unified timestamp list from all channels
+                var tsSet = {};
+                _compareChannels.forEach(function(ch) {
+                    var chData = data[String(ch.id)] || [];
+                    chData.forEach(function(d) { tsSet[d.timestamp] = true; });
+                });
+                var timestamps = Object.keys(tsSet).sort();
+                if (timestamps.length === 0) {
+                    emptyEl.textContent = T.no_channel_data || 'No data available.';
+                    emptyEl.style.display = '';
+                    return;
+                }
+                chartsEl.style.display = '';
+
+                var xLabels = timestamps.map(function(ts) {
+                    if (parseInt(days) <= 1) return ts.substring(11, 16);
+                    return ts.substring(5, 16).replace('T', ' ');
+                });
+
+                // Build lookup maps per channel: timestamp -> data point
+                var lookups = {};
+                _compareChannels.forEach(function(ch) {
+                    var map = {};
+                    (data[String(ch.id)] || []).forEach(function(d) { map[d.timestamp] = d; });
+                    lookups[ch.id] = map;
+                });
+
+                // Power Chart
+                var powerDatasets = _compareChannels.map(function(ch) {
+                    return {
+                        label: 'CH ' + ch.id,
+                        data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.power : null; }),
+                        color: ch.color
+                    };
+                });
+                var powerThresholds = dir === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
+                renderChart('chart-cmp-power', xLabels, powerDatasets, null, powerThresholds);
+
+                // SNR Chart (DS only)
+                var snrCard = document.getElementById('compare-snr-card');
+                if (dir === 'ds') {
+                    snrCard.style.display = '';
+                    var snrDatasets = _compareChannels.map(function(ch) {
+                        return {
+                            label: 'CH ' + ch.id,
+                            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.snr : null; }),
+                            color: ch.color
+                        };
+                    });
+                    renderChart('chart-cmp-snr', xLabels, snrDatasets, null, DS_SNR_THRESHOLDS);
+                } else {
+                    snrCard.style.display = 'none';
+                }
+
+                // Errors Chart (DS only, lines not bars)
+                var errorsCard = document.getElementById('compare-errors-card');
+                if (dir === 'ds') {
+                    errorsCard.style.display = '';
+                    var errorDatasets = [];
+                    _compareChannels.forEach(function(ch) {
+                        errorDatasets.push({
+                            label: 'CH ' + ch.id + ' ' + (T.uncorrectable || 'Uncorr.'),
+                            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.uncorrectable_errors : null; }),
+                            color: ch.color
+                        });
+                        errorDatasets.push({
+                            label: 'CH ' + ch.id + ' ' + (T.correctable || 'Corr.'),
+                            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.correctable_errors : null; }),
+                            color: ch.color,
+                            dashed: true
+                        });
+                    });
+                    renderChart('chart-cmp-errors', xLabels, errorDatasets);
+                } else {
+                    errorsCard.style.display = 'none';
+                }
+
+                // Modulation Chart
+                var modCard = document.getElementById('compare-modulation-card');
+                var hasMod = false;
+                _compareChannels.forEach(function(ch) {
+                    var chData = data[String(ch.id)] || [];
+                    if (chData.some(function(d) { return d.modulation; })) hasMod = true;
+                });
+                if (!hasMod) {
+                    modCard.style.display = 'none';
+                } else {
+                    modCard.style.display = '';
+                    // Collect all unique QAM values
+                    var allQam = {};
+                    _compareChannels.forEach(function(ch) {
+                        (data[String(ch.id)] || []).forEach(function(d) {
+                            if (d.modulation) allQam[d.modulation] = true;
+                        });
+                    });
+                    var qamNames = Object.keys(allQam).sort(function(a, b) {
+                        var na = parseInt(a) || 0, nb = parseInt(b) || 0;
+                        return na - nb;
+                    });
+                    var qamMap = {};
+                    qamNames.forEach(function(name, idx) { qamMap[name] = idx; });
+                    var qamLabel = {};
+                    qamNames.forEach(function(name, idx) { qamLabel[idx] = name; });
+
+                    var modDatasets = _compareChannels.map(function(ch) {
+                        return {
+                            label: 'CH ' + ch.id,
+                            data: timestamps.map(function(ts) {
+                                var d = lookups[ch.id][ts];
+                                if (!d || !d.modulation) return null;
+                                return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : null;
+                            }),
+                            color: ch.color,
+                            stepped: true
+                        };
+                    });
+                    var tickValues = [];
+                    for (var qi = 0; qi < qamNames.length; qi++) tickValues.push(qi);
+                    renderChart('chart-cmp-modulation', xLabels, modDatasets, null, null, {
+                        yTickCallback: function(value) { return qamLabel[value] || ''; },
+                        tooltipLabelCallback: function(ctx) { return ctx.dataset.label + ': ' + (qamLabel[ctx.raw] || ctx.raw); },
+                        yMin: -0.5,
+                        yMax: qamNames.length - 0.5,
+                        yAfterBuildTicks: function(axis) {
+                            axis.ticks = tickValues.map(function(v) { return {value: v}; });
+                        }
+                    });
+                }
+            })
+            .catch(function() {
+                loadingEl.style.display = 'none';
+                emptyEl.textContent = T.trend_error || 'Error loading data.';
+                emptyEl.style.display = '';
+            });
+    }
+    window.loadCompareCharts = loadCompareCharts;
 
     function updateModalIcon() {
         var iconEl = document.getElementById('entry-modal-icon');

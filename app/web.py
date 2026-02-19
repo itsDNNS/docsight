@@ -1813,6 +1813,34 @@ def api_channel_history():
     return jsonify(_storage.get_channel_history(channel_id, direction, days))
 
 
+@app.route("/api/channel-compare")
+@require_auth
+def api_channel_compare():
+    """Return per-channel time series for multiple channels.
+    ?channels=1,2,3&direction=ds|us&days=7"""
+    if not _storage:
+        return jsonify({})
+    channels_param = request.args.get("channels", "")
+    direction = request.args.get("direction", "ds")
+    days = request.args.get("days", 7, type=int)
+    if not channels_param:
+        return jsonify({"error": "channels parameter is required"}), 400
+    if direction not in ("ds", "us"):
+        return jsonify({"error": "direction must be 'ds' or 'us'"}), 400
+    days = max(1, min(days, 90))
+    try:
+        channel_ids = [int(c.strip()) for c in channels_param.split(",") if c.strip()]
+    except ValueError:
+        return jsonify({"error": "channels must be comma-separated integers"}), 400
+    if len(channel_ids) > 6:
+        return jsonify({"error": "maximum 6 channels"}), 400
+    if not channel_ids:
+        return jsonify({"error": "at least one channel required"}), 400
+    result = _storage.get_multi_channel_history(channel_ids, direction, days)
+    # Convert int keys to strings for JSON
+    return jsonify({str(k): v for k, v in result.items()})
+
+
 # ── Cross-Source Correlation API ──
 
 @app.route("/api/correlation")
