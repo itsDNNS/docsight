@@ -514,6 +514,10 @@
                 <span class="icon"><i data-lucide="settings"></i></span>
                 {{ t.step_general }}
             </a>
+            <a class="settings-nav-link" data-section="backup" onclick="switchSection('backup')">
+                <span class="icon"><i data-lucide="hard-drive-download"></i></span>
+                {{ t.backup_title }}
+            </a>
 
             <div class="settings-section-label">Integrations</div>
             <a class="settings-nav-link" data-section="notifications" onclick="switchSection('notifications')">
@@ -699,6 +703,106 @@
                                 <input type="password" id="admin_password" name="admin_password" value="{{ config.admin_password }}" placeholder="{{ t.admin_password_hint }}">
                                 <span class="hint">{{ t.admin_password_hint }}</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ Panel: Backup ═══ -->
+                <div class="settings-panel" id="panel-backup">
+                    <!-- Manual Backup -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="hard-drive-download"></i></div>
+                            <div>
+                                <div class="settings-card-title">{{ t.backup_title }}</div>
+                                <div class="settings-card-desc">{{ t.backup_desc }}</div>
+                            </div>
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" class="btn btn-primary" onclick="downloadBackup()" id="backup-download-btn">
+                                <i data-lucide="download" style="width:16px;height:16px;"></i>
+                                {{ t.backup_download }}
+                            </button>
+                        </div>
+                        <div class="test-result" id="backup-download-result"></div>
+                    </div>
+
+                    <!-- Automatic Backups -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="clock"></i></div>
+                            <div>
+                                <div class="settings-card-title">{{ t.backup_auto_label }}</div>
+                                <div class="settings-card-desc">{{ t.backup_auto_hint }}</div>
+                            </div>
+                        </div>
+
+                        <div class="toggle-option-row">
+                            <div class="toggle-option-text">
+                                <span class="toggle-option-label">{{ t.enabled }}</span>
+                            </div>
+                            <input type="hidden" name="backup_enabled" value="false">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="backup_enabled" name="backup_enabled" value="true" {% if config.backup_enabled %}checked{% endif %}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div id="backup-auto-settings" style="{% if not config.backup_enabled %}opacity:0.5;pointer-events:none;{% endif %}">
+                            <div class="form-row" style="margin-top:16px;">
+                                <label>{{ t.backup_path }}</label>
+                                <div style="display:flex;gap:8px;">
+                                    <input type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly style="flex:1;cursor:pointer;background:var(--bg);">
+                                    <button type="button" class="btn btn-secondary" onclick="openBrowseModal()" style="white-space:nowrap;">
+                                        <i data-lucide="folder-open" style="width:14px;height:14px;"></i>
+                                        {{ t.backup_browse }}
+                                    </button>
+                                </div>
+                                <span class="hint">{{ t.backup_path_hint }}</span>
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-row">
+                                    <label for="backup_interval_hours">{{ t.backup_interval }}</label>
+                                    <select id="backup_interval_hours" name="backup_interval_hours">
+                                        <option value="24" {% if config.backup_interval_hours == 24 or not config.backup_interval_hours %}selected{% endif %}>{{ t.backup_daily }}</option>
+                                        <option value="168" {% if config.backup_interval_hours == 168 %}selected{% endif %}>{{ t.backup_weekly }}</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <label for="backup_retention">{{ t.backup_retention }}</label>
+                                    <input type="number" id="backup_retention" name="backup_retention" value="{{ config.backup_retention or 5 }}" min="1" max="100">
+                                    <span class="hint">{{ t.backup_retention_hint }}</span>
+                                </div>
+                            </div>
+                            <div class="btn-row">
+                                <button type="button" class="btn btn-secondary" onclick="backupNow()">
+                                    <i data-lucide="save" style="width:14px;height:14px;"></i>
+                                    {{ t.backup_now }}
+                                </button>
+                            </div>
+                            <div class="test-result" id="backup-now-result"></div>
+
+                            <!-- Existing Backups List -->
+                            <div style="margin-top:24px;">
+                                <label style="font-size:0.875em;color:var(--text-secondary);font-weight:500;margin-bottom:8px;display:block;">{{ t.backup_existing }}</label>
+                                <div id="backup-list" style="font-size:0.85em;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ Directory Browser Modal ═══ -->
+                <div id="browse-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+                    <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);width:480px;max-width:90vw;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+                        <div style="padding:20px 24px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;justify-content:space-between;">
+                            <span style="font-weight:600;font-size:1.05em;color:var(--text);">{{ t.backup_select_dir }}</span>
+                            <button type="button" onclick="closeBrowseModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2em;padding:4px;">&#10005;</button>
+                        </div>
+                        <div id="browse-breadcrumb" style="padding:12px 24px;font-family:monospace;font-size:0.85em;color:var(--text-secondary);background:var(--bg);border-bottom:1px solid var(--card-border);word-break:break-all;"></div>
+                        <div id="browse-dirs" style="flex:1;overflow-y:auto;padding:8px 16px;min-height:200px;"></div>
+                        <div style="padding:16px 24px;border-top:1px solid var(--card-border);display:flex;gap:12px;justify-content:flex-end;">
+                            <button type="button" class="btn btn-secondary" onclick="closeBrowseModal()">{{ t.cancel }}</button>
+                            <button type="button" class="btn btn-primary" onclick="selectBrowsePath()">{{ t.backup_select }}</button>
                         </div>
                     </div>
                 </div>
@@ -987,6 +1091,7 @@ var T = {{ t|tojson }};
 var SECTION_TITLES = {
     modem: T.step_modem || 'Modem',
     general: T.step_general || 'General',
+    backup: T.backup_title || 'Backup',
     notifications: 'Notifications',
     speedtest: 'Speedtest Tracker',
     bqm: 'ThinkBroadband BQM',
@@ -1314,6 +1419,189 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
     updateTzHint();
     inp.addEventListener('change', updateTzHint);
 })();
+
+/* ── Backup ── */
+function downloadBackup() {
+    var btn = document.getElementById('backup-download-btn');
+    var el = document.getElementById('backup-download-result');
+    btn.disabled = true;
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.innerHTML = '<span>&#8987;</span> ' + (T.backup_creating || 'Creating backup...');
+    fetch('/api/backup', { method: 'POST' })
+    .then(function(r) {
+        if (!r.ok) return r.json().then(function(j) { throw new Error(j.error || 'Backup failed'); });
+        var cd = r.headers.get('Content-Disposition') || '';
+        var match = cd.match(/filename="?([^"]+)"?/);
+        var fname = match ? match[1] : 'docsight_backup.tar.gz';
+        return r.blob().then(function(blob) { return { blob: blob, fname: fname }; });
+    })
+    .then(function(res) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(res.blob);
+        a.download = res.fname;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        el.className = 'test-result test-ok';
+        el.innerHTML = '<span class="check-icon">&#10003;</span> ' + (T.backup_success || 'Backup downloaded');
+        btn.disabled = false;
+    })
+    .catch(function(err) {
+        el.className = 'test-result test-fail';
+        el.innerHTML = '<span>&#10007;</span> ' + escHtml(err.message || T.network_error);
+        btn.disabled = false;
+    });
+}
+
+function backupNow() {
+    var el = document.getElementById('backup-now-result');
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.innerHTML = '<span>&#8987;</span> ' + (T.backup_creating || 'Creating backup...');
+    fetch('/api/backup/scheduled', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            el.className = 'test-result test-ok';
+            el.innerHTML = '<span class="check-icon">&#10003;</span> ' + (T.backup_saved || 'Backup saved') + ': ' + escHtml(res.filename);
+            loadBackupList();
+        } else {
+            el.className = 'test-result test-fail';
+            el.innerHTML = '<span>&#10007;</span> ' + escHtml(res.error || 'Failed');
+        }
+    })
+    .catch(function() {
+        el.className = 'test-result test-fail';
+        el.innerHTML = '<span>&#10007;</span> ' + T.network_error;
+    });
+}
+
+function loadBackupList() {
+    var el = document.getElementById('backup-list');
+    if (!el) return;
+    fetch('/api/backup/list')
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (!res.backups || res.backups.length === 0) {
+            el.innerHTML = '<span style="color:var(--muted);font-style:italic;">' + (T.backup_none || 'No backups found') + '</span>';
+            return;
+        }
+        var html = '<table style="width:100%;border-collapse:collapse;">';
+        html += '<tbody>';
+        res.backups.forEach(function(b) {
+            var sizeMB = (b.size / 1048576).toFixed(1);
+            var date = new Date(b.modified * 1000).toLocaleString();
+            html += '<tr style="border-bottom:1px solid var(--card-border);">';
+            html += '<td style="padding:6px 0;"><code style="font-size:0.8em;">' + escHtml(b.filename) + '</code></td>';
+            html += '<td style="padding:6px 8px;color:var(--muted);font-size:0.8em;white-space:nowrap;">' + date + '</td>';
+            html += '<td style="padding:6px 8px;color:var(--muted);font-size:0.8em;white-space:nowrap;">' + sizeMB + ' MB</td>';
+            html += '<td style="padding:6px 0;text-align:right;"><button type="button" class="btn btn-secondary" style="padding:2px 8px;font-size:0.75em;" onclick="deleteBackup(\'' + escHtml(b.filename).replace(/'/g, "\\'") + '\')"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button></td>';
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        el.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    })
+    .catch(function() {
+        el.innerHTML = '<span style="color:var(--error);">' + T.network_error + '</span>';
+    });
+}
+
+function deleteBackup(filename) {
+    if (!confirm(T.backup_delete_confirm || 'Delete this backup?')) return;
+    fetch('/api/backup/' + encodeURIComponent(filename), { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            loadBackupList();
+        } else {
+            alert(res.error || 'Failed');
+        }
+    })
+    .catch(function() { alert(T.network_error); });
+}
+
+/* ── Directory Browser ── */
+var _browsePath = '/backup';
+
+function openBrowseModal() {
+    var modal = document.getElementById('browse-modal');
+    modal.style.display = 'flex';
+    _browsePath = document.getElementById('backup_path').value || '/backup';
+    browseTo(_browsePath);
+}
+
+function closeBrowseModal() {
+    document.getElementById('browse-modal').style.display = 'none';
+}
+
+function selectBrowsePath() {
+    document.getElementById('backup_path').value = _browsePath;
+    closeBrowseModal();
+}
+
+function browseTo(path) {
+    _browsePath = path;
+    var bc = document.getElementById('browse-breadcrumb');
+    var dirs = document.getElementById('browse-dirs');
+    bc.textContent = path;
+    dirs.innerHTML = '<div style="padding:16px;color:var(--muted);text-align:center;">&#8987; Loading...</div>';
+    fetch('/api/browse?path=' + encodeURIComponent(path))
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.error) {
+            dirs.innerHTML = '<div style="padding:16px;color:var(--error);">' + escHtml(res.error) + '</div>';
+            return;
+        }
+        _browsePath = res.path;
+        bc.textContent = res.path;
+        var html = '';
+        if (res.parent) {
+            html += '<div class="browse-item" onclick="browseTo(\'' + escHtml(res.parent).replace(/'/g, "\\'") + '\')" style="padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-radius:var(--radius-sm);">';
+            html += '<i data-lucide="corner-left-up" style="width:16px;height:16px;color:var(--muted);"></i>';
+            html += '<span style="color:var(--muted);">..</span></div>';
+        }
+        if (res.directories.length === 0 && !res.parent) {
+            html += '<div style="padding:16px;color:var(--muted);text-align:center;font-style:italic;">' + (T.backup_empty_dir || 'Empty directory') + '</div>';
+        }
+        res.directories.forEach(function(d) {
+            html += '<div class="browse-item" onclick="browseTo(\'' + escHtml(d.path).replace(/'/g, "\\'") + '\')" style="padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-radius:var(--radius-sm);">';
+            html += '<i data-lucide="folder" style="width:16px;height:16px;color:var(--accent);"></i>';
+            html += '<span>' + escHtml(d.name) + '</span></div>';
+        });
+        dirs.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        /* Hover effect */
+        dirs.querySelectorAll('.browse-item').forEach(function(item) {
+            item.addEventListener('mouseenter', function() { this.style.background = 'var(--hover-bg)'; });
+            item.addEventListener('mouseleave', function() { this.style.background = ''; });
+        });
+    })
+    .catch(function() {
+        dirs.innerHTML = '<div style="padding:16px;color:var(--error);">' + T.network_error + '</div>';
+    });
+}
+
+/* ── Backup Toggle ── */
+(function() {
+    var cb = document.getElementById('backup_enabled');
+    var settings = document.getElementById('backup-auto-settings');
+    if (cb && settings) {
+        cb.addEventListener('change', function() {
+            settings.style.opacity = cb.checked ? '1' : '0.5';
+            settings.style.pointerEvents = cb.checked ? 'auto' : 'none';
+        });
+    }
+})();
+
+/* ── Load backup list when switching to backup section ── */
+var _origSwitchSection = switchSection;
+switchSection = function(id) {
+    _origSwitchSection(id);
+    if (id === 'backup') loadBackupList();
+};
 </script>
 
 <script>

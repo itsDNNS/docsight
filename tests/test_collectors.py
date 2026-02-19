@@ -488,13 +488,14 @@ class TestBQMCollector:
 
 
 class TestDiscoverCollectors:
-    def _make_config_mgr(self, poll_interval=60, bnetz_watch=False):
+    def _make_config_mgr(self, poll_interval=60, bnetz_watch=False, backup=False):
         mgr = MagicMock()
         mgr.is_demo_mode.return_value = False
         mgr.is_configured.return_value = True
         mgr.is_speedtest_configured.return_value = True
         mgr.is_bqm_configured.return_value = True
         mgr.is_bnetz_watch_configured.return_value = bnetz_watch
+        mgr.is_backup_configured.return_value = backup
         mgr.get_all.return_value = {
             "modem_type": "fritzbox",
             "modem_url": "http://fritz.box",
@@ -681,6 +682,8 @@ class TestPollingLoopOrchestrator:
         mgr.is_bqm_configured.return_value = False
         mgr.is_demo_mode.return_value = False
         mgr.is_configured.return_value = True
+        mgr.is_bnetz_watch_configured.return_value = False
+        mgr.is_backup_configured.return_value = False
         mgr.get.return_value = ""
         return mgr
 

@@ -9,9 +9,11 @@ services:
       - "8767:8765"
     volumes:
       - docsight_v2_dev_data:/data
+      - docsight_v2_dev_backup:/backup
     environment:
       - TZ=Europe/Berlin
       - DEMO_MODE=true
 
 volumes:
   docsight_v2_dev_data:
+  docsight_v2_dev_backup:
