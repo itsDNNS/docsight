@@ -59,6 +59,10 @@ DEFAULTS = {
     "notify_cooldowns": "{}",
     "bnetz_watch_enabled": False,
     "bnetz_watch_dir": "/data/bnetz",
+    "backup_enabled": False,
+    "backup_path": "/backup",
+    "backup_interval_hours": 24,
+    "backup_retention": 5,
 }
 
 ENV_MAP = {
@@ -112,8 +116,8 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled"}
+INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown", "backup_interval_hours", "backup_retention"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled", "backup_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
@@ -343,6 +347,13 @@ class ConfigManager:
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set, or demo mode is active."""
         return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token")) or self.is_demo_mode()
+
+    def is_backup_configured(self):
+        """True if automatic backups are enabled and a backup path is set."""
+        val = self.get("backup_enabled")
+        if isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes")
+        return bool(val) and bool(self.get("backup_path"))
 
     def get_theme(self):
         """Return 'dark' or 'light'."""

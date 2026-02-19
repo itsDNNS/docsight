@@ -326,8 +326,58 @@
     <p class="setup-subtitle">{{ t.setup_welcome|default('Configure your DOCSight instance') }}</p>
 </div>
 
+<!-- Start Choice -->
+<div id="setup-start" class="step-content active">
+    <div class="setup-card" style="text-align:center;padding:40px 28px;">
+        <div style="font-size:2.5rem;margin-bottom:16px;">🚀</div>
+        <div class="card-title" style="font-size:1.25rem;margin-bottom:8px;">{{ t.setup_start_title|default('How would you like to start?') }}</div>
+        <div class="card-desc" style="margin-bottom:32px;">{{ t.setup_start_desc|default('Set up a new instance or restore from a previous backup.') }}</div>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" onclick="startFreshSetup()" style="min-width:200px;">
+                ⚙️ {{ t.setup_fresh|default('New Setup') }}
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="startRestore()" style="min-width:200px;">
+                📦 {{ t.setup_restore|default('Restore from Backup') }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Restore UI -->
+<div id="restore-section" style="display:none;">
+    <div class="setup-card">
+        <div class="card-header">
+            <div class="card-icon">📦</div>
+            <div>
+                <div class="card-title">{{ t.restore_title|default('Restore from Backup') }}</div>
+                <div class="card-desc">{{ t.restore_desc|default('Upload a DOCSight backup file to restore your data.') }}</div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label for="restore-file">{{ t.restore_select_file|default('Select backup file (.tar.gz)') }}</label>
+            <input type="file" id="restore-file" accept=".tar.gz,.gz" style="padding:10px;" onchange="validateRestoreFile()">
+        </div>
+
+        <div id="restore-meta" style="display:none;">
+            <div class="info-box" id="restore-meta-info"></div>
+            <button type="button" class="btn btn-primary" onclick="doRestore()" id="restore-confirm-btn">
+                📦 {{ t.restore_confirm|default('Restore Backup') }}
+            </button>
+        </div>
+
+        <div class="test-result" id="restore-result"></div>
+
+        <div class="button-group" style="margin-top:20px;">
+            <button type="button" class="btn btn-secondary" onclick="backToStart()">
+                ← {{ t.back|default('Back') }}
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Stepper -->
-<div class="stepper">
+<div class="stepper" id="setup-stepper" style="display:none;">
     <div class="stepper-step active" data-step="1">
         <div class="stepper-circle">1</div>
         <span class="stepper-label">{{ t.modem_connection|default('Modem') }}</span>
@@ -344,7 +394,7 @@
     </div>
 </div>
 
-<form id="setup-form" method="POST" action="/api/config">
+<form id="setup-form" method="POST" action="/api/config" style="display:none;">
 
 <!-- Step 1: Modem Connection -->
 <div class="step-content active" data-step="1">
@@ -655,6 +705,149 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleUsernameField();
     document.getElementById('modem_type').addEventListener('change', toggleUsernameField);
 });
+
+/* ── Setup Start Choice ── */
+function startFreshSetup() {
+    document.getElementById('setup-start').style.display = 'none';
+    document.getElementById('setup-stepper').style.display = '';
+    document.getElementById('setup-form').style.display = '';
+}
+
+function startRestore() {
+    document.getElementById('setup-start').style.display = 'none';
+    document.getElementById('restore-section').style.display = '';
+}
+
+function backToStart() {
+    document.getElementById('restore-section').style.display = 'none';
+    document.getElementById('setup-stepper').style.display = 'none';
+    document.getElementById('setup-form').style.display = 'none';
+    document.getElementById('setup-start').style.display = '';
+    // Reset restore state
+    document.getElementById('restore-file').value = '';
+    document.getElementById('restore-meta').style.display = 'none';
+    document.getElementById('restore-result').style.display = 'none';
+}
+
+/* ── Restore Flow ── */
+var T_setup = {
+    validating: '{{ t.restore_validating|default("Validating...")|e }}',
+    restoring: '{{ t.restore_restoring|default("Restoring...")|e }}',
+    success: '{{ t.restore_success|default("Restore complete! Redirecting...")|e }}',
+    version: '{{ t.restore_version|default("Version")|e }}',
+    date: '{{ t.restore_date|default("Date")|e }}',
+    tables: '{{ t.restore_tables|default("Tables")|e }}',
+    network_error: '{{ t.network_error|default("Network error")|e }}'
+};
+
+async function validateRestoreFile() {
+    var fileInput = document.getElementById('restore-file');
+    var metaDiv = document.getElementById('restore-meta');
+    var resultDiv = document.getElementById('restore-result');
+    metaDiv.style.display = 'none';
+    resultDiv.style.display = 'none';
+
+    if (!fileInput.files.length) return;
+
+    resultDiv.className = 'test-result';
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = 'rgba(168,85,247,0.08)';
+    resultDiv.style.border = '1px solid rgba(168,85,247,0.2)';
+    resultDiv.style.color = 'var(--text-secondary)';
+    resultDiv.textContent = '⏳ ' + T_setup.validating;
+
+    var formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+        var response = await fetch('/api/restore/validate', { method: 'POST', body: formData });
+        var res = await response.json();
+
+        if (res.valid) {
+            resultDiv.style.display = 'none';
+            var meta = res.meta;
+            var date = meta.timestamp ? new Date(meta.timestamp).toLocaleString() : '?';
+            var tables = '';
+            if (meta.tables) {
+                var tkeys = Object.keys(meta.tables);
+                tables = tkeys.map(function(k) { return k + ': ' + meta.tables[k]; }).join(', ');
+            }
+            var info = document.getElementById('restore-meta-info');
+            info.innerHTML = '<strong>' + T_setup.version + ':</strong> ' + (meta.app_version || '?') +
+                '<br><strong>' + T_setup.date + ':</strong> ' + date +
+                (tables ? '<br><strong>' + T_setup.tables + ':</strong> ' + tables : '');
+            metaDiv.style.display = '';
+        } else {
+            resultDiv.className = 'test-result error';
+            resultDiv.style.background = '';
+            resultDiv.style.border = '';
+            resultDiv.style.color = '';
+            resultDiv.textContent = '✗ ' + (res.error || 'Invalid backup file');
+        }
+    } catch(err) {
+        resultDiv.className = 'test-result error';
+        resultDiv.style.background = '';
+        resultDiv.style.border = '';
+        resultDiv.style.color = '';
+        resultDiv.textContent = '✗ ' + T_setup.network_error + ': ' + err.message;
+    }
+}
+
+async function doRestore() {
+    var fileInput = document.getElementById('restore-file');
+    var btn = document.getElementById('restore-confirm-btn');
+    var resultDiv = document.getElementById('restore-result');
+
+    if (!fileInput.files.length) return;
+
+    btn.disabled = true;
+    resultDiv.className = 'test-result';
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = 'rgba(168,85,247,0.08)';
+    resultDiv.style.border = '1px solid rgba(168,85,247,0.2)';
+    resultDiv.style.color = 'var(--text-secondary)';
+    resultDiv.textContent = '⏳ ' + T_setup.restoring;
+
+    var formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+        var response = await fetch('/api/restore', { method: 'POST', body: formData });
+        var res = await response.json();
+
+        if (res.success) {
+            resultDiv.className = 'test-result success';
+            resultDiv.style.background = '';
+            resultDiv.style.border = '';
+            resultDiv.style.color = '';
+            resultDiv.textContent = '✓ ' + T_setup.success;
+            if (res.configured) {
+                setTimeout(function() { window.location.href = '/'; }, 2000);
+            } else {
+                // Data restored but modem not configured yet -- show setup stepper
+                setTimeout(function() {
+                    document.getElementById('restore-section').style.display = 'none';
+                    document.getElementById('setup-stepper').style.display = '';
+                    document.getElementById('setup-form').style.display = '';
+                }, 2000);
+            }
+        } else {
+            resultDiv.className = 'test-result error';
+            resultDiv.style.background = '';
+            resultDiv.style.border = '';
+            resultDiv.style.color = '';
+            resultDiv.textContent = '✗ ' + (res.error || 'Restore failed');
+            btn.disabled = false;
+        }
+    } catch(err) {
+        resultDiv.className = 'test-result error';
+        resultDiv.style.background = '';
+        resultDiv.style.border = '';
+        resultDiv.style.color = '';
+        resultDiv.textContent = '✗ ' + T_setup.network_error + ': ' + err.message;
+        btn.disabled = false;
+    }
+}
 </script>
 
 </body>
