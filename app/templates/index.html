@@ -750,6 +750,11 @@
             <span id="bqm-month-label" class="bqm-month-label"></span>
             <button id="bqm-month-next" class="bqm-nav-btn">&#8250;</button>
         </div>
+        <button class="bqm-nav-btn bqm-import-btn" onclick="openBqmImportModal()" title="{{ t.bqm_import_title }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+        </button>
     </div>
     <!-- Calendar grid -->
     <div id="bqm-calendar" class="bqm-calendar">
@@ -795,6 +800,59 @@
     </div>
 </div>
 {% endif %}
+
+<!-- ═══ BQM Import Modal ═══ -->
+<div class="modal-overlay" id="bqm-import-modal" onclick="if(event.target===this)closeBqmImportModal()">
+    <div class="modal" style="max-width:800px;">
+        <div class="modal-header">
+            <h2>{{ t.bqm_import_title }}</h2>
+            <button class="modal-close" onclick="closeBqmImportModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="overflow-y:auto;">
+            <!-- Drop zone -->
+            <div id="bqm-import-dropzone" class="import-upload-zone bqm-import-dropzone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;color:var(--muted);">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p>{{ t.bqm_import_drop }}</p>
+                <p style="font-size:0.8em;color:var(--muted);">{{ t.bqm_import_formats }}</p>
+                <input type="file" id="bqm-import-file-input" style="display:none;" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple>
+            </div>
+            <!-- Overwrite toggle -->
+            <div id="bqm-import-options" style="display:none; margin:10px 0;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;cursor:pointer;">
+                    <input type="checkbox" id="bqm-import-overwrite">
+                    {{ t.bqm_import_overwrite }}
+                </label>
+            </div>
+            <!-- Status line -->
+            <div id="bqm-import-status" class="import-info" style="display:none;"></div>
+            <!-- Preview table -->
+            <div id="bqm-import-preview" style="display:none;">
+                <div class="import-table-wrap">
+                    <table class="bqm-import-table">
+                        <thead><tr>
+                            <th style="width:70px;"></th>
+                            <th>{{ t.incident_title }}</th>
+                            <th style="width:160px;">{{ t.incident_date }}</th>
+                            <th style="width:36px;"></th>
+                        </tr></thead>
+                        <tbody id="bqm-import-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="incident-modal-footer" id="bqm-import-footer" style="display:none;">
+            <div class="modal-footer-left"></div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-muted" onclick="closeBqmImportModal()">{{ t.cancel }}</button>
+                <button class="btn btn-accent" id="bqm-import-confirm-btn" onclick="executeBqmImport()" disabled>{{ t.bqm_import }}</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ═══ View: Smokeping Graphs ═══ -->
 {% if smokeping_configured %}
@@ -3098,6 +3156,267 @@
         };
         img.src = '/api/bqm/image/' + date;
     }
+
+    /* ── BQM Import ── */
+    var _bqmImportFiles = [];
+
+    function detectDateFromFilename(filename) {
+        var base = filename.replace(/\.[^.]+$/, '');
+        var m;
+        // YYYY-MM-DD (with optional _HHMM or _HH-MM suffix)
+        m = base.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return m[1] + '-' + m[2] + '-' + m[3];
+        // YYYYMMDD
+        m = base.match(/(\d{4})(\d{2})(\d{2})/);
+        if (m && +m[2] >= 1 && +m[2] <= 12 && +m[3] >= 1 && +m[3] <= 31)
+            return m[1] + '-' + m[2] + '-' + m[3];
+        // DD.MM.YYYY (German)
+        m = base.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        if (m) return m[3] + '-' + m[2] + '-' + m[1];
+        // DD-MM-YYYY
+        m = base.match(/(\d{2})-(\d{2})-(\d{4})/);
+        if (m) return m[3] + '-' + m[2] + '-' + m[1];
+        return '';
+    }
+
+    function openBqmImportModal() {
+        _bqmImportFiles = [];
+        var modal = document.getElementById('bqm-import-modal');
+        document.getElementById('bqm-import-dropzone').style.display = '';
+        document.getElementById('bqm-import-options').style.display = 'none';
+        document.getElementById('bqm-import-status').style.display = 'none';
+        document.getElementById('bqm-import-preview').style.display = 'none';
+        document.getElementById('bqm-import-footer').style.display = 'none';
+        document.getElementById('bqm-import-overwrite').checked = false;
+        document.getElementById('bqm-import-tbody').innerHTML = '';
+        modal.classList.add('open');
+    }
+
+    function closeBqmImportModal() {
+        document.getElementById('bqm-import-modal').classList.remove('open');
+        // Revoke thumb URLs
+        _bqmImportFiles.forEach(function(f) { if (f.thumbUrl) URL.revokeObjectURL(f.thumbUrl); });
+        _bqmImportFiles = [];
+    }
+
+    function handleBqmImportFiles(fileList) {
+        var rejected = 0;
+        for (var i = 0; i < fileList.length; i++) {
+            var f = fileList[i];
+            // Check type by MIME or extension fallback
+            var validMime = (f.type === 'image/png' || f.type === 'image/jpeg');
+            var ext = f.name.toLowerCase().split('.').pop();
+            var validExt = (ext === 'png' || ext === 'jpg' || ext === 'jpeg');
+            if (!validMime && !validExt) { rejected++; continue; }
+            var date = detectDateFromFilename(f.name);
+            var thumbUrl = URL.createObjectURL(f);
+            _bqmImportFiles.push({ file: f, date: date, thumbUrl: thumbUrl });
+        }
+        if (rejected > 0) showToast(T.bqm_import_invalid || 'Only PNG and JPEG images', 'error');
+        if (_bqmImportFiles.length > 0) renderBqmImportPreview();
+    }
+
+    function renderBqmImportPreview() {
+        var tbody = document.getElementById('bqm-import-tbody');
+        tbody.innerHTML = '';
+        var datesDetected = 0;
+        var datesMissing = 0;
+
+        _bqmImportFiles.forEach(function(entry, idx) {
+            var tr = document.createElement('tr');
+            // Thumbnail
+            var tdThumb = document.createElement('td');
+            if (entry.thumbUrl) {
+                var img = document.createElement('img');
+                img.src = entry.thumbUrl;
+                img.className = 'bqm-import-thumb';
+                tdThumb.appendChild(img);
+            }
+            tr.appendChild(tdThumb);
+
+            // Filename
+            var tdName = document.createElement('td');
+            var nameSpan = document.createElement('span');
+            nameSpan.className = 'bqm-import-filename';
+            nameSpan.textContent = entry.file.name.length > 30 ? entry.file.name.substring(0, 27) + '...' : entry.file.name;
+            nameSpan.title = entry.file.name;
+            tdName.appendChild(nameSpan);
+            // Conflict badge
+            if (entry.date && _bqmAvailableDates.has(entry.date)) {
+                var badge = document.createElement('span');
+                badge.className = 'bqm-import-conflict';
+                badge.textContent = T.bqm_import_conflict || 'Already exists';
+                tdName.appendChild(badge);
+            }
+            tr.appendChild(tdName);
+
+            // Date input
+            var tdDate = document.createElement('td');
+            var dateInput = document.createElement('input');
+            dateInput.type = 'date';
+            dateInput.value = entry.date;
+            dateInput.setAttribute('data-idx', idx);
+            if (!entry.date) {
+                dateInput.classList.add('bqm-import-date-missing');
+                datesMissing++;
+            } else {
+                datesDetected++;
+            }
+            dateInput.addEventListener('change', function() {
+                var i = parseInt(this.getAttribute('data-idx'));
+                _bqmImportFiles[i].date = this.value;
+                renderBqmImportPreview();
+            });
+            tdDate.appendChild(dateInput);
+            tr.appendChild(tdDate);
+
+            // Remove button
+            var tdRemove = document.createElement('td');
+            var removeBtn = document.createElement('button');
+            removeBtn.className = 'modal-close';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.setAttribute('data-idx', idx);
+            removeBtn.addEventListener('click', function() {
+                var i = parseInt(this.getAttribute('data-idx'));
+                if (_bqmImportFiles[i].thumbUrl) URL.revokeObjectURL(_bqmImportFiles[i].thumbUrl);
+                _bqmImportFiles.splice(i, 1);
+                if (_bqmImportFiles.length === 0) {
+                    openBqmImportModal();
+                } else {
+                    renderBqmImportPreview();
+                }
+            });
+            tdRemove.appendChild(removeBtn);
+            tr.appendChild(tdRemove);
+
+            tbody.appendChild(tr);
+        });
+
+        // Status line
+        var statusEl = document.getElementById('bqm-import-status');
+        statusEl.textContent = datesDetected + ' dates detected' + (datesMissing > 0 ? ', ' + datesMissing + ' needs manual entry' : '');
+        statusEl.style.display = 'block';
+
+        document.getElementById('bqm-import-dropzone').style.display = 'none';
+        document.getElementById('bqm-import-options').style.display = 'block';
+        document.getElementById('bqm-import-preview').style.display = 'block';
+        document.getElementById('bqm-import-footer').style.display = 'flex';
+
+        // Update button text and state
+        var btn = document.getElementById('bqm-import-confirm-btn');
+        var allValid = _bqmImportFiles.length > 0 && datesMissing === 0;
+        btn.disabled = !allValid;
+        var label = (T.bqm_import_btn || 'Import {0} images').replace('{0}', _bqmImportFiles.length);
+        btn.textContent = label;
+    }
+
+    function executeBqmImport() {
+        var btn = document.getElementById('bqm-import-confirm-btn');
+        btn.disabled = true;
+        btn.textContent = '...';
+
+        var fd = new FormData();
+        var dates = [];
+        var overwrite = document.getElementById('bqm-import-overwrite').checked;
+
+        _bqmImportFiles.forEach(function(entry) {
+            fd.append('files[]', entry.file);
+            dates.push(entry.date);
+        });
+        fd.append('dates', dates.join(','));
+        if (overwrite) fd.append('overwrite', 'true');
+
+        fetch('/api/bqm/import', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                // Reload BQM calendar
+                fetchBqmDates(function() {
+                    renderBqmCalendar(_bqmCalYear, _bqmCalMonth);
+                });
+                // Show result inside the modal
+                showBqmImportResult(data);
+            })
+            .catch(function(err) {
+                showToast('Import failed: ' + err.message, 'error');
+                btn.disabled = false;
+                var label = (T.bqm_import_btn || 'Import {0} images').replace('{0}', _bqmImportFiles.length);
+                btn.textContent = label;
+            });
+    }
+
+    function showBqmImportResult(data) {
+        var total = data.imported + (data.replaced || 0);
+        var tbody = document.getElementById('bqm-import-tbody');
+        var status = document.getElementById('bqm-import-status');
+        var preview = document.getElementById('bqm-import-preview');
+        var footer = document.getElementById('bqm-import-footer');
+        var options = document.getElementById('bqm-import-options');
+
+        // Build result summary
+        var html = '<span style="color:var(--accent-purple,var(--accent));">' + total + ' imported</span>';
+        if (data.replaced) html += ' (' + data.replaced + ' replaced)';
+        if (data.skipped) html += ', <span style="color:#eab308;">' + data.skipped + ' skipped</span>';
+        if (data.errors && data.errors.length) html += ', <span style="color:#ef4444;">' + data.errors.length + ' errors</span>';
+        status.innerHTML = html;
+        status.style.display = 'block';
+
+        // Show skipped dates if any
+        if (data.skipped_dates && data.skipped_dates.length) {
+            tbody.innerHTML = '';
+            var tr = document.createElement('tr');
+            var td = document.createElement('td');
+            td.colSpan = 4;
+            td.style.cssText = 'padding:12px 8px; font-size:0.85em;';
+            var datesHtml = '<div style="margin-bottom:6px;color:#eab308;font-weight:500;">Skipped (already exist):</div>';
+            datesHtml += '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;">';
+            data.skipped_dates.forEach(function(d) {
+                datesHtml += '<span style="color:var(--muted);">' + d + '</span>';
+            });
+            datesHtml += '</div>';
+            td.innerHTML = datesHtml;
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+
+        options.style.display = 'none';
+
+        // Replace footer with close button
+        var footerRight = footer.querySelector('div:last-child');
+        footerRight.innerHTML = '<button class="btn btn-accent" onclick="closeBqmImportModal()">' + (T.close || 'Close') + '</button>';
+        footer.style.display = 'flex';
+    }
+
+    // Drop zone event handlers
+    (function() {
+        var zone = document.getElementById('bqm-import-dropzone');
+        var input = document.getElementById('bqm-import-file-input');
+        if (!zone || !input) return;
+
+        zone.addEventListener('click', function() { input.click(); });
+        input.addEventListener('change', function() {
+            if (this.files.length) handleBqmImportFiles(this.files);
+            this.value = '';
+        });
+        zone.addEventListener('dragover', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            zone.classList.add('dragover');
+        });
+        zone.addEventListener('dragleave', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            zone.classList.remove('dragover');
+        });
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            zone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleBqmImportFiles(e.dataTransfer.files);
+        });
+    })();
+    window.openBqmImportModal = openBqmImportModal;
+    window.closeBqmImportModal = closeBqmImportModal;
+    window.executeBqmImport = executeBqmImport;
 
     /* ── Smokeping Graphs ── */
     var _smokepingSpan = '3h';

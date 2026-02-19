@@ -549,5 +549,15 @@
   "add_channel": "Add",
   "max_channels_reached": "Maximum 6 channels",
   "select_direction": "Select direction",
-  "no_channels_selected": "Select channels to compare"
+  "no_channels_selected": "Select channels to compare",
+  "bqm_import": "Import",
+  "bqm_import_title": "Import BQM Images",
+  "bqm_import_drop": "Drag & drop images here or click to select",
+  "bqm_import_formats": "PNG / JPEG",
+  "bqm_import_overwrite": "Overwrite existing dates",
+  "bqm_import_no_date": "Date required",
+  "bqm_import_conflict": "Already exists",
+  "bqm_import_btn": "Import {0} images",
+  "bqm_import_success": "Imported {0}, skipped {1}",
+  "bqm_import_invalid": "Only PNG and JPEG images"
 }

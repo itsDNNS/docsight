@@ -1032,6 +1032,73 @@ def api_bqm_live():
     return resp
 
 
+@app.route("/api/bqm/import", methods=["POST"])
+@require_auth
+def api_bqm_import():
+    """Bulk-import BQM graph images with per-file date mapping."""
+    if not _storage:
+        return jsonify({"error": "No storage"}), 500
+
+    files = request.files.getlist("files[]")
+    dates_raw = request.form.get("dates", "")
+    overwrite = request.form.get("overwrite", "false").lower() == "true"
+
+    if not files or not dates_raw:
+        return jsonify({"error": "No files or dates provided"}), 400
+
+    dates = [d.strip() for d in dates_raw.split(",") if d.strip()]
+    if len(files) != len(dates):
+        return jsonify({"error": "File count does not match date count"}), 400
+    if len(files) > 366:
+        return jsonify({"error": "Too many files (max 366)"}), 400
+
+    _PNG_MAGIC = b"\x89PNG"
+    _JPEG_MAGIC = b"\xff\xd8\xff"
+    _MAX_SIZE = 2 * 1024 * 1024  # 2 MB
+
+    imported = 0
+    skipped = 0
+    replaced = 0
+    skipped_dates = []
+    errors = []
+
+    for f, date in zip(files, dates):
+        fname = f.filename or "unknown"
+
+        if not _valid_date(date):
+            errors.append({"filename": fname, "error": "Invalid date"})
+            continue
+
+        data = f.read()
+        if len(data) > _MAX_SIZE:
+            errors.append({"filename": fname, "error": "File too large (max 2 MB)"})
+            continue
+        if not (data[:4] == _PNG_MAGIC or data[:3] == _JPEG_MAGIC):
+            errors.append({"filename": fname, "error": "Not a PNG or JPEG image"})
+            continue
+
+        try:
+            result = _storage.import_bqm_graph(date, data, overwrite=overwrite)
+            if result == "imported":
+                imported += 1
+            elif result == "skipped":
+                skipped += 1
+                skipped_dates.append(date)
+            elif result == "replaced":
+                replaced += 1
+        except Exception as e:
+            log.error("BQM import error for %s: %s", fname, e)
+            errors.append({"filename": fname, "error": str(e)})
+
+    return jsonify({
+        "imported": imported,
+        "skipped": skipped,
+        "replaced": replaced,
+        "skipped_dates": skipped_dates,
+        "errors": errors,
+    })
+
+
 @app.route("/api/speedtest")
 @require_auth
 def api_speedtest():
@@ -1901,7 +1968,7 @@ def add_security_headers(response):
         "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data: https:; "
+        "img-src 'self' data: blob: https:; "
         "connect-src 'self'"
     )
     return response
