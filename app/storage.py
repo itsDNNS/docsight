@@ -416,17 +416,23 @@ class SnapshotStorage:
             results.append(entry)
         return results
 
-    def save_bqm_graph(self, image_data):
-        """Save BQM graph for today. Skips if already exists (UNIQUE date)."""
-        today = datetime.now().strftime("%Y-%m-%d")
+    def save_bqm_graph(self, image_data, graph_date=None):
+        """Save BQM graph. Skips if already exists (UNIQUE date).
+
+        Args:
+            image_data: PNG/JPEG bytes
+            graph_date: ISO date string (YYYY-MM-DD) to store as.
+                        Defaults to today if not specified.
+        """
+        target_date = graph_date or datetime.now().strftime("%Y-%m-%d")
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
                     "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
-                    (today, ts, image_data),
+                    (target_date, ts, image_data),
                 )
-            log.debug("BQM graph saved for %s", today)
+            log.debug("BQM graph saved for %s", target_date)
         except Exception as e:
             log.error("Failed to save BQM graph: %s", e)
 

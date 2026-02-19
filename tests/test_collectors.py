@@ -377,11 +377,12 @@ class TestSpeedtestCollector:
 
 
 class TestBQMCollector:
-    def _make_collector(self, configured=True):
+    def _make_collector(self, configured=True, collect_time="02:00"):
         config_mgr = MagicMock()
         config_mgr.is_bqm_configured.return_value = configured
         config_mgr.get.side_effect = lambda k, *a: {
             "bqm_url": "https://example.com/graph.png",
+            "bqm_collect_time": collect_time,
         }.get(k, a[0] if a else None)
 
         storage = MagicMock()
@@ -403,7 +404,31 @@ class TestBQMCollector:
         result = c.collect()
         assert result.success is True
         storage.save_bqm_graph.assert_called_once()
+        # Verify graph_date kwarg is passed
+        _, kwargs = storage.save_bqm_graph.call_args
+        assert "graph_date" in kwargs
         assert c._last_date is not None
+
+    @patch("app.collectors.bqm.thinkbroadband")
+    def test_collect_stores_yesterday_when_before_noon(self, mock_tb):
+        """Collect time before 12:00 should store as yesterday."""
+        from datetime import date, timedelta
+        mock_tb.fetch_graph.return_value = b"\x89PNG" + b"\x00" * 200
+        c, _, storage = self._make_collector(collect_time="02:00")
+        c.collect()
+        _, kwargs = storage.save_bqm_graph.call_args
+        expected = (date.today() - timedelta(days=1)).isoformat()
+        assert kwargs["graph_date"] == expected
+
+    @patch("app.collectors.bqm.thinkbroadband")
+    def test_collect_stores_today_when_after_noon(self, mock_tb):
+        """Collect time at/after 12:00 should store as today."""
+        from datetime import date
+        mock_tb.fetch_graph.return_value = b"\x89PNG" + b"\x00" * 200
+        c, _, storage = self._make_collector(collect_time="14:00")
+        c.collect()
+        _, kwargs = storage.save_bqm_graph.call_args
+        assert kwargs["graph_date"] == date.today().isoformat()
 
     @patch("app.collectors.bqm.thinkbroadband")
     def test_collect_skips_same_day(self, mock_tb):
@@ -426,6 +451,37 @@ class TestBQMCollector:
     def test_name(self):
         c, *_ = self._make_collector()
         assert c.name == "bqm"
+
+    @patch("app.collectors.bqm.time")
+    def test_should_poll_before_target(self, mock_time):
+        """Should not poll if current time is before configured collect_time."""
+        mock_time.strftime.side_effect = lambda fmt: {
+            "%Y-%m-%d": "2026-02-19",
+            "%H:%M": "01:30",
+        }[fmt]
+        c, *_ = self._make_collector(collect_time="02:00")
+        assert c.should_poll() is False
+
+    @patch("app.collectors.bqm.time")
+    def test_should_poll_after_target(self, mock_time):
+        """Should poll if current time is at/after configured collect_time."""
+        mock_time.strftime.side_effect = lambda fmt: {
+            "%Y-%m-%d": "2026-02-19",
+            "%H:%M": "02:00",
+        }[fmt]
+        c, *_ = self._make_collector(collect_time="02:00")
+        assert c.should_poll() is True
+
+    @patch("app.collectors.bqm.time")
+    def test_should_poll_not_twice_same_day(self, mock_time):
+        """Should not poll again after collecting today."""
+        mock_time.strftime.side_effect = lambda fmt: {
+            "%Y-%m-%d": "2026-02-19",
+            "%H:%M": "03:00",
+        }[fmt]
+        c, *_ = self._make_collector(collect_time="02:00")
+        c._last_date = "2026-02-19"
+        assert c.should_poll() is False
 
 
 # ── build_collectors Tests ──
