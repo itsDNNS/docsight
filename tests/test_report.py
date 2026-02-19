@@ -5,7 +5,11 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.report import generate_report, _compute_worst_values, _find_worst_channels
+from app.report import (
+    generate_report, generate_complaint_text,
+    _compute_worst_values, _find_worst_channels,
+    _format_threshold_table, _default_warn_thresholds,
+)
 
 
 MOCK_ANALYSIS = {
@@ -74,3 +78,40 @@ def test_find_worst_channels():
     # Channel 2 should appear as problematic (health: warning in both snapshots)
     assert len(ds_worst) > 0
     assert ds_worst[0][0] == 2  # channel_id 2
+
+
+def test_format_threshold_table_uses_real_values():
+    rows = _format_threshold_table()
+    assert len(rows) > 0
+    categories = {r["category"] for r in rows}
+    assert "DS Power" in categories
+    assert "US Power" in categories
+    assert "SNR/MER" in categories
+    # Check that values come from thresholds.json, not hardcoded
+    ds_256 = [r for r in rows if r["category"] == "DS Power" and r["variant"] == "256QAM"]
+    assert len(ds_256) == 1
+    assert "-3.9" in ds_256[0]["good"]
+    assert "13.0" in ds_256[0]["good"]
+
+
+def test_default_warn_thresholds():
+    warn = _default_warn_thresholds()
+    assert "ds_power" in warn
+    assert "us_power" in warn
+    assert "snr" in warn
+    # 256QAM tolerated: -5.9 to 18.0
+    assert "-5.9" in warn["ds_power"]
+    assert "18.0" in warn["ds_power"]
+    # EuroDOCSIS 3.0 tolerated: 37.1 to 51.0
+    assert "37.1" in warn["us_power"]
+    assert "51.0" in warn["us_power"]
+    # SNR 256QAM tolerated_min: 32.0
+    assert "32.0" in warn["snr"]
+
+
+def test_complaint_text_uses_real_thresholds():
+    text = generate_complaint_text(MOCK_SNAPSHOTS)
+    # Should contain real threshold values from thresholds.json
+    assert "-5.9 to 18.0 dBmV" in text
+    assert "37.1 to 51.0 dBmV" in text
+    assert ">= 32.0 dB" in text
