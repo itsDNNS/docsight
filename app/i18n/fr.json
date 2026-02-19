@@ -536,5 +536,10 @@
   "bqm_pause": "Pause",
   "bqm_stop": "Arret",
   "bqm_speed": "Vitesse",
-  "bqm_no_data_range": "Pas de donnees BQM pour cette periode"
+  "bqm_no_data_range": "Pas de donnees BQM pour cette periode",
+  "channel_compare": "Comparaison de canaux",
+  "add_channel": "Ajouter",
+  "max_channels_reached": "Maximum 6 canaux",
+  "select_direction": "Choisir la direction",
+  "no_channels_selected": "Selectionnez des canaux a comparer"
 }

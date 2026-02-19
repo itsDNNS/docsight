@@ -544,5 +544,10 @@
   "bqm_pause": "Pause",
   "bqm_stop": "Stop",
   "bqm_speed": "Speed",
-  "bqm_no_data_range": "No BQM data in this range"
+  "bqm_no_data_range": "No BQM data in this range",
+  "channel_compare": "Channel Compare",
+  "add_channel": "Add",
+  "max_channels_reached": "Maximum 6 channels",
+  "select_direction": "Select direction",
+  "no_channels_selected": "Select channels to compare"
 }

@@ -3892,3 +3892,85 @@ mark.search-highlight {
         gap: 4px;
     }
 }
+
+/* ── Channel Compare ── */
+.compare-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.channel-select-styled,
+.compare-controls select {
+    padding: 8px 32px 8px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--card-border, var(--input-border));
+    background: var(--card-bg, var(--card));
+    color: var(--text);
+    font-size: 0.9em;
+    font-family: inherit;
+    font-weight: 500;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+    min-width: 160px;
+}
+.channel-select-styled:hover,
+.compare-controls select:hover {
+    border-color: var(--accent-purple, var(--accent));
+}
+.channel-select-styled:focus,
+.compare-controls select:focus {
+    outline: none;
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
+}
+.compare-add-btn {
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 1px solid var(--card-border, var(--input-border));
+    background: var(--card-bg, var(--card));
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.9em;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.compare-add-btn:hover {
+    color: #fff;
+    background: var(--accent-purple, var(--accent));
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.compare-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+}
+.compare-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+}
+.compare-chip-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    line-height: 1;
+}
+.compare-chip-remove:hover {
+    color: #fff;
+}
