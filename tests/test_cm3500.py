@@ -216,7 +216,8 @@ class TestDeviceInfo:
         expected = 58 * 86400 + 1 * 3600 + 30 * 60
         assert info["uptime_seconds"] == expected
 
-    def test_connection_info_empty(self, mock_status):
+    def test_connection_info_fallback_empty(self, mock_status):
+        """Returns empty dict when config_params_cgi is not reachable."""
         assert mock_status.get_connection_info() == {}
 
 
@@ -258,6 +259,43 @@ class TestValueParsers:
         assert CM3500Driver._format_freq("") == ""
 
 
+class TestParseServiceFlows:
+    def test_picks_highest_rate_per_direction(self):
+        html = """<pre>
+DownstreamServiceFlow =
+    SfMaxTrafficRate = 1126400000
+DownstreamServiceFlow =
+    SfMaxTrafficRate = 3450000
+UpstreamServiceFlow =
+    SfMaxTrafficRate = 52480000
+UpstreamServiceFlow =
+    SfMaxTrafficRate = 3450000
+UpstreamServiceFlow =
+    SfMaxTrafficRate = 358400
+</pre>"""
+        result = CM3500Driver._parse_service_flows(html)
+        assert result["max_downstream_kbps"] == 1126400
+        assert result["max_upstream_kbps"] == 52480
+
+    def test_ignores_packet_classification_section(self):
+        html = """<pre>
+DownstreamServiceFlow =
+    SfMaxTrafficRate = 500000000
+DownstreamPacketClassification =
+    PcServiceFlow = 12689
+    SfMaxTrafficRate = 9999999999
+</pre>"""
+        result = CM3500Driver._parse_service_flows(html)
+        assert result["max_downstream_kbps"] == 500000
+
+    def test_empty_html_returns_empty_dict(self):
+        assert CM3500Driver._parse_service_flows("<html></html>") == {}
+
+    def test_no_service_flows_returns_empty_dict(self):
+        html = "<pre>NetworkAccess = Yes\nMaxCpeAllowed = 2</pre>"
+        assert CM3500Driver._parse_service_flows(html) == {}
+
+
 # -- Integration with analyzer --
 
 class TestAnalyzerIntegration:
@@ -285,6 +323,33 @@ class TestAnalyzerIntegration:
 
         for ch in result["us_channels"]:
             assert ch["docsis_version"] == "3.0", f"US QAM ch {ch['channel_id']} should be 3.0"
+
+    def test_connection_info_with_service_flows(self, mock_status):
+        """Returns provisioned speeds when config_params_cgi is available."""
+        config_html = """<html><body><pre>
+DownstreamServiceFlow =
+    SfMaxTrafficRate = 1126400000
+    SfTrafficPriority = 0
+UpstreamServiceFlow =
+    SfMaxTrafficRate = 52480000
+    SfTrafficPriority = 0
+UpstreamServiceFlow =
+    SfMaxTrafficRate = 3450000
+    SfTrafficPriority = 4
+DownstreamServiceFlow =
+    SfMaxTrafficRate = 3450000
+    SfTrafficPriority = 4
+</pre></body></html>"""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = config_html
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch.object(mock_status._session, "get", return_value=mock_resp):
+            info = mock_status.get_connection_info()
+        assert info["max_downstream_kbps"] == 1126400
+        assert info["max_upstream_kbps"] == 52480
+        assert info["connection_type"] == "DOCSIS"
 
     def test_ofdm_channels_labeled_docsis31(self, mock_status):
         """OFDM channels must be DOCSIS 3.1."""
