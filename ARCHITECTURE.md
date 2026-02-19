@@ -1,6 +1,6 @@
 # DOCSight Architecture
 
-> Documentation current as of **v2026-02-18.8**
+> Documentation current as of **v2026-02-19.2**
 
 This document describes the technical architecture of DOCSight.
 
@@ -23,17 +23,17 @@ DOCSight is built around a **modular collector pattern** that separates data col
 │  │                           │ Config Check │                    │  │
 │  │                           └──────┬───────┘                    │  │
 │  │                                  │                            │  │
-│  │         ┌──────────┬─────────────┼──────────────┬───────────┐  │  │
-│  │         │          │             │              │           │  │  │
-│  │         ▼          ▼             ▼              ▼           ▼  │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐│
-│  │  │  Modem   │ │   Demo   │ │ Speedtest  │ │    BQM     │ │  BNetzA    ││
-│  │  │ Collect. │ │ Collect. │ │ Collector  │ │ Collector  │ │  Watcher   ││
-│  │  │          │ │          │ │            │ │            │ │            ││
-│  │  │ Poll:900s│ │ Poll:900s│ │ Poll: 300s │ │ Poll: 24h  │ │ Poll: 300s ││
-│  │  └────┬─────┘ └────┬─────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘│
-│  │       │             │             │              │              │       │
-│  │       └─────────────┴─────────────┼──────────────┴──────────────┘       │
+│  │      ┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐│  │
+│  │      │          │          │          │          │          │          ││  │
+│  │      ▼          ▼          ▼          ▼          ▼          ▼          ││  │
+│  │ ┌──────────┐┌──────────┐┌──────────┐┌──────────┐┌──────────┐┌──────────┐│  │
+│  │ │  Modem   ││   Demo   ││ Speedtest││   BQM    ││  BNetzA  ││  Backup  ││  │
+│  │ │ Collect. ││ Collect. ││ Collect. ││ Collect. ││ Watcher  ││ Collect. ││  │
+│  │ │          ││          ││          ││          ││          ││          ││  │
+│  │ │Poll:900s ││Poll:900s ││Poll: 300s││Poll: 24h ││Poll: 300s││Poll: 24h ││  │
+│  │ └────┬─────┘└────┬─────┘└────┬─────┘└────┬─────┘└────┬─────┘└────┬─────┘│  │
+│  │      │           │           │           │           │           │      │  │
+│  │      └───────────┴───────────┼───────────┴───────────┴───────────┘      │  │
 │  │                                │                              │  │
 │  └────────────────────────────────┼──────────────────────────────┘  │
 │                                   │                                 │
@@ -324,6 +324,46 @@ Scan watch_dir for new .pdf/.csv files (not in .imported marker)
 - `app/bnetz_csv_parser.py` - CSV parser for BNetzA Desktop App exports
 - `docker-compose.bnetz.yml` - Sidecar compose for automated measurements
 
+### BackupCollector (`app/collectors/backup.py`)
+
+**Purpose:** Automatically create scheduled backups of all DOCSight data
+**Poll Interval:** Configurable via `backup_interval_hours` (default: 24h)
+**Data Source:** Local `/data` directory (SQLite DB, config, keys)
+**Activation:** `backup_enabled=true` + `backup_path` configured in Settings
+
+**Pipeline:**
+```
+create_backup_to_file(data_dir, dest_dir)
+  -> VACUUM INTO for atomic, consistent DB copy
+    -> Strip demo data (is_demo=1) from copy
+      -> Pack into .tar.gz with backup_meta.json
+        -> cleanup_old_backups(dest_dir, keep=retention)
+```
+
+**Features:**
+- Atomic SQLite copy via `VACUUM INTO` (no WAL issues, consistent snapshot)
+- `backup_meta.json` with format version, timestamp, app version, table row counts
+- Configurable retention (number of backups to keep)
+- Server-side directory browser for selecting backup path
+- Manual download (in-memory .tar.gz) via Settings UI
+- Restore from setup wizard on fresh instances
+
+**Related files:**
+- `app/backup.py` - Core backup/restore logic (no Flask dependency)
+- `app/templates/setup.html` - Restore option in setup wizard
+
+### Notifier (`app/notifier.py`)
+
+**Purpose:** Route event notifications to external channels
+**Trigger:** Called by EventDetector when anomalies are detected
+**Channels:** Webhook (ntfy, Discord, Gotify, custom endpoints)
+
+**Features:**
+- Severity filtering (minimum severity threshold)
+- Cooldown period to prevent notification spam
+- Template-based message formatting
+- Configurable via Settings UI (webhook URL, headers, severity)
+
 ---
 
 ## Driver Architecture
@@ -354,6 +394,8 @@ class ModemDriver(ABC):
 | `fritzbox` | `fritzbox.py` | AVM FRITZ!Box | SID-based (data.lua) |
 | `tc4400` | `tc4400.py` | Technicolor TC4400 | SNMP |
 | `ultrahub7` | `ultrahub7.py` | Vodafone Ultra Hub 7 | Session cookie |
+| `cm3500` | `cm3500.py` | Arris CM3500B | Form POST (IP-based session) |
+| `connectbox` | `connectbox.py` | Unitymedia Connect Box (CH7465) | Session cookie |
 | `vodafone_station` | `vodafone_station.py` | CGA6444VF, CGA4322DE, TG3442DE | Auto-detected (see below) |
 
 ### Driver Registry (`app/drivers/__init__.py`)
@@ -594,6 +636,13 @@ CREATE TABLE bnetz_measurements (
 | `/api/bnetz/pdf/<id>` | GET | Download original measurement PDF |
 | `/api/bnetz/<id>` | DELETE | Delete a BNetzA measurement |
 | `/api/demo/migrate` | POST | Switch from demo to live mode (purges demo data, preserves user data) |
+| `/api/backup` | POST | Create and download backup (.tar.gz) |
+| `/api/backup/scheduled` | POST | Create backup in configured backup path |
+| `/api/backup/list` | GET | List existing backups in backup path |
+| `/api/backup/<filename>` | DELETE | Delete a backup file |
+| `/api/restore/validate` | POST | Validate uploaded backup archive |
+| `/api/restore` | POST | Restore from uploaded backup archive |
+| `/api/browse` | GET | Server-side directory browser for path selection |
 
 **New in v2.0:**
 
@@ -700,6 +749,7 @@ COLLECTOR_REGISTRY = {
     "speedtest": SpeedtestCollector,
     "bqm": BQMCollector,
     "bnetz_watcher": BnetzWatcherCollector,
+    "backup": BackupCollector,
     "my_source": MyCollector,  # Add here
 }
 
@@ -769,7 +819,7 @@ def test_my_collector_success():
 ## Testing
 
 **Framework:** pytest
-**Coverage:** 344 tests
+**Coverage:** 454 tests
 
 **Run tests:**
 ```bash
@@ -785,6 +835,9 @@ python -m pytest tests/ -v
 - Config: Configuration management
 - BNetzA: PDF/CSV parsing and file watcher
 - Demo mode: is_demo marking, purge, migration, idempotency
+- Backup: create, validate, restore, cleanup, directory browser
+- CM3500: HTML parsing, service flow parsing, HTTPS enforcement
+- Notifier: webhook delivery, severity filtering, cooldown
 - i18n: Translation completeness
 
 ---
@@ -817,11 +870,13 @@ services:
       - "8765:8765"
     volumes:
       - docsight_data:/data
+      - docsight_backup:/backup  # Optional: for scheduled backups
     environment:
       - TZ=Europe/Berlin
 
 volumes:
   docsight_data:
+  docsight_backup:
 ```
 
 **Data persistence:** All data in `/data` volume

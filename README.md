@@ -100,6 +100,8 @@ Open `http://localhost:8765` — no setup required.
 | **[BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM)** | ThinkBroadband broadband quality graphs |
 | **[BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA)** | **NEW:** Upload or auto-import official BNetzA broadband measurement protocols (PDF/CSV) with file watcher and sidecar support |
 | **[Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping)** | Live latency graphs from your Smokeping instance |
+| **[Backup & Restore](https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore)** | One-click backup download, scheduled automatic backups, restore from setup wizard |
+| **[Notifications](https://github.com/itsDNNS/docsight/wiki/Notifications)** | Alerts via webhook, ntfy, Discord, Gotify, and custom endpoints |
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
 | **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | Try DOCSight without a router — 9 months of simulated data with live migration |
 
@@ -168,12 +170,12 @@ DOCSight uses a **modular collector-based architecture** for reliable data gathe
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                             Collector Registry                              │
 │                                                                             │
-│    ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐│
-│    │  Modem   │ │   Demo   │ │ Speedtest│ │   BQM    │ │Smokeping │ │  BNetzA  ││
-│    │ Collector│ │ Collector│ │ Collector│ │ Collector│ │  (Proxy) │ │ Watcher  ││
-│    └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘│
-│         │            │            │            │            │            │      │
-│         └────────────┴────────────┴────────────┴────────────┴────────────┘      │
+│  ┌──────────┐┌──────────┐┌──────────┐┌──────────┐┌──────────┐┌──────────┐┌──────────┐│
+│  │  Modem   ││   Demo   ││ Speedtest││   BQM    ││Smokeping ││  BNetzA  ││  Backup  ││
+│  │ Collector││ Collector││ Collector││ Collector││  (Proxy) ││ Watcher  ││ Collector││
+│  └────┬─────┘└────┬─────┘└────┬─────┘└────┬─────┘└────┬─────┘└────┬─────┘└────┬─────┘│
+│       │           │           │           │           │           │           │      │
+│       └───────────┴───────────┴───────────┴───────────┴───────────┴───────────┘      │
 │                                     │                                       │
 │                                     ▼                                       │
 │         ┌──────────────────────────────────────────────────────────┐        │
@@ -254,12 +256,16 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Unitymedia Connect Box (CH7465) | ✅ Released | |
 | Speedtest Server Tracking | ✅ Released | [#79](https://github.com/itsDNNS/docsight/issues/79) |
 | Multi-Channel Comparison | ✅ Released | [#80](https://github.com/itsDNNS/docsight/issues/80) |
+| Upstream Bandwidth Display | ✅ Released | [#81](https://github.com/itsDNNS/docsight/issues/81) |
+| Notification System | ✅ Released | [#19](https://github.com/itsDNNS/docsight/issues/19) |
+| BQM Calendar View | ✅ Released | [#65](https://github.com/itsDNNS/docsight/issues/65) |
+| BQM Bulk Import | ✅ Released | [#67](https://github.com/itsDNNS/docsight/issues/67) |
+| Backup & Restore | ✅ Released | [#64](https://github.com/itsDNNS/docsight/issues/64) |
 
 **Planned:**
 
 | Feature | Issue |
 |---|---|
-| Notification System | [#19](https://github.com/itsDNNS/docsight/issues/19) |
 | Before/After Comparison | [#50](https://github.com/itsDNNS/docsight/issues/50) |
 
 See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
@@ -274,7 +280,7 @@ If DOCSight helps you, consider [buying me a coffee](https://ko-fi.com/itsdnns) 
 
 ## Documentation
 
-Documentation current as of **v2026-02-19.1**.
+Documentation current as of **v2026-02-19.2**.
 
 | Document | Scope |
 |---|---|
