@@ -559,5 +559,11 @@
   "bqm_import_conflict": "Bereits vorhanden",
   "bqm_import_btn": "{0} Bilder importieren",
   "bqm_import_success": "{0} importiert, {1} uebersprungen",
-  "bqm_import_invalid": "Nur PNG- und JPEG-Bilder"
+  "bqm_import_invalid": "Nur PNG- und JPEG-Bilder",
+  "bqm_import_offset": "Datums-Offset (Tage)",
+  "bqm_delete": "Loeschen",
+  "bqm_delete_range": "{0} Bilder von {1} bis {2} loeschen?",
+  "bqm_delete_all": "Alle {0} BQM-Bilder loeschen?",
+  "bqm_delete_confirm": "DELETE eingeben zum Bestaetigen",
+  "bqm_delete_success": "{0} Bilder geloescht"
 }

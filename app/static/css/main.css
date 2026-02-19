@@ -4023,6 +4023,18 @@ mark.search-highlight {
     border-color: #ef4444 !important;
     box-shadow: 0 0 0 1px rgba(239,68,68,0.3);
 }
+.bqm-delete-btn { color: #ef4444; }
+.bqm-delete-btn:hover { border-color: #ef4444; background: rgba(239,68,68,0.1); }
+.bqm-offset-input {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+    border: 1px solid var(--input-border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.9em;
+    width: 60px;
+    text-align: center;
+}
 .bqm-import-table input[type="date"] {
     background: var(--surface-2, rgba(0,0,0,0.15));
     border: 1px solid var(--input-border);
