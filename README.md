@@ -219,7 +219,7 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation.
 
 ## Requirements
 
-- Docker (or any OCI-compatible container runtime)
+- Docker (or any OCI-compatible container runtime) — or see [Running without Docker](https://github.com/itsDNNS/docsight/wiki/Running-without-Docker) for a native Python setup
 - A supported DOCSIS cable modem or router (see above)
 - MQTT broker (optional, for Home Assistant)
 
