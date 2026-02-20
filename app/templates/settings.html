@@ -557,6 +557,12 @@
                 <span class="icon"><i data-lucide="palette"></i></span>
                 {{ t.appearance }}
             </a>
+
+            <div class="settings-section-label">Project</div>
+            <a class="settings-nav-link" data-section="support" onclick="switchSection('support')">
+                <span class="icon"><i data-lucide="heart-handshake"></i></span>
+                Support DOCSight
+            </a>
         </div>
 
         <div class="settings-sidebar-footer">
@@ -1075,9 +1081,42 @@
                     </div>
                 </div>
 
+                <!-- ═══ Panel: Support ═══ -->
+                <div class="settings-panel" id="panel-support">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <div class="settings-card-icon"><i data-lucide="heart-handshake"></i></div>
+                            <div>
+                                <div class="settings-card-title">Support DOCSight</div>
+                                <div class="settings-card-desc">Support the project via GitHub Sponsors, Ko-fi, or PayPal.</div>
+                            </div>
+                        </div>
+                        <div style="font-size:0.98em;line-height:1.65;color:var(--text);margin:2px 0 16px;">
+                            DOCSight began as a personal fight with unstable cable internet and support replies that never matched reality.<br>
+                            I wanted a tool that turns frustration into clear technical proof people can actually use.<br>
+                            If you want to support that mission, thank you. It really helps.
+                        </div>
+                        <div class="btn-row" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+                            <a class="btn btn-secondary" href="https://paypal.me/itsDNNS" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                                <i data-lucide="wallet" style="width:16px;height:16px;"></i>
+                                PayPal
+                            </a>
+                            <a class="btn btn-secondary" href="https://ko-fi.com/itsdnns" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                                <i data-lucide="coffee" style="width:16px;height:16px;"></i>
+                                Ko-fi
+                            </a>
+                            <a class="btn btn-secondary" href="https://github.com/sponsors/itsDNNS" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                                <i data-lucide="heart" style="width:16px;height:16px;"></i>
+                                GitHub Sponsors
+                            </a>
+                        </div>
+                        <!-- support hint removed -->
+                    </div>
+                </div>
+
             </div>
 
-            <div class="settings-save-footer">
+            <div class="settings-save-footer" id="settings-save-footer">
                 <button type="submit" class="btn btn-primary">{{ t.save }}</button>
             </div>
         </form>
@@ -1098,7 +1137,8 @@ var SECTION_TITLES = {
     bnetz: T.bnetz_watcher_title || 'BNetzA',
     smokeping: 'Smokeping',
     mqtt: T.mqtt_broker || 'MQTT',
-    appearance: T.appearance || 'Appearance'
+    appearance: T.appearance || 'Appearance',
+    support: 'Support DOCSight'
 };
 
 /* ── Section Controller ── */
@@ -1112,6 +1152,12 @@ function switchSection(id) {
     var target = document.getElementById('panel-' + id);
     if (target) target.classList.add('active');
     document.getElementById('topbar-title').textContent = SECTION_TITLES[id] || id;
+
+    var saveFooter = document.getElementById('settings-save-footer');
+    if (saveFooter) {
+        saveFooter.style.display = (id === 'support') ? 'none' : '';
+    }
+
     history.replaceState(null, '', '#' + id);
     closeMobileSidebar();
 }
