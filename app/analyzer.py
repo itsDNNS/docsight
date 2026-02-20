@@ -351,6 +351,7 @@ def analyze(data: dict) -> dict:
         "us_power_max": round(max(us_powers), 1) if us_powers else 0,
         "us_power_avg": round(sum(us_powers) / len(us_powers), 1) if us_powers else 0,
         "ds_snr_min": round(min(ds_snrs), 1) if ds_snrs else 0,
+        "ds_snr_max": round(max(ds_snrs), 1) if ds_snrs else 0,
         "ds_snr_avg": round(sum(ds_snrs) / len(ds_snrs), 1) if ds_snrs else 0,
         "ds_correctable_errors": total_corr,
         "ds_uncorrectable_errors": total_uncorr,

@@ -117,6 +117,7 @@ class MQTTPublisher:
             ("ds_power_max", "DS Power Max", "dBmV", "mdi:signal", False),
             ("ds_power_avg", "DS Power Avg", "dBmV", "mdi:signal", True),
             ("ds_snr_min", "DS SNR Min", "dB", "mdi:ear-hearing", True),
+            ("ds_snr_max", "DS SNR Max", "dB", "mdi:ear-hearing", True),
             ("ds_snr_avg", "DS SNR Avg", "dB", "mdi:ear-hearing", True),
             ("ds_correctable_errors", "DS Correctable Errors", None, "mdi:alert-circle-check", True),
             ("ds_uncorrectable_errors", "DS Uncorrectable Errors", None, "mdi:alert-circle", True),
@@ -230,6 +231,25 @@ class MQTTPublisher:
                 **avail,
             }
             self.client.publish(topic, json.dumps(config), retain=True)
+            count += 1
+
+            # SNR sensor for this channel
+            snr_obj_id = f"ds_ch{ch_id}_snr"
+            snr_topic = f"{self.ha_prefix}/sensor/docsight/{snr_obj_id}/config"
+            snr_config = {
+                "name": f"DS Channel {ch_id} SNR",
+                "unique_id": f"docsight_{snr_obj_id}",
+                "state_topic": f"{self.topic_prefix}/channel/ds_ch{ch_id}",
+                "value_template": "{{ value_json.snr }}",
+                "unit_of_measurement": "dB",
+                "state_class": "measurement",
+                "icon": "mdi:ear-hearing",
+                "device": device,
+                "entity_category": "diagnostic",
+                "enabled_by_default": False,
+                **avail,
+            }
+            self.client.publish(snr_topic, json.dumps(snr_config), retain=True)
             count += 1
 
         for ch in us_channels:
