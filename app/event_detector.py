@@ -1,6 +1,7 @@
 """Detect significant signal changes between consecutive DOCSIS snapshots."""
 
 import logging
+import re
 import threading
 from datetime import datetime
 
@@ -29,6 +30,26 @@ QAM_ORDER = {
 }
 # A drop of this many levels or more counts as critical (e.g. 256QAM → 16QAM = 4 levels)
 QAM_CRITICAL_DROP = 3
+
+
+def _qam_rank(modulation):
+    """Get QAM rank for any modulation format.
+
+    Handles both driver formats: "256QAM" (Ultra Hub 7, CM3500)
+    and "qam_256" (Vodafone Station, CH7465, TC4400).
+    """
+    if not modulation:
+        return 0
+    rank = QAM_ORDER.get(modulation)
+    if rank is not None:
+        return rank
+    mod = modulation.upper().replace("-", "").replace("_", "")
+    if mod == "QPSK":
+        return QAM_ORDER["QPSK"]
+    m = re.search(r"(\d+)", mod)
+    if m and "QAM" in mod:
+        return QAM_ORDER.get(f"{m.group(1)}QAM", 0)
+    return 0
 
 
 class EventDetector:
@@ -195,8 +216,8 @@ class EventDetector:
         for ch_id in set(cur_ds) & set(prev_ds):
             if cur_ds[ch_id] != prev_ds[ch_id]:
                 entry = {"channel": ch_id, "direction": "DS", "prev": prev_ds[ch_id], "current": cur_ds[ch_id]}
-                cur_rank = QAM_ORDER.get(cur_ds[ch_id], 0)
-                prev_rank = QAM_ORDER.get(prev_ds[ch_id], 0)
+                cur_rank = _qam_rank(cur_ds[ch_id])
+                prev_rank = _qam_rank(prev_ds[ch_id])
                 entry["rank_drop"] = prev_rank - cur_rank
                 if cur_rank < prev_rank:
                     downgrades.append(entry)
@@ -205,8 +226,8 @@ class EventDetector:
         for ch_id in set(cur_us) & set(prev_us):
             if cur_us[ch_id] != prev_us[ch_id]:
                 entry = {"channel": ch_id, "direction": "US", "prev": prev_us[ch_id], "current": cur_us[ch_id]}
-                cur_rank = QAM_ORDER.get(cur_us[ch_id], 0)
-                prev_rank = QAM_ORDER.get(prev_us[ch_id], 0)
+                cur_rank = _qam_rank(cur_us[ch_id])
+                prev_rank = _qam_rank(prev_us[ch_id])
                 entry["rank_drop"] = prev_rank - cur_rank
                 if cur_rank < prev_rank:
                     downgrades.append(entry)
