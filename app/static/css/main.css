@@ -386,7 +386,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     margin-top: 4px;
+}
+.sidebar-links-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 .version-link {
     color: var(--muted);
@@ -394,6 +402,7 @@ body {
     text-decoration: none;
     opacity: 0.6;
     transition: opacity 0.2s;
+    min-width: 0;
 }
 .version-link:hover {
     opacity: 1;
@@ -2069,6 +2078,9 @@ details.channel-group {
     .metric-row { flex-direction: column; gap: 10px; }
     table { font-size: 0.8em; }
     th, td { padding: 4px 6px; }
+    .sidebar-version-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .sidebar-links-row { justify-content: flex-start; }
+    .version-link { opacity: 0.8; }
 .chart-zoom-modal { width: 95vw; height: 85vh; padding: 12px; }
     .journal-hide-mobile { display: none; }
 }
