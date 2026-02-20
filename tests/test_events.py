@@ -282,6 +282,39 @@ class TestEventDetector:
         assert "improved" in mod_events[0]["message"]
         assert mod_events[0]["details"]["direction"] == "upgrade"
 
+    def test_modulation_downgrade_qam_underscore_format(self, detector):
+        """qam_64 → qam_16 = downgrade (Vodafone Station / CH7465 / TC4400 format) - Issue #85"""
+        us1 = [{"channel_id": 1, "modulation": "qam_64", "power": 42.0,
+                "multiplex": "ATDMA", "docsis_version": "3.0",
+                "health": "good", "health_detail": "", "frequency": "37 MHz"}]
+        us2 = [{"channel_id": 1, "modulation": "qam_16", "power": 42.0,
+                "multiplex": "ATDMA", "docsis_version": "3.0",
+                "health": "good", "health_detail": "", "frequency": "37 MHz"}]
+        detector.check(_make_analysis(us_total=1, us_channels=us1))
+        events = detector.check(_make_analysis(us_total=1, us_channels=us2))
+        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
+        assert len(mod_events) == 1
+        assert mod_events[0]["severity"] == "warning"
+        assert "dropped" in mod_events[0]["message"]
+        assert mod_events[0]["details"]["direction"] == "downgrade"
+        assert mod_events[0]["details"]["changes"][0]["rank_drop"] == 2
+
+    def test_modulation_upgrade_qam_underscore_format(self, detector):
+        """qam_64 → qam_256 = upgrade (Vodafone Station format)"""
+        ds1 = [{"channel_id": 1, "modulation": "qam_64", "power": 3.0, "snr": 35.0,
+                "correctable_errors": 10, "uncorrectable_errors": 5,
+                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
+        ds2 = [{"channel_id": 1, "modulation": "qam_256", "power": 3.0, "snr": 35.0,
+                "correctable_errors": 10, "uncorrectable_errors": 5,
+                "docsis_version": "3.0", "health": "good", "health_detail": "", "frequency": "602 MHz"}]
+        detector.check(_make_analysis(ds_total=1, ds_channels=ds1))
+        events = detector.check(_make_analysis(ds_total=1, ds_channels=ds2))
+        mod_events = [e for e in events if e["event_type"] == "modulation_change"]
+        assert len(mod_events) == 1
+        assert mod_events[0]["severity"] == "info"
+        assert "improved" in mod_events[0]["message"]
+        assert mod_events[0]["details"]["direction"] == "upgrade"
+
     def test_error_spike(self, detector):
         detector.check(_make_analysis(ds_uncorrectable_errors=100))
         events = detector.check(_make_analysis(ds_uncorrectable_errors=2000))
