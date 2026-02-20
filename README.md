@@ -8,6 +8,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/itsDNNS/docsight" alt="License"></a>
   <a href="https://github.com/itsDNNS/docsight/pkgs/container/docsight"><img src="https://img.shields.io/github/v/tag/itsDNNS/docsight?label=version" alt="Version"></a>
   <a href="https://ko-fi.com/itsdnns"><img src="https://img.shields.io/badge/Ko--fi-Support%20DOCSight-ff5e5b?logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
+  <a href="https://paypal.me/itsDNNS"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white" alt="PayPal"></a>
   <a href="https://github.com/itsDNNS/docsight/stargazers"><img src="https://img.shields.io/github/stars/itsDNNS/docsight?style=flat" alt="Stars"></a>
 </p>
 
@@ -276,7 +277,10 @@ See [GitHub Releases](https://github.com/itsDNNS/docsight/releases).
 
 ## Support
 
-If DOCSight helps you, consider [buying me a coffee](https://ko-fi.com/itsdnns) ☕
+If DOCSight helps you, you can support development here:
+
+- Ko-fi: https://ko-fi.com/itsdnns ☕
+- PayPal: https://paypal.me/itsDNNS 💙
 
 ## Documentation
 
