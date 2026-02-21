@@ -1899,6 +1899,66 @@ def api_channels():
     return jsonify(_storage.get_current_channels())
 
 
+def _gaming_genres(grade):
+    """Return genre suitability verdicts for a given grade.
+
+    Verdicts: 'ok', 'warn', or 'bad'.
+    """
+    g = (grade or "").lower()
+    return {
+        "fps":      "ok"   if g in ("a", "b")           else "bad",
+        "moba":     "ok"   if g in ("a", "b", "c")      else "bad",
+        "mmo":      "ok"   if g in ("a", "b", "c", "d") else "bad",
+        "strategy": "ok"   if g in ("a", "b", "c")      else ("warn" if g == "d" else "bad"),
+    }
+
+
+@app.route("/api/gaming-score")
+@require_auth
+def api_gaming_score():
+    """Return the current Gaming Quality Index score and its components.
+
+    Response includes:
+      enabled      - whether Gaming Quality is enabled in settings
+      score        - 0-100 numeric score (null if no data)
+      grade        - letter grade A-F (null if no data)
+      has_speedtest - whether speedtest data was included in the calculation
+      components   - per-component scores and weights used for calculation
+      genres       - suitability verdict (ok/warn/bad) per game genre
+      raw          - raw measured values that fed into the calculation
+    """
+    enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
+    state = get_state()
+    analysis = state.get("analysis")
+    speedtest_latest = state.get("speedtest_latest")
+    result = compute_gaming_index(analysis, speedtest_latest)
+    if result is None:
+        return jsonify({
+            "enabled": enabled,
+            "score": None,
+            "grade": None,
+            "has_speedtest": False,
+            "components": {},
+            "genres": _gaming_genres(None),
+            "raw": {},
+        })
+    summary = (analysis or {}).get("summary", {})
+    raw = {
+        "docsis_health": summary.get("health"),
+        "ds_snr_min": summary.get("ds_snr_min"),
+    }
+    if result.get("has_speedtest") and speedtest_latest:
+        raw["ping_ms"] = speedtest_latest.get("ping_ms")
+        raw["jitter_ms"] = speedtest_latest.get("jitter_ms")
+        raw["packet_loss_pct"] = speedtest_latest.get("packet_loss_pct")
+    return jsonify({
+        "enabled": enabled,
+        **result,
+        "genres": _gaming_genres(result.get("grade")),
+        "raw": raw,
+    })
+
+
 @app.route("/api/channel-history")
 @require_auth
 def api_channel_history():
