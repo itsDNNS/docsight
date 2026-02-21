@@ -370,6 +370,35 @@ class TestBnetzAPI:
         assert resp.status_code == 404
 
 
+class TestConnectionEndpoint:
+    def test_no_connection_info(self, client):
+        resp = client.get("/api/connection")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["connection_type"] is None
+        assert data["max_downstream_kbps"] is None
+        assert data["max_upstream_kbps"] is None
+
+    def test_with_connection_info(self, client):
+        update_state(connection_info={
+            "connection_type": "DOCSIS 3.1",
+            "max_downstream_kbps": 250000,
+            "max_upstream_kbps": 40000,
+        })
+        data = client.get("/api/connection").get_json()
+        assert data["connection_type"] == "DOCSIS 3.1"
+        assert data["max_downstream_kbps"] == 250000
+        assert data["max_upstream_kbps"] == 40000
+
+    def test_isp_name_from_config(self, config_mgr):
+        config_mgr.save({"isp_name": "Vodafone"})
+        init_config(config_mgr)
+        app.config["TESTING"] = True
+        with app.test_client() as c:
+            data = c.get("/api/connection").get_json()
+        assert data["isp_name"] == "Vodafone"
+
+
 class TestGamingScoreEndpoint:
     @pytest.fixture(autouse=True)
     def reset_state(self):

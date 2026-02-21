@@ -1890,6 +1890,24 @@ def api_events_acknowledge_all():
 
 # ── Channel Timeline API ──
 
+@app.route("/api/connection")
+@require_auth
+def api_connection():
+    """Return connection details: ISP name, connection type, and detected speeds.
+
+    isp_name comes from user config. The remaining fields are populated
+    by the modem driver and may be absent if the modem has not been polled yet.
+    """
+    isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
+    conn_info = get_state().get("connection_info") or {}
+    return jsonify({
+        "isp_name": isp_name or None,
+        "connection_type": conn_info.get("connection_type"),
+        "max_downstream_kbps": conn_info.get("max_downstream_kbps"),
+        "max_upstream_kbps": conn_info.get("max_upstream_kbps"),
+    })
+
+
 @app.route("/api/channels")
 @require_auth
 def api_channels():
