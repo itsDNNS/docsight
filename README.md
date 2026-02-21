@@ -102,7 +102,7 @@ Open `http://localhost:8765` — no setup required.
 | **[BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA)** | **NEW:** Upload or auto-import official BNetzA broadband measurement protocols (PDF/CSV) with file watcher and sidecar support |
 | **[Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping)** | Live latency graphs from your Smokeping instance |
 | **[Backup & Restore](https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore)** | One-click backup download, scheduled automatic backups, restore from setup wizard |
-| **[Notifications](https://github.com/itsDNNS/docsight/wiki/Notifications)** | Alerts via webhook, ntfy, Discord, Gotify, and custom endpoints |
+| **Notifications** | Alerts via webhook, ntfy, Discord, Gotify, and custom endpoints |
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
 | **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | Try DOCSight without a router — 9 months of simulated data with live migration |
 
@@ -224,10 +224,6 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation.
 - A supported DOCSIS cable modem or router (see above)
 - MQTT broker (optional, for Home Assistant)
 
-## Documentation
-
-📚 **[Wiki](https://github.com/itsDNNS/docsight/wiki)** — Full documentation, guides, and DOCSIS glossary
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on new features.**
@@ -241,8 +237,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Unified Collector Architecture | ✅ Released | [#23](https://github.com/itsDNNS/docsight/issues/23) |
 | Modern UI Redesign | ✅ Released | — |
 | Cross-Source Correlation | ✅ Released | — |
-| FritzBox Event Log Integration | ✅ Released | [#17](https://github.com/itsDNNS/docsight/issues/17) |
-| OFDMA Channel Analysis | ✅ Released | [#18](https://github.com/itsDNNS/docsight/issues/18) |
+| FritzBox Event Log Integration | 🚫 Closed | [#17](https://github.com/itsDNNS/docsight/issues/17) |
+| OFDMA Channel Analysis | 🚫 Closed | [#18](https://github.com/itsDNNS/docsight/issues/18) |
 | Gaming Quality Index | ✅ Released | [#20](https://github.com/itsDNNS/docsight/issues/20) |
 | Modulation Watchdog & Power Drift | ✅ Released | [#21](https://github.com/itsDNNS/docsight/issues/21) |
 | Demo/Test Mode | ✅ Released | [#30](https://github.com/itsDNNS/docsight/issues/30) |
@@ -262,6 +258,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | BQM Calendar View | ✅ Released | [#65](https://github.com/itsDNNS/docsight/issues/65) |
 | BQM Bulk Import | ✅ Released | [#67](https://github.com/itsDNNS/docsight/issues/67) |
 | Backup & Restore | ✅ Released | [#64](https://github.com/itsDNNS/docsight/issues/64) |
+| CM3500 Provisioned Speeds | ✅ Released | [#84](https://github.com/itsDNNS/docsight/issues/84) |
 
 **Planned:**
 
