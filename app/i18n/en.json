@@ -608,5 +608,9 @@
   "restore_success": "Backup restored successfully",
   "restore_version": "Version",
   "restore_date": "Backup Date",
-  "restore_tables": "Tables"
+  "restore_tables": "Tables",
+  "timezone": "Timezone",
+  "timezone_hint": "Use an IANA timezone (e.g. Europe/Berlin) to ensure correct daylight saving time handling.",
+  "timezone_auto": "Auto",
+  "timezone_posix_warning": "Your container uses a POSIX timezone that does not support daylight saving time. Select an IANA timezone (e.g. Europe/Berlin) to fix this."
 }

@@ -600,5 +600,9 @@
   "restore_success": "Sauvegarde restauree avec succes",
   "restore_version": "Version",
   "restore_date": "Date de sauvegarde",
-  "restore_tables": "Tables"
+  "restore_tables": "Tables",
+  "timezone": "Fuseau horaire",
+  "timezone_hint": "Utilisez un fuseau horaire IANA (ex. Europe/Paris) pour le changement d'heure automatique.",
+  "timezone_auto": "Automatique",
+  "timezone_posix_warning": "Votre conteneur utilise un fuseau horaire POSIX sans changement d'heure automatique. Selectionnez un fuseau IANA (ex. Europe/Paris) pour corriger."
 }

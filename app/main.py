@@ -150,8 +150,15 @@ def polling_loop(config_mgr, storage, stop_event):
 
 
 def main():
+    def _apply_timezone(cfg):
+        tz = cfg.get("timezone")
+        if tz:
+            os.environ["TZ"] = tz
+            time.tzset()
+
     data_dir = os.environ.get("DATA_DIR", "/data")
     config_mgr = ConfigManager(data_dir)
+    _apply_timezone(config_mgr)
 
     log.info("DOCSight starting")
 
@@ -181,6 +188,8 @@ def main():
         log.info("Configuration changed, restarting polling loop")
         # Reload config from file
         config_mgr._load()
+        # Apply timezone change immediately
+        _apply_timezone(config_mgr)
         # Update storage max_days
         storage.max_days = config_mgr.get("history_days", 7)
         if config_mgr.is_configured():

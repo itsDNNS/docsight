@@ -25,6 +25,35 @@ from .gaming_index import compute_gaming_index
 from .storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_ENTRY
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 
+_IANA_REGIONS = {"Africa", "America", "Antarctica", "Arctic", "Asia",
+                 "Atlantic", "Australia", "Europe", "Indian", "Pacific"}
+
+def _get_iana_timezones():
+    """Return sorted list of IANA timezone names (no POSIX abbreviations)."""
+    from zoneinfo import available_timezones
+    return ["UTC"] + sorted(
+        tz for tz in available_timezones()
+        if tz.split("/")[0] in _IANA_REGIONS
+    )
+
+def _guess_iana_timezone():
+    """Best-effort guess of the current IANA timezone from the system.
+    Returns an IANA name like 'Europe/Berlin' or '' if detection fails."""
+    try:
+        # Linux: /etc/localtime is usually a symlink into zoneinfo
+        link = os.readlink("/etc/localtime")
+        # e.g. ../usr/share/zoneinfo/Europe/Berlin
+        for marker in ("/zoneinfo/",):
+            if marker in link:
+                return link.split(marker, 1)[1]
+    except (OSError, ValueError):
+        pass
+    # Fallback: TZ env var if it looks like IANA (contains '/')
+    tz_env = os.environ.get("TZ", "")
+    if "/" in tz_env:
+        return tz_env
+    return ""
+
 def _server_tz_info():
     """Return server timezone name and UTC offset in minutes."""
     now = datetime.now().astimezone()
@@ -469,7 +498,8 @@ def setup():
     tz_name, tz_offset = _server_tz_info()
     from .drivers import DRIVER_REGISTRY, DRIVER_DISPLAY_NAMES
     modem_types = sorted([(k, DRIVER_DISPLAY_NAMES.get(k, k)) for k in DRIVER_REGISTRY], key=lambda x: x[1])
-    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types)
+    iana_tz = _guess_iana_timezone()
+    return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, timezones=_get_iana_timezones(), iana_tz=iana_tz)
 
 
 @app.route("/settings")
@@ -483,7 +513,10 @@ def settings():
     from .drivers import DRIVER_REGISTRY, DRIVER_DISPLAY_NAMES
     modem_types = sorted([(k, DRIVER_DISPLAY_NAMES.get(k, k)) for k in DRIVER_REGISTRY], key=lambda x: x[1])
     demo_mode = _config_manager.is_demo_mode() if _config_manager else False
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, demo_mode=demo_mode)
+    iana_tz = _guess_iana_timezone()
+    # Warn if server TZ looks like a POSIX abbreviation (no DST support)
+    tz_is_posix = bool(tz_name) and "/" not in tz_name and tz_name not in ("UTC",)
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, demo_mode=demo_mode, timezones=_get_iana_timezones(), iana_tz=iana_tz, tz_is_posix=tz_is_posix)
 
 
 @app.route("/api/config", methods=["POST"])
@@ -496,6 +529,13 @@ def api_config():
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data"}), 400
+        # Validate timezone if provided
+        if "timezone" in data and data["timezone"]:
+            from zoneinfo import ZoneInfo
+            try:
+                ZoneInfo(data["timezone"])
+            except (KeyError, Exception):
+                return jsonify({"success": False, "error": "Invalid timezone"}), 400
         # Clamp poll_interval to allowed range
         if "poll_interval" in data:
             try:

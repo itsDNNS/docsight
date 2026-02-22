@@ -8,7 +8,7 @@ services:
     volumes:
       - docsight_data:/data
     # environment:
-    #   - TZ=Europe/Berlin  # set container timezone for snapshot scheduling
+    #   - TZ=Europe/Berlin  # fallback timezone; prefer configuring via UI (Settings > Timezone)
     # env_file: .env  # uncomment if using environment variables
 
 volumes:
