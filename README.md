@@ -281,7 +281,7 @@ If DOCSight helps you, you can support development here:
 
 ## Documentation
 
-Documentation current as of **v2026-02-19.2**.
+Documentation current as of **v2026-02-22.1**.
 
 | Document | Scope |
 |---|---|
