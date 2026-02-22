@@ -432,6 +432,7 @@
   "report_include_bnetz": "Inclure les donnees de mesure BNetzA",
   "bnetz_generate_complaint": "Generer une reclamation",
   "import": "Importer",
+  "export_journal": "Exporter",
   "import_incidents": "Importer des incidents",
   "import_upload_hint": "Glisser-deposer ou cliquer pour telecharger",
   "import_file_types": "Fichiers .xlsx ou .csv (max 5 Mo)",

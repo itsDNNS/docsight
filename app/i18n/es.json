@@ -435,6 +435,7 @@
   "report_include_bnetz": "Incluir datos de medicion BNetzA",
   "bnetz_generate_complaint": "Generar reclamacion",
   "import": "Importar",
+  "export_journal": "Exportar",
   "import_incidents": "Importar incidencias",
   "import_upload_hint": "Arrastra y suelta o haz clic para subir",
   "import_file_types": "Archivos .xlsx o .csv (max 5 MB)",

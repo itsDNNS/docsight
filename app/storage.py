@@ -762,6 +762,41 @@ class SnapshotStorage:
         """Return all journal entries (for export context)."""
         return self.get_entries(limit=100)
 
+    def get_entries_for_export(self, date_from=None, date_to=None, incident_id=None):
+        """Return journal entries for export (no pagination).
+
+        Args:
+            date_from: Optional start date (YYYY-MM-DD), inclusive.
+            date_to: Optional end date (YYYY-MM-DD), inclusive.
+            incident_id: None=all, 0=unassigned, N=specific incident.
+        """
+        query = (
+            "SELECT i.id, i.date, i.title, i.description, i.icon, i.incident_id, i.created_at, i.updated_at, "
+            "(SELECT COUNT(*) FROM journal_attachments WHERE entry_id = i.id) AS attachment_count "
+            "FROM journal_entries i"
+        )
+        conditions = []
+        params = []
+        if date_from:
+            conditions.append("i.date >= ?")
+            params.append(date_from)
+        if date_to:
+            conditions.append("i.date <= ?")
+            params.append(date_to)
+        if incident_id is not None:
+            if incident_id == 0:
+                conditions.append("i.incident_id IS NULL")
+            else:
+                conditions.append("i.incident_id = ?")
+                params.append(incident_id)
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += " ORDER BY i.date DESC, i.created_at DESC"
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
     # ── Incident Containers (NEW) ──
 
     def save_incident(self, name, description=None, status="open", start_date=None, end_date=None, icon=None, is_demo=False):
