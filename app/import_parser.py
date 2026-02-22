@@ -70,10 +70,12 @@ def parse_file(file_bytes, filename):
         if all(not c or not str(c).strip() for c in row):
             continue
 
-        # Skip month-header rows
+        # Skip month-header rows only if they don't contain data in other columns
         first_cell = str(row[0]).strip() if row and row[0] else ""
         if MONTH_HEADER_RE.match(first_cell):
-            continue
+            has_data = any(str(c).strip() for c in row[1:] if c)
+            if not has_data:
+                continue
 
         # Extract fields
         raw_date = str(row[date_col]).strip() if date_col is not None and date_col < len(row) and row[date_col] else ""
@@ -296,7 +298,8 @@ def _is_date_like(val):
 def _extract_year_context(rows):
     """Extract year context from month-header rows (Dennis format).
 
-    Returns dict mapping row_index -> year for rows that follow a month header.
+    Returns dict mapping row_index -> year for all rows under a month header,
+    including month-header rows themselves (they may contain data).
     """
     year_map = {}
     current_year = None
@@ -308,17 +311,23 @@ def _extract_year_context(rows):
         if m:
             month_name = m.group(1).lower()
             year_str = m.group(2)
+            month_num = MONTH_NAMES_DE.get(month_name)
 
             if year_str:
                 current_year = int(year_str)
+            elif current_year is not None and current_month is not None and month_num is not None:
+                # Detect year rollover (e.g. Dec -> Jan without explicit year)
+                if month_num < current_month:
+                    current_year += 1
             elif current_year is None:
                 # Try to infer from nearby dates
                 current_year = _infer_year_from_nearby(rows, i)
 
-            month_num = MONTH_NAMES_DE.get(month_name)
             if month_num:
                 current_month = month_num
-        elif current_year is not None:
+
+        # Include ALL rows (including month-header rows that may contain data)
+        if current_year is not None:
             year_map[i] = current_year
 
     return year_map
