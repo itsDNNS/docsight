@@ -343,7 +343,7 @@ class CM3500Driver(ModemDriver):
             try:
                 first_freq = self._parse_number(cells[4])
                 last_freq = self._parse_number(cells[5])
-                power = self._parse_number(cells[6])
+                power = self._parse_number(cells[8])
 
                 result.append({
                     "channelID": chan_id,
