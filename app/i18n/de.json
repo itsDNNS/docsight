@@ -608,5 +608,9 @@
   "restore_success": "Sicherung erfolgreich wiederhergestellt",
   "restore_version": "Version",
   "restore_date": "Sicherungsdatum",
-  "restore_tables": "Tabellen"
+  "restore_tables": "Tabellen",
+  "timezone": "Zeitzone",
+  "timezone_hint": "Verwende eine IANA-Zeitzone (z.B. Europe/Berlin), damit die Sommerzeit korrekt berücksichtigt wird.",
+  "timezone_auto": "Automatisch",
+  "timezone_posix_warning": "Dein Container verwendet eine POSIX-Zeitzone ohne Sommerzeitunterstützung. Wähle eine IANA-Zeitzone (z.B. Europe/Berlin), um das zu beheben."
 }

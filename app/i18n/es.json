@@ -603,5 +603,9 @@
   "restore_success": "Copia de seguridad restaurada con exito",
   "restore_version": "Version",
   "restore_date": "Fecha de la copia",
-  "restore_tables": "Tablas"
+  "restore_tables": "Tablas",
+  "timezone": "Zona horaria",
+  "timezone_hint": "Usa una zona horaria IANA (ej. Europe/Madrid) para el cambio de horario de verano automatico.",
+  "timezone_auto": "Automatico",
+  "timezone_posix_warning": "Tu contenedor usa una zona horaria POSIX sin horario de verano. Selecciona una zona IANA (ej. Europe/Madrid) para corregirlo."
 }
