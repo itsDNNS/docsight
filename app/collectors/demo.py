@@ -10,7 +10,7 @@ import sqlite3
 import struct
 import time
 import zlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .base import Collector, CollectorResult
 from ..analyzer import _channel_bitrate_mbps
@@ -139,7 +139,7 @@ class DemoCollector(Collector):
         self._storage.purge_demo_data()
         # Keep all demo data — don't let cleanup purge the seeded history
         self._storage.max_days = 0
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         self._seed_history(now)
         self._seed_events(now)
         self._seed_journal_entries(now)
@@ -158,7 +158,7 @@ class DemoCollector(Collector):
         rows = []
         for i in range(total):
             ts = start + timedelta(minutes=i * interval_min)
-            ts_str = ts.strftime("%Y-%m-%dT%H:%M:%S")
+            ts_str = ts.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             # Time-based patterns for realistic variation
             hour = ts.hour + ts.minute / 60.0
@@ -315,7 +315,7 @@ class DemoCollector(Collector):
         days = 270
         events = [
             {
-                "timestamp": (now - timedelta(days=days - 1, hours=23)).strftime("%Y-%m-%dT%H:%M:%S"),
+                "timestamp": (now - timedelta(days=days - 1, hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "severity": "info",
                 "event_type": "monitoring_started",
                 "message": "Monitoring started (Health: good)",
@@ -329,28 +329,28 @@ class DemoCollector(Collector):
             t_end = t_start + timedelta(hours=6)
             events.extend([
                 {
-                    "timestamp": t_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timestamp": t_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "severity": "warning",
                     "event_type": "health_change",
                     "message": "Health changed from good to marginal",
                     "details": {"prev": "good", "current": "marginal"},
                 },
                 {
-                    "timestamp": (t_start + timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timestamp": (t_start + timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "severity": "warning",
                     "event_type": "power_change",
                     "message": f"DS power avg shifted from 4.8 to {round(random.uniform(6.5, 8.0), 1)} dBmV",
                     "details": {"direction": "downstream", "prev": 4.8, "current": round(random.uniform(6.5, 8.0), 1)},
                 },
                 {
-                    "timestamp": (t_start + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timestamp": (t_start + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "severity": "warning",
                     "event_type": "error_spike",
                     "message": f"Uncorrectable errors jumped by {random.randint(200, 1200)}",
                     "details": {"prev": 0, "current": random.randint(200, 1200)},
                 },
                 {
-                    "timestamp": t_end.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timestamp": t_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "severity": "info",
                     "event_type": "health_change",
                     "message": "Health recovered from marginal to good",
@@ -363,7 +363,7 @@ class DemoCollector(Collector):
             t = now - timedelta(days=d, hours=random.randint(8, 22))
             snr_val = round(random.uniform(32.0, 34.5), 1)
             events.append({
-                "timestamp": t.strftime("%Y-%m-%dT%H:%M:%S"),
+                "timestamp": t.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "severity": "warning",
                 "event_type": "snr_change",
                 "message": f"DS SNR min dropped to {snr_val} dB (warning threshold: 33)",
@@ -375,14 +375,14 @@ class DemoCollector(Collector):
             t = now - timedelta(days=d, hours=random.randint(0, 23))
             events.extend([
                 {
-                    "timestamp": t.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timestamp": t.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "severity": "info",
                     "event_type": "channel_change",
                     "message": "DS channel count changed from 25 to 24",
                     "details": {"direction": "downstream", "prev": 25, "current": 24},
                 },
                 {
-                    "timestamp": (t + timedelta(hours=random.randint(2, 8))).strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timestamp": (t + timedelta(hours=random.randint(2, 8))).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "severity": "info",
                     "event_type": "channel_change",
                     "message": "DS channel count changed from 24 to 25",
@@ -577,7 +577,7 @@ class DemoCollector(Collector):
                 srv = random.choice(demo_servers)
                 results.append({
                     "id": result_id,
-                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "download_mbps": dl,
                     "upload_mbps": ul,
                     "download_human": f"{dl} Mbps",
@@ -618,7 +618,7 @@ class DemoCollector(Collector):
         """Seed BQM placeholder graphs for the last 30 days."""
         for d in range(30):
             date = (now - timedelta(days=d)).strftime("%Y-%m-%d")
-            ts = (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%S")
+            ts = (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%SZ")
             png = self._generate_bqm_png(seed=d)
             with sqlite3.connect(self._storage.db_path) as conn:
                 conn.execute(
@@ -679,7 +679,7 @@ class DemoCollector(Collector):
 
             rows.append((
                 campaign_date.strftime("%Y-%m-%d"),
-                campaign_date.strftime("%Y-%m-%dT%H:%M:%S"),
+                campaign_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "Vodafone Kabel",     # provider
                 "Cable 250",          # tariff
                 250.0,                # download_max_tariff

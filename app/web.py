@@ -37,23 +37,7 @@ def _get_iana_timezones():
         if tz.split("/")[0] in _IANA_REGIONS
     )
 
-def _guess_iana_timezone():
-    """Best-effort guess of the current IANA timezone from the system.
-    Returns an IANA name like 'Europe/Berlin' or '' if detection fails."""
-    try:
-        # Linux: /etc/localtime is usually a symlink into zoneinfo
-        link = os.readlink("/etc/localtime")
-        # e.g. ../usr/share/zoneinfo/Europe/Berlin
-        for marker in ("/zoneinfo/",):
-            if marker in link:
-                return link.split(marker, 1)[1]
-    except (OSError, ValueError):
-        pass
-    # Fallback: TZ env var if it looks like IANA (contains '/')
-    tz_env = os.environ.get("TZ", "")
-    if "/" in tz_env:
-        return tz_env
-    return ""
+from .tz import guess_iana_timezone as _guess_iana_timezone
 
 def _server_tz_info():
     """Return server timezone name and UTC offset in minutes."""
@@ -254,6 +238,59 @@ def _get_lang():
     if _config_manager:
         return _config_manager.get("language", "en")
     return "en"
+
+
+def _get_tz_name():
+    """Get configured IANA timezone name."""
+    if _config_manager:
+        tz = _config_manager.get("timezone")
+        if tz:
+            return tz
+    from .tz import guess_iana_timezone
+    return guess_iana_timezone()
+
+
+def _localize_timestamps(data, keys=("timestamp", "created_at", "updated_at", "last_used_at")):
+    """Convert UTC timestamps to local time in-place for API responses.
+
+    Works on dicts and lists of dicts. Modifies data in-place and returns it.
+    """
+    from .tz import to_local
+    tz = _get_tz_name()
+    if not tz:
+        return data
+    if isinstance(data, dict):
+        for k in keys:
+            if k in data and data[k] and isinstance(data[k], str) and data[k].endswith("Z"):
+                data[k] = to_local(data[k], tz)
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict):
+                for k in keys:
+                    if k in item and item[k] and isinstance(item[k], str) and item[k].endswith("Z"):
+                        item[k] = to_local(item[k], tz)
+    return data
+
+
+# ── Jinja2 Filters for timestamp display ──
+
+def _jinja_localtime(value):
+    """Jinja2 filter: convert UTC timestamp to local display time."""
+    if not value or not isinstance(value, str):
+        return value
+    from .tz import to_local
+    tz = _get_tz_name()
+    return to_local(value, tz) if tz else value.rstrip("Z")
+
+
+def _jinja_localiso(value):
+    """Jinja2 filter: convert UTC timestamp to local ISO format (no Z)."""
+    return _jinja_localtime(value)
+
+
+app.jinja_env.filters["localtime"] = _jinja_localtime
+app.jinja_env.filters["localiso"] = _jinja_localiso
+
 
 # Shared state (updated from main loop)
 _state_lock = threading.Lock()
@@ -601,6 +638,7 @@ def api_tokens_list():
     if not _storage:
         return jsonify({"error": "Storage not available"}), 500
     tokens = _storage.get_api_tokens()
+    _localize_timestamps(tokens)
     return jsonify({"tokens": tokens})
 
 
@@ -791,13 +829,19 @@ def api_trends():
         return jsonify({"error": "Invalid date format"}), 400
 
     if range_type == "day":
-        return jsonify(_storage.get_intraday_data(date_str))
+        data = _storage.get_intraday_data(date_str)
+        _localize_timestamps(data)
+        return jsonify(data)
     elif range_type == "week":
         start = (ref_date - timedelta(days=6)).strftime("%Y-%m-%d")
-        return jsonify(_storage.get_summary_range(start, date_str))
+        data = _storage.get_summary_range(start, date_str)
+        _localize_timestamps(data)
+        return jsonify(data)
     elif range_type == "month":
         start = (ref_date - timedelta(days=29)).strftime("%Y-%m-%d")
-        return jsonify(_storage.get_summary_range(start, date_str))
+        data = _storage.get_summary_range(start, date_str)
+        _localize_timestamps(data)
+        return jsonify(data)
     else:
         return jsonify({"error": "Invalid range (use day, week, month)"}), 400
 
@@ -1125,11 +1169,13 @@ def api_bqm_live():
     if bqm_url and not (_config_manager and _config_manager.is_demo_mode()):
         image = thinkbroadband.fetch_graph(bqm_url)
         if image:
+            from .tz import utc_now
             source = "live"
-            ts = datetime.now().isoformat()
+            ts = utc_now()
 
     if not image and _storage:
-        today = datetime.now().strftime("%Y-%m-%d")
+        from .tz import local_today
+        today = local_today(_get_tz_name())
         image = _storage.get_bqm_graph(today)
         if image:
             source = "cached"
@@ -1354,7 +1400,9 @@ def api_journal_list():
             incident_id = int(incident_id_param)
         except (ValueError, TypeError):
             pass
-    return jsonify(_storage.get_entries(limit=limit, offset=offset, search=search, incident_id=incident_id))
+    entries = _storage.get_entries(limit=limit, offset=offset, search=search, incident_id=incident_id)
+    _localize_timestamps(entries)
+    return jsonify(entries)
 
 
 @app.route("/api/journal/export")
@@ -1745,7 +1793,9 @@ def api_incidents_list():
     status = request.args.get("status", None, type=str)
     if status and status not in _VALID_INCIDENT_STATUSES:
         status = None
-    return jsonify(_storage.get_incidents(status=status))
+    incidents = _storage.get_incidents(status=status)
+    _localize_timestamps(incidents)
+    return jsonify(incidents)
 
 
 @app.route("/api/incidents", methods=["POST"])
@@ -1852,12 +1902,18 @@ def api_incident_timeline(incident_id):
     timeline = []
     bnetz = []
     if incident.get("start_date"):
-        start_ts = incident["start_date"] + "T00:00:00"
+        from .tz import local_date_to_utc_range
+        tz = _get_tz_name()
+        start_ts, _ = local_date_to_utc_range(incident["start_date"], tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
-        end_ts = end_date + "T23:59:59"
+        _, end_ts = local_date_to_utc_range(end_date, tz)
         timeline = _storage.get_correlation_timeline(start_ts, end_ts)
         bnetz = _storage.get_bnetz_in_range(start_ts, end_ts)
 
+    _localize_timestamps(timeline)
+    _localize_timestamps(entries)
+    _localize_timestamps(incident)
+    _localize_timestamps(bnetz)
     return jsonify({
         "incident": incident,
         "entries": entries,
@@ -1891,9 +1947,11 @@ def api_incident_report(incident_id):
     speedtests = []
     bnetz = []
     if incident.get("start_date"):
-        start_ts = incident["start_date"] + "T00:00:00"
+        from .tz import local_date_to_utc_range as _ldr
+        _tz = _get_tz_name()
+        start_ts, _ = _ldr(incident["start_date"], _tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
-        end_ts = end_date + "T23:59:59"
+        _, end_ts = _ldr(end_date, _tz)
         snapshots = _storage.get_range_data(start_ts, end_ts)
         speedtests = _storage.get_speedtest_in_range(start_ts, end_ts)
         bnetz = _storage.get_bnetz_in_range(start_ts, end_ts)
@@ -2056,6 +2114,7 @@ def api_events_list():
         event_type=event_type, acknowledged=acknowledged,
     )
     unack = _storage.get_event_count(acknowledged=0)
+    _localize_timestamps(events)
     return jsonify({"events": events, "unacknowledged_count": unack})
 
 
@@ -2193,7 +2252,9 @@ def api_channel_history():
     if direction not in ("ds", "us"):
         return jsonify({"error": "direction must be 'ds' or 'us'"}), 400
     days = max(1, min(days, 90))
-    return jsonify(_storage.get_channel_history(channel_id, direction, days))
+    data = _storage.get_channel_history(channel_id, direction, days)
+    _localize_timestamps(data)
+    return jsonify(data)
 
 
 @app.route("/api/channel-compare")
@@ -2236,10 +2297,11 @@ def api_correlation():
     """
     if not _storage:
         return jsonify([])
+    from .tz import utc_now, utc_cutoff
     hours = request.args.get("hours", 24, type=int)
     hours = max(1, min(hours, 168))
-    end_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    start_ts = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+    end_ts = utc_now()
+    start_ts = utc_cutoff(hours=hours)
 
     sources_param = request.args.get("sources", "")
     if sources_param:
@@ -2269,6 +2331,7 @@ def api_correlation():
                 entry["modem_ds_snr_min"] = closest.get("ds_snr_min")
                 entry["modem_ds_power_avg"] = closest.get("ds_power_avg")
 
+    _localize_timestamps(timeline)
     return jsonify(timeline)
 
 
@@ -2456,10 +2519,11 @@ def api_report():
         return jsonify({"error": "No data available"}), 404
 
     # Time range: default last 7 days, configurable via ?days=N
+    from .tz import utc_now as _utc_now, utc_cutoff as _utc_cutoff
     days = request.args.get("days", 7, type=int)
     days = max(1, min(days, 90))
-    end_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    start_ts = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+    end_ts = _utc_now()
+    start_ts = _utc_cutoff(days=days)
 
     snapshots = []
     if _storage:
@@ -2494,10 +2558,11 @@ def api_complaint():
     if not analysis:
         return jsonify({"error": "No data available"}), 404
 
+    from .tz import utc_now as _un, utc_cutoff as _uc
     days = request.args.get("days", 7, type=int)
     days = max(1, min(days, 90))
-    end_ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    start_ts = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+    end_ts = _un()
+    start_ts = _uc(days=days)
 
     snapshots = []
     if _storage:

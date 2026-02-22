@@ -185,6 +185,13 @@ def main():
     # Initialize snapshot storage
     db_path = os.path.join(data_dir, "docsis_history.db")
     storage = SnapshotStorage(db_path, max_days=config_mgr.get("history_days", 7))
+
+    # UTC migration + timezone setup
+    from .tz import guess_iana_timezone
+    tz_name = config_mgr.get("timezone") or guess_iana_timezone()
+    storage.migrate_to_utc(tz_name)
+    storage.set_timezone(tz_name)
+
     web.init_storage(storage)
 
     # Polling thread management

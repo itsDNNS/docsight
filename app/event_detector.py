@@ -3,7 +3,8 @@
 import logging
 import re
 import threading
-from datetime import datetime
+
+from .tz import utc_now
 
 log = logging.getLogger("docsis.events")
 
@@ -68,7 +69,7 @@ class EventDetector:
         with self._lock:
             prev = self._prev
             self._prev = analysis
-        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        ts = utc_now()
 
         if prev is None:
             # First poll: generate baseline event
