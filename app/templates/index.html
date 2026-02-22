@@ -996,6 +996,21 @@
                 </svg>
                 {{ t.import }}
             </button>
+            <div class="journal-export-wrapper" style="position:relative;display:inline-block;">
+                <button class="btn-new-entry btn-import" onclick="toggleExportDropdown(event)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    {{ t.export_journal }}
+                </button>
+                <div class="journal-export-dropdown" id="journal-export-dropdown">
+                    <button onclick="exportJournal('csv')">CSV</button>
+                    <button onclick="exportJournal('json')">JSON</button>
+                    <button onclick="exportJournal('md')">Markdown</button>
+                </div>
+            </div>
             <button class="btn-danger btn-delete-all" id="btn-delete-all-entries" onclick="deleteAllEntries()" style="display:none;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
                     <polyline points="3 6 5 6 21 6"/>
@@ -5789,6 +5804,26 @@
         .catch(function() { showToast(T.network_error || 'Error', 'error'); });
     }
 
+    /* ── Export Dropdown ── */
+    function toggleExportDropdown(e) {
+        e.stopPropagation();
+        var dd = document.getElementById('journal-export-dropdown');
+        dd.classList.toggle('open');
+    }
+    function exportJournal(fmt) {
+        var dd = document.getElementById('journal-export-dropdown');
+        dd.classList.remove('open');
+        var url = '/api/journal/export?format=' + fmt;
+        if (_activeIncidentFilter !== null && _activeIncidentFilter > 0) {
+            url += '&incident_id=' + _activeIncidentFilter;
+        }
+        window.location.href = url;
+    }
+    document.addEventListener('click', function() {
+        var dd = document.getElementById('journal-export-dropdown');
+        if (dd) dd.classList.remove('open');
+    });
+
     /* Expose Journal functions for HTML onclick/onchange handlers */
     window.openEntryModal = openEntryModal;
     window.closeEntryModal = closeEntryModal;
@@ -5817,6 +5852,8 @@
     window.clearBulkSelection = clearBulkSelection;
     window.bulkAssign = bulkAssign;
     window.bulkUnassign = bulkUnassign;
+    window.toggleExportDropdown = toggleExportDropdown;
+    window.exportJournal = exportJournal;
 
     /* ── Journal Search ── */
     function clearJournalSearch() {

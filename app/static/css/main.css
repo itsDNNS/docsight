@@ -1296,6 +1296,37 @@ details.channel-group {
     font-size: 0.85em;
     padding: 8px 16px;
 }
+.journal-export-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--card-bg, #23232a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    z-index: 100;
+    min-width: 120px;
+    overflow: hidden;
+}
+.journal-export-dropdown.open { display: block; }
+.journal-export-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: var(--text, #e0e0e0);
+    font-size: 0.9em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.journal-export-dropdown button:hover {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+}
 .journal-header .trend-title { 
     font-size: 1.5em; 
     color: var(--accent-purple, var(--accent)); 

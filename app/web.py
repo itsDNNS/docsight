@@ -1,5 +1,6 @@
 """Flask web UI for DOCSight – DOCSIS channel monitoring."""
 
+import csv
 import functools
 import json
 import logging
@@ -1281,6 +1282,93 @@ def api_journal_list():
         except (ValueError, TypeError):
             pass
     return jsonify(_storage.get_entries(limit=limit, offset=offset, search=search, incident_id=incident_id))
+
+
+@app.route("/api/journal/export")
+@require_auth
+def api_journal_export():
+    """Export journal entries as CSV, JSON, or Markdown file download."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+
+    fmt = request.args.get("format", "csv").lower()
+    if fmt not in ("csv", "json", "md"):
+        return jsonify({"error": "Unsupported format. Use csv, json, or md."}), 400
+
+    date_from = request.args.get("from", None, type=str)
+    date_to = request.args.get("to", None, type=str)
+    incident_id_param = request.args.get("incident_id", None, type=str)
+    incident_id = None
+    if incident_id_param is not None and incident_id_param != "":
+        try:
+            incident_id = int(incident_id_param)
+        except (ValueError, TypeError):
+            pass
+
+    entries = _storage.get_entries_for_export(date_from=date_from, date_to=date_to, incident_id=incident_id)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    if fmt == "csv":
+        import io
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "Date", "Title", "Description", "Icon", "Incident ID", "Attachments", "Created", "Updated"])
+        for e in entries:
+            writer.writerow([
+                e["id"], e["date"], e["title"], e.get("description", ""),
+                e.get("icon", ""), e.get("incident_id", ""),
+                e.get("attachment_count", 0), e.get("created_at", ""), e.get("updated_at", ""),
+            ])
+        content = "\ufeff" + output.getvalue()
+        return send_file(
+            BytesIO(content.encode("utf-8")),
+            mimetype="text/csv; charset=utf-8",
+            as_attachment=True,
+            download_name=f"journal_export_{timestamp}.csv",
+        )
+
+    if fmt == "json":
+        content = json.dumps(entries, indent=2, ensure_ascii=False)
+        return send_file(
+            BytesIO(content.encode("utf-8")),
+            mimetype="application/json; charset=utf-8",
+            as_attachment=True,
+            download_name=f"journal_export_{timestamp}.json",
+        )
+
+    # Markdown
+    lines = ["# DOCSight Incident Journal Export", ""]
+    if date_from or date_to:
+        lines.append(f"**Filter:** {date_from or '...'} to {date_to or '...'}")
+        lines.append("")
+    lines.append(f"**Entries:** {len(entries)}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    for e in entries:
+        icon = f" {e['icon']}" if e.get("icon") else ""
+        lines.append(f"## {e['date']} {icon} {e['title']}")
+        lines.append("")
+        if e.get("description"):
+            lines.append(e["description"])
+            lines.append("")
+        meta = []
+        if e.get("incident_id"):
+            meta.append(f"Incident: #{e['incident_id']}")
+        if e.get("attachment_count"):
+            meta.append(f"Attachments: {e['attachment_count']}")
+        if meta:
+            lines.append(f"*{' | '.join(meta)}*")
+            lines.append("")
+        lines.append("---")
+        lines.append("")
+    content = "\n".join(lines)
+    return send_file(
+        BytesIO(content.encode("utf-8")),
+        mimetype="text/markdown; charset=utf-8",
+        as_attachment=True,
+        download_name=f"journal_export_{timestamp}.md",
+    )
 
 
 @app.route("/api/journal", methods=["POST"])

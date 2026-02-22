@@ -440,6 +440,7 @@
   "report_include_bnetz": "BNetzA-Messdaten einbeziehen",
   "bnetz_generate_complaint": "Beschwerde erstellen",
   "import": "Importieren",
+  "export_journal": "Exportieren",
   "import_incidents": "Einträge importieren",
   "import_upload_hint": "Drag & Drop oder klicken zum Hochladen",
   "import_file_types": ".xlsx oder .csv Dateien (max. 5 MB)",
