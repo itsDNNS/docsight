@@ -94,7 +94,7 @@ Open `http://localhost:8765` — no setup required.
 | **[Gaming Quality Index](https://github.com/itsDNNS/docsight/wiki/Features-Gaming-Quality)** | **NEW:** A-F grade for gaming readiness based on latency, jitter, and signal health |
 | **[Event Log](https://github.com/itsDNNS/docsight/wiki/Features-Event-Log)** | Automatic anomaly detection with modulation watchdog |
 | **[Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest)** | Speed test history from [Speedtest Tracker](https://github.com/alexjustesen/speedtest-tracker) |
-| **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Document ISP issues with icons, Excel/CSV import, search, attachments, and **incident groups** for organizing entries |
+| **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Document ISP issues with icons, Excel/CSV import, search, attachments, **incident groups**, and export (CSV/JSON/Markdown) |
 | **[Complaint Generator](https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint)** | Editable ISP letter + downloadable technical PDF |
 | **[Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline)** | Per-channel power, SNR, error, and modulation history over time with multi-channel comparison overlay |
 | **[Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant)** | MQTT Auto-Discovery with per-channel sensors |
@@ -106,7 +106,7 @@ Open `http://localhost:8765` — no setup required.
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
 | **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | Try DOCSight without a router — 9 months of simulated data with live migration |
 
-4 languages (EN/DE/FR/ES) · Light/Dark mode · Setup wizard · Optional authentication
+4 languages (EN/DE/FR/ES) · Light/Dark mode · Setup wizard · Optional authentication · API token auth for external clients
 
 ---
 
@@ -281,7 +281,7 @@ If DOCSight helps you, you can support development here:
 
 ## Documentation
 
-Documentation current as of **v2026-02-22.2**.
+Documentation current as of **v2026-02-22.3**.
 
 | Document | Scope |
 |---|---|

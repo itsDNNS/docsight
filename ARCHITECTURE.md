@@ -1,6 +1,6 @@
 # DOCSight Architecture
 
-> Documentation current as of **v2026-02-19.2**
+> Documentation current as of **v2026-02-22.3**
 
 This document describes the technical architecture of DOCSight.
 
@@ -604,7 +604,7 @@ CREATE TABLE bnetz_measurements (
 
 **Framework:** Flask  
 **Port:** 8765 (configurable)  
-**Auth:** Optional password protection (bcrypt hashing)
+**Auth:** Optional password protection (bcrypt hashing) + API token authentication (Bearer tokens)
 
 ### API Endpoints
 
@@ -629,6 +629,9 @@ CREATE TABLE bnetz_measurements (
 | `/api/incidents` | GET/POST | Incident containers (list, create) |
 | `/api/incidents/<id>` | GET/PUT/DELETE | Single incident container CRUD |
 | `/api/incidents/<id>/assign` | POST | Assign entries to incident |
+| `/api/journal/export` | GET | Export journal entries (CSV, JSON, or Markdown) |
+| `/api/tokens` | GET/POST | List or create API tokens (POST requires session auth) |
+| `/api/tokens/<id>` | DELETE | Revoke an API token (requires session auth) |
 | `/api/export` | GET | LLM-optimized report |
 | `/api/report` | GET | PDF incident report |
 | `/api/bnetz/upload` | POST | Upload BNetzA measurement (PDF or CSV) |
