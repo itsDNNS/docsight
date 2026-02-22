@@ -81,6 +81,31 @@ STATUS_HTML = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
 </div>
 </body></html>"""
 
+STATUS_HTML_WITH_US_OFDM_ROW = STATUS_HTML.replace(
+    """<h4> Upstream OFDM </h4>
+<table class="heading2 thinset spc0">
+<tbody>
+<tr>
+  <td></td><td>FFT Type</td><td>Channel Width(MHz)</td>
+  <td># of Active Subcarriers</td><td>First Active Subcarrier(MHz)</td>
+  <td>Last Active Subcarrier(MHz)</td><td>Tx Power(dBmV)</td>
+</tr>
+</tbody>
+</table>""",
+    """<h4> Upstream OFDM </h4>
+<table class="heading2 thinset spc0">
+<tbody>
+<tr>
+  <td></td><td>FFT Type</td><td>Channel Width(MHz)</td>
+  <td># of Active Subcarriers</td><td>First Active Subcarrier(MHz)</td>
+  <td>Last Active Subcarrier(MHz)</td><td>Tx Power(dBmV)</td>
+</tr>
+<tr><td>Upstream 0</td><td>2K</td><td>32.000000</td><td>640</td><td>74</td><td>773</td><td>29.8</td><td>64.8</td><td>42.250000</td></tr>
+</tbody>
+</table>""",
+    1,
+)
+
 
 @pytest.fixture
 def driver():
@@ -92,6 +117,15 @@ def mock_status(driver):
     """Patch _fetch_status_page to return parsed sample HTML."""
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(STATUS_HTML, "html.parser")
+    with patch.object(driver, "_fetch_status_page", return_value=soup):
+        yield driver
+
+
+@pytest.fixture
+def mock_status_with_us_ofdm(driver):
+    """Patch _fetch_status_page to include one upstream OFDM data row."""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(STATUS_HTML_WITH_US_OFDM_ROW, "html.parser")
     with patch.object(driver, "_fetch_status_page", return_value=soup):
         yield driver
 
@@ -200,6 +234,16 @@ class TestDocsisData:
         """Upstream OFDM table exists but has no data rows."""
         data = mock_status.get_docsis_data()
         assert len(data["channelUs"]["docsis31"]) == 0
+
+    def test_upstream_ofdm_parsed(self, mock_status_with_us_ofdm):
+        data = mock_status_with_us_ofdm.get_docsis_data()
+        channels = data["channelUs"]["docsis31"]
+
+        assert len(channels) == 1
+        assert channels[0]["channelID"] == 200
+        assert channels[0]["type"] == "OFDMA"
+        assert channels[0]["frequency"] == "29-64 MHz"
+        assert channels[0]["powerLevel"] == 42.25
 
 
 # -- Device info --
