@@ -63,6 +63,7 @@ DEFAULTS = {
     "backup_path": "/backup",
     "backup_interval_hours": 24,
     "backup_retention": 5,
+    "timezone": "",
 }
 
 ENV_MAP = {

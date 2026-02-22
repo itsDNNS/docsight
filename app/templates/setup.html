@@ -473,11 +473,13 @@
 
         <div class="form-row">
             <label for="timezone">{{ t.timezone }}</label>
-            <input type="text" id="timezone" name="timezone" 
-                   value="{{ config.timezone or server_tz }}" 
-                   placeholder="{{ server_tz }}" required>
+            <select id="timezone" name="timezone" required>
+                {% for tz in timezones %}
+                <option value="{{ tz }}" {% if (config.timezone or iana_tz) == tz %}selected{% endif %}>{{ tz }}</option>
+                {% endfor %}
+            </select>
             <small style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px; display: block;">
-                {{ t.server_timezone|default('Server timezone') }}: {{ server_tz }} ({{ server_tz_offset }})
+                {{ t.timezone_hint }}
             </small>
         </div>
 

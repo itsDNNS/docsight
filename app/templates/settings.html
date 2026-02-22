@@ -413,7 +413,7 @@
             border-radius: var(--radius-lg);
             font-size: 0.9em;
             font-weight: 600;
-            z-index: 1000;
+            z-index: 99999;
             display: none;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             backdrop-filter: blur(8px);
@@ -695,6 +695,21 @@
                                 <label for="snapshot_time">{{ t.snapshot_time }}</label>
                                 <input type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
                                 <span class="hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
+                            </div>
+                            <div class="form-row">
+                                <label for="timezone">{{ t.timezone }}</label>
+                                <select id="timezone" name="timezone">
+                                    <option value="">{{ t.timezone_auto }} ({{ server_tz }})</option>
+                                    {% for tz in timezones %}
+                                    <option value="{{ tz }}" {% if config.timezone == tz %}selected{% endif %}>{{ tz }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="hint">{{ t.timezone_hint }}</span>
+                                {% if tz_is_posix and not config.timezone %}
+                                <span class="hint" style="color: var(--warning, #e6a700); margin-top: 4px; display: block;">
+                                    ⚠ {{ t.timezone_posix_warning|default('Your container uses "' + server_tz + '" which does not support daylight saving time. Select an IANA timezone (e.g. Europe/Berlin) to fix this.') }}
+                                </span>
+                                {% endif %}
                             </div>
                             <div class="form-row">
                                 <label for="language">{{ t.language }}</label>
@@ -1416,6 +1431,7 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
     e.preventDefault();
     var errEl = document.getElementById('global-error');
     errEl.style.display = 'none';
+    var saveBtn = e.target.querySelector('button[type="submit"]');
     var data = getFormData();
     fetch('/api/config', {
         method: 'POST',
@@ -1425,10 +1441,17 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
     .then(function(r) { return r.json(); })
     .then(function(res) {
         if (res.success) {
-            showToast(T.settings_saved, true);
+            if (saveBtn) {
+                var orig = saveBtn.textContent;
+                saveBtn.textContent = '✓ ' + T.settings_saved;
+                saveBtn.style.background = 'var(--success, #10b981)';
+            }
             var newLang = document.getElementById('language').value;
-            if (newLang !== '{{ lang }}') {
-                setTimeout(function() { location.reload(); }, 500);
+            var newTz = document.getElementById('timezone').value;
+            if (newLang !== '{{ lang }}' || newTz !== '{{ config.timezone|default("", true) }}') {
+                setTimeout(function() { location.reload(); }, 800);
+            } else if (saveBtn) {
+                setTimeout(function() { saveBtn.textContent = orig; saveBtn.style.background = ''; }, 2500);
             }
         } else {
             errEl.textContent = res.error || T.save_failed;
