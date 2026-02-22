@@ -3,9 +3,10 @@
 import json
 import sqlite3
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.storage import SnapshotStorage
+from app.tz import utc_now, utc_cutoff
 from app.web import app, update_state, init_config, init_storage
 from app.config import ConfigManager
 
@@ -217,8 +218,7 @@ class TestCorrelationAPI:
 
     def test_correlation_endpoint_with_data(self, client_with_storage, storage, sample_analysis):
         """Correlation endpoint returns data from all sources."""
-        now = datetime.now()
-        ts = now.strftime("%Y-%m-%dT%H:%M:%S")
+        ts = utc_now()
         with sqlite3.connect(storage.db_path) as conn:
             conn.execute(
                 "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
@@ -241,8 +241,7 @@ class TestCorrelationAPI:
 
     def test_correlation_source_filter(self, client_with_storage, storage, sample_analysis):
         """Correlation endpoint respects sources filter."""
-        now = datetime.now()
-        ts = now.strftime("%Y-%m-%dT%H:%M:%S")
+        ts = utc_now()
         with sqlite3.connect(storage.db_path) as conn:
             conn.execute(
                 "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
@@ -257,8 +256,7 @@ class TestCorrelationAPI:
 
     def test_correlation_speedtest_enrichment(self, client_with_storage, storage, sample_analysis):
         """Speedtest entries get enriched with modem_health."""
-        now = datetime.now()
-        ts = now.strftime("%Y-%m-%dT%H:%M:%S")
+        ts = utc_now()
         with sqlite3.connect(storage.db_path) as conn:
             conn.execute(
                 "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",

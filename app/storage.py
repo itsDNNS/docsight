@@ -4,10 +4,13 @@ import json
 import logging
 import os
 import secrets
+import shutil
 import sqlite3
 from datetime import datetime, timedelta
 
 from werkzeug.security import generate_password_hash, check_password_hash
+
+from .tz import utc_now, utc_cutoff, local_to_utc
 
 ALLOWED_MIME_TYPES = {
     "image/png", "image/jpeg", "image/gif", "image/webp",
@@ -25,6 +28,7 @@ class SnapshotStorage:
     def __init__(self, db_path, max_days=7):
         self.db_path = db_path
         self.max_days = max_days
+        self.tz_name = ""
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self._init_db()
 
@@ -291,6 +295,101 @@ class SnapshotStorage:
                 )
             """)
 
+            # ── Schema metadata (UTC migration tracking etc.) ──
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS _docsight_meta (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )
+            """)
+
+    # ── Timezone ──
+
+    def set_timezone(self, tz_name):
+        """Set the timezone name used for local conversions on read."""
+        self.tz_name = tz_name
+
+    # ── UTC Migration ──
+
+    _TIMESTAMP_COLUMNS = [
+        ("snapshots", "timestamp"),
+        ("events", "timestamp"),
+        ("journal_entries", "created_at"),
+        ("journal_entries", "updated_at"),
+        ("journal_attachments", "created_at"),
+        ("incidents", "created_at"),
+        ("incidents", "updated_at"),
+        ("speedtest_results", "timestamp"),
+        ("bnetz_measurements", "timestamp"),
+        ("api_tokens", "created_at"),
+        ("api_tokens", "last_used_at"),
+        ("bqm_graphs", "timestamp"),
+    ]
+
+    def migrate_to_utc(self, tz_name):
+        """One-time migration: convert all timestamp columns from local time to UTC.
+
+        - Idempotent: checks _docsight_meta for 'tz_migrated' flag
+        - Creates a safety backup before migration
+        - Runs in a single transaction (automatic rollback on error)
+        - Skips NULL, empty, and already-UTC (Z-suffix) values
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT value FROM _docsight_meta WHERE key = 'tz_migrated'"
+            ).fetchone()
+            if row:
+                log.debug("UTC migration already completed (%s), skipping", row[0])
+                return False
+
+        # Safety backup
+        backup_path = self.db_path + ".pre_utc_migration"
+        if not os.path.exists(backup_path):
+            shutil.copy2(self.db_path, backup_path)
+            log.info("UTC migration: backup created at %s", backup_path)
+
+        migrated_count = 0
+        with sqlite3.connect(self.db_path) as conn:
+            for table, column in self._TIMESTAMP_COLUMNS:
+                # Check table and column exist
+                try:
+                    cols = [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+                except Exception:
+                    continue
+                if column not in cols:
+                    continue
+
+                rows = conn.execute(
+                    f"SELECT rowid, [{column}] FROM [{table}] "
+                    f"WHERE [{column}] IS NOT NULL AND [{column}] != '' AND [{column}] NOT LIKE '%Z'",
+                ).fetchall()
+
+                for rowid, ts_val in rows:
+                    try:
+                        utc_val = local_to_utc(ts_val, tz_name)
+                        conn.execute(
+                            f"UPDATE [{table}] SET [{column}] = ? WHERE rowid = ?",
+                            (utc_val, rowid),
+                        )
+                        migrated_count += 1
+                    except (ValueError, KeyError) as e:
+                        log.warning(
+                            "UTC migration: skipped %s.%s rowid=%d value=%r: %s",
+                            table, column, rowid, ts_val, e,
+                        )
+
+            # Mark migration as done
+            conn.execute(
+                "INSERT INTO _docsight_meta (key, value) VALUES (?, ?)",
+                ("tz_migrated", f"{tz_name}|{utc_now()}"),
+            )
+
+        log.info(
+            "UTC migration complete: %d values converted (timezone: %s)",
+            migrated_count, tz_name or "UTC",
+        )
+        return True
+
     # ── API Token Management ──
 
     def create_api_token(self, name):
@@ -299,7 +398,7 @@ class SnapshotStorage:
         plaintext = "dsk_" + raw
         prefix = plaintext[:8]
         token_hash = generate_password_hash(plaintext)
-        created_at = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        created_at = utc_now()
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.execute(
                 "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at) VALUES (?, ?, ?, ?)",
@@ -316,7 +415,7 @@ class SnapshotStorage:
             ).fetchall()
             for row in rows:
                 if check_password_hash(row["token_hash"], token):
-                    now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                    now = utc_now()
                     conn.execute("UPDATE api_tokens SET last_used_at = ? WHERE id = ?", (now, row["id"]))
                     return {
                         "id": row["id"],
@@ -346,7 +445,7 @@ class SnapshotStorage:
 
     def save_snapshot(self, analysis):
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
-        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        ts = utc_now()
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
@@ -388,24 +487,38 @@ class SnapshotStorage:
         }
 
     def get_dates_with_data(self):
-        """Return list of dates (YYYY-MM-DD) that have at least one snapshot."""
+        """Return list of dates (YYYY-MM-DD) that have at least one snapshot.
+
+        Converts UTC timestamps to local dates using the configured timezone,
+        so the returned dates match the user's calendar.
+        """
+        from .tz import to_local
+        tz = self.tz_name
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
-                "SELECT DISTINCT substr(timestamp, 1, 10) as day FROM snapshots ORDER BY day"
+                "SELECT DISTINCT timestamp FROM snapshots ORDER BY timestamp"
             ).fetchall()
-        return [r[0] for r in rows]
+        # Convert each UTC timestamp to local date and deduplicate
+        dates = sorted({to_local(r[0], tz)[:10] for r in rows if r[0]})
+        return dates
 
     def get_daily_snapshot(self, date, target_time="06:00"):
-        """Get the snapshot closest to target_time on the given date."""
-        target_ts = f"{date}T{target_time}:00"
+        """Get the snapshot closest to target_time on the given date.
+
+        date and target_time are local concepts — converted to UTC for querying.
+        """
+        from .tz import local_date_to_utc_range, local_to_utc as _l2u
+        tz = self.tz_name
+        start_utc, end_utc = local_date_to_utc_range(date, tz)
+        target_utc = _l2u(f"{date}T{target_time}:00", tz)
         with sqlite3.connect(self.db_path) as conn:
             row = conn.execute(
                 """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
                    FROM snapshots
-                   WHERE timestamp LIKE ?
+                   WHERE timestamp >= ? AND timestamp <= ?
                    ORDER BY ABS(julianday(timestamp) - julianday(?))
                    LIMIT 1""",
-                (f"{date}%", target_ts),
+                (start_utc, end_utc, target_utc),
             ).fetchone()
         if not row:
             return None
@@ -418,14 +531,22 @@ class SnapshotStorage:
 
     def get_trend_data(self, start_date, end_date, target_time="06:00"):
         """Get summary data points for a date range, one per day (closest to target_time).
-        Returns list of {date, timestamp, ...summary_fields}."""
-        dates = []
+        Returns list of {date, timestamp, ...summary_fields}.
+
+        start_date and end_date are local calendar dates (YYYY-MM-DD).
+        """
+        from .tz import to_local, local_date_to_utc_range
+        tz = self.tz_name
+        # Get the full UTC range covering both local date boundaries
+        range_start, _ = local_date_to_utc_range(start_date, tz)
+        _, range_end = local_date_to_utc_range(end_date, tz)
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
-                "SELECT DISTINCT substr(timestamp, 1, 10) as day FROM snapshots WHERE day >= ? AND day <= ? ORDER BY day",
-                (start_date, end_date),
+                "SELECT DISTINCT timestamp FROM snapshots WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
+                (range_start, range_end),
             ).fetchall()
-            dates = [r[0] for r in rows]
+        # Convert UTC timestamps to local dates and deduplicate
+        dates = sorted({to_local(r[0], tz)[:10] for r in rows if r[0]})
 
         results = []
         for date in dates:
@@ -456,11 +577,17 @@ class SnapshotStorage:
         return results
 
     def get_intraday_data(self, date):
-        """Get all snapshots for a single day (for day-detail trends)."""
+        """Get all snapshots for a single day (for day-detail trends).
+
+        date is a local calendar date — converted to UTC range for querying.
+        """
+        from .tz import local_date_to_utc_range
+        start_utc, end_utc = local_date_to_utc_range(date, self.tz_name)
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
-                "SELECT timestamp, summary_json FROM snapshots WHERE timestamp LIKE ? ORDER BY timestamp",
-                (f"{date}%",),
+                "SELECT timestamp, summary_json FROM snapshots "
+                "WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
+                (start_utc, end_utc),
             ).fetchall()
         results = []
         for row in rows:
@@ -470,13 +597,19 @@ class SnapshotStorage:
         return results
 
     def get_summary_range(self, start_date, end_date):
-        """Get all snapshots (summary only) between two dates. Like get_intraday_data but multi-day."""
+        """Get all snapshots (summary only) between two dates. Like get_intraday_data but multi-day.
+
+        start_date and end_date are local calendar dates — converted to UTC range.
+        """
+        from .tz import local_date_to_utc_range
+        range_start, _ = local_date_to_utc_range(start_date, self.tz_name)
+        _, range_end = local_date_to_utc_range(end_date, self.tz_name)
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
-                "WHERE substr(timestamp, 1, 10) >= ? AND substr(timestamp, 1, 10) <= ? "
+                "WHERE timestamp >= ? AND timestamp <= ? "
                 "ORDER BY timestamp",
-                (start_date, end_date),
+                (range_start, range_end),
             ).fetchall()
         results = []
         for row in rows:
@@ -493,8 +626,9 @@ class SnapshotStorage:
             graph_date: ISO date string (YYYY-MM-DD) to store as.
                         Defaults to today if not specified.
         """
-        target_date = graph_date or datetime.now().strftime("%Y-%m-%d")
-        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        from .tz import local_today
+        target_date = graph_date or local_today(getattr(self, 'tz_name', ''))
+        ts = utc_now()
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
@@ -567,31 +701,19 @@ class SnapshotStorage:
     def get_closest_snapshot(self, timestamp):
         """Find the snapshot closest to a given ISO timestamp (within 2 hours).
         Returns analysis dict with timestamp, or None if nothing within range.
-        Handles timezone differences: speedtest timestamps may have 'Z' (UTC)
-        while snapshots are stored in local time. We strip 'Z' and use localtime()
-        to normalize both to the same basis."""
-        # Normalize: if timestamp ends with Z, convert UTC to local via SQLite
-        # Snapshots are stored without timezone suffix (local time)
+
+        All timestamps are now stored as UTC with Z suffix.
+        """
         ts_param = timestamp
         with sqlite3.connect(self.db_path) as conn:
-            if timestamp.endswith("Z"):
-                row = conn.execute(
-                    """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
-                       FROM snapshots
-                       WHERE ABS(julianday(timestamp) - julianday(datetime(?, 'localtime'))) <= (2.0 / 24.0)
-                       ORDER BY ABS(julianday(timestamp) - julianday(datetime(?, 'localtime')))
-                       LIMIT 1""",
-                    (ts_param, ts_param),
-                ).fetchone()
-            else:
-                row = conn.execute(
-                    """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
-                       FROM snapshots
-                       WHERE ABS(julianday(timestamp) - julianday(datetime(?))) <= (2.0 / 24.0)
-                       ORDER BY ABS(julianday(timestamp) - julianday(datetime(?)))
-                       LIMIT 1""",
-                    (ts_param, ts_param),
-                ).fetchone()
+            row = conn.execute(
+                """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
+                   FROM snapshots
+                   WHERE ABS(julianday(REPLACE(timestamp, 'Z', '')) - julianday(REPLACE(?, 'Z', ''))) <= (2.0 / 24.0)
+                   ORDER BY ABS(julianday(REPLACE(timestamp, 'Z', '')) - julianday(REPLACE(?, 'Z', '')))
+                   LIMIT 1""",
+                (ts_param, ts_param),
+            ).fetchone()
         if not row:
             return None
         return {
@@ -679,7 +801,7 @@ class SnapshotStorage:
 
     def save_entry(self, date, title, description, icon=None, incident_id=None, is_demo=False):
         """Create a new journal entry. Returns the new entry id."""
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        now = utc_now()
         with self._connect() as conn:
             cur = conn.execute(
                 "INSERT INTO journal_entries (date, title, description, icon, incident_id, created_at, updated_at, is_demo) "
@@ -690,7 +812,7 @@ class SnapshotStorage:
 
     def update_entry(self, entry_id, date, title, description, icon=None, incident_id=None):
         """Update an existing journal entry. Returns True if found."""
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        now = utc_now()
         with self._connect() as conn:
             rowcount = conn.execute(
                 "UPDATE journal_entries SET date=?, title=?, description=?, icon=?, incident_id=?, updated_at=? WHERE id=?",
@@ -760,7 +882,7 @@ class SnapshotStorage:
 
     def save_attachment(self, entry_id, filename, mime_type, data):
         """Save a file attachment for a journal entry. Returns attachment id."""
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        now = utc_now()
         with self._connect() as conn:
             cur = conn.execute(
                 "INSERT INTO journal_attachments (entry_id, filename, mime_type, data, created_at) "
@@ -870,7 +992,7 @@ class SnapshotStorage:
 
     def save_incident(self, name, description=None, status="open", start_date=None, end_date=None, icon=None, is_demo=False):
         """Create a new incident container. Returns the new incident id."""
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        now = utc_now()
         with self._connect() as conn:
             cur = conn.execute(
                 "INSERT INTO incidents (name, description, status, start_date, end_date, icon, created_at, updated_at, is_demo) "
@@ -881,7 +1003,7 @@ class SnapshotStorage:
 
     def update_incident(self, incident_id, name, description=None, status="open", start_date=None, end_date=None, icon=None):
         """Update an existing incident container. Returns True if found."""
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        now = utc_now()
         with self._connect() as conn:
             rowcount = conn.execute(
                 "UPDATE incidents SET name=?, description=?, status=?, start_date=?, end_date=?, icon=?, updated_at=? WHERE id=?",
@@ -1059,7 +1181,7 @@ class SnapshotStorage:
 
     def get_recent_events(self, hours=48):
         """Return events from the last N hours, newest first."""
-        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%S")
+        cutoff = utc_cutoff(hours=hours)
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
@@ -1082,7 +1204,7 @@ class SnapshotStorage:
 
     def save_bnetz_measurement(self, parsed_data, pdf_bytes=None, source="upload"):
         """Save a parsed BNetzA measurement with optional PDF. Returns the new id."""
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        now = utc_now()
         measurements = {
             "download": parsed_data.get("measurements_download", []),
             "upload": parsed_data.get("measurements_upload", []),
@@ -1200,16 +1322,16 @@ class SnapshotStorage:
 
     def get_speedtest_in_range(self, start_ts, end_ts):
         """Return speedtest results within a time range, oldest first.
-        Handles both local timestamps and UTC timestamps (ending with Z)."""
+
+        All timestamps are now stored as UTC with Z suffix.
+        """
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
                 "upload_human, ping_ms, jitter_ms, packet_loss_pct "
                 "FROM speedtest_results "
-                "WHERE datetime(REPLACE(timestamp, 'Z', ''), "
-                "CASE WHEN timestamp LIKE '%Z' THEN 'localtime' ELSE 'auto' END) "
-                "BETWEEN datetime(?) AND datetime(?) "
+                "WHERE timestamp >= ? AND timestamp <= ? "
                 "ORDER BY timestamp",
                 (start_ts, end_ts),
             ).fetchall()
@@ -1219,8 +1341,8 @@ class SnapshotStorage:
         """Return unified timeline entries from all sources, sorted by timestamp.
 
         Args:
-            start_ts: ISO 8601 start (local time, no Z suffix)
-            end_ts: ISO 8601 end (local time, no Z suffix)
+            start_ts: UTC start timestamp (with Z suffix)
+            end_ts: UTC end timestamp (with Z suffix)
             sources: set of source names to include (modem, speedtest, events).
                      None means all.
 
@@ -1248,23 +1370,8 @@ class SnapshotStorage:
 
         if "speedtest" in sources:
             for st in self.get_speedtest_in_range(start_ts, end_ts):
-                # Normalize timestamp for display (UTC -> local)
-                ts = st["timestamp"]
-                if ts.endswith("Z"):
-                    try:
-                        from datetime import timezone
-                        ts_clean = ts[:-1]  # Strip Z
-                        if "." in ts_clean:
-                            ts_clean = ts_clean.split(".")[0]
-                        utc_dt = datetime.strptime(ts_clean, "%Y-%m-%dT%H:%M:%S")
-                        local_dt = utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
-                        ts = local_dt.strftime("%Y-%m-%dT%H:%M:%S")
-                    except (ValueError, TypeError):
-                        ts = ts.rstrip("Z")
-                elif "." in ts:
-                    ts = ts.split(".")[0]
                 timeline.append({
-                    "timestamp": ts,
+                    "timestamp": st["timestamp"],
                     "source": "speedtest",
                     "id": st["id"],
                     "download_mbps": st.get("download_mbps"),
@@ -1318,7 +1425,7 @@ class SnapshotStorage:
         """Delete events older than given days. Returns count deleted."""
         if days <= 0:
             return 0
-        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+        cutoff = utc_cutoff(days=days)
         with sqlite3.connect(self.db_path) as conn:
             deleted = conn.execute(
                 "DELETE FROM events WHERE timestamp < ?", (cutoff,)
@@ -1333,7 +1440,7 @@ class SnapshotStorage:
         _COL_MAP = {"ds": "ds_channels_json", "us": "us_channels_json"}
         channel_id = int(channel_id)
         col = _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
-        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+        cutoff = utc_cutoff(days=days)
         with sqlite3.connect(self.db_path) as conn:
             if direction == "ds":
                 rows = conn.execute(
@@ -1367,7 +1474,7 @@ class SnapshotStorage:
         direction: 'ds' or 'us'. Returns dict {channel_id: [{timestamp, power, snr, ...}, ...]}"""
         channel_ids = [int(c) for c in channel_ids]
         channel_set = set(channel_ids)
-        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+        cutoff = utc_cutoff(days=days)
         col = "ds_channels_json" if direction == "ds" else "us_channels_json"
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
@@ -1438,16 +1545,17 @@ class SnapshotStorage:
         """Delete snapshots, BQM graphs, and events older than max_days. 0 = keep all."""
         if self.max_days <= 0:
             return
-        cutoff = (datetime.now() - timedelta(days=self.max_days)).strftime(
-            "%Y-%m-%dT%H:%M:%S"
-        )
+        cutoff = utc_cutoff(days=self.max_days)
         with sqlite3.connect(self.db_path) as conn:
             deleted = conn.execute(
                 "DELETE FROM snapshots WHERE timestamp < ?", (cutoff,)
             ).rowcount
         if deleted:
             log.info("Cleaned up %d old snapshots (before %s)", deleted, cutoff)
-        cutoff_date = (datetime.now() - timedelta(days=self.max_days)).strftime("%Y-%m-%d")
+        from .tz import local_today
+        tz = getattr(self, 'tz_name', '')
+        today = local_today(tz)
+        cutoff_date = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=self.max_days)).strftime("%Y-%m-%d")
         with sqlite3.connect(self.db_path) as conn:
             bqm_deleted = conn.execute(
                 "DELETE FROM bqm_graphs WHERE date < ?", (cutoff_date,)

@@ -4,9 +4,10 @@ import json
 import logging
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime
 
 import requests
+
+from .tz import utc_now
 
 log = logging.getLogger("docsis.notifier")
 
@@ -120,9 +121,7 @@ class NotificationDispatcher:
     def _build_payload(event):
         return {
             "source": "docsight",
-            "timestamp": event.get(
-                "timestamp", datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-            ),
+            "timestamp": event.get("timestamp", utc_now()),
             "severity": event.get("severity", "info"),
             "event_type": event.get("event_type", "unknown"),
             "message": event.get("message", ""),
@@ -135,7 +134,7 @@ class NotificationDispatcher:
             return {"success": False, "error": "No notification channels configured"}
         payload = {
             "source": "docsight",
-            "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            "timestamp": utc_now(),
             "severity": "info",
             "event_type": "test",
             "message": "DOCSight test notification",
