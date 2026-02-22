@@ -1,6 +1,6 @@
 # DOCSight Architecture
 
-> Documentation current as of **v2026-02-22.3**
+> Documentation current as of **v2026-02-22.4**
 
 This document describes the technical architecture of DOCSight.
 
@@ -491,13 +491,15 @@ Return JSON { success: true, analysis: {...} }
 
 **Database:** SQLite (`/data/docsis_history.db`) with WAL mode for concurrent access
 
+**Timestamp convention:** All `timestamp`, `created_at`, `updated_at`, and `last_used_at` columns store UTC with Z-suffix (`YYYY-MM-DDTHH:MM:SSZ`). Date-only columns (`date`, `start_date`, `end_date`) store calendar dates (`YYYY-MM-DD`) without timezone conversion. On first startup after upgrade, existing naive local timestamps are automatically migrated to UTC using the configured timezone. A safety backup (`docsis_history.db.pre_utc_migration`) is created before conversion.
+
 **Schema:**
 
 ```sql
 -- DOCSIS signal snapshots
 CREATE TABLE snapshots (
     id INTEGER PRIMARY KEY,
-    timestamp TEXT NOT NULL,
+    timestamp TEXT NOT NULL,  -- UTC with Z-suffix
     summary_json TEXT,
     ds_channels_json TEXT,
     us_channels_json TEXT,
