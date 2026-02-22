@@ -1,5 +1,6 @@
 """Main entrypoint: collector orchestrator + Flask web server."""
 
+import json as _json
 import logging
 import os
 import threading
@@ -19,6 +20,25 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 log = logging.getLogger("docsis.main")
+
+
+class _AuditJsonFormatter(logging.Formatter):
+    """Structured JSON formatter for the audit logger."""
+
+    def format(self, record):
+        return _json.dumps({
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "event": record.getMessage(),
+        }, ensure_ascii=False)
+
+
+if os.environ.get("DOCSIGHT_AUDIT_JSON", "").strip() == "1":
+    _audit = logging.getLogger("docsis.audit")
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(_AuditJsonFormatter())
+    _audit.addHandler(_handler)
+    _audit.propagate = False
 
 
 def run_web(port):
