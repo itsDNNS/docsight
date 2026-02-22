@@ -320,20 +320,53 @@ def init_config(config_manager, on_config_changed=None):
 
 
 def _auth_required():
-    """Check if auth is enabled and user is not logged in."""
+    """Check if auth is enabled and user is not logged in.
+
+    Also checks for valid Bearer token in Authorization header.
+    Returns True if authentication is required but not provided.
+    """
     if not _config_manager:
         return False
     admin_pw = _config_manager.get("admin_password", "")
     if not admin_pw:
         return False
-    return not session.get("authenticated")
+    if session.get("authenticated"):
+        return False
+    # Check Bearer token
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer ") and _storage:
+        token = auth_header[7:]
+        token_info = _storage.validate_api_token(token)
+        if token_info:
+            request._api_token = token_info
+            return False
+    return True
 
 
 def require_auth(f):
-    """Decorator: redirect to /login if auth is enabled and not logged in."""
+    """Decorator: redirect to /login or return 401 JSON for API paths."""
     @functools.wraps(f)
     def decorated(*args, **kwargs):
         if _auth_required():
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "Authentication required"}), 401
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
+
+
+def _require_session_auth(f):
+    """Decorator: only allow session-based login, no API tokens."""
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if not _config_manager or not _config_manager.get("admin_password", ""):
+            return f(*args, **kwargs)
+        if not session.get("authenticated"):
+            # Token auth is not sufficient for this endpoint
+            if getattr(request, "_api_token", None) or request.headers.get("Authorization", "").startswith("Bearer "):
+                return jsonify({"error": "Session authentication required"}), 403
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "Authentication required"}), 401
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated
@@ -557,6 +590,46 @@ def api_config():
     except Exception as e:
         log.error("Config save failed: %s", e)
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── API Token Management ──
+
+@app.route("/api/tokens", methods=["GET"])
+@require_auth
+def api_tokens_list():
+    """List all API tokens (without hashes)."""
+    if not _storage:
+        return jsonify({"error": "Storage not available"}), 500
+    tokens = _storage.get_api_tokens()
+    return jsonify({"tokens": tokens})
+
+
+@app.route("/api/tokens", methods=["POST"])
+@_require_session_auth
+def api_tokens_create():
+    """Create a new API token. Session-only (no token auth)."""
+    if not _storage:
+        return jsonify({"error": "Storage not available"}), 500
+    data = request.get_json()
+    name = (data or {}).get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Token name is required"}), 400
+    token_id, plaintext = _storage.create_api_token(name)
+    audit_log.info("API token created: id=%s name=%s ip=%s", token_id, name, _get_client_ip())
+    return jsonify({"id": token_id, "token": plaintext, "name": name}), 201
+
+
+@app.route("/api/tokens/<int:token_id>", methods=["DELETE"])
+@_require_session_auth
+def api_tokens_revoke(token_id):
+    """Revoke an API token. Session-only (no token auth)."""
+    if not _storage:
+        return jsonify({"error": "Storage not available"}), 500
+    revoked = _storage.revoke_api_token(token_id)
+    if not revoked:
+        return jsonify({"error": "Token not found or already revoked"}), 404
+    audit_log.info("API token revoked: id=%s ip=%s", token_id, _get_client_ip())
+    return jsonify({"success": True})
 
 
 @app.route("/api/test-modem", methods=["POST"])

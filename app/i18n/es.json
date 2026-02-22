@@ -608,5 +608,19 @@
   "timezone": "Zona horaria",
   "timezone_hint": "Usa una zona horaria IANA (ej. Europe/Madrid) para el cambio de horario de verano automatico.",
   "timezone_auto": "Automatico",
-  "timezone_posix_warning": "Tu contenedor usa una zona horaria POSIX sin horario de verano. Selecciona una zona IANA (ej. Europe/Madrid) para corregirlo."
+  "timezone_posix_warning": "Tu contenedor usa una zona horaria POSIX sin horario de verano. Selecciona una zona IANA (ej. Europe/Madrid) para corregirlo.",
+  "api_tokens_title": "Tokens API",
+  "api_tokens_desc": "Crear tokens para acceso API programatico (ej. Home Assistant, scripts)",
+  "api_token_name": "Nombre del token",
+  "api_token_name_placeholder": "ej. Home Assistant",
+  "api_token_create": "Crear token",
+  "api_token_created": "Token creado. Copialo ahora — no se mostrara de nuevo.",
+  "api_token_copy_warning": "Este token solo se muestra una vez. Guardalo de forma segura.",
+  "api_token_copied": "Token copiado!",
+  "api_token_prefix": "Token",
+  "api_token_last_used": "Ultimo uso",
+  "api_token_revoke": "Revocar",
+  "api_token_revoke_confirm": "Revocar token \"{name}\"? Los sistemas que lo usen perderan el acceso.",
+  "api_token_revoked": "Token revocado",
+  "api_tokens_none": "No se han creado tokens API."
 }

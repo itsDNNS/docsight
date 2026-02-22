@@ -605,5 +605,19 @@
   "timezone": "Fuseau horaire",
   "timezone_hint": "Utilisez un fuseau horaire IANA (ex. Europe/Paris) pour le changement d'heure automatique.",
   "timezone_auto": "Automatique",
-  "timezone_posix_warning": "Votre conteneur utilise un fuseau horaire POSIX sans changement d'heure automatique. Selectionnez un fuseau IANA (ex. Europe/Paris) pour corriger."
+  "timezone_posix_warning": "Votre conteneur utilise un fuseau horaire POSIX sans changement d'heure automatique. Selectionnez un fuseau IANA (ex. Europe/Paris) pour corriger.",
+  "api_tokens_title": "Tokens API",
+  "api_tokens_desc": "Creer des tokens pour l'acces API programmatique (ex. Home Assistant, scripts)",
+  "api_token_name": "Nom du token",
+  "api_token_name_placeholder": "ex. Home Assistant",
+  "api_token_create": "Creer un token",
+  "api_token_created": "Token cree. Copiez-le maintenant — il ne sera plus affiche.",
+  "api_token_copy_warning": "Ce token ne sera affiche qu'une seule fois. Conservez-le en securite.",
+  "api_token_copied": "Token copie !",
+  "api_token_prefix": "Token",
+  "api_token_last_used": "Derniere utilisation",
+  "api_token_revoke": "Revoquer",
+  "api_token_revoke_confirm": "Revoquer le token \"{name}\" ? Les systemes qui l'utilisent perdront l'acces.",
+  "api_token_revoked": "Token revoque",
+  "api_tokens_none": "Aucun token API cree."
 }

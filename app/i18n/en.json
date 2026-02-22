@@ -613,5 +613,19 @@
   "timezone": "Timezone",
   "timezone_hint": "Use an IANA timezone (e.g. Europe/Berlin) to ensure correct daylight saving time handling.",
   "timezone_auto": "Auto",
-  "timezone_posix_warning": "Your container uses a POSIX timezone that does not support daylight saving time. Select an IANA timezone (e.g. Europe/Berlin) to fix this."
+  "timezone_posix_warning": "Your container uses a POSIX timezone that does not support daylight saving time. Select an IANA timezone (e.g. Europe/Berlin) to fix this.",
+  "api_tokens_title": "API Tokens",
+  "api_tokens_desc": "Create tokens for programmatic API access (e.g. Home Assistant, scripts)",
+  "api_token_name": "Token Name",
+  "api_token_name_placeholder": "e.g. Home Assistant",
+  "api_token_create": "Create Token",
+  "api_token_created": "Token created. Copy it now — it won't be shown again.",
+  "api_token_copy_warning": "This token will only be shown once. Store it securely.",
+  "api_token_copied": "Token copied!",
+  "api_token_prefix": "Token",
+  "api_token_last_used": "Last Used",
+  "api_token_revoke": "Revoke",
+  "api_token_revoke_confirm": "Revoke token \"{name}\"? Any system using it will lose access.",
+  "api_token_revoked": "Token revoked",
+  "api_tokens_none": "No API tokens created yet."
 }
