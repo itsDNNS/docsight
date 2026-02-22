@@ -323,7 +323,8 @@ class CM3500Driver(ModemDriver):
         """Parse Upstream OFDM table.
 
         Columns: (label), FFT Type, Channel Width(MHz), # Active Subcarriers,
-                 First Active Subcarrier(MHz), Last Active Subcarrier(MHz),
+                 First Active Subcarrier, Last Active Subcarrier,
+                 Lower Frequency(MHz), Upper Frequency(MHz),
                  Tx Power(dBmV)
         """
         rows = table.find("tbody")
@@ -335,15 +336,15 @@ class CM3500Driver(ModemDriver):
         chan_id = 200
         for row in data_rows:
             cells = [td.get_text(strip=True) for td in row.find_all("td")]
-            if len(cells) < 7:
+            if len(cells) < 9:
                 continue
             label = cells[0].lower()
             if "upstream" not in label:
                 continue
             try:
-                first_freq = self._parse_number(cells[4])
-                last_freq = self._parse_number(cells[5])
-                power = self._parse_number(cells[6])
+                first_freq = self._parse_number(cells[6])
+                last_freq = self._parse_number(cells[7])
+                power = self._parse_number(cells[8])
 
                 result.append({
                     "channelID": chan_id,
