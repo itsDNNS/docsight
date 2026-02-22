@@ -613,5 +613,19 @@
   "timezone": "Zeitzone",
   "timezone_hint": "Verwende eine IANA-Zeitzone (z.B. Europe/Berlin), damit die Sommerzeit korrekt berücksichtigt wird.",
   "timezone_auto": "Automatisch",
-  "timezone_posix_warning": "Dein Container verwendet eine POSIX-Zeitzone ohne Sommerzeitunterstützung. Wähle eine IANA-Zeitzone (z.B. Europe/Berlin), um das zu beheben."
+  "timezone_posix_warning": "Dein Container verwendet eine POSIX-Zeitzone ohne Sommerzeitunterstützung. Wähle eine IANA-Zeitzone (z.B. Europe/Berlin), um das zu beheben.",
+  "api_tokens_title": "API-Tokens",
+  "api_tokens_desc": "Tokens für programmatischen API-Zugriff erstellen (z.B. Home Assistant, Skripte)",
+  "api_token_name": "Token-Name",
+  "api_token_name_placeholder": "z.B. Home Assistant",
+  "api_token_create": "Token erstellen",
+  "api_token_created": "Token erstellt. Jetzt kopieren — er wird nicht erneut angezeigt.",
+  "api_token_copy_warning": "Dieser Token wird nur einmal angezeigt. Sicher aufbewahren.",
+  "api_token_copied": "Token kopiert!",
+  "api_token_prefix": "Token",
+  "api_token_last_used": "Zuletzt verwendet",
+  "api_token_revoke": "Widerrufen",
+  "api_token_revoke_confirm": "Token \"{name}\" widerrufen? Systeme die ihn verwenden verlieren den Zugriff.",
+  "api_token_revoked": "Token widerrufen",
+  "api_tokens_none": "Noch keine API-Tokens erstellt."
 }
