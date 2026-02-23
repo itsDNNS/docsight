@@ -210,10 +210,14 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
     if raw_power is not None:
         power = _parse_float(raw_power)
         pt = _get_us_power_thresholds(docsis_ver)
-        if power < pt["crit_min"] or power > pt["crit_max"]:
-            issues.append("power critical")
-        elif power < pt["good_min"] or power > pt["good_max"]:
-            issues.append("power warning")
+        if power < pt["crit_min"]:
+            issues.append("power critical low")
+        elif power > pt["crit_max"]:
+            issues.append("power critical high")
+        elif power < pt["good_min"]:
+            issues.append("power warning low")
+        elif power > pt["good_max"]:
+            issues.append("power warning high")
 
     modulation = ch.get("modulation") or ch.get("type") or ""
     qam_order = _parse_qam_order(modulation)
@@ -367,11 +371,19 @@ def analyze(data: dict) -> dict:
     elif any("power warning" in c["health_detail"] for c in ds_channels):
         issues.append("ds_power_warn")
 
-    # US power: aggregate from individual channel health_detail
-    if any("power critical" in c["health_detail"] for c in us_channels):
-        issues.append("us_power_critical")
-    elif any("power warning" in c["health_detail"] for c in us_channels):
-        issues.append("us_power_warn")
+    # US power: aggregate from individual channel health_detail (directional)
+    us_crit_low = any("power critical low" in c["health_detail"] for c in us_channels)
+    us_crit_high = any("power critical high" in c["health_detail"] for c in us_channels)
+    us_warn_low = any("power warning low" in c["health_detail"] for c in us_channels)
+    us_warn_high = any("power warning high" in c["health_detail"] for c in us_channels)
+    if us_crit_low:
+        issues.append("us_power_critical_low")
+    if us_crit_high:
+        issues.append("us_power_critical_high")
+    if us_warn_low and not us_crit_low:
+        issues.append("us_power_warn_low")
+    if us_warn_high and not us_crit_high:
+        issues.append("us_power_warn_high")
 
     # US modulation: aggregate from individual channel health_detail
     if any("modulation critical" in c["health_detail"] for c in us_channels):

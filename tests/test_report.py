@@ -39,7 +39,7 @@ MOCK_SNAPSHOTS = [
     {"timestamp": "2026-02-05T10:00:00", "summary": {
         **MOCK_ANALYSIS["summary"], "health": "poor", "ds_snr_min": 22.0,
         "us_power_max": 55.0, "ds_uncorrectable_errors": 50000,
-        "health_issues": ["snr_critical", "us_power_critical"]},
+        "health_issues": ["snr_critical", "us_power_critical_high"]},
      "ds_channels": MOCK_ANALYSIS["ds_channels"], "us_channels": MOCK_ANALYSIS["us_channels"]},
 ]
 
