@@ -295,8 +295,10 @@ class MQTTPublisher:
         _ISSUE_LABELS = {
             "ds_power_critical": "DS power critical",
             "ds_power_warn": "DS power warning",
-            "us_power_critical": "US power critical",
-            "us_power_warn": "US power warning",
+            "us_power_critical_low": "US power critically low",
+            "us_power_critical_high": "US power critically high",
+            "us_power_warn_low": "US power below ideal",
+            "us_power_warn_high": "US power elevated",
             "snr_critical": "SNR critical",
             "snr_warn": "SNR warning",
             "uncorr_errors_high": "High uncorrectable errors",

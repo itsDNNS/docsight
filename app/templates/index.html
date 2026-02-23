@@ -178,8 +178,10 @@
     {% set health_msgs = {"good": t.health_good_msg, "marginal": t.health_marginal_msg, "poor": t.health_poor_msg} %}
     {% set issue_labels = {
         "ds_power_critical": t.issue_ds_power_critical,
-        "us_power_critical": t.issue_us_power_critical,
-        "us_power_warn": t.issue_us_power_warn,
+        "us_power_critical_low": t.issue_us_power_critical_low,
+        "us_power_critical_high": t.issue_us_power_critical_high,
+        "us_power_warn_low": t.issue_us_power_warn_low,
+        "us_power_warn_high": t.issue_us_power_warn_high,
         "us_modulation_warn": t.issue_us_modulation_warn,
         "us_modulation_critical": t.issue_us_modulation_critical,
         "snr_critical": t.issue_snr_critical,
@@ -188,8 +190,10 @@
     } %}
     {% set issue_descs = {
         "ds_power_critical": t.issue_ds_power_critical_desc,
-        "us_power_critical": t.issue_us_power_critical_desc,
-        "us_power_warn": t.issue_us_power_warn_desc,
+        "us_power_critical_low": t.issue_us_power_critical_low_desc,
+        "us_power_critical_high": t.issue_us_power_critical_high_desc,
+        "us_power_warn_low": t.issue_us_power_warn_low_desc,
+        "us_power_warn_high": t.issue_us_power_warn_high_desc,
         "us_modulation_warn": t.issue_us_modulation_warn_desc,
         "us_modulation_critical": t.issue_us_modulation_critical_desc,
         "snr_critical": t.issue_snr_critical_desc,
@@ -318,8 +322,8 @@
     {# ── Per-card health ── #}
     {% set signal_health = 'crit' if 'ds_power_critical' in s.health_issues or 'snr_critical' in s.health_issues
        else ('warn' if 'ds_power_warn' in s.health_issues or 'snr_warn' in s.health_issues else 'good') %}
-    {% set us_health = 'crit' if 'us_power_critical' in s.health_issues
-       else ('warn' if 'us_power_warn' in s.health_issues else 'good') %}
+    {% set us_health = 'crit' if 'us_power_critical_low' in s.health_issues or 'us_power_critical_high' in s.health_issues
+       else ('warn' if 'us_power_warn_low' in s.health_issues or 'us_power_warn_high' in s.health_issues else 'good') %}
     {% set error_health = 'crit' if 'uncorr_errors_high' in s.health_issues else 'good' %}
 
     {# ── DS Power health ── #}
@@ -641,7 +645,7 @@
             <tbody>
             {% for ch in group.list %}
             {% set ch_tips = [] %}
-            {% if 'power critical' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical) %}{% elif 'power warning' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning) %}{% endif %}
+            {% if 'power critical low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical_low) %}{% elif 'power critical high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical_high) %}{% elif 'power warning low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning_low) %}{% elif 'power warning high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning_high) %}{% endif %}
             {% if 'modulation critical' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_critical) %}{% elif 'modulation warning' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_warning) %}{% endif %}
             {% set ch_tip = ch_tips|join(', ') %}
             <tr>

@@ -107,7 +107,7 @@ class TestHealthMarginal:
         assert result["summary"]["health"] == "marginal"
         assert "ds_power_warn" in result["summary"]["health_issues"]
 
-    def test_us_power_warning(self):
+    def test_us_power_warning_high(self):
         """US power 49 dBmV triggers marginal (>47, <53)."""
         data = _make_data(
             ds30=[_make_ds30(1, power=2.0, mse="-35")],
@@ -115,7 +115,17 @@ class TestHealthMarginal:
         )
         result = analyze(data)
         assert result["summary"]["health"] == "marginal"
-        assert "us_power_warn" in result["summary"]["health_issues"]
+        assert "us_power_warn_high" in result["summary"]["health_issues"]
+
+    def test_us_power_warning_low(self):
+        """US power 40 dBmV triggers marginal (<41, >35)."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=40.0)],
+        )
+        result = analyze(data)
+        assert result["summary"]["health"] == "marginal"
+        assert "us_power_warn_low" in result["summary"]["health_issues"]
 
     def test_snr_warning(self):
         """SNR 31 dB is marginal (between 29-33)."""
@@ -159,7 +169,7 @@ class TestHealthPoor:
         )
         result = analyze(data)
         assert result["summary"]["health"] == "poor"
-        assert "us_power_critical" in result["summary"]["health_issues"]
+        assert "us_power_critical_high" in result["summary"]["health_issues"]
 
     def test_us_power_critical_low(self):
         """US power 33 dBmV is critical (<35)."""
@@ -169,7 +179,7 @@ class TestHealthPoor:
         )
         result = analyze(data)
         assert result["summary"]["health"] == "poor"
-        assert "us_power_critical" in result["summary"]["health_issues"]
+        assert "us_power_critical_low" in result["summary"]["health_issues"]
 
     def test_snr_critical(self):
         """SNR 27 dB is critical (<29)."""
@@ -201,7 +211,7 @@ class TestHealthPoor:
         assert result["summary"]["health"] == "poor"
         issues = result["summary"]["health_issues"]
         assert "ds_power_critical" in issues
-        assert "us_power_critical" in issues
+        assert "us_power_critical_high" in issues
         assert "snr_critical" in issues
         assert "uncorr_errors_high" in issues
 
@@ -442,10 +452,10 @@ class TestUpstreamModulation:
         result = analyze(data)
         assert result["summary"]["health"] == "poor"
         issues = result["summary"]["health_issues"]
-        assert "us_power_critical" in issues
+        assert "us_power_critical_high" in issues
         assert "us_modulation_critical" in issues
         us_ch = result["us_channels"][0]
-        assert "power critical" in us_ch["health_detail"]
+        assert "power critical high" in us_ch["health_detail"]
         assert "modulation critical" in us_ch["health_detail"]
 
 
