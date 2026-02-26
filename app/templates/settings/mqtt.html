@@ -1,0 +1,48 @@
+<!-- ═══ Panel: MQTT ═══ -->
+<div class="settings-panel" id="panel-mqtt">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="radio-tower"></i></div>
+            <div>
+                <div class="settings-card-title">{{ t.mqtt_broker }}</div>
+                <div class="settings-card-desc">{{ t.mqtt_optional_ha }}</div>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="form-row">
+                <label for="mqtt_host">Host</label>
+                <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
+            </div>
+            <div class="form-row">
+                <label for="mqtt_port">Port</label>
+                <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
+            </div>
+            <div class="form-row">
+                <label for="mqtt_tls_insecure">{{ t.mqtt_tls_insecure }}</label>
+                <input type="hidden" name="mqtt_tls_insecure" value="false">
+                <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" value="true" {% if config.mqtt_tls_insecure %}checked{% endif %}>
+            </div>
+            <div class="form-row">
+                <label for="mqtt_user">{{ t.username_opt }}</label>
+                <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
+            </div>
+            <div class="form-row">
+                <label for="mqtt_password">{{ t.password_opt }}</label>
+                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
+            </div>
+            <div class="form-row full">
+                <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
+                <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
+            </div>
+            <div class="form-row full">
+                <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
+                <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
+                <span class="hint">{{ t.discovery_prefix_hint }}</span>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
+        </div>
+        <div class="test-result" id="mqtt-test"></div>
+    </div>
+</div>

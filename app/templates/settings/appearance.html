@@ -1,0 +1,33 @@
+<!-- ═══ Panel: Appearance ═══ -->
+<div class="settings-panel" id="panel-appearance">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="palette"></i></div>
+            <div>
+                <div class="settings-card-title">{{ t.appearance }}</div>
+            </div>
+        </div>
+        <div class="toggle-option-row">
+            <div class="toggle-option-text">
+                <span class="toggle-option-label">{{ t.gaming_quality_label }}</span>
+                <span class="toggle-option-hint">{{ t.gaming_quality_hint }}</span>
+            </div>
+            <input type="hidden" name="gaming_quality_enabled" value="false">
+            <label class="toggle-switch">
+                <input type="checkbox" id="gaming_quality_enabled" name="gaming_quality_enabled" value="true" {% if config.gaming_quality_enabled %}checked{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="toggle-option-row">
+            <div class="toggle-option-text">
+                <span class="toggle-option-label">{{ t.bnetz_title }}</span>
+                <span class="toggle-option-hint">{{ t.bnetz_upload_hint }}</span>
+            </div>
+            <input type="hidden" name="bnetz_enabled" value="false">
+            <label class="toggle-switch">
+                <input type="checkbox" id="bnetz_enabled" name="bnetz_enabled" value="true" {% if config.bnetz_enabled %}checked{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+</div>

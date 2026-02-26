@@ -1,0 +1,66 @@
+<!-- ═══ Panel: Notifications ═══ -->
+<div class="settings-panel" id="panel-notifications">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="bell"></i></div>
+            <div>
+                <div class="settings-card-title">Notifications</div>
+                <div class="settings-card-desc">Webhook notifications (ntfy, Discord, Gotify, custom)</div>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="form-row full">
+                <label for="notify_webhook_url">Webhook URL</label>
+                <input type="url" id="notify_webhook_url" name="notify_webhook_url" value="{{ config.notify_webhook_url }}" placeholder="https://ntfy.sh/docsight">
+                <span class="hint">HTTP POST endpoint (ntfy, Discord, Gotify, custom)</span>
+            </div>
+            <div class="form-row full">
+                <label for="notify_webhook_token">Webhook Token</label>
+                <input type="password" id="notify_webhook_token" name="notify_webhook_token" value="" placeholder="{% if config.notify_webhook_token %}{{ t.saved_ph|default('Saved') }}{% endif %}">
+                <span class="hint">Optional Bearer token for authentication</span>
+            </div>
+            <div class="form-row">
+                <label for="notify_min_severity">Min. Severity</label>
+                <select id="notify_min_severity" name="notify_min_severity">
+                    <option value="info" {% if config.notify_min_severity == 'info' %}selected{% endif %}>Info</option>
+                    <option value="warning" {% if config.notify_min_severity == 'warning' or not config.notify_min_severity %}selected{% endif %}>Warning</option>
+                    <option value="critical" {% if config.notify_min_severity == 'critical' %}selected{% endif %}>Critical</option>
+                </select>
+                <span class="hint">Only send events at or above this severity</span>
+            </div>
+            <div class="form-row">
+                <label for="notify_cooldown">Default Cooldown (s)</label>
+                <input type="number" id="notify_cooldown" name="notify_cooldown" value="{{ config.notify_cooldown or 3600 }}" min="0" step="1">
+                <span class="hint">Min. seconds between same event type (0 = never send)</span>
+            </div>
+        </div>
+
+        <div style="margin-top:16px;">
+            <label style="font-size:0.875em;color:var(--text-secondary);font-weight:500;margin-bottom:8px;display:block;">Per-Event Cooldowns</label>
+            <table style="width:100%;font-size:0.85em;border-collapse:collapse;">
+                <thead>
+                    <tr style="text-align:left;color:var(--text-secondary);">
+                        <th style="padding:8px;">Active</th>
+                        <th style="padding:8px;">Event Type</th>
+                        <th style="padding:8px;width:100px;">Cooldown (s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="notify-event-row" data-event="health_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="health_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Health Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">Health status changes</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="health_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                    <tr class="notify-event-row" data-event="power_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="power_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Power Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">DS/US power shift &gt; 2dBmV</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="power_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                    <tr class="notify-event-row" data-event="snr_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="snr_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">SNR Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">SNR below threshold</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="snr_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                    <tr class="notify-event-row" data-event="channel_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="channel_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Channel Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">Channel count changes</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="channel_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                    <tr class="notify-event-row" data-event="modulation_change"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="modulation_change" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Modulation Change</span><br><span style="color:var(--text-secondary);font-size:0.8em;">QAM modulation changes</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="modulation_change" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                    <tr class="notify-event-row" data-event="error_spike"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="error_spike" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Error Spike</span><br><span style="color:var(--text-secondary);font-size:0.8em;">Uncorrectable errors spike</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="error_spike" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                    <tr class="notify-event-row" data-event="monitoring_started"><td style="padding:8px;"><label class="toggle-switch"><input type="checkbox" class="notify-toggle" data-event="monitoring_started" checked><span class="toggle-slider"></span></label></td><td style="padding:8px;"><span style="color:var(--text);font-weight:500;">Monitoring Started</span><br><span style="color:var(--text-secondary);font-size:0.8em;">Monitoring started</span></td><td style="padding:8px;"><input type="number" class="notify-cooldown-input" data-event="monitoring_started" min="1" step="1" placeholder="default" style="width:80px;background:var(--bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);padding:4px 8px;color:var(--text);font-size:0.95em;"></td></tr>
+                </tbody>
+            </table>
+            <span class="hint" style="display:block;margin-top:6px;">Disabled events will never be sent. Cooldown empty = use default.</span>
+        </div>
+
+        <div class="btn-row" style="margin-top:16px;">
+            <button type="button" class="btn btn-secondary" onclick="testNotifications()">Test Notification</button>
+        </div>
+        <div class="test-result" id="notify-test"></div>
+    </div>
+</div>

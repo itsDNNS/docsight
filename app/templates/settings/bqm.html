@@ -1,0 +1,22 @@
+<!-- ═══ Panel: BQM ═══ -->
+<div class="settings-panel" id="panel-bqm">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="activity"></i></div>
+            <div>
+                <div class="settings-card-title">ThinkBroadband BQM</div>
+                <div class="settings-card-desc">{{ t.bqm_optional }}</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="bqm_url">{{ t.bqm_share_url }}</label>
+            <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
+            <span class="hint">{{ t.bqm_url_hint }}</span>
+        </div>
+        <div class="form-row">
+            <label for="bqm_collect_time">{{ t.bqm_collect_time }}</label>
+            <input type="time" id="bqm_collect_time" name="bqm_collect_time" value="{{ config.bqm_collect_time }}">
+            <span class="hint">{{ t.bqm_collect_time_hint }}</span>
+        </div>
+    </div>
+</div>

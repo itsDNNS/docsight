@@ -1,0 +1,32 @@
+<!-- ═══ Panel: BNetzA ═══ -->
+<div class="settings-panel" id="panel-bnetz">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="file-check"></i></div>
+            <div>
+                <div class="settings-card-title">{{ t.bnetz_watcher_title }}</div>
+                <div class="settings-card-desc">{{ t.bnetz_watcher_desc }}</div>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="form-row full">
+                <label class="toggle-row">
+                    <span>{{ t.enabled }}</span>
+                    <label class="switch">
+                        <input type="checkbox" id="bnetz_watch_enabled" name="bnetz_watch_enabled" {% if config.bnetz_watch_enabled %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </label>
+                <span class="hint">{{ t.bnetz_watcher_hint }}</span>
+            </div>
+            <div class="form-row full">
+                <label for="bnetz_watch_dir">{{ t.bnetz_watch_dir_label }}</label>
+                <input type="text" id="bnetz_watch_dir" name="bnetz_watch_dir" value="{{ config.bnetz_watch_dir }}" placeholder="/data/bnetz">
+                <span class="hint">{{ t.bnetz_watch_dir_hint }}</span>
+            </div>
+            <div class="form-row full">
+                <span class="hint" style="font-style:italic;">{{ t.bnetz_docker_hint }}</span>
+            </div>
+        </div>
+    </div>
+</div>
