@@ -16,3 +16,7 @@ docker run -d \
 ```
 
 Open `http://localhost:8765` and follow the setup wizard.
+
+## Reverse Proxy
+
+Exposing DOCSight beyond your local network? See the [reverse proxy guide](docs/reverse-proxy.md) for Caddy, Nginx, and Traefik examples with TLS.

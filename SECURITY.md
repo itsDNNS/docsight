@@ -49,9 +49,80 @@ DOCSight is designed to run **100% locally** on your network:
 - No external API calls (except optional integrations you configure)
 - No telemetry or analytics
 - No cloud dependencies
-- Credentials encrypted at rest (AES-128)
 
-### Running Securely
+## Security Features
+
+### Authentication
+
+DOCSight includes built-in authentication protecting all routes:
+
+- **Admin password** — hashed with Werkzeug (`scrypt` or `pbkdf2`). Plaintext passwords from older versions are auto-upgraded to hashes on first login.
+- **Session-based login** — browser sessions via Flask's signed cookies.
+- **API tokens** — Bearer token authentication for programmatic access (see [API Token Security](#api-token-security) below).
+
+All routes are protected by the `require_auth` decorator. Sensitive management endpoints (token creation/revocation, settings) require a session login and cannot be accessed with API tokens alone.
+
+### Login Rate Limiting
+
+Failed login attempts are rate-limited per IP address:
+
+- **5 attempts** within a **15-minute** window before lockout
+- **Exponential backoff** starting at 30 seconds, doubling with each additional failed attempt (30s, 60s, 120s, ... up to 7680s)
+- Rate-limited login attempts are rejected with a lockout message showing the remaining wait time
+
+Rate limit counters are stored in memory and reset on application restart.
+
+### API Token Security
+
+API tokens follow security best practices:
+
+- **Cryptographically random** — generated with `secrets.token_urlsafe(48)`
+- **Prefixed** — all tokens start with `dsk_` for easy identification in logs and secret scanners
+- **Hash-only storage** — only a Werkzeug hash is persisted; the plaintext token is shown once at creation and never stored
+- **Prefix display** — the first 8 characters (`dsk_XXXX`) are stored separately for identification in the UI
+- **Last-used tracking** — each successful token use updates a `last_used_at` timestamp
+- **Revocation** — tokens can be revoked instantly; revoked tokens are rejected on all subsequent requests
+
+### Security Headers
+
+DOCSight sets the following headers on every response:
+
+| Header | Value |
+| --- | --- |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'` |
+| `X-Frame-Options` | `DENY` |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-XSS-Protection` | `1; mode=block` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+
+If you run DOCSight behind a reverse proxy, the proxy does **not** need to duplicate these headers.
+
+### Encryption at Rest
+
+Modem credentials and other secrets are encrypted at rest using **Fernet** (AES-128-CBC + HMAC-SHA256):
+
+- Encrypted fields: `modem_password`, `mqtt_password`, `speedtest_tracker_token`, `notify_webhook_token`
+- Encryption key stored in `data/.config_key` (auto-generated on first run, file permissions set to `600`)
+- The admin password is **hashed** (not encrypted) via Werkzeug and stored separately
+
+### Audit Logging
+
+Security-relevant events are logged to the `docsis.audit` logger:
+
+- Login attempts (successful and failed)
+- Rate-limit triggers
+- Password hash auto-upgrades
+- Configuration changes (with changed keys listed)
+- API token creation and revocation
+
+**Structured JSON output** can be enabled by setting `DOCSIGHT_AUDIT_JSON=1`. This produces log lines like:
+
+```json
+{"ts": "2025-01-15T10:30:00", "level": "INFO", "event": "Login successful: ip=192.168.1.10"}
+```
+
+## Running Securely
 
 **Docker (Recommended):**
 - Container runs as non-root user
@@ -61,29 +132,25 @@ DOCSight is designed to run **100% locally** on your network:
 **Network Exposure:**
 - By default, DOCSight listens on `0.0.0.0:8765`
 - For single-user setups, bind to localhost only: `-p 127.0.0.1:8765:8765`
-- For LAN access, use a reverse proxy (nginx, Traefik) with HTTPS
+- For LAN or remote access, use a [reverse proxy](docs/reverse-proxy.md) with HTTPS
 
 **Modem Credentials:**
 - Stored encrypted in `data/config.json` (Fernet symmetric encryption)
-- Key derived from `data/SECRET_KEY` (generated on first run)
+- Key stored in `data/.config_key` (generated on first run)
 - Keep `data/` directory permissions restricted
-
-**Optional Authentication:**
-- DOCSight has no built-in authentication (designed for single-user/LAN)
-- Use a reverse proxy with HTTP Basic Auth or OAuth if exposing to the internet
 
 ## Known Limitations
 
-- **No built-in user authentication:** Use a reverse proxy if needed
-- **Modem credentials in memory:** Required for polling, cleared after use
-- **MQTT credentials:** Stored encrypted, sent over network to MQTT broker
+- **In-memory rate limits** — login attempt counters are lost on restart
+- **Modem credentials in memory** — required during polling cycles
+- **MQTT credentials** — stored encrypted, but sent over the network to the MQTT broker (use TLS on the broker side)
 
 ## Security Best Practices
 
 1. **Keep DOCSight updated:** Run `docker pull` regularly
-2. **Restrict network access:** Don't expose port 8765 to the internet without authentication
+2. **Restrict network access:** Use a reverse proxy with HTTPS for remote access
 3. **Use strong modem passwords:** DOCSight inherits your modem's security
-4. **Review logs:** Check `docker logs docsight` for suspicious activity
+4. **Review audit logs:** Check `docker logs docsight` or enable JSON audit logging for structured analysis
 5. **Backup your data:** `data/` directory contains all configuration and history
 
 ## Third-Party Dependencies
