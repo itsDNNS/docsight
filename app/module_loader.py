@@ -252,3 +252,47 @@ def load_module_routes(app, module_id: str, module_path: str, routes_file: str) 
         log.info("Module '%s': registered routes blueprint", module_id)
     except Exception as e:
         log.error("Module '%s': failed to register blueprint: %s", module_id, e)
+
+
+def load_module_collector(module_id: str, module_path: str, spec: str):
+    """Load a Collector class from a module file.
+
+    Args:
+        module_id: The module's unique identifier.
+        module_path: Filesystem path to the module directory.
+        spec: "filename.py:ClassName" format (e.g. "collector.py:WeatherCollector")
+
+    Returns:
+        The Collector subclass, or None if loading failed.
+    """
+    if ":" not in spec:
+        log.warning("Module '%s': collector spec must be 'file.py:ClassName', got '%s'", module_id, spec)
+        return None
+
+    filename, class_name = spec.rsplit(":", 1)
+    file_path = os.path.join(module_path, filename)
+
+    if not os.path.isfile(file_path):
+        log.warning("Module '%s': collector file not found: %s", module_id, file_path)
+        return None
+
+    mod_name = f"docsight_modules.{module_id.replace('.', '_')}.collector"
+    try:
+        im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
+        if im_spec is None or im_spec.loader is None:
+            log.warning("Module '%s': could not create import spec for %s", module_id, file_path)
+            return None
+        mod = importlib.util.module_from_spec(im_spec)
+        sys.modules[mod_name] = mod
+        im_spec.loader.exec_module(mod)
+    except Exception as e:
+        log.error("Module '%s': failed to import collector: %s", module_id, e)
+        return None
+
+    cls = getattr(mod, class_name, None)
+    if cls is None:
+        log.warning("Module '%s': class '%s' not found in %s", module_id, class_name, file_path)
+        return None
+
+    log.info("Module '%s': loaded collector class '%s'", module_id, class_name)
+    return cls

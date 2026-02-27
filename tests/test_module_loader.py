@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector
 
 
 class TestValidateManifest:
@@ -321,3 +321,38 @@ def hello():
             self._make_routes_file(mod_dir, "x = 42\n")
             # Should not raise, just log warning
             load_module_routes(app, "test.nobp", mod_dir, "routes.py")
+
+
+class TestLoadModuleCollector:
+    """Test dynamic Collector class loading."""
+
+    def _make_collector_file(self, mod_dir, content):
+        with open(os.path.join(mod_dir, "collector.py"), "w") as f:
+            f.write(content)
+
+    def test_load_collector_class(self):
+        """Load a Collector subclass from module file."""
+        with tempfile.TemporaryDirectory() as d:
+            mod_dir = os.path.join(d, "testmod")
+            os.makedirs(mod_dir)
+            self._make_collector_file(mod_dir, """
+from app.collectors.base import Collector, CollectorResult
+
+class TestCollector(Collector):
+    name = "test_collector"
+    def collect(self):
+        return CollectorResult.ok("test", {})
+""")
+            cls = load_module_collector("test.mod", mod_dir, "collector.py:TestCollector")
+            assert cls is not None
+            assert cls.name == "test_collector"
+
+    def test_invalid_spec_format(self):
+        """Spec without ':ClassName' returns None."""
+        cls = load_module_collector("test.bad", "/tmp", "collector.py")
+        assert cls is None
+
+    def test_missing_file(self):
+        """Missing collector file returns None."""
+        cls = load_module_collector("test.miss", "/nonexistent", "collector.py:Foo")
+        assert cls is None
