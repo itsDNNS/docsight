@@ -8,7 +8,83 @@ DOCSight does not use WebSockets, so no special upgrade configuration is needed.
 
 ---
 
-## Caddy (Recommended)
+## Cloudflare Tunnel (Recommended)
+
+Cloudflare Tunnel exposes DOCSight to the internet without opening any ports on your firewall. The `cloudflared` daemon creates an outbound-only connection to Cloudflare's edge network, which handles TLS and DDoS protection.
+
+### Prerequisites
+
+1. A domain managed by Cloudflare (free plan works)
+2. A [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) created via the Zero Trust dashboard or CLI
+
+### Create a Tunnel
+
+```bash
+# Install cloudflared
+# See https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+
+# Authenticate with your Cloudflare account
+cloudflared tunnel login
+
+# Create a tunnel
+cloudflared tunnel create docsight
+
+# Route your domain to the tunnel
+cloudflared tunnel route dns docsight docsight.example.com
+```
+
+This generates a credentials file at `~/.cloudflared/<TUNNEL_ID>.json`.
+
+### Configuration File
+
+Create `~/.cloudflared/config.yml`:
+
+```yaml
+tunnel: <TUNNEL_ID>
+credentials-file: /home/user/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  - hostname: docsight.example.com
+    service: http://localhost:8765
+  - service: http_status:404
+```
+
+Start the tunnel:
+
+```bash
+cloudflared tunnel run docsight
+```
+
+### Docker Compose
+
+```yaml
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=<your-tunnel-token>
+
+  docsight:
+    image: ghcr.io/itsdnns/docsight:latest
+    restart: unless-stopped
+    expose:
+      - "8765"
+    volumes:
+      - docsight_data:/data
+
+volumes:
+  docsight_data:
+```
+
+Get `<your-tunnel-token>` from the [Zero Trust dashboard](https://one.dash.cloudflare.com/) under **Networks → Tunnels → Configure**. When using a token, the tunnel configuration (including ingress rules) is managed in the dashboard — no local config file needed.
+
+> **Tip:** Since Cloudflare Tunnel handles TLS termination, DOCSight receives plain HTTP traffic. The `X-Forwarded-Proto` header is set to `https` by Cloudflare automatically.
+
+---
+
+## Caddy
 
 Caddy handles TLS certificates automatically via Let's Encrypt — no extra setup required.
 
