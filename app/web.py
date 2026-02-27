@@ -2656,5 +2656,5 @@ def health():
     """Simple health check endpoint."""
     state = get_state()
     if state["analysis"]:
-        return {"status": "ok", "docsis_health": state["analysis"]["summary"]["health"]}
-    return {"status": "ok", "docsis_health": "waiting"}
+        return {"status": "ok", "docsis_health": state["analysis"]["summary"]["health"], "version": APP_VERSION}
+    return {"status": "ok", "docsis_health": "waiting", "version": APP_VERSION}
