@@ -936,11 +936,23 @@ details.channel-group {
     color: var(--text); 
     background: rgba(168,85,247,0.1); 
 }
-.trend-tab.active { 
-    background: var(--accent-purple, var(--accent)); 
-    color: #fff; 
+.trend-tab.active {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
     font-weight: 600;
     box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.trend-tab.temp-toggle {
+    padding: 6px 10px;
+    color: var(--text-secondary, var(--muted));
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+.trend-tab.temp-toggle:hover { opacity: 1; background: rgba(249,115,22,0.1); }
+.trend-tab.temp-toggle.active {
+    opacity: 1; color: #f97316;
+    background: rgba(249,115,22,0.15);
+    box-shadow: none;
 }
 
 /* Chart grid (2x2 desktop, stack on mobile) */

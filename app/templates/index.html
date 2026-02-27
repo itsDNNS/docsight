@@ -688,10 +688,17 @@
 <div id="view-trends" class="view">
     <div class="trend-header">
         <span class="trend-title" id="trend-title"></span>
-        <div class="trend-tabs" id="trend-tabs">
-            <button class="trend-tab active" data-range="day">{{ t.day }}</button>
-            <button class="trend-tab" data-range="week">{{ t.week }}</button>
-            <button class="trend-tab" data-range="month">{{ t.month }}</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button class="trend-tab temp-toggle" id="temp-toggle-btn" style="display:none;" title="{{ t.temp_overlay_show }}">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;">
+                    <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                </svg>
+            </button>
+            <div class="trend-tabs" id="trend-tabs">
+                <button class="trend-tab active" data-range="day">{{ t.day }}</button>
+                <button class="trend-tab" data-range="week">{{ t.week }}</button>
+                <button class="trend-tab" data-range="month">{{ t.month }}</button>
+            </div>
         </div>
     </div>
     <div id="trend-no-data" class="no-data-msg" style="display:none"></div>
@@ -2885,6 +2892,89 @@
 
     /* ── Trend Charts ── */
 
+    var _tempOverlayVisible = true;
+    var _lastTrendData = null;
+    var _lastTrendWeather = null;
+    var _lastTrendRange = 'day';
+
+    function _getWeatherRange(range, date) {
+        var d = new Date(date + 'T00:00:00');
+        var end = date + ' 23:59:59Z';
+        var start;
+        if (range === 'day') {
+            start = date + ' 00:00:00Z';
+        } else if (range === 'week') {
+            var s = new Date(d.getTime() - 6 * 86400000);
+            start = s.toISOString().substring(0, 10) + ' 00:00:00Z';
+        } else {
+            var s = new Date(d.getTime() - 29 * 86400000);
+            start = s.toISOString().substring(0, 10) + ' 00:00:00Z';
+        }
+        return { start: start, end: end };
+    }
+
+    function _alignWeatherToTrends(trendData, weatherData, range) {
+        if (!weatherData || weatherData.length === 0) return null;
+        var temps = [];
+        if (range === 'day') {
+            for (var i = 0; i < trendData.length; i++) {
+                if (!trendData[i].timestamp) { temps.push(null); continue; }
+                var tTs = new Date(trendData[i].timestamp).getTime();
+                var best = null, bestDist = Infinity;
+                for (var j = 0; j < weatherData.length; j++) {
+                    var wTs = new Date(weatherData[j].timestamp).getTime();
+                    var dist = Math.abs(wTs - tTs);
+                    if (dist < bestDist) { bestDist = dist; best = weatherData[j].temperature; }
+                }
+                temps.push(bestDist <= 5400000 ? best : null);
+            }
+        } else {
+            var dailyTemps = {};
+            for (var j = 0; j < weatherData.length; j++) {
+                var day = weatherData[j].timestamp.substring(0, 10);
+                if (!dailyTemps[day]) dailyTemps[day] = [];
+                dailyTemps[day].push(weatherData[j].temperature);
+            }
+            var dailyAvg = {};
+            for (var day in dailyTemps) {
+                var sum = 0;
+                for (var k = 0; k < dailyTemps[day].length; k++) sum += dailyTemps[day][k];
+                dailyAvg[day] = Math.round(sum / dailyTemps[day].length * 10) / 10;
+            }
+            for (var i = 0; i < trendData.length; i++) {
+                var date = trendData[i].date || (trendData[i].timestamp ? trendData[i].timestamp.substring(0, 10) : '');
+                temps.push(dailyAvg[date] !== undefined ? dailyAvg[date] : null);
+            }
+        }
+        return temps;
+    }
+
+    function _renderTrendCharts() {
+        var data = _lastTrendData;
+        var range = _lastTrendRange;
+        if (!data || data.length === 0) return;
+        var xLabels = data.map(function(d) {
+            if (!d.timestamp) return '';
+            if (range === 'day') return d.timestamp.substring(11, 16);
+            if (range === 'week') return d.timestamp.substring(5, 16).replace('T', ' ');
+            return d.date ? formatDateDE(d.date) : formatDateDE(d.timestamp.substring(0, 10));
+        });
+        var tempOpts = (_lastTrendWeather && _lastTrendWeather.length > 0) ? { tempData: _lastTrendWeather } : null;
+        renderChart('chart-ds-power', xLabels,
+            [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7'}],
+            null, DS_POWER_THRESHOLDS, tempOpts);
+        renderChart('chart-ds-snr', xLabels,
+            [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7'}],
+            null, DS_SNR_THRESHOLDS, tempOpts);
+        renderChart('chart-us-power', xLabels,
+            [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7'}],
+            null, US_POWER_THRESHOLDS, tempOpts);
+        renderChart('chart-errors', xLabels, [
+            {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
+            {label: T.uncorrectable, data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
+        ], 'bar');
+    }
+
     function loadTrends(range) {
         var date = todayStr();
         var title = document.getElementById('trend-title');
@@ -2892,37 +2982,33 @@
         var grid = document.getElementById('charts-grid');
         var labels = {day: T.day_trend, week: T.week_trend, month: T.month_trend};
         title.textContent = (labels[range] || 'Trend') + ' - ' + formatDateDE(date);
+        _lastTrendRange = range;
 
-        fetch('/api/trends?range=' + range + '&date=' + date)
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
+        var wr = _getWeatherRange(range, date);
+        var trendsUrl = '/api/trends?range=' + range + '&date=' + date;
+        var weatherUrl = '/api/weather/range?start=' + encodeURIComponent(wr.start) + '&end=' + encodeURIComponent(wr.end);
+
+        Promise.all([
+            fetch(trendsUrl).then(function(r) { return r.json(); }),
+            fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
+        ]).then(function(results) {
+                var data = results[0];
+                var weatherData = results[1];
                 if (!data || data.length === 0) {
                     noData.textContent = T.no_data;
                     noData.style.display = 'block';
                     grid.style.display = 'none';
+                    _lastTrendData = null;
+                    _lastTrendWeather = null;
+                    _updateTempToggle();
                     return;
                 }
                 noData.style.display = 'none';
                 grid.style.display = '';
-                var xLabels = data.map(function(d) {
-                    if (!d.timestamp) return '';
-                    if (range === 'day') return d.timestamp.substring(11, 16);
-                    if (range === 'week') return d.timestamp.substring(5, 16).replace('T', ' ');
-                    return d.date ? formatDateDE(d.date) : formatDateDE(d.timestamp.substring(0, 10));
-                });
-                renderChart('chart-ds-power', xLabels,
-                    [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7'}],
-                    null, DS_POWER_THRESHOLDS);
-                renderChart('chart-ds-snr', xLabels,
-                    [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7'}],
-                    null, DS_SNR_THRESHOLDS);
-                renderChart('chart-us-power', xLabels,
-                    [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7'}],
-                    null, US_POWER_THRESHOLDS);
-                renderChart('chart-errors', xLabels, [
-                    {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
-                    {label: T.uncorrectable, data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
-                ], 'bar');
+                _lastTrendData = data;
+                _lastTrendWeather = _alignWeatherToTrends(data, weatherData, range);
+                _updateTempToggle();
+                _renderTrendCharts();
             })
             .catch(function() {
                 noData.textContent = T.trend_error;
@@ -2930,6 +3016,26 @@
                 grid.style.display = 'none';
             });
     }
+
+    function _updateTempToggle() {
+        var btn = document.getElementById('temp-toggle-btn');
+        if (!btn) return;
+        var hasWeather = _lastTrendWeather && _lastTrendWeather.some(function(v) { return v !== null; });
+        btn.style.display = hasWeather ? '' : 'none';
+        btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
+        btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
+    }
+
+    (function() {
+        var btn = document.getElementById('temp-toggle-btn');
+        if (btn) {
+            btn.addEventListener('click', function() {
+                _tempOverlayVisible = !_tempOverlayVisible;
+                _updateTempToggle();
+                _renderTrendCharts();
+            });
+        }
+    })();
 
     var zonesPlugin = {
         id: 'zones',
@@ -3003,7 +3109,7 @@
         var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
         var gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
         var textColor = isDark ? '#888' : '#666';
-        
+
         var chartDatasets = datasets.map(function(ds, idx) {
             var r = {
                 label: ds.label, data: ds.data,
@@ -3019,8 +3125,41 @@
             if (ds.spanGaps !== undefined) { r.spanGaps = ds.spanGaps; }
             return r;
         });
-        var hasLegend = datasets.length > 1;
+
+        /* Temperature overlay dataset */
+        var tempData = opts && opts.tempData && _tempOverlayVisible ? opts.tempData : null;
+        var hasTemp = tempData && tempData.some(function(v) { return v !== null; });
+        if (hasTemp && type !== 'bar') {
+            chartDatasets.push({
+                label: T.temperature || 'Temperature',
+                data: tempData,
+                borderColor: 'rgba(249,115,22,0.7)',
+                backgroundColor: 'transparent',
+                borderWidth: 1.5,
+                borderDash: [5, 3],
+                tension: 0.4,
+                pointRadius: 0,
+                yAxisID: 'y-temp',
+                fill: false,
+                spanGaps: true
+            });
+        }
+
+        var hasLegend = chartDatasets.length > 1;
         var legendPos = hasLegend ? 'bottom' : 'top';
+        var tooltipCallbacks = {};
+        if (opts && opts.tooltipLabelCallback) {
+            tooltipCallbacks.label = opts.tooltipLabelCallback;
+        } else if (hasTemp) {
+            tooltipCallbacks.label = function(context) {
+                var val = context.parsed.y;
+                if (val == null) return '';
+                if (context.dataset.yAxisID === 'y-temp') {
+                    return context.dataset.label + ': ' + val.toFixed(1) + ' °C';
+                }
+                return context.dataset.label + ': ' + val;
+            };
+        }
         var chartConfig = {
             type: type || 'line',
             data: { labels: labels, datasets: chartDatasets },
@@ -3030,7 +3169,7 @@
                 plugins: {
                     legend: { display: hasLegend, position: legendPos, labels: { color: textColor, font: { size: 11 } } },
                     tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1,
-                        callbacks: opts && opts.tooltipLabelCallback ? { label: opts.tooltipLabelCallback } : undefined }
+                        callbacks: Object.keys(tooltipCallbacks).length > 0 ? tooltipCallbacks : undefined }
                 },
                 scales: {
                     x: { ticks: { color: textColor, font: { size: 10 }, maxRotation: 45 }, grid: { color: gridColor } },
@@ -3039,6 +3178,17 @@
             },
             plugins: zones ? [zonesPlugin] : []
         };
+
+        /* Secondary temperature Y-axis */
+        if (hasTemp && type !== 'bar') {
+            chartConfig.options.scales['y-temp'] = {
+                type: 'linear', position: 'right',
+                title: { display: true, text: '°C', color: 'rgba(249,115,22,0.8)', font: { size: 10 } },
+                grid: { display: false },
+                ticks: { color: 'rgba(249,115,22,0.6)', font: { size: 10 } }
+            };
+        }
+
         if (opts && opts.yMin !== undefined) chartConfig.options.scales.y.min = opts.yMin;
         if (opts && opts.yMax !== undefined) chartConfig.options.scales.y.max = opts.yMax;
         if (opts && opts.yAfterBuildTicks) chartConfig.options.scales.y.afterBuildTicks = opts.yAfterBuildTicks;
@@ -3105,7 +3255,38 @@
                 if (ds.dashed) { r.borderDash = [5, 5]; }
                 return r;
             });
-            var hasLegend = params.datasets.length > 1;
+
+            /* Temperature overlay in zoom modal */
+            var zoomTempData = params.opts && params.opts.tempData && _tempOverlayVisible ? params.opts.tempData : null;
+            var zoomHasTemp = zoomTempData && zoomTempData.some(function(v) { return v !== null; });
+            if (zoomHasTemp && params.type !== 'bar') {
+                chartDatasets.push({
+                    label: T.temperature || 'Temperature',
+                    data: zoomTempData,
+                    borderColor: 'rgba(249,115,22,0.7)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
+                    borderDash: [5, 3],
+                    tension: 0.4,
+                    pointRadius: params.labels.length > 30 ? 0 : 2,
+                    yAxisID: 'y-temp',
+                    fill: false,
+                    spanGaps: true
+                });
+            }
+
+            var hasLegend = chartDatasets.length > 1;
+            var zoomTooltipCallbacks = {};
+            if (params.opts && params.opts.tooltipLabelCallback) {
+                zoomTooltipCallbacks.label = params.opts.tooltipLabelCallback;
+            } else if (zoomHasTemp) {
+                zoomTooltipCallbacks.label = function(context) {
+                    var val = context.parsed.y;
+                    if (val == null) return '';
+                    if (context.dataset.yAxisID === 'y-temp') return context.dataset.label + ': ' + val.toFixed(1) + ' °C';
+                    return context.dataset.label + ': ' + val;
+                };
+            }
             var cfg = {
                 type: params.type || 'line',
                 data: { labels: params.labels, datasets: chartDatasets },
@@ -3115,7 +3296,7 @@
                     plugins: {
                         legend: { display: hasLegend, position: 'bottom', labels: { color: textColor, font: { size: 12 } } },
                         tooltip: { backgroundColor: isDark ? '#16213e' : '#fff', titleColor: textColor, bodyColor: textColor, borderColor: gridColor, borderWidth: 1,
-                            callbacks: params.opts && params.opts.tooltipLabelCallback ? { label: params.opts.tooltipLabelCallback } : undefined }
+                            callbacks: Object.keys(zoomTooltipCallbacks).length > 0 ? zoomTooltipCallbacks : undefined }
                     },
                     scales: {
                         x: { ticks: { color: textColor, font: { size: 11 }, maxRotation: 45 }, grid: { color: gridColor } },
@@ -3124,6 +3305,14 @@
                 },
                 plugins: params.zones ? [zonesPlugin] : []
             };
+            if (zoomHasTemp && params.type !== 'bar') {
+                cfg.options.scales['y-temp'] = {
+                    type: 'linear', position: 'right',
+                    title: { display: true, text: '°C', color: 'rgba(249,115,22,0.8)', font: { size: 11 } },
+                    grid: { display: false },
+                    ticks: { color: 'rgba(249,115,22,0.6)', font: { size: 11 } }
+                };
+            }
             if (params.opts && params.opts.yMin !== undefined) cfg.options.scales.y.min = params.opts.yMin;
             if (params.opts && params.opts.yMax !== undefined) cfg.options.scales.y.max = params.opts.yMax;
             if (params.opts && params.opts.yAfterBuildTicks) cfg.options.scales.y.afterBuildTicks = params.opts.yAfterBuildTicks;
@@ -6522,7 +6711,8 @@ function escapeHtml(str) {
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
 var _correlationChart = null;
-var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: true, errors: true, poorSignal: true };
+var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: true, errors: true, poorSignal: true, temperature: true };
+var _corrWeatherData = [];
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 var _corrZoom = null; // { tMin, tMax } when zoomed in
 
@@ -6555,9 +6745,18 @@ function loadCorrelationData() {
     chartContainer.style.display = 'none';
     tableCard.style.display = 'none';
 
-    fetch('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
+    /* Calculate time range for weather fetch */
+    var now = new Date();
+    var wEnd = now.toISOString().replace('T', ' ').substring(0, 19) + 'Z';
+    var wStart = new Date(now.getTime() - parseInt(hours) * 3600000).toISOString().replace('T', ' ').substring(0, 19) + 'Z';
+    var weatherUrl = '/api/weather/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
+
+    Promise.all([
+        fetch('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events').then(function(r) { return r.json(); }),
+        fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
+    ]).then(function(results) {
+            var data = results[0];
+            _corrWeatherData = results[1] || [];
             loading.style.display = 'none';
             _correlationData = data;
             if (!data || data.length === 0) {
@@ -6656,11 +6855,19 @@ function renderCorrelationChart(data) {
     var errorValues = modem.map(function(d) { return d.ds_uncorrectable_errors || 0; });
     var errorMax = errorValues.length ? Math.max.apply(null, errorValues) : 0;
 
+    // Temperature axis (separate scale, dashed line)
+    var weather = _corrWeatherData || [];
+    var tempValues = weather.map(function(d) { return d.temperature; }).filter(function(v) { return v != null; });
+    var tempMin = tempValues.length ? Math.floor(Math.min.apply(null, tempValues) - 2) : -10;
+    var tempMax = tempValues.length ? Math.ceil(Math.max.apply(null, tempValues) + 2) : 40;
+    function yTemp(v) { return pad.top + plotH - (v - tempMin) / (tempMax - tempMin) * plotH; }
+
     var uploadColor = '#06b6d4'; // cyan
     var snrColor = 'rgba(168,85,247,1)'; // purple
     var txColor = '#f59e0b'; // amber/orange
     var dsPowerColor = '#ec4899'; // pink
     var errorColor = 'rgba(239,68,68,0.6)'; // red semi-transparent
+    var tempColor = '#f97316'; // orange
 
     var style = getComputedStyle(document.documentElement);
     var textColor = style.getPropertyValue('--muted').trim() || '#888';
@@ -6679,10 +6886,12 @@ function renderCorrelationChart(data) {
         tMin: tMin, tMax: tMax, tMinFull: tMinFull, tMaxFull: tMaxFull,
         snrMin: snrMin, snrMax: snrMax, txMin: txMin, txMax: txMax,
         dsPowerMin: dsPowerMin, dsPowerMax: dsPowerMax, errorMax: errorMax,
+        tempMin: tempMin, tempMax: tempMax,
         dlMin: dlMin, dlMax: dlMax,
         modem: modem, speedtest: sortedSpeedtest, events: events, data: data,
-        xScale: xScale, ySnr: ySnr, yTx: yTx, yDsPower: yDsPower, yDl: yDl,
-        colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: goodColor, upload: uploadColor, event: warnColor, errors: errorColor, text: textColor, grid: gridColor },
+        weather: weather,
+        xScale: xScale, ySnr: ySnr, yTx: yTx, yDsPower: yDsPower, yDl: yDl, yTemp: yTemp,
+        colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: goodColor, upload: uploadColor, event: warnColor, errors: errorColor, temperature: tempColor, text: textColor, grid: gridColor },
         dpr: dpr
     };
 
@@ -6974,6 +7183,29 @@ function renderCorrelationChart(data) {
         }
     }
 
+    // Temperature line (dashed)
+    if (_corrVisible.temperature && weather.length > 1) {
+        ctx.beginPath();
+        var started = false;
+        for (var i = 0; i < weather.length; i++) {
+            if (weather[i].temperature == null) continue;
+            var x = xScale(new Date(weather[i].timestamp).getTime());
+            var y = yTemp(weather[i].temperature);
+            if (!started) { ctx.moveTo(x, y); started = true; }
+            else {
+                var x0 = xScale(new Date(weather[i - 1].timestamp).getTime());
+                var y0 = yTemp(weather[i - 1].temperature);
+                var cpx = x0 + (x - x0) * 0.4;
+                ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
+            }
+        }
+        ctx.strokeStyle = tempColor;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
     // Interactive Legend
     var legend = document.getElementById('correlation-legend');
     var legendItems = [];
@@ -6995,6 +7227,9 @@ function renderCorrelationChart(data) {
     }
     if (events.length > 0) {
         legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; Events' });
+    }
+    if (weather.length > 0) {
+        legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (°C)' });
     }
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : ' disabled';
@@ -7137,6 +7372,17 @@ function _setupCorrelationTooltip(overlay, octx) {
             }
         }
 
+        // Find nearest weather point
+        var nearestWeather = null;
+        if (st.weather && st.weather.length > 0 && _corrVisible.temperature) {
+            var bestDist = Infinity;
+            for (var i = 0; i < st.weather.length; i++) {
+                var ts = new Date(st.weather[i].timestamp).getTime();
+                var dist = Math.abs(ts - tHover);
+                if (dist < bestDist) { bestDist = dist; nearestWeather = st.weather[i]; }
+            }
+        }
+
         // Draw crosshair on overlay
         newOctx.clearRect(0, 0, st.W, st.H);
         newOctx.strokeStyle = 'rgba(255,255,255,0.25)';
@@ -7207,6 +7453,19 @@ function _setupCorrelationTooltip(overlay, octx) {
             }
         }
 
+        // Draw temperature highlight dot
+        if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
+            var dx = st.xScale(new Date(nearestWeather.timestamp).getTime());
+            var dy = st.yTemp(nearestWeather.temperature);
+            newOctx.beginPath();
+            newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
+            newOctx.fillStyle = st.colors.temperature;
+            newOctx.fill();
+            newOctx.strokeStyle = '#fff';
+            newOctx.lineWidth = 2;
+            newOctx.stroke();
+        }
+
         // Build tooltip content
         var html = '';
         // Use the closest data point's timestamp as the display time
@@ -7243,6 +7502,9 @@ function _setupCorrelationTooltip(overlay, octx) {
         }
         if (nearestEvent && _corrVisible.events) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> Event: ' + (nearestEvent.message || nearestEvent.severity || '') + '</div>';
+        }
+        if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + nearestWeather.temperature.toFixed(1) + ' \u00B0C</div>';
         }
 
         tooltip.innerHTML = html;
