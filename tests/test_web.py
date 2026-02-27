@@ -593,6 +593,66 @@ class TestSpeedtestDetailAPI:
         resp = client.get("/api/speedtest/9999")
         assert resp.status_code == 404
 
+    def test_speedtest_detail_includes_quality_fields(self, tmp_path):
+        """Issue #113: speedtest responses should include classification fields."""
+        mgr = ConfigManager(str(tmp_path / "data_sq"))
+        mgr.save({"modem_password": "test", "booked_download": 1000, "booked_upload": 50})
+        init_config(mgr)
+        storage = SnapshotStorage(str(tmp_path / "sq.db"), max_days=7)
+        storage.save_speedtest_results([{
+            "id": 1, "timestamp": "2026-02-27T12:00:00Z",
+            "download_mbps": 900.0, "upload_mbps": 45.0,
+            "download_human": "900 Mbps", "upload_human": "45 Mbps",
+            "ping_ms": 10.0, "jitter_ms": 1.0, "packet_loss_pct": 0.0,
+            "server_id": 1, "server_name": "Frankfurt",
+        }])
+        init_storage(storage)
+        app.config["TESTING"] = True
+        with app.test_client() as c:
+            resp = c.get("/api/speedtest/1")
+            assert resp.status_code == 200
+            data = resp.get_json()
+            # 900/1000 = 0.9 >= 0.8 → good
+            assert data["speed_health"] == "good"
+            assert data["download_class"] == "good"
+            # 45/50 = 0.9 >= 0.8 → good
+            assert data["upload_class"] == "good"
+
+    def test_speedtest_quality_warn_and_poor(self, tmp_path):
+        mgr = ConfigManager(str(tmp_path / "data_sq2"))
+        mgr.save({"modem_password": "test", "booked_download": 1000, "booked_upload": 100})
+        init_config(mgr)
+        storage = SnapshotStorage(str(tmp_path / "sq2.db"), max_days=7)
+        storage.save_speedtest_results([{
+            "id": 10, "timestamp": "2026-02-27T12:00:00Z",
+            "download_mbps": 600.0, "upload_mbps": 30.0,
+            "download_human": "600 Mbps", "upload_human": "30 Mbps",
+            "ping_ms": 10.0, "jitter_ms": 1.0, "packet_loss_pct": 0.0,
+            "server_id": 1, "server_name": "Frankfurt",
+        }])
+        init_storage(storage)
+        app.config["TESTING"] = True
+        with app.test_client() as c:
+            resp = c.get("/api/speedtest/10")
+            data = resp.get_json()
+            # 600/1000 = 0.6 → warn
+            assert data["download_class"] == "warn"
+            # 30/100 = 0.3 → poor
+            assert data["upload_class"] == "poor"
+            # speed_health = worst of dl/ul = poor
+            assert data["speed_health"] == "poor"
+
+    def test_speedtest_quality_no_booked_speeds(self, client, storage_with_speedtest):
+        """Without booked speeds and no connection_info, quality fields should be null."""
+        from app.web import _state
+        _state["connection_info"] = None
+        init_storage(storage_with_speedtest)
+        resp = client.get("/api/speedtest/42")
+        data = resp.get_json()
+        assert data["speed_health"] is None
+        assert data["download_class"] is None
+        assert data["upload_class"] is None
+
 
 class TestThresholdsAPI:
     def test_thresholds_returns_data(self, client):

@@ -1308,6 +1308,42 @@ def api_bqm_delete():
     return jsonify({"error": "Provide 'all', 'start'+'end', or 'date'"}), 400
 
 
+def _classify_speed(actual, booked):
+    """Classify speed as good/warn/poor based on ratio to booked speed."""
+    if not booked or booked <= 0:
+        return None
+    ratio = actual / booked
+    if ratio >= 0.8:
+        return "good"
+    elif ratio >= 0.5:
+        return "warn"
+    return "poor"
+
+
+def _enrich_speedtest(result):
+    """Add speed_health, download_class, upload_class to a speedtest result."""
+    booked_dl = _config_manager.get("booked_download", 0) if _config_manager else 0
+    booked_ul = _config_manager.get("booked_upload", 0) if _config_manager else 0
+    if not booked_dl or not booked_ul:
+        conn_info = get_state().get("connection_info") or {}
+        if not booked_dl:
+            booked_dl = conn_info.get("max_downstream_kbps", 0) // 1000 if conn_info.get("max_downstream_kbps") else 0
+        if not booked_ul:
+            booked_ul = conn_info.get("max_upstream_kbps", 0) // 1000 if conn_info.get("max_upstream_kbps") else 0
+    dl_class = _classify_speed(result.get("download_mbps", 0), booked_dl)
+    ul_class = _classify_speed(result.get("upload_mbps", 0), booked_ul)
+    # speed_health is the worse of the two
+    if dl_class and ul_class:
+        order = {"poor": 0, "warn": 1, "good": 2}
+        speed_health = dl_class if order.get(dl_class, 2) <= order.get(ul_class, 2) else ul_class
+    else:
+        speed_health = dl_class or ul_class
+    result["download_class"] = dl_class
+    result["upload_class"] = ul_class
+    result["speed_health"] = speed_health
+    return result
+
+
 @app.route("/api/speedtest")
 @require_auth
 def api_speedtest():
@@ -1318,7 +1354,8 @@ def api_speedtest():
     count = max(1, min(count, 5000))
     # Demo mode: return seeded data without external API call
     if _config_manager.is_demo_mode() and _storage:
-        return jsonify(_storage.get_speedtest_results(limit=count))
+        results = _storage.get_speedtest_results(limit=count)
+        return jsonify([_enrich_speedtest(r) for r in results])
     # Delta fetch: get new results from STT API and cache them
     if _storage:
         try:
@@ -1339,14 +1376,16 @@ def api_speedtest():
                 log.info("Cached %d new speedtest results (last_id was %d)", len(new_results), last_id)
         except Exception as e:
             log.warning("Speedtest delta fetch failed: %s", e)
-        return jsonify(_storage.get_speedtest_results(limit=count))
+        results = _storage.get_speedtest_results(limit=count)
+        return jsonify([_enrich_speedtest(r) for r in results])
     # Fallback: no storage, fetch directly
     from .speedtest import SpeedtestClient
     client = SpeedtestClient(
         _config_manager.get("speedtest_tracker_url"),
         _config_manager.get("speedtest_tracker_token"),
     )
-    return jsonify(client.get_results(per_page=count))
+    results = client.get_results(per_page=count)
+    return jsonify([_enrich_speedtest(r) for r in results])
 
 
 @app.route("/api/speedtest/<int:result_id>")
@@ -1358,7 +1397,7 @@ def api_speedtest_detail(result_id):
     result = _storage.get_speedtest_by_id(result_id)
     if not result:
         return jsonify({"error": "Speedtest result not found"}), 404
-    return jsonify(result)
+    return jsonify(_enrich_speedtest(result))
 
 
 @app.route("/api/speedtest/<int:result_id>/signal")
