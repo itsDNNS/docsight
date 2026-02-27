@@ -2398,8 +2398,8 @@ var T = {{ t|tojson }};
 
     /* ── Init ── */
     // Apply hash-based view routing (must be inside IIFE to access switchView)
-    var _initHash = location.hash.replace('#', '');
-    if (validViews.indexOf(_initHash) !== -1 && _initHash !== 'live') {
+    var _initHash = viewFromHash();
+    if (_initHash && _initHash !== 'live') {
         switchView(_initHash, true);
     }
 
