@@ -501,3 +501,64 @@ def status():
             assert len(all_mods) == 2
             enabled = [m for m in all_mods if m.enabled]
             assert len(enabled) == 1
+
+
+class TestModuleAssetDetection:
+    """Test convention-based CSS/JS detection."""
+
+    def test_has_css_when_style_exists(self, tmp_path):
+        """Module with static/style.css gets has_css=True."""
+        mod_dir = tmp_path / "mymod"
+        mod_dir.mkdir()
+        (mod_dir / "manifest.json").write_text(json.dumps({
+            "id": "docsight.css_test", "name": "CSS Test", "description": "d",
+            "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
+            "type": "integration", "contributes": {"static": "static/"},
+        }))
+        static = mod_dir / "static"
+        static.mkdir()
+        (static / "style.css").write_text("body { }")
+
+        app = Flask(__name__)
+        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
+        loader.load_all()
+        mod = loader.get_enabled_modules()[0]
+        assert mod.has_css is True
+        assert mod.has_js is False
+
+    def test_has_js_when_main_exists(self, tmp_path):
+        """Module with static/main.js gets has_js=True."""
+        mod_dir = tmp_path / "mymod"
+        mod_dir.mkdir()
+        (mod_dir / "manifest.json").write_text(json.dumps({
+            "id": "docsight.js_test", "name": "JS Test", "description": "d",
+            "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
+            "type": "integration", "contributes": {"static": "static/"},
+        }))
+        static = mod_dir / "static"
+        static.mkdir()
+        (static / "main.js").write_text("console.log('hi')")
+
+        app = Flask(__name__)
+        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
+        loader.load_all()
+        mod = loader.get_enabled_modules()[0]
+        assert mod.has_css is False
+        assert mod.has_js is True
+
+    def test_no_assets_when_no_static(self, tmp_path):
+        """Module without static dir has both False."""
+        mod_dir = tmp_path / "mymod"
+        mod_dir.mkdir()
+        (mod_dir / "manifest.json").write_text(json.dumps({
+            "id": "docsight.no_assets", "name": "No Assets", "description": "d",
+            "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
+            "type": "integration", "contributes": {},
+        }))
+
+        app = Flask(__name__)
+        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
+        loader.load_all()
+        mod = loader.get_enabled_modules()[0]
+        assert mod.has_css is False
+        assert mod.has_js is False

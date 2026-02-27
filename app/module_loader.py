@@ -44,6 +44,8 @@ class ModuleInfo:
     error: str | None = None
     template_paths: dict[str, str] = field(default_factory=dict)
     collector_class: type | None = None
+    has_css: bool = False
+    has_js: bool = False
 
 
 def validate_manifest(raw: dict, module_path: str) -> ModuleInfo:
@@ -426,6 +428,13 @@ class ModuleLoader:
         # Collector (class loaded but not instantiated -- collector discovery handles that)
         if "collector" in c:
             mod.collector_class = load_module_collector(mod.id, mod.path, c["collector"])
+
+        # Convention-based asset detection
+        static_subdir = c.get("static", "static/").rstrip("/")
+        static_dir = os.path.join(mod.path, static_subdir)
+        if os.path.isdir(static_dir):
+            mod.has_css = os.path.isfile(os.path.join(static_dir, "style.css"))
+            mod.has_js = os.path.isfile(os.path.join(static_dir, "main.js"))
 
     def get_modules(self) -> list[ModuleInfo]:
         """Return all discovered modules (enabled and disabled)."""
