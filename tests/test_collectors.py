@@ -496,6 +496,7 @@ class TestDiscoverCollectors:
         mgr.is_bqm_configured.return_value = True
         mgr.is_bnetz_watch_configured.return_value = bnetz_watch
         mgr.is_backup_configured.return_value = backup
+        mgr.is_weather_configured.return_value = False
         mgr.get_all.return_value = {
             "modem_type": "fritzbox",
             "modem_url": "http://fritz.box",

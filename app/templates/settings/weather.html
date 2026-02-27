@@ -1,0 +1,33 @@
+<!-- ═══ Panel: Weather ═══ -->
+<div class="settings-panel" id="panel-weather">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="thermometer"></i></div>
+            <div>
+                <div class="settings-card-title">{{ t.weather_title }}</div>
+                <div class="settings-card-desc">{{ t.weather_optional }}</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <label>
+                <input type="checkbox" id="weather_enabled" name="weather_enabled"
+                       {% if config.weather_enabled %}checked{% endif %}>
+                {{ t.weather_enable }}
+            </label>
+            <span class="hint">{{ t.weather_enable_hint }}</span>
+        </div>
+        <div class="form-row">
+            <label for="weather_latitude">{{ t.weather_latitude }}</label>
+            <input type="text" id="weather_latitude" name="weather_latitude"
+                   value="{{ config.weather_latitude }}"
+                   placeholder="52.52">
+            <span class="hint">{{ t.weather_coord_hint }}</span>
+        </div>
+        <div class="form-row">
+            <label for="weather_longitude">{{ t.weather_longitude }}</label>
+            <input type="text" id="weather_longitude" name="weather_longitude"
+                   value="{{ config.weather_longitude }}"
+                   placeholder="13.41">
+        </div>
+    </div>
+</div>

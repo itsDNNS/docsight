@@ -147,6 +147,7 @@ class DemoCollector(Collector):
         self._seed_bqm_graphs(now)
         self._seed_incident_containers(now)
         self._seed_bnetz_measurements(now)
+        self._seed_weather_data(now)
 
     def _seed_history(self, now):
         """Generate 9 months of historical snapshots (every 15 min)."""
@@ -711,6 +712,30 @@ class DemoCollector(Collector):
                 rows,
             )
         log.info("Demo: seeded %d BNetzA measurement campaigns", len(rows))
+
+    def _seed_weather_data(self, now):
+        """Seed 270 days of hourly outdoor temperature data with seasonal patterns."""
+        days = 270
+        records = []
+        rng = random.Random(42)
+        for d in range(days, -1, -1):
+            dt = now - timedelta(days=d)
+            day_of_year = dt.timetuple().tm_yday
+            for hour in range(24):
+                ts = dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+                # Seasonal base: summer warm (~22C), winter cold (~2C)
+                seasonal = 12 + 10 * math.sin((day_of_year - 80) * 2 * math.pi / 365)
+                # Diurnal cycle: warmer during day, cooler at night
+                diurnal = 4 * math.sin((hour - 6) * math.pi / 12)
+                # Random noise
+                noise = rng.gauss(0, 1.5)
+                temp = round(seasonal + diurnal + noise, 1)
+                records.append({
+                    "timestamp": ts.strftime("%Y-%m-%d %H:%M:%SZ"),
+                    "temperature": temp,
+                })
+        self._storage.save_weather_data(records, is_demo=True)
+        log.info("Demo: seeded %d weather records (%d days)", len(records), days)
 
     @staticmethod
     def _generate_bqm_png(width=800, height=200, seed=0):

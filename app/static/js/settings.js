@@ -172,6 +172,14 @@ function updateStatusDots() {
         if (bnetzDot) bnetzDot.classList.toggle('visible', bnetzCheck.checked);
         if (mBnetzDot) mBnetzDot.classList.toggle('visible', bnetzCheck.checked);
     }
+    /* Weather dot: based on checkbox */
+    var weatherCheck = document.getElementById('weather_enabled');
+    var weatherDot = document.getElementById('dot-weather');
+    var mWeatherDot = document.getElementById('mdot-weather');
+    if (weatherCheck) {
+        if (weatherDot) weatherDot.classList.toggle('visible', weatherCheck.checked);
+        if (mWeatherDot) mWeatherDot.classList.toggle('visible', weatherCheck.checked);
+    }
 }
 
 /* ── Theme Toggle ── */
@@ -842,6 +850,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     var bnetzWatchCheck = document.getElementById('bnetz_watch_enabled');
     if (bnetzWatchCheck) bnetzWatchCheck.addEventListener('change', updateStatusDots);
+    var weatherCheck = document.getElementById('weather_enabled');
+    if (weatherCheck) weatherCheck.addEventListener('change', updateStatusDots);
 
     /* Modem type change */
     var modemType = document.getElementById('modem_type');

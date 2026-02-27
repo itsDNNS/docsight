@@ -272,7 +272,7 @@ class SnapshotStorage:
                 log.warning("Failed to migrate bnetz_measurements pdf_blob: %s", e)
 
             # ── Migration: add is_demo column to demo-seeded tables ──
-            _demo_tables = ["snapshots", "events", "journal_entries", "incidents", "speedtest_results", "bqm_graphs", "bnetz_measurements"]
+            _demo_tables = ["snapshots", "events", "journal_entries", "incidents", "speedtest_results", "bqm_graphs", "bnetz_measurements", "weather_data"]
             for tbl in _demo_tables:
                 try:
                     cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
@@ -281,6 +281,20 @@ class SnapshotStorage:
                         log.info("Migration: added is_demo column to %s", tbl)
                 except Exception as e:
                     log.warning("Failed to add is_demo to %s: %s", tbl, e)
+
+            # ── Weather data table ──
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS weather_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL UNIQUE,
+                    temperature REAL NOT NULL,
+                    is_demo INTEGER NOT NULL DEFAULT 0
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_weather_ts
+                ON weather_data(timestamp)
+            """)
 
             # ── API tokens table ──
             conn.execute("""
@@ -324,6 +338,7 @@ class SnapshotStorage:
         ("api_tokens", "created_at"),
         ("api_tokens", "last_used_at"),
         ("bqm_graphs", "timestamp"),
+        ("weather_data", "timestamp"),
     ]
 
     def migrate_to_utc(self, tz_name):
@@ -790,6 +805,65 @@ class SnapshotStorage:
                 "SELECT MAX(id) FROM speedtest_results"
             ).fetchone()
         return row[0] or 0 if row else 0
+
+    # ── Weather Data ──
+
+    def save_weather_data(self, records, is_demo=False):
+        """Bulk insert weather records, ignoring duplicates by timestamp.
+
+        Args:
+            records: list of dicts with 'timestamp' and 'temperature' keys
+            is_demo: True for demo-seeded data
+        """
+        if not records:
+            return
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.executemany(
+                    "INSERT OR IGNORE INTO weather_data "
+                    "(timestamp, temperature, is_demo) VALUES (?, ?, ?)",
+                    [(r["timestamp"], r["temperature"], int(is_demo)) for r in records],
+                )
+            log.debug("Saved %d weather records", len(records))
+        except Exception as e:
+            log.error("Failed to save weather data: %s", e)
+
+    def get_weather_data(self, limit=2000):
+        """Return weather data, newest first."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT timestamp, temperature FROM weather_data "
+                "ORDER BY timestamp DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_weather_in_range(self, start_ts, end_ts):
+        """Return weather data within a timestamp range, oldest first."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT timestamp, temperature FROM weather_data "
+                "WHERE timestamp >= ? AND timestamp <= ? "
+                "ORDER BY timestamp ASC",
+                (start_ts, end_ts),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_weather_count(self):
+        """Return number of weather records."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute("SELECT COUNT(*) FROM weather_data").fetchone()
+        return row[0] if row else 0
+
+    def get_latest_weather_timestamp(self):
+        """Return the newest weather timestamp, or None if empty."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT MAX(timestamp) FROM weather_data"
+            ).fetchone()
+        return row[0] if row and row[0] else None
 
     # ── Journal Entries ──
 
@@ -1530,7 +1604,8 @@ class SnapshotStorage:
             )
             # 3. Delete from each demo-seeded table
             tables = ["journal_entries", "incidents", "events", "snapshots",
-                       "speedtest_results", "bqm_graphs", "bnetz_measurements"]
+                       "speedtest_results", "bqm_graphs", "bnetz_measurements",
+                       "weather_data"]
             total = 0
             for tbl in tables:
                 deleted = conn.execute(
@@ -1562,6 +1637,12 @@ class SnapshotStorage:
             ).rowcount
         if bqm_deleted:
             log.info("Cleaned up %d old BQM graphs (before %s)", bqm_deleted, cutoff_date)
+        with sqlite3.connect(self.db_path) as conn:
+            weather_deleted = conn.execute(
+                "DELETE FROM weather_data WHERE timestamp < ?", (cutoff,)
+            ).rowcount
+        if weather_deleted:
+            log.info("Cleaned up %d old weather records (before %s)", weather_deleted, cutoff)
         events_deleted = self.delete_old_events(self.max_days)
         if events_deleted:
             log.info("Cleaned up %d old events (before %s)", events_deleted, cutoff)

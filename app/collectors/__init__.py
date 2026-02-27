@@ -13,6 +13,7 @@ from .speedtest import SpeedtestCollector
 from .bqm import BQMCollector
 from .bnetz_watcher import BnetzWatcherCollector
 from .backup import BackupCollector
+from .weather import WeatherCollector
 
 log = logging.getLogger("docsis.collectors")
 
@@ -24,6 +25,7 @@ COLLECTOR_REGISTRY = {
     "bqm": BQMCollector,
     "bnetz_watcher": BnetzWatcherCollector,
     "backup": BackupCollector,
+    "weather": WeatherCollector,
 }
 
 
@@ -113,6 +115,15 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             poll_interval=interval_hours * 3600,
         ))
 
+    # Weather collector (available if weather configured, not in demo mode)
+    if config_mgr.is_weather_configured() and not config_mgr.is_demo_mode():
+        collectors.append(WeatherCollector(
+            config_mgr=config_mgr,
+            storage=storage,
+            web=web,
+            poll_interval=3600,
+        ))
+
     return collectors
 
 
@@ -127,4 +138,5 @@ __all__ = [
     "BQMCollector",
     "BnetzWatcherCollector",
     "BackupCollector",
+    "WeatherCollector",
 ]

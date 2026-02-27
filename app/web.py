@@ -459,7 +459,7 @@ def inject_auth():
     return {"auth_enabled": auth_enabled, "version": APP_VERSION, "update_available": _check_for_update()}
 
 
-def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None):
+def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None, weather_latest=None):
     """Update the shared web state from the main loop (thread-safe)."""
     with _state_lock:
         if analysis is not None:
@@ -476,6 +476,8 @@ def update_state(analysis=None, error=None, poll_interval=None, connection_info=
             _state["device_info"] = device_info
         if speedtest_latest is not None:
             _state["speedtest_latest"] = speedtest_latest
+        if weather_latest is not None:
+            _state["weather_latest"] = weather_latest
 
 
 def get_state() -> dict:
@@ -1306,6 +1308,46 @@ def api_bqm_delete():
         return jsonify({"deleted": deleted})
 
     return jsonify({"error": "Provide 'all', 'start'+'end', or 'date'"}), 400
+
+
+# ── Weather API ──
+
+@app.route("/api/weather")
+@require_auth
+def api_weather():
+    """Return weather (temperature) history, newest first."""
+    if not _config_manager or not _config_manager.is_weather_configured():
+        return jsonify([])
+    if not _storage:
+        return jsonify([])
+    count = request.args.get("count", 2000, type=int)
+    return jsonify(_storage.get_weather_data(limit=count))
+
+
+@app.route("/api/weather/current")
+@require_auth
+def api_weather_current():
+    """Return latest weather reading from state."""
+    state = get_state()
+    weather = state.get("weather_latest")
+    if not weather:
+        return jsonify({"error": "No weather data yet"}), 404
+    return jsonify(weather)
+
+
+@app.route("/api/weather/range")
+@require_auth
+def api_weather_range():
+    """Return weather data within a timestamp range (for correlation)."""
+    if not _config_manager or not _config_manager.is_weather_configured():
+        return jsonify([])
+    if not _storage:
+        return jsonify([])
+    start = request.args.get("start", "")
+    end = request.args.get("end", "")
+    if not start or not end:
+        return jsonify({"error": "start and end parameters required"}), 400
+    return jsonify(_storage.get_weather_in_range(start, end))
 
 
 def _classify_speed(actual, booked):

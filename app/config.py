@@ -64,6 +64,9 @@ DEFAULTS = {
     "backup_interval_hours": 24,
     "backup_retention": 5,
     "timezone": "",
+    "weather_enabled": False,
+    "weather_latitude": "",
+    "weather_longitude": "",
 }
 
 ENV_MAP = {
@@ -101,6 +104,9 @@ ENV_MAP = {
     "notify_cooldowns": "NOTIFY_COOLDOWNS",
     "bnetz_watch_enabled": "BNETZ_WATCH_ENABLED",
     "bnetz_watch_dir": "BNETZ_WATCH_DIR",
+    "weather_enabled": "WEATHER_ENABLED",
+    "weather_latitude": "WEATHER_LATITUDE",
+    "weather_longitude": "WEATHER_LONGITUDE",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -118,7 +124,7 @@ _LEGACY_KEY_MAP = {
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown", "backup_interval_hours", "backup_retention"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled", "backup_enabled"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled", "backup_enabled", "weather_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
@@ -348,6 +354,15 @@ class ConfigManager:
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set, or demo mode is active."""
         return bool(self.get("speedtest_tracker_url") and self.get("speedtest_tracker_token")) or self.is_demo_mode()
+
+    def is_weather_configured(self):
+        """True if weather is enabled and latitude/longitude are set, or demo mode is active."""
+        val = self.get("weather_enabled")
+        if isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes")
+        lat = self.get("weather_latitude")
+        lon = self.get("weather_longitude")
+        return (bool(val) and bool(lat) and bool(lon)) or self.is_demo_mode()
 
     def is_backup_configured(self):
         """True if automatic backups are enabled and a backup path is set."""
