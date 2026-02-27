@@ -11,6 +11,9 @@ deploy.sh
 config.json
 CLAUDE.md
 
+# Plans and design docs (local only)
+docs/plans/
+
 # Internal development docs (belong in workspace, not repo)
 PHASE-*.md
 *-review-*.md
