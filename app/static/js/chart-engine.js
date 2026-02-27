@@ -4,6 +4,18 @@
 /* ── Shared State ── */
 var charts = {};
 var _tempOverlayVisible = true;
+var currentView = 'live';
+
+/* ── Shared Helpers ── */
+function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function formatDateDE(str) {
+    var p = str.split('-');
+    return p[2] + '.' + p[1] + '.' + p[0];
+}
 
 /* ── Zone Plugin ── */
 var zonesPlugin = {
