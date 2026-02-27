@@ -11,6 +11,9 @@
     <meta name="theme-color" content="#a855f7">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/settings.css">
+    {% for mod in modules if mod.has_css %}
+    <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
+    {% endfor %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -88,6 +91,20 @@
                 MQTT
                 <span class="status-dot" id="dot-mqtt"></span>
             </a>
+
+            {% set settings_modules = [] %}
+            {% for mod in modules if mod.template_paths.get('settings') %}
+                {% if settings_modules.append(mod) %}{% endif %}
+            {% endfor %}
+            {% if settings_modules %}
+            <div class="settings-section-label">{{ t.settings_extensions }}</div>
+            {% for mod in settings_modules|sort(attribute='menu.order') %}
+            <a class="settings-nav-link" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
+                <span class="icon"><i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i></span>
+                {{ t.get(mod.menu.label_key, mod.name) }}
+            </a>
+            {% endfor %}
+            {% endif %}
 
             <div class="settings-sidebar-divider"></div>
 
@@ -189,6 +206,17 @@
                 <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
             </a>
 
+            {% if settings_modules %}
+            <div class="mobile-section-label">{{ t.settings_extensions }}</div>
+            {% for mod in settings_modules|sort(attribute='menu.order') %}
+            <a class="mobile-nav-item" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
+                <span class="icon"><i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i></span>
+                <span class="mobile-nav-label">{{ t.get(mod.menu.label_key, mod.name) }}</span>
+                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
+            </a>
+            {% endfor %}
+            {% endif %}
+
             <div class="mobile-section-label">Appearance</div>
             <a class="mobile-nav-item" onclick="switchSection('appearance')">
                 <span class="icon"><i data-lucide="palette"></i></span>
@@ -267,6 +295,11 @@
                 {% include 'settings/appearance.html' %}
                 {% include 'settings/support.html' %}
 
+                {# ── Module Settings Panels ── #}
+                {% for mod in modules if mod.template_paths.get('settings') %}
+                {% include mod.template_paths['settings'] %}
+                {% endfor %}
+
             </div>
 
             <div class="settings-save-footer" id="settings-save-footer">
@@ -299,6 +332,9 @@ var currentTz = '{{ config.timezone|default("", true) }}';
 try { var savedCooldowns = JSON.parse('{{ config.notify_cooldowns|default("{}")|e }}'); } catch(e) { var savedCooldowns = {}; }
 </script>
 <script src="/static/js/settings.js"></script>
+{% for mod in modules if mod.has_js %}
+<script src="/modules/{{ mod.id }}/static/main.js"></script>
+{% endfor %}
 
 </body>
 </html>
