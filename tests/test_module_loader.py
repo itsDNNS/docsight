@@ -4,7 +4,7 @@ import os
 import tempfile
 
 import pytest
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n
 
 
 class TestValidateManifest:
@@ -248,3 +248,29 @@ class TestRegisterModuleConfig:
         from app import config as cfg
         register_module_config({"poll_interval": 999})
         assert cfg.DEFAULTS["poll_interval"] != 999  # unchanged
+
+
+class TestMergeModuleI18n:
+    """Test module i18n merging into global translations."""
+
+    def test_merge_translations(self):
+        with tempfile.TemporaryDirectory() as d:
+            i18n_dir = os.path.join(d, "i18n")
+            os.makedirs(i18n_dir)
+            with open(os.path.join(i18n_dir, "en.json"), "w") as f:
+                json.dump({"greeting": "Hello from module"}, f)
+            with open(os.path.join(i18n_dir, "de.json"), "w") as f:
+                json.dump({"greeting": "Hallo vom Modul"}, f)
+
+            merge_module_i18n("test.mymod", i18n_dir)
+
+            from app.i18n import get_translations
+            en = get_translations("en")
+            de = get_translations("de")
+            assert en.get("test.mymod.greeting") == "Hello from module"
+            assert de.get("test.mymod.greeting") == "Hallo vom Modul"
+
+    def test_missing_i18n_dir_skipped(self):
+        """Non-existent i18n directory is silently skipped."""
+        merge_module_i18n("test.missing", "/nonexistent/i18n")
+        # Should not raise

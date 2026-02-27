@@ -177,3 +177,38 @@ def register_module_config(config_defaults: dict) -> None:
             cfg.BOOL_KEYS.add(key)
         elif isinstance(value, int):
             cfg.INT_KEYS.add(key)
+
+
+def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
+    """Merge a module's i18n JSON files into the global translation system.
+
+    Keys are namespaced under the module ID:
+        module i18n key "greeting" -> global key "module_id.greeting"
+    """
+    if not os.path.isdir(i18n_dir):
+        log.debug("No i18n directory for module '%s': %s", module_id, i18n_dir)
+        return
+
+    from app.i18n import _TRANSLATIONS
+
+    for fname in sorted(os.listdir(i18n_dir)):
+        if not fname.endswith(".json"):
+            continue
+        lang = fname[:-5]  # "en.json" -> "en"
+        fpath = os.path.join(i18n_dir, fname)
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning("Failed to load i18n file %s: %s", fpath, e)
+            continue
+
+        if lang not in _TRANSLATIONS:
+            _TRANSLATIONS[lang] = {}
+
+        for key, value in data.items():
+            if key.startswith("_"):
+                continue  # skip metadata keys like _meta
+            _TRANSLATIONS[lang][f"{module_id}.{key}"] = value
+
+        log.debug("Merged %d i18n keys for module '%s' lang '%s'", len(data), module_id, lang)
