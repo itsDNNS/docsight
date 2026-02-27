@@ -51,7 +51,7 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=$(git describe --tags --abbrev=0 2>/dev/null || echo dev)" >> "$GITHUB_OUTPUT"
+            echo "tag=v$(date -u +%Y-%m-%d).${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build and push
