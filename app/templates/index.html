@@ -2155,70 +2155,46 @@ var T = {{ t|tojson }};
         sidebarLinks.forEach(function(l) {
             l.classList.toggle('active', l.getAttribute('data-view') === view);
         });
-        var dashView = document.getElementById('view-dashboard');
-        var trendView = document.getElementById('view-trends');
-        var bqmView = document.getElementById('view-bqm');
-        var speedtestView = document.getElementById('view-speedtest');
-        var journalView = document.getElementById('view-journal');
-        var eventsView = document.getElementById('view-events');
-        var channelsView = document.getElementById('view-channels');
-        var smokepingView = document.getElementById('view-smokeping');
-        var correlationView = document.getElementById('view-correlation');
-        var gamingView = document.getElementById('view-gaming');
-        var bnetzView = document.getElementById('view-bnetz');
-        dashView.classList.remove('active');
-        trendView.classList.remove('active');
-        if (bqmView) bqmView.classList.remove('active');
-        if (smokepingView) smokepingView.classList.remove('active');
-        if (speedtestView) speedtestView.classList.remove('active');
-        if (journalView) journalView.classList.remove('active');
-        if (eventsView) eventsView.classList.remove('active');
-        if (channelsView) channelsView.classList.remove('active');
-        if (correlationView) correlationView.classList.remove('active');
-        if (gamingView) gamingView.classList.remove('active');
-        if (bnetzView) bnetzView.classList.remove('active');
+        // Generic: remove active from all views, add to target
+        document.querySelectorAll('.main-content > .view').forEach(function(v) {
+            v.classList.remove('active');
+        });
+        var targetId = view === 'live' ? 'view-dashboard' : 'view-' + view;
+        var target = document.getElementById(targetId);
+        if (target) target.classList.add('active');
+
         stopAutoRefresh();
         if (typeof stopBqmLiveRefresh === 'function') stopBqmLiveRefresh();
         if (typeof stopBqmSlideshow === 'function') stopBqmSlideshow();
+
+        // View-specific init callbacks
         if (view === 'live') {
-            dashView.classList.add('active');
             startAutoRefresh();
         } else if (view === 'bqm') {
-            if (bqmView) bqmView.classList.add('active');
             if (typeof initBqmView === 'function') initBqmView();
         } else if (view === 'smokeping') {
-            if (smokepingView) smokepingView.classList.add('active');
             if (typeof loadSmokepingGraphs === 'function') loadSmokepingGraphs();
         } else if (view === 'speedtest') {
-            if (speedtestView) speedtestView.classList.add('active');
             loadSpeedtestHistory();
         } else if (view === 'journal') {
-            if (journalView) journalView.classList.add('active');
             if (typeof _timelineActive !== 'undefined' && _timelineActive && typeof closeIncidentTimeline === 'function') closeIncidentTimeline();
             if (typeof loadIncidents === 'function') loadIncidents();
             if (typeof loadJournal === 'function') loadJournal();
         } else if (view === 'events') {
-            if (eventsView) eventsView.classList.add('active');
             loadEvents();
         } else if (view === 'channels') {
-            if (channelsView) channelsView.classList.add('active');
             if (typeof loadChannelList === 'function') loadChannelList();
             var mode = getPillValue('channel-mode-tabs') || 'timeline';
             if (mode === 'compare' && typeof loadCompareChannelList === 'function') loadCompareChannelList();
         } else if (view === 'correlation') {
-            if (correlationView) correlationView.classList.add('active');
             loadCorrelationData();
-        } else if (view === 'gaming') {
-            if (gamingView) gamingView.classList.add('active');
         } else if (view === 'bnetz') {
-            if (bnetzView) bnetzView.classList.add('active');
             if (typeof loadBnetzData === 'function') loadBnetzData();
         } else if (view === 'trends') {
-            trendView.classList.add('active');
             if (typeof updateTrendTabs === 'function') updateTrendTabs();
             if (typeof loadTrends === 'function') loadTrends(_trendRange);
         }
-        
+
         // Re-initialize Lucide icons after view switch
         lucide.createIcons();
     }
@@ -2226,10 +2202,12 @@ var T = {{ t|tojson }};
     /* Trend Tabs → trends.js */
 
     /* ── Hash-based view routing ── */
-    var validViews = ['live', 'trends', 'bqm', 'smokeping', 'speedtest', 'journal', 'events', 'channels', 'correlation', 'gaming', 'bnetz'];
     function viewFromHash() {
         var h = location.hash.replace('#', '');
-        return validViews.indexOf(h) !== -1 ? h : null;
+        if (!h) return null;
+        // Accept any view that exists in DOM (supports module views)
+        var el = document.getElementById('view-' + h) || (h === 'live' && document.getElementById('view-dashboard'));
+        return el ? h : null;
     }
     window.addEventListener('hashchange', function() {
         var v = viewFromHash();
