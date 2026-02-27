@@ -13,6 +13,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
+    {% for mod in modules if mod.has_css %}
+    <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
+    {% endfor %}
     <!-- Icon Library (Lucide) -->
     <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js"
             integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU"
@@ -99,6 +102,19 @@
         <a class="sidebar-link" id="report-link" href="javascript:void(0)" onclick="openReportModal()" data-tooltip="{{ t.incident_report }}">
             <span class="icon"><i data-lucide="file-text"></i></span> {{ t.incident_report }}
         </a>
+        {% set tab_modules = [] %}
+        {% for mod in modules if mod.template_paths.get('tab') %}
+            {% if tab_modules.append(mod) %}{% endif %}
+        {% endfor %}
+        {% if tab_modules %}
+        <div class="sidebar-section-label">{{ t.sidebar_extensions }}</div>
+        {% for mod in tab_modules|sort(attribute='menu.order') %}
+        <a class="sidebar-link" data-view="mod-{{ mod.id|replace('.', '-') }}" data-tooltip="{{ t.get(mod.menu.label_key, mod.name) }}">
+            <span class="icon"><i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i></span>
+            {{ t.get(mod.menu.label_key, mod.name) }}
+        </a>
+        {% endfor %}
+        {% endif %}
         <div style="flex:1;"></div>
         <div class="sidebar-divider"></div>
         <a class="sidebar-link" href="/settings" data-tooltip="{{ t.settings }}">
@@ -549,7 +565,10 @@
         </div>
     </div>
 
-
+    {# ── Module Cards (mixed with core, sorted by order) ── #}
+    {% for mod in modules|sort(attribute='menu.order') if mod.template_paths.get('card') %}
+    {% include mod.template_paths['card'] %}
+    {% endfor %}
 
     {# ══════════════════════════════════════════════════════════════════════════
        DOWNSTREAM CHANNELS - Phase 3 Task 3.5
@@ -1692,6 +1711,15 @@
 </div>
 {% endif %}
 
+{# ══════════════════════════════════════════════════════════════════════════
+   MODULE VIEWS - Dynamically rendered from enabled modules with tab template
+   ══════════════════════════════════════════════════════════════════════════ #}
+{% for mod in modules if mod.template_paths.get('tab') %}
+<div id="view-mod-{{ mod.id|replace('.', '-') }}" class="view">
+    {% include mod.template_paths['tab'] %}
+</div>
+{% endfor %}
+
 </div><!-- /main-content -->
 </div><!-- /app-main -->
 </div><!-- /app-layout -->
@@ -2409,5 +2437,8 @@ var T = {{ t|tojson }};
     lucide.createIcons();
   });
 </script>
+{% for mod in modules if mod.has_js %}
+<script src="/modules/{{ mod.id }}/static/main.js"></script>
+{% endfor %}
 </body>
 </html>
