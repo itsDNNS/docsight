@@ -2004,10 +2004,10 @@
 </script>
 
 <script>
+var T = {{ t|tojson }};
+
 (function() {
     'use strict';
-
-    var T = {{ t|tojson }};
 
     /* ── Theme ── */
     var saved = localStorage.getItem('docsis-theme');
@@ -6096,7 +6096,6 @@
 
 /* ── Export for LLM ── */
 function exportForLLM() {
-    var T = {{ t|tojson }};
     var modal = document.getElementById('export-modal');
     var textarea = document.getElementById('export-text');
     var modeEl = document.querySelector('input[name="export-mode"]:checked');
@@ -6197,7 +6196,6 @@ function downloadReport() {
     window.location.href = '/api/report?days=' + days + '&lang=' + lang;
 }
 function copyExport() {
-    var T = {{ t|tojson }};
     var textarea = document.getElementById('export-text');
     var btn = document.getElementById('export-copy-btn');
     textarea.select();
@@ -6258,7 +6256,6 @@ function formatSpeedtestTimestamp(ts) {
 }
 
 function loadSpeedtestHistory() {
-    var T = {{ t|tojson }};
     var tbody = document.getElementById('speedtest-tbody');
     var table = document.getElementById('speedtest-table');
     var noData = document.getElementById('speedtest-no-data');
@@ -6293,7 +6290,6 @@ function loadSpeedtestHistory() {
 }
 
 function filterSpeedtestData() {
-    var T = {{ t|tojson }};
     var days = getPillValue('speedtest-tabs') || '7';
     var table = document.getElementById('speedtest-table');
     var noData = document.getElementById('speedtest-no-data');
@@ -6373,7 +6369,6 @@ function computeMedian(arr) {
 }
 
 function renderSpeedtestRows() {
-    var T = {{ t|tojson }};
     var tbody = document.getElementById('speedtest-tbody');
     var moreWrap = document.getElementById('speedtest-show-more');
     var moreBtn = document.getElementById('speedtest-more-btn');
@@ -6423,7 +6418,6 @@ function renderSpeedtestRows() {
 }
 
 function toggleSpeedtestSignal(btn) {
-    var T = {{ t|tojson }};
     var id = btn.getAttribute('data-id');
     var parentRow = btn.closest('tr');
     var detailRow = parentRow.nextElementSibling;
@@ -6712,7 +6706,6 @@ function escapeHtml(str) {
 }
 
 /* ═══ Correlation Analysis ═══ */
-var T = T || {{ t|tojson }};
 var _correlationData = [];
 var _correlationChart = null;
 var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: true, temperature: true };
@@ -6764,7 +6757,7 @@ function loadCorrelationData() {
             loading.style.display = 'none';
             _correlationData = data;
             if (!data || data.length === 0) {
-                noData.textContent = {{ t.correlation_no_data | tojson }};
+                noData.textContent = T.correlation_no_data;
                 noData.style.display = 'block';
                 return;
             }
@@ -6775,7 +6768,7 @@ function loadCorrelationData() {
         })
         .catch(function() {
             loading.style.display = 'none';
-            noData.textContent = {{ t.correlation_no_data | tojson }};
+            noData.textContent = T.correlation_no_data;
             noData.style.display = 'block';
         });
 }
@@ -6816,7 +6809,7 @@ function renderCorrelationChart(data) {
         ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#888';
         ctx.font = '13px system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText({{ t.correlation_no_data | tojson }}, W / 2, H / 2);
+        ctx.fillText(T.correlation_no_data, W / 2, H / 2);
         return;
     }
 
@@ -7719,23 +7712,23 @@ function renderCorrelationTable(data) {
     var sorted = data.slice().reverse();
 
     var healthLabels = {
-        good: {{ t.health_good | tojson }},
-        marginal: {{ t.health_marginal | tojson }},
-        poor: {{ t.health_poor | tojson }},
-        critical: {{ t.health_critical | tojson }}
+        good: T.health_good,
+        marginal: T.health_marginal,
+        poor: T.health_poor,
+        critical: T.health_critical
     };
     var sevLabels = {
-        info: {{ t.event_severity_info | tojson }},
-        warning: {{ t.event_severity_warning | tojson }},
-        critical: {{ t.event_severity_critical | tojson }}
+        info: T.event_severity_info,
+        warning: T.event_severity_warning,
+        critical: T.event_severity_critical
     };
     var typeLabels = {
-        health_change: {{ t.event_type_health_change | tojson }},
-        power_change: {{ t.event_type_power_change | tojson }},
-        snr_change: {{ t.event_type_snr_change | tojson }},
-        channel_change: {{ t.event_type_channel_change | tojson }},
-        modulation_change: {{ t.event_type_modulation_change | tojson }},
-        error_spike: {{ t.event_type_error_spike | tojson }}
+        health_change: T.event_type_health_change,
+        power_change: T.event_type_power_change,
+        snr_change: T.event_type_snr_change,
+        channel_change: T.event_type_channel_change,
+        modulation_change: T.event_type_modulation_change,
+        error_spike: T.event_type_error_spike
     };
 
     // Pre-filter modem entries: only show health transitions (not repeated same-status)
