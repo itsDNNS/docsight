@@ -1,0 +1,22 @@
+{
+  "id": "test.integration",
+  "name": "Integration Test Module",
+  "description": "A module used for integration testing",
+  "version": "0.1.0",
+  "author": "Test Suite",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "routes": "routes.py",
+    "i18n": "i18n/"
+  },
+  "config": {
+    "test_integration_enabled": false,
+    "test_integration_interval": 60
+  },
+  "menu": {
+    "label_key": "test.integration.name",
+    "icon": "flask",
+    "order": 99
+  }
+}
