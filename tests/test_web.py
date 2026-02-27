@@ -500,3 +500,26 @@ class TestChannelsAPI:
         data = resp.get_json()
         assert data["ds_channels"] == []
         assert data["summary"] is None
+
+
+class TestDeviceAPI:
+    def test_device_returns_info(self, client):
+        update_state(device_info={
+            "model": "FRITZ!Box 6690 Cable",
+            "manufacturer": "AVM",
+            "sw_version": "7.57",
+            "uptime_seconds": 86400,
+        })
+        resp = client.get("/api/device")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["model"] == "FRITZ!Box 6690 Cable"
+        assert data["uptime_seconds"] == 86400
+
+    def test_device_not_available(self, client):
+        from app.web import _state
+        _state["device_info"] = None
+        resp = client.get("/api/device")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data == {}

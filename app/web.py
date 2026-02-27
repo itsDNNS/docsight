@@ -2182,6 +2182,14 @@ def api_channels():
     return jsonify(result)
 
 
+@app.route("/api/device")
+@require_auth
+def api_device():
+    """Return modem device information."""
+    state = get_state()
+    return jsonify(state.get("device_info") or {})
+
+
 def _gaming_genres(grade):
     """Return genre suitability verdicts for a given grade.
 
