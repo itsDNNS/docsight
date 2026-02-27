@@ -2,22 +2,10 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from app.bnetz_parser import parse_bnetz_pdf, _parse_de_float, _convert_date
+from app.bnetz_parser import parse_bnetz_pdf
 
 # Ensure pypdf.PdfReader is importable for patching
 import pypdf
-
-
-class TestHelpers:
-    def test_parse_de_float(self):
-        assert _parse_de_float("883,29") == 883.29
-        assert _parse_de_float("1.000,00") == 1000.0
-        assert _parse_de_float("50,00") == 50.0
-        assert _parse_de_float("15,40") == 15.4
-
-    def test_convert_date(self):
-        assert _convert_date("04.02.2025") == "2025-02-04"
-        assert _convert_date("29.01.2025") == "2025-01-29"
 
 
 # Mock PDF text simulating real BNetzA Messprotokoll structure

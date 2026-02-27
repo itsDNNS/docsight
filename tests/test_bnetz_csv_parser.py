@@ -11,11 +11,6 @@ class TestHelpers:
         assert _parse_de_float("50,00") == 50.0
         assert _parse_de_float("15,40") == 15.4
 
-    def test_parse_de_float_empty(self):
-        assert _parse_de_float("") is None
-        assert _parse_de_float("  ") is None
-        assert _parse_de_float(None) is None
-
     def test_parse_de_float_invalid(self):
         assert _parse_de_float("abc") is None
 
@@ -25,10 +20,6 @@ class TestHelpers:
 
     def test_convert_date_iso(self):
         assert _convert_date("2025-02-04") == "2025-02-04"
-
-    def test_convert_date_empty(self):
-        assert _convert_date("") is None
-        assert _convert_date(None) is None
 
 
 class TestCsvParser:

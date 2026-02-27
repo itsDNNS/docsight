@@ -53,12 +53,9 @@ class TestBQMFetcher:
         result = fetch_graph("https://example.com/graph.png")
         assert result is None
 
-    def test_fetch_empty_url(self):
-        result = fetch_graph("")
-        assert result is None
-
-    def test_fetch_none_url(self):
-        result = fetch_graph(None)
+    @pytest.mark.parametrize("url", ["", None])
+    def test_fetch_invalid_url(self, url):
+        result = fetch_graph(url)
         assert result is None
 
 
