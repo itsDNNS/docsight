@@ -297,6 +297,8 @@
   "sidebar_monitoring": "Überwachung",
   "sidebar_external": "Extern",
   "sidebar_documentation": "Dokumentation",
+  "sidebar_extensions": "Erweiterungen",
+  "settings_extensions": "Erweiterungen",
   "speedtest_setup": "Speedtest Einrichtung",
   "bqm_setup": "BQM Einrichtung",
   "signal_at_time": "Signal zum Testzeitpunkt",

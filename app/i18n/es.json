@@ -292,6 +292,8 @@
   "sidebar_monitoring": "Monitoreo",
   "sidebar_external": "Externo",
   "sidebar_documentation": "Documentacion",
+  "sidebar_extensions": "Extensiones",
+  "settings_extensions": "Extensiones",
   "speedtest_setup": "Config. Speedtest",
   "bqm_setup": "Config. BQM",
   "signal_at_time": "Senal al momento del test",
