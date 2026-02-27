@@ -42,6 +42,8 @@ class ModuleInfo:
     menu: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
     error: str | None = None
+    template_paths: dict[str, str] = field(default_factory=dict)
+    collector_class: type | None = None
 
 
 def validate_manifest(raw: dict, module_path: str) -> ModuleInfo:
@@ -345,3 +347,90 @@ def setup_module_templates(
             log.warning("Module '%s': template '%s' not found: %s", module_id, key, abs_path)
 
     return resolved
+
+
+class ModuleLoader:
+    """Orchestrates module discovery, validation, and loading.
+
+    Usage:
+        loader = ModuleLoader(app, search_paths=[...])
+        modules = loader.load_all()
+    """
+
+    def __init__(
+        self,
+        app,
+        search_paths: list[str] | None = None,
+        disabled_ids: set[str] | None = None,
+    ):
+        self._app = app
+        self._search_paths = search_paths or []
+        self._disabled_ids = disabled_ids or set()
+        self._modules: list[ModuleInfo] = []
+
+    def load_all(self) -> list[ModuleInfo]:
+        """Discover and load all modules.
+
+        Returns list of all discovered ModuleInfo (including disabled).
+        """
+        self._modules = discover_modules(
+            search_paths=self._search_paths,
+            disabled_ids=self._disabled_ids,
+        )
+
+        for mod in self._modules:
+            if not mod.enabled:
+                log.info("Module '%s' is disabled, skipping load", mod.id)
+                continue
+
+            try:
+                self._load_module(mod)
+            except Exception as e:
+                mod.error = str(e)
+                log.error("Module '%s' failed to load: %s", mod.id, e)
+
+        enabled = [m for m in self._modules if m.enabled and not m.error]
+        log.info(
+            "Module loading complete: %d discovered, %d enabled, %d failed",
+            len(self._modules),
+            len(enabled),
+            len([m for m in self._modules if m.error]),
+        )
+
+        return self._modules
+
+    def _load_module(self, mod: ModuleInfo) -> None:
+        """Load a single module's contributions."""
+        c = mod.contributes
+
+        # Config defaults
+        if mod.config:
+            register_module_config(mod.config)
+
+        # i18n
+        if "i18n" in c:
+            i18n_dir = os.path.join(mod.path, c["i18n"].rstrip("/"))
+            merge_module_i18n(mod.id, i18n_dir)
+
+        # Routes (Blueprint)
+        if "routes" in c:
+            load_module_routes(self._app, mod.id, mod.path, c["routes"])
+
+        # Static files
+        if "static" in c:
+            setup_module_static(self._app, mod.id, mod.path, c["static"])
+
+        # Template paths
+        mod.template_paths = setup_module_templates(mod.id, mod.path, c)
+
+        # Collector (class loaded but not instantiated -- collector discovery handles that)
+        if "collector" in c:
+            mod.collector_class = load_module_collector(mod.id, mod.path, c["collector"])
+
+    def get_modules(self) -> list[ModuleInfo]:
+        """Return all discovered modules (enabled and disabled)."""
+        return list(self._modules)
+
+    def get_enabled_modules(self) -> list[ModuleInfo]:
+        """Return only enabled modules without errors."""
+        return [m for m in self._modules if m.enabled and not m.error]

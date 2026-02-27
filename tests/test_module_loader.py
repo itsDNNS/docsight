@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, setup_module_static, setup_module_templates
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, setup_module_static, setup_module_templates, ModuleLoader
 
 
 class TestValidateManifest:
@@ -400,3 +400,104 @@ class TestStaticAndTemplates:
             os.makedirs(mod_dir)
             paths = setup_module_templates("test.mod", mod_dir, {"tab": "templates/tab.html"})
             assert "tab" not in paths
+
+
+class TestModuleLoader:
+    """Test the orchestrator that ties discovery + loading together."""
+
+    def _make_full_module(self, base_dir, mod_id, name="Test Module"):
+        """Create a module with manifest, routes, i18n."""
+        folder = mod_id.split(".")[-1]
+        mod_dir = os.path.join(base_dir, folder)
+        os.makedirs(os.path.join(mod_dir, "i18n"), exist_ok=True)
+
+        manifest = {
+            "id": mod_id,
+            "name": name,
+            "description": "Test",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "integration",
+            "contributes": {
+                "routes": "routes.py",
+                "i18n": "i18n/",
+            },
+            "config": {f"{folder}_enabled": False},
+            "menu": {"label_key": f"{mod_id}.name", "icon": "test", "order": 99},
+        }
+        with open(os.path.join(mod_dir, "manifest.json"), "w") as f:
+            json.dump(manifest, f)
+
+        with open(os.path.join(mod_dir, "routes.py"), "w") as f:
+            safe = mod_id.replace(".", "_")
+            f.write(f'''
+from flask import Blueprint, jsonify
+bp = Blueprint("{safe}_bp", __name__)
+
+@bp.route("/api/modules/{mod_id}/status")
+def status():
+    return jsonify({{"module": "{mod_id}", "ok": True}})
+''')
+
+        with open(os.path.join(mod_dir, "i18n", "en.json"), "w") as f:
+            json.dump({"name": name}, f)
+
+        return mod_dir
+
+    def test_load_modules_end_to_end(self):
+        """Full load: discover -> validate -> register config + i18n + routes."""
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory() as d:
+            self._make_full_module(d, "test.alpha", "Alpha")
+            self._make_full_module(d, "test.beta", "Beta")
+
+            loader = ModuleLoader(app, search_paths=[d])
+            loaded = loader.load_all()
+
+            assert len(loaded) == 2
+            ids = {m.id for m in loaded}
+            assert ids == {"test.alpha", "test.beta"}
+
+            # Routes work
+            with app.test_client() as c:
+                r = c.get("/api/modules/test.alpha/status")
+                assert r.status_code == 200
+                assert r.get_json()["module"] == "test.alpha"
+
+            # i18n merged
+            from app.i18n import get_translations
+            en = get_translations("en")
+            assert en.get("test.alpha.name") == "Alpha"
+
+    def test_disabled_modules_not_loaded(self):
+        """Disabled modules are discovered but not loaded."""
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory() as d:
+            self._make_full_module(d, "test.disabled")
+
+            loader = ModuleLoader(app, search_paths=[d], disabled_ids={"test.disabled"})
+            loaded = loader.load_all()
+
+            assert len(loaded) == 1
+            assert loaded[0].enabled is False
+
+            # Routes should NOT be registered
+            with app.test_client() as c:
+                r = c.get("/api/modules/test.disabled/status")
+                assert r.status_code == 404
+
+    def test_get_modules_returns_all(self):
+        """get_modules() returns all discovered modules including disabled."""
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory() as d:
+            self._make_full_module(d, "test.one")
+            self._make_full_module(d, "test.two")
+
+            loader = ModuleLoader(app, search_paths=[d], disabled_ids={"test.two"})
+            loader.load_all()
+
+            all_mods = loader.get_modules()
+            assert len(all_mods) == 2
+            enabled = [m for m in all_mods if m.enabled]
+            assert len(enabled) == 1
