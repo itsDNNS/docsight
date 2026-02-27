@@ -304,6 +304,7 @@ _on_config_changed = None
 _modem_collector = None
 _collectors = []
 _last_manual_poll = 0.0
+_module_loader = None
 
 
 def get_storage():
@@ -324,6 +325,11 @@ def get_modem_collector():
 def get_collectors():
     """Get all collectors (set at runtime via init_collectors)."""
     return _collectors
+
+
+def get_module_loader():
+    """Get the module loader instance."""
+    return _module_loader
 
 
 def get_on_config_changed():
@@ -358,6 +364,25 @@ def init_collectors(collectors):
     """Set the list of all collectors for status reporting."""
     global _collectors
     _collectors = collectors
+
+
+def init_modules(module_loader):
+    """Set the module loader instance."""
+    global _module_loader
+    _module_loader = module_loader
+
+
+def setup_module_templates(module_loader):
+    """Add module template directories to Jinja2's search path."""
+    from jinja2 import FileSystemLoader, ChoiceLoader
+
+    loaders = [app.jinja_loader]  # keep default loader first
+    for mod in module_loader.get_enabled_modules():
+        tpl_dir = os.path.join(mod.path, "templates")
+        if os.path.isdir(tpl_dir):
+            loaders.append(FileSystemLoader(tpl_dir))
+    if len(loaders) > 1:
+        app.jinja_loader = ChoiceLoader(loaders)
 
 
 def _init_session_key(data_dir):
@@ -484,9 +509,15 @@ def logout():
 
 @app.context_processor
 def inject_auth():
-    """Make auth_enabled available in all templates."""
+    """Make auth_enabled and module info available in all templates."""
     auth_enabled = bool(_config_manager and _config_manager.get("admin_password", ""))
-    return {"auth_enabled": auth_enabled, "version": APP_VERSION, "update_available": _check_for_update()}
+    modules = _module_loader.get_enabled_modules() if _module_loader else []
+    return {
+        "auth_enabled": auth_enabled,
+        "version": APP_VERSION,
+        "update_available": _check_for_update(),
+        "modules": modules,
+    }
 
 
 def update_state(analysis=None, error=None, poll_interval=None, connection_info=None, device_info=None, speedtest_latest=None, weather_latest=None):

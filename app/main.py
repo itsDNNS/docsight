@@ -224,6 +224,23 @@ def main():
 
     web.init_config(config_mgr, on_config_changed)
 
+    # Module system
+    from .module_loader import ModuleLoader
+
+    builtin_path = os.path.join(os.path.dirname(__file__), "modules")
+    community_path = os.environ.get("MODULES_DIR", "/modules")
+    disabled_raw = config_mgr.get("disabled_modules", "")
+    disabled_ids = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+
+    module_loader = ModuleLoader(
+        web.app,
+        search_paths=[builtin_path, community_path],
+        disabled_ids=disabled_ids,
+    )
+    module_loader.load_all()
+    web.init_modules(module_loader)
+    web.setup_module_templates(module_loader)
+
     # Start Flask
     web_port = config_mgr.get("web_port", 8765)
     web_thread = threading.Thread(target=run_web, args=(web_port,), daemon=True)

@@ -67,6 +67,7 @@ DEFAULTS = {
     "weather_enabled": False,
     "weather_latitude": "",
     "weather_longitude": "",
+    "disabled_modules": "",  # comma-separated list of module IDs to disable
 }
 
 ENV_MAP = {
