@@ -6709,6 +6709,7 @@ function escapeHtml(str) {
 }
 
 /* ═══ Correlation Analysis ═══ */
+var T = T || {{ t|tojson }};
 var _correlationData = [];
 var _correlationChart = null;
 var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: true, errors: true, poorSignal: true, temperature: true };
