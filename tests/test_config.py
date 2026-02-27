@@ -55,6 +55,18 @@ class TestConfigSaveLoad:
         assert config2.get("poll_interval") == 180
         assert isinstance(config2.get("poll_interval"), int)
 
+    @pytest.mark.parametrize("value,expected", [
+        ("true", True), ("True", True), ("TRUE", True),
+        ("1", True), ("yes", True), ("on", True), ("On", True),
+        ("false", False), ("False", False), ("0", False), ("no", False),
+        ("off", False), ("", False),
+    ])
+    def test_bool_keys_cast(self, tmp_data_dir, value, expected):
+        config = ConfigManager(tmp_data_dir)
+        config.save({"weather_enabled": value})
+        config2 = ConfigManager(tmp_data_dir)
+        assert config2.get("weather_enabled") is expected
+
 
 class TestConfigSecrets:
     def test_password_encrypted_at_rest(self, config, tmp_data_dir):

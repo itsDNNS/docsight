@@ -10,7 +10,8 @@
         </div>
         <div class="form-row">
             <label>
-                <input type="checkbox" id="weather_enabled" name="weather_enabled"
+                <input type="hidden" name="weather_enabled" value="false">
+                <input type="checkbox" id="weather_enabled" name="weather_enabled" value="true"
                        {% if config.weather_enabled %}checked{% endif %}>
                 {{ t.weather_enable }}
             </label>

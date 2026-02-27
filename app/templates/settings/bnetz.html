@@ -13,7 +13,8 @@
                 <label class="toggle-row">
                     <span>{{ t.enabled }}</span>
                     <label class="switch">
-                        <input type="checkbox" id="bnetz_watch_enabled" name="bnetz_watch_enabled" {% if config.bnetz_watch_enabled %}checked{% endif %}>
+                        <input type="hidden" name="bnetz_watch_enabled" value="false">
+                        <input type="checkbox" id="bnetz_watch_enabled" name="bnetz_watch_enabled" value="true" {% if config.bnetz_watch_enabled %}checked{% endif %}>
                         <span class="slider"></span>
                     </label>
                 </label>

@@ -218,7 +218,7 @@ class ConfigManager:
                 if key in INT_KEYS:
                     return int(env_val)
                 if key in BOOL_KEYS:
-                    return env_val.lower() in ("true", "1", "yes")
+                    return env_val.lower() in ("true", "1", "yes", "on")
                 return env_val
         # Check deprecated FRITZ_* env vars as fallback
         legacy_env = _LEGACY_ENV_MAP.get(key)
@@ -296,7 +296,7 @@ class ConfigManager:
             if key in self._file_config:
                 val = self._file_config[key]
                 if isinstance(val, str):
-                    self._file_config[key] = val.lower() in ("true", "1", "yes")
+                    self._file_config[key] = val.lower() in ("true", "1", "yes", "on")
 
         with open(self.config_path, "w") as f:
             json.dump(self._file_config, f, indent=2)
