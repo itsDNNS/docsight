@@ -4,7 +4,7 @@ import os
 import tempfile
 
 import pytest
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config
 
 
 class TestValidateManifest:
@@ -201,3 +201,50 @@ class TestDiscoverModules:
                 f.write("{not valid json")
             modules = discover_modules(search_paths=[d])
             assert len(modules) == 0
+
+
+class TestRegisterModuleConfig:
+    """Test module config defaults registration."""
+
+    def test_register_config_defaults(self):
+        """Module config defaults are added to DEFAULTS."""
+        from app import config as cfg
+        original_defaults = dict(cfg.DEFAULTS)
+        try:
+            register_module_config({"my_mod_enabled": False, "my_mod_url": "http://example.com"})
+            assert cfg.DEFAULTS["my_mod_enabled"] is False
+            assert cfg.DEFAULTS["my_mod_url"] == "http://example.com"
+        finally:
+            # Restore
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+
+    def test_register_bool_keys(self):
+        """Boolean config keys are auto-detected and added to BOOL_KEYS."""
+        from app import config as cfg
+        original = set(cfg.BOOL_KEYS)
+        try:
+            register_module_config({"my_feat_enabled": False, "my_feat_url": ""})
+            assert "my_feat_enabled" in cfg.BOOL_KEYS
+            assert "my_feat_url" not in cfg.BOOL_KEYS
+        finally:
+            cfg.BOOL_KEYS.clear()
+            cfg.BOOL_KEYS.update(original)
+
+    def test_register_int_keys(self):
+        """Integer config keys are auto-detected and added to INT_KEYS."""
+        from app import config as cfg
+        original = set(cfg.INT_KEYS)
+        try:
+            register_module_config({"my_interval": 300, "my_name": "test"})
+            assert "my_interval" in cfg.INT_KEYS
+            assert "my_name" not in cfg.INT_KEYS
+        finally:
+            cfg.INT_KEYS.clear()
+            cfg.INT_KEYS.update(original)
+
+    def test_does_not_overwrite_existing_defaults(self):
+        """Module config must not overwrite existing core config keys."""
+        from app import config as cfg
+        register_module_config({"poll_interval": 999})
+        assert cfg.DEFAULTS["poll_interval"] != 999  # unchanged

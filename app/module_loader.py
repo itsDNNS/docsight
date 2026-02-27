@@ -158,3 +158,22 @@ def discover_modules(
             )
 
     return modules
+
+
+def register_module_config(config_defaults: dict) -> None:
+    """Register a module's config defaults into the global config system.
+
+    - Adds defaults to config.DEFAULTS (without overwriting existing keys)
+    - Auto-detects bool/int keys and adds them to BOOL_KEYS/INT_KEYS
+    """
+    from app import config as cfg
+
+    for key, value in config_defaults.items():
+        if key in cfg.DEFAULTS:
+            log.debug("Config key '%s' already exists in core, skipping", key)
+            continue
+        cfg.DEFAULTS[key] = value
+        if isinstance(value, bool):
+            cfg.BOOL_KEYS.add(key)
+        elif isinstance(value, int):
+            cfg.INT_KEYS.add(key)
