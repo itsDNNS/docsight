@@ -6712,6 +6712,17 @@ var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, up
 var _corrWeatherData = [];
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 var _corrZoom = null; // { tMin, tMax } when zoomed in
+// Event type sub-filter: operational events hidden by default
+var _corrEventFilter = {};
+var _OPERATIONAL_EVENTS = { monitoring_started: true, monitoring_stopped: true };
+function _corrFilteredEvents(events) {
+    if (!_corrVisible.events) return [];
+    return events.filter(function(e) {
+        var t = e.event_type || 'unknown';
+        if (!(t in _corrEventFilter)) _corrEventFilter[t] = !_OPERATIONAL_EVENTS[t];
+        return _corrEventFilter[t];
+    });
+}
 
 // Re-render chart on container resize
 (function() {
@@ -7158,10 +7169,11 @@ function renderCorrelationChart(data) {
     }
 
     // Draw event markers (vertical dashed lines)
-    if (_corrVisible.events) {
-        for (var i = 0; i < events.length; i++) {
-            var x = xScale(new Date(events[i].timestamp).getTime());
-            var sev = events[i].severity;
+    var filteredEvents = _corrFilteredEvents(events);
+    if (_corrVisible.events && filteredEvents.length > 0) {
+        for (var i = 0; i < filteredEvents.length; i++) {
+            var x = xScale(new Date(filteredEvents[i].timestamp).getTime());
+            var sev = filteredEvents[i].severity;
             ctx.strokeStyle = sev === 'critical' ? critColor : sev === 'warning' ? warnColor : textColor;
             ctx.lineWidth = 1;
             ctx.setLineDash([3, 3]);
@@ -7223,20 +7235,85 @@ function renderCorrelationChart(data) {
         legendItems.push({ metric: 'upload', color: uploadColor, label: '&#9644; Upload (Mbps)' });
     }
     if (events.length > 0) {
-        legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; Events' });
+        // Populate _corrEventFilter for all event types in current data
+        var eventTypes = {};
+        for (var i = 0; i < events.length; i++) {
+            var et = events[i].event_type || 'unknown';
+            eventTypes[et] = (eventTypes[et] || 0) + 1;
+            if (!(et in _corrEventFilter)) _corrEventFilter[et] = !_OPERATIONAL_EVENTS[et];
+        }
+        legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; Events', eventTypes: eventTypes });
     }
     if (weather.length > 0) {
         legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (°C)' });
     }
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : ' disabled';
+        if (item.metric === 'events') {
+            var filterCount = 0, totalTypes = 0;
+            for (var et in item.eventTypes) { totalTypes++; if (_corrEventFilter[et]) filterCount++; }
+            var filterBadge = filterCount < totalTypes ? ' <span style="font-size:0.7em;opacity:0.7;">(' + filterCount + '/' + totalTypes + ')</span>' : '';
+            return '<span data-metric="events" class="' + cls + '" title="Klicken zum Ein-/Ausblenden" style="color:' + item.color + '; position:relative;">' + item.label + filterBadge +
+                ' <span class="corr-event-filter-btn" title="Event-Filter" style="cursor:pointer; font-size:0.75em; opacity:0.6; margin-left:2px;">&#9881;</span></span>';
+        }
         return '<span data-metric="' + item.metric + '" class="' + cls + '" title="Klicken zum Ein-/Ausblenden" style="color:' + item.color + ';">' + item.label + '</span>';
     }).join('') + '<span data-metric="poorSignal" class="' + (_corrVisible.poorSignal ? '' : 'disabled') + '" title="Klicken zum Ein-/Ausblenden" style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em; color:#f44336;">Poor Signal</span>';
+
+    // Event filter popover
+    var filterBtn = legend.querySelector('.corr-event-filter-btn');
+    if (filterBtn) {
+        filterBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var existing = document.getElementById('corr-event-popover');
+            if (existing) { existing.remove(); return; }
+            var pop = document.createElement('div');
+            pop.id = 'corr-event-popover';
+            pop.style.cssText = 'position:absolute; z-index:100; background:var(--bg,#1f2937); border:1px solid var(--card-border,rgba(255,255,255,0.08)); border-radius:8px; padding:8px 12px; min-width:180px; box-shadow:0 4px 16px rgba(0,0,0,0.4); font-size:0.85em;';
+            var typeLabel = {
+                health_change: T.event_type_health_change || 'Health Change',
+                power_change: T.event_type_power_change || 'Power Change',
+                snr_change: T.event_type_snr_change || 'SNR Change',
+                channel_change: T.event_type_channel_change || 'Channel Change',
+                modulation_change: T.event_type_modulation_change || 'Modulation Change',
+                error_spike: T.event_type_error_spike || 'Error Spike',
+                monitoring_started: T.event_type_monitoring_started || 'Monitoring Started',
+                monitoring_stopped: T.event_type_monitoring_stopped || 'Monitoring Stopped'
+            };
+            var html = '<div style="font-weight:600; margin-bottom:6px; color:var(--text,#f0f0f0);">' + (T.event_filter_title || 'Event Types') + '</div>';
+            var sortedTypes = Object.keys(eventTypes).sort();
+            for (var si = 0; si < sortedTypes.length; si++) {
+                var et = sortedTypes[si];
+                var checked = _corrEventFilter[et] ? ' checked' : '';
+                var label = typeLabel[et] || et.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+                html += '<label style="display:flex; align-items:center; gap:6px; padding:3px 0; cursor:pointer; color:var(--text-secondary,#9ca3af);">' +
+                    '<input type="checkbox" data-event-type="' + et + '"' + checked + ' style="accent-color:' + warnColor + ';"> ' +
+                    label + ' <span style="opacity:0.5; font-size:0.85em;">(' + eventTypes[et] + ')</span></label>';
+            }
+            pop.innerHTML = html;
+            this.parentElement.appendChild(pop);
+            pop.querySelectorAll('input[data-event-type]').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    _corrEventFilter[this.getAttribute('data-event-type')] = this.checked;
+                    renderCorrelationChart(data);
+                });
+            });
+            // Close on outside click
+            setTimeout(function() {
+                document.addEventListener('click', function closePopover(ev) {
+                    if (!pop.contains(ev.target) && ev.target !== filterBtn) {
+                        pop.remove();
+                        document.removeEventListener('click', closePopover);
+                    }
+                });
+            }, 0);
+        });
+    }
 
     // Legend click handlers
     var legendSpans = legend.querySelectorAll('span[data-metric]');
     for (var li = 0; li < legendSpans.length; li++) {
         legendSpans[li].addEventListener('click', function(e) {
+            if (e.target.classList.contains('corr-event-filter-btn')) return;
             var metric = this.getAttribute('data-metric');
             // Prevent disabling all metrics
             var visibleCount = 0;
@@ -7358,14 +7435,15 @@ function _setupCorrelationTooltip(overlay, octx) {
             }
         }
 
-        // Find nearest event
+        // Find nearest event (respecting type filter)
         var nearestEvent = null;
-        if (st.events.length > 0 && _corrVisible.events) {
+        var visibleEvents = _corrFilteredEvents(st.events);
+        if (visibleEvents.length > 0) {
             var bestDist = Infinity;
-            for (var i = 0; i < st.events.length; i++) {
-                var ts = new Date(st.events[i].timestamp).getTime();
+            for (var i = 0; i < visibleEvents.length; i++) {
+                var ts = new Date(visibleEvents[i].timestamp).getTime();
                 var dist = Math.abs(ts - tHover);
-                if (dist < bestDist) { bestDist = dist; nearestEvent = st.events[i]; }
+                if (dist < bestDist) { bestDist = dist; nearestEvent = visibleEvents[i]; }
             }
         }
 
