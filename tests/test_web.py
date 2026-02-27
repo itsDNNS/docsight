@@ -43,6 +43,7 @@ def sample_analysis():
             "ds_uncorrectable_errors": 56,
             "health": "good",
             "health_issues": [],
+            "us_capacity_mbps": 50.0,
         },
         "ds_channels": [
             {
@@ -469,3 +470,33 @@ class TestGamingScoreEndpoint:
         with app.test_client() as c:
             data = c.get("/api/gaming-score").get_json()
         assert data["enabled"] is True
+
+
+class TestChannelsAPI:
+    def test_channels_includes_summary(self, client, sample_analysis, tmp_path):
+        update_state(analysis=sample_analysis)
+        db_path = str(tmp_path / "channels_test.db")
+        storage = SnapshotStorage(db_path, max_days=7)
+        storage.save_snapshot(sample_analysis)
+        init_storage(storage)
+        resp = client.get("/api/channels")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "ds_channels" in data
+        assert "us_channels" in data
+        assert "summary" in data
+        assert data["summary"]["health"] == "good"
+        assert data["summary"]["ds_total"] == 33
+        assert "health_issues" in data["summary"]
+        assert "us_total" in data["summary"]
+        assert "us_capacity_mbps" in data["summary"]
+
+    def test_channels_no_storage(self, client):
+        from app.web import _state
+        _state["analysis"] = None
+        init_storage(None)
+        resp = client.get("/api/channels")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["ds_channels"] == []
+        assert data["summary"] is None

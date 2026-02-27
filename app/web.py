@@ -2171,10 +2171,15 @@ def api_connection():
 @app.route("/api/channels")
 @require_auth
 def api_channels():
-    """Return current DS and US channels from the latest snapshot."""
+    """Return current DS and US channels with overall health summary."""
+    state = get_state()
+    analysis = state.get("analysis")
+    summary = analysis["summary"] if analysis else None
     if not _storage:
-        return jsonify({"ds_channels": [], "us_channels": []})
-    return jsonify(_storage.get_current_channels())
+        return jsonify({"ds_channels": [], "us_channels": [], "summary": summary})
+    result = _storage.get_current_channels()
+    result["summary"] = summary
+    return jsonify(result)
 
 
 def _gaming_genres(grade):
