@@ -141,6 +141,42 @@ class TestSnapshotsEndpoint:
         assert json.loads(resp.data) == []
 
 
+class TestSnapshotsAPI:
+    @pytest.fixture
+    def storage_with_data(self, tmp_path, sample_analysis):
+        storage = SnapshotStorage(str(tmp_path / "snap_test.db"), max_days=7)
+        storage.save_snapshot(sample_analysis)
+        return storage
+
+    def test_snapshots_list(self, client, storage_with_data):
+        init_storage(storage_with_data)
+        resp = client.get("/api/snapshots")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+
+    def test_snapshots_list_no_storage(self, client):
+        init_storage(None)
+        resp = client.get("/api/snapshots")
+        assert resp.status_code == 200
+        assert resp.get_json() == []
+
+    def test_snapshot_by_timestamp(self, client, storage_with_data):
+        init_storage(storage_with_data)
+        timestamps = storage_with_data.get_snapshot_list()
+        resp = client.get(f"/api/snapshots/{timestamps[0]}")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "summary" in data
+        assert "ds_channels" in data
+
+    def test_snapshot_not_found(self, client, storage_with_data):
+        init_storage(storage_with_data)
+        resp = client.get("/api/snapshots/1999-01-01T00:00:00Z")
+        assert resp.status_code == 404
+
+
 class TestSetupRoute:
     def test_setup_redirects_when_configured(self, client):
         resp = client.get("/setup")
@@ -523,6 +559,39 @@ class TestDeviceAPI:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data == {}
+
+
+class TestSpeedtestDetailAPI:
+    @pytest.fixture
+    def storage_with_speedtest(self, tmp_path):
+        storage = SnapshotStorage(str(tmp_path / "speed_test.db"), max_days=7)
+        storage.save_speedtest_results([{
+            "id": 42,
+            "timestamp": "2026-02-27T12:00:00Z",
+            "download_mbps": 500.0,
+            "upload_mbps": 50.0,
+            "download_human": "500 Mbps",
+            "upload_human": "50 Mbps",
+            "ping_ms": 12.0,
+            "jitter_ms": 2.0,
+            "packet_loss_pct": 0.0,
+            "server_id": 1,
+            "server_name": "Frankfurt",
+        }])
+        return storage
+
+    def test_speedtest_by_id(self, client, storage_with_speedtest):
+        init_storage(storage_with_speedtest)
+        resp = client.get("/api/speedtest/42")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["id"] == 42
+        assert data["download_mbps"] == 500.0
+
+    def test_speedtest_not_found(self, client, storage_with_speedtest):
+        init_storage(storage_with_speedtest)
+        resp = client.get("/api/speedtest/9999")
+        assert resp.status_code == 404
 
 
 class TestThresholdsAPI:

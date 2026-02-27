@@ -1076,6 +1076,18 @@ def api_snapshots():
     return jsonify([])
 
 
+@app.route("/api/snapshots/<path:timestamp>")
+@require_auth
+def api_snapshot(timestamp):
+    """Return full analysis for a specific snapshot."""
+    if not _storage:
+        return jsonify({"error": "No storage"}), 500
+    snap = _storage.get_snapshot(timestamp)
+    if not snap:
+        return jsonify({"error": "Snapshot not found"}), 404
+    return jsonify(snap)
+
+
 SMOKEPING_TIMESPANS = {
     "3h": "last_10800",
     "30h": "last_108000",
@@ -1335,6 +1347,18 @@ def api_speedtest():
         _config_manager.get("speedtest_tracker_token"),
     )
     return jsonify(client.get_results(per_page=count))
+
+
+@app.route("/api/speedtest/<int:result_id>")
+@require_auth
+def api_speedtest_detail(result_id):
+    """Return full speedtest result by ID."""
+    if not _storage:
+        return jsonify({"error": "Storage not initialized"}), 500
+    result = _storage.get_speedtest_by_id(result_id)
+    if not result:
+        return jsonify({"error": "Speedtest result not found"}), 404
+    return jsonify(result)
 
 
 @app.route("/api/speedtest/<int:result_id>/signal")
