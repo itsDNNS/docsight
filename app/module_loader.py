@@ -1,9 +1,11 @@
 """Module loader: discovers, validates, and loads DOCSight modules."""
 
+import importlib.util
 import json
 import logging
 import os
 import re
+import sys
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -212,3 +214,41 @@ def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
             _TRANSLATIONS[lang][f"{module_id}.{key}"] = value
 
         log.debug("Merged %d i18n keys for module '%s' lang '%s'", len(data), module_id, lang)
+
+
+def load_module_routes(app, module_id: str, module_path: str, routes_file: str) -> None:
+    """Dynamically load a Flask Blueprint from a module's routes file.
+
+    The routes file must export a variable named 'bp' or 'blueprint'
+    that is a Flask Blueprint instance.
+    """
+    routes_path = os.path.join(module_path, routes_file)
+    if not os.path.isfile(routes_path):
+        log.warning("Module '%s': routes file not found: %s", module_id, routes_path)
+        return
+
+    # Dynamic import using importlib
+    mod_name = f"docsight_modules.{module_id.replace('.', '_')}.routes"
+    try:
+        spec = importlib.util.spec_from_file_location(mod_name, routes_path)
+        if spec is None or spec.loader is None:
+            log.warning("Module '%s': could not create import spec for %s", module_id, routes_path)
+            return
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[mod_name] = mod
+        spec.loader.exec_module(mod)
+    except Exception as e:
+        log.error("Module '%s': failed to import routes: %s", module_id, e)
+        return
+
+    # Find Blueprint
+    blueprint = getattr(mod, "bp", None) or getattr(mod, "blueprint", None)
+    if blueprint is None:
+        log.warning("Module '%s': routes.py does not export 'bp' or 'blueprint'", module_id)
+        return
+
+    try:
+        app.register_blueprint(blueprint)
+        log.info("Module '%s': registered routes blueprint", module_id)
+    except Exception as e:
+        log.error("Module '%s': failed to register blueprint: %s", module_id, e)

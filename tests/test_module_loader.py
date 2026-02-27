@@ -1,10 +1,12 @@
 # tests/test_module_loader.py
+import importlib
 import json
 import os
 import tempfile
 
 import pytest
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n
+from flask import Flask
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes
 
 
 class TestValidateManifest:
@@ -274,3 +276,48 @@ class TestMergeModuleI18n:
         """Non-existent i18n directory is silently skipped."""
         merge_module_i18n("test.missing", "/nonexistent/i18n")
         # Should not raise
+
+
+class TestLoadModuleRoutes:
+    """Test dynamic Blueprint loading from module routes.py."""
+
+    def _make_routes_file(self, mod_dir, content):
+        """Write a routes.py file."""
+        with open(os.path.join(mod_dir, "routes.py"), "w") as f:
+            f.write(content)
+
+    def test_load_blueprint_from_routes(self):
+        """Load a Blueprint from a module's routes.py."""
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory() as d:
+            mod_dir = os.path.join(d, "testmod")
+            os.makedirs(mod_dir)
+            self._make_routes_file(mod_dir, """
+from flask import Blueprint, jsonify
+bp = Blueprint("testmod_bp", __name__)
+
+@bp.route("/api/modules/test.mod/hello")
+def hello():
+    return jsonify({"msg": "hello"})
+""")
+            load_module_routes(app, "test.mod", mod_dir, "routes.py")
+            with app.test_client() as c:
+                resp = c.get("/api/modules/test.mod/hello")
+                assert resp.status_code == 200
+                assert resp.get_json()["msg"] == "hello"
+
+    def test_missing_routes_file_skipped(self):
+        """Non-existent routes.py is gracefully handled."""
+        app = Flask(__name__)
+        # Should not raise
+        load_module_routes(app, "test.missing", "/nonexistent", "routes.py")
+
+    def test_routes_file_without_blueprint_logged(self):
+        """routes.py that doesn't export bp/blueprint is warned."""
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory() as d:
+            mod_dir = os.path.join(d, "nomod")
+            os.makedirs(mod_dir)
+            self._make_routes_file(mod_dir, "x = 42\n")
+            # Should not raise, just log warning
+            load_module_routes(app, "test.nobp", mod_dir, "routes.py")
