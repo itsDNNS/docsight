@@ -523,3 +523,24 @@ class TestDeviceAPI:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data == {}
+
+
+class TestThresholdsAPI:
+    def test_thresholds_returns_data(self, client):
+        resp = client.get("/api/thresholds")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "downstream_power" in data
+        assert "upstream_power" in data
+        assert "snr" in data
+        assert "errors" in data
+
+    def test_thresholds_excludes_internal_keys(self, client):
+        resp = client.get("/api/thresholds")
+        data = resp.get_json()
+        assert "_source" not in data
+        assert "_note" not in data
+        for section in data.values():
+            if isinstance(section, dict):
+                assert "_comment" not in section
+                assert "_default" not in section

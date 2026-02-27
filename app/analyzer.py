@@ -141,8 +141,12 @@ def _channel_bitrate_mbps(modulation_str, symbol_rate_ksym=None):
 
 
 def get_thresholds():
-    """Return the currently loaded thresholds dict (read-only access)."""
-    return _thresholds
+    """Return a copy of loaded thresholds, stripped of internal keys."""
+    def _strip(obj):
+        if not isinstance(obj, dict):
+            return obj
+        return {k: _strip(v) for k, v in obj.items() if not k.startswith("_")}
+    return _strip(_thresholds)
 
 
 # Load on module import

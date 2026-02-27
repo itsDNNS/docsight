@@ -2190,6 +2190,14 @@ def api_device():
     return jsonify(state.get("device_info") or {})
 
 
+@app.route("/api/thresholds")
+@require_auth
+def api_thresholds():
+    """Return active analysis thresholds (read-only)."""
+    from .analyzer import get_thresholds
+    return jsonify(get_thresholds())
+
+
 def _gaming_genres(grade):
     """Return genre suitability verdicts for a given grade.
 
