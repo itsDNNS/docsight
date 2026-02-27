@@ -740,12 +740,12 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
         for ch in current_analysis.get("ds_channels", []):
             pdf._table_row([
                 ch.get("channel_id", ""),
-                ch.get("frequency", "")[:10],
-                f"{ch.get('power', 0):.1f}",
-                f"{ch.get('snr', 0):.1f}" if ch.get("snr") else "—",
-                str(ch.get("modulation", ""))[:10],
-                f"{ch.get('correctable_errors', 0):,}",
-                f"{ch.get('uncorrectable_errors', 0):,}",
+                (ch.get("frequency") or "")[:10],
+                f"{ch.get('power') or 0:.1f}",
+                f"{ch.get('snr') or 0:.1f}" if ch.get("snr") else "—",
+                str(ch.get("modulation") or "")[:10],
+                f"{ch.get('correctable_errors') or 0:,}",
+                f"{ch.get('uncorrectable_errors') or 0:,}",
                 ch.get("health", ""),
             ], widths, health=ch.get("health"))
 
@@ -758,10 +758,10 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
         for ch in current_analysis.get("us_channels", []):
             pdf._table_row([
                 ch.get("channel_id", ""),
-                ch.get("frequency", "")[:12],
-                f"{ch.get('power', 0):.1f}",
-                str(ch.get("modulation", ""))[:12],
-                str(ch.get("multiplex", ""))[:15],
+                (ch.get("frequency") or "")[:12],
+                f"{ch.get('power') or 0:.1f}",
+                str(ch.get("modulation") or "")[:12],
+                str(ch.get("multiplex") or "")[:15],
                 ch.get("health", ""),
             ], widths_us, health=ch.get("health"))
 

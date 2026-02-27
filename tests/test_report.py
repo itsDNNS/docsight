@@ -114,6 +114,29 @@ def test_default_warn_thresholds():
     assert "32.0" in warn["snr"]
 
 
+def test_generate_report_with_none_channel_values():
+    """Regression test for #112: Arris CM3500B sends None for some channel fields."""
+    analysis_with_nones = {
+        "summary": MOCK_ANALYSIS["summary"],
+        "ds_channels": [
+            {"channel_id": 1, "frequency": None, "power": None, "snr": None,
+             "modulation": None, "correctable_errors": None, "uncorrectable_errors": None, "health": "good"},
+        ],
+        "us_channels": [
+            {"channel_id": 1, "frequency": None, "power": None,
+             "modulation": None, "multiplex": None, "health": "good"},
+        ],
+    }
+    snapshots_with_nones = [
+        {"timestamp": "2026-02-27T12:00:00", "summary": MOCK_ANALYSIS["summary"],
+         "ds_channels": analysis_with_nones["ds_channels"],
+         "us_channels": analysis_with_nones["us_channels"]},
+    ]
+    pdf = generate_report(snapshots_with_nones, analysis_with_nones)
+    assert isinstance(pdf, bytes)
+    assert pdf[:5] == b"%PDF-"
+
+
 def test_complaint_text_uses_real_thresholds():
     text = generate_complaint_text(MOCK_SNAPSHOTS)
     # Should contain real threshold values from thresholds.json
