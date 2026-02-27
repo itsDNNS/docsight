@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, setup_module_static, setup_module_templates
 
 
 class TestValidateManifest:
@@ -356,3 +356,47 @@ class TestCollector(Collector):
         """Missing collector file returns None."""
         cls = load_module_collector("test.miss", "/nonexistent", "collector.py:Foo")
         assert cls is None
+
+
+class TestStaticAndTemplates:
+    """Test static file serving and template path registration."""
+
+    def test_static_route_registered(self):
+        """Module static dir is served at /modules/<id>/static/."""
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+            mod_dir = os.path.join(d, "testmod")
+            static_dir = os.path.join(mod_dir, "static")
+            os.makedirs(static_dir)
+            with open(os.path.join(static_dir, "test.js"), "w") as f:
+                f.write("console.log('hello');")
+
+            setup_module_static(app, "test.mod", mod_dir, "static/")
+
+            with app.test_client() as c:
+                resp = c.get("/modules/test.mod/static/test.js")
+                assert resp.status_code == 200
+                assert b"console.log" in resp.data
+                resp.close()
+
+    def test_template_paths_collected(self):
+        """Module template paths are resolved to absolute paths."""
+        with tempfile.TemporaryDirectory() as d:
+            mod_dir = os.path.join(d, "testmod")
+            tpl_dir = os.path.join(mod_dir, "templates")
+            os.makedirs(tpl_dir)
+            with open(os.path.join(tpl_dir, "tab.html"), "w") as f:
+                f.write("<div>Tab</div>")
+
+            paths = setup_module_templates("test.mod", mod_dir, {"tab": "templates/tab.html"})
+            assert "tab" in paths
+            assert paths["tab"].endswith("tab.html")
+            assert os.path.isfile(paths["tab"])
+
+    def test_missing_template_excluded(self):
+        """Template paths that don't exist are not included."""
+        with tempfile.TemporaryDirectory() as d:
+            mod_dir = os.path.join(d, "testmod")
+            os.makedirs(mod_dir)
+            paths = setup_module_templates("test.mod", mod_dir, {"tab": "templates/tab.html"})
+            assert "tab" not in paths

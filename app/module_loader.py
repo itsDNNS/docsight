@@ -9,6 +9,8 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any
 
+from flask import send_from_directory
+
 log = logging.getLogger("docsis.modules")
 
 VALID_TYPES = {"driver", "integration", "analysis", "theme"}
@@ -296,3 +298,50 @@ def load_module_collector(module_id: str, module_path: str, spec: str):
 
     log.info("Module '%s': loaded collector class '%s'", module_id, class_name)
     return cls
+
+
+def setup_module_static(app, module_id: str, module_path: str, static_subdir: str) -> None:
+    """Mount a module's static directory at /modules/<id>/static/."""
+    static_dir = os.path.join(module_path, static_subdir.rstrip("/"))
+    if not os.path.isdir(static_dir):
+        log.debug("Module '%s': no static directory at %s", module_id, static_dir)
+        return
+
+    route = f"/modules/{module_id}/static/<path:filename>"
+
+    def serve_static(filename, _dir=static_dir):
+        return send_from_directory(_dir, filename)
+
+    # Use a unique endpoint name per module
+    endpoint = f"module_static_{module_id.replace('.', '_')}"
+    app.add_url_rule(route, endpoint=endpoint, view_func=serve_static)
+    log.info("Module '%s': serving static files at /modules/%s/static/", module_id, module_id)
+
+
+def setup_module_templates(
+    module_id: str, module_path: str, contributes: dict
+) -> dict[str, str]:
+    """Resolve module template paths to absolute file paths.
+
+    Args:
+        contributes: Dict with keys like 'tab', 'card', 'settings' mapping to
+            relative template paths within the module directory.
+
+    Returns:
+        Dict of template type -> absolute file path (only for files that exist).
+    """
+    template_keys = {"tab", "card", "settings"}
+    resolved = {}
+
+    for key in template_keys:
+        rel_path = contributes.get(key)
+        if not rel_path:
+            continue
+        abs_path = os.path.join(module_path, rel_path)
+        if os.path.isfile(abs_path):
+            resolved[key] = abs_path
+            log.debug("Module '%s': template '%s' -> %s", module_id, key, abs_path)
+        else:
+            log.warning("Module '%s': template '%s' not found: %s", module_id, key, abs_path)
+
+    return resolved
