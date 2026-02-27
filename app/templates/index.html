@@ -7291,6 +7291,8 @@ function renderCorrelationChart(data) {
             }
             pop.innerHTML = html;
             this.parentElement.appendChild(pop);
+            // Prevent clicks inside popover from bubbling to legend toggle
+            pop.addEventListener('click', function(e) { e.stopPropagation(); });
             pop.querySelectorAll('input[data-event-type]').forEach(function(cb) {
                 cb.addEventListener('change', function() {
                     _corrEventFilter[this.getAttribute('data-event-type')] = this.checked;
