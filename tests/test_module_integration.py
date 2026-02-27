@@ -55,10 +55,9 @@ class TestModuleIntegration:
         loader = ModuleLoader(app, search_paths=[FIXTURE_DIR])
         modules = loader.load_all()
 
-        # Discovery
-        assert len(modules) == 1
-        mod = modules[0]
-        assert mod.id == "test.integration"
+        # Discovery (fixtures dir contains both test_module and ui_module)
+        assert len(modules) == 2
+        mod = next(m for m in modules if m.id == "test.integration")
         assert mod.enabled is True
         assert mod.error is None
 
@@ -95,8 +94,8 @@ class TestModuleIntegration:
         )
         modules = loader.load_all()
 
-        assert len(modules) == 1
-        assert modules[0].enabled is False
+        mod = next(m for m in modules if m.id == "test.integration")
+        assert mod.enabled is False
 
         # Route should NOT be registered
         with app.test_client() as c:
