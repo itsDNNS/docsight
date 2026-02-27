@@ -9,7 +9,6 @@ __pycache__/
 deploy.sh
 .config_key
 config.json
-CLAUDE.md
 
 # Plans and design docs (local only)
 docs/plans/
