@@ -6712,7 +6712,7 @@ function escapeHtml(str) {
 var T = T || {{ t|tojson }};
 var _correlationData = [];
 var _correlationChart = null;
-var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: true, errors: true, poorSignal: true, temperature: true };
+var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: true, temperature: true };
 var _corrWeatherData = [];
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 var _corrZoom = null; // { tMin, tMax } when zoomed in
