@@ -1,0 +1,21 @@
+{
+  "id": "test.ui",
+  "name": "UI Test Module",
+  "description": "Module with full UI contributions for testing",
+  "version": "0.1.0",
+  "author": "Test Suite",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "tab": "templates/tab.html",
+    "card": "templates/card.html",
+    "settings": "templates/settings.html",
+    "static": "static/",
+    "i18n": "i18n/"
+  },
+  "menu": {
+    "label_key": "test.ui.name",
+    "icon": "puzzle",
+    "order": 50
+  }
+}
