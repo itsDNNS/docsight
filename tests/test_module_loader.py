@@ -834,3 +834,44 @@ class TestThemeContributes:
             contributes={"theme": "theme.json"}, path="/tmp",
         )
         assert info.theme_data is None
+
+    def test_validate_theme_valid(self):
+        from app.module_loader import validate_theme
+        data = {
+            "dark": {"--bg": "#1f2937", "--text": "#f0f0f0", "--accent": "#a855f7"},
+            "light": {"--bg": "#ffffff", "--text": "#111827", "--accent": "#9333ea"},
+        }
+        validate_theme(data)  # Should not raise
+
+    def test_validate_theme_missing_dark(self):
+        from app.module_loader import validate_theme
+        data = {"light": {"--bg": "#ffffff"}}
+        with pytest.raises(ManifestError, match="dark"):
+            validate_theme(data)
+
+    def test_validate_theme_missing_light(self):
+        from app.module_loader import validate_theme
+        data = {"dark": {"--bg": "#1f2937"}}
+        with pytest.raises(ManifestError, match="light"):
+            validate_theme(data)
+
+    def test_validate_theme_empty_section(self):
+        from app.module_loader import validate_theme
+        data = {"dark": {}, "light": {"--bg": "#fff"}}
+        with pytest.raises(ManifestError, match="empty"):
+            validate_theme(data)
+
+    def test_validate_theme_non_string_value(self):
+        from app.module_loader import validate_theme
+        data = {"dark": {"--bg": 123}, "light": {"--bg": "#fff"}}
+        with pytest.raises(ManifestError, match="string"):
+            validate_theme(data)
+
+    def test_validate_theme_with_meta(self):
+        from app.module_loader import validate_theme
+        data = {
+            "meta": {"family": "dark-first"},
+            "dark": {"--bg": "#1f2937"},
+            "light": {"--bg": "#ffffff"},
+        }
+        validate_theme(data)  # meta is optional, should not raise

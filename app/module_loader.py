@@ -425,6 +425,31 @@ def validate_thresholds(data: dict) -> None:
             raise ManifestError(f"Threshold section '{section}' missing '_default' key")
 
 
+REQUIRED_THEME_SECTIONS = {"dark", "light"}
+
+
+def validate_theme(data: dict) -> None:
+    """Validate a theme.json structure.
+
+    Raises ManifestError if required sections are missing or values are invalid.
+    """
+    missing = REQUIRED_THEME_SECTIONS - set(data.keys())
+    if missing:
+        raise ManifestError(f"Missing required theme sections: {', '.join(sorted(missing))}")
+
+    for section in REQUIRED_THEME_SECTIONS:
+        block = data[section]
+        if not isinstance(block, dict):
+            raise ManifestError(f"Theme section '{section}' must be a dict")
+        if not block:
+            raise ManifestError(f"Theme section '{section}' is empty")
+        for key, value in block.items():
+            if not isinstance(value, str):
+                raise ManifestError(
+                    f"Theme property '{key}' in '{section}' must be a string, got {type(value).__name__}"
+                )
+
+
 class ModuleLoader:
     """Orchestrates module discovery, validation, and loading.
 
