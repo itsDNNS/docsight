@@ -219,6 +219,9 @@ def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
             if key.startswith("_"):
                 continue  # skip metadata keys like _meta
             _TRANSLATIONS[lang][f"{module_id}.{key}"] = value
+            # Also add un-namespaced key for backward compat with JS code
+            if key not in _TRANSLATIONS[lang]:
+                _TRANSLATIONS[lang][key] = value
 
         log.debug("Merged %d i18n keys for module '%s' lang '%s'", len(data), module_id, lang)
 
