@@ -14,6 +14,20 @@
     {% for mod in modules if mod.has_css %}
     <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
     {% endfor %}
+    {% if active_theme_data %}
+    <style id="theme-module-vars">
+    :root, [data-theme="dark"] {
+        {% for key, value in active_theme_data.get('dark', {}).items() %}
+        {{ key }}: {{ value }};
+        {% endfor %}
+    }
+    [data-theme="light"] {
+        {% for key, value in active_theme_data.get('light', {}).items() %}
+        {{ key }}: {{ value }};
+        {% endfor %}
+    }
+    </style>
+    {% endif %}
     <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js"
             integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU"
             crossorigin="anonymous"></script>
