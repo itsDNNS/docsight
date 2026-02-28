@@ -472,6 +472,7 @@ html, body {
 
 .toggle {
   position: relative;
+  display: inline-block;
   width: 44px; height: 24px;
   flex-shrink: 0;
 }
@@ -479,13 +480,13 @@ html, body {
 .toggle-slider {
   position: absolute;
   inset: 0;
-  background: rgba(255,255,255,0.1);
+  background: rgba(120,130,180,0.3);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s var(--ease-spring);
 }
 [data-theme="light"] .toggle-slider {
-  background: rgba(0,0,0,0.12);
+  background: rgba(0,0,0,0.22);
 }
 .toggle-slider::before {
   content: '';
