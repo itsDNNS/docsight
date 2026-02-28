@@ -14,7 +14,7 @@ from flask import send_from_directory
 log = logging.getLogger("docsis.modules")
 
 VALID_TYPES = {"driver", "integration", "analysis", "theme"}
-VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static"}
+VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher"}
 REQUIRED_FIELDS = {"id", "name", "description", "version", "author", "minAppVersion", "type", "contributes"}
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
 
@@ -44,6 +44,7 @@ class ModuleInfo:
     error: str | None = None
     template_paths: dict[str, str] = field(default_factory=dict)
     collector_class: type | None = None
+    publisher_class: type | None = None
     has_css: bool = False
     has_js: bool = False
 
@@ -304,6 +305,50 @@ def load_module_collector(module_id: str, module_path: str, spec: str):
     return cls
 
 
+def load_module_publisher(module_id: str, module_path: str, spec: str):
+    """Load a Publisher class from a module file.
+
+    Args:
+        module_id: The module's unique identifier.
+        module_path: Filesystem path to the module directory.
+        spec: "filename.py:ClassName" format (e.g. "publisher.py:MQTTPublisher")
+
+    Returns:
+        The Publisher class, or None if loading failed.
+    """
+    if ":" not in spec:
+        log.warning("Module '%s': publisher spec must be 'file.py:ClassName', got '%s'", module_id, spec)
+        return None
+
+    filename, class_name = spec.rsplit(":", 1)
+    file_path = os.path.join(module_path, filename)
+
+    if not os.path.isfile(file_path):
+        log.warning("Module '%s': publisher file not found: %s", module_id, file_path)
+        return None
+
+    mod_name = f"docsight_modules.{module_id.replace('.', '_')}.publisher"
+    try:
+        im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
+        if im_spec is None or im_spec.loader is None:
+            log.warning("Module '%s': could not create import spec for %s", module_id, file_path)
+            return None
+        mod = importlib.util.module_from_spec(im_spec)
+        sys.modules[mod_name] = mod
+        im_spec.loader.exec_module(mod)
+    except Exception as e:
+        log.error("Module '%s': failed to import publisher: %s", module_id, e)
+        return None
+
+    cls = getattr(mod, class_name, None)
+    if cls is None:
+        log.warning("Module '%s': class '%s' not found in %s", module_id, class_name, file_path)
+        return None
+
+    log.info("Module '%s': loaded publisher class '%s'", module_id, class_name)
+    return cls
+
+
 def setup_module_static(app, module_id: str, module_path: str, static_subdir: str) -> None:
     """Mount a module's static directory at /modules/<id>/static/."""
     static_dir = os.path.join(module_path, static_subdir.rstrip("/"))
@@ -429,6 +474,10 @@ class ModuleLoader:
         # Collector (class loaded but not instantiated -- collector discovery handles that)
         if "collector" in c:
             mod.collector_class = load_module_collector(mod.id, mod.path, c["collector"])
+
+        # Publisher (class loaded but not instantiated -- main.py handles that)
+        if "publisher" in c:
+            mod.publisher_class = load_module_publisher(mod.id, mod.path, c["publisher"])
 
         # Convention-based asset detection
         static_subdir = c.get("static", "static/").rstrip("/")

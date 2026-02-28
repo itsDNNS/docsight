@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
 
 
 class TestValidateManifest:
@@ -104,6 +104,25 @@ class TestValidateManifest:
         }
         with pytest.raises(ManifestError, match="id"):
             validate_manifest(raw, "/path")
+
+    def test_publisher_contributes_accepted(self):
+        """Publisher is a valid contributes key."""
+        raw = {
+            "id": "docsight.mqtt",
+            "name": "MQTT",
+            "description": "MQTT publisher",
+            "version": "1.0.0",
+            "author": "DOCSight",
+            "minAppVersion": "2026.2",
+            "type": "integration",
+            "contributes": {
+                "publisher": "publisher.py:MQTTPublisher",
+                "settings": "templates/mqtt_settings.html",
+                "i18n": "i18n/",
+            },
+        }
+        info = validate_manifest(raw, "/modules/mqtt")
+        assert info.contributes["publisher"] == "publisher.py:MQTTPublisher"
 
     def test_builtin_flag_from_path(self):
         """Modules under app/modules/ should be marked as builtin."""
@@ -355,6 +374,39 @@ class TestCollector(Collector):
     def test_missing_file(self):
         """Missing collector file returns None."""
         cls = load_module_collector("test.miss", "/nonexistent", "collector.py:Foo")
+        assert cls is None
+
+
+class TestLoadModulePublisher:
+    """Test dynamic Publisher class loading."""
+
+    def _make_publisher_file(self, mod_dir, content):
+        with open(os.path.join(mod_dir, "publisher.py"), "w") as f:
+            f.write(content)
+
+    def test_load_publisher_class(self):
+        """Load a Publisher class from module file."""
+        with tempfile.TemporaryDirectory() as d:
+            mod_dir = os.path.join(d, "testmod")
+            os.makedirs(mod_dir)
+            self._make_publisher_file(mod_dir, """
+class TestPublisher:
+    name = "test_publisher"
+    def publish(self, data):
+        pass
+""")
+            cls = load_module_publisher("test.mod", mod_dir, "publisher.py:TestPublisher")
+            assert cls is not None
+            assert cls.name == "test_publisher"
+
+    def test_invalid_spec_format(self):
+        """Spec without ':ClassName' returns None."""
+        cls = load_module_publisher("test.bad", "/tmp", "publisher.py")
+        assert cls is None
+
+    def test_missing_file(self):
+        """Missing publisher file returns None."""
+        cls = load_module_publisher("test.miss", "/nonexistent", "publisher.py:Foo")
         assert cls is None
 
 
