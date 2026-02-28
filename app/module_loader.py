@@ -99,7 +99,7 @@ def validate_manifest(raw: dict, module_path: str) -> ModuleInfo:
         homepage=raw.get("homepage", ""),
         license=raw.get("license", ""),
         config=raw.get("config", {}),
-        menu=raw.get("menu", {}),
+        menu={**{"order": 999}, **raw.get("menu", {})},
     )
 
 

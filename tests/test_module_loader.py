@@ -642,6 +642,7 @@ class TestThresholdContributes:
         }
         info = validate_manifest(raw, "/some/path")
         assert info.contributes == {"thresholds": "thresholds.json"}
+        assert info.menu["order"] == 999  # default for modules without menu
 
     def test_threshold_module_loads_data(self, tmp_path):
         from app import analyzer
