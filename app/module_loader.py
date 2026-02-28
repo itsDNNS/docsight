@@ -14,7 +14,7 @@ from flask import send_from_directory
 log = logging.getLogger("docsis.modules")
 
 VALID_TYPES = {"driver", "integration", "analysis", "theme"}
-VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds"}
+VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds", "theme"}
 REQUIRED_FIELDS = {"id", "name", "description", "version", "author", "minAppVersion", "type", "contributes"}
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
 
@@ -46,6 +46,7 @@ class ModuleInfo:
     collector_class: type | None = None
     publisher_class: type | None = None
     thresholds_data: dict | None = None
+    theme_data: dict | None = None
     has_css: bool = False
     has_js: bool = False
 

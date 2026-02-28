@@ -804,3 +804,33 @@ class TestGetThresholdModules:
             assert threshold_mods[0].id == "test.thresh"
         finally:
             analyzer._thresholds = orig
+
+
+class TestThemeContributes:
+    """Test theme module loading and validation."""
+
+    def test_theme_is_valid_contributes(self):
+        from app.module_loader import VALID_CONTRIBUTES
+        assert "theme" in VALID_CONTRIBUTES
+
+    def test_manifest_with_theme_contributes_valid(self):
+        raw = {
+            "id": "test.mytheme",
+            "name": "My Theme",
+            "description": "A test theme",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "theme",
+            "contributes": {"theme": "theme.json"},
+        }
+        info = validate_manifest(raw, "/path")
+        assert "theme" in info.contributes
+
+    def test_module_info_has_theme_data_field(self):
+        info = ModuleInfo(
+            id="test.theme", name="T", description="d", version="1.0.0",
+            author="a", min_app_version="2026.2", type="theme",
+            contributes={"theme": "theme.json"}, path="/tmp",
+        )
+        assert info.theme_data is None
