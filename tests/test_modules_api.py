@@ -24,7 +24,10 @@ def app_with_modules():
     from app.blueprints.modules_bp import modules_bp
     app.register_blueprint(modules_bp)
 
-    return app, loader
+    yield app, loader
+
+    # Clean up global state
+    web.init_modules(None)
 
 
 class TestGetModules:
@@ -67,11 +70,14 @@ class TestGetModules:
         from app.blueprints.modules_bp import modules_bp
         app.register_blueprint(modules_bp)
 
-        with app.test_client() as c:
-            resp = c.get("/api/modules")
-            data = resp.get_json()
-            mod = next(m for m in data if m["id"] == "test.integration")
-            assert mod["enabled"] is False
+        try:
+            with app.test_client() as c:
+                resp = c.get("/api/modules")
+                data = resp.get_json()
+                mod = next(m for m in data if m["id"] == "test.integration")
+                assert mod["enabled"] is False
+        finally:
+            web.init_modules(None)
 
 
 class TestEnableDisable:
@@ -93,11 +99,19 @@ class TestEnableDisable:
         self.loader.load_all()
 
         from app import web
+        self._orig_module_loader = web._module_loader
+        self._orig_config_manager = web._config_manager
         web.init_modules(self.loader)
         web.init_config(self.config_mgr)
 
         from app.blueprints.modules_bp import modules_bp
         self.app.register_blueprint(modules_bp)
+
+        yield
+
+        # Restore global state
+        web._module_loader = self._orig_module_loader
+        web._config_manager = self._orig_config_manager
 
     def test_disable_module(self):
         with self.app.test_client() as c:

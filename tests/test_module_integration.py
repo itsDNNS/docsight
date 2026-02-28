@@ -49,6 +49,10 @@ class TestModuleIntegration:
             if key not in self._orig_sys_modules:
                 del sys.modules[key]
 
+        # Clean up global module loader to avoid polluting other tests
+        from app import web
+        web.init_modules(None)
+
     def test_full_load_cycle(self):
         """Discover -> validate -> load config + i18n + routes -> serve requests."""
         app = Flask(__name__)
@@ -181,3 +185,83 @@ class TestModuleUIIntegration:
 
         assert "test.ui.name" in _TRANSLATIONS.get("en", {})
         assert _TRANSLATIONS["en"]["test.ui.name"] == "UI Test Module"
+
+
+class TestModuleManagementAPI:
+    """Test the full enable/disable flow through the API."""
+
+    def setup_method(self):
+        from app import config as cfg
+        from app.i18n import _TRANSLATIONS
+
+        self._orig_defaults = dict(cfg.DEFAULTS)
+        self._orig_bool_keys = set(cfg.BOOL_KEYS)
+        self._orig_int_keys = set(cfg.INT_KEYS)
+        self._orig_translations = {k: dict(v) for k, v in _TRANSLATIONS.items()}
+        self._orig_sys_modules = set(sys.modules.keys())
+
+    def teardown_method(self):
+        from app import config as cfg
+        from app.i18n import _TRANSLATIONS
+
+        cfg.DEFAULTS.clear()
+        cfg.DEFAULTS.update(self._orig_defaults)
+        cfg.BOOL_KEYS.clear()
+        cfg.BOOL_KEYS.update(self._orig_bool_keys)
+        cfg.INT_KEYS.clear()
+        cfg.INT_KEYS.update(self._orig_int_keys)
+        _TRANSLATIONS.clear()
+        _TRANSLATIONS.update(self._orig_translations)
+
+        for key in list(sys.modules.keys()):
+            if key not in self._orig_sys_modules:
+                del sys.modules[key]
+
+        from app import web
+        web._module_loader = getattr(self, '_orig_module_loader', None)
+        web._config_manager = getattr(self, '_orig_config_manager', None)
+
+    def test_list_enable_disable_cycle(self, tmp_path):
+        """Full cycle: list -> disable -> verify persisted -> enable -> verify."""
+        from app.config import ConfigManager
+
+        config_mgr = ConfigManager(str(tmp_path))
+        config_mgr.save({"disabled_modules": ""})
+
+        app = Flask(__name__)
+        app.config["TESTING"] = True
+        loader = ModuleLoader(app, search_paths=[FIXTURE_DIR])
+        loader.load_all()
+
+        from app import web
+        self._orig_module_loader = web._module_loader
+        self._orig_config_manager = web._config_manager
+        web.init_modules(loader)
+        web.init_config(config_mgr)
+
+        from app.blueprints.modules_bp import modules_bp
+        app.register_blueprint(modules_bp)
+
+        with app.test_client() as c:
+            # List
+            resp = c.get("/api/modules")
+            assert resp.status_code == 200
+            modules = resp.get_json()
+            assert all(m["enabled"] for m in modules)
+
+            # Disable
+            resp = c.post("/api/modules/test.integration/disable")
+            assert resp.status_code == 200
+            assert resp.get_json()["restart_required"] is True
+
+            # Verify config persisted
+            disabled = config_mgr.get("disabled_modules", "")
+            assert "test.integration" in disabled
+
+            # Re-enable
+            resp = c.post("/api/modules/test.integration/enable")
+            assert resp.status_code == 200
+
+            # Verify removed from disabled
+            disabled = config_mgr.get("disabled_modules", "")
+            assert "test.integration" not in disabled
