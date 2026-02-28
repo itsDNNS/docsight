@@ -1,12 +1,31 @@
-"""Weather data mixin."""
+"""Standalone weather data storage."""
 
 import logging
 import sqlite3
 
-log = logging.getLogger("docsis.storage")
+log = logging.getLogger("docsis.storage.weather")
 
 
-class WeatherMixin:
+class WeatherStorage:
+    """Standalone weather data storage (not a mixin).
+
+    Creates the weather_data table if it doesn't exist.
+    """
+
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self._ensure_table()
+
+    def _ensure_table(self):
+        """Create the weather_data table if it doesn't exist."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS weather_data ("
+                "  timestamp TEXT PRIMARY KEY,"
+                "  temperature REAL NOT NULL,"
+                "  is_demo INTEGER DEFAULT 0"
+                ")"
+            )
 
     def save_weather_data(self, records, is_demo=False):
         """Bulk insert weather records, ignoring duplicates by timestamp.

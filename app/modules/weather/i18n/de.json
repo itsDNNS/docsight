@@ -1,0 +1,9 @@
+{
+  "weather_title": "Wetter",
+  "weather_optional": "optional — Signalqualität mit Außentemperatur korrelieren",
+  "weather_enable": "Wetterdaten-Erfassung aktivieren",
+  "weather_enable_hint": "Ruft stündlich die Außentemperatur von Open-Meteo ab (kostenlos, kein API-Key). Historische Daten werden automatisch nachgeladen.",
+  "weather_latitude": "Breitengrad",
+  "weather_longitude": "Längengrad",
+  "weather_coord_hint": "Deine Standort-Koordinaten (z.B. 52.52 / 13.41 für Berlin). Finde deine auf latlong.net"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "docsight.weather",
+  "name": "Weather Integration",
+  "description": "Correlate signal quality with outdoor temperature via Open-Meteo",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "collector": "collector.py:WeatherCollector",
+    "routes": "routes.py",
+    "settings": "templates/settings.html",
+    "i18n": "i18n/"
+  },
+  "config": {
+    "weather_enabled": false,
+    "weather_latitude": "",
+    "weather_longitude": ""
+  },
+  "menu": {
+    "label_key": "docsight.weather.weather_title",
+    "icon": "thermometer",
+    "order": 20
+  }
+}

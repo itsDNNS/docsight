@@ -85,11 +85,6 @@
                 Smokeping
                 <span class="status-dot" id="dot-smokeping"></span>
             </a>
-            <a class="settings-nav-link" data-section="weather" onclick="switchSection('weather')">
-                <span class="icon"><i data-lucide="thermometer"></i></span>
-                {{ t.weather_title }}
-                <span class="status-dot" id="dot-weather"></span>
-            </a>
             <a class="settings-nav-link" data-section="mqtt" onclick="switchSection('mqtt')">
                 <span class="icon"><i data-lucide="radio-tower"></i></span>
                 MQTT
@@ -202,12 +197,6 @@
                 <span class="mobile-nav-dot" id="mdot-smokeping"></span>
                 <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
             </a>
-            <a class="mobile-nav-item" onclick="switchSection('weather')">
-                <span class="icon"><i data-lucide="thermometer"></i></span>
-                <span class="mobile-nav-label">{{ t.weather_title }}</span>
-                <span class="mobile-nav-dot" id="mdot-weather"></span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
             <a class="mobile-nav-item" onclick="switchSection('mqtt')">
                 <span class="icon"><i data-lucide="radio-tower"></i></span>
                 <span class="mobile-nav-label">MQTT</span>
@@ -300,7 +289,6 @@
                 {% include 'settings/bqm.html' %}
                 {% include 'settings/bnetz.html' %}
                 {% include 'settings/smokeping.html' %}
-                {% include 'settings/weather.html' %}
                 {% include 'settings/mqtt.html' %}
                 {% include 'settings/appearance.html' %}
                 {% include 'settings/support.html' %}
@@ -331,11 +319,13 @@ var SECTION_TITLES = {
     bqm: 'ThinkBroadband BQM',
     bnetz: T.bnetz_watcher_title || 'BNetzA',
     smokeping: 'Smokeping',
-    weather: T.weather_title || 'Weather',
     mqtt: T.mqtt_broker || 'MQTT',
     appearance: T.appearance || 'Appearance',
     support: 'Support DOCSight'
 };
+{% for mod in modules if mod.template_paths.get('settings') %}
+SECTION_TITLES['mod-' + '{{ mod.id }}'.replace(/\./g, '_')] = T['{{ mod.menu.label_key }}'] || '{{ mod.name }}';
+{% endfor %}
 var serverOffsetMin = {{ server_tz_offset }};
 var serverTz = '{{ server_tz }}';
 var currentLang = '{{ lang }}';

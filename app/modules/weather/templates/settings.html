@@ -1,0 +1,34 @@
+<!-- ═══ Panel: Weather Module ═══ -->
+<div class="settings-panel" id="panel-mod-docsight_weather">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="thermometer"></i></div>
+            <div>
+                <div class="settings-card-title">{{ t['docsight.weather.weather_title'] or 'Weather' }}</div>
+                <div class="settings-card-desc">{{ t['docsight.weather.weather_optional'] or 'optional — correlate signal quality with outdoor temperature' }}</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <label>
+                <input type="hidden" name="weather_enabled" value="false">
+                <input type="checkbox" id="weather_enabled" name="weather_enabled" value="true"
+                       {% if config.weather_enabled %}checked{% endif %}>
+                {{ t['docsight.weather.weather_enable'] or 'Enable weather data collection' }}
+            </label>
+            <span class="hint">{{ t['docsight.weather.weather_enable_hint'] or 'Fetches hourly outdoor temperature from Open-Meteo (free, no API key). Historical data is backfilled automatically.' }}</span>
+        </div>
+        <div class="form-row">
+            <label for="weather_latitude">{{ t['docsight.weather.weather_latitude'] or 'Latitude' }}</label>
+            <input type="text" id="weather_latitude" name="weather_latitude"
+                   value="{{ config.weather_latitude }}"
+                   placeholder="52.52">
+            <span class="hint">{{ t['docsight.weather.weather_coord_hint'] or 'Your location coordinates (e.g. 52.52 / 13.41 for Berlin). Find yours at latlong.net' }}</span>
+        </div>
+        <div class="form-row">
+            <label for="weather_longitude">{{ t['docsight.weather.weather_longitude'] or 'Longitude' }}</label>
+            <input type="text" id="weather_longitude" name="weather_longitude"
+                   value="{{ config.weather_longitude }}"
+                   placeholder="13.41">
+        </div>
+    </div>
+</div>

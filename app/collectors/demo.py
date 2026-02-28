@@ -734,7 +734,13 @@ class DemoCollector(Collector):
                     "timestamp": ts.strftime("%Y-%m-%d %H:%M:%SZ"),
                     "temperature": temp,
                 })
-        self._storage.save_weather_data(records, is_demo=True)
+        import sqlite3 as _sqlite3
+        with _sqlite3.connect(self._storage.db_path) as conn:
+            conn.executemany(
+                "INSERT OR IGNORE INTO weather_data "
+                "(timestamp, temperature, is_demo) VALUES (?, ?, 1)",
+                [(r["timestamp"], r["temperature"]) for r in records],
+            )
         log.info("Demo: seeded %d weather records (%d days)", len(records), days)
 
     @staticmethod

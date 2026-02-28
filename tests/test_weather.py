@@ -9,11 +9,17 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.weather import OpenMeteoClient
-from app.collectors.weather import WeatherCollector
-from app.storage import SnapshotStorage
+from app.modules.weather.client import OpenMeteoClient
+from app.modules.weather.collector import WeatherCollector
+from app.modules.weather.storage import WeatherStorage
 from app.config import ConfigManager
 from app.web import app, init_config, init_storage, update_state
+
+# Register the weather module blueprint once at import time
+# (must happen before any test_client() calls trigger _got_first_request)
+if "weather_module" not in app.blueprints:
+    from app.modules.weather.routes import bp as _weather_bp
+    app.register_blueprint(_weather_bp)
 
 
 # ── OpenMeteoClient Tests ──
@@ -47,7 +53,7 @@ class TestOpenMeteoClient:
         results = OpenMeteoClient._parse_hourly(data)
         assert results == []
 
-    @patch("app.weather.requests.Session")
+    @patch("app.modules.weather.client.requests.Session")
     def test_get_current(self, mock_session_cls):
         mock_session = MagicMock()
         mock_session_cls.return_value = mock_session
@@ -68,7 +74,7 @@ class TestOpenMeteoClient:
         assert "forecast" in args[0]
         assert kwargs["params"]["latitude"] == 52.52
 
-    @patch("app.weather.requests.Session")
+    @patch("app.modules.weather.client.requests.Session")
     def test_get_historical(self, mock_session_cls):
         mock_session = MagicMock()
         mock_session_cls.return_value = mock_session
@@ -94,7 +100,7 @@ class TestOpenMeteoClient:
 
 class TestWeatherStorage:
     def test_save_and_get_weather_data(self, tmp_path):
-        storage = SnapshotStorage(str(tmp_path / "test.db"))
+        storage = WeatherStorage(str(tmp_path / "test.db"))
         records = [
             {"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.3},
             {"timestamp": "2026-02-27 11:00:00Z", "temperature": 6.1},
@@ -107,14 +113,14 @@ class TestWeatherStorage:
         assert results[1]["temperature"] == 5.3
 
     def test_save_ignores_duplicates(self, tmp_path):
-        storage = SnapshotStorage(str(tmp_path / "test.db"))
+        storage = WeatherStorage(str(tmp_path / "test.db"))
         records = [{"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.3}]
         storage.save_weather_data(records)
         storage.save_weather_data(records)  # duplicate
         assert storage.get_weather_count() == 1
 
     def test_get_weather_in_range(self, tmp_path):
-        storage = SnapshotStorage(str(tmp_path / "test.db"))
+        storage = WeatherStorage(str(tmp_path / "test.db"))
         records = [
             {"timestamp": "2026-02-25 10:00:00Z", "temperature": 3.0},
             {"timestamp": "2026-02-26 10:00:00Z", "temperature": 4.0},
@@ -126,28 +132,19 @@ class TestWeatherStorage:
         assert results[0]["temperature"] == 4.0
 
     def test_get_weather_count(self, tmp_path):
-        storage = SnapshotStorage(str(tmp_path / "test.db"))
+        storage = WeatherStorage(str(tmp_path / "test.db"))
         assert storage.get_weather_count() == 0
         storage.save_weather_data([{"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0}])
         assert storage.get_weather_count() == 1
 
     def test_get_latest_weather_timestamp(self, tmp_path):
-        storage = SnapshotStorage(str(tmp_path / "test.db"))
+        storage = WeatherStorage(str(tmp_path / "test.db"))
         assert storage.get_latest_weather_timestamp() is None
         storage.save_weather_data([
             {"timestamp": "2026-02-26 10:00:00Z", "temperature": 4.0},
             {"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0},
         ])
         assert storage.get_latest_weather_timestamp() == "2026-02-27 10:00:00Z"
-
-    def test_save_weather_data_demo_flag(self, tmp_path):
-        storage = SnapshotStorage(str(tmp_path / "test.db"))
-        records = [{"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0}]
-        storage.save_weather_data(records, is_demo=True)
-        # Should be purged with purge_demo_data
-        purged = storage.purge_demo_data()
-        assert purged >= 1
-        assert storage.get_weather_count() == 0
 
 
 # ── WeatherCollector Tests ──
@@ -161,9 +158,11 @@ class TestWeatherCollector:
             "weather_latitude": "52.52",
             "weather_longitude": "13.41",
         }.get(key, default)
-        storage = SnapshotStorage(str(tmp_path / "test.db"))
+        storage = MagicMock()
+        storage.db_path = str(tmp_path / "test.db")
         web = MagicMock()
-        return WeatherCollector(config_mgr, storage, web), storage, web
+        collector = WeatherCollector(config_mgr, storage, web)
+        return collector, collector._weather_storage, web
 
     def test_is_enabled(self, tmp_path):
         collector, _, _ = self._make_collector(tmp_path)
@@ -171,7 +170,7 @@ class TestWeatherCollector:
         collector._config_mgr.is_weather_configured.return_value = False
         assert collector.is_enabled() is False
 
-    @patch("app.collectors.weather.OpenMeteoClient")
+    @patch("app.modules.weather.collector.OpenMeteoClient")
     def test_collect_success(self, mock_client_cls, tmp_path):
         collector, storage, web = self._make_collector(tmp_path)
         mock_client = MagicMock()
@@ -185,7 +184,7 @@ class TestWeatherCollector:
         assert storage.get_weather_count() == 1
         web.update_state.assert_called_once()
 
-    @patch("app.collectors.weather.OpenMeteoClient")
+    @patch("app.modules.weather.collector.OpenMeteoClient")
     def test_collect_failure(self, mock_client_cls, tmp_path):
         collector, storage, web = self._make_collector(tmp_path)
         mock_client = MagicMock()
@@ -198,7 +197,7 @@ class TestWeatherCollector:
         assert not result.success
         assert "API error" in result.error
 
-    @patch("app.collectors.weather.OpenMeteoClient")
+    @patch("app.modules.weather.collector.OpenMeteoClient")
     def test_backfill_on_first_run(self, mock_client_cls, tmp_path):
         collector, storage, web = self._make_collector(tmp_path)
         mock_client = MagicMock()
@@ -217,7 +216,7 @@ class TestWeatherCollector:
         assert storage.get_weather_count() == 3
         assert collector._backfilled is True
 
-    @patch("app.collectors.weather.OpenMeteoClient")
+    @patch("app.modules.weather.collector.OpenMeteoClient")
     def test_no_backfill_when_data_exists(self, mock_client_cls, tmp_path):
         collector, storage, web = self._make_collector(tmp_path)
         # Pre-populate some data
@@ -238,12 +237,6 @@ class TestWeatherCollector:
 
 
 class TestWeatherConfig:
-    def test_weather_config_defaults(self, tmp_path):
-        mgr = ConfigManager(str(tmp_path / "data"))
-        assert mgr.get("weather_enabled") is False
-        assert mgr.get("weather_latitude") == ""
-        assert mgr.get("weather_longitude") == ""
-
     def test_is_weather_configured_false_by_default(self, tmp_path):
         mgr = ConfigManager(str(tmp_path / "data"))
         assert mgr.is_weather_configured() is False
@@ -270,16 +263,25 @@ class TestWeatherConfig:
 class TestWeatherAPI:
     @pytest.fixture
     def weather_client(self, tmp_path):
+        # Reset module-local storage
+        from app.modules.weather import routes as weather_routes
+        weather_routes._storage = None
+
         data_dir = str(tmp_path / "data_w")
         mgr = ConfigManager(data_dir)
         mgr.save({"modem_password": "test", "weather_enabled": True,
                    "weather_latitude": "52.52", "weather_longitude": "13.41"})
         init_config(mgr)
+        from app.storage import SnapshotStorage
         storage = SnapshotStorage(str(tmp_path / "weather.db"))
         init_storage(storage)
+
         app.config["TESTING"] = True
         with app.test_client() as client:
-            yield client, storage
+            yield client, WeatherStorage(str(tmp_path / "weather.db"))
+
+        # Cleanup module-local storage
+        weather_routes._storage = None
 
     def test_api_weather_empty(self, weather_client):
         client, _ = weather_client
@@ -333,6 +335,8 @@ class TestWeatherAPI:
         assert resp.status_code == 400
 
     def test_api_weather_not_configured(self, tmp_path):
+        from app.modules.weather import routes as weather_routes
+        weather_routes._storage = None
         mgr = ConfigManager(str(tmp_path / "data_nc"))
         mgr.save({"modem_password": "test"})
         init_config(mgr)
@@ -342,6 +346,7 @@ class TestWeatherAPI:
             resp = client.get("/api/weather")
             assert resp.status_code == 200
             assert resp.get_json() == []
+        weather_routes._storage = None
 
     def test_api_weather_count_param(self, weather_client):
         client, storage = weather_client

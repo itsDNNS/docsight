@@ -253,50 +253,6 @@ def api_bqm_delete():
     return jsonify({"error": "Provide 'all', 'start'+'end', or 'date'"}), 400
 
 
-# ── Weather API ──
-
-@integrations_bp.route("/api/weather")
-@require_auth
-def api_weather():
-    """Return weather (temperature) history, newest first."""
-    _config_manager = get_config_manager()
-    _storage = get_storage()
-    if not _config_manager or not _config_manager.is_weather_configured():
-        return jsonify([])
-    if not _storage:
-        return jsonify([])
-    count = request.args.get("count", 2000, type=int)
-    return jsonify(_storage.get_weather_data(limit=count))
-
-
-@integrations_bp.route("/api/weather/current")
-@require_auth
-def api_weather_current():
-    """Return latest weather reading from state."""
-    state = get_state()
-    weather = state.get("weather_latest")
-    if not weather:
-        return jsonify({"error": "No weather data yet"}), 404
-    return jsonify(weather)
-
-
-@integrations_bp.route("/api/weather/range")
-@require_auth
-def api_weather_range():
-    """Return weather data within a timestamp range (for correlation)."""
-    _config_manager = get_config_manager()
-    _storage = get_storage()
-    if not _config_manager or not _config_manager.is_weather_configured():
-        return jsonify([])
-    if not _storage:
-        return jsonify([])
-    start = request.args.get("start", "")
-    end = request.args.get("end", "")
-    if not start or not end:
-        return jsonify({"error": "start and end parameters required"}), 400
-    return jsonify(_storage.get_weather_in_range(start, end))
-
-
 # ── Speedtest helpers ──
 
 def _classify_speed(actual, booked):

@@ -1,0 +1,9 @@
+{
+  "weather_title": "Meteo",
+  "weather_optional": "optionnel — correler la qualite du signal avec la temperature exterieure",
+  "weather_enable": "Activer la collecte de donnees meteo",
+  "weather_enable_hint": "Recupere la temperature exterieure horaire depuis Open-Meteo (gratuit, sans cle API). Les donnees historiques sont chargees automatiquement.",
+  "weather_latitude": "Latitude",
+  "weather_longitude": "Longitude",
+  "weather_coord_hint": "Vos coordonnees (ex. 48.86 / 2.35 pour Paris). Trouvez les votres sur latlong.net"
+}

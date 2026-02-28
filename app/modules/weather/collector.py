@@ -3,8 +3,9 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from .base import Collector, CollectorResult
-from ..weather import OpenMeteoClient
+from app.collectors.base import Collector, CollectorResult
+from .client import OpenMeteoClient
+from .storage import WeatherStorage
 
 log = logging.getLogger("docsis.collector.weather")
 
@@ -22,6 +23,7 @@ class WeatherCollector(Collector):
         super().__init__(poll_interval)
         self._config_mgr = config_mgr
         self._storage = storage
+        self._weather_storage = WeatherStorage(storage.db_path)
         self._web = web
         self._client = None
         self._last_coords = None
@@ -45,14 +47,14 @@ class WeatherCollector(Collector):
 
         try:
             # Backfill historical data on first run
-            if not self._backfilled and self._storage.get_weather_count() == 0:
+            if not self._backfilled and self._weather_storage.get_weather_count() == 0:
                 self._backfill()
                 self._backfilled = True
 
             # Fetch recent data (last 24h + current)
             records = self._client.get_current()
             if records:
-                self._storage.save_weather_data(records)
+                self._weather_storage.save_weather_data(records)
                 self._web.update_state(weather_latest={
                     "timestamp": records[-1]["timestamp"],
                     "temperature": records[-1]["temperature"],
@@ -73,7 +75,7 @@ class WeatherCollector(Collector):
 
             records = self._client.get_historical(start_date, end_date)
             if records:
-                self._storage.save_weather_data(records)
+                self._weather_storage.save_weather_data(records)
                 log.info("Weather backfill: saved %d records (%s to %s)",
                          len(records), start_date, end_date)
         except Exception as e:

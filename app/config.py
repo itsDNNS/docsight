@@ -64,9 +64,6 @@ DEFAULTS = {
     "backup_interval_hours": 24,
     "backup_retention": 5,
     "timezone": "",
-    "weather_enabled": False,
-    "weather_latitude": "",
-    "weather_longitude": "",
     "disabled_modules": "",  # comma-separated list of module IDs to disable
 }
 
@@ -125,7 +122,7 @@ _LEGACY_KEY_MAP = {
 }
 
 INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown", "backup_interval_hours", "backup_retention"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled", "backup_enabled", "weather_enabled"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled", "backup_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}

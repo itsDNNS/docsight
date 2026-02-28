@@ -4,7 +4,6 @@ from .base import StorageBase, ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTA
 from .snapshot import SnapshotMixin
 from .bqm import BqmMixin
 from .speedtest import SpeedtestMixin
-from .weather import WeatherMixin
 from .journal import JournalMixin
 from .events import EventMixin
 from .bnetz import BnetzMixin
@@ -25,7 +24,6 @@ class SnapshotStorage(
     SnapshotMixin,
     BqmMixin,
     SpeedtestMixin,
-    WeatherMixin,
     JournalMixin,
     EventMixin,
     BnetzMixin,
