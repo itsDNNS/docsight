@@ -1,0 +1,75 @@
+<!-- ═══ Panel: Security ═══ -->
+<div class="settings-panel" id="panel-security">
+    <!-- Admin Password Card -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon red">
+                    <i data-lucide="lock"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.admin_password }}</div>
+                    <div class="card-subtitle">{{ t.admin_password_hint }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="form-field">
+                <label class="form-label" for="admin_password">{{ t.admin_password }}</label>
+                <input class="form-input" type="password" id="admin_password" name="admin_password" value="{{ config.admin_password }}" placeholder="{{ t.admin_password_hint }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- API Tokens Card (only when password is set) -->
+    {% if config.admin_password %}
+    <div class="settings-card glass" id="api-tokens-card">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="key-round"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.api_tokens_title|default('API Tokens') }}</div>
+                    <div class="card-subtitle">{{ t.api_tokens_desc|default('Create tokens for programmatic API access') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Token -->
+        <div class="input-with-action" style="margin-bottom: var(--space-md);">
+            <input class="form-input" type="text" id="api-token-name" placeholder="{{ t.api_token_name_placeholder|default('e.g. Home Assistant') }}">
+            <button type="button" class="btn btn-primary btn-sm" onclick="createApiToken()">
+                <i data-lucide="plus" style="width:16px;height:16px;"></i>
+                {{ t.api_token_create|default('Create') }}
+            </button>
+        </div>
+
+        <!-- Token Created Banner -->
+        <div id="api-token-created-banner" style="display: none; background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); border-radius: var(--radius-md); padding: 16px; margin-bottom: var(--space-md);">
+            <div style="font-weight: 600; margin-bottom: 6px;">{{ t.api_token_created|default('Token created. Copy it now.') }}</div>
+            <div class="input-with-action">
+                <code id="api-token-plaintext" style="flex: 1; word-break: break-all; font-size: 0.82rem; padding: 10px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); font-family: 'JetBrains Mono', monospace;"></code>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copyToken()">
+                    <i data-lucide="copy" style="width:14px;height:14px;"></i>
+                </button>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 8px;">{{ t.api_token_copy_warning|default('This token will only be shown once.') }}</div>
+        </div>
+
+        <!-- Token Table -->
+        <table id="api-tokens-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>{{ t.api_token_name|default('Name') }}</th>
+                    <th>{{ t.api_token_prefix|default('Token') }}</th>
+                    <th>{{ t.api_token_last_used|default('Last Used') }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="api-tokens-body"></tbody>
+        </table>
+        <div id="api-tokens-empty" style="color: var(--text-muted); font-size: 0.88rem;">{{ t.api_tokens_none|default('No API tokens created yet.') }}</div>
+    </div>
+    {% endif %}
+</div>
