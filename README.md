@@ -106,6 +106,7 @@ Open `http://localhost:8765` — no setup required.
 | **Notifications** | Alerts via webhook, ntfy, Discord, Gotify, and custom endpoints |
 | **[LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export)** | Structured reports for AI analysis |
 | **[Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode)** | Try DOCSight without a router — 9 months of simulated data with live migration |
+| **[Community Modules](https://github.com/itsDNNS/docsight-modules)** | Extend DOCSight with community-built modules — data collectors, integrations, analysis tools, and themes |
 
 4 languages (EN/DE/FR/ES) · Light/Dark mode · Setup wizard · Optional authentication · API token auth for external clients
 
@@ -262,6 +263,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | BQM Bulk Import | ✅ Released | [#67](https://github.com/itsDNNS/docsight/issues/67) |
 | Backup & Restore | ✅ Released | [#64](https://github.com/itsDNNS/docsight/issues/64) |
 | CM3500 Provisioned Speeds | ✅ Released | [#84](https://github.com/itsDNNS/docsight/issues/84) |
+| Module System | ✅ Released | [#128](https://github.com/itsDNNS/docsight/issues/128) |
+| Community Module Registry | ✅ Released | [#127](https://github.com/itsDNNS/docsight/issues/127) |
 
 **Planned:**
 

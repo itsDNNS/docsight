@@ -117,6 +117,12 @@ Each file has a `_meta` field with `language_name` and `flag`. When adding or ch
 - Run the full test suite before submitting a PR
 - AI-generated bulk PRs without prior discussion will not be merged
 
+## Building Modules
+
+DOCSight supports community modules that extend functionality without modifying core code. Modules can add API endpoints, data collectors, settings panels, dashboard tabs, and more.
+
+See the **[DOCSight Community Modules](https://github.com/itsDNNS/docsight-modules)** repository for the development guide, starter template, and submission process.
+
 ## Adding Modem Support
 
 See the **[Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support)** wiki page for the full guide, including raw data format, analyzer output reference, and wanted drivers.
