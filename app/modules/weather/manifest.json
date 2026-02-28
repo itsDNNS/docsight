@@ -9,7 +9,7 @@
   "contributes": {
     "collector": "collector.py:WeatherCollector",
     "routes": "routes.py",
-    "settings": "templates/settings.html",
+    "settings": "templates/weather_settings.html",
     "i18n": "i18n/"
   },
   "config": {
