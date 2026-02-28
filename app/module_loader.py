@@ -545,6 +545,17 @@ class ModuleLoader:
             analyzer.set_thresholds(tdata)
             log.info("Module '%s': loaded threshold profile", mod.id)
 
+        # Theme
+        if "theme" in c:
+            theme_path = os.path.join(mod.path, c["theme"])
+            if not os.path.isfile(theme_path):
+                raise ManifestError(f"Theme file not found: {c['theme']}")
+            with open(theme_path, "r", encoding="utf-8") as f:
+                tdata = json.load(f)
+            validate_theme(tdata)
+            mod.theme_data = tdata
+            log.info("Module '%s': loaded theme profile", mod.id)
+
         # Convention-based asset detection
         static_subdir = c.get("static", "static/").rstrip("/")
         static_dir = os.path.join(mod.path, static_subdir)
@@ -563,3 +574,7 @@ class ModuleLoader:
     def get_threshold_modules(self) -> list[ModuleInfo]:
         """Return all modules that contribute thresholds."""
         return [m for m in self._modules if "thresholds" in m.contributes]
+
+    def get_theme_modules(self) -> list[ModuleInfo]:
+        """Return all modules that contribute theme definitions."""
+        return [m for m in self._modules if "theme" in m.contributes]
