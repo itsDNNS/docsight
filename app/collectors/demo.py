@@ -483,13 +483,25 @@ class DemoCollector(Collector):
                 "No impact on speeds observed.",
             ),
         ]
+        try:
+            from app.modules.journal.storage import JournalStorage
+            _js = JournalStorage(self._storage.db_path)
+        except (ImportError, Exception):
+            log.debug("Demo: journal module not available, skipping journal seeding")
+            return
         for date, title, description in entries:
-            self._storage.save_entry(date, title, description, is_demo=True)
+            _js.save_entry(date, title, description, is_demo=True)
         log.info("Demo: seeded %d journal entries", len(entries))
 
     def _seed_incident_containers(self, now):
         """Seed demo incident containers and assign entries by date range."""
-        inc1_id = self._storage.save_incident(
+        try:
+            from app.modules.journal.storage import JournalStorage
+            _js = JournalStorage(self._storage.db_path)
+        except (ImportError, Exception):
+            log.debug("Demo: journal module not available, skipping incident seeding")
+            return
+        inc1_id = _js.save_incident(
             name="Seasonal Signal Drift",
             description="Temperature-related upstream power drift observed over summer months. "
                         "Values stayed within tolerance but were monitored closely.",
@@ -498,7 +510,7 @@ class DemoCollector(Collector):
             end_date=(now - timedelta(days=140)).strftime("%Y-%m-%d"),
             is_demo=True,
         )
-        inc2_id = self._storage.save_incident(
+        inc2_id = _js.save_incident(
             name="Upstream Noise Issue",
             description="Recurring upstream noise causing packet loss during peak hours. "
                         "ISP has been notified and is investigating. Technician visit partially fixed it.",
@@ -507,7 +519,7 @@ class DemoCollector(Collector):
             end_date=None,
             is_demo=True,
         )
-        inc3_id = self._storage.save_incident(
+        inc3_id = _js.save_incident(
             name="Firmware Update Issues",
             description="Router firmware update caused temporary error spikes. "
                         "Resolved after stabilization period.",
@@ -517,17 +529,17 @@ class DemoCollector(Collector):
             is_demo=True,
         )
         # Assign entries by date range
-        count1 = self._storage.assign_entries_by_date_range(
+        count1 = _js.assign_entries_by_date_range(
             inc1_id,
             (now - timedelta(days=200)).strftime("%Y-%m-%d"),
             (now - timedelta(days=140)).strftime("%Y-%m-%d"),
         )
-        count2 = self._storage.assign_entries_by_date_range(
+        count2 = _js.assign_entries_by_date_range(
             inc2_id,
             (now - timedelta(days=90)).strftime("%Y-%m-%d"),
             (now - timedelta(days=40)).strftime("%Y-%m-%d"),
         )
-        count3 = self._storage.assign_entries_by_date_range(
+        count3 = _js.assign_entries_by_date_range(
             inc3_id,
             (now - timedelta(days=15)).strftime("%Y-%m-%d"),
             (now - timedelta(days=5)).strftime("%Y-%m-%d"),

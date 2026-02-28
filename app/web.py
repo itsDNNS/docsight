@@ -578,7 +578,14 @@ def index():
     dev_info = state.get("device_info") or {}
     analysis = state["analysis"]
     gaming_index = compute_gaming_index(analysis, speedtest_latest) if gaming_quality_enabled else None
-    bnetz_latest = _storage.get_latest_bnetz() if _storage and bnetz_enabled else None
+    bnetz_latest = None
+    if _storage and bnetz_enabled:
+        try:
+            from app.modules.bnetz.storage import BnetzStorage
+            _bs = BnetzStorage(_storage.db_path)
+            bnetz_latest = _bs.get_latest_bnetz()
+        except (ImportError, Exception):
+            pass
 
     def _compute_uncorr_pct(analysis):
         """Compute log-scale percentage for uncorrectable errors gauge."""

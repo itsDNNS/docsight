@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "DOCSight",
   "minAppVersion": "2026.2",
-  "type": "core-feature",
+  "type": "analysis",
   "contributes": {
     "routes": "routes.py",
     "i18n": "i18n/"

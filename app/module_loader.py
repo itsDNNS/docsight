@@ -235,7 +235,8 @@ def load_module_routes(app, module_id: str, module_path: str, routes_file: str) 
         return
 
     # Dynamic import using importlib
-    mod_name = f"docsight_modules.{module_id.replace('.', '_')}.routes"
+    dir_name = os.path.basename(module_path)
+    mod_name = f"app.modules.{dir_name}.routes"
     try:
         spec = importlib.util.spec_from_file_location(mod_name, routes_path)
         if spec is None or spec.loader is None:
@@ -283,7 +284,8 @@ def load_module_collector(module_id: str, module_path: str, spec: str):
         log.warning("Module '%s': collector file not found: %s", module_id, file_path)
         return None
 
-    mod_name = f"docsight_modules.{module_id.replace('.', '_')}.collector"
+    dir_name = os.path.basename(module_path)
+    mod_name = f"app.modules.{dir_name}.collector"
     try:
         im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
         if im_spec is None or im_spec.loader is None:
@@ -327,7 +329,8 @@ def load_module_publisher(module_id: str, module_path: str, spec: str):
         log.warning("Module '%s': publisher file not found: %s", module_id, file_path)
         return None
 
-    mod_name = f"docsight_modules.{module_id.replace('.', '_')}.publisher"
+    dir_name = os.path.basename(module_path)
+    mod_name = f"app.modules.{dir_name}.publisher"
     try:
         im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
         if im_spec is None or im_spec.loader is None:
