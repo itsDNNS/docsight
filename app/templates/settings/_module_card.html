@@ -22,6 +22,9 @@
                 {% if mod.error %}
                 <span class="module-badge badge-error">{{ t.modules_error }}</span>
                 {% endif %}
+                {% if mod.is_threshold and mod.enabled %}
+                <span class="module-badge badge-builtin">{{ t.modules_active_profile }}</span>
+                {% endif %}
             </div>
             <div class="settings-card-desc">{{ mod.description }}</div>
         </div>

@@ -14,7 +14,7 @@ from flask import send_from_directory
 log = logging.getLogger("docsis.modules")
 
 VALID_TYPES = {"driver", "integration", "analysis", "theme"}
-VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher"}
+VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds"}
 REQUIRED_FIELDS = {"id", "name", "description", "version", "author", "minAppVersion", "type", "contributes"}
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
 
@@ -45,6 +45,7 @@ class ModuleInfo:
     template_paths: dict[str, str] = field(default_factory=dict)
     collector_class: type | None = None
     publisher_class: type | None = None
+    thresholds_data: dict | None = None
     has_css: bool = False
     has_js: bool = False
 
@@ -403,6 +404,26 @@ def setup_module_templates(
     return resolved
 
 
+REQUIRED_THRESHOLD_SECTIONS = {"downstream_power", "upstream_power", "snr"}
+
+
+def validate_thresholds(data: dict) -> None:
+    """Validate a threshold JSON structure.
+
+    Raises ManifestError if required sections or keys are missing.
+    """
+    missing = REQUIRED_THRESHOLD_SECTIONS - set(data.keys())
+    if missing:
+        raise ManifestError(f"Missing required threshold sections: {', '.join(sorted(missing))}")
+
+    for section in REQUIRED_THRESHOLD_SECTIONS:
+        block = data[section]
+        if not isinstance(block, dict):
+            raise ManifestError(f"Threshold section '{section}' must be a dict")
+        if "_default" not in block:
+            raise ManifestError(f"Threshold section '{section}' missing '_default' key")
+
+
 class ModuleLoader:
     """Orchestrates module discovery, validation, and loading.
 
@@ -485,6 +506,19 @@ class ModuleLoader:
         if "publisher" in c:
             mod.publisher_class = load_module_publisher(mod.id, mod.path, c["publisher"])
 
+        # Thresholds
+        if "thresholds" in c:
+            thresholds_path = os.path.join(mod.path, c["thresholds"])
+            if not os.path.isfile(thresholds_path):
+                raise ManifestError(f"Thresholds file not found: {c['thresholds']}")
+            with open(thresholds_path, "r", encoding="utf-8") as f:
+                tdata = json.load(f)
+            validate_thresholds(tdata)
+            mod.thresholds_data = tdata
+            from app import analyzer
+            analyzer.set_thresholds(tdata)
+            log.info("Module '%s': loaded threshold profile", mod.id)
+
         # Convention-based asset detection
         static_subdir = c.get("static", "static/").rstrip("/")
         static_dir = os.path.join(mod.path, static_subdir)
@@ -499,3 +533,7 @@ class ModuleLoader:
     def get_enabled_modules(self) -> list[ModuleInfo]:
         """Return only enabled modules without errors."""
         return [m for m in self._modules if m.enabled and not m.error]
+
+    def get_threshold_modules(self) -> list[ModuleInfo]:
+        """Return all modules that contribute thresholds."""
+        return [m for m in self._modules if "thresholds" in m.contributes]

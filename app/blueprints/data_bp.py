@@ -208,70 +208,62 @@ def api_export():
                 ]
                 lines.extend(corr_lines)
 
-    # ── Dynamic reference values from thresholds.json ──
+    # ── Dynamic reference values from active threshold profile ──
     from app import analyzer as _analyzer
     _thresh = _analyzer.get_thresholds()
 
-    lines += ["", "## Reference Values (VFKD Guidelines)", ""]
-    _src = _thresh.get("_source", "")
-    if _src:
-        lines.append(f"Source: {_src}")
-        lines.append("")
+    _meta = _analyzer._t().get("_meta", {})
+    profile_name = _meta.get("operator", "Active Profile")
+
+    lines += ["", f"## Reference Values ({profile_name})", ""]
 
     lines += [
         "### Downstream Power (dBmV)",
-        "| Modulation | Good | Tolerated | Monthly | Immediate |",
-        "|------------|------|-----------|---------|-----------|",
+        "| Modulation | Good | Warning | Critical |",
+        "|------------|------|---------|----------|",
     ]
     _ds = _thresh.get("downstream_power", {})
     for mod in sorted(k for k in _ds if not k.startswith("_")):
         t = _ds[mod]
-        lines.append(
-            f"| {mod} "
-            f"| {t['good_min']} to {t['good_max']} "
-            f"| {t['tolerated_min']} to {t['tolerated_max']} "
-            f"| {t['monthly_min']} to {t['monthly_max']} "
-            f"| < {t['immediate_min']} or > {t['immediate_max']} |"
-        )
+        g = t.get("good", [0, 0])
+        w = t.get("warning", [0, 0])
+        c = t.get("critical", [0, 0])
+        lines.append(f"| {mod} | {g[0]} to {g[1]} | {w[0]} to {w[1]} | < {c[0]} or > {c[1]} |")
 
     lines += [
         "",
         "### Upstream Power (dBmV)",
-        "| DOCSIS Version | Good | Tolerated | Monthly | Immediate |",
-        "|----------------|------|-----------|---------|-----------|",
+        "| Channel Type | Good | Warning | Critical |",
+        "|-------------|------|---------|----------|",
     ]
     _us = _thresh.get("upstream_power", {})
-    for ver in sorted(k for k in _us if not k.startswith("_")):
-        t = _us[ver]
-        lines.append(
-            f"| {ver} "
-            f"| {t['good_min']} to {t['good_max']} "
-            f"| {t['tolerated_min']} to {t['tolerated_max']} "
-            f"| {t['monthly_min']} to {t['monthly_max']} "
-            f"| < {t['immediate_min']} or > {t['immediate_max']} |"
-        )
+    for key in sorted(k for k in _us if not k.startswith("_")):
+        t = _us[key]
+        g = t.get("good", [0, 0])
+        w = t.get("warning", [0, 0])
+        c = t.get("critical", [0, 0])
+        lines.append(f"| {key} | {g[0]} to {g[1]} | {w[0]} to {w[1]} | < {c[0]} or > {c[1]} |")
 
     lines += [
         "",
         "### SNR / MER (dB, absolute)",
-        "| Modulation | Good | Tolerated | Monthly | Immediate |",
-        "|------------|------|-----------|---------|-----------|",
+        "| Modulation | Good | Warning | Critical |",
+        "|------------|------|---------|----------|",
     ]
     _snr = _thresh.get("snr", {})
     for mod in sorted(k for k in _snr if not k.startswith("_")):
         t = _snr[mod]
         lines.append(
             f"| {mod} "
-            f"| >= {t['good_min']} "
-            f"| >= {t['tolerated_min']} "
-            f"| >= {t['monthly_min']} "
-            f"| < {t['immediate_min']} |"
+            f"| >= {t.get('good_min', 0)} "
+            f"| >= {t.get('warning_min', 0)} "
+            f"| < {t.get('critical_min', 0)} |"
         )
 
-    _uncorr = _thresh.get("errors", {}).get("uncorrectable_threshold")
-    if _uncorr is not None:
+    _err = _thresh.get("errors", {}).get("uncorrectable_pct")
+    if _err:
         lines.append("")
-        lines.append(f"**Uncorrectable Errors Threshold**: > {_uncorr:,}")
+        lines.append(f"**Uncorrectable Errors**: Warning >= {_err.get('warning', 1.0)}%, Critical >= {_err.get('critical', 3.0)}%")
 
     lines.append("")
 

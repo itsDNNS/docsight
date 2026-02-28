@@ -20,41 +20,39 @@ def _format_threshold_table():
     rows = []
     # DS Power - per modulation
     ds = t.get("downstream_power", {})
-    for mod in ("256QAM", "64QAM", "1024QAM", "4096QAM"):
-        v = ds.get(mod)
-        if not v:
-            continue
+    for mod in sorted(k for k in ds if not k.startswith("_")):
+        v = ds[mod]
+        g = v.get("good", [0, 0])
+        w = v.get("warning", [0, 0])
         rows.append({
             "category": "DS Power",
             "variant": mod,
-            "good": f"{v['good_min']} to {v['good_max']} dBmV",
-            "warn": f"{v['tolerated_min']} to {v['tolerated_max']} dBmV",
+            "good": f"{g[0]} to {g[1]} dBmV",
+            "warn": f"{w[0]} to {w[1]} dBmV",
             "ref": "VFKD",
         })
-    # US Power - per DOCSIS version
+    # US Power - per channel type
     us = t.get("upstream_power", {})
-    for ver in ("EuroDOCSIS 3.0", "DOCSIS 3.1"):
-        v = us.get(ver)
-        if not v:
-            continue
+    for key in sorted(k for k in us if not k.startswith("_")):
+        v = us[key]
+        g = v.get("good", [0, 0])
+        w = v.get("warning", [0, 0])
         rows.append({
             "category": "US Power",
-            "variant": ver,
-            "good": f"{v['good_min']} to {v['good_max']} dBmV",
-            "warn": f"{v['tolerated_min']} to {v['tolerated_max']} dBmV",
+            "variant": key,
+            "good": f"{g[0]} to {g[1]} dBmV",
+            "warn": f"{w[0]} to {w[1]} dBmV",
             "ref": "VFKD",
         })
     # SNR - per modulation
     snr = t.get("snr", {})
-    for mod in ("256QAM", "64QAM", "1024QAM", "4096QAM"):
-        v = snr.get(mod)
-        if not v:
-            continue
+    for mod in sorted(k for k in snr if not k.startswith("_")):
+        v = snr[mod]
         rows.append({
             "category": "SNR/MER",
             "variant": mod,
-            "good": f">= {v['good_min']} dB",
-            "warn": f">= {v['tolerated_min']} dB",
+            "good": f">= {v.get('good_min', 0)} dB",
+            "warn": f">= {v.get('warning_min', 0)} dB",
             "ref": "VFKD",
         })
     # US Modulation - QAM order health

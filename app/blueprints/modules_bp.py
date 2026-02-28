@@ -24,6 +24,7 @@ def _serialize_module(mod):
         "builtin": mod.builtin,
         "error": mod.error,
         "homepage": mod.homepage,
+        "is_threshold": "thresholds" in mod.contributes,
     }
 
 
@@ -56,6 +57,14 @@ def api_module_enable(module_id):
 
     disabled_raw = config_mgr.get("disabled_modules", "")
     disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+
+    # Mutual exclusion: if enabling a threshold module, disable the currently active one
+    if "thresholds" in module.contributes:
+        for m in loader.get_threshold_modules():
+            if m.id != module_id and m.id not in disabled_set:
+                disabled_set.add(m.id)
+                log.info("Auto-disabled threshold module '%s' (mutual exclusion)", m.id)
+
     disabled_set.discard(module_id)
     config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
 
@@ -78,6 +87,20 @@ def api_module_disable(module_id):
     config_mgr = get_config_manager()
     if not config_mgr:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
+
+    # Block disabling the last active threshold module
+    if "thresholds" in module.contributes:
+        disabled_raw = config_mgr.get("disabled_modules", "")
+        disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+        active_thresholds = [
+            m for m in loader.get_threshold_modules()
+            if m.id not in disabled_set and m.id != module_id
+        ]
+        if not active_thresholds:
+            return jsonify({
+                "success": False,
+                "error": "Cannot disable the only active threshold profile. Enable a different one first.",
+            }), 409
 
     disabled_raw = config_mgr.get("disabled_modules", "")
     disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}

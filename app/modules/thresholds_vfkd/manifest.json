@@ -1,0 +1,12 @@
+{
+  "id": "docsight.thresholds_vfkd",
+  "name": "VFKD Thresholds",
+  "description": "Signal thresholds based on Vodafone Kabel Deutschland (VFKD) community guidelines",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "driver",
+  "contributes": {
+    "thresholds": "thresholds.json"
+  }
+}

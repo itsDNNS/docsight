@@ -1,6 +1,7 @@
 """Tests for DOCSIS channel health analyzer."""
 
 import pytest
+from app import analyzer
 from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps
 
 
@@ -192,9 +193,9 @@ class TestHealthPoor:
         assert "snr_critical" in result["summary"]["health_issues"]
 
     def test_uncorrectable_errors(self):
-        """High uncorrectable errors trigger issue (>10000 threshold)."""
+        """High uncorrectable error percent triggers issue."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-35", uncorr=15000)],
+            ds30=[_make_ds30(1, power=2.0, mse="-35", corr=100, uncorr=2)],
             us30=[_make_us30(1, power=42.0)],
         )
         result = analyze(data)
@@ -204,7 +205,7 @@ class TestHealthPoor:
     def test_multiple_issues(self):
         """Multiple issues can coexist."""
         data = _make_data(
-            ds30=[_make_ds30(1, power=21.0, mse="-27", uncorr=20000)],
+            ds30=[_make_ds30(1, power=21.0, mse="-27", corr=90, uncorr=10)],
             us30=[_make_us30(1, power=55.0)],
         )
         result = analyze(data)
@@ -213,7 +214,7 @@ class TestHealthPoor:
         assert "ds_power_critical" in issues
         assert "us_power_critical_high" in issues
         assert "snr_critical" in issues
-        assert "uncorr_errors_high" in issues
+        assert "uncorr_errors_critical" in issues
 
 
 # -- Channel parsing --
@@ -621,3 +622,137 @@ class TestUpstreamCapacity:
         )
         result = analyze(data)
         assert result["summary"]["us_capacity_mbps"] is None
+
+
+# -- Dynamic threshold tests --
+
+_TEST_THRESHOLDS = {
+    "downstream_power": {
+        "_default": "256QAM",
+        "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]},
+    },
+    "upstream_power": {
+        "_default": "sc_qam",
+        "sc_qam": {"good": [41, 47], "warning": [37, 51], "critical": [35, 53]},
+        "ofdma": {"good": [44, 47], "warning": [40, 48], "critical": [38, 50]},
+    },
+    "snr": {
+        "_default": "256QAM",
+        "256QAM": {"good_min": 33, "warning_min": 31, "critical_min": 30},
+    },
+    "upstream_modulation": {"critical_max_qam": 4, "warning_max_qam": 16},
+    "errors": {"uncorrectable_pct": {"warning": 1.0, "critical": 3.0}},
+}
+
+
+class TestSetThresholds:
+    """Test dynamic threshold loading."""
+
+    def setup_method(self):
+        self._orig = analyzer._thresholds.copy()
+        analyzer.set_thresholds(_TEST_THRESHOLDS)
+
+    def teardown_method(self):
+        analyzer._thresholds = self._orig
+
+    def test_set_thresholds_updates_global(self):
+        assert "downstream_power" in analyzer._thresholds
+        assert analyzer._thresholds["downstream_power"]["256QAM"]["good"] == [-4, 13]
+
+    def test_ds_power_getter_reads_array(self):
+        t = analyzer._get_ds_power_thresholds("256QAM")
+        assert t["good_min"] == -4
+        assert t["good_max"] == 13
+        assert t["crit_min"] == -8
+        assert t["crit_max"] == 20
+
+    def test_us_power_getter_sc_qam(self):
+        t = analyzer._get_us_power_thresholds("sc_qam")
+        assert t["good_min"] == 41
+        assert t["good_max"] == 47
+
+    def test_us_power_getter_ofdma(self):
+        t = analyzer._get_us_power_thresholds("ofdma")
+        assert t["good_min"] == 44
+        assert t["good_max"] == 47
+
+    def test_snr_getter_reads_new_keys(self):
+        t = analyzer._get_snr_thresholds("256QAM")
+        assert t["good_min"] == 33
+        assert t["crit_min"] == 30
+
+    def test_error_threshold_percent(self):
+        t = analyzer._get_uncorr_thresholds()
+        assert t["warning"] == 1.0
+        assert t["critical"] == 3.0
+
+    def test_fallback_when_empty(self):
+        analyzer._thresholds = {}
+        t = analyzer._get_ds_power_thresholds("256QAM")
+        assert t["good_min"] == -3.9  # fallback value
+
+
+class TestOFDMAUpstream:
+    """Test OFDMA upstream channel assessment."""
+
+    def setup_method(self):
+        self._orig = analyzer._thresholds.copy()
+        analyzer.set_thresholds(_TEST_THRESHOLDS)
+
+    def teardown_method(self):
+        analyzer._thresholds = self._orig
+
+    def test_ofdma_channel_good(self):
+        ch = {"powerLevel": "45.0", "modulation": "OFDMA", "type": "OFDMA"}
+        health, detail = analyzer._assess_us_channel(ch)
+        assert health == "good"
+
+    def test_ofdma_channel_warning(self):
+        ch = {"powerLevel": "40.5", "modulation": "OFDMA", "type": "OFDMA"}
+        health, detail = analyzer._assess_us_channel(ch)
+        assert health == "warning"
+
+    def test_ofdma_channel_critical_low(self):
+        ch = {"powerLevel": "37.0", "modulation": "OFDMA", "type": "OFDMA"}
+        health, detail = analyzer._assess_us_channel(ch)
+        assert health == "critical"
+
+    def test_sc_qam_still_uses_sc_qam_thresholds(self):
+        ch = {"powerLevel": "42.0", "modulation": "64QAM", "type": "ATDMA"}
+        health, detail = analyzer._assess_us_channel(ch)
+        assert health == "good"
+
+
+class TestPercentErrors:
+    """Test percent-based error thresholds."""
+
+    def setup_method(self):
+        self._orig = analyzer._thresholds.copy()
+        analyzer.set_thresholds(_TEST_THRESHOLDS)
+
+    def teardown_method(self):
+        analyzer._thresholds = self._orig
+
+    def test_no_errors_healthy(self):
+        data = _make_data(ds30=[_make_ds30(1, corr=1000, uncorr=0)])
+        result = analyze(data)
+        assert "uncorr_errors_high" not in result["summary"]["health_issues"]
+        assert "uncorr_errors_critical" not in result["summary"]["health_issues"]
+
+    def test_warning_threshold(self):
+        # 1% uncorrectable => warning
+        data = _make_data(ds30=[_make_ds30(1, corr=99, uncorr=1)])
+        result = analyze(data)
+        assert "uncorr_errors_high" in result["summary"]["health_issues"]
+
+    def test_critical_threshold(self):
+        # 5% uncorrectable => critical
+        data = _make_data(ds30=[_make_ds30(1, corr=95, uncorr=5)])
+        result = analyze(data)
+        assert "uncorr_errors_critical" in result["summary"]["health_issues"]
+
+    def test_zero_codewords_no_error(self):
+        data = _make_data(ds30=[_make_ds30(1, corr=0, uncorr=0)])
+        result = analyze(data)
+        assert "uncorr_errors_high" not in result["summary"]["health_issues"]
+        assert "uncorr_errors_critical" not in result["summary"]["health_issues"]

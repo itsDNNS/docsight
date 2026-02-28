@@ -517,6 +517,7 @@
   "modules_builtin": "Built-in",
   "modules_community": "Community",
   "modules_error": "Error",
+  "modules_active_profile": "Active Profile",
   "modules_restart_banner": "Module changes require a restart to take effect.",
   "modules_version": "Version",
   "modules_author": "Author",

@@ -512,6 +512,7 @@
   "modules_builtin": "Integrado",
   "modules_community": "Comunidad",
   "modules_error": "Error",
+  "modules_active_profile": "Perfil activo",
   "modules_restart_banner": "Los cambios de módulos requieren un reinicio.",
   "modules_version": "Versión",
   "modules_author": "Autor",

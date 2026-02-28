@@ -1,7 +1,7 @@
 """DOCSIS channel health analysis with configurable thresholds.
 
-Thresholds are loaded from thresholds.json (Vodafone VFKD guidelines).
-The file supports per-modulation thresholds for DS power, US power, and SNR.
+Thresholds are loaded dynamically from the active threshold module.
+The module loader calls set_thresholds() during startup.
 """
 
 import json
@@ -11,21 +11,41 @@ import re
 
 log = logging.getLogger("docsis.analyzer")
 
-# --- Load thresholds from JSON ---
-_THRESHOLDS_PATH = os.path.join(os.path.dirname(__file__), "thresholds.json")
+# --- Dynamic thresholds (set by module loader) ---
 _thresholds = {}
 
+# Hardcoded fallback (VFKD values) used if no threshold module is loaded
+_FALLBACK_THRESHOLDS = {
+    "downstream_power": {
+        "_default": "256QAM",
+        "256QAM": {"good": [-3.9, 13.0], "warning": [-5.9, 18.0], "critical": [-8.0, 20.0]},
+        "4096QAM": {"good": [-1.9, 15.0], "warning": [-3.9, 20.0], "critical": [-6.0, 22.0]},
+    },
+    "upstream_power": {
+        "_default": "sc_qam",
+        "sc_qam": {"good": [41.1, 47.0], "warning": [37.1, 51.0], "critical": [35.0, 53.0]},
+        "ofdma": {"good": [44.1, 47.0], "warning": [40.1, 48.0], "critical": [38.0, 50.0]},
+    },
+    "snr": {
+        "_default": "256QAM",
+        "256QAM": {"good_min": 33.0, "warning_min": 31.0, "critical_min": 30.0},
+        "4096QAM": {"good_min": 40.0, "warning_min": 38.0, "critical_min": 36.0},
+    },
+    "upstream_modulation": {"critical_max_qam": 4, "warning_max_qam": 16},
+    "errors": {"uncorrectable_pct": {"warning": 1.0, "critical": 3.0}},
+}
 
-def _load_thresholds():
-    """Load thresholds from JSON file. Falls back to hardcoded defaults."""
+
+def set_thresholds(data: dict):
+    """Set thresholds from a loaded threshold module."""
     global _thresholds
-    try:
-        with open(_THRESHOLDS_PATH, "r") as f:
-            _thresholds = json.load(f)
-        log.info("Loaded thresholds from %s", _THRESHOLDS_PATH)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        log.warning("Could not load thresholds.json (%s), using defaults", e)
-        _thresholds = {}
+    _thresholds = data
+    log.info("Thresholds updated (%d sections)", len(data))
+
+
+def _t():
+    """Return active thresholds with fallback."""
+    return _thresholds if _thresholds else _FALLBACK_THRESHOLDS
 
 
 _MODULATION_ALIASES = {
@@ -43,53 +63,65 @@ def _resolve_modulation(modulation, section):
 
 def _get_ds_power_thresholds(modulation=None):
     """Get DS power thresholds for a given modulation."""
-    ds = _thresholds.get("downstream_power", {})
+    ds = _t().get("downstream_power", {})
     mod = _resolve_modulation(modulation, ds)
     t = ds.get(mod, {})
+    good = t.get("good", [-4.0, 13.0])
+    crit = t.get("critical", [-8.0, 20.0])
     return {
-        "good_min": t.get("good_min", -4.0),
-        "good_max": t.get("good_max", 13.0),
-        "crit_min": t.get("immediate_min", -8.0),
-        "crit_max": t.get("immediate_max", 20.0),
+        "good_min": good[0],
+        "good_max": good[1],
+        "crit_min": crit[0],
+        "crit_max": crit[1],
     }
 
 
-def _get_us_power_thresholds(docsis_version=None):
-    """Get US power thresholds for a given DOCSIS version."""
-    us = _thresholds.get("upstream_power", {})
-    default_ver = us.get("_default", "EuroDOCSIS 3.0")
-    # Map version strings
-    ver = default_ver
-    if docsis_version in ("3.1", "DOCSIS 3.1"):
-        ver = "DOCSIS 3.1"
-    elif docsis_version in ("3.0", "EuroDOCSIS 3.0"):
-        ver = "EuroDOCSIS 3.0"
-    t = us.get(ver, us.get(default_ver, {}))
+def _get_us_power_thresholds(channel_type=None):
+    """Get US power thresholds by channel type (sc_qam or ofdma)."""
+    us = _t().get("upstream_power", {})
+    default_key = us.get("_default", "sc_qam")
+    if channel_type and channel_type.upper() in ("OFDMA",):
+        key = "ofdma"
+    else:
+        key = "sc_qam"
+    t = us.get(key, us.get(default_key, {}))
+    good = t.get("good", [41.0, 47.0])
+    crit = t.get("critical", [35.0, 53.0])
     return {
-        "good_min": t.get("good_min", 41.0),
-        "good_max": t.get("good_max", 47.0),
-        "crit_min": t.get("immediate_min", 35.0),
-        "crit_max": t.get("immediate_max", 53.0),
+        "good_min": good[0],
+        "good_max": good[1],
+        "crit_min": crit[0],
+        "crit_max": crit[1],
     }
 
 
 def _get_snr_thresholds(modulation=None):
     """Get SNR thresholds for a given modulation."""
-    snr = _thresholds.get("snr", {})
+    snr = _t().get("snr", {})
     mod = _resolve_modulation(modulation, snr)
     t = snr.get(mod, {})
     return {
         "good_min": t.get("good_min", 33.0),
-        "crit_min": t.get("immediate_min", 29.0),
+        "crit_min": t.get("critical_min", 29.0),
     }
 
 
 def _get_us_modulation_thresholds():
     """Get upstream modulation QAM order thresholds."""
-    us_mod = _thresholds.get("upstream_modulation", {})
+    us_mod = _t().get("upstream_modulation", {})
     return {
         "critical_max_qam": us_mod.get("critical_max_qam", 4),
         "warning_max_qam": us_mod.get("warning_max_qam", 16),
+    }
+
+
+def _get_uncorr_thresholds():
+    """Get uncorrectable error thresholds (percent-based)."""
+    errors = _t().get("errors", {})
+    pct = errors.get("uncorrectable_pct", {})
+    return {
+        "warning": pct.get("warning", 1.0),
+        "critical": pct.get("critical", 3.0),
     }
 
 
@@ -104,10 +136,6 @@ def _parse_qam_order(modulation_str):
     if m:
         return int(m.group(1))
     return None
-
-
-def _get_uncorr_threshold():
-    return _thresholds.get("errors", {}).get("uncorrectable_threshold", 10000)
 
 
 # EuroDOCSIS default symbol rate (kSym/s)
@@ -146,11 +174,7 @@ def get_thresholds():
         if not isinstance(obj, dict):
             return obj
         return {k: _strip(v) for k, v in obj.items() if not k.startswith("_")}
-    return _strip(_thresholds)
-
-
-# Load on module import
-_load_thresholds()
+    return _strip(_t())
 
 
 def _parse_float(val, default=0.0):
@@ -211,9 +235,12 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
     issues = []
     raw_power = ch.get("powerLevel")
 
+    modulation = ch.get("modulation") or ch.get("type") or ""
+    channel_type = modulation.upper().replace("-", "").strip()
+
     if raw_power is not None:
         power = _parse_float(raw_power)
-        pt = _get_us_power_thresholds(docsis_ver)
+        pt = _get_us_power_thresholds(channel_type)
         if power < pt["crit_min"]:
             issues.append("power critical low")
         elif power > pt["crit_max"]:
@@ -222,8 +249,6 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
             issues.append("power warning low")
         elif power > pt["good_max"]:
             issues.append("power warning high")
-
-    modulation = ch.get("modulation") or ch.get("type") or ""
     qam_order = _parse_qam_order(modulation)
     if qam_order is not None:
         mt = _get_us_modulation_thresholds()
@@ -401,8 +426,14 @@ def analyze(data: dict) -> dict:
     elif any("snr warning" in c["health_detail"] for c in ds_channels):
         issues.append("snr_warn")
 
-    if total_uncorr > _get_uncorr_threshold():
-        issues.append("uncorr_errors_high")
+    total_codewords = total_corr + total_uncorr
+    if total_codewords > 0:
+        uncorr_pct = (total_uncorr / total_codewords) * 100
+        et = _get_uncorr_thresholds()
+        if uncorr_pct >= et["critical"]:
+            issues.append("uncorr_errors_critical")
+        elif uncorr_pct >= et["warning"]:
+            issues.append("uncorr_errors_high")
 
     if not issues:
         summary["health"] = "good"
