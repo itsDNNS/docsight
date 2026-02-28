@@ -57,25 +57,27 @@
         </a>
         {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
+        {% if modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
         {% if speedtest_configured %}
         <a class="sidebar-link" data-view="speedtest" data-tooltip="{{ t.speedtest }}">
             <span class="icon"><i data-lucide="rabbit"></i></span> {{ t.speedtest }}
         </a>
-        {% endif %}
-        {% if not speedtest_configured %}
+        {% else %}
         <a class="sidebar-link" onclick="openSpeedtestSetupModal()" data-tooltip="{{ t.speedtest_setup }}">
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.speedtest_setup }}
         </a>
         {% endif %}
+        {% endif %}
+        {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
         {% if bqm_configured %}
         <a class="sidebar-link" data-view="bqm" data-tooltip="{{ t.bqm_title }}">
             <span class="icon"><i data-lucide="activity"></i></span> {{ t.bqm_title }}
         </a>
-        {% endif %}
-        {% if not bqm_configured %}
+        {% else %}
         <a class="sidebar-link" onclick="openBqmSetupModal()" data-tooltip="{{ t.bqm_setup }}">
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.bqm_setup }}
         </a>
+        {% endif %}
         {% endif %}
         {% if smokeping_configured %}
         <a class="sidebar-link" data-view="smokeping" data-tooltip="{{ t.smokeping_title }}">
@@ -87,15 +89,17 @@
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.smokeping_setup }}
         </a>
         {% endif %}
-        {% if bnetz_enabled %}
+        {% if bnetz_enabled and modules|selectattr('id', 'equalto', 'docsight.bnetz')|list %}
         <a class="sidebar-link" data-view="bnetz" data-tooltip="{{ t.bnetz_title }}">
             <span class="icon"><i data-lucide="file-check"></i></span> {{ t.bnetz_title }}
         </a>
         {% endif %}
         <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
+        {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
         <a class="sidebar-link" data-view="journal" data-tooltip="{{ t.incident_journal }}">
             <span class="icon"><i data-lucide="clipboard-list"></i></span> {{ t.incident_journal }}
         </a>
+        {% endif %}
         <a class="sidebar-link" id="export-link" href="javascript:void(0)" onclick="exportForLLM()" data-tooltip="{{ t.export_llm }}">
             <span class="icon"><i data-lucide="file-output"></i></span> {{ t.export_llm }}
         </a>
