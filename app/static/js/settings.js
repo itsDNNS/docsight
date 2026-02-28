@@ -6,9 +6,14 @@
 /* Globals set by template: T, SECTION_TITLES, serverOffsetMin, serverTz, currentLang, currentTz, savedCooldowns */
 
 /* ── Section Controller ── */
+var _currentSection = 'connection';
+var _saveHiddenSections = { support: true, modules: true };
+
 function switchSection(id) {
-    /* Desktop sidebar: update active link */
-    document.querySelectorAll('.settings-nav-link').forEach(function(link) {
+    _currentSection = id;
+
+    /* Sidebar: update active link */
+    document.querySelectorAll('.nav-item[data-section]').forEach(function(link) {
         link.classList.toggle('active', link.getAttribute('data-section') === id);
     });
 
@@ -19,32 +24,44 @@ function switchSection(id) {
     var target = document.getElementById('panel-' + id);
     if (target) target.classList.add('active');
 
-    /* Topbar title */
-    document.getElementById('topbar-title').textContent = SECTION_TITLES[id] || id;
+    /* Mobile title */
+    var mobileTitle = document.getElementById('mobile-title');
+    if (mobileTitle) mobileTitle.textContent = SECTION_TITLES[id] || id;
 
-    /* Hide save footer on support panel */
-    var saveFooter = document.getElementById('settings-save-footer');
+    /* Save footer: hide on support/modules, otherwise respect dirty state */
+    var saveFooter = document.getElementById('save-footer');
     if (saveFooter) {
-        saveFooter.style.display = (id === 'support' || id === 'modules') ? 'none' : '';
+        if (_saveHiddenSections[id]) {
+            saveFooter.classList.remove('visible');
+        } else if (_formDirty) {
+            saveFooter.classList.add('visible');
+        }
     }
 
     /* Auto-load data for certain panels */
-    if (id === 'general') loadApiTokens();
+    if (id === 'security') loadApiTokens();
     if (id === 'backup') loadBackupList();
 
     /* URL hash */
     history.replaceState(null, '', '#' + id);
 
-    /* Mobile: switch to detail view */
-    if (window.innerWidth < 768) {
-        document.body.classList.add('mobile-detail-active');
-    }
+    /* Mobile: close sidebar after selection */
+    closeMobileSidebar();
 }
 
-/* ── Mobile List → Detail ── */
-function backToList() {
-    document.body.classList.remove('mobile-detail-active');
-    history.replaceState(null, '', location.pathname);
+/* ── Mobile Sidebar ── */
+function openMobileSidebar() {
+    var sidebar = document.getElementById('settings-sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.add('open');
+    if (backdrop) backdrop.classList.add('active');
+}
+
+function closeMobileSidebar() {
+    var sidebar = document.getElementById('settings-sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('active');
 }
 
 /* ── API Token Management ── */
@@ -149,42 +166,29 @@ function updateStatusDots() {
     };
     for (var section in dots) {
         var el = document.getElementById(dots[section]);
-        /* Desktop sidebar dot */
         var dot = document.getElementById('dot-' + section);
         if (el && dot) {
             dot.classList.toggle('visible', el.value.trim() !== '');
-        }
-        /* Mobile list dot */
-        var mDot = document.getElementById('mdot-' + section);
-        if (el && mDot) {
-            mDot.classList.toggle('visible', el.value.trim() !== '');
         }
     }
 }
 
 /* ── Theme Toggle ── */
 function initThemeToggle() {
-    var themeCheck = document.getElementById('theme-check');
-    var themeCheckMobile = document.getElementById('theme-check-mobile');
-
-    function applyTheme(isDark) {
-        var theme = isDark ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('docsis-theme', theme);
-        if (themeCheck) themeCheck.checked = isDark;
-        if (themeCheckMobile) themeCheckMobile.checked = isDark;
-    }
-
-    if (themeCheck) {
-        themeCheck.addEventListener('change', function() { applyTheme(themeCheck.checked); });
-    }
-    if (themeCheckMobile) {
-        themeCheckMobile.addEventListener('change', function() { applyTheme(themeCheckMobile.checked); });
-    }
+    var appearanceCheck = document.getElementById('theme-toggle-appearance');
 
     /* Restore saved theme */
     var saved = localStorage.getItem('docsis-theme');
-    if (saved) applyTheme(saved === 'dark');
+    if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+        if (appearanceCheck) appearanceCheck.checked = (saved === 'dark');
+    }
+}
+
+function toggleThemeFromAppearance(checked) {
+    var theme = checked ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('docsis-theme', theme);
 }
 
 /* ── ISP Change ── */
@@ -232,7 +236,7 @@ function escHtml(s) {
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
-    form.querySelectorAll('input:not(#theme-check):not(#theme-check-mobile):not(#isp_other_input):not(.notify-toggle):not(.notify-cooldown-input), select:not(#isp_select)').forEach(function(inp) {
+    form.querySelectorAll('input:not(#theme-toggle-appearance):not(#isp_other_input):not(.notify-toggle):not(.notify-cooldown-input):not(.module-toggle-input), select:not(#isp_select)').forEach(function(inp) {
         if (inp.type === 'checkbox') {
             data[inp.name] = inp.checked ? inp.value : 'false';
             return;
@@ -250,8 +254,7 @@ function getFormData() {
     } else {
         data.isp_name = ispSel.value;
     }
-    var themeCheck = document.getElementById('theme-check');
-    data.theme = themeCheck.checked ? 'dark' : 'light';
+    data.theme = document.documentElement.getAttribute('data-theme') || 'dark';
     var cooldowns = {};
     document.querySelectorAll('.notify-event-row').forEach(function(row) {
         var key = row.getAttribute('data-event');
@@ -444,6 +447,30 @@ function migrateToLive() {
     });
 }
 
+/* ── Unsaved Changes ── */
+var _formDirty = false;
+
+function initUnsavedDetection() {
+    var form = document.getElementById('settings-form');
+    if (!form) return;
+    function markDirty() {
+        if (_formDirty) return;
+        _formDirty = true;
+        var footer = document.getElementById('save-footer');
+        if (footer && !_saveHiddenSections[_currentSection]) {
+            footer.classList.add('visible');
+        }
+    }
+    form.addEventListener('input', markDirty);
+    form.addEventListener('change', markDirty);
+}
+
+function clearDirty() {
+    _formDirty = false;
+    var footer = document.getElementById('save-footer');
+    if (footer) footer.classList.remove('visible');
+}
+
 /* ── Submit ── */
 function initFormSubmit() {
     document.getElementById('settings-form').addEventListener('submit', function(e) {
@@ -460,6 +487,7 @@ function initFormSubmit() {
         .then(function(r) { return r.json(); })
         .then(function(res) {
             if (res.success) {
+                clearDirty();
                 if (saveBtn) {
                     var orig = saveBtn.textContent;
                     saveBtn.textContent = '\u2713 ' + T.settings_saved;
@@ -818,6 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initThemeToggle();
     initFormSubmit();
+    initUnsavedDetection();
     initTimezoneHint();
     onIspChange();
     toggleUsernameField();
@@ -866,10 +895,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     } catch(e) {}
 
-    /* Restore section from URL hash */
+    /* Restore section from URL hash, default to connection */
     var hash = location.hash.replace('#', '');
     if (hash && document.getElementById('panel-' + hash)) {
         switchSection(hash);
+    } else {
+        switchSection('connection');
     }
 });
 
