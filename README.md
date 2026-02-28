@@ -265,6 +265,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | CM3500 Provisioned Speeds | ✅ Released | [#84](https://github.com/itsDNNS/docsight/issues/84) |
 | Module System | ✅ Released | [#128](https://github.com/itsDNNS/docsight/issues/128) |
 | Community Module Registry | ✅ Released | [#127](https://github.com/itsDNNS/docsight/issues/127) |
+| Regional Threshold Profiles | ✅ Released | [#130](https://github.com/itsDNNS/docsight/issues/130) |
 
 **Planned:**
 
@@ -287,7 +288,7 @@ If DOCSight helps you, you can support development here:
 
 ## Documentation
 
-Documentation current as of **v2026-02-27.2**.
+Documentation current as of **v2026-02-28.6**.
 
 | Document | Scope |
 |---|---|
