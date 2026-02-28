@@ -1,4 +1,4 @@
-<!-- ═══ Panel: Modules ═══ -->
+<!-- ═══ Panel: Module Store ═══ -->
 <div class="settings-panel" id="panel-modules">
     <div class="module-restart-banner" id="module-restart-banner" style="display:none;">
         <i data-lucide="alert-triangle"></i>
@@ -10,26 +10,34 @@
     {% set disabled_modules = all_modules|rejectattr('enabled')|sort(attribute='name')|list %}
 
     {% if enabled_modules %}
-    <div class="settings-section-label">{{ t.modules_enabled }} ({{ enabled_modules|length }})</div>
-    {% for mod in enabled_modules %}
-    {% include 'settings/_module_card.html' %}
-    {% endfor %}
+    <div class="section-label">{{ t.modules_enabled }} ({{ enabled_modules|length }})</div>
+    <div class="module-grid">
+        {% for mod in enabled_modules %}
+        {% include 'settings/_module_card.html' %}
+        {% endfor %}
+    </div>
     {% endif %}
 
     {% if disabled_modules %}
-    <div class="settings-section-label" style="margin-top:1.5rem;">{{ t.modules_disabled }} ({{ disabled_modules|length }})</div>
-    {% for mod in disabled_modules %}
-    {% include 'settings/_module_card.html' %}
-    {% endfor %}
+    <div class="section-label" style="margin-top: var(--space-xl);">{{ t.modules_disabled }} ({{ disabled_modules|length }})</div>
+    <div class="module-grid">
+        {% for mod in disabled_modules %}
+        {% include 'settings/_module_card.html' %}
+        {% endfor %}
+    </div>
     {% endif %}
 
     {% else %}
-    <div class="settings-card">
-        <div class="settings-card-header">
-            <div class="settings-card-icon"><i data-lucide="puzzle"></i></div>
-            <div>
-                <div class="settings-card-title">{{ t.modules_title }}</div>
-                <div class="settings-card-desc">{{ t.modules_none }}</div>
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="puzzle"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.modules_title }}</div>
+                    <div class="card-subtitle">{{ t.modules_none }}</div>
+                </div>
             </div>
         </div>
     </div>
