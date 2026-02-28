@@ -1,8 +1,9 @@
 """Module management API endpoints."""
 
 import logging
+import os
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from app.web import get_config_manager, get_module_loader, require_auth
 
@@ -131,3 +132,61 @@ def api_module_disable(module_id):
 
     log.info("Module '%s' disabled (restart required)", module_id)
     return jsonify({"success": True, "restart_required": True})
+
+
+@modules_bp.route("/api/themes")
+@require_auth
+def api_themes_list():
+    """List all theme modules with their CSS variable data."""
+    loader = get_module_loader()
+    if not loader:
+        return jsonify([])
+    themes = loader.get_theme_modules()
+    result = []
+    for m in themes:
+        d = _serialize_module(m)
+        d["theme_data"] = m.theme_data
+        result.append(d)
+    return jsonify(result)
+
+
+@modules_bp.route("/api/themes/registry")
+@require_auth
+def api_themes_registry():
+    """Fetch available themes from the remote registry."""
+    config_mgr = get_config_manager()
+    if not config_mgr:
+        return jsonify([])
+
+    registry_url = config_mgr.get(
+        "theme_registry_url",
+        "https://raw.githubusercontent.com/itsDNNS/docsight-themes/main/registry.json",
+    )
+
+    from app.theme_registry import fetch_registry
+    themes = fetch_registry(registry_url)
+
+    loader = get_module_loader()
+    installed_ids = set()
+    if loader:
+        installed_ids = {m.id for m in loader.get_theme_modules()}
+    available = [t for t in themes if t["id"] not in installed_ids]
+
+    return jsonify(available)
+
+
+@modules_bp.route("/api/themes/install", methods=["POST"])
+@require_auth
+def api_themes_install():
+    """Install a theme from the registry."""
+    data = request.get_json()
+    if not data or "download_url" not in data or "id" not in data:
+        return jsonify({"success": False, "error": "Missing download_url or id"}), 400
+
+    theme_dir = os.path.join("/modules", data["id"].replace(".", "_"))
+
+    from app.theme_registry import download_theme
+    if download_theme(data["download_url"], theme_dir):
+        return jsonify({"success": True, "restart_required": True})
+    else:
+        return jsonify({"success": False, "error": "Download failed"}), 500

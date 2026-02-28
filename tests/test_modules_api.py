@@ -218,3 +218,47 @@ class TestThemeMutualExclusion:
             data = resp.get_json()
             theme = next(m for m in data if m["id"] == "test.theme1")
             assert theme["is_theme"] is True
+
+
+class TestThemesAPI:
+    """Test /api/themes endpoint."""
+
+    @pytest.fixture
+    def app_with_theme(self, tmp_path):
+        import json
+        d = tmp_path / "theme1"
+        d.mkdir()
+        (d / "manifest.json").write_text(json.dumps({
+            "id": "test.theme1", "name": "Theme 1", "description": "d",
+            "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
+            "type": "theme", "contributes": {"theme": "theme.json"},
+        }))
+        (d / "theme.json").write_text(json.dumps({
+            "dark": {"--bg": "#111", "--text": "#fff"},
+            "light": {"--bg": "#fff", "--text": "#111"},
+        }))
+
+        app = Flask(__name__)
+        app.config["TESTING"] = True
+        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
+        loader.load_all()
+
+        from app import web
+        web.init_modules(loader)
+
+        from app.blueprints.modules_bp import modules_bp
+        app.register_blueprint(modules_bp)
+
+        yield app, loader
+        web.init_modules(None)
+
+    def test_get_themes_returns_theme_data(self, app_with_theme):
+        app, loader = app_with_theme
+        with app.test_client() as c:
+            resp = c.get("/api/themes")
+            assert resp.status_code == 200
+            data = resp.get_json()
+            assert len(data) == 1
+            assert data[0]["id"] == "test.theme1"
+            assert "dark" in data[0]["theme_data"]
+            assert data[0]["theme_data"]["dark"]["--bg"] == "#111"

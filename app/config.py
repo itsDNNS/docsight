@@ -44,6 +44,7 @@ DEFAULTS = {
     "timezone": "",
     "disabled_modules": "",  # comma-separated list of module IDs to disable
     "active_theme": "",  # Module ID of active theme (empty = first available)
+    "theme_registry_url": "https://raw.githubusercontent.com/itsDNNS/docsight-themes/main/registry.json",
 }
 
 ENV_MAP = {
