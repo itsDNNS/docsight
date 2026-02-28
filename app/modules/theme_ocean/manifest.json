@@ -1,0 +1,13 @@
+{
+  "id": "docsight.theme_ocean",
+  "name": "Ocean",
+  "description": "Deep navy with teal and cyan accents",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "theme",
+  "contributes": {
+    "theme": "theme.json"
+  },
+  "config": {}
+}
