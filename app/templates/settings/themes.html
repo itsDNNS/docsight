@@ -52,7 +52,7 @@
 
             {% if theme_modules %}
                 {% for mod in theme_modules %}
-                <div class="theme-card glass {% if mod.enabled %}active{% endif %}"
+                <div class="theme-card glass {% if mod.id == active_theme_id %}active{% endif %}"
                      data-theme-id="{{ mod.id }}"
                      data-theme-name="{{ mod.name }}"
                      data-theme-dark='{{ mod.theme_data.get("dark", {})|tojson }}'
@@ -74,7 +74,7 @@
                         </div>
                     </div>
                     <div class="theme-actions">
-                        {% if mod.enabled %}
+                        {% if mod.id == active_theme_id %}
                         <span class="theme-active-badge">
                             <i data-lucide="check-circle" style="width:14px;height:14px;"></i>
                             {{ t.get('active', 'Active') }}

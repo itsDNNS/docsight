@@ -515,6 +515,7 @@ def inject_auth():
 
     # Resolve active theme module's CSS variables
     active_theme_data = None
+    active_theme_id = ""
     if _module_loader and _config_manager:
         active_id = _config_manager.get("active_theme", "")
         theme_modules = _module_loader.get_theme_modules()
@@ -528,6 +529,7 @@ def inject_auth():
                     active_mod = m  # fallback to first
         if active_mod:
             active_theme_data = active_mod.theme_data
+            active_theme_id = active_mod.id
 
     return {
         "auth_enabled": auth_enabled,
@@ -535,6 +537,7 @@ def inject_auth():
         "update_available": _check_for_update(),
         "modules": modules,
         "active_theme_data": active_theme_data,
+        "active_theme_id": active_theme_id,
     }
 
 
