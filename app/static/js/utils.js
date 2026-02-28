@@ -142,12 +142,6 @@ function fallbackCopy(textarea, btn, T) {
 function toggleCard(el) {
     el.classList.toggle('open');
 }
-function openSmokepingSetupModal() {
-    document.getElementById('smokeping-setup-modal').classList.add('open');
-}
-function closeSmokepingSetupModal() {
-    document.getElementById('smokeping-setup-modal').classList.remove('open');
-}
 function openSpeedtestSetupModal() {
     document.getElementById('speedtest-setup-modal').classList.add('open');
 }

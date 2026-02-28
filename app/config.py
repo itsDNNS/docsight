@@ -14,7 +14,7 @@ POLL_MIN = 60
 POLL_MAX = 14400
 
 SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token", "notify_webhook_token"}
-DEMO_HIDE_KEYS = {"bqm_url", "smokeping_url", "smokeping_targets", "speedtest_tracker_url",
+DEMO_HIDE_KEYS = {"bqm_url", "speedtest_tracker_url",
                   "notify_webhook_url", "mqtt_host", "mqtt_user", "mqtt_topic_prefix",
                   "mqtt_discovery_prefix"}
 HASH_KEYS = {"admin_password"}
@@ -34,8 +34,6 @@ DEFAULTS = {
     "language": "en",
     "isp_name": "",
     "admin_password": "",
-    "smokeping_url": "",
-    "smokeping_targets": "",
     "demo_mode": False,
     "gaming_quality_enabled": True,
     "notify_webhook_url": "",
@@ -66,8 +64,6 @@ ENV_MAP = {
     "data_dir": "DATA_DIR",
     "admin_password": "ADMIN_PASSWORD",
     "bqm_url": "BQM_URL",
-    "smokeping_url": "SMOKEPING_URL",
-    "smokeping_targets": "SMOKEPING_TARGETS",
     "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
     "booked_download": "BOOKED_DOWNLOAD",

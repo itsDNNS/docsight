@@ -1,4 +1,4 @@
-"""Integration routes: Smokeping."""
+"""Smokeping module routes."""
 
 import logging
 
@@ -13,7 +13,7 @@ from app.web import (
 
 log = logging.getLogger("docsis.web")
 
-integrations_bp = Blueprint("integrations_bp", __name__)
+bp = Blueprint("smokeping_module", __name__)
 
 
 SMOKEPING_TIMESPANS = {
@@ -26,7 +26,7 @@ SMOKEPING_TIMESPANS = {
 
 # ── Smokeping ──
 
-@integrations_bp.route("/api/smokeping/targets")
+@bp.route("/api/smokeping/targets")
 @require_auth
 def api_smokeping_targets():
     """Return list of configured Smokeping targets."""
@@ -38,7 +38,7 @@ def api_smokeping_targets():
     return jsonify(targets)
 
 
-@integrations_bp.route("/api/smokeping/graph/<path:target>/<timespan>")
+@bp.route("/api/smokeping/graph/<path:target>/<timespan>")
 @require_auth
 def api_smokeping_graph(target, timespan):
     """Proxy a Smokeping graph PNG."""

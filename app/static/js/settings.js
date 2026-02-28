@@ -145,8 +145,7 @@ function revokeToken(id, name) {
 /* ── Status Dots ── */
 function updateStatusDots() {
     var dots = {
-        notifications: 'notify_webhook_url',
-        smokeping: 'smokeping_url'
+        notifications: 'notify_webhook_url'
     };
     for (var section in dots) {
         var el = document.getElementById(dots[section]);
@@ -825,7 +824,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStatusDots();
 
     /* Listen for input changes on integration fields to update dots */
-    ['notify_webhook_url', 'smokeping_url'].forEach(function(id) {
+    ['notify_webhook_url'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.addEventListener('input', updateStatusDots);
     });

@@ -1,0 +1,24 @@
+{
+  "id": "docsight.smokeping",
+  "name": "Smokeping",
+  "description": "Smokeping latency monitoring graph integration",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "routes": "routes.py",
+    "settings": "templates/smokeping_settings.html",
+    "i18n": "i18n/",
+    "static": "static/"
+  },
+  "config": {
+    "smokeping_url": "",
+    "smokeping_targets": ""
+  },
+  "menu": {
+    "label_key": "docsight.smokeping.smokeping_title",
+    "icon": "radar",
+    "order": 25
+  }
+}

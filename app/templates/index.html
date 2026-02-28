@@ -79,15 +79,16 @@
         </a>
         {% endif %}
         {% endif %}
+        {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
         {% if smokeping_configured %}
         <a class="sidebar-link" data-view="smokeping" data-tooltip="{{ t.smokeping_title }}">
             <span class="icon"><i data-lucide="radar"></i></span> {{ t.smokeping_title }}
         </a>
-        {% endif %}
-        {% if not smokeping_configured %}
+        {% else %}
         <a class="sidebar-link" onclick="openSmokepingSetupModal()" data-tooltip="{{ t.smokeping_setup }}">
             <span class="icon"><i data-lucide="settings"></i></span> {{ t.smokeping_setup }}
         </a>
+        {% endif %}
         {% endif %}
         {% if bnetz_enabled and modules|selectattr('id', 'equalto', 'docsight.bnetz')|list %}
         <a class="sidebar-link" data-view="bnetz" data-tooltip="{{ t.bnetz_title }}">
@@ -922,7 +923,7 @@
 </div>
 
 <!-- ═══ View: Smokeping Graphs ═══ -->
-{% if smokeping_configured %}
+{% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list and smokeping_configured %}
 <div id="view-smokeping" class="view">
     <div style="text-align:center; margin-bottom:24px;">
         <span class="trend-title">{{ t.smokeping_title }}</span>
@@ -1798,6 +1799,7 @@
 </div>
 
 <!-- Smokeping Setup Modal -->
+{% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
 <div class="modal-overlay" id="smokeping-setup-modal" onclick="if(event.target===this)closeSmokepingSetupModal()">
     <div class="modal">
         <div class="modal-header">
@@ -1821,6 +1823,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Report Modal -->
 <div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeReportModal()">

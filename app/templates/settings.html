@@ -61,11 +61,6 @@
                 Notifications
                 <span class="status-dot" id="dot-notifications"></span>
             </a>
-            <a class="settings-nav-link" data-section="smokeping" onclick="switchSection('smokeping')">
-                <span class="icon"><i data-lucide="wifi"></i></span>
-                Smokeping
-                <span class="status-dot" id="dot-smokeping"></span>
-            </a>
             {% set settings_modules = [] %}
             {% for mod in modules if mod.template_paths.get('settings') %}
                 {% if settings_modules.append(mod) %}{% endif %}
@@ -141,12 +136,6 @@
                 <span class="icon"><i data-lucide="bell"></i></span>
                 <span class="mobile-nav-label">Notifications</span>
                 <span class="mobile-nav-dot" id="mdot-notifications"></span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-            <a class="mobile-nav-item" onclick="switchSection('smokeping')">
-                <span class="icon"><i data-lucide="wifi"></i></span>
-                <span class="mobile-nav-label">Smokeping</span>
-                <span class="mobile-nav-dot" id="mdot-smokeping"></span>
                 <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
             </a>
             {% if settings_modules %}
@@ -229,7 +218,6 @@
                 {% include 'settings/general.html' %}
                 {% include 'settings/modules.html' %}
                 {% include 'settings/notifications.html' %}
-                {% include 'settings/smokeping.html' %}
                 {% include 'settings/appearance.html' %}
                 {% include 'settings/support.html' %}
 
@@ -254,7 +242,6 @@ var SECTION_TITLES = {
     general: T.step_general || 'General',
     modules: T.modules_title || 'Modules',
     notifications: 'Notifications',
-    smokeping: 'Smokeping',
     appearance: T.appearance || 'Appearance',
     support: 'Support DOCSight'
 };

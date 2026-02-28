@@ -1,0 +1,26 @@
+<!-- ═══ Panel: Smokeping (Module) ═══ -->
+<div class="settings-panel" id="panel-mod-docsight_smokeping">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="radar"></i></div>
+            <div>
+                <div class="settings-card-title">Smokeping</div>
+                <div class="settings-card-desc">{{ t['docsight.smokeping.smokeping_optional'] or 'optional' }}</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="smokeping_url">{{ t['docsight.smokeping.smokeping_url_label'] or 'Smokeping URL' }}</label>
+            <input type="url" id="smokeping_url" name="smokeping_url"
+                   value="{{ config.smokeping_url }}"
+                   placeholder="https://smokeping.example.com/smokeping">
+            <span class="hint">{{ t['docsight.smokeping.smokeping_url_hint'] or 'Base URL of your Smokeping instance (without /cache/)' }}</span>
+        </div>
+        <div class="form-row">
+            <label for="smokeping_targets">{{ t['docsight.smokeping.smokeping_targets_label'] or 'Targets' }}</label>
+            <input type="text" id="smokeping_targets" name="smokeping_targets"
+                   value="{{ config.smokeping_targets }}"
+                   placeholder="Global.Google, Global.Cloudflare, Vodafone.Hop2">
+            <span class="hint">{{ t['docsight.smokeping.smokeping_targets_hint'] or 'Comma-separated list of targets' }}</span>
+        </div>
+    </div>
+</div>
