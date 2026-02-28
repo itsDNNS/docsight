@@ -99,9 +99,11 @@
         <a class="sidebar-link" id="export-link" href="javascript:void(0)" onclick="exportForLLM()" data-tooltip="{{ t.export_llm }}">
             <span class="icon"><i data-lucide="file-output"></i></span> {{ t.export_llm }}
         </a>
+        {% if modules|selectattr('id', 'equalto', 'docsight.reports')|list %}
         <a class="sidebar-link" id="report-link" href="javascript:void(0)" onclick="openReportModal()" data-tooltip="{{ t.incident_report }}">
             <span class="icon"><i data-lucide="file-text"></i></span> {{ t.incident_report }}
         </a>
+        {% endif %}
         {% set tab_modules = [] %}
         {% for mod in modules if mod.template_paths.get('tab') %}
             {% if tab_modules.append(mod) %}{% endif %}
