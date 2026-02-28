@@ -25,6 +25,7 @@ def _serialize_module(mod):
         "error": mod.error,
         "homepage": mod.homepage,
         "is_threshold": "thresholds" in mod.contributes,
+        "is_theme": mod.type == "theme",
     }
 
 
@@ -65,6 +66,13 @@ def api_module_enable(module_id):
                 disabled_set.add(m.id)
                 log.info("Auto-disabled threshold module '%s' (mutual exclusion)", m.id)
 
+    # Mutual exclusion: if enabling a theme, disable others
+    if module.type == "theme":
+        for m in loader.get_theme_modules():
+            if m.id != module_id and m.id not in disabled_set:
+                disabled_set.add(m.id)
+                log.info("Auto-disabled theme module '%s' (mutual exclusion)", m.id)
+
     disabled_set.discard(module_id)
     config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
 
@@ -87,6 +95,20 @@ def api_module_disable(module_id):
     config_mgr = get_config_manager()
     if not config_mgr:
         return jsonify({"success": False, "error": "Config not initialized"}), 500
+
+    # Block disabling the last active theme module
+    if module.type == "theme":
+        disabled_raw = config_mgr.get("disabled_modules", "")
+        disabled_set_check = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+        active_themes = [
+            m for m in loader.get_theme_modules()
+            if m.id not in disabled_set_check and m.id != module_id
+        ]
+        if not active_themes:
+            return jsonify({
+                "success": False,
+                "error": "Cannot disable the only active theme. Enable a different theme first.",
+            }), 409
 
     # Block disabling the last active threshold module
     if "thresholds" in module.contributes:
