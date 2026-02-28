@@ -1,0 +1,18 @@
+{
+  "id": "docsight.journal",
+  "name": "Incident Journal",
+  "description": "Document connection issues, attach evidence, and group entries into incidents for ISP complaints",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "core-feature",
+  "contributes": {
+    "routes": "routes.py",
+    "i18n": "i18n/"
+  },
+  "menu": {
+    "label_key": "docsight.journal.incident_journal",
+    "icon": "book-open",
+    "order": 20
+  }
+}

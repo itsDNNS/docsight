@@ -22,18 +22,28 @@ from werkzeug.utils import secure_filename
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web")
 
-journal_bp = Blueprint("journal_bp", __name__)
+bp = Blueprint("journal_bp", __name__)
 
 _VALID_INCIDENT_STATUSES = {"open", "resolved", "escalated"}
 
 
+def _get_journal_storage():
+    """Get JournalStorage for journal-specific queries."""
+    from app.web import get_storage
+    core = get_storage()
+    if not core:
+        return None
+    from .storage import JournalStorage
+    return JournalStorage(core.db_path)
+
+
 # ── Journal Entries API ──
 
-@journal_bp.route("/api/journal", methods=["GET"])
+@bp.route("/api/journal", methods=["GET"])
 @require_auth
 def api_journal_list():
     """Return list of journal entries with attachment counts."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify([])
     limit = request.args.get("limit", 100, type=int)
@@ -51,11 +61,11 @@ def api_journal_list():
     return jsonify(entries)
 
 
-@journal_bp.route("/api/journal/export")
+@bp.route("/api/journal/export")
 @require_auth
 def api_journal_export():
     """Export journal entries as CSV, JSON, or Markdown file download."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
 
@@ -139,11 +149,11 @@ def api_journal_export():
     )
 
 
-@journal_bp.route("/api/journal", methods=["POST"])
+@bp.route("/api/journal", methods=["POST"])
 @require_auth
 def api_journal_create():
     """Create a new journal entry."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -172,11 +182,11 @@ def api_journal_create():
     return jsonify({"id": entry_id}), 201
 
 
-@journal_bp.route("/api/journal/<int:entry_id>", methods=["GET"])
+@bp.route("/api/journal/<int:entry_id>", methods=["GET"])
 @require_auth
 def api_journal_get(entry_id):
     """Return single journal entry with attachment metadata."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     entry = _storage.get_entry(entry_id)
@@ -185,11 +195,11 @@ def api_journal_get(entry_id):
     return jsonify(entry)
 
 
-@journal_bp.route("/api/journal/<int:entry_id>", methods=["PUT"])
+@bp.route("/api/journal/<int:entry_id>", methods=["PUT"])
 @require_auth
 def api_journal_update(entry_id):
     """Update an existing journal entry."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -219,11 +229,11 @@ def api_journal_update(entry_id):
     return jsonify({"success": True})
 
 
-@journal_bp.route("/api/journal/<int:entry_id>", methods=["DELETE"])
+@bp.route("/api/journal/<int:entry_id>", methods=["DELETE"])
 @require_auth
 def api_journal_delete(entry_id):
     """Delete a journal entry (CASCADE deletes attachments)."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     if not _storage.delete_entry(entry_id):
@@ -232,11 +242,11 @@ def api_journal_delete(entry_id):
     return jsonify({"success": True})
 
 
-@journal_bp.route("/api/journal/<int:entry_id>/attachments", methods=["POST"])
+@bp.route("/api/journal/<int:entry_id>/attachments", methods=["POST"])
 @require_auth
 def api_journal_upload(entry_id):
     """Upload file attachment for a journal entry."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     entry = _storage.get_entry(entry_id)
@@ -265,11 +275,11 @@ def api_journal_upload(entry_id):
     return jsonify({"id": attachment_id}), 201
 
 
-@journal_bp.route("/api/attachments/<int:attachment_id>", methods=["GET"])
+@bp.route("/api/attachments/<int:attachment_id>", methods=["GET"])
 @require_auth
 def api_attachment_get(attachment_id):
     """Download an attachment file."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     att = _storage.get_attachment(attachment_id)
@@ -283,11 +293,11 @@ def api_attachment_get(attachment_id):
     )
 
 
-@journal_bp.route("/api/attachments/<int:attachment_id>", methods=["DELETE"])
+@bp.route("/api/attachments/<int:attachment_id>", methods=["DELETE"])
 @require_auth
 def api_attachment_delete(attachment_id):
     """Delete a single attachment."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     if not _storage.delete_attachment(attachment_id):
@@ -298,11 +308,11 @@ def api_attachment_delete(attachment_id):
 
 # ── Journal Import API ──
 
-@journal_bp.route("/api/journal/import/preview", methods=["POST"])
+@bp.route("/api/journal/import/preview", methods=["POST"])
 @require_auth
 def api_journal_import_preview():
     """Upload Excel/CSV file and return parsed preview with auto-detected mapping."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     if "file" not in request.files:
@@ -319,7 +329,7 @@ def api_journal_import_preview():
     if len(file_bytes) > 5 * 1024 * 1024:
         return jsonify({"error": "File too large (max 5 MB)"}), 400
 
-    from app.import_parser import parse_file
+    from .import_parser import parse_file
     try:
         result = parse_file(file_bytes, f.filename)
     except ValueError as e:
@@ -342,11 +352,11 @@ def api_journal_import_preview():
     return jsonify(result)
 
 
-@journal_bp.route("/api/journal/import/confirm", methods=["POST"])
+@bp.route("/api/journal/import/confirm", methods=["POST"])
 @require_auth
 def api_journal_import_confirm():
     """Bulk-import confirmed journal entry rows."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -387,11 +397,11 @@ def api_journal_import_confirm():
     return jsonify({"imported": imported, "duplicates": duplicates})
 
 
-@journal_bp.route("/api/journal/batch", methods=["DELETE"])
+@bp.route("/api/journal/batch", methods=["DELETE"])
 @require_auth
 def api_journal_batch_delete():
     """Batch delete journal entries by IDs or delete all."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -419,11 +429,11 @@ def api_journal_batch_delete():
 
 # ── Journal Entry Unassign ──
 
-@journal_bp.route("/api/journal/unassign", methods=["POST"])
+@bp.route("/api/journal/unassign", methods=["POST"])
 @require_auth
 def api_journal_unassign():
     """Remove incident assignment from journal entries."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -439,11 +449,11 @@ def api_journal_unassign():
 
 # ── Incident Container API ──
 
-@journal_bp.route("/api/incidents", methods=["GET"])
+@bp.route("/api/incidents", methods=["GET"])
 @require_auth
 def api_incidents_list():
     """Return list of incident containers with entry_count."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify([])
     status = request.args.get("status", None, type=str)
@@ -454,11 +464,11 @@ def api_incidents_list():
     return jsonify(incidents)
 
 
-@journal_bp.route("/api/incidents", methods=["POST"])
+@bp.route("/api/incidents", methods=["POST"])
 @require_auth
 def api_incidents_create():
     """Create a new incident container."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -487,11 +497,11 @@ def api_incidents_create():
     return jsonify({"id": incident_id}), 201
 
 
-@journal_bp.route("/api/incidents/<int:incident_id>", methods=["GET"])
+@bp.route("/api/incidents/<int:incident_id>", methods=["GET"])
 @require_auth
 def api_incident_get(incident_id):
     """Return single incident container with entry_count."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     incident = _storage.get_incident(incident_id)
@@ -500,11 +510,11 @@ def api_incident_get(incident_id):
     return jsonify(incident)
 
 
-@journal_bp.route("/api/incidents/<int:incident_id>", methods=["PUT"])
+@bp.route("/api/incidents/<int:incident_id>", methods=["PUT"])
 @require_auth
 def api_incident_update(incident_id):
     """Update an existing incident container."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     data = request.get_json()
@@ -534,11 +544,11 @@ def api_incident_update(incident_id):
     return jsonify({"success": True})
 
 
-@journal_bp.route("/api/incidents/<int:incident_id>", methods=["DELETE"])
+@bp.route("/api/incidents/<int:incident_id>", methods=["DELETE"])
 @require_auth
 def api_incident_delete(incident_id):
     """Delete an incident container (entries become unassigned)."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     if not _storage.delete_incident(incident_id):
@@ -547,11 +557,11 @@ def api_incident_delete(incident_id):
     return jsonify({"success": True})
 
 
-@journal_bp.route("/api/incidents/<int:incident_id>/timeline")
+@bp.route("/api/incidents/<int:incident_id>/timeline")
 @require_auth
 def api_incident_timeline(incident_id):
     """Return bundled timeline data for a single incident."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     incident = _storage.get_incident(incident_id)
@@ -568,8 +578,16 @@ def api_incident_timeline(incident_id):
         start_ts, _ = local_date_to_utc_range(incident["start_date"], tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
         _, end_ts = local_date_to_utc_range(end_date, tz)
-        timeline = _storage.get_correlation_timeline(start_ts, end_ts)
-        bnetz = _storage.get_bnetz_in_range(start_ts, end_ts)
+        from app.web import get_storage as _get_core_storage
+        _core = _get_core_storage()
+        if _core:
+            timeline = _core.get_correlation_timeline(start_ts, end_ts)
+        try:
+            from app.modules.bnetz.storage import BnetzStorage
+            _bs = BnetzStorage(_core.db_path)
+            bnetz = _bs.get_bnetz_in_range(start_ts, end_ts)
+        except (ImportError, Exception):
+            bnetz = []
 
     _localize_timestamps(timeline)
     _localize_timestamps(entries)
@@ -583,13 +601,13 @@ def api_incident_timeline(incident_id):
     })
 
 
-@journal_bp.route("/api/incidents/<int:incident_id>/report")
+@bp.route("/api/incidents/<int:incident_id>/report")
 @require_auth
 def api_incident_report(incident_id):
     """Generate PDF complaint report for a specific incident."""
-    from app.report import generate_incident_report
+    from app.modules.reports.report import generate_incident_report
 
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     _config_manager = get_config_manager()
 
     if not _storage:
@@ -616,9 +634,21 @@ def api_incident_report(incident_id):
         start_ts, _ = _ldr(incident["start_date"], _tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
         _, end_ts = _ldr(end_date, _tz)
-        snapshots = _storage.get_range_data(start_ts, end_ts)
-        speedtests = _storage.get_speedtest_in_range(start_ts, end_ts)
-        bnetz = _storage.get_bnetz_in_range(start_ts, end_ts)
+        from app.web import get_storage as _get_core_storage
+        _core = _get_core_storage()
+        snapshots = _core.get_range_data(start_ts, end_ts) if _core else []
+        try:
+            from app.modules.speedtest.storage import SpeedtestStorage
+            _ss = SpeedtestStorage(_core.db_path)
+            speedtests = _ss.get_speedtest_in_range(start_ts, end_ts)
+        except (ImportError, Exception):
+            speedtests = []
+        try:
+            from app.modules.bnetz.storage import BnetzStorage
+            _bs = BnetzStorage(_core.db_path)
+            bnetz = _bs.get_bnetz_in_range(start_ts, end_ts)
+        except (ImportError, Exception):
+            bnetz = []
 
     config = {}
     if _config_manager:
@@ -644,11 +674,11 @@ def api_incident_report(incident_id):
     return response
 
 
-@journal_bp.route("/api/incidents/<int:incident_id>/assign", methods=["POST"])
+@bp.route("/api/incidents/<int:incident_id>/assign", methods=["POST"])
 @require_auth
 def api_incident_assign(incident_id):
     """Assign journal entries to an incident."""
-    _storage = get_storage()
+    _storage = _get_journal_storage()
     if not _storage:
         return jsonify({"error": "Storage not initialized"}), 500
     incident = _storage.get_incident(incident_id)

@@ -148,7 +148,13 @@ def api_export():
                     f"| {ev['timestamp']} | {ev['severity']} | {ev['event_type']} | {ev['message']} |"
                 )
 
-        speedtests = _storage.get_recent_speedtests(limit=speedtest_limit)
+        speedtests = []
+        try:
+            from app.modules.speedtest.storage import SpeedtestStorage
+            _ss = SpeedtestStorage(_storage.db_path)
+            speedtests = _ss.get_recent_speedtests(limit=speedtest_limit)
+        except (ImportError, Exception):
+            pass
         if speedtests:
             lines += [
                 "",
@@ -164,7 +170,12 @@ def api_export():
                 )
 
         if mode == "full":
-            entries = _storage.get_active_entries()
+            try:
+                from app.modules.journal.storage import JournalStorage
+                _js = JournalStorage(_storage.db_path)
+                entries = _js.get_active_entries()
+            except (ImportError, Exception):
+                entries = []
             if entries:
                 lines += ["", "## Incident Journal"]
                 for inc in entries:

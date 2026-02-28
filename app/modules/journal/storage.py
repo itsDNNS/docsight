@@ -1,11 +1,81 @@
-"""Journal entries, attachments, and incidents mixin."""
+"""Standalone journal entries, attachments, and incidents storage."""
 
+import logging
 import sqlite3
 
-from ..tz import utc_now
+from app.tz import utc_now
+
+log = logging.getLogger("docsis.storage.journal")
 
 
-class JournalMixin:
+class JournalStorage:
+    """Standalone journal data storage (not a mixin).
+
+    Creates the journal_entries, journal_attachments, and incidents tables
+    if they don't exist.
+    """
+
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self._ensure_table()
+
+    def _ensure_table(self):
+        """Create the journal tables if they don't exist."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS journal_entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    icon TEXT,
+                    incident_id INTEGER,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    is_demo INTEGER NOT NULL DEFAULT 0
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS journal_attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entry_id INTEGER NOT NULL,
+                    filename TEXT NOT NULL,
+                    mime_type TEXT NOT NULL,
+                    data BLOB NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (entry_id) REFERENCES journal_entries(id) ON DELETE CASCADE
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS incidents (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    status TEXT NOT NULL DEFAULT 'open',
+                    start_date TEXT,
+                    end_date TEXT,
+                    icon TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    is_demo INTEGER NOT NULL DEFAULT 0
+                )
+            """)
+            # Migration: add is_demo column if missing
+            for tbl in ("journal_entries", "incidents"):
+                try:
+                    cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
+                    if "is_demo" not in cols:
+                        conn.execute(f"ALTER TABLE {tbl} ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
+                except Exception:
+                    pass
+
+    def _connect(self):
+        """Return a connection with foreign keys enabled."""
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+
+    # ── Journal Entries ──
 
     def save_entry(self, date, title, description, icon=None, incident_id=None, is_demo=False):
         """Create a new journal entry. Returns the new entry id."""
@@ -40,9 +110,9 @@ class JournalMixin:
         """Return list of journal entries (newest first) with attachment_count.
 
         incident_id filtering:
-          None (default) → all entries
-          0 → only unassigned (WHERE incident_id IS NULL)
-          N → only entries for incident N
+          None (default) -> all entries
+          0 -> only unassigned (WHERE incident_id IS NULL)
+          N -> only entries for incident N
         """
         query = (
             "SELECT i.id, i.date, i.title, i.description, i.icon, i.incident_id, i.created_at, i.updated_at, "
@@ -196,7 +266,7 @@ class JournalMixin:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
-    # ── Incident Containers (NEW) ──
+    # ── Incident Containers ──
 
     def save_incident(self, name, description=None, status="open", start_date=None, end_date=None, icon=None, is_demo=False):
         """Create a new incident container. Returns the new incident id."""

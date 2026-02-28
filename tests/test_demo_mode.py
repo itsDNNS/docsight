@@ -9,6 +9,7 @@ from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.modules.bqm.storage import BqmStorage
 from app.modules.bnetz.storage import BnetzStorage
+from app.modules.journal.storage import JournalStorage
 from app.web import app, init_config, init_storage
 from app.config import ConfigManager
 
@@ -17,6 +18,11 @@ from app.config import ConfigManager
 def storage(tmp_path):
     db_path = str(tmp_path / "test.db")
     return SnapshotStorage(db_path, max_days=0)
+
+
+@pytest.fixture
+def journal_storage(storage):
+    return JournalStorage(storage.db_path)
 
 
 @pytest.fixture
@@ -44,6 +50,7 @@ def _seed_demo_rows(storage):
     SpeedtestStorage(storage.db_path)
     BqmStorage(storage.db_path)
     BnetzStorage(storage.db_path)
+    _js = JournalStorage(storage.db_path)
     with sqlite3.connect(storage.db_path) as conn:
         conn.execute(
             "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
@@ -53,8 +60,8 @@ def _seed_demo_rows(storage):
             "INSERT INTO events (timestamp, severity, event_type, message, is_demo) "
             "VALUES ('2025-01-01T00:00:00', 'info', 'test', 'demo event', 1)"
         )
-    storage.save_entry("2025-01-01", "Demo Entry", "demo desc", is_demo=True)
-    storage.save_incident(name="Demo Incident", description="demo", is_demo=True)
+    _js.save_entry("2025-01-01", "Demo Entry", "demo desc", is_demo=True)
+    _js.save_incident(name="Demo Incident", description="demo", is_demo=True)
     with sqlite3.connect(storage.db_path) as conn:
         conn.execute(
             "INSERT OR IGNORE INTO speedtest_results "
@@ -79,6 +86,7 @@ def _seed_demo_rows(storage):
 
 def _seed_user_rows(storage):
     """Insert user-created rows (is_demo=0) into key tables."""
+    _js = JournalStorage(storage.db_path)
     with sqlite3.connect(storage.db_path) as conn:
         conn.execute(
             "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
@@ -88,8 +96,8 @@ def _seed_user_rows(storage):
             "INSERT INTO events (timestamp, severity, event_type, message, is_demo) "
             "VALUES ('2025-06-01T12:00:00', 'warning', 'test', 'user event', 0)"
         )
-    storage.save_entry("2025-06-01", "User Entry", "user desc", is_demo=False)
-    storage.save_incident(name="User Incident", description="user inc", is_demo=False)
+    _js.save_entry("2025-06-01", "User Entry", "user desc", is_demo=False)
+    _js.save_incident(name="User Incident", description="user inc", is_demo=False)
 
 
 def _count_rows(storage, table, is_demo=None):
@@ -112,6 +120,7 @@ class TestIsDemoColumn:
         SpeedtestStorage(storage.db_path)
         BqmStorage(storage.db_path)
         BnetzStorage(storage.db_path)
+        JournalStorage(storage.db_path)
         tables = ["snapshots", "events", "journal_entries", "incidents",
                    "speedtest_results", "bqm_graphs", "bnetz_measurements"]
         with sqlite3.connect(storage.db_path) as conn:
@@ -119,9 +128,9 @@ class TestIsDemoColumn:
                 cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
                 assert "is_demo" in cols, f"is_demo column missing from {tbl}"
 
-    def test_is_demo_defaults_to_zero(self, storage):
+    def test_is_demo_defaults_to_zero(self, storage, journal_storage):
         """Normal inserts should default is_demo to 0."""
-        storage.save_entry("2025-01-01", "Normal", "desc")
+        journal_storage.save_entry("2025-01-01", "Normal", "desc")
         with sqlite3.connect(storage.db_path) as conn:
             row = conn.execute(
                 "SELECT is_demo FROM journal_entries ORDER BY id DESC LIMIT 1"
@@ -133,16 +142,16 @@ class TestIsDemoColumn:
 
 
 class TestDemoMarking:
-    def test_save_entry_marks_demo(self, storage):
-        entry_id = storage.save_entry("2025-01-01", "Demo", "desc", is_demo=True)
+    def test_save_entry_marks_demo(self, storage, journal_storage):
+        entry_id = journal_storage.save_entry("2025-01-01", "Demo", "desc", is_demo=True)
         with sqlite3.connect(storage.db_path) as conn:
             row = conn.execute(
                 "SELECT is_demo FROM journal_entries WHERE id = ?", (entry_id,)
             ).fetchone()
         assert row[0] == 1
 
-    def test_save_incident_marks_demo(self, storage):
-        inc_id = storage.save_incident(name="Demo Inc", is_demo=True)
+    def test_save_incident_marks_demo(self, storage, journal_storage):
+        inc_id = journal_storage.save_incident(name="Demo Inc", is_demo=True)
         with sqlite3.connect(storage.db_path) as conn:
             row = conn.execute(
                 "SELECT is_demo FROM incidents WHERE id = ?", (inc_id,)
@@ -216,9 +225,10 @@ class TestPurgeDemoData:
 
     def test_purge_handles_demo_incident_entries(self, storage):
         """Entries assigned to a demo incident should be unassigned, not deleted (if user-created)."""
-        inc_id = storage.save_incident(name="Demo Inc", is_demo=True)
+        _js = JournalStorage(storage.db_path)
+        inc_id = _js.save_incident(name="Demo Inc", is_demo=True)
         # User entry assigned to demo incident
-        entry_id = storage.save_entry("2025-01-01", "User Entry", "desc", incident_id=inc_id, is_demo=False)
+        entry_id = _js.save_entry("2025-01-01", "User Entry", "desc", incident_id=inc_id, is_demo=False)
 
         storage.purge_demo_data()
 
@@ -286,10 +296,11 @@ class TestMigrateEndpoint:
         assert resp.status_code == 200
 
         # Verify user data intact
-        entries = storage.get_entries()
+        _js = JournalStorage(storage.db_path)
+        entries = _js.get_entries()
         assert len(entries) == 1
         assert entries[0]["title"] == "User Entry"
 
-        incidents = storage.get_incidents()
+        incidents = _js.get_incidents()
         assert len(incidents) == 1
         assert incidents[0]["name"] == "User Incident"

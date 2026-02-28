@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 
-from app.import_parser import (
+from app.modules.journal.import_parser import (
     _extract_year_context,
     _normalize_date,
     _parse_csv,

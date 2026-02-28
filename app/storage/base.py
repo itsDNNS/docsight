@@ -87,53 +87,6 @@ class StorageBase:
                 ON snapshots(timestamp)
             """)
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS journal_entries (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    date TEXT NOT NULL,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    icon TEXT,
-                    incident_id INTEGER,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                )
-            """)
-            # Migration: add icon column if missing (pre-icon installs)
-            try:
-                conn.execute("ALTER TABLE journal_entries ADD COLUMN icon TEXT")
-            except Exception:
-                pass
-            # Migration: add incident_id column if missing
-            try:
-                conn.execute("ALTER TABLE journal_entries ADD COLUMN incident_id INTEGER")
-            except Exception:
-                pass
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS journal_attachments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    entry_id INTEGER NOT NULL,
-                    filename TEXT NOT NULL,
-                    mime_type TEXT NOT NULL,
-                    data BLOB NOT NULL,
-                    created_at TEXT NOT NULL,
-                    FOREIGN KEY (entry_id) REFERENCES journal_entries(id) ON DELETE CASCADE
-                )
-            """)
-            # ── Incident containers (NEW) ──
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS incidents (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    description TEXT,
-                    status TEXT NOT NULL DEFAULT 'open',
-                    start_date TEXT,
-                    end_date TEXT,
-                    icon TEXT,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                )
-            """)
-            conn.execute("""
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,

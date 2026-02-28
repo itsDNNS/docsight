@@ -109,15 +109,21 @@ class CleanupMixin:
         """
         with self._connect() as conn:
             # 1. Delete attachments belonging to demo journal entries
-            conn.execute(
-                "DELETE FROM journal_attachments WHERE entry_id IN "
-                "(SELECT id FROM journal_entries WHERE is_demo = 1)"
-            )
+            try:
+                conn.execute(
+                    "DELETE FROM journal_attachments WHERE entry_id IN "
+                    "(SELECT id FROM journal_entries WHERE is_demo = 1)"
+                )
+            except sqlite3.OperationalError:
+                pass  # Tables may not exist if journal module not loaded
             # 2. Unassign entries from demo incidents (so they become orphan-free)
-            conn.execute(
-                "UPDATE journal_entries SET incident_id = NULL WHERE incident_id IN "
-                "(SELECT id FROM incidents WHERE is_demo = 1)"
-            )
+            try:
+                conn.execute(
+                    "UPDATE journal_entries SET incident_id = NULL WHERE incident_id IN "
+                    "(SELECT id FROM incidents WHERE is_demo = 1)"
+                )
+            except sqlite3.OperationalError:
+                pass  # Tables may not exist if journal module not loaded
             # 3. Delete from each demo-seeded table
             tables = ["journal_entries", "incidents", "events", "snapshots",
                        "speedtest_results", "bqm_graphs", "bnetz_measurements",

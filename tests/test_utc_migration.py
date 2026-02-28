@@ -5,12 +5,16 @@ import sqlite3
 import pytest
 
 from app.storage import SnapshotStorage
+from app.modules.journal.storage import JournalStorage
 
 
 @pytest.fixture
 def storage(tmp_path):
     db_path = str(tmp_path / "test.db")
-    return SnapshotStorage(db_path, max_days=7)
+    s = SnapshotStorage(db_path, max_days=7)
+    # Ensure journal tables exist (created by journal module)
+    JournalStorage(db_path)
+    return s
 
 
 class TestUtcMigration:
