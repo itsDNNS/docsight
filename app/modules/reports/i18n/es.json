@@ -1,0 +1,17 @@
+{
+  "incident_report": "Presentar queja",
+  "generate_report": "Generar informe",
+  "report_days": "Periodo del informe (días)",
+  "report_description": "Informe PDF con datos de señal, valores extremos y carta de reclamación al ISP.",
+  "report_language": "Idioma del informe",
+  "report_customer_hint": "Opcional: añade tus datos para la carta de reclamación",
+  "report_name": "Tu nombre",
+  "report_customer_number": "Número de cliente/contrato",
+  "report_address": "Tu dirección",
+  "report_edit_hint": "Revisa y edita la carta de reclamación. Cópiala para enviarla por correo o descarga el informe técnico en PDF.",
+  "report_generate_letter": "Generar carta",
+  "report_copy_letter": "Copiar carta",
+  "report_download_pdf": "Descargar informe técnico (PDF)",
+  "report_include_bnetz": "Incluir datos de medicion BNetzA",
+  "bnetz_generate_complaint": "Generar reclamacion"
+}

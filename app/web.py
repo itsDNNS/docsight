@@ -622,6 +622,14 @@ def index():
     )
 
 
+@app.route("/health")
+def health():
+    """Simple health check endpoint."""
+    if _state["analysis"]:
+        return {"status": "ok", "docsis_health": _state["analysis"]["summary"]["health"], "version": APP_VERSION}
+    return {"status": "ok", "docsis_health": "waiting", "version": APP_VERSION}
+
+
 @app.route("/setup")
 def setup():
     if _config_manager and (_config_manager.is_configured() or _config_manager.is_demo_mode()):

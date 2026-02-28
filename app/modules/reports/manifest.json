@@ -1,0 +1,18 @@
+{
+  "id": "docsight.reports",
+  "name": "Reports & Complaints",
+  "description": "Generate PDF incident reports and ISP complaint letters",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "analysis",
+  "contributes": {
+    "routes": "routes.py",
+    "i18n": "i18n/"
+  },
+  "menu": {
+    "label_key": "docsight.reports.report_title",
+    "icon": "file-text",
+    "order": 30
+  }
+}

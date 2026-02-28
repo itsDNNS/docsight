@@ -1,0 +1,17 @@
+{
+  "incident_report": "Déposer une plainte",
+  "generate_report": "Générer le rapport",
+  "report_days": "Période du rapport (jours)",
+  "report_description": "Rapport PDF avec données de signal, valeurs extrêmes et modèle de réclamation FAI.",
+  "report_language": "Langue du rapport",
+  "report_customer_hint": "Optionnel : ajoutez vos coordonnées pour la lettre de réclamation",
+  "report_name": "Votre nom",
+  "report_customer_number": "Numéro client/contrat",
+  "report_address": "Votre adresse",
+  "report_edit_hint": "Vérifiez et modifiez la lettre de réclamation. Copiez-la pour l'envoyer par e-mail ou téléchargez le rapport technique en PDF.",
+  "report_generate_letter": "Générer la lettre",
+  "report_copy_letter": "Copier la lettre",
+  "report_download_pdf": "Télécharger le rapport technique (PDF)",
+  "report_include_bnetz": "Inclure les donnees de mesure BNetzA",
+  "bnetz_generate_complaint": "Generer une reclamation"
+}

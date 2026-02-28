@@ -7,11 +7,11 @@ from datetime import datetime
 
 from fpdf import FPDF
 
-from .analyzer import get_thresholds
+from app.analyzer import get_thresholds
 
 log = logging.getLogger("docsis.report")
 
-_FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
+_FONT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "fonts")
 
 
 def _format_threshold_table():

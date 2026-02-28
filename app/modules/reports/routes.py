@@ -1,4 +1,4 @@
-"""Report generation and health check routes."""
+"""Report generation routes."""
 
 import logging
 import re
@@ -11,18 +11,17 @@ from app.web import (
     get_storage, get_config_manager, get_state,
     _get_lang,
 )
-from app.web import APP_VERSION
 
 log = logging.getLogger("docsis.web")
 
-reports_bp = Blueprint("reports_bp", __name__)
+bp = Blueprint("reports_bp", __name__)
 
 
-@reports_bp.route("/api/report")
+@bp.route("/api/report")
 @require_auth
 def api_report():
     """Generate a PDF incident report."""
-    from app.report import generate_report
+    from .report import generate_report
 
     _storage = get_storage()
     _config_manager = get_config_manager()
@@ -61,11 +60,11 @@ def api_report():
     return response
 
 
-@reports_bp.route("/api/complaint")
+@bp.route("/api/complaint")
 @require_auth
 def api_complaint():
     """Generate ISP complaint letter as text."""
-    from app.report import generate_complaint_text
+    from .report import generate_complaint_text
 
     _storage = get_storage()
     _config_manager = get_config_manager()
@@ -119,12 +118,3 @@ def api_complaint():
         bnetz_data=bnetz_data,
     )
     return jsonify({"text": text, "lang": lang})
-
-
-@reports_bp.route("/health")
-def health():
-    """Simple health check endpoint."""
-    state = get_state()
-    if state["analysis"]:
-        return {"status": "ok", "docsis_health": state["analysis"]["summary"]["health"], "version": APP_VERSION}
-    return {"status": "ok", "docsis_health": "waiting", "version": APP_VERSION}

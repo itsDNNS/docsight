@@ -5,7 +5,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.report import (
+from app.modules.reports.report import (
     generate_report, generate_complaint_text,
     _compute_worst_values, _find_worst_channels,
     _format_threshold_table, _default_warn_thresholds,

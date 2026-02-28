@@ -1,0 +1,17 @@
+{
+  "incident_report": "File Complaint",
+  "generate_report": "Generate Report",
+  "report_days": "Report period (days)",
+  "report_description": "Generate a PDF report with signal data, worst values, and a pre-written ISP complaint letter.",
+  "report_language": "Report language",
+  "report_customer_hint": "Optional: Add your details for the complaint letter",
+  "report_name": "Your name",
+  "report_customer_number": "Customer/contract number",
+  "report_address": "Your address",
+  "report_edit_hint": "Review and edit the complaint letter below. Copy it to send via email, or download the full technical report as PDF attachment.",
+  "report_generate_letter": "Generate Letter",
+  "report_copy_letter": "Copy Letter",
+  "report_download_pdf": "Download Technical Report (PDF)",
+  "report_include_bnetz": "Include BNetzA measurement data",
+  "bnetz_generate_complaint": "Generate complaint"
+}

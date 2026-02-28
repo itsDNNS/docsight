@@ -1,0 +1,17 @@
+{
+  "incident_report": "Beschwerde einreichen",
+  "generate_report": "Bericht erstellen",
+  "report_days": "Berichtszeitraum (Tage)",
+  "report_description": "PDF-Bericht mit Signaldaten, Extremwerten und einem vorformulierten Beschwerdebrief an den Provider.",
+  "report_language": "Berichtssprache",
+  "report_customer_hint": "Optional: Deine Daten für das Beschwerdeschreiben",
+  "report_name": "Dein Name",
+  "report_customer_number": "Kunden-/Vertragsnummer",
+  "report_address": "Deine Adresse",
+  "report_edit_hint": "Prüfe und bearbeite das Beschwerdeschreiben. Kopiere es zum Versand per E-Mail oder lade den technischen Bericht als PDF-Anhang herunter.",
+  "report_generate_letter": "Schreiben erstellen",
+  "report_copy_letter": "Schreiben kopieren",
+  "report_download_pdf": "Technischen Bericht (PDF) laden",
+  "report_include_bnetz": "BNetzA-Messdaten einbeziehen",
+  "bnetz_generate_complaint": "Beschwerde erstellen"
+}
