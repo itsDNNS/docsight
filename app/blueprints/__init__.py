@@ -11,6 +11,7 @@ def register_blueprints(app):
     from .events_bp import events_bp
     from .backup_bp import backup_bp
     from .reports_bp import reports_bp
+    from .modules_bp import modules_bp
 
     app.register_blueprint(config_bp)
     app.register_blueprint(polling_bp)
@@ -21,3 +22,4 @@ def register_blueprints(app):
     app.register_blueprint(events_bp)
     app.register_blueprint(backup_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(modules_bp)
