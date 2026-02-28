@@ -647,5 +647,16 @@
   "api_token_revoke": "Revoke",
   "api_token_revoke_confirm": "Revoke token \"{name}\"? Any system using it will lose access.",
   "api_token_revoked": "Token revoked",
-  "api_tokens_none": "No API tokens created yet."
+  "api_tokens_none": "No API tokens created yet.",
+  "modules_title": "Modules",
+  "modules_desc": "Manage installed modules",
+  "modules_none": "No modules installed",
+  "modules_builtin": "Built-in",
+  "modules_community": "Community",
+  "modules_error": "Error",
+  "modules_restart_banner": "Module changes require a restart to take effect.",
+  "modules_version": "Version",
+  "modules_author": "Author",
+  "modules_type": "Type",
+  "modules_homepage": "Homepage"
 }

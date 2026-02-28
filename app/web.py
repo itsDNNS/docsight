@@ -650,7 +650,8 @@ def settings():
     iana_tz = _guess_iana_timezone()
     # Warn if server TZ looks like a POSIX abbreviation (no DST support)
     tz_is_posix = bool(tz_name) and "/" not in tz_name and tz_name not in ("UTC",)
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, demo_mode=demo_mode, timezones=_get_iana_timezones(), iana_tz=iana_tz, tz_is_posix=tz_is_posix)
+    all_modules = _module_loader.get_modules() if _module_loader else []
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, demo_mode=demo_mode, timezones=_get_iana_timezones(), iana_tz=iana_tz, tz_is_posix=tz_is_posix, all_modules=all_modules)
 
 
 @app.after_request

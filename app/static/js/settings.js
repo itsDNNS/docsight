@@ -25,7 +25,7 @@ function switchSection(id) {
     /* Hide save footer on support panel */
     var saveFooter = document.getElementById('settings-save-footer');
     if (saveFooter) {
-        saveFooter.style.display = (id === 'support') ? 'none' : '';
+        saveFooter.style.display = (id === 'support' || id === 'modules') ? 'none' : '';
     }
 
     /* Auto-load data for certain panels */
@@ -896,3 +896,39 @@ document.addEventListener('DOMContentLoaded', function() {
         switchSection(hash);
     }
 });
+
+/* ── Module Management ── */
+function initModuleToggles() {
+    document.querySelectorAll('.module-toggle-input').forEach(function(toggle) {
+        toggle.addEventListener('change', function() {
+            var moduleId = this.getAttribute('data-module-id');
+            var action = this.checked ? 'enable' : 'disable';
+            var toggleEl = this;
+
+            fetch('/api/modules/' + moduleId + '/' + action, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.success) {
+                    showToast(T.settings_saved || 'Saved');
+                    var banner = document.getElementById('module-restart-banner');
+                    if (banner) {
+                        banner.style.display = 'flex';
+                        lucide.createIcons({nodes: [banner]});
+                    }
+                } else {
+                    toggleEl.checked = !toggleEl.checked;
+                    showToast(res.error || 'Error', true);
+                }
+            })
+            .catch(function() {
+                toggleEl.checked = !toggleEl.checked;
+                showToast(T.network_error || 'Network error', true);
+            });
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initModuleToggles);

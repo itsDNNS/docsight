@@ -647,5 +647,16 @@
   "api_token_revoke": "Widerrufen",
   "api_token_revoke_confirm": "Token \"{name}\" widerrufen? Systeme die ihn verwenden verlieren den Zugriff.",
   "api_token_revoked": "Token widerrufen",
-  "api_tokens_none": "Noch keine API-Tokens erstellt."
+  "api_tokens_none": "Noch keine API-Tokens erstellt.",
+  "modules_title": "Module",
+  "modules_desc": "Installierte Module verwalten",
+  "modules_none": "Keine Module installiert",
+  "modules_builtin": "Integriert",
+  "modules_community": "Community",
+  "modules_error": "Fehler",
+  "modules_restart_banner": "Modul-Änderungen erfordern einen Neustart.",
+  "modules_version": "Version",
+  "modules_author": "Autor",
+  "modules_type": "Typ",
+  "modules_homepage": "Homepage"
 }

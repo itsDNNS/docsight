@@ -1,0 +1,73 @@
+<!-- ═══ Panel: Modules ═══ -->
+<div class="settings-panel" id="panel-modules">
+    <div class="module-restart-banner" id="module-restart-banner" style="display:none;">
+        <i data-lucide="alert-triangle"></i>
+        <span>{{ t.modules_restart_banner }}</span>
+    </div>
+
+    {% if all_modules %}
+    {% for mod in all_modules|sort(attribute='name') %}
+    <div class="settings-card module-card" data-module-id="{{ mod.id }}">
+        <div class="settings-card-header">
+            <div class="settings-card-icon">
+                {% if mod.type == 'integration' %}
+                <i data-lucide="plug"></i>
+                {% elif mod.type == 'driver' %}
+                <i data-lucide="cpu"></i>
+                {% elif mod.type == 'analysis' %}
+                <i data-lucide="bar-chart-2"></i>
+                {% elif mod.type == 'theme' %}
+                <i data-lucide="palette"></i>
+                {% else %}
+                <i data-lucide="puzzle"></i>
+                {% endif %}
+            </div>
+            <div style="flex:1;">
+                <div class="settings-card-title">
+                    {{ mod.name }}
+                    <span class="module-badge {% if mod.builtin %}badge-builtin{% else %}badge-community{% endif %}">
+                        {{ t.modules_builtin if mod.builtin else t.modules_community }}
+                    </span>
+                    {% if mod.error %}
+                    <span class="module-badge badge-error">{{ t.modules_error }}</span>
+                    {% endif %}
+                </div>
+                <div class="settings-card-desc">{{ mod.description }}</div>
+            </div>
+            <label class="toggle-switch module-toggle">
+                <input type="checkbox" class="module-toggle-input"
+                       data-module-id="{{ mod.id }}"
+                       {% if mod.enabled %}checked{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <div class="module-meta">
+            <span><strong>{{ t.modules_version }}:</strong> {{ mod.version }}</span>
+            <span><strong>{{ t.modules_author }}:</strong> {{ mod.author }}</span>
+            <span><strong>{{ t.modules_type }}:</strong> {{ mod.type }}</span>
+            {% if mod.homepage %}
+            <a href="{{ mod.homepage }}" target="_blank" rel="noopener">{{ t.modules_homepage }} ↗</a>
+            {% endif %}
+        </div>
+
+        {% if mod.error %}
+        <div class="module-error">
+            <i data-lucide="alert-circle"></i>
+            {{ mod.error }}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="puzzle"></i></div>
+            <div>
+                <div class="settings-card-title">{{ t.modules_title }}</div>
+                <div class="settings-card-desc">{{ t.modules_none }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
