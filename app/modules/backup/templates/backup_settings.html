@@ -1,12 +1,16 @@
 <!-- ═══ Panel: Backup (Module) ═══ -->
 <div class="settings-panel" id="panel-mod-docsight_backup">
     <!-- Manual Backup -->
-    <div class="settings-card">
-        <div class="settings-card-header">
-            <div class="settings-card-icon"><i data-lucide="hard-drive-download"></i></div>
-            <div>
-                <div class="settings-card-title">{{ t['docsight.backup.backup_title'] or 'Backup & Restore' }}</div>
-                <div class="settings-card-desc">{{ t['docsight.backup.backup_desc'] or 'Download or schedule automatic backups of your DOCSight data' }}</div>
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon green">
+                    <i data-lucide="hard-drive-download"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t['docsight.backup.backup_title'] or 'Backup & Restore' }}</div>
+                    <div class="card-subtitle">{{ t['docsight.backup.backup_desc'] or 'Download or schedule automatic backups of your DOCSight data' }}</div>
+                </div>
             </div>
         </div>
         <div class="btn-row">
@@ -19,81 +23,86 @@
     </div>
 
     <!-- Automatic Backups -->
-    <div class="settings-card">
-        <div class="settings-card-header">
-            <div class="settings-card-icon"><i data-lucide="clock"></i></div>
-            <div>
-                <div class="settings-card-title">{{ t['docsight.backup.backup_auto_label'] or 'Automatic Backups' }}</div>
-                <div class="settings-card-desc">{{ t['docsight.backup.backup_auto_hint'] or 'Periodically save backups to a server directory' }}</div>
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="clock"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t['docsight.backup.backup_auto_label'] or 'Automatic Backups' }}</div>
+                    <div class="card-subtitle">{{ t['docsight.backup.backup_auto_hint'] or 'Periodically save backups to a server directory' }}</div>
+                </div>
             </div>
         </div>
 
-        <div class="toggle-option-row">
-            <div class="toggle-option-text">
-                <span class="toggle-option-label">{{ t.enabled }}</span>
+        <div class="toggle-row">
+            <div class="toggle-info">
+                <span class="toggle-title">{{ t.enabled }}</span>
             </div>
             <input type="hidden" name="backup_enabled" value="false">
-            <label class="toggle-switch">
+            <label class="toggle">
                 <input type="checkbox" id="backup_enabled" name="backup_enabled" value="true" {% if config.backup_enabled %}checked{% endif %}>
                 <span class="toggle-slider"></span>
             </label>
         </div>
 
         <div id="backup-auto-settings" style="{% if not config.backup_enabled %}opacity:0.5;pointer-events:none;{% endif %}">
-            <div class="form-row" style="margin-top:16px;">
-                <label>{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
-                <div style="display:flex;gap:8px;">
-                    <input type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly style="flex:1;cursor:pointer;background:var(--bg);">
-                    <button type="button" class="btn btn-secondary" onclick="openBrowseModal()" style="white-space:nowrap;">
+            <div class="form-field" style="margin-top: var(--space-md);">
+                <label class="form-label">{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
+                <div class="input-with-action">
+                    <input class="form-input" type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly style="cursor:pointer;">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="openBrowseModal()">
                         <i data-lucide="folder-open" style="width:14px;height:14px;"></i>
                         {{ t['docsight.backup.backup_browse'] or 'Browse' }}
                     </button>
                 </div>
-                <span class="hint">{{ t['docsight.backup.backup_path_hint'] or 'Server directory where backups are stored' }}</span>
+                <span class="form-hint">{{ t['docsight.backup.backup_path_hint'] or 'Server directory where backups are stored' }}</span>
             </div>
-            <div class="form-grid">
-                <div class="form-row">
-                    <label for="backup_interval_hours">{{ t['docsight.backup.backup_interval'] or 'Interval' }}</label>
-                    <select id="backup_interval_hours" name="backup_interval_hours">
+            <div class="form-grid cols-2" style="margin-top: var(--space-md);">
+                <div class="form-field">
+                    <label class="form-label" for="backup_interval_hours">{{ t['docsight.backup.backup_interval'] or 'Interval' }}</label>
+                    <select class="form-input form-select" id="backup_interval_hours" name="backup_interval_hours">
                         <option value="24" {% if config.backup_interval_hours == 24 or not config.backup_interval_hours %}selected{% endif %}>{{ t['docsight.backup.backup_daily'] or 'Daily' }}</option>
                         <option value="168" {% if config.backup_interval_hours == 168 %}selected{% endif %}>{{ t['docsight.backup.backup_weekly'] or 'Weekly' }}</option>
                     </select>
                 </div>
-                <div class="form-row">
-                    <label for="backup_retention">{{ t['docsight.backup.backup_retention'] or 'Keep backups' }}</label>
-                    <input type="number" id="backup_retention" name="backup_retention" value="{{ config.backup_retention or 5 }}" min="1" max="100">
-                    <span class="hint">{{ t['docsight.backup.backup_retention_hint'] or 'Number of backup files to keep' }}</span>
+                <div class="form-field">
+                    <label class="form-label" for="backup_retention">{{ t['docsight.backup.backup_retention'] or 'Keep backups' }}</label>
+                    <input class="form-input" type="number" id="backup_retention" name="backup_retention" value="{{ config.backup_retention or 5 }}" min="1" max="100">
+                    <span class="form-hint">{{ t['docsight.backup.backup_retention_hint'] or 'Number of backup files to keep' }}</span>
                 </div>
             </div>
-            <div class="btn-row">
-                <button type="button" class="btn btn-secondary" onclick="backupNow()">
+            <div style="margin-top: var(--space-lg);">
+                <button type="button" class="btn btn-ghost" onclick="backupNow()">
                     <i data-lucide="save" style="width:14px;height:14px;"></i>
                     {{ t['docsight.backup.backup_now'] or 'Backup Now' }}
                 </button>
             </div>
             <div class="test-result" id="backup-now-result"></div>
 
-            <!-- Existing Backups List -->
-            <div style="margin-top:24px;">
-                <label style="font-size:0.875em;color:var(--text-secondary);font-weight:500;margin-bottom:8px;display:block;">{{ t['docsight.backup.backup_existing'] or 'Existing Backups' }}</label>
-                <div id="backup-list" style="font-size:0.85em;"></div>
+            <div style="margin-top: var(--space-xl);">
+                <div class="section-label">{{ t['docsight.backup.backup_existing'] or 'Existing Backups' }}</div>
+                <div id="backup-list" class="backup-list"></div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- ═══ Directory Browser Modal ═══ -->
-<div id="browse-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
-    <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-lg);width:480px;max-width:90vw;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
-        <div style="padding:20px 24px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-weight:600;font-size:1.05em;color:var(--text);">{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</span>
-            <button type="button" onclick="closeBrowseModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2em;padding:4px;">&#10005;</button>
+<div id="browse-modal" class="browse-modal-overlay">
+    <div class="browse-modal">
+        <div class="browse-modal-header">
+            <h3>{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h3>
+            <button type="button" class="btn-icon" onclick="closeBrowseModal()">
+                <i data-lucide="x"></i>
+            </button>
         </div>
-        <div id="browse-breadcrumb" style="padding:12px 24px;font-family:monospace;font-size:0.85em;color:var(--text-secondary);background:var(--bg);border-bottom:1px solid var(--card-border);word-break:break-all;"></div>
-        <div id="browse-dirs" style="flex:1;overflow-y:auto;padding:8px 16px;min-height:200px;"></div>
-        <div style="padding:16px 24px;border-top:1px solid var(--card-border);display:flex;gap:12px;justify-content:flex-end;">
-            <button type="button" class="btn btn-secondary" onclick="closeBrowseModal()">{{ t.cancel }}</button>
-            <button type="button" class="btn btn-primary" onclick="selectBrowsePath()">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
+        <div id="browse-breadcrumb" class="browse-modal-path"></div>
+        <div id="browse-dirs" class="browse-modal-body"></div>
+        <div class="browse-modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeBrowseModal()">{{ t.cancel }}</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="selectBrowsePath()">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
         </div>
     </div>
 </div>

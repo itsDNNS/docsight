@@ -1,33 +1,35 @@
 <!-- ═══ Panel: BNetzA (Module) ═══ -->
 <div class="settings-panel" id="panel-mod-docsight_bnetz">
-    <div class="settings-card">
-        <div class="settings-card-header">
-            <div class="settings-card-icon"><i data-lucide="file-check"></i></div>
-            <div>
-                <div class="settings-card-title">{{ t['docsight.bnetz.bnetz_watcher_title'] or 'BNetzA File Watcher' }}</div>
-                <div class="settings-card-desc">{{ t['docsight.bnetz.bnetz_watcher_desc'] or 'Automatic import of measurement files' }}</div>
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon amber">
+                    <i data-lucide="file-check"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t['docsight.bnetz.bnetz_watcher_title'] or 'BNetzA File Watcher' }}</div>
+                    <div class="card-subtitle">{{ t['docsight.bnetz.bnetz_watcher_desc'] or 'Automatic import of measurement files' }}</div>
+                </div>
             </div>
         </div>
-        <div class="form-grid">
-            <div class="form-row full">
-                <label class="toggle-row">
-                    <span>{{ t.enabled }}</span>
-                    <label class="switch">
-                        <input type="hidden" name="bnetz_watch_enabled" value="false">
-                        <input type="checkbox" id="bnetz_watch_enabled" name="bnetz_watch_enabled" value="true" {% if config.bnetz_watch_enabled %}checked{% endif %}>
-                        <span class="slider"></span>
-                    </label>
-                </label>
-                <span class="hint">{{ t['docsight.bnetz.bnetz_watcher_hint'] or 'Automatically imports BNetzA measurement PDFs and CSVs from a watched directory' }}</span>
+        <div class="toggle-row">
+            <div class="toggle-info">
+                <span class="toggle-title">{{ t.enabled }}</span>
+                <span class="toggle-desc">{{ t['docsight.bnetz.bnetz_watcher_hint'] or 'Automatically imports BNetzA measurement PDFs and CSVs from a watched directory' }}</span>
             </div>
-            <div class="form-row full">
-                <label for="bnetz_watch_dir">{{ t['docsight.bnetz.bnetz_watch_dir_label'] or 'Watch directory' }}</label>
-                <input type="text" id="bnetz_watch_dir" name="bnetz_watch_dir" value="{{ config.bnetz_watch_dir }}" placeholder="/data/bnetz">
-                <span class="hint">{{ t['docsight.bnetz.bnetz_watch_dir_hint'] or 'Path where measurement files are placed (e.g., by a sidecar container)' }}</span>
-            </div>
-            <div class="form-row full">
-                <span class="hint" style="font-style:italic;">{{ t['docsight.bnetz.bnetz_docker_hint'] or 'Use docker-compose.bnetz.yml for automated measurement with the official BNetzA Desktop App' }}</span>
+            <input type="hidden" name="bnetz_watch_enabled" value="false">
+            <label class="toggle">
+                <input type="checkbox" id="bnetz_watch_enabled" name="bnetz_watch_enabled" value="true" {% if config.bnetz_watch_enabled %}checked{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="form-grid" style="margin-top: var(--space-md);">
+            <div class="form-field">
+                <label class="form-label" for="bnetz_watch_dir">{{ t['docsight.bnetz.bnetz_watch_dir_label'] or 'Watch directory' }}</label>
+                <input class="form-input" type="text" id="bnetz_watch_dir" name="bnetz_watch_dir" value="{{ config.bnetz_watch_dir }}" placeholder="/data/bnetz">
+                <span class="form-hint">{{ t['docsight.bnetz.bnetz_watch_dir_hint'] or 'Path where measurement files are placed (e.g., by a sidecar container)' }}</span>
             </div>
         </div>
+        <span class="form-hint" style="display:block;margin-top:var(--space-md);font-style:italic;">{{ t['docsight.bnetz.bnetz_docker_hint'] or 'Use docker-compose.bnetz.yml for automated measurement with the official BNetzA Desktop App' }}</span>
     </div>
 </div>
