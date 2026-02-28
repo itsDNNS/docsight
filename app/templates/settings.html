@@ -70,6 +70,10 @@
                 <i data-lucide="palette" class="nav-icon"></i>
                 {{ t.appearance }}
             </button>
+            <button class="nav-item" data-section="themes" onclick="switchSection('themes')">
+                <i data-lucide="brush" class="nav-icon"></i>
+                {{ t.get('themes', 'Themes') }}
+            </button>
             <button class="nav-item" data-section="security" onclick="switchSection('security')">
                 <i data-lucide="shield" class="nav-icon"></i>
                 {{ t.get('security', 'Security') }}
@@ -156,6 +160,7 @@
             {% include 'settings/system.html' %}
             {% include 'settings/notifications.html' %}
             {% include 'settings/appearance.html' %}
+            {% include 'settings/themes.html' %}
             {% include 'settings/security.html' %}
             {% include 'settings/modules.html' %}
             {% include 'settings/support.html' %}
@@ -188,6 +193,7 @@ var SECTION_TITLES = {
     notifications: T.get ? (T.get('notifications') || 'Notifications') : 'Notifications',
     appearance: T.appearance || 'Appearance',
     security: T.get ? (T.get('security') || 'Security') : 'Security',
+    themes: T.get ? (T.get('themes') || 'Themes') : 'Themes',
     modules: T.modules_title || 'Module Store',
     support: 'Support DOCSight'
 };
