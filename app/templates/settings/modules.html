@@ -6,7 +6,7 @@
     </div>
 
     {% if all_modules %}
-    {% for mod in all_modules|sort(attribute='name') %}
+    {% for mod in all_modules|sort(attribute='name')|sort(attribute='enabled', reverse=true) %}
     <div class="settings-card module-card" data-module-id="{{ mod.id }}">
         <div class="settings-card-header">
             <div class="settings-card-icon">
