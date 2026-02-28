@@ -1,0 +1,28 @@
+{
+  "id": "docsight.mqtt",
+  "name": "MQTT / Home Assistant",
+  "description": "Publish DOCSIS data to MQTT with Home Assistant Auto-Discovery",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "publisher": "publisher.py:MQTTPublisher",
+    "settings": "templates/mqtt_settings.html",
+    "i18n": "i18n/"
+  },
+  "config": {
+    "mqtt_host": "",
+    "mqtt_port": 1883,
+    "mqtt_user": "",
+    "mqtt_password": "",
+    "mqtt_tls_insecure": false,
+    "mqtt_topic_prefix": "docsight",
+    "mqtt_discovery_prefix": "homeassistant"
+  },
+  "menu": {
+    "label_key": "docsight.mqtt.mqtt_broker",
+    "icon": "radio-tower",
+    "order": 25
+  }
+}

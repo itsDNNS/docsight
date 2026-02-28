@@ -25,13 +25,6 @@ DEFAULTS = {
     "modem_url": "http://192.168.178.1",
     "modem_user": "",
     "modem_password": "",
-    "mqtt_host": "",
-    "mqtt_port": 1883,
-    "mqtt_user": "",
-    "mqtt_password": "",
-    "mqtt_tls_insecure": False,
-    "mqtt_topic_prefix": "docsight",
-    "mqtt_discovery_prefix": "homeassistant",
     "poll_interval": 900,
     "web_port": 8765,
     "public_url": "",
@@ -117,11 +110,11 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"mqtt_port", "poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown"}
+INT_KEYS = {"poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown"}
 BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
-_NON_EMPTY_KEYS = {"mqtt_topic_prefix", "mqtt_discovery_prefix"}
+_NON_EMPTY_KEYS = set()
 
 
 class ConfigManager:

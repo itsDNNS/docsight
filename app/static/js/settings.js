@@ -148,8 +148,7 @@ function updateStatusDots() {
         notifications: 'notify_webhook_url',
         speedtest: 'speedtest_tracker_url',
         bqm: 'bqm_url',
-        smokeping: 'smokeping_url',
-        mqtt: 'mqtt_host'
+        smokeping: 'smokeping_url'
     };
     for (var section in dots) {
         var el = document.getElementById(dots[section]);
@@ -836,7 +835,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStatusDots();
 
     /* Listen for input changes on integration fields to update dots */
-    ['notify_webhook_url', 'speedtest_tracker_url', 'bqm_url', 'smokeping_url', 'mqtt_host'].forEach(function(id) {
+    ['notify_webhook_url', 'speedtest_tracker_url', 'bqm_url', 'smokeping_url'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.addEventListener('input', updateStatusDots);
     });

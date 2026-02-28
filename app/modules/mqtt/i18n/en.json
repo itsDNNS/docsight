@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Advanced: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT Broker",
+  "mqtt_desc": "For Home Assistant integration via MQTT Auto-Discovery. Without MQTT only the web UI runs.",
+  "mqtt_optional_ha": "optional - for Home Assistant",
+  "mqtt_tls_insecure": "Insecure TLS",
+  "username_opt": "Username (optional)",
+  "password_opt": "Password (optional)",
+  "topic_prefix": "Topic Prefix",
+  "discovery_prefix": "Discovery Prefix",
+  "discovery_prefix_hint": "Default: homeassistant. Only change if you customized it in HA."
+}

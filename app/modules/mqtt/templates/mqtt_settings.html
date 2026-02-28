@@ -1,11 +1,11 @@
 <!-- ═══ Panel: MQTT ═══ -->
-<div class="settings-panel" id="panel-mqtt">
+<div class="settings-panel" id="panel-mod-docsight_mqtt">
     <div class="settings-card">
         <div class="settings-card-header">
             <div class="settings-card-icon"><i data-lucide="radio-tower"></i></div>
             <div>
-                <div class="settings-card-title">{{ t.mqtt_broker }}</div>
-                <div class="settings-card-desc">{{ t.mqtt_optional_ha }}</div>
+                <div class="settings-card-title">{{ t['docsight.mqtt.mqtt_broker'] or 'MQTT Broker' }}</div>
+                <div class="settings-card-desc">{{ t['docsight.mqtt.mqtt_optional_ha'] or 'optional - for Home Assistant' }}</div>
             </div>
         </div>
         <div class="form-grid">
@@ -18,26 +18,26 @@
                 <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
             </div>
             <div class="form-row">
-                <label for="mqtt_tls_insecure">{{ t.mqtt_tls_insecure }}</label>
+                <label for="mqtt_tls_insecure">{{ t['docsight.mqtt.mqtt_tls_insecure'] or 'Insecure TLS' }}</label>
                 <input type="hidden" name="mqtt_tls_insecure" value="false">
                 <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" value="true" {% if config.mqtt_tls_insecure %}checked{% endif %}>
             </div>
             <div class="form-row">
-                <label for="mqtt_user">{{ t.username_opt }}</label>
+                <label for="mqtt_user">{{ t['docsight.mqtt.username_opt'] or 'Username (optional)' }}</label>
                 <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
             </div>
             <div class="form-row">
-                <label for="mqtt_password">{{ t.password_opt }}</label>
+                <label for="mqtt_password">{{ t['docsight.mqtt.password_opt'] or 'Password (optional)' }}</label>
                 <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
             </div>
             <div class="form-row full">
-                <label for="mqtt_topic_prefix">{{ t.topic_prefix }}</label>
+                <label for="mqtt_topic_prefix">{{ t['docsight.mqtt.topic_prefix'] or 'Topic Prefix' }}</label>
                 <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
             </div>
             <div class="form-row full">
-                <label for="mqtt_discovery_prefix">{{ t.discovery_prefix }}</label>
+                <label for="mqtt_discovery_prefix">{{ t['docsight.mqtt.discovery_prefix'] or 'Discovery Prefix' }}</label>
                 <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
-                <span class="hint">{{ t.discovery_prefix_hint }}</span>
+                <span class="hint">{{ t['docsight.mqtt.discovery_prefix_hint'] or 'Default: homeassistant. Only change if you customized it in HA.' }}</span>
             </div>
         </div>
         <div class="btn-row">

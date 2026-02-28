@@ -81,12 +81,6 @@
                 Smokeping
                 <span class="status-dot" id="dot-smokeping"></span>
             </a>
-            <a class="settings-nav-link" data-section="mqtt" onclick="switchSection('mqtt')">
-                <span class="icon"><i data-lucide="radio-tower"></i></span>
-                MQTT
-                <span class="status-dot" id="dot-mqtt"></span>
-            </a>
-
             {% set settings_modules = [] %}
             {% for mod in modules if mod.template_paths.get('settings') %}
                 {% if settings_modules.append(mod) %}{% endif %}
@@ -188,13 +182,6 @@
                 <span class="mobile-nav-dot" id="mdot-smokeping"></span>
                 <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
             </a>
-            <a class="mobile-nav-item" onclick="switchSection('mqtt')">
-                <span class="icon"><i data-lucide="radio-tower"></i></span>
-                <span class="mobile-nav-label">MQTT</span>
-                <span class="mobile-nav-dot" id="mdot-mqtt"></span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-
             {% if settings_modules %}
             <div class="mobile-section-label">{{ t.settings_extensions }}</div>
             {% for mod in settings_modules|sort(attribute='menu.order') %}
@@ -279,7 +266,6 @@
                 {% include 'settings/bqm.html' %}
                 {% include 'settings/bnetz.html' %}
                 {% include 'settings/smokeping.html' %}
-                {% include 'settings/mqtt.html' %}
                 {% include 'settings/appearance.html' %}
                 {% include 'settings/support.html' %}
 
@@ -308,7 +294,6 @@ var SECTION_TITLES = {
     bqm: 'ThinkBroadband BQM',
     bnetz: T.bnetz_watcher_title || 'BNetzA',
     smokeping: 'Smokeping',
-    mqtt: T.mqtt_broker || 'MQTT',
     appearance: T.appearance || 'Appearance',
     support: 'Support DOCSight'
 };

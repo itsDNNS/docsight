@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from . import analyzer, web
 from .config import ConfigManager
 from .event_detector import EventDetector
-from .mqtt_publisher import MQTTPublisher
 from .storage import SnapshotStorage
 
 from .collectors import discover_collectors
@@ -54,13 +53,21 @@ def polling_loop(config_mgr, storage, stop_event):
     log.info("Modem: %s (user: %s)", config["modem_url"], config["modem_user"])
     log.info("Poll interval: %ds", config["poll_interval"])
 
-    # Connect MQTT (optional)
+    # Connect MQTT (optional, loaded from module if available)
     mqtt_pub = None
-    if config_mgr.is_mqtt_configured():
+    mqtt_cls = None
+    module_loader = web.get_module_loader() if hasattr(web, 'get_module_loader') else None
+    if module_loader:
+        for mod in module_loader.get_enabled_modules():
+            if mod.publisher_class and mod.id == 'docsight.mqtt':
+                mqtt_cls = mod.publisher_class
+                break
+
+    if mqtt_cls and config_mgr.is_mqtt_configured():
         mqtt_user = config["mqtt_user"] or None
         mqtt_password = config["mqtt_password"] or None
         mqtt_tls_insecure = (config["mqtt_tls_insecure"] or "").strip().lower() == "true"
-        mqtt_pub = MQTTPublisher(
+        mqtt_pub = mqtt_cls(
             host=config["mqtt_host"],
             port=int(config["mqtt_port"]),
             user=mqtt_user,
@@ -77,6 +84,8 @@ def polling_loop(config_mgr, storage, stop_event):
         except Exception as e:
             log.warning("MQTT connection failed: %s (continuing without MQTT)", e)
             mqtt_pub = None
+    elif config_mgr.is_mqtt_configured() and not mqtt_cls:
+        log.warning("MQTT configured but docsight.mqtt module not available (disabled?)")
     else:
         log.info("MQTT not configured, running without Home Assistant integration")
 
