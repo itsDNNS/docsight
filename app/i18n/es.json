@@ -516,5 +516,7 @@
   "modules_version": "Versión",
   "modules_author": "Autor",
   "modules_type": "Tipo",
-  "modules_homepage": "Página principal"
+  "modules_homepage": "Página principal",
+  "modules_enabled": "Activados",
+  "modules_disabled": "Desactivados"
 }

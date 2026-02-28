@@ -513,5 +513,7 @@
   "modules_version": "Version",
   "modules_author": "Auteur",
   "modules_type": "Type",
-  "modules_homepage": "Page d'accueil"
+  "modules_homepage": "Page d'accueil",
+  "modules_enabled": "Activés",
+  "modules_disabled": "Désactivés"
 }

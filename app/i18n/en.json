@@ -521,5 +521,7 @@
   "modules_version": "Version",
   "modules_author": "Author",
   "modules_type": "Type",
-  "modules_homepage": "Homepage"
+  "modules_homepage": "Homepage",
+  "modules_enabled": "Enabled",
+  "modules_disabled": "Disabled"
 }
