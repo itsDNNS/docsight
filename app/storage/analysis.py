@@ -40,7 +40,14 @@ class AnalysisMixin:
                 })
 
         if "speedtest" in sources:
-            for st in self.get_speedtest_in_range(start_ts, end_ts):
+            speedtest_rows = []
+            try:
+                from app.modules.speedtest.storage import SpeedtestStorage
+                _ss = SpeedtestStorage(self.db_path)
+                speedtest_rows = _ss.get_speedtest_in_range(start_ts, end_ts)
+            except (ImportError, Exception):
+                pass
+            for st in speedtest_rows:
                 timeline.append({
                     "timestamp": st["timestamp"],
                     "source": "speedtest",
@@ -77,7 +84,14 @@ class AnalysisMixin:
                 timeline.append(event)
 
         if "bnetz" in sources:
-            for m in self.get_bnetz_in_range(start_ts, end_ts):
+            bnetz_rows = []
+            try:
+                from app.modules.bnetz.storage import BnetzStorage
+                _bs = BnetzStorage(self.db_path)
+                bnetz_rows = _bs.get_bnetz_in_range(start_ts, end_ts)
+            except (ImportError, Exception):
+                pass
+            for m in bnetz_rows:
                 timeline.append({
                     "timestamp": m["timestamp"],
                     "source": "bnetz",

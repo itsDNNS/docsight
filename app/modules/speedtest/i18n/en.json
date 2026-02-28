@@ -1,0 +1,23 @@
+{
+  "speedtest_tracker": "Speedtest Tracker",
+  "speedtest_url": "Speedtest Tracker URL",
+  "speedtest_url_hint": "Base URL of your Speedtest Tracker instance",
+  "speedtest_token": "API Token",
+  "speedtest_token_hint": "Bearer token from Speedtest Tracker settings",
+  "booked_download": "Booked Download (Mbps)",
+  "booked_download_hint": "Contracted download speed in Mbps for health calculation",
+  "booked_upload": "Booked Upload (Mbps)",
+  "booked_upload_hint": "Contracted upload speed in Mbps for health calculation",
+  "speedtest_setup_title": "Speedtest Tracker Integration",
+  "speedtest_setup_intro": "Speedtest Tracker is a self-hosted app that runs periodic Ookla speed tests. DOCSight can display your speed test results alongside modem signal data for a complete picture of your connection.",
+  "speedtest_setup_benefits_title": "Why use Speedtest Tracker?",
+  "speedtest_setup_benefit_1": "Track actual download/upload speeds over time",
+  "speedtest_setup_benefit_2": "Correlate speed drops with DOCSIS signal issues",
+  "speedtest_setup_benefit_3": "Independent proof of speed issues for ISP complaints",
+  "speedtest_setup_howto_title": "How to set up",
+  "speedtest_setup_step_1": "Install <b>Speedtest Tracker</b> via Docker (<a href='https://github.com/alexjustesen/speedtest-tracker' target='_blank'>github.com/alexjustesen/speedtest-tracker</a>)",
+  "speedtest_setup_step_2": "In Speedtest Tracker, go to <b>Settings &rarr; API</b> and create an API token",
+  "speedtest_setup_step_3": "Paste your Speedtest Tracker <b>URL</b> and <b>API token</b> in DOCSight <b>Settings</b>",
+  "speedtest_no_data": "No speed test results available.",
+  "speedtest_setup": "Speedtest Setup"
+}

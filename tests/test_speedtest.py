@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from app.speedtest import SpeedtestClient
+from app.modules.speedtest.client import SpeedtestClient
 from app.web import app, init_config, init_storage
 from app.config import ConfigManager
 
@@ -52,7 +52,7 @@ class TestSpeedtestClient:
     def _make_client(self):
         return SpeedtestClient("http://speedtest.local:8999", "test-token")
 
-    @patch("app.speedtest.requests.Session.get")
+    @patch("app.modules.speedtest.client.requests.Session.get")
     def test_get_latest_success(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
@@ -72,7 +72,7 @@ class TestSpeedtestClient:
         assert r["download_human"] == "1.10 Gbps"
         assert r["timestamp"] == "2025-01-15T10:30:00Z"
 
-    @patch("app.speedtest.requests.Session.get")
+    @patch("app.modules.speedtest.client.requests.Session.get")
     def test_get_latest_empty(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"data": []}
@@ -83,7 +83,7 @@ class TestSpeedtestClient:
         results = client.get_latest(1)
         assert results == []
 
-    @patch("app.speedtest.requests.Session.get")
+    @patch("app.modules.speedtest.client.requests.Session.get")
     def test_get_latest_connection_error(self, mock_get):
         mock_get.side_effect = Exception("Connection refused")
 
@@ -91,7 +91,7 @@ class TestSpeedtestClient:
         results = client.get_latest(1)
         assert results == []
 
-    @patch("app.speedtest.requests.Session.get")
+    @patch("app.modules.speedtest.client.requests.Session.get")
     def test_get_results_pagination(self, mock_get):
         mock_resp = MagicMock()
         mock_resp.json.return_value = {**SAMPLE_API_RESPONSE, "meta": {"last_page": 1}}
@@ -107,7 +107,7 @@ class TestSpeedtestClient:
         assert params["page[size]"] == 100
         assert params["page[number]"] == 1
 
-    @patch("app.speedtest.requests.Session.get")
+    @patch("app.modules.speedtest.client.requests.Session.get")
     def test_get_results_connection_error(self, mock_get):
         mock_get.side_effect = Exception("Timeout")
 
@@ -115,7 +115,7 @@ class TestSpeedtestClient:
         results = client.get_results()
         assert results == []
 
-    @patch("app.speedtest.requests.Session.get")
+    @patch("app.modules.speedtest.client.requests.Session.get")
     def test_parse_minimal_result(self, mock_get):
         """Result with empty data dict should not crash."""
         mock_resp = MagicMock()
@@ -183,6 +183,12 @@ class TestSpeedtestConfig:
 # ── API Tests ──
 
 
+def _reset_speedtest_module_storage():
+    """Reset the speedtest module's lazy-initialized storage between tests."""
+    import app.modules.speedtest.routes as speedtest_routes
+    speedtest_routes._storage = None
+
+
 @pytest.fixture
 def speedtest_client(tmp_path):
     data_dir = str(tmp_path / "data")
@@ -194,13 +200,15 @@ def speedtest_client(tmp_path):
     })
     init_config(mgr)
     init_storage(None)
+    _reset_speedtest_module_storage()
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
+    _reset_speedtest_module_storage()
 
 
 class TestSpeedtestAPI:
-    @patch("app.speedtest.requests.Session.get")
+    @patch("app.modules.speedtest.client.requests.Session.get")
     def test_api_speedtest(self, mock_get, speedtest_client):
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
@@ -220,6 +228,7 @@ class TestSpeedtestAPI:
         mgr.save({"modem_password": "test"})
         init_config(mgr)
         init_storage(None)
+        _reset_speedtest_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.get("/api/speedtest?days=7")

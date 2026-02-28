@@ -1,13 +1,15 @@
 """Tests for the unified Collector Architecture."""
 
+import os
+import tempfile
 import time
 import pytest
 from unittest.mock import MagicMock, patch, PropertyMock
 
 from app.collectors.base import Collector, CollectorResult
 from app.collectors.modem import ModemCollector
-from app.collectors.speedtest import SpeedtestCollector
-from app.collectors.bqm import BQMCollector
+from app.modules.speedtest.collector import SpeedtestCollector
+from app.modules.bqm.collector import BQMCollector
 from app.drivers.base import ModemDriver
 from app.drivers.fritzbox import FritzBoxDriver
 
@@ -306,8 +308,8 @@ class TestSpeedtestCollector:
         }.get(k, a[0] if a else None)
 
         storage = MagicMock()
-        storage.get_latest_speedtest_id.return_value = 0
-        storage.get_speedtest_count.return_value = 0
+        # Provide a real temp db_path so SpeedtestStorage can init
+        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
         web = MagicMock()
 
         c = SpeedtestCollector(config_mgr=config_mgr, storage=storage, web=web, poll_interval=300)
@@ -321,7 +323,7 @@ class TestSpeedtestCollector:
         c, *_ = self._make_collector(configured=False)
         assert c.is_enabled() is False
 
-    @patch("app.collectors.speedtest.SpeedtestClient")
+    @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_initializes_client(self, mock_cls):
         mock_client = MagicMock()
         mock_client.get_latest.return_value = [{"id": 1, "download_mbps": 100}]
@@ -332,7 +334,7 @@ class TestSpeedtestCollector:
         c.collect()
         mock_cls.assert_called_once_with("http://speed:8999", "tok")
 
-    @patch("app.collectors.speedtest.SpeedtestClient")
+    @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_updates_web_state(self, mock_cls):
         mock_client = MagicMock()
         mock_client.get_latest.return_value = [{"id": 1}]
@@ -343,27 +345,34 @@ class TestSpeedtestCollector:
         c.collect()
         web.update_state.assert_called_once()
 
-    @patch("app.collectors.speedtest.SpeedtestClient")
+    @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_delta_cache(self, mock_cls):
         mock_client = MagicMock()
         mock_client.get_latest.return_value = []
-        mock_client.get_results.return_value = [{"id": 1}, {"id": 2}]
+        mock_client.get_results.return_value = [
+            {"id": 1, "timestamp": "2025-01-01T00:00:00Z", "download_mbps": 100,
+             "upload_mbps": 10, "download_human": "", "upload_human": "",
+             "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
+            {"id": 2, "timestamp": "2025-01-01T01:00:00Z", "download_mbps": 200,
+             "upload_mbps": 20, "download_human": "", "upload_human": "",
+             "ping_ms": 5, "jitter_ms": 1, "packet_loss_pct": 0},
+        ]
         mock_cls.return_value = mock_client
 
         c, _, storage, _ = self._make_collector()
         c.collect()
-        storage.save_speedtest_results.assert_called_once()
+        # Verify results were saved to the module's internal storage
+        assert c._storage.get_speedtest_count() == 2
 
-    @patch("app.collectors.speedtest.SpeedtestClient")
+    @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_delta_cache_failure_does_not_crash(self, mock_cls):
         """Delta cache failure should not prevent a successful collect result."""
         mock_client = MagicMock()
         mock_client.get_latest.return_value = [{"id": 1}]
-        mock_client.get_newer_than.side_effect = Exception("API timeout")
+        mock_client.get_results.side_effect = Exception("API timeout")
         mock_cls.return_value = mock_client
 
         c, _, storage, web = self._make_collector()
-        storage.get_speedtest_count.return_value = 100  # triggers get_newer_than path
         result = c.collect()
         assert result.success is True
         web.update_state.assert_called_once()
@@ -386,6 +395,8 @@ class TestBQMCollector:
         }.get(k, a[0] if a else None)
 
         storage = MagicMock()
+        # Provide a real temp db_path so BqmStorage can init
+        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
         c = BQMCollector(config_mgr=config_mgr, storage=storage, poll_interval=86400)
         return c, config_mgr, storage
 
@@ -397,62 +408,62 @@ class TestBQMCollector:
         c, *_ = self._make_collector(configured=False)
         assert c.is_enabled() is False
 
-    @patch("app.collectors.bqm.thinkbroadband")
-    def test_collect_success(self, mock_tb):
-        mock_tb.fetch_graph.return_value = b"\x89PNG" + b"\x00" * 200
+    @patch("app.modules.bqm.collector.fetch_graph")
+    def test_collect_success(self, mock_fetch):
+        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
         c, _, storage = self._make_collector()
         result = c.collect()
         assert result.success is True
-        storage.save_bqm_graph.assert_called_once()
-        # Verify graph_date kwarg is passed
-        _, kwargs = storage.save_bqm_graph.call_args
-        assert "graph_date" in kwargs
         assert c._last_date is not None
+        # Verify graph was saved to internal BqmStorage
+        dates = c._storage.get_bqm_dates()
+        assert len(dates) == 1
 
-    @patch("app.collectors.bqm.thinkbroadband")
-    def test_collect_stores_yesterday_when_before_noon(self, mock_tb):
+    @patch("app.modules.bqm.collector.fetch_graph")
+    def test_collect_stores_yesterday_when_before_noon(self, mock_fetch):
         """Collect time before 12:00 should store as yesterday."""
         from datetime import date, timedelta
-        mock_tb.fetch_graph.return_value = b"\x89PNG" + b"\x00" * 200
+        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
         c, _, storage = self._make_collector(collect_time="02:00")
         c.collect()
-        _, kwargs = storage.save_bqm_graph.call_args
+        dates = c._storage.get_bqm_dates()
         expected = (date.today() - timedelta(days=1)).isoformat()
-        assert kwargs["graph_date"] == expected
+        assert dates[0] == expected
 
-    @patch("app.collectors.bqm.thinkbroadband")
-    def test_collect_stores_today_when_after_noon(self, mock_tb):
+    @patch("app.modules.bqm.collector.fetch_graph")
+    def test_collect_stores_today_when_after_noon(self, mock_fetch):
         """Collect time at/after 12:00 should store as today."""
         from datetime import date
-        mock_tb.fetch_graph.return_value = b"\x89PNG" + b"\x00" * 200
+        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
         c, _, storage = self._make_collector(collect_time="14:00")
         c.collect()
-        _, kwargs = storage.save_bqm_graph.call_args
-        assert kwargs["graph_date"] == date.today().isoformat()
+        dates = c._storage.get_bqm_dates()
+        assert dates[0] == date.today().isoformat()
 
-    @patch("app.collectors.bqm.thinkbroadband")
-    def test_collect_skips_same_day(self, mock_tb):
-        mock_tb.fetch_graph.return_value = b"\x89PNG" + b"\x00" * 200
+    @patch("app.modules.bqm.collector.fetch_graph")
+    def test_collect_skips_same_day(self, mock_fetch):
+        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
         c, _, storage = self._make_collector()
         c.collect()
         result = c.collect()
         assert result.data == {"skipped": True}
-        assert mock_tb.fetch_graph.call_count == 1
+        assert mock_fetch.call_count == 1
 
-    @patch("app.collectors.bqm.thinkbroadband")
-    def test_collect_fetch_failure(self, mock_tb):
-        mock_tb.fetch_graph.return_value = None
+    @patch("app.modules.bqm.collector.fetch_graph")
+    def test_collect_fetch_failure(self, mock_fetch):
+        mock_fetch.return_value = None
         c, _, storage = self._make_collector()
         result = c.collect()
         assert result.success is False
         assert "Failed" in result.error
-        storage.save_bqm_graph.assert_not_called()
+        # No graph should be stored in internal storage on failure
+        assert c._storage.get_bqm_dates() == []
 
     def test_name(self):
         c, *_ = self._make_collector()
         assert c.name == "bqm"
 
-    @patch("app.collectors.bqm.time")
+    @patch("app.modules.bqm.collector.time")
     def test_should_poll_before_target(self, mock_time):
         """Should not poll if current time is before configured collect_time."""
         mock_time.strftime.side_effect = lambda fmt: {
@@ -462,7 +473,7 @@ class TestBQMCollector:
         c, *_ = self._make_collector(collect_time="02:00")
         assert c.should_poll() is False
 
-    @patch("app.collectors.bqm.time")
+    @patch("app.modules.bqm.collector.time")
     def test_should_poll_after_target(self, mock_time):
         """Should poll if current time is at/after configured collect_time."""
         mock_time.strftime.side_effect = lambda fmt: {
@@ -472,7 +483,7 @@ class TestBQMCollector:
         c, *_ = self._make_collector(collect_time="02:00")
         assert c.should_poll() is True
 
-    @patch("app.collectors.bqm.time")
+    @patch("app.modules.bqm.collector.time")
     def test_should_poll_not_twice_same_day(self, mock_time):
         """Should not poll again after collecting today."""
         mock_time.strftime.side_effect = lambda fmt: {
@@ -505,16 +516,49 @@ class TestDiscoverCollectors:
         }
         return mgr
 
+    def _make_web_with_modules(self, module_specs):
+        """Create a web mock with module_loader returning given module specs.
+
+        module_specs: list of (collector_class, name) tuples.
+        """
+        web = MagicMock()
+        modules = []
+        for cls, mod_id in module_specs:
+            mod = MagicMock()
+            mod.collector_class = cls
+            mod.id = mod_id
+            modules.append(mod)
+        module_loader = MagicMock()
+        module_loader.get_enabled_modules.return_value = modules
+        web.get_module_loader.return_value = module_loader
+        return web
+
     @patch("app.drivers.load_driver")
-    def test_discover_returns_three_collectors(self, mock_load):
+    def test_discover_returns_modem_plus_modules(self, mock_load):
         from app.collectors import discover_collectors
 
         mock_load.return_value = MagicMock()
         config_mgr = self._make_config_mgr()
         analyzer = MagicMock()
 
+        # Create mock module collectors for speedtest and bqm
+        mock_speedtest_cls = MagicMock()
+        mock_speedtest_instance = MagicMock()
+        mock_speedtest_instance.name = "speedtest"
+        mock_speedtest_cls.return_value = mock_speedtest_instance
+
+        mock_bqm_cls = MagicMock()
+        mock_bqm_instance = MagicMock()
+        mock_bqm_instance.name = "bqm"
+        mock_bqm_cls.return_value = mock_bqm_instance
+
+        web = self._make_web_with_modules([
+            (mock_speedtest_cls, "docsight.speedtest"),
+            (mock_bqm_cls, "docsight.bqm"),
+        ])
+
         collectors = discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, MagicMock(), analyzer
+            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
         )
         assert len(collectors) == 3
         names = [c.name for c in collectors]
@@ -523,19 +567,45 @@ class TestDiscoverCollectors:
         assert "bqm" in names
 
     @patch("app.drivers.load_driver")
-    def test_discover_includes_bnetz_watcher(self, mock_load):
+    def test_discover_includes_bnetz_watcher_module(self, mock_load):
         from app.collectors import discover_collectors
 
         mock_load.return_value = MagicMock()
         config_mgr = self._make_config_mgr(bnetz_watch=True)
         analyzer = MagicMock()
 
+        mock_bnetz_cls = MagicMock()
+        mock_bnetz_instance = MagicMock()
+        mock_bnetz_instance.name = "bnetz_watcher"
+        mock_bnetz_cls.return_value = mock_bnetz_instance
+
+        web = self._make_web_with_modules([
+            (mock_bnetz_cls, "docsight.bnetz"),
+        ])
+
         collectors = discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, MagicMock(), analyzer
+            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
         )
-        assert len(collectors) == 4
+        assert len(collectors) == 2  # modem + bnetz_watcher module
         names = [c.name for c in collectors]
         assert "bnetz_watcher" in names
+
+    @patch("app.drivers.load_driver")
+    def test_discover_no_modules_returns_modem_only(self, mock_load):
+        from app.collectors import discover_collectors
+
+        mock_load.return_value = MagicMock()
+        config_mgr = self._make_config_mgr()
+        analyzer = MagicMock()
+
+        # Web without module_loader attribute
+        web = MagicMock(spec=[])
+
+        collectors = discover_collectors(
+            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
+        )
+        assert len(collectors) == 1
+        assert collectors[0].name == "modem"
 
     @patch("app.drivers.load_driver")
     def test_modem_collector_gets_poll_interval(self, mock_load):
@@ -545,8 +615,11 @@ class TestDiscoverCollectors:
         config_mgr = self._make_config_mgr(poll_interval=120)
         analyzer = MagicMock()
 
+        # Web without module_loader
+        web = MagicMock(spec=[])
+
         collectors = discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, MagicMock(), analyzer
+            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
         )
         modem = [c for c in collectors if c.name == "modem"][0]
         assert modem.poll_interval_seconds == 120
@@ -559,8 +632,11 @@ class TestDiscoverCollectors:
         config_mgr = self._make_config_mgr()
         analyzer = MagicMock()
 
+        # Web without module_loader
+        web = MagicMock(spec=[])
+
         discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, MagicMock(), analyzer
+            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
         )
         mock_load.assert_called_once_with("fritzbox", "http://fritz.box", "admin", "pass")
 
@@ -752,6 +828,8 @@ class TestPollingLoopOrchestrator:
 
         polling_loop(config_mgr, storage, stop)
 
+        # Core storage should not have speedtest/bqm methods called
+        # (those are now handled by module-internal storage)
         storage.get_latest_speedtest_id.assert_not_called()
         storage.save_bqm_graph.assert_not_called()
 

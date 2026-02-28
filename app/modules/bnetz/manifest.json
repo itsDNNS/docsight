@@ -1,0 +1,25 @@
+{
+  "id": "docsight.bnetz",
+  "name": "BNetzA Broadband Measurement",
+  "description": "BNetzA Breitbandmessung protocol parsing and file watcher",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "collector": "collector.py:BnetzWatcherCollector",
+    "routes": "routes.py",
+    "settings": "templates/bnetz_settings.html",
+    "i18n": "i18n/"
+  },
+  "config": {
+    "bnetz_enabled": true,
+    "bnetz_watch_enabled": false,
+    "bnetz_watch_dir": "/data/bnetz"
+  },
+  "menu": {
+    "label_key": "docsight.bnetz.bnetz_watcher_title",
+    "icon": "file-check",
+    "order": 24
+  }
+}

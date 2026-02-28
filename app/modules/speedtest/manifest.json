@@ -1,0 +1,26 @@
+{
+  "id": "docsight.speedtest",
+  "name": "Speedtest Tracker",
+  "description": "Speed test results from Speedtest Tracker with health classification",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "collector": "collector.py:SpeedtestCollector",
+    "routes": "routes.py",
+    "settings": "templates/speedtest_settings.html",
+    "i18n": "i18n/"
+  },
+  "config": {
+    "speedtest_tracker_url": "",
+    "speedtest_tracker_token": "",
+    "booked_download": 0,
+    "booked_upload": 0
+  },
+  "menu": {
+    "label_key": "docsight.speedtest.speedtest_tracker",
+    "icon": "gauge",
+    "order": 20
+  }
+}

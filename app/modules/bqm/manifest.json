@@ -1,0 +1,24 @@
+{
+  "id": "docsight.bqm",
+  "name": "ThinkBroadband BQM",
+  "description": "Broadband Quality Monitor graph collection from ThinkBroadband",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "collector": "collector.py:BQMCollector",
+    "routes": "routes.py",
+    "settings": "templates/bqm_settings.html",
+    "i18n": "i18n/"
+  },
+  "config": {
+    "bqm_url": "",
+    "bqm_collect_time": "02:00"
+  },
+  "menu": {
+    "label_key": "docsight.bqm.bqm_title",
+    "icon": "activity",
+    "order": 22
+  }
+}

@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from app.bnetz_parser import parse_bnetz_pdf
+from app.modules.bnetz.parser import parse_bnetz_pdf
 
 # Ensure pypdf.PdfReader is importable for patching
 import pypdf

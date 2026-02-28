@@ -6,6 +6,8 @@ import pytest
 from app.web import app, update_state, init_config, init_storage
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
+from app.modules.bnetz.storage import BnetzStorage
+from app.modules.speedtest.storage import SpeedtestStorage
 
 
 @pytest.fixture
@@ -317,36 +319,41 @@ def storage_client(tmp_path, config_mgr):
     """Client with real storage for BNetzA tests."""
     db_path = str(tmp_path / "test_web.db")
     storage = SnapshotStorage(db_path, max_days=7)
+    bnetz_st = BnetzStorage(db_path)
     init_config(config_mgr)
     init_storage(storage)
+    # Reset module-local storage singletons
+    import app.modules.bnetz.routes as bnetz_routes
+    bnetz_routes._storage = None
     app.config["TESTING"] = True
     with app.test_client() as client:
-        yield client, storage
+        yield client, storage, bnetz_st
     init_storage(None)
+    bnetz_routes._storage = None
 
 
 class TestBnetzAPI:
     def test_list_empty(self, storage_client):
-        client, _ = storage_client
+        client, _, _ = storage_client
         resp = client.get("/api/bnetz/measurements")
         assert resp.status_code == 200
         assert resp.get_json() == []
 
     def test_upload_no_file(self, storage_client):
-        client, _ = storage_client
+        client, _, _ = storage_client
         resp = client.post("/api/bnetz/upload")
         assert resp.status_code == 400
 
     def test_upload_not_pdf(self, storage_client):
-        client, _ = storage_client
+        client, _, _ = storage_client
         data = {"file": (io.BytesIO(b"not a pdf"), "test.pdf", "application/pdf")}
         resp = client.post("/api/bnetz/upload", data=data, content_type="multipart/form-data")
         assert resp.status_code == 400
         assert "PDF" in resp.get_json()["error"]
 
     def test_upload_and_list(self, storage_client):
-        client, storage = storage_client
-        # Directly insert via storage (to avoid needing a real BNetzA PDF)
+        client, _, bnetz_st = storage_client
+        # Directly insert via module storage (to avoid needing a real BNetzA PDF)
         parsed = {
             "date": "2025-02-04",
             "provider": "Vodafone",
@@ -365,7 +372,7 @@ class TestBnetzAPI:
             "verdict_download": "deviation",
             "verdict_upload": "deviation",
         }
-        storage.save_bnetz_measurement(parsed, b"%PDF-test")
+        bnetz_st.save_bnetz_measurement(parsed, b"%PDF-test")
         resp = client.get("/api/bnetz/measurements")
         assert resp.status_code == 200
         data = resp.get_json()
@@ -373,8 +380,8 @@ class TestBnetzAPI:
         assert data[0]["provider"] == "Vodafone"
 
     def test_pdf_download(self, storage_client):
-        client, storage = storage_client
-        mid = storage.save_bnetz_measurement(
+        client, _, bnetz_st = storage_client
+        mid = bnetz_st.save_bnetz_measurement(
             {"date": "2025-01-01", "measurements_download": [], "measurements_upload": []},
             b"%PDF-download-test",
         )
@@ -384,13 +391,13 @@ class TestBnetzAPI:
         assert resp.content_type == "application/pdf"
 
     def test_pdf_not_found(self, storage_client):
-        client, _ = storage_client
+        client, _, _ = storage_client
         resp = client.get("/api/bnetz/pdf/9999")
         assert resp.status_code == 404
 
     def test_delete(self, storage_client):
-        client, storage = storage_client
-        mid = storage.save_bnetz_measurement(
+        client, _, bnetz_st = storage_client
+        mid = bnetz_st.save_bnetz_measurement(
             {"date": "2025-01-01", "measurements_download": [], "measurements_upload": []},
             b"%PDF-delete-test",
         )
@@ -402,7 +409,7 @@ class TestBnetzAPI:
         assert resp.get_json() == []
 
     def test_delete_not_found(self, storage_client):
-        client, _ = storage_client
+        client, _, _ = storage_client
         resp = client.delete("/api/bnetz/9999")
         assert resp.status_code == 404
 
@@ -562,10 +569,16 @@ class TestDeviceAPI:
 
 
 class TestSpeedtestDetailAPI:
+    def _reset_speedtest_module(self):
+        import app.modules.speedtest.routes as st_routes
+        st_routes._storage = None
+
     @pytest.fixture
     def storage_with_speedtest(self, tmp_path):
-        storage = SnapshotStorage(str(tmp_path / "speed_test.db"), max_days=7)
-        storage.save_speedtest_results([{
+        db_path = str(tmp_path / "speed_test.db")
+        storage = SnapshotStorage(db_path, max_days=7)
+        ss = SpeedtestStorage(db_path)
+        ss.save_speedtest_results([{
             "id": 42,
             "timestamp": "2026-02-27T12:00:00Z",
             "download_mbps": 500.0,
@@ -581,6 +594,7 @@ class TestSpeedtestDetailAPI:
         return storage
 
     def test_speedtest_by_id(self, client, storage_with_speedtest):
+        self._reset_speedtest_module()
         init_storage(storage_with_speedtest)
         resp = client.get("/api/speedtest/42")
         assert resp.status_code == 200
@@ -589,17 +603,21 @@ class TestSpeedtestDetailAPI:
         assert data["download_mbps"] == 500.0
 
     def test_speedtest_not_found(self, client, storage_with_speedtest):
+        self._reset_speedtest_module()
         init_storage(storage_with_speedtest)
         resp = client.get("/api/speedtest/9999")
         assert resp.status_code == 404
 
     def test_speedtest_detail_includes_quality_fields(self, tmp_path):
         """Issue #113: speedtest responses should include classification fields."""
+        self._reset_speedtest_module()
         mgr = ConfigManager(str(tmp_path / "data_sq"))
         mgr.save({"modem_password": "test", "booked_download": 1000, "booked_upload": 50})
         init_config(mgr)
-        storage = SnapshotStorage(str(tmp_path / "sq.db"), max_days=7)
-        storage.save_speedtest_results([{
+        db_path = str(tmp_path / "sq.db")
+        storage = SnapshotStorage(db_path, max_days=7)
+        ss = SpeedtestStorage(db_path)
+        ss.save_speedtest_results([{
             "id": 1, "timestamp": "2026-02-27T12:00:00Z",
             "download_mbps": 900.0, "upload_mbps": 45.0,
             "download_human": "900 Mbps", "upload_human": "45 Mbps",
@@ -612,18 +630,21 @@ class TestSpeedtestDetailAPI:
             resp = c.get("/api/speedtest/1")
             assert resp.status_code == 200
             data = resp.get_json()
-            # 900/1000 = 0.9 >= 0.8 → good
+            # 900/1000 = 0.9 >= 0.8 -> good
             assert data["speed_health"] == "good"
             assert data["download_class"] == "good"
-            # 45/50 = 0.9 >= 0.8 → good
+            # 45/50 = 0.9 >= 0.8 -> good
             assert data["upload_class"] == "good"
 
     def test_speedtest_quality_warn_and_poor(self, tmp_path):
+        self._reset_speedtest_module()
         mgr = ConfigManager(str(tmp_path / "data_sq2"))
         mgr.save({"modem_password": "test", "booked_download": 1000, "booked_upload": 100})
         init_config(mgr)
-        storage = SnapshotStorage(str(tmp_path / "sq2.db"), max_days=7)
-        storage.save_speedtest_results([{
+        db_path = str(tmp_path / "sq2.db")
+        storage = SnapshotStorage(db_path, max_days=7)
+        ss = SpeedtestStorage(db_path)
+        ss.save_speedtest_results([{
             "id": 10, "timestamp": "2026-02-27T12:00:00Z",
             "download_mbps": 600.0, "upload_mbps": 30.0,
             "download_human": "600 Mbps", "upload_human": "30 Mbps",
@@ -635,15 +656,16 @@ class TestSpeedtestDetailAPI:
         with app.test_client() as c:
             resp = c.get("/api/speedtest/10")
             data = resp.get_json()
-            # 600/1000 = 0.6 → warn
+            # 600/1000 = 0.6 -> warn
             assert data["download_class"] == "warn"
-            # 30/100 = 0.3 → poor
+            # 30/100 = 0.3 -> poor
             assert data["upload_class"] == "poor"
             # speed_health = worst of dl/ul = poor
             assert data["speed_health"] == "poor"
 
     def test_speedtest_quality_no_booked_speeds(self, client, storage_with_speedtest):
         """Without booked speeds and no connection_info, quality fields should be null."""
+        self._reset_speedtest_module()
         from app.web import _state
         _state["connection_info"] = None
         init_storage(storage_with_speedtest)

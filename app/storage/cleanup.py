@@ -124,12 +124,15 @@ class CleanupMixin:
                        "weather_data"]
             total = 0
             for tbl in tables:
-                deleted = conn.execute(
-                    f"DELETE FROM {tbl} WHERE is_demo = 1"
-                ).rowcount
-                if deleted:
-                    log.info("Purged %d demo rows from %s", deleted, tbl)
-                    total += deleted
+                try:
+                    deleted = conn.execute(
+                        f"DELETE FROM {tbl} WHERE is_demo = 1"
+                    ).rowcount
+                    if deleted:
+                        log.info("Purged %d demo rows from %s", deleted, tbl)
+                        total += deleted
+                except sqlite3.OperationalError:
+                    pass  # Table may not exist if module not loaded
         return total
 
     def _cleanup(self):
@@ -147,18 +150,24 @@ class CleanupMixin:
         tz = getattr(self, 'tz_name', '')
         today = local_today(tz)
         cutoff_date = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=self.max_days)).strftime("%Y-%m-%d")
-        with sqlite3.connect(self.db_path) as conn:
-            bqm_deleted = conn.execute(
-                "DELETE FROM bqm_graphs WHERE date < ?", (cutoff_date,)
-            ).rowcount
-        if bqm_deleted:
-            log.info("Cleaned up %d old BQM graphs (before %s)", bqm_deleted, cutoff_date)
-        with sqlite3.connect(self.db_path) as conn:
-            weather_deleted = conn.execute(
-                "DELETE FROM weather_data WHERE timestamp < ?", (cutoff,)
-            ).rowcount
-        if weather_deleted:
-            log.info("Cleaned up %d old weather records (before %s)", weather_deleted, cutoff)
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                bqm_deleted = conn.execute(
+                    "DELETE FROM bqm_graphs WHERE date < ?", (cutoff_date,)
+                ).rowcount
+            if bqm_deleted:
+                log.info("Cleaned up %d old BQM graphs (before %s)", bqm_deleted, cutoff_date)
+        except sqlite3.OperationalError:
+            pass  # Table may not exist if BQM module not loaded
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                weather_deleted = conn.execute(
+                    "DELETE FROM weather_data WHERE timestamp < ?", (cutoff,)
+                ).rowcount
+            if weather_deleted:
+                log.info("Cleaned up %d old weather records (before %s)", weather_deleted, cutoff)
+        except sqlite3.OperationalError:
+            pass  # Table may not exist if weather module not loaded
         events_deleted = self.delete_old_events(self.max_days)
         if events_deleted:
             log.info("Cleaned up %d old events (before %s)", events_deleted, cutoff)

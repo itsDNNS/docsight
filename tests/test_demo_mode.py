@@ -6,6 +6,9 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from app.storage import SnapshotStorage
+from app.modules.speedtest.storage import SpeedtestStorage
+from app.modules.bqm.storage import BqmStorage
+from app.modules.bnetz.storage import BnetzStorage
 from app.web import app, init_config, init_storage
 from app.config import ConfigManager
 
@@ -37,6 +40,10 @@ def client(config_mgr, storage):
 
 def _seed_demo_rows(storage):
     """Insert demo-flagged rows into all 7 tables."""
+    # Ensure module tables exist
+    SpeedtestStorage(storage.db_path)
+    BqmStorage(storage.db_path)
+    BnetzStorage(storage.db_path)
     with sqlite3.connect(storage.db_path) as conn:
         conn.execute(
             "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
@@ -101,6 +108,10 @@ def _count_rows(storage, table, is_demo=None):
 class TestIsDemoColumn:
     def test_is_demo_column_exists(self, storage):
         """All 7 demo-seeded tables should have an is_demo column."""
+        # Ensure module tables exist
+        SpeedtestStorage(storage.db_path)
+        BqmStorage(storage.db_path)
+        BnetzStorage(storage.db_path)
         tables = ["snapshots", "events", "journal_entries", "incidents",
                    "speedtest_results", "bqm_graphs", "bnetz_measurements"]
         with sqlite3.connect(storage.db_path) as conn:

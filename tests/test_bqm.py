@@ -3,7 +3,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from app.thinkbroadband import fetch_graph
+from app.modules.bqm.thinkbroadband import fetch_graph
+from app.modules.bqm.storage import BqmStorage
 from app.storage import SnapshotStorage
 from app.web import app, init_config, init_storage
 from app.config import ConfigManager
@@ -13,7 +14,7 @@ from app.config import ConfigManager
 
 
 class TestBQMFetcher:
-    @patch("app.thinkbroadband.urllib.request.urlopen")
+    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
     def test_fetch_success(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.read.return_value = b"\x89PNG" + b"\x00" * 200
@@ -25,7 +26,7 @@ class TestBQMFetcher:
         assert result is not None
         assert len(result) > 100
 
-    @patch("app.thinkbroadband.urllib.request.urlopen")
+    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
     def test_fetch_empty_response(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.read.return_value = b""
@@ -36,7 +37,7 @@ class TestBQMFetcher:
         result = fetch_graph("https://example.com/graph.png")
         assert result is None
 
-    @patch("app.thinkbroadband.urllib.request.urlopen")
+    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
     def test_fetch_too_small(self, mock_urlopen):
         mock_resp = MagicMock()
         mock_resp.read.return_value = b"tiny"
@@ -47,7 +48,7 @@ class TestBQMFetcher:
         result = fetch_graph("https://example.com/graph.png")
         assert result is None
 
-    @patch("app.thinkbroadband.urllib.request.urlopen")
+    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
     def test_fetch_network_error(self, mock_urlopen):
         mock_urlopen.side_effect = Exception("Connection refused")
         result = fetch_graph("https://example.com/graph.png")
@@ -63,9 +64,9 @@ class TestBQMFetcher:
 
 
 @pytest.fixture
-def storage(tmp_path):
+def bqm_storage(tmp_path):
     db_path = str(tmp_path / "test.db")
-    return SnapshotStorage(db_path, max_days=7)
+    return BqmStorage(db_path)
 
 
 @pytest.fixture
@@ -74,31 +75,30 @@ def sample_png():
 
 
 class TestBQMStorage:
-    def test_save_and_get(self, storage, sample_png):
-        storage.save_bqm_graph(sample_png)
-        dates = storage.get_bqm_dates()
+    def test_save_and_get(self, bqm_storage, sample_png):
+        bqm_storage.save_bqm_graph(sample_png)
+        dates = bqm_storage.get_bqm_dates()
         assert len(dates) == 1
-        image = storage.get_bqm_graph(dates[0])
+        image = bqm_storage.get_bqm_graph(dates[0])
         assert image == sample_png
 
-    def test_duplicate_same_day(self, storage, sample_png):
-        storage.save_bqm_graph(sample_png)
-        storage.save_bqm_graph(sample_png)
-        dates = storage.get_bqm_dates()
+    def test_duplicate_same_day(self, bqm_storage, sample_png):
+        bqm_storage.save_bqm_graph(sample_png)
+        bqm_storage.save_bqm_graph(sample_png)
+        dates = bqm_storage.get_bqm_dates()
         assert len(dates) == 1
 
-    def test_get_nonexistent_date(self, storage):
-        assert storage.get_bqm_graph("2099-01-01") is None
+    def test_get_nonexistent_date(self, bqm_storage):
+        assert bqm_storage.get_bqm_graph("2099-01-01") is None
 
-    def test_empty_dates(self, storage):
-        assert storage.get_bqm_dates() == []
+    def test_empty_dates(self, bqm_storage):
+        assert bqm_storage.get_bqm_dates() == []
 
-    def test_dates_order(self, storage, sample_png):
+    def test_dates_order(self, bqm_storage, sample_png):
         """Dates should be newest first."""
         import sqlite3
-        from datetime import datetime
         # Insert manually with different dates
-        with sqlite3.connect(storage.db_path) as conn:
+        with sqlite3.connect(bqm_storage.db_path) as conn:
             conn.execute(
                 "INSERT INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
                 ("2025-01-01", "2025-01-01T12:00:00", sample_png),
@@ -111,48 +111,59 @@ class TestBQMStorage:
                 "INSERT INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
                 ("2025-01-02", "2025-01-02T12:00:00", sample_png),
             )
-        dates = storage.get_bqm_dates()
+        dates = bqm_storage.get_bqm_dates()
         assert dates == ["2025-01-03", "2025-01-02", "2025-01-01"]
 
     def test_cleanup_removes_old_bqm(self, tmp_path, sample_png):
         """Cleanup should remove BQM graphs older than max_days."""
         import sqlite3
         db_path = str(tmp_path / "cleanup.db")
+        # SnapshotStorage still handles cleanup for backward compat
         s = SnapshotStorage(db_path, max_days=1)
-        # Insert a graph dated 10 days ago
+        # BqmStorage creates the table
+        bs = BqmStorage(db_path)
+        # Insert a graph dated far in the past
         with sqlite3.connect(db_path) as conn:
             conn.execute(
                 "INSERT INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
                 ("2020-01-01", "2020-01-01T12:00:00", sample_png),
             )
-        assert len(s.get_bqm_dates()) == 1
+        assert len(bs.get_bqm_dates()) == 1
         s._cleanup()
-        assert len(s.get_bqm_dates()) == 0
+        assert len(bs.get_bqm_dates()) == 0
 
     def test_unlimited_retention(self, tmp_path, sample_png):
         """max_days=0 should keep all BQM graphs."""
         import sqlite3
         db_path = str(tmp_path / "unlimited.db")
         s = SnapshotStorage(db_path, max_days=0)
+        bs = BqmStorage(db_path)
         with sqlite3.connect(db_path) as conn:
             conn.execute(
                 "INSERT INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
                 ("2020-01-01", "2020-01-01T12:00:00", sample_png),
             )
         s._cleanup()
-        assert len(s.get_bqm_dates()) == 1
+        assert len(bs.get_bqm_dates()) == 1
 
 
 # ── API Tests ──
 
 
+def _reset_bqm_module_storage():
+    """Reset the BQM module's lazy-initialized storage between tests."""
+    import app.modules.bqm.routes as bqm_routes
+    bqm_routes._storage = None
+
+
 @pytest.fixture
-def bqm_storage(tmp_path, sample_png):
+def bqm_api_storage(tmp_path, sample_png):
     """Storage pre-loaded with a BQM graph for today."""
     import sqlite3
     from datetime import datetime
     db_path = str(tmp_path / "bqm_api.db")
     s = SnapshotStorage(db_path, max_days=7)
+    bs = BqmStorage(db_path)
     today = datetime.now().strftime("%Y-%m-%d")
     with sqlite3.connect(db_path) as conn:
         conn.execute(
@@ -163,16 +174,18 @@ def bqm_storage(tmp_path, sample_png):
 
 
 @pytest.fixture
-def bqm_client(tmp_path, bqm_storage):
-    s, today = bqm_storage
+def bqm_client(tmp_path, bqm_api_storage):
+    s, today = bqm_api_storage
     data_dir = str(tmp_path / "data")
     mgr = ConfigManager(data_dir)
     mgr.save({"modem_password": "test", "bqm_url": "https://example.com/graph.png"})
     init_config(mgr)
     init_storage(s)
+    _reset_bqm_module_storage()
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client, today
+    _reset_bqm_module_storage()
 
 
 class TestBQMAPI:
@@ -206,6 +219,7 @@ class TestBQMAPI:
         mgr.save({"modem_password": "test"})
         init_config(mgr)
         init_storage(None)
+        _reset_bqm_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.get("/api/bqm/dates")
@@ -216,7 +230,7 @@ class TestBQMAPI:
 class TestBQMLive:
     """Tests for the /api/bqm/live endpoint."""
 
-    @patch("app.thinkbroadband.urllib.request.urlopen")
+    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
     def test_live_success(self, mock_urlopen, bqm_client, sample_png):
         """Live fetch succeeds: returns fresh PNG with live source header."""
         mock_resp = MagicMock()
@@ -233,7 +247,7 @@ class TestBQMLive:
         assert resp.headers.get("X-BQM-Timestamp") is not None
         assert resp.data == sample_png
 
-    @patch("app.thinkbroadband.urllib.request.urlopen")
+    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
     def test_live_fallback_to_cached(self, mock_urlopen, bqm_client, sample_png):
         """Live fetch fails: falls back to today's cached image."""
         mock_urlopen.side_effect = Exception("Network error")
@@ -245,7 +259,7 @@ class TestBQMLive:
         assert resp.headers.get("X-BQM-Source") == "cached"
         assert resp.data == sample_png
 
-    @patch("app.thinkbroadband.urllib.request.urlopen")
+    @patch("app.modules.bqm.thinkbroadband.urllib.request.urlopen")
     def test_live_both_fail(self, mock_urlopen, tmp_path):
         """Both live and cached fail: returns 404."""
         mock_urlopen.side_effect = Exception("Network error")
@@ -255,6 +269,7 @@ class TestBQMLive:
         mgr.save({"modem_password": "test", "bqm_url": "https://example.com/graph.png"})
         init_config(mgr)
         init_storage(None)
+        _reset_bqm_module_storage()
         app.config["TESTING"] = True
         with app.test_client() as client:
             resp = client.get("/api/bqm/live")

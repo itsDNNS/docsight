@@ -1,0 +1,22 @@
+<!-- ═══ Panel: BQM (Module) ═══ -->
+<div class="settings-panel" id="panel-mod-docsight_bqm">
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <div class="settings-card-icon"><i data-lucide="activity"></i></div>
+            <div>
+                <div class="settings-card-title">ThinkBroadband BQM</div>
+                <div class="settings-card-desc">{{ t['docsight.bqm.bqm_optional'] or 'optional' }}</div>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="bqm_url">{{ t['docsight.bqm.bqm_share_url'] or 'BQM Share URL' }}</label>
+            <input type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
+            <span class="hint">{{ t['docsight.bqm.bqm_url_hint'] or 'Paste your ThinkBroadband BQM share link (.png)' }}</span>
+        </div>
+        <div class="form-row">
+            <label for="bqm_collect_time">{{ t['docsight.bqm.bqm_collect_time'] or 'Daily collection time' }}</label>
+            <input type="time" id="bqm_collect_time" name="bqm_collect_time" value="{{ config.bqm_collect_time }}">
+            <span class="hint">{{ t['docsight.bqm.bqm_collect_time_hint'] or 'Time of day to fetch the BQM graph (container timezone)' }}</span>
+        </div>
+    </div>
+</div>

@@ -1,10 +1,11 @@
 """Tests for BNetzA file watcher collector."""
 
 import os
+import tempfile
 import pytest
 from unittest.mock import MagicMock, patch
 
-from app.collectors.bnetz_watcher import BnetzWatcherCollector, _read_marker, _append_marker
+from app.modules.bnetz.collector import BnetzWatcherCollector, _read_marker, _append_marker
 
 
 class TestBnetzWatcherEnabled:
@@ -15,6 +16,7 @@ class TestBnetzWatcherEnabled:
             "bnetz_watch_dir": "/data/bnetz",
         }.get(k, a[0] if a else None)
         storage = MagicMock()
+        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
         return BnetzWatcherCollector(config_mgr=config_mgr, storage=storage), config_mgr, storage
 
     def test_is_enabled_true(self):
@@ -42,7 +44,7 @@ class TestBnetzWatcherCollect:
             "bnetz_watch_dir": watch_dir,
         }.get(k, a[0] if a else None)
         storage = MagicMock()
-        storage.save_bnetz_measurement.return_value = 1
+        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
         return BnetzWatcherCollector(config_mgr=config_mgr, storage=storage), config_mgr, storage
 
     def test_missing_dir_returns_failure(self):
@@ -56,9 +58,8 @@ class TestBnetzWatcherCollect:
         result = c.collect()
         assert result.success is True
         assert result.data == {"imported": 0, "errors": 0}
-        storage.save_bnetz_measurement.assert_not_called()
 
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_pdf")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_pdf")
     def test_imports_new_pdf(self, mock_import, tmp_path):
         # Create a test PDF file
         pdf_path = tmp_path / "test.pdf"
@@ -74,7 +75,7 @@ class TestBnetzWatcherCollect:
         assert not pdf_path.exists()
         assert (tmp_path / "processed" / "test.pdf").exists()
 
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_csv")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_csv")
     def test_imports_new_csv(self, mock_import, tmp_path):
         csv_path = tmp_path / "test.csv"
         csv_path.write_text("Datum;Download\n15.03.2026;100,0\n")
@@ -88,7 +89,7 @@ class TestBnetzWatcherCollect:
         assert not csv_path.exists()
         assert (tmp_path / "processed" / "test.csv").exists()
 
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_pdf")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_pdf")
     def test_skips_already_imported(self, mock_import, tmp_path):
         # Write marker with already-imported filename
         marker = tmp_path / ".imported"
@@ -105,8 +106,8 @@ class TestBnetzWatcherCollect:
         assert result.data["imported"] == 0
         mock_import.assert_not_called()
 
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_pdf")
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_csv")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_pdf")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_csv")
     def test_mixed_pdf_and_csv(self, mock_csv, mock_pdf, tmp_path):
         (tmp_path / "a.pdf").write_bytes(b"%PDF-test")
         (tmp_path / "b.csv").write_text("Datum;Download\n15.03.2026;100\n")
@@ -119,7 +120,7 @@ class TestBnetzWatcherCollect:
         mock_pdf.assert_called_once()
         mock_csv.assert_called_once()
 
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_pdf")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_pdf")
     def test_ignores_non_pdf_csv_files(self, mock_import, tmp_path):
         (tmp_path / "readme.txt").write_text("hello")
         (tmp_path / "image.png").write_bytes(b"\x89PNG")
@@ -131,7 +132,7 @@ class TestBnetzWatcherCollect:
         assert result.data["imported"] == 0
         mock_import.assert_not_called()
 
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_pdf")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_pdf")
     def test_error_handling_corrupt_file(self, mock_import, tmp_path):
         mock_import.side_effect = ValueError("Cannot read PDF")
         (tmp_path / "bad.pdf").write_bytes(b"not a pdf")
@@ -143,7 +144,7 @@ class TestBnetzWatcherCollect:
         assert result.data is None  # failure result has no data
         assert "failed to import" in result.error.lower()
 
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_pdf")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_pdf")
     def test_partial_failure(self, mock_import, tmp_path):
         """One file succeeds, one fails. Should still return success."""
         call_count = [0]
@@ -163,7 +164,7 @@ class TestBnetzWatcherCollect:
         assert result.data["imported"] == 1
         assert result.data["errors"] == 1
 
-    @patch("app.collectors.bnetz_watcher.BnetzWatcherCollector._import_pdf")
+    @patch("app.modules.bnetz.collector.BnetzWatcherCollector._import_pdf")
     def test_marker_persistence(self, mock_import, tmp_path):
         (tmp_path / "test.pdf").write_bytes(b"%PDF-test")
 
@@ -182,6 +183,7 @@ class TestBnetzWatcherCollect:
             "bnetz_watch_dir": "/data/bnetz",
         }.get(k, a[0] if a else None)
         storage = MagicMock()
+        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
 
         c = BnetzWatcherCollector(config_mgr=config_mgr, storage=storage)
         status = c.get_status()

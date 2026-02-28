@@ -9,18 +9,13 @@ import logging
 from .base import Collector, CollectorResult
 from .modem import ModemCollector
 from .demo import DemoCollector
-from .speedtest import SpeedtestCollector
-from .bqm import BQMCollector
-from .bnetz_watcher import BnetzWatcherCollector
+
 log = logging.getLogger("docsis.collectors")
 
-# Registry maps collector name → class
+# Registry maps collector name -> class
 COLLECTOR_REGISTRY = {
     "modem": ModemCollector,
     "demo": DemoCollector,
-    "speedtest": SpeedtestCollector,
-    "bqm": BQMCollector,
-    "bnetz_watcher": BnetzWatcherCollector,
 }
 
 
@@ -78,30 +73,6 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             notifier=notifier,
         ))
     
-    # Speedtest collector (available if speedtest configured, but not in demo mode)
-    if config_mgr.is_speedtest_configured() and not config_mgr.is_demo_mode():
-        collectors.append(SpeedtestCollector(
-            config_mgr=config_mgr,
-            storage=storage,
-            web=web,
-            poll_interval=300,
-        ))
-
-    # BQM collector (available if BQM configured, but not in demo mode)
-    if config_mgr.is_bqm_configured() and not config_mgr.is_demo_mode():
-        collectors.append(BQMCollector(
-            config_mgr=config_mgr,
-            storage=storage,
-            poll_interval=86400,
-        ))
-
-    # BNetzA watcher collector (available if watch dir configured, not in demo mode)
-    if config_mgr.is_bnetz_watch_configured() and not config_mgr.is_demo_mode():
-        collectors.append(BnetzWatcherCollector(
-            config_mgr=config_mgr,
-            storage=storage,
-        ))
-
     # ── Module collectors ──
     module_loader = web.get_module_loader() if hasattr(web, 'get_module_loader') else None
     if module_loader:
@@ -128,7 +99,4 @@ __all__ = [
     "discover_collectors",
     "ModemCollector",
     "DemoCollector",
-    "SpeedtestCollector",
-    "BQMCollector",
-    "BnetzWatcherCollector",
 ]

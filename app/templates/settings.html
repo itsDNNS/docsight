@@ -61,21 +61,6 @@
                 Notifications
                 <span class="status-dot" id="dot-notifications"></span>
             </a>
-            <a class="settings-nav-link" data-section="speedtest" onclick="switchSection('speedtest')">
-                <span class="icon"><i data-lucide="gauge"></i></span>
-                Speedtest
-                <span class="status-dot" id="dot-speedtest"></span>
-            </a>
-            <a class="settings-nav-link" data-section="bqm" onclick="switchSection('bqm')">
-                <span class="icon"><i data-lucide="activity"></i></span>
-                BQM
-                <span class="status-dot" id="dot-bqm"></span>
-            </a>
-            <a class="settings-nav-link" data-section="bnetz" onclick="switchSection('bnetz')">
-                <span class="icon"><i data-lucide="file-check"></i></span>
-                BNetzA
-                <span class="status-dot" id="dot-bnetz"></span>
-            </a>
             <a class="settings-nav-link" data-section="smokeping" onclick="switchSection('smokeping')">
                 <span class="icon"><i data-lucide="wifi"></i></span>
                 Smokeping
@@ -156,24 +141,6 @@
                 <span class="icon"><i data-lucide="bell"></i></span>
                 <span class="mobile-nav-label">Notifications</span>
                 <span class="mobile-nav-dot" id="mdot-notifications"></span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-            <a class="mobile-nav-item" onclick="switchSection('speedtest')">
-                <span class="icon"><i data-lucide="gauge"></i></span>
-                <span class="mobile-nav-label">Speedtest</span>
-                <span class="mobile-nav-dot" id="mdot-speedtest"></span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-            <a class="mobile-nav-item" onclick="switchSection('bqm')">
-                <span class="icon"><i data-lucide="activity"></i></span>
-                <span class="mobile-nav-label">BQM</span>
-                <span class="mobile-nav-dot" id="mdot-bqm"></span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-            <a class="mobile-nav-item" onclick="switchSection('bnetz')">
-                <span class="icon"><i data-lucide="file-check"></i></span>
-                <span class="mobile-nav-label">BNetzA</span>
-                <span class="mobile-nav-dot" id="mdot-bnetz"></span>
                 <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
             </a>
             <a class="mobile-nav-item" onclick="switchSection('smokeping')">
@@ -262,9 +229,6 @@
                 {% include 'settings/general.html' %}
                 {% include 'settings/modules.html' %}
                 {% include 'settings/notifications.html' %}
-                {% include 'settings/speedtest.html' %}
-                {% include 'settings/bqm.html' %}
-                {% include 'settings/bnetz.html' %}
                 {% include 'settings/smokeping.html' %}
                 {% include 'settings/appearance.html' %}
                 {% include 'settings/support.html' %}
@@ -290,9 +254,6 @@ var SECTION_TITLES = {
     general: T.step_general || 'General',
     modules: T.modules_title || 'Modules',
     notifications: 'Notifications',
-    speedtest: 'Speedtest Tracker',
-    bqm: 'ThinkBroadband BQM',
-    bnetz: T.bnetz_watcher_title || 'BNetzA',
     smokeping: 'Smokeping',
     appearance: T.appearance || 'Appearance',
     support: 'Support DOCSight'

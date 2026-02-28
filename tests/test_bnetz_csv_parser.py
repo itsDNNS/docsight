@@ -1,7 +1,7 @@
 """Tests for BNetzA CSV parser."""
 
 import pytest
-from app.bnetz_csv_parser import parse_bnetz_csv, _parse_de_float, _convert_date
+from app.modules.bnetz.csv_parser import parse_bnetz_csv, _parse_de_float, _convert_date
 
 
 class TestHelpers:

@@ -2,6 +2,7 @@
 
 import pytest
 from app.storage import SnapshotStorage
+from app.modules.bnetz.storage import BnetzStorage
 
 
 @pytest.fixture
@@ -89,46 +90,50 @@ def sample_bnetz_parsed():
 
 
 class TestBnetzStorage:
-    def test_save_and_list(self, storage, sample_bnetz_parsed):
-        mid = storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-fake")
+    @pytest.fixture
+    def bnetz_storage(self, storage):
+        return BnetzStorage(storage.db_path)
+
+    def test_save_and_list(self, bnetz_storage, sample_bnetz_parsed):
+        mid = bnetz_storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-fake")
         assert mid > 0
-        measurements = storage.get_bnetz_measurements()
+        measurements = bnetz_storage.get_bnetz_measurements()
         assert len(measurements) == 1
         assert measurements[0]["provider"] == "Vodafone"
         assert measurements[0]["verdict_download"] == "deviation"
 
-    def test_get_pdf(self, storage, sample_bnetz_parsed):
-        mid = storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-test-content")
-        pdf = storage.get_bnetz_pdf(mid)
+    def test_get_pdf(self, bnetz_storage, sample_bnetz_parsed):
+        mid = bnetz_storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-test-content")
+        pdf = bnetz_storage.get_bnetz_pdf(mid)
         assert pdf == b"%PDF-test-content"
 
-    def test_get_pdf_not_found(self, storage):
-        assert storage.get_bnetz_pdf(9999) is None
+    def test_get_pdf_not_found(self, bnetz_storage):
+        assert bnetz_storage.get_bnetz_pdf(9999) is None
 
-    def test_delete(self, storage, sample_bnetz_parsed):
-        mid = storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-fake")
-        assert storage.delete_bnetz_measurement(mid) is True
-        assert storage.get_bnetz_measurements() == []
+    def test_delete(self, bnetz_storage, sample_bnetz_parsed):
+        mid = bnetz_storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-fake")
+        assert bnetz_storage.delete_bnetz_measurement(mid) is True
+        assert bnetz_storage.get_bnetz_measurements() == []
 
-    def test_delete_not_found(self, storage):
-        assert storage.delete_bnetz_measurement(9999) is False
+    def test_delete_not_found(self, bnetz_storage):
+        assert bnetz_storage.delete_bnetz_measurement(9999) is False
 
-    def test_get_latest(self, storage, sample_bnetz_parsed):
-        storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-1")
-        latest = storage.get_latest_bnetz()
+    def test_get_latest(self, bnetz_storage, sample_bnetz_parsed):
+        bnetz_storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-1")
+        latest = bnetz_storage.get_latest_bnetz()
         assert latest is not None
         assert latest["provider"] == "Vodafone"
 
-    def test_get_latest_empty(self, storage):
-        assert storage.get_latest_bnetz() is None
+    def test_get_latest_empty(self, bnetz_storage):
+        assert bnetz_storage.get_latest_bnetz() is None
 
-    def test_in_range(self, storage, sample_bnetz_parsed):
-        storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-1")
-        results = storage.get_bnetz_in_range("2000-01-01T00:00:00", "2099-12-31T23:59:59")
+    def test_in_range(self, bnetz_storage, sample_bnetz_parsed):
+        bnetz_storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-1")
+        results = bnetz_storage.get_bnetz_in_range("2000-01-01T00:00:00", "2099-12-31T23:59:59")
         assert len(results) == 1
 
-    def test_correlation_includes_bnetz(self, storage, sample_bnetz_parsed):
-        storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-1")
+    def test_correlation_includes_bnetz(self, storage, bnetz_storage, sample_bnetz_parsed):
+        bnetz_storage.save_bnetz_measurement(sample_bnetz_parsed, b"%PDF-1")
         timeline = storage.get_correlation_timeline(
             "2000-01-01T00:00:00", "2099-12-31T23:59:59", sources={"bnetz"}
         )

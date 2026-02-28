@@ -90,6 +90,8 @@ class TestUtcMigration:
 
     def test_already_utc_skipped(self, storage):
         """Timestamps with Z-suffix should not be double-converted."""
+        from app.modules.speedtest.storage import SpeedtestStorage
+        SpeedtestStorage(storage.db_path)  # ensure table exists
         with sqlite3.connect(storage.db_path) as conn:
             conn.execute(
                 "INSERT INTO speedtest_results (id, timestamp, download_mbps, upload_mbps, "

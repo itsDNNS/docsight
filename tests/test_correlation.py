@@ -6,6 +6,7 @@ import pytest
 from datetime import datetime, timedelta, timezone
 
 from app.storage import SnapshotStorage
+from app.modules.speedtest.storage import SpeedtestStorage
 from app.tz import utc_now, utc_cutoff
 from app.web import app, update_state, init_config, init_storage
 from app.config import ConfigManager
@@ -15,6 +16,12 @@ from app.config import ConfigManager
 def storage(tmp_path):
     db_path = str(tmp_path / "test.db")
     return SnapshotStorage(db_path, max_days=7)
+
+
+@pytest.fixture
+def speedtest_storage(storage):
+    """SpeedtestStorage sharing the same db_path as core storage."""
+    return SpeedtestStorage(storage.db_path)
 
 
 @pytest.fixture
@@ -46,7 +53,7 @@ def config_mgr(tmp_path):
 
 
 @pytest.fixture
-def client_with_storage(config_mgr, storage):
+def client_with_storage(config_mgr, storage, speedtest_storage):
     init_config(config_mgr)
     init_storage(storage)
     app.config["TESTING"] = True
@@ -55,15 +62,15 @@ def client_with_storage(config_mgr, storage):
 
 
 class TestSpeedtestTimestampIndex:
-    def test_index_created(self, storage):
+    def test_index_created(self, speedtest_storage):
         """Verify idx_speedtest_ts index exists."""
-        with sqlite3.connect(storage.db_path) as conn:
+        with sqlite3.connect(speedtest_storage.db_path) as conn:
             rows = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_speedtest_ts'"
             ).fetchall()
         assert len(rows) == 1
 
-    def test_speedtest_in_range(self, storage):
+    def test_speedtest_in_range(self, speedtest_storage):
         """get_speedtest_in_range returns results within time window."""
         now = datetime.now()
         results = [
@@ -89,24 +96,24 @@ class TestSpeedtestTimestampIndex:
                 "ping_ms": 20.0, "jitter_ms": 5.0, "packet_loss_pct": 1.0,
             },
         ]
-        storage.save_speedtest_results(results)
+        speedtest_storage.save_speedtest_results(results)
         start = (now - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
-        in_range = storage.get_speedtest_in_range(start, end)
+        in_range = speedtest_storage.get_speedtest_in_range(start, end)
         assert len(in_range) == 2
         assert in_range[0]["id"] == 1
         assert in_range[1]["id"] == 2
 
-    def test_speedtest_in_range_empty(self, storage):
+    def test_speedtest_in_range_empty(self, speedtest_storage):
         """get_speedtest_in_range returns empty list when no data."""
         now = datetime.now()
         start = (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
-        assert storage.get_speedtest_in_range(start, end) == []
+        assert speedtest_storage.get_speedtest_in_range(start, end) == []
 
 
 class TestCorrelationTimeline:
-    def _seed_data(self, storage, sample_analysis):
+    def _seed_data(self, storage, speedtest_storage, sample_analysis):
         """Insert modem snapshots, speedtest results, and events."""
         now = datetime.now()
         # Modem snapshots
@@ -120,7 +127,7 @@ class TestCorrelationTimeline:
                      json.dumps(sample_analysis["us_channels"])),
                 )
         # Speedtest results
-        storage.save_speedtest_results([{
+        speedtest_storage.save_speedtest_results([{
             "id": 10,
             "timestamp": (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S"),
             "download_mbps": 400.0, "upload_mbps": 40.0,
@@ -134,9 +141,9 @@ class TestCorrelationTimeline:
         )
         return now
 
-    def test_all_sources(self, storage, sample_analysis):
+    def test_all_sources(self, storage, speedtest_storage, sample_analysis):
         """get_correlation_timeline returns all sources when sources=None."""
-        now = self._seed_data(storage, sample_analysis)
+        now = self._seed_data(storage, speedtest_storage, sample_analysis)
         start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
         timeline = storage.get_correlation_timeline(start, end)
@@ -146,27 +153,27 @@ class TestCorrelationTimeline:
         assert "event" in sources
         assert len(timeline) == 5  # 3 modem + 1 speedtest + 1 event
 
-    def test_filtered_sources(self, storage, sample_analysis):
+    def test_filtered_sources(self, storage, speedtest_storage, sample_analysis):
         """get_correlation_timeline respects sources filter."""
-        now = self._seed_data(storage, sample_analysis)
+        now = self._seed_data(storage, speedtest_storage, sample_analysis)
         start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
         timeline = storage.get_correlation_timeline(start, end, sources={"modem"})
         assert all(e["source"] == "modem" for e in timeline)
         assert len(timeline) == 3
 
-    def test_sorted_by_timestamp(self, storage, sample_analysis):
+    def test_sorted_by_timestamp(self, storage, speedtest_storage, sample_analysis):
         """Timeline entries must be sorted chronologically."""
-        now = self._seed_data(storage, sample_analysis)
+        now = self._seed_data(storage, speedtest_storage, sample_analysis)
         start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
         timeline = storage.get_correlation_timeline(start, end)
         timestamps = [e["timestamp"] for e in timeline]
         assert timestamps == sorted(timestamps)
 
-    def test_modem_fields_present(self, storage, sample_analysis):
+    def test_modem_fields_present(self, storage, speedtest_storage, sample_analysis):
         """Modem entries must contain health, SNR, power fields."""
-        now = self._seed_data(storage, sample_analysis)
+        now = self._seed_data(storage, speedtest_storage, sample_analysis)
         start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
         timeline = storage.get_correlation_timeline(start, end, sources={"modem"})
@@ -176,9 +183,9 @@ class TestCorrelationTimeline:
         assert "ds_snr_min" in m
         assert "ds_power_avg" in m
 
-    def test_speedtest_fields_present(self, storage, sample_analysis):
+    def test_speedtest_fields_present(self, storage, speedtest_storage, sample_analysis):
         """Speedtest entries must contain download, upload, ping."""
-        now = self._seed_data(storage, sample_analysis)
+        now = self._seed_data(storage, speedtest_storage, sample_analysis)
         start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
         timeline = storage.get_correlation_timeline(start, end, sources={"speedtest"})
@@ -188,9 +195,9 @@ class TestCorrelationTimeline:
         assert "upload_mbps" in s
         assert "ping_ms" in s
 
-    def test_event_fields_present(self, storage, sample_analysis):
+    def test_event_fields_present(self, storage, speedtest_storage, sample_analysis):
         """Event entries must contain severity, type, message."""
-        now = self._seed_data(storage, sample_analysis)
+        now = self._seed_data(storage, speedtest_storage, sample_analysis)
         start = (now - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
         end = now.strftime("%Y-%m-%dT%H:%M:%S")
         timeline = storage.get_correlation_timeline(start, end, sources={"events"})
@@ -216,7 +223,7 @@ class TestCorrelationAPI:
         data = json.loads(resp.data)
         assert isinstance(data, list)
 
-    def test_correlation_endpoint_with_data(self, client_with_storage, storage, sample_analysis):
+    def test_correlation_endpoint_with_data(self, client_with_storage, storage, speedtest_storage, sample_analysis):
         """Correlation endpoint returns data from all sources."""
         ts = utc_now()
         with sqlite3.connect(storage.db_path) as conn:
@@ -226,7 +233,7 @@ class TestCorrelationAPI:
                  json.dumps(sample_analysis["ds_channels"]),
                  json.dumps(sample_analysis["us_channels"])),
             )
-        storage.save_speedtest_results([{
+        speedtest_storage.save_speedtest_results([{
             "id": 99,
             "timestamp": ts,
             "download_mbps": 500.0, "upload_mbps": 50.0,
@@ -254,7 +261,7 @@ class TestCorrelationAPI:
         data = json.loads(resp.data)
         assert all(e["source"] == "event" for e in data)
 
-    def test_correlation_speedtest_enrichment(self, client_with_storage, storage, sample_analysis):
+    def test_correlation_speedtest_enrichment(self, client_with_storage, storage, speedtest_storage, sample_analysis):
         """Speedtest entries get enriched with modem_health."""
         ts = utc_now()
         with sqlite3.connect(storage.db_path) as conn:
@@ -264,7 +271,7 @@ class TestCorrelationAPI:
                  json.dumps(sample_analysis["ds_channels"]),
                  json.dumps(sample_analysis["us_channels"])),
             )
-        storage.save_speedtest_results([{
+        speedtest_storage.save_speedtest_results([{
             "id": 100,
             "timestamp": ts,
             "download_mbps": 480.0, "upload_mbps": 48.0,

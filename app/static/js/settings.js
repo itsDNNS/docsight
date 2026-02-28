@@ -146,8 +146,6 @@ function revokeToken(id, name) {
 function updateStatusDots() {
     var dots = {
         notifications: 'notify_webhook_url',
-        speedtest: 'speedtest_tracker_url',
-        bqm: 'bqm_url',
         smokeping: 'smokeping_url'
     };
     for (var section in dots) {
@@ -162,14 +160,6 @@ function updateStatusDots() {
         if (el && mDot) {
             mDot.classList.toggle('visible', el.value.trim() !== '');
         }
-    }
-    /* BNetzA dot: based on checkbox */
-    var bnetzCheck = document.getElementById('bnetz_watch_enabled');
-    var bnetzDot = document.getElementById('dot-bnetz');
-    var mBnetzDot = document.getElementById('mdot-bnetz');
-    if (bnetzCheck) {
-        if (bnetzDot) bnetzDot.classList.toggle('visible', bnetzCheck.checked);
-        if (mBnetzDot) mBnetzDot.classList.toggle('visible', bnetzCheck.checked);
     }
 }
 
@@ -835,12 +825,10 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStatusDots();
 
     /* Listen for input changes on integration fields to update dots */
-    ['notify_webhook_url', 'speedtest_tracker_url', 'bqm_url', 'smokeping_url'].forEach(function(id) {
+    ['notify_webhook_url', 'smokeping_url'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.addEventListener('input', updateStatusDots);
     });
-    var bnetzWatchCheck = document.getElementById('bnetz_watch_enabled');
-    if (bnetzWatchCheck) bnetzWatchCheck.addEventListener('change', updateStatusDots);
 
     /* Modem type change */
     var modemType = document.getElementById('modem_type');

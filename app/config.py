@@ -34,24 +34,15 @@ DEFAULTS = {
     "language": "en",
     "isp_name": "",
     "admin_password": "",
-    "bqm_url": "",
-    "bqm_collect_time": "02:00",
     "smokeping_url": "",
     "smokeping_targets": "",
-    "speedtest_tracker_url": "",
-    "speedtest_tracker_token": "",
-    "booked_download": 0,
-    "booked_upload": 0,
     "demo_mode": False,
     "gaming_quality_enabled": True,
-    "bnetz_enabled": True,
     "notify_webhook_url": "",
     "notify_webhook_token": "",
     "notify_min_severity": "warning",
     "notify_cooldown": 3600,
     "notify_cooldowns": "{}",
-    "bnetz_watch_enabled": False,
-    "bnetz_watch_dir": "/data/bnetz",
     "timezone": "",
     "disabled_modules": "",  # comma-separated list of module IDs to disable
 }
@@ -110,8 +101,8 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "bnetz_enabled", "bnetz_watch_enabled"}
+INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = set()
