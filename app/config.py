@@ -43,6 +43,7 @@ DEFAULTS = {
     "notify_cooldowns": "{}",
     "timezone": "",
     "disabled_modules": "",  # comma-separated list of module IDs to disable
+    "active_theme": "",  # Module ID of active theme (empty = first available)
 }
 
 ENV_MAP = {

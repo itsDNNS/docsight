@@ -1012,3 +1012,63 @@ class TestGetThemeModules:
         loader.load_all()
 
         assert loader.get_theme_modules() == []
+
+
+class TestThemeSecurity:
+    """Theme modules must NOT have collector, routes, or publisher."""
+
+    def test_theme_with_collector_rejected(self):
+        raw = {
+            "id": "test.badtheme",
+            "name": "Bad Theme",
+            "description": "d",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "theme",
+            "contributes": {"theme": "theme.json", "collector": "collector.py:Foo"},
+        }
+        with pytest.raises(ManifestError, match="collector"):
+            validate_manifest(raw, "/path")
+
+    def test_theme_with_routes_rejected(self):
+        raw = {
+            "id": "test.badtheme",
+            "name": "Bad Theme",
+            "description": "d",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "theme",
+            "contributes": {"theme": "theme.json", "routes": "routes.py"},
+        }
+        with pytest.raises(ManifestError, match="routes"):
+            validate_manifest(raw, "/path")
+
+    def test_theme_with_publisher_rejected(self):
+        raw = {
+            "id": "test.badtheme",
+            "name": "Bad Theme",
+            "description": "d",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "theme",
+            "contributes": {"theme": "theme.json", "publisher": "pub.py:Foo"},
+        }
+        with pytest.raises(ManifestError, match="publisher"):
+            validate_manifest(raw, "/path")
+
+    def test_theme_with_static_allowed(self):
+        raw = {
+            "id": "test.goodtheme",
+            "name": "Good Theme",
+            "description": "d",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "theme",
+            "contributes": {"theme": "theme.json", "static": "static/"},
+        }
+        info = validate_manifest(raw, "/path")
+        assert "static" in info.contributes

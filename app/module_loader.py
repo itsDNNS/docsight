@@ -82,6 +82,14 @@ def validate_manifest(raw: dict, module_path: str) -> ModuleInfo:
     if unknown:
         raise ManifestError(f"Unknown contributes keys: {', '.join(sorted(unknown))}")
 
+    # Security: theme modules must not execute Python code
+    if mod_type == "theme":
+        forbidden = {"collector", "routes", "publisher"} & set(contributes.keys())
+        if forbidden:
+            raise ManifestError(
+                f"Theme modules must not contribute {', '.join(sorted(forbidden))} (security)"
+            )
+
     # Detect builtin
     norm = os.path.normpath(module_path).replace("\\", "/")
     builtin = "/app/modules/" in norm or "\\app\\modules\\" in os.path.normpath(module_path)
