@@ -17,10 +17,10 @@ from werkzeug.utils import secure_filename
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web")
 
-backup_bp = Blueprint("backup_bp", __name__)
+bp = Blueprint("backup_bp", __name__)
 
 
-@backup_bp.route("/api/backup", methods=["POST"])
+@bp.route("/api/backup", methods=["POST"])
 @require_auth
 def api_backup_download():
     """Create a backup and stream it as download."""
@@ -28,7 +28,7 @@ def api_backup_download():
     if not _config_manager:
         return jsonify({"error": "Not initialized"}), 500
     try:
-        from app.backup import create_backup
+        from .backup import create_backup
         buf = create_backup(_config_manager.data_dir)
         ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         filename = f"docsight_backup_{ts}.tar.gz"
@@ -39,7 +39,7 @@ def api_backup_download():
         return jsonify({"error": str(e)}), 500
 
 
-@backup_bp.route("/api/backup/scheduled", methods=["POST"])
+@bp.route("/api/backup/scheduled", methods=["POST"])
 @require_auth
 def api_backup_scheduled():
     """Create a backup in the configured backup path."""
@@ -49,7 +49,7 @@ def api_backup_scheduled():
     backup_path = _config_manager.get("backup_path", "/backup")
     retention = _config_manager.get("backup_retention", 5)
     try:
-        from app.backup import create_backup_to_file, cleanup_old_backups
+        from .backup import create_backup_to_file, cleanup_old_backups
         filename = create_backup_to_file(_config_manager.data_dir, backup_path)
         cleanup_old_backups(backup_path, keep=retention)
         audit_log.info("Scheduled backup created: ip=%s file=%s", _get_client_ip(), filename)
@@ -59,7 +59,7 @@ def api_backup_scheduled():
         return jsonify({"error": str(e)}), 500
 
 
-@backup_bp.route("/api/backup/list")
+@bp.route("/api/backup/list")
 @require_auth
 def api_backup_list():
     """List backups in the configured backup path."""
@@ -67,11 +67,11 @@ def api_backup_list():
     if not _config_manager:
         return jsonify([])
     backup_path = _config_manager.get("backup_path", "/backup")
-    from app.backup import list_backups
+    from .backup import list_backups
     return jsonify(list_backups(backup_path))
 
 
-@backup_bp.route("/api/backup/<filename>", methods=["DELETE"])
+@bp.route("/api/backup/<filename>", methods=["DELETE"])
 @require_auth
 def api_backup_delete(filename):
     """Delete a backup file."""
@@ -94,7 +94,7 @@ def api_backup_delete(filename):
     return jsonify({"success": True})
 
 
-@backup_bp.route("/api/restore/validate", methods=["POST"])
+@bp.route("/api/restore/validate", methods=["POST"])
 def api_restore_validate():
     """Validate a backup archive and return metadata.
 
@@ -113,14 +113,14 @@ def api_restore_validate():
     if len(data) > 500 * 1024 * 1024:  # 500 MB limit
         return jsonify({"error": "File too large"}), 400
     try:
-        from app.backup import validate_backup
+        from .backup import validate_backup
         meta = validate_backup(data)
         return jsonify({"valid": True, "meta": meta})
     except ValueError as e:
         return jsonify({"valid": False, "error": str(e)}), 400
 
 
-@backup_bp.route("/api/restore", methods=["POST"])
+@bp.route("/api/restore", methods=["POST"])
 def api_restore():
     """Restore a backup archive.
 
@@ -139,7 +139,7 @@ def api_restore():
     if len(data) > 500 * 1024 * 1024:
         return jsonify({"error": "File too large"}), 400
     try:
-        from app.backup import restore_backup
+        from .backup import restore_backup
         data_dir = _config_manager.data_dir if _config_manager else "/data"
         result = restore_backup(data, data_dir)
         audit_log.info(
@@ -165,13 +165,13 @@ def api_restore():
         return jsonify({"error": str(e)}), 500
 
 
-@backup_bp.route("/api/browse")
+@bp.route("/api/browse")
 @require_auth
 def api_browse():
     """Browse server-side directories for backup path selection."""
     path = request.args.get("path", "/backup")
     try:
-        from app.backup import browse_directory
+        from .backup import browse_directory
         result = browse_directory(path)
         return jsonify(result)
     except ValueError as e:

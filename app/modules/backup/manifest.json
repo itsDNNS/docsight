@@ -1,0 +1,26 @@
+{
+  "id": "docsight.backup",
+  "name": "Backup & Restore",
+  "description": "Scheduled backups and one-click restore for DOCSight data",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "collector": "collector.py:BackupCollector",
+    "routes": "routes.py",
+    "settings": "templates/backup_settings.html",
+    "i18n": "i18n/"
+  },
+  "config": {
+    "backup_enabled": false,
+    "backup_path": "/backup",
+    "backup_interval_hours": 24,
+    "backup_retention": 5
+  },
+  "menu": {
+    "label_key": "docsight.backup.backup_title",
+    "icon": "hard-drive-download",
+    "order": 10
+  }
+}

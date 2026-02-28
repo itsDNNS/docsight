@@ -50,10 +50,6 @@
                 <span class="icon"><i data-lucide="settings"></i></span>
                 {{ t.step_general }}
             </a>
-            <a class="settings-nav-link" data-section="backup" onclick="switchSection('backup')">
-                <span class="icon"><i data-lucide="hard-drive-download"></i></span>
-                {{ t.backup_title }}
-            </a>
             <a class="settings-nav-link" data-section="modules" onclick="switchSection('modules')">
                 <span class="icon"><i data-lucide="puzzle"></i></span>
                 {{ t.modules_title }}
@@ -153,11 +149,6 @@
             <a class="mobile-nav-item" onclick="switchSection('general')">
                 <span class="icon"><i data-lucide="settings"></i></span>
                 <span class="mobile-nav-label">{{ t.step_general }}</span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-            <a class="mobile-nav-item" onclick="switchSection('backup')">
-                <span class="icon"><i data-lucide="hard-drive-download"></i></span>
-                <span class="mobile-nav-label">{{ t.backup_title }}</span>
                 <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
             </a>
             <a class="mobile-nav-item" onclick="switchSection('modules')">
@@ -282,7 +273,6 @@
 
                 {% include 'settings/modem.html' %}
                 {% include 'settings/general.html' %}
-                {% include 'settings/backup.html' %}
                 {% include 'settings/modules.html' %}
                 {% include 'settings/notifications.html' %}
                 {% include 'settings/speedtest.html' %}
@@ -312,7 +302,6 @@ var T = {{ t|tojson }};
 var SECTION_TITLES = {
     modem: T.step_modem || 'Modem',
     general: T.step_general || 'General',
-    backup: T.backup_title || 'Backup',
     modules: T.modules_title || 'Modules',
     notifications: 'Notifications',
     speedtest: 'Speedtest Tracker',

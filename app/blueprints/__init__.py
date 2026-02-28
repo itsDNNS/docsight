@@ -9,7 +9,6 @@ def register_blueprints(app):
     from .journal_bp import journal_bp
     from .integrations_bp import integrations_bp
     from .events_bp import events_bp
-    from .backup_bp import backup_bp
     from .reports_bp import reports_bp
     from .modules_bp import modules_bp
 
@@ -20,6 +19,5 @@ def register_blueprints(app):
     app.register_blueprint(journal_bp)
     app.register_blueprint(integrations_bp)
     app.register_blueprint(events_bp)
-    app.register_blueprint(backup_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(modules_bp)

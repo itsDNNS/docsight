@@ -8,7 +8,7 @@ import tarfile
 import pytest
 from io import BytesIO
 
-from app.backup import (
+from app.modules.backup.backup import (
     BACKUP_META_FILE,
     FORMAT_VERSION,
     MAGIC,

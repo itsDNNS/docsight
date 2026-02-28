@@ -63,9 +63,9 @@ class TestConfigSaveLoad:
     ])
     def test_bool_keys_cast(self, tmp_data_dir, value, expected):
         config = ConfigManager(tmp_data_dir)
-        config.save({"backup_enabled": value})
+        config.save({"bnetz_watch_enabled": value})
         config2 = ConfigManager(tmp_data_dir)
-        assert config2.get("backup_enabled") is expected
+        assert config2.get("bnetz_watch_enabled") is expected
 
 
 class TestConfigSecrets:
