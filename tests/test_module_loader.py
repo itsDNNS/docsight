@@ -390,8 +390,7 @@ class TestStaticAndTemplates:
 
             paths = setup_module_templates("test.mod", mod_dir, {"tab": "templates/tab.html"})
             assert "tab" in paths
-            assert paths["tab"].endswith("tab.html")
-            assert os.path.isfile(paths["tab"])
+            assert paths["tab"] == "tab.html"
 
     def test_missing_template_excluded(self):
         """Template paths that don't exist are not included."""

@@ -343,7 +343,8 @@ def setup_module_templates(
             continue
         abs_path = os.path.join(module_path, rel_path)
         if os.path.isfile(abs_path):
-            resolved[key] = abs_path
+            # Store just the filename for Jinja2 include (ChoiceLoader resolves it)
+            resolved[key] = os.path.basename(abs_path)
             log.debug("Module '%s': template '%s' -> %s", module_id, key, abs_path)
         else:
             log.warning("Module '%s': template '%s' not found: %s", module_id, key, abs_path)
