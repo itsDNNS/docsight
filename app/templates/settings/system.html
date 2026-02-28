@@ -1,0 +1,74 @@
+<!-- ═══ Panel: System ═══ -->
+<div class="settings-panel" id="panel-system">
+    <!-- Data Collection Card -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="database"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('data_collection', 'Data Collection') }}</div>
+                    <div class="card-subtitle">{{ t.get('data_collection_desc', 'Configure polling interval, data retention and daily snapshots') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-grid cols-2">
+            <div class="form-field">
+                <label class="form-label" for="poll_interval">{{ t.interval_sec }}</label>
+                <input class="form-input" type="number" id="poll_interval" name="poll_interval" value="{{ config.poll_interval }}" min="{{ poll_min }}" max="{{ poll_max }}">
+                <span class="form-hint">Min: {{ poll_min }}s / Max: {{ poll_max }}s</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="history_days">{{ t.history_days }}</label>
+                <input class="form-input" type="number" id="history_days" name="history_days" value="{{ config.history_days }}" min="0">
+                <span class="form-hint">{{ t.history_hint }}</span>
+            </div>
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="snapshot_time">{{ t.snapshot_time }}</label>
+                <input class="form-input" type="time" id="snapshot_time" name="snapshot_time" value="{{ config.snapshot_time }}">
+                <span class="form-hint" id="snapshot-tz-hint">{{ t.snapshot_hint }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Localization Card -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon green">
+                    <i data-lucide="globe"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('localization', 'Localization') }}</div>
+                    <div class="card-subtitle">{{ t.get('localization_desc', 'Language and timezone settings') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-grid cols-2">
+            <div class="form-field">
+                <label class="form-label" for="timezone">{{ t.timezone }}</label>
+                <select class="form-input form-select" id="timezone" name="timezone">
+                    <option value="">{{ t.timezone_auto }} ({{ server_tz }})</option>
+                    {% for tz in timezones %}
+                    <option value="{{ tz }}" {% if config.timezone == tz %}selected{% endif %}>{{ tz }}</option>
+                    {% endfor %}
+                </select>
+                <span class="form-hint">{{ t.timezone_hint }}</span>
+                {% if tz_is_posix and not config.timezone %}
+                <span class="form-hint" style="color: var(--warning); margin-top: 4px; display: block;">
+                    {{ t.timezone_posix_warning|default('Your container uses "' + server_tz + '" which does not support daylight saving time. Select an IANA timezone (e.g. Europe/Berlin) to fix this.') }}
+                </span>
+                {% endif %}
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="language">{{ t.language }}</label>
+                <select class="form-input form-select" id="language" name="language">
+                    {% for code, name in languages.items() %}
+                    <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
