@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 import requests as _requests
 
-from flask import Flask, render_template, request, jsonify, redirect, session
+from flask import Flask, render_template, request, jsonify, redirect, session, send_from_directory
 from werkzeug.security import check_password_hash
 
 from .config import POLL_MIN, POLL_MAX
@@ -569,6 +569,11 @@ def get_state() -> dict:
     """Return a snapshot of the shared web state (thread-safe)."""
     with _state_lock:
         return dict(_state)
+
+
+@app.route("/sw.js")
+def service_worker():
+    return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
 
 
 @app.route("/")
