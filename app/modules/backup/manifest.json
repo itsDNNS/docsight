@@ -3,7 +3,7 @@
   "name": "Backup & Restore",
   "description": "Scheduled backups and one-click restore for DOCSight data",
   "version": "1.0.0",
-  "author": "DOCSight",
+  "author": "itsDNNS",
   "minAppVersion": "2026.2",
   "type": "integration",
   "contributes": {

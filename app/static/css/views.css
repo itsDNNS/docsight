@@ -1,0 +1,1106 @@
+/* views.css — Shared & Core View Styles
+   Trends, Events, Correlation, Gaming, Channels */
+
+/* ── Shared Utilities ── */
+.sort-indicator { margin-left: 4px; font-size: 0.8em; opacity: 0.7; }
+
+.error-box {
+    background: rgba(244,67,54,0.15); border: 1px solid var(--crit);
+    color: var(--crit); padding: 12px; border-radius: 6px; margin-bottom: 16px;
+}
+
+.waiting {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+}
+.waiting .spinner {
+    display: inline-block; width: 30px; height: 30px;
+    border: 3px solid var(--surface); border-top: 3px solid var(--accent);
+    border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TRENDS VIEW - Phase 4.1
+   Modernized with pill tabs, card wrappers, and gradient area charts
+   ══════════════════════════════════════════════════════════════════════════ */
+.trend-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--space-xl, 24px);
+    gap: var(--space-sm, 10px);
+}
+.trend-title {
+    font-size: 1.5em;
+    color: var(--accent-purple, var(--accent));
+    font-weight: bold;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+
+/* Pill-style tabs (Phase 3 design language) */
+.trend-tabs {
+    display: flex;
+    gap: var(--space-xs, 6px);
+    background: var(--card-bg, var(--card));
+    padding: 4px;
+    border-radius: 24px;
+    border: 1px solid var(--card-border, var(--input-border));
+}
+.trend-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, var(--muted));
+    padding: 8px 20px;
+    font-size: 0.9em;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 20px;
+}
+.trend-tab:hover {
+    color: var(--text);
+    background: rgba(168,85,247,0.1);
+}
+.trend-tab.active {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.trend-tab.temp-toggle {
+    padding: 6px 10px;
+    color: var(--text-secondary, var(--muted));
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+.trend-tab.temp-toggle:hover { opacity: 1; background: rgba(249,115,22,0.1); }
+.trend-tab.temp-toggle.active {
+    opacity: 1; color: #f97316;
+    background: rgba(249,115,22,0.15);
+    box-shadow: none;
+}
+
+/* Chart grid (2x2 desktop, stack on mobile) */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg, 20px);
+}
+
+/* Phase 3 card styling */
+.chart-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-lg, 20px);
+    position: relative;
+    transition: all 0.2s ease;
+}
+.chart-card:hover {
+    border-color: var(--accent-purple, var(--accent));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+}
+
+/* Chart header with icon */
+.chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md, 16px);
+}
+.chart-header-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.chart-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--accent-purple, var(--accent));
+    flex-shrink: 0;
+}
+.chart-card .chart-label {
+    font-size: 0.95em;
+    color: var(--text);
+    font-weight: 600;
+}
+.chart-card canvas {
+    width: 100% !important;
+    min-height: 200px;
+}
+
+/* Responsive: Mobile stacking */
+@media (max-width: 768px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    .trend-tabs {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Chart expand button (Phase 3 style - subtle, right-aligned) */
+.chart-expand-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-secondary, var(--muted));
+    font-size: 1.1em;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    line-height: 1;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.chart-expand-btn:hover {
+    opacity: 1;
+    color: var(--accent-purple, var(--accent));
+    border-color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EVENT LOG - Phase 4.3: Modern Card Design with Pill Filters
+   ══════════════════════════════════════════════════════════════════════════ */
+.events-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--space-lg, 20px);
+    gap: var(--space-sm, 10px);
+}
+.events-header .trend-title {
+    font-size: 1.5em;
+    color: var(--accent-purple, var(--accent));
+    font-weight: bold;
+}
+
+/* Phase 4.3: Pill filter section */
+.events-filter-section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md, 16px);
+    margin-bottom: var(--space-lg, 20px);
+    flex-wrap: wrap;
+}
+.events-filter-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-secondary, var(--muted));
+}
+.events-severity-pills {
+    display: flex;
+    gap: var(--space-xs, 6px);
+    background: var(--card-bg, var(--card));
+    padding: 4px;
+    border-radius: 24px;
+    border: 1px solid var(--card-border, var(--input-border));
+}
+.severity-pill {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, var(--muted));
+    padding: 8px 20px;
+    font-size: 0.85em;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.severity-pill:hover {
+    color: var(--text);
+    background: rgba(168,85,247,0.1);
+}
+.severity-pill.active {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+
+/* Phase 4.3: Table card wrapper (shared — used by Events + Correlation) */
+.table-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 12px);
+    overflow: hidden;
+    margin-bottom: var(--space-xl, 24px);
+}
+.table-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md, 16px) var(--space-lg, 20px);
+    background: rgba(0,0,0,0.15);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+.table-card-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm, 12px);
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--text);
+}
+.table-card-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--accent-purple, var(--accent));
+    flex-shrink: 0;
+}
+
+/* Phase 4.3: Events table styling */
+#events-table {
+    width: 100%;
+    margin: 0;
+}
+#events-table thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+#events-table thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+#events-table tbody tr {
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+#events-table tbody tr:hover {
+    background: rgba(168,85,247,0.08);
+}
+#events-table tbody tr.event-acked {
+    opacity: 0.5;
+}
+#events-table tbody td {
+    padding: 12px 16px;
+    font-size: 0.85em;
+}
+#events-table td.event-msg {
+    max-width: 400px;
+    word-break: break-word;
+}
+#events-table td.event-actions {
+    white-space: nowrap;
+}
+
+/* Phase 4.3: Event detail expansion row */
+.event-detail-row td {
+    padding: 12px 16px !important;
+    background: rgba(0,0,0,0.2) !important;
+    font-size: 0.85em;
+    border-bottom: 1px solid var(--card-border, var(--input-border)) !important;
+}
+.event-detail-row pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--muted);
+    font-size: 0.9em;
+}
+
+/* Phase 4.3: Sidebar event badge (purple instead of red) */
+.event-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px;
+    padding: 0 5px; border-radius: 9px; font-size: 0.7em; font-weight: bold;
+    background: var(--accent-purple, var(--accent)); color: #fff; margin-left: 6px;
+}
+
+/* Phase 4.3: Severity colors (updated to purple accent) */
+.sev-info { color: var(--info); }
+.sev-warning { color: var(--warn); }
+.sev-critical { color: var(--crit); }
+.sev-badge-info {
+    background: rgba(59,130,246,0.2);
+    color: var(--info);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+.sev-badge-warning {
+    background: rgba(245,158,11,0.25);
+    color: var(--warn);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+.sev-badge-critical {
+    background: rgba(239,68,68,0.25);
+    color: var(--crit);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+/* Phase 4.3: Acknowledge button (modern pill style) */
+.btn-ack {
+    padding: 4px 12px;
+    border: 1px solid var(--input-border);
+    border-radius: 16px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.8em;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+.btn-ack:hover {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    border-color: var(--accent-purple, var(--accent));
+}
+
+/* Phase 4.3: Acknowledge All button (modern purple accent) */
+.btn-ack-all {
+    padding: 8px 16px;
+    border: 1px solid var(--accent-purple, var(--accent));
+    border-radius: 20px;
+    background: transparent;
+    color: var(--accent-purple, var(--accent));
+    cursor: pointer;
+    font-size: 0.85em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-ack-all:hover {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+
+/* Phase 4.3: Show More button */
+.btn-show-more {
+    padding: 8px 24px;
+    border: 1px solid var(--input-border);
+    border-radius: 20px;
+    background: var(--card-bg, var(--card));
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.85em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.btn-show-more:hover {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    border-color: var(--accent-purple, var(--accent));
+}
+
+.events-empty {
+    text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
+}
+
+/* Phase 4.3: Mobile responsive */
+@media (max-width: 768px) {
+    .events-filter-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm, 12px);
+    }
+    .events-severity-pills {
+        width: 100%;
+        justify-content: center;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .severity-pill {
+        padding: 8px 16px;
+        font-size: 0.8em;
+        flex-shrink: 0;
+    }
+    .table-card-header {
+        flex-direction: column;
+        gap: var(--space-sm, 12px);
+        align-items: flex-start;
+    }
+    #events-table thead th,
+    #events-table tbody td {
+        padding: 8px 12px;
+        font-size: 0.8em;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Phase 4.4: Correlation Analysis View
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Correlation Chart Card */
+.correlation-chart-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-lg, 12px);
+    padding: var(--space-lg, 20px);
+    margin-bottom: var(--space-xl, 24px);
+    transition: all 0.2s ease;
+}
+.correlation-chart-card:hover {
+    border-color: var(--accent-purple, #a855f7);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+}
+.correlation-chart-wrap {
+    position: relative;
+    width: 100%;
+}
+.correlation-chart-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 280px;
+}
+.correlation-chart-wrap canvas.correlation-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+}
+.correlation-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--card-bg, #1e1e2e);
+    border: 1px solid var(--accent-purple, #a855f7);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8em;
+    z-index: 10;
+    display: none;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    line-height: 1.6;
+}
+.correlation-tooltip .tt-time {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: var(--text, #fff);
+}
+.correlation-tooltip .tt-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.correlation-tooltip .tt-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+.chart-export-buttons {
+    display: flex;
+    gap: 6px;
+}
+.chart-export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.72em;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.chart-export-btn:hover {
+    background: rgba(168,85,247,0.1);
+    border-color: var(--accent-purple, #a855f7);
+    color: var(--text);
+}
+.correlation-zoom-reset {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: var(--accent-purple, #a855f7);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.75em;
+    cursor: pointer;
+    z-index: 5;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+}
+.correlation-zoom-reset:hover {
+    opacity: 1;
+}
+.correlation-chart-legend {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    padding: 12px 0 4px;
+    font-size: 0.78em;
+    color: var(--muted);
+}
+.correlation-chart-legend span[data-metric] {
+    cursor: pointer;
+    transition: opacity 0.2s, filter 0.2s;
+    user-select: none;
+    border-radius: 4px;
+    padding: 2px 4px;
+}
+.correlation-chart-legend span[data-metric]:hover {
+    filter: brightness(1.3);
+    background: rgba(255,255,255,0.08);
+}
+.correlation-chart-legend span[data-metric].disabled {
+    opacity: 0.3;
+    text-decoration: line-through;
+}
+.correlation-chart-legend span[data-metric].disabled:hover {
+    opacity: 0.5;
+}
+
+/* Correlation Table Card */
+#correlation-table-card.table-card {
+    margin-bottom: var(--space-xl, 24px);
+}
+#correlation-table-wrap {
+    max-height: 400px;
+    overflow-y: auto;
+}
+#correlation-table {
+    width: 100%;
+    margin: 0;
+}
+#correlation-table thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+#correlation-table thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+#correlation-table tbody tr {
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+}
+#correlation-table tbody tr:hover {
+    background: rgba(168,85,247,0.08);
+}
+#correlation-table tbody tr.corr-highlight {
+    background: rgba(168,85,247,0.3) !important;
+    box-shadow: inset 4px 0 0 var(--accent-purple, #a855f7);
+}
+#correlation-table tbody tr.corr-highlight td {
+    color: #fff !important;
+}
+#correlation-table tbody td {
+    padding: 12px 16px;
+    font-size: 0.85em;
+}
+#correlation-table .source-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+#correlation-table .source-badge.modem {
+    background: rgba(168,85,247,0.2);
+    color: var(--accent-purple, #a855f7);
+}
+#correlation-table .source-badge.speedtest {
+    background: rgba(76,175,80,0.2);
+    color: var(--good, #4caf50);
+}
+#correlation-table .source-badge.event {
+    background: rgba(255,152,0,0.2);
+    color: var(--warn, #ff9800);
+}
+
+/* Phase 4.4: Mobile responsive */
+@media (max-width: 768px) {
+    .correlation-chart-card {
+        padding: var(--space-md, 16px);
+    }
+    #correlation-table thead th,
+    #correlation-table tbody td {
+        padding: 8px 12px;
+        font-size: 0.8em;
+    }
+}
+
+
+/* ── Info-tip tooltips (CSS-only) ── */
+.info-tip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.info-tip .tip-icon {
+    font-size: 0.78em;
+    color: var(--muted);
+    opacity: 0.7;
+    font-style: normal;
+}
+.info-tip .tip-text {
+    visibility: hidden;
+    opacity: 0;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.82em;
+    font-weight: normal;
+    line-height: 1.5;
+    white-space: normal;
+    width: max-content;
+    max-width: min(320px, 85vw);
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    pointer-events: none;
+}
+.info-tip .tip-text::after {
+    display: none;
+}
+.info-tip:hover .tip-text,
+.info-tip:focus-within .tip-text {
+    visibility: visible;
+    opacity: 1;
+}
+.info-tip .tip-icon:focus {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+[data-theme="light"] .info-tip .tip-text {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+
+.demo-badge {
+    display: inline-block;
+    background: var(--accent, #ff9800);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 10px;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+}
+
+.hero-gaming {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    gap: 6px;
+    cursor: help;
+    position: relative;
+}
+.hero-gaming .gaming-grade { font-size: 16px; font-weight: 700; }
+.hero-gaming .gaming-label { font-size: 11px; opacity: 0.8; }
+.hero-gaming:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 5px;
+    padding: 6px 10px;
+    background: rgba(15, 20, 25, 0.95);
+    color: rgba(224, 224, 224, 0.9);
+    font-size: 11px;
+    white-space: nowrap;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+.gaming-a, .gaming-b { background: rgba(76,175,80,0.15); color: var(--color-good, var(--good)); }
+.gaming-c { background: rgba(255,152,0,0.15); color: var(--color-warn, var(--warn)); }
+.gaming-d, .gaming-f { background: rgba(244,67,54,0.15); color: var(--color-crit, var(--crit)); }
+
+/* ── Gaming Quality View ── */
+.gaming-overview {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 24px;
+    background: var(--surface);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+.gaming-overview .gaming-gauge {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    padding: 0;
+    border-radius: 0;
+}
+.gaming-grade-big {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 12px;
+}
+.gaming-grade-big .gaming-grade-letter {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1;
+}
+.gaming-grade-big .gaming-grade-text {
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.8;
+    margin-top: 4px;
+}
+.gaming-no-speedtest-hint {
+    font-size: 12px;
+    opacity: 0.6;
+    margin: 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.gaming-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.6;
+    margin: 0 0 12px;
+}
+.gaming-components { margin-bottom: 20px; }
+.gaming-component-card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+}
+.gaming-comp-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.gaming-comp-icon { display: flex; opacity: 0.6; }
+.gaming-comp-name { font-weight: 600; font-size: 14px; flex: 1; }
+.gaming-comp-weight {
+    font-size: 11px;
+    opacity: 0.5;
+    padding: 2px 6px;
+    background: var(--bg);
+    border-radius: 4px;
+}
+.gaming-comp-score {
+    font-weight: 700;
+    font-size: 15px;
+    min-width: 32px;
+    text-align: right;
+}
+.score-good { color: var(--color-good, var(--good)); }
+.score-warn { color: var(--color-warn, var(--warn)); }
+.score-crit { color: var(--color-crit, var(--crit)); }
+.gaming-comp-bar {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+.gaming-comp-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+.fill-good { background: var(--color-good, var(--good)); }
+.fill-warn { background: var(--color-warn, var(--warn)); }
+.fill-crit { background: var(--color-crit, var(--crit)); }
+.gaming-comp-detail {
+    font-size: 12px;
+    opacity: 0.55;
+    margin: 0;
+    line-height: 1.4;
+}
+/* Gaming Gauge Band */
+.gaming-gauge {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 20px 18px 12px;
+}
+.gaming-gauge-band {
+    display: flex;
+    height: 32px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.gaming-gauge-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: rgba(0,0,0,0.6);
+}
+.gauge-f { flex: 25; background: rgba(244,67,54,0.5); border-radius: 8px 0 0 8px; }
+.gauge-d { flex: 25; background: rgba(255,120,50,0.45); }
+.gauge-c { flex: 25; background: rgba(255,193,7,0.45); }
+.gauge-b { flex: 15; background: rgba(139,195,74,0.45); }
+.gauge-a { flex: 10; background: rgba(76,175,80,0.5); border-radius: 0 8px 8px 0; }
+.gaming-gauge-track {
+    position: relative;
+    height: 8px;
+    margin-top: 6px;
+    border-radius: 4px;
+    background: linear-gradient(to right,
+        rgba(244,67,54,0.6) 0%, rgba(244,67,54,0.6) 25%,
+        rgba(255,120,50,0.5) 25%, rgba(255,120,50,0.5) 50%,
+        rgba(255,193,7,0.5) 50%, rgba(255,193,7,0.5) 75%,
+        rgba(139,195,74,0.5) 75%, rgba(139,195,74,0.5) 90%,
+        rgba(76,175,80,0.6) 90%, rgba(76,175,80,0.6) 100%
+    );
+}
+.gaming-gauge-marker {
+    position: absolute;
+    top: -10px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+    pointer-events: none;
+}
+.gaming-gauge-needle {
+    width: 3px;
+    height: 28px;
+    background: var(--text);
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.4);
+}
+.gaming-gauge-score {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 4px;
+    white-space: nowrap;
+}
+[data-theme="light"] .gaming-gauge-segment { color: rgba(0,0,0,0.7); }
+/* Gaming Genre Cards */
+.gaming-genres { margin-bottom: 20px; }
+.gaming-genre-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+.gaming-genre-card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 3px solid transparent;
+}
+.gaming-genre-icon { opacity: 0.6; }
+.gaming-genre-name { font-weight: 700; font-size: 14px; }
+.gaming-genre-examples { font-size: 12px; opacity: 0.45; }
+.gaming-genre-verdict { font-size: 13px; font-weight: 500; margin-top: 4px; }
+.genre-ok { border-left-color: var(--color-good, var(--good)); }
+.genre-ok .gaming-genre-verdict { color: var(--color-good, var(--good)); }
+.genre-warn { border-left-color: var(--color-warn, var(--warn)); }
+.genre-warn .gaming-genre-verdict { color: var(--color-warn, var(--warn)); }
+.genre-bad { border-left-color: var(--color-crit, var(--crit)); }
+.genre-bad .gaming-genre-verdict { color: var(--color-crit, var(--crit)); }
+
+@media (max-width: 600px) {
+    .gaming-overview { flex-direction: column; gap: 16px; }
+    .gaming-grade-big { flex-direction: row; gap: 12px; padding: 10px 20px; }
+    .gaming-grade-big .gaming-grade-letter { font-size: 36px; }
+    .gaming-grade-big .gaming-grade-text { margin-top: 0; }
+}
+
+
+/* Info icon tooltip for auto-detected values */
+.info-icon {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    margin-left: 3px;
+}
+
+.info-icon:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 5px;
+    padding: 6px 10px;
+    background: rgba(15, 20, 25, 0.95);
+    color: rgba(224, 224, 224, 0.9);
+    font-size: 11px;
+    white-space: nowrap;
+    border-radius: 4px;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.issue-badge {
+    background: rgba(251,191,36,0.15);
+    color: var(--color-warn, var(--warn));
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: default;
+}
+
+.hero-card.health-crit .issue-badge {
+    background: rgba(244,67,54,0.15);
+    color: var(--color-crit, var(--crit));
+}
+
+
+/* ── Shared Button Utilities ── */
+.btn-small {
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+}
+.btn-accent {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+}
+.btn-accent:hover { opacity: 0.85; }
+.btn-muted {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+    border: 1px solid var(--input-border);
+}
+.btn-muted:hover { background: rgba(255,255,255,0.14); }
+.btn-ghost {
+    background: none;
+    color: var(--muted);
+}
+.btn-ghost:hover { color: var(--text); }
+
+
+/* ── Channel Compare ── */
+.compare-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.channel-select-styled,
+.compare-controls select {
+    padding: 8px 32px 8px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--card-border, var(--input-border));
+    background: var(--card-bg, var(--card));
+    color: var(--text);
+    font-size: 0.9em;
+    font-family: inherit;
+    font-weight: 500;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+    min-width: 160px;
+}
+.channel-select-styled:hover,
+.compare-controls select:hover {
+    border-color: var(--accent-purple, var(--accent));
+}
+.channel-select-styled:focus,
+.compare-controls select:focus {
+    outline: none;
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
+}
+.compare-add-btn {
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 1px solid var(--card-border, var(--input-border));
+    background: var(--card-bg, var(--card));
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.9em;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.compare-add-btn:hover {
+    color: #fff;
+    background: var(--accent-purple, var(--accent));
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.compare-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+}
+.compare-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+}
+.compare-chip-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    line-height: 1;
+}
+.compare-chip-remove:hover {
+    color: #fff;
+}

@@ -1,0 +1,112 @@
+/* modals.css — Shared Modal/Dialog System */
+
+/* ── Chart Zoom Modal ── */
+.chart-zoom-overlay {
+    position: fixed; inset: 0; background: var(--overlay);
+    z-index: 200; display: none; justify-content: center; align-items: center;
+}
+.chart-zoom-overlay.open { display: flex; }
+.chart-zoom-modal {
+    background: var(--surface); border-radius: 10px;
+    padding: 20px; width: 90vw; height: 80vh;
+    display: flex; flex-direction: column;
+    border: 1px solid var(--input-border);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+.chart-zoom-modal .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.chart-zoom-modal .modal-header h2 { font-size: 1.1em; color: var(--accent); margin: 0; }
+.chart-zoom-modal canvas { flex: 1; min-height: 0; width: 100% !important; }
+.no-data-msg {
+    text-align: center; padding: 40px 20px;
+    color: var(--muted); font-size: 0.95em;
+}
+
+
+/* ── Export Modal ── */
+.modal-overlay {
+    position: fixed; inset: 0; background: var(--overlay);
+    z-index: 200; display: none; justify-content: center; align-items: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+    background: var(--surface); border-radius: 10px;
+    padding: 20px; max-width: 720px; width: 90%; max-height: 85vh;
+    display: flex; flex-direction: column;
+    border: 1px solid var(--input-border);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+.modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+}
+.modal-header h2 { 
+    font-size: 1.2em; 
+    color: var(--accent-purple, var(--accent)); 
+    margin: 0; 
+    font-weight: 600;
+}
+.modal-close {
+    background: none; 
+    border: none; 
+    color: var(--muted);
+    font-size: 1.4em; 
+    cursor: pointer; 
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+.modal-close:hover { 
+    color: var(--accent-purple, var(--accent)); 
+}
+.modal-hint { font-size: 0.85em; color: var(--muted); margin-bottom: 12px; }
+.modal-body {
+    flex: 1; overflow-y: auto; margin-bottom: 12px;
+}
+.modal-body textarea {
+    width: 100%; min-height: 300px; background: var(--bg);
+    color: var(--text); border: 1px solid var(--input-border);
+    border-radius: 6px; padding: 12px; font-size: 0.82em;
+    font-family: 'Consolas', 'Monaco', monospace; resize: vertical;
+}
+.modal-footer { 
+    display: flex; 
+    gap: 12px; 
+    justify-content: flex-end; 
+    margin-top: var(--space-md, 16px);
+}
+.modal-footer .btn,
+.incident-modal-footer .btn {
+    display: inline-block; 
+    padding: 10px 24px; 
+    border: none;
+    border-radius: 50px !important; /* Pill-style buttons */
+    cursor: pointer; 
+    font-size: 0.9em;
+    font-family: inherit; 
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.btn-accent { 
+    background: var(--accent-purple, var(--accent)); 
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.btn-accent:hover { 
+    background: var(--accent-hover, var(--purple-600));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+}
+.btn-muted {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--input-border);
+}
+.btn-muted:hover { 
+    background: rgba(168,85,247,0.1);
+    border-color: var(--accent-purple);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(168,85,247,0.2);
+    border-color: var(--accent-purple, var(--accent));
+}

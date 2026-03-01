@@ -6,8 +6,9 @@
     </div>
 
     {% if all_modules %}
-    {% set enabled_modules = all_modules|selectattr('enabled')|sort(attribute='name')|list %}
-    {% set disabled_modules = all_modules|rejectattr('enabled')|sort(attribute='name')|list %}
+    {% set non_theme = all_modules|selectattr('type', 'ne', 'theme')|list %}
+    {% set enabled_modules = non_theme|selectattr('enabled')|sort(attribute='name')|list %}
+    {% set disabled_modules = non_theme|rejectattr('enabled')|sort(attribute='name')|list %}
 
     {% if enabled_modules %}
     <div class="section-label">{{ t.modules_enabled }} ({{ enabled_modules|length }})</div>

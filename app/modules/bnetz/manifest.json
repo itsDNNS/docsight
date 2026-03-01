@@ -3,13 +3,14 @@
   "name": "BNetzA Broadband Measurement",
   "description": "BNetzA Breitbandmessung protocol parsing and file watcher",
   "version": "1.0.0",
-  "author": "DOCSight",
+  "author": "itsDNNS",
   "minAppVersion": "2026.2",
   "type": "integration",
   "contributes": {
     "collector": "collector.py:BnetzWatcherCollector",
     "routes": "routes.py",
     "settings": "templates/bnetz_settings.html",
+    "static": "static/",
     "i18n": "i18n/"
   },
   "config": {

@@ -2,18 +2,22 @@
 <html lang="{{ lang }}" data-theme="{{ theme|default('dark') }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#06080f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>DOCSight</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-    <link rel="icon" type="image/png" href="/static/icon.png">
     <link rel="apple-touch-icon" href="/static/icon.png">
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#a855f7">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/fonts.css">
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/components.css">
     <link rel="stylesheet" href="/static/css/main.css">
-    {% for mod in modules if mod.has_css %}
+    <link rel="stylesheet" href="/static/css/views.css">
+    <link rel="stylesheet" href="/static/css/modals.css">
+    {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
     <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
     {% endfor %}
     {% if active_theme_data %}
@@ -30,97 +34,110 @@
     }
     </style>
     {% endif %}
-    <!-- Icon Library (Lucide) -->
-    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js"
-            integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU"
-            crossorigin="anonymous"></script>
+    <script src="/static/vendor/lucide.min.js"></script>
 </head>
 <body>
 <div class="app-layout">
 
+<!-- Mobile Header -->
+<header class="mobile-header">
+    <button class="hamburger" id="hamburger" onclick="openSidebar()" aria-label="Menu">
+        <i data-lucide="menu"></i>
+    </button>
+    <span class="mobile-header-title">DOCSight</span>
+    <div class="mobile-header-status">
+        <span id="topbar-countdown"></span>
+        <button class="hamburger" id="refresh-btn" title="{{ t.refresh }}" style="min-width:36px;min-height:36px;padding:4px;">
+            <i data-lucide="refresh-cw" style="width:16px;height:16px;"></i>
+        </button>
+    </div>
+</header>
+
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <img src="/static/logo.svg" alt="DOCSight" style="width:36px;height:36px;vertical-align:middle;margin-right:8px;">
-        <span>DOCSight</span>
-        <button class="sidebar-toggle" id="sidebar-collapse" title="Collapse"></button>
+        <div class="sidebar-logo"><img src="/static/logo.svg" alt="DOCSight" width="18" height="18"></div>
+        <div>
+            <div class="sidebar-title">DOCSight</div>
+            <div class="sidebar-subtitle">{{ t.sidebar_monitoring }}</div>
+        </div>
     </div>
     <div class="sidebar-content">
-        <div class="sidebar-section-label">{{ t.sidebar_monitoring }}</div>
-        <a class="sidebar-link active" data-view="live" data-tooltip="{{ t.live_dashboard }}">
-            <span class="icon"><i data-lucide="radio"></i></span> {{ t.live_dashboard }}
+        <div class="nav-group-label">{{ t.sidebar_monitoring }}</div>
+        <a class="nav-item active" data-view="live">
+            <i data-lucide="radio"></i> {{ t.live_dashboard }}
         </a>
-        <a class="sidebar-link" data-view="events" data-tooltip="{{ t.event_log }}">
-            <span class="icon"><i data-lucide="bell"></i></span> {{ t.event_log }}
-            <span class="event-badge" id="event-badge" style="display:none;"></span>
+        <a class="nav-item" data-view="events">
+            <i data-lucide="bell"></i> {{ t.event_log }}
+            <span class="nav-badge" id="event-badge" style="display:none;"></span>
         </a>
-        <a class="sidebar-link" data-view="trends" data-tooltip="{{ t.signal_trends }}">
-            <span class="icon"><i data-lucide="trending-up"></i></span> {{ t.signal_trends }}
+        <a class="nav-item" data-view="trends">
+            <i data-lucide="trending-up"></i> {{ t.signal_trends }}
         </a>
-        <a class="sidebar-link" data-view="channels" data-tooltip="{{ t.channels }}">
-            <span class="icon"><i data-lucide="clock"></i></span> {{ t.channels }}
+        <a class="nav-item" data-view="channels">
+            <i data-lucide="layers"></i> {{ t.channels }}
         </a>
         {% if speedtest_configured or bqm_configured %}
-        <a class="sidebar-link" data-view="correlation" data-tooltip="{{ t.correlation_analysis }}">
-            <span class="icon"><i data-lucide="bar-chart-3"></i></span> {{ t.correlation_analysis }}
+        <a class="nav-item" data-view="correlation">
+            <i data-lucide="bar-chart-3"></i> {{ t.correlation_analysis }}
         </a>
         {% endif %}
         {% if gaming_quality_enabled %}
-        <a class="sidebar-link" data-view="gaming" data-tooltip="{{ t.gaming_quality_label }}">
-            <span class="icon"><i data-lucide="gamepad-2"></i></span> {{ t.gaming_quality_label }}
+        <a class="nav-item" data-view="gaming">
+            <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
         </a>
         {% endif %}
-        <div class="sidebar-section-label">{{ t.sidebar_external }}</div>
+        <div class="nav-group-label">{{ t.sidebar_external }}</div>
         {% if modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
         {% if speedtest_configured %}
-        <a class="sidebar-link" data-view="speedtest" data-tooltip="{{ t.speedtest }}">
-            <span class="icon"><i data-lucide="rabbit"></i></span> {{ t.speedtest }}
+        <a class="nav-item" data-view="speedtest">
+            <i data-lucide="rabbit"></i> {{ t.speedtest }}
         </a>
         {% else %}
-        <a class="sidebar-link" onclick="openSpeedtestSetupModal()" data-tooltip="{{ t.speedtest_setup }}">
-            <span class="icon"><i data-lucide="settings"></i></span> {{ t.speedtest_setup }}
+        <a class="nav-item" onclick="openSpeedtestSetupModal()">
+            <i data-lucide="settings"></i> {{ t.speedtest_setup }}
         </a>
         {% endif %}
         {% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
         {% if bqm_configured %}
-        <a class="sidebar-link" data-view="bqm" data-tooltip="{{ t.bqm_title }}">
-            <span class="icon"><i data-lucide="activity"></i></span> {{ t.bqm_title }}
+        <a class="nav-item" data-view="bqm">
+            <i data-lucide="activity"></i> {{ t.bqm_title }}
         </a>
         {% else %}
-        <a class="sidebar-link" onclick="openBqmSetupModal()" data-tooltip="{{ t.bqm_setup }}">
-            <span class="icon"><i data-lucide="settings"></i></span> {{ t.bqm_setup }}
+        <a class="nav-item" onclick="openBqmSetupModal()">
+            <i data-lucide="settings"></i> {{ t.bqm_setup }}
         </a>
         {% endif %}
         {% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
         {% if smokeping_configured %}
-        <a class="sidebar-link" data-view="smokeping" data-tooltip="{{ t.smokeping_title }}">
-            <span class="icon"><i data-lucide="radar"></i></span> {{ t.smokeping_title }}
+        <a class="nav-item" data-view="smokeping">
+            <i data-lucide="radar"></i> {{ t.smokeping_title }}
         </a>
         {% else %}
-        <a class="sidebar-link" onclick="openSmokepingSetupModal()" data-tooltip="{{ t.smokeping_setup }}">
-            <span class="icon"><i data-lucide="settings"></i></span> {{ t.smokeping_setup }}
+        <a class="nav-item" onclick="openSmokepingSetupModal()">
+            <i data-lucide="settings"></i> {{ t.smokeping_setup }}
         </a>
         {% endif %}
         {% endif %}
         {% if bnetz_enabled and modules|selectattr('id', 'equalto', 'docsight.bnetz')|list %}
-        <a class="sidebar-link" data-view="bnetz" data-tooltip="{{ t.bnetz_title }}">
-            <span class="icon"><i data-lucide="file-check"></i></span> {{ t.bnetz_title }}
+        <a class="nav-item" data-view="bnetz">
+            <i data-lucide="file-check"></i> {{ t.bnetz_title }}
         </a>
         {% endif %}
-        <div class="sidebar-section-label">{{ t.sidebar_documentation }}</div>
+        <div class="nav-group-label">{{ t.sidebar_documentation }}</div>
         {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
-        <a class="sidebar-link" data-view="journal" data-tooltip="{{ t.incident_journal }}">
-            <span class="icon"><i data-lucide="clipboard-list"></i></span> {{ t.incident_journal }}
+        <a class="nav-item" data-view="journal">
+            <i data-lucide="clipboard-list"></i> {{ t.incident_journal }}
         </a>
         {% endif %}
-        <a class="sidebar-link" id="export-link" href="javascript:void(0)" onclick="exportForLLM()" data-tooltip="{{ t.export_llm }}">
-            <span class="icon"><i data-lucide="file-output"></i></span> {{ t.export_llm }}
+        <a class="nav-item" id="export-link" href="javascript:void(0)" onclick="exportForLLM()">
+            <i data-lucide="file-output"></i> {{ t.export_llm }}
         </a>
         {% if modules|selectattr('id', 'equalto', 'docsight.reports')|list %}
-        <a class="sidebar-link" id="report-link" href="javascript:void(0)" onclick="openReportModal()" data-tooltip="{{ t.incident_report }}">
-            <span class="icon"><i data-lucide="file-text"></i></span> {{ t.incident_report }}
+        <a class="nav-item" id="report-link" href="javascript:void(0)" onclick="openReportModal()">
+            <i data-lucide="file-text"></i> {{ t.incident_report }}
         </a>
         {% endif %}
         {% set tab_modules = [] %}
@@ -128,76 +145,57 @@
             {% if tab_modules.append(mod) %}{% endif %}
         {% endfor %}
         {% if tab_modules %}
-        <div class="sidebar-section-label">{{ t.sidebar_extensions }}</div>
+        <div class="nav-group-label">{{ t.sidebar_extensions }}</div>
         {% for mod in tab_modules|sort(attribute='menu.order') %}
-        <a class="sidebar-link" data-view="mod-{{ mod.id|replace('.', '-') }}" data-tooltip="{{ t.get(mod.menu.label_key, mod.name) }}">
-            <span class="icon"><i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i></span>
+        <a class="nav-item" data-view="mod-{{ mod.id|replace('.', '-') }}">
+            <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i>
             {{ t.get(mod.menu.label_key, mod.name) }}
         </a>
         {% endfor %}
         {% endif %}
         <div style="flex:1;"></div>
-        <div class="sidebar-divider"></div>
-        <a class="sidebar-link" href="/settings" data-tooltip="{{ t.settings }}">
-            <span class="icon"><i data-lucide="settings"></i></span> {{ t.settings }}
+        <a class="nav-item" href="/settings">
+            <i data-lucide="settings"></i> {{ t.settings }}
         </a>
         {% if auth_enabled %}
-        <a class="sidebar-link" href="/logout">
-            <span class="icon"><i data-lucide="log-out"></i></span> {{ t.logout }}
+        <a class="nav-item" href="/logout">
+            <i data-lucide="log-out"></i> {{ t.logout }}
         </a>
         {% endif %}
-        <div class="sidebar-footer">
-            <div class="dark-mode-toggle">
-                <span class="dark-mode-label"><i data-lucide="moon"></i> {{ t.dark_mode or 'Dark mode' }}</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="theme-toggle-sidebar">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div class="sidebar-version-row">
-                <a href="https://github.com/itsDNNS/docsight/releases" target="_blank" class="version-link">
-                    {{ version }}
-                    {% if update_available %}
-                    <span class="update-badge" title="{{ update_available }}">Update</span>
-                    {% endif %}
+    </div>
+    <div class="sidebar-footer">
+        <div class="dark-toggle">
+            <span class="dark-toggle-label"><i data-lucide="moon"></i> {{ t.dark_mode or 'Dark Mode' }}</span>
+            <label class="toggle">
+                <input type="checkbox" id="theme-toggle-sidebar">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="sidebar-footer-row">
+            <a href="https://github.com/itsDNNS/docsight/releases" target="_blank">
+                {{ version }}
+                {% if update_available %}
+                <span class="update-badge" title="{{ update_available }}">Update</span>
+                {% endif %}
+            </a>
+            <div class="sidebar-icons">
+                <a href="https://github.com/itsDNNS/docsight/issues" target="_blank" rel="noopener noreferrer" title="Report a bug">
+                    <i data-lucide="bug"></i>
                 </a>
-                <div class="sidebar-links-row">
-                    <a href="https://github.com/itsDNNS/docsight/issues" target="_blank" rel="noopener noreferrer" class="sponsor-link" title="Report a bug">
-                        <i data-lucide="bug" style="width:14px;height:14px;"></i>
-                    </a>
-                    <a href="https://paypal.me/itsDNNS" target="_blank" rel="noopener noreferrer" class="sponsor-link" title="Donate via PayPal">
-                        <i data-lucide="wallet" style="width:14px;height:14px;"></i>
-                    </a>
-                    <a href="https://ko-fi.com/itsdnns" target="_blank" rel="noopener noreferrer" class="sponsor-link" title="Support on Ko-fi">
-                        <i data-lucide="coffee" style="width:14px;height:14px;"></i>
-                    </a>
-                    <a href="https://github.com/sponsors/itsDNNS" target="_blank" rel="noopener noreferrer" class="sponsor-link" title="Support on GitHub Sponsors">
-                        <i data-lucide="heart" style="width:14px;height:14px;"></i>
-                    </a>
-                </div>
+                <a href="https://ko-fi.com/itsdnns" target="_blank" rel="noopener noreferrer" title="Support on Ko-fi">
+                    <i data-lucide="coffee"></i>
+                </a>
+                <a href="https://github.com/sponsors/itsDNNS" target="_blank" rel="noopener noreferrer" title="Support on GitHub Sponsors">
+                    <i data-lucide="heart"></i>
+                </a>
             </div>
         </div>
     </div>
 </nav>
-<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<div class="backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
 
 <!-- Main Area -->
 <div class="app-main">
-
-<!-- Topbar -->
-<div class="topbar">
-    <div class="topbar-left">
-        <button class="hamburger-btn" id="hamburger" title="Menu">&#9776;</button>
-    </div>
-    <div class="topbar-right">
-        <span class="topbar-meta" id="topbar-meta">
-            {% if last_update %}{{ t.last_update }}: {{ last_update }}{% endif %}
-        </span>
-        <span class="topbar-countdown" id="topbar-countdown"></span>
-        <button class="refresh-btn" id="refresh-btn" title="{{ t.refresh }}">&#x1F504;</button>
-    </div>
-</div>
-
 
 <!-- ═══ View: Dashboard ═══ -->
 <div class="main-content">
@@ -242,134 +240,90 @@
     } %}
 
     {# ══════════════════════════════════════════════════════════════════════════
-       HERO CARD - Phase 3 Task 3.1
-       Health status + inline trend chart (SNR/Power, 24h)
+       HERO CARD — Health status + meta info + trend chart
        ══════════════════════════════════════════════════════════════════════════ #}
-    <div class="hero-card health-{{ 'good' if s.health == 'good' else ('crit' if s.health == 'poor' else 'warn') }}">
+    {% set hero_health = 'good' if s.health == 'good' else ('crit' if s.health == 'poor' else 'warn') %}
+    <div class="hero-card glass">
         <div class="hero-header">
             <div class="hero-status">
-                <i data-lucide="activity" class="hero-icon"></i>
-                <div class="hero-status-text">
-                    <h1 class="hero-title">{{ health_label }}{% if demo_mode %}<span class="demo-badge">{{ t.demo_mode|default('DEMO') }}</span>{% endif %}</h1>
+                <div class="hero-icon-wrap {{ hero_health }}">
+                    <i data-lucide="activity"></i>
+                </div>
+                <div>
+                    <h1 class="hero-title">
+                        <span class="status-dot {{ hero_health }}"></span>
+                        {{ health_label }}
+                        {% if demo_mode %}<span class="badge badge-muted" style="font-size:0.68rem;">{{ t.demo_mode|default('DEMO') }}</span>{% endif %}
+                    </h1>
                     <p class="hero-subtitle">{{ health_msgs.get(s.health, '') }}</p>
                 </div>
             </div>
-            <div class="hero-meta">
-                {# 1. Provider #}
-                {% if isp_name %}
-                <span class="hero-isp">
-                    {% set isp_lower = isp_name.lower() %}
-                    {% if 'vodafone' in isp_lower %}
-                    <img src="/static/img/providers/vodafone.svg" alt="{{ isp_name }}" style="width:14px;height:14px;margin-right:4px;">
-                    {% elif 'telekom' in isp_lower %}
-                    <img src="/static/img/providers/telekom.svg" alt="{{ isp_name }}" style="width:14px;height:14px;margin-right:4px;">
-                    {% elif 'o2' in isp_lower %}
-                    <img src="/static/img/providers/o2.svg" alt="{{ isp_name }}" style="width:14px;height:14px;margin-right:4px;">
-                    {% else %}
-                    <img src="/static/img/providers/generic.svg" alt="{{ isp_name }}" style="width:14px;height:14px;margin-right:4px;opacity:0.7;">
+            <div class="hero-right">
+                <div class="hero-meta">
+                    {% if isp_name %}
+                    <span class="hero-meta-item"><i data-lucide="wifi"></i> {{ isp_name }}</span>
                     {% endif %}
-                    {{ isp_name }}
-                </span>
-                {% endif %}
-                
-                {# 2. Speed #}
-                {% if connection_info and connection_info.max_downstream_kbps %}
-                <span class="hero-speed">
-                    {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} MBit/s
-                    <span class="info-icon" data-tooltip="Auto-detected from modem" style="margin-left:3px;">
-                        <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;"></i>
+                    {% if connection_info and connection_info.max_downstream_kbps %}
+                    <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} MBit/s</span>
+                    {% elif booked_download and booked_download > 0 %}
+                    <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ booked_download|int }}/{{ booked_upload|int }} MBit/s</span>
+                    {% endif %}
+                    <span class="hero-meta-item"><i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch</span>
+                    {% if gaming_quality_enabled and gaming_index %}
+                    {% set _g = gaming_index.grade|upper %}
+                    {% set _badge_class = 'badge-good' if _g in ('A', 'B') else ('badge-warn' if _g == 'C' else 'badge-crit') %}
+                    <span class="hero-meta-item" style="cursor:help;"
+                          title="{{ gaming_index.score }}/100 — {{ t['gaming_tooltip_' ~ gaming_index.grade|lower] }}{% if not gaming_index.has_speedtest %} ({{ t.gaming_no_speedtest }}){% endif %}">
+                        <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i> Gaming <span class="badge {{ _badge_class }}" style="margin-left:2px;">{{ gaming_index.grade }}</span>
                     </span>
-                </span>
-                {% elif booked_download and booked_download > 0 %}
-                <span class="hero-speed">
-                    {{ booked_download|int }}/{{ booked_upload|int }} MBit/s
-                    <span class="info-icon" data-tooltip="Configured in Settings" style="margin-left:3px;">
-                        <i data-lucide="settings" style="width:12px;height:12px;opacity:0.5;"></i>
+                    {% endif %}
+                    <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
+                    <span class="hero-meta-item desktop-only" style="cursor:pointer;" title="{{ t.refresh }}"
+                          onclick="var rb=document.getElementById('refresh-btn');if(rb)rb.click();">
+                        <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> {{ t.refresh }}
                     </span>
-                </span>
-                {% else %}
-                <a href="/settings" style="color:var(--text-secondary);text-decoration:none;font-size:12px;opacity:0.7;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-                    <i data-lucide="settings" style="width:11px;height:11px;margin-right:4px;"></i>
-                    <span>Set speed in Settings</span>
-                </a>
-                {% endif %}
-                
-                {# 3. Channels #}
-                <span class="hero-channels">
-                    {{ s.ds_total }} DS / {{ s.us_total }} US {{ t.channel if (s.ds_total + s.us_total) == 1 else t.channels }}
-                    <span class="info-icon" data-tooltip="Auto-detected from modem" style="margin-left:3px;">
-                        <i data-lucide="info" style="width:12px;height:12px;opacity:0.5;"></i>
-                    </span>
-                </span>
-
-                {# 4. Gaming Quality Index #}
-                {% if gaming_quality_enabled and gaming_index %}
-                <span class="hero-gaming gaming-{{ gaming_index.grade|lower }}"
-                      data-tooltip="{{ gaming_index.score }}/100 — {{ t['gaming_tooltip_' ~ gaming_index.grade|lower] }}{% if not gaming_index.has_speedtest %} ({{ t.gaming_no_speedtest }}){% endif %}">
-                    <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i>
-                    <span class="gaming-grade">{{ gaming_index.grade }}</span>
-                    <span class="gaming-label">Gaming</span>
-                </span>
-                {% endif %}
+                </div>
             </div>
         </div>
-        
-        {% if s.health_issues %}
-        <div class="hero-issues">
-            {% for issue in s.health_issues %}
-            <span class="issue-badge" title="{{ issue_descs.get(issue, '') }}">{{ issue_labels.get(issue, issue) }}</span>
-            {% endfor %}
-        </div>
-        {% endif %}
-        
-        <div class="hero-chart-container">
+        <div class="hero-chart-wrap">
             <canvas id="hero-trend-chart"></canvas>
         </div>
     </div>
 
-    {# ── OLD Health Banner (DEPRECATED, replaced by Hero Card) ── #}
-    {# <div class="health-banner health-{{ 'good' if s.health == 'good' else ('crit' if s.health == 'poor' else 'warn') }}">
-        <div class="health-status">
-            <span class="health-icon">{% if s.health == 'good' %}&#10004;{% elif s.health == 'poor' %}&#10006;{% else %}&#9888;{% endif %}</span>
-            <span class="health-title">{{ health_label }}</span>
+    {# ── Issues Panel (moved outside hero card for prominence) ── #}
+    {% if s.health_issues %}
+    <div class="issues-panel glass">
+        <div class="issues-header">
+            <div class="metric-icon amber"><i data-lucide="alert-circle"></i></div>
+            <span style="font-weight:600;">{{ t.active_issues or 'Active Issues' }}</span>
+            <span class="badge badge-warn">{{ s.health_issues|length }}</span>
         </div>
-        <div class="health-msg">{{ health_msgs.get(s.health, '') }}</div>
-        {% if s.health_issues %}
-        <div class="health-issues">
-            {% for issue in s.health_issues %}
-            <div class="health-issue">
-                <span class="health-issue-name">{{ issue_labels.get(issue, issue) }}<span class="info-tip"><i class="tip-icon" tabindex="0">&#9432;</i><span class="tip-text">{{ issue_descs.get(issue, '') }}</span></span></span>
-                <span class="health-issue-desc">{{ issue_descs.get(issue, '') }}</span>
+        {% for issue in s.health_issues %}
+        <div class="issue-item">
+            <div class="issue-icon {{ 'crit' if 'critical' in issue else 'warn' }}"><i data-lucide="alert-circle"></i></div>
+            <div>
+                <div class="issue-text">{{ issue_labels.get(issue, issue) }}</div>
+                <div class="issue-desc">{{ issue_descs.get(issue, '') }}</div>
             </div>
-            {% endfor %}
         </div>
-        {% endif %}
-    </div> #}
-
-    {# ── OLD Connection Info Bar (DEPRECATED, moved into Hero Card meta) ── #}
-    {# {% if isp_name or (connection_info and connection_info.max_downstream_kbps) %}
-    <div class="conn-info-bar">
-        {% if isp_name %}{{ isp_name }}{% endif %}
-        {% if connection_info and connection_info.max_downstream_kbps %}
-            {% if isp_name %}<span class="conn-sep">&middot;</span>{% endif %}
-            {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} Mbit/s
-        {% endif %}
-        <span class="conn-sep">|</span>
-        {{ s.ds_total }} DS <span class="conn-sep">/</span> {{ s.us_total }} US {{ t.channels|lower }}
+        {% endfor %}
     </div>
-    {% endif %} #}
+    {% endif %}
 
     {# ── Per-card health ── #}
     {% set signal_health = 'crit' if 'ds_power_critical' in s.health_issues or 'snr_critical' in s.health_issues
        else ('warn' if 'ds_power_warn' in s.health_issues or 'snr_warn' in s.health_issues else 'good') %}
     {% set us_health = 'crit' if 'us_power_critical_low' in s.health_issues or 'us_power_critical_high' in s.health_issues
        else ('warn' if 'us_power_warn_low' in s.health_issues or 'us_power_warn_high' in s.health_issues else 'good') %}
-    {% set error_health = 'crit' if 'uncorr_errors_high' in s.health_issues else 'good' %}
+    {% set error_health = 'crit' if 'uncorr_errors_critical' in s.health_issues else ('warn' if 'uncorr_errors_high' in s.health_issues else 'good') %}
 
     {# ── DS Power health ── #}
     {% set ds_pwr_health = 'crit' if 'ds_power_critical' in s.health_issues else ('warn' if 'ds_power_warn' in s.health_issues else 'good') %}
     {# ── SNR health ── #}
     {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_warn' in s.health_issues else 'good') %}
+
+    {# ── Health label mapping ── #}
+    {% set health_labels = {'good': 'Good', 'warn': 'Marginal', 'crit': 'Poor'} %}
 
     {# ── Speedtest health (for new Metric Summary Row) ── #}
     {% if speedtest_configured and speedtest_latest %}
@@ -406,99 +360,73 @@
     {% endif %}
 
     {# ══════════════════════════════════════════════════════════════════════════
-       METRIC SUMMARY ROW - Phase 3 Task 3.2
-       Compact metric cards: DS, US, Errors, Speed (no expandable details)
+       METRICS GRID — Compact signal + error + speed cards
        ══════════════════════════════════════════════════════════════════════════ #}
-    <div class="metric-summary-row">
-        {# Card 1: Downstream Signal #}
-        <div class="metric-summary-card health-{{ signal_health }}">
-            <div class="metric-summary-header">
-                <i data-lucide="radio" class="metric-icon"></i>
-                <span class="metric-label">{{ t.downstream }}</span>
+    <div class="metrics-grid">
+        {# Card 1: DS Power #}
+        <div class="metric-card glass">
+            <div class="metric-header">
+                <span class="metric-label">DS Power</span>
+                <div class="metric-icon purple"><i data-lucide="arrow-down"></i></div>
             </div>
-            <div class="metric-summary-values">
-                <div class="metric-value-item">
-                    <span class="value val-{{ ds_pwr_health }}">{{ s.ds_power_avg }}</span>
-                    <span class="unit">dBmV</span>
-                    <span class="sublabel">Ø {{ t.card_ds_power }}</span>
-                </div>
-                <div class="metric-value-divider"></div>
-                <div class="metric-value-item">
-                    <span class="value val-{{ snr_health }}">{{ s.ds_snr_avg }}</span>
-                    <span class="unit">dB</span>
-                    <span class="sublabel">Ø {{ t.card_snr }}</span>
-                </div>
+            <div class="metric-value" style="color:var(--{{ ds_pwr_health }});">{{ s.ds_power_avg }}<span class="unit">dBmV</span></div>
+            <div class="metric-sub">
+                <span class="badge badge-{{ ds_pwr_health }}">{{ health_labels[ds_pwr_health] }}</span>
+                <span class="range">{{ s.ds_power_min }} — {{ s.ds_power_max }}</span>
             </div>
         </div>
 
-        {# Card 2: Upstream Signal #}
-        <div class="metric-summary-card health-{{ us_health }}">
-            <div class="metric-summary-header">
-                <i data-lucide="radio" class="metric-icon"></i>
-                <span class="metric-label">{{ t.upstream }}</span>
+        {# Card 2: US Power #}
+        <div class="metric-card glass">
+            <div class="metric-header">
+                <span class="metric-label">US Power</span>
+                <div class="metric-icon blue"><i data-lucide="arrow-up"></i></div>
             </div>
-            <div class="metric-summary-values">
-                <div class="metric-value-item">
-                    <span class="value val-{{ us_health }}">{{ s.us_power_avg }}</span>
-                    <span class="unit">dBmV</span>
-                    <span class="sublabel">Ø {{ t.card_transmit_power }}</span>
-                </div>
-                {% if s.us_capacity_mbps is not none %}
-                <div class="metric-value-divider"></div>
-                <div class="metric-value-item">
-                    <span class="value val-{{ us_health }}">{{ s.us_capacity_mbps }}</span>
-                    <span class="unit">Mbit/s</span>
-                    <span class="sublabel">{{ t.card_us_capacity or 'Capacity' }}</span>
-                </div>
-                {% endif %}
+            <div class="metric-value" style="color:var(--{{ us_health }});">{{ s.us_power_avg }}<span class="unit">dBmV</span></div>
+            <div class="metric-sub">
+                <span class="badge badge-{{ us_health }}">{{ health_labels[us_health] }}</span>
+                <span class="range">{{ s.us_power_min }} — {{ s.us_power_max }}</span>
             </div>
         </div>
 
-        {# Card 3: Errors #}
-        <div class="metric-summary-card health-{{ error_health }}">
-            <div class="metric-summary-header">
-                <i data-lucide="alert-triangle" class="metric-icon"></i>
+        {# Card 3: SNR #}
+        <div class="metric-card glass">
+            <div class="metric-header">
+                <span class="metric-label">SNR</span>
+                <div class="metric-icon green"><i data-lucide="signal"></i></div>
+            </div>
+            <div class="metric-value" style="color:var(--{{ snr_health }});">{{ s.ds_snr_avg }}<span class="unit">dB</span></div>
+            <div class="metric-sub">
+                <span class="badge badge-{{ snr_health }}">{{ health_labels[snr_health] }}</span>
+                <span class="range">{{ s.ds_snr_min }} — {{ s.ds_snr_max }}</span>
+            </div>
+        </div>
+
+        {# Card 4: Errors #}
+        <div class="metric-card glass">
+            <div class="metric-header">
                 <span class="metric-label">{{ t.card_errors }}</span>
+                <div class="metric-icon amber"><i data-lucide="alert-triangle"></i></div>
             </div>
-            <div class="metric-summary-values">
-                <div class="metric-value-item">
-                    <span class="value val-{{ error_health }}">{{ s.ds_uncorrectable_errors|fmt_k }}</span>
-                    <span class="unit">{{ t.card_uncorr_label }}</span>
-                    <span class="sublabel">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}</span>
-                </div>
+            <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorrectable_errors|fmt_k }}<span class="unit">uncorr.</span></div>
+            <div class="metric-sub">
+                <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
+                <span class="range">{{ s.ds_correctable_errors|fmt_k }} corr. / {{ s.ds_uncorrectable_errors|fmt_k }} uncorr.</span>
             </div>
         </div>
 
-        {# Card 4: Speedtest (conditional) #}
+        {# Card 4: Speed (conditional) #}
         {% if speedtest_configured and speedtest_latest %}
-        <div class="metric-summary-card {{ speed_health }}">
-            <div class="metric-summary-header">
-                <i data-lucide="zap" class="metric-icon"></i>
+        <div class="metric-card glass">
+            <div class="metric-header">
                 <span class="metric-label">{{ t.speed }}</span>
+                <div class="metric-icon green"><i data-lucide="zap"></i></div>
             </div>
-            <div class="metric-summary-values" style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;">
-                <div class="metric-value-item">
-                    <span class="value {{ dl_val_class }}">{{ speedtest_latest.download_mbps|fmt_speed_value }}</span>
-                    <span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }}</span>
-                    <span class="sublabel">{{ t.download }}</span>
-                </div>
-                <div class="metric-value-divider"></div>
-                <div class="metric-value-item">
-                    <span class="value {{ ul_val_class }}">{{ speedtest_latest.upload_mbps|fmt_speed_value }}</span>
-                    <span class="unit">{{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
-                    <span class="sublabel">{{ t.upload }}</span>
-                </div>
-                <div class="metric-value-item secondary" style="grid-column:1;">
-                    <span class="value">{{ speedtest_latest.ping_ms|round(0)|int }}</span>
-                    <span class="unit">ms</span>
-                    <span class="sublabel">Ping</span>
-                </div>
-                <div class="metric-value-divider"></div>
-                <div class="metric-value-item secondary" style="grid-column:3;">
-                    <span class="value">{{ speedtest_latest.jitter_ms|round(1) }}</span>
-                    <span class="unit">ms</span>
-                    <span class="sublabel">Jitter</span>
-                </div>
+            <div class="metric-value" style="color:var(--{{ dl_val_class|replace('val-','') }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
+            <div class="metric-sub">
+                <span class="range">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }} {{ t.upload }}</span>
+                <span class="range">{{ speedtest_latest.ping_ms|round(0)|int }} ms Ping</span>
+                <span class="range">{{ speedtest_latest.jitter_ms|round(1) }} ms Jitter</span>
             </div>
         </div>
         {% endif %}
@@ -511,77 +439,76 @@
     {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff else 0 %}
     {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff else 0 %}
     {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
-    <div class="metric-summary-row">
-        <div class="metric-summary-card {{ 'health-crit' if bnetz_has_deviation else 'health-good' }}" style="flex:1;">
-            <div class="metric-summary-header">
-                <i data-lucide="file-check" class="metric-icon"></i>
+    <div class="metrics-grid" style="grid-template-columns:1fr;">
+        <div class="metric-card glass">
+            <div class="metric-header">
                 <span class="metric-label">{{ t.bnetz_title }}</span>
+                <div class="metric-icon {{ 'amber' if bnetz_has_deviation else 'green' }}"><i data-lucide="file-check"></i></div>
             </div>
-            <div class="metric-summary-values" style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;">
-                <div class="metric-value-item">
-                    <span class="value">{{ bnetz_latest.download_measured_avg|round(0)|int }}</span>
-                    <span class="unit">/ {{ bnetz_latest.download_max_tariff|round(0)|int }} Mbit/s ({{ bnetz_dl_pct }}%)</span>
-                    <span class="sublabel">{{ t.download }}</span>
-                </div>
-                <div class="metric-value-divider"></div>
-                <div class="metric-value-item">
-                    <span class="value">{{ bnetz_latest.upload_measured_avg|round(0)|int }}</span>
-                    <span class="unit">/ {{ bnetz_latest.upload_max_tariff|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%)</span>
-                    <span class="sublabel">{{ t.upload }}</span>
-                </div>
-                <div class="metric-value-item secondary" style="grid-column:1/-1;text-align:center;">
-                    <span class="value" style="font-size:0.8em;color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">
-                        {{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}
-                    </span>
-                    <span class="sublabel">{{ bnetz_latest.date }} &middot; {{ bnetz_latest.provider }}</span>
-                </div>
+            <div class="metric-value" style="color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">{{ bnetz_latest.download_measured_avg|round(0)|int }} / {{ bnetz_latest.download_max_tariff|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
+            <div class="metric-sub">
+                <span class="range">{{ bnetz_latest.upload_measured_avg|round(0)|int }} / {{ bnetz_latest.upload_max_tariff|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
+            </div>
+            <div class="metric-sub">
+                <span class="badge badge-{{ 'crit' if bnetz_has_deviation else 'good' }}">{{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}</span>
+                <span class="range">{{ bnetz_latest.date }} &middot; {{ bnetz_latest.provider }}</span>
             </div>
         </div>
     </div>
     {% endif %}
 
     {# ══════════════════════════════════════════════════════════════════════════
-       CHANNEL HEALTH OVERVIEW - Phase 3 Task 3.4
-       Donut charts showing health distribution for DS/US channels
+       CHANNEL HEALTH OVERVIEW — Ring gauges for DS/US health distribution
        ══════════════════════════════════════════════════════════════════════════ #}
-    <div class="channel-health-card">
-        <div class="channel-health-header">
-            <i data-lucide="pie-chart" class="channel-health-icon"></i>
-            <h3 class="channel-health-title">{{ t.get('channel_health_overview', 'Channel Health Overview') }}</h3>
+    {% set ds_good = ds|selectattr('health', 'equalto', 'good')|list|length %}
+    {% set ds_warn = ds|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
+    {% set ds_crit = ds|selectattr('health', 'equalto', 'critical')|list|length %}
+    {% set ds_total = ds|length %}
+    {% set ds_pct = ((ds_good / ds_total * 100)|round(0)|int) if ds_total > 0 else 0 %}
+    {% set us_good_c = us|selectattr('health', 'equalto', 'good')|list|length %}
+    {% set us_warn_c = us|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
+    {% set us_crit_c = us|selectattr('health', 'equalto', 'critical')|list|length %}
+    {% set us_total = us|length %}
+    {% set us_pct = ((us_good_c / us_total * 100)|round(0)|int) if us_total > 0 else 0 %}
+    <div class="health-overview">
+        <div class="health-ring-card glass">
+            <div class="ring-wrap"
+                 data-good="{{ ds_good }}" data-warn="{{ ds_warn }}" data-crit="{{ ds_crit }}"
+                 ontouchstart="this.classList.add('touched')" ontouchend="setTimeout(()=>this.classList.remove('touched'),2000)">
+                <canvas id="ds-health-donut" width="100" height="100"></canvas>
+                <div class="ring-center">
+                    <span class="ring-pct" style="color:var(--{{ 'good' if ds_pct >= 80 else ('warn' if ds_pct >= 50 else 'crit') }});">{{ ds_pct }}%</span>
+                    <span class="ring-label-small">healthy</span>
+                </div>
+            </div>
+            <div class="ring-details">
+                <div class="ring-title">{{ t.downstream }}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:var(--space-xs);">{{ ds_total }} {{ t.channels }}</div>
+                <div class="ring-legend">
+                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--good);"></span> {{ health_labels.good }} <span class="ring-legend-count" style="color:var(--good);">{{ ds_good }}</span></div>
+                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--warn);"></span> {{ health_labels.warn }} <span class="ring-legend-count" style="color:{{ 'var(--warn)' if ds_warn > 0 else 'var(--text-muted)' }};">{{ ds_warn }}</span></div>
+                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--crit);"></span> {{ health_labels.crit }} <span class="ring-legend-count" style="color:{{ 'var(--crit)' if ds_crit > 0 else 'var(--text-muted)' }};">{{ ds_crit }}</span></div>
+                </div>
+            </div>
         </div>
-        
-        <div class="channel-health-charts">
-            <!-- Downstream Donut -->
-            <div class="health-chart-container" 
-                 data-good="{{ ds|selectattr('health', 'equalto', 'good')|list|length }}"
-                 data-warn="{{ ds|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }}"
-                 data-crit="{{ ds|selectattr('health', 'equalto', 'critical')|list|length }}">
-                <canvas id="ds-health-donut"></canvas>
-                <div class="chart-label">{{ t.downstream }}</div>
+        <div class="health-ring-card glass">
+            <div class="ring-wrap"
+                 data-good="{{ us_good_c }}" data-warn="{{ us_warn_c }}" data-crit="{{ us_crit_c }}"
+                 ontouchstart="this.classList.add('touched')" ontouchend="setTimeout(()=>this.classList.remove('touched'),2000)">
+                <canvas id="us-health-donut" width="100" height="100"></canvas>
+                <div class="ring-center">
+                    <span class="ring-pct" style="color:var(--{{ 'good' if us_pct >= 80 else ('warn' if us_pct >= 50 else 'crit') }});">{{ us_pct }}%</span>
+                    <span class="ring-label-small">healthy</span>
+                </div>
             </div>
-            
-            <!-- Upstream Donut -->
-            <div class="health-chart-container"
-                 data-good="{{ us|selectattr('health', 'equalto', 'good')|list|length }}"
-                 data-warn="{{ us|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length }}"
-                 data-crit="{{ us|selectattr('health', 'equalto', 'critical')|list|length }}">
-                <canvas id="us-health-donut"></canvas>
-                <div class="chart-label">{{ t.upstream }}</div>
-            </div>
-        </div>
-        
-        <div class="channel-health-legend">
-            <div class="legend-item">
-                <span class="legend-dot legend-good"></span>
-                <span class="legend-label">{{ t.health_good }}</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot legend-warn"></span>
-                <span class="legend-label">{{ t.health_warning }}</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot legend-crit"></span>
-                <span class="legend-label">{{ t.health_critical }}</span>
+            <div class="ring-details">
+                <div class="ring-title">{{ t.upstream }}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:var(--space-xs);">{{ us_total }} {{ t.channels }}</div>
+                <div class="ring-legend">
+                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--good);"></span> {{ health_labels.good }} <span class="ring-legend-count" style="color:var(--good);">{{ us_good_c }}</span></div>
+                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--warn);"></span> {{ health_labels.warn }} <span class="ring-legend-count" style="color:{{ 'var(--warn)' if us_warn_c > 0 else 'var(--text-muted)' }};">{{ us_warn_c }}</span></div>
+                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--crit);"></span> {{ health_labels.crit }} <span class="ring-legend-count" style="color:{{ 'var(--crit)' if us_crit_c > 0 else 'var(--text-muted)' }};">{{ us_crit_c }}</span></div>
+                </div>
             </div>
         </div>
     </div>
@@ -592,123 +519,113 @@
     {% endfor %}
 
     {# ══════════════════════════════════════════════════════════════════════════
-       DOWNSTREAM CHANNELS - Phase 3 Task 3.5
-       Modern card containers for channel tables
+       DOWNSTREAM CHANNELS — Channel detail tables with collapsible groups
        ══════════════════════════════════════════════════════════════════════════ #}
-    <div class="channel-section">
-        <div class="channel-section-header">
-            <i data-lucide="radio-tower" class="section-icon"></i>
-            <h2 class="section-title">{{ t.downstream }}</h2>
-            <span class="section-badge">{{ ds|length }} {{ t.channel if ds|length == 1 else t.channels }}</span>
+    {% set ds_versions = ds|map(attribute='docsis_version')|unique|sort|list %}
+    <div class="channels-section glass">
+        <div class="channel-header">
+            <div>
+                <div class="channel-title">{{ t.downstream }} {{ t.channels }}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">{{ ds|length }} {{ t.channels|lower }}{% if ds_versions %} · DOCSIS {{ ds_versions|join(' + ') }}{% endif %}</div>
+            </div>
+            <div class="channel-health-chips">
+                <span class="health-chip"><span class="dot good"></span> {{ ds_good }} {{ health_labels.good }}</span>
+                <span class="health-chip"><span class="dot warn"></span> {{ ds_warn }} {{ health_labels.warn }}</span>
+                <span class="health-chip"><span class="dot crit"></span> {{ ds_crit }} {{ health_labels.crit }}</span>
+            </div>
         </div>
 
         {% for group in ds|groupby('docsis_version')|reverse %}
-        {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
-        {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
-        <div class="channel-card">
-            <details class="channel-group" open>
-                <summary>
-                    <div class="channel-group-summary">
-                        <span class="channel-group-label">DOCSIS {{ group.grouper }}</span>
-                        <span class="channel-group-count">({{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }})</span>
-                        <div class="channel-group-badges">
-                            {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% endif %}
-                            {% if g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% endif %}
-                            {% if not g_crit and not g_warn %}<span class="badge badge-good">&#10003;</span>{% endif %}
-                        </div>
-                    </div>
-                </summary>
-                <div class="channel-table-wrapper">
-                    <table class="sortable">
-            <thead><tr>
-                <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
-                <th>{{ t.snr_db }}</th><th>{{ t.modulation }}</th><th>{{ t.corr }}</th><th>{{ t.uncorr }}</th>
-            </tr></thead>
-            <tbody>
-            {% for ch in group.list %}
-            <tr>
-                {% set ch_tips = {"power critical": t.ch_power_critical, "power warning": t.ch_power_warning, "snr critical": t.ch_snr_critical, "snr warning": t.ch_snr_warning} %}
-                {% set ch_tip_parts = [] %}
-                {% for key, label in ch_tips.items() %}{% if key in ch.health_detail %}{% if ch_tip_parts.append(label) %}{% endif %}{% endif %}{% endfor %}
-                <td data-sort="{{ 0 if ch.health == 'good' else (2 if ch.health == 'critical' else 1) }}">
-                    {% if ch.health == "good" %}<span class="badge badge-good">{{ t.health_good }}</span>
-                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip_parts|join(', ') }}">{{ t.health_critical }}</span>
-                    {% else %}<span class="badge badge-warn" title="{{ ch_tip_parts|join(', ') }}">{{ t.health_warning }}</span>{% endif %}
-                </td>
-                <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
-                <td>{{ ch.frequency }}</td>
-                <td data-sort="{{ ch.power if ch.power is not none else 0 }}" class="{% if ch.power is not none %}{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power if ch.power is not none else "—" }}</td>
-                <td data-sort="{{ ch.snr if ch.snr is not none else 0 }}" class="{% if ch.snr is not none %}{% if 'snr critical' in ch.health_detail %}val-crit{% elif 'snr warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "-" }}</td>
-                <td>{{ ch.modulation }}</td>
-                <td data-sort="{{ ch.correctable_errors }}">{{ ch.correctable_errors|fmt_k }}</td>
-                <td data-sort="{{ ch.uncorrectable_errors }}">{{ ch.uncorrectable_errors|fmt_k }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
+        <div class="docsis-group">
+            <div class="docsis-group-header" onclick="this.parentElement.classList.toggle('open')">
+                <i data-lucide="chevron-right"></i>
+                DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }} · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
+            </div>
+            <div class="table-scroll-wrapper">
+                <div class="table-scroll">
+                    <table class="channel-table">
+                        <thead><tr>
+                            <th>Ch</th><th>{{ t.frequency }}</th><th>Power</th>
+                            <th>SNR</th><th>Mod.</th><th>Health</th>
+                        </tr></thead>
+                        <tbody>
+                        {% for ch in group.list %}
+                        {% set ch_tips = {"power critical": t.ch_power_critical, "power warning": t.ch_power_warning, "snr critical": t.ch_snr_critical, "snr warning": t.ch_snr_warning} %}
+                        {% set ch_tip_parts = [] %}
+                        {% for key, label in ch_tips.items() %}{% if key in ch.health_detail %}{% if ch_tip_parts.append(label) %}{% endif %}{% endif %}{% endfor %}
+                        <tr>
+                            <td>{{ ch.channel_id }}</td>
+                            <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
+                            <td class="{% if ch.power is not none %}{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
+                            <td class="{% if ch.snr is not none %}{% if 'snr critical' in ch.health_detail %}val-crit{% elif 'snr warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
+                            <td>{{ ch.modulation }}</td>
+                            <td>
+                                {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
+                                {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip_parts|join(', ') }}">{{ health_labels.crit }}</span>
+                                {% else %}<span class="badge badge-warn" title="{{ ch_tip_parts|join(', ') }}">{{ health_labels.warn }}</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
                     </table>
                 </div>
-            </details>
+            </div>
         </div>
         {% endfor %}
     </div>
 
     {# ══════════════════════════════════════════════════════════════════════════
-       UPSTREAM CHANNELS - Phase 3 Task 3.5
-       Modern card containers for channel tables
+       UPSTREAM CHANNELS — Channel detail tables with collapsible groups
        ══════════════════════════════════════════════════════════════════════════ #}
-    <div class="channel-section">
-        <div class="channel-section-header">
-            <i data-lucide="radio-tower" class="section-icon"></i>
-            <h2 class="section-title">{{ t.upstream }}</h2>
-            <span class="section-badge">{{ us|length }} {{ t.channel if us|length == 1 else t.channels }}</span>
+    {% set us_versions = us|map(attribute='docsis_version')|unique|sort|list %}
+    <div class="channels-section glass">
+        <div class="channel-header">
+            <div>
+                <div class="channel-title">{{ t.upstream }} {{ t.channels }}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">{{ us|length }} {{ t.channels|lower }}{% if us_versions %} · DOCSIS {{ us_versions|join(' + ') }}{% endif %}</div>
+            </div>
+            <div class="channel-health-chips">
+                <span class="health-chip"><span class="dot good"></span> {{ us_good_c }} {{ health_labels.good }}</span>
+                <span class="health-chip"><span class="dot warn"></span> {{ us_warn_c }} {{ health_labels.warn }}</span>
+                <span class="health-chip"><span class="dot crit"></span> {{ us_crit_c }} {{ health_labels.crit }}</span>
+            </div>
         </div>
 
         {% for group in us|groupby('docsis_version')|reverse %}
-        {% set g_crit = group.list|selectattr('health', 'equalto', 'critical')|list|length %}
-        {% set g_warn = group.list|rejectattr('health', 'equalto', 'good')|rejectattr('health', 'equalto', 'critical')|list|length %}
-        <div class="channel-card">
-            <details class="channel-group" open>
-                <summary>
-                    <div class="channel-group-summary">
-                        <span class="channel-group-label">DOCSIS {{ group.grouper }}</span>
-                        <span class="channel-group-count">({{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }})</span>
-                        <div class="channel-group-badges">
-                            {% if g_crit %}<span class="badge badge-crit">{{ g_crit }} {{ t.health_critical|lower }}</span>{% endif %}
-                            {% if g_warn %}<span class="badge badge-warn">{{ g_warn }} {{ t.health_warning|lower }}</span>{% endif %}
-                            {% if not g_crit and not g_warn %}<span class="badge badge-good">&#10003;</span>{% endif %}
-                        </div>
-                    </div>
-                </summary>
-                <div class="channel-table-wrapper">
-                    <table class="sortable">
-            <thead><tr>
-                <th>{{ t.status }}</th><th>{{ t.channel }}</th><th>{{ t.frequency }}</th><th>{{ t.power_dbmv }}</th>
-                <th>{{ t.modulation }}</th><th>{{ t.bitrate or 'Bitrate' }}</th><th>{{ t.multiplex }}</th>
-            </tr></thead>
-            <tbody>
-            {% for ch in group.list %}
-            {% set ch_tips = [] %}
-            {% if 'power critical low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical_low) %}{% elif 'power critical high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical_high) %}{% elif 'power warning low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning_low) %}{% elif 'power warning high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning_high) %}{% endif %}
-            {% if 'modulation critical' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_critical) %}{% elif 'modulation warning' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_warning) %}{% endif %}
-            {% set ch_tip = ch_tips|join(', ') %}
-            <tr>
-                <td data-sort="{{ 0 if ch.health == 'good' else (2 if ch.health == 'critical' else 1) }}">
-                    {% if ch.health == "good" %}<span class="badge badge-good">{{ t.health_good }}</span>
-                    {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip }}">{{ t.health_critical }}</span>
-                    {% else %}<span class="badge badge-warn" title="{{ ch_tip }}">{{ t.health_warning }}</span>{% endif %}
-                </td>
-                <td data-sort="{{ ch.channel_id }}">{{ ch.channel_id }}</td>
-                <td>{{ ch.frequency }}</td>
-                <td data-sort="{{ ch.power if ch.power is not none else 0 }}" class="{% if ch.power is not none %}{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power if ch.power is not none else "—" }}</td>
-                <td class="{% if 'modulation critical' in ch.health_detail %}val-crit{% elif 'modulation warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}">{{ ch.modulation }}</td>
-                <td class="{% if 'modulation critical' in ch.health_detail %}val-crit{% elif 'modulation warning' in ch.health_detail %}val-warn{% endif %}">{% if ch.theoretical_bitrate %}{{ ch.theoretical_bitrate }} Mbit/s{% else %}—{% endif %}</td>
-                <td>{{ ch.multiplex }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
+        <div class="docsis-group">
+            <div class="docsis-group-header" onclick="this.parentElement.classList.toggle('open')">
+                <i data-lucide="chevron-right"></i>
+                DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }} · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
+            </div>
+            <div class="table-scroll-wrapper">
+                <div class="table-scroll">
+                    <table class="channel-table">
+                        <thead><tr>
+                            <th>Ch</th><th>{{ t.frequency }}</th><th>Power</th>
+                            <th>Mod.</th><th>Health</th>
+                        </tr></thead>
+                        <tbody>
+                        {% for ch in group.list %}
+                        {% set ch_tips = [] %}
+                        {% if 'power critical low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical_low) %}{% elif 'power critical high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_critical_high) %}{% elif 'power warning low' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning_low) %}{% elif 'power warning high' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_power_warning_high) %}{% endif %}
+                        {% if 'modulation critical' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_critical) %}{% elif 'modulation warning' in ch.health_detail %}{% set _ = ch_tips.append(t.ch_modulation_warning) %}{% endif %}
+                        {% set ch_tip = ch_tips|join(', ') %}
+                        <tr>
+                            <td>{{ ch.channel_id }}</td>
+                            <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
+                            <td class="{% if ch.power is not none %}{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
+                            <td>{{ ch.modulation }}</td>
+                            <td>
+                                {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
+                                {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip }}">{{ health_labels.crit }}</span>
+                                {% else %}<span class="badge badge-warn" title="{{ ch_tip }}">{{ health_labels.warn }}</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
                     </table>
                 </div>
-            </details>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -1941,12 +1858,8 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
-        integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
-        crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"
-        integrity="sha384-cVMg8E3QFwTvGCDuK+ET4PD341jF3W8nO1auiXfuZNQkzbUUiBGLsIQUE+b1mxws"
-        crossorigin="anonymous"></script>
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/vendor/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/hero-chart.js') }}"></script>
 
 {# ── Channel Health Donut Charts - Phase 3 Task 3.4 ── #}
@@ -1958,83 +1871,54 @@
     window.donutCharts = window.donutCharts || {};
     
     function renderDonut(canvasId) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) {
-            console.warn('[ChannelHealth] Canvas element #' + canvasId + ' not found');
-            return;
-        }
-        
-        // Read health counts from data-attributes (updated on refresh)
-        const container = ctx.parentElement;
-        if (!container) {
-            console.warn('[ChannelHealth] Container not found for #' + canvasId);
-            return;
-        }
-        
-        const counts = {
-            good: parseInt(container.getAttribute('data-good') || '0', 10),
-            warn: parseInt(container.getAttribute('data-warn') || '0', 10),
-            crit: parseInt(container.getAttribute('data-crit') || '0', 10)
-        };
-        
-        // Destroy existing chart instance to prevent rendering issues
-        if (window.donutCharts[canvasId]) {
-            window.donutCharts[canvasId].destroy();
-            delete window.donutCharts[canvasId];
-        }
-        
-        const total = counts.good + counts.warn + counts.crit;
-        if (total === 0) {
-            console.warn('[ChannelHealth] No data for ' + canvasId);
-            return;
-        }
-        
-        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-        window.donutCharts[canvasId] = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Good', 'Warning', 'Critical'],
-                datasets: [{
-                    data: [counts.good, counts.warn, counts.crit],
-                    backgroundColor: [
-                        'rgba(76, 175, 80, 0.8)',
-                        'rgba(255, 152, 0, 0.8)',
-                        'rgba(244, 67, 54, 0.8)'
-                    ],
-                    borderColor: [
-                        'rgba(76, 175, 80, 1)',
-                        'rgba(255, 152, 0, 1)',
-                        'rgba(244, 67, 54, 1)'
-                    ],
-                    borderWidth: 2,
-                    hoverOffset: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '65%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: isDark ? 'rgba(15,20,25,0.95)' : 'rgba(255,255,255,0.95)',
-                        titleColor: isDark ? 'rgba(224,224,224,0.9)' : 'rgba(30,30,30,0.9)',
-                        bodyColor: isDark ? 'rgba(224,224,224,0.8)' : 'rgba(30,30,30,0.8)',
-                        borderColor: isDark ? 'rgba(168,85,247,0.3)' : 'rgba(168,85,247,0.4)',
-                        borderWidth: 1,
-                        padding: 12,
-                        displayColors: true,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                return label + ': ' + value + ' (' + percentage + '%)';
-                            }
-                        }
-                    }
-                }
-            }
+        var c = document.getElementById(canvasId);
+        if (!c) return;
+        var container = c.parentElement;
+        if (!container) return;
+
+        var good = parseInt(container.getAttribute('data-good') || '0', 10);
+        var warn = parseInt(container.getAttribute('data-warn') || '0', 10);
+        var crit = parseInt(container.getAttribute('data-crit') || '0', 10);
+        var total = good + warn + crit;
+        if (total === 0) return;
+
+        // Match mockup: raw Canvas arcs with thin stroke
+        var dpr = window.devicePixelRatio || 1;
+        var size = c.parentElement.offsetWidth || 80;
+        c.width = size * dpr;
+        c.height = size * dpr;
+        c.style.width = size + 'px';
+        c.style.height = size + 'px';
+        var x = c.getContext('2d');
+        x.scale(dpr, dpr);
+
+        var cx = size / 2, cy = size / 2, r = size * 0.38, lw = size * 0.08;
+        var styles = getComputedStyle(document.documentElement);
+        var segments = [
+            { val: good, color: styles.getPropertyValue('--good').trim() },
+            { val: warn, color: styles.getPropertyValue('--warn').trim() },
+            { val: crit, color: styles.getPropertyValue('--crit').trim() }
+        ];
+
+        // Background ring
+        x.beginPath();
+        x.arc(cx, cy, r, 0, Math.PI * 2);
+        x.strokeStyle = 'rgba(255,255,255,0.06)';
+        x.lineWidth = lw;
+        x.stroke();
+
+        // Colored segments
+        var angle = -Math.PI / 2;
+        segments.forEach(function(s) {
+            if (s.val === 0) return;
+            var sweep = (s.val / total) * Math.PI * 2;
+            x.beginPath();
+            x.arc(cx, cy, r, angle, angle + sweep);
+            x.strokeStyle = s.color;
+            x.lineWidth = lw;
+            x.lineCap = 'round';
+            x.stroke();
+            angle += sweep;
         });
     }
     
@@ -2071,12 +1955,16 @@ var T = {{ t|tojson }};
     function updateThemeState() {
         var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
         themeToggle.checked = isDark;
+        var mc = document.querySelector('meta[name="theme-color"]');
+        if (mc) mc.setAttribute('content', isDark ? '#06080f' : '#f8f6f3');
     }
     updateThemeState();
     themeToggle.addEventListener('change', function() {
         var next = this.checked ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('docsis-theme', next);
+        var mc = document.querySelector('meta[name="theme-color"]');
+        if (mc) mc.setAttribute('content', next === 'dark' ? '#06080f' : '#f8f6f3');
         // Re-render charts with updated theme colors
         if (typeof window.refreshDonuts === 'function') {
             setTimeout(window.refreshDonuts, 50);
@@ -2134,57 +2022,47 @@ var T = {{ t|tojson }};
     var sidebar = document.getElementById('sidebar');
     var sidebarBackdrop = document.getElementById('sidebar-backdrop');
 
-    function isMobile() { return window.matchMedia('(max-width: 900px)').matches; }
+    function isMobile() { return window.matchMedia('(max-width: 1023px)').matches; }
 
-    function closeMobileSidebar() {
-        sidebar.classList.remove('mobile-open');
-        sidebarBackdrop.classList.remove('active');
-    }
+    window.openSidebar = function() {
+        sidebar.classList.add('open');
+        sidebarBackdrop.style.display = 'block';
+        document.body.classList.add('sidebar-open');
+    };
+    window.closeSidebar = function() {
+        sidebar.classList.remove('open');
+        sidebarBackdrop.style.display = 'none';
+        document.body.classList.remove('sidebar-open');
+    };
 
-    function collapseSidebar() {
-        if (isMobile()) {
-            closeMobileSidebar();
-        } else {
-            sidebar.classList.add('collapsed');
-            sidebar.classList.remove('mobile-open');
-            sidebarBackdrop.classList.remove('active');
-            var btn = document.getElementById('sidebar-collapse');
-            btn.innerHTML = '&#10095;'; // Right arrow >
-            btn.title = 'Expand';
-        }
-    }
-    function expandSidebar() {
-        sidebar.classList.remove('collapsed');
-        var btn = document.getElementById('sidebar-collapse');
-        btn.innerHTML = '&#10094;'; // Left arrow <
-        btn.title = 'Collapse';
-    }
-    function toggleSidebar() {
-        if (sidebar.classList.contains('collapsed')) {
-            expandSidebar();
-        } else {
-            collapseSidebar();
-        }
-    }
+    /* Swipe-to-close sidebar (mobile) */
+    (function() {
+        var startX = 0, currentX = 0, swiping = false;
+        sidebar.addEventListener('touchstart', function(e) {
+            startX = e.touches[0].clientX;
+            swiping = true;
+        }, { passive: true });
+        sidebar.addEventListener('touchmove', function(e) {
+            if (!swiping) return;
+            currentX = e.touches[0].clientX;
+            var dx = currentX - startX;
+            if (dx < -10) {
+                sidebar.style.transform = 'translateX(' + Math.max(dx, -280) + 'px)';
+            }
+        }, { passive: true });
+        sidebar.addEventListener('touchend', function() {
+            if (!swiping) return;
+            swiping = false;
+            var dx = currentX - startX;
+            if (dx < -80) { closeSidebar(); }
+            sidebar.style.transform = '';
+        }, { passive: true });
+    })();
 
-    document.getElementById('sidebar-collapse').addEventListener('click', toggleSidebar);
-    document.getElementById('hamburger').addEventListener('click', function() {
-        if (isMobile()) {
-            // On mobile, NEVER use .collapsed - always use .mobile-open
-            sidebar.classList.remove('collapsed');
-            var opening = !sidebar.classList.contains('mobile-open');
-            sidebar.classList.toggle('mobile-open', opening);
-            sidebarBackdrop.classList.toggle('active', opening);
-        } else {
-            sidebar.classList.toggle('collapsed');
-        }
-    });
-    sidebarBackdrop.addEventListener('click', closeMobileSidebar);
-
-    var sidebarLinks = document.querySelectorAll('.sidebar-link[data-view]');
+    var sidebarLinks = document.querySelectorAll('.nav-item[data-view]');
     sidebarLinks.forEach(function(link) {
         link.addEventListener('click', function() {
-            if (isMobile()) { closeMobileSidebar(); }
+            if (isMobile()) { closeSidebar(); }
             switchView(this.getAttribute('data-view'));
         });
     });
@@ -2205,6 +2083,13 @@ var T = {{ t|tojson }};
         if (!skipHash) location.hash = view === 'live' ? '' : view;
         sidebarLinks.forEach(function(l) {
             l.classList.toggle('active', l.getAttribute('data-view') === view);
+        });
+        // Update bottom nav active state
+        document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+            var match = btn.getAttribute('onclick') || '';
+            var isActive = match.indexOf("'" + view + "'") !== -1;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
         });
         // Generic: remove active from all views, add to target
         document.querySelectorAll('.main-content > .view').forEach(function(v) {
@@ -2249,6 +2134,7 @@ var T = {{ t|tojson }};
         // Re-initialize Lucide icons after view switch
         lucide.createIcons();
     }
+    window.switchView = switchView;
 
     /* Trend Tabs → trends.js */
 
@@ -2273,20 +2159,25 @@ var T = {{ t|tojson }};
     var refreshTimer = null;
     var countdownTimer = null;
     var countdownSeconds = 60;
+    var secondsSinceUpdate = 0;
     var REFRESH_INTERVAL = 60;
     var countdownEl = document.getElementById('topbar-countdown');
+    var desktopCountdownEl = document.getElementById('desktop-countdown');
 
     function updateCountdown() {
         if (countdownEl) countdownEl.textContent = countdownSeconds + 's';
+        if (desktopCountdownEl) desktopCountdownEl.textContent = countdownSeconds + 's';
     }
 
     function startAutoRefresh() {
         stopAutoRefresh();
         countdownSeconds = REFRESH_INTERVAL;
+        secondsSinceUpdate = 0;
         updateCountdown();
         countdownTimer = setInterval(function() {
             if (currentView !== 'live' || document.hidden) return;
             countdownSeconds--;
+            secondsSinceUpdate++;
             if (countdownSeconds <= 0) {
                 countdownSeconds = REFRESH_INTERVAL;
                 refreshData();
@@ -2334,6 +2225,7 @@ var T = {{ t|tojson }};
 
                 // Reset countdown after refresh
                 countdownSeconds = REFRESH_INTERVAL;
+                secondsSinceUpdate = 0;
                 updateCountdown();
 
                 // Restore expanded metric cards
@@ -2434,7 +2326,7 @@ var T = {{ t|tojson }};
     window.addEventListener('resize', function() {
         if (isMobile()) {
             sidebar.classList.remove('collapsed');
-            closeMobileSidebar();
+            closeSidebar();
         } else {
             sidebar.classList.remove('mobile-open');
             sidebarBackdrop.classList.remove('active');
@@ -2463,5 +2355,31 @@ var T = {{ t|tojson }};
 {% for mod in modules if mod.has_js %}
 <script src="/modules/{{ mod.id }}/static/main.js"></script>
 {% endfor %}
+
+<!-- Bottom Tab Bar (mobile only, hidden on desktop via CSS) -->
+<nav class="bottom-nav" role="tablist" aria-label="Main tabs">
+    <button class="bottom-nav-item active" role="tab" aria-selected="true" onclick="switchView('live')">
+        <i data-lucide="radio"></i><span>Dashboard</span>
+    </button>
+    <button class="bottom-nav-item" role="tab" aria-selected="false" onclick="switchView('events')">
+        <i data-lucide="bell"></i><span>{{ t.event_log }}</span>
+    </button>
+    <button class="bottom-nav-item" role="tab" aria-selected="false" onclick="switchView('trends')">
+        <i data-lucide="trending-up"></i><span>{{ t.signal_trends }}</span>
+    </button>
+    <button class="bottom-nav-item" role="tab" aria-selected="false" onclick="switchView('channels')">
+        <i data-lucide="layers"></i><span>{{ t.channels }}</span>
+    </button>
+    <button class="bottom-nav-item" role="tab" aria-selected="false" onclick="window.location='/settings'">
+        <i data-lucide="settings"></i><span>{{ t.settings }}</span>
+    </button>
+</nav>
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .catch(function(err) { console.warn('SW registration failed:', err); });
+}
+</script>
 </body>
 </html>

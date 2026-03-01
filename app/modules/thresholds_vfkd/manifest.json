@@ -3,7 +3,7 @@
   "name": "VFKD Thresholds",
   "description": "Signal thresholds based on Vodafone Kabel Deutschland (VFKD) community guidelines",
   "version": "1.0.0",
-  "author": "DOCSight",
+  "author": "itsDNNS",
   "minAppVersion": "2026.2",
   "type": "driver",
   "contributes": {

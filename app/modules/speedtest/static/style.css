@@ -1,0 +1,123 @@
+/* Speedtest Tracker — Module Styles */
+
+.st-signal-detail {
+    background: var(--surface); border-radius: 6px; margin: 4px 8px 8px;
+    padding: 10px 14px; font-size: 0.85em;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 16px;
+}
+.st-signal-detail .st-sig-item { display: flex; flex-direction: column; gap: 2px; }
+.st-signal-detail .st-sig-label { color: var(--muted); font-size: 0.8em; }
+.st-signal-detail .st-sig-value { font-weight: 600; }
+.st-signal-detail .st-health-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 0.8em; font-weight: 600;
+}
+.st-health-badge.health-good { background: rgba(76,175,80,0.2); color: var(--good); }
+.st-health-badge.health-marginal { background: rgba(255,152,0,0.2); color: var(--warn); }
+.st-health-badge.health-poor { background: rgba(244,67,54,0.2); color: var(--crit); }
+.st-signal-detail .st-sig-no-data { color: var(--muted); font-style: italic; grid-column: 1 / -1; }
+.st-signal-detail .st-us-mods { grid-column: 1 / -1; }
+.st-signal-detail .st-us-mods span { margin-right: 10px; }
+
+/* Modern Card Design */
+.speedtest-chart-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-lg, 12px);
+    padding: var(--space-lg, 20px);
+    margin-bottom: var(--space-xl, 24px);
+    transition: all 0.2s ease;
+}
+.speedtest-chart-card:hover {
+    border-color: var(--accent-purple, #a855f7);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+}
+.speedtest-chart-wrap {
+    position: relative;
+    width: 100%;
+}
+.speedtest-chart-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 250px;
+}
+.speedtest-chart-legend {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    padding: 12px 0 4px;
+    font-size: 0.78em;
+    color: var(--muted);
+}
+.speedtest-chart-legend span::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: -1px;
+}
+.legend-dl::before { background: #a855f7; }
+.legend-ul::before { background: #22c55e; }
+.legend-ping::before { background: #f59e0b; }
+.legend-thresh::before { background: #ef4444; }
+.speedtest-chart-tooltip {
+    position: absolute; pointer-events: none; display: none;
+    background: rgba(0,0,0,0.85); color: #e0e0e0; font-size: 0.78em;
+    padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 1000;
+}
+
+/* Table card wrapper for speedtest table */
+#speedtest-table-wrap.table-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-lg, 12px);
+    overflow: hidden;
+}
+#speedtest-table {
+    width: 100%;
+    margin: 0;
+}
+#speedtest-table thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+#speedtest-table thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text-primary, var(--text));
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+#speedtest-table tbody tr {
+    transition: background 0.15s ease;
+}
+#speedtest-table tbody tr:hover {
+    background: var(--surface-2, rgba(0,0,0,0.1));
+}
+#speedtest-table tbody td {
+    padding: 12px 16px;
+    font-size: 0.85em;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+/* Signal detail rows (expanded) */
+#speedtest-table tbody tr.st-signal-row {
+    background: rgba(168,85,247,0.05);
+}
+#speedtest-table tbody tr.st-signal-row:hover {
+    background: rgba(168,85,247,0.08);
+}
+
+/* Responsive table card */
+@media (max-width: 768px) {
+    .speedtest-chart-card {
+        padding: var(--space-md, 16px);
+    }
+    #speedtest-table thead th,
+    #speedtest-table tbody td {
+        padding: 8px 12px;
+        font-size: 0.8em;
+    }
+}

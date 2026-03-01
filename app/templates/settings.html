@@ -2,16 +2,17 @@
 <html lang="{{ lang }}" data-theme="{{ theme }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#06080f">
     <title>DOCSight - {{ t.settings }}</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-    <link rel="icon" type="image/png" href="/static/icon.png">
     <link rel="apple-touch-icon" href="/static/icon.png">
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#7c3aed">
-    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/fonts.css">
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/components.css">
     <link rel="stylesheet" href="/static/css/settings.css">
-    {% for mod in modules if mod.has_css %}
+    {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
     <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
     {% endfor %}
     {% if active_theme_data %}
@@ -28,9 +29,7 @@
     }
     </style>
     {% endif %}
-    <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js"
-            integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU"
-            crossorigin="anonymous"></script>
+    <script src="/static/vendor/lucide.min.js"></script>
 </head>
 <body>
 
@@ -66,17 +65,17 @@
                 <i data-lucide="bell" class="nav-icon"></i>
                 {{ t.get('notifications', 'Notifications') }}
             </button>
+            <button class="nav-item" data-section="security" onclick="switchSection('security')">
+                <i data-lucide="shield" class="nav-icon"></i>
+                {{ t.get('security', 'Security') }}
+            </button>
             <button class="nav-item" data-section="appearance" onclick="switchSection('appearance')">
                 <i data-lucide="palette" class="nav-icon"></i>
                 {{ t.appearance }}
             </button>
-            <button class="nav-item" data-section="themes" onclick="switchSection('themes')">
-                <i data-lucide="brush" class="nav-icon"></i>
-                {{ t.get('themes', 'Themes') }}
-            </button>
-            <button class="nav-item" data-section="security" onclick="switchSection('security')">
-                <i data-lucide="shield" class="nav-icon"></i>
-                {{ t.get('security', 'Security') }}
+            <button class="nav-item" data-section="modules" onclick="switchSection('modules')">
+                <i data-lucide="package" class="nav-icon"></i>
+                {{ t.modules_title|default('Module Store') }}
             </button>
         </div>
 
@@ -89,7 +88,7 @@
         <div class="nav-separator"></div>
         <div class="nav-group">
             <div class="nav-group-label">{{ t.modules|default('Modules') }}</div>
-            {% for mod in settings_modules|sort(attribute='menu.order') %}
+            {% for mod in settings_modules|sort(attribute='name') %}
             <button class="nav-item" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
                 <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}" class="nav-icon"></i>
                 {{ t.get(mod.menu.label_key, mod.name) }}
@@ -98,15 +97,6 @@
             {% endfor %}
         </div>
         {% endif %}
-
-        <!-- Module Store -->
-        <div class="nav-separator"></div>
-        <div class="nav-group">
-            <button class="nav-item" data-section="modules" onclick="switchSection('modules')">
-                <i data-lucide="package" class="nav-icon"></i>
-                {{ t.modules_title|default('Module Store') }}
-            </button>
-        </div>
 
         <!-- Support (bottom) -->
         <div style="margin-top: auto;">
@@ -159,9 +149,8 @@
             {% include 'settings/connection.html' %}
             {% include 'settings/system.html' %}
             {% include 'settings/notifications.html' %}
-            {% include 'settings/appearance.html' %}
-            {% include 'settings/themes.html' %}
             {% include 'settings/security.html' %}
+            {% include 'settings/appearance.html' %}
             {% include 'settings/modules.html' %}
             {% include 'settings/support.html' %}
 
@@ -191,9 +180,8 @@ var SECTION_TITLES = {
     connection: T.step_modem || 'Connection',
     system: T.get ? (T.get('system') || 'System') : 'System',
     notifications: T.get ? (T.get('notifications') || 'Notifications') : 'Notifications',
-    appearance: T.appearance || 'Appearance',
     security: T.get ? (T.get('security') || 'Security') : 'Security',
-    themes: T.get ? (T.get('themes') || 'Themes') : 'Themes',
+    appearance: T.appearance || 'Appearance',
     modules: T.modules_title || 'Module Store',
     support: 'Support DOCSight'
 };

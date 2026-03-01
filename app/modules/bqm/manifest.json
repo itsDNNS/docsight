@@ -3,13 +3,14 @@
   "name": "ThinkBroadband BQM",
   "description": "Broadband Quality Monitor graph collection from ThinkBroadband",
   "version": "1.0.0",
-  "author": "DOCSight",
+  "author": "itsDNNS",
   "minAppVersion": "2026.2",
   "type": "integration",
   "contributes": {
     "collector": "collector.py:BQMCollector",
     "routes": "routes.py",
     "settings": "templates/bqm_settings.html",
+    "static": "static/",
     "i18n": "i18n/"
   },
   "config": {

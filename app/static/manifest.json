@@ -1,11 +1,13 @@
 {
-  "name": "DOCSight",
+  "name": "DOCSight — Cable Diagnostics",
   "short_name": "DOCSight",
   "description": "Cable Internet Monitoring & Diagnostics",
-  "start_url": "/",
   "display": "standalone",
-  "background_color": "#1f2937",
-  "theme_color": "#a855f7",
+  "orientation": "any",
+  "background_color": "#06080f",
+  "theme_color": "#7c3aed",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/static/icon.png",

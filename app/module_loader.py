@@ -489,6 +489,23 @@ class ModuleLoader:
 
         for mod in self._modules:
             if not mod.enabled:
+                # Theme modules: load theme_data even when disabled so
+                # the settings gallery can show previews for all themes.
+                if mod.type == "theme" and "theme" in mod.contributes:
+                    try:
+                        theme_path = os.path.join(
+                            mod.path, mod.contributes["theme"]
+                        )
+                        if os.path.isfile(theme_path):
+                            with open(theme_path, "r", encoding="utf-8") as f:
+                                tdata = json.load(f)
+                            validate_theme(tdata)
+                            mod.theme_data = tdata
+                    except Exception as e:
+                        log.warning(
+                            "Module '%s': theme preview load failed: %s",
+                            mod.id, e,
+                        )
                 log.info("Module '%s' is disabled, skipping load", mod.id)
                 continue
 

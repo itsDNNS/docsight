@@ -3,7 +3,7 @@
   "name": "Reports & Complaints",
   "description": "Generate PDF incident reports and ISP complaint letters",
   "version": "1.0.0",
-  "author": "DOCSight",
+  "author": "itsDNNS",
   "minAppVersion": "2026.2",
   "type": "analysis",
   "contributes": {

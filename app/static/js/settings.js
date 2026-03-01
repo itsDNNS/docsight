@@ -190,6 +190,18 @@ function toggleThemeFromAppearance(checked) {
     var theme = checked ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('docsis-theme', theme);
+    updatePaletteDots(theme);
+}
+
+function updatePaletteDots(mode) {
+    var keys = ['--bg', '--surface', '--accent', '--good', '--crit'];
+    document.querySelectorAll('.theme-card').forEach(function(card) {
+        var colors = JSON.parse(card.getAttribute('data-theme-' + mode) || '{}');
+        var dots = card.querySelectorAll('.palette-dot');
+        dots.forEach(function(dot, i) {
+            if (keys[i] && colors[keys[i]]) dot.style.background = colors[keys[i]];
+        });
+    });
 }
 
 /* ── ISP Change ── */
@@ -846,7 +858,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     initThemeToggle();
-    initThemeToggleInThemes();
     initFormSubmit();
     initUnsavedDetection();
     initTimezoneHint();
@@ -1006,13 +1017,6 @@ function applyTheme(themeId) {
         });
 }
 
-function initThemeToggleInThemes() {
-    var toggle = document.getElementById('theme-toggle-themes');
-    if (toggle) {
-        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-        toggle.checked = isDark;
-    }
-}
 
 /* ── Theme Registry ── */
 function refreshRegistry() {

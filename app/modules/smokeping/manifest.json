@@ -3,7 +3,7 @@
   "name": "Smokeping",
   "description": "Smokeping latency monitoring graph integration",
   "version": "1.0.0",
-  "author": "DOCSight",
+  "author": "itsDNNS",
   "minAppVersion": "2026.2",
   "type": "integration",
   "contributes": {

@@ -1,9 +1,10 @@
 {
   "id": "docsight.theme_tribu",
   "name": "Tribu",
-  "description": "Glass-morphism design with void-dark palette and amethyst accents",
+  "description": "Glass-morphism design with void-dark palette and amethyst accents — inspired by Tribu",
   "version": "1.0.0",
-  "author": "DOCSight",
+  "author": "itsDNNS",
+  "homepage": "https://github.com/itsDNNS/tribu",
   "minAppVersion": "2026.2",
   "type": "theme",
   "contributes": {

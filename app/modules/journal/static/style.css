@@ -1,0 +1,1015 @@
+/* Incident Journal — Module Styles */
+
+/* Header & Actions */
+.journal-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--space-lg, 20px);
+    gap: var(--space-sm, 10px);
+}
+.journal-header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.btn-delete-all {
+    font-size: 0.85em;
+    padding: 8px 16px;
+}
+.journal-export-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--card-bg, #23232a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    z-index: 100;
+    min-width: 120px;
+    overflow: hidden;
+}
+.journal-export-dropdown.open { display: block; }
+.journal-export-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: var(--text, #e0e0e0);
+    font-size: 0.9em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.journal-export-dropdown button:hover {
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+}
+.journal-header .trend-title {
+    font-size: 1.5em;
+    color: var(--accent-purple, var(--accent));
+    font-weight: bold;
+}
+
+/* Purple pill button (matching Acknowledge All style) */
+.btn-new-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.btn-new-entry:hover {
+    background: var(--accent-hover, var(--purple-600));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+}
+
+/* Journal table in card wrapper */
+#journal-table {
+    width: 100%;
+    margin: 0;
+}
+#journal-table thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+#journal-table thead th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+#journal-table th:hover {
+    background: rgba(168,85,247,0.1);
+}
+/* Card-style rows with clear separation */
+#journal-table tbody tr {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 8px solid var(--bg); /* Thick spacer between rows */
+    background: rgba(255,255,255,0.02);
+}
+#journal-table tbody tr:hover {
+    background: rgba(168,85,247,0.15);
+    transform: translateX(2px);
+    box-shadow: -3px 0 0 0 var(--accent-purple);
+}
+#journal-table tbody td {
+    padding: 16px 20px; /* More breathing room */
+    vertical-align: top;
+    border-left: 1px solid rgba(255,255,255,0.03);
+}
+#journal-table tbody td:first-child {
+    border-left: none;
+    font-weight: 600;
+    color: var(--accent-purple);
+}
+#journal-table td.journal-desc {
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.88em;
+}
+#journal-table td.journal-clip {
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.85em;
+    text-align: center;
+}
+.journal-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 0.95em;
+}
+
+/* Modernized form styling */
+.incident-form-group {
+    margin-bottom: 16px;
+}
+.incident-form-group label {
+    display: block;
+    font-size: 0.9em;
+    color: var(--text-secondary, var(--muted));
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+.incident-form-group input,
+.incident-form-group textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.92em;
+    transition: border-color 0.2s ease;
+}
+.incident-form-group textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+.incident-form-group input:focus,
+.incident-form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.1);
+}
+.attachment-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.attachment-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border-radius: 6px; padding: 6px 10px;
+    font-size: 0.82em; border: 1px solid var(--input-border);
+}
+.attachment-thumb {
+    width: 48px; height: 48px; object-fit: cover; border-radius: 4px;
+    background: var(--bg);
+}
+.attachment-icon {
+    width: 48px; height: 48px; display: flex; align-items: center;
+    justify-content: center; font-size: 1.5em; background: var(--bg);
+    border-radius: 4px;
+}
+.attachment-info { display: flex; flex-direction: column; gap: 2px; }
+.attachment-name { color: var(--text); word-break: break-all; }
+.attachment-actions { display: flex; gap: 4px; }
+.attachment-actions a,
+.attachment-actions button {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 0.9em; padding: 2px 4px; text-decoration: none;
+}
+.attachment-actions a:hover,
+.attachment-actions button:hover { color: var(--accent); }
+.btn-upload {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; background: var(--card); color: var(--text);
+    border: 1px solid var(--input-border); border-radius: 6px;
+    cursor: pointer; font-size: 0.85em; font-family: inherit;
+}
+.btn-upload:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger {
+    background: var(--crit);
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 50px; /* Pill-style */
+    cursor: pointer;
+    font-size: 0.9em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(239,68,68,0.3);
+}
+.btn-danger:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239,68,68,0.4);
+}
+.modal-footer-left { display: flex; gap: 10px; flex: 1; }
+.incident-modal-footer {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+.upload-spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid var(--input-border); border-top: 2px solid var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-left: 6px;
+}
+
+/* Import Modal */
+.import-upload-zone {
+    border: 2px dashed var(--input-border);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.import-upload-zone:hover,
+.import-upload-zone.dragover {
+    border-color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.05);
+}
+.import-upload-zone p { margin: 8px 0 0; }
+.import-info {
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: var(--surface-2, rgba(0,0,0,0.15));
+    font-size: 0.9em;
+    color: var(--text);
+}
+.import-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.import-select-all {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    cursor: pointer;
+    color: var(--text);
+}
+.import-table-wrap {
+    max-height: 400px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid var(--card-border, var(--input-border));
+}
+.import-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.import-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-2, rgba(0,0,0,0.3));
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 0.85em;
+    font-weight: 600;
+    z-index: 1;
+}
+.import-table tbody td {
+    padding: 8px 12px;
+    border-top: 1px solid var(--card-border, rgba(255,255,255,0.05));
+    font-size: 0.85em;
+    vertical-align: top;
+}
+.import-table tbody tr:hover {
+    background: rgba(168,85,247,0.08);
+}
+.import-table tbody tr.import-row-duplicate {
+    opacity: 0.5;
+}
+.import-table tbody tr.import-row-duplicate td {
+    text-decoration: line-through;
+}
+.import-duplicate-badge {
+    display: inline-block;
+    font-size: 0.75em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--warn, #f59e0b);
+    color: #000;
+    margin-left: 6px;
+    text-decoration: none;
+}
+.import-table tbody tr.import-row-skipped {
+    opacity: 0.7;
+}
+.import-skipped-badge {
+    display: inline-block;
+    font-size: 0.7em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--danger, #ef4444);
+    color: #fff;
+    margin-left: 6px;
+}
+
+/* Journal Search */
+.journal-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: var(--space-md, 14px);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.journal-search-box {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    background: var(--surface-2, rgba(0,0,0,0.2));
+    border: 1px solid var(--input-border);
+    border-radius: 50px;
+    padding: 0 16px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+.journal-search-box:focus-within {
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.15), 0 2px 12px rgba(168,85,247,0.1);
+}
+.journal-search-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: color 0.3s ease;
+}
+.journal-search-box:focus-within .journal-search-icon {
+    color: var(--accent-purple, var(--accent));
+}
+.journal-search-box input {
+    flex: 1;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 0.9em;
+    font-family: inherit;
+    padding: 10px 12px;
+    outline: none;
+}
+.journal-search-box input::placeholder {
+    color: var(--muted);
+    opacity: 0.7;
+}
+.journal-search-clear {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.3em;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.journal-search-clear:hover {
+    color: var(--text);
+}
+.journal-search-count {
+    font-size: 0.8em;
+    color: var(--muted);
+    white-space: nowrap;
+}
+mark.search-highlight {
+    background: rgba(168,85,247,0.35);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+/* Incident Icons */
+.incident-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--accent-purple, var(--accent));
+    flex-shrink: 0;
+}
+.incident-icon-placeholder {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+}
+.journal-icon-cell {
+    width: 36px;
+    text-align: center;
+    padding: 12px 8px !important;
+}
+.incident-modal-icon {
+    display: flex;
+    align-items: center;
+}
+.incident-modal-icon .incident-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* Icon Picker */
+.icon-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.icon-pick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 2px solid var(--input-border);
+    background: var(--surface-2, rgba(0,0,0,0.15));
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    color: var(--muted);
+}
+.icon-pick:hover {
+    border-color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.08);
+    color: var(--text);
+}
+.icon-pick.active {
+    border-color: var(--accent-purple, var(--accent));
+    background: rgba(168,85,247,0.18);
+    color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
+}
+.icon-pick .incident-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* Journal Month/Year Grouping */
+.journal-month-header td {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface-2, rgba(0,0,0,0.3));
+    padding: 8px 16px !important;
+    font-weight: 700;
+    font-size: 0.85em;
+    color: var(--accent-purple, var(--accent));
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--accent-purple, var(--accent)) !important;
+    cursor: default;
+}
+.journal-month-header:hover {
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Incident Filter Bar */
+.incident-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 0 16px 0;
+    align-items: center;
+}
+.incident-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.incident-pill:hover {
+    background: var(--hover-bg);
+    border-color: var(--accent);
+    color: var(--text);
+}
+.incident-pill.active {
+    background: var(--accent-muted);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+.incident-pill-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.incident-pill-status-open { background: var(--crit); }
+.incident-pill-status-resolved { background: var(--good); }
+.incident-pill-status-escalated { background: var(--warn); }
+.incident-pill-count {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-left: 2px;
+}
+.incident-pill-edit {
+    display: none;
+    margin-left: 4px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    transition: color 0.15s;
+}
+.incident-pill-has-edit:hover .incident-pill-edit {
+    display: inline;
+}
+.incident-pill-edit:hover {
+    color: var(--accent);
+}
+.incident-pill-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px dashed var(--card-border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.incident-pill-add:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-muted);
+}
+
+/* Incident Summary */
+.incident-summary {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+.incident-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.incident-summary-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+.incident-summary-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.incident-summary-status-open { background: rgba(239,68,68,0.15); color: var(--crit); }
+.incident-summary-status-resolved { background: rgba(34,197,94,0.15); color: var(--good); }
+.incident-summary-status-escalated { background: rgba(245,158,11,0.15); color: var(--warn); }
+.incident-summary-date {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+.incident-summary-count {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+}
+.incident-summary-edit {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+.incident-summary-edit:hover {
+    color: var(--accent);
+}
+.incident-summary-desc {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Journal Bulk Selection */
+.btn-bulk-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--input-border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+}
+.btn-bulk-toggle:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.btn-bulk-active {
+    background: var(--accent-purple, var(--accent)) !important;
+    color: #fff !important;
+    border-color: var(--accent-purple, var(--accent)) !important;
+}
+.journal-check-col { width: 36px; text-align: center; }
+.journal-check-cell { text-align: center; width: 36px; }
+.journal-check-cell input[type="checkbox"],
+.journal-check-col input[type="checkbox"] {
+    width: 16px; height: 16px; cursor: pointer;
+    accent-color: var(--accent-purple, var(--accent));
+}
+.journal-row-selected {
+    background: rgba(168,85,247,0.08) !important;
+}
+.journal-bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    background: var(--card);
+    border: 1px solid var(--accent-purple, var(--accent));
+    border-radius: var(--radius-sm, 8px);
+    margin-bottom: 12px;
+    animation: fadeIn 0.15s ease;
+}
+.journal-bulk-count {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--accent-purple, var(--accent));
+    white-space: nowrap;
+}
+.journal-bulk-select {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: 0.85rem;
+    min-width: 180px;
+}
+.journal-bulk-sep {
+    flex: 1;
+}
+
+/* Incident Container Modal */
+.incident-container-modal .incident-form-group {
+    margin-bottom: 16px;
+}
+.incident-container-modal select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--input-border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+}
+.incident-container-modal .entry-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--accent-muted);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Entry Modal: Incident Select */
+.entry-incident-select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--input-border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+/* Incident Timeline View */
+
+/* Back Button */
+.incident-timeline-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--input-border);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 16px;
+}
+.incident-timeline-back:hover {
+    color: var(--text);
+    border-color: var(--accent);
+    background: var(--accent-muted);
+}
+
+/* Timeline Cards */
+.incident-timeline-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-lg, 20px);
+    margin-bottom: 16px;
+}
+
+/* Header Card */
+.incident-timeline-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.incident-timeline-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+.incident-timeline-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.incident-timeline-meta-item svg {
+    width: 14px;
+    height: 14px;
+    color: var(--muted);
+}
+.incident-timeline-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+/* PDF Download Button */
+.incident-timeline-pdf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: var(--accent-purple, var(--accent));
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+}
+.incident-timeline-pdf-btn:hover {
+    background: var(--accent-hover, var(--purple-600));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+}
+.incident-timeline-pdf-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+.incident-timeline-pdf-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Section Title */
+.incident-timeline-section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.incident-timeline-section-title svg {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+}
+
+/* Entry Cards (Journal Entries in Timeline) */
+.incident-timeline-entries-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.incident-timeline-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--card-border);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.incident-timeline-entry:hover {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+}
+.incident-timeline-entry-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--accent-muted);
+    color: var(--accent);
+}
+.incident-timeline-entry-icon svg {
+    width: 14px;
+    height: 14px;
+}
+.incident-timeline-entry-body {
+    flex: 1;
+    min-width: 0;
+}
+.incident-timeline-entry-date {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 2px;
+}
+.incident-timeline-entry-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.incident-timeline-entry-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+.incident-timeline-entry-att {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* Chart Wrapper */
+.incident-timeline-chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+.incident-timeline-chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Signal Timeline Table */
+.incident-timeline-signals table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.incident-timeline-signals th,
+.incident-timeline-signals td {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    text-align: left;
+    border-bottom: 1px solid var(--card-border);
+}
+.incident-timeline-signals th {
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+}
+
+/* Source Badges */
+.timeline-source-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.timeline-source-badge-modem {
+    background: rgba(59,130,246,0.15);
+    color: var(--info);
+}
+.timeline-source-badge-speedtest {
+    background: rgba(16,185,129,0.15);
+    color: var(--good);
+}
+.timeline-source-badge-event {
+    background: rgba(245,158,11,0.15);
+    color: var(--warn);
+}
+
+/* Timeline Button in Summary */
+.incident-summary-timeline-btn {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 3px 12px;
+    border-radius: 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.incident-summary-timeline-btn:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* Empty state for timeline */
+.incident-timeline-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+/* BNetzA section in timeline */
+.incident-timeline-bnetz-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 0.85rem;
+}
+.incident-timeline-bnetz-item:last-child {
+    border-bottom: none;
+}
+.incident-timeline-bnetz-verdict {
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .incident-timeline-entry {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .incident-timeline-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}

@@ -2,7 +2,7 @@
    TRIBU DESIGN SYSTEM — Applied to DOCSight Settings
    ═══════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Fonts loaded via fonts.css (self-hosted, offline-safe) */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

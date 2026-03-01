@@ -1,0 +1,9 @@
+/* BNetzA — Module Styles */
+
+.bnetz-expand-arrow {
+    display: inline-block;
+    font-size: 0.7em;
+    transition: transform 0.2s;
+    color: var(--text-secondary);
+    margin-right: 4px;
+}

@@ -3,7 +3,7 @@
   "name": "MQTT / Home Assistant",
   "description": "Publish DOCSIS data to MQTT with Home Assistant Auto-Discovery",
   "version": "1.0.0",
-  "author": "DOCSight",
+  "author": "itsDNNS",
   "minAppVersion": "2026.2",
   "type": "integration",
   "contributes": {

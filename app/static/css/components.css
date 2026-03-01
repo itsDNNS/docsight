@@ -1,0 +1,168 @@
+/* components.css — Shared UI Components */
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: -webkit-fill-available; }
+body {
+  font-family: var(--font-sans);
+  background: var(--void);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ── Glass Card ── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
+}
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.85rem;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-out-expo);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn svg { width: 16px; height: 16px; }
+.btn-primary {
+  background: var(--grad-primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -4px rgba(124,58,237,0.3);
+}
+.btn-ghost {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.badge-good { background: var(--good-muted); color: var(--good); }
+.badge-warn { background: var(--warn-muted); color: var(--warn); }
+.badge-crit { background: var(--crit-muted); color: var(--crit); }
+.badge-info { background: var(--info-muted); color: var(--info); }
+.badge-muted {
+  background: rgba(120,130,180,0.1);
+  color: var(--text-muted);
+}
+
+/* ── Status Dots ── */
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.good {
+  background: var(--good);
+  box-shadow: 0 0 8px var(--good);
+  animation: pulse 2s infinite;
+}
+.status-dot.warn {
+  background: var(--warn);
+  box-shadow: 0 0 8px var(--warn);
+  animation: pulse 1.5s infinite;
+}
+.status-dot.crit {
+  background: var(--crit);
+  box-shadow: 0 0 8px var(--crit);
+  animation: pulse 1s infinite;
+}
+
+/* ── Toggle Switch ── */
+.toggle { position: relative; display: inline-block; width: 44px; height: 28px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle .slider {
+  position: absolute; inset: 0;
+  background: rgba(120,130,180,0.3);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.toggle .slider::before {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  left: 4px; bottom: 4px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s var(--ease-spring);
+}
+.toggle input:checked + .slider { background: var(--amethyst); }
+.toggle input:checked + .slider::before { transform: translateX(16px); }
+
+/* ── Section Labels ── */
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: var(--space-sm) 0;
+}
+
+/* ── Animations ── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes meshDrift {
+  0%   { background-position: 0% 0%, 100% 100%, 50% 50%; }
+  50%  { background-position: 30% 50%, 70% 30%, 20% 80%; }
+  100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(120,130,180,0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(120,130,180,0.35); }

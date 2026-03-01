@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 import requests as _requests
 
-from flask import Flask, render_template, request, jsonify, redirect, session
+from flask import Flask, render_template, request, jsonify, redirect, session, send_from_directory
 from werkzeug.security import check_password_hash
 
 from .config import POLL_MIN, POLL_MAX
@@ -534,11 +534,18 @@ def inject_auth():
             active_theme_data = active_mod.theme_data
             active_theme_id = active_mod.id
 
+    # All themes with loaded data (enabled + disabled) for settings gallery
+    all_theme_modules = [
+        m for m in (_module_loader.get_theme_modules() if _module_loader else [])
+        if m.theme_data
+    ]
+
     return {
         "auth_enabled": auth_enabled,
         "version": APP_VERSION,
         "update_available": _check_for_update(),
         "modules": modules,
+        "all_theme_modules": all_theme_modules,
         "active_theme_data": active_theme_data,
         "active_theme_id": active_theme_id,
     }
@@ -571,6 +578,11 @@ def get_state() -> dict:
         return dict(_state)
 
 
+@app.route("/sw.js")
+def service_worker():
+    return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
+
+
 @app.route("/")
 @require_auth
 def index():
@@ -583,6 +595,8 @@ def index():
     t = get_translations(lang)
 
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
+    if demo_mode and not isp_name:
+        isp_name = "Vodafone Kabel"
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
     smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
