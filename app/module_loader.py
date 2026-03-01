@@ -14,7 +14,7 @@ from flask import send_from_directory
 log = logging.getLogger("docsis.modules")
 
 VALID_TYPES = {"driver", "integration", "analysis", "theme"}
-VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds"}
+VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds", "theme"}
 REQUIRED_FIELDS = {"id", "name", "description", "version", "author", "minAppVersion", "type", "contributes"}
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
 
@@ -46,6 +46,7 @@ class ModuleInfo:
     collector_class: type | None = None
     publisher_class: type | None = None
     thresholds_data: dict | None = None
+    theme_data: dict | None = None
     has_css: bool = False
     has_js: bool = False
 
@@ -80,6 +81,14 @@ def validate_manifest(raw: dict, module_path: str) -> ModuleInfo:
     unknown = set(contributes.keys()) - VALID_CONTRIBUTES
     if unknown:
         raise ManifestError(f"Unknown contributes keys: {', '.join(sorted(unknown))}")
+
+    # Security: theme modules must not execute Python code
+    if mod_type == "theme":
+        forbidden = {"collector", "routes", "publisher"} & set(contributes.keys())
+        if forbidden:
+            raise ManifestError(
+                f"Theme modules must not contribute {', '.join(sorted(forbidden))} (security)"
+            )
 
     # Detect builtin
     norm = os.path.normpath(module_path).replace("\\", "/")
@@ -424,6 +433,31 @@ def validate_thresholds(data: dict) -> None:
             raise ManifestError(f"Threshold section '{section}' missing '_default' key")
 
 
+REQUIRED_THEME_SECTIONS = {"dark", "light"}
+
+
+def validate_theme(data: dict) -> None:
+    """Validate a theme.json structure.
+
+    Raises ManifestError if required sections are missing or values are invalid.
+    """
+    missing = REQUIRED_THEME_SECTIONS - set(data.keys())
+    if missing:
+        raise ManifestError(f"Missing required theme sections: {', '.join(sorted(missing))}")
+
+    for section in REQUIRED_THEME_SECTIONS:
+        block = data[section]
+        if not isinstance(block, dict):
+            raise ManifestError(f"Theme section '{section}' must be a dict")
+        if not block:
+            raise ManifestError(f"Theme section '{section}' is empty")
+        for key, value in block.items():
+            if not isinstance(value, str):
+                raise ManifestError(
+                    f"Theme property '{key}' in '{section}' must be a string, got {type(value).__name__}"
+                )
+
+
 class ModuleLoader:
     """Orchestrates module discovery, validation, and loading.
 
@@ -519,6 +553,17 @@ class ModuleLoader:
             analyzer.set_thresholds(tdata)
             log.info("Module '%s': loaded threshold profile", mod.id)
 
+        # Theme
+        if "theme" in c:
+            theme_path = os.path.join(mod.path, c["theme"])
+            if not os.path.isfile(theme_path):
+                raise ManifestError(f"Theme file not found: {c['theme']}")
+            with open(theme_path, "r", encoding="utf-8") as f:
+                tdata = json.load(f)
+            validate_theme(tdata)
+            mod.theme_data = tdata
+            log.info("Module '%s': loaded theme profile", mod.id)
+
         # Convention-based asset detection
         static_subdir = c.get("static", "static/").rstrip("/")
         static_dir = os.path.join(mod.path, static_subdir)
@@ -537,3 +582,7 @@ class ModuleLoader:
     def get_threshold_modules(self) -> list[ModuleInfo]:
         """Return all modules that contribute thresholds."""
         return [m for m in self._modules if "thresholds" in m.contributes]
+
+    def get_theme_modules(self) -> list[ModuleInfo]:
+        """Return all modules that contribute theme definitions."""
+        return [m for m in self._modules if "theme" in m.contributes]

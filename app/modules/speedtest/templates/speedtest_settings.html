@@ -1,33 +1,37 @@
 <!-- ═══ Panel: Speedtest (Module) ═══ -->
 <div class="settings-panel" id="panel-mod-docsight_speedtest">
-    <div class="settings-card">
-        <div class="settings-card-header">
-            <div class="settings-card-icon"><i data-lucide="gauge"></i></div>
-            <div>
-                <div class="settings-card-title">{{ t['docsight.speedtest.speedtest_tracker'] or 'Speedtest Tracker' }}</div>
-                <div class="settings-card-desc">{{ t.optional }}</div>
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="gauge"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t['docsight.speedtest.speedtest_tracker'] or 'Speedtest Tracker' }}</div>
+                    <div class="card-subtitle">{{ t.optional }}</div>
+                </div>
             </div>
         </div>
-        <div class="form-grid">
-            <div class="form-row full">
-                <label for="speedtest_tracker_url">{{ t['docsight.speedtest.speedtest_url'] or 'Speedtest Tracker URL' }}</label>
-                <input type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
-                <span class="hint">{{ t['docsight.speedtest.speedtest_url_hint'] or 'Base URL of your Speedtest Tracker instance' }}</span>
+        <div class="form-grid cols-2">
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="speedtest_tracker_url">{{ t['docsight.speedtest.speedtest_url'] or 'Speedtest Tracker URL' }}</label>
+                <input class="form-input" type="url" id="speedtest_tracker_url" name="speedtest_tracker_url" value="{{ config.speedtest_tracker_url }}" placeholder="http://your-server:8999">
+                <span class="form-hint">{{ t['docsight.speedtest.speedtest_url_hint'] or 'Base URL of your Speedtest Tracker instance' }}</span>
             </div>
-            <div class="form-row full">
-                <label for="speedtest_tracker_token">{{ t['docsight.speedtest.speedtest_token'] or 'API Token' }}</label>
-                <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
-                <span class="hint">{{ t['docsight.speedtest.speedtest_token_hint'] or 'Bearer token from Speedtest Tracker settings' }}</span>
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="speedtest_tracker_token">{{ t['docsight.speedtest.speedtest_token'] or 'API Token' }}</label>
+                <input class="form-input" type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
+                <span class="form-hint">{{ t['docsight.speedtest.speedtest_token_hint'] or 'Bearer token from Speedtest Tracker settings' }}</span>
             </div>
-            <div class="form-row">
-                <label for="booked_download">{{ t['docsight.speedtest.booked_download'] or 'Booked Download (Mbps)' }}</label>
-                <input type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
-                <span class="hint">{{ t['docsight.speedtest.booked_download_hint'] or 'Contracted download speed in Mbps for health calculation' }}</span>
+            <div class="form-field">
+                <label class="form-label" for="booked_download">{{ t['docsight.speedtest.booked_download'] or 'Booked Download (Mbps)' }}</label>
+                <input class="form-input" type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">
+                <span class="form-hint">{{ t['docsight.speedtest.booked_download_hint'] or 'Contracted download speed in Mbps for health calculation' }}</span>
             </div>
-            <div class="form-row">
-                <label for="booked_upload">{{ t['docsight.speedtest.booked_upload'] or 'Booked Upload (Mbps)' }}</label>
-                <input type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
-                <span class="hint">{{ t['docsight.speedtest.booked_upload_hint'] or 'Contracted upload speed in Mbps for health calculation' }}</span>
+            <div class="form-field">
+                <label class="form-label" for="booked_upload">{{ t['docsight.speedtest.booked_upload'] or 'Booked Upload (Mbps)' }}</label>
+                <input class="form-input" type="number" id="booked_upload" name="booked_upload" value="{{ config.booked_upload or '' }}" min="0" step="1" placeholder="e.g. 50">
+                <span class="form-hint">{{ t['docsight.speedtest.booked_upload_hint'] or 'Contracted upload speed in Mbps for health calculation' }}</span>
             </div>
         </div>
     </div>

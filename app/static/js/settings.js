@@ -6,9 +6,14 @@
 /* Globals set by template: T, SECTION_TITLES, serverOffsetMin, serverTz, currentLang, currentTz, savedCooldowns */
 
 /* ── Section Controller ── */
+var _currentSection = 'connection';
+var _saveHiddenSections = { support: true, modules: true, themes: true };
+
 function switchSection(id) {
-    /* Desktop sidebar: update active link */
-    document.querySelectorAll('.settings-nav-link').forEach(function(link) {
+    _currentSection = id;
+
+    /* Sidebar: update active link */
+    document.querySelectorAll('.nav-item[data-section]').forEach(function(link) {
         link.classList.toggle('active', link.getAttribute('data-section') === id);
     });
 
@@ -19,32 +24,45 @@ function switchSection(id) {
     var target = document.getElementById('panel-' + id);
     if (target) target.classList.add('active');
 
-    /* Topbar title */
-    document.getElementById('topbar-title').textContent = SECTION_TITLES[id] || id;
+    /* Mobile title */
+    var mobileTitle = document.getElementById('mobile-title');
+    if (mobileTitle) mobileTitle.textContent = SECTION_TITLES[id] || id;
 
-    /* Hide save footer on support panel */
-    var saveFooter = document.getElementById('settings-save-footer');
+    /* Save footer: hide on support/modules, otherwise respect dirty state */
+    var saveFooter = document.getElementById('save-footer');
     if (saveFooter) {
-        saveFooter.style.display = (id === 'support' || id === 'modules') ? 'none' : '';
+        if (_saveHiddenSections[id]) {
+            saveFooter.classList.remove('visible');
+        } else if (_formDirty) {
+            saveFooter.classList.add('visible');
+        }
     }
 
     /* Auto-load data for certain panels */
-    if (id === 'general') loadApiTokens();
+    if (id === 'security') loadApiTokens();
     if (id === 'backup') loadBackupList();
+    if (id === 'themes') refreshRegistry();
 
     /* URL hash */
     history.replaceState(null, '', '#' + id);
 
-    /* Mobile: switch to detail view */
-    if (window.innerWidth < 768) {
-        document.body.classList.add('mobile-detail-active');
-    }
+    /* Mobile: close sidebar after selection */
+    closeMobileSidebar();
 }
 
-/* ── Mobile List → Detail ── */
-function backToList() {
-    document.body.classList.remove('mobile-detail-active');
-    history.replaceState(null, '', location.pathname);
+/* ── Mobile Sidebar ── */
+function openMobileSidebar() {
+    var sidebar = document.getElementById('settings-sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.add('open');
+    if (backdrop) backdrop.classList.add('active');
+}
+
+function closeMobileSidebar() {
+    var sidebar = document.getElementById('settings-sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('active');
 }
 
 /* ── API Token Management ── */
@@ -149,42 +167,29 @@ function updateStatusDots() {
     };
     for (var section in dots) {
         var el = document.getElementById(dots[section]);
-        /* Desktop sidebar dot */
         var dot = document.getElementById('dot-' + section);
         if (el && dot) {
             dot.classList.toggle('visible', el.value.trim() !== '');
-        }
-        /* Mobile list dot */
-        var mDot = document.getElementById('mdot-' + section);
-        if (el && mDot) {
-            mDot.classList.toggle('visible', el.value.trim() !== '');
         }
     }
 }
 
 /* ── Theme Toggle ── */
 function initThemeToggle() {
-    var themeCheck = document.getElementById('theme-check');
-    var themeCheckMobile = document.getElementById('theme-check-mobile');
-
-    function applyTheme(isDark) {
-        var theme = isDark ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('docsis-theme', theme);
-        if (themeCheck) themeCheck.checked = isDark;
-        if (themeCheckMobile) themeCheckMobile.checked = isDark;
-    }
-
-    if (themeCheck) {
-        themeCheck.addEventListener('change', function() { applyTheme(themeCheck.checked); });
-    }
-    if (themeCheckMobile) {
-        themeCheckMobile.addEventListener('change', function() { applyTheme(themeCheckMobile.checked); });
-    }
+    var appearanceCheck = document.getElementById('theme-toggle-appearance');
 
     /* Restore saved theme */
     var saved = localStorage.getItem('docsis-theme');
-    if (saved) applyTheme(saved === 'dark');
+    if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+        if (appearanceCheck) appearanceCheck.checked = (saved === 'dark');
+    }
+}
+
+function toggleThemeFromAppearance(checked) {
+    var theme = checked ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('docsis-theme', theme);
 }
 
 /* ── ISP Change ── */
@@ -232,7 +237,7 @@ function escHtml(s) {
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
-    form.querySelectorAll('input:not(#theme-check):not(#theme-check-mobile):not(#isp_other_input):not(.notify-toggle):not(.notify-cooldown-input), select:not(#isp_select)').forEach(function(inp) {
+    form.querySelectorAll('input:not(#theme-toggle-appearance):not(#isp_other_input):not(.notify-toggle):not(.notify-cooldown-input):not(.module-toggle-input), select:not(#isp_select)').forEach(function(inp) {
         if (inp.type === 'checkbox') {
             data[inp.name] = inp.checked ? inp.value : 'false';
             return;
@@ -250,8 +255,7 @@ function getFormData() {
     } else {
         data.isp_name = ispSel.value;
     }
-    var themeCheck = document.getElementById('theme-check');
-    data.theme = themeCheck.checked ? 'dark' : 'light';
+    data.theme = document.documentElement.getAttribute('data-theme') || 'dark';
     var cooldowns = {};
     document.querySelectorAll('.notify-event-row').forEach(function(row) {
         var key = row.getAttribute('data-event');
@@ -444,6 +448,30 @@ function migrateToLive() {
     });
 }
 
+/* ── Unsaved Changes ── */
+var _formDirty = false;
+
+function initUnsavedDetection() {
+    var form = document.getElementById('settings-form');
+    if (!form) return;
+    function markDirty() {
+        if (_formDirty) return;
+        _formDirty = true;
+        var footer = document.getElementById('save-footer');
+        if (footer && !_saveHiddenSections[_currentSection]) {
+            footer.classList.add('visible');
+        }
+    }
+    form.addEventListener('input', markDirty);
+    form.addEventListener('change', markDirty);
+}
+
+function clearDirty() {
+    _formDirty = false;
+    var footer = document.getElementById('save-footer');
+    if (footer) footer.classList.remove('visible');
+}
+
 /* ── Submit ── */
 function initFormSubmit() {
     document.getElementById('settings-form').addEventListener('submit', function(e) {
@@ -460,6 +488,7 @@ function initFormSubmit() {
         .then(function(r) { return r.json(); })
         .then(function(res) {
             if (res.success) {
+                clearDirty();
                 if (saveBtn) {
                     var orig = saveBtn.textContent;
                     saveBtn.textContent = '\u2713 ' + T.settings_saved;
@@ -817,7 +846,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     initThemeToggle();
+    initThemeToggleInThemes();
     initFormSubmit();
+    initUnsavedDetection();
     initTimezoneHint();
     onIspChange();
     toggleUsernameField();
@@ -866,10 +897,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     } catch(e) {}
 
-    /* Restore section from URL hash */
+    /* Restore section from URL hash, default to connection */
     var hash = location.hash.replace('#', '');
     if (hash && document.getElementById('panel-' + hash)) {
         switchSection(hash);
+    } else {
+        switchSection('connection');
     }
 });
 
@@ -908,3 +941,172 @@ function initModuleToggles() {
 }
 
 document.addEventListener('DOMContentLoaded', initModuleToggles);
+
+/* ── Theme System ── */
+var _previewingThemeId = null;
+var _originalStyles = {};
+
+function previewTheme(card) {
+    var themeId = card.getAttribute('data-theme-id');
+    var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    var mode = isDark ? 'dark' : 'light';
+    var vars = JSON.parse(card.getAttribute('data-theme-' + mode));
+
+    _originalStyles = {};
+    Object.keys(vars).forEach(function(key) {
+        _originalStyles[key] = document.documentElement.style.getPropertyValue(key);
+        document.documentElement.style.setProperty(key, vars[key]);
+    });
+
+    _previewingThemeId = themeId;
+    var overlay = document.getElementById('theme-preview-overlay');
+    var nameEl = document.getElementById('preview-theme-name');
+    if (nameEl) nameEl.textContent = card.getAttribute('data-theme-name') || themeId;
+    if (overlay) overlay.style.display = '';
+}
+
+function cancelPreview() {
+    Object.keys(_originalStyles).forEach(function(key) {
+        if (_originalStyles[key]) {
+            document.documentElement.style.setProperty(key, _originalStyles[key]);
+        } else {
+            document.documentElement.style.removeProperty(key);
+        }
+    });
+    _originalStyles = {};
+    _previewingThemeId = null;
+    var overlay = document.getElementById('theme-preview-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function applyPreviewedTheme() {
+    if (_previewingThemeId) {
+        applyTheme(_previewingThemeId);
+    }
+}
+
+function applyTheme(themeId) {
+    fetch('/api/modules/' + themeId + '/enable', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                localStorage.setItem('docsight-active-theme', themeId);
+                localStorage.setItem('docsight-active-theme', themeId);
+                var overlay = document.getElementById('theme-preview-overlay');
+                if (overlay) overlay.style.display = 'none';
+                _previewingThemeId = null;
+                _originalStyles = {};
+                location.reload();
+            } else {
+                showToast(data.error || 'Failed to apply theme', true);
+            }
+        })
+        .catch(function(err) {
+            showToast('Error: ' + err.message, true);
+        });
+}
+
+function initThemeToggleInThemes() {
+    var toggle = document.getElementById('theme-toggle-themes');
+    if (toggle) {
+        var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        toggle.checked = isDark;
+    }
+}
+
+/* ── Theme Registry ── */
+function refreshRegistry() {
+    var gallery = document.getElementById('registry-gallery');
+    if (!gallery) return;
+    gallery.textContent = '';
+    var p = document.createElement('p');
+    p.textContent = 'Loading...';
+    var loading = document.createElement('div');
+    loading.className = 'empty-state';
+    loading.appendChild(p);
+    gallery.appendChild(loading);
+
+    fetch('/api/themes/registry')
+        .then(function(r) { return r.json(); })
+        .then(function(themes) {
+            gallery.textContent = '';
+            if (!themes.length) {
+                var empty = document.createElement('div');
+                empty.className = 'empty-state';
+                var msg = document.createElement('p');
+                msg.textContent = T.get ? (T.get('all_installed') || 'All available themes are installed') : 'All available themes are installed';
+                empty.appendChild(msg);
+                gallery.appendChild(empty);
+                return;
+            }
+            themes.forEach(function(theme) {
+                var card = document.createElement('div');
+                card.className = 'theme-card glass';
+
+                var info = document.createElement('div');
+                info.className = 'theme-info';
+                var name = document.createElement('div');
+                name.className = 'theme-name';
+                name.textContent = theme.name;
+                var desc = document.createElement('div');
+                desc.className = 'theme-desc';
+                desc.textContent = theme.description || '';
+                var meta = document.createElement('div');
+                meta.className = 'theme-meta';
+                var ver = document.createElement('span');
+                ver.textContent = 'v' + theme.version;
+                var auth = document.createElement('span');
+                auth.textContent = theme.author || '';
+                meta.appendChild(ver);
+                meta.appendChild(auth);
+                info.appendChild(name);
+                info.appendChild(desc);
+                info.appendChild(meta);
+
+                var actions = document.createElement('div');
+                actions.className = 'theme-actions';
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-primary btn-sm';
+                btn.textContent = 'Install';
+                btn.addEventListener('click', function() {
+                    installTheme(theme.id, theme.download_url);
+                });
+                actions.appendChild(btn);
+
+                card.appendChild(info);
+                card.appendChild(actions);
+                gallery.appendChild(card);
+            });
+            lucide.createIcons();
+        })
+        .catch(function() {
+            gallery.textContent = '';
+            var err = document.createElement('div');
+            err.className = 'empty-state';
+            var msg = document.createElement('p');
+            msg.textContent = 'Failed to load registry';
+            err.appendChild(msg);
+            gallery.appendChild(err);
+        });
+}
+
+function installTheme(themeId, downloadUrl) {
+    fetch('/api/themes/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: themeId, download_url: downloadUrl }),
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showToast(T.get ? (T.get('theme_installed') || 'Theme installed — restart required') : 'Theme installed — restart required');
+                refreshRegistry();
+            } else {
+                showToast(data.error || 'Install failed', true);
+            }
+        })
+        .catch(function(err) {
+            showToast('Error: ' + err.message, true);
+        });
+}

@@ -1,0 +1,13 @@
+{
+  "id": "docsight.theme_tribu",
+  "name": "Tribu",
+  "description": "Glass-morphism design with void-dark palette and amethyst accents",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "theme",
+  "contributes": {
+    "theme": "theme.json"
+  },
+  "config": {}
+}

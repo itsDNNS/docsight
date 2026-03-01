@@ -1,47 +1,64 @@
 <!-- ═══ Panel: MQTT ═══ -->
 <div class="settings-panel" id="panel-mod-docsight_mqtt">
-    <div class="settings-card">
-        <div class="settings-card-header">
-            <div class="settings-card-icon"><i data-lucide="radio-tower"></i></div>
-            <div>
-                <div class="settings-card-title">{{ t['docsight.mqtt.mqtt_broker'] or 'MQTT Broker' }}</div>
-                <div class="settings-card-desc">{{ t['docsight.mqtt.mqtt_optional_ha'] or 'optional - for Home Assistant' }}</div>
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="radio-tower"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t['docsight.mqtt.mqtt_broker'] or 'MQTT Broker' }}</div>
+                    <div class="card-subtitle">{{ t['docsight.mqtt.mqtt_optional_ha'] or 'optional - for Home Assistant' }}</div>
+                </div>
+            </div>
+            <div class="status-indicator" id="mqtt-status">
+                <span class="status-dot"></span>
+                <span id="mqtt-status-text"></span>
             </div>
         </div>
-        <div class="form-grid">
-            <div class="form-row">
-                <label for="mqtt_host">Host</label>
-                <input type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
+        <div class="form-grid cols-2">
+            <div class="form-field">
+                <label class="form-label" for="mqtt_host">Host</label>
+                <input class="form-input" type="text" id="mqtt_host" name="mqtt_host" value="{{ config.mqtt_host }}">
             </div>
-            <div class="form-row">
-                <label for="mqtt_port">Port</label>
-                <input type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
+            <div class="form-field">
+                <label class="form-label" for="mqtt_port">Port</label>
+                <input class="form-input" type="number" id="mqtt_port" name="mqtt_port" value="{{ config.mqtt_port }}">
             </div>
-            <div class="form-row">
-                <label for="mqtt_tls_insecure">{{ t['docsight.mqtt.mqtt_tls_insecure'] or 'Insecure TLS' }}</label>
-                <input type="hidden" name="mqtt_tls_insecure" value="false">
+            <div class="form-field">
+                <label class="form-label" for="mqtt_user">{{ t['docsight.mqtt.username_opt'] or 'Username (optional)' }}</label>
+                <input class="form-input" type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="mqtt_password">{{ t['docsight.mqtt.password_opt'] or 'Password (optional)' }}</label>
+                <input class="form-input" type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
+            </div>
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="mqtt_topic_prefix">{{ t['docsight.mqtt.topic_prefix'] or 'Topic Prefix' }}</label>
+                <input class="form-input" type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
+            </div>
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="mqtt_discovery_prefix">{{ t['docsight.mqtt.discovery_prefix'] or 'Discovery Prefix' }}</label>
+                <input class="form-input" type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
+                <span class="form-hint">{{ t['docsight.mqtt.discovery_prefix_hint'] or 'Default: homeassistant. Only change if you customized it in HA.' }}</span>
+            </div>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-info">
+                <span class="toggle-title">{{ t['docsight.mqtt.mqtt_tls_insecure'] or 'Insecure TLS' }}</span>
+                <span class="toggle-desc">Skip TLS certificate verification</span>
+            </div>
+            <input type="hidden" name="mqtt_tls_insecure" value="false">
+            <label class="toggle">
                 <input type="checkbox" id="mqtt_tls_insecure" name="mqtt_tls_insecure" value="true" {% if config.mqtt_tls_insecure %}checked{% endif %}>
-            </div>
-            <div class="form-row">
-                <label for="mqtt_user">{{ t['docsight.mqtt.username_opt'] or 'Username (optional)' }}</label>
-                <input type="text" id="mqtt_user" name="mqtt_user" value="{{ config.mqtt_user }}">
-            </div>
-            <div class="form-row">
-                <label for="mqtt_password">{{ t['docsight.mqtt.password_opt'] or 'Password (optional)' }}</label>
-                <input type="password" id="mqtt_password" name="mqtt_password" value="" placeholder="{% if config.mqtt_password %}{{ t.saved_ph }}{% endif %}">
-            </div>
-            <div class="form-row full">
-                <label for="mqtt_topic_prefix">{{ t['docsight.mqtt.topic_prefix'] or 'Topic Prefix' }}</label>
-                <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="{{ config.mqtt_topic_prefix }}">
-            </div>
-            <div class="form-row full">
-                <label for="mqtt_discovery_prefix">{{ t['docsight.mqtt.discovery_prefix'] or 'Discovery Prefix' }}</label>
-                <input type="text" id="mqtt_discovery_prefix" name="mqtt_discovery_prefix" value="{{ config.mqtt_discovery_prefix }}" placeholder="homeassistant">
-                <span class="hint">{{ t['docsight.mqtt.discovery_prefix_hint'] or 'Default: homeassistant. Only change if you customized it in HA.' }}</span>
-            </div>
+                <span class="toggle-slider"></span>
+            </label>
         </div>
-        <div class="btn-row">
-            <button type="button" class="btn btn-secondary" onclick="testMqtt()">{{ t.test_connection }}</button>
+        <div style="margin-top: var(--space-lg);">
+            <button type="button" class="btn btn-ghost" onclick="testMqtt()">
+                <i data-lucide="wifi" style="width:16px;height:16px;"></i>
+                {{ t.test_connection }}
+            </button>
         </div>
         <div class="test-result" id="mqtt-test"></div>
     </div>

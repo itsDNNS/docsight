@@ -1,6 +1,6 @@
-<div class="settings-card module-card" data-module-id="{{ mod.id }}">
-    <div class="settings-card-header">
-        <div class="settings-card-icon">
+<div class="module-card glass {{ 'active' if mod.enabled }}" data-module-id="{{ mod.id }}">
+    <div class="module-card-header">
+        <div class="card-icon {% if mod.type == 'integration' %}purple{% elif mod.type == 'driver' %}blue{% elif mod.type == 'analysis' %}green{% else %}purple{% endif %}">
             {% if mod.type == 'integration' %}
             <i data-lucide="plug"></i>
             {% elif mod.type == 'driver' %}
@@ -13,38 +13,33 @@
             <i data-lucide="puzzle"></i>
             {% endif %}
         </div>
-        <div style="flex:1;">
-            <div class="settings-card-title">
-                {{ mod.name }}
-                <span class="module-badge {% if mod.builtin %}badge-builtin{% else %}badge-community{% endif %}">
-                    {{ t.modules_builtin if mod.builtin else t.modules_community }}
-                </span>
-                {% if mod.error %}
-                <span class="module-badge badge-error">{{ t.modules_error }}</span>
-                {% endif %}
-                {% if 'thresholds' in mod.contributes and mod.enabled %}
-                <span class="module-badge badge-builtin">{{ t.modules_active_profile }}</span>
-                {% endif %}
-            </div>
-            <div class="settings-card-desc">{{ mod.description }}</div>
-        </div>
-        <label class="toggle-switch module-toggle">
+        <label class="toggle module-toggle">
             <input type="checkbox" class="module-toggle-input"
                    data-module-id="{{ mod.id }}"
                    {% if mod.enabled %}checked{% endif %}>
             <span class="toggle-slider"></span>
         </label>
     </div>
-
-    <div class="module-meta">
-        <span><strong>{{ t.modules_version }}:</strong> {{ mod.version }}</span>
-        <span><strong>{{ t.modules_author }}:</strong> {{ mod.author }}</span>
-        <span><strong>{{ t.modules_type }}:</strong> {{ mod.type }}</span>
-        {% if mod.homepage %}
-        <a href="{{ mod.homepage }}" target="_blank" rel="noopener">{{ t.modules_homepage }} ↗</a>
+    <div class="module-card-title">
+        {{ mod.name }}
+        <span class="module-badge {% if mod.builtin %}badge-builtin{% else %}badge-community{% endif %}">
+            {{ t.modules_builtin if mod.builtin else t.modules_community }}
+        </span>
+        {% if mod.error %}
+        <span class="module-badge badge-error">{{ t.modules_error }}</span>
+        {% endif %}
+        {% if 'thresholds' in mod.contributes and mod.enabled %}
+        <span class="module-badge badge-builtin">{{ t.modules_active_profile }}</span>
         {% endif %}
     </div>
-
+    <div class="module-card-desc">{{ mod.description }}</div>
+    <div class="module-card-meta">
+        <span>v{{ mod.version }}</span>
+        <span>{{ mod.author }}</span>
+        {% if mod.homepage %}
+        <a href="{{ mod.homepage }}" target="_blank" rel="noopener" style="color:var(--amethyst-light);text-decoration:none;">{{ t.modules_homepage }} &nearr;</a>
+        {% endif %}
+    </div>
     {% if mod.error %}
     <div class="module-error">
         <i data-lucide="alert-circle"></i>

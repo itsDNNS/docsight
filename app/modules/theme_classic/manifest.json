@@ -1,0 +1,13 @@
+{
+  "id": "docsight.theme_classic",
+  "name": "Classic",
+  "description": "The original DOCSight charcoal and purple design",
+  "version": "1.0.0",
+  "author": "DOCSight",
+  "minAppVersion": "2026.2",
+  "type": "theme",
+  "contributes": {
+    "theme": "theme.json"
+  },
+  "config": {}
+}

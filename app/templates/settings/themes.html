@@ -1,0 +1,144 @@
+<!-- Theme Panel -->
+<div class="settings-panel" id="panel-themes">
+    <div class="panel-header">
+        <h1 class="panel-title">{{ t.get('themes', 'Themes') }}</h1>
+        <p class="panel-subtitle">{{ t.get('themes_desc', 'Choose a visual theme for DOCSight') }}</p>
+    </div>
+
+    <!-- Dark/Light Toggle -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="sun-moon"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('color_mode', 'Color Mode') }}</div>
+                    <div class="card-subtitle">{{ t.get('color_mode_desc', 'Switch between dark and light mode') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-label">
+                <span>{{ t.get('dark_mode', 'Dark Mode') }}</span>
+            </div>
+            <label class="toggle">
+                <input type="checkbox" id="theme-toggle-themes"
+                       onchange="toggleThemeFromAppearance(this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Theme Gallery -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="palette"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('installed_themes', 'Installed Themes') }}</div>
+                    <div class="card-subtitle">{{ t.get('installed_themes_desc', 'Select a theme to apply across the entire app') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="theme-gallery" id="theme-gallery">
+            {% set theme_modules = [] %}
+            {% for mod in modules if mod.type == 'theme' and mod.theme_data %}
+                {% if theme_modules.append(mod) %}{% endif %}
+            {% endfor %}
+
+            {% if theme_modules %}
+                {% for mod in theme_modules %}
+                <div class="theme-card glass {% if mod.id == active_theme_id %}active{% endif %}"
+                     data-theme-id="{{ mod.id }}"
+                     data-theme-name="{{ mod.name }}"
+                     data-theme-dark='{{ mod.theme_data.get("dark", {})|tojson }}'
+                     data-theme-light='{{ mod.theme_data.get("light", {})|tojson }}'>
+                    <div class="theme-palette">
+                        {% set colors = mod.theme_data.get('dark', {}) %}
+                        <span class="palette-dot" style="background: {{ colors.get('--bg', '#111') }}"></span>
+                        <span class="palette-dot" style="background: {{ colors.get('--surface', '#222') }}"></span>
+                        <span class="palette-dot" style="background: {{ colors.get('--accent', '#7c3aed') }}"></span>
+                        <span class="palette-dot" style="background: {{ colors.get('--good', '#10b981') }}"></span>
+                        <span class="palette-dot" style="background: {{ colors.get('--crit', '#ef4444') }}"></span>
+                    </div>
+                    <div class="theme-info">
+                        <div class="theme-name">{{ mod.name }}</div>
+                        <div class="theme-desc">{{ mod.description }}</div>
+                        <div class="theme-meta">
+                            <span>v{{ mod.version }}</span>
+                            <span>{{ mod.author }}</span>
+                        </div>
+                    </div>
+                    <div class="theme-actions">
+                        {% if mod.id == active_theme_id %}
+                        <span class="theme-active-badge">
+                            <i data-lucide="check-circle" style="width:14px;height:14px;"></i>
+                            {{ t.get('active', 'Active') }}
+                        </span>
+                        {% else %}
+                        <button type="button" class="btn btn-ghost btn-sm theme-preview-btn"
+                                onclick="previewTheme(this.closest('.theme-card'))">
+                            <i data-lucide="eye" style="width:14px;height:14px;"></i>
+                            {{ t.get('preview', 'Preview') }}
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm theme-apply-btn"
+                                onclick="applyTheme('{{ mod.id }}')">
+                            {{ t.get('activate', 'Activate') }}
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i data-lucide="palette" style="width:40px;height:40px;opacity:0.3;"></i>
+                    <p>{{ t.get('no_themes', 'No theme modules installed') }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Preview Overlay (hidden by default) -->
+    <div class="theme-preview-overlay" id="theme-preview-overlay" style="display:none;">
+        <div class="theme-preview-bar glass">
+            <span>{{ t.get('previewing_theme', 'Previewing theme') }}: <strong id="preview-theme-name"></strong></span>
+            <div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="cancelPreview()">
+                    {{ t.get('cancel', 'Cancel') }}
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="preview-apply-btn" onclick="applyPreviewedTheme()">
+                    {{ t.get('apply', 'Apply') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Available Themes (from Registry) -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="download-cloud"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('available_themes', 'Available Themes') }}</div>
+                    <div class="card-subtitle">{{ t.get('available_themes_desc', 'Browse and install themes from the community') }}</div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="refreshRegistry()">
+                <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
+                {{ t.get('refresh', 'Refresh') }}
+            </button>
+        </div>
+
+        <div class="theme-gallery" id="registry-gallery">
+            <div class="empty-state" id="registry-loading">
+                <p>{{ t.get('loading_registry', 'Loading themes...') }}</p>
+            </div>
+        </div>
+    </div>
+</div>

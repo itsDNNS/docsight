@@ -512,11 +512,35 @@ def inject_auth():
     """Make auth_enabled and module info available in all templates."""
     auth_enabled = bool(_config_manager and _config_manager.get("admin_password", ""))
     modules = _module_loader.get_enabled_modules() if _module_loader else []
+
+    # Resolve active theme module's CSS variables
+    active_theme_data = None
+    active_theme_id = ""
+    if _module_loader and _config_manager:
+        active_id = _config_manager.get("active_theme", "")
+        theme_modules = _module_loader.get_theme_modules()
+        active_mod = None
+        first_with_data = None
+        for m in theme_modules:
+            if m.theme_data:
+                if first_with_data is None:
+                    first_with_data = m
+                if m.id == active_id:
+                    active_mod = m
+                    break
+        if active_mod is None:
+            active_mod = first_with_data  # fallback to first available
+        if active_mod:
+            active_theme_data = active_mod.theme_data
+            active_theme_id = active_mod.id
+
     return {
         "auth_enabled": auth_enabled,
         "version": APP_VERSION,
         "update_available": _check_for_update(),
         "modules": modules,
+        "active_theme_data": active_theme_data,
+        "active_theme_id": active_theme_id,
     }
 
 

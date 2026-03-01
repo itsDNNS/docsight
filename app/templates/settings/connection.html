@@ -1,0 +1,82 @@
+<!-- ═══ Panel: Connection ═══ -->
+<div class="settings-panel active" id="panel-connection">
+    <!-- Modem Card -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="radio"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.modem_connection }}</div>
+                    <div class="card-subtitle">{{ t.modem_user_hint }}</div>
+                </div>
+            </div>
+            <div class="status-indicator" id="modem-status">
+                <span class="status-dot"></span>
+                <span id="modem-status-text"></span>
+            </div>
+        </div>
+        <div class="form-grid cols-2">
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="modem_type">{{ t.modem_type }}</label>
+                <select class="form-input form-select" id="modem_type" name="modem_type">
+                    {% for key, name in modem_types %}
+                    <option value="{{ key }}" {% if config.modem_type == key %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="modem_url">{{ t.url }}</label>
+                <input class="form-input" type="text" id="modem_url" name="modem_url" value="{{ config.modem_url }}">
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="modem_user">{{ t.username }}</label>
+                <input class="form-input" type="text" id="modem_user" name="modem_user" value="{{ config.modem_user }}">
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="modem_password">{{ t.password }}</label>
+                <input class="form-input" type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
+            </div>
+        </div>
+        <div style="margin-top: var(--space-lg);">
+            <button type="button" class="btn btn-ghost" onclick="testModem()">
+                <i data-lucide="wifi" style="width:16px;height:16px;"></i>
+                {{ t.test_connection }}
+            </button>
+        </div>
+        <div class="test-result" id="modem-test"></div>
+    </div>
+
+    <!-- ISP Card -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="building-2"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.isp_name }}</div>
+                    <div class="card-subtitle">{{ t.isp_hint }}</div>
+                </div>
+            </div>
+            <img id="isp-icon-preview" src="" alt="" style="width:28px;height:28px;display:none;border-radius:6px;">
+        </div>
+        <div class="form-grid cols-2">
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="isp_select">{{ t.isp_name }}</label>
+                <select class="form-input form-select" id="isp_select" name="isp_select" onchange="onIspChange()">
+                    <option value="">{{ t.isp_select }}</option>
+                    {% for isp in t.isp_options %}
+                    <option value="{{ isp }}" {% if config.isp_name == isp %}selected{% endif %}>{{ isp }}</option>
+                    {% endfor %}
+                    <option value="__other__" {% if config.isp_name and config.isp_name not in t.isp_options %}selected{% endif %}>{{ t.isp_other }}</option>
+                </select>
+            </div>
+            <div class="form-field" id="isp-other-row" style="grid-column: 1 / -1; display:{% if config.isp_name and config.isp_name not in t.isp_options %}grid{% else %}none{% endif %}">
+                <label class="form-label" for="isp_other_input">{{ t.isp_other }}</label>
+                <input class="form-input" type="text" id="isp_other_input" value="{% if config.isp_name and config.isp_name not in t.isp_options %}{{ config.isp_name }}{% endif %}" placeholder="{{ t.isp_other_placeholder }}">
+            </div>
+        </div>
+    </div>
+</div>

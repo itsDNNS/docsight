@@ -8,228 +8,178 @@
     <link rel="icon" type="image/png" href="/static/icon.png">
     <link rel="apple-touch-icon" href="/static/icon.png">
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#a855f7">
+    <meta name="theme-color" content="#7c3aed">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/settings.css">
     {% for mod in modules if mod.has_css %}
     <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
     {% endfor %}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {% if active_theme_data %}
+    <style id="theme-module-vars">
+    :root, [data-theme="dark"] {
+        {% for key, value in active_theme_data.get('dark', {}).items() %}
+        {{ key }}: {{ value }};
+        {% endfor %}
+    }
+    [data-theme="light"] {
+        {% for key, value in active_theme_data.get('light', {}).items() %}
+        {{ key }}: {{ value }};
+        {% endfor %}
+    }
+    </style>
+    {% endif %}
     <script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js"
             integrity="sha384-GzE8qT1LzDfRNjtvLN/dXDLPlJOB3BBom3Twb9/RwHkXCgNl6OU1pBxM9397HWGU"
             crossorigin="anonymous"></script>
 </head>
 <body>
 
+<div class="mesh-bg"></div>
 <div class="error-msg" id="global-error"></div>
 <div class="toast" id="toast"></div>
 
 <div class="settings-layout">
-    <!-- ═══ Desktop Sidebar (≥768px) ═══ -->
-    <nav class="settings-sidebar" id="settings-sidebar">
-        <div class="settings-sidebar-header">
-            <a href="/">
-                <span class="icon"><i data-lucide="arrow-left"></i></span>
-                DOCSight
-            </a>
-        </div>
-
-        <div class="settings-sidebar-title">{{ t.settings }}</div>
-
-        <div class="settings-sidebar-nav">
-            <div class="settings-section-label">Connection</div>
-            <a class="settings-nav-link active" data-section="modem" onclick="switchSection('modem')">
-                <span class="icon"><i data-lucide="radio"></i></span>
-                {{ t.step_modem }}
-            </a>
-
-            <div class="settings-section-label">Configuration</div>
-            <a class="settings-nav-link" data-section="general" onclick="switchSection('general')">
-                <span class="icon"><i data-lucide="settings"></i></span>
-                {{ t.step_general }}
-            </a>
-            <a class="settings-nav-link" data-section="modules" onclick="switchSection('modules')">
-                <span class="icon"><i data-lucide="puzzle"></i></span>
-                {{ t.modules_title }}
-            </a>
-
-            <div class="settings-section-label">Integrations</div>
-            <a class="settings-nav-link" data-section="notifications" onclick="switchSection('notifications')">
-                <span class="icon"><i data-lucide="bell"></i></span>
-                Notifications
-                <span class="status-dot" id="dot-notifications"></span>
-            </a>
-            {% set settings_modules = [] %}
-            {% for mod in modules if mod.template_paths.get('settings') %}
-                {% if settings_modules.append(mod) %}{% endif %}
-            {% endfor %}
-            {% if settings_modules %}
-            <div class="settings-section-label">{{ t.settings_extensions }}</div>
-            {% for mod in settings_modules|sort(attribute='menu.order') %}
-            <a class="settings-nav-link" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
-                <span class="icon"><i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i></span>
-                {{ t.get(mod.menu.label_key, mod.name) }}
-            </a>
-            {% endfor %}
-            {% endif %}
-
-            <div class="settings-sidebar-divider"></div>
-
-            <a class="settings-nav-link" data-section="appearance" onclick="switchSection('appearance')">
-                <span class="icon"><i data-lucide="palette"></i></span>
-                {{ t.appearance }}
-            </a>
-
-            <div class="settings-section-label">Project</div>
-            <a class="settings-nav-link" data-section="support" onclick="switchSection('support')">
-                <span class="icon"><i data-lucide="heart-handshake"></i></span>
-                Support DOCSight
-            </a>
-        </div>
-
-        <div class="settings-sidebar-footer">
-            <div class="dark-mode-toggle">
-                <span class="dark-mode-label">
-                    <i data-lucide="moon"></i>
-                    {{ t.dark_mode }}
-                </span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="theme-check" {% if theme == 'dark' %}checked{% endif %}>
-                    <span class="toggle-slider"></span>
-                </label>
+    <!-- ═══ Sidebar ═══ -->
+    <nav class="sidebar" id="settings-sidebar">
+        <a href="/" class="sidebar-header">
+            <div class="sidebar-logo">
+                <img src="/static/logo.svg" alt="DOCSight" style="width:20px;height:20px;filter:brightness(0) invert(1);">
             </div>
+            <div>
+                <div class="sidebar-title">DOCSight</div>
+                <div class="sidebar-subtitle">{{ t.settings }}</div>
+            </div>
+        </a>
+
+        <!-- Core Settings -->
+        <div class="nav-group">
+            <div class="nav-group-label">{{ t.get('core', 'Core') }}</div>
+            <button class="nav-item active" data-section="connection" onclick="switchSection('connection')">
+                <i data-lucide="radio" class="nav-icon"></i>
+                {{ t.step_modem }}
+            </button>
+            <button class="nav-item" data-section="system" onclick="switchSection('system')">
+                <i data-lucide="settings" class="nav-icon"></i>
+                {{ t.get('system', 'System') }}
+            </button>
+            <button class="nav-item" data-section="notifications" onclick="switchSection('notifications')">
+                <i data-lucide="bell" class="nav-icon"></i>
+                {{ t.get('notifications', 'Notifications') }}
+            </button>
+            <button class="nav-item" data-section="appearance" onclick="switchSection('appearance')">
+                <i data-lucide="palette" class="nav-icon"></i>
+                {{ t.appearance }}
+            </button>
+            <button class="nav-item" data-section="themes" onclick="switchSection('themes')">
+                <i data-lucide="brush" class="nav-icon"></i>
+                {{ t.get('themes', 'Themes') }}
+            </button>
+            <button class="nav-item" data-section="security" onclick="switchSection('security')">
+                <i data-lucide="shield" class="nav-icon"></i>
+                {{ t.get('security', 'Security') }}
+            </button>
+        </div>
+
+        <!-- Module Settings (dynamic) -->
+        {% set settings_modules = [] %}
+        {% for mod in modules if mod.template_paths.get('settings') %}
+            {% if settings_modules.append(mod) %}{% endif %}
+        {% endfor %}
+        {% if settings_modules %}
+        <div class="nav-separator"></div>
+        <div class="nav-group">
+            <div class="nav-group-label">{{ t.modules|default('Modules') }}</div>
+            {% for mod in settings_modules|sort(attribute='menu.order') %}
+            <button class="nav-item" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
+                <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}" class="nav-icon"></i>
+                {{ t.get(mod.menu.label_key, mod.name) }}
+                <span class="nav-badge {{ 'success' if mod.enabled else 'info' }}">{{ 'ON' if mod.enabled else 'OFF' }}</span>
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Module Store -->
+        <div class="nav-separator"></div>
+        <div class="nav-group">
+            <button class="nav-item" data-section="modules" onclick="switchSection('modules')">
+                <i data-lucide="package" class="nav-icon"></i>
+                {{ t.modules_title|default('Module Store') }}
+            </button>
+        </div>
+
+        <!-- Support (bottom) -->
+        <div style="margin-top: auto;">
+            <div class="nav-separator"></div>
+            <button class="nav-item" data-section="support" onclick="switchSection('support')">
+                <i data-lucide="heart-handshake" class="nav-icon"></i>
+                Support DOCSight
+            </button>
         </div>
     </nav>
 
-    <!-- ═══ Mobile List (<768px, initial view) ═══ -->
-    <div class="settings-mobile-list">
-        <div class="settings-mobile-list-header">
-            <a href="/">
-                <i data-lucide="arrow-left"></i>
-                DOCSight
-            </a>
-        </div>
-        <div class="settings-mobile-list-nav">
-            <div class="mobile-section-label">Connection</div>
-            <a class="mobile-nav-item" onclick="switchSection('modem')">
-                <span class="icon"><i data-lucide="radio"></i></span>
-                <span class="mobile-nav-label">{{ t.step_modem }}</span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-
-            <div class="mobile-section-label">Configuration</div>
-            <a class="mobile-nav-item" onclick="switchSection('general')">
-                <span class="icon"><i data-lucide="settings"></i></span>
-                <span class="mobile-nav-label">{{ t.step_general }}</span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-            <a class="mobile-nav-item" onclick="switchSection('modules')">
-                <span class="icon"><i data-lucide="puzzle"></i></span>
-                <span class="mobile-nav-label">{{ t.modules_title }}</span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-
-            <div class="mobile-section-label">Integrations</div>
-            <a class="mobile-nav-item" onclick="switchSection('notifications')">
-                <span class="icon"><i data-lucide="bell"></i></span>
-                <span class="mobile-nav-label">Notifications</span>
-                <span class="mobile-nav-dot" id="mdot-notifications"></span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-            {% if settings_modules %}
-            <div class="mobile-section-label">{{ t.settings_extensions }}</div>
-            {% for mod in settings_modules|sort(attribute='menu.order') %}
-            <a class="mobile-nav-item" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
-                <span class="icon"><i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i></span>
-                <span class="mobile-nav-label">{{ t.get(mod.menu.label_key, mod.name) }}</span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-            {% endfor %}
-            {% endif %}
-
-            <div class="mobile-section-label">Appearance</div>
-            <a class="mobile-nav-item" onclick="switchSection('appearance')">
-                <span class="icon"><i data-lucide="palette"></i></span>
-                <span class="mobile-nav-label">{{ t.appearance }}</span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-
-            <div class="mobile-section-label">Project</div>
-            <a class="mobile-nav-item" onclick="switchSection('support')">
-                <span class="icon"><i data-lucide="heart-handshake"></i></span>
-                <span class="mobile-nav-label">Support DOCSight</span>
-                <span class="mobile-nav-chevron"><i data-lucide="chevron-right"></i></span>
-            </a>
-        </div>
-        <div class="settings-mobile-list-footer">
-            <div class="dark-mode-toggle">
-                <span class="dark-mode-label">
-                    <i data-lucide="moon"></i>
-                    {{ t.dark_mode }}
-                </span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="theme-check-mobile" {% if theme == 'dark' %}checked{% endif %}>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══ Mobile Backdrop (legacy) ═══ -->
-    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <!-- ═══ Sidebar Backdrop (mobile) ═══ -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
     <!-- ═══ Main Content ═══ -->
-    <div class="settings-main">
-        <div class="settings-topbar">
-            <button class="settings-back-btn" onclick="backToList()" title="Back">
-                <i data-lucide="arrow-left"></i>
+    <div class="main-content">
+        <!-- Mobile header (visible < 768px) -->
+        <div class="mobile-header">
+            <button class="mobile-menu-btn" onclick="openMobileSidebar()">
+                <i data-lucide="menu"></i>
             </button>
-            <span class="settings-topbar-title" id="topbar-title">{{ t.step_modem }}</span>
+            <span class="page-title" style="font-size: 1.1rem;" id="mobile-title">{{ t.step_modem }}</span>
         </div>
 
         <form id="settings-form" autocomplete="off">
-            <div class="settings-content">
-
-                {% if demo_mode %}
-                <!-- ═══ Demo Mode Migration Banner ═══ -->
-                <div class="settings-card" style="border-color: var(--warn); background: rgba(234, 179, 8, 0.08);" id="demo-migrate-banner">
-                    <div class="settings-card-header" style="border-bottom-color: rgba(234, 179, 8, 0.2);">
-                        <div class="settings-card-icon" style="background: rgba(234, 179, 8, 0.15); color: var(--warn);">
+            {% if demo_mode %}
+            <!-- ═══ Demo Mode Migration Banner ═══ -->
+            <div class="settings-card glass" style="border-color: rgba(245,158,11,0.3);" id="demo-migrate-banner">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <div class="card-icon amber">
                             <i data-lucide="flask-conical"></i>
                         </div>
                         <div>
-                            <div class="settings-card-title">{{ t.demo_migrate_title }}</div>
-                            <div class="settings-card-desc">{{ t.demo_migrate_desc }}</div>
+                            <div class="card-title">{{ t.demo_migrate_title }}</div>
+                            <div class="card-subtitle">{{ t.demo_migrate_desc }}</div>
                         </div>
                     </div>
-                    <div class="btn-row">
-                        <button type="button" class="btn btn-secondary" style="border-color: var(--warn); color: var(--warn);" onclick="migrateToLive()">
-                            <i data-lucide="arrow-right-circle" style="width:16px;height:16px;"></i>
-                            {{ t.demo_migrate_button }}
-                        </button>
-                    </div>
-                    <div class="test-result" id="migrate-result"></div>
                 </div>
-                {% endif %}
-
-                {% include 'settings/modem.html' %}
-                {% include 'settings/general.html' %}
-                {% include 'settings/modules.html' %}
-                {% include 'settings/notifications.html' %}
-                {% include 'settings/appearance.html' %}
-                {% include 'settings/support.html' %}
-
-                {# ── Module Settings Panels ── #}
-                {% for mod in modules if mod.template_paths.get('settings') %}
-                {% include mod.template_paths['settings'] %}
-                {% endfor %}
-
+                <div class="btn-row">
+                    <button type="button" class="btn btn-ghost" style="border-color: var(--warning); color: var(--warning);" onclick="migrateToLive()">
+                        <i data-lucide="arrow-right-circle" style="width:16px;height:16px;"></i>
+                        {{ t.demo_migrate_button }}
+                    </button>
+                </div>
+                <div class="test-result" id="migrate-result"></div>
             </div>
+            {% endif %}
 
-            <div class="settings-save-footer" id="settings-save-footer">
-                <button type="submit" class="btn btn-primary">{{ t.save }}</button>
+            {% include 'settings/connection.html' %}
+            {% include 'settings/system.html' %}
+            {% include 'settings/notifications.html' %}
+            {% include 'settings/appearance.html' %}
+            {% include 'settings/themes.html' %}
+            {% include 'settings/security.html' %}
+            {% include 'settings/modules.html' %}
+            {% include 'settings/support.html' %}
+
+            {# ── Module Settings Panels ── #}
+            {% for mod in modules if mod.template_paths.get('settings') %}
+            {% include mod.template_paths['settings'] %}
+            {% endfor %}
+
+            <!-- ═══ Save Footer ═══ -->
+            <div class="save-footer" id="save-footer">
+                <div class="unsaved-hint">
+                    <span class="unsaved-dot"></span>
+                    {{ t.get('unsaved_changes', 'Unsaved changes') }}
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="save" style="width:16px;height:16px;"></i>
+                    {{ t.save }}
+                </button>
             </div>
         </form>
     </div>
@@ -238,11 +188,13 @@
 <script>
 var T = {{ t|tojson }};
 var SECTION_TITLES = {
-    modem: T.step_modem || 'Modem',
-    general: T.step_general || 'General',
-    modules: T.modules_title || 'Modules',
-    notifications: 'Notifications',
+    connection: T.step_modem || 'Connection',
+    system: T.get ? (T.get('system') || 'System') : 'System',
+    notifications: T.get ? (T.get('notifications') || 'Notifications') : 'Notifications',
     appearance: T.appearance || 'Appearance',
+    security: T.get ? (T.get('security') || 'Security') : 'Security',
+    themes: T.get ? (T.get('themes') || 'Themes') : 'Themes',
+    modules: T.modules_title || 'Module Store',
     support: 'Support DOCSight'
 };
 {% for mod in modules if mod.template_paths.get('settings') %}
