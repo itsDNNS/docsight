@@ -1,0 +1,116 @@
+/* tokens.css — DOCSight Design Tokens (W3C Design Tokens spec) */
+
+/* ── Color Palette: Dark (default) ── */
+:root {
+  /* Elevation surfaces */
+  --void: #06080f;
+  --void-deep: #0a0d18;
+  --surface: #111628;
+  --elevated: #181e35;
+  --hover: #1f2847;
+
+  /* Accent */
+  --amethyst: #7c3aed;
+  --amethyst-light: #a78bfa;
+  --amethyst-muted: rgba(124, 58, 237, 0.15);
+  --sapphire: #3b82f6;
+  --grad-primary: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+
+  /* Semantic */
+  --good: #10b981;
+  --good-muted: rgba(16, 185, 129, 0.15);
+  --warn: #f59e0b;
+  --warn-muted: rgba(245, 158, 11, 0.15);
+  --crit: #ef4444;
+  --crit-muted: rgba(239, 68, 68, 0.15);
+  --info: #06b6d4;
+  --info-muted: rgba(6, 182, 212, 0.15);
+
+  /* Text */
+  --text-primary: #e8edff;
+  --text-secondary: #9ba3c8;
+  --text-muted: #7880a6;
+
+  /* Glass */
+  --glass-bg: rgba(17, 22, 40, 0.65);
+  --glass-border: rgba(120, 130, 180, 0.12);
+  --glass-blur: blur(24px) saturate(1.2);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Radius */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 100px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.25);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.35);
+
+  /* Easing */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Typography */
+  --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Safe areas */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Layout */
+  --bottom-nav-h: 56px;
+
+  /* Legacy aliases (for settings.css backward compat) */
+  --bg: var(--void);
+  --card: var(--surface);
+  --card-border: var(--glass-border);
+  --text: var(--text-primary);
+  --accent: var(--amethyst);
+  --accent-hover: var(--amethyst-light);
+  --accent-muted: var(--amethyst-muted);
+  --input-border: var(--glass-border);
+  --overlay: rgba(0,0,0,0.6);
+  --hover-bg: var(--hover);
+}
+
+/* ── Color Palette: Light ── */
+[data-theme="light"] {
+  --void: #f8f6f3;
+  --void-deep: #f0edf5;
+  --surface: #ffffff;
+  --elevated: #f0edf5;
+  --hover: #e8e4f0;
+
+  --text-primary: #1a1520;
+  --text-secondary: #5e5673;
+  --text-muted: #8a82a0;
+
+  --good: #059669;
+  --warn: #d97706;
+  --crit: #dc2626;
+
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(120, 100, 160, 0.15);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+
+  /* Legacy aliases */
+  --bg: var(--void);
+  --card: var(--surface);
+  --text: var(--text-primary);
+}
