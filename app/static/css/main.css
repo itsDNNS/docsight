@@ -343,6 +343,7 @@ body.is-offline .offline-banner { display: flex; }
   white-space: nowrap;
 }
 .hero-meta-item svg { width: 13px; height: 13px; opacity: 0.6; }
+#desktop-countdown, #topbar-countdown { min-width: 3ch; font-variant-numeric: tabular-nums; }
 
 .hero-actions {
   display: flex;
