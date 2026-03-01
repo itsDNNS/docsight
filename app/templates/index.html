@@ -274,14 +274,16 @@
                     {% endif %}
                     <span class="hero-meta-item"><i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch</span>
                     {% if gaming_quality_enabled and gaming_index %}
-                    <span class="hero-meta-item"
+                    {% set _g = gaming_index.grade|upper %}
+                    {% set _badge_class = 'badge-good' if _g in ('A', 'B') else ('badge-warn' if _g == 'C' else 'badge-crit') %}
+                    <span class="hero-meta-item" style="cursor:help;"
                           title="{{ gaming_index.score }}/100 — {{ t['gaming_tooltip_' ~ gaming_index.grade|lower] }}{% if not gaming_index.has_speedtest %} ({{ t.gaming_no_speedtest }}){% endif %}">
-                        <i data-lucide="gamepad-2"></i> Gaming <span class="badge badge-{{ gaming_index.grade|lower }}">{{ gaming_index.grade }}</span>
+                        <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i> Gaming <span class="badge {{ _badge_class }}" style="margin-left:2px;">{{ gaming_index.grade }}</span>
                     </span>
                     {% endif %}
                 </div>
                 <div class="hero-actions">
-                    <span class="last-update">{% if last_update %}{{ last_update }}{% endif %}</span>
+                    <span class="last-update" id="hero-last-update">{% if last_update %}{{ last_update }}{% endif %}</span>
                     <button class="btn btn-ghost" style="padding:8px 12px;min-height:36px;" title="{{ t.refresh }}"
                             onclick="var rb=document.getElementById('refresh-btn');if(rb)rb.click();">
                         <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
@@ -319,12 +321,15 @@
        else ('warn' if 'ds_power_warn' in s.health_issues or 'snr_warn' in s.health_issues else 'good') %}
     {% set us_health = 'crit' if 'us_power_critical_low' in s.health_issues or 'us_power_critical_high' in s.health_issues
        else ('warn' if 'us_power_warn_low' in s.health_issues or 'us_power_warn_high' in s.health_issues else 'good') %}
-    {% set error_health = 'crit' if 'uncorr_errors_high' in s.health_issues else 'good' %}
+    {% set error_health = 'crit' if 'uncorr_errors_critical' in s.health_issues else ('warn' if 'uncorr_errors_high' in s.health_issues else 'good') %}
 
     {# ── DS Power health ── #}
     {% set ds_pwr_health = 'crit' if 'ds_power_critical' in s.health_issues else ('warn' if 'ds_power_warn' in s.health_issues else 'good') %}
     {# ── SNR health ── #}
     {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_warn' in s.health_issues else 'good') %}
+
+    {# ── Health label mapping ── #}
+    {% set health_labels = {'good': 'Good', 'warn': 'Marginal', 'crit': 'Poor'} %}
 
     {# ── Speedtest health (for new Metric Summary Row) ── #}
     {% if speedtest_configured and speedtest_latest %}
@@ -364,41 +369,55 @@
        METRICS GRID — Compact signal + error + speed cards
        ══════════════════════════════════════════════════════════════════════════ #}
     <div class="metrics-grid">
-        {# Card 1: Downstream #}
+        {# Card 1: DS Power #}
         <div class="metric-card glass">
             <div class="metric-header">
-                <span class="metric-label">{{ t.downstream }}</span>
+                <span class="metric-label">DS Power</span>
                 <div class="metric-icon purple"><i data-lucide="arrow-down"></i></div>
             </div>
             <div class="metric-value" style="color:var(--{{ ds_pwr_health }});">{{ s.ds_power_avg }}<span class="unit">dBmV</span></div>
             <div class="metric-sub">
-                <span class="badge badge-{{ ds_pwr_health }}">Ø {{ t.card_ds_power }}</span>
-                <span class="range">{{ s.ds_snr_avg }} dB {{ t.card_snr }}</span>
+                <span class="badge badge-{{ ds_pwr_health }}">{{ health_labels[ds_pwr_health] }}</span>
+                <span class="range">{{ s.ds_power_min }} — {{ s.ds_power_max }}</span>
             </div>
         </div>
 
-        {# Card 2: Upstream #}
+        {# Card 2: US Power #}
         <div class="metric-card glass">
             <div class="metric-header">
-                <span class="metric-label">{{ t.upstream }}</span>
+                <span class="metric-label">US Power</span>
                 <div class="metric-icon blue"><i data-lucide="arrow-up"></i></div>
             </div>
             <div class="metric-value" style="color:var(--{{ us_health }});">{{ s.us_power_avg }}<span class="unit">dBmV</span></div>
             <div class="metric-sub">
-                <span class="badge badge-{{ us_health }}">Ø {{ t.card_transmit_power }}</span>
-                {% if s.us_capacity_mbps is not none %}<span class="range">{{ s.us_capacity_mbps }} Mbit/s</span>{% endif %}
+                <span class="badge badge-{{ us_health }}">{{ health_labels[us_health] }}</span>
+                <span class="range">{{ s.us_power_min }} — {{ s.us_power_max }}</span>
             </div>
         </div>
 
-        {# Card 3: Errors #}
+        {# Card 3: SNR #}
+        <div class="metric-card glass">
+            <div class="metric-header">
+                <span class="metric-label">SNR</span>
+                <div class="metric-icon green"><i data-lucide="signal"></i></div>
+            </div>
+            <div class="metric-value" style="color:var(--{{ snr_health }});">{{ s.ds_snr_avg }}<span class="unit">dB</span></div>
+            <div class="metric-sub">
+                <span class="badge badge-{{ snr_health }}">{{ health_labels[snr_health] }}</span>
+                <span class="range">{{ s.ds_snr_min }} — {{ s.ds_snr_max }}</span>
+            </div>
+        </div>
+
+        {# Card 4: Errors #}
         <div class="metric-card glass">
             <div class="metric-header">
                 <span class="metric-label">{{ t.card_errors }}</span>
                 <div class="metric-icon amber"><i data-lucide="alert-triangle"></i></div>
             </div>
-            <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorrectable_errors|fmt_k }}<span class="unit">{{ t.card_uncorr_label }}</span></div>
+            <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorrectable_errors|fmt_k }}<span class="unit">uncorr.</span></div>
             <div class="metric-sub">
-                <span class="badge badge-{{ error_health }}">{{ s.ds_correctable_errors|fmt_k }} {{ t.card_corr_label }}</span>
+                <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
+                <span class="range">{{ s.ds_correctable_errors|fmt_k }} corr. / {{ s.ds_uncorrectable_errors|fmt_k }} uncorr.</span>
             </div>
         </div>
 
@@ -2196,20 +2215,27 @@ var T = {{ t|tojson }};
     var refreshTimer = null;
     var countdownTimer = null;
     var countdownSeconds = 60;
+    var secondsSinceUpdate = 0;
     var REFRESH_INTERVAL = 60;
     var countdownEl = document.getElementById('topbar-countdown');
 
     function updateCountdown() {
         if (countdownEl) countdownEl.textContent = countdownSeconds + 's';
+        var heroEl = document.getElementById('hero-last-update');
+        if (heroEl) heroEl.textContent = secondsSinceUpdate + 's ago';
+        var metaEl = document.getElementById('topbar-meta');
+        if (metaEl) metaEl.textContent = secondsSinceUpdate + 's ago';
     }
 
     function startAutoRefresh() {
         stopAutoRefresh();
         countdownSeconds = REFRESH_INTERVAL;
+        secondsSinceUpdate = 0;
         updateCountdown();
         countdownTimer = setInterval(function() {
             if (currentView !== 'live' || document.hidden) return;
             countdownSeconds--;
+            secondsSinceUpdate++;
             if (countdownSeconds <= 0) {
                 countdownSeconds = REFRESH_INTERVAL;
                 refreshData();
@@ -2257,6 +2283,7 @@ var T = {{ t|tojson }};
 
                 // Reset countdown after refresh
                 countdownSeconds = REFRESH_INTERVAL;
+                secondsSinceUpdate = 0;
                 updateCountdown();
 
                 // Restore expanded metric cards

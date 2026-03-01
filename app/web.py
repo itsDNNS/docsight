@@ -588,6 +588,8 @@ def index():
     t = get_translations(lang)
 
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
+    if demo_mode and not isp_name:
+        isp_name = "Vodafone Kabel"
     bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
     smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
