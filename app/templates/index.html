@@ -2000,12 +2000,16 @@ var T = {{ t|tojson }};
     function updateThemeState() {
         var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
         themeToggle.checked = isDark;
+        var mc = document.querySelector('meta[name="theme-color"]');
+        if (mc) mc.setAttribute('content', isDark ? '#06080f' : '#f8f6f3');
     }
     updateThemeState();
     themeToggle.addEventListener('change', function() {
         var next = this.checked ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('docsis-theme', next);
+        var mc = document.querySelector('meta[name="theme-color"]');
+        if (mc) mc.setAttribute('content', next === 'dark' ? '#06080f' : '#f8f6f3');
         // Re-render charts with updated theme colors
         if (typeof window.refreshDonuts === 'function') {
             setTimeout(window.refreshDonuts, 50);
@@ -2075,6 +2079,30 @@ var T = {{ t|tojson }};
         sidebarBackdrop.style.display = 'none';
         document.body.classList.remove('sidebar-open');
     };
+
+    /* Swipe-to-close sidebar (mobile) */
+    (function() {
+        var startX = 0, currentX = 0, swiping = false;
+        sidebar.addEventListener('touchstart', function(e) {
+            startX = e.touches[0].clientX;
+            swiping = true;
+        }, { passive: true });
+        sidebar.addEventListener('touchmove', function(e) {
+            if (!swiping) return;
+            currentX = e.touches[0].clientX;
+            var dx = currentX - startX;
+            if (dx < -10) {
+                sidebar.style.transform = 'translateX(' + Math.max(dx, -280) + 'px)';
+            }
+        }, { passive: true });
+        sidebar.addEventListener('touchend', function() {
+            if (!swiping) return;
+            swiping = false;
+            var dx = currentX - startX;
+            if (dx < -80) { closeSidebar(); }
+            sidebar.style.transform = '';
+        }, { passive: true });
+    })();
 
     var sidebarLinks = document.querySelectorAll('.nav-item[data-view]');
     sidebarLinks.forEach(function(link) {
@@ -2151,6 +2179,7 @@ var T = {{ t|tojson }};
         // Re-initialize Lucide icons after view switch
         lucide.createIcons();
     }
+    window.switchView = switchView;
 
     /* Trend Tabs → trends.js */
 
