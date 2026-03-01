@@ -991,12 +991,12 @@ function applyTheme(themeId) {
         .then(function(data) {
             if (data.success) {
                 localStorage.setItem('docsight-active-theme', themeId);
-                showToast(T.get ? (T.get('theme_applied') || 'Theme applied — restarting...') : 'Theme applied — restarting...');
+                localStorage.setItem('docsight-active-theme', themeId);
                 var overlay = document.getElementById('theme-preview-overlay');
                 if (overlay) overlay.style.display = 'none';
                 _previewingThemeId = null;
                 _originalStyles = {};
-                setTimeout(function() { location.reload(); }, 1500);
+                location.reload();
             } else {
                 showToast(data.error || 'Failed to apply theme', true);
             }

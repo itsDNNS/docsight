@@ -67,7 +67,7 @@ def api_module_enable(module_id):
                 disabled_set.add(m.id)
                 log.info("Auto-disabled threshold module '%s' (mutual exclusion)", m.id)
 
-    # Mutual exclusion: if enabling a theme, disable others
+    # Mutual exclusion: if enabling a theme, disable others and set active_theme
     if module.type == "theme":
         for m in loader.get_theme_modules():
             if m.id != module_id and m.id not in disabled_set:
@@ -75,7 +75,10 @@ def api_module_enable(module_id):
                 log.info("Auto-disabled theme module '%s' (mutual exclusion)", m.id)
 
     disabled_set.discard(module_id)
-    config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
+    updates = {"disabled_modules": ",".join(sorted(disabled_set))}
+    if module.type == "theme":
+        updates["active_theme"] = module_id
+    config_mgr.save(updates)
 
     log.info("Module '%s' enabled (restart required)", module_id)
     return jsonify({"success": True, "restart_required": True})
