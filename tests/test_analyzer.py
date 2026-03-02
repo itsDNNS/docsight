@@ -1,6 +1,7 @@
 """Tests for DOCSIS channel health analyzer."""
 
 import pytest
+from unittest.mock import patch
 from app import analyzer
 from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps
 
@@ -771,3 +772,101 @@ class TestSpikeExpiryThreshold:
         from app.analyzer import _get_spike_expiry_hours
         hours = _get_spike_expiry_hours()
         assert hours == 48
+
+
+class TestSpikeSuppression:
+    """Tests for apply_spike_suppression()."""
+
+    def _make_analysis_with_uncorr(self, uncorr_pct=86.6, health="poor",
+                                    extra_issues=None):
+        """Build a minimal analysis dict with uncorrectable error issues."""
+        issues = ["uncorr_errors_critical"]
+        if extra_issues:
+            issues.extend(extra_issues)
+        return {
+            "summary": {
+                "health": health,
+                "health_issues": issues,
+                "ds_uncorr_pct": uncorr_pct,
+                "ds_correctable_errors": 155000,
+                "ds_uncorrectable_errors": 1000000,
+                "ds_total": 33,
+                "us_total": 4,
+            },
+            "ds_channels": [],
+            "us_channels": [],
+        }
+
+    def test_no_spike_no_change(self):
+        """No spike timestamp — analysis stays unchanged."""
+        from app.analyzer import apply_spike_suppression
+        analysis = self._make_analysis_with_uncorr()
+        apply_spike_suppression(analysis, None)
+        assert analysis["summary"]["ds_uncorr_pct"] == 86.6
+        assert "uncorr_errors_critical" in analysis["summary"]["health_issues"]
+        assert analysis["summary"]["health"] == "poor"
+        assert "spike_suppression" not in analysis["summary"]
+
+    @patch("app.analyzer.utc_now")
+    def test_recent_spike_no_suppression(self, mock_now):
+        """Spike < 48h ago — still in observation period, no suppression."""
+        from app.analyzer import apply_spike_suppression
+        mock_now.return_value = "2026-02-28T12:00:00Z"
+        analysis = self._make_analysis_with_uncorr()
+        apply_spike_suppression(analysis, "2026-02-27T14:00:00Z")
+        assert analysis["summary"]["ds_uncorr_pct"] == 86.6
+        assert "uncorr_errors_critical" in analysis["summary"]["health_issues"]
+        assert analysis["summary"]["health"] == "poor"
+        assert "spike_suppression" not in analysis["summary"]
+
+    @patch("app.analyzer.utc_now")
+    def test_expired_spike_suppresses(self, mock_now):
+        """Spike >= 48h ago — suppression active."""
+        from app.analyzer import apply_spike_suppression
+        mock_now.return_value = "2026-03-01T15:00:00Z"  # 72.5h after spike
+        analysis = self._make_analysis_with_uncorr()
+        apply_spike_suppression(analysis, "2026-02-27T14:30:00Z")
+        assert analysis["summary"]["ds_uncorr_pct"] == 0.0
+        assert "uncorr_errors_critical" not in analysis["summary"]["health_issues"]
+        assert "uncorr_errors_high" not in analysis["summary"]["health_issues"]
+        assert analysis["summary"]["health"] == "good"
+        sup = analysis["summary"]["spike_suppression"]
+        assert sup["active"] is True
+        assert sup["last_spike"] == "2026-02-27T14:30:00Z"
+        assert sup["expiry_hours"] == 48
+
+    @patch("app.analyzer.utc_now")
+    def test_expired_spike_other_issues_remain(self, mock_now):
+        """Spike expired but other critical issues exist — health stays poor."""
+        from app.analyzer import apply_spike_suppression
+        mock_now.return_value = "2026-03-01T15:00:00Z"
+        analysis = self._make_analysis_with_uncorr(
+            extra_issues=["snr_critical"]
+        )
+        apply_spike_suppression(analysis, "2026-02-27T14:00:00Z")
+        assert analysis["summary"]["ds_uncorr_pct"] == 0.0
+        assert "uncorr_errors_critical" not in analysis["summary"]["health_issues"]
+        assert "snr_critical" in analysis["summary"]["health_issues"]
+        assert analysis["summary"]["health"] == "poor"
+        assert analysis["summary"]["spike_suppression"]["active"] is True
+
+    @patch("app.analyzer.utc_now")
+    def test_expired_spike_warning_issues_marginal(self, mock_now):
+        """Spike expired, only warning issues remain — health becomes marginal."""
+        from app.analyzer import apply_spike_suppression
+        mock_now.return_value = "2026-03-01T15:00:00Z"
+        analysis = self._make_analysis_with_uncorr(
+            extra_issues=["snr_warn"]
+        )
+        apply_spike_suppression(analysis, "2026-02-27T14:00:00Z")
+        assert analysis["summary"]["health"] == "marginal"
+
+    @patch("app.analyzer.utc_now")
+    def test_spike_at_exact_boundary(self, mock_now):
+        """Spike exactly 48h ago — suppressed (>= boundary)."""
+        from app.analyzer import apply_spike_suppression
+        mock_now.return_value = "2026-03-01T14:00:00Z"
+        analysis = self._make_analysis_with_uncorr()
+        apply_spike_suppression(analysis, "2026-02-27T14:00:00Z")
+        assert analysis["summary"]["ds_uncorr_pct"] == 0.0
+        assert analysis["summary"]["spike_suppression"]["active"] is True

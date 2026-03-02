@@ -9,6 +9,8 @@ import logging
 import os
 import re
 
+from .tz import utc_now, _parse_utc
+
 log = logging.getLogger("docsis.analyzer")
 
 # --- Dynamic thresholds (set by module loader) ---
@@ -130,6 +132,49 @@ def _get_spike_expiry_hours():
     """Get spike expiry window in hours (default 48)."""
     errors = _t().get("errors", {})
     return errors.get("spike_expiry_hours", 48)
+
+
+def apply_spike_suppression(analysis, last_spike_ts):
+    """Suppress uncorrectable error penalization if a past spike has expired.
+
+    Called as a post-processing step after analyze(). If the most recent
+    error_spike event is older than spike_expiry_hours and no new spike has
+    occurred since, the uncorrectable error percentage and related health
+    issues are suppressed.
+
+    Args:
+        analysis: dict from analyze() — modified in place
+        last_spike_ts: UTC timestamp string of latest error_spike, or None
+    """
+    if not last_spike_ts:
+        return
+
+    expiry_hours = _get_spike_expiry_hours()
+    now = _parse_utc(utc_now())
+    spike_dt = _parse_utc(last_spike_ts)
+    hours_since = (now - spike_dt).total_seconds() / 3600
+
+    if hours_since < expiry_hours:
+        return  # Still in observation period
+
+    summary = analysis["summary"]
+    summary["ds_uncorr_pct"] = 0.0
+    summary["health_issues"] = [i for i in summary["health_issues"] if "uncorr" not in i]
+    summary["spike_suppression"] = {
+        "active": True,
+        "last_spike": last_spike_ts,
+        "hours_since_spike": round(hours_since, 1),
+        "expiry_hours": expiry_hours,
+    }
+
+    # Recalculate health from remaining issues
+    issues = summary["health_issues"]
+    if not issues:
+        summary["health"] = "good"
+    elif any("critical" in i for i in issues):
+        summary["health"] = "poor"
+    else:
+        summary["health"] = "marginal"
 
 
 def _parse_qam_order(modulation_str):
