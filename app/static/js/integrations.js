@@ -45,10 +45,10 @@ function loadBnetzData() {
             }
             tr.innerHTML = '<td>' + (hasMeasurements ? '<button class="bnetz-expand-btn" id="bnetz-arrow-' + idx + '"><i data-lucide="chevron-right"></i></button> ' : '') + m.date + '</td>' +
                 '<td>' + (m.provider || '-') + '</td>' +
-                '<td>' + Math.round(m.download_max_tariff || 0) + ' Mbit/s</td>' +
-                '<td>' + Math.round(m.download_measured_avg || 0) + ' Mbit/s (' + dlPct + '%)</td>' +
-                '<td>' + Math.round(m.upload_max_tariff || 0) + ' Mbit/s</td>' +
-                '<td>' + Math.round(m.upload_measured_avg || 0) + ' Mbit/s (' + ulPct + '%)</td>' +
+                '<td>' + (m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-') + '</td>' +
+                '<td>' + Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : '') + '</td>' +
+                '<td>' + (m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-') + '</td>' +
+                '<td>' + Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : '') + '</td>' +
                 '<td class="bnetz-verdict ' + verdictClass + '" title="' + verdictText + '">' + verdictIcon + '</td>' +
                 '<td class="bnetz-actions-cell" onclick="event.stopPropagation();">' +
                     complaintBtn +
@@ -122,7 +122,7 @@ function buildBnetzDetailHtml(m) {
             '<th>' + (T.bnetz_measurement_time || 'Time') + '</th>' +
             '<th class="bnetz-detail-speed-col">' + (T.bnetz_measurement_speed || 'Speed') + '</th></tr>';
         dlList.forEach(function(meas, i) {
-            var speed = meas.speed || meas.value || 0;
+            var speed = meas.mbps || meas.speed || meas.value || 0;
             var color = 'var(--text)';
             if (m.download_min_tariff && speed < m.download_min_tariff) color = 'var(--crit)';
             else if (m.download_normal_tariff && speed < m.download_normal_tariff) color = 'var(--warn, orange)';
@@ -141,7 +141,7 @@ function buildBnetzDetailHtml(m) {
             '<th>' + (T.bnetz_measurement_time || 'Time') + '</th>' +
             '<th class="bnetz-detail-speed-col">' + (T.bnetz_measurement_speed || 'Speed') + '</th></tr>';
         ulList.forEach(function(meas, i) {
-            var speed = meas.speed || meas.value || 0;
+            var speed = meas.mbps || meas.speed || meas.value || 0;
             var color = 'var(--text)';
             if (m.upload_min_tariff && speed < m.upload_min_tariff) color = 'var(--crit)';
             else if (m.upload_normal_tariff && speed < m.upload_normal_tariff) color = 'var(--warn, orange)';
