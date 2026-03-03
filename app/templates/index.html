@@ -210,7 +210,9 @@
     {% set s = analysis.summary %}
     {% set ds = analysis.ds_channels %}
     {% set us = analysis.us_channels %}
+    {% set has_docsis = ds|length > 0 or us|length > 0 %}
 
+    {% if has_docsis %}
     {% set health_map = {"good": t.health_good, "marginal": t.health_marginal, "poor": t.health_poor} %}
     {% set health_label = health_map.get(s.health, s.health) %}
     {% set health_msgs = {"good": t.health_good_msg, "marginal": t.health_marginal_msg, "poor": t.health_poor_msg} %}
@@ -633,6 +635,15 @@
     {% if not has_us_ofdma %}
     <div class="card-notice card-notice-warn" style="margin-top:8px;">
         <span>&#9888;</span> {{ t.card_no_docsis31 }}
+    </div>
+    {% endif %}
+
+    {% else %}
+    {# ── No DOCSIS data (GenericDriver / non-DOCSIS modem) ── #}
+    <div class="no-docsis-placeholder glass">
+        <div class="no-docsis-icon">&#x1F4E1;</div>
+        <h2>{{ t.no_docsis_title }}</h2>
+        <p>{{ t.no_docsis_msg }}</p>
     </div>
     {% endif %}
 

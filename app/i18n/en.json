@@ -79,6 +79,8 @@
   "low": "low",
   "error_label": "Error",
   "waiting_msg": "Waiting for first DOCSIS query...",
+  "no_docsis_title": "No DOCSIS Data",
+  "no_docsis_msg": "He's dead, Jim. Looks like the DOCSIS data went out for a walk and never came back.",
   "no_data": "No data available for this period.",
   "trend_error": "Error loading trend data.",
   "correctable": "Correctable",

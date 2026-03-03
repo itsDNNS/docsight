@@ -18,6 +18,12 @@
     border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.no-docsis-placeholder {
+    text-align: center; padding: 4rem 2rem; margin: 2rem auto; max-width: 500px;
+}
+.no-docsis-icon { font-size: 3rem; margin-bottom: 1rem; }
+.no-docsis-placeholder h2 { margin-bottom: 0.5rem; }
+.no-docsis-placeholder p { opacity: 0.7; }
 
 
 /* ══════════════════════════════════════════════════════════════════════════

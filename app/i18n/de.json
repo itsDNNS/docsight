@@ -79,6 +79,8 @@
   "low": "niedrig",
   "error_label": "Fehler",
   "waiting_msg": "Warte auf erste DOCSIS-Abfrage...",
+  "no_docsis_title": "Keine DOCSIS-Daten",
+  "no_docsis_msg": "Er ist tot, Jim. Die DOCSIS-Daten sind wohl spazieren gegangen und kommen nicht wieder.",
   "no_data": "Keine Daten für diesen Zeitraum vorhanden.",
   "trend_error": "Fehler beim Laden der Trenddaten.",
   "correctable": "Korrigierbar",
