@@ -66,3 +66,34 @@ class TestDriverRegistry:
         loader.get_enabled_modules.return_value = [mod]
         self.reg.register_module_drivers(loader)
         assert not self.reg.has_driver("community.collector")
+
+
+class TestGenericDriver:
+    def setup_method(self):
+        from app.drivers.generic import GenericDriver
+        self.driver = GenericDriver("http://x", "", "")
+
+    def test_login_is_noop(self):
+        self.driver.login()  # should not raise
+
+    def test_get_docsis_data_returns_valid_structure(self):
+        data = self.driver.get_docsis_data()
+        assert "channelDs" in data
+        assert "channelUs" in data
+        assert "docsis30" in data["channelDs"]
+        assert "docsis31" in data["channelDs"]
+        assert data["channelDs"]["docsis30"] == []
+        assert data["channelDs"]["docsis31"] == []
+
+    def test_get_device_info_returns_dict(self):
+        info = self.driver.get_device_info()
+        assert info["model"] == "Generic Router"
+        assert "sw_version" in info
+
+    def test_get_connection_info_returns_dict(self):
+        info = self.driver.get_connection_info()
+        assert isinstance(info, dict)
+
+    def test_generic_in_builtin_registry(self):
+        from app.drivers import driver_registry
+        assert driver_registry.has_driver("generic")
