@@ -3,10 +3,11 @@ import importlib
 import json
 import os
 import tempfile
+import textwrap
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, load_module_driver, setup_module_static, setup_module_templates, ModuleLoader
 
 
 class TestValidateManifest:
@@ -1072,3 +1073,86 @@ class TestThemeSecurity:
         }
         info = validate_manifest(raw, "/path")
         assert "static" in info.contributes
+
+
+def test_driver_in_valid_contributes():
+    from app.module_loader import VALID_CONTRIBUTES
+    assert "driver" in VALID_CONTRIBUTES
+
+
+class TestLoadModuleDriver:
+    """Tests for load_module_driver()."""
+
+    def test_valid_driver_spec(self, tmp_path):
+        driver_code = textwrap.dedent('''
+            from app.drivers.base import ModemDriver
+
+            class TestDriver(ModemDriver):
+                def login(self): pass
+                def get_docsis_data(self): return {}
+                def get_device_info(self): return {}
+                def get_connection_info(self): return {}
+        ''')
+        driver_file = tmp_path / "driver.py"
+        driver_file.write_text(driver_code)
+        cls = load_module_driver("test.mod", str(tmp_path), "driver.py:TestDriver")
+        assert cls is not None
+        assert cls.__name__ == "TestDriver"
+
+    def test_missing_colon_returns_none(self, tmp_path):
+        cls = load_module_driver("test.mod", str(tmp_path), "driver.py")
+        assert cls is None
+
+    def test_missing_file_returns_none(self, tmp_path):
+        cls = load_module_driver("test.mod", str(tmp_path), "missing.py:Foo")
+        assert cls is None
+
+    def test_missing_class_returns_none(self, tmp_path):
+        driver_file = tmp_path / "driver.py"
+        driver_file.write_text("class Other: pass")
+        cls = load_module_driver("test.mod", str(tmp_path), "driver.py:Missing")
+        assert cls is None
+
+
+class TestDriverModuleSecurity:
+    def test_driver_module_cannot_contribute_collector(self):
+        raw = {
+            "id": "community.mydriver",
+            "name": "My Driver",
+            "description": "A driver",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "driver",
+            "contributes": {"driver": "driver.py:MyDriver", "collector": "collector.py:Foo"},
+        }
+        with pytest.raises(ManifestError, match="must not contribute"):
+            validate_manifest(raw, "/path")
+
+    def test_driver_module_cannot_contribute_publisher(self):
+        raw = {
+            "id": "community.mydriver",
+            "name": "My Driver",
+            "description": "A driver",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "driver",
+            "contributes": {"driver": "driver.py:MyDriver", "publisher": "pub.py:Foo"},
+        }
+        with pytest.raises(ManifestError, match="must not contribute"):
+            validate_manifest(raw, "/path")
+
+    def test_driver_module_with_only_driver_is_valid(self):
+        raw = {
+            "id": "community.mydriver",
+            "name": "My Driver",
+            "description": "A driver",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "driver",
+            "contributes": {"driver": "driver.py:MyDriver"},
+        }
+        info = validate_manifest(raw, "/path")
+        assert info.type == "driver"
