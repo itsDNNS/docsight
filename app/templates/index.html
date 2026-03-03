@@ -212,6 +212,40 @@
     {% set us = analysis.us_channels %}
     {% set has_docsis = ds|length > 0 or us|length > 0 %}
 
+    {# ── Speedtest health (independent of DOCSIS data) ── #}
+    {% if speedtest_configured and speedtest_latest %}
+        {% set eff_booked_dl = booked_download if (booked_download and booked_download > 0) else ((connection_info.max_downstream_kbps // 1000) if connection_info and connection_info.max_downstream_kbps else 0) %}
+        {% set eff_booked_ul = booked_upload if (booked_upload and booked_upload > 0) else ((connection_info.max_upstream_kbps // 1000) if connection_info and connection_info.max_upstream_kbps else 0) %}
+        {% if eff_booked_dl > 0 %}
+            {% set dl_ratio = speedtest_latest.download_mbps / eff_booked_dl %}
+            {% if dl_ratio >= 0.8 %}
+                {% set speed_health = 'health-good' %}
+                {% set dl_val_class = 'val-good' %}
+            {% elif dl_ratio >= 0.5 %}
+                {% set speed_health = 'health-warn' %}
+                {% set dl_val_class = 'val-warn' %}
+            {% else %}
+                {% set speed_health = 'health-crit' %}
+                {% set dl_val_class = 'val-bad' %}
+            {% endif %}
+        {% else %}
+            {% set speed_health = 'health-good' %}
+            {% set dl_val_class = 'val-good' %}
+        {% endif %}
+        {% if eff_booked_ul > 0 %}
+            {% set ul_ratio = speedtest_latest.upload_mbps / eff_booked_ul %}
+            {% if ul_ratio >= 0.8 %}
+                {% set ul_val_class = 'val-good' %}
+            {% elif ul_ratio >= 0.5 %}
+                {% set ul_val_class = 'val-warn' %}
+            {% else %}
+                {% set ul_val_class = 'val-bad' %}
+            {% endif %}
+        {% else %}
+            {% set ul_val_class = 'val-good' %}
+        {% endif %}
+    {% endif %}
+
     {% if has_docsis %}
     {% set health_map = {"good": t.health_good, "marginal": t.health_marginal, "poor": t.health_poor} %}
     {% set health_label = health_map.get(s.health, s.health) %}
@@ -326,40 +360,6 @@
 
     {# ── Health label mapping ── #}
     {% set health_labels = {'good': t.health_good, 'warn': t.health_marginal, 'crit': t.health_poor} %}
-
-    {# ── Speedtest health (for new Metric Summary Row) ── #}
-    {% if speedtest_configured and speedtest_latest %}
-        {% set eff_booked_dl = booked_download if (booked_download and booked_download > 0) else ((connection_info.max_downstream_kbps // 1000) if connection_info and connection_info.max_downstream_kbps else 0) %}
-        {% set eff_booked_ul = booked_upload if (booked_upload and booked_upload > 0) else ((connection_info.max_upstream_kbps // 1000) if connection_info and connection_info.max_upstream_kbps else 0) %}
-        {% if eff_booked_dl > 0 %}
-            {% set dl_ratio = speedtest_latest.download_mbps / eff_booked_dl %}
-            {% if dl_ratio >= 0.8 %}
-                {% set speed_health = 'health-good' %}
-                {% set dl_val_class = 'val-good' %}
-            {% elif dl_ratio >= 0.5 %}
-                {% set speed_health = 'health-warn' %}
-                {% set dl_val_class = 'val-warn' %}
-            {% else %}
-                {% set speed_health = 'health-crit' %}
-                {% set dl_val_class = 'val-bad' %}
-            {% endif %}
-        {% else %}
-            {% set speed_health = 'health-good' %}
-            {% set dl_val_class = 'val-good' %}
-        {% endif %}
-        {% if eff_booked_ul > 0 %}
-            {% set ul_ratio = speedtest_latest.upload_mbps / eff_booked_ul %}
-            {% if ul_ratio >= 0.8 %}
-                {% set ul_val_class = 'val-good' %}
-            {% elif ul_ratio >= 0.5 %}
-                {% set ul_val_class = 'val-warn' %}
-            {% else %}
-                {% set ul_val_class = 'val-bad' %}
-            {% endif %}
-        {% else %}
-            {% set ul_val_class = 'val-good' %}
-        {% endif %}
-    {% endif %}
 
     {# ══════════════════════════════════════════════════════════════════════════
        METRICS GRID — Compact signal + error + speed cards
@@ -645,6 +645,51 @@
         <h2>{{ t.no_docsis_title }}</h2>
         <p>{{ t.no_docsis_msg }}</p>
     </div>
+
+    {# ── Non-DOCSIS cards: speed, BNetzA, modules ── #}
+    {% if speedtest_configured and speedtest_latest %}
+    <div class="metrics-grid">
+        <div class="metric-card glass">
+            <div class="metric-header">
+                <span class="metric-label">{{ t.speed }}</span>
+                <div class="metric-icon green"><i data-lucide="zap"></i></div>
+            </div>
+            <div class="metric-value" style="color:var(--{{ dl_val_class|replace('val-','') }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
+            <div class="metric-sub">
+                <span class="range">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }} {{ t.upload }}</span>
+                <span class="range">{{ speedtest_latest.ping_ms|round(0)|int }} ms Ping</span>
+                <span class="range">{{ speedtest_latest.jitter_ms|round(1) }} ms Jitter</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if bnetz_enabled and bnetz_latest %}
+    {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff else 0 %}
+    {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff else 0 %}
+    {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
+    <div class="metrics-grid" style="grid-template-columns:1fr;">
+        <div class="metric-card glass">
+            <div class="metric-header">
+                <span class="metric-label">{{ t.bnetz_title }}</span>
+                <div class="metric-icon {{ 'amber' if bnetz_has_deviation else 'green' }}"><i data-lucide="file-check"></i></div>
+            </div>
+            <div class="metric-value" style="color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">{{ bnetz_latest.download_measured_avg|round(0)|int }} / {{ bnetz_latest.download_max_tariff|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
+            <div class="metric-sub">
+                <span class="range">{{ bnetz_latest.upload_measured_avg|round(0)|int }} / {{ bnetz_latest.upload_max_tariff|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
+            </div>
+            <div class="metric-sub">
+                <span class="badge badge-{{ 'crit' if bnetz_has_deviation else 'good' }}">{{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}</span>
+                <span class="range">{{ bnetz_latest.date }} &middot; {{ bnetz_latest.provider }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% for mod in modules|sort(attribute='menu.order') if mod.template_paths.get('card') %}
+    {% include mod.template_paths['card'] %}
+    {% endfor %}
+
     {% endif %}
 
 {% elif not error %}
