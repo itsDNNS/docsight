@@ -247,6 +247,8 @@ def main():
         disabled_ids=disabled_ids,
     )
     module_loader.load_all()
+    from .drivers import driver_registry
+    driver_registry.register_module_drivers(module_loader)
     web.init_modules(module_loader)
     web.setup_module_templates(module_loader)
 

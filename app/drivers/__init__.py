@@ -1,38 +1,18 @@
 """Modem driver abstractions."""
 
-import importlib
-import logging
+from .registry import DriverRegistry
 
-log = logging.getLogger("docsis.drivers")
+driver_registry = DriverRegistry()
 
-DRIVER_REGISTRY = {
-    "fritzbox": "app.drivers.fritzbox.FritzBoxDriver",
-    "tc4400": "app.drivers.tc4400.TC4400Driver",
-    "ultrahub7": "app.drivers.ultrahub7.UltraHub7Driver",
-    "vodafone_station": "app.drivers.vodafone_station.VodafoneStationDriver",
-    "ch7465": "app.drivers.ch7465.CH7465Driver",
-    "cm3500": "app.drivers.cm3500.CM3500Driver",
-}
-
-DRIVER_DISPLAY_NAMES = {
-    "fritzbox": "AVM FRITZ!Box",
-    "tc4400": "Technicolor TC4400",
-    "ultrahub7": "Vodafone Ultra Hub 7",
-    "vodafone_station": "Vodafone Station",
-    "ch7465": "Unitymedia Connect Box (CH7465)",
-    "cm3500": "Arris CM3500B",
-}
+# Register built-in drivers
+driver_registry.register_builtin("fritzbox", "app.drivers.fritzbox.FritzBoxDriver", "AVM FRITZ!Box")
+driver_registry.register_builtin("tc4400", "app.drivers.tc4400.TC4400Driver", "Technicolor TC4400")
+driver_registry.register_builtin("ultrahub7", "app.drivers.ultrahub7.UltraHub7Driver", "Vodafone Ultra Hub 7")
+driver_registry.register_builtin("vodafone_station", "app.drivers.vodafone_station.VodafoneStationDriver", "Vodafone Station")
+driver_registry.register_builtin("ch7465", "app.drivers.ch7465.CH7465Driver", "Unitymedia Connect Box (CH7465)")
+driver_registry.register_builtin("cm3500", "app.drivers.cm3500.CM3500Driver", "Arris CM3500B")
 
 
 def load_driver(modem_type, url, user, password):
-    """Instantiate a modem driver by type name."""
-    qualified = DRIVER_REGISTRY.get(modem_type)
-    if not qualified:
-        supported = ", ".join(sorted(DRIVER_REGISTRY))
-        raise ValueError(
-            f"Unknown modem_type '{modem_type}'. Supported: {supported}"
-        )
-    module_path, class_name = qualified.rsplit(".", 1)
-    mod = importlib.import_module(module_path)
-    cls = getattr(mod, class_name)
-    return cls(url, user, password)
+    """Backward-compatible wrapper around driver_registry.load_driver()."""
+    return driver_registry.load_driver(modem_type, url, user, password)

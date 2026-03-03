@@ -683,8 +683,8 @@ def setup():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    from .drivers import DRIVER_REGISTRY, DRIVER_DISPLAY_NAMES
-    modem_types = sorted([(k, DRIVER_DISPLAY_NAMES.get(k, k)) for k in DRIVER_REGISTRY], key=lambda x: x[1])
+    from .drivers import driver_registry
+    modem_types = driver_registry.get_available_drivers()
     iana_tz = _guess_iana_timezone()
     return render_template("setup.html", config=config, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, timezones=_get_iana_timezones(), iana_tz=iana_tz)
 
@@ -697,8 +697,8 @@ def settings():
     lang = _get_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
-    from .drivers import DRIVER_REGISTRY, DRIVER_DISPLAY_NAMES
-    modem_types = sorted([(k, DRIVER_DISPLAY_NAMES.get(k, k)) for k in DRIVER_REGISTRY], key=lambda x: x[1])
+    from .drivers import driver_registry
+    modem_types = driver_registry.get_available_drivers()
     demo_mode = _config_manager.is_demo_mode() if _config_manager else False
     iana_tz = _guess_iana_timezone()
     # Warn if server TZ looks like a POSIX abbreviation (no DST support)

@@ -597,7 +597,7 @@ class TestDiscoverCollectors:
         web.get_module_loader.return_value = module_loader
         return web
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     def test_discover_returns_modem_plus_modules(self, mock_load):
         from app.collectors import discover_collectors
 
@@ -630,7 +630,7 @@ class TestDiscoverCollectors:
         assert "speedtest" in names
         assert "bqm" in names
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     def test_discover_includes_bnetz_watcher_module(self, mock_load):
         from app.collectors import discover_collectors
 
@@ -654,7 +654,7 @@ class TestDiscoverCollectors:
         names = [c.name for c in collectors]
         assert "bnetz_watcher" in names
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     def test_discover_no_modules_returns_modem_only(self, mock_load):
         from app.collectors import discover_collectors
 
@@ -671,7 +671,7 @@ class TestDiscoverCollectors:
         assert len(collectors) == 1
         assert collectors[0].name == "modem"
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     def test_modem_collector_gets_poll_interval(self, mock_load):
         from app.collectors import discover_collectors
 
@@ -688,7 +688,7 @@ class TestDiscoverCollectors:
         modem = [c for c in collectors if c.name == "modem"][0]
         assert modem.poll_interval_seconds == 120
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     def test_driver_loaded_by_modem_type(self, mock_load):
         from app.collectors import discover_collectors
 
@@ -717,8 +717,8 @@ class TestLoadDriver:
             load_driver("nonexistent", "http://x", "u", "p")
 
     def test_default_is_fritzbox(self):
-        from app.drivers import DRIVER_REGISTRY
-        assert "fritzbox" in DRIVER_REGISTRY
+        from app.drivers import driver_registry
+        assert driver_registry.has_driver("fritzbox")
 
     @pytest.mark.parametrize("bad_type", [
         "../../etc/passwd",
@@ -828,7 +828,7 @@ class TestPollingLoopOrchestrator:
         mgr.get.return_value = ""
         return mgr
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     @patch("app.main.web")
     def test_orchestrator_calls_enabled_collectors(self, mock_web, mock_load):
         """Orchestrator should call collect() for enabled collectors."""
@@ -862,7 +862,7 @@ class TestPollingLoopOrchestrator:
         mock_driver.login.assert_called()
         mock_driver.get_docsis_data.assert_called()
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     @patch("app.main.web")
     def test_orchestrator_skips_disabled_collectors(self, mock_web, mock_load):
         """Speedtest/BQM collectors should be skipped when not configured."""
@@ -898,7 +898,7 @@ class TestPollingLoopOrchestrator:
         storage.get_latest_speedtest_id.assert_not_called()
         storage.save_bqm_graph.assert_not_called()
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     @patch("app.main.web")
     def test_orchestrator_handles_collector_exception(self, mock_web, mock_load):
         """Orchestrator should catch exceptions and continue running."""
@@ -929,7 +929,7 @@ class TestPollingLoopOrchestrator:
 
         mock_web.update_state.assert_any_call(error=mock_driver.login.side_effect)
 
-    @patch("app.drivers.load_driver")
+    @patch("app.drivers.driver_registry.load_driver")
     @patch("app.main.web")
     def test_orchestrator_stops_on_event(self, mock_web, mock_load):
         """Orchestrator should exit when stop_event is set."""
