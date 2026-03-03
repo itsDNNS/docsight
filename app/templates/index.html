@@ -438,8 +438,8 @@
        BREITBANDMESSUNG (BNetzA) - Conditional card, only shown when data exists
        ══════════════════════════════════════════════════════════════════════════ #}
     {% if bnetz_enabled and bnetz_latest %}
-    {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff else 0 %}
-    {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff else 0 %}
+    {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
+    {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
     {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
     <div class="metrics-grid" style="grid-template-columns:1fr;">
         <div class="metric-card glass">
@@ -447,9 +447,9 @@
                 <span class="metric-label">{{ t.bnetz_title }}</span>
                 <div class="metric-icon {{ 'amber' if bnetz_has_deviation else 'green' }}"><i data-lucide="file-check"></i></div>
             </div>
-            <div class="metric-value" style="color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">{{ bnetz_latest.download_measured_avg|round(0)|int }} / {{ bnetz_latest.download_max_tariff|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
+            <div class="metric-value" style="color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">{{ (bnetz_latest.download_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.download_max_tariff or 0)|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
             <div class="metric-sub">
-                <span class="range">{{ bnetz_latest.upload_measured_avg|round(0)|int }} / {{ bnetz_latest.upload_max_tariff|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
+                <span class="range">{{ (bnetz_latest.upload_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.upload_max_tariff or 0)|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
             </div>
             <div class="metric-sub">
                 <span class="badge badge-{{ 'crit' if bnetz_has_deviation else 'good' }}">{{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}</span>
@@ -667,8 +667,8 @@
     {% endif %}
 
     {% if bnetz_enabled and bnetz_latest %}
-    {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff else 0 %}
-    {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff else 0 %}
+    {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
+    {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
     {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
     <div class="metrics-grid" style="grid-template-columns:1fr;">
         <div class="metric-card glass">
@@ -676,9 +676,9 @@
                 <span class="metric-label">{{ t.bnetz_title }}</span>
                 <div class="metric-icon {{ 'amber' if bnetz_has_deviation else 'green' }}"><i data-lucide="file-check"></i></div>
             </div>
-            <div class="metric-value" style="color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">{{ bnetz_latest.download_measured_avg|round(0)|int }} / {{ bnetz_latest.download_max_tariff|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
+            <div class="metric-value" style="color:{{ 'var(--crit)' if bnetz_has_deviation else 'var(--good)' }};">{{ (bnetz_latest.download_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.download_max_tariff or 0)|round(0)|int }}<span class="unit">Mbit/s ({{ bnetz_dl_pct }}%) {{ t.download }}</span></div>
             <div class="metric-sub">
-                <span class="range">{{ bnetz_latest.upload_measured_avg|round(0)|int }} / {{ bnetz_latest.upload_max_tariff|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
+                <span class="range">{{ (bnetz_latest.upload_measured_avg or 0)|round(0)|int }} / {{ (bnetz_latest.upload_max_tariff or 0)|round(0)|int }} Mbit/s ({{ bnetz_ul_pct }}%) {{ t.upload }}</span>
             </div>
             <div class="metric-sub">
                 <span class="badge badge-{{ 'crit' if bnetz_has_deviation else 'good' }}">{{ t.bnetz_verdict_deviation if bnetz_has_deviation else t.bnetz_verdict_ok }}</span>

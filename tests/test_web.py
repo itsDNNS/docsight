@@ -97,6 +97,26 @@ class TestIndexRoute:
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
 
+    def test_index_with_incomplete_bnetz(self, tmp_path, sample_analysis):
+        """Dashboard renders when BNetzA entry has NULL fields (#148)."""
+        mgr = ConfigManager(str(tmp_path / "data_bnetz"))
+        mgr.save({"modem_password": "test"})
+        init_config(mgr)
+        storage = SnapshotStorage(str(tmp_path / "data_bnetz" / "docsight.db"))
+        init_storage(storage)
+        app.config["TESTING"] = True
+        # Save a BNetzA measurement with all numeric fields as None
+        bs = BnetzStorage(storage.db_path)
+        bs.save_bnetz_measurement({
+            "date": "2025-06-01",
+            "measurements_download": [],
+            "measurements_upload": [],
+        })
+        update_state(analysis=sample_analysis)
+        with app.test_client() as c:
+            resp = c.get("/")
+        assert resp.status_code == 200
+
     def test_no_docsis_shows_placeholder(self, client):
         """Generic router with empty channels shows no-DOCSIS placeholder."""
         analysis = {
