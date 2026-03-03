@@ -283,8 +283,12 @@ class ConfigManager:
         log.info("Config saved to %s", self.config_path)
 
     def is_configured(self):
-        """True if modem_password is set or demo_mode is active."""
-        return bool(self.get("modem_password")) or self.is_demo_mode()
+        """True if modem is configured (password set or generic driver) or demo mode."""
+        if self.is_demo_mode():
+            return True
+        if self.get("modem_type") == "generic":
+            return True
+        return bool(self.get("modem_password"))
 
     def is_demo_mode(self):
         """True if DEMO_MODE is enabled."""
