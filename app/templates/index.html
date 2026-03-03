@@ -2292,6 +2292,22 @@ var T = {{ t|tojson }};
 
     if (currentView === 'live') startAutoRefresh();
 
+    /* ── Fast initial refresh while waiting for first poll ── */
+    (function() {
+        var waiting = document.querySelector('#view-dashboard .waiting');
+        if (!waiting) return;
+        var fastTimer = setInterval(function() {
+            if (document.hidden) return;
+            refreshData();
+            /* Stop fast polling once waiting spinner is gone */
+            if (!document.querySelector('#view-dashboard .waiting')) {
+                clearInterval(fastTimer);
+            }
+        }, 5000);
+        /* Safety: stop after 5 minutes regardless */
+        setTimeout(function() { clearInterval(fastTimer); }, 300000);
+    })();
+
     /* ── Manual Poll (Refresh Button) ── */
     var refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) {

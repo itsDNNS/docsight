@@ -818,6 +818,24 @@ function toggleUsernameField() {
 
     var usernameField = document.getElementById('modem_user');
     var urlField = document.getElementById('modem_url');
+    var passwordField = document.getElementById('modem_password');
+
+    // Fields to hide for generic driver (URL, username, password, test button)
+    var credFields = [urlField, usernameField, passwordField].map(function(f) {
+        return f ? f.closest('.form-field') : null;
+    });
+    var testBtn = document.querySelector('[onclick="testModem()"]');
+    var testBtnParent = testBtn ? testBtn.parentElement : null;
+    var testResult = document.getElementById('modem-test');
+
+    if (modemType.value === 'generic') {
+        credFields.forEach(function(el) { if (el) el.style.display = 'none'; });
+        if (testBtnParent) testBtnParent.style.display = 'none';
+        if (testResult) testResult.style.display = 'none';
+        return;
+    }
+    credFields.forEach(function(el) { if (el) el.style.display = ''; });
+    if (testBtnParent) testBtnParent.style.display = '';
 
     if (modemType.value === 'ultrahub7') {
         usernameField.disabled = true;

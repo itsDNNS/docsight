@@ -10,14 +10,18 @@
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#a855f7">
     <link rel="stylesheet" href="/static/css/fonts.css">
+    <link rel="stylesheet" href="/static/css/tokens.css">
     <link rel="stylesheet" href="/static/css/main.css">
     <style>
         /* Setup-specific styles using v2 design language */
+        *, *::before, *::after { box-sizing: border-box; }
         body {
             padding: 20px;
             max-width: 800px;
             margin: 0 auto;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
         }
 
         /* ── Header ── */
@@ -417,31 +421,33 @@
             </select>
         </div>
 
-        <div class="form-row">
-            <label for="modem_url">{{ t.modem_url }}</label>
-            <input type="text" id="modem_url" name="modem_url" 
-                   value="{{ config.modem_url or 'http://192.168.178.1' }}" 
-                   placeholder="http://192.168.178.1" required>
-        </div>
+        <div id="modem-credentials-group">
+            <div class="form-row">
+                <label for="modem_url">{{ t.modem_url }}</label>
+                <input type="text" id="modem_url" name="modem_url"
+                       value="{{ config.modem_url or 'http://192.168.178.1' }}"
+                       placeholder="http://192.168.178.1">
+            </div>
 
-        <div class="form-row">
-            <label for="modem_user">{{ t.username }}</label>
-            <input type="text" id="modem_user" name="modem_user" 
-                   value="{{ config.modem_user or '' }}" 
-                   placeholder="admin">
-        </div>
+            <div class="form-row">
+                <label for="modem_user">{{ t.username }}</label>
+                <input type="text" id="modem_user" name="modem_user"
+                       value="{{ config.modem_user or '' }}"
+                       placeholder="admin">
+            </div>
 
-        <div class="form-row">
-            <label for="modem_password">{{ t.password }}</label>
-            <input type="password" id="modem_password" name="modem_password" 
-                   value="{{ config.modem_password or '' }}" 
-                   placeholder="••••••••">
-        </div>
+            <div class="form-row">
+                <label for="modem_password">{{ t.password }}</label>
+                <input type="password" id="modem_password" name="modem_password"
+                       value="{{ config.modem_password or '' }}"
+                       placeholder="••••••••">
+            </div>
 
-        <button type="button" class="btn btn-test" onclick="testConnection()">
-            🔌 {{ t.test_connection }}
-        </button>
-        <div class="test-result" id="test-result"></div>
+            <button type="button" class="btn btn-test" onclick="testConnection()">
+                🔌 {{ t.test_connection }}
+            </button>
+            <div class="test-result" id="test-result"></div>
+        </div>
 
         <div class="button-group">
             <button type="button" class="btn btn-primary" onclick="nextStep(2)">
@@ -662,6 +668,14 @@ function toggleUsernameField() {
     const modemType = document.getElementById('modem_type').value;
     const usernameField = document.getElementById('modem_user');
     const urlField = document.getElementById('modem_url');
+    const credGroup = document.getElementById('modem-credentials-group');
+
+    // Generic router needs no URL, credentials, or connection test
+    if(modemType === 'generic') {
+        credGroup.style.display = 'none';
+        return;
+    }
+    credGroup.style.display = '';
 
     if(modemType === 'ultrahub7') {
         usernameField.disabled = true;
