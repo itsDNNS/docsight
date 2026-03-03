@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <em>For cable internet (DOCSIS/coax) only — Vodafone Kabel, Pyur, Tele Columbus, Virgin Media, Comcast, Spectrum, and others.</em>
+  <em>Built for cable internet (DOCSIS/coax) — also works with fiber, DSL, and satellite via Generic Router mode.</em>
 </p>
 
 <p align="center">
@@ -67,10 +67,10 @@ Open `http://localhost:8765` — no setup required.
 
 | | |
 |---|---|
-| ✅ You have **cable internet** (coax/DOCSIS) | DOCSight is built for this |
+| ✅ You have **cable internet** (coax/DOCSIS) | DOCSight is built for this — full signal monitoring |
+| ✅ You have **fiber, DSL, or satellite** | Generic Router mode gives you speedtest tracking, incident journal, and more |
 | ✅ Your internet **drops out or is slower** than what you're paying for | DOCSight documents it |
 | ✅ Your ISP says **"everything is fine on our end"** | DOCSight gives you proof |
-| ❌ You have **DSL or fiber** | This tool won't work for you |
 
 ---
 
@@ -160,9 +160,10 @@ Open `http://localhost:8765` — no setup required.
 | **Vodafone Station** (CGA4233, TG3442DE) | ✅ Fully supported | Bridge mode compatible |
 | **Technicolor TC4400** | ✅ Fully supported | |
 | **Vodafone Ultra Hub 7** (Sercomm) | ✅ Fully supported | |
-| **Other DOCSIS modems** | Contributions welcome! See [Adding Modem Support](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) | |
+| **Generic Router** (fiber, DSL, satellite) | ✅ Fully supported | No DOCSIS data — speedtest, journal, BNetzA, and modules work |
+| **Other DOCSIS modems** | [Community driver modules](https://github.com/itsDNNS/docsight-modules) or [add your own](https://github.com/itsDNNS/docsight/wiki/Adding-Modem-Support) | |
 
-Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magenta (AT), UPC (CH), Virgin Media (UK), and others.
+Works with any DOCSIS cable provider: Vodafone, Pyur/Tele Columbus, eazy, Magenta (AT), UPC (CH), Virgin Media (UK), and others. Non-cable users can select Generic Router during setup.
 
 > **Currently focused on the German cable market** (BNetzA measurements, VFKD thresholds, complaint templates). The core monitoring works with any DOCSIS modem worldwide — community contributions for other markets are welcome!
 
@@ -226,7 +227,7 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation.
 ## Requirements
 
 - Docker (or any OCI-compatible container runtime) — or see [Running without Docker](https://github.com/itsDNNS/docsight/wiki/Running-without-Docker) for a native Python setup
-- A supported DOCSIS cable modem or router (see above)
+- A supported DOCSIS cable modem/router (see above), or any router via Generic Router mode
 - MQTT broker (optional, for Home Assistant)
 
 ## Contributing
@@ -271,14 +272,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Theme Engine (Themes as Modules) | ✅ Released | — |
 | Dashboard Redesign (Mobile-First PWA) | ✅ Released | [#105](https://github.com/itsDNNS/docsight/issues/105) |
 | Self-Hosted Dependencies (Offline) | ✅ Released | — |
+| Community Modem Drivers | ✅ Released | [#131](https://github.com/itsDNNS/docsight/issues/131) |
+| Non-DOCSIS Router Support | ✅ Released | [#129](https://github.com/itsDNNS/docsight/issues/129) |
 
 **Planned:**
 
 | Feature | Issue |
 |---|---|
 | Before/After Comparison | [#50](https://github.com/itsDNNS/docsight/issues/50) |
-| Community Modem Drivers | [#131](https://github.com/itsDNNS/docsight/issues/131) |
-| Non-DOCSIS Router Support | [#129](https://github.com/itsDNNS/docsight/issues/129) |
 
 See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
 
@@ -295,7 +296,7 @@ If DOCSight helps you, you can support development here:
 
 ## Documentation
 
-Documentation current as of **v2026-03-01.1**.
+Documentation current as of **v2026-03-03.1**.
 
 | Document | Scope |
 |---|---|
