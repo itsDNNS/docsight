@@ -96,9 +96,10 @@ class CH7465Driver(ModemDriver):
             payload = {"Username": "NULL", "Password": self._password}
         else:
             pw_hash = hashlib.sha256(self._password.encode()).hexdigest()
-            payload = {"Password": pw_hash}
+            payload = {}
             if self._user:
                 payload["Username"] = self._user
+            payload["Password"] = pw_hash
 
         response_text = self._set_data(Action.LOGIN, payload)
 
@@ -267,6 +268,8 @@ class CH7465Driver(ModemDriver):
         r = self._session.post(
             f"{self._url}/xml/getter.xml",
             data = {
+                "fun": str(function.value),
+            } if self._is_play is False else {
                 "token": self._session.cookies.get("sessionToken", ""),
                 "fun": str(function.value),
             },
@@ -283,10 +286,12 @@ class CH7465Driver(ModemDriver):
             raise ValueError("invalid data key in CH7465VF command")
         r = self._session.post(
             f"{self._url}/xml/setter.xml",
-            data = {
+            data = ({
+                "fun": str(function.value),
+            } if self._is_play is False else {
                 "token": self._session.cookies.get("sessionToken", ""),
                 "fun": str(function.value),
-            } | data,
+            }) | data,
             timeout=10,
             allow_redirects=False,
         )
