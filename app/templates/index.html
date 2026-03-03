@@ -641,7 +641,9 @@
     {% else %}
     {# ── No DOCSIS data (GenericDriver / non-DOCSIS modem) ── #}
     <div class="no-docsis-placeholder glass">
-        <div class="no-docsis-icon">&#x1F4E1;</div>
+        <div class="no-docsis-icon-wrap">
+            <i data-lucide="radio-tower"></i>
+        </div>
         <h2>{{ t.no_docsis_title }}</h2>
         <p>{{ t.no_docsis_msg }}</p>
     </div>

@@ -97,6 +97,77 @@ class TestIndexRoute:
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
 
+    def test_no_docsis_shows_placeholder(self, client):
+        """Generic router with empty channels shows no-DOCSIS placeholder."""
+        analysis = {
+            "summary": {
+                "ds_total": 0, "us_total": 0,
+                "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0,
+                "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0,
+                "ds_snr_min": 0, "ds_snr_avg": 0, "ds_snr_max": 0,
+                "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
+                "ds_uncorr_pct": 0,
+                "health": "good", "health_issues": [],
+                "us_capacity_mbps": 0,
+            },
+            "ds_channels": [],
+            "us_channels": [],
+        }
+        update_state(analysis=analysis)
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert b"no-docsis-placeholder" in resp.data
+        # DOCSIS-specific sections should NOT appear
+        assert b"hero-card" not in resp.data
+        assert b"channel-table" not in resp.data
+
+    def test_no_docsis_shows_speedtest_card(self, tmp_path):
+        """When has_docsis=false but speedtest is configured, speed card appears."""
+        mgr = ConfigManager(str(tmp_path / "data_speed"))
+        mgr.save({
+            "modem_type": "generic",
+            "speedtest_tracker_url": "http://speedtest.local",
+            "speedtest_tracker_token": "testtoken123",
+        })
+        init_config(mgr)
+        init_storage(None)
+        app.config["TESTING"] = True
+
+        analysis = {
+            "summary": {
+                "ds_total": 0, "us_total": 0,
+                "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0,
+                "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0,
+                "ds_snr_min": 0, "ds_snr_avg": 0, "ds_snr_max": 0,
+                "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
+                "ds_uncorr_pct": 0,
+                "health": "good", "health_issues": [],
+                "us_capacity_mbps": 0,
+            },
+            "ds_channels": [],
+            "us_channels": [],
+        }
+        update_state(
+            analysis=analysis,
+            speedtest_latest={
+                "download_mbps": 230.5,
+                "upload_mbps": 41.2,
+                "ping_ms": 12.0,
+                "jitter_ms": 1.5,
+                "packet_loss_pct": 0,
+            },
+        )
+        with app.test_client() as c:
+            resp = c.get("/")
+        assert resp.status_code == 200
+        html = resp.data
+        # No-DOCSIS placeholder should still appear
+        assert b"no-docsis-placeholder" in html
+        # Speed card should appear in the non-DOCSIS section
+        assert b"230" in html  # download speed value
+        assert b"41" in html   # upload speed value
+        assert b"12 ms Ping" in html
+
 
 class TestHealthEndpoint:
     def test_health_waiting(self, client):

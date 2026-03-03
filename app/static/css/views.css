@@ -19,11 +19,17 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .no-docsis-placeholder {
-    text-align: center; padding: 4rem 2rem; margin: 2rem auto; max-width: 500px;
+    text-align: center; padding: 3rem 2rem; margin-bottom: var(--space-md);
 }
-.no-docsis-icon { font-size: 3rem; margin-bottom: 1rem; }
-.no-docsis-placeholder h2 { margin-bottom: 0.5rem; }
-.no-docsis-placeholder p { opacity: 0.7; }
+.no-docsis-icon-wrap {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    margin-bottom: var(--space-sm);
+}
+.no-docsis-icon-wrap i { width: 28px; height: 28px; color: var(--text-muted); }
+.no-docsis-placeholder h2 { margin-bottom: 0.25rem; font-size: 1.1rem; font-weight: 600; }
+.no-docsis-placeholder p { opacity: 0.6; font-size: 0.85rem; max-width: 400px; margin: 0 auto; }
 
 
 /* ══════════════════════════════════════════════════════════════════════════
