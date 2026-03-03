@@ -98,7 +98,7 @@ class TestIndexRoute:
         assert resp.status_code == 200
 
     def test_index_with_incomplete_bnetz(self, tmp_path, sample_analysis):
-        """Dashboard renders when BNetzA entry has NULL fields (#148)."""
+        """Dashboard hides BNetzA card when entry has NULL fields (#148)."""
         mgr = ConfigManager(str(tmp_path / "data_bnetz"))
         mgr.save({"modem_password": "test"})
         init_config(mgr)
@@ -116,6 +116,7 @@ class TestIndexRoute:
         with app.test_client() as c:
             resp = c.get("/")
         assert resp.status_code == 200
+        assert b"bnetz_has_deviation" not in resp.data  # card should not render
 
     def test_no_docsis_shows_placeholder(self, client):
         """Generic router with empty channels shows no-DOCSIS placeholder."""

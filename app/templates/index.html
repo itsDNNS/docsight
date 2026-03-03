@@ -437,7 +437,7 @@
     {# ══════════════════════════════════════════════════════════════════════════
        BREITBANDMESSUNG (BNetzA) - Conditional card, only shown when data exists
        ══════════════════════════════════════════════════════════════════════════ #}
-    {% if bnetz_enabled and bnetz_latest %}
+    {% if bnetz_enabled and bnetz_latest and bnetz_latest.download_measured_avg is not none %}
     {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
     {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
     {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
@@ -666,7 +666,7 @@
     </div>
     {% endif %}
 
-    {% if bnetz_enabled and bnetz_latest %}
+    {% if bnetz_enabled and bnetz_latest and bnetz_latest.download_measured_avg is not none %}
     {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
     {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
     {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
