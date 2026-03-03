@@ -213,6 +213,7 @@ class TestCH7465Driver:
         """Login payload includes Username when user is non-empty."""
         d = CH7465Driver("http://192.168.100.1", "admin", "pass")
         d._session.get.return_value = MagicMock(status_code=200)
+        d._is_play = False  # pre-set to skip detection
         d._set_data = MagicMock(return_value="successSID=abc123")
 
         d.login()
@@ -224,9 +225,10 @@ class TestCH7465Driver:
 
     @patch("app.drivers.ch7465.requests.Session")
     def test_login_omits_username_when_empty(self, mock_session_cls):
-        """Login payload omits Username for password-only firmware (e.g. Play/Poland)."""
+        """Login payload omits Username for non-Play firmware with empty user."""
         d = CH7465Driver("http://192.168.100.1", "", "pass")
         d._session.get.return_value = MagicMock(status_code=200)
+        d._is_play = False  # pre-set to skip detection
         d._set_data = MagicMock(return_value="successSID=abc123")
 
         d.login()
@@ -234,6 +236,99 @@ class TestCH7465Driver:
         payload = d._set_data.call_args[0][1]
         assert "Username" not in payload
         assert "Password" in payload
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_detect_play_firmware(self, mock_session_cls):
+        """Play firmware detected via ConfigVenderModel containing 'PLAY'."""
+        d = CH7465Driver("http://192.168.0.1", "", "pass")
+        d._get_data = MagicMock(return_value="<root><ConfigVenderModel>CH7465PLAY</ConfigVenderModel></root>")
+
+        assert d._detect_play_firmware() is True
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_detect_non_play_firmware(self, mock_session_cls):
+        """Standard firmware (e.g. CH7465LG) is not detected as Play."""
+        d = CH7465Driver("http://192.168.100.1", "admin", "pass")
+        d._get_data = MagicMock(return_value="<root><ConfigVenderModel>CH7465LG</ConfigVenderModel></root>")
+
+        assert d._detect_play_firmware() is False
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_detect_play_firmware_on_error(self, mock_session_cls):
+        """Detection defaults to False on network errors."""
+        d = CH7465Driver("http://192.168.0.1", "", "pass")
+        d._get_data = MagicMock(side_effect=Exception("timeout"))
+
+        assert d._detect_play_firmware() is False
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_play_login_sends_plaintext_password(self, mock_session_cls):
+        """Play firmware login: Username='NULL', plaintext password (no SHA256)."""
+        d = CH7465Driver("http://192.168.0.1", "", "mypassword")
+        d._session.get.return_value = MagicMock(status_code=200)
+        d._detect_play_firmware = MagicMock(return_value=True)
+        d._set_data = MagicMock(return_value="successfulSID=xyz789")
+
+        d.login()
+
+        payload = d._set_data.call_args[0][1]
+        assert payload["Username"] == "NULL"
+        assert payload["Password"] == "mypassword"  # plaintext, not SHA256
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_standard_login_sends_sha256_password(self, mock_session_cls):
+        """Standard firmware login: SHA256 hashed password."""
+        import hashlib
+        d = CH7465Driver("http://192.168.100.1", "admin", "mypassword")
+        d._session.get.return_value = MagicMock(status_code=200)
+        d._is_play = False
+        d._set_data = MagicMock(return_value="successSID=abc123")
+
+        d.login()
+
+        payload = d._set_data.call_args[0][1]
+        expected_hash = hashlib.sha256(b"mypassword").hexdigest()
+        assert payload["Password"] == expected_hash
+        assert payload["Username"] == "admin"
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_play_detection_cached(self, mock_session_cls):
+        """Firmware detection only runs once, then cached."""
+        d = CH7465Driver("http://192.168.0.1", "", "pass")
+        d._session.get.return_value = MagicMock(status_code=200)
+        d._detect_play_firmware = MagicMock(return_value=True)
+        d._set_data = MagicMock(return_value="successfulSID=xyz789")
+
+        d.login()
+        d.login()
+
+        assert d._detect_play_firmware.call_count == 1
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_token_included_in_get_data(self, mock_session_cls):
+        """sessionToken cookie is echoed back as POST param in _get_data."""
+        d = CH7465Driver("http://192.168.100.1", "admin", "pass")
+        d._session.cookies.get = MagicMock(side_effect=lambda k, default="": "tok123" if k == "sessionToken" else default)
+        d._session.post.return_value = MagicMock(status_code=200, text="<root/>")
+
+        from app.drivers.ch7465 import Query
+        d._get_data(Query.GLOBAL_SETTINGS)
+
+        post_data = d._session.post.call_args[1]["data"]
+        assert post_data["token"] == "tok123"
+
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_token_included_in_set_data(self, mock_session_cls):
+        """sessionToken cookie is echoed back as POST param in _set_data."""
+        d = CH7465Driver("http://192.168.100.1", "admin", "pass")
+        d._session.cookies.get = MagicMock(side_effect=lambda k, default="": "tok456" if k == "sessionToken" else default)
+        d._session.post.return_value = MagicMock(status_code=200, text="ok")
+
+        from app.drivers.ch7465 import Action
+        d._set_data(Action.LOGIN, {"Password": "hash"})
+
+        post_data = d._session.post.call_args[1]["data"]
+        assert post_data["token"] == "tok456"
 
 
 # ── ModemCollector Tests ──

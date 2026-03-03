@@ -62,6 +62,7 @@ class CH7465Driver(ModemDriver):
         # the application is exited.
         self._finalizer = weakref.finalize(self, CH7465Driver._cleanup, url, session)
         self._finalizer.atexit = True
+        self._is_play: Optional[bool] = None
 
     @staticmethod
     def _cleanup(url: str, session: requests.Session):
@@ -69,15 +70,16 @@ class CH7465Driver(ModemDriver):
         if 'SID' in session.cookies:
             session.post(
                 f"{url}/xml/setter.xml",
-                data = { "fun": str(Action.LOGOUT.value) },
+                data = {
+                    "token": session.cookies.get("sessionToken", ""),
+                    "fun": str(Action.LOGOUT.value),
+                },
                 timeout=10,
             )
             del session.cookies["SID"]
 
     def login(self) -> None:
-        """Authenticate with username and SHA256-hashed password."""
-        pw_hash = hashlib.sha256(self._password.encode()).hexdigest()
-
+        """Authenticate with the modem, auto-detecting Play/UPC firmware."""
         r = self._session.get(
             f"{self._url}",
             timeout=10,
@@ -85,9 +87,18 @@ class CH7465Driver(ModemDriver):
         r.raise_for_status()
         r.close()
 
-        payload = {"Password": pw_hash}
-        if self._user:
-            payload["Username"] = self._user
+        if self._is_play is None:
+            self._is_play = self._detect_play_firmware()
+            if self._is_play:
+                log.info("Detected Play/UPC firmware variant")
+
+        if self._is_play:
+            payload = {"Username": "NULL", "Password": self._password}
+        else:
+            pw_hash = hashlib.sha256(self._password.encode()).hexdigest()
+            payload = {"Password": pw_hash}
+            if self._user:
+                payload["Username"] = self._user
 
         response_text = self._set_data(Action.LOGIN, payload)
 
@@ -241,11 +252,22 @@ class CH7465Driver(ModemDriver):
             return {}
 
 
+    def _detect_play_firmware(self) -> bool:
+        """Detect Play/UPC firmware variant via ConfigVenderModel (available pre-login)."""
+        try:
+            xml = self._get_data(Query.GLOBAL_SETTINGS)
+            root = ET.fromstring(xml)
+            model = _node_text(root.find("ConfigVenderModel"))
+            return "PLAY" in model.upper()
+        except Exception:
+            return False
+
     def _get_data(self, function: Query) -> str:
         """Query one information set from the modem."""
         r = self._session.post(
             f"{self._url}/xml/getter.xml",
             data = {
+                "token": self._session.cookies.get("sessionToken", ""),
                 "fun": str(function.value),
             },
             timeout=10,
@@ -262,6 +284,7 @@ class CH7465Driver(ModemDriver):
         r = self._session.post(
             f"{self._url}/xml/setter.xml",
             data = {
+                "token": self._session.cookies.get("sessionToken", ""),
                 "fun": str(function.value),
             } | data,
             timeout=10,
