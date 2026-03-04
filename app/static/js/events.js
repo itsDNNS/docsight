@@ -44,10 +44,10 @@ function formatEventMessage(ev) {
                 _healthDot(d.current);
 
         case 'power_change': {
-            var dir = d.direction === 'downstream' ? 'DS' : 'US';
+            var dir = d.direction === 'downstream' ? (T.event_ds || 'DS') : (T.event_us || 'US');
             var delta = d.current - d.prev;
             var sign = delta >= 0 ? '+' : '';
-            return '<span class="ev-label">' + escapeHtml(dir) + ' Power</span>' +
+            return '<span class="ev-label">' + escapeHtml(dir) + ' ' + (T.event_power || 'Power') + '</span>' +
                 '<span class="ev-val">' + _fmtNum(d.prev) + '</span>' +
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val">' + _fmtNum(d.current) + '</span> dBmV ' +
@@ -56,7 +56,7 @@ function formatEventMessage(ev) {
 
         case 'snr_change': {
             var thr = d.threshold === 'critical' ? 'ev-down' : 'ev-warn';
-            return '<span class="ev-label">DS SNR</span>' +
+            return '<span class="ev-label">' + (T.event_ds || 'DS') + ' SNR</span>' +
                 '<span class="ev-val">' + _fmtNum(d.prev) + '</span>' +
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val ' + thr + '">' + _fmtNum(d.current) + '</span> dB ' +
@@ -64,11 +64,11 @@ function formatEventMessage(ev) {
         }
 
         case 'channel_change': {
-            var chDir = d.direction === 'downstream' ? 'DS' : 'US';
+            var chDir = d.direction === 'downstream' ? (T.event_ds || 'DS') : (T.event_us || 'US');
             var chDelta = d.current - d.prev;
             var chCls = chDelta < 0 ? 'ev-down' : 'ev-up';
             var chSign = chDelta >= 0 ? '+' : '';
-            return '<span class="ev-label">' + escapeHtml(chDir) + ' Channels</span>' +
+            return '<span class="ev-label">' + escapeHtml(chDir) + ' ' + (T.event_channels || 'Channels') + '</span>' +
                 '<span class="ev-val">' + _fmtNum(d.prev) + '</span>' +
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val">' + _fmtNum(d.current) + '</span> ' +
@@ -96,12 +96,12 @@ function formatEventMessage(ev) {
 
         case 'error_spike': {
             var spikeDelta = d.delta || (d.current - d.prev);
-            return '<span class="ev-val ev-warn">+' + _fmtNum(spikeDelta) + '</span> uncorrectable errors ' +
+            return '<span class="ev-val ev-warn">+' + _fmtNum(spikeDelta) + '</span> ' + (T.event_uncorrectable_errors || 'uncorrectable errors') + ' ' +
                 '<span class="ev-muted">(' + _fmtNum(d.prev) + ' \u2192 ' + _fmtNum(d.current) + ')</span>';
         }
 
         case 'monitoring_started':
-            return escapeHtml('Monitoring started') + ' ' + _healthDot(d.health || 'unknown');
+            return escapeHtml(T.event_monitoring_started_msg || 'Monitoring started') + ' ' + _healthDot(d.health || 'unknown');
 
         default:
             return escapeHtml(ev.message);

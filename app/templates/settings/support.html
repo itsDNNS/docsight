@@ -7,37 +7,35 @@
                     <i data-lucide="heart-handshake"></i>
                 </div>
                 <div>
-                    <div class="card-title">Support DOCSight</div>
-                    <div class="card-subtitle">Help keep this project alive and growing</div>
+                    <div class="card-title">{{ t.support_title }}</div>
+                    <div class="card-subtitle">{{ t.support_subtitle }}</div>
                 </div>
             </div>
         </div>
         <p style="font-size:0.92rem;line-height:1.65;color:var(--text-secondary);margin-bottom:var(--space-lg);">
-            DOCSight began as a personal fight with unstable cable internet and support replies that never matched reality.
-            I wanted a tool that turns frustration into clear technical proof people can actually use.
-            If you want to support that mission, thank you. It really helps.
+            {{ t.support_description }}
         </p>
         <div class="support-grid">
             <a class="support-card glass" href="https://paypal.me/itsDNNS" target="_blank" rel="noopener noreferrer">
                 <div class="support-card-icon">
                     <i data-lucide="wallet"></i>
                 </div>
-                <div class="support-card-title">PayPal</div>
-                <div class="support-card-desc">One-time donation</div>
+                <div class="support-card-title">{{ t.support_paypal }}</div>
+                <div class="support-card-desc">{{ t.support_paypal_desc }}</div>
             </a>
             <a class="support-card glass" href="https://ko-fi.com/itsdnns" target="_blank" rel="noopener noreferrer">
                 <div class="support-card-icon">
                     <i data-lucide="coffee"></i>
                 </div>
-                <div class="support-card-title">Ko-fi</div>
-                <div class="support-card-desc">Buy me a coffee</div>
+                <div class="support-card-title">{{ t.support_kofi }}</div>
+                <div class="support-card-desc">{{ t.support_kofi_desc }}</div>
             </a>
             <a class="support-card glass" href="https://github.com/sponsors/itsDNNS" target="_blank" rel="noopener noreferrer">
                 <div class="support-card-icon">
                     <i data-lucide="heart"></i>
                 </div>
-                <div class="support-card-title">GitHub Sponsors</div>
-                <div class="support-card-desc">Monthly sponsorship</div>
+                <div class="support-card-title">{{ t.support_github }}</div>
+                <div class="support-card-desc">{{ t.support_github_desc }}</div>
             </a>
         </div>
     </div>

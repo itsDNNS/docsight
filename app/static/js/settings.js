@@ -127,14 +127,14 @@ function createApiToken() {
         body: JSON.stringify({name: name})
     }).then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
     .then(function(res) {
-        if (!res.ok) { showToast(res.data.error || 'Error', false); return; }
+        if (!res.ok) { showToast(res.data.error || (T.error_prefix || 'Error'), false); return; }
         inp.value = '';
         var banner = document.getElementById('api-token-created-banner');
         document.getElementById('api-token-plaintext').textContent = res.data.token;
         banner.style.display = 'block';
         loadApiTokens();
         if (typeof lucide !== 'undefined') lucide.createIcons();
-    }).catch(function() { showToast('Error', false); });
+    }).catch(function() { showToast(T.error_prefix || 'Error', false); });
 }
 
 function copyToken() {
@@ -155,9 +155,9 @@ function revokeToken(id, name) {
             document.getElementById('api-token-created-banner').style.display = 'none';
             loadApiTokens();
         } else {
-            showToast(data.error || 'Error', false);
+            showToast(data.error || (T.error_prefix || 'Error'), false);
         }
-    }).catch(function() { showToast('Error', false); });
+    }).catch(function() { showToast(T.error_prefix || 'Error', false); });
 }
 
 /* ── Status Dots ── */
@@ -380,7 +380,7 @@ function testNotifications() {
     var span = document.createElement('span');
     span.textContent = '\u23F3';
     el.appendChild(span);
-    el.appendChild(document.createTextNode(' Sending test notification...'));
+    el.appendChild(document.createTextNode(' ' + (T.notify_test_sending || 'Sending test notification...')));
     fetch('/api/notifications/test', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -395,13 +395,13 @@ function testNotifications() {
             check.className = 'check-icon';
             check.textContent = '\u2713';
             el.appendChild(check);
-            el.appendChild(document.createTextNode(' Test notification sent'));
+            el.appendChild(document.createTextNode(' ' + (T.notify_test_sent || 'Test notification sent')));
         } else {
             el.className = 'test-result test-fail';
             var x = document.createElement('span');
             x.textContent = '\u2717';
             el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + (res.error || 'Unknown error')));
+            el.appendChild(document.createTextNode(' ' + (res.error || T.unknown_error || 'Unknown error')));
         }
     })
     .catch(function() {
@@ -410,7 +410,7 @@ function testNotifications() {
         var x = document.createElement('span');
         x.textContent = '\u2717';
         el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + T.network_error));
+        el.appendChild(document.createTextNode(' ' + (T.network_error || 'Network error')));
     });
 }
 
@@ -425,7 +425,7 @@ function migrateToLive() {
     var span = document.createElement('span');
     span.textContent = '\u23F3';
     el.appendChild(span);
-    el.appendChild(document.createTextNode(' Migrating...'));
+    el.appendChild(document.createTextNode(' ' + (T.demo_migrating || 'Migrating...')));
     fetch('/api/demo/migrate', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -447,7 +447,7 @@ function migrateToLive() {
             var x = document.createElement('span');
             x.textContent = '\u2717';
             el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + (res.error || 'Unknown error')));
+            el.appendChild(document.createTextNode(' ' + (res.error || T.unknown_error || 'Unknown error')));
         }
     })
     .catch(function() {
@@ -456,7 +456,7 @@ function migrateToLive() {
         var x = document.createElement('span');
         x.textContent = '\u2717';
         el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + T.network_error));
+        el.appendChild(document.createTextNode(' ' + (T.network_error || 'Network error')));
     });
 }
 
@@ -624,7 +624,7 @@ function backupNow() {
             var x = document.createElement('span');
             x.textContent = '\u2717';
             el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + (res.error || 'Failed')));
+            el.appendChild(document.createTextNode(' ' + (res.error || T.save_failed || 'Failed')));
         }
     })
     .catch(function() {
@@ -633,7 +633,7 @@ function backupNow() {
         var x = document.createElement('span');
         x.textContent = '\u2717';
         el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + T.network_error));
+        el.appendChild(document.createTextNode(' ' + (T.network_error || 'Network error')));
     });
 }
 
@@ -716,10 +716,10 @@ function deleteBackup(filename) {
         if (res.success) {
             loadBackupList();
         } else {
-            alert(res.error || 'Failed');
+            alert(res.error || T.save_failed || 'Failed');
         }
     })
-    .catch(function() { alert(T.network_error); });
+    .catch(function() { alert(T.network_error || 'Network error'); });
 }
 
 /* ── Directory Browser ── */
@@ -749,7 +749,7 @@ function browseTo(path) {
     dirs.textContent = '';
     var loadingDiv = document.createElement('div');
     loadingDiv.style.cssText = 'padding:16px;color:var(--muted);text-align:center;';
-    loadingDiv.textContent = '\u23F3 Loading...';
+    loadingDiv.textContent = '\u23F3 ' + (T.loading || 'Loading...');
     dirs.appendChild(loadingDiv);
     fetch('/api/browse?path=' + encodeURIComponent(path))
     .then(function(r) { return r.json(); })
@@ -1021,11 +1021,11 @@ function applyTheme(themeId) {
                 _originalStyles = {};
                 location.reload();
             } else {
-                showToast(data.error || 'Failed to apply theme', true);
+                showToast(data.error || (T.theme_apply_failed || 'Failed to apply theme'), true);
             }
         })
         .catch(function(err) {
-            showToast('Error: ' + err.message, true);
+            showToast((T.error_prefix || 'Error') + ': ' + err.message, true);
         });
 }
 
@@ -1036,7 +1036,7 @@ function refreshRegistry() {
     if (!gallery) return;
     gallery.textContent = '';
     var p = document.createElement('p');
-    p.textContent = 'Loading...';
+    p.textContent = T.loading || 'Loading...';
     var loading = document.createElement('div');
     loading.className = 'empty-state';
     loading.appendChild(p);
@@ -1050,7 +1050,7 @@ function refreshRegistry() {
                 var empty = document.createElement('div');
                 empty.className = 'empty-state';
                 var msg = document.createElement('p');
-                msg.textContent = T.get ? (T.get('all_installed') || 'All available themes are installed') : 'All available themes are installed';
+                msg.textContent = T.themes_all_installed || 'All available themes are installed';
                 empty.appendChild(msg);
                 gallery.appendChild(empty);
                 return;
@@ -1084,7 +1084,7 @@ function refreshRegistry() {
                 var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'btn btn-primary btn-sm';
-                btn.textContent = 'Install';
+                btn.textContent = T.theme_install || 'Install';
                 btn.addEventListener('click', function() {
                     installTheme(theme.id, theme.download_url);
                 });
@@ -1101,7 +1101,7 @@ function refreshRegistry() {
             var err = document.createElement('div');
             err.className = 'empty-state';
             var msg = document.createElement('p');
-            msg.textContent = 'Failed to load registry';
+            msg.textContent = T.theme_registry_failed || 'Failed to load registry';
             err.appendChild(msg);
             gallery.appendChild(err);
         });
@@ -1116,13 +1116,13 @@ function installTheme(themeId, downloadUrl) {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
-                showToast(T.get ? (T.get('theme_installed') || 'Theme installed — restart required') : 'Theme installed — restart required');
+                showToast(T.theme_installed || 'Theme installed — restart required');
                 refreshRegistry();
             } else {
-                showToast(data.error || 'Install failed', true);
+                showToast(data.error || (T.theme_install_failed || 'Install failed'), true);
             }
         })
         .catch(function(err) {
-            showToast('Error: ' + err.message, true);
+            showToast((T.error_prefix || 'Error') + ': ' + err.message, true);
         });
 }

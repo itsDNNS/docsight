@@ -24,7 +24,7 @@ function exportForLLM() {
             }
         })
         .catch(function() {
-            textarea.value = 'Error loading export data.';
+            textarea.value = T.export_error || 'Error loading export data.';
         });
 }
 function closeExportModal() {
@@ -84,7 +84,7 @@ function generateComplaint() {
             document.getElementById('report-pdf-btn').style.display = '';
         })
         .catch(function(e) { alert('Error: ' + e); })
-        .finally(function() { btn.disabled = false; btn.textContent = '\u270E Generate Letter'; });
+        .finally(function() { btn.disabled = false; btn.textContent = '\u270E ' + (T.generate_letter || 'Generate Letter'); });
 }
 function generateBnetzComplaint(bnetzId) {
     var bnetzIdField = document.getElementById('report-bnetz-id');
@@ -101,7 +101,7 @@ function copyComplaint() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textarea.value).then(function() {
             var orig = btn.innerHTML;
-            btn.innerHTML = '&#10003; Copied!';
+            btn.innerHTML = '&#10003; ' + (T.copied || 'Copied!');
             setTimeout(function() { btn.innerHTML = orig; }, 2000);
         });
     } else {
@@ -135,7 +135,7 @@ function fallbackCopy(textarea, btn, T) {
         btn.textContent = T.copied;
         setTimeout(function() { btn.textContent = T.copy_clipboard; }, 2000);
     } catch(e) {
-        btn.textContent = 'Select All + Ctrl+C';
+        btn.textContent = T.copy_fallback || 'Select All + Ctrl+C';
         setTimeout(function() { btn.textContent = T.copy_clipboard; }, 3000);
     }
 }

@@ -73,7 +73,7 @@ function loadBnetzData() {
     }).catch(function() {
         loading.style.display = 'none';
         empty.style.display = 'block';
-        empty.textContent = 'Error loading data';
+        empty.textContent = T.channel_error_loading || 'Error loading data';
     });
 
     /* Fetch watcher status for the banner */
@@ -90,7 +90,7 @@ function loadBnetzData() {
                 var parts = [(T.bnetz_watcher_active || 'File watcher active')];
                 if (watcher.watch_dir) parts.push((T.bnetz_watcher_watching || 'Watching {dir}').replace('{dir}', watcher.watch_dir));
                 if (watcher.last_import_count > 0) parts.push((T.bnetz_watcher_last_import || '{count} file(s) imported').replace('{count}', watcher.last_import_count));
-                if (watcher.next_poll_in > 0) parts.push('Next check in ' + Math.round(watcher.next_poll_in / 60) + 'min');
+                if (watcher.next_poll_in > 0) parts.push((T.bnetz_watcher_next_check || 'Next check in {min}min').replace('{min}', Math.round(watcher.next_poll_in / 60)));
                 watcherText.textContent = parts.join(' · ');
                 lucide.createIcons();
             } else {
@@ -167,7 +167,7 @@ function uploadBnetzFromView(input) {
             if (data.error) { alert(data.error); return; }
             loadBnetzData();
         })
-        .catch(function(e) { alert('Upload failed: ' + e); input.value = ''; });
+        .catch(function(e) { alert((T.bnetz_upload_failed || 'Upload failed') + ': ' + e); input.value = ''; });
 }
 
 function deleteBnetzFromView(id) {

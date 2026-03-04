@@ -103,7 +103,7 @@
             <div class="nav-separator"></div>
             <button class="nav-item" data-section="support" onclick="switchSection('support')">
                 <i data-lucide="heart-handshake" class="nav-icon"></i>
-                Support DOCSight
+                {{ t.support_title }}
             </button>
         </div>
     </nav>
@@ -183,7 +183,7 @@ var SECTION_TITLES = {
     security: T.get ? (T.get('security') || 'Security') : 'Security',
     appearance: T.appearance || 'Appearance',
     modules: T.modules_title || 'Module Store',
-    support: 'Support DOCSight'
+    support: T.support_title || 'Support DOCSight'
 };
 {% for mod in modules if mod.template_paths.get('settings') %}
 SECTION_TITLES['mod-' + '{{ mod.id }}'.replace(/\./g, '_')] = T['{{ mod.menu.label_key }}'] || '{{ mod.name }}';

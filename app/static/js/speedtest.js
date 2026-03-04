@@ -240,7 +240,7 @@ function toggleSpeedtestSignal(btn) {
         })
         .catch(function() {
             var container = newRow.querySelector('.st-signal-detail');
-            if (container) container.innerHTML = '<span class="st-sig-no-data">Error loading signal data</span>';
+            if (container) { container.textContent = ''; var errSpan = document.createElement('span'); errSpan.className = 'st-sig-no-data'; errSpan.textContent = T.signal_error_loading || 'Error loading signal data'; container.appendChild(errSpan); }
         });
 }
 
@@ -419,9 +419,9 @@ function renderSpeedtestChart() {
         if (idx >= data.length) idx = data.length - 1;
         tooltip.style.display = 'block';
         tooltip.innerHTML = '<strong>' + formatSpeedtestTimestamp(data[idx].timestamp) + '</strong><br>'
-            + '<span style="color:#a855f7">&#9660;</span> DL: ' + dls[idx].toFixed(2) + ' Mbps<br>'
-            + '<span style="color:#22c55e">&#9650;</span> UL: ' + uls[idx].toFixed(2) + ' Mbps<br>'
-            + '<span style="color:#f59e0b">&#9679;</span> Ping: ' + pings[idx].toFixed(1) + ' ms';
+            + '<span style="color:#a855f7">&#9660;</span> ' + (T.speedtest_dl || 'DL') + ': ' + dls[idx].toFixed(2) + ' Mbps<br>'
+            + '<span style="color:#22c55e">&#9650;</span> ' + (T.speedtest_ul || 'UL') + ': ' + uls[idx].toFixed(2) + ' Mbps<br>'
+            + '<span style="color:#f59e0b">&#9679;</span> ' + (T.speedtest_ping || 'Ping') + ': ' + pings[idx].toFixed(1) + ' ms';
         tooltip.style.left = (e.clientX + 14) + 'px';
         tooltip.style.top = (e.clientY - 10) + 'px';
     }

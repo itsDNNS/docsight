@@ -238,7 +238,7 @@ function renderCorrelationChart(data) {
         ctx.rotate(-Math.PI / 2);
         ctx.textAlign = 'center';
         ctx.font = '11px system-ui, sans-serif';
-        ctx.fillText('SNR (dB)', 0, 0);
+        ctx.fillText(T.chart_snr_axis || 'SNR (dB)', 0, 0);
         ctx.restore();
     }
 
@@ -514,20 +514,20 @@ function renderCorrelationChart(data) {
     var legend = document.getElementById('correlation-legend');
     var legendItems = [];
     if (modem.length > 0) {
-        legendItems.push({ metric: 'snr', color: snrColor, label: '&#9644; SNR (dB)' });
+        legendItems.push({ metric: 'snr', color: snrColor, label: '&#9644; ' + (T.chart_snr || 'SNR (dB)') });
         if (txValues.length > 0) {
-            legendItems.push({ metric: 'txPower', color: txColor, label: '&#9476; TX Power (dBmV)' });
+            legendItems.push({ metric: 'txPower', color: txColor, label: '&#9476; ' + (T.correlation_tx_power || 'TX Power (dBmV)') });
         }
         if (dsPowerValues.length > 0) {
-            legendItems.push({ metric: 'dsPower', color: dsPowerColor, label: '&#183;&#183; DS Power (dBmV)' });
+            legendItems.push({ metric: 'dsPower', color: dsPowerColor, label: '&#183;&#183; ' + (T.correlation_ds_power || 'DS Power (dBmV)') });
         }
         if (errorMax > 0) {
-            legendItems.push({ metric: 'errors', color: 'rgba(239,68,68,0.8)', label: '&#9612; Errors' });
+            legendItems.push({ metric: 'errors', color: 'rgba(239,68,68,0.8)', label: '&#9612; ' + (T.correlation_errors || 'Errors') });
         }
     }
     if (speedtest.length > 0) {
-        legendItems.push({ metric: 'download', color: goodColor, label: '&#9644; Download (Mbps)' });
-        legendItems.push({ metric: 'upload', color: uploadColor, label: '&#9644; Upload (Mbps)' });
+        legendItems.push({ metric: 'download', color: goodColor, label: '&#9644; ' + (T.correlation_download || 'Download (Mbps)') });
+        legendItems.push({ metric: 'upload', color: uploadColor, label: '&#9644; ' + (T.correlation_upload || 'Upload (Mbps)') });
     }
     if (events.length > 0) {
         // Populate _corrEventFilter for all event types in current data
@@ -537,7 +537,7 @@ function renderCorrelationChart(data) {
             eventTypes[et] = (eventTypes[et] || 0) + 1;
             if (!(et in _corrEventFilter)) _corrEventFilter[et] = !_OPERATIONAL_EVENTS[et];
         }
-        legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; Events', eventTypes: eventTypes });
+        legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; ' + (T.correlation_events || 'Events'), eventTypes: eventTypes });
     }
     if (weather.length > 0) {
         legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (°C)' });
@@ -548,11 +548,11 @@ function renderCorrelationChart(data) {
             var filterCount = 0, totalTypes = 0;
             for (var et in item.eventTypes) { totalTypes++; if (_corrEventFilter[et]) filterCount++; }
             var filterBadge = filterCount < totalTypes ? ' <span style="font-size:0.7em;opacity:0.7;">(' + filterCount + '/' + totalTypes + ')</span>' : '';
-            return '<span data-metric="events" class="' + cls + '" title="Klicken zum Ein-/Ausblenden" style="color:' + item.color + '; position:relative;">' + item.label + filterBadge +
-                ' <span class="corr-event-filter-btn" title="Event-Filter" style="cursor:pointer; font-size:0.75em; opacity:0.6; margin-left:2px;">&#9881;</span></span>';
+            return '<span data-metric="events" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + '; position:relative;">' + item.label + filterBadge +
+                ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '" style="cursor:pointer; font-size:0.75em; opacity:0.6; margin-left:2px;">&#9881;</span></span>';
         }
-        return '<span data-metric="' + item.metric + '" class="' + cls + '" title="Klicken zum Ein-/Ausblenden" style="color:' + item.color + ';">' + item.label + '</span>';
-    }).join('') + '<span data-metric="poorSignal" class="' + (_corrVisible.poorSignal ? '' : 'disabled') + '" title="Klicken zum Ein-/Ausblenden" style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em; color:#f44336;">Poor Signal</span>';
+        return '<span data-metric="' + item.metric + '" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + '</span>';
+    }).join('') + '<span data-metric="poorSignal" class="' + (_corrVisible.poorSignal ? '' : 'disabled') + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em; color:#f44336;">' + (T.correlation_poor_signal || 'Poor Signal') + '</span>';
 
     // Event filter popover
     var filterBtn = legend.querySelector('.corr-event-filter-btn');
@@ -855,25 +855,25 @@ function _setupCorrelationTooltip(overlay, octx) {
         html += '<div class="tt-time">' + dateStr + ' ' + timeStr + '</div>';
 
         if (nearestModem && _corrVisible.snr) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.snr + ';"></span> SNR: ' + (nearestModem.ds_snr_min || 0).toFixed(1) + ' dB</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.snr + ';"></span> ' + (T.correlation_tt_snr || 'SNR') + ': ' + (nearestModem.ds_snr_min || 0).toFixed(1) + ' dB</div>';
         }
         if (nearestModem && _corrVisible.txPower && nearestModem.us_power_avg) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.txPower + ';"></span> TX Power: ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.txPower + ';"></span> ' + (T.correlation_tt_tx_power || 'TX Power') + ': ' + nearestModem.us_power_avg.toFixed(1) + ' dBmV</div>';
         }
         if (nearestModem && _corrVisible.dsPower && nearestModem.ds_power_avg != null) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.dsPower + ';"></span> DS Power: ' + nearestModem.ds_power_avg.toFixed(1) + ' dBmV</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.dsPower + ';"></span> ' + (T.correlation_tt_ds_power || 'DS Power') + ': ' + nearestModem.ds_power_avg.toFixed(1) + ' dBmV</div>';
         }
         if (nearestModem && _corrVisible.errors && (nearestModem.ds_uncorrectable_errors || 0) > 0) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.errors + ';"></span> Errors: ' + nearestModem.ds_uncorrectable_errors.toLocaleString() + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.errors + ';"></span> ' + (T.correlation_tt_errors || 'Errors') + ': ' + nearestModem.ds_uncorrectable_errors.toLocaleString() + '</div>';
         }
         if (nearestSpeed && _corrVisible.download) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> Download: ' + (nearestSpeed.download_mbps || 0).toFixed(1) + ' Mbps</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> ' + (T.correlation_tt_download || 'Download') + ': ' + (nearestSpeed.download_mbps || 0).toFixed(1) + ' Mbps</div>';
         }
         if (nearestSpeed && _corrVisible.upload) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.upload + ';"></span> Upload: ' + (nearestSpeed.upload_mbps || 0).toFixed(1) + ' Mbps</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.upload + ';"></span> ' + (T.correlation_tt_upload || 'Upload') + ': ' + (nearestSpeed.upload_mbps || 0).toFixed(1) + ' Mbps</div>';
         }
         if (nearestEvent && _corrVisible.events) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> Event: ' + (nearestEvent.message || nearestEvent.severity || '') + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + (nearestEvent.message || nearestEvent.severity || '') + '</div>';
         }
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + nearestWeather.temperature.toFixed(1) + ' \u00B0C</div>';
@@ -1144,10 +1144,10 @@ function renderCorrelationTable(data) {
             var badge = '<span class="st-health-badge health-' + h + '">' + (healthLabels[h] || h) + '</span>';
             src = '<span style="color:var(--accent);">Modem</span>';
             msg = badge;
-            details = 'SNR ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : '') +
-                      ' | Power ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '') +
+            details = (T.correlation_tt_snr || 'SNR') + ' ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : '') +
+                      ' | ' + (T.event_power || 'Power') + ' ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '') +
                       ' | TX ' + (e.us_power_avg != null ? e.us_power_avg + ' dBmV' : '') +
-                      ' | Errors ' + (e.ds_uncorrectable_errors || 0);
+                      ' | ' + (T.correlation_tt_errors || 'Errors') + ' ' + (e.ds_uncorrectable_errors || 0);
         } else if (src === 'speedtest') {
             src = '<span style="color:var(--good);">Speedtest</span>';
             msg = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');
@@ -1156,7 +1156,7 @@ function renderCorrelationTable(data) {
                 mhBadge = ' <span class="st-health-badge health-' + e.modem_health + '" style="font-size:0.75em;">'
                     + (healthLabels[e.modem_health] || e.modem_health) + '</span>';
             }
-            details = 'Ping ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms' + mhBadge;
+            details = (T.speedtest_ping || 'Ping') + ' ' + (e.ping_ms || '') + ' ms | Jitter ' + (e.jitter_ms || '') + ' ms' + mhBadge;
         } else if (src === 'event') {
             var sevColor = e.severity === 'critical' ? 'var(--crit)' : e.severity === 'warning' ? 'var(--warn)' : 'var(--muted)';
             src = '<span style="color:' + sevColor + ';">' + (sevLabels[e.severity] || e.severity) + '</span>';

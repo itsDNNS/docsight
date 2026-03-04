@@ -83,7 +83,7 @@
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'DS Power (dBmV)',
+                    label: T.chart_ds_power || 'DS Power (dBmV)',
                     data: dsPower,
                     borderColor: 'rgba(168,85,247,0.9)',
                     backgroundColor: 'rgba(168,85,247,0.15)',
@@ -93,7 +93,7 @@
                     borderWidth: 2,
                     fill: true
                 }, {
-                    label: 'US Power (dBmV)',
+                    label: T.chart_us_power || 'US Power (dBmV)',
                     data: usPower,
                     borderColor: 'rgba(245,158,11,0.9)',
                     backgroundColor: 'rgba(245,158,11,0.15)',
@@ -103,7 +103,7 @@
                     borderWidth: 2,
                     fill: true
                 }, {
-                    label: 'SNR (dB)',
+                    label: T.chart_snr || 'SNR (dB)',
                     data: snr,
                     borderColor: 'rgba(59,130,246,0.9)',
                     backgroundColor: 'rgba(59,130,246,0.15)',
@@ -178,7 +178,7 @@
                         position: 'left',
                         title: {
                             display: true,
-                            text: 'Power (dBmV)',
+                            text: T.chart_power_axis || 'Power (dBmV)',
                             color: 'rgba(168,85,247,0.9)',
                             font: { size: 11, weight: 'bold' }
                         },
@@ -198,7 +198,7 @@
                         max: 50,
                         title: {
                             display: true,
-                            text: 'SNR (dB)',
+                            text: T.chart_snr_axis || 'SNR (dB)',
                             color: 'rgba(59,130,246,0.9)',
                             font: { size: 11, weight: 'bold' }
                         },
@@ -243,7 +243,7 @@
         const container = ctx.parentElement;
         const placeholder = document.createElement('div');
         placeholder.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:' + c.placeholder + ';font-size:13px;text-align:center;';
-        placeholder.textContent = 'Keine Verlaufsdaten verfügbar';
+        placeholder.textContent = T.chart_no_history || 'No trend data available';
         container.style.position = 'relative';
         container.appendChild(placeholder);
     }

@@ -8,35 +8,35 @@
                     <i data-lucide="bell"></i>
                 </div>
                 <div>
-                    <div class="card-title">Notifications</div>
-                    <div class="card-subtitle">Webhook notifications (ntfy, Discord, Gotify, custom)</div>
+                    <div class="card-title">{{ t.notify_title }}</div>
+                    <div class="card-subtitle">{{ t.notify_desc }}</div>
                 </div>
             </div>
         </div>
         <div class="form-grid cols-2">
             <div class="form-field" style="grid-column: 1 / -1">
-                <label class="form-label" for="notify_webhook_url">Webhook URL</label>
+                <label class="form-label" for="notify_webhook_url">{{ t.notify_webhook_url }}</label>
                 <input class="form-input" type="url" id="notify_webhook_url" name="notify_webhook_url" value="{{ config.notify_webhook_url }}" placeholder="https://ntfy.sh/docsight">
-                <span class="form-hint">HTTP POST endpoint (ntfy, Discord, Gotify, custom)</span>
+                <span class="form-hint">{{ t.notify_webhook_url_hint }}</span>
             </div>
             <div class="form-field" style="grid-column: 1 / -1">
-                <label class="form-label" for="notify_webhook_token">Webhook Token</label>
+                <label class="form-label" for="notify_webhook_token">{{ t.notify_webhook_token }}</label>
                 <input class="form-input" type="password" id="notify_webhook_token" name="notify_webhook_token" value="" placeholder="{% if config.notify_webhook_token %}{{ t.saved_ph|default('Saved') }}{% endif %}">
-                <span class="form-hint">Optional Bearer token for authentication</span>
+                <span class="form-hint">{{ t.notify_webhook_token_hint }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="notify_min_severity">Min. Severity</label>
+                <label class="form-label" for="notify_min_severity">{{ t.notify_min_severity }}</label>
                 <select class="form-input form-select" id="notify_min_severity" name="notify_min_severity">
-                    <option value="info" {% if config.notify_min_severity == 'info' %}selected{% endif %}>Info</option>
-                    <option value="warning" {% if config.notify_min_severity == 'warning' or not config.notify_min_severity %}selected{% endif %}>Warning</option>
-                    <option value="critical" {% if config.notify_min_severity == 'critical' %}selected{% endif %}>Critical</option>
+                    <option value="info" {% if config.notify_min_severity == 'info' %}selected{% endif %}>{{ t.event_severity_info }}</option>
+                    <option value="warning" {% if config.notify_min_severity == 'warning' or not config.notify_min_severity %}selected{% endif %}>{{ t.event_severity_warning }}</option>
+                    <option value="critical" {% if config.notify_min_severity == 'critical' %}selected{% endif %}>{{ t.event_severity_critical }}</option>
                 </select>
-                <span class="form-hint">Only send events at or above this severity</span>
+                <span class="form-hint">{{ t.notify_min_severity_hint }}</span>
             </div>
             <div class="form-field">
-                <label class="form-label" for="notify_cooldown">Default Cooldown (s)</label>
+                <label class="form-label" for="notify_cooldown">{{ t.notify_cooldown_label }}</label>
                 <input class="form-input" type="number" id="notify_cooldown" name="notify_cooldown" value="{{ config.notify_cooldown or 3600 }}" min="0" step="1">
-                <span class="form-hint">Min. seconds between same event type (0 = never send)</span>
+                <span class="form-hint">{{ t.notify_cooldown_hint }}</span>
             </div>
         </div>
     </div>
@@ -49,18 +49,18 @@
                     <i data-lucide="timer"></i>
                 </div>
                 <div>
-                    <div class="card-title">Per-Event Cooldowns</div>
-                    <div class="card-subtitle">Disable events or set individual cooldown timers</div>
+                    <div class="card-title">{{ t.notify_per_event }}</div>
+                    <div class="card-subtitle">{{ t.notify_per_event_desc }}</div>
                 </div>
             </div>
         </div>
         <table class="cooldown-table">
             <thead>
                 <tr>
-                    <th>Active</th>
-                    <th>Event</th>
-                    <th>Severity</th>
-                    <th>Cooldown (s)</th>
+                    <th>{{ t.notify_col_active }}</th>
+                    <th>{{ t.notify_col_event }}</th>
+                    <th>{{ t.notify_col_severity }}</th>
+                    <th>{{ t.notify_col_cooldown }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -108,7 +108,7 @@
                 </tr>
             </tbody>
         </table>
-        <span class="form-hint" style="display:block;margin-top:var(--space-md);">Disabled events will never be sent. Cooldown empty = use default.</span>
+        <span class="form-hint" style="display:block;margin-top:var(--space-md);">{{ t.notify_disabled_hint }}</span>
     </div>
 
     <!-- Test Card -->
@@ -119,14 +119,14 @@
                     <i data-lucide="send"></i>
                 </div>
                 <div>
-                    <div class="card-title">Test Notification</div>
-                    <div class="card-subtitle">Send a test event to verify your webhook configuration</div>
+                    <div class="card-title">{{ t.notify_test_title }}</div>
+                    <div class="card-subtitle">{{ t.notify_test_desc }}</div>
                 </div>
             </div>
         </div>
         <button type="button" class="btn btn-ghost" onclick="testNotifications()">
             <i data-lucide="send" style="width:16px;height:16px;"></i>
-            Send Test
+            {{ t.notify_test_send }}
         </button>
         <div class="test-result" id="notify-test"></div>
     </div>
