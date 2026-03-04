@@ -13,6 +13,7 @@ from app.modules.bqm.collector import BQMCollector
 from app.drivers.base import ModemDriver
 from app.drivers.fritzbox import FritzBoxDriver
 from app.drivers.ch7465 import CH7465Driver
+from app.drivers.ch7465_play import CH7465PlayDriver
 
 
 # ── CollectorResult Tests ──
@@ -329,6 +330,72 @@ class TestCH7465Driver:
 
         post_data = d._session.post.call_args[1]["data"]
         assert post_data["token"] == "tok456"
+
+
+# ── CH7465PlayDriver Tests ──
+
+
+class TestCH7465PlayDriver:
+    @patch("app.drivers.ch7465_play.requests.Session")
+    def test_login_sends_plaintext_password(self, mock_session_cls):
+        """Play firmware login sends plaintext password (not SHA256)."""
+        d = CH7465PlayDriver("http://192.168.0.1", "", "mypassword")
+        d._session.get.return_value = MagicMock(status_code=200)
+        d._set_data = MagicMock(return_value="successfulSID=xyz789")
+
+        d.login()
+
+        payload = d._set_data.call_args[0][1]
+        assert payload["Password"] == "mypassword"  # plaintext, not SHA256
+
+    @patch("app.drivers.ch7465_play.requests.Session")
+    def test_login_always_sends_username_null(self, mock_session_cls):
+        """Play firmware login always sends Username='NULL'."""
+        d = CH7465PlayDriver("http://192.168.0.1", "anything", "pass")
+        d._session.get.return_value = MagicMock(status_code=200)
+        d._set_data = MagicMock(return_value="successSID=abc123")
+
+        d.login()
+
+        payload = d._set_data.call_args[0][1]
+        assert payload["Username"] == "NULL"
+
+    @patch("app.drivers.ch7465_play.requests.Session")
+    def test_token_included_in_get_data(self, mock_session_cls):
+        """sessionToken cookie is always included in _get_data POST params."""
+        d = CH7465PlayDriver("http://192.168.0.1", "", "pass")
+        d._session.cookies.get = MagicMock(side_effect=lambda k, default="": "tok123" if k == "sessionToken" else default)
+        d._session.post.return_value = MagicMock(status_code=200, text="<root/>")
+
+        from app.drivers.ch7465_play import Query
+        d._get_data(Query.GLOBAL_SETTINGS)
+
+        post_data = d._session.post.call_args[1]["data"]
+        assert post_data["token"] == "tok123"
+
+    @patch("app.drivers.ch7465_play.requests.Session")
+    def test_token_included_in_set_data(self, mock_session_cls):
+        """sessionToken cookie is always included in _set_data POST params."""
+        d = CH7465PlayDriver("http://192.168.0.1", "", "pass")
+        d._session.cookies.get = MagicMock(side_effect=lambda k, default="": "tok456" if k == "sessionToken" else default)
+        d._session.post.return_value = MagicMock(status_code=200, text="ok")
+
+        from app.drivers.ch7465_play import Action
+        d._set_data(Action.LOGIN, {"Password": "pw"})
+
+        post_data = d._session.post.call_args[1]["data"]
+        assert post_data["token"] == "tok456"
+
+    @patch("app.drivers.ch7465_play.requests.Session")
+    def test_login_failure_raises(self, mock_session_cls):
+        """Login raises RuntimeError on auth failure."""
+        d = CH7465PlayDriver("http://192.168.0.1", "", "wrongpass")
+        d._session.get.return_value = MagicMock(status_code=200)
+        d._set_data = MagicMock(return_value="KDGloginincorrect")
+        d._get_login_fail_count = MagicMock(return_value=30)
+
+        with pytest.raises(RuntimeError, match="password incorrect"):
+            d.login()
 
 
 # ── ModemCollector Tests ──
