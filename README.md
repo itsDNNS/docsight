@@ -11,7 +11,10 @@
   <a href="https://paypal.me/itsDNNS"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white" alt="PayPal"></a>
   <a href="https://github.com/itsDNNS/docsight/stargazers"><img src="https://img.shields.io/github/stars/itsDNNS/docsight?style=flat" alt="Stars"></a>
   <a href="https://selfh.st/weekly/2026-02-27/"><img src="https://img.shields.io/badge/selfh.st-Featured-blue" alt="Featured in selfh.st Weekly"></a>
-  <img src="https://img.shields.io/badge/%F0%9F%87%AC%F0%9F%87%A7%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%AA%F0%9F%87%B8%20%F0%9F%87%AB%F0%9F%87%B7-grey" alt="Languages: English, Deutsch, Español, Français">
+</p>
+
+<p align="center">
+  🇬🇧 🇩🇪 🇪🇸 🇫🇷
 </p>
 
 <p align="center">
