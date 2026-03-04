@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "",
+  "mqtt_broker": "",
+  "mqtt_desc": "",
+  "mqtt_optional_ha": "",
+  "mqtt_tls_insecure": "",
+  "username_opt": "",
+  "password_opt": "",
+  "topic_prefix": "",
+  "discovery_prefix": "",
+  "discovery_prefix_hint": ""
+}

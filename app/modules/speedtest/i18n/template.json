@@ -1,0 +1,23 @@
+{
+  "speedtest_tracker": "",
+  "speedtest_url": "",
+  "speedtest_url_hint": "",
+  "speedtest_token": "",
+  "speedtest_token_hint": "",
+  "booked_download": "",
+  "booked_download_hint": "",
+  "booked_upload": "",
+  "booked_upload_hint": "",
+  "speedtest_setup_title": "",
+  "speedtest_setup_intro": "",
+  "speedtest_setup_benefits_title": "",
+  "speedtest_setup_benefit_1": "",
+  "speedtest_setup_benefit_2": "",
+  "speedtest_setup_benefit_3": "",
+  "speedtest_setup_howto_title": "",
+  "speedtest_setup_step_1": "",
+  "speedtest_setup_step_2": "",
+  "speedtest_setup_step_3": "",
+  "speedtest_no_data": "",
+  "speedtest_setup": ""
+}

@@ -1,0 +1,17 @@
+{
+  "incident_report": "",
+  "generate_report": "",
+  "report_days": "",
+  "report_description": "",
+  "report_language": "",
+  "report_customer_hint": "",
+  "report_name": "",
+  "report_customer_number": "",
+  "report_address": "",
+  "report_edit_hint": "",
+  "report_generate_letter": "",
+  "report_copy_letter": "",
+  "report_download_pdf": "",
+  "report_include_bnetz": "",
+  "bnetz_generate_complaint": ""
+}
