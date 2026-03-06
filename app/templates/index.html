@@ -338,17 +338,19 @@
         </div>
     </div>
 
-    {# ── Issues Panel (moved outside hero card for prominence) ── #}
-    {% if s.health_issues %}
+    {# ── Issues Panel — only marginal + critical, tolerated is shown in metric cards ── #}
+    {% set active_issues = [] %}
+    {% for issue in s.health_issues %}{% if 'tolerated' not in issue %}{% if active_issues.append(issue) %}{% endif %}{% endif %}{% endfor %}
+    {% if active_issues %}
     <div class="issues-panel glass">
         <div class="issues-header">
             <div class="metric-icon amber"><i data-lucide="alert-circle"></i></div>
             <span style="font-weight:600;">{{ t.active_issues or 'Active Issues' }}</span>
-            <span class="badge badge-warn">{{ s.health_issues|length }}</span>
+            <span class="badge badge-warn">{{ active_issues|length }}</span>
         </div>
-        {% for issue in s.health_issues %}
+        {% for issue in active_issues %}
         <div class="issue-item">
-            <div class="issue-icon {{ 'crit' if 'critical' in issue else ('tolerated' if 'tolerated' in issue else 'warn') }}"><i data-lucide="alert-circle"></i></div>
+            <div class="issue-icon {{ 'crit' if 'critical' in issue else 'warn' }}"><i data-lucide="alert-circle"></i></div>
             <div>
                 <div class="issue-text">{{ issue_labels.get(issue, issue) }}</div>
                 <div class="issue-desc">{{ issue_descs.get(issue, '') }}</div>
