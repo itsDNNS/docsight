@@ -125,8 +125,8 @@ REPORT_STRINGS = {
         "col_reference": "Reference",
         # Stats
         "total_measurements": "Total Measurements",
-        "measurements_poor": "Measurements with POOR health",
-        "measurements_marginal": "Measurements with MARGINAL health",
+        "measurements_poor": "POOR health",
+        "measurements_marginal": "MARGINAL health",
         "worst_recorded": "Worst Recorded Values",
         "ds_power_worst": "DS Power (worst max)",
         "us_power_worst": "US Power (worst max)",
@@ -240,8 +240,8 @@ REPORT_STRINGS = {
         "col_warning": "Warnung",
         "col_reference": "Referenz",
         "total_measurements": "Messungen gesamt",
-        "measurements_poor": "Messungen mit Zustand SCHLECHT",
-        "measurements_marginal": "Messungen mit Zustand GRENZWERTIG",
+        "measurements_poor": "Zustand SCHLECHT",
+        "measurements_marginal": "Zustand GRENZWERTIG",
         "worst_recorded": "Schlechteste gemessene Werte",
         "ds_power_worst": "DS-Pegel (schlechtester Max.)",
         "us_power_worst": "US-Pegel (schlechtester Max.)",
@@ -355,8 +355,8 @@ REPORT_STRINGS = {
         "col_warning": "Alerte",
         "col_reference": "Référence",
         "total_measurements": "Mesures totales",
-        "measurements_poor": "Mesures avec état MAUVAIS",
-        "measurements_marginal": "Mesures avec état LIMITE",
+        "measurements_poor": "État MAUVAIS",
+        "measurements_marginal": "État LIMITE",
         "worst_recorded": "Pires valeurs enregistrées",
         "ds_power_worst": "Puiss DS (pire max)",
         "us_power_worst": "Puiss US (pire max)",
@@ -471,8 +471,8 @@ REPORT_STRINGS = {
         "col_warning": "Alerta",
         "col_reference": "Referencia",
         "total_measurements": "Mediciones totales",
-        "measurements_poor": "Mediciones con estado MALO",
-        "measurements_marginal": "Mediciones con estado MARGINAL",
+        "measurements_poor": "Estado MALO",
+        "measurements_marginal": "Estado MARGINAL",
         "worst_recorded": "Peores valores registrados",
         "ds_power_worst": "Pot DS (peor máx)",
         "us_power_worst": "Pot US (peor máx)",
@@ -595,7 +595,9 @@ class IncidentReport(FPDF):
 
     def _key_value(self, key, value, bold_value=False):
         self.set_font("dejavu", "", 10)
-        self.cell(60, 6, key + ":", new_x="RIGHT")
+        key_text = key + ":"
+        key_w = max(65, self.get_string_width(key_text) + 4)
+        self.cell(key_w, 6, key_text, new_x="RIGHT")
         self.set_font("dejavu", "B" if bold_value else "", 10)
         self.cell(0, 6, str(value), new_x="LMARGIN", new_y="NEXT")
 
