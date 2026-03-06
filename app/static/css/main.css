@@ -621,6 +621,11 @@ body.is-offline .offline-banner { display: flex; }
 .val-tolerated { color: var(--tolerated); }
 .val-warn { color: var(--warn); }
 .val-crit { color: var(--crit); }
+/* Per-metric health coloring via data attributes (channel tables) */
+.channel-table td[data-health="good"]      { color: var(--good); }
+.channel-table td[data-health="tolerated"] { color: var(--tolerated); }
+.channel-table td[data-health="warning"]   { color: var(--warn); }
+.channel-table td[data-health="critical"]  { color: var(--crit); }
 
 .channel-table th:first-child,
 .channel-table td:first-child {

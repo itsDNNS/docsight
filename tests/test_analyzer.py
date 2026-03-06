@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch
 from app import analyzer
-from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps
+from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps, _metric_healths
 
 
 # -- Helper to build FritzBox-style channel data --
@@ -915,3 +915,108 @@ class TestSpikeSuppression:
         apply_spike_suppression(analysis, "2026-02-27T14:00:00Z")
         assert analysis["summary"]["ds_uncorr_pct"] == 0.0
         assert analysis["summary"]["spike_suppression"]["active"] is True
+
+
+# -- Per-metric health extraction --
+
+class TestMetricHealths:
+    """Tests for _metric_healths() helper."""
+
+    def test_empty_issues(self):
+        assert _metric_healths([]) == {}
+
+    def test_power_critical(self):
+        result = _metric_healths(["power critical"])
+        assert result == {"power_health": "critical"}
+
+    def test_power_warning(self):
+        result = _metric_healths(["power warning"])
+        assert result == {"power_health": "warning"}
+
+    def test_power_tolerated(self):
+        result = _metric_healths(["power tolerated"])
+        assert result == {"power_health": "tolerated"}
+
+    def test_snr_critical(self):
+        result = _metric_healths(["snr critical"])
+        assert result == {"snr_health": "critical"}
+
+    def test_modulation_warning(self):
+        result = _metric_healths(["modulation warning"])
+        assert result == {"modulation_health": "warning"}
+
+    def test_multiple_metrics(self):
+        result = _metric_healths(["power critical", "snr warning"])
+        assert result == {"power_health": "critical", "snr_health": "warning"}
+
+    def test_directional_us_power(self):
+        """US power issues with direction suffix are matched correctly."""
+        result = _metric_healths(["power critical low"])
+        assert result == {"power_health": "critical"}
+
+    def test_critical_beats_warning(self):
+        """If both critical and warning exist for same metric, critical wins."""
+        result = _metric_healths(["power critical", "power warning"])
+        assert result == {"power_health": "critical"}
+
+
+class TestChannelMetricHealthFields:
+    """Test that channel dicts contain per-metric health fields."""
+
+    def test_ds_good_has_no_metric_health(self):
+        """Good DS channel has no *_health keys."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        ch = analyze(data)["ds_channels"][0]
+        assert ch["health"] == "good"
+        assert "power_health" not in ch
+        assert "snr_health" not in ch
+
+    def test_ds_power_critical_field(self):
+        """DS channel with bad power has power_health='critical'."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=21.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        ch = analyze(data)["ds_channels"][0]
+        assert ch["power_health"] == "critical"
+        assert "snr_health" not in ch
+
+    def test_ds_snr_tolerated_field(self):
+        """DS channel with marginal SNR has snr_health='tolerated'."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-32")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        ch = analyze(data)["ds_channels"][0]
+        assert ch["snr_health"] == "tolerated"
+
+    def test_us_modulation_critical_field(self):
+        """US channel with 4-QAM has modulation_health='critical'."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0, modulation="4QAM")],
+        )
+        ch = analyze(data)["us_channels"][0]
+        assert ch["modulation_health"] == "critical"
+
+    def test_us_power_warning_field(self):
+        """US channel with low power has power_health='warning'."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=36.0)],
+        )
+        ch = analyze(data)["us_channels"][0]
+        assert ch["power_health"] == "warning"
+
+    def test_us_combined_fields(self):
+        """US channel with bad power AND bad modulation has both fields."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=55.0, modulation="4QAM")],
+        )
+        ch = analyze(data)["us_channels"][0]
+        assert ch["power_health"] == "critical"
+        assert ch["modulation_health"] == "critical"

@@ -577,8 +577,8 @@
                         <tr>
                             <td>{{ ch.channel_id }}</td>
                             <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
-                            <td class="{% if ch.power is not none %}{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% elif 'power tolerated' in ch.health_detail %}val-tolerated{% else %}val-good{% endif %}{% endif %}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
-                            <td class="{% if ch.snr is not none %}{% if 'snr critical' in ch.health_detail %}val-crit{% elif 'snr warning' in ch.health_detail %}val-warn{% elif 'snr tolerated' in ch.health_detail %}val-tolerated{% else %}val-good{% endif %}{% endif %}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
+                            <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
+                            <td data-health="{{ ch.snr_health or 'good' }}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
                             <td>{{ ch.modulation }}</td>
                             <td>
                                 {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
@@ -636,8 +636,8 @@
                         <tr>
                             <td>{{ ch.channel_id }}</td>
                             <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
-                            <td class="{% if ch.power is not none %}{% if 'power critical' in ch.health_detail %}val-crit{% elif 'power warning' in ch.health_detail %}val-warn{% elif 'power tolerated' in ch.health_detail %}val-tolerated{% else %}val-good{% endif %}{% endif %}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
-                            <td class="{% if ch.modulation %}{% if 'modulation critical' in ch.health_detail %}val-crit{% elif 'modulation warning' in ch.health_detail %}val-warn{% else %}val-good{% endif %}{% endif %}">{{ ch.modulation }}</td>
+                            <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
+                            <td data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
                             <td>
                                 {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
                                 {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip }}">{{ health_labels.crit }}</span>
