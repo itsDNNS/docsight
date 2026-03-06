@@ -7,7 +7,7 @@ var _modIntradayCharts = [];
 
 /* QAM color scheme */
 var QAM_COLORS = {
-    'QPSK':    '#ef4444',
+    '4QAM':    '#ef4444',
     '16QAM':   '#f97316',
     '64QAM':   '#eab308',
     '256QAM':  '#22c55e',
@@ -516,7 +516,7 @@ function renderChannelTimeline(canvasId, timeline) {
                     min: -0.5, max: 8.5,
                     ticks: {
                         callback: function(v) {
-                            var l = ['QPSK', '16QAM', '64QAM', '256QAM', '1024QAM', '4096QAM', 'OFDM', 'OFDMA', 'Unknown'];
+                            var l = ['4QAM', '16QAM', '64QAM', '256QAM', '1024QAM', '4096QAM', 'OFDM', 'OFDMA', 'Unknown'];
                             return l[v] || '';
                         },
                         stepSize: 1,
@@ -560,7 +560,7 @@ function densityClass(v) {
     return 'critical';
 }
 function modSortOrder(mod) {
-    var order = { 'QPSK': 0, '16QAM': 1, '64QAM': 2, '256QAM': 3, '1024QAM': 4, '4096QAM': 5, 'OFDM': 6, 'OFDMA': 7, 'Unknown': 8 };
+    var order = { '4QAM': 0, '16QAM': 1, '64QAM': 2, '256QAM': 3, '1024QAM': 4, '4096QAM': 5, 'OFDM': 6, 'OFDMA': 7, 'Unknown': 8 };
     return order[mod] !== undefined ? order[mod] : 9;
 }
 

@@ -28,7 +28,7 @@ from app.modules.modulation.engine import (
 
 class TestParseQamOrder:
     def test_qpsk(self):
-        assert _parse_qam_order("QPSK") == 4
+        assert _parse_qam_order("4QAM") == 4
 
     def test_numeric_qam(self):
         assert _parse_qam_order("64QAM") == 64
@@ -71,7 +71,7 @@ class TestParseQamOrder:
 
 class TestCanonicalLabel:
     def test_qpsk(self):
-        assert _canonical_label("QPSK") == ("QPSK", 4)
+        assert _canonical_label("4QAM") == ("4QAM", 4)
 
     def test_numeric_qam(self):
         assert _canonical_label("64QAM") == ("64QAM", 64)
@@ -109,22 +109,22 @@ class TestDistributionPct:
         assert result == {"64QAM": 100.0}
 
     def test_mixed(self):
-        obs = [("QPSK", 4)] * 1 + [("64QAM", 64)] * 3
+        obs = [("4QAM", 4)] * 1 + [("64QAM", 64)] * 3
         result = _distribution_pct(obs)
-        assert result["QPSK"] == 25.0
+        assert result["4QAM"] == 25.0
         assert result["64QAM"] == 75.0
 
     def test_percentages_sum_to_100(self):
-        obs = [("QPSK", 4)] * 3 + [("16QAM", 16)] * 3 + [("256QAM", 256)] * 4
+        obs = [("4QAM", 4)] * 3 + [("16QAM", 16)] * 3 + [("256QAM", 256)] * 4
         result = _distribution_pct(obs)
         assert abs(sum(result.values()) - 100.0) < 0.5
 
     def test_many_modulation_types(self):
-        obs = [("QPSK", 4), ("16QAM", 16), ("64QAM", 64),
+        obs = [("4QAM", 4), ("16QAM", 16), ("64QAM", 64),
                ("256QAM", 256), ("OFDM", None)]
         result = _distribution_pct(obs)
         assert len(result) == 5
-        assert result["QPSK"] == 20.0
+        assert result["4QAM"] == 20.0
 
     def test_single_observation(self):
         obs = [("64QAM", 64)]
@@ -143,7 +143,7 @@ class TestHealthIndex:
         assert _health_index(obs) is None
 
     def test_all_qpsk_is_zero(self):
-        obs = [("QPSK", 4)] * 10
+        obs = [("4QAM", 4)] * 10
         assert _health_index(obs) == 0.0
 
     def test_all_4096qam_is_100(self):
@@ -159,7 +159,7 @@ class TestHealthIndex:
         assert _health_index(obs) == 60.0
 
     def test_clamped_at_boundaries(self):
-        obs = [("QPSK", 4)]
+        obs = [("4QAM", 4)]
         assert _health_index(obs) >= 0
 
     def test_all_64qam(self):
@@ -167,7 +167,7 @@ class TestHealthIndex:
         assert _health_index(obs) == 40.0
 
     def test_mixed_qam_weighted_average(self):
-        obs = [("QPSK", 4)] * 5 + [("256QAM", 256)] * 5
+        obs = [("4QAM", 4)] * 5 + [("256QAM", 256)] * 5
         assert _health_index(obs) == 30.0
 
     def test_health_index_range(self):
@@ -210,11 +210,11 @@ class TestHealthIndexForGroup:
         assert _health_index_for_group(obs, "us", "3.1") == 100.0
 
     def test_us_30_at_qpsk_is_zero(self):
-        obs = [("QPSK", 4)] * 10
+        obs = [("4QAM", 4)] * 10
         assert _health_index_for_group(obs, "us", "3.0") == 0.0
 
     def test_ds_30_at_qpsk_is_zero(self):
-        obs = [("QPSK", 4)] * 10
+        obs = [("4QAM", 4)] * 10
         assert _health_index_for_group(obs, "ds", "3.0") == 0.0
 
     def test_us_30_at_16qam_partial(self):
@@ -235,8 +235,8 @@ class TestHealthIndexForGroup:
         assert _health_index_for_group([], "us", "3.0") is None
 
     def test_mixed_qam_us_30(self):
-        # 50% QPSK (log2=2) + 50% 64QAM (log2=6) → avg=4 → 100*(4-2)/(6-2) = 50.0
-        obs = [("QPSK", 4)] * 5 + [("64QAM", 64)] * 5
+        # 50% 4QAM (log2=2) + 50% 64QAM (log2=6) → avg=4 → 100*(4-2)/(6-2) = 50.0
+        obs = [("4QAM", 4)] * 5 + [("64QAM", 64)] * 5
         assert _health_index_for_group(obs, "us", "3.0") == 50.0
 
 
@@ -247,7 +247,7 @@ class TestLowQamPct:
         assert _low_qam_pct([], 16) == 0
 
     def test_all_low(self):
-        obs = [("QPSK", 4)] * 10
+        obs = [("4QAM", 4)] * 10
         assert _low_qam_pct(obs, 16) == 100.0
 
     def test_none_low(self):
@@ -255,7 +255,7 @@ class TestLowQamPct:
         assert _low_qam_pct(obs, 16) == 0.0
 
     def test_mixed(self):
-        obs = [("QPSK", 4)] * 2 + [("256QAM", 256)] * 8
+        obs = [("4QAM", 4)] * 2 + [("256QAM", 256)] * 8
         assert _low_qam_pct(obs, 16) == 20.0
 
     def test_threshold_boundary(self):
@@ -263,7 +263,7 @@ class TestLowQamPct:
         assert _low_qam_pct(obs, 16) == 50.0
 
     def test_ignores_ofdm(self):
-        obs = [("QPSK", 4)] * 1 + [("64QAM", 64)] * 1 + [("OFDM", None)] * 8
+        obs = [("4QAM", 4)] * 1 + [("64QAM", 64)] * 1 + [("OFDM", None)] * 8
         assert _low_qam_pct(obs, 16) == 50.0
 
     def test_custom_threshold_64(self):
@@ -345,7 +345,7 @@ class TestModulationPeriods:
         timeline = [
             ("10:00", "64QAM", 64),
             ("10:15", "16QAM", 16),
-            ("10:30", "QPSK", 4),
+            ("10:30", "4QAM", 4),
         ]
         periods = _modulation_periods(timeline)
         assert len(periods) == 3
@@ -610,7 +610,7 @@ class TestComputeDistribution:
         snaps = [
             _make_snapshot(
                 "2026-03-01T10:00:00Z",
-                us_channels=_make_channels(["64QAM", "64QAM", "QPSK", "64QAM"]),
+                us_channels=_make_channels(["64QAM", "64QAM", "4QAM", "64QAM"]),
             )
         ]
         result = compute_distribution(snaps, "us", "UTC")
@@ -622,7 +622,7 @@ class TestComputeDistribution:
         snaps = [
             _make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["64QAM"])),
             _make_snapshot("2026-03-01T14:00:00Z", us_channels=_make_channels(["64QAM"])),
-            _make_snapshot("2026-03-02T10:00:00Z", us_channels=_make_channels(["QPSK"])),
+            _make_snapshot("2026-03-02T10:00:00Z", us_channels=_make_channels(["4QAM"])),
         ]
         result = compute_distribution(snaps, "us", "UTC")
         assert len(result["days"]) == 2
@@ -634,12 +634,12 @@ class TestComputeDistribution:
             _make_snapshot(
                 "2026-03-01T10:00:00Z",
                 ds_channels=_make_channels(["256QAM", "256QAM"]),
-                us_channels=_make_channels(["QPSK"]),
+                us_channels=_make_channels(["4QAM"]),
             )
         ]
         result = compute_distribution(snaps, "ds", "UTC")
         assert "256QAM" in result["aggregate"]["distribution"]
-        assert "QPSK" not in result["aggregate"]["distribution"]
+        assert "4QAM" not in result["aggregate"]["distribution"]
 
     def test_direction_field_in_result(self):
         result = compute_distribution([], "ds", "UTC")
@@ -672,7 +672,7 @@ class TestComputeDistribution:
 class TestComputeTrend:
     def test_returns_per_day_data(self):
         snaps = [
-            _make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["64QAM", "QPSK"])),
+            _make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["64QAM", "4QAM"])),
             _make_snapshot("2026-03-02T10:00:00Z", us_channels=_make_channels(["256QAM"])),
         ]
         trend = compute_trend(snaps, "us", "UTC")
@@ -701,7 +701,7 @@ class TestComputeTrend:
     def test_trend_multi_day_order(self):
         snaps = [
             _make_snapshot("2026-03-03T10:00:00Z", us_channels=_make_channels(["64QAM"])),
-            _make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["QPSK"])),
+            _make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["4QAM"])),
             _make_snapshot("2026-03-02T10:00:00Z", us_channels=_make_channels(["256QAM"])),
         ]
         trend = compute_trend(snaps, "us", "UTC")

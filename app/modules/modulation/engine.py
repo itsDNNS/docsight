@@ -47,7 +47,7 @@ def _canonical_label(modulation_str):
 
     Returns (label, qam_order_or_none).
     - Known QAM → ("64QAM", 64)
-    - QPSK → ("QPSK", 4)
+    - QPSK/4QAM → ("4QAM", 4)
     - OFDM/OFDMA → ("OFDM"/"OFDMA", None)
     - Unknown → ("Unknown", None)
     """
@@ -57,8 +57,6 @@ def _canonical_label(modulation_str):
 
     qam = _parse_qam_order(modulation_str)
     if qam is not None:
-        if qam == 4:
-            return ("QPSK", 4)
         return (f"{qam}QAM", qam)
 
     if raw in ("OFDM", "OFDMA"):
@@ -279,7 +277,7 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
         })
 
     max_qam = MAX_QAM.get((direction, version), 4096)
-    max_qam_label = f"{max_qam}QAM" if max_qam > 4 else "QPSK"
+    max_qam_label = f"{max_qam}QAM"
     overall_hi = _health_index_for_group(all_observations, direction, version)
     overall_lq = _low_qam_pct(all_observations, threshold)
     overall_dist = _distribution_pct(all_observations)
@@ -393,7 +391,7 @@ def compute_intraday(snapshots, direction, tz_name, date_str, low_qam_threshold=
     protocol_groups = []
     for version in sorted(by_version.keys()):
         max_qam = MAX_QAM.get((direction, version), 4096)
-        max_qam_label = f"{max_qam}QAM" if max_qam > 4 else "QPSK"
+        max_qam_label = f"{max_qam}QAM"
         channels_result = []
 
         for cid, cdata in sorted(by_version[version], key=lambda x: x[0]):
