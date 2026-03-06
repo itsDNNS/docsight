@@ -1,0 +1,20 @@
+{
+  "id": "docsight.modulation",
+  "name": "Modulation Performance",
+  "description": "Daily modulation distribution, low-QAM exposure, and health index",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "analysis",
+  "contributes": {
+    "routes": "routes.py",
+    "tab": "templates/modulation_tab.html",
+    "static": "static/",
+    "i18n": "i18n/"
+  },
+  "menu": {
+    "label_key": "docsight.modulation.title",
+    "icon": "bar-chart-3",
+    "order": 25
+  }
+}

@@ -1,0 +1,191 @@
+/* Modulation Performance module styles (v2) */
+
+.modulation-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg, 20px);
+    margin-bottom: var(--space-lg, 20px);
+}
+
+.modulation-kpi-card {
+    text-align: center;
+    padding: var(--space-lg, 20px) var(--space-md, 16px);
+}
+
+.modulation-kpi-label {
+    font-size: 0.85em;
+    color: var(--text-secondary, var(--muted));
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.modulation-kpi-value {
+    font-size: 2em;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.modulation-kpi-sub {
+    font-size: 0.8em;
+    color: var(--text-secondary, var(--muted));
+    margin-top: 4px;
+    min-height: 1.2em;
+}
+
+.modulation-kpi-value.good { color: var(--green, #22c55e); }
+.modulation-kpi-value.warning { color: var(--yellow, #eab308); }
+.modulation-kpi-value.critical { color: var(--red, #ef4444); }
+
+.modulation-chart-wrap {
+    position: relative;
+    height: 300px;
+}
+.modulation-chart-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Protocol group sections */
+.mod-protocol-group {
+    margin-bottom: var(--space-xl, 28px);
+}
+
+.mod-protocol-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: var(--space-md, 16px);
+    flex-wrap: wrap;
+}
+
+.mod-protocol-group-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+}
+
+.mod-protocol-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+    background: var(--surface-2, rgba(255,255,255,0.08));
+    color: var(--text-secondary, var(--muted));
+}
+
+.mod-protocol-badge.degraded {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red, #ef4444);
+}
+
+.mod-group-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-sm, 10px);
+    margin-bottom: var(--space-md, 16px);
+}
+
+.mod-group-kpi {
+    text-align: center;
+    padding: var(--space-sm, 10px);
+    background: var(--surface-2, rgba(255,255,255,0.03));
+    border-radius: var(--radius, 8px);
+}
+
+.mod-group-kpi-label {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary, var(--muted));
+    margin-bottom: 4px;
+}
+
+.mod-group-kpi-value {
+    font-size: 1.3em;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Channel summary cards (intraday) */
+.mod-channel-summary {
+    padding: var(--space-md, 16px);
+    margin-bottom: var(--space-sm, 10px);
+    border-radius: var(--radius, 8px);
+    background: var(--card-bg, var(--surface));
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+}
+
+.mod-channel-summary.degraded {
+    border-left: 3px solid var(--red, #ef4444);
+}
+
+.mod-channel-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.mod-channel-summary-header strong {
+    font-size: 0.95em;
+}
+
+.mod-channel-summary-text {
+    font-size: 0.85em;
+    color: var(--text-secondary, var(--muted));
+}
+
+.modulation-intraday-chart-wrap {
+    position: relative;
+    height: 120px;
+    margin-top: 8px;
+}
+
+.modulation-intraday-chart-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Disclaimer */
+.modulation-disclaimer {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: var(--space-sm, 10px) var(--space-md, 16px);
+    margin-top: var(--space-lg, 20px);
+    border-radius: var(--radius, 8px);
+    background: var(--surface-2, rgba(255,255,255,0.03));
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.8em;
+    line-height: 1.5;
+}
+
+/* Click hint */
+.modulation-click-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-sm, 10px) 0;
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.8em;
+}
+
+@media (max-width: 768px) {
+    .modulation-kpi-row {
+        grid-template-columns: 1fr;
+    }
+    .mod-group-kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .mod-protocol-group .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}

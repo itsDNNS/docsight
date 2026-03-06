@@ -36,3 +36,6 @@ mockup*.png
 
 # Internal task tracking (local only)
 tasks/
+
+# E2E test screenshots (generated, local only)
+tests/e2e/screenshots/

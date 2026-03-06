@@ -1,0 +1,68 @@
+<div class="view-content">
+    <!-- Controls -->
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+        <h2 style="margin:0; flex:1;">{{ t.get('docsight.modulation.title', 'Modulation Performance') }}</h2>
+        <div class="trend-tabs" id="modulation-direction-tabs">
+            <button class="trend-tab active" data-dir="us">{{ t.get('docsight.modulation.upstream', 'Upstream') }}</button>
+            <button class="trend-tab" data-dir="ds">{{ t.get('docsight.modulation.downstream', 'Downstream') }}</button>
+        </div>
+        <div class="trend-tabs" id="modulation-range-tabs">
+            <button class="trend-tab" data-days="1">{{ t.get('docsight.modulation.today', 'Today') }}</button>
+            <button class="trend-tab active" data-days="7">7 {{ t.get('docsight.modulation.days_label', 'Days') }}</button>
+            <button class="trend-tab" data-days="30">30 {{ t.get('docsight.modulation.days_label', 'Days') }}</button>
+        </div>
+    </div>
+
+    <!-- Overview (multi-day) -->
+    <div id="modulation-overview">
+        <!-- KPI Cards (aggregate) -->
+        <div class="modulation-kpi-row" id="modulation-kpis">
+            <div class="chart-card modulation-kpi-card">
+                <div class="modulation-kpi-label">{{ t.get('docsight.modulation.health_index', 'Health Index') }}</div>
+                <div class="modulation-kpi-value" id="mod-kpi-health">—</div>
+                <div class="modulation-kpi-sub" id="mod-kpi-health-delta"></div>
+            </div>
+            <div class="chart-card modulation-kpi-card">
+                <div class="modulation-kpi-label">{{ t.get('docsight.modulation.low_qam_exposure', 'Low-QAM Exposure') }}</div>
+                <div class="modulation-kpi-value" id="mod-kpi-lowqam">—</div>
+                <div class="modulation-kpi-sub" id="mod-kpi-lowqam-hint"></div>
+            </div>
+            <div class="chart-card modulation-kpi-card">
+                <div class="modulation-kpi-label">{{ t.get('docsight.modulation.sample_density', 'Sample Density') }}</div>
+                <div class="modulation-kpi-value" id="mod-kpi-density">—</div>
+                <div class="modulation-kpi-sub" id="mod-kpi-density-hint"></div>
+            </div>
+        </div>
+
+        <!-- Protocol groups (dynamically populated by JS) -->
+        <div id="modulation-protocol-groups"></div>
+
+        <!-- Click hint -->
+        <div class="modulation-click-hint" id="mod-click-hint" style="display:none;">
+            <i data-lucide="mouse-pointer-click" style="width:14px;height:14px;"></i>
+            {{ t.get('docsight.modulation.click_day_hint', 'Click a day bar to view per-channel details') }}
+        </div>
+    </div>
+
+    <!-- Intraday (single day) -->
+    <div id="modulation-intraday" style="display:none;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+            <button class="trend-tab" id="mod-back-btn" onclick="modBackToOverview()">
+                ← {{ t.get('docsight.modulation.back_to_overview', 'Back to Overview') }}
+            </button>
+            <h3 style="margin:0;" id="mod-intraday-title"></h3>
+        </div>
+        <div id="modulation-intraday-content"></div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="modulation-disclaimer" id="mod-disclaimer" style="display:none;">
+        <i data-lucide="info" style="width:14px;height:14px;flex-shrink:0;"></i>
+        <span id="mod-disclaimer-text"></span>
+    </div>
+
+    <!-- No-data fallback -->
+    <div class="no-data-msg" id="modulation-no-data" style="display:none;">
+        {{ t.get('docsight.modulation.no_data', 'No modulation data available for the selected period.') }}
+    </div>
+</div>

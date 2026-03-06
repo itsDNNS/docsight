@@ -87,6 +87,11 @@
             <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
         </a>
         {% endif %}
+        {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}
+        <a class="nav-item" data-view="mod-docsight-modulation">
+            <i data-lucide="bar-chart-3"></i> {{ t.get('docsight.modulation.title', 'Modulation Performance') }}
+        </a>
+        {% endif %}
         <div class="nav-group-label">{{ t.sidebar_external }}</div>
         {% if modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
         {% if speedtest_configured %}
@@ -141,7 +146,7 @@
         </a>
         {% endif %}
         {% set tab_modules = [] %}
-        {% for mod in modules if mod.template_paths.get('tab') %}
+        {% for mod in modules if mod.template_paths.get('tab') and mod.id != 'docsight.modulation' %}
             {% if tab_modules.append(mod) %}{% endif %}
         {% endfor %}
         {% if tab_modules %}
@@ -2224,6 +2229,8 @@ var T = {{ t|tojson }};
         } else if (view === 'trends') {
             if (typeof updateTrendTabs === 'function') updateTrendTabs();
             if (typeof loadTrends === 'function') loadTrends(_trendRange);
+        } else if (view === 'mod-docsight-modulation') {
+            if (typeof initModulation === 'function') initModulation();
         }
 
         // Re-initialize Lucide icons after view switch

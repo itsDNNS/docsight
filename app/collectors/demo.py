@@ -176,7 +176,7 @@ class DemoCollector(Collector):
             bad_period = (day_of_year % 10 == 0 and 2 <= hour <= 8)
 
             analysis = self._generate_historical_analysis(
-                i, diurnal, seasonal, bad_period
+                i, diurnal, seasonal, bad_period, hour, day_of_year
             )
             rows.append((
                 ts_str,
@@ -195,9 +195,12 @@ class DemoCollector(Collector):
             )
         log.info("Demo: seeded %d historical snapshots (%d days)", len(rows), days)
 
-    def _generate_historical_analysis(self, index, diurnal, seasonal, bad_period):
+    def _generate_historical_analysis(self, index, diurnal, seasonal, bad_period, hour=12, day_of_year=1):
         """Generate a single analyzed snapshot for historical seeding."""
         base = _load_base_data()
+
+        # Evening congestion window (19–23h): US channels 3+4 may degrade
+        evening_congestion = 19 <= hour <= 23
 
         # Build DS channels
         ds_channels = []
@@ -218,11 +221,17 @@ class DemoCollector(Collector):
             total_snr += snr
             total_corr += corr
             total_uncorr += uncorr
+
+            # DS 3.0 modulation variation: edge channels (19–24) drop during bad periods
+            ds_mod = ch["modulation"]
+            if bad_period and ch["channelID"] >= 19:
+                ds_mod = "64QAM"
+
             ds_channels.append({
                 "channel_id": ch["channelID"],
                 "frequency": ch["frequency"],
                 "power": power,
-                "modulation": ch["modulation"],
+                "modulation": ds_mod,
                 "snr": round(snr, 1),
                 "correctable_errors": corr,
                 "uncorrectable_errors": uncorr,
@@ -243,11 +252,17 @@ class DemoCollector(Collector):
             total_snr += snr
             total_corr += corr
             total_uncorr += uncorr
+
+            # DS 3.1 modulation variation: drop to 1024QAM during bad periods
+            ds31_mod = ch["modulation"]
+            if bad_period:
+                ds31_mod = "1024QAM"
+
             ds_channels.append({
                 "channel_id": ch["channelID"],
                 "frequency": ch["frequency"],
                 "power": power,
-                "modulation": ch["modulation"],
+                "modulation": ds31_mod,
                 "snr": round(snr, 1),
                 "correctable_errors": corr,
                 "uncorrectable_errors": uncorr,
@@ -264,12 +279,26 @@ class DemoCollector(Collector):
             if bad_period:
                 power += random.uniform(0.5, 1.5)
             us_total_power += power
-            bitrate = _channel_bitrate_mbps(ch["modulation"])
+
+            # US 3.0 modulation variation
+            us_mod = ch["modulation"]
+            if bad_period and ch["channelID"] in (3, 4):
+                # Bad period: channels 3+4 drop to 16QAM
+                us_mod = "16QAM"
+            elif evening_congestion and ch["channelID"] in (3, 4):
+                # Evening congestion: channels 3+4 occasionally drop
+                roll = random.random()
+                if roll < 0.25:
+                    us_mod = "16QAM"
+                elif roll < 0.05:
+                    us_mod = "QPSK"
+
+            bitrate = _channel_bitrate_mbps(us_mod)
             us_channels.append({
                 "channel_id": ch["channelID"],
                 "frequency": ch["frequency"],
                 "power": power,
-                "modulation": ch["modulation"],
+                "modulation": us_mod,
                 "multiplex": ch.get("multiplex", "SC-QAM"),
                 "docsis_version": "3.0",
                 "health": "good",
