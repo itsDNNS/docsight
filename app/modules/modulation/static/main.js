@@ -247,7 +247,7 @@ function renderGroupDistChart(pg, idx) {
     container.textContent = '';
 
     var days = pg.days || [];
-    var labels = days.map(function(d) { return d.date; });
+    var labels = days.map(function(d) { return d.date.slice(5); }); /* MM-DD, drop year */
     var n = labels.length;
     var textColor = _cssVar('--text-secondary') || '#9ca3af';
 
@@ -262,25 +262,32 @@ function renderGroupDistChart(pg, idx) {
     /* uPlot stacked bars: build cumulative data per mod layer */
     var xData = [];
     for (var i = 0; i < n; i++) xData.push(i);
-    var uData = [xData];
-    var uSeries = [{ label: 'X', value: function(u, v) { return labels[v] || ''; } }];
     var barPaths = uPlot.paths.bars({size: [0.7, 50], gap: 1});
 
-    /* For stacked bars, each series is the cumulative sum up to that layer */
+    /* Build cumulative sums for each modulation layer */
     var cumData = xData.map(function() { return 0; });
+    var layerData = [];
     modKeys.forEach(function(mod) {
         var raw = days.map(function(d) { return (d.distribution || {})[mod] || 0; });
         var stacked = raw.map(function(v, j) { cumData[j] += v; return cumData[j]; });
-        uData.push(stacked);
+        layerData.push({ mod: mod, data: stacked });
+    });
+
+    /* Render in reverse order: largest cumulative first, smallest on top */
+    var uData = [xData];
+    var uSeries = [{ label: 'X', value: function(u, v) { return labels[v] || ''; } }];
+    for (var li = layerData.length - 1; li >= 0; li--) {
+        var layer = layerData[li];
+        uData.push(layer.data);
         uSeries.push({
-            label: mod,
-            stroke: QAM_COLORS[mod] || '#6b7280',
-            fill: QAM_COLORS[mod] || '#6b7280',
+            label: layer.mod,
+            stroke: QAM_COLORS[layer.mod] || '#6b7280',
+            fill: QAM_COLORS[layer.mod] || '#6b7280',
             width: 0,
             paths: barPaths,
             points: { show: false }
         });
-    });
+    }
 
     var w = container.offsetWidth || 400;
     var h = container.offsetHeight || 300;
@@ -312,7 +319,8 @@ function renderGroupDistChart(pg, idx) {
         ],
         series: uSeries,
         cursor: { show: true, x: true, y: false, points: { show: false } },
-        legend: { show: true, live: false }
+        legend: { show: true, live: false },
+        plugins: [tooltipPlugin(labels)]
     }, uData, container);
     _modCharts.push(chart);
 }
@@ -323,7 +331,7 @@ function renderGroupTrendChart(pg, idx) {
     container.textContent = '';
 
     var days = pg.days || [];
-    var labels = days.map(function(d) { return d.date; });
+    var labels = days.map(function(d) { return d.date.slice(5); }); /* MM-DD, drop year */
     var n = labels.length;
     var textColor = _cssVar('--text-secondary') || '#9ca3af';
 
@@ -388,7 +396,8 @@ function renderGroupTrendChart(pg, idx) {
             }
         ],
         cursor: { show: true, x: true, y: false, points: { show: false } },
-        legend: { show: true, live: false }
+        legend: { show: true, live: false },
+        plugins: [tooltipPlugin(labels)]
     }, [
         xData,
         days.map(function(d) { return d.health_index; }),
@@ -562,7 +571,8 @@ function renderChannelTimeline(canvasId, timeline) {
             }
         ],
         cursor: { show: true, x: true, y: false, points: { show: false } },
-        legend: { show: false }
+        legend: { show: false },
+        plugins: [tooltipPlugin(labels)]
     }, [xData, dataPoints], container);
     _modIntradayCharts.push(chart);
 }
