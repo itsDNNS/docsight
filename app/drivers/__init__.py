@@ -22,6 +22,9 @@ driver_registry.register_builtin("cm3000", "app.drivers.cm3000.CM3000Driver", "N
                                  hints={"default_url": "http://192.168.100.1", "default_user": "admin"})
 driver_registry.register_builtin("cm3500", "app.drivers.cm3500.CM3500Driver", "Arris CM3500B",
                                  hints={"default_url": "https://192.168.100.1", "default_user": "admin"})
+driver_registry.register_builtin("surfboard", "app.drivers.surfboard.SurfboardDriver",
+                                 "Arris SURFboard (S33/S34/SB8200)",
+                                 hints={"default_url": "https://192.168.100.1", "default_user": "admin"})
 driver_registry.register_builtin("generic", "app.drivers.generic.GenericDriver", "Generic Router (No DOCSIS)",
                                  hints={"credentials_required": False})
 
