@@ -64,9 +64,9 @@ def _score_snr_headroom(min_snr, modulation=None):
     if headroom > 6:
         return 100
     if headroom >= 3:
-        return 70
+        return 85
     if headroom >= 1:
-        return 40
+        return 55
     return 0
 
 
