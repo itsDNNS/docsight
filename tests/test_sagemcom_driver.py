@@ -144,6 +144,27 @@ class TestAuthentication:
         assert driver._session_id == 12345
         assert driver._server_nonce == "9876543210"
 
+    def test_initial_login_sends_auth_key(self, driver):
+        """First login request must include auth-key computed with empty nonce."""
+        captured_bodies = []
+
+        def capture_post(*args, **kwargs):
+            captured_bodies.append(kwargs.get("data", {}).get("req", ""))
+            resp = MagicMock()
+            resp.ok = True
+            resp.status_code = 200
+            resp.json.return_value = _login_response()
+            return resp
+
+        driver._session.post = capture_post
+        driver._do_login()
+
+        import json
+        body = json.loads(captured_bodies[0])
+        auth_key = body["request"]["auth-key"]
+        assert auth_key != "", "Initial login must send a non-empty auth-key"
+        assert len(auth_key) == 128, "SHA-512 hex digest should be 128 chars"
+
     def test_login_sets_logged_in(self, driver):
         driver._session.post = _mock_post([_login_response()])
         driver.login()

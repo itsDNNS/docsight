@@ -92,6 +92,11 @@ class SagemcomDriver(ModemDriver):
 
     def _do_login(self) -> None:
         self._request_id = 0
+        # Initial credential hash uses empty server nonce (nonce not yet known)
+        self._credential_hash = hashlib.sha512(
+            f"{self._user}::{self._password_hash}".encode()
+        ).hexdigest()
+
         body = self._build_request([{
             "id": 0,
             "method": "logIn",
@@ -249,6 +254,11 @@ class SagemcomDriver(ModemDriver):
         resp = r.json()
         error = resp.get("reply", {}).get("error", {})
         if error.get("description") not in ("XMO_REQUEST_NO_ERR", None):
+            # Log action-level errors for debugging
+            for action in resp.get("reply", {}).get("actions", []):
+                act_err = action.get("error", {})
+                if act_err.get("description") != "XMO_NO_ERR":
+                    log.debug("Sagemcom action error: %s", act_err)
             if error.get("code") == 16777236:
                 raise RuntimeError(f"Sagemcom action error: {error.get('description')}")
         return resp
