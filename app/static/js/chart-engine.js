@@ -295,30 +295,27 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         scales.temp = {};
     }
 
-    /* Axes */
-    var xTickValues = function(u, splits) {
-        var maxTicks = Math.floor(container.offsetWidth / 70);
-        if (maxTicks < 2) maxTicks = 2;
-        var step = Math.ceil(n / maxTicks);
-        return splits.filter(function(v) { return v >= 0 && v < n && v % step === 0; });
-    };
+    /* Axes — pick evenly spaced label positions */
+    var xSplits = [];
+    var wantTicks = 6;
+    if (n <= wantTicks) {
+        for (var li = 0; li < n; li++) xSplits.push(li);
+    } else {
+        var gap = (n - 1) / (wantTicks - 1);
+        for (var ti = 0; ti < wantTicks; ti++) {
+            xSplits.push(Math.round(ti * gap));
+        }
+    }
 
     var axes = [
         {
             scale: 'x',
-            space: 60,
-            splits: function(u) {
-                var out = [];
-                for (var i = 0; i < n; i++) out.push(i);
-                return out;
-            },
-            filter: xTickValues,
+            splits: function() { return xSplits; },
             values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
             stroke: textColor,
-            grid: { stroke: gridColor, width: 1 },
-            ticks: { stroke: gridColor, width: 1 },
-            font: '10px system-ui',
-            rotate: -45,
+            grid: { show: false },
+            ticks: { show: false },
+            font: '11px system-ui',
             gap: 4
         },
         {
@@ -531,8 +528,14 @@ function openChartZoom(canvasId) {
         if (zoomHasTemp) { scales.temp = {}; }
 
         /* Axes */
+        var zLongest = '';
+        for (var zi = 0; zi < params.labels.length; zi++) {
+            if (params.labels[zi] && params.labels[zi].length > zLongest.length) zLongest = params.labels[zi];
+        }
+        var zLabelWidth = Math.max(zLongest.length * 7, 60);
+
         var xTickValues = function(u, splits) {
-            var maxTicks = Math.floor(zoomContainer.offsetWidth / 80);
+            var maxTicks = Math.floor(zoomContainer.offsetWidth / zLabelWidth);
             if (maxTicks < 2) maxTicks = 2;
             var step = Math.ceil(n / maxTicks);
             return splits.filter(function(v) { return v >= 0 && v < n && v % step === 0; });
@@ -540,7 +543,7 @@ function openChartZoom(canvasId) {
         var axes = [
             {
                 scale: 'x',
-                space: 70,
+                space: zLabelWidth,
                 splits: function() { var o = []; for (var i = 0; i < n; i++) o.push(i); return o; },
                 filter: xTickValues,
                 values: function(u, vals) { return vals.map(function(v) { return params.labels[v] || ''; }); },
@@ -548,7 +551,6 @@ function openChartZoom(canvasId) {
                 grid: { stroke: gridColor, width: 1 },
                 ticks: { stroke: gridColor, width: 1 },
                 font: '11px system-ui',
-                rotate: -45,
                 gap: 4
             },
             {
