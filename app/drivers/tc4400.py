@@ -116,14 +116,25 @@ class TC4400Driver(ModemDriver):
         if not rows:
             return []
 
-        headers = [
-            th.get_text(strip=True).lower()
-            for th in rows[0].find_all(["th", "td"])
-        ]
+        # Find header row: skip title rows (colspan) and find first row with actual column headers
+        header_row = None
+        for row in rows:
+            cells = row.find_all(["th", "td"])
+            if cells and any(cell.get("colspan") for cell in cells if cell.name == "th"):
+                continue  # Skip title row with colspan
+            if cells and len(cells) > 3:
+                header_row = row
+                break
+
+        if header_row is None:
+            return []
+
+        headers = [th.get_text(strip=True).lower() for th in header_row.find_all(["th", "td"])]
         col = self._map_columns(headers)
 
         result = []
-        for row in rows[1:]:
+        data_rows = [r for r in rows if r != header_row]
+        for row in data_rows:
             cells = [td.get_text(strip=True) for td in row.find_all("td")]
             if len(cells) < 4:
                 continue
@@ -134,9 +145,22 @@ class TC4400Driver(ModemDriver):
 
             try:
                 channel_id = self._cell(cells, col["channel_id"], "0")
+                
+                # Use channel_type (OFDM/SC-QAM) for type, modulation as fallback
+                channel_type = self._cell(cells, col["channel_type"], "")
                 modulation = self._normalize_modulation(
                     self._cell(cells, col["modulation"])
                 )
+                
+                # For OFDM channels, channel_type gives us OFDM vs SC-QAM
+                # For SC-QAM, modulation gives us qam_256 etc.
+                if channel_type.upper() in ("OFDM",):
+                    final_type = "ofdm"
+                elif channel_type.upper() in ("SC-QAM",):
+                    final_type = modulation if modulation else "qam"
+                else:
+                    final_type = modulation if modulation else "unknown"
+                
                 frequency = self._parse_frequency(
                     self._cell(cells, col["frequency"])
                 )
@@ -147,11 +171,11 @@ class TC4400Driver(ModemDriver):
                     self._parse_number(self._cell(cells, col["uncorrected"]))
                 )
 
-                is_ofdm = modulation in ("ofdm",)
+                is_ofdm = final_type == "ofdm"
 
                 result.append({
                     "channelID": channel_id,
-                    "type": modulation,
+                    "type": final_type,
                     "frequency": f"{int(frequency)} MHz" if frequency else "",
                     "powerLevel": power,
                     "mse": None if is_ofdm else (-snr if snr else None),
@@ -171,14 +195,25 @@ class TC4400Driver(ModemDriver):
         if not rows:
             return []
 
-        headers = [
-            th.get_text(strip=True).lower()
-            for th in rows[0].find_all(["th", "td"])
-        ]
+        # Find header row: skip title rows (colspan) and find first row with actual column headers
+        header_row = None
+        for row in rows:
+            cells = row.find_all(["th", "td"])
+            if cells and any(cell.get("colspan") for cell in cells if cell.name == "th"):
+                continue  # Skip title row with colspan
+            if cells and len(cells) > 3:
+                header_row = row
+                break
+
+        if header_row is None:
+            return []
+
+        headers = [th.get_text(strip=True).lower() for th in header_row.find_all(["th", "td"])]
         col = self._map_columns(headers)
 
         result = []
-        for row in rows[1:]:
+        data_rows = [r for r in rows if r != header_row]
+        for row in data_rows:
             cells = [td.get_text(strip=True) for td in row.find_all("td")]
             if len(cells) < 4:
                 continue
@@ -219,6 +254,7 @@ class TC4400Driver(ModemDriver):
             "channel_id": None,
             "lock_status": None,
             "modulation": None,
+            "channel_type": None,
             "frequency": None,
             "power": None,
             "snr": None,
@@ -227,21 +263,32 @@ class TC4400Driver(ModemDriver):
         }
 
         for i, h in enumerate(headers):
-            if "channel" in h and ("id" in h or "index" in h):
+            if h == "channel id":
                 col["channel_id"] = i
-            elif "lock" in h:
+            elif h == "channel index":
+                if col["channel_id"] is None:
+                    col["channel_id"] = i
+            elif h == "lock status":
                 col["lock_status"] = i
-            elif "modulation" in h or "channel type" in h:
+            elif h == "channel type":
+                col["channel_type"] = i
+            elif "modulation" in h:
                 col["modulation"] = i
-            elif "freq" in h:
+            elif h == "center frequency":
                 col["frequency"] = i
-            elif any(kw in h for kw in ("power", "receive", "transmit")):
+            elif "frequency" in h and col["frequency"] is None:
+                col["frequency"] = i
+            elif "received level" in h:
                 col["power"] = i
-            elif "snr" in h or "mer" in h:
+            elif "transmit level" in h:
+                col["power"] = i
+            elif "snr" in h:
                 col["snr"] = i
-            elif "corrected" in h and "un" not in h:
+            elif "mer" in h:
+                col["snr"] = i
+            elif "corrected codewords" in h:
                 col["corrected"] = i
-            elif "uncorrect" in h:
+            elif "uncorrectable codewords" in h:
                 col["uncorrected"] = i
 
         # Positional fallbacks for common TC4400 table layout
@@ -249,7 +296,7 @@ class TC4400Driver(ModemDriver):
             col["channel_id"] = 0
         if col["lock_status"] is None:
             col["lock_status"] = 1
-        if col["modulation"] is None:
+        if col["channel_type"] is None and col["modulation"] is None:
             col["modulation"] = 2
         if col["frequency"] is None:
             col["frequency"] = 3
