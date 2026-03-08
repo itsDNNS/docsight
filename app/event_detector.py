@@ -59,7 +59,7 @@ class EventDetector:
     def __init__(self, hysteresis=0):
         self._prev = None
         self._lock = threading.Lock()
-        self._hysteresis = max(0, int(hysteresis))
+        self._hysteresis = max(0, int(hysteresis or 0))
         self._confirmed_health = None
         self._pending_health = None
         self._pending_count = 0
