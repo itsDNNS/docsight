@@ -98,7 +98,7 @@ def polling_loop(config_mgr, storage, stop_event):
 
     web.update_state(poll_interval=config["poll_interval"])
 
-    event_detector = EventDetector()
+    event_detector = EventDetector(hysteresis=config_mgr.get("health_hysteresis", 0))
     collectors = discover_collectors(
         config_mgr, storage, event_detector, mqtt_pub, web, analyzer,
         notifier=notifier,

@@ -238,8 +238,6 @@ class TestLogin:
 
         attempt_count = []
 
-        original_do_login = driver._do_login
-
         def mock_do_login():
             attempt_count.append(1)
             if len(attempt_count) == 1:
@@ -248,10 +246,35 @@ class TestLogin:
             driver._private_key = "KEY"
             driver._cookie = "COOKIE"
 
-        with patch.object(driver, "_do_login", side_effect=mock_do_login):
+        with patch.object(driver, "_do_login", side_effect=mock_do_login), \
+             patch("app.drivers.surfboard.time"):
             driver.login()
 
         assert len(attempt_count) == 2
+
+    def test_login_skipped_when_already_logged_in(self, driver):
+        """login() is a no-op when session is already active."""
+        driver._logged_in = True
+        calls = []
+
+        with patch.object(driver, "_do_login", side_effect=lambda: calls.append(1)):
+            driver.login()
+
+        assert calls == []
+
+    def test_login_forced_after_session_invalidation(self, driver):
+        """login() re-authenticates when _logged_in is False."""
+        driver._logged_in = False
+
+        def mock_post(action, body, auth=True):
+            if body.get("Login", {}).get("Action") == "request":
+                return HNAP_LOGIN_PHASE1
+            return HNAP_LOGIN_PHASE2
+
+        with patch.object(driver, "_hnap_post", side_effect=mock_post):
+            driver.login()
+
+        assert driver._logged_in is True
 
 
 # -- HNAP Auth header --
@@ -475,6 +498,49 @@ class TestDeviceInfo:
             info = driver.get_device_info()
             assert info["manufacturer"] == "Arris"
             assert info["model"] == ""
+
+    def test_device_info_error_invalidates_session(self, driver):
+        """get_device_info failure marks session as dead so get_docsis_data re-auths."""
+        driver._logged_in = True
+        with patch.object(driver, "_hnap_post", side_effect=Exception("500")):
+            driver.get_device_info()
+        assert driver._logged_in is False
+
+
+class TestDataFetchRetry:
+    def test_retry_on_http_500(self, driver):
+        """get_docsis_data retries with fresh login on HTTP 500."""
+        import requests as req
+
+        calls = []
+
+        def mock_fetch():
+            calls.append(1)
+            if len(calls) == 1:
+                resp = MagicMock()
+                resp.status_code = 500
+                raise req.HTTPError(response=resp)
+            return {
+                "channelDs": {"docsis30": [], "docsis31": []},
+                "channelUs": {"docsis30": [], "docsis31": []},
+            }
+
+        def mock_login_post(action, body, auth=True):
+            if body.get("Login", {}).get("Action") == "request":
+                return HNAP_LOGIN_PHASE1
+            return HNAP_LOGIN_PHASE2
+
+        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch), \
+             patch.object(driver, "_hnap_post", side_effect=mock_login_post):
+            data = driver.get_docsis_data()
+
+        assert len(calls) == 2
+        assert "channelDs" in data
+
+    def test_no_retry_on_success(self, mock_hnap):
+        """Successful data fetch does not trigger retry logic."""
+        data = mock_hnap.get_docsis_data()
+        assert len(data["channelDs"]["docsis30"]) == 32
 
 
 # -- Value helpers --

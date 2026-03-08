@@ -41,6 +41,28 @@
         </div>
     </div>
 
+    <!-- Health Hysteresis Card -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="activity"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.hysteresis_title }}</div>
+                    <div class="card-subtitle">{{ t.hysteresis_desc }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-grid cols-2">
+            <div class="form-field">
+                <label class="form-label" for="health_hysteresis">{{ t.hysteresis_count_label }}</label>
+                <input class="form-input" type="number" id="health_hysteresis" name="health_hysteresis" value="{{ config.health_hysteresis or 0 }}" min="0" max="10" step="1">
+                <span class="form-hint">{{ t.hysteresis_count_hint }}</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Per-Event Cooldowns Card -->
     <div class="settings-card glass">
         <div class="card-header">

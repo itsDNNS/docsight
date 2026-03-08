@@ -346,6 +346,89 @@ class TestEventDetector:
         assert len(err_events) == 0
 
 
+class TestHealthHysteresis:
+    """Tests for opt-in health hysteresis (flapping prevention)."""
+
+    def test_hysteresis_disabled_by_default(self):
+        """hysteresis=0 behaves like original: immediate state changes."""
+        d = EventDetector(hysteresis=0)
+        d.check(_make_analysis(health="good"))
+        events = d.check(_make_analysis(health="marginal"))
+        health_events = [e for e in events if e["event_type"] == "health_change"]
+        assert len(health_events) == 1
+
+    def test_hysteresis_suppresses_single_poll(self):
+        """With hysteresis=3, a single poll below threshold does not emit."""
+        d = EventDetector(hysteresis=3)
+        d.check(_make_analysis(health="good"))
+        events = d.check(_make_analysis(health="marginal"))
+        health_events = [e for e in events if e["event_type"] == "health_change"]
+        assert len(health_events) == 0
+
+    def test_hysteresis_confirms_after_n_polls(self):
+        """After N consecutive polls with same health, event is emitted."""
+        d = EventDetector(hysteresis=3)
+        d.check(_make_analysis(health="good"))
+        # Polls 1, 2: no event
+        d.check(_make_analysis(health="marginal"))
+        d.check(_make_analysis(health="marginal"))
+        # Poll 3: confirmed
+        events = d.check(_make_analysis(health="marginal"))
+        health_events = [e for e in events if e["event_type"] == "health_change"]
+        assert len(health_events) == 1
+        assert health_events[0]["details"]["prev"] == "good"
+        assert health_events[0]["details"]["current"] == "marginal"
+
+    def test_hysteresis_resets_on_bounce_back(self):
+        """If health bounces back to confirmed, counter resets."""
+        d = EventDetector(hysteresis=3)
+        d.check(_make_analysis(health="good"))
+        d.check(_make_analysis(health="marginal"))
+        d.check(_make_analysis(health="marginal"))
+        # Bounce back to good — resets counter
+        d.check(_make_analysis(health="good"))
+        # Start over: 1 poll at marginal is not enough
+        events = d.check(_make_analysis(health="marginal"))
+        health_events = [e for e in events if e["event_type"] == "health_change"]
+        assert len(health_events) == 0
+
+    def test_hysteresis_resets_on_different_pending(self):
+        """If pending health changes direction, counter restarts."""
+        d = EventDetector(hysteresis=3)
+        d.check(_make_analysis(health="good"))
+        d.check(_make_analysis(health="marginal"))
+        d.check(_make_analysis(health="marginal"))
+        # Different pending health: critical instead of marginal
+        d.check(_make_analysis(health="critical"))
+        d.check(_make_analysis(health="critical"))
+        # Only 2 polls at critical, not 3 yet
+        events = d.check(_make_analysis(health="critical"))
+        health_events = [e for e in events if e["event_type"] == "health_change"]
+        assert len(health_events) == 1
+        assert health_events[0]["details"]["current"] == "critical"
+
+    def test_hysteresis_recovery(self):
+        """Recovery also requires N consecutive polls."""
+        d = EventDetector(hysteresis=2)
+        d.check(_make_analysis(health="marginal"))
+        # Confirm degradation stays (already at marginal from baseline)
+        # Now try recovery
+        d.check(_make_analysis(health="good"))
+        events = d.check(_make_analysis(health="good"))
+        health_events = [e for e in events if e["event_type"] == "health_change"]
+        assert len(health_events) == 1
+        assert health_events[0]["severity"] == "info"
+        assert health_events[0]["details"]["current"] == "good"
+
+    def test_hysteresis_one_is_immediate(self):
+        """hysteresis=1 is effectively disabled (1 poll = instant)."""
+        d = EventDetector(hysteresis=1)
+        d.check(_make_analysis(health="good"))
+        events = d.check(_make_analysis(health="marginal"))
+        health_events = [e for e in events if e["event_type"] == "health_change"]
+        assert len(health_events) == 1
+
+
 # ── API Tests ──
 
 @pytest.fixture

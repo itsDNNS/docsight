@@ -41,6 +41,12 @@ class SurfboardDriver(ModemDriver):
     """Driver for Arris SURFboard DOCSIS 3.1 modems (S33/S34/SB8200).
 
     Uses HNAP1 JSON API with HMAC-SHA256 authentication.
+
+    Session management: The modem tracks active sessions by IP address and
+    only allows one concurrent login. Re-logging in while a session is active
+    causes the modem to return ``LoginResult: RELOAD`` instead of a challenge.
+    To avoid this, the driver reuses the existing session across polls and only
+    re-authenticates when a request fails or when no session exists yet.
     """
 
     def __init__(self, url: str, user: str, password: str):
@@ -59,6 +65,7 @@ class SurfboardDriver(ModemDriver):
         self._session.verify = False
         self._private_key = ""
         self._cookie = ""
+        self._logged_in = False
 
     def _fresh_session(self) -> None:
         """Reset HTTP session to clear stale cookies/state."""
@@ -67,27 +74,38 @@ class SurfboardDriver(ModemDriver):
         self._session.verify = False
         self._private_key = ""
         self._cookie = ""
+        self._logged_in = False
 
     def login(self) -> None:
         """Two-phase HNAP login with HMAC-SHA256.
 
+        Reuses the existing session if already authenticated. Only performs
+        a fresh login when no session exists or after a failed request
+        invalidated the session.
+
         Retries once with a fresh session on ConnectionError or when the
         modem returns no challenge (stale session / concurrent login).
         """
-        for attempt in range(2):
+        if self._logged_in:
+            return
+
+        for attempt in range(3):
             try:
                 self._fresh_session()
                 self._do_login()
                 log.info("SURFboard HNAP login OK")
+                self._logged_in = True
                 return
             except requests.ConnectionError:
-                if attempt == 0:
+                if attempt < 2:
                     log.warning("SURFboard connection lost, retrying with fresh session")
+                    time.sleep(1)
                     continue
                 raise RuntimeError("SURFboard login failed: connection refused after retry")
             except RuntimeError as e:
-                if "no challenge received" in str(e) and attempt == 0:
+                if "no challenge received" in str(e) and attempt < 2:
                     log.warning("SURFboard no challenge received, retrying with fresh session")
+                    time.sleep(2)
                     continue
                 raise
             except requests.RequestException as e:
@@ -150,7 +168,21 @@ class SurfboardDriver(ModemDriver):
             raise RuntimeError(f"SURFboard login failed: {result}")
 
     def get_docsis_data(self) -> dict:
-        """Retrieve DOCSIS channel data via HNAP GetMultipleHNAPs."""
+        """Retrieve DOCSIS channel data via HNAP GetMultipleHNAPs.
+
+        Retries once with a fresh login if the request fails (expired session).
+        """
+        try:
+            return self._fetch_docsis_data()
+        except requests.HTTPError as e:
+            log.warning("DOCSIS data fetch failed (HTTP %d), re-authenticating",
+                        e.response.status_code if e.response is not None else 0)
+            self._logged_in = False
+            self.login()
+            return self._fetch_docsis_data()
+
+    def _fetch_docsis_data(self) -> dict:
+        """Internal: fetch and parse DOCSIS channel data."""
         body = {
             "GetMultipleHNAPs": {
                 "GetCustomerStatusDownstreamChannelInfo": "",
@@ -196,6 +228,8 @@ class SurfboardDriver(ModemDriver):
                 "sw_version": cust.get("StatusSoftwareSfVer", ""),
             }
         except Exception:
+            # Mark session as potentially dead so get_docsis_data() re-auths
+            self._logged_in = False
             return {"manufacturer": "Arris", "model": "", "sw_version": ""}
 
     def get_connection_info(self) -> dict:
@@ -235,6 +269,10 @@ class SurfboardDriver(ModemDriver):
             headers["HNAP_AUTH"] = f"{auth_hash} {ts}"
 
         r = self._session.post(url, json=body, headers=headers, timeout=30)
+        if not r.ok:
+            log.debug("HNAP %s returned HTTP %d (%d bytes): %s",
+                       action, r.status_code, len(r.content), r.text[:500])
+            self._logged_in = False
         r.raise_for_status()
         return r.json()
 

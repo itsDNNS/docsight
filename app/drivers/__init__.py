@@ -31,6 +31,9 @@ driver_registry.register_builtin("cm8200", "app.drivers.cm8200.CM8200Driver",
 driver_registry.register_builtin("hitron", "app.drivers.hitron.HitronDriver",
                                  "Hitron CODA-56",
                                  hints={"default_url": "http://192.168.100.1", "credentials_required": False})
+driver_registry.register_builtin("sagemcom", "app.drivers.sagemcom.SagemcomDriver",
+                                 "Sagemcom F@st 3896",
+                                 hints={"default_url": "http://192.168.100.1", "default_user": "admin"})
 driver_registry.register_builtin("generic", "app.drivers.generic.GenericDriver", "Generic Router (No DOCSIS)",
                                  hints={"credentials_required": False})
 

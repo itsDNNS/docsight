@@ -56,9 +56,13 @@ def _qam_rank(modulation):
 class EventDetector:
     """Compare consecutive analyses and emit event dicts."""
 
-    def __init__(self):
+    def __init__(self, hysteresis=0):
         self._prev = None
         self._lock = threading.Lock()
+        self._hysteresis = max(0, int(hysteresis or 0))
+        self._confirmed_health = None
+        self._pending_health = None
+        self._pending_count = 0
 
     def check(self, analysis):
         """Compare current analysis with previous, return list of event dicts.
@@ -103,21 +107,51 @@ class EventDetector:
 
     def _check_health(self, events, ts, cur, prev):
         cur_health = cur.get("health", "good")
-        prev_health = prev.get("health", "good")
-        if cur_health == prev_health:
+
+        if self._hysteresis < 2:
+            # Original behavior: immediate state changes
+            prev_health = prev.get("health", "good")
+            if cur_health == prev_health:
+                return
+            self._emit_health_event(events, ts, prev_health, cur_health)
             return
 
-        # Determine severity based on transition direction
+        # Hysteresis mode: require N consecutive polls before confirming
+        if self._confirmed_health is None:
+            self._confirmed_health = prev.get("health", "good")
+
+        confirmed = self._confirmed_health
+
+        if cur_health == confirmed:
+            # Back to confirmed state, reset pending
+            self._pending_health = None
+            self._pending_count = 0
+            return
+
+        if cur_health == self._pending_health:
+            self._pending_count += 1
+        else:
+            # Different pending health, restart counter
+            self._pending_health = cur_health
+            self._pending_count = 1
+
+        if self._pending_count >= self._hysteresis:
+            # Transition confirmed
+            self._emit_health_event(events, ts, confirmed, cur_health)
+            self._confirmed_health = cur_health
+            self._pending_health = None
+            self._pending_count = 0
+
+    @staticmethod
+    def _emit_health_event(events, ts, prev_health, cur_health):
         health_order = {"good": 0, "tolerated": 1, "marginal": 2, "critical": 3}
         cur_level = health_order.get(cur_health, 0)
         prev_level = health_order.get(prev_health, 0)
 
         if cur_level > prev_level:
-            # Degradation
             severity = "critical" if cur_health == "critical" else "warning"
             message = f"Health changed from {prev_health} to {cur_health}"
         else:
-            # Recovery
             severity = "info"
             message = f"Health recovered from {prev_health} to {cur_health}"
 
