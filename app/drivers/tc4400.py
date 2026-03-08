@@ -116,16 +116,7 @@ class TC4400Driver(ModemDriver):
         if not rows:
             return []
 
-        # Find header row: skip title rows (colspan) and find first row with actual column headers
-        header_row = None
-        for row in rows:
-            cells = row.find_all(["th", "td"])
-            if cells and any(cell.get("colspan") for cell in cells if cell.name == "th"):
-                continue  # Skip title row with colspan
-            if cells and len(cells) > 3:
-                header_row = row
-                break
-
+        header_row = self._find_header_row(rows)
         if header_row is None:
             return []
 
@@ -195,16 +186,7 @@ class TC4400Driver(ModemDriver):
         if not rows:
             return []
 
-        # Find header row: skip title rows (colspan) and find first row with actual column headers
-        header_row = None
-        for row in rows:
-            cells = row.find_all(["th", "td"])
-            if cells and any(cell.get("colspan") for cell in cells if cell.name == "th"):
-                continue  # Skip title row with colspan
-            if cells and len(cells) > 3:
-                header_row = row
-                break
-
+        header_row = self._find_header_row(rows)
         if header_row is None:
             return []
 
@@ -244,11 +226,23 @@ class TC4400Driver(ModemDriver):
 
         return result
 
+    @staticmethod
+    def _find_header_row(rows):
+        """Find the actual header row, skipping title rows with colspan."""
+        for row in rows:
+            cells = row.find_all(["th", "td"])
+            if cells and any(cell.get("colspan") for cell in cells):
+                continue
+            if cells and len(cells) > 3:
+                return row
+        return None
+
     def _map_columns(self, headers: list[str]) -> dict:
         """Map header names to column indices.
 
-        Handles firmware variations like "Received Level" vs "Receive Level"
-        and "Channel Type" vs "Modulation".
+        Uses fuzzy matching to handle firmware variations like
+        "Received Level" vs "Receive Level", "Channel ID" vs "Channel Index",
+        "Channel Type" vs "Modulation / Profile ID".
         """
         col = {
             "channel_id": None,
@@ -263,32 +257,23 @@ class TC4400Driver(ModemDriver):
         }
 
         for i, h in enumerate(headers):
-            if h == "channel id":
+            if "channel" in h and ("id" in h or "index" in h):
                 col["channel_id"] = i
-            elif h == "channel index":
-                if col["channel_id"] is None:
-                    col["channel_id"] = i
-            elif h == "lock status":
+            elif "lock" in h:
                 col["lock_status"] = i
-            elif h == "channel type":
+            elif "channel" in h and "type" in h:
                 col["channel_type"] = i
-            elif "modulation" in h:
+            elif "modulation" in h or "profile" in h:
                 col["modulation"] = i
-            elif h == "center frequency":
+            elif "freq" in h:
                 col["frequency"] = i
-            elif "frequency" in h and col["frequency"] is None:
-                col["frequency"] = i
-            elif "received level" in h:
+            elif any(kw in h for kw in ("power", "receive", "transmit")):
                 col["power"] = i
-            elif "transmit level" in h:
-                col["power"] = i
-            elif "snr" in h:
+            elif "snr" in h or "mer" in h:
                 col["snr"] = i
-            elif "mer" in h:
-                col["snr"] = i
-            elif "corrected codewords" in h:
+            elif "corrected" in h and "un" not in h:
                 col["corrected"] = i
-            elif "uncorrectable codewords" in h:
+            elif "uncorrect" in h:
                 col["uncorrected"] = i
 
         # Positional fallbacks for common TC4400 table layout
