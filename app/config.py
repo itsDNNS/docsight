@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import stat
+from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash
@@ -101,6 +102,9 @@ _LEGACY_KEY_MAP = {
 
 INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown"}
 BOOL_KEYS = {"demo_mode", "gaming_quality_enabled"}
+
+URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url"}
+_ALLOWED_URL_SCHEMES = {"http", "https"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
 _NON_EMPTY_KEYS = set()
@@ -225,9 +229,26 @@ class ConfigManager:
             return default
         return DEFAULTS.get(key)
 
+    @staticmethod
+    def _validate_url(key, value):
+        """Validate that URL keys use http or https scheme only."""
+        if not value:
+            return
+        parsed = urlparse(value)
+        if parsed.scheme not in _ALLOWED_URL_SCHEMES:
+            raise ValueError(
+                f"Invalid URL scheme '{parsed.scheme}' for {key}. "
+                f"Only http and https are allowed."
+            )
+
     def save(self, data):
         """Save config values to config.json. Passwords are encrypted."""
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+
+        # Validate URL keys before any mutation
+        for key in URL_KEYS:
+            if key in data and data[key]:
+                self._validate_url(key, data[key])
 
         # Don't overwrite passwords with the mask placeholder
         for key in SECRET_KEYS | HASH_KEYS:

@@ -43,8 +43,8 @@ function loadBnetzData() {
                     'title="' + (T.bnetz_generate_complaint || 'Generate complaint') + '">' +
                     '<i data-lucide="file-pen"></i></a>';
             }
-            tr.innerHTML = '<td>' + (hasMeasurements ? '<button class="bnetz-expand-btn" id="bnetz-arrow-' + idx + '"><i data-lucide="chevron-right"></i></button> ' : '') + m.date + '</td>' +
-                '<td>' + (m.provider || '-') + '</td>' +
+            tr.innerHTML = '<td>' + (hasMeasurements ? '<button class="bnetz-expand-btn" id="bnetz-arrow-' + idx + '"><i data-lucide="chevron-right"></i></button> ' : '') + escapeHtml(m.date || '') + '</td>' +
+                '<td>' + escapeHtml(m.provider || '-') + '</td>' +
                 '<td>' + (m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-') + '</td>' +
                 '<td>' + Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : '') + '</td>' +
                 '<td>' + (m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-') + '</td>' +
@@ -128,7 +128,7 @@ function buildBnetzDetailHtml(m) {
             else if (m.download_normal_tariff && speed < m.download_normal_tariff) color = 'var(--warn, orange)';
             html += '<tr>' +
                 '<td>' + (i + 1) + '</td>' +
-                '<td>' + (meas.date || '') + ' ' + (meas.time || '') + '</td>' +
+                '<td>' + escapeHtml(meas.date || '') + ' ' + escapeHtml(meas.time || '') + '</td>' +
                 '<td class="bnetz-detail-speed-col" style="color:' + color + ';">' + (typeof speed === 'number' ? speed.toFixed(1) : speed) + ' Mbit/s</td></tr>';
         });
         html += '</table></div>';
@@ -147,7 +147,7 @@ function buildBnetzDetailHtml(m) {
             else if (m.upload_normal_tariff && speed < m.upload_normal_tariff) color = 'var(--warn, orange)';
             html += '<tr>' +
                 '<td>' + (i + 1) + '</td>' +
-                '<td>' + (meas.date || '') + ' ' + (meas.time || '') + '</td>' +
+                '<td>' + escapeHtml(meas.date || '') + ' ' + escapeHtml(meas.time || '') + '</td>' +
                 '<td class="bnetz-detail-speed-col" style="color:' + color + ';">' + (typeof speed === 'number' ? speed.toFixed(1) : speed) + ' Mbit/s</td></tr>';
         });
         html += '</table></div>';

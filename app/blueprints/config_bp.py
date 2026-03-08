@@ -53,6 +53,8 @@ def api_config():
         if _on_config_changed:
             _on_config_changed()
         return jsonify({"success": True})
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
     except Exception as e:
         log.error("Config save failed: %s", e)
         return jsonify({"success": False, "error": str(e)}), 500

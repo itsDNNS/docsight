@@ -612,7 +612,7 @@ function showBqmImportResult(data) {
         var datesHtml = '<div style="margin-bottom:6px;color:#eab308;font-weight:500;">Skipped (already exist):</div>';
         datesHtml += '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;">';
         data.skipped_dates.forEach(function(d) {
-            datesHtml += '<span style="color:var(--muted);">' + d + '</span>';
+            datesHtml += '<span style="color:var(--muted);">' + escapeHtml(d) + '</span>';
         });
         datesHtml += '</div>';
         td.innerHTML = datesHtml;

@@ -3,7 +3,7 @@
 import json
 import os
 import pytest
-from app.config import ConfigManager, DEFAULTS, SECRET_KEYS, HASH_KEYS, PASSWORD_MASK
+from app.config import ConfigManager, DEFAULTS, SECRET_KEYS, HASH_KEYS, PASSWORD_MASK, URL_KEYS
 
 
 @pytest.fixture
@@ -203,3 +203,38 @@ class TestConfigState:
         assert config.get_theme() == "light"
         config.save({"theme": "invalid"})
         assert config.get_theme() == "dark"
+
+
+class TestConfigUrlValidation:
+    @pytest.mark.parametrize("url", [
+        "http://192.168.1.1",
+        "https://example.com",
+        "http://modem.local:8080/status",
+        "https://speedtest.example.com/api",
+    ])
+    def test_valid_urls_accepted(self, config, url):
+        for key in URL_KEYS:
+            config.save({key: url})
+            assert config.get(key) == url
+
+    @pytest.mark.parametrize("url", [
+        "file:///etc/passwd",
+        "gopher://evil.com",
+        "ftp://files.local/data",
+        "javascript:alert(1)",
+        "data:text/html,<h1>hi</h1>",
+    ])
+    def test_forbidden_schemes_rejected(self, config, url):
+        for key in URL_KEYS:
+            with pytest.raises(ValueError, match="Only http and https are allowed"):
+                config.save({key: url})
+
+    def test_empty_url_allowed(self, config):
+        for key in URL_KEYS:
+            config.save({key: ""})
+
+    def test_valid_data_alongside_bad_url_not_saved(self, config):
+        config.save({"modem_user": "before"})
+        with pytest.raises(ValueError):
+            config.save({"modem_user": "after", "modem_url": "file:///etc/passwd"})
+        assert config.get("modem_user") == "before"

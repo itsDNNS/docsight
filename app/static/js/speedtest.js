@@ -165,8 +165,8 @@ function renderSpeedtestRows() {
             + serverCell
             + '<td><strong' + dlClass + '>' + escapeHtml(r.download_human || (r.download_mbps + ' Mbps')) + '</strong></td>'
             + '<td><strong' + ulClass + '>' + escapeHtml(r.upload_human || (r.upload_mbps + ' Mbps')) + '</strong></td>'
-            + '<td' + pingClass + '>' + r.ping_ms + ' ms</td>'
-            + '<td' + jitterClass + '>' + r.jitter_ms + ' ms</td>'
+            + '<td' + pingClass + '>' + escapeHtml(String(r.ping_ms)) + ' ms</td>'
+            + '<td' + jitterClass + '>' + escapeHtml(String(r.jitter_ms)) + ' ms</td>'
             + '<td>' + (r.packet_loss_pct > 0 ? '<span class="val-warn">' + r.packet_loss_pct + '%</span>' : '0%') + '</td>';
         tbody.appendChild(tr);
     }
@@ -416,7 +416,7 @@ function renderSpeedtestChart() {
         if (idx < 0) idx = 0;
         if (idx >= data.length) idx = data.length - 1;
         tooltip.style.display = 'block';
-        tooltip.innerHTML = '<strong>' + formatSpeedtestTimestamp(data[idx].timestamp) + '</strong><br>'
+        tooltip.innerHTML = '<strong>' + escapeHtml(formatSpeedtestTimestamp(data[idx].timestamp)) + '</strong><br>'
             + '<span style="color:#a855f7">&#9660;</span> ' + (T.speedtest_dl || 'DL') + ': ' + dls[idx].toFixed(2) + ' Mbps<br>'
             + '<span style="color:#22c55e">&#9650;</span> ' + (T.speedtest_ul || 'UL') + ': ' + uls[idx].toFixed(2) + ' Mbps<br>'
             + '<span style="color:#f59e0b">&#9679;</span> ' + (T.speedtest_ping || 'Ping') + ': ' + pings[idx].toFixed(1) + ' ms';

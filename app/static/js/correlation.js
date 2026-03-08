@@ -583,8 +583,8 @@ function renderCorrelationChart(data) {
                 var checked = _corrEventFilter[et] ? ' checked' : '';
                 var label = typeLabel[et] || et.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
                 html += '<label style="display:flex; align-items:center; gap:6px; padding:3px 0; cursor:pointer; color:var(--text-secondary,#9ca3af);">' +
-                    '<input type="checkbox" data-event-type="' + et + '"' + checked + ' style="accent-color:' + warnColor + ';"> ' +
-                    label + ' <span style="opacity:0.5; font-size:0.85em;">(' + eventTypes[et] + ')</span></label>';
+                    '<input type="checkbox" data-event-type="' + escapeHtml(et) + '"' + checked + ' style="accent-color:' + warnColor + ';"> ' +
+                    escapeHtml(label) + ' <span style="opacity:0.5; font-size:0.85em;">(' + eventTypes[et] + ')</span></label>';
             }
             pop.innerHTML = html;
             this.parentElement.appendChild(pop);
@@ -875,7 +875,7 @@ function _setupCorrelationTooltip(overlay, octx) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.upload + ';"></span> ' + (T.correlation_tt_upload || 'Upload') + ': ' + (nearestSpeed.upload_mbps || 0).toFixed(1) + ' Mbps</div>';
         }
         if (nearestEvent && _corrVisible.events) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + (nearestEvent.message || nearestEvent.severity || '') + '</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + escapeHtml(nearestEvent.message || nearestEvent.severity || '') + '</div>';
         }
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + nearestWeather.temperature.toFixed(1) + ' \u00B0C</div>';

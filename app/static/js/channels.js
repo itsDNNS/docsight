@@ -256,7 +256,7 @@ function renderCompareChips() {
         var chip = document.createElement('span');
         chip.className = 'compare-chip';
         chip.style.backgroundColor = ch.color;
-        chip.innerHTML = ch.label + ' <button class="compare-chip-remove" onclick="removeCompareChannel(' + ch.id + ')">&times;</button>';
+        chip.innerHTML = escapeHtml(ch.label) + ' <button class="compare-chip-remove" onclick="removeCompareChannel(' + ch.id + ')">&times;</button>';
         container.appendChild(chip);
     });
 }
