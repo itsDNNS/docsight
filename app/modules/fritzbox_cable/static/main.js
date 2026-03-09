@@ -104,7 +104,7 @@ function _fritzCableRenderChart(containerId, samples, totalKey, ownKey) {
         {
             label: _fcT('total', 'Total'),
             data: samples.map(function(s) { return s[totalKey]; }),
-            color: '#a855f7'
+            color: 'rgba(168,85,247,0.9)', fill: 'rgba(168,85,247,0.15)'
         },
         {
             label: _fcT('own', 'Own Share'),
