@@ -1,6 +1,6 @@
 /* ── FRITZ!Box Cable Segment Utilization ── */
 
-var _fritzCableRange = '24h';
+var _fritzCableRange = 'all';
 
 /* ── Range Tab Switching ── */
 var fritzCableTabs = document.querySelectorAll('#fritz-cable-range-tabs .trend-tab');
