@@ -163,6 +163,7 @@ Open `http://localhost:8765` — no setup required.
 |---|---|---|
 | **Arris CM3500B** | ✅ Fully supported | HTTPS enforced, mixed DOCSIS 3.0/3.1 |
 | **Arris SB6141** | ✅ Fully supported | DOCSIS 3.0 standalone |
+| **Arris SB6190** | ✅ Fully supported | DOCSIS 3.0 standalone |
 | **Arris SURFboard** (S33, S34, SB8200) | ✅ Fully supported | HNAP1 API |
 | **Arris Touchstone CM8200A** | ✅ Fully supported | ISP-branded DOCSIS 3.1 |
 | **AVM Fritz!Box Cable** (6490, 6590, 6591, 6660, 6690) | ✅ Fully supported | |
@@ -297,6 +298,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on
 | Hitron CODA-56 Support | ✅ Released | [#172](https://github.com/itsDNNS/docsight/issues/172) |
 | Arris SB6141 Support | ✅ Released | [#174](https://github.com/itsDNNS/docsight/issues/174) |
 | Cable Segment Utilization | ✅ Released | [#188](https://github.com/itsDNNS/docsight/issues/188) |
+| Arris SB6190 Support | ✅ Released | [#192](https://github.com/itsDNNS/docsight/issues/192) |
 
 **Planned:**
 
