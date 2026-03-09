@@ -47,25 +47,13 @@
 
         <div class="fritz-cable-grid">
             <div class="chart-card fritz-cable-panel">
-                <div class="fritz-cable-panel-header">
-                    <div class="fritz-cable-panel-title">{{ t.get('docsight.fritzbox_cable.downstream', 'Downstream Utilization') }}</div>
-                    <div class="fritz-cable-legend">
-                        <span class="fritz-cable-legend-total">&#9644; {{ t.get('docsight.fritzbox_cable.total', 'Total') }}</span>
-                        <span class="fritz-cable-legend-own">&#183;&#183; {{ t.get('docsight.fritzbox_cable.own', 'Own Share') }}</span>
-                    </div>
-                </div>
-                <div class="fritz-cable-chart" id="fritz-cable-ds-chart"></div>
+                <div class="fritz-cable-panel-title">{{ t.get('docsight.fritzbox_cable.downstream', 'Downstream Utilization') }}</div>
+                <div id="fritz-cable-ds-chart" style="width:100%;"></div>
             </div>
 
             <div class="chart-card fritz-cable-panel">
-                <div class="fritz-cable-panel-header">
-                    <div class="fritz-cable-panel-title">{{ t.get('docsight.fritzbox_cable.upstream', 'Upstream Utilization') }}</div>
-                    <div class="fritz-cable-legend">
-                        <span class="fritz-cable-legend-total">&#9644; {{ t.get('docsight.fritzbox_cable.total', 'Total') }}</span>
-                        <span class="fritz-cable-legend-own">&#183;&#183; {{ t.get('docsight.fritzbox_cable.own', 'Own Share') }}</span>
-                    </div>
-                </div>
-                <div class="fritz-cable-chart" id="fritz-cable-us-chart"></div>
+                <div class="fritz-cable-panel-title">{{ t.get('docsight.fritzbox_cable.upstream', 'Upstream Utilization') }}</div>
+                <div id="fritz-cable-us-chart" style="width:100%;"></div>
             </div>
         </div>
 
