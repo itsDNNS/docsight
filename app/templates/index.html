@@ -2254,6 +2254,8 @@ var T = {{ t|tojson }};
             if (typeof loadTrends === 'function') loadTrends(_trendRange);
         } else if (view === 'modulation') {
             if (typeof initModulation === 'function') initModulation();
+        } else if (view === 'mod-docsight-fritzbox_cable') {
+            if (typeof loadFritzCableData === 'function') loadFritzCableData();
         }
 
         // Re-initialize Lucide icons after view switch
