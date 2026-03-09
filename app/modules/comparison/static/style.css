@@ -1,0 +1,141 @@
+/* -- Before/After Comparison Module -- */
+
+/* Control bar */
+.comparison-controls {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-md, 16px) var(--space-lg, 20px);
+    margin-bottom: var(--space-lg, 20px);
+}
+
+.comparison-control-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-md, 16px);
+    flex-wrap: wrap;
+}
+
+.comparison-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.comparison-label {
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.comparison-select,
+.comparison-input {
+    background: var(--input-bg, var(--surface-2, rgba(0,0,0,0.15)));
+    color: var(--text);
+    border: 1px solid var(--input-border, var(--card-border));
+    border-radius: var(--radius-sm, 6px);
+    padding: 8px 12px;
+    font-size: 0.85em;
+    font-family: inherit;
+}
+
+.comparison-select:focus,
+.comparison-input:focus {
+    outline: none;
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
+}
+
+.comparison-date-pair {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.comparison-arrow {
+    color: var(--muted);
+    font-size: 0.9em;
+}
+
+.comparison-btn-field {
+    margin-left: auto;
+}
+
+/* Placeholder */
+.comparison-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 0.95em;
+}
+
+/* Delta table */
+.comparison-delta-section {
+    margin-top: var(--space-lg, 20px);
+}
+
+.comparison-delta-section table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.comparison-delta-section thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+
+.comparison-delta-section thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+
+.comparison-delta-section tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s;
+}
+
+.comparison-delta-section tbody tr:hover {
+    background: rgba(168,85,247,0.08);
+}
+
+.comparison-delta-section tbody td {
+    padding: 10px 16px;
+    font-size: 0.85em;
+}
+
+/* Delta coloring */
+.cmp-good {
+    color: var(--color-ok, #22c55e);
+    font-weight: 600;
+}
+
+.cmp-bad {
+    color: var(--color-crit, #ef4444);
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .comparison-control-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .comparison-btn-field {
+        margin-left: 0;
+    }
+
+    .comparison-date-pair {
+        flex-wrap: wrap;
+    }
+
+    .comparison-input {
+        min-width: 0;
+        flex: 1;
+    }
+}
