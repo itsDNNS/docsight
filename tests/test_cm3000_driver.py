@@ -217,14 +217,16 @@ class TestDriverInit:
 # -- Login --
 
 class TestLogin:
-    def test_login_sends_get_with_auth(self, driver):
+    def test_login_fetches_status_page_with_auth(self, driver):
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
+        mock_response.text = STATUS_HTML
 
         with patch.object(driver._session, "get", return_value=mock_response) as mock_get:
             driver.login()
-            mock_get.assert_called_once_with("http://192.168.100.1/", timeout=15)
+            mock_get.assert_called_once_with("http://192.168.100.1/DocsisStatus.htm", timeout=30)
+            assert driver._status_html == STATUS_HTML
 
     def test_login_failure_raises(self, driver):
         import requests as req
@@ -239,6 +241,7 @@ class TestLogin:
         import requests as req
         mock_ok = MagicMock()
         mock_ok.raise_for_status = MagicMock()
+        mock_ok.text = STATUS_HTML
 
         # First call on old session raises ConnectionError.
         # Driver creates a new session for retry, so we patch
@@ -252,6 +255,23 @@ class TestLogin:
         ), patch("app.drivers.cm3000.requests.Session", return_value=mock_new_session):
             driver.login()  # Should succeed on retry
             mock_new_session.get.assert_called_once()
+
+    def test_login_rejects_login_page_false_positive(self, driver):
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.text = """
+            <html><body>
+            <script>
+            if (sessionStorage.getItem('PrivateKey') === null) {
+                window.location.replace('../Login.htm');
+            }
+            </script>
+            </body></html>
+        """
+
+        with patch.object(driver._session, "get", return_value=mock_response):
+            with pytest.raises(RuntimeError, match="returned a login page"):
+                driver.login()
 
 
 # -- DOCSIS data: structure --
@@ -438,6 +458,23 @@ class TestValueParsers:
         channels = CM3000Driver._split_channels(raw, 3)
         assert len(channels) == 1
         assert channels[0] == ["a", "b", "c"]
+
+    def test_fetch_status_page_rejects_missing_docsis_blocks(self, driver):
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.text = "<html><body><h1>Welcome</h1></body></html>"
+
+        with patch.object(driver._session, "get", return_value=mock_response):
+            with pytest.raises(RuntimeError, match="expected DOCSIS data blocks"):
+                driver._fetch_status_page()
+
+    def test_fetch_status_page_uses_cached_login_html(self, driver):
+        driver._status_html = STATUS_HTML
+
+        with patch.object(driver._session, "get") as mock_get:
+            assert driver._fetch_status_page() == STATUS_HTML
+            mock_get.assert_not_called()
+            assert driver._status_html is None
 
 
 # -- Regex patterns --
