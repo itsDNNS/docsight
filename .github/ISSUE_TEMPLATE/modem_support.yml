@@ -1,178 +1,175 @@
-  name: "Modem Support Request"
-  description: "Request support for a new cable modem model"
-  labels:
-    - "modem support"
-    - "help wanted"
+name: "Modem Support Request"
+description: "Request support for a new cable modem model"
+labels:
+  - "modem support"
+  - "help wanted"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for requesting support for a new modem! Before filling out this form, please follow the [Requesting Modem Support](https://github.com/itsDNNS/docsight/wiki/Requesting-Modem-Support) guide to collect the data we need (HAR file, screenshot, firmware version).
 
-  body:
-    - type: markdown
-      attributes:
-        value: |
-          Thanks for requesting support for a new modem! Before filling out this form, please follow the [Requesting Modem Support](https://github.com/itsDNNS/docsight/wiki/Requesting-Modem-Support) guide to
-  collect the data we need (HAR file, screenshot, firmware version).
+        For modems with login-protected web UIs, the HAR file must include the actual login exchange, not only requests made after you are already logged in.
 
-          For modems with login-protected web UIs, the HAR file must include the actual login exchange, not only requests made after you are already logged in.
+        GitHub may block direct `.har` uploads. Please upload the capture as `.har.txt` or `.zip` if needed.
 
-          GitHub may block direct `.har` uploads. Please upload the capture as `.har.txt` or `.zip` if needed.
+  - type: input
+    id: manufacturer
+    attributes:
+      label: "Manufacturer"
+      description: "Who makes the modem?"
+      placeholder: "e.g., Arris, Technicolor, Netgear, Motorola"
+    validations:
+      required: true
 
-    - type: input
-      id: manufacturer
-      attributes:
-        label: "Manufacturer"
-        description: "Who makes the modem?"
-        placeholder: "e.g., Arris, Technicolor, Netgear, Motorola"
-      validations:
-        required: true
+  - type: input
+    id: model
+    attributes:
+      label: "Model Number"
+      description: "Full model number (check the label on the device)"
+      placeholder: "e.g., Arris TG3442DE, Netgear CM1000"
+    validations:
+      required: true
 
-    - type: input
-      id: model
-      attributes:
-        label: "Model Number"
-        description: "Full model number (check the label on the device)"
-        placeholder: "e.g., Arris TG3442DE, Netgear CM1000"
-      validations:
-        required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: "Firmware Version"
+      description: "Current firmware version (usually shown in the web interface)"
+      placeholder: "e.g., 01.05.063.13.EURO.PC20"
+    validations:
+      required: true
 
-    - type: input
-      id: firmware
-      attributes:
-        label: "Firmware Version"
-        description: "Current firmware version (usually shown in the web interface)"
-        placeholder: "e.g., 01.05.063.13.EURO.PC20"
-      validations:
-        required: true
+  - type: input
+    id: isp
+    attributes:
+      label: "Internet Provider"
+      description: "Which ISP provides this modem?"
+      placeholder: "e.g., Vodafone Kabel, PYUR, Comcast"
 
-    - type: input
-      id: isp
-      attributes:
-        label: "Internet Provider"
-        description: "Which ISP provides this modem?"
-        placeholder: "e.g., Vodafone Kabel, PYUR, Comcast"
+  - type: dropdown
+    id: docsis
+    attributes:
+      label: "DOCSIS Version"
+      description: "Which DOCSIS standard does the modem support?"
+      options:
+        - "DOCSIS 3.0"
+        - "DOCSIS 3.1"
+        - "Don't know"
+    validations:
+      required: true
 
-    - type: dropdown
-      id: docsis
-      attributes:
-        label: "DOCSIS Version"
-        description: "Which DOCSIS standard does the modem support?"
-        options:
-          - "DOCSIS 3.0"
-          - "DOCSIS 3.1"
-          - "Don't know"
-      validations:
-        required: true
+  - type: input
+    id: web_url
+    attributes:
+      label: "Modem Web Interface URL"
+      description: "What URL do you use to access the modem settings?"
+      placeholder: "e.g., http://192.168.0.1 or http://192.168.100.1"
+    validations:
+      required: true
 
-    - type: input
-      id: web_url
-      attributes:
-        label: "Modem Web Interface URL"
-        description: "What URL do you use to access the modem settings?"
-        placeholder: "e.g., http://192.168.0.1 or http://192.168.100.1"
-      validations:
-        required: true
+  - type: dropdown
+    id: authentication
+    attributes:
+      label: "Authentication"
+      description: "Does the web interface require login?"
+      options:
+        - "Yes (username + password)"
+        - "Yes (password only)"
+        - "No authentication required"
+    validations:
+      required: true
 
-    - type: dropdown
-      id: authentication
-      attributes:
-        label: "Authentication"
-        description: "Does the web interface require login?"
-        options:
-          - "Yes (username + password)"
-          - "Yes (password only)"
-          - "No authentication required"
-      validations:
-        required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: "DOCSIS Status Page Screenshot"
+      description: |
+        Upload a screenshot of the DOCSIS status page showing downstream/upstream channels.
+        Redact any sensitive information (MAC address, IP, serial number).
+      placeholder: "Drag and drop a screenshot here"
+    validations:
+      required: true
 
-    - type: textarea
-      id: screenshot
-      attributes:
-        label: "DOCSIS Status Page Screenshot"
-        description: |
-          Upload a screenshot of the DOCSIS status page showing downstream/upstream channels.
-          Redact any sensitive information (MAC address, IP, serial number).
-        placeholder: "Drag and drop a screenshot here"
-      validations:
-        required: true
+  - type: textarea
+    id: har_file
+    attributes:
+      label: "HAR File (Network Capture)"
+      description: |
+        We need a HAR file to understand how your modem's web interface fetches data. Without this, we can't build a driver because every modem and ISP firmware variant uses different API endpoints and authentication flows.
 
-    - type: textarea
-      id: har_file
-      attributes:
-        label: "HAR File (Network Capture)"
-        description: |
-          We need a HAR file to understand how your modem's web interface fetches data. Without this, we can't build a driver because every modem and ISP firmware variant uses different API endpoints and
-  authentication flows.
+        How to capture:
+        1. Close any already-open modem web UI tabs first
+        2. Open Chrome or Firefox and open Developer Tools (F12) -> Network tab
+        3. Start recording before opening the modem web interface
+        4. Open the modem web interface and log in from a clean browser tab
+        5. Navigate to the DOCSIS status page
+        6. Right-click in the Network tab and choose "Save all as HAR"
+        7. Verify that the HAR includes the actual login request and response flow, not only post-login data requests
+        8. Remove passwords, MAC addresses, or serial numbers before uploading
+        9. If GitHub rejects raw `.har` uploads, rename the file to `.har.txt` or upload it as a `.zip` archive
+        10. Upload the capture here
 
-          How to capture:
-          1. Close any already-open modem web UI tabs first
-          2. Open Chrome or Firefox and open Developer Tools (F12) -> Network tab
-          3. Start recording before opening the modem web interface
-          4. Open the modem web interface and log in from a clean browser tab
-          5. Navigate to the DOCSIS status page
-          6. Right-click in the Network tab and choose "Save all as HAR"
-          7. Verify that the HAR includes the actual login request and response flow, not only post-login data requests
-          8. Remove passwords, MAC addresses, or serial numbers before uploading
-          9. If GitHub rejects raw `.har` uploads, rename the file to `.har.txt` or upload it as a `.zip` archive
-          10. Upload the capture here
+        Please make sure the capture includes:
+        - The first request to the modem web UI
+        - The login request itself, if authentication is required
+        - The first successful requests that load modem or channel data
+      placeholder: "Drag and drop .har.txt or .zip file here"
+    validations:
+      required: true
 
-          Please make sure the capture includes:
-          - The first request to the modem web UI
-          - The login request itself, if authentication is required
-          - The first successful requests that load modem or channel data
-        placeholder: "Drag and drop .har.txt or .zip file here"
-      validations:
-        required: true
+  - type: textarea
+    id: session_behavior
+    attributes:
+      label: "Login / Session Behavior"
+      description: |
+        Describe when the problem occurs and whether browser access affects it.
+      placeholder: |
+        Example:
+        - Works on first login, fails on second test
+        - Only fails after a poll cycle
+        - Fails if the modem UI is open in a browser at the same time
+        - Browser and DOCSight seem to kick each other out
 
-    - type: textarea
-      id: session_behavior
-      attributes:
-        label: "Login / Session Behavior"
-        description: |
-          Describe when the problem occurs and whether browser access affects it.
-        placeholder: |
-          Example:
-          - Works on first login, fails on second test
-          - Only fails after a poll cycle
-          - Fails if the modem UI is open in a browser at the same time
-          - Browser and DOCSight seem to kick each other out
+  - type: textarea
+    id: debug_logs
+    attributes:
+      label: "Debug Logs (if login or polling fails)"
+      description: |
+        If the modem requires authentication or the issue involves failed logins, session expiry, or empty data, please also attach DOCSight debug logs from the same test window as the HAR capture.
 
-    - type: textarea
-      id: debug_logs
-      attributes:
-        label: "Debug Logs (if login or polling fails)"
-        description: |
-          If the modem requires authentication or the issue involves failed logins, session expiry, or empty data, please also attach DOCSight debug logs from the same test window as the HAR capture.
+        Example:
+        - Docker: set `LOG_LEVEL=DEBUG`
+        - Docker Compose: set `LOG_LEVEL=DEBUG` in the container environment
+      placeholder: "Paste relevant debug logs here or attach a .txt file"
 
-          Example:
-          - Docker: set `LOG_LEVEL=DEBUG`
-          - Docker Compose: set `LOG_LEVEL=DEBUG` in the container environment
-        placeholder: "Paste relevant debug logs here or attach a .txt file"
+  - type: textarea
+    id: capture_conditions
+    attributes:
+      label: "Capture Conditions"
+      description: |
+        Tell us how the HAR and logs were captured so we can reason about session state correctly.
+      placeholder: |
+        Example:
+        - Modem was freshly rebooted
+        - No browser tabs to the modem UI were open
+        - Browser login was done while DOCSight was polling
+        - Captured on the first login after reboot
 
-    - type: textarea
-      id: capture_conditions
-      attributes:
-        label: "Capture Conditions"
-        description: |
-          Tell us how the HAR and logs were captured so we can reason about session state correctly.
-        placeholder: |
-          Example:
-          - Modem was freshly rebooted
-          - No browser tabs to the modem UI were open
-          - Browser login was done while DOCSight was polling
-          - Captured on the first login after reboot
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: "I am willing to help"
+      description: "Can you help with testing once we have a driver?"
+      options:
+        - label: "I can test the driver with my modem"
+          required: false
+        - label: "I can provide additional debug logs if needed"
+          required: false
 
-    - type: checkboxes
-      id: contribution
-      attributes:
-        label: "I am willing to help"
-        description: "Can you help with testing once we have a driver?"
-        options:
-          - label: "I can test the driver with my modem"
-            required: false
-          - label: "I can provide additional debug logs if needed"
-            required: false
-
-    - type: textarea
-      id: additional
-      attributes:
-        label: "Additional Information"
-        description: "Any other details that might help, such as quirks or alternative access methods"
-        placeholder: "This modem also supports SNMP..."
+  - type: textarea
+    id: additional
+    attributes:
+      label: "Additional Information"
+      description: "Any other details that might help, such as quirks or alternative access methods"
+      placeholder: "This modem also supports SNMP..."
