@@ -13,9 +13,7 @@
     "static": "static/",
     "i18n": "i18n/"
   },
-  "config": {
-    "segment_utilization_enabled": false
-  },
+  "config": {},
   "menu": {
     "label_key": "docsight.fritzbox_cable.title",
     "icon": "gauge",

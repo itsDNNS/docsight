@@ -33,10 +33,7 @@ class SegmentUtilizationCollector(Collector):
         return "segment_utilization"
 
     def is_enabled(self):
-        return (
-            self._config.get("modem_type") == "fritzbox"
-            and bool(self._config.get("segment_utilization_enabled"))
-        )
+        return self._config.get("modem_type") == "fritzbox"
 
     def collect(self):
         url = self._config.get("modem_url")

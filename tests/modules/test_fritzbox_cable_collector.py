@@ -30,7 +30,6 @@ def mock_config():
     cfg = MagicMock()
     cfg.get.side_effect = lambda k, d=None: {
         "modem_type": "fritzbox",
-        "segment_utilization_enabled": True,
         "modem_url": "http://192.168.178.1",
         "modem_user": "admin",
         "modem_password": "secret",
@@ -59,15 +58,6 @@ class TestIsEnabled:
     def test_disabled_when_not_fritzbox(self, mock_config, mock_storage):
         mock_config.get.side_effect = lambda k, d=None: {
             "modem_type": "arris",
-            "segment_utilization_enabled": True,
-        }.get(k, d)
-        c = SegmentUtilizationCollector(config_mgr=mock_config, storage=mock_storage, web=MagicMock())
-        assert c.is_enabled() is False
-
-    def test_disabled_when_config_false(self, mock_config, mock_storage):
-        mock_config.get.side_effect = lambda k, d=None: {
-            "modem_type": "fritzbox",
-            "segment_utilization_enabled": False,
         }.get(k, d)
         c = SegmentUtilizationCollector(config_mgr=mock_config, storage=mock_storage, web=MagicMock())
         assert c.is_enabled() is False
