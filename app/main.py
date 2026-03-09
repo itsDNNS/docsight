@@ -212,6 +212,7 @@ def main():
         if poll_thread and poll_thread.is_alive():
             poll_stop.set()
             poll_thread.join(timeout=10)
+        web.reset_modem_state()
         poll_stop = threading.Event()
         poll_thread = threading.Thread(
             target=polling_loop, args=(config_mgr, storage, poll_stop), daemon=True

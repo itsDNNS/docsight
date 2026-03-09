@@ -581,6 +581,21 @@ def get_state() -> dict:
         return dict(_state)
 
 
+def reset_modem_state():
+    """Clear modem-specific dashboard state before switching drivers.
+
+    Keeps unrelated collector data like speedtest/weather cache intact so
+    the dashboard only drops the modem-derived sections while a new poll
+    is starting.
+    """
+    with _state_lock:
+        _state["analysis"] = None
+        _state["last_update"] = None
+        _state["error"] = None
+        _state["connection_info"] = None
+        _state["device_info"] = None
+
+
 @app.route("/sw.js")
 def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
@@ -733,4 +748,3 @@ def add_security_headers(response):
 # ── Blueprint Registration ──
 from .blueprints import register_blueprints
 register_blueprints(app)
-
