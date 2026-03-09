@@ -35,7 +35,7 @@ def api_test_modem():
         modem_type = data.get("modem_type", "fritzbox")
         driver = driver_registry.load_driver(
             modem_type,
-            data.get("modem_url", "http://192.168.178.1"),
+            data.get("modem_url") or "http://192.168.100.1",
             data.get("modem_user", ""),
             password,
         )

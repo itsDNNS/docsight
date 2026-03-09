@@ -4,7 +4,7 @@
   "smokeping_url_label": "URL Smokeping",
   "smokeping_url_hint": "URL de base de votre instance Smokeping (sans /cache/)",
   "smokeping_targets_label": "Cibles",
-  "smokeping_targets_hint": "Liste de cibles separees par des virgules (ex. Global.Google, Vodafone.Hop2)",
+  "smokeping_targets_hint": "Chemins de hierarchie Smokeping separes par des virgules (ex. InternetSites.Google). Verifiez votre config Smokeping Targets pour les noms exacts.",
   "smokeping_no_data": "Impossible de charger les graphiques Smokeping.",
   "smokeping_setup": "Config. Smokeping",
   "smokeping_setup_title": "Surveillance de latence Smokeping",

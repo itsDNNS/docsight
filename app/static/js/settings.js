@@ -812,7 +812,15 @@ function _createBrowseItem(label, targetPath, iconName, isMuted) {
 }
 
 /* ── Username Field Toggle + Modem Defaults (data-driven) ── */
-var DEFAULT_URL = 'http://192.168.178.1';
+var KNOWN_DEFAULT_URLS = (function() {
+    var urls = {};
+    if (typeof DRIVER_HINTS !== 'undefined') {
+        for (var k in DRIVER_HINTS) {
+            if (DRIVER_HINTS[k].default_url) urls[DRIVER_HINTS[k].default_url] = true;
+        }
+    }
+    return urls;
+})();
 
 function toggleUsernameField() {
     var modemType = document.getElementById('modem_type');
@@ -840,8 +848,8 @@ function toggleUsernameField() {
     credFields.forEach(function(el) { if (el) el.style.display = ''; });
     if (testBtnParent) testBtnParent.style.display = '';
 
-    // URL default: apply if field is empty or still shows the global default
-    if (hints.default_url && urlField && (!urlField.value || urlField.value === DEFAULT_URL)) {
+    // URL default: apply if field is empty or still shows any known modem default
+    if (hints.default_url && urlField && (!urlField.value || KNOWN_DEFAULT_URLS[urlField.value])) {
         urlField.value = hints.default_url;
     }
 

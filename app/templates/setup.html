@@ -414,7 +414,13 @@ function toggleTheme() {
 
 // Driver hints (data-driven UI defaults)
 var DRIVER_HINTS = {{ driver_hints | tojson }};
-var DEFAULT_URL = 'http://192.168.178.1';
+var KNOWN_DEFAULT_URLS = (function() {
+    var urls = {};
+    for (var k in DRIVER_HINTS) {
+        if (DRIVER_HINTS[k].default_url) urls[DRIVER_HINTS[k].default_url] = true;
+    }
+    return urls;
+})();
 var NOT_REQUIRED_TEXT = '{{ t.not_required }}';
 
 function toggleUsernameField() {
@@ -430,7 +436,7 @@ function toggleUsernameField() {
     }
     credGroup.style.display = 'grid';
 
-    if(hints.default_url && (!urlField.value || urlField.value === DEFAULT_URL)) {
+    if(hints.default_url && (!urlField.value || KNOWN_DEFAULT_URLS[urlField.value])) {
         urlField.value = hints.default_url;
     }
 

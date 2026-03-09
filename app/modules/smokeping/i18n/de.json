@@ -4,7 +4,7 @@
   "smokeping_url_label": "Smokeping URL",
   "smokeping_url_hint": "Basis-URL deiner Smokeping-Instanz (ohne /cache/)",
   "smokeping_targets_label": "Targets",
-  "smokeping_targets_hint": "Komma-getrennte Liste der Targets (z.B. Global.Google, Vodafone.Hop2)",
+  "smokeping_targets_hint": "Komma-getrennte Smokeping-Hierarchie-Pfade (z.B. InternetSites.Google). Die genauen Namen findest du in deiner Smokeping-Targets-Konfiguration.",
   "smokeping_no_data": "Smokeping-Graphen konnten nicht geladen werden.",
   "smokeping_setup": "Smokeping Einrichtung",
   "smokeping_setup_title": "Smokeping Latenz-Monitoring",

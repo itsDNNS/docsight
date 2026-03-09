@@ -4,7 +4,7 @@
   "smokeping_url_label": "URL de Smokeping",
   "smokeping_url_hint": "URL base de tu instancia de Smokeping (sin /cache/)",
   "smokeping_targets_label": "Objetivos",
-  "smokeping_targets_hint": "Lista de objetivos separados por comas (ej. Global.Google, Vodafone.Hop2)",
+  "smokeping_targets_hint": "Rutas de jerarquia Smokeping separadas por comas (ej. InternetSites.Google). Consulta la configuracion de Smokeping Targets para los nombres exactos.",
   "smokeping_no_data": "No se pudieron cargar los graficos de Smokeping.",
   "smokeping_setup": "Config. Smokeping",
   "smokeping_setup_title": "Monitoreo de latencia Smokeping",

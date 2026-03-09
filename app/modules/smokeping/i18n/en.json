@@ -4,7 +4,7 @@
   "smokeping_url_label": "Smokeping URL",
   "smokeping_url_hint": "Base URL of your Smokeping instance (without /cache/)",
   "smokeping_targets_label": "Targets",
-  "smokeping_targets_hint": "Comma-separated list of targets (e.g. Global.Google, Vodafone.Hop2)",
+  "smokeping_targets_hint": "Comma-separated Smokeping hierarchy paths (e.g. InternetSites.Google). Check your Smokeping Targets config for the exact names.",
   "smokeping_no_data": "Could not load Smokeping graphs.",
   "smokeping_setup": "Smokeping Setup",
   "smokeping_setup_title": "Smokeping Latency Monitoring",
