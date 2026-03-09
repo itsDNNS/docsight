@@ -20,7 +20,7 @@ class AnalysisMixin:
         Returns list of dicts with 'timestamp', 'source', and source-specific fields.
         """
         if sources is None:
-            sources = {"modem", "speedtest", "events", "bnetz"}
+            sources = {"modem", "speedtest", "events", "bnetz", "segment"}
         timeline = []
 
         if "modem" in sources:
@@ -102,6 +102,23 @@ class AnalysisMixin:
                     "verdict_download": m.get("verdict_download"),
                     "verdict_upload": m.get("verdict_upload"),
                 })
+
+        # Segment utilization (fritzbox_cable module)
+        if sources is None or "segment" in sources:
+            try:
+                from app.modules.fritzbox_cable.storage import SegmentUtilizationStorage
+                seg_storage = SegmentUtilizationStorage(self.db_path)
+                for row in seg_storage.get_range(start_ts, end_ts):
+                    timeline.append({
+                        "timestamp": row["timestamp"],
+                        "source": "segment",
+                        "ds_total": row["ds_total"],
+                        "us_total": row["us_total"],
+                        "ds_own": row["ds_own"],
+                        "us_own": row["us_own"],
+                    })
+            except Exception:
+                pass  # Module not loaded or table doesn't exist
 
         timeline.sort(key=lambda x: x["timestamp"])
         return timeline
