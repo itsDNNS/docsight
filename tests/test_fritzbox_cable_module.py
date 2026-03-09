@@ -3,10 +3,17 @@
 from unittest.mock import patch
 
 from app.config import ConfigManager
+from app.modules.fritzbox_cable.routes import bp
 from app.web import app, init_config, init_storage
 
 
 class TestFritzBoxCableUtilizationRoute:
+    @classmethod
+    def setup_class(cls):
+        routes = {rule.rule for rule in app.url_map.iter_rules()}
+        if "/api/fritzbox/cable-utilization" not in routes:
+            app.register_blueprint(bp)
+
     def test_requires_fritzbox_driver(self, tmp_path):
         mgr = ConfigManager(str(tmp_path / "data"))
         mgr.save({"modem_password": "test", "modem_type": "cm8200"})
