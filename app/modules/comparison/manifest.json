@@ -1,0 +1,20 @@
+{
+  "id": "docsight.comparison",
+  "name": "Before/After Comparison",
+  "description": "Compare signal quality between two arbitrary time periods",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "analysis",
+  "contributes": {
+    "routes": "routes.py",
+    "tab": "templates/comparison_tab.html",
+    "static": "static/",
+    "i18n": "i18n/"
+  },
+  "menu": {
+    "label_key": "docsight.comparison.title",
+    "icon": "git-compare-arrows",
+    "order": 16
+  }
+}
