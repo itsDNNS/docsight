@@ -61,11 +61,11 @@ class TestDashboardSections:
         assert hero.first.is_visible()
 
     def test_downstream_section(self, demo_page):
-        ds = demo_page.locator("text=Downstream").first
+        ds = demo_page.locator(".ring-title", has_text="Downstream")
         assert ds.is_visible()
 
     def test_upstream_section(self, demo_page):
-        us = demo_page.locator("text=Upstream").first
+        us = demo_page.locator(".ring-title", has_text="Upstream")
         assert us.is_visible()
 
     def test_settings_link_exists(self, demo_page):

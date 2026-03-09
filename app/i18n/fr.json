@@ -167,7 +167,8 @@
   "isp_other_placeholder": "Nom du fournisseur",
   "isp_select": "Choisir un fournisseur",
   "isp_options": [
-    "SFR"
+    "SFR",
+    "Comcast/Xfinity"
   ],
   "tariff": "Forfait",
   "max_downstream": "Débit descendant max",
@@ -715,5 +716,32 @@
   "localization": "Localisation",
   "localization_desc": "Paramètres de langue et de fuseau horaire",
   "dashboard_features": "Fonctionnalités du tableau de bord",
-  "dashboard_features_desc": "Activer/désactiver les sections optionnelles du tableau de bord"
+  "dashboard_features_desc": "Activer/désactiver les sections optionnelles du tableau de bord",
+  "seg_title": "Utilisation du segment",
+  "seg_subtitle": "Utilisation du segment cable depuis la surveillance FRITZ!Box.",
+  "seg_loading": "Chargement de l'utilisation du segment...",
+  "seg_no_data": "Aucune donnee d'utilisation de segment collectee. Activez la collecte dans les parametres.",
+  "seg_ds_total": "Downstream total",
+  "seg_us_total": "Upstream total",
+  "seg_ds_own": "Downstream propre",
+  "seg_us_own": "Upstream propre",
+  "seg_total": "Total",
+  "seg_own": "Part propre",
+  "seg_downstream": "Utilisation downstream",
+  "seg_upstream": "Utilisation upstream",
+  "seg_status": "Statut",
+  "seg_status_polling": "Collecte",
+  "seg_status_disabled": "Desactive",
+  "seg_avg": "Moy",
+  "seg_min": "Min",
+  "seg_max": "Max",
+  "seg_range_24h": "24h",
+  "seg_range_7d": "7j",
+  "seg_range_30d": "30j",
+  "seg_range_all": "Tout",
+  "seg_note": "Les valeurs d'utilisation du segment sont des estimations de la FRITZ!Box et peuvent differer de la charge reelle du CMTS.",
+  "seg_unsupported_driver": "Cette vue n'est disponible que pour les appareils cable FRITZ!Box.",
+  "seg_unavailable": "Configuration non disponible.",
+  "seg_correlation_ds": "Charge segment DS (%)",
+  "seg_correlation_us": "Charge segment US (%)"
 }

@@ -776,6 +776,12 @@ class TestBQMCollector:
 
 
 class TestDiscoverCollectors:
+    def _make_storage(self, tmp_path=None):
+        import tempfile, os
+        s = MagicMock()
+        s.db_path = os.path.join(tmp_path or tempfile.mkdtemp(), "test.db")
+        return s
+
     def _make_config_mgr(self, poll_interval=60, bnetz_watch=False):
         mgr = MagicMock()
         mgr.is_demo_mode.return_value = False
@@ -835,11 +841,12 @@ class TestDiscoverCollectors:
         ])
 
         collectors = discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
+            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
         )
-        assert len(collectors) == 3
+        assert len(collectors) == 4  # modem + segment_utilization + speedtest + bqm
         names = [c.name for c in collectors]
         assert "modem" in names
+        assert "segment_utilization" in names
         assert "speedtest" in names
         assert "bqm" in names
 
@@ -861,9 +868,9 @@ class TestDiscoverCollectors:
         ])
 
         collectors = discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
+            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
         )
-        assert len(collectors) == 2  # modem + bnetz_watcher module
+        assert len(collectors) == 3  # modem + segment_utilization + bnetz_watcher
         names = [c.name for c in collectors]
         assert "bnetz_watcher" in names
 
@@ -879,10 +886,12 @@ class TestDiscoverCollectors:
         web = MagicMock(spec=[])
 
         collectors = discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
+            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
         )
-        assert len(collectors) == 1
-        assert collectors[0].name == "modem"
+        assert len(collectors) == 2  # modem + segment_utilization
+        names = [c.name for c in collectors]
+        assert "modem" in names
+        assert "segment_utilization" in names
 
     @patch("app.drivers.driver_registry.load_driver")
     def test_modem_collector_gets_poll_interval(self, mock_load):
@@ -896,7 +905,7 @@ class TestDiscoverCollectors:
         web = MagicMock(spec=[])
 
         collectors = discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
+            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
         )
         modem = [c for c in collectors if c.name == "modem"][0]
         assert modem.poll_interval_seconds == 120
@@ -913,7 +922,7 @@ class TestDiscoverCollectors:
         web = MagicMock(spec=[])
 
         discover_collectors(
-            config_mgr, MagicMock(), MagicMock(), None, web, analyzer
+            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
         )
         mock_load.assert_called_once_with("fritzbox", "http://fritz.box", "admin", "pass")
 
@@ -1014,6 +1023,12 @@ class TestModemCollectorErrors:
 
 
 class TestPollingLoopOrchestrator:
+    def _make_storage(self):
+        import tempfile, os
+        s = MagicMock()
+        s.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
+        return s
+
     def _make_config_mgr(self):
         mgr = MagicMock()
         mgr.get_all.return_value = {
@@ -1056,6 +1071,8 @@ class TestPollingLoopOrchestrator:
 
         config_mgr = self._make_config_mgr()
         storage = MagicMock()
+        import tempfile, os
+        storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
         stop = threading.Event()
 
         original_wait = stop.wait
@@ -1089,7 +1106,7 @@ class TestPollingLoopOrchestrator:
         mock_load.return_value = mock_driver
 
         config_mgr = self._make_config_mgr()
-        storage = MagicMock()
+        storage = self._make_storage()
         stop = threading.Event()
 
         call_count = [0]
@@ -1123,7 +1140,7 @@ class TestPollingLoopOrchestrator:
         mock_load.return_value = mock_driver
 
         config_mgr = self._make_config_mgr()
-        storage = MagicMock()
+        storage = self._make_storage()
         stop = threading.Event()
 
         call_count = [0]
@@ -1152,7 +1169,7 @@ class TestPollingLoopOrchestrator:
         mock_load.return_value = MagicMock()
 
         config_mgr = self._make_config_mgr()
-        storage = MagicMock()
+        storage = self._make_storage()
         stop = threading.Event()
         stop.set()  # Pre-set: should exit immediately
 
@@ -1173,7 +1190,7 @@ class TestPollingLoopOrchestrator:
         mock_load.return_value = mock_driver
 
         config_mgr = self._make_config_mgr()
-        storage = MagicMock()
+        storage = self._make_storage()
         stop = threading.Event()
 
         call_count = [0]
@@ -1225,7 +1242,7 @@ class TestPollingLoopOrchestrator:
         mock_load.return_value = mock_driver
 
         config_mgr = self._make_config_mgr()
-        storage = MagicMock()
+        storage = self._make_storage()
         stop = threading.Event()
 
         call_count = [0]
@@ -1271,7 +1288,7 @@ class TestPollingLoopOrchestrator:
         mock_load.return_value = mock_driver
 
         config_mgr = self._make_config_mgr()
-        storage = MagicMock()
+        storage = self._make_storage()
         stop = threading.Event()
 
         call_count = [0]

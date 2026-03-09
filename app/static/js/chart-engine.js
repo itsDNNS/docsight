@@ -235,7 +235,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             label: ds.label,
             stroke: ds.color || 'rgba(168,85,247,0.9)',
             width: isBar ? 0 : 2,
-            fill: isBar ? (ds.color || '#a855f7') + 'cc' : undefined,
+            fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined),
             points: { show: n <= 30 && !isBar, size: 6 },
             spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false
         };
