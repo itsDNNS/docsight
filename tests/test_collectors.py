@@ -1158,3 +1158,137 @@ class TestPollingLoopOrchestrator:
 
         polling_loop(config_mgr, storage, stop)
         # If we get here without hanging, the test passes
+
+    @patch("app.drivers.driver_registry.load_driver")
+    @patch("app.main.web")
+    def test_driver_hot_swap_on_modem_type_change(self, mock_web, mock_load):
+        """Polling loop should hot-swap the modem driver when modem_type changes."""
+        import threading
+        from app.main import polling_loop
+
+        mock_driver = MagicMock()
+        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
+        mock_driver.get_connection_info.return_value = {}
+        mock_driver.get_docsis_data.return_value = {}
+        mock_load.return_value = mock_driver
+
+        config_mgr = self._make_config_mgr()
+        storage = MagicMock()
+        stop = threading.Event()
+
+        call_count = [0]
+        original_wait = stop.wait
+
+        def change_modem_after_first_tick(timeout=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                # After first tick, change modem_type in config
+                config_mgr.get_all.return_value["modem_type"] = "tc4400"
+                config_mgr.get.side_effect = lambda k, d=None: {
+                    "modem_type": "tc4400",
+                    "modem_url": "http://fritz.box",
+                    "modem_user": "admin",
+                    "modem_password": "pass",
+                    "poll_interval": 900,
+                }.get(k, d)
+                return original_wait(0)
+            elif call_count[0] >= 3:
+                stop.set()
+                return True
+            return original_wait(0)
+
+        stop.wait = change_modem_after_first_tick
+
+        polling_loop(config_mgr, storage, stop)
+
+        # load_driver should have been called at least twice:
+        # once for initial setup, once for hot-swap
+        assert mock_load.call_count >= 2
+        # Second call should use the new modem type
+        second_call = mock_load.call_args_list[1]
+        assert second_call[0][0] == "tc4400"
+        # Web state should have been reset for the swap
+        mock_web.reset_modem_state.assert_called()
+        mock_web.init_collector.assert_called()
+
+    @patch("app.drivers.driver_registry.load_driver")
+    @patch("app.main.web")
+    def test_driver_hot_swap_on_url_change(self, mock_web, mock_load):
+        """Hot-swap should trigger when modem URL changes, not just type."""
+        import threading
+        from app.main import polling_loop
+
+        mock_driver = MagicMock()
+        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
+        mock_driver.get_connection_info.return_value = {}
+        mock_driver.get_docsis_data.return_value = {}
+        mock_load.return_value = mock_driver
+
+        config_mgr = self._make_config_mgr()
+        storage = MagicMock()
+        stop = threading.Event()
+
+        call_count = [0]
+        original_wait = stop.wait
+
+        def change_url_after_first_tick(timeout=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                # Change URL but keep same modem_type
+                config_mgr.get.side_effect = lambda k, d=None: {
+                    "modem_type": "fritzbox",
+                    "modem_url": "http://192.168.100.1",
+                    "modem_user": "admin",
+                    "modem_password": "pass",
+                    "poll_interval": 900,
+                }.get(k, d)
+                return original_wait(0)
+            elif call_count[0] >= 3:
+                stop.set()
+                return True
+            return original_wait(0)
+
+        stop.wait = change_url_after_first_tick
+
+        polling_loop(config_mgr, storage, stop)
+
+        # load_driver called twice: initial + hot-swap for URL change
+        assert mock_load.call_count >= 2
+        second_call = mock_load.call_args_list[1]
+        assert second_call[0][1] == "http://192.168.100.1"
+
+    @patch("app.drivers.driver_registry.load_driver")
+    @patch("app.main.web")
+    def test_no_hot_swap_when_config_unchanged(self, mock_web, mock_load):
+        """No hot-swap should occur when modem config hasn't changed."""
+        import threading
+        from app.main import polling_loop
+
+        mock_driver = MagicMock()
+        mock_driver.get_device_info.return_value = {"model": "Test", "sw_version": "1.0"}
+        mock_driver.get_connection_info.return_value = {}
+        mock_driver.get_docsis_data.return_value = {}
+        mock_load.return_value = mock_driver
+
+        config_mgr = self._make_config_mgr()
+        storage = MagicMock()
+        stop = threading.Event()
+
+        call_count = [0]
+        original_wait = stop.wait
+
+        def stop_after_ticks(timeout=None):
+            call_count[0] += 1
+            if call_count[0] >= 3:
+                stop.set()
+                return True
+            return original_wait(0)
+
+        stop.wait = stop_after_ticks
+
+        polling_loop(config_mgr, storage, stop)
+
+        # load_driver should only be called once (initial setup)
+        assert mock_load.call_count == 1
+        # reset_modem_state should NOT have been called (no swap)
+        mock_web.reset_modem_state.assert_not_called()
