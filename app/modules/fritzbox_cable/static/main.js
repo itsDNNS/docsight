@@ -21,33 +21,38 @@ function _fcT(key, fallback) {
 
 /* ── Data Loading ── */
 function loadFritzCableData() {
+    var skel = document.getElementById('fritz-cable-skeleton');
     var msg = document.getElementById('fritz-cable-message');
     var content = document.getElementById('fritz-cable-content');
     if (!msg || !content) return;
 
-    msg.textContent = _fcT('loading', 'Loading segment utilization...');
-    msg.style.display = 'block';
+    if (skel) skel.style.display = '';
+    msg.style.display = 'none';
     content.style.display = 'none';
 
     fetch('/api/fritzbox/segment-utilization?range=' + encodeURIComponent(_fritzCableRange))
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            if (skel) skel.style.display = 'none';
             if (data.error) {
                 msg.textContent = data.error;
+                msg.style.display = 'block';
                 return;
             }
             if (!data.samples || data.samples.length === 0) {
                 msg.textContent = _fcT('no_data', 'No segment utilization data collected yet.');
+                msg.style.display = 'block';
                 return;
             }
-            msg.style.display = 'none';
             content.style.display = '';
             _fritzCableUpdateKPIs(data);
             _fritzCableRenderChart('fritz-cable-ds-chart', data.samples, 'ds_total', 'ds_own');
             _fritzCableRenderChart('fritz-cable-us-chart', data.samples, 'us_total', 'us_own');
         })
         .catch(function() {
+            if (skel) skel.style.display = 'none';
             msg.textContent = _fcT('unavailable', 'Configuration unavailable.');
+            msg.style.display = 'block';
         });
 }
 

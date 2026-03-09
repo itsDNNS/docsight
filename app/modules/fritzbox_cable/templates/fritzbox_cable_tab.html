@@ -12,9 +12,19 @@
         </div>
     </div>
 
-    <div class="chart-card fritz-cable-message" id="fritz-cable-message">
-        {{ t.get('docsight.fritzbox_cable.loading', 'Loading segment utilization...') }}
+    <div id="fritz-cable-skeleton">
+        <div class="fritz-cable-kpis">
+            <div class="chart-card fritz-cable-kpi"><div class="skeleton" style="width:60%;height:14px;margin:0 auto 8px;border-radius:6px;"></div><div class="skeleton" style="width:40%;height:28px;margin:0 auto 6px;border-radius:6px;"></div><div class="skeleton" style="width:80%;height:12px;margin:0 auto;border-radius:6px;"></div></div>
+            <div class="chart-card fritz-cable-kpi"><div class="skeleton" style="width:60%;height:14px;margin:0 auto 8px;border-radius:6px;"></div><div class="skeleton" style="width:40%;height:28px;margin:0 auto 6px;border-radius:6px;"></div><div class="skeleton" style="width:80%;height:12px;margin:0 auto;border-radius:6px;"></div></div>
+            <div class="chart-card fritz-cable-kpi"><div class="skeleton" style="width:60%;height:14px;margin:0 auto 8px;border-radius:6px;"></div><div class="skeleton" style="width:40%;height:28px;margin:0 auto 6px;border-radius:6px;"></div><div class="skeleton" style="width:80%;height:12px;margin:0 auto;border-radius:6px;"></div></div>
+        </div>
+        <div class="fritz-cable-grid">
+            <div class="chart-card fritz-cable-panel"><div class="skeleton" style="width:50%;height:14px;margin-bottom:12px;border-radius:6px;"></div><div class="skeleton" style="width:100%;height:180px;border-radius:8px;"></div></div>
+            <div class="chart-card fritz-cable-panel"><div class="skeleton" style="width:50%;height:14px;margin-bottom:12px;border-radius:6px;"></div><div class="skeleton" style="width:100%;height:180px;border-radius:8px;"></div></div>
+        </div>
     </div>
+
+    <div class="chart-card fritz-cable-message" id="fritz-cable-message" style="display:none;"></div>
 
     <div id="fritz-cable-content" style="display:none;">
         <div class="fritz-cable-kpis">
