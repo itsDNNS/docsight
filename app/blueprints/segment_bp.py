@@ -1,4 +1,4 @@
-"""FRITZ!Box cable segment utilization routes."""
+"""Segment utilization API routes."""
 
 import logging
 from datetime import datetime, timedelta, timezone
@@ -8,9 +8,9 @@ from flask import Blueprint, jsonify, request
 from app.i18n import get_translations
 from app.web import get_config_manager, get_storage, require_auth
 
-log = logging.getLogger("docsis.web.fritzbox_cable")
+log = logging.getLogger("docsis.web.segment")
 
-bp = Blueprint("fritzbox_cable_module", __name__)
+segment_bp = Blueprint("segment_bp", __name__)
 
 _storage_instance = None
 
@@ -20,12 +20,12 @@ def _get_lang():
 
 
 def _get_storage():
-    """Lazy-init module storage using core DB path."""
+    """Lazy-init segment storage using core DB path."""
     global _storage_instance
     if _storage_instance is None:
         storage = get_storage()
         if storage:
-            from app.modules.fritzbox_cable.storage import SegmentUtilizationStorage
+            from app.storage.segment_utilization import SegmentUtilizationStorage
             _storage_instance = SegmentUtilizationStorage(storage.db_path)
     return _storage_instance
 
@@ -33,16 +33,16 @@ def _get_storage():
 RANGE_HOURS = {"24h": 24, "7d": 168, "30d": 720, "all": 0}
 
 
-@bp.route("/api/fritzbox/segment-utilization")
+@segment_bp.route("/api/fritzbox/segment-utilization")
 @require_auth
 def api_segment_utilization():
     """Return stored segment utilization data for the tab view."""
     config = get_config_manager()
     t = get_translations(_get_lang())
     if not config:
-        return jsonify({"error": t.get("docsight.fritzbox_cable.unavailable", "Configuration unavailable.")}), 503
+        return jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503
     if config.get("modem_type") != "fritzbox":
-        return jsonify({"error": t.get("docsight.fritzbox_cable.unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400
+        return jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400
 
     storage = _get_storage()
     if not storage:
@@ -64,7 +64,7 @@ def api_segment_utilization():
     })
 
 
-@bp.route("/api/fritzbox/segment-utilization/range")
+@segment_bp.route("/api/fritzbox/segment-utilization/range")
 @require_auth
 def api_segment_utilization_range():
     """Return segment data for a time range (used by correlation graph)."""

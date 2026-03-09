@@ -16,7 +16,7 @@ fritzCableTabs.forEach(function(btn) {
 
 /* ── i18n helper ── */
 function _fcT(key, fallback) {
-    return T[key] || T['docsight.fritzbox_cable.' + key] || fallback || key;
+    return T['seg_' + key] || T[key] || fallback || key;
 }
 
 /* ── Data Loading ── */
@@ -127,7 +127,7 @@ function _fritzCableRenderChart(containerId, samples, totalKey, ownKey) {
 
 window.loadFritzCableData = loadFritzCableData;
 
-/* Auto-load if the view is already active (module script loads after deferred routing) */
-if (typeof currentView !== 'undefined' && currentView === 'mod-docsight-fritzbox_cable') {
+/* Auto-load if the view is already active (script loads after deferred routing) */
+if (typeof currentView !== 'undefined' && currentView === 'segment-utilization') {
     setTimeout(loadFritzCableData, 0);
 }

@@ -7,11 +7,11 @@ import pytest
 @pytest.fixture
 def app():
     from flask import Flask
-    from app.modules.fritzbox_cable import routes
-    routes._storage_instance = None  # reset singleton
+    from app.blueprints import segment_bp as seg_mod
+    seg_mod._storage_instance = None  # reset singleton
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "test"
-    app.register_blueprint(routes.bp)
+    app.register_blueprint(seg_mod.segment_bp)
     return app
 
 
@@ -21,9 +21,9 @@ def client(app):
 
 
 class TestSegmentDataEndpoint:
-    @patch("app.modules.fritzbox_cable.routes.require_auth", lambda f: f)
-    @patch("app.modules.fritzbox_cable.routes.get_config_manager")
-    @patch("app.modules.fritzbox_cable.routes._get_storage")
+    @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
+    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp._get_storage")
     def test_returns_stored_data(self, mock_get_storage, mock_get_config, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"
@@ -52,9 +52,9 @@ class TestSegmentDataEndpoint:
 
 
 class TestSegmentRangeEndpoint:
-    @patch("app.modules.fritzbox_cable.routes.require_auth", lambda f: f)
-    @patch("app.modules.fritzbox_cable.routes.get_config_manager")
-    @patch("app.modules.fritzbox_cable.routes._get_storage")
+    @patch("app.blueprints.segment_bp.require_auth", lambda f: f)
+    @patch("app.blueprints.segment_bp.get_config_manager")
+    @patch("app.blueprints.segment_bp._get_storage")
     def test_range_endpoint_for_correlation(self, mock_get_storage, mock_get_config, client):
         mock_cfg = MagicMock()
         mock_cfg.get.return_value = "fritzbox"

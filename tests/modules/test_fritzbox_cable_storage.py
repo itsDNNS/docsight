@@ -3,7 +3,7 @@
 import os
 import tempfile
 import pytest
-from app.modules.fritzbox_cable.storage import SegmentUtilizationStorage
+from app.storage.segment_utilization import SegmentUtilizationStorage
 
 
 @pytest.fixture

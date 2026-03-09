@@ -1,4 +1,4 @@
-"""Segment utilization collector for fritzbox_cable module."""
+"""Segment utilization collector for FritzBox cable modems."""
 
 import logging
 import time
@@ -7,7 +7,7 @@ import requests
 
 from app import fritzbox as fb
 from app.collectors.base import Collector, CollectorResult
-from app.modules.fritzbox_cable.storage import SegmentUtilizationStorage
+from app.storage.segment_utilization import SegmentUtilizationStorage
 
 log = logging.getLogger("docsis.collector.segment_utilization")
 

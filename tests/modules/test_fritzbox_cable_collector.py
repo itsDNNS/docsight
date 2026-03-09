@@ -2,7 +2,7 @@
 
 from unittest.mock import patch, MagicMock
 import pytest
-from app.modules.fritzbox_cable.collector import SegmentUtilizationCollector
+from app.collectors.segment_utilization import SegmentUtilizationCollector
 
 
 SEGMENT_RESPONSE = {
@@ -64,8 +64,8 @@ class TestIsEnabled:
 
 
 class TestCollect:
-    @patch("app.modules.fritzbox_cable.collector.requests")
-    @patch("app.modules.fritzbox_cable.collector.fb")
+    @patch("app.collectors.segment_utilization.requests")
+    @patch("app.collectors.segment_utilization.fb")
     def test_collect_success(self, mock_fb, mock_requests, collector):
         mock_fb.login.return_value = "test-sid"
         mock_resp = MagicMock()
@@ -82,8 +82,8 @@ class TestCollect:
         call_kwargs = mock_requests.get.call_args
         assert "AVM-SID test-sid" in call_kwargs[1]["headers"]["AUTHORIZATION"]
 
-    @patch("app.modules.fritzbox_cable.collector.requests")
-    @patch("app.modules.fritzbox_cable.collector.fb")
+    @patch("app.collectors.segment_utilization.requests")
+    @patch("app.collectors.segment_utilization.fb")
     def test_collect_stores_last_non_null(self, mock_fb, mock_requests, collector):
         mock_fb.login.return_value = "test-sid"
         mock_resp = MagicMock()
@@ -98,7 +98,7 @@ class TestCollect:
         assert result.data["ds_own"] == pytest.approx(0.05)
         assert result.data["us_own"] == pytest.approx(0.17)
 
-    @patch("app.modules.fritzbox_cable.collector.fb")
+    @patch("app.collectors.segment_utilization.fb")
     def test_collect_login_failure(self, mock_fb, collector):
         mock_fb.login.side_effect = RuntimeError("Auth failed")
         result = collector.collect()
@@ -107,8 +107,8 @@ class TestCollect:
 
 
 class TestMaintenance:
-    @patch("app.modules.fritzbox_cable.collector.requests")
-    @patch("app.modules.fritzbox_cable.collector.fb")
+    @patch("app.collectors.segment_utilization.requests")
+    @patch("app.collectors.segment_utilization.fb")
     def test_maintenance_runs_on_first_collect(self, mock_fb, mock_requests, collector):
         mock_fb.login.return_value = "test-sid"
         mock_resp = MagicMock()
@@ -122,8 +122,8 @@ class TestMaintenance:
             ds.assert_called_once()
             cl.assert_called_once()
 
-    @patch("app.modules.fritzbox_cable.collector.requests")
-    @patch("app.modules.fritzbox_cable.collector.fb")
+    @patch("app.collectors.segment_utilization.requests")
+    @patch("app.collectors.segment_utilization.fb")
     def test_maintenance_skips_if_recent(self, mock_fb, mock_requests, collector):
         import time
         collector._last_maintenance = time.time()  # pretend we just ran
@@ -141,17 +141,17 @@ class TestMaintenance:
 
 class TestLastNonNull:
     def test_last_non_null_basic(self):
-        from app.modules.fritzbox_cable.collector import _last_non_null
+        from app.collectors.segment_utilization import _last_non_null
         assert _last_non_null([1.0, 2.0, None, 3.0]) == pytest.approx(3.0)
 
     def test_last_non_null_trailing_nulls(self):
-        from app.modules.fritzbox_cable.collector import _last_non_null
+        from app.collectors.segment_utilization import _last_non_null
         assert _last_non_null([1.0, 2.0, None]) == pytest.approx(2.0)
 
     def test_last_non_null_all_none(self):
-        from app.modules.fritzbox_cable.collector import _last_non_null
+        from app.collectors.segment_utilization import _last_non_null
         assert _last_non_null([None, None, None]) is None
 
     def test_last_non_null_empty(self):
-        from app.modules.fritzbox_cable.collector import _last_non_null
+        from app.collectors.segment_utilization import _last_non_null
         assert _last_non_null([]) is None

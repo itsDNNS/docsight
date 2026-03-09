@@ -1,4 +1,4 @@
-"""Segment utilization storage for fritzbox_cable module."""
+"""Segment utilization storage (standalone, not a core mixin)."""
 
 import sqlite3
 import threading

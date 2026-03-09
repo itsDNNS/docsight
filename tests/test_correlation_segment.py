@@ -5,7 +5,7 @@ import pytest
 
 
 class TestCorrelationSegmentSource:
-    @patch("app.modules.fritzbox_cable.storage.SegmentUtilizationStorage")
+    @patch("app.storage.segment_utilization.SegmentUtilizationStorage")
     def test_segment_source_included(self, MockStorage, tmp_path):
         from app.storage import SnapshotStorage
         db_path = str(tmp_path / "test.db")

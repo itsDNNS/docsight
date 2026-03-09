@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="/static/css/views.css">
     <link rel="stylesheet" href="/static/css/modals.css">
     <link rel="stylesheet" href="/static/css/glossary.css">
+    <link rel="stylesheet" href="/static/css/segment-utilization.css">
     {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
     <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
     {% endfor %}
@@ -91,6 +92,11 @@
         {% if gaming_quality_enabled %}
         <a class="nav-item" data-view="gaming">
             <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
+        </a>
+        {% endif %}
+        {% if is_fritzbox %}
+        <a class="nav-item" data-view="segment-utilization">
+            <i data-lucide="gauge"></i> {{ t.seg_title }}
         </a>
         {% endif %}
         <div class="nav-group-label">{{ t.sidebar_external }}</div>
@@ -1758,6 +1764,13 @@
 </div>
 {% endif %}
 
+{# ── Segment Utilization (FritzBox core feature) ── #}
+{% if is_fritzbox %}
+<div id="view-segment-utilization" class="view">
+    {% include "segment_utilization_tab.html" %}
+</div>
+{% endif %}
+
 {# ══════════════════════════════════════════════════════════════════════════
    MODULE VIEWS - Dynamically rendered from enabled modules with tab template
    ══════════════════════════════════════════════════════════════════════════ #}
@@ -2254,7 +2267,7 @@ var T = {{ t|tojson }};
             if (typeof loadTrends === 'function') loadTrends(_trendRange);
         } else if (view === 'modulation') {
             if (typeof initModulation === 'function') initModulation();
-        } else if (view === 'mod-docsight-fritzbox_cable') {
+        } else if (view === 'segment-utilization') {
             if (typeof loadFritzCableData === 'function') loadFritzCableData();
         }
 
@@ -2490,6 +2503,7 @@ var T = {{ t|tojson }};
 <script src="/static/js/utils.js"></script>
 <script src="/static/js/speedtest.js"></script>
 <script src="/static/js/correlation.js"></script>
+<script src="/static/js/segment-utilization.js"></script>
 <script src="/static/js/glossary.js"></script>
 
 <script>

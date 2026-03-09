@@ -103,10 +103,10 @@ class AnalysisMixin:
                     "verdict_upload": m.get("verdict_upload"),
                 })
 
-        # Segment utilization (fritzbox_cable module)
+        # Segment utilization
         if sources is None or "segment" in sources:
             try:
-                from app.modules.fritzbox_cable.storage import SegmentUtilizationStorage
+                from app.storage.segment_utilization import SegmentUtilizationStorage
                 seg_storage = SegmentUtilizationStorage(self.db_path)
                 for row in seg_storage.get_range(start_ts, end_ts):
                     timeline.append({
