@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import requests
 
 log = logging.getLogger("docsis.fritzbox")
+_TR064_NS = {"tr64": "urn:dslforum-org:device-1-0"}
 
 
 def login(url: str, user: str, password: str) -> str:
@@ -95,7 +96,23 @@ def get_device_info(url: str, sid: str) -> dict:
             except (ValueError, TypeError):
                 pass
         return result
-    except Exception:
+    except Exception as e:
+        log.debug("FritzBox overview device info unavailable, trying TR-064 fallback: %s", e)
+
+    try:
+        r = requests.get(f"{url}/tr064/tr64desc.xml", timeout=10)
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        model = (
+            root.findtext(".//tr64:modelName", namespaces=_TR064_NS)
+            or root.findtext(".//tr64:modelDescription", namespaces=_TR064_NS)
+            or root.findtext(".//tr64:friendlyName", namespaces=_TR064_NS)
+            or "FRITZ!Box"
+        )
+        sw_version = root.findtext(".//tr64:systemVersion/tr64:Display", namespaces=_TR064_NS) or ""
+        return {"model": model, "sw_version": sw_version}
+    except Exception as e:
+        log.debug("FritzBox TR-064 device info fallback unavailable: %s", e)
         return {"model": "FRITZ!Box", "sw_version": ""}
 
 
