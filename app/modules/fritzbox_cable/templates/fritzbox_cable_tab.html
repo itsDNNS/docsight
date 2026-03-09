@@ -1,0 +1,66 @@
+<div class="view-content fritz-cable-view">
+    <div class="fritz-cable-header">
+        <div>
+            <h2 class="fritz-cable-title">{{ t.get('docsight.fritzbox_cable.title', 'Segment Utilization') }}</h2>
+            <p class="fritz-cable-subtitle">{{ t.get('docsight.fritzbox_cable.subtitle', 'Cable segment utilization from FRITZ!Box monitoring.') }}</p>
+        </div>
+        <div class="fritz-cable-range-tabs" id="fritz-cable-range-tabs">
+            <button class="trend-tab active" data-range="24h">{{ t.get('docsight.fritzbox_cable.range_24h', '24h') }}</button>
+            <button class="trend-tab" data-range="7d">{{ t.get('docsight.fritzbox_cable.range_7d', '7d') }}</button>
+            <button class="trend-tab" data-range="30d">{{ t.get('docsight.fritzbox_cable.range_30d', '30d') }}</button>
+            <button class="trend-tab" data-range="all">{{ t.get('docsight.fritzbox_cable.range_all', 'All') }}</button>
+        </div>
+    </div>
+
+    <div class="chart-card fritz-cable-message" id="fritz-cable-message">
+        {{ t.get('docsight.fritzbox_cable.loading', 'Loading segment utilization...') }}
+    </div>
+
+    <div id="fritz-cable-content" style="display:none;">
+        <div class="fritz-cable-kpis">
+            <div class="chart-card fritz-cable-kpi">
+                <div class="fritz-cable-kpi-label">{{ t.get('docsight.fritzbox_cable.ds_total', 'Downstream Total') }}</div>
+                <div class="fritz-cable-kpi-value" id="fritz-cable-ds-total">-</div>
+                <div class="fritz-cable-kpi-sub" id="fritz-cable-ds-stats"></div>
+            </div>
+            <div class="chart-card fritz-cable-kpi">
+                <div class="fritz-cable-kpi-label">{{ t.get('docsight.fritzbox_cable.us_total', 'Upstream Total') }}</div>
+                <div class="fritz-cable-kpi-value" id="fritz-cable-us-total">-</div>
+                <div class="fritz-cable-kpi-sub" id="fritz-cable-us-stats"></div>
+            </div>
+            <div class="chart-card fritz-cable-kpi">
+                <div class="fritz-cable-kpi-label">{{ t.get('docsight.fritzbox_cable.status', 'Status') }}</div>
+                <div class="fritz-cable-kpi-value" id="fritz-cable-status">-</div>
+                <div class="fritz-cable-kpi-sub" id="fritz-cable-count"></div>
+            </div>
+        </div>
+
+        <div class="fritz-cable-grid">
+            <div class="chart-card fritz-cable-panel">
+                <div class="fritz-cable-panel-header">
+                    <div class="fritz-cable-panel-title">{{ t.get('docsight.fritzbox_cable.downstream', 'Downstream Utilization') }}</div>
+                    <div class="fritz-cable-legend">
+                        <span class="fritz-cable-legend-total">&#9644; {{ t.get('docsight.fritzbox_cable.total', 'Total') }}</span>
+                        <span class="fritz-cable-legend-own">&#183;&#183; {{ t.get('docsight.fritzbox_cable.own', 'Own Share') }}</span>
+                    </div>
+                </div>
+                <div class="fritz-cable-chart" id="fritz-cable-ds-chart"></div>
+            </div>
+
+            <div class="chart-card fritz-cable-panel">
+                <div class="fritz-cable-panel-header">
+                    <div class="fritz-cable-panel-title">{{ t.get('docsight.fritzbox_cable.upstream', 'Upstream Utilization') }}</div>
+                    <div class="fritz-cable-legend">
+                        <span class="fritz-cable-legend-total">&#9644; {{ t.get('docsight.fritzbox_cable.total', 'Total') }}</span>
+                        <span class="fritz-cable-legend-own">&#183;&#183; {{ t.get('docsight.fritzbox_cable.own', 'Own Share') }}</span>
+                    </div>
+                </div>
+                <div class="fritz-cable-chart" id="fritz-cable-us-chart"></div>
+            </div>
+        </div>
+
+        <div class="chart-card fritz-cable-note">
+            {{ t.get('docsight.fritzbox_cable.note', 'Segment utilization values are estimates provided by the FRITZ!Box and may differ from actual CMTS-wide load.') }}
+        </div>
+    </div>
+</div>
