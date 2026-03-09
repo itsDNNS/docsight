@@ -592,8 +592,8 @@ function renderCorrelationChart(data) {
         legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (°C)' });
     }
     if (segment.length > 0) {
-        legendItems.push({ metric: 'segmentDs', color: segDsColor, label: '&#9644; ' + (T.correlation_segment_ds || T['docsight.fritzbox_cable.correlation_segment_ds'] || 'Segment DS (%)') });
-        legendItems.push({ metric: 'segmentUs', color: segUsColor, label: '&#9644; ' + (T.correlation_segment_us || T['docsight.fritzbox_cable.correlation_segment_us'] || 'Segment US (%)') });
+        legendItems.push({ metric: 'segmentDs', color: segDsColor, label: '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)') });
+        legendItems.push({ metric: 'segmentUs', color: segUsColor, label: '&#9644; ' + (T.seg_correlation_us || 'Segment US (%)') });
     }
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : ' disabled';
@@ -940,10 +940,10 @@ function _setupCorrelationTooltip(overlay, octx) {
             }
             if (nearestSeg && segDist < (st.tMax - st.tMin) * 0.05) {
                 if (_corrVisible.segmentDs && nearestSeg.ds_total != null) {
-                    html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.segmentDs + ';"></span> Segment DS: ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
+                    html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.segmentDs + ';"></span> ' + (T.seg_correlation_ds || 'Segment DS') + ': ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
                 }
                 if (_corrVisible.segmentUs && nearestSeg.us_total != null) {
-                    html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.segmentUs + ';"></span> Segment US: ' + nearestSeg.us_total.toFixed(1) + '%</div>';
+                    html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.segmentUs + ';"></span> ' + (T.seg_correlation_us || 'Segment US') + ': ' + nearestSeg.us_total.toFixed(1) + '%</div>';
                 }
             }
         }

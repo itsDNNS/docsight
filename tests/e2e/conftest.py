@@ -244,3 +244,137 @@ def setup_page(page, setup_server):
     page.goto(setup_server)
     page.wait_for_load_state("networkidle")
     return page
+
+
+# ── FritzBox server (segment utilization) ──
+
+
+def _start_fritzbox_server(data_dir, port):
+    """Boot a DOCSight instance with modem_type=fritzbox and seeded segment data."""
+    import os
+    from datetime import datetime, timedelta, timezone
+
+    os.environ["DATA_DIR"] = data_dir
+    os.environ["DEMO_MODE"] = "1"
+    os.environ["LOG_LEVEL"] = "WARNING"
+
+    from app.config import ConfigManager
+    from app.storage import SnapshotStorage
+    from app import web, analyzer
+    from app.event_detector import EventDetector
+    from app.collectors.demo import DemoCollector
+
+    cfg = ConfigManager(data_dir)
+    cfg.save({"demo_mode": True, "modem_type": "fritzbox"})
+
+    db_path = os.path.join(data_dir, "docsis_history.db")
+    storage = SnapshotStorage(db_path, max_days=7)
+    storage.set_timezone("UTC")
+
+    web.init_storage(storage)
+    web.init_config(cfg)
+    web.init_collector(None)
+    web.init_collectors([])
+
+    from app.module_loader import ModuleLoader
+
+    builtin_path = os.path.join(os.path.dirname(__file__), "..", "..", "app", "modules")
+    builtin_path = os.path.abspath(builtin_path)
+    module_loader = ModuleLoader(
+        web.app, search_paths=[builtin_path], disabled_ids=set()
+    )
+    module_loader.load_all()
+    web.init_modules(module_loader)
+    web.setup_module_templates(module_loader)
+
+    existing = {b.name for b in web.app.blueprints.values()}
+    for mod in module_loader.get_enabled_modules():
+        if hasattr(mod, "blueprint") and mod.blueprint:
+            if mod.blueprint.name not in existing:
+                web.app.register_blueprint(mod.blueprint)
+                existing.add(mod.blueprint.name)
+
+    # Initialize module storage tables
+    try:
+        from app.modules.speedtest.storage import SpeedtestStorage
+        SpeedtestStorage(db_path)
+    except ImportError:
+        pass
+    try:
+        from app.modules.bqm.storage import BqmStorage
+        BqmStorage(db_path)
+    except ImportError:
+        pass
+    try:
+        from app.modules.bnetz.storage import BnetzStorage
+        BnetzStorage(db_path)
+    except ImportError:
+        pass
+    try:
+        from app.modules.journal.storage import JournalStorage
+        JournalStorage(db_path)
+    except ImportError:
+        pass
+
+    # Seed demo data
+    event_detector = EventDetector()
+    collector = DemoCollector(
+        analyzer_fn=analyzer.analyze,
+        event_detector=event_detector,
+        storage=storage,
+        mqtt_pub=None,
+        web=web,
+        poll_interval=300,
+    )
+    collector.collect()
+
+    # Seed segment utilization data (48h of samples, 1 per minute)
+    from app.storage.segment_utilization import SegmentUtilizationStorage
+    import random
+
+    seg_storage = SegmentUtilizationStorage(db_path)
+    now = datetime.now(timezone.utc)
+    random.seed(42)
+    for i in range(2880):  # 48h * 60 min
+        ts = (now - timedelta(minutes=2880 - i)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ds_total = 15.0 + random.uniform(-5, 25)
+        us_total = 8.0 + random.uniform(-3, 15)
+        ds_own = ds_total * random.uniform(0.01, 0.15)
+        us_own = us_total * random.uniform(0.01, 0.10)
+        seg_storage.save_at(ts, round(ds_total, 1), round(us_total, 1),
+                            round(ds_own, 2), round(us_own, 2))
+
+    from waitress import serve
+    serve(web.app, host="127.0.0.1", port=port, threads=2, _quiet=True)
+
+
+@pytest.fixture(scope="session")
+def _fritzbox_data_dir(tmp_path_factory):
+    """Session-scoped temp directory for the FritzBox server."""
+    return str(tmp_path_factory.mktemp("docsight_e2e_fritzbox"))
+
+
+@pytest.fixture(scope="session")
+def fritzbox_server(_fritzbox_data_dir):
+    """Start a DOCSight server with modem_type=fritzbox and segment data."""
+    port = _find_free_port()
+    proc = multiprocessing.Process(
+        target=_start_fritzbox_server,
+        args=(_fritzbox_data_dir, port),
+        daemon=True,
+    )
+    proc.start()
+    try:
+        _wait_for_server(port)
+        yield f"http://127.0.0.1:{port}"
+    finally:
+        proc.terminate()
+        proc.join(timeout=5)
+
+
+@pytest.fixture()
+def fritzbox_page(page, fritzbox_server):
+    """Navigate to the FritzBox server dashboard."""
+    page.goto(fritzbox_server)
+    page.wait_for_load_state("networkidle")
+    return page
