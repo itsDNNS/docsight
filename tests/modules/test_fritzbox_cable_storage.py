@@ -74,6 +74,94 @@ class TestGetStats:
         assert stats["count"] == 0
 
 
+class TestDownsample:
+    def test_downsample_aggregates_old_samples(self, storage):
+        """Samples older than fine_after_days get aggregated into buckets."""
+        # Insert 5 samples within the same 5-min bucket (14:00-14:04)
+        storage.save_at("2020-01-01T14:00:00Z", 10.0, 20.0, 1.0, 2.0)
+        storage.save_at("2020-01-01T14:01:00Z", 12.0, 22.0, 1.2, 2.2)
+        storage.save_at("2020-01-01T14:02:00Z", 14.0, 24.0, 1.4, 2.4)
+        storage.save_at("2020-01-01T14:03:00Z", 16.0, 26.0, 1.6, 2.6)
+        storage.save_at("2020-01-01T14:04:00Z", 18.0, 28.0, 1.8, 2.8)
+        assert len(storage.get_range("2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")) == 5
+
+        removed = storage.downsample(fine_after_days=0, fine_bucket_min=5,
+                                     coarse_after_days=9999, coarse_bucket_min=15)
+        assert removed == 4  # 5 rows -> 1 averaged row
+
+        rows = storage.get_range("2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")
+        assert len(rows) == 1
+        assert rows[0]["timestamp"] == "2020-01-01T14:00:00Z"
+        assert rows[0]["ds_total"] == pytest.approx(14.0)  # avg(10,12,14,16,18)
+        assert rows[0]["us_total"] == pytest.approx(24.0)
+
+    def test_downsample_leaves_single_sample_buckets(self, storage):
+        """Buckets with only 1 sample are not touched."""
+        storage.save_at("2020-01-01T14:00:00Z", 10.0, 20.0, 1.0, 2.0)
+        storage.save_at("2020-01-01T14:05:00Z", 12.0, 22.0, 1.2, 2.2)
+
+        removed = storage.downsample(fine_after_days=0, fine_bucket_min=5,
+                                     coarse_after_days=9999, coarse_bucket_min=15)
+        assert removed == 0
+        assert len(storage.get_range("2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")) == 2
+
+    def test_downsample_preserves_recent_data(self, storage):
+        """Samples newer than fine_after_days are not downsampled."""
+        storage.save_at("2020-01-01T14:00:00Z", 10.0, 20.0, 1.0, 2.0)
+        storage.save_at("2020-01-01T14:01:00Z", 12.0, 22.0, 1.2, 2.2)
+        # Use a cutoff in the past so both samples are "recent"
+        removed = storage.downsample(fine_after_days=9999, fine_bucket_min=5,
+                                     coarse_after_days=9999, coarse_bucket_min=15)
+        assert removed == 0
+        assert len(storage.get_range("2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")) == 2
+
+    def test_downsample_coarse_tier(self, storage):
+        """Coarse tier aggregates into 15-min buckets."""
+        for m in range(15):
+            storage.save_at(f"2020-01-01T14:{m:02d}:00Z", float(m), float(m * 2), 0.1, 0.2)
+        assert len(storage.get_range("2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")) == 15
+
+        removed = storage.downsample(fine_after_days=9999, fine_bucket_min=5,
+                                     coarse_after_days=0, coarse_bucket_min=15)
+        assert removed == 14  # 15 -> 1
+        rows = storage.get_range("2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")
+        assert len(rows) == 1
+        assert rows[0]["timestamp"] == "2020-01-01T14:00:00Z"
+
+    def test_downsample_multiple_buckets(self, storage):
+        """Multiple buckets are each aggregated independently."""
+        # Bucket 14:00
+        storage.save_at("2020-01-01T14:00:00Z", 10.0, 20.0, 1.0, 2.0)
+        storage.save_at("2020-01-01T14:01:00Z", 20.0, 30.0, 2.0, 3.0)
+        # Bucket 14:05
+        storage.save_at("2020-01-01T14:05:00Z", 30.0, 40.0, 3.0, 4.0)
+        storage.save_at("2020-01-01T14:06:00Z", 40.0, 50.0, 4.0, 5.0)
+
+        removed = storage.downsample(fine_after_days=0, fine_bucket_min=5,
+                                     coarse_after_days=9999, coarse_bucket_min=15)
+        assert removed == 2  # 2 rows removed (4 -> 2)
+        rows = storage.get_range("2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")
+        assert len(rows) == 2
+        assert rows[0]["ds_total"] == pytest.approx(15.0)  # avg(10,20)
+        assert rows[1]["ds_total"] == pytest.approx(35.0)  # avg(30,40)
+
+    def test_downsample_empty_db(self, storage):
+        assert storage.downsample() == 0
+
+    def test_downsample_idempotent(self, storage):
+        """Running downsample twice produces the same result."""
+        storage.save_at("2020-01-01T14:00:00Z", 10.0, 20.0, 1.0, 2.0)
+        storage.save_at("2020-01-01T14:01:00Z", 20.0, 30.0, 2.0, 3.0)
+
+        storage.downsample(fine_after_days=0, fine_bucket_min=5,
+                           coarse_after_days=9999, coarse_bucket_min=15)
+        removed = storage.downsample(fine_after_days=0, fine_bucket_min=5,
+                                     coarse_after_days=9999, coarse_bucket_min=15)
+        assert removed == 0
+        rows = storage.get_range("2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z")
+        assert len(rows) == 1
+
+
 class TestCleanup:
     def test_cleanup_removes_old_records(self, storage):
         import sqlite3

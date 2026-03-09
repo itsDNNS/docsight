@@ -1,6 +1,7 @@
 """Segment utilization collector for fritzbox_cable module."""
 
 import logging
+import time
 
 import requests
 
@@ -9,6 +10,8 @@ from app.collectors.base import Collector, CollectorResult
 from app.modules.fritzbox_cable.storage import SegmentUtilizationStorage
 
 log = logging.getLogger("docsis.collector.segment_utilization")
+
+MAINTENANCE_INTERVAL = 86400  # Run downsample + cleanup once per day
 
 
 def _last_non_null(values):
@@ -27,6 +30,7 @@ class SegmentUtilizationCollector(Collector):
         self._config = config_mgr
         self._storage = SegmentUtilizationStorage(storage.db_path)
         self._web = web
+        self._last_maintenance: float = 0.0
 
     @property
     def name(self):
@@ -91,9 +95,28 @@ class SegmentUtilizationCollector(Collector):
                 "Segment utilization: DS %.1f%% (own %.2f%%), US %.1f%% (own %.2f%%) [%d samples stored]",
                 ds_total or 0, ds_own or 0, us_total or 0, us_own or 0, saved,
             )
+
+            self._run_maintenance()
+
             return CollectorResult.ok(
                 self.name,
                 {"ds_total": ds_total, "us_total": us_total, "ds_own": ds_own, "us_own": us_own},
             )
         except Exception as e:
             return CollectorResult.failure(self.name, f"Parse failed: {e}")
+
+    def _run_maintenance(self):
+        """Run downsample + cleanup once per day."""
+        now = time.time()
+        if (now - self._last_maintenance) < MAINTENANCE_INTERVAL:
+            return
+        self._last_maintenance = now
+        try:
+            removed = self._storage.downsample()
+            if removed:
+                log.info("Downsampled segment utilization: %d rows aggregated", removed)
+            deleted = self._storage.cleanup()
+            if deleted:
+                log.info("Cleaned up segment utilization: %d old rows deleted", deleted)
+        except Exception as e:
+            log.warning("Segment utilization maintenance failed: %s", e)

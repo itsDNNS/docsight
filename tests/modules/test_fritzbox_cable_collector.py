@@ -106,6 +106,39 @@ class TestCollect:
         assert "Auth failed" in result.error
 
 
+class TestMaintenance:
+    @patch("app.modules.fritzbox_cable.collector.requests")
+    @patch("app.modules.fritzbox_cable.collector.fb")
+    def test_maintenance_runs_on_first_collect(self, mock_fb, mock_requests, collector):
+        mock_fb.login.return_value = "test-sid"
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = SEGMENT_RESPONSE
+        mock_resp.raise_for_status = MagicMock()
+        mock_requests.get.return_value = mock_resp
+
+        with patch.object(collector._storage, "downsample", return_value=0) as ds, \
+             patch.object(collector._storage, "cleanup", return_value=0) as cl:
+            collector.collect()
+            ds.assert_called_once()
+            cl.assert_called_once()
+
+    @patch("app.modules.fritzbox_cable.collector.requests")
+    @patch("app.modules.fritzbox_cable.collector.fb")
+    def test_maintenance_skips_if_recent(self, mock_fb, mock_requests, collector):
+        import time
+        collector._last_maintenance = time.time()  # pretend we just ran
+
+        mock_fb.login.return_value = "test-sid"
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = SEGMENT_RESPONSE
+        mock_resp.raise_for_status = MagicMock()
+        mock_requests.get.return_value = mock_resp
+
+        with patch.object(collector._storage, "downsample") as ds:
+            collector.collect()
+            ds.assert_not_called()
+
+
 class TestLastNonNull:
     def test_last_non_null_basic(self):
         from app.modules.fritzbox_cable.collector import _last_non_null
