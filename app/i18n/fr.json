@@ -167,7 +167,8 @@
   "isp_other_placeholder": "Nom du fournisseur",
   "isp_select": "Choisir un fournisseur",
   "isp_options": [
-    "SFR"
+    "SFR",
+    "Comcast/Xfinity"
   ],
   "tariff": "Forfait",
   "max_downstream": "Débit descendant max",

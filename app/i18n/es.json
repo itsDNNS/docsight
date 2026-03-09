@@ -170,7 +170,8 @@
     "Vodafone",
     "Euskaltel",
     "R",
-    "Telecable"
+    "Telecable",
+    "Comcast/Xfinity"
   ],
   "tariff": "Tarifa",
   "max_downstream": "Bajada máxima",
