@@ -91,6 +91,7 @@ class CM8200Driver(ModemDriver):
         error. It returns the login page (HTTP 200, ~4170 bytes) instead
         of the status page when locked out.
         """
+        self._status_html = None
         creds = base64.b64encode(f"{self._user}:{self._password}".encode()).decode()
         for attempt in range(2):
             try:
@@ -189,14 +190,17 @@ class CM8200Driver(ModemDriver):
     def _fetch_status_page(self) -> BeautifulSoup:
         """Fetch and parse the status page HTML.
 
-        Reuses cached HTML from login if available (same page).
-        Re-authenticates when the cache has been consumed.
+        Reuses cached HTML from login for the entire poll cycle.  The
+        cache is refreshed on the next ``login()`` call, so both
+        ``get_device_info()`` and ``get_docsis_data()`` share the same
+        snapshot without triggering a second auth round-trip.
+
+        If no cache is available (e.g. session expired mid-poll), falls
+        back to a full re-auth with the same validation as ``login()``.
         """
         if self._status_html:
-            html = self._status_html
-            self._status_html = None
-            log.debug("CM8200 using cached status HTML (%d bytes)", len(html))
-            return BeautifulSoup(html, "html.parser")
+            log.debug("CM8200 using cached status HTML (%d bytes)", len(self._status_html))
+            return BeautifulSoup(self._status_html, "html.parser")
 
         creds = base64.b64encode(f"{self._user}:{self._password}".encode()).decode()
         try:
@@ -205,6 +209,14 @@ class CM8200Driver(ModemDriver):
                 timeout=30,
             )
             token = r1.text.strip()
+
+            if len(token) > 64 or not token.isalnum():
+                raise RuntimeError(
+                    "CM8200 re-auth failed: expected session token but received "
+                    f"{len(token)} bytes (wrong credentials or brute-force "
+                    "lockout, wait 5 minutes)"
+                )
+
             self._cookie_header = f"HttpOnly: true, Secure: true; credential={token}"
 
             r = self._session.get(
@@ -213,8 +225,17 @@ class CM8200Driver(ModemDriver):
                 timeout=30,
             )
             r.raise_for_status()
+
+            if len(r.text) < 5000 or "downstream bonded" not in r.text.lower():
+                raise RuntimeError(
+                    "CM8200 re-auth succeeded but status page not returned "
+                    f"({len(r.text)} bytes). Modem may be in brute-force "
+                    "lockout (wait 5 minutes)."
+                )
         except requests.RequestException as e:
             raise RuntimeError(f"CM8200 status page retrieval failed: {e}")
+
+        self._status_html = r.text
         log.debug("CM8200 status page fetched (%d bytes)", len(r.text))
         return BeautifulSoup(r.text, "html.parser")
 

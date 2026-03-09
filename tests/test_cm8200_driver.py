@@ -462,12 +462,104 @@ class TestEdgeCases:
             assert len(data["channelUs"]["docsis30"]) == 1
             assert data["channelUs"]["docsis30"][0]["channelID"] == 3
 
-    def test_status_html_cache_consumed(self, driver):
-        """Cached HTML from login is consumed on first fetch, then cleared."""
+    def test_status_html_cache_persists_across_calls(self, driver):
+        """Cached HTML from login is reused across multiple fetches."""
         driver._status_html = SAMPLE_STATUS_HTML
-        soup = driver._fetch_status_page()
+        soup1 = driver._fetch_status_page()
+        assert soup1.find("span", id="thisModelNumberIs") is not None
+        assert driver._status_html is not None
+        soup2 = driver._fetch_status_page()
+        assert soup2.find("span", id="thisModelNumberIs") is not None
+
+    def test_login_clears_stale_cache(self, driver):
+        """login() invalidates old cache before authenticating."""
+        driver._status_html = "<html>stale</html>"
+
+        token_response = MagicMock()
+        token_response.raise_for_status = MagicMock()
+        token_response.text = "freshtoken123"
+
+        status_response = MagicMock()
+        status_response.raise_for_status = MagicMock()
+        status_response.text = SAMPLE_STATUS_HTML
+
+        with patch.object(driver._session, "get", side_effect=[token_response, status_response]):
+            driver.login()
+
+        assert driver._status_html == SAMPLE_STATUS_HTML
+
+
+# -- Collector flow (login -> device_info -> docsis_data) --
+
+class TestCollectorFlow:
+    def test_single_auth_for_full_poll(self, driver):
+        """Real collector calls login(), get_device_info(), get_docsis_data().
+
+        All three must work with a single auth round-trip.  get_device_info()
+        must not consume the cache so get_docsis_data() can reuse it.
+        """
+        token_response = MagicMock()
+        token_response.raise_for_status = MagicMock()
+        token_response.text = "token123"
+
+        status_response = MagicMock()
+        status_response.raise_for_status = MagicMock()
+        status_response.text = SAMPLE_STATUS_HTML
+
+        with patch.object(driver._session, "get", side_effect=[token_response, status_response]) as mock_get:
+            driver.login()
+            info = driver.get_device_info()
+            data = driver.get_docsis_data()
+
+        # Only 2 GETs: auth token + status page (both during login)
+        assert mock_get.call_count == 2
+        assert info["model"] == "CM8200A"
+        assert len(data["channelDs"]["docsis30"]) == 32
+        assert len(data["channelDs"]["docsis31"]) == 1
+
+    def test_fetch_reauth_validates_token(self, driver):
+        """_fetch_status_page re-auth rejects HTML instead of token."""
+        driver._status_html = None
+        driver._cookie_header = None
+
+        html_response = MagicMock()
+        html_response.text = "<html><body>Login page</body></html>"
+
+        with patch.object(driver._session, "get", return_value=html_response):
+            with pytest.raises(RuntimeError, match="re-auth failed"):
+                driver._fetch_status_page()
+
+    def test_fetch_reauth_validates_status_page(self, driver):
+        """_fetch_status_page re-auth rejects small/login pages."""
+        driver._status_html = None
+
+        token_response = MagicMock()
+        token_response.text = "validtoken99"
+
+        login_page = MagicMock()
+        login_page.raise_for_status = MagicMock()
+        login_page.text = "<html>small login page</html>"
+
+        with patch.object(driver._session, "get", side_effect=[token_response, login_page]):
+            with pytest.raises(RuntimeError, match="re-auth succeeded but status page not returned"):
+                driver._fetch_status_page()
+
+    def test_fetch_reauth_caches_result(self, driver):
+        """Successful re-auth in _fetch_status_page caches the HTML."""
+        driver._status_html = None
+
+        token_response = MagicMock()
+        token_response.text = "reauth123"
+
+        status_response = MagicMock()
+        status_response.raise_for_status = MagicMock()
+        status_response.text = SAMPLE_STATUS_HTML
+
+        with patch.object(driver._session, "get", side_effect=[token_response, status_response]):
+            soup = driver._fetch_status_page()
+
+        assert driver._status_html == SAMPLE_STATUS_HTML
         assert soup.find("span", id="thisModelNumberIs") is not None
-        assert driver._status_html is None
 
 
 # -- Analyzer integration --
