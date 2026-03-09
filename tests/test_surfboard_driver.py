@@ -77,6 +77,29 @@ HNAP_DEVICE_RESPONSE = {
     }
 }
 
+HNAP_DS_RESPONSE_MOTO = {
+    "GetMultipleHNAPsResponse": {
+        "GetMotoStatusDownstreamChannelInfoResponse": {
+            "MotoConnDownstreamChannel": DS_RAW,
+            "GetMotoStatusDownstreamChannelInfoResult": "OK",
+        },
+        "GetMotoStatusUpstreamChannelInfoResponse": {
+            "MotoConnUpstreamChannel": US_RAW,
+            "GetMotoStatusUpstreamChannelInfoResult": "OK",
+        },
+    }
+}
+
+HNAP_DEVICE_RESPONSE_MOTO = {
+    "GetMultipleHNAPsResponse": {
+        "GetMotoStatusConnectionInfoResponse": {
+            "StatusSoftwareModelName": "SB8200",
+            "StatusSoftwareSfVer": "AB01.02.053.05_080901_193.0A.NSH",
+            "GetMotoStatusConnectionInfoResult": "OK",
+        },
+    }
+}
+
 HNAP_LOGIN_PHASE1 = {
     "LoginResponse": {
         "Challenge": "ABCDEF1234567890",
@@ -106,8 +129,12 @@ def mock_hnap(driver):
             keys = body.get("GetMultipleHNAPs", {})
             if "GetCustomerStatusDownstreamChannelInfo" in keys:
                 return HNAP_DS_RESPONSE
+            if "GetMotoStatusDownstreamChannelInfo" in keys:
+                return HNAP_DS_RESPONSE_MOTO
             if "GetCustomerStatusConnectionInfo" in keys:
                 return HNAP_DEVICE_RESPONSE
+            if "GetMotoStatusConnectionInfo" in keys:
+                return HNAP_DEVICE_RESPONSE_MOTO
         return {}
 
     with patch.object(driver, "_hnap_post", side_effect=side_effect):
@@ -782,3 +809,247 @@ class TestAnalyzerIntegration:
             assert ch["docsis_version"] == "3.1"
 
 
+# -- Session lifecycle (RELOAD handling) --
+
+class TestSessionLifecycle:
+    def test_reload_retry_without_fresh_session(self, driver):
+        """First RELOAD retries on same session object (no _fresh_session)."""
+        session_before = driver._session
+        calls = []
+
+        def mock_do_login():
+            calls.append(1)
+            if len(calls) == 1:
+                raise RuntimeError("SURFboard login failed: no challenge received")
+
+        with patch.object(driver, "_do_login", side_effect=mock_do_login), \
+             patch("app.drivers.surfboard.time"):
+            driver.login()
+
+        assert len(calls) == 2
+        assert driver._session is session_before
+        assert driver._logged_in is True
+
+    def test_reload_fresh_session_on_second_attempt(self, driver):
+        """Second RELOAD creates a fresh session before retrying."""
+        session_before = driver._session
+        calls = []
+
+        def mock_do_login():
+            calls.append(1)
+            if len(calls) <= 2:
+                raise RuntimeError("SURFboard login failed: no challenge received")
+
+        with patch.object(driver, "_do_login", side_effect=mock_do_login), \
+             patch("app.drivers.surfboard.time"):
+            driver.login()
+
+        assert len(calls) == 3
+        assert driver._session is not session_before
+        assert driver._logged_in is True
+
+    def test_reload_all_attempts_exhausted(self, driver):
+        """Three RELOADs raises RuntimeError."""
+        def mock_do_login():
+            raise RuntimeError("SURFboard login failed: no challenge received")
+
+        with patch.object(driver, "_do_login", side_effect=mock_do_login), \
+             patch("app.drivers.surfboard.time"):
+            with pytest.raises(RuntimeError, match="no challenge received"):
+                driver.login()
+
+    def test_session_reused_across_polls(self, driver):
+        """login() no-op when already logged in, session object unchanged."""
+        driver._logged_in = True
+        session_before = driver._session
+        calls = []
+
+        with patch.object(driver, "_do_login", side_effect=lambda: calls.append(1)):
+            driver.login()
+
+        assert calls == []
+        assert driver._session is session_before
+
+
+# -- Multi-firmware namespace --
+
+class TestActionNamespace:
+    def test_moto_action_namespace(self, driver):
+        """GetMotoStatus* actions work for SB8200-style firmware."""
+        driver._action_ns = "Moto"
+
+        def side_effect(action, body, **kwargs):
+            if action == "GetMultipleHNAPs":
+                keys = body.get("GetMultipleHNAPs", {})
+                if "GetMotoStatusDownstreamChannelInfo" in keys:
+                    return HNAP_DS_RESPONSE_MOTO
+            return {}
+
+        with patch.object(driver, "_hnap_post", side_effect=side_effect):
+            data = driver.get_docsis_data()
+
+        assert len(data["channelDs"]["docsis30"]) == 32
+        assert len(data["channelDs"]["docsis31"]) == 1
+        assert len(data["channelUs"]["docsis30"]) == 4
+        assert len(data["channelUs"]["docsis31"]) == 1
+
+    def test_customer_action_namespace(self, driver):
+        """GetCustomerStatus* actions work with explicit Customer namespace."""
+        driver._action_ns = "Customer"
+
+        def side_effect(action, body, **kwargs):
+            if action == "GetMultipleHNAPs":
+                keys = body.get("GetMultipleHNAPs", {})
+                if "GetCustomerStatusDownstreamChannelInfo" in keys:
+                    return HNAP_DS_RESPONSE
+            return {}
+
+        with patch.object(driver, "_hnap_post", side_effect=side_effect):
+            data = driver.get_docsis_data()
+
+        assert len(data["channelDs"]["docsis30"]) == 32
+
+    def test_namespace_auto_detection(self, driver):
+        """Empty Customer response triggers Moto fallback."""
+        assert driver._action_ns == ""
+        call_count = []
+
+        def side_effect(action, body, **kwargs):
+            if action == "GetMultipleHNAPs":
+                call_count.append(1)
+                keys = body.get("GetMultipleHNAPs", {})
+                if "GetCustomerStatusDownstreamChannelInfo" in keys:
+                    return {
+                        "GetMultipleHNAPsResponse": {
+                            "GetCustomerStatusDownstreamChannelInfoResponse": {
+                                "CustomerConnDownstreamChannel": ""
+                            },
+                            "GetCustomerStatusUpstreamChannelInfoResponse": {
+                                "CustomerConnUpstreamChannel": ""
+                            },
+                        }
+                    }
+                if "GetMotoStatusDownstreamChannelInfo" in keys:
+                    return HNAP_DS_RESPONSE_MOTO
+            return {}
+
+        with patch.object(driver, "_hnap_post", side_effect=side_effect):
+            data = driver.get_docsis_data()
+
+        assert driver._action_ns == "Moto"
+        assert len(data["channelDs"]["docsis30"]) == 32
+        assert len(call_count) == 2
+
+    def test_namespace_remembered(self, driver):
+        """After detection, subsequent calls use remembered namespace."""
+        driver._action_ns = "Moto"
+        keys_seen = []
+
+        def side_effect(action, body, **kwargs):
+            if action == "GetMultipleHNAPs":
+                keys_seen.append(list(body.get("GetMultipleHNAPs", {}).keys()))
+                keys = body.get("GetMultipleHNAPs", {})
+                if "GetMotoStatusDownstreamChannelInfo" in keys:
+                    return HNAP_DS_RESPONSE_MOTO
+            return {}
+
+        with patch.object(driver, "_hnap_post", side_effect=side_effect):
+            driver.get_docsis_data()
+            driver.get_docsis_data()
+
+        assert len(keys_seen) == 2
+        for keys in keys_seen:
+            assert all("Moto" in k for k in keys)
+
+    def test_device_info_moto_namespace(self, driver):
+        """Device info uses Moto actions when detected."""
+        driver._action_ns = "Moto"
+
+        def side_effect(action, body, **kwargs):
+            if action == "GetMultipleHNAPs":
+                keys = body.get("GetMultipleHNAPs", {})
+                if "GetMotoStatusConnectionInfo" in keys:
+                    return HNAP_DEVICE_RESPONSE_MOTO
+            return {}
+
+        with patch.object(driver, "_hnap_post", side_effect=side_effect):
+            info = driver.get_device_info()
+
+        assert info["model"] == "SB8200"
+        assert info["sw_version"] == "AB01.02.053.05_080901_193.0A.NSH"
+
+    def test_device_info_http_500_namespace_fallback(self, driver):
+        """HTTP 500 on Customer device info triggers Moto fallback."""
+        import requests as req
+        assert driver._action_ns == ""
+
+        def side_effect(action, body, **kwargs):
+            if action == "GetMultipleHNAPs":
+                keys = body.get("GetMultipleHNAPs", {})
+                if "GetCustomerStatusConnectionInfo" in keys:
+                    resp = MagicMock()
+                    resp.status_code = 500
+                    raise req.HTTPError(response=resp)
+                if "GetMotoStatusConnectionInfo" in keys:
+                    return HNAP_DEVICE_RESPONSE_MOTO
+            return {}
+
+        with patch.object(driver, "_hnap_post", side_effect=side_effect):
+            info = driver.get_device_info()
+
+        assert info["model"] == "SB8200"
+        assert driver._action_ns == "Moto"
+
+
+# -- HTTP 500 namespace resilience --
+
+class TestHttp500Resilience:
+    def test_http_500_tries_other_namespace(self, driver):
+        """HTTP 500 triggers namespace fallback before re-auth."""
+        import requests as req
+        driver._action_ns = "Customer"
+        driver._logged_in = True
+        calls = []
+
+        def mock_fetch():
+            calls.append(driver._action_ns)
+            if len(calls) == 1:
+                resp = MagicMock()
+                resp.status_code = 500
+                raise req.HTTPError(response=resp)
+            return {
+                "channelDs": {"docsis30": [], "docsis31": []},
+                "channelUs": {"docsis30": [], "docsis31": []},
+            }
+
+        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch):
+            data = driver.get_docsis_data()
+
+        assert len(calls) == 2
+        assert calls[0] == "Customer"
+        assert calls[1] == "Moto"
+        assert driver._action_ns == "Moto"
+        assert "channelDs" in data
+
+    def test_http_500_preserves_session(self, driver):
+        """HTTP 500 namespace switch doesn't destroy auth session."""
+        import requests as req
+        driver._action_ns = "Customer"
+        driver._logged_in = True
+        calls = []
+
+        def mock_fetch():
+            calls.append(1)
+            if len(calls) == 1:
+                resp = MagicMock()
+                resp.status_code = 500
+                raise req.HTTPError(response=resp)
+            return {
+                "channelDs": {"docsis30": [], "docsis31": []},
+                "channelUs": {"docsis30": [], "docsis31": []},
+            }
+
+        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch):
+            driver.get_docsis_data()
+
+        assert driver._logged_in is True
