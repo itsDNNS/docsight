@@ -3,7 +3,7 @@
 import io
 import json
 import pytest
-from app.web import app, update_state, init_config, init_storage
+from app.web import app, update_state, init_config, init_storage, reset_modem_state, get_state
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -207,6 +207,24 @@ class TestHealthEndpoint:
         data = json.loads(resp.data)
         assert data["status"] == "ok"
         assert data["docsis_health"] == "good"
+
+    def test_reset_modem_state_clears_stale_dashboard_data(self, client, sample_analysis):
+        update_state(
+            analysis=sample_analysis,
+            device_info={"model": "Generic Router"},
+            connection_info={"connection_type": "generic"},
+            speedtest_latest={"download_mbps": 230.5},
+        )
+
+        reset_modem_state()
+        state = get_state()
+
+        assert state["analysis"] is None
+        assert state["device_info"] is None
+        assert state["connection_info"] is None
+        assert state["last_update"] is None
+        assert state["error"] is None
+        assert state["speedtest_latest"] == {"download_mbps": 230.5}
 
 
 class TestExportEndpoint:
