@@ -81,6 +81,9 @@ class SurfboardDriver(ModemDriver):
         # HMAC algorithm -- auto-detected during login.
         # S34 uses SHA256, SB8200 uses MD5.
         self._hmac_algo: str = ""
+        # Action namespace: "" = unknown, "Customer" (S34) or "Moto" (SB8200).
+        # Persists across session resets (firmware property, not session state).
+        self._action_ns: str = ""
 
     def _fresh_session(self) -> None:
         """Reset HTTP session to clear stale cookies/state."""
@@ -99,36 +102,56 @@ class SurfboardDriver(ModemDriver):
         a fresh login when no session exists or after a failed request
         invalidated the session.
 
-        Retries with a fresh session on ConnectionError or when the
-        modem returns no challenge (stale session / concurrent login).
+        RELOAD handling (modem considers previous session still active):
+        1. First RELOAD: wait 5s, retry on same session
+        2. Second RELOAD: fresh session + 15s wait, retry
+        3. Third RELOAD: fail
+
+        ConnectionError: fresh session + retry (transport failure).
         """
         if self._logged_in:
             return
 
-        for attempt in range(3):
+        reload_count = 0
+        conn_errors = 0
+        while True:
             try:
-                self._fresh_session()
                 self._do_login()
                 log.info("SURFboard HNAP login OK")
                 self._logged_in = True
                 return
             except requests.ConnectionError:
-                if attempt < 2:
-                    log.warning("SURFboard connection lost, retrying with fresh session")
-                    time.sleep(1)
-                    continue
-                raise RuntimeError("SURFboard login failed: connection refused after retry")
+                conn_errors += 1
+                self._fresh_session()
+                if conn_errors >= 3:
+                    raise RuntimeError(
+                        "SURFboard login failed: connection refused after retry"
+                    )
+                log.warning(
+                    "SURFboard connection lost, retrying with fresh session"
+                )
+                time.sleep(1)
             except RuntimeError as e:
-                if "no challenge received" in str(e) and attempt < 2:
-                    delay = 10 * (attempt + 1)
+                if "no challenge received" not in str(e):
+                    raise
+                reload_count += 1
+                if reload_count == 1:
                     log.warning(
                         "SURFboard RELOAD (stale session on modem), "
-                        "waiting %ds for session to expire (attempt %d/3)",
-                        delay, attempt + 1,
+                        "waiting 5s, retrying on same session (reload %d/3)",
+                        reload_count,
                     )
-                    time.sleep(delay)
-                    continue
-                raise
+                    time.sleep(5)
+                elif reload_count == 2:
+                    log.warning(
+                        "SURFboard RELOAD persists, fresh session + "
+                        "15s wait (reload %d/3)",
+                        reload_count,
+                    )
+                    self._fresh_session()
+                    time.sleep(15)
+                else:
+                    raise
             except requests.RequestException as e:
                 raise RuntimeError(f"SURFboard login failed: {e}")
 
@@ -236,36 +259,84 @@ class SurfboardDriver(ModemDriver):
     def get_docsis_data(self) -> dict:
         """Retrieve DOCSIS channel data via HNAP GetMultipleHNAPs.
 
-        Retries once with a fresh login if the request fails (expired session).
+        On HTTP 500: tries the other action namespace before re-authenticating.
+        On other HTTP errors: re-authenticates (session expired).
         """
         try:
             return self._fetch_docsis_data()
         except requests.HTTPError as e:
-            log.warning("DOCSIS data fetch failed (HTTP %d), re-authenticating",
-                        e.response.status_code if e.response is not None else 0)
+            status = e.response.status_code if e.response is not None else 0
+
+            if status == 500:
+                current = self._action_ns or "Customer"
+                other = "Moto" if current == "Customer" else "Customer"
+                log.warning(
+                    "HTTP 500, trying %s namespace (was %s)", other, current,
+                )
+                prev_ns = self._action_ns
+                self._action_ns = other
+                try:
+                    return self._fetch_docsis_data()
+                except requests.HTTPError:
+                    self._action_ns = prev_ns
+
+            log.warning(
+                "DOCSIS data fetch failed (HTTP %d), re-authenticating",
+                status,
+            )
             self._logged_in = False
             self.login()
             return self._fetch_docsis_data()
 
     def _fetch_docsis_data(self) -> dict:
-        """Internal: fetch and parse DOCSIS channel data."""
+        """Internal: fetch and parse DOCSIS channel data.
+
+        Auto-detects action namespace (Customer vs Moto) on first call
+        by trying Customer first, then Moto if no data is returned.
+        """
         body = {
-            "GetMultipleHNAPs": {
-                "GetCustomerStatusDownstreamChannelInfo": "",
-                "GetCustomerStatusUpstreamChannelInfo": "",
-            }
+            "GetMultipleHNAPs": self._make_actions(
+                "DownstreamChannelInfo", "UpstreamChannelInfo"
+            )
         }
         resp = self._hnap_post("GetMultipleHNAPs", body)
         multi = resp.get("GetMultipleHNAPsResponse", {})
 
         ds_raw = (
-            multi.get("GetCustomerStatusDownstreamChannelInfoResponse", {})
-            .get("CustomerConnDownstreamChannel", "")
+            multi.get(self._response_key("DownstreamChannelInfo"), {})
+            .get(self._conn_field("DownstreamChannel"), "")
         )
         us_raw = (
-            multi.get("GetCustomerStatusUpstreamChannelInfoResponse", {})
-            .get("CustomerConnUpstreamChannel", "")
+            multi.get(self._response_key("UpstreamChannelInfo"), {})
+            .get(self._conn_field("UpstreamChannel"), "")
         )
+
+        # Auto-detect namespace: if no data and namespace unknown, try Moto
+        if not ds_raw and not us_raw and not self._action_ns:
+            self._action_ns = "Moto"
+            log.info("No channel data with Customer namespace, trying Moto")
+            body = {
+                "GetMultipleHNAPs": self._make_actions(
+                    "DownstreamChannelInfo", "UpstreamChannelInfo"
+                )
+            }
+            resp = self._hnap_post("GetMultipleHNAPs", body)
+            multi = resp.get("GetMultipleHNAPsResponse", {})
+            ds_raw = (
+                multi.get(self._response_key("DownstreamChannelInfo"), {})
+                .get(self._conn_field("DownstreamChannel"), "")
+            )
+            us_raw = (
+                multi.get(self._response_key("UpstreamChannelInfo"), {})
+                .get(self._conn_field("UpstreamChannel"), "")
+            )
+            if not ds_raw and not us_raw:
+                self._action_ns = ""
+                log.warning(
+                    "Neither Customer nor Moto namespace returned channel data"
+                )
+        elif (ds_raw or us_raw) and not self._action_ns:
+            self._action_ns = "Customer"
 
         ds30, ds31 = self._parse_downstream(ds_raw)
         us30, us31 = self._parse_upstream(us_raw)
@@ -279,20 +350,37 @@ class SurfboardDriver(ModemDriver):
         """Retrieve device model and firmware from HNAP."""
         try:
             body = {
-                "GetMultipleHNAPs": {
-                    "GetCustomerStatusStartupSequence": "",
-                    "GetCustomerStatusConnectionInfo": "",
-                }
+                "GetMultipleHNAPs": self._make_actions(
+                    "StartupSequence", "ConnectionInfo"
+                )
             }
             resp = self._hnap_post("GetMultipleHNAPs", body)
             multi = resp.get("GetMultipleHNAPsResponse", {})
 
-            cust = multi.get("GetCustomerStatusConnectionInfoResponse", {})
+            conn = multi.get(self._response_key("ConnectionInfo"), {})
+            model = conn.get("StatusSoftwareModelName", "")
+            sw = conn.get("StatusSoftwareSfVer", "")
+
+            # Fallback to other namespace if no model and namespace unknown
+            if not model and not self._action_ns:
+                self._action_ns = "Moto"
+                body = {
+                    "GetMultipleHNAPs": self._make_actions(
+                        "StartupSequence", "ConnectionInfo"
+                    )
+                }
+                resp = self._hnap_post("GetMultipleHNAPs", body)
+                multi = resp.get("GetMultipleHNAPsResponse", {})
+                conn = multi.get(self._response_key("ConnectionInfo"), {})
+                model = conn.get("StatusSoftwareModelName", "")
+                sw = conn.get("StatusSoftwareSfVer", "")
+                if not model:
+                    self._action_ns = ""
 
             return {
                 "manufacturer": "Arris",
-                "model": cust.get("StatusSoftwareModelName", ""),
-                "sw_version": cust.get("StatusSoftwareSfVer", ""),
+                "model": model,
+                "sw_version": sw,
             }
         except Exception:
             log.warning("Failed to retrieve device info, will retry next poll")
@@ -301,6 +389,32 @@ class SurfboardDriver(ModemDriver):
     def get_connection_info(self) -> dict:
         """Standalone modem -- no connection info available."""
         return {}
+
+    # -- Namespace helpers --
+
+    def _make_actions(self, *suffixes: str) -> dict:
+        """Build HNAP action dict using current namespace.
+
+        Returns e.g. {"GetCustomerStatusDownstreamChannelInfo": "", ...}
+        """
+        ns = self._action_ns or "Customer"
+        return {f"Get{ns}Status{s}": "" for s in suffixes}
+
+    def _response_key(self, suffix: str) -> str:
+        """Build response key for the given action suffix.
+
+        Returns e.g. "GetCustomerStatusDownstreamChannelInfoResponse"
+        """
+        ns = self._action_ns or "Customer"
+        return f"Get{ns}Status{suffix}Response"
+
+    def _conn_field(self, field: str) -> str:
+        """Build connection data field name.
+
+        Returns e.g. "CustomerConnDownstreamChannel"
+        """
+        ns = self._action_ns or "Customer"
+        return f"{ns}Conn{field}"
 
     # -- HNAP transport --
 
