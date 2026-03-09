@@ -31,7 +31,7 @@ class SegmentUtilizationStorage:
                 )
             """)
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_segment_util_ts
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_segment_util_ts
                 ON segment_utilization(timestamp)
             """)
             conn.commit()
@@ -46,11 +46,15 @@ class SegmentUtilizationStorage:
     def save(self, ds_total, us_total, ds_own, us_own):
         """Store a utilization sample with the current UTC timestamp."""
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        self.save_at(ts, ds_total, us_total, ds_own, us_own)
+
+    def save_at(self, ts, ds_total, us_total, ds_own, us_own):
+        """Store a utilization sample at a specific timestamp (ISO format). Skips duplicates."""
         with self._lock:
             conn = self._connect()
             try:
                 conn.execute(
-                    "INSERT INTO segment_utilization (timestamp, ds_total, us_total, ds_own, us_own) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT OR IGNORE INTO segment_utilization (timestamp, ds_total, us_total, ds_own, us_own) VALUES (?, ?, ?, ?, ?)",
                     (ts, ds_total, us_total, ds_own, us_own),
                 )
                 conn.commit()

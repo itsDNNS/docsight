@@ -60,21 +60,39 @@ class SegmentUtilizationCollector(Collector):
             return CollectorResult.failure(self.name, f"API request failed: {e}")
 
         try:
+            from datetime import datetime, timezone
+
             body = resp.json()
             data_items = body["data"]
             own = next(d for d in data_items if d["type"] == "own")
             total = next(d for d in data_items if d["type"] == "total")
+
+            last_sample_time = body.get("lastSampleTime", 0)
+            sample_interval_ms = body.get("sampleInterval", 60000)
+            sample_interval_s = sample_interval_ms / 1000
+            n_samples = len(total["downstream"])
+
+            saved = 0
+            for i in range(n_samples):
+                ds_t = total["downstream"][i]
+                us_t = total["upstream"][i]
+                ds_o = own["downstream"][i]
+                us_o = own["upstream"][i]
+                if ds_t is None and us_t is None:
+                    continue
+                sample_epoch = last_sample_time - (n_samples - 1 - i) * sample_interval_s
+                ts = datetime.fromtimestamp(sample_epoch, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                self._storage.save_at(ts, ds_t, us_t, ds_o, us_o)
+                saved += 1
 
             ds_total = _last_non_null(total["downstream"])
             us_total = _last_non_null(total["upstream"])
             ds_own = _last_non_null(own["downstream"])
             us_own = _last_non_null(own["upstream"])
 
-            self._storage.save(ds_total, us_total, ds_own, us_own)
-
             log.info(
-                "Segment utilization: DS %.1f%% (own %.2f%%), US %.1f%% (own %.2f%%)",
-                ds_total or 0, ds_own or 0, us_total or 0, us_own or 0,
+                "Segment utilization: DS %.1f%% (own %.2f%%), US %.1f%% (own %.2f%%) [%d samples stored]",
+                ds_total or 0, ds_own or 0, us_total or 0, us_own or 0, saved,
             )
             return CollectorResult.ok(
                 self.name,

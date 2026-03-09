@@ -32,8 +32,8 @@ class TestSave:
 
 class TestGetRange:
     def test_get_range_filters_by_time(self, storage):
-        storage.save(1.0, 2.0, 0.1, 0.2)
-        storage.save(3.0, 4.0, 0.3, 0.4)
+        storage.save_at("2026-03-09T10:00:00Z", 1.0, 2.0, 0.1, 0.2)
+        storage.save_at("2026-03-09T10:01:00Z", 3.0, 4.0, 0.3, 0.4)
         rows = storage.get_latest(10)
         assert len(rows) == 2
         start = "2000-01-01T00:00:00Z"
@@ -47,8 +47,8 @@ class TestGetRange:
 
 class TestGetLatest:
     def test_get_latest_returns_most_recent_first(self, storage):
-        storage.save(1.0, 2.0, 0.1, 0.2)
-        storage.save(3.0, 4.0, 0.3, 0.4)
+        storage.save_at("2026-03-09T10:00:00Z", 1.0, 2.0, 0.1, 0.2)
+        storage.save_at("2026-03-09T10:01:00Z", 3.0, 4.0, 0.3, 0.4)
         rows = storage.get_latest(1)
         assert rows[0]["ds_total"] == pytest.approx(3.0)
 
@@ -60,8 +60,8 @@ class TestGetLatest:
 
 class TestGetStats:
     def test_get_stats_computes_aggregates(self, storage):
-        storage.save(5.0, 10.0, 0.1, 0.5)
-        storage.save(15.0, 30.0, 0.3, 1.5)
+        storage.save_at("2026-03-09T10:00:00Z", 5.0, 10.0, 0.1, 0.5)
+        storage.save_at("2026-03-09T10:01:00Z", 15.0, 30.0, 0.3, 1.5)
         stats = storage.get_stats("2000-01-01T00:00:00Z", "2099-01-01T00:00:00Z")
         assert stats["ds_total_avg"] == pytest.approx(10.0)
         assert stats["ds_total_min"] == pytest.approx(5.0)
