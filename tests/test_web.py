@@ -190,6 +190,13 @@ class TestIndexRoute:
         assert b"12 ms Ping" in html
 
 
+class TestSettingsRoute:
+    def test_settings_contains_comcast_xfinity_isp_option(self, client):
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        assert b"Comcast/Xfinity" in resp.data
+
+
 class TestHealthEndpoint:
     def test_health_waiting(self, client):
         update_state(analysis=None)

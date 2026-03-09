@@ -175,7 +175,8 @@
     "Telekom",
     "NetCologne",
     "M-net",
-    "Wilhelm.tel"
+    "Wilhelm.tel",
+    "Comcast/Xfinity"
   ],
   "tariff": "Tariff",
   "max_downstream": "Max Downstream",
