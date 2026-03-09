@@ -1,0 +1,124 @@
+.fritz-cable-view {
+    display: grid;
+    gap: 18px;
+}
+
+.fritz-cable-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.fritz-cable-title {
+    margin: 0 0 4px;
+}
+
+.fritz-cable-subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.fritz-cable-message {
+    color: var(--text-secondary);
+}
+
+.fritz-cable-kpis,
+.fritz-cable-grid,
+.fritz-cable-footnotes {
+    display: grid;
+    gap: 16px;
+}
+
+.fritz-cable-kpis {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.fritz-cable-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.fritz-cable-footnotes {
+    grid-template-columns: minmax(260px, 1fr) minmax(280px, 1.2fr);
+}
+
+.fritz-cable-kpi,
+.fritz-cable-panel,
+.fritz-cable-meta,
+.fritz-cable-note {
+    padding: 18px;
+}
+
+.fritz-cable-kpi-label,
+.fritz-cable-panel-sub,
+.fritz-cable-kpi-sub,
+.fritz-cable-note {
+    color: var(--text-secondary);
+}
+
+.fritz-cable-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+.fritz-cable-panel-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    margin-bottom: 12px;
+}
+
+.fritz-cable-panel-title {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.fritz-cable-panel-metrics {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.fritz-cable-chart {
+    height: 220px;
+}
+
+.fritz-cable-chart svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.fritz-cable-empty {
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: var(--text-secondary);
+}
+
+.fritz-cable-meta {
+    display: grid;
+    gap: 10px;
+}
+
+.fritz-cable-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.fritz-cable-note {
+    line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+    .fritz-cable-footnotes {
+        grid-template-columns: 1fr;
+    }
+}

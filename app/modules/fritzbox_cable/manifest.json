@@ -1,0 +1,20 @@
+{
+  "id": "docsight.fritzbox_cable",
+  "name": "FRITZ!Box Cable Utilization",
+  "description": "Live cable utilization view based on FRITZ!Box docOv/netMoni data",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "analysis",
+  "contributes": {
+    "routes": "routes.py",
+    "tab": "templates/fritzbox_cable_tab.html",
+    "static": "static/",
+    "i18n": "i18n/"
+  },
+  "menu": {
+    "label_key": "docsight.fritzbox_cable.title",
+    "icon": "gauge",
+    "order": 26
+  }
+}

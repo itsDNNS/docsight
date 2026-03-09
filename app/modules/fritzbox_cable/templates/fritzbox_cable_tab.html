@@ -1,0 +1,77 @@
+<div class="view-content fritz-cable-view">
+    <div class="fritz-cable-header">
+        <div>
+            <h2 class="fritz-cable-title">{{ t.get('docsight.fritzbox_cable.title', 'Cable Utilization') }}</h2>
+            <p class="fritz-cable-subtitle">{{ t.get('docsight.fritzbox_cable.subtitle', 'Live cable load from the FRITZ!Box utilization view.') }}</p>
+        </div>
+        <button class="trend-tab" id="fritz-cable-refresh" type="button">
+            {{ t.get('docsight.fritzbox_cable.refresh', 'Refresh') }}
+        </button>
+    </div>
+
+    <div class="chart-card fritz-cable-message" id="fritz-cable-message">
+        {{ t.get('docsight.fritzbox_cable.loading', 'Loading cable utilization...') }}
+    </div>
+
+    <div id="fritz-cable-content" style="display:none;">
+        <div class="fritz-cable-kpis">
+            <div class="chart-card fritz-cable-kpi">
+                <div class="fritz-cable-kpi-label">{{ t.get('docsight.fritzbox_cable.status', 'Cable Status') }}</div>
+                <div class="fritz-cable-kpi-value" id="fritz-cable-status">-</div>
+                <div class="fritz-cable-kpi-sub" id="fritz-cable-duration"></div>
+            </div>
+            <div class="chart-card fritz-cable-kpi">
+                <div class="fritz-cable-kpi-label">{{ t.get('docsight.fritzbox_cable.downstream_link', 'Provisioned Downstream') }}</div>
+                <div class="fritz-cable-kpi-value" id="fritz-cable-ds-rate">-</div>
+                <div class="fritz-cable-kpi-sub" id="fritz-cable-channel-counts"></div>
+            </div>
+            <div class="chart-card fritz-cable-kpi">
+                <div class="fritz-cable-kpi-label">{{ t.get('docsight.fritzbox_cable.upstream_link', 'Provisioned Upstream') }}</div>
+                <div class="fritz-cable-kpi-value" id="fritz-cable-us-rate">-</div>
+                <div class="fritz-cable-kpi-sub" id="fritz-cable-mode"></div>
+            </div>
+        </div>
+
+        <div class="fritz-cable-grid">
+            <div class="chart-card fritz-cable-panel">
+                <div class="fritz-cable-panel-header">
+                    <div>
+                        <div class="fritz-cable-panel-title" id="fritz-cable-ds-title"></div>
+                        <div class="fritz-cable-panel-sub" id="fritz-cable-ds-subtitle"></div>
+                    </div>
+                    <div class="fritz-cable-panel-metrics">
+                        <span id="fritz-cable-ds-current"></span>
+                        <span id="fritz-cable-ds-peak"></span>
+                    </div>
+                </div>
+                <div class="fritz-cable-chart" id="fritz-cable-ds-chart"></div>
+            </div>
+
+            <div class="chart-card fritz-cable-panel">
+                <div class="fritz-cable-panel-header">
+                    <div>
+                        <div class="fritz-cable-panel-title" id="fritz-cable-us-title"></div>
+                        <div class="fritz-cable-panel-sub" id="fritz-cable-us-subtitle"></div>
+                    </div>
+                    <div class="fritz-cable-panel-metrics">
+                        <span id="fritz-cable-us-current"></span>
+                        <span id="fritz-cable-us-peak"></span>
+                    </div>
+                </div>
+                <div class="fritz-cable-chart" id="fritz-cable-us-chart"></div>
+            </div>
+        </div>
+
+        <div class="fritz-cable-footnotes">
+            <div class="chart-card fritz-cable-meta">
+                <div class="fritz-cable-meta-row"><span>{{ t.get('docsight.fritzbox_cable.model', 'Model') }}</span><strong id="fritz-cable-model">-</strong></div>
+                <div class="fritz-cable-meta-row"><span>{{ t.get('docsight.fritzbox_cable.docsis_software', 'DOCSIS Software') }}</span><strong id="fritz-cable-docsis">-</strong></div>
+                <div class="fritz-cable-meta-row"><span>{{ t.get('docsight.fritzbox_cable.cm_mac', 'CM MAC') }}</span><strong id="fritz-cable-cm-mac">-</strong></div>
+                <div class="fritz-cable-meta-row"><span>{{ t.get('docsight.fritzbox_cable.sampling', 'Sampling') }}</span><strong id="fritz-cable-sampling">-</strong></div>
+            </div>
+            <div class="chart-card fritz-cable-note">
+                {{ t.get('docsight.fritzbox_cable.note', 'Values reflect the FRITZ!Box cable utilization view and should be interpreted as live cable-load telemetry, not a guaranteed CMTS-wide utilization metric.') }}
+            </div>
+        </div>
+    </div>
+</div>

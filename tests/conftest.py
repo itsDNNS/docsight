@@ -29,6 +29,12 @@ def _register_module_blueprints():
     except ImportError:
         pass
 
+    try:
+        from app.modules.fritzbox_cable.routes import bp as fritzbox_cable_bp
+        blueprints_to_register.append(("fritzbox_cable_module", fritzbox_cable_bp))
+    except ImportError:
+        pass
+
     existing = {b.name for b in app.blueprints.values()}
     for name, bp in blueprints_to_register:
         if name not in existing:
