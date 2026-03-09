@@ -126,3 +126,8 @@ function _fritzCableRenderChart(containerId, samples, totalKey, ownKey) {
 }
 
 window.loadFritzCableData = loadFritzCableData;
+
+/* Auto-load if the view is already active (module script loads after deferred routing) */
+if (typeof currentView !== 'undefined' && currentView === 'mod-docsight-fritzbox_cable') {
+    setTimeout(loadFritzCableData, 0);
+}
