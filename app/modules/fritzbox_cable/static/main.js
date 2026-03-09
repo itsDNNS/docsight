@@ -103,13 +103,8 @@ function _fritzCableRenderChart(containerId, samples, totalKey, ownKey) {
     var ownVals = samples.map(function(s) { return s[ownKey]; });
     var timestamps = samples.map(function(s) { return s.timestamp; });
 
-    /* Y scale: 0 to max(totalVals) * 1.2, minimum 5 */
-    var yMax = 5;
-    for (var i = 0; i < totalVals.length; i++) {
-        if (totalVals[i] != null && totalVals[i] > yMax) yMax = totalVals[i];
-    }
-    yMax = Math.ceil(yMax * 1.2);
-    if (yMax < 5) yMax = 5;
+    /* Y scale: fixed 0-100% to match FRITZ!Box presentation */
+    var yMax = 100;
 
     var n = samples.length;
 
