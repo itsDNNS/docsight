@@ -349,31 +349,12 @@ class SurfboardDriver(ModemDriver):
     def get_device_info(self) -> dict:
         """Retrieve device model and firmware from HNAP."""
         try:
-            body = {
-                "GetMultipleHNAPs": self._make_actions(
-                    "StartupSequence", "ConnectionInfo"
-                )
-            }
-            resp = self._hnap_post("GetMultipleHNAPs", body)
-            multi = resp.get("GetMultipleHNAPsResponse", {})
-
-            conn = multi.get(self._response_key("ConnectionInfo"), {})
-            model = conn.get("StatusSoftwareModelName", "")
-            sw = conn.get("StatusSoftwareSfVer", "")
+            model, sw = self._fetch_device_fields()
 
             # Fallback to other namespace if no model and namespace unknown
             if not model and not self._action_ns:
                 self._action_ns = "Moto"
-                body = {
-                    "GetMultipleHNAPs": self._make_actions(
-                        "StartupSequence", "ConnectionInfo"
-                    )
-                }
-                resp = self._hnap_post("GetMultipleHNAPs", body)
-                multi = resp.get("GetMultipleHNAPsResponse", {})
-                conn = multi.get(self._response_key("ConnectionInfo"), {})
-                model = conn.get("StatusSoftwareModelName", "")
-                sw = conn.get("StatusSoftwareSfVer", "")
+                model, sw = self._fetch_device_fields()
                 if not model:
                     self._action_ns = ""
 
@@ -385,6 +366,44 @@ class SurfboardDriver(ModemDriver):
         except Exception:
             log.warning("Failed to retrieve device info, will retry next poll")
             return {"manufacturer": "Arris", "model": "", "sw_version": ""}
+
+    def _fetch_device_fields(self) -> tuple[str, str]:
+        """Fetch model and firmware from HNAP, with HTTP 500 namespace fallback.
+
+        Returns (model, sw_version) strings. On HTTP 500 with unknown
+        namespace, tries the other namespace before propagating.
+        """
+        try:
+            body = {
+                "GetMultipleHNAPs": self._make_actions(
+                    "StartupSequence", "ConnectionInfo"
+                )
+            }
+            resp = self._hnap_post("GetMultipleHNAPs", body)
+        except requests.HTTPError as e:
+            status = e.response.status_code if e.response is not None else 0
+            if status == 500 and not self._action_ns:
+                current = self._action_ns or "Customer"
+                other = "Moto" if current == "Customer" else "Customer"
+                log.warning(
+                    "Device info HTTP 500, trying %s namespace", other,
+                )
+                self._action_ns = other
+                body = {
+                    "GetMultipleHNAPs": self._make_actions(
+                        "StartupSequence", "ConnectionInfo"
+                    )
+                }
+                resp = self._hnap_post("GetMultipleHNAPs", body)
+            else:
+                raise
+
+        multi = resp.get("GetMultipleHNAPsResponse", {})
+        conn = multi.get(self._response_key("ConnectionInfo"), {})
+        return (
+            conn.get("StatusSoftwareModelName", ""),
+            conn.get("StatusSoftwareSfVer", ""),
+        )
 
     def get_connection_info(self) -> dict:
         """Standalone modem -- no connection info available."""

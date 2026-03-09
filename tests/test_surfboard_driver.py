@@ -978,6 +978,28 @@ class TestActionNamespace:
         assert info["model"] == "SB8200"
         assert info["sw_version"] == "AB01.02.053.05_080901_193.0A.NSH"
 
+    def test_device_info_http_500_namespace_fallback(self, driver):
+        """HTTP 500 on Customer device info triggers Moto fallback."""
+        import requests as req
+        assert driver._action_ns == ""
+
+        def side_effect(action, body, **kwargs):
+            if action == "GetMultipleHNAPs":
+                keys = body.get("GetMultipleHNAPs", {})
+                if "GetCustomerStatusConnectionInfo" in keys:
+                    resp = MagicMock()
+                    resp.status_code = 500
+                    raise req.HTTPError(response=resp)
+                if "GetMotoStatusConnectionInfo" in keys:
+                    return HNAP_DEVICE_RESPONSE_MOTO
+            return {}
+
+        with patch.object(driver, "_hnap_post", side_effect=side_effect):
+            info = driver.get_device_info()
+
+        assert info["model"] == "SB8200"
+        assert driver._action_ns == "Moto"
+
 
 # -- HTTP 500 namespace resilience --
 
