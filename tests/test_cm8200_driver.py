@@ -115,10 +115,35 @@ class TestDriverInit:
 
 # -- Login --
 
+LOGIN_PAGE_HTML = "<html><body><form>Login</form></body></html>"  # ~4170 bytes on real modem
+
+
 class TestLogin:
-    def test_two_step_auth_flow(self, driver):
-        """Login sends two GETs: first with credentials (returns token), then with cookie."""
+    def test_session_reuse_skips_credentials(self, driver):
+        """If the modem still recognises our IP, login() reuses the session."""
+        reuse_response = MagicMock()
+        reuse_response.raise_for_status = MagicMock()
+        reuse_response.text = SAMPLE_STATUS_HTML
+
+        with patch.object(driver._session, "get", return_value=reuse_response) as mock_get:
+            driver.login()
+
+        # Only 1 GET: the session probe (no credential GET)
+        assert mock_get.call_count == 1
+        url = mock_get.call_args_list[0][0][0]
+        assert "?" not in url  # no credentials in query string
+        assert driver._status_html == SAMPLE_STATUS_HTML
+
+    def test_credential_auth_on_expired_session(self, driver):
+        """If session probe returns login page, falls back to credential auth."""
         expected_creds = base64.b64encode(b"admin:password").decode()
+
+        probe_response = MagicMock()
+        probe_response.raise_for_status = MagicMock()
+        probe_response.text = LOGIN_PAGE_HTML
+
+        lock_response = MagicMock()
+        lock_response.text = "NotLocked"
 
         token_response = MagicMock()
         token_response.raise_for_status = MagicMock()
@@ -128,22 +153,72 @@ class TestLogin:
         status_response.raise_for_status = MagicMock()
         status_response.text = SAMPLE_STATUS_HTML
 
-        with patch.object(driver._session, "get", side_effect=[token_response, status_response]) as mock_get:
+        with patch.object(
+            driver._session, "get",
+            side_effect=[probe_response, lock_response, token_response, status_response],
+        ) as mock_get:
             driver.login()
 
-            assert mock_get.call_count == 2
-            # First call: with credentials in query string
-            url1 = mock_get.call_args_list[0][0][0]
-            assert f"?{expected_creds}" in url1
-            # Second call: bare GET with Cookie header
-            url2 = mock_get.call_args_list[1][0][0]
-            assert url2.endswith("/cmconnectionstatus.html")
-            assert "?" not in url2
-            cookie = mock_get.call_args_list[1][1]["headers"]["Cookie"]
+            # 4 GETs: probe + lockout check + credential + status
+            assert mock_get.call_count == 4
+            # Third call has credentials
+            url3 = mock_get.call_args_list[2][0][0]
+            assert f"?{expected_creds}" in url3
+            # Fourth call has cookie
+            url4 = mock_get.call_args_list[3][0][0]
+            assert url4.endswith("/cmconnectionstatus.html")
+            cookie = mock_get.call_args_list[3][1]["headers"]["Cookie"]
             assert "credential=abc123sessiontoken" in cookie
+
+    def test_lockout_detected_before_credentials(self, driver):
+        """If modem is locked out, login() raises without sending credentials."""
+        probe_response = MagicMock()
+        probe_response.raise_for_status = MagicMock()
+        probe_response.text = LOGIN_PAGE_HTML
+
+        lock_response = MagicMock()
+        lock_response.text = "Locked"
+
+        with patch.object(
+            driver._session, "get",
+            side_effect=[probe_response, lock_response],
+        ):
+            with pytest.raises(RuntimeError, match="brute-force lockout"):
+                driver.login()
+
+    def test_lockout_check_failure_continues(self, driver):
+        """If lockout check fails (network error), auth proceeds normally."""
+        import requests as req
+
+        probe_response = MagicMock()
+        probe_response.raise_for_status = MagicMock()
+        probe_response.text = LOGIN_PAGE_HTML
+
+        token_response = MagicMock()
+        token_response.raise_for_status = MagicMock()
+        token_response.text = "token123"
+
+        status_response = MagicMock()
+        status_response.raise_for_status = MagicMock()
+        status_response.text = SAMPLE_STATUS_HTML
+
+        with patch.object(
+            driver._session, "get",
+            side_effect=[probe_response, req.ConnectionError("timeout"), token_response, status_response],
+        ):
+            driver.login()
+
+        assert driver._status_html == SAMPLE_STATUS_HTML
 
     def test_login_retries_on_connection_error(self, driver):
         import requests as req
+
+        probe_response = MagicMock()
+        probe_response.raise_for_status = MagicMock()
+        probe_response.text = LOGIN_PAGE_HTML
+
+        lock_response = MagicMock()
+        lock_response.text = "NotLocked"
 
         token_response = MagicMock()
         token_response.raise_for_status = MagicMock()
@@ -154,10 +229,13 @@ class TestLogin:
         status_response.text = SAMPLE_STATUS_HTML
 
         call_count = []
+        original_responses = iter([probe_response, lock_response])
 
         def side_effect(*args, **kwargs):
             call_count.append(1)
-            if len(call_count) == 1:
+            if len(call_count) <= 2:
+                return next(original_responses)
+            if len(call_count) == 3:
                 raise req.ConnectionError("reset")
             return token_response
 
@@ -170,7 +248,6 @@ class TestLogin:
             with patch.object(driver._session, "get", side_effect=side_effect):
                 driver.login()
 
-        assert len(call_count) == 1
         # Retry uses fresh session: 2 GETs (auth + status)
         assert mock_new_session.get.call_count == 2
 
@@ -194,7 +271,14 @@ class TestLogin:
                 driver.login()
 
     def test_login_caches_status_html(self, driver):
-        """Login caches the second response (status page) for reuse."""
+        """Login caches the status page for reuse."""
+        probe_response = MagicMock()
+        probe_response.raise_for_status = MagicMock()
+        probe_response.text = LOGIN_PAGE_HTML
+
+        lock_response = MagicMock()
+        lock_response.text = "NotLocked"
+
         auth_response = MagicMock()
         auth_response.text = "1"  # session token
 
@@ -202,7 +286,10 @@ class TestLogin:
         status_response.raise_for_status = MagicMock()
         status_response.text = SAMPLE_STATUS_HTML
 
-        with patch.object(driver._session, "get", side_effect=[auth_response, status_response]):
+        with patch.object(
+            driver._session, "get",
+            side_effect=[probe_response, lock_response, auth_response, status_response],
+        ):
             driver.login()
 
         assert driver._status_html == SAMPLE_STATUS_HTML
@@ -472,8 +559,16 @@ class TestEdgeCases:
         assert soup2.find("span", id="thisModelNumberIs") is not None
 
     def test_login_clears_stale_cache(self, driver):
-        """login() invalidates old cache before authenticating."""
+        """login() invalidates old cache, probes fresh, then re-auths if needed."""
         driver._status_html = "<html>stale</html>"
+
+        # Session probe returns login page (session expired)
+        probe_response = MagicMock()
+        probe_response.raise_for_status = MagicMock()
+        probe_response.text = LOGIN_PAGE_HTML
+
+        lock_response = MagicMock()
+        lock_response.text = "NotLocked"
 
         token_response = MagicMock()
         token_response.raise_for_status = MagicMock()
@@ -483,7 +578,10 @@ class TestEdgeCases:
         status_response.raise_for_status = MagicMock()
         status_response.text = SAMPLE_STATUS_HTML
 
-        with patch.object(driver._session, "get", side_effect=[token_response, status_response]):
+        with patch.object(
+            driver._session, "get",
+            side_effect=[probe_response, lock_response, token_response, status_response],
+        ):
             driver.login()
 
         assert driver._status_html == SAMPLE_STATUS_HTML
@@ -492,12 +590,35 @@ class TestEdgeCases:
 # -- Collector flow (login -> device_info -> docsis_data) --
 
 class TestCollectorFlow:
-    def test_single_auth_for_full_poll(self, driver):
+    def test_single_auth_for_full_poll_with_session_reuse(self, driver):
         """Real collector calls login(), get_device_info(), get_docsis_data().
 
-        All three must work with a single auth round-trip.  get_device_info()
-        must not consume the cache so get_docsis_data() can reuse it.
+        When session reuse works, only 1 GET is needed for the full poll.
         """
+        reuse_response = MagicMock()
+        reuse_response.raise_for_status = MagicMock()
+        reuse_response.text = SAMPLE_STATUS_HTML
+
+        with patch.object(driver._session, "get", return_value=reuse_response) as mock_get:
+            driver.login()
+            info = driver.get_device_info()
+            data = driver.get_docsis_data()
+
+        # Only 1 GET: session probe (reuse succeeded)
+        assert mock_get.call_count == 1
+        assert info["model"] == "CM8200A"
+        assert len(data["channelDs"]["docsis30"]) == 32
+        assert len(data["channelDs"]["docsis31"]) == 1
+
+    def test_single_auth_for_full_poll_with_credential_auth(self, driver):
+        """When session is expired, credential auth is used (probe + lock + auth + status)."""
+        probe_response = MagicMock()
+        probe_response.raise_for_status = MagicMock()
+        probe_response.text = LOGIN_PAGE_HTML
+
+        lock_response = MagicMock()
+        lock_response.text = "NotLocked"
+
         token_response = MagicMock()
         token_response.raise_for_status = MagicMock()
         token_response.text = "token123"
@@ -506,47 +627,45 @@ class TestCollectorFlow:
         status_response.raise_for_status = MagicMock()
         status_response.text = SAMPLE_STATUS_HTML
 
-        with patch.object(driver._session, "get", side_effect=[token_response, status_response]) as mock_get:
+        with patch.object(
+            driver._session, "get",
+            side_effect=[probe_response, lock_response, token_response, status_response],
+        ) as mock_get:
             driver.login()
             info = driver.get_device_info()
             data = driver.get_docsis_data()
 
-        # Only 2 GETs: auth token + status page (both during login)
-        assert mock_get.call_count == 2
+        # 4 GETs during login, 0 during device_info/docsis_data (cache)
+        assert mock_get.call_count == 4
         assert info["model"] == "CM8200A"
         assert len(data["channelDs"]["docsis30"]) == 32
-        assert len(data["channelDs"]["docsis31"]) == 1
 
-    def test_fetch_reauth_validates_token(self, driver):
-        """_fetch_status_page re-auth rejects HTML instead of token."""
+    def test_fetch_status_page_tries_session_reuse(self, driver):
+        """_fetch_status_page tries session reuse before credential auth."""
         driver._status_html = None
         driver._cookie_header = None
 
-        html_response = MagicMock()
-        html_response.text = "<html><body>Login page</body></html>"
+        reuse_response = MagicMock()
+        reuse_response.raise_for_status = MagicMock()
+        reuse_response.text = SAMPLE_STATUS_HTML
 
-        with patch.object(driver._session, "get", return_value=html_response):
-            with pytest.raises(RuntimeError, match="re-auth failed"):
-                driver._fetch_status_page()
+        with patch.object(driver._session, "get", return_value=reuse_response) as mock_get:
+            soup = driver._fetch_status_page()
 
-    def test_fetch_reauth_validates_status_page(self, driver):
-        """_fetch_status_page re-auth rejects small/login pages."""
+        assert mock_get.call_count == 1
+        assert driver._status_html == SAMPLE_STATUS_HTML
+        assert soup.find("span", id="thisModelNumberIs") is not None
+
+    def test_fetch_status_page_falls_back_to_credential_auth(self, driver):
+        """_fetch_status_page falls back to credential auth on expired session."""
         driver._status_html = None
 
-        token_response = MagicMock()
-        token_response.text = "validtoken99"
+        probe_response = MagicMock()
+        probe_response.raise_for_status = MagicMock()
+        probe_response.text = LOGIN_PAGE_HTML
 
-        login_page = MagicMock()
-        login_page.raise_for_status = MagicMock()
-        login_page.text = "<html>small login page</html>"
-
-        with patch.object(driver._session, "get", side_effect=[token_response, login_page]):
-            with pytest.raises(RuntimeError, match="re-auth succeeded but status page not returned"):
-                driver._fetch_status_page()
-
-    def test_fetch_reauth_caches_result(self, driver):
-        """Successful re-auth in _fetch_status_page caches the HTML."""
-        driver._status_html = None
+        lock_response = MagicMock()
+        lock_response.text = "NotLocked"
 
         token_response = MagicMock()
         token_response.text = "reauth123"
@@ -555,7 +674,10 @@ class TestCollectorFlow:
         status_response.raise_for_status = MagicMock()
         status_response.text = SAMPLE_STATUS_HTML
 
-        with patch.object(driver._session, "get", side_effect=[token_response, status_response]):
+        with patch.object(
+            driver._session, "get",
+            side_effect=[probe_response, lock_response, token_response, status_response],
+        ):
             soup = driver._fetch_status_page()
 
         assert driver._status_html == SAMPLE_STATUS_HTML

@@ -76,22 +76,75 @@ class CM8200Driver(ModemDriver):
         self._cookie_header = None
 
     def login(self) -> None:
-        """Authenticate via base64 credentials in query string.
+        """Authenticate with the CM8200A, reusing IP-based sessions.
 
-        The CM8200A auth flow:
-          1. GET /cmconnectionstatus.html?{base64creds} returns a bare
-             session token string (~31 alphanumeric chars, not HTML).
-          2. The modem's Set-Cookie response header is malformed (firmware
-             bug). The browser JS works around this by writing the literal
-             Set-Cookie value + token into document.cookie, producing:
-               Cookie: HttpOnly: true, Secure: true; credential=<token>
-          3. Subsequent requests must include this Cookie header.
+        The CM8200A uses IP-based session management.  After a successful
+        credential GET, subsequent bare GETs from the same IP return the
+        status page without needing credentials again.  The modem has a
+        brute-force lockout (~5 minutes) that triggers after a few
+        credential GETs in quick succession, so we minimise credential
+        requests by trying to reuse the existing session first.
 
-        Note: the modem has a 5-minute brute-force lockout with no visible
-        error. It returns the login page (HTTP 200, ~4170 bytes) instead
-        of the status page when locked out.
+        Flow:
+          1. Probe: bare GET /cmconnectionstatus.html (no credentials).
+             If the modem still recognises our IP, it returns the status
+             page (~12 kB) and we skip credential auth entirely.
+          2. If the probe returns the login page (~4 kB), check the
+             lockout endpoint before sending credentials.
+          3. Full auth: GET /cmconnectionstatus.html?{base64creds} to
+             obtain a session token, then GET the status page.
         """
         self._status_html = None
+
+        # Phase 1: try reusing existing IP-based session
+        if self._try_session_reuse():
+            return
+
+        # Phase 2: check lockout before sending credentials
+        self._check_lockout()
+
+        # Phase 3: full credential-based auth
+        self._credential_auth()
+
+    def _try_session_reuse(self) -> bool:
+        """Attempt to fetch the status page without sending credentials.
+
+        Returns True if the session is still valid and _status_html is set.
+        """
+        try:
+            headers = {"Cookie": self._cookie_header} if self._cookie_header else {}
+            r = self._session.get(
+                f"{self._url}/cmconnectionstatus.html",
+                headers=headers,
+                timeout=30,
+            )
+            r.raise_for_status()
+            if len(r.text) > 5000 and "downstream bonded" in r.text.lower():
+                self._status_html = r.text
+                log.info("CM8200 session reused")
+                return True
+            log.debug("CM8200 session expired, re-authenticating")
+        except requests.RequestException:
+            log.debug("CM8200 session probe failed, re-authenticating")
+        return False
+
+    def _check_lockout(self) -> None:
+        """Check the modem's brute-force lockout status before sending credentials."""
+        try:
+            r = self._session.get(
+                f"{self._url}/Admin_Login_Lock.txt",
+                timeout=10,
+            )
+            if r.text.strip() == "Locked":
+                raise RuntimeError(
+                    "CM8200 modem is in brute-force lockout. "
+                    "Wait 5 minutes or reboot the modem."
+                )
+        except requests.RequestException:
+            pass  # If the check fails, proceed with auth attempt
+
+    def _credential_auth(self) -> None:
+        """Full credential-based authentication flow."""
         creds = base64.b64encode(f"{self._user}:{self._password}".encode()).decode()
         for attempt in range(2):
             try:
@@ -195,49 +248,20 @@ class CM8200Driver(ModemDriver):
         ``get_device_info()`` and ``get_docsis_data()`` share the same
         snapshot without triggering a second auth round-trip.
 
-        If no cache is available (e.g. session expired mid-poll), falls
-        back to a full re-auth with the same validation as ``login()``.
+        If no cache is available (e.g. session expired mid-poll), tries
+        session reuse first, then falls back to full credential auth.
         """
         if self._status_html:
             log.debug("CM8200 using cached status HTML (%d bytes)", len(self._status_html))
             return BeautifulSoup(self._status_html, "html.parser")
 
-        creds = base64.b64encode(f"{self._user}:{self._password}".encode()).decode()
-        try:
-            r1 = self._session.get(
-                f"{self._url}/cmconnectionstatus.html?{creds}",
-                timeout=30,
-            )
-            token = r1.text.strip()
+        # Try session reuse before sending credentials
+        if self._try_session_reuse():
+            return BeautifulSoup(self._status_html, "html.parser")
 
-            if len(token) > 64 or not token.isalnum():
-                raise RuntimeError(
-                    "CM8200 re-auth failed: expected session token but received "
-                    f"{len(token)} bytes (wrong credentials or brute-force "
-                    "lockout, wait 5 minutes)"
-                )
-
-            self._cookie_header = f"HttpOnly: true, Secure: true; credential={token}"
-
-            r = self._session.get(
-                f"{self._url}/cmconnectionstatus.html",
-                headers={"Cookie": self._cookie_header},
-                timeout=30,
-            )
-            r.raise_for_status()
-
-            if len(r.text) < 5000 or "downstream bonded" not in r.text.lower():
-                raise RuntimeError(
-                    "CM8200 re-auth succeeded but status page not returned "
-                    f"({len(r.text)} bytes). Modem may be in brute-force "
-                    "lockout (wait 5 minutes)."
-                )
-        except requests.RequestException as e:
-            raise RuntimeError(f"CM8200 status page retrieval failed: {e}")
-
-        self._status_html = r.text
-        log.debug("CM8200 status page fetched (%d bytes)", len(r.text))
-        return BeautifulSoup(r.text, "html.parser")
+        self._check_lockout()
+        self._credential_auth()
+        return BeautifulSoup(self._status_html, "html.parser")
 
     @staticmethod
     def _find_channel_tables(soup) -> tuple:
