@@ -235,14 +235,21 @@ function acknowledgeAllEvents() {
 }
 
 function updateEventBadge(count) {
-    var badge = document.getElementById('event-badge');
-    if (!badge) return;
-    if (count > 0) {
-        badge.textContent = count > 99 ? '99+' : count;
-        badge.style.display = '';
-    } else {
-        badge.style.display = 'none';
-    }
+    var badges = [];
+    var sidebarBadge = document.getElementById('event-badge');
+    if (sidebarBadge) badges.push(sidebarBadge);
+    document.querySelectorAll('.bottom-nav-badge[data-view="events"]').forEach(function(badge) {
+        badges.push(badge);
+    });
+    if (!badges.length) return;
+    badges.forEach(function(badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = '';
+        } else {
+            badge.style.display = 'none';
+        }
+    });
 }
 
 // Fetch badge count on page load (exclude operational if hidden)

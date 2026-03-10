@@ -65,90 +65,120 @@
         </div>
     </div>
     <div class="sidebar-content">
-        <div class="nav-group-label">{{ t.sidebar_monitoring }}</div>
-        <a class="nav-item active" data-view="live">
-            <i data-lucide="layout-dashboard"></i> {{ t.home }}
-        </a>
-        <a class="nav-item" data-view="events">
-            <i data-lucide="bell"></i> {{ t.event_log }}
-            <span class="nav-badge" id="event-badge" style="display:none;"></span>
-        </a>
-        {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}
-        <a class="nav-item" data-view="modulation">
-            <i data-lucide="bar-chart-3"></i> {{ t.get('docsight.modulation.title', 'Modulation Performance') }}
-        </a>
+        <div class="nav-section" data-nav-section="monitoring" data-nav-label="{{ t.sidebar_monitoring }}">
+            <div class="nav-group-label">{{ t.sidebar_monitoring }}</div>
+            <div class="nav-section-items">
+                <a class="nav-item active" data-view="live" data-nav-icon="layout-dashboard" data-nav-title="{{ t.home }}">
+                    <i data-lucide="layout-dashboard"></i> {{ t.home }}
+                </a>
+                <a class="nav-item" data-view="events" data-nav-icon="bell" data-nav-title="{{ t.event_log }}">
+                    <i data-lucide="bell"></i> {{ t.event_log }}
+                    <span class="nav-badge" id="event-badge" style="display:none;"></span>
+                </a>
+                {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}
+                <a class="nav-item" data-view="modulation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.get('docsight.modulation.title', 'Modulation Performance') }}">
+                    <i data-lucide="bar-chart-3"></i> {{ t.get('docsight.modulation.title', 'Modulation Performance') }}
+                </a>
+                {% endif %}
+                <a class="nav-item" data-view="trends" data-nav-icon="trending-up" data-nav-title="{{ t.signal_trends }}">
+                    <i data-lucide="trending-up"></i> {{ t.signal_trends }}
+                </a>
+                <a class="nav-item" data-view="channels" data-nav-icon="layers" data-nav-title="{{ t.channels }}">
+                    <i data-lucide="layers"></i> {{ t.channels }}
+                </a>
+                {% if speedtest_configured or bqm_configured %}
+                <a class="nav-item" data-view="correlation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.correlation_analysis }}">
+                    <i data-lucide="bar-chart-3"></i> {{ t.correlation_analysis }}
+                </a>
+                {% endif %}
+                {% if gaming_quality_enabled %}
+                <a class="nav-item" data-view="gaming" data-nav-icon="gamepad-2" data-nav-title="{{ t.gaming_quality_label }}">
+                    <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
+                </a>
+                {% endif %}
+                {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
+                <a class="nav-item" data-view="comparison" data-nav-icon="git-compare-arrows" data-nav-title="{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}">
+                    <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
+                </a>
+                {% endif %}
+                {% if is_fritzbox %}
+                <a class="nav-item" data-view="segment-utilization" data-nav-icon="gauge" data-nav-title="{{ t.seg_title }}">
+                    <i data-lucide="gauge"></i> {{ t.seg_title }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="nav-section" data-nav-section="external" data-nav-label="{{ t.sidebar_external }}">
+            <div class="nav-group-label">{{ t.sidebar_external }}</div>
+            <div class="nav-section-items">
+                {% if modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
+                {% if speedtest_configured %}
+                <a class="nav-item" data-view="speedtest" data-nav-icon="rabbit" data-nav-title="{{ t.speedtest }}">
+                    <i data-lucide="rabbit"></i> {{ t.speedtest }}
+                </a>
+                {% else %}
+                <a class="nav-item" onclick="openSpeedtestSetupModal()">
+                    <i data-lucide="settings"></i> {{ t.speedtest_setup }}
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
+                {% if bqm_configured %}
+                <a class="nav-item" data-view="bqm" data-nav-icon="activity" data-nav-title="{{ t.bqm_title }}">
+                    <i data-lucide="activity"></i> {{ t.bqm_title }}
+                </a>
+                {% else %}
+                <a class="nav-item" onclick="openBqmSetupModal()">
+                    <i data-lucide="settings"></i> {{ t.bqm_setup }}
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
+                {% if smokeping_configured %}
+                <a class="nav-item" data-view="smokeping" data-nav-icon="radar" data-nav-title="{{ t.smokeping_title }}">
+                    <i data-lucide="radar"></i> {{ t.smokeping_title }}
+                </a>
+                {% else %}
+                <a class="nav-item" onclick="openSmokepingSetupModal()">
+                    <i data-lucide="settings"></i> {{ t.smokeping_setup }}
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if bnetz_enabled and modules|selectattr('id', 'equalto', 'docsight.bnetz')|list %}
+                <a class="nav-item" data-view="bnetz" data-nav-icon="file-check" data-nav-title="{{ t.bnetz_title }}">
+                    <i data-lucide="file-check"></i> {{ t.bnetz_title }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="nav-section" data-nav-section="documentation" data-nav-label="{{ t.sidebar_documentation }}">
+            <div class="nav-group-label">{{ t.sidebar_documentation }}</div>
+            <div class="nav-section-items">
+                {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
+                <a class="nav-item" data-view="journal" data-nav-icon="clipboard-list" data-nav-title="{{ t.incident_journal }}">
+                    <i data-lucide="clipboard-list"></i> {{ t.incident_journal }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% set tab_modules = [] %}
+        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in ('docsight.modulation', 'docsight.comparison') %}
+            {% if tab_modules.append(mod) %}{% endif %}
+        {% endfor %}
+        {% if tab_modules %}
+        <div class="nav-section" data-nav-section="extensions" data-nav-label="{{ t.sidebar_extensions }}">
+            <div class="nav-group-label">{{ t.sidebar_extensions }}</div>
+            <div class="nav-section-items">
+                {% for mod in tab_modules|sort(attribute='menu.order') %}
+                <a class="nav-item" data-view="mod-{{ mod.id|replace('.', '-') }}" data-nav-icon="{{ mod.menu.get('icon', 'puzzle') }}" data-nav-title="{{ t.get(mod.menu.label_key, mod.name) }}">
+                    <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i>
+                    {{ t.get(mod.menu.label_key, mod.name) }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
         {% endif %}
-        <a class="nav-item" data-view="trends">
-            <i data-lucide="trending-up"></i> {{ t.signal_trends }}
-        </a>
-        <a class="nav-item" data-view="channels">
-            <i data-lucide="layers"></i> {{ t.channels }}
-        </a>
-        {% if speedtest_configured or bqm_configured %}
-        <a class="nav-item" data-view="correlation">
-            <i data-lucide="bar-chart-3"></i> {{ t.correlation_analysis }}
-        </a>
-        {% endif %}
-        {% if gaming_quality_enabled %}
-        <a class="nav-item" data-view="gaming">
-            <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
-        </a>
-        {% endif %}
-        {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
-        <a class="nav-item" data-view="comparison">
-            <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
-        </a>
-        {% endif %}
-        {% if is_fritzbox %}
-        <a class="nav-item" data-view="segment-utilization">
-            <i data-lucide="gauge"></i> {{ t.seg_title }}
-        </a>
-        {% endif %}
-        <div class="nav-group-label">{{ t.sidebar_external }}</div>
-        {% if modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
-        {% if speedtest_configured %}
-        <a class="nav-item" data-view="speedtest">
-            <i data-lucide="rabbit"></i> {{ t.speedtest }}
-        </a>
-        {% else %}
-        <a class="nav-item" onclick="openSpeedtestSetupModal()">
-            <i data-lucide="settings"></i> {{ t.speedtest_setup }}
-        </a>
-        {% endif %}
-        {% endif %}
-        {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
-        {% if bqm_configured %}
-        <a class="nav-item" data-view="bqm">
-            <i data-lucide="activity"></i> {{ t.bqm_title }}
-        </a>
-        {% else %}
-        <a class="nav-item" onclick="openBqmSetupModal()">
-            <i data-lucide="settings"></i> {{ t.bqm_setup }}
-        </a>
-        {% endif %}
-        {% endif %}
-        {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
-        {% if smokeping_configured %}
-        <a class="nav-item" data-view="smokeping">
-            <i data-lucide="radar"></i> {{ t.smokeping_title }}
-        </a>
-        {% else %}
-        <a class="nav-item" onclick="openSmokepingSetupModal()">
-            <i data-lucide="settings"></i> {{ t.smokeping_setup }}
-        </a>
-        {% endif %}
-        {% endif %}
-        {% if bnetz_enabled and modules|selectattr('id', 'equalto', 'docsight.bnetz')|list %}
-        <a class="nav-item" data-view="bnetz">
-            <i data-lucide="file-check"></i> {{ t.bnetz_title }}
-        </a>
-        {% endif %}
-        <div class="nav-group-label">{{ t.sidebar_documentation }}</div>
-        {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
-        <a class="nav-item" data-view="journal">
-            <i data-lucide="clipboard-list"></i> {{ t.incident_journal }}
-        </a>
-        {% endif %}
+        <div style="flex:1;"></div>
         <a class="nav-item" id="export-link" href="javascript:void(0)" onclick="exportForLLM()">
             <i data-lucide="file-output"></i> {{ t.export_llm }}
         </a>
@@ -157,20 +187,6 @@
             <i data-lucide="file-text"></i> {{ t.incident_report }}
         </a>
         {% endif %}
-        {% set tab_modules = [] %}
-        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in ('docsight.modulation', 'docsight.comparison') %}
-            {% if tab_modules.append(mod) %}{% endif %}
-        {% endfor %}
-        {% if tab_modules %}
-        <div class="nav-group-label">{{ t.sidebar_extensions }}</div>
-        {% for mod in tab_modules|sort(attribute='menu.order') %}
-        <a class="nav-item" data-view="mod-{{ mod.id|replace('.', '-') }}">
-            <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i>
-            {{ t.get(mod.menu.label_key, mod.name) }}
-        </a>
-        {% endfor %}
-        {% endif %}
-        <div style="flex:1;"></div>
         <a class="nav-item" href="/settings">
             <i data-lucide="settings"></i> {{ t.settings }}
         </a>
@@ -188,6 +204,10 @@
                 <span class="toggle-slider"></span>
             </label>
         </div>
+        <button class="sidebar-customize-btn" type="button" onclick="openNavCustomizationModal()">
+            <i data-lucide="sliders-horizontal"></i>
+            <span>{{ t.get('nav_customize', 'Customize Navigation') }}</span>
+        </button>
         <div class="sidebar-footer-row">
             <a href="https://github.com/itsDNNS/docsight/releases" target="_blank">
                 {{ version }}
@@ -2160,8 +2180,318 @@ var T = {{ t|tojson }};
     /* ── Sidebar ── */
     var sidebar = document.getElementById('sidebar');
     var sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    var NAV_ORDER_KEY = 'docsight-nav-order-v1';
+    var NAV_PINNED_KEY = 'docsight-nav-pins-v1';
+    var NAV_BOTTOM_LIMIT = 4;
+    var navDefaults = [];
+    var navViewMap = {};
+    var navState = { order: {}, pins: [] };
+    var bottomNav = null;
+    var navCustomizeOverlay = null;
+    var navCustomizeSections = null;
 
     function isMobile() { return window.matchMedia('(max-width: 1023px)').matches; }
+
+    function escapeNavText(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getSidebarLinks() {
+        return Array.from(sidebar.querySelectorAll('.nav-section .nav-item[data-view]'));
+    }
+
+    function collectNavDefaults() {
+        return Array.from(sidebar.querySelectorAll('.nav-section[data-nav-section]')).map(function(sectionEl) {
+            var sectionId = sectionEl.getAttribute('data-nav-section');
+            var label = sectionEl.getAttribute('data-nav-label') || '';
+            var items = Array.from(sectionEl.querySelectorAll('.nav-section-items > .nav-item[data-view]')).map(function(itemEl) {
+                return {
+                    sectionId: sectionId,
+                    view: itemEl.getAttribute('data-view'),
+                    title: itemEl.getAttribute('data-nav-title') || itemEl.textContent.trim(),
+                    icon: itemEl.getAttribute('data-nav-icon') || 'square'
+                };
+            });
+            return { id: sectionId, label: label, items: items };
+        });
+    }
+
+    function rebuildNavViewMap() {
+        navViewMap = {};
+        navDefaults.forEach(function(section) {
+            section.items.forEach(function(item) {
+                navViewMap[item.view] = item;
+            });
+        });
+    }
+
+    function sanitizeNavOrder(rawOrder) {
+        var sanitized = {};
+        navDefaults.forEach(function(section) {
+            var defaults = section.items.map(function(item) { return item.view; });
+            var seen = {};
+            var ordered = Array.isArray(rawOrder && rawOrder[section.id]) ? rawOrder[section.id] : [];
+            ordered = ordered.filter(function(view) {
+                if (seen[view]) return false;
+                if (defaults.indexOf(view) === -1) return false;
+                seen[view] = true;
+                return true;
+            });
+            defaults.forEach(function(view) {
+                if (!seen[view]) ordered.push(view);
+            });
+            sanitized[section.id] = ordered;
+        });
+        return sanitized;
+    }
+
+    function sanitizeNavPins(rawPins) {
+        var validViews = Object.keys(navViewMap);
+        var seen = {};
+        return (Array.isArray(rawPins) ? rawPins : []).filter(function(view) {
+            if (seen[view]) return false;
+            if (validViews.indexOf(view) === -1) return false;
+            seen[view] = true;
+            return true;
+        });
+    }
+
+    function loadNavState() {
+        var storedOrder = null;
+        var storedPins = null;
+        try {
+            storedOrder = JSON.parse(localStorage.getItem(NAV_ORDER_KEY) || 'null');
+        } catch (err) {
+            storedOrder = null;
+        }
+        try {
+            storedPins = JSON.parse(localStorage.getItem(NAV_PINNED_KEY) || 'null');
+        } catch (err) {
+            storedPins = null;
+        }
+        navState.order = sanitizeNavOrder(storedOrder);
+        navState.pins = sanitizeNavPins(storedPins);
+    }
+
+    function persistNavState() {
+        localStorage.setItem(NAV_ORDER_KEY, JSON.stringify(navState.order));
+        localStorage.setItem(NAV_PINNED_KEY, JSON.stringify(navState.pins));
+    }
+
+    function getOrderedNavItems() {
+        var orderedItems = [];
+        navDefaults.forEach(function(section) {
+            (navState.order[section.id] || []).forEach(function(view) {
+                if (navViewMap[view]) orderedItems.push(navViewMap[view]);
+            });
+        });
+        return orderedItems;
+    }
+
+    function applyNavOrderToSidebar() {
+        navDefaults.forEach(function(section) {
+            var sectionEl = sidebar.querySelector('.nav-section[data-nav-section="' + section.id + '"]');
+            if (!sectionEl) return;
+            var container = sectionEl.querySelector('.nav-section-items');
+            if (!container) return;
+            var elementsByView = {};
+            Array.from(container.children).forEach(function(child) {
+                var view = child.getAttribute('data-view');
+                if (view) elementsByView[view] = child;
+            });
+            (navState.order[section.id] || []).forEach(function(view) {
+                if (elementsByView[view]) container.appendChild(elementsByView[view]);
+            });
+        });
+    }
+
+    function syncEventBadgeFromSidebar() {
+        if (!bottomNav) return;
+        var sidebarBadge = document.getElementById('event-badge');
+        var bottomBadge = bottomNav.querySelector('.bottom-nav-badge[data-view="events"]');
+        if (!bottomBadge || !sidebarBadge) return;
+        if (sidebarBadge.style.display === 'none' || !sidebarBadge.textContent) {
+            bottomBadge.style.display = 'none';
+            return;
+        }
+        bottomBadge.textContent = sidebarBadge.textContent;
+        bottomBadge.style.display = '';
+    }
+
+    function syncNavActiveState(view) {
+        getSidebarLinks().forEach(function(link) {
+            link.classList.toggle('active', link.getAttribute('data-view') === view);
+        });
+        if (!bottomNav) return;
+        var matched = false;
+        bottomNav.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+            var isMore = btn.getAttribute('data-action') === 'open-sidebar';
+            var isActive = !isMore && btn.getAttribute('data-view') === view;
+            if (isActive) matched = true;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        var moreBtn = bottomNav.querySelector('.bottom-nav-item[data-action="open-sidebar"]');
+        if (moreBtn) {
+            var moreActive = !matched;
+            moreBtn.classList.toggle('active', moreActive);
+            moreBtn.setAttribute('aria-selected', moreActive ? 'true' : 'false');
+        }
+        syncEventBadgeFromSidebar();
+    }
+
+    function renderBottomNav() {
+        if (!bottomNav) return;
+        var ordered = getOrderedNavItems();
+        var pinned = ordered.filter(function(item) {
+            return navState.pins.indexOf(item.view) !== -1;
+        });
+        var visible = pinned.slice(0, NAV_BOTTOM_LIMIT);
+        ordered.forEach(function(item) {
+            if (visible.length >= NAV_BOTTOM_LIMIT) return;
+            var alreadyVisible = visible.some(function(current) { return current.view === item.view; });
+            if (!alreadyVisible) visible.push(item);
+        });
+        var buttons = visible.map(function(item) {
+            var badge = item.view === 'events'
+                ? '<span class="bottom-nav-badge" data-view="events" style="display:none;"></span>'
+                : '';
+            return '' +
+                '<button class="bottom-nav-item" type="button" role="tab" aria-selected="false" data-view="' + escapeNavText(item.view) + '">' +
+                    '<i data-lucide="' + escapeNavText(item.icon) + '"></i>' +
+                    '<span>' + escapeNavText(item.title) + '</span>' +
+                    badge +
+                '</button>';
+        });
+        buttons.push('' +
+            '<button class="bottom-nav-item" type="button" role="tab" aria-selected="false" data-action="open-sidebar" data-view="more">' +
+                '<i data-lucide="ellipsis"></i>' +
+                '<span>' + escapeNavText(T.nav_more || 'More') + '</span>' +
+            '</button>');
+        bottomNav.innerHTML = buttons.join('');
+        syncNavActiveState(currentView || 'live');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function renderNavCustomizationModal() {
+        if (!navCustomizeSections) return;
+        navCustomizeSections.innerHTML = navDefaults.map(function(section) {
+            var sectionRows = (navState.order[section.id] || []).map(function(view, index, views) {
+                var item = navViewMap[view];
+                if (!item) return '';
+                var isPinned = navState.pins.indexOf(view) !== -1;
+                return '' +
+                    '<div class="nav-customize-row" data-nav-view="' + escapeNavText(view) + '">' +
+                        '<div class="nav-customize-row-main">' +
+                            '<i data-lucide="' + escapeNavText(item.icon) + '"></i>' +
+                            '<div class="nav-customize-row-copy">' +
+                                '<div class="nav-customize-row-title">' + escapeNavText(item.title) + '</div>' +
+                                '<div class="nav-customize-row-meta">' + (isPinned ? escapeNavText(T.nav_pinned || 'Pinned to bottom bar') : '&nbsp;') + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="nav-customize-actions">' +
+                            '<button class="nav-customize-icon' + (isPinned ? ' active' : '') + '" type="button" data-nav-action="toggle-pin" data-nav-view="' + escapeNavText(view) + '" aria-label="' + escapeNavText(T.nav_pinned || 'Pinned to bottom bar') + '">' +
+                                '<i data-lucide="star"></i>' +
+                            '</button>' +
+                            '<button class="nav-customize-icon" type="button" data-nav-action="move-up" data-nav-section="' + escapeNavText(section.id) + '" data-nav-view="' + escapeNavText(view) + '" aria-label="' + escapeNavText(T.nav_move_up || 'Move up') + '"' + (index === 0 ? ' disabled' : '') + '>' +
+                                '<i data-lucide="chevron-up"></i>' +
+                            '</button>' +
+                            '<button class="nav-customize-icon" type="button" data-nav-action="move-down" data-nav-section="' + escapeNavText(section.id) + '" data-nav-view="' + escapeNavText(view) + '" aria-label="' + escapeNavText(T.nav_move_down || 'Move down') + '"' + (index === views.length - 1 ? ' disabled' : '') + '>' +
+                                '<i data-lucide="chevron-down"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>';
+            }).join('');
+            return '' +
+                '<section class="nav-customize-section">' +
+                    '<div class="nav-customize-section-title">' + escapeNavText(section.label) + '</div>' +
+                    '<div class="nav-customize-list">' + sectionRows + '</div>' +
+                '</section>';
+        }).join('');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function applyNavCustomization() {
+        persistNavState();
+        applyNavOrderToSidebar();
+        renderBottomNav();
+        renderNavCustomizationModal();
+    }
+
+    function resetNavCustomizationState() {
+        navState.order = sanitizeNavOrder(null);
+        navState.pins = [];
+        localStorage.removeItem(NAV_ORDER_KEY);
+        localStorage.removeItem(NAV_PINNED_KEY);
+        applyNavOrderToSidebar();
+        renderBottomNav();
+        renderNavCustomizationModal();
+    }
+
+    function initNavigationUI() {
+        bottomNav = document.getElementById('bottom-nav');
+        navCustomizeOverlay = document.getElementById('nav-customize-overlay');
+        navCustomizeSections = document.getElementById('nav-customize-sections');
+        navDefaults = collectNavDefaults();
+        rebuildNavViewMap();
+        loadNavState();
+        applyNavOrderToSidebar();
+        renderBottomNav();
+
+        if (bottomNav && !bottomNav.dataset.bound) {
+            bottomNav.addEventListener('click', function(event) {
+                var button = event.target.closest('.bottom-nav-item');
+                if (!button) return;
+                if (button.getAttribute('data-action') === 'open-sidebar') {
+                    openSidebar();
+                    return;
+                }
+                var targetView = button.getAttribute('data-view');
+                if (targetView) switchView(targetView);
+            });
+            bottomNav.dataset.bound = 'true';
+        }
+
+        if (navCustomizeSections && !navCustomizeSections.dataset.bound) {
+            navCustomizeSections.addEventListener('click', function(event) {
+                var button = event.target.closest('button[data-nav-action]');
+                if (!button) return;
+                var action = button.getAttribute('data-nav-action');
+                var view = button.getAttribute('data-nav-view');
+                var sectionId = button.getAttribute('data-nav-section') || (navViewMap[view] && navViewMap[view].sectionId);
+                if (!view || !sectionId) return;
+
+                if (action === 'toggle-pin') {
+                    if (navState.pins.indexOf(view) === -1) {
+                        navState.pins.push(view);
+                    } else {
+                        navState.pins = navState.pins.filter(function(entry) { return entry !== view; });
+                    }
+                    applyNavCustomization();
+                    return;
+                }
+
+                var views = (navState.order[sectionId] || []).slice();
+                var index = views.indexOf(view);
+                if (index === -1) return;
+                if (action === 'move-up' && index > 0) {
+                    views.splice(index - 1, 0, views.splice(index, 1)[0]);
+                } else if (action === 'move-down' && index < views.length - 1) {
+                    views.splice(index + 1, 0, views.splice(index, 1)[0]);
+                } else {
+                    return;
+                }
+                navState.order[sectionId] = views;
+                applyNavCustomization();
+            });
+            navCustomizeSections.dataset.bound = 'true';
+        }
+    }
 
     window.openSidebar = function() {
         sidebar.classList.add('open');
@@ -2209,13 +2539,27 @@ var T = {{ t|tojson }};
         }, { passive: true });
     })();
 
-    var sidebarLinks = document.querySelectorAll('.nav-item[data-view]');
-    sidebarLinks.forEach(function(link) {
-        link.addEventListener('click', function() {
-            if (isMobile()) { closeSidebar(); }
-            switchView(this.getAttribute('data-view'));
-        });
+    sidebar.addEventListener('click', function(event) {
+        var link = event.target.closest('.nav-item[data-view]');
+        if (!link || !sidebar.contains(link)) return;
+        if (isMobile()) { closeSidebar(); }
+        switchView(link.getAttribute('data-view'));
     });
+
+    window.openNavCustomizationModal = function() {
+        if (!navCustomizeOverlay) return;
+        renderNavCustomizationModal();
+        navCustomizeOverlay.classList.add('open');
+    };
+
+    window.closeNavCustomizationModal = function(event) {
+        if (event && event.target && navCustomizeOverlay && event.target !== navCustomizeOverlay) return;
+        if (navCustomizeOverlay) navCustomizeOverlay.classList.remove('open');
+    };
+
+    window.resetNavCustomization = function() {
+        resetNavCustomizationState();
+    };
 
     /* ── Pill tab helpers ── */
     window.selectPill = function(btn, callback) {
@@ -2231,16 +2575,7 @@ var T = {{ t|tojson }};
     function switchView(view, skipHash) {
         currentView = view;
         if (!skipHash) location.hash = view === 'live' ? '' : view;
-        sidebarLinks.forEach(function(l) {
-            l.classList.toggle('active', l.getAttribute('data-view') === view);
-        });
-        // Update bottom nav active state
-        document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
-            var match = btn.getAttribute('onclick') || '';
-            var isActive = match.indexOf("'" + view + "'") !== -1;
-            btn.classList.toggle('active', isActive);
-            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
+        syncNavActiveState(view);
         // Generic: remove active from all views, add to target
         document.querySelectorAll('.main-content > .view').forEach(function(v) {
             v.classList.remove('active');
@@ -2512,6 +2847,8 @@ var T = {{ t|tojson }};
         }
     });
 
+    document.addEventListener('DOMContentLoaded', initNavigationUI);
+
 })();
 
 </script>
@@ -2544,23 +2881,24 @@ var T = {{ t|tojson }};
 </script>
 
 <!-- Bottom Tab Bar (mobile only, hidden on desktop via CSS) -->
-<nav class="bottom-nav" role="tablist" aria-label="Main tabs">
-    <button class="bottom-nav-item active" role="tab" aria-selected="true" onclick="switchView('live')">
-        <i data-lucide="radio"></i><span>{{ t.dashboard }}</span>
-    </button>
-    <button class="bottom-nav-item" role="tab" aria-selected="false" onclick="switchView('events')">
-        <i data-lucide="bell"></i><span>{{ t.event_log }}</span>
-    </button>
-    <button class="bottom-nav-item" role="tab" aria-selected="false" onclick="switchView('trends')">
-        <i data-lucide="trending-up"></i><span>{{ t.signal_trends }}</span>
-    </button>
-    <button class="bottom-nav-item" role="tab" aria-selected="false" onclick="switchView('channels')">
-        <i data-lucide="layers"></i><span>{{ t.channels }}</span>
-    </button>
-    <button class="bottom-nav-item" role="tab" aria-selected="false" onclick="window.location='/settings'">
-        <i data-lucide="settings"></i><span>{{ t.settings }}</span>
-    </button>
-</nav>
+<nav class="bottom-nav" id="bottom-nav" role="tablist" aria-label="Main tabs"></nav>
+
+<div class="modal-overlay" id="nav-customize-overlay" onclick="closeNavCustomizationModal(event)">
+    <div class="modal nav-customize-modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2>{{ t.get('nav_customize', 'Customize Navigation') }}</h2>
+            <button class="modal-close" type="button" onclick="closeNavCustomizationModal()">&times;</button>
+        </div>
+        <p class="modal-hint">{{ t.get('nav_customize_desc', 'Reorder views in each section and pin the ones you want in the mobile bottom bar.') }}</p>
+        <div class="modal-body">
+            <div id="nav-customize-sections" class="nav-customize-sections"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-muted" type="button" onclick="resetNavCustomization()">{{ t.get('nav_reset', 'Reset') }}</button>
+            <button class="btn btn-accent" type="button" onclick="closeNavCustomizationModal()">{{ t.get('nav_done', 'Done') }}</button>
+        </div>
+    </div>
+</div>
 
 <script>
 if ('serviceWorker' in navigator) {

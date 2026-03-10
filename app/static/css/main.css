@@ -166,6 +166,154 @@
   text-align: center;
 }
 
+.sidebar-customize-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: var(--space-sm);
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface-elevated, var(--surface)) 90%, transparent);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.sidebar-customize-btn:hover {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--glass-border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-elevated, var(--surface)));
+}
+.sidebar-customize-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.nav-customize-modal {
+  max-width: 760px;
+}
+
+.nav-customize-sections {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.nav-customize-section {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  overflow: hidden;
+}
+
+.nav-customize-section-title {
+  padding: 12px 16px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--surface-elevated, var(--surface)) 92%, transparent);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.nav-customize-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-customize-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.nav-customize-row + .nav-customize-row {
+  border-top: 1px solid color-mix(in srgb, var(--glass-border) 78%, transparent);
+}
+
+.nav-customize-row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.nav-customize-row-main svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.nav-customize-row-copy {
+  min-width: 0;
+}
+
+.nav-customize-row-title {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.nav-customize-row-meta {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  min-height: 1em;
+  margin-top: 2px;
+}
+
+.nav-customize-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nav-customize-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-customize-icon:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--glass-border));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.nav-customize-icon.active {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 35%, var(--glass-border));
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+
+.nav-customize-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.nav-customize-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
 .sidebar-footer {
   padding: var(--space-md);
   border-top: 1px solid var(--glass-border);
@@ -744,6 +892,12 @@ body.is-offline .offline-banner { display: flex; }
   -webkit-tap-highlight-color: transparent;
   transition: color 0.2s;
 }
+.bottom-nav-item span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .bottom-nav-item:active { color: var(--text-secondary); }
 .bottom-nav-item.active { color: var(--amethyst-light); }
 .bottom-nav-item.active::before {
@@ -782,6 +936,7 @@ body.is-offline .offline-banner { display: flex; }
 @media (min-width: 640px) {
   .metrics-grid { grid-template-columns: 1fr 1fr; gap: var(--space-md); }
   .health-overview { grid-template-columns: 1fr 1fr; }
+  .nav-customize-sections { grid-template-columns: 1fr 1fr; }
   .hero-header { flex-direction: row; align-items: flex-start; justify-content: space-between; }
   .hero-status { flex: 1; min-width: 0; }
   .hero-right { flex-shrink: 0; justify-content: flex-end; }
@@ -839,4 +994,3 @@ body.is-offline .offline-banner { display: flex; }
   .ring-legend { align-items: center; }
   .gaming-score { order: -1; }
 }
-

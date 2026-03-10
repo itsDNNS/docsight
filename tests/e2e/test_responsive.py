@@ -32,3 +32,37 @@ class TestMobileLayout:
     def test_bottom_nav_has_tabs(self, mobile_page):
         tabs = mobile_page.locator(".bottom-nav-item")
         assert tabs.count() >= 4
+
+    def test_mobile_nav_customization_updates_sidebar_and_bottom_bar(self, mobile_page):
+        mobile_page.locator("#hamburger").click()
+        mobile_page.get_by_role("button", name="Customize Navigation").click()
+
+        modal = mobile_page.locator("#nav-customize-overlay.open")
+        modal.wait_for()
+
+        comparison_row = modal.locator(".nav-customize-row").filter(
+            has_text="Before/After Comparison"
+        ).first
+        comparison_row.locator('button[data-nav-action="toggle-pin"]').click()
+        mobile_page.wait_for_timeout(150)
+
+        bottom_labels = mobile_page.locator(".bottom-nav-item span").all_inner_texts()
+        assert "Before/After Comparison" in bottom_labels
+        assert bottom_labels[-1] == "More"
+
+        channels_row = modal.locator(".nav-customize-row").filter(
+            has_text="Channels"
+        ).first
+        channels_row.locator('button[data-nav-action="move-up"]').click()
+        mobile_page.wait_for_timeout(150)
+
+        modal.get_by_role("button", name="Done").click()
+        mobile_page.wait_for_timeout(150)
+
+        monitoring_texts = [
+            text.strip()
+            for text in mobile_page.locator(
+                '.nav-section[data-nav-section="monitoring"] .nav-section-items > .nav-item'
+            ).all_inner_texts()
+        ]
+        assert monitoring_texts.index("Channels") < monitoring_texts.index("Signal Trends")
