@@ -17,6 +17,20 @@ log = logging.getLogger("docsis.web")
 bp = Blueprint("reports_bp", __name__)
 
 
+def _get_comparison_data(storage):
+    from_a = request.args.get("comparison_from_a")
+    to_a = request.args.get("comparison_to_a")
+    from_b = request.args.get("comparison_from_b")
+    to_b = request.args.get("comparison_to_b")
+    if not storage or not all([from_a, to_a, from_b, to_b]):
+        return None
+    try:
+        from app.modules.comparison.routes import compare_periods
+        return compare_periods(storage, from_a, to_a, from_b, to_b)
+    except (ImportError, Exception):
+        return None
+
+
 @bp.route("/api/report")
 @require_auth
 def api_report():
@@ -49,9 +63,10 @@ def api_report():
         }
 
     conn_info = state.get("connection_info") or {}
-    lang = _get_lang()
+    lang = request.args.get("lang", _get_lang())
+    comparison_data = _get_comparison_data(_storage)
 
-    pdf_bytes = generate_report(snapshots, analysis, config, conn_info, lang)
+    pdf_bytes = generate_report(snapshots, analysis, config, conn_info, lang, comparison_data=comparison_data)
 
     response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"
@@ -118,10 +133,13 @@ def api_complaint():
         except (ImportError, Exception):
             pass  # BNetzA module not available
 
+    comparison_data = _get_comparison_data(_storage)
+
     text = generate_complaint_text(
         snapshots, config, None, lang,
         customer_name, customer_number, customer_address,
         bnetz_data=bnetz_data,
         current_analysis=analysis,
+        comparison_data=comparison_data,
     )
     return jsonify({"text": text, "lang": lang})

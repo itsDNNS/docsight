@@ -38,6 +38,7 @@ function closeBqmSetupModal() {
 }
 function openReportModal() {
     document.getElementById('report-modal').classList.add('open');
+    syncComparisonReportState();
     // Close sidebar on mobile
     var sb = document.getElementById('sidebar');
     if (sb) {
@@ -58,6 +59,19 @@ function closeReportModal() {
     var bnetzIdField = document.getElementById('report-bnetz-id');
     if (bnetzIdField) bnetzIdField.value = '';
 }
+function syncComparisonReportState() {
+    var toggle = document.getElementById('report-include-comparison');
+    var note = document.getElementById('report-comparison-note');
+    if (!toggle || !note) return;
+    var hasComparison = !!window.__docsightComparisonResult;
+    toggle.disabled = !hasComparison;
+    if (!hasComparison) {
+        toggle.checked = false;
+    }
+    note.textContent = hasComparison
+        ? (T.report_include_comparison_ready || 'The current comparison results will be attached to the complaint and PDF report.')
+        : (T.report_include_comparison_hint || 'Run a comparison first to attach the current before/after evidence.');
+}
 function generateComplaint() {
     var days = document.getElementById('report-days').value;
     var lang = document.getElementById('report-lang').value;
@@ -66,14 +80,24 @@ function generateComplaint() {
     var address = encodeURIComponent(document.getElementById('report-address').value);
     var includeBnetz = document.getElementById('report-include-bnetz');
     var bnetzParam = (includeBnetz && includeBnetz.checked) ? '&include_bnetz=true' : '';
+    var comparisonParam = '';
     var bnetzIdField = document.getElementById('report-bnetz-id');
     if (bnetzIdField && bnetzIdField.value) {
         bnetzParam = '&bnetz_id=' + bnetzIdField.value;
     }
+    var includeComparison = document.getElementById('report-include-comparison');
+    if (includeComparison && includeComparison.checked && window.__docsightComparisonResult) {
+        var cmp = window.__docsightComparisonResult;
+        comparisonParam =
+            '&comparison_from_a=' + encodeURIComponent(cmp.period_a.from) +
+            '&comparison_to_a=' + encodeURIComponent(cmp.period_a.to) +
+            '&comparison_from_b=' + encodeURIComponent(cmp.period_b.from) +
+            '&comparison_to_b=' + encodeURIComponent(cmp.period_b.to);
+    }
     var btn = document.getElementById('report-generate-btn');
     btn.disabled = true;
     btn.textContent = '...';
-    fetch('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address + bnetzParam)
+    fetch('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address + bnetzParam + comparisonParam)
         .then(function(r) { return r.json(); })
         .then(function(data) {
             document.getElementById('report-complaint-text').value = data.text;
@@ -111,7 +135,17 @@ function copyComplaint() {
 function downloadReport() {
     var days = document.getElementById('report-days').value;
     var lang = document.getElementById('report-lang').value;
-    window.location.href = '/api/report?days=' + days + '&lang=' + lang;
+    var comparisonParam = '';
+    var includeComparison = document.getElementById('report-include-comparison');
+    if (includeComparison && includeComparison.checked && window.__docsightComparisonResult) {
+        var cmp = window.__docsightComparisonResult;
+        comparisonParam =
+            '&comparison_from_a=' + encodeURIComponent(cmp.period_a.from) +
+            '&comparison_to_a=' + encodeURIComponent(cmp.period_a.to) +
+            '&comparison_from_b=' + encodeURIComponent(cmp.period_b.from) +
+            '&comparison_to_b=' + encodeURIComponent(cmp.period_b.to);
+    }
+    window.location.href = '/api/report?days=' + days + '&lang=' + lang + comparisonParam;
 }
 function copyExport() {
     var textarea = document.getElementById('export-text');

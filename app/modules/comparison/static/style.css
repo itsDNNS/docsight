@@ -1,0 +1,306 @@
+/* -- Before/After Comparison Module -- */
+
+/* Control bar */
+.comparison-controls {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-md, 16px) var(--space-lg, 20px);
+    margin-bottom: var(--space-lg, 20px);
+}
+
+.comparison-control-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-md, 16px);
+    flex-wrap: wrap;
+}
+
+.comparison-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.comparison-label {
+    font-size: 0.8em;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.comparison-select,
+.comparison-input {
+    background: var(--input-bg, var(--surface-2, rgba(0,0,0,0.15)));
+    color: var(--text);
+    border: 1px solid var(--input-border, var(--card-border));
+    border-radius: var(--radius-sm, 6px);
+    padding: 8px 12px;
+    font-size: 0.85em;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.comparison-select:focus,
+.comparison-input:focus {
+    outline: none;
+    border-color: var(--accent-purple, var(--accent));
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
+}
+
+.comparison-date-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+}
+
+.comparison-arrow {
+    color: var(--muted);
+    font-size: 0.9em;
+}
+
+.comparison-btn-field {
+    margin-left: auto;
+    flex: 0 0 180px;
+}
+
+#comparison-run-btn {
+    width: 100%;
+}
+
+/* Placeholder */
+.comparison-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 0.95em;
+}
+
+/* Delta table */
+.comparison-delta-section {
+    margin-top: var(--space-lg, 20px);
+}
+
+.comparison-health-section {
+    margin-top: var(--space-lg, 20px);
+}
+
+.comparison-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.comparison-report-btn {
+    white-space: nowrap;
+}
+
+.comparison-health-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg, 20px);
+}
+
+.comparison-health-card {
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-md, 16px);
+}
+
+.comparison-health-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.comparison-health-title {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.comparison-health-range {
+    color: var(--muted);
+    font-size: 0.82em;
+}
+
+.comparison-health-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.comparison-health-row {
+    display: grid;
+    grid-template-columns: minmax(96px, 120px) minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.comparison-health-label {
+    color: var(--text);
+    font-size: 0.85em;
+}
+
+.comparison-health-track {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--surface-2, rgba(255,255,255,0.08));
+}
+
+.comparison-health-fill {
+    height: 100%;
+    border-radius: inherit;
+}
+
+.comparison-health-fill.health-good {
+    background: var(--good, #22c55e);
+}
+
+.comparison-health-fill.health-tolerated {
+    background: var(--tolerated, #84cc16);
+}
+
+.comparison-health-fill.health-marginal {
+    background: var(--warn, #f59e0b);
+}
+
+.comparison-health-fill.health-critical {
+    background: var(--crit, #ef4444);
+}
+
+.comparison-health-fill.health-unknown {
+    background: var(--muted, #94a3b8);
+}
+
+.comparison-health-value {
+    color: var(--muted);
+    font-size: 0.82em;
+    white-space: nowrap;
+}
+
+.comparison-delta-section table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.comparison-delta-section thead tr {
+    background: var(--surface-2, rgba(0,0,0,0.15));
+}
+
+.comparison-delta-section thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--text);
+    border-bottom: 1px solid var(--card-border, var(--input-border));
+}
+
+.comparison-delta-section tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s;
+}
+
+.comparison-delta-section tbody tr:hover {
+    background: rgba(168,85,247,0.08);
+}
+
+.comparison-delta-section tbody td {
+    padding: 10px 16px;
+    font-size: 0.85em;
+}
+
+/* Delta coloring */
+.cmp-good {
+    color: var(--color-ok, #22c55e);
+    font-weight: 600;
+}
+
+.cmp-bad {
+    color: var(--color-crit, #ef4444);
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .comparison-controls {
+        padding: var(--space-md, 16px);
+    }
+
+    .comparison-control-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .comparison-field,
+    .comparison-btn-field {
+        margin-left: 0;
+        flex-basis: auto;
+    }
+
+    .comparison-date-pair {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .comparison-arrow {
+        display: none;
+    }
+
+    .comparison-delta-section thead th,
+    .comparison-delta-section tbody td {
+        padding: 8px 10px;
+        font-size: 0.8em;
+    }
+
+    .comparison-health-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .comparison-health-row {
+        grid-template-columns: minmax(82px, 104px) minmax(0, 1fr) auto;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .comparison-controls {
+        padding: 12px;
+    }
+
+    .comparison-placeholder {
+        padding: 40px 12px;
+    }
+
+    .comparison-delta-section h3 {
+        margin-top: 12px;
+    }
+
+    .comparison-health-card {
+        padding: 12px;
+    }
+
+    .comparison-health-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .comparison-health-value {
+        justify-self: start;
+    }
+}

@@ -143,3 +143,63 @@ def test_complaint_text_uses_real_thresholds():
     assert "-5.9 to 18.0 dBmV" in text
     assert "37.1 to 51.0 dBmV" in text
     assert ">= 31.0 dB" in text
+
+
+def test_complaint_text_includes_comparison_evidence():
+    comparison_data = {
+        "period_a": {
+            "from": "2026-03-01T00:00:00Z",
+            "to": "2026-03-01T23:59:00Z",
+            "snapshots": 2,
+            "health_distribution": {"good": 2},
+        },
+        "period_b": {
+            "from": "2026-03-08T00:00:00Z",
+            "to": "2026-03-08T23:59:00Z",
+            "snapshots": 1,
+            "health_distribution": {"critical": 1},
+        },
+        "delta": {
+            "ds_power": 1.1,
+            "ds_snr": -2.7,
+            "us_power": 0.3,
+            "uncorr_errors": 127,
+            "verdict": "degraded",
+        },
+    }
+
+    text = generate_complaint_text(MOCK_SNAPSHOTS, comparison_data=comparison_data)
+
+    assert "Before/After comparison evidence:" in text
+    assert "Overall verdict: Degraded." in text
+    assert "Average DS SNR delta: -2.70 dB." in text
+    assert "Uncorrectable error delta: 127." in text
+
+
+def test_generate_report_accepts_comparison_evidence():
+    comparison_data = {
+        "period_a": {
+            "from": "2026-03-01T00:00:00Z",
+            "to": "2026-03-01T23:59:00Z",
+            "snapshots": 2,
+            "health_distribution": {"good": 2},
+        },
+        "period_b": {
+            "from": "2026-03-08T00:00:00Z",
+            "to": "2026-03-08T23:59:00Z",
+            "snapshots": 1,
+            "health_distribution": {"critical": 1},
+        },
+        "delta": {
+            "ds_power": 1.1,
+            "ds_snr": -2.7,
+            "us_power": 0.3,
+            "uncorr_errors": 127,
+            "verdict": "degraded",
+        },
+    }
+
+    pdf = generate_report(MOCK_SNAPSHOTS, MOCK_ANALYSIS, comparison_data=comparison_data)
+
+    assert pdf[:5] == b"%PDF-"
+    assert len(pdf) > 1000

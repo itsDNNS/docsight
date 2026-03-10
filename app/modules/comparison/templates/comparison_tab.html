@@ -1,0 +1,136 @@
+<div class="view-content">
+    <!-- Controls -->
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+        <h2 style="margin:0; flex:1;">{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}</h2>
+    </div>
+
+    <!-- Preset + Date Picker Bar -->
+    <div class="comparison-controls" id="comparison-controls">
+        <div class="comparison-control-row">
+            <div class="comparison-field">
+                <label class="comparison-label">{{ t.get('docsight.comparison.preset', 'Preset') }}</label>
+                <select id="comparison-preset" class="comparison-select">
+                    <option value="yesterday_today">{{ t.get('docsight.comparison.preset_yesterday_today', 'Yesterday vs Today') }}</option>
+                    <option value="last_this_week">{{ t.get('docsight.comparison.preset_last_this_week', 'Last Week vs This Week') }}</option>
+                    <option value="peak_offpeak">{{ t.get('docsight.comparison.preset_peak_offpeak', 'Peak vs Off-Peak Today') }}</option>
+                    <option value="custom">{{ t.get('docsight.comparison.preset_custom', 'Custom') }}</option>
+                </select>
+            </div>
+            <div class="comparison-field">
+                <label class="comparison-label">{{ t.get('docsight.comparison.period_a', 'Period A') }}</label>
+                <div class="comparison-date-pair">
+                    <input type="text" id="comparison-from-a" class="comparison-input" placeholder="Start" readonly>
+                    <span class="comparison-arrow">&rarr;</span>
+                    <input type="text" id="comparison-to-a" class="comparison-input" placeholder="End" readonly>
+                </div>
+            </div>
+            <div class="comparison-field">
+                <label class="comparison-label">{{ t.get('docsight.comparison.period_b', 'Period B') }}</label>
+                <div class="comparison-date-pair">
+                    <input type="text" id="comparison-from-b" class="comparison-input" placeholder="Start" readonly>
+                    <span class="comparison-arrow">&rarr;</span>
+                    <input type="text" id="comparison-to-b" class="comparison-input" placeholder="End" readonly>
+                </div>
+            </div>
+            <div class="comparison-field comparison-btn-field">
+                <label class="comparison-label">&nbsp;</label>
+                <button id="comparison-run-btn" class="trend-tab active" style="padding:8px 24px;">
+                    {{ t.get('docsight.comparison.compare_btn', 'Compare') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Placeholder message -->
+    <div id="comparison-placeholder" class="comparison-placeholder">
+        <p>{{ t.get('docsight.comparison.select_periods', 'Select two time periods to compare signal quality.') }}</p>
+    </div>
+
+    <!-- Loading -->
+    <div id="comparison-loading" style="display:none; text-align:center; padding:40px;">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Charts Grid (hidden until data loads) -->
+    <div id="comparison-charts" class="charts-grid" style="display:none;">
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <div class="chart-label">{{ t.get('docsight.comparison.ds_power', 'DS Power') }}</div>
+                </div>
+                <button class="chart-expand-btn" data-chart="cmp-chart-ds-power" title="{{ t.get('expand', 'Expand') }}">&#x26F6;</button>
+            </div>
+            <canvas id="cmp-chart-ds-power"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <div class="chart-label">{{ t.get('docsight.comparison.ds_snr', 'DS SNR') }}</div>
+                </div>
+                <button class="chart-expand-btn" data-chart="cmp-chart-ds-snr" title="{{ t.get('expand', 'Expand') }}">&#x26F6;</button>
+            </div>
+            <canvas id="cmp-chart-ds-snr"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <div class="chart-label">{{ t.get('docsight.comparison.us_power', 'US Power') }}</div>
+                </div>
+                <button class="chart-expand-btn" data-chart="cmp-chart-us-power" title="{{ t.get('expand', 'Expand') }}">&#x26F6;</button>
+            </div>
+            <canvas id="cmp-chart-us-power"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div class="chart-header-content">
+                    <div class="chart-label">{{ t.get('docsight.comparison.uncorr_errors', 'Uncorr. Errors') }}</div>
+                </div>
+                <button class="chart-expand-btn" data-chart="cmp-chart-errors" title="{{ t.get('expand', 'Expand') }}">&#x26F6;</button>
+            </div>
+            <canvas id="cmp-chart-errors"></canvas>
+        </div>
+    </div>
+
+    <div id="comparison-health" class="comparison-health-section" style="display:none;">
+        <div class="comparison-section-header">
+            <h3 style="margin:0;">{{ t.get('docsight.comparison.health_distribution', 'Health Distribution') }}</h3>
+            <button class="btn btn-accent comparison-report-btn" type="button" onclick="openComparisonInComplaint()">
+                &#9998; {{ t.get('docsight.comparison.use_in_complaint', 'Use in Complaint Letter') }}
+            </button>
+        </div>
+        <div class="comparison-health-grid">
+            <div class="comparison-health-card">
+                <div class="comparison-health-card-header">
+                    <span class="comparison-health-title">{{ t.get('docsight.comparison.period_a', 'Period A') }}</span>
+                    <span id="comparison-health-range-a" class="comparison-health-range"></span>
+                </div>
+                <div id="comparison-health-bars-a" class="comparison-health-bars"></div>
+            </div>
+            <div class="comparison-health-card">
+                <div class="comparison-health-card-header">
+                    <span class="comparison-health-title">{{ t.get('docsight.comparison.period_b', 'Period B') }}</span>
+                    <span id="comparison-health-range-b" class="comparison-health-range"></span>
+                </div>
+                <div id="comparison-health-bars-b" class="comparison-health-bars"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delta Summary Table (hidden until data loads) -->
+    <div id="comparison-delta" class="comparison-delta-section" style="display:none;">
+        <h3 style="margin:16px 0 8px;">{{ t.get('docsight.comparison.delta', 'Delta') }}</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>{{ t.get('docsight.comparison.metric', 'Metric') }}</th>
+                        <th>{{ t.get('docsight.comparison.period_a', 'Period A') }}</th>
+                        <th>{{ t.get('docsight.comparison.period_b', 'Period B') }}</th>
+                        <th>{{ t.get('docsight.comparison.delta', 'Delta') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="comparison-delta-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -94,6 +94,11 @@
             <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
         </a>
         {% endif %}
+        {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
+        <a class="nav-item" data-view="comparison">
+            <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
+        </a>
+        {% endif %}
         {% if is_fritzbox %}
         <a class="nav-item" data-view="segment-utilization">
             <i data-lucide="gauge"></i> {{ t.seg_title }}
@@ -153,7 +158,7 @@
         </a>
         {% endif %}
         {% set tab_modules = [] %}
-        {% for mod in modules if mod.template_paths.get('tab') and mod.id != 'docsight.modulation' %}
+        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in ('docsight.modulation', 'docsight.comparison') %}
             {% if tab_modules.append(mod) %}{% endif %}
         {% endfor %}
         {% if tab_modules %}
@@ -1775,7 +1780,7 @@
    MODULE VIEWS - Dynamically rendered from enabled modules with tab template
    ══════════════════════════════════════════════════════════════════════════ #}
 {% for mod in modules if mod.template_paths.get('tab') %}
-<div id="{% if mod.id == 'docsight.modulation' %}view-modulation{% else %}view-mod-{{ mod.id|replace('.', '-') }}{% endif %}" class="view">
+<div id="{% if mod.id == 'docsight.modulation' %}view-modulation{% elif mod.id == 'docsight.comparison' %}view-comparison{% else %}view-mod-{{ mod.id|replace('.', '-') }}{% endif %}" class="view">
     {% include mod.template_paths['tab'] %}
 </div>
 {% endfor %}
@@ -1923,6 +1928,15 @@
                     </label>
                 </div>
                 {% endif %}
+                <div style="margin-top:10px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text);">
+                        <input type="checkbox" id="report-include-comparison">
+                        {{ t.get('report_include_comparison', 'Include active before/after comparison') }}
+                    </label>
+                    <div id="report-comparison-note" style="font-size:12px; color:var(--muted); margin-top:6px;">
+                        {{ t.get('report_include_comparison_hint', 'Run a comparison first to attach the current before/after evidence.') }}
+                    </div>
+                </div>
                 <input type="hidden" id="report-bnetz-id" value="">
             </div>
             <!-- Step 2: Generated complaint text (hidden initially) -->
@@ -2267,6 +2281,13 @@ var T = {{ t|tojson }};
             if (typeof loadTrends === 'function') loadTrends(_trendRange);
         } else if (view === 'modulation') {
             if (typeof initModulation === 'function') initModulation();
+        } else if (view === 'comparison') {
+            if (typeof initComparison === 'function') initComparison();
+        } else if (view.indexOf('mod-') === 0) {
+            /* Generic module init: mod-docsight-comparison → initComparison */
+            var parts = view.replace('mod-docsight-', '').split('-');
+            var fnName = 'init' + parts.map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join('');
+            if (typeof window[fnName] === 'function') window[fnName]();
         } else if (view === 'segment-utilization') {
             if (typeof loadFritzCableData === 'function') loadFritzCableData();
         }
@@ -2506,8 +2527,12 @@ var T = {{ t|tojson }};
 <script src="/static/js/segment-utilization.js"></script>
 <script src="/static/js/glossary.js"></script>
 
+{% for mod in modules if mod.has_js %}
+<script src="/modules/{{ mod.id }}/static/main.js"></script>
+{% endfor %}
+
 <script>
-  // Apply deferred hash-based view routing (all external scripts are now loaded)
+  // Apply deferred hash-based view routing (all scripts including modules are now loaded)
   if (window._pendingView) {
     window.switchView(window._pendingView, true);
     delete window._pendingView;
@@ -2517,9 +2542,6 @@ var T = {{ t|tojson }};
     lucide.createIcons();
   });
 </script>
-{% for mod in modules if mod.has_js %}
-<script src="/modules/{{ mod.id }}/static/main.js"></script>
-{% endfor %}
 
 <!-- Bottom Tab Bar (mobile only, hidden on desktop via CSS) -->
 <nav class="bottom-nav" role="tablist" aria-label="Main tabs">
@@ -2542,8 +2564,25 @@ var T = {{ t|tojson }};
 
 <script>
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .catch(function(err) { console.warn('SW registration failed:', err); });
+    var isLocalDevHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocalDevHost) {
+        navigator.serviceWorker.getRegistrations()
+            .then(function(registrations) {
+                return Promise.all(registrations.map(function(registration) {
+                    return registration.unregister();
+                }));
+            })
+            .then(function() {
+                if (!window.caches) return;
+                return caches.keys().then(function(keys) {
+                    return Promise.all(keys.map(function(key) { return caches.delete(key); }));
+                });
+            })
+            .catch(function(err) { console.warn('SW cleanup failed:', err); });
+    } else {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .catch(function(err) { console.warn('SW registration failed:', err); });
+    }
 }
 </script>
 </body>

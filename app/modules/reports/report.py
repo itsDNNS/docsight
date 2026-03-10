@@ -938,7 +938,78 @@ def _find_worst_channels(snapshots):
     return ds_sorted, us_sorted
 
 
-def generate_report(snapshots, current_analysis, config=None, connection_info=None, lang="en"):
+def _comparison_label(s, key):
+    labels = {
+        "good": s.get("comparison_health_good", "Good"),
+        "tolerated": s.get("comparison_health_tolerated", "Tolerated"),
+        "marginal": s.get("comparison_health_marginal", "Marginal"),
+        "critical": s.get("comparison_health_critical", "Critical"),
+        "unknown": s.get("comparison_health_unknown", "Unknown"),
+    }
+    return labels.get(key, key.title())
+
+
+def _comparison_top_health(period, s):
+    dist = period.get("health_distribution") or {}
+    if not dist:
+        return _comparison_label(s, "unknown")
+    best_key = max(dist, key=lambda name: dist.get(name, 0))
+    total = max(period.get("snapshots", 0), 1)
+    pct = round(dist.get(best_key, 0) / total * 100)
+    return f"{_comparison_label(s, best_key)} ({pct}%)"
+
+
+def _format_comparison_value(value, unit="", is_int=False):
+    if value is None:
+        return "-"
+    if is_int:
+        text = f"{int(value):,}"
+    else:
+        text = f"{value:+.2f}"
+    return f"{text} {unit}".strip()
+
+
+def _format_comparison_timestamp(ts):
+    if not ts:
+        return "-"
+    raw = str(ts).replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(raw)
+    except ValueError:
+        return str(ts)
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+
+def _format_comparison_evidence(comparison_data, s):
+    if not comparison_data:
+        return ""
+
+    period_a = comparison_data.get("period_a") or {}
+    period_b = comparison_data.get("period_b") or {}
+    delta = comparison_data.get("delta") or {}
+
+    lines = [
+        s.get("comparison_complaint_header", "Before/After comparison evidence:"),
+        "",
+        s.get("comparison_complaint_periods", "Compared {from_a} to {to_a} against {from_b} to {to_b}.").format(
+            from_a=_format_comparison_timestamp(period_a.get("from")),
+            to_a=_format_comparison_timestamp(period_a.get("to")),
+            from_b=_format_comparison_timestamp(period_b.get("from")),
+            to_b=_format_comparison_timestamp(period_b.get("to")),
+        ),
+        f"- {s.get('comparison_complaint_snapshots', 'Snapshots: Period A {snapshots_a}, Period B {snapshots_b}.').format(snapshots_a=period_a.get('snapshots', 0), snapshots_b=period_b.get('snapshots', 0))}",
+        f"- {s.get('comparison_complaint_verdict', 'Overall verdict: {verdict}.').format(verdict=s.get('comparison_verdict_' + str(delta.get('verdict', 'unchanged')), str(delta.get('verdict', 'unchanged')).title()))}",
+        f"- {s.get('comparison_complaint_health', 'Dominant health changed from {health_a} to {health_b}.').format(health_a=_comparison_top_health(period_a, s), health_b=_comparison_top_health(period_b, s))}",
+        f"- {s.get('comparison_complaint_ds_power', 'Average DS power delta: {value}.').format(value=_format_comparison_value(delta.get('ds_power'), 'dBmV'))}",
+        f"- {s.get('comparison_complaint_ds_snr', 'Average DS SNR delta: {value}.').format(value=_format_comparison_value(delta.get('ds_snr'), 'dB'))}",
+        f"- {s.get('comparison_complaint_us_power', 'Average US power delta: {value}.').format(value=_format_comparison_value(delta.get('us_power'), 'dBmV'))}",
+        f"- {s.get('comparison_complaint_uncorr', 'Uncorrectable error delta: {value}.').format(value=_format_comparison_value(delta.get('uncorr_errors'), '', True))}",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def generate_report(snapshots, current_analysis, config=None, connection_info=None, lang="en", comparison_data=None):
     """Generate a PDF incident report.
 
     Args:
@@ -947,6 +1018,7 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
         config: Config dict (isp_name, etc.)
         connection_info: Connection info dict (speeds, etc.)
         lang: Language code
+        comparison_data: Optional before/after comparison payload
 
     Returns:
         bytes: PDF file content
@@ -1068,6 +1140,14 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
             pdf.set_text_color(0, 0, 0)
             pdf.set_font("dejavu", "", 10)
 
+    comparison_section = _format_comparison_evidence(comparison_data, s)
+    if comparison_section:
+        pdf.ln(4)
+        pdf._section_title(s.get("comparison_section_title", "Before/After Comparison"))
+        pdf.set_font("dejavu", "", 9)
+        pdf.multi_cell(0, 4, comparison_section)
+        pdf.set_font("dejavu", "", 10)
+
     # --- Historical Analysis ---
     if snapshots:
         pdf.add_page()
@@ -1130,6 +1210,7 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
         diag_complaint = _format_diagnostic_complaint(
             _build_diagnostic_notes(current_analysis), s
         )
+    comparison_section = _format_comparison_evidence(comparison_data, s)
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
@@ -1490,7 +1571,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
 
 def generate_complaint_text(snapshots, config=None, connection_info=None, lang="en",
                             customer_name="", customer_number="", customer_address="",
-                            bnetz_data=None, current_analysis=None):
+                            bnetz_data=None, current_analysis=None, comparison_data=None):
     """Generate ISP complaint letter as plain text.
 
     Args:
@@ -1503,6 +1584,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
         customer_address: Customer address
         bnetz_data: Optional BNetzA measurement dict
         current_analysis: Optional current analysis dict for diagnostic notes
+        comparison_data: Optional before/after comparison payload
 
     Returns:
         str: Complaint letter text
@@ -1558,6 +1640,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
         diag_complaint = _format_diagnostic_complaint(
             _build_diagnostic_notes(current_analysis), s
         )
+    comparison_section = _format_comparison_evidence(comparison_data, s)
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
@@ -1576,6 +1659,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
             f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=warn['snr'])}\n"
             f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
             f"{diag_complaint}"
+            f"{comparison_section}"
             f"{bnetz_section}"
             f"{s['complaint_exceed']}\n\n"
             f"{s['complaint_request']}\n"
