@@ -72,6 +72,8 @@ class SB6190Driver(ModemDriver):
         if "Error:" in r.text:
             msg = r.text.split("Error:", 1)[1].strip()
             raise RuntimeError(f"SB6190 login rejected: {msg}")
+        if "Url:" not in r.text:
+            raise RuntimeError("SB6190 login failed: unexpected response (no redirect URL)")
         log.info("SB6190 login OK")
 
     def get_docsis_data(self) -> dict:
@@ -138,7 +140,7 @@ class SB6190Driver(ModemDriver):
         result = []
         for tr in table.find_all("tr"):
             cells = [td.get_text(strip=True) for td in tr.find_all("td")]
-            if len(cells) < 9 or not cells[3].isdigit():
+            if len(cells) < 9 or not cells[3].isdigit() or cells[1].strip().lower() != "locked":
                 continue
             try:
                 snr = self._parse_number(cells[6])
@@ -167,7 +169,7 @@ class SB6190Driver(ModemDriver):
         result = []
         for tr in table.find_all("tr"):
             cells = [td.get_text(strip=True) for td in tr.find_all("td")]
-            if len(cells) < 7 or not cells[3].isdigit():
+            if len(cells) < 7 or not cells[3].isdigit() or cells[1].strip().lower() != "locked":
                 continue
             try:
                 result.append({

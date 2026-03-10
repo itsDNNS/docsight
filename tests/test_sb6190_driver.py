@@ -170,6 +170,15 @@ class TestLogin:
             with pytest.raises(RuntimeError, match="SB6190 login failed"):
                 driver.login()
 
+    def test_login_raises_when_no_url_in_response(self, driver):
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.text = "OK"
+
+        with patch.object(driver._session, "post", return_value=mock_resp):
+            with pytest.raises(RuntimeError, match="unexpected response"):
+                driver.login()
+
 
 # -- Downstream --
 
@@ -338,6 +347,40 @@ class TestEdgeCases:
         with patch.object(driver._session, "get", side_effect=requests.ConnectionError("refused")):
             with pytest.raises(RuntimeError, match="SB6190 DOCSIS data retrieval failed"):
                 driver.get_docsis_data()
+
+    def test_unlocked_downstream_channels_excluded(self, driver):
+        html = """<html><body>
+        <table>
+          <tr><th colspan="9"><strong>Downstream Bonded Channels</strong></th></tr>
+          <tr><td>1</td><td>Locked</td><td>256QAM</td><td>1</td><td>651.00 MHz</td><td>9.80 dBmV</td><td>40.55 dB</td><td>12</td><td>0</td></tr>
+          <tr><td>2</td><td>Not Locked</td><td>256QAM</td><td>2</td><td>657.00 MHz</td><td>9.90 dBmV</td><td>40.64 dB</td><td>5</td><td>0</td></tr>
+        </table>
+        </body></html>"""
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.text = html
+
+        with patch.object(driver._session, "get", return_value=mock_resp):
+            data = driver.get_docsis_data()
+            assert len(data["channelDs"]["docsis30"]) == 1
+            assert data["channelDs"]["docsis30"][0]["channelID"] == 1
+
+    def test_unlocked_upstream_channels_excluded(self, driver):
+        html = """<html><body>
+        <table>
+          <tr><th colspan="7"><strong>Upstream Bonded Channels</strong></th></tr>
+          <tr><td>1</td><td>Locked</td><td>ATDMA</td><td>1</td><td>5120 kSym/s</td><td>17.60 MHz</td><td>35.00 dBmV</td></tr>
+          <tr><td>2</td><td>Not Locked</td><td>ATDMA</td><td>2</td><td>5120 kSym/s</td><td>23.60 MHz</td><td>35.25 dBmV</td></tr>
+        </table>
+        </body></html>"""
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.text = html
+
+        with patch.object(driver._session, "get", return_value=mock_resp):
+            data = driver.get_docsis_data()
+            assert len(data["channelUs"]["docsis30"]) == 1
+            assert data["channelUs"]["docsis30"][0]["channelID"] == 1
 
     def test_short_rows_skipped(self, driver):
         """Rows with fewer than 9 DS cells or 7 US cells are skipped."""
