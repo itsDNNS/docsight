@@ -5,13 +5,22 @@
         <span>{{ t.modules_restart_banner }}</span>
     </div>
 
+    {% if built_in_features %}
+    <div class="section-label">{{ t.modules_builtin_features }} ({{ built_in_features|length }})</div>
+    <div class="module-grid">
+        {% for feature in built_in_features %}
+        {% include 'settings/_builtin_feature_card.html' %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
     {% if all_modules %}
     {% set non_theme = all_modules|selectattr('type', 'ne', 'theme')|list %}
     {% set enabled_modules = non_theme|selectattr('enabled')|sort(attribute='name')|list %}
     {% set disabled_modules = non_theme|rejectattr('enabled')|sort(attribute='name')|list %}
 
     {% if enabled_modules %}
-    <div class="section-label">{{ t.modules_enabled }} ({{ enabled_modules|length }})</div>
+    <div class="section-label" style="{% if built_in_features %}margin-top: var(--space-xl);{% endif %}">{{ t.modules_enabled }} ({{ enabled_modules|length }})</div>
     <div class="module-grid">
         {% for mod in enabled_modules %}
         {% include 'settings/_module_card.html' %}

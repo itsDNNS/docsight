@@ -220,6 +220,14 @@ class TestSettingsRoute:
         assert resp.status_code == 200
         assert b"Comcast/Xfinity" in resp.data
 
+    def test_settings_modules_lists_builtin_features(self, client):
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        assert b"Built-in Features" in resp.data
+        assert b"Gaming Quality Index" in resp.data
+        assert b"Segment Utilization" in resp.data
+        assert b"Requires FRITZ!OS 8.20 or newer" in resp.data
+
 
 class TestHealthEndpoint:
     def test_health_waiting(self, client):

@@ -726,7 +726,40 @@ def settings():
     # Warn if server TZ looks like a POSIX abbreviation (no DST support)
     tz_is_posix = bool(tz_name) and "/" not in tz_name and tz_name not in ("UTC",)
     all_modules = _module_loader.get_modules() if _module_loader else []
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, driver_hints=driver_hints, demo_mode=demo_mode, timezones=_get_iana_timezones(), iana_tz=iana_tz, tz_is_posix=tz_is_posix, all_modules=all_modules)
+    is_fritzbox = config.get("modem_type") == "fritzbox"
+    gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
+    built_in_features = [
+        {
+            "id": "core.gaming_quality",
+            "name": t.get("gaming_quality_label", "Gaming Quality Index"),
+            "description": t.get(
+                "gaming_quality_hint",
+                "Show a gaming quality badge in the dashboard hero card based on latency, jitter, and signal health.",
+            ),
+            "icon": "gamepad-2",
+            "status_label": t.get("modules_enabled" if gaming_quality_enabled else "modules_disabled", "Enabled" if gaming_quality_enabled else "Disabled"),
+            "status_class": "badge-success" if gaming_quality_enabled else "badge-muted",
+            "manage_section": "system",
+            "manage_label": t.get("system", "System"),
+        },
+        {
+            "id": "core.segment_utilization",
+            "name": t.get("seg_title", "Segment Utilization"),
+            "description": t.get(
+                "seg_subtitle",
+                "Cable segment utilization from FRITZ!Box monitoring. Requires FRITZ!OS 8.20 or newer on supported cable firmware.",
+            ),
+            "icon": "gauge",
+            "status_label": t.get(
+                "modules_available" if is_fritzbox else "modules_requires_fritzbox",
+                "Available" if is_fritzbox else "Requires FRITZ!Box",
+            ),
+            "status_class": "badge-success" if is_fritzbox else "badge-warning",
+            "manage_section": "connection",
+            "manage_label": t.get("step_modem", "Modem"),
+        },
+    ]
+    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, driver_hints=driver_hints, demo_mode=demo_mode, timezones=_get_iana_timezones(), iana_tz=iana_tz, tz_is_posix=tz_is_posix, all_modules=all_modules, built_in_features=built_in_features)
 
 
 @app.after_request

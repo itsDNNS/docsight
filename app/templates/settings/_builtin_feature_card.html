@@ -1,0 +1,19 @@
+<div class="module-card glass {{ 'active' if feature.status_class == 'badge-success' else '' }}">
+    <div class="module-card-header">
+        <div class="card-icon purple">
+            <i data-lucide="{{ feature.icon }}"></i>
+        </div>
+        <span class="badge {{ feature.status_class }}">{{ feature.status_label }}</span>
+    </div>
+    <div class="module-card-title">
+        {{ feature.name }}
+        <span class="module-badge badge-builtin">{{ t.modules_builtin }}</span>
+    </div>
+    <div class="module-card-desc">{{ feature.description }}</div>
+    <div class="module-card-meta module-card-meta-stack">
+        <span>{{ t.modules_managed_in }}</span>
+        <button type="button" class="btn btn-ghost btn-sm module-manage-btn" onclick="switchSection('{{ feature.manage_section }}')">
+            {{ feature.manage_label }}
+        </button>
+    </div>
+</div>

@@ -841,6 +841,13 @@ html, body {
   color: var(--text-muted);
   font-family: 'JetBrains Mono', monospace;
 }
+.module-card-meta-stack {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.module-manage-btn {
+  margin-left: auto;
+}
 
 /* ─── Module Store Header ─── */
 .store-header {
