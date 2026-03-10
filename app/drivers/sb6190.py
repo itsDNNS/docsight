@@ -22,8 +22,6 @@ from .base import ModemDriver
 
 log = logging.getLogger("docsis.driver.sb6190")
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 
 class _LegacyTLSAdapter(HTTPAdapter):
     """Allow weak DH keys for the SB6190's TLS configuration.
