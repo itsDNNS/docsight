@@ -969,6 +969,17 @@ def _format_comparison_value(value, unit="", is_int=False):
     return f"{text} {unit}".strip()
 
 
+def _format_comparison_timestamp(ts):
+    if not ts:
+        return "-"
+    raw = str(ts).replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(raw)
+    except ValueError:
+        return str(ts)
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+
 def _format_comparison_evidence(comparison_data, s):
     if not comparison_data:
         return ""
@@ -981,10 +992,10 @@ def _format_comparison_evidence(comparison_data, s):
         s.get("comparison_complaint_header", "Before/After comparison evidence:"),
         "",
         s.get("comparison_complaint_periods", "Compared {from_a} to {to_a} against {from_b} to {to_b}.").format(
-            from_a=period_a.get("from", "-"),
-            to_a=period_a.get("to", "-"),
-            from_b=period_b.get("from", "-"),
-            to_b=period_b.get("to", "-"),
+            from_a=_format_comparison_timestamp(period_a.get("from")),
+            to_a=_format_comparison_timestamp(period_a.get("to")),
+            from_b=_format_comparison_timestamp(period_b.get("from")),
+            to_b=_format_comparison_timestamp(period_b.get("to")),
         ),
         f"- {s.get('comparison_complaint_snapshots', 'Snapshots: Period A {snapshots_a}, Period B {snapshots_b}.').format(snapshots_a=period_a.get('snapshots', 0), snapshots_b=period_b.get('snapshots', 0))}",
         f"- {s.get('comparison_complaint_verdict', 'Overall verdict: {verdict}.').format(verdict=s.get('comparison_verdict_' + str(delta.get('verdict', 'unchanged')), str(delta.get('verdict', 'unchanged')).title()))}",
