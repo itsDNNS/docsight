@@ -13,9 +13,12 @@ Endpoints:
 """
 
 import logging
+import ssl
 import time
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 
 from .base import ModemDriver
 
@@ -32,6 +35,22 @@ _DS_MODULATION = {
 }
 
 
+class _LegacyTLSAdapter(HTTPAdapter):
+    """Allow weak certificate keys for CODA modems that use HTTPS.
+
+    Some CODA-56 units serve HTTPS with certificates using short keys
+    that modern OpenSSL rejects by default.
+    """
+
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = create_urllib3_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+        kwargs["ssl_context"] = ctx
+        super().init_poolmanager(*args, **kwargs)
+
+
 class HitronDriver(ModemDriver):
     """Driver for Hitron CODA DOCSIS 3.1 cable modems.
 
@@ -42,6 +61,8 @@ class HitronDriver(ModemDriver):
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
         self._session = requests.Session()
+        self._session.verify = False
+        self._session.mount("https://", _LegacyTLSAdapter())
         self._session.timeout = 30
 
     def login(self) -> None:

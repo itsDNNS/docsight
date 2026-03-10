@@ -108,7 +108,16 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             poll_interval=config["poll_interval"],
             notifier=notifier,
         ))
-    
+
+        # Segment utilization collector (FritzBox only)
+        if modem_type == "fritzbox":
+            from .segment_utilization import SegmentUtilizationCollector
+            collectors.append(SegmentUtilizationCollector(
+                config_mgr=config_mgr,
+                storage=storage,
+                web=web,
+            ))
+
     # ── Module collectors ──
     module_loader = web.get_module_loader() if hasattr(web, 'get_module_loader') else None
     if module_loader:

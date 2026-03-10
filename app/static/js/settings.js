@@ -839,6 +839,11 @@ function toggleUsernameField() {
     var testBtnParent = testBtn ? testBtn.parentElement : null;
     var testResult = document.getElementById('modem-test');
 
+    // URL default: apply if field is empty or still shows any known modem default
+    if (hints.default_url && urlField && (!urlField.value || KNOWN_DEFAULT_URLS[urlField.value])) {
+        urlField.value = hints.default_url;
+    }
+
     if (hints.credentials_required === false) {
         credFields.forEach(function(el) { if (el) el.style.display = 'none'; });
         if (testBtnParent) testBtnParent.style.display = 'none';
@@ -847,11 +852,6 @@ function toggleUsernameField() {
     }
     credFields.forEach(function(el) { if (el) el.style.display = ''; });
     if (testBtnParent) testBtnParent.style.display = '';
-
-    // URL default: apply if field is empty or still shows any known modem default
-    if (hints.default_url && urlField && (!urlField.value || KNOWN_DEFAULT_URLS[urlField.value])) {
-        urlField.value = hints.default_url;
-    }
 
     // Username handling
     if (hints.username_required === false) {

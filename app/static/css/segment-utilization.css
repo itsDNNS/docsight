@@ -1,0 +1,131 @@
+/* FRITZ!Box Cable Segment Utilization — Module Styles */
+
+.fritz-cable-view {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.fritz-cable-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.fritz-cable-title {
+    margin: 0 0 4px 0;
+    font-size: 1.4em;
+    font-weight: 600;
+}
+
+.fritz-cable-subtitle {
+    margin: 0;
+    color: var(--text-secondary, #888);
+    font-size: 0.9em;
+}
+
+.fritz-cable-range-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+/* KPIs */
+.fritz-cable-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.fritz-cable-kpi {
+    text-align: center;
+    padding: 18px;
+}
+
+.fritz-cable-kpi-label {
+    font-size: 0.85em;
+    color: var(--text-secondary, #888);
+    margin-bottom: 6px;
+}
+
+.fritz-cable-kpi-value {
+    font-size: 1.8em;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.fritz-cable-kpi-sub {
+    font-size: 0.8em;
+    color: var(--text-secondary, #888);
+    margin-top: 4px;
+}
+
+/* Chart Grid */
+.fritz-cable-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.fritz-cable-panel {
+    padding: 18px;
+}
+
+.fritz-cable-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.fritz-cable-panel-title {
+    font-weight: 600;
+    font-size: 0.95em;
+}
+
+.fritz-cable-legend {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85em;
+}
+
+.fritz-cable-legend-total {
+    color: var(--text-primary, var(--text));
+}
+
+.fritz-cable-legend-own {
+    color: var(--text-secondary, #888);
+}
+
+.fritz-cable-chart {
+    min-height: 200px;
+}
+
+.fritz-cable-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary, #888);
+}
+
+.fritz-cable-note {
+    color: var(--text-secondary, #888);
+    line-height: 1.5;
+    padding: 18px;
+    font-size: 0.85em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fritz-cable-kpis {
+        grid-template-columns: 1fr;
+    }
+    .fritz-cable-grid {
+        grid-template-columns: 1fr;
+    }
+    .fritz-cable-header {
+        flex-direction: column;
+    }
+}

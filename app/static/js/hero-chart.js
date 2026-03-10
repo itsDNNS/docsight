@@ -76,11 +76,14 @@
 
     function heroTooltipPlugin(timestamps) {
         var tooltip;
+        var overEl;
         function init(u) {
+            overEl = u.over;
             tooltip = document.createElement('div');
             tooltip.className = 'uplot-tooltip';
             tooltip.style.display = 'none';
-            u.over.appendChild(tooltip);
+            tooltip.style.position = 'fixed';
+            document.body.appendChild(tooltip);
         }
         function setCursor(u) {
             var idx = u.cursor.idx;
@@ -114,18 +117,22 @@
             tooltip.style.background = c.tooltipBg;
             tooltip.style.color = c.text;
             tooltip.style.border = '1px solid ' + c.tooltipBorder;
-            var left = u.cursor.left;
-            var top = u.cursor.top;
+            var rect = overEl.getBoundingClientRect();
+            var left = rect.left + u.cursor.left;
+            var top = rect.top + u.cursor.top;
             var tw = tooltip.offsetWidth;
             var th = tooltip.offsetHeight;
             var x = left + 12;
             var y = top - th - 8;
-            if (x + tw > u.over.offsetWidth) x = left - tw - 12;
+            if (x + tw > window.innerWidth) x = left - tw - 12;
             if (y < 0) y = top + 12;
             tooltip.style.left = x + 'px';
             tooltip.style.top = y + 'px';
         }
-        return { hooks: { init: [init], setCursor: [setCursor] } };
+        function destroy() {
+            if (tooltip && tooltip.parentNode) tooltip.parentNode.removeChild(tooltip);
+        }
+        return { hooks: { init: [init], setCursor: [setCursor], destroy: [destroy] } };
     }
 
     function formatHeroDate(ts) {

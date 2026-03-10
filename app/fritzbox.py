@@ -8,6 +8,44 @@ import xml.etree.ElementTree as ET
 import requests
 
 log = logging.getLogger("docsis.fritzbox")
+_TR064_NS = {"tr64": "urn:dslforum-org:device-1-0"}
+
+
+def _get_data_page(url: str, sid: str, page: str) -> dict:
+    """Fetch a FritzBox data.lua page and return its data payload."""
+    r = requests.post(
+        f"{url}/data.lua",
+        data={
+            "xhr": 1,
+            "sid": sid,
+            "lang": "de",
+            "page": page,
+            "xhrId": "all",
+            "no_sidrenew": "",
+        },
+        timeout=10,
+    )
+    r.raise_for_status()
+    return r.json().get("data", {})
+
+
+def _parse_fritzos_device_info(data: dict) -> dict:
+    """Extract model/version/uptime from a FritzBox fritzos object."""
+    fritzos = data.get("fritzos", {})
+    if not fritzos:
+        return {}
+
+    result = {
+        "model": fritzos.get("Productname", "FRITZ!Box"),
+        "sw_version": fritzos.get("nspver", ""),
+    }
+    uptime = fritzos.get("Uptime")
+    if uptime is not None:
+        try:
+            result["uptime_seconds"] = int(uptime)
+        except (ValueError, TypeError):
+            pass
+    return result
 
 
 def login(url: str, user: str, password: str) -> str:
@@ -50,72 +88,40 @@ def login(url: str, user: str, password: str) -> str:
 
 def get_docsis_data(url: str, sid: str) -> dict:
     """Query DOCSIS channel data from FritzBox."""
-    r = requests.post(
-        f"{url}/data.lua",
-        data={
-            "xhr": 1,
-            "sid": sid,
-            "lang": "de",
-            "page": "docInfo",
-            "xhrId": "all",
-            "no_sidrenew": "",
-        },
-        timeout=10,
-    )
-    r.raise_for_status()
-    return r.json().get("data", {})
+    return _get_data_page(url, sid, "docInfo")
 
 
 def get_device_info(url: str, sid: str) -> dict:
     """Try to get FritzBox model info."""
+    for page in ("home", "boxinfo", "overview"):
+        try:
+            result = _parse_fritzos_device_info(_get_data_page(url, sid, page))
+            if result:
+                return result
+        except Exception as e:
+            log.debug("FritzBox %s device info unavailable: %s", page, e)
+
     try:
-        r = requests.post(
-            f"{url}/data.lua",
-            data={
-                "xhr": 1,
-                "sid": sid,
-                "lang": "de",
-                "page": "overview",
-                "xhrId": "all",
-                "no_sidrenew": "",
-            },
-            timeout=10,
-        )
+        r = requests.get(f"{url}/tr064/tr64desc.xml", timeout=10)
         r.raise_for_status()
-        data = r.json().get("data", {})
-        fritzos = data.get("fritzos", {})
-        result = {
-            "model": fritzos.get("Productname", "FRITZ!Box"),
-            "sw_version": fritzos.get("nspver", ""),
-        }
-        uptime = fritzos.get("Uptime")
-        if uptime is not None:
-            try:
-                result["uptime_seconds"] = int(uptime)
-            except (ValueError, TypeError):
-                pass
-        return result
-    except Exception:
+        root = ET.fromstring(r.text)
+        model = (
+            root.findtext(".//tr64:modelName", namespaces=_TR064_NS)
+            or root.findtext(".//tr64:modelDescription", namespaces=_TR064_NS)
+            or root.findtext(".//tr64:friendlyName", namespaces=_TR064_NS)
+            or "FRITZ!Box"
+        )
+        sw_version = root.findtext(".//tr64:systemVersion/tr64:Display", namespaces=_TR064_NS) or ""
+        return {"model": model, "sw_version": sw_version}
+    except Exception as e:
+        log.debug("FritzBox TR-064 device info fallback unavailable: %s", e)
         return {"model": "FRITZ!Box", "sw_version": ""}
 
 
 def get_connection_info(url: str, sid: str) -> dict:
     """Get internet connection info (speeds, type) from netMoni page."""
     try:
-        r = requests.post(
-            f"{url}/data.lua",
-            data={
-                "xhr": 1,
-                "sid": sid,
-                "lang": "de",
-                "page": "netMoni",
-                "xhrId": "all",
-                "no_sidrenew": "",
-            },
-            timeout=10,
-        )
-        r.raise_for_status()
-        data = r.json().get("data", {})
+        data = _get_data_page(url, sid, "netMoni")
         conns = data.get("connections", [])
         if not conns:
             return {}

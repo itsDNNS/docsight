@@ -430,15 +430,15 @@ function toggleUsernameField() {
     var credGroup = document.getElementById('modem-credentials-group');
     var hints = DRIVER_HINTS[modemType] || {};
 
+    if(hints.default_url && (!urlField.value || KNOWN_DEFAULT_URLS[urlField.value])) {
+        urlField.value = hints.default_url;
+    }
+
     if(hints.credentials_required === false) {
         credGroup.style.display = 'none';
         return;
     }
     credGroup.style.display = 'grid';
-
-    if(hints.default_url && (!urlField.value || KNOWN_DEFAULT_URLS[urlField.value])) {
-        urlField.value = hints.default_url;
-    }
 
     if(hints.username_required === false) {
         usernameField.disabled = true;

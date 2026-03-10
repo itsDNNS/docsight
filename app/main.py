@@ -46,6 +46,16 @@ def run_web(port):
     serve(web.app, host="0.0.0.0", port=port, threads=4, _quiet=True)
 
 
+def _get_modem_config_key(config_mgr):
+    """Return modem config tuple for driver hot-swap change detection."""
+    return (
+        config_mgr.get("modem_type", "fritzbox"),
+        config_mgr.get("modem_url", ""),
+        config_mgr.get("modem_user", ""),
+        config_mgr.get("modem_password", ""),
+    )
+
+
 def polling_loop(config_mgr, storage, stop_event):
     """Flat orchestrator: tick every second, let each collector decide when to poll."""
     config = config_mgr.get_all()
@@ -110,6 +120,13 @@ def polling_loop(config_mgr, storage, stop_event):
         web.init_collector(modem_collector)
     web.init_collectors(collectors)
 
+    # Track modem config for driver hot-swap detection
+    modem_config_key = (
+        _get_modem_config_key(config_mgr)
+        if modem_collector and modem_collector.name == "modem"
+        else None
+    )
+
     log.info(
         "Collectors: %s",
         ", ".join(
@@ -129,10 +146,43 @@ def polling_loop(config_mgr, storage, stop_event):
         finally:
             collector._collect_lock.release()
 
-    with ThreadPoolExecutor(
+    executor = ThreadPoolExecutor(
         max_workers=len(collectors), thread_name_prefix="collector"
-    ) as executor:
+    )
+    try:
         while not stop_event.is_set():
+            # ── Driver hot-swap: detect modem config change ──
+            if modem_config_key is not None and modem_collector:
+                new_key = _get_modem_config_key(config_mgr)
+                if new_key != modem_config_key:
+                    log.info(
+                        "Modem config changed (%s -> %s), hot-swapping driver",
+                        modem_config_key[0], new_key[0],
+                    )
+                    from .collectors.modem import ModemCollector
+                    from .drivers import driver_registry
+                    new_driver = driver_registry.load_driver(*new_key)
+                    new_modem = ModemCollector(
+                        driver=new_driver,
+                        analyzer_fn=analyzer.analyze,
+                        event_detector=event_detector,
+                        storage=storage,
+                        mqtt_pub=mqtt_pub,
+                        web=web,
+                        poll_interval=config_mgr.get("poll_interval", 900),
+                        notifier=notifier,
+                    )
+                    collectors = [
+                        new_modem if c is modem_collector else c
+                        for c in collectors
+                    ]
+                    modem_collector = new_modem
+                    web.init_collector(new_modem)
+                    web.init_collectors(collectors)
+                    web.reset_modem_state()
+                    modem_config_key = new_key
+                    log.info("Driver hot-swapped to %s", new_key[0])
+
             futures = {}
             for collector in collectors:
                 if stop_event.is_set():
@@ -146,6 +196,8 @@ def polling_loop(config_mgr, storage, stop_event):
 
             try:
                 for future in as_completed(futures, timeout=120):
+                    if stop_event.is_set():
+                        break
                     collector = futures[future]
                     try:
                         _, result = future.result()
@@ -168,6 +220,8 @@ def polling_loop(config_mgr, storage, stop_event):
                         future.cancel()
 
             stop_event.wait(1)
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
     # Cleanup MQTT
     if mqtt_pub:
@@ -212,6 +266,7 @@ def main():
         if poll_thread and poll_thread.is_alive():
             poll_stop.set()
             poll_thread.join(timeout=10)
+        web.reset_modem_state()
         poll_stop = threading.Event()
         poll_thread = threading.Thread(
             target=polling_loop, args=(config_mgr, storage, poll_stop), daemon=True

@@ -581,6 +581,21 @@ def get_state() -> dict:
         return dict(_state)
 
 
+def reset_modem_state():
+    """Clear modem-specific dashboard state before switching drivers.
+
+    Keeps unrelated collector data like speedtest/weather cache intact so
+    the dashboard only drops the modem-derived sections while a new poll
+    is starting.
+    """
+    with _state_lock:
+        _state["analysis"] = None
+        _state["last_update"] = None
+        _state["error"] = None
+        _state["connection_info"] = None
+        _state["device_info"] = None
+
+
 @app.route("/sw.js")
 def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
@@ -604,6 +619,7 @@ def index():
     smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
     gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
+    is_fritzbox = (_config_manager.get("modem_type") == "fritzbox") if _config_manager else False
     bnetz_enabled = _config_manager.is_bnetz_enabled() if _config_manager else True
     state = get_state()
     speedtest_latest = state.get("speedtest_latest")
@@ -664,6 +680,7 @@ def index():
         demo_mode=demo_mode,
         gaming_quality_enabled=gaming_quality_enabled,
         gaming_index=gaming_index,
+        is_fritzbox=is_fritzbox,
         bnetz_enabled=bnetz_enabled,
         bnetz_latest=bnetz_latest,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
@@ -733,4 +750,3 @@ def add_security_headers(response):
 # ── Blueprint Registration ──
 from .blueprints import register_blueprints
 register_blueprints(app)
-

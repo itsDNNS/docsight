@@ -23,33 +23,44 @@ from .base import ModemDriver
 
 log = logging.getLogger("docsis.driver.cm3000")
 
+_STATUS_PATH = "/DocsisStatus.htm"
+
 # Match the single-quoted live tagValueList in each function.
 # Commented-out examples use double quotes or /* */ blocks, so
 # targeting single quotes skips them reliably.
+# Uses .*? (lazy) instead of [^}]*? to support nested braces in
+# function bodies (e.g. if-blocks in some firmware versions).
 _RE_DS_QAM = re.compile(
-    r"function\s+InitDsTableTagValue\s*\(\)\s*\{[^}]*?"
+    r"function\s+InitDsTableTagValue\s*\(\)\s*\{.*?"
     r"var\s+tagValueList\s*=\s*'([^']+)';",
     re.DOTALL,
 )
 _RE_US_ATDMA = re.compile(
-    r"function\s+InitUsTableTagValue\s*\(\)\s*\{[^}]*?"
+    r"function\s+InitUsTableTagValue\s*\(\)\s*\{.*?"
     r"var\s+tagValueList\s*=\s*'([^']+)';",
     re.DOTALL,
 )
 _RE_DS_OFDM = re.compile(
-    r"function\s+InitDsOfdmTableTagValue\s*\(\)\s*\{[^}]*?"
+    r"function\s+InitDsOfdmTableTagValue\s*\(\)\s*\{.*?"
     r"var\s+tagValueList\s*=\s*'([^']+)';",
     re.DOTALL,
 )
 _RE_US_OFDMA = re.compile(
-    r"function\s+InitUsOfdmaTableTagValue\s*\(\)\s*\{[^}]*?"
+    r"function\s+InitUsOfdmaTableTagValue\s*\(\)\s*\{.*?"
     r"var\s+tagValueList\s*=\s*'([^']+)';",
     re.DOTALL,
 )
 _RE_SYS_INFO = re.compile(
-    r"function\s+InitTagValue\s*\(\)\s*\{[^}]*?"
+    r"function\s+InitTagValue\s*\(\)\s*\{.*?"
     r"var\s+tagValueList\s*=\s*'([^']+)';",
     re.DOTALL,
+)
+_LOGIN_MARKERS = (
+    "login.htm",
+    "login.html",
+    "window.location.replace",
+    "sessionstorage.getitem('privatekey')",
+    "sessionstorage.getitem(\"privatekey\")",
 )
 
 # Fields per channel for each section (after the leading count value).
@@ -70,17 +81,20 @@ class CM3000Driver(ModemDriver):
         super().__init__(url, user, password)
         self._session = requests.Session()
         self._session.auth = (user, password)
+        self._status_html = None
 
     def login(self) -> None:
-        """Establish session via HTTP Basic Auth GET to /.
+        """Establish session and verify DocsisStatus.htm is actually readable.
 
         Retries once with a fresh session if the modem drops a stale
         TCP connection (common after container restarts).
         """
         for attempt in range(2):
             try:
-                r = self._session.get(f"{self._url}/", timeout=15)
+                r = self._session.get(f"{self._url}{_STATUS_PATH}", timeout=30)
                 r.raise_for_status()
+                self._ensure_status_page(r.text)
+                self._status_html = r.text
                 log.info("CM3000 auth OK")
                 return
             except requests.ConnectionError:
@@ -89,6 +103,7 @@ class CM3000Driver(ModemDriver):
                     self._session.close()
                     self._session = requests.Session()
                     self._session.auth = (self._user, self._password)
+                    self._status_html = None
                     continue
                 raise RuntimeError("CM3000 authentication failed: connection refused after retry")
             except requests.RequestException as e:
@@ -106,6 +121,18 @@ class CM3000Driver(ModemDriver):
         us30 = self._parse_us_atdma(html)
         ds31 = self._parse_ds_ofdm(html)
         us31 = self._parse_us_ofdma(html)
+
+        total = len(ds30) + len(us30) + len(ds31) + len(us31)
+        if total == 0:
+            log.warning(
+                "CM3000 parsed 0 channels (DS QAM regex=%s, US ATDMA regex=%s, "
+                "DS OFDM regex=%s, US OFDMA regex=%s, page length=%d)",
+                _RE_DS_QAM.search(html) is not None,
+                _RE_US_ATDMA.search(html) is not None,
+                _RE_DS_OFDM.search(html) is not None,
+                _RE_US_OFDMA.search(html) is not None,
+                len(html),
+            )
 
         return {
             "channelDs": {"docsis30": ds30, "docsis31": ds31},
@@ -144,16 +171,47 @@ class CM3000Driver(ModemDriver):
     # -- Internal helpers --
 
     def _fetch_status_page(self) -> str:
-        """Fetch the raw HTML of /DocsisStatus.htm."""
+        """Fetch the raw HTML of /DocsisStatus.htm.
+
+        Reuses the validated HTML captured during login when available.
+        The cache persists until the next login() call overwrites it,
+        so all methods in a single collect cycle use the same page.
+        """
+        if self._status_html is not None:
+            return self._status_html
+
         try:
             r = self._session.get(
-                f"{self._url}/DocsisStatus.htm",
+                f"{self._url}{_STATUS_PATH}",
                 timeout=30,
             )
             r.raise_for_status()
         except requests.RequestException as e:
             raise RuntimeError(f"CM3000 status page retrieval failed: {e}")
+        self._ensure_status_page(r.text)
         return r.text
+
+    @staticmethod
+    def _ensure_status_page(html: str) -> None:
+        """Reject login/placeholder pages that would otherwise parse as zero channels."""
+        if not html:
+            raise RuntimeError("CM3000 returned an empty status page")
+
+        lower_html = html.lower()
+        if any(marker in lower_html for marker in _LOGIN_MARKERS):
+            raise RuntimeError(
+                "CM3000 authentication failed: modem returned a login page instead "
+                "of DocsisStatus.htm after authentication"
+            )
+
+        has_sys_info = _RE_SYS_INFO.search(html) is not None
+        has_channel_data = any(
+            regex.search(html) for regex in (_RE_DS_QAM, _RE_US_ATDMA, _RE_DS_OFDM, _RE_US_OFDMA)
+        )
+        if not has_sys_info or not has_channel_data:
+            raise RuntimeError(
+                "CM3000 status page did not contain the expected DOCSIS data blocks"
+            )
 
     # -- Channel parsers --
 

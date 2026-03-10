@@ -3,8 +3,9 @@
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
 var _correlationChart = null;
-var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: true, temperature: true };
+var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: true, temperature: true, segmentDs: true, segmentUs: false };
 var _corrWeatherData = [];
+var _corrSegmentData = [];
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 var _corrZoom = null; // { tMin, tMax } when zoomed in
 // Event type sub-filter: operational events hidden by default
@@ -54,12 +55,16 @@ function loadCorrelationData() {
     var wStart = new Date(now.getTime() - parseInt(hours) * 3600000).toISOString().replace('T', ' ').substring(0, 19) + 'Z';
     var weatherUrl = '/api/weather/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
 
+    var segmentUrl = '/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
+
     Promise.all([
         fetch('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events').then(function(r) { return r.json(); }),
-        fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
+        fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
+        fetch(segmentUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
     ]).then(function(results) {
             var data = results[0];
             _corrWeatherData = results[1] || [];
+            _corrSegmentData = results[2] || [];
             loading.style.display = 'none';
             _correlationData = data;
             if (!data || data.length === 0) {
@@ -165,6 +170,12 @@ function renderCorrelationChart(data) {
     var tempMax = tempValues.length ? Math.ceil(Math.max.apply(null, tempValues) + 2) : 40;
     function yTemp(v) { return pad.top + plotH - (v - tempMin) / (tempMax - tempMin) * plotH; }
 
+    // Segment utilization axis (0-100% scale)
+    var segment = _corrSegmentData || [];
+    var segDsColor = '#a855f7'; // purple
+    var segUsColor = '#6366f1'; // indigo
+    function ySegment(v) { return pad.top + plotH - (v / 100) * plotH; }
+
     var uploadColor = '#06b6d4'; // cyan
     var snrColor = 'rgba(168,85,247,1)'; // purple
     var txColor = '#f59e0b'; // amber/orange
@@ -192,9 +203,9 @@ function renderCorrelationChart(data) {
         tempMin: tempMin, tempMax: tempMax,
         dlMin: dlMin, dlMax: dlMax,
         modem: modem, speedtest: sortedSpeedtest, events: events, data: data,
-        weather: weather,
-        xScale: xScale, ySnr: ySnr, yTx: yTx, yDsPower: yDsPower, yDl: yDl, yTemp: yTemp,
-        colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: goodColor, upload: uploadColor, event: warnColor, errors: errorColor, temperature: tempColor, text: textColor, grid: gridColor },
+        weather: weather, segment: segment,
+        xScale: xScale, ySnr: ySnr, yTx: yTx, yDsPower: yDsPower, yDl: yDl, yTemp: yTemp, ySegment: ySegment,
+        colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: goodColor, upload: uploadColor, event: warnColor, errors: errorColor, temperature: tempColor, segmentDs: segDsColor, segmentUs: segUsColor, text: textColor, grid: gridColor },
         dpr: dpr
     };
 
@@ -512,6 +523,42 @@ function renderCorrelationChart(data) {
         ctx.setLineDash([]);
     }
 
+    // Segment utilization lines (solid)
+    if (segment.length > 1) {
+        // DS total line
+        if (_corrVisible.segmentDs) {
+            ctx.beginPath();
+            var started = false;
+            for (var i = 0; i < segment.length; i++) {
+                if (segment[i].ds_total == null) continue;
+                var x = xScale(new Date(segment[i].timestamp).getTime());
+                var y = ySegment(segment[i].ds_total);
+                if (!started) { ctx.moveTo(x, y); started = true; }
+                else { ctx.lineTo(x, y); }
+            }
+            ctx.strokeStyle = segDsColor;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([]);
+            ctx.stroke();
+        }
+        // US total line
+        if (_corrVisible.segmentUs) {
+            ctx.beginPath();
+            var started = false;
+            for (var i = 0; i < segment.length; i++) {
+                if (segment[i].us_total == null) continue;
+                var x = xScale(new Date(segment[i].timestamp).getTime());
+                var y = ySegment(segment[i].us_total);
+                if (!started) { ctx.moveTo(x, y); started = true; }
+                else { ctx.lineTo(x, y); }
+            }
+            ctx.strokeStyle = segUsColor;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([]);
+            ctx.stroke();
+        }
+    }
+
     // Interactive Legend
     var legend = document.getElementById('correlation-legend');
     var legendItems = [];
@@ -543,6 +590,10 @@ function renderCorrelationChart(data) {
     }
     if (weather.length > 0) {
         legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (°C)' });
+    }
+    if (segment.length > 0) {
+        legendItems.push({ metric: 'segmentDs', color: segDsColor, label: '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)') });
+        legendItems.push({ metric: 'segmentUs', color: segUsColor, label: '&#9644; ' + (T.seg_correlation_us || 'Segment US (%)') });
     }
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : ' disabled';
@@ -879,6 +930,22 @@ function _setupCorrelationTooltip(overlay, octx) {
         }
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + nearestWeather.temperature.toFixed(1) + ' \u00B0C</div>';
+        }
+        // Segment utilization tooltip (numeric-only server data, same innerHTML pattern as above)
+        if (st.segment && st.segment.length > 0) {
+            var nearestSeg = null, segDist = Infinity;
+            for (var si = 0; si < st.segment.length; si++) {
+                var sd = Math.abs(new Date(st.segment[si].timestamp).getTime() - hoverT);
+                if (sd < segDist) { segDist = sd; nearestSeg = st.segment[si]; }
+            }
+            if (nearestSeg && segDist < (st.tMax - st.tMin) * 0.05) {
+                if (_corrVisible.segmentDs && nearestSeg.ds_total != null) {
+                    html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.segmentDs + ';"></span> ' + (T.seg_correlation_ds || 'Segment DS') + ': ' + nearestSeg.ds_total.toFixed(1) + '%</div>';
+                }
+                if (_corrVisible.segmentUs && nearestSeg.us_total != null) {
+                    html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.segmentUs + ';"></span> ' + (T.seg_correlation_us || 'Segment US') + ': ' + nearestSeg.us_total.toFixed(1) + '%</div>';
+                }
+            }
         }
 
         tooltip.innerHTML = html;

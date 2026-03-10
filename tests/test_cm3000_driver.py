@@ -217,14 +217,16 @@ class TestDriverInit:
 # -- Login --
 
 class TestLogin:
-    def test_login_sends_get_with_auth(self, driver):
+    def test_login_fetches_status_page_with_auth(self, driver):
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
+        mock_response.text = STATUS_HTML
 
         with patch.object(driver._session, "get", return_value=mock_response) as mock_get:
             driver.login()
-            mock_get.assert_called_once_with("http://192.168.100.1/", timeout=15)
+            mock_get.assert_called_once_with("http://192.168.100.1/DocsisStatus.htm", timeout=30)
+            assert driver._status_html == STATUS_HTML
 
     def test_login_failure_raises(self, driver):
         import requests as req
@@ -239,6 +241,7 @@ class TestLogin:
         import requests as req
         mock_ok = MagicMock()
         mock_ok.raise_for_status = MagicMock()
+        mock_ok.text = STATUS_HTML
 
         # First call on old session raises ConnectionError.
         # Driver creates a new session for retry, so we patch
@@ -252,6 +255,23 @@ class TestLogin:
         ), patch("app.drivers.cm3000.requests.Session", return_value=mock_new_session):
             driver.login()  # Should succeed on retry
             mock_new_session.get.assert_called_once()
+
+    def test_login_rejects_login_page_false_positive(self, driver):
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.text = """
+            <html><body>
+            <script>
+            if (sessionStorage.getItem('PrivateKey') === null) {
+                window.location.replace('../Login.htm');
+            }
+            </script>
+            </body></html>
+        """
+
+        with patch.object(driver._session, "get", return_value=mock_response):
+            with pytest.raises(RuntimeError, match="returned a login page"):
+                driver.login()
 
 
 # -- DOCSIS data: structure --
@@ -439,6 +459,24 @@ class TestValueParsers:
         assert len(channels) == 1
         assert channels[0] == ["a", "b", "c"]
 
+    def test_fetch_status_page_rejects_missing_docsis_blocks(self, driver):
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.text = "<html><body><h1>Welcome</h1></body></html>"
+
+        with patch.object(driver._session, "get", return_value=mock_response):
+            with pytest.raises(RuntimeError, match="expected DOCSIS data blocks"):
+                driver._fetch_status_page()
+
+    def test_fetch_status_page_uses_cached_login_html(self, driver):
+        driver._status_html = STATUS_HTML
+
+        with patch.object(driver._session, "get") as mock_get:
+            assert driver._fetch_status_page() == STATUS_HTML
+            mock_get.assert_not_called()
+            # Cache persists for the entire collect cycle
+            assert driver._status_html == STATUS_HTML
+
 
 # -- Regex patterns --
 
@@ -464,6 +502,34 @@ class TestRegexPatterns:
         assert _RE_DS_OFDM.search(html) is not None
         assert _RE_US_OFDMA.search(html) is not None
         assert _RE_SYS_INFO.search(html) is not None
+
+
+# -- Collect cycle (cache reuse) --
+
+class TestCollectCycle:
+    def test_device_info_and_docsis_data_share_cached_html(self, driver):
+        """Both get_device_info() and get_docsis_data() must use the same
+        cached HTML from login(), without a second HTTP fetch."""
+        driver._status_html = STATUS_HTML
+
+        with patch.object(driver._session, "get") as mock_get:
+            info = driver.get_device_info()
+            data = driver.get_docsis_data()
+            mock_get.assert_not_called()
+
+        assert info["model"] == "CM3000"
+        assert len(data["channelDs"]["docsis30"]) == 32
+        assert len(data["channelUs"]["docsis30"]) == 4
+
+    def test_regex_handles_nested_braces(self, driver):
+        """Functions with nested braces (if-blocks) must still parse."""
+        html = _build_status_html().replace(
+            "function InitDsTableTagValue()\n{",
+            "function InitDsTableTagValue()\n{\n    if (true) { console.log('ok'); }",
+        )
+        driver._status_html = html
+        data = driver.get_docsis_data()
+        assert len(data["channelDs"]["docsis30"]) == 32
 
 
 # -- Analyzer integration --
