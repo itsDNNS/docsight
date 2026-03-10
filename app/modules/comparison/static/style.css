@@ -43,6 +43,37 @@
     font-family: inherit;
     width: 100%;
     box-sizing: border-box;
+    min-height: 44px;
+}
+
+.comparison-select {
+    appearance: none;
+    padding-right: 38px;
+    cursor: pointer;
+    color-scheme: dark;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.comparison-select option {
+    background: var(--surface, #111827);
+    color: var(--text, #e5e7eb);
+}
+
+.comparison-input[type="datetime-local"] {
+    padding-right: 44px;
+    color-scheme: dark;
+}
+
+[data-theme="light"] .comparison-select,
+[data-theme="light"] .comparison-input[type="datetime-local"] {
+    color-scheme: light;
+}
+
+.comparison-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.85;
 }
 
 .comparison-select:focus,
