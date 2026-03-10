@@ -34,6 +34,7 @@ def mock_config():
         "modem_user": "admin",
         "modem_password": "secret",
     }.get(k, d)
+    cfg.is_segment_utilization_enabled.return_value = True
     return cfg
 
 
@@ -59,6 +60,11 @@ class TestIsEnabled:
         mock_config.get.side_effect = lambda k, d=None: {
             "modem_type": "arris",
         }.get(k, d)
+        c = SegmentUtilizationCollector(config_mgr=mock_config, storage=mock_storage, web=MagicMock())
+        assert c.is_enabled() is False
+
+    def test_disabled_when_setting_off(self, mock_config, mock_storage):
+        mock_config.is_segment_utilization_enabled.return_value = False
         c = SegmentUtilizationCollector(config_mgr=mock_config, storage=mock_storage, web=MagicMock())
         assert c.is_enabled() is False
 

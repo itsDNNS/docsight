@@ -619,6 +619,7 @@ def index():
     smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
     gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
+    segment_utilization_enabled = _config_manager.is_segment_utilization_enabled() if _config_manager else False
     is_fritzbox = (_config_manager.get("modem_type") == "fritzbox") if _config_manager else False
     bnetz_enabled = _config_manager.is_bnetz_enabled() if _config_manager else True
     state = get_state()
@@ -679,6 +680,7 @@ def index():
         device_info=dev_info,
         demo_mode=demo_mode,
         gaming_quality_enabled=gaming_quality_enabled,
+        segment_utilization_enabled=segment_utilization_enabled,
         gaming_index=gaming_index,
         is_fritzbox=is_fritzbox,
         bnetz_enabled=bnetz_enabled,
@@ -728,6 +730,7 @@ def settings():
     all_modules = _module_loader.get_modules() if _module_loader else []
     is_fritzbox = config.get("modem_type") == "fritzbox"
     gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False
+    segment_utilization_enabled = _config_manager.is_segment_utilization_enabled() if _config_manager else False
     built_in_features = [
         {
             "id": "core.gaming_quality",
@@ -750,11 +753,15 @@ def settings():
                 "Cable segment utilization from FRITZ!Box monitoring. Requires FRITZ!OS 8.20 or newer on supported cable firmware.",
             ),
             "icon": "gauge",
-            "status_label": t.get(
-                "modules_available" if is_fritzbox else "modules_requires_fritzbox",
-                "Available" if is_fritzbox else "Requires FRITZ!Box",
+            "status_label": (
+                t.get("modules_requires_fritzbox", "Requires FRITZ!Box")
+                if not is_fritzbox else
+                t.get(
+                    "modules_enabled" if segment_utilization_enabled else "modules_disabled",
+                    "Enabled" if segment_utilization_enabled else "Disabled",
+                )
             ),
-            "status_class": "badge-success" if is_fritzbox else "badge-warning",
+            "status_class": "badge-warning" if not is_fritzbox else ("badge-success" if segment_utilization_enabled else "badge-muted"),
             "manage_section": "connection",
             "manage_label": t.get("step_modem", "Modem"),
         },

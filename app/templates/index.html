@@ -101,7 +101,7 @@
                     <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
                 </a>
                 {% endif %}
-                {% if is_fritzbox %}
+                {% if is_fritzbox and segment_utilization_enabled %}
                 <a class="nav-item" data-view="segment-utilization" data-nav-icon="gauge" data-nav-title="{{ t.seg_title }}">
                     <i data-lucide="gauge"></i> {{ t.seg_title }}
                 </a>
@@ -1790,7 +1790,7 @@
 {% endif %}
 
 {# ── Segment Utilization (FritzBox core feature) ── #}
-{% if is_fritzbox %}
+{% if is_fritzbox and segment_utilization_enabled %}
 <div id="view-segment-utilization" class="view">
     {% include "segment_utilization_tab.html" %}
 </div>

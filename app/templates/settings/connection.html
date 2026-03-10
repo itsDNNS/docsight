@@ -79,4 +79,31 @@
             </div>
         </div>
     </div>
+
+    {% if config.modem_type == 'fritzbox' %}
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="gauge"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.seg_title }}</div>
+                    <div class="card-subtitle">{{ t.seg_subtitle }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-info">
+                <span class="toggle-title">{{ t.segment_utilization_enabled_label }}</span>
+                <span class="toggle-desc">{{ t.segment_utilization_enabled_hint }}</span>
+            </div>
+            <input type="hidden" name="segment_utilization_enabled" value="false">
+            <label class="toggle">
+                <input type="checkbox" id="segment_utilization_enabled" name="segment_utilization_enabled" value="true" {% if config.segment_utilization_enabled %}checked{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+    {% endif %}
 </div>

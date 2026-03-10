@@ -790,6 +790,7 @@ class TestDiscoverCollectors:
         mgr.is_bqm_configured.return_value = True
         mgr.is_bnetz_watch_configured.return_value = bnetz_watch
         mgr.is_weather_configured.return_value = False
+        mgr.is_segment_utilization_enabled.return_value = True
         mgr.get_all.return_value = {
             "modem_type": "fritzbox",
             "modem_url": "http://fritz.box",
@@ -797,6 +798,7 @@ class TestDiscoverCollectors:
             "modem_password": "pass",
             "poll_interval": poll_interval,
         }
+        mgr.get.side_effect = lambda key, default=None: mgr.get_all.return_value.get(key, default)
         return mgr
 
     def _make_web_with_modules(self, module_specs):
@@ -892,6 +894,24 @@ class TestDiscoverCollectors:
         names = [c.name for c in collectors]
         assert "modem" in names
         assert "segment_utilization" in names
+
+    @patch("app.drivers.driver_registry.load_driver")
+    def test_discover_skips_segment_when_disabled(self, mock_load):
+        from app.collectors import discover_collectors
+
+        mock_load.return_value = MagicMock()
+        config_mgr = self._make_config_mgr()
+        config_mgr.is_segment_utilization_enabled.return_value = False
+        analyzer = MagicMock()
+
+        web = MagicMock(spec=[])
+
+        collectors = discover_collectors(
+            config_mgr, self._make_storage(), MagicMock(), None, web, analyzer
+        )
+        names = [c.name for c in collectors]
+        assert "modem" in names
+        assert "segment_utilization" not in names
 
     @patch("app.drivers.driver_registry.load_driver")
     def test_modem_collector_gets_poll_interval(self, mock_load):

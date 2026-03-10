@@ -204,6 +204,13 @@ class TestConfigState:
         config.save({"theme": "invalid"})
         assert config.get_theme() == "dark"
 
+    def test_segment_utilization_enabled_defaults_true(self, config):
+        assert config.is_segment_utilization_enabled() is True
+
+    def test_segment_utilization_enabled_can_be_disabled(self, config):
+        config.save({"segment_utilization_enabled": False})
+        assert config.is_segment_utilization_enabled() is False
+
 
 class TestConfigUrlValidation:
     @pytest.mark.parametrize("url", [

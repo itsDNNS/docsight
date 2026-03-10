@@ -535,6 +535,8 @@
   "modules_available": "",
   "modules_requires_fritzbox": "",
   "modules_managed_in": "",
+  "segment_utilization_enabled_label": "",
+  "segment_utilization_enabled_hint": "",
   "active_issues": "",
   "report_bug": "",
   "support_kofi_title": "",
@@ -704,5 +706,6 @@
   "localization": "",
   "localization_desc": "",
   "dashboard_features": "",
-  "dashboard_features_desc": ""
+  "dashboard_features_desc": "",
+  "seg_disabled": ""
 }

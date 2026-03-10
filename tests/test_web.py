@@ -228,6 +228,30 @@ class TestSettingsRoute:
         assert b"Segment Utilization" in resp.data
         assert b"Requires FRITZ!OS 8.20 or newer" in resp.data
 
+    def test_settings_connection_includes_segment_toggle_for_fritzbox(self, client):
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        assert b"Collect segment utilization" in resp.data
+        assert b'name="segment_utilization_enabled"' in resp.data
+
+    def test_settings_modules_shows_segment_disabled_status(self, client, config_mgr):
+        config_mgr.save({"segment_utilization_enabled": False})
+        init_config(config_mgr)
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        assert b"Segment Utilization" in resp.data
+        assert b"Disabled" in resp.data
+
+
+class TestIndexRoute:
+    def test_index_hides_segment_tab_when_disabled(self, client, config_mgr, sample_analysis):
+        config_mgr.save({"segment_utilization_enabled": False})
+        init_config(config_mgr)
+        update_state(analysis=sample_analysis)
+        resp = client.get("/?lang=en")
+        assert resp.status_code == 200
+        assert b'data-view="segment-utilization"' not in resp.data
+
 
 class TestHealthEndpoint:
     def test_health_waiting(self, client):

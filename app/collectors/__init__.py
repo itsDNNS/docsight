@@ -112,11 +112,13 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
         # Segment utilization collector (FritzBox only)
         if modem_type == "fritzbox":
             from .segment_utilization import SegmentUtilizationCollector
-            collectors.append(SegmentUtilizationCollector(
+            segment_collector = SegmentUtilizationCollector(
                 config_mgr=config_mgr,
                 storage=storage,
                 web=web,
-            ))
+            )
+            if segment_collector.is_enabled():
+                collectors.append(segment_collector)
 
     # ── Module collectors ──
     module_loader = web.get_module_loader() if hasattr(web, 'get_module_loader') else None

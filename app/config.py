@@ -37,6 +37,7 @@ DEFAULTS = {
     "admin_password": "",
     "demo_mode": False,
     "gaming_quality_enabled": True,
+    "segment_utilization_enabled": True,
     "notify_webhook_url": "",
     "notify_webhook_token": "",
     "notify_min_severity": "warning",
@@ -74,6 +75,7 @@ ENV_MAP = {
     "booked_upload": "BOOKED_UPLOAD",
     "demo_mode": "DEMO_MODE",
     "gaming_quality_enabled": "GAMING_QUALITY_ENABLED",
+    "segment_utilization_enabled": "SEGMENT_UTILIZATION_ENABLED",
     "bnetz_enabled": "BNETZ_ENABLED",
     "notify_webhook_url": "NOTIFY_WEBHOOK_URL",
     "notify_webhook_token": "NOTIFY_WEBHOOK_TOKEN",
@@ -103,7 +105,7 @@ _LEGACY_KEY_MAP = {
 }
 
 INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown", "health_hysteresis"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled"}
 
 URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url"}
 _ALLOWED_URL_SCHEMES = {"http", "https"}
@@ -333,6 +335,13 @@ class ConfigManager:
         if isinstance(val, str):
             val = val.lower() in ("true", "1", "yes")
         return bool(val) or self.is_demo_mode()
+
+    def is_segment_utilization_enabled(self):
+        """True if FRITZ!Box segment utilization is enabled."""
+        val = self.get("segment_utilization_enabled")
+        if isinstance(val, str):
+            val = val.lower() in ("true", "1", "yes")
+        return bool(val)
 
     def is_bnetz_enabled(self):
         """True if BNetzA broadband measurement feature is enabled."""

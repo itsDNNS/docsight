@@ -43,6 +43,8 @@ def api_segment_utilization():
         return jsonify({"error": t.get("seg_unavailable", "Configuration unavailable.")}), 503
     if config.get("modem_type") != "fritzbox":
         return jsonify({"error": t.get("seg_unsupported_driver", "This view is only available for FRITZ!Box cable devices.")}), 400
+    if not config.is_segment_utilization_enabled():
+        return jsonify({"error": t.get("seg_disabled", "Segment utilization is disabled in Settings.")}), 400
 
     storage = _get_storage()
     if not storage:
