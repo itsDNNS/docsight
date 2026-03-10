@@ -30,31 +30,8 @@ _STATUS_PATH = "/DocsisStatus.htm"
 # targeting single quotes skips them reliably.
 # Uses .*? (lazy) instead of [^}]*? to support nested braces in
 # function bodies (e.g. if-blocks in some firmware versions).
-_RE_DS_QAM = re.compile(
-    r"function\s+InitDsTableTagValue\s*\(\)\s*\{.*?"
-    r"var\s+tagValueList\s*=\s*'([^']+)';",
-    re.DOTALL,
-)
-_RE_US_ATDMA = re.compile(
-    r"function\s+InitUsTableTagValue\s*\(\)\s*\{.*?"
-    r"var\s+tagValueList\s*=\s*'([^']+)';",
-    re.DOTALL,
-)
-_RE_DS_OFDM = re.compile(
-    r"function\s+InitDsOfdmTableTagValue\s*\(\)\s*\{.*?"
-    r"var\s+tagValueList\s*=\s*'([^']+)';",
-    re.DOTALL,
-)
-_RE_US_OFDMA = re.compile(
-    r"function\s+InitUsOfdmaTableTagValue\s*\(\)\s*\{.*?"
-    r"var\s+tagValueList\s*=\s*'([^']+)';",
-    re.DOTALL,
-)
-_RE_SYS_INFO = re.compile(
-    r"function\s+InitTagValue\s*\(\)\s*\{.*?"
-    r"var\s+tagValueList\s*=\s*'([^']+)';",
-    re.DOTALL,
-)
+_RE_FUNCTION_START = re.compile(r"function\s+(?P<name>\w+)\s*\(\)\s*\{", re.DOTALL)
+_RE_STRING_LITERAL = re.compile(r"""(['"])((?:\\.|(?!\1).)*)\1""", re.DOTALL)
 _LOGIN_MARKERS = (
     "login.htm",
     "login.html",
@@ -68,6 +45,7 @@ _DS_QAM_FIELDS = 9   # num|lock|mod|chID|freq|power|snr|corrErr|uncorrErr
 _US_ATDMA_FIELDS = 7  # num|lock|type|chID|symbolRate|freq|power
 _DS_OFDM_FIELDS = 11  # num|lock|profiles|chID|freq|power|snr|subcarriers|corrErr|uncorrErr|unknown
 _US_OFDMA_FIELDS = 6  # num|lock|profiles|chID|freq|power
+_RE_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 
 class CM3000Driver(ModemDriver):
@@ -143,11 +121,11 @@ class CM3000Driver(ModemDriver):
         """Extract device info from InitTagValue()."""
         try:
             html = self._fetch_status_page()
-            m = _RE_SYS_INFO.search(html)
-            if not m:
+            raw_sys_info = self._extract_tag_value_list(html, "InitTagValue")
+            if not raw_sys_info:
                 return {"manufacturer": "Netgear", "model": "CM3000", "sw_version": ""}
 
-            fields = m.group(1).split("|")
+            fields = raw_sys_info.split("|")
             result = {
                 "manufacturer": "Netgear",
                 "model": "CM3000",
@@ -197,9 +175,15 @@ class CM3000Driver(ModemDriver):
         if not html:
             raise RuntimeError("CM3000 returned an empty status page")
 
-        has_sys_info = _RE_SYS_INFO.search(html) is not None
+        has_sys_info = bool(CM3000Driver._extract_tag_value_list(html, "InitTagValue"))
         has_channel_data = any(
-            regex.search(html) for regex in (_RE_DS_QAM, _RE_US_ATDMA, _RE_DS_OFDM, _RE_US_OFDMA)
+            CM3000Driver._extract_tag_value_list(html, function_name)
+            for function_name in (
+                "InitDsTableTagValue",
+                "InitUsTableTagValue",
+                "InitDsOfdmTableTagValue",
+                "InitUsOfdmaTableTagValue",
+            )
         )
         if has_sys_info and has_channel_data:
             return
@@ -224,11 +208,11 @@ class CM3000Driver(ModemDriver):
         Per channel (9 fields):
         num | lock | modulation | channelID | frequency | power | snr | corrErrors | uncorrErrors
         """
-        m = _RE_DS_QAM.search(html)
-        if not m:
+        raw = self._extract_tag_value_list(html, "InitDsTableTagValue")
+        if not raw:
             return []
 
-        channels = self._split_channels(m.group(1), _DS_QAM_FIELDS)
+        channels = self._split_channels(raw, _DS_QAM_FIELDS)
         result = []
         for ch in channels:
             if ch[1] != "Locked":
@@ -254,11 +238,11 @@ class CM3000Driver(ModemDriver):
         Per channel (7 fields):
         num | lock | type | channelID | symbolRate | frequency | power
         """
-        m = _RE_US_ATDMA.search(html)
-        if not m:
+        raw = self._extract_tag_value_list(html, "InitUsTableTagValue")
+        if not raw:
             return []
 
-        channels = self._split_channels(m.group(1), _US_ATDMA_FIELDS)
+        channels = self._split_channels(raw, _US_ATDMA_FIELDS)
         result = []
         for ch in channels:
             if ch[1] != "Locked":
@@ -281,11 +265,11 @@ class CM3000Driver(ModemDriver):
         Per channel (11 fields):
         num | lock | profiles | channelID | frequency | power | snr | subcarriers | corrErrors | uncorrErrors | unknown
         """
-        m = _RE_DS_OFDM.search(html)
-        if not m:
+        raw = self._extract_tag_value_list(html, "InitDsOfdmTableTagValue")
+        if not raw:
             return []
 
-        channels = self._split_channels(m.group(1), _DS_OFDM_FIELDS)
+        channels = self._split_channels(raw, _DS_OFDM_FIELDS)
         result = []
         for ch in channels:
             if ch[1] != "Locked":
@@ -311,11 +295,11 @@ class CM3000Driver(ModemDriver):
         Per channel (6 fields):
         num | lock | profiles | channelID | frequency | power
         """
-        m = _RE_US_OFDMA.search(html)
-        if not m:
+        raw = self._extract_tag_value_list(html, "InitUsOfdmaTableTagValue")
+        if not raw:
             return []
 
-        channels = self._split_channels(m.group(1), _US_OFDMA_FIELDS)
+        channels = self._split_channels(raw, _US_OFDMA_FIELDS)
         result = []
         for ch in channels:
             if ch[1] != "Locked":
@@ -334,6 +318,64 @@ class CM3000Driver(ModemDriver):
         return result
 
     # -- Value parsers --
+
+    @staticmethod
+    def _extract_tag_value_list(html: str, function_name: str) -> str | None:
+        """Extract the live tagValueList payload from a firmware JS function.
+
+        CM3000 firmware variants use different quoting styles and may build
+        the string across multiple concatenated literals. We extract the full
+        function body, remove block comments, and then join the string
+        literals from the live tagValueList assignment.
+        """
+        body = CM3000Driver._extract_function_body(html, function_name)
+        if not body:
+            return None
+
+        body = _RE_BLOCK_COMMENT.sub("", body)
+        assign_idx = body.find("var tagValueList")
+        if assign_idx == -1:
+            return None
+
+        assign_expr = body[assign_idx:]
+        assign_expr = assign_expr.split("=", 1)
+        if len(assign_expr) != 2:
+            return None
+
+        assign_expr = assign_expr[1]
+        return_idx = assign_expr.find("return tagValueList.split")
+        if return_idx != -1:
+            assign_expr = assign_expr[:return_idx]
+        assign_expr = assign_expr.strip().rstrip(";").strip()
+
+        literals = _RE_STRING_LITERAL.findall(assign_expr)
+        if not literals:
+            return None
+
+        return "".join(bytes(value, "utf-8").decode("unicode_escape") for _, value in literals)
+
+    @staticmethod
+    def _extract_function_body(html: str, function_name: str) -> str | None:
+        """Return the body text for a named JavaScript function."""
+        for match in _RE_FUNCTION_START.finditer(html):
+            if match.group("name") != function_name:
+                continue
+
+            body_start = match.end()
+            depth = 1
+            idx = body_start
+            while idx < len(html) and depth > 0:
+                char = html[idx]
+                if char == "{":
+                    depth += 1
+                elif char == "}":
+                    depth -= 1
+                idx += 1
+
+            if depth == 0:
+                return html[body_start : idx - 1]
+            return None
+        return None
 
     @staticmethod
     def _split_channels(raw: str, fields_per_channel: int) -> list[list[str]]:

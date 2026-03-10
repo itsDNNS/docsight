@@ -288,6 +288,23 @@ class TestLogin:
             driver.login()
             assert driver._status_html == mock_response.text
 
+    def test_login_accepts_double_quoted_status_page_with_login_markers(self, driver):
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.text = """
+            <script>
+            if (sessionStorage.getItem('PrivateKey') === null) {
+                window.location.replace('../Login.htm');
+            }
+            </script>
+        """ + STATUS_HTML.replace("var tagValueList = '", 'var tagValueList = "').replace(
+            "';", '";'
+        )
+
+        with patch.object(driver._session, "get", return_value=mock_response):
+            driver.login()
+            assert driver._status_html == mock_response.text
+
 
 # -- DOCSIS data: structure --
 
@@ -497,26 +514,41 @@ class TestValueParsers:
 
 class TestRegexPatterns:
     def test_skips_commented_out_tagValueList(self):
-        """The regex must match the live assignment, not the /* */ comment."""
-        data = mock_status_data = _build_status_html()
-        from app.drivers.cm3000 import _RE_DS_QAM
-        m = _RE_DS_QAM.search(data)
-        assert m is not None
-        # The live data starts with "32|" (32 channels)
-        assert m.group(1).startswith("32|")
-        # Not the commented-out example starting with "8|"
-        assert not m.group(1).startswith("8|")
+        """The extractor must match the live assignment, not the /* */ comment."""
+        data = _build_status_html()
+        extracted = CM3000Driver._extract_tag_value_list(data, "InitDsTableTagValue")
+        assert extracted is not None
+        assert extracted.startswith("32|")
+        assert not extracted.startswith("8|")
 
     def test_all_patterns_match(self):
         html = _build_status_html()
-        from app.drivers.cm3000 import (
-            _RE_DS_QAM, _RE_US_ATDMA, _RE_DS_OFDM, _RE_US_OFDMA, _RE_SYS_INFO,
+        assert CM3000Driver._extract_tag_value_list(html, "InitDsTableTagValue") == TAG_DS_QAM
+        assert CM3000Driver._extract_tag_value_list(html, "InitUsTableTagValue") == TAG_US_ATDMA
+        assert CM3000Driver._extract_tag_value_list(html, "InitDsOfdmTableTagValue") == TAG_DS_OFDM
+        assert CM3000Driver._extract_tag_value_list(html, "InitUsOfdmaTableTagValue") == TAG_US_OFDMA
+        assert CM3000Driver._extract_tag_value_list(html, "InitTagValue") == TAG_SYS_INFO
+
+    def test_extracts_double_quoted_concatenated_assignment(self):
+        html = """
+        <script>
+        function InitDsTableTagValue()
+        {
+            /*
+            var tagValueList = "8"
+                + "|comment|only";
+            */
+            var tagValueList = "2"
+                + "|1|Locked|QAM256|1|381000000 Hz|0.4|43.2|34797|40892"
+                + "|2|Locked|QAM256|2|387000000 Hz|0.3|43.2|37561|42672|";
+            return tagValueList.split("|");
+        }
+        </script>
+        """
+        assert (
+            CM3000Driver._extract_tag_value_list(html, "InitDsTableTagValue")
+            == "2|1|Locked|QAM256|1|381000000 Hz|0.4|43.2|34797|40892|2|Locked|QAM256|2|387000000 Hz|0.3|43.2|37561|42672|"
         )
-        assert _RE_DS_QAM.search(html) is not None
-        assert _RE_US_ATDMA.search(html) is not None
-        assert _RE_DS_OFDM.search(html) is not None
-        assert _RE_US_OFDMA.search(html) is not None
-        assert _RE_SYS_INFO.search(html) is not None
 
 
 # -- Collect cycle (cache reuse) --
