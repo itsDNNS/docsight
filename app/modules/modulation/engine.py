@@ -17,6 +17,10 @@ MAX_QAM = {
     ("us", "3.1"): 1024,   # log2 = 10
 }
 
+DEGRADED_QAM_THRESHOLDS = {
+    ("us", "3.1"): 256,
+}
+
 DISCLAIMER = (
     "Health indices and modulation statistics are estimates based on periodic "
     "polling samples and may not reflect every modulation change between polls."
@@ -130,6 +134,16 @@ def _group_channels_by_protocol(channels):
         ver = ch.get("docsis_version", "3.0")
         groups[ver].append(ch)
     return dict(groups)
+
+
+def _degraded_qam_threshold(direction, docsis_version, default_threshold):
+    """Return the modulation threshold that counts as degraded.
+
+    Most protocol groups keep the legacy threshold. US DOCSIS 3.1 is stricter
+    because 128QAM already represents a substantial drop from the normal
+    1024QAM operating point.
+    """
+    return DEGRADED_QAM_THRESHOLDS.get((direction, docsis_version), default_threshold)
 
 
 # ── Multi-day overview (distribution v2) ─────────────────────────────
@@ -265,7 +279,10 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
 
         # Count degraded channels for this day
         degraded = _count_degraded_channels_day(
-            by_date[date_str], version, direction, threshold
+            by_date[date_str],
+            version,
+            direction,
+            _degraded_qam_threshold(direction, version, threshold),
         )
 
         days.append({
@@ -285,7 +302,11 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
 
     # Overall degraded channels
     degraded_overall = _count_degraded_channels_overall(
-        by_date, sorted_dates, version, direction, threshold
+        by_date,
+        sorted_dates,
+        version,
+        direction,
+        _degraded_qam_threshold(direction, version, threshold),
     )
 
     return {
@@ -398,8 +419,9 @@ def compute_intraday(snapshots, direction, tz_name, date_str, low_qam_threshold=
             hi = _health_index_for_group(
                 [(l, q) for _, l, q in timeline], direction, version
             )
-            degraded = any(q is not None and q <= low_qam_threshold for _, _, q in timeline)
-            summary = _channel_summary(periods, max_qam, low_qam_threshold)
+            degraded_threshold = _degraded_qam_threshold(direction, version, low_qam_threshold)
+            degraded = any(q is not None and q <= degraded_threshold for _, _, q in timeline)
+            summary = _channel_summary(periods, max_qam, degraded_threshold)
 
             # Simplify timeline to transition points only
             simplified = _simplify_timeline(timeline)

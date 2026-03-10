@@ -10,8 +10,10 @@ var QAM_COLORS = {
     '4QAM':    '#ef4444',
     '16QAM':   '#f97316',
     '64QAM':   '#eab308',
+    '128QAM':  '#84cc16',
     '256QAM':  '#22c55e',
-    '1024QAM': '#10b981',
+    '512QAM':  '#14b8a6',
+    '1024QAM': '#06b6d4',
     '4096QAM': '#3b82f6',
     'OFDM':    '#8b5cf6',
     'OFDMA':   '#8b5cf6',
@@ -521,7 +523,7 @@ function renderChannelTimeline(canvasId, timeline) {
     var dataPoints = timeline.map(function(t) { return modSortOrder(t.modulation); });
     var n = labels.length;
     var textColor = _cssVar('--text-secondary') || '#9ca3af';
-    var qamLabels = ['4QAM', '16QAM', '64QAM', '256QAM', '1024QAM', '4096QAM', 'OFDM', 'OFDMA', 'Unknown'];
+    var qamLabels = ['4QAM', '16QAM', '64QAM', '128QAM', '256QAM', '512QAM', '1024QAM', '4096QAM', 'OFDM', 'OFDMA', 'Unknown'];
 
     var xData = [];
     for (var i = 0; i < n; i++) xData.push(i);
@@ -533,7 +535,7 @@ function renderChannelTimeline(canvasId, timeline) {
         height: h,
         scales: {
             x: { time: false, range: function() { return [-0.5, n - 0.5]; } },
-            y: { range: [-0.5, 8.5] }
+            y: { range: [-0.5, 10.5] }
         },
         axes: [
             {
@@ -554,7 +556,7 @@ function renderChannelTimeline(canvasId, timeline) {
                 scale: 'y',
                 stroke: textColor,
                 grid: { stroke: 'rgba(255,255,255,0.04)', width: 1 },
-                splits: function() { return [0,1,2,3,4,5,6,7,8]; },
+                splits: function() { return [0,1,2,3,4,5,6,7,8,9,10]; },
                 values: function(u, vals) { return vals.map(function(v) { return qamLabels[v] || ''; }); },
                 font: '10px system-ui',
                 size: 60
@@ -607,8 +609,8 @@ function densityClass(v) {
     return 'critical';
 }
 function modSortOrder(mod) {
-    var order = { '4QAM': 0, '16QAM': 1, '64QAM': 2, '256QAM': 3, '1024QAM': 4, '4096QAM': 5, 'OFDM': 6, 'OFDMA': 7, 'Unknown': 8 };
-    return order[mod] !== undefined ? order[mod] : 9;
+    var order = { '4QAM': 0, '16QAM': 1, '64QAM': 2, '128QAM': 3, '256QAM': 4, '512QAM': 5, '1024QAM': 6, '4096QAM': 7, 'OFDM': 8, 'OFDMA': 9, 'Unknown': 10 };
+    return order[mod] !== undefined ? order[mod] : 11;
 }
 
 function destroyCharts() {

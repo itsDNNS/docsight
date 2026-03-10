@@ -8,6 +8,7 @@ from app.modules.modulation.engine import (
     _parse_qam_order,
     _canonical_label,
     _distribution_pct,
+    _degraded_qam_threshold,
     _health_index,
     _health_index_for_group,
     _low_qam_pct,
@@ -240,6 +241,15 @@ class TestHealthIndexForGroup:
         assert _health_index_for_group(obs, "us", "3.0") == 50.0
 
 
+class TestDegradedThresholds:
+    def test_default_threshold_unchanged(self):
+        assert _degraded_qam_threshold("us", "3.0", 16) == 16
+        assert _degraded_qam_threshold("ds", "3.0", 16) == 16
+
+    def test_us31_uses_higher_threshold(self):
+        assert _degraded_qam_threshold("us", "3.1", 16) == 256
+
+
 # ── _low_qam_pct ──
 
 class TestLowQamPct:
@@ -448,6 +458,26 @@ class TestComputeDistributionV2:
         assert "3.0" in versions
         assert "3.1" in versions
 
+    def test_us31_128qam_counts_as_degraded(self):
+        us_channels = [
+            {"channel_id": 41, "modulation": "128QAM", "docsis_version": "3.1"},
+        ]
+        snaps = [_make_snapshot("2026-03-01T10:00:00Z", us_channels=us_channels)]
+        result = compute_distribution_v2(snaps, "us", "UTC")
+        pg = result["protocol_groups"][0]
+        assert pg["docsis_version"] == "3.1"
+        assert pg["degraded_channel_count"] == 1
+
+    def test_us31_512qam_not_counted_as_degraded(self):
+        us_channels = [
+            {"channel_id": 41, "modulation": "512QAM", "docsis_version": "3.1"},
+        ]
+        snaps = [_make_snapshot("2026-03-01T10:00:00Z", us_channels=us_channels)]
+        result = compute_distribution_v2(snaps, "us", "UTC")
+        pg = result["protocol_groups"][0]
+        assert pg["docsis_version"] == "3.1"
+        assert pg["degraded_channel_count"] == 0
+
     def test_per_day_data(self):
         snaps = [
             _make_snapshot("2026-03-01T10:00:00Z", us_channels=_make_channels(["64QAM"])),
@@ -618,6 +648,24 @@ class TestComputeIntraday:
         snaps = [_make_snapshot("2026-03-01T10:00:00Z", us_channels=us_channels)]
         result = compute_intraday(snaps, "us", "UTC", "2026-03-01")
         assert len(result["protocol_groups"]) == 2
+
+    def test_us31_channel_summary_shows_128qam_degradation(self):
+        snaps = [
+            _make_snapshot("2026-03-01T10:00:00Z",
+                           us_channels=[{"channel_id": 41, "modulation": "1024QAM",
+                                         "docsis_version": "3.1", "frequency": "29.775 - 64.775"}]),
+            _make_snapshot("2026-03-01T14:00:00Z",
+                           us_channels=[{"channel_id": 41, "modulation": "128QAM",
+                                         "docsis_version": "3.1", "frequency": "29.775 - 64.775"}]),
+            _make_snapshot("2026-03-01T18:00:00Z",
+                           us_channels=[{"channel_id": 41, "modulation": "512QAM",
+                                         "docsis_version": "3.1", "frequency": "29.775 - 64.775"}]),
+        ]
+        result = compute_intraday(snaps, "us", "UTC", "2026-03-01")
+        pg = next(pg for pg in result["protocol_groups"] if pg["docsis_version"] == "3.1")
+        ch = pg["channels"][0]
+        assert ch["degraded"] is True
+        assert "128QAM" in ch["summary"]
 
 
 # ── Legacy compute_distribution (v1 compat) ──
