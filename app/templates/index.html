@@ -533,6 +533,11 @@
     </div>
     {% endif %}
 
+    {# ── Connection Monitor Card (before donuts, with the other metric cards) ── #}
+    {% for mod in modules if mod.id == 'docsight.connection_monitor' and mod.template_paths.get('card') %}
+    {% include mod.template_paths['card'] %}
+    {% endfor %}
+
     {# ══════════════════════════════════════════════════════════════════════════
        CHANNEL HEALTH OVERVIEW — Ring gauges for DS/US health distribution
        ══════════════════════════════════════════════════════════════════════════ #}
@@ -594,7 +599,7 @@
     </div>
 
     {# ── Module Cards (mixed with core, sorted by order) ── #}
-    {% for mod in modules|sort(attribute='menu.order') if mod.template_paths.get('card') %}
+    {% for mod in modules|sort(attribute='menu.order') if mod.template_paths.get('card') and mod.id != 'docsight.connection_monitor' %}
     {% include mod.template_paths['card'] %}
     {% endfor %}
 
