@@ -1,0 +1,75 @@
+<div class="view-content" id="cm-detail-view">
+    <!-- Header -->
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+        <h2 style="margin:0;">{{ t.get('docsight.connection_monitor.cm_detail_title', 'Connection Monitor') }}</h2>
+        <div style="flex:1;"></div>
+        <div id="cm-capability-info" style="font-size:0.8rem; color:var(--text-muted);"></div>
+    </div>
+
+    <!-- Target tabs -->
+    <div id="cm-target-tabs" class="trend-tabs" style="margin-bottom:16px;"></div>
+
+    <!-- Time range picker -->
+    <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
+        <button class="trend-tab active" data-cm-range="3600" onclick="cmSetRange(this, 3600)">1h</button>
+        <button class="trend-tab" data-cm-range="21600" onclick="cmSetRange(this, 21600)">6h</button>
+        <button class="trend-tab" data-cm-range="86400" onclick="cmSetRange(this, 86400)">24h</button>
+        <button class="trend-tab" data-cm-range="604800" onclick="cmSetRange(this, 604800)">7d</button>
+    </div>
+
+    <!-- No data message -->
+    <div id="cm-no-data" style="display:none; text-align:center; padding:60px 20px; color:var(--text-muted);">
+        {{ t.get('docsight.connection_monitor.cm_no_data', 'No data yet. Enable the Connection Monitor in settings to start collecting.') }}
+    </div>
+
+    <!-- Charts section -->
+    <div id="cm-charts-section">
+        <!-- Latency chart -->
+        <div class="glass" style="padding:16px; margin-bottom:16px;">
+            <h3 style="margin:0 0 12px;">{{ t.get('docsight.connection_monitor.cm_latency_chart', 'Latency') }}</h3>
+            <div style="position:relative; height:250px;">
+                <canvas id="cm-latency-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Packet loss chart -->
+        <div class="glass" style="padding:16px; margin-bottom:16px;">
+            <h3 style="margin:0 0 12px;">{{ t.get('docsight.connection_monitor.cm_loss_chart', 'Packet Loss') }}</h3>
+            <div style="position:relative; height:200px;">
+                <canvas id="cm-loss-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Availability band -->
+        <div class="glass" style="padding:16px; margin-bottom:16px;">
+            <h3 style="margin:0 0 12px;">{{ t.get('docsight.connection_monitor.cm_availability_chart', 'Availability') }}</h3>
+            <div id="cm-availability" style="height:32px; border-radius:6px; overflow:hidden; display:flex;"></div>
+        </div>
+    </div>
+
+    <!-- Outage log -->
+    <div class="glass" style="padding:16px; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <h3 style="margin:0;">{{ t.get('docsight.connection_monitor.cm_outage_log', 'Outage Log') }}</h3>
+            <div style="flex:1;"></div>
+            <button class="trend-tab" onclick="cmExportCsv()" style="font-size:0.8rem;">
+                {{ t.get('docsight.connection_monitor.cm_export_csv', 'Export CSV') }}
+            </button>
+        </div>
+        <div id="cm-outage-table" style="overflow-x:auto;">
+            <table class="data-table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>{{ t.get('docsight.connection_monitor.cm_outage_start', 'Start') }}</th>
+                        <th>{{ t.get('docsight.connection_monitor.cm_outage_end', 'End') }}</th>
+                        <th>{{ t.get('docsight.connection_monitor.cm_outage_duration', 'Duration') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="cm-outage-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="/modules/docsight.connection_monitor/static/js/connection-monitor-charts.js"></script>
+<script src="/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js"></script>
