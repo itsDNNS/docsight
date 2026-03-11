@@ -134,10 +134,13 @@ def api_get_summary():
 @bp.route("/api/connection-monitor/outages/<int:target_id>")
 @require_auth
 def api_get_outages(target_id):
+    from app.web import get_config_manager
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
     end = request.args.get("end", type=float)
-    threshold = request.args.get("threshold", 5, type=int)
+    cfg = get_config_manager()
+    default_threshold = int(cfg.get("connection_monitor_outage_threshold", 5)) if cfg else 5
+    threshold = request.args.get("threshold", default_threshold, type=int)
     outages = storage.get_outages(target_id, threshold=threshold, start=start, end=end)
     return jsonify(outages)
 

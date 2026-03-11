@@ -82,6 +82,9 @@ class TestCollect:
                 {"id": 1, "host": "1.1.1.1", "enabled": True,
                  "poll_interval_ms": 5000, "probe_method": "tcp", "tcp_port": 443},
             ]
+            collector._cm_storage.get_summary.return_value = {
+                "sample_count": 1, "packet_loss_pct": 0.0,
+            }
             collector._last_probe = {}
             result = collector.collect()
             assert result.success is True

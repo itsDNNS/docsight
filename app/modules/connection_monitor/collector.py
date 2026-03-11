@@ -132,6 +132,21 @@ class ConnectionMonitorCollector(Collector):
             )
             all_events.extend(events)
 
+        # Check windowed packet loss stats per probed target
+        window_seconds = 60
+        checked_targets = set()
+        for s in samples:
+            tid = s["target_id"]
+            if tid in checked_targets:
+                continue
+            checked_targets.add(tid)
+            summary = self._cm_storage.get_summary(tid, window_seconds=window_seconds)
+            loss_pct = summary.get("packet_loss_pct") or 0.0
+            events = self._event_rules.check_window_stats(
+                target_id=tid, packet_loss_pct=loss_pct, window_seconds=window_seconds,
+            )
+            all_events.extend(events)
+
         if all_events and hasattr(self._core_storage, "save_events"):
             self._core_storage.save_events(all_events)
 
