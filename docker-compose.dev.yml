@@ -10,6 +10,8 @@ services:
     volumes:
       - docsight_v2_dev_data:/data
       - docsight_v2_dev_backup:/backup
+    cap_add:
+      - NET_RAW
     environment:
       - TZ=Europe/Berlin
       - DEMO_MODE=true

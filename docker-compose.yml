@@ -7,6 +7,8 @@ services:
       - "8765:8765"
     volumes:
       - docsight_data:/data
+    cap_add:
+      - NET_RAW
     # environment:
     #   - TZ=Europe/Berlin  # fallback timezone; prefer configuring via UI (Settings > Timezone)
     # env_file: .env  # uncomment if using environment variables
