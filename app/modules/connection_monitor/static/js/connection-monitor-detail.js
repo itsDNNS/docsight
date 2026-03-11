@@ -161,7 +161,7 @@
             }
 
             var tdDur = document.createElement('td');
-            tdDur.textContent = o.duration_s ? formatDuration(o.duration_s) : '\u2014';
+            tdDur.textContent = o.duration_seconds ? formatDuration(o.duration_seconds) : '\u2014';
 
             tr.appendChild(tdTarget);
             tr.appendChild(tdStart);
