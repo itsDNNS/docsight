@@ -44,7 +44,7 @@ DEFAULTS = {
     "notify_cooldown": 3600,
     "notify_cooldowns": "{}",
     "timezone": "",
-    "disabled_modules": "",  # comma-separated list of module IDs to disable
+    "disabled_modules": "docsight.smokeping",  # comma-separated list of module IDs to disable
     "active_theme": "",  # Module ID of active theme (empty = first available)
     "theme_registry_url": "https://raw.githubusercontent.com/itsDNNS/docsight-themes/main/registry.json",
     "health_hysteresis": 0,
@@ -191,6 +191,12 @@ class ConfigManager:
             except Exception as e:
                 log.warning("Failed to save migrated config: %s", e)
 
+    def _get_default_disabled_modules(self):
+        """Keep existing Smokeping setups active while new installs default it off."""
+        if self._file_config.get("smokeping_url") and self._file_config.get("smokeping_targets"):
+            return ""
+        return DEFAULTS["disabled_modules"]
+
     def get(self, key, default=None):
         """Get config value: env var > legacy env var > config.json > default.
         Secret keys from config.json are decrypted transparently."""
@@ -228,6 +234,9 @@ class ConfigManager:
             if key in SECRET_KEYS:
                 return self._decrypt(val)
             return val
+
+        if key == "disabled_modules":
+            return self._get_default_disabled_modules()
 
         if default is not None:
             return default
