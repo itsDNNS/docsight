@@ -129,8 +129,12 @@ class TestLogin:
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
         mock_resp.text = "Url:status"
+        mock_status = MagicMock()
+        mock_status.raise_for_status = MagicMock()
+        mock_status.text = SAMPLE_STATUS_HTML
 
-        with patch.object(driver._session, "post", return_value=mock_resp) as mock_post:
+        with patch.object(driver._session, "post", return_value=mock_resp) as mock_post, \
+             patch.object(driver._session, "get", return_value=mock_status):
             driver.login()
             url = mock_post.call_args[0][0]
             assert "/cgi-bin/adv_pwd_cgi" in url
@@ -139,8 +143,12 @@ class TestLogin:
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
         mock_resp.text = "Url:status"
+        mock_status = MagicMock()
+        mock_status.raise_for_status = MagicMock()
+        mock_status.text = SAMPLE_STATUS_HTML
 
-        with patch.object(driver._session, "post", return_value=mock_resp) as mock_post:
+        with patch.object(driver._session, "post", return_value=mock_resp) as mock_post, \
+             patch.object(driver._session, "get", return_value=mock_status):
             driver.login()
             data = mock_post.call_args[1]["data"]
             assert "arguments" in data
@@ -177,6 +185,43 @@ class TestLogin:
 
         with patch.object(driver._session, "post", return_value=mock_resp):
             with pytest.raises(RuntimeError, match="unexpected response"):
+                driver.login()
+
+    def test_login_verifies_authenticated_status_page(self, driver):
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.text = "Url:status"
+        mock_status = MagicMock()
+        mock_status.raise_for_status = MagicMock()
+        mock_status.text = SAMPLE_STATUS_HTML
+
+        with patch.object(driver._session, "post", return_value=mock_resp), \
+             patch.object(driver._session, "get", return_value=mock_status) as mock_get:
+            driver.login()
+            url = mock_get.call_args[0][0]
+            assert "/cgi-bin/status" in url
+
+    def test_login_raises_when_authenticated_page_is_not_returned(self, driver):
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.text = "Url:status"
+        mock_status = MagicMock()
+        mock_status.raise_for_status = MagicMock()
+        mock_status.text = "<html><body>Login</body></html>"
+
+        with patch.object(driver._session, "post", return_value=mock_resp), \
+             patch.object(driver._session, "get", return_value=mock_status):
+            with pytest.raises(RuntimeError, match="authenticated status page not returned"):
+                driver.login()
+
+    def test_login_raises_when_authenticated_page_check_errors(self, driver):
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.text = "Url:status"
+
+        with patch.object(driver._session, "post", return_value=mock_resp), \
+             patch.object(driver._session, "get", side_effect=requests.ConnectionError("refused")):
+            with pytest.raises(RuntimeError, match="authenticated page check failed"):
                 driver.login()
 
 

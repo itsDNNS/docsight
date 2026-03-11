@@ -10,7 +10,6 @@ import base64
 import logging
 import random
 import ssl
-import urllib3
 from urllib.parse import quote
 
 import requests
@@ -74,6 +73,13 @@ class SB6190Driver(ModemDriver):
             raise RuntimeError(f"SB6190 login rejected: {msg}")
         if "Url:" not in r.text:
             raise RuntimeError("SB6190 login failed: unexpected response (no redirect URL)")
+        try:
+            status = self._session.get(f"{self._url}/cgi-bin/status", timeout=30)
+            status.raise_for_status()
+        except requests.RequestException as e:
+            raise RuntimeError(f"SB6190 login failed: authenticated page check failed: {e}")
+        if not self._is_authenticated_status_page(status.text):
+            raise RuntimeError("SB6190 login failed: authenticated status page not returned")
         log.info("SB6190 login OK")
 
     def get_docsis_data(self) -> dict:
@@ -206,3 +212,9 @@ class SB6190Driver(ModemDriver):
             return float(val_str.strip().split()[0])
         except (ValueError, IndexError):
             return 0.0
+
+    @staticmethod
+    def _is_authenticated_status_page(html: str) -> bool:
+        """True when the authenticated status page exposes channel tables."""
+        text = (html or "").lower()
+        return "downstream bonded" in text and "upstream bonded" in text
