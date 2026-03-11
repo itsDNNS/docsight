@@ -18,7 +18,10 @@ from io import BytesIO
 log = logging.getLogger("docsis.backup")
 
 # Files under data_dir to include in backups
-DATA_FILES = ["docsis_history.db", "config.json", ".config_key", ".session_key"]
+DATA_FILES = [
+    "docsis_history.db", "connection_monitor.db",
+    "config.json", ".config_key", ".session_key",
+]
 
 BACKUP_META_FILE = "backup_meta.json"
 FORMAT_VERSION = 1
@@ -54,12 +57,12 @@ def _get_table_counts(db_path):
     return counts
 
 
-def _vacuum_db(data_dir, dest_path):
-    """Create a consistent copy of the database using VACUUM INTO.
+def _vacuum_db(data_dir, db_name, dest_path):
+    """Create a consistent copy of a database using VACUUM INTO.
 
-    Also removes demo data (is_demo=1) from the copy.
+    Also removes demo data (is_demo=1) from the copy when applicable.
     """
-    src = os.path.join(data_dir, "docsis_history.db")
+    src = os.path.join(data_dir, db_name)
     if not os.path.exists(src):
         return False
 
@@ -67,19 +70,20 @@ def _vacuum_db(data_dir, dest_path):
     conn.execute(f"VACUUM INTO '{dest_path}'")
     conn.close()
 
-    # Remove demo data from copy
-    copy_conn = sqlite3.connect(dest_path)
-    demo_tables = [
-        "snapshots", "events", "journal_entries", "incidents",
-        "speedtest_results", "bqm_graphs", "bnetz_measurements",
-    ]
-    for table in demo_tables:
-        try:
-            copy_conn.execute(f"DELETE FROM [{table}] WHERE is_demo = 1")  # noqa: S608
-        except sqlite3.OperationalError:
-            pass  # table may not exist or lack is_demo column
-    copy_conn.commit()
-    copy_conn.close()
+    # Remove demo data from copy (only relevant for main DB)
+    if db_name == "docsis_history.db":
+        copy_conn = sqlite3.connect(dest_path)
+        demo_tables = [
+            "snapshots", "events", "journal_entries", "incidents",
+            "speedtest_results", "bqm_graphs", "bnetz_measurements",
+        ]
+        for table in demo_tables:
+            try:
+                copy_conn.execute(f"DELETE FROM [{table}] WHERE is_demo = 1")  # noqa: S608
+            except sqlite3.OperationalError:
+                pass  # table may not exist or lack is_demo column
+        copy_conn.commit()
+        copy_conn.close()
     return True
 
 
@@ -89,17 +93,23 @@ def create_backup(data_dir):
     Returns:
         BytesIO containing the .tar.gz archive.
     """
+    db_files = {"docsis_history.db", "connection_monitor.db"}
+
     buf = BytesIO()
     with tempfile.TemporaryDirectory() as tmp:
-        db_copy = os.path.join(tmp, "docsis_history.db")
-        has_db = _vacuum_db(data_dir, db_copy)
+        # Vacuum all databases for consistent copies
+        vacuumed = {}
+        for db_name in db_files:
+            db_copy = os.path.join(tmp, db_name)
+            vacuumed[db_name] = _vacuum_db(data_dir, db_name, db_copy)
 
+        main_copy = os.path.join(tmp, "docsis_history.db")
         meta = {
             "magic": MAGIC,
             "format_version": FORMAT_VERSION,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "app_version": _get_app_version(),
-            "tables": _get_table_counts(db_copy) if has_db else {},
+            "tables": _get_table_counts(main_copy) if vacuumed.get("docsis_history.db") else {},
         }
         meta_path = os.path.join(tmp, BACKUP_META_FILE)
         with open(meta_path, "w") as f:
@@ -107,10 +117,11 @@ def create_backup(data_dir):
 
         with tarfile.open(fileobj=buf, mode="w:gz") as tar:
             tar.add(meta_path, arcname=BACKUP_META_FILE)
-            if has_db:
-                tar.add(db_copy, arcname="docsis_history.db")
+            for db_name, has_db in vacuumed.items():
+                if has_db:
+                    tar.add(os.path.join(tmp, db_name), arcname=db_name)
             for fname in DATA_FILES:
-                if fname == "docsis_history.db":
+                if fname in db_files:
                     continue  # already added via vacuum copy
                 fpath = os.path.join(data_dir, fname)
                 if os.path.exists(fpath):

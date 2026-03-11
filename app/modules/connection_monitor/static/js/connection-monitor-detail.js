@@ -97,7 +97,7 @@
 
         // Fetch samples for ALL targets in parallel
         var samplePromises = targets.map(function(t) {
-            return fetch('/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + now)
+            return fetch('/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + now + '&limit=0')
                 .then(function(r) { return r.json(); })
                 .then(function(samples) { return { target: t, samples: samples }; });
         });

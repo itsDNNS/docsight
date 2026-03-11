@@ -39,14 +39,15 @@ def _get_cm_storage():
 
 
 def _get_probe_engine():
-    """Get ProbeEngine for capability info."""
+    """Get ProbeEngine for capability info (detects available method)."""
     from app.modules.connection_monitor.probe import ProbeEngine
-    return ProbeEngine(method="tcp")
+    return ProbeEngine(method="auto")
 
 
 # --- Targets ---
 
 @bp.route("/api/connection-monitor/targets", methods=["GET"])
+@require_auth
 def api_get_targets():
     storage = _get_cm_storage()
     return jsonify(storage.get_targets())
@@ -59,9 +60,11 @@ def api_create_target():
     data = request.get_json()
     if not data or not data.get("label"):
         return jsonify({"error": "label required"}), 400
+    host = data.get("host", "").strip()
     tid = storage.create_target(
         label=data["label"],
-        host=data.get("host", ""),
+        host=host,
+        enabled=bool(host),
         poll_interval_ms=data.get("poll_interval_ms", 5000),
         probe_method=data.get("probe_method", "auto"),
         tcp_port=data.get("tcp_port", 443),
@@ -91,6 +94,7 @@ def api_delete_target(target_id):
 # --- Samples ---
 
 @bp.route("/api/connection-monitor/samples/<int:target_id>")
+@require_auth
 def api_get_samples(target_id):
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
@@ -103,6 +107,7 @@ def api_get_samples(target_id):
 # --- Summary ---
 
 @bp.route("/api/connection-monitor/summary")
+@require_auth
 def api_get_summary():
     storage = _get_cm_storage()
     targets = storage.get_targets()
@@ -120,6 +125,7 @@ def api_get_summary():
 # --- Outages ---
 
 @bp.route("/api/connection-monitor/outages/<int:target_id>")
+@require_auth
 def api_get_outages(target_id):
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
@@ -132,6 +138,7 @@ def api_get_outages(target_id):
 # --- Export ---
 
 @bp.route("/api/connection-monitor/export/<int:target_id>")
+@require_auth
 def api_export_csv(target_id):
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
@@ -158,6 +165,7 @@ def api_export_csv(target_id):
 # --- Capability ---
 
 @bp.route("/api/connection-monitor/capability")
+@require_auth
 def api_capability():
     probe = _get_probe_engine()
     return jsonify(probe.capability_info())
