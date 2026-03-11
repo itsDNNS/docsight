@@ -39,9 +39,12 @@ def _get_cm_storage():
 
 
 def _get_probe_engine():
-    """Get ProbeEngine for capability info (detects available method)."""
+    """Get ProbeEngine for capability info using configured method."""
     from app.modules.connection_monitor.probe import ProbeEngine
-    return ProbeEngine(method="auto")
+    from app.web import get_config_manager
+    cfg = get_config_manager()
+    method = cfg.get("connection_monitor_probe_method", "auto") if cfg else "auto"
+    return ProbeEngine(method=method)
 
 
 # --- Targets ---
@@ -79,6 +82,10 @@ def api_update_target(target_id):
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
+    # Auto-enable target when a non-empty host is provided
+    host = data.get("host")
+    if host is not None and host.strip() and "enabled" not in data:
+        data["enabled"] = True
     storage.update_target(target_id, **data)
     return jsonify({"ok": True})
 
