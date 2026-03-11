@@ -34,8 +34,12 @@
     window.cmExportCsv = function(targetId) {
         var now = Date.now() / 1000;
         var start = now - currentRange;
+        var res = 'raw';
+        if (currentRange > 90 * 86400) res = '1hr';
+        else if (currentRange > 30 * 86400) res = '5min';
+        else if (currentRange > 7 * 86400) res = '1min';
         var a = document.createElement('a');
-        a.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + now;
+        a.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + now + '&resolution=' + res;
         a.download = '';
         document.body.appendChild(a);
         a.click();

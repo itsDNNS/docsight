@@ -184,11 +184,11 @@ var CMCharts = (function() {
                 data: data,
                 color: color,
                 spanGaps: false,
-                dash: hasAggregated ? [6, 3] : undefined
+                dashed: hasAggregated ? true : undefined
             });
             if (hasAggregated) {
-                datasets.push({ data: minData, color: 'transparent', label: '_min_' + tIdx, hidden: true });
-                datasets.push({ data: maxData, color: 'transparent', label: '_max_' + tIdx, hidden: true });
+                datasets.push({ data: minData, color: 'transparent', label: '_min_' + tIdx, show: false });
+                datasets.push({ data: maxData, color: 'transparent', label: '_max_' + tIdx, show: false });
                 // uPlot series[0] is x-axis, so data indices are offset by +1
                 var bandColor = color.replace(/[\d.]+\)$/, '0.12)');
                 bandPlugins.push(bandPlugin(datasets.length - 1, datasets.length, bandColor));
