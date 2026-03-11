@@ -501,17 +501,11 @@ function initFormSubmit() {
         .then(function(res) {
             if (res.success) {
                 clearDirty();
-                if (saveBtn) {
-                    var orig = saveBtn.textContent;
-                    saveBtn.textContent = '\u2713 ' + T.settings_saved;
-                    saveBtn.style.background = 'var(--success, #10b981)';
-                }
+                showToast(T.settings_saved || 'Settings saved', true);
                 var newLang = document.getElementById('language').value;
                 var newTz = document.getElementById('timezone').value;
                 if (newLang !== currentLang || newTz !== currentTz) {
                     setTimeout(function() { location.reload(); }, 800);
-                } else if (saveBtn) {
-                    setTimeout(function() { saveBtn.textContent = orig; saveBtn.style.background = ''; }, 2500);
                 }
             } else {
                 errEl.textContent = res.error || T.save_failed;
