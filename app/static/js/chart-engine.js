@@ -400,7 +400,6 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     if (isTrendChart) {
         cursor.sync = { key: 'docsight-trends', setSeries: false };
     }
-
     /* Plugins */
     var plugins = [tooltipPlugin(labels, tooltipLabelCallback)];
     if (zones) plugins.push(zonesPlugin(zones));

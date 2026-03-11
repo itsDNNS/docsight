@@ -17,6 +17,38 @@ var CMCharts = (function() {
     ];
 
     /**
+     * uPlot plugin: drag-to-zoom on X-axis, double-click to reset.
+     * Uses opts hook to enable cursor.drag before chart creation.
+     */
+    function zoomPlugin() {
+        var fullRange = null;
+        return {
+            opts: function(self, opts) {
+                opts.cursor = opts.cursor || {};
+                opts.cursor.drag = { x: true, y: false, uni: 10 };
+                opts.select = { show: true };
+                return opts;
+            },
+            hooks: {
+                ready: [function(u) {
+                    fullRange = { min: u.data[0][0], max: u.data[0][u.data[0].length - 1] };
+                    u.over.addEventListener('dblclick', function() {
+                        if (fullRange) u.setScale('x', fullRange);
+                    });
+                }],
+                setSelect: [function(u) {
+                    var min = u.posToVal(u.select.left, 'x');
+                    var max = u.posToVal(u.select.left + u.select.width, 'x');
+                    if (max - min > 1) {
+                        u.setScale('x', { min: min, max: max });
+                    }
+                    u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
+                }]
+            }
+        };
+    }
+
+    /**
      * uPlot plugin: draw red vertical lines at packet loss indices.
      * Uses 'draw' hook so lines render ON TOP of series (like PingPlotter).
      */
@@ -70,10 +102,14 @@ var CMCharts = (function() {
         var tsIndex = {};
         for (var i = 0; i < timestamps.length; i++) tsIndex[timestamps[i]] = i;
 
-        // Format time labels
+        // Format time labels - show date for ranges > 24h
+        var rangeSeconds = timestamps[timestamps.length - 1] - timestamps[0];
+        var showDate = rangeSeconds > 86400;
         var labels = timestamps.map(function(ts) {
             var d = new Date(ts * 1000);
-            return p2(d.getHours()) + ':' + p2(d.getMinutes());
+            var time = p2(d.getHours()) + ':' + p2(d.getMinutes());
+            if (showDate) return p2(d.getDate()) + '.' + p2(d.getMonth() + 1) + ' ' + time;
+            return time;
         });
 
         // Build datasets (one per target) and collect loss indices
@@ -119,7 +155,7 @@ var CMCharts = (function() {
                 if (val == null) return '';
                 return ctx.dataset.label + ': ' + val.toFixed(1) + ' ms';
             },
-            plugins: [lossMarkersPlugin(lossIndices)]
+            plugins: [lossMarkersPlugin(lossIndices), zoomPlugin()]
         });
     }
 
@@ -182,9 +218,68 @@ var CMCharts = (function() {
         return 'ok';
     }
 
+    /**
+     * Render stats cards (min/max/avg latency, packet loss) from sample data.
+     */
+    function renderStatsCards(containerId, allTargetData) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        container.textContent = '';
+
+        if (!allTargetData || allTargetData.length === 0) return;
+
+        // Aggregate across all targets
+        var latencies = [];
+        var totalSamples = 0;
+        var timeouts = 0;
+
+        allTargetData.forEach(function(td) {
+            if (!td.samples) return;
+            td.samples.forEach(function(s) {
+                totalSamples++;
+                if (s.timeout) { timeouts++; }
+                else if (s.latency_ms != null) { latencies.push(s.latency_ms); }
+            });
+        });
+
+        if (latencies.length === 0) return;
+
+        latencies.sort(function(a, b) { return a - b; });
+        var min = latencies[0];
+        var max = latencies[latencies.length - 1];
+        var avg = latencies.reduce(function(a, b) { return a + b; }, 0) / latencies.length;
+        var p95 = latencies[Math.floor(latencies.length * 0.95)];
+        var lossPct = totalSamples > 0 ? (timeouts / totalSamples * 100) : 0;
+
+        var cards = [
+            { label: 'Avg Latency', value: avg.toFixed(1) + ' ms', color: avg < 30 ? 'var(--good)' : avg < 100 ? 'var(--warn, orange)' : 'var(--crit)' },
+            { label: 'Min', value: min.toFixed(1) + ' ms', color: 'var(--text-muted)' },
+            { label: 'Max', value: max.toFixed(1) + ' ms', color: max > 100 ? 'var(--crit)' : 'var(--text-muted)' },
+            { label: 'P95', value: p95.toFixed(1) + ' ms', color: p95 > 100 ? 'var(--warn, orange)' : 'var(--text-muted)' },
+            { label: 'Packet Loss', value: lossPct.toFixed(2) + '%', color: lossPct > 2 ? 'var(--crit)' : lossPct > 0 ? 'var(--warn, orange)' : 'var(--good)' },
+            { label: 'Samples', value: totalSamples.toLocaleString(), color: 'var(--text-muted)' }
+        ];
+
+        cards.forEach(function(c) {
+            var card = document.createElement('div');
+            card.className = 'glass';
+            card.style.cssText = 'padding:12px 16px; text-align:center;';
+            var val = document.createElement('div');
+            val.style.cssText = 'font-size:1.3rem; font-weight:700; color:' + c.color + ';';
+            val.textContent = c.value;
+            var lbl = document.createElement('div');
+            lbl.style.cssText = 'font-size:0.75rem; color:var(--text-muted); margin-top:2px;';
+            lbl.textContent = c.label;
+            card.appendChild(val);
+            card.appendChild(lbl);
+            container.appendChild(card);
+        });
+    }
+
     return {
         renderCombinedChart: renderCombinedChart,
         renderAvailabilityBand: renderAvailabilityBand,
+        renderStatsCards: renderStatsCards,
         TARGET_COLORS: TARGET_COLORS
     };
 })();

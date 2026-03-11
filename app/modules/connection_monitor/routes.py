@@ -3,6 +3,7 @@
 import csv
 import io
 import logging
+from datetime import datetime
 
 from flask import Blueprint, jsonify, request, Response
 
@@ -128,16 +129,20 @@ def api_export_csv(target_id):
     end = request.args.get("end", type=float)
     samples = storage.get_samples(target_id, start=start, end=end, limit=0)
 
+    target = storage.get_target(target_id)
+    label = target["label"].replace(" ", "_") if target else str(target_id)
+
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["timestamp", "latency_ms", "timeout", "probe_method"])
+    writer.writerow(["datetime", "latency_ms", "timeout", "probe_method"])
     for s in samples:
-        writer.writerow([s["timestamp"], s["latency_ms"], s["timeout"], s["probe_method"]])
+        dt = datetime.fromtimestamp(s["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
+        writer.writerow([dt, s["latency_ms"], s["timeout"], s["probe_method"]])
 
     return Response(
         output.getvalue(),
         mimetype="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=connection_monitor_{target_id}.csv"},
+        headers={"Content-Disposition": f"attachment; filename=connection_monitor_{label}.csv"},
     )
 
 

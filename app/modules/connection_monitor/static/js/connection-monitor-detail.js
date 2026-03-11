@@ -21,7 +21,12 @@
     window.cmExportCsv = function(targetId) {
         var now = Date.now() / 1000;
         var start = now - currentRange;
-        window.location.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + now;
+        var a = document.createElement('a');
+        a.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + now;
+        a.download = '';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     function init() {
@@ -29,8 +34,32 @@
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var el = document.getElementById('cm-capability-info');
-                if (el && data.method === 'tcp') {
-                    el.textContent = data.reason || 'TCP mode';
+                if (!el) return;
+                var isTcp = data.method === 'tcp';
+                var label = isTcp
+                    ? (el.dataset.methodTcp || 'TCP')
+                    : (el.dataset.methodIcmp || 'ICMP');
+
+                // Badge
+                var badge = document.createElement('span');
+                badge.style.cssText = 'padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;' +
+                    (isTcp ? 'background:rgba(234,179,8,0.15);color:#eab308;' : 'background:rgba(34,197,94,0.15);color:#22c55e;');
+                badge.textContent = label + ' mode';
+                el.appendChild(badge);
+
+                // Glossary hint with popover (only for TCP)
+                if (isTcp && el.dataset.hintTcp) {
+                    var hint = document.createElement('span');
+                    hint.className = 'glossary-hint';
+                    var icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', 'info');
+                    var popover = document.createElement('div');
+                    popover.className = 'glossary-popover';
+                    popover.textContent = el.dataset.hintTcp;
+                    hint.appendChild(icon);
+                    hint.appendChild(popover);
+                    el.appendChild(hint);
+                    if (window.lucide) lucide.createIcons();
                 }
             })
             .catch(function() {});
@@ -91,6 +120,7 @@
                 if (!hasSamples) { showNoData(); return; }
 
                 hideNoData();
+                CMCharts.renderStatsCards('cm-stats-cards', allTargetData);
                 CMCharts.renderCombinedChart('cm-combined-chart', allTargetData);
                 CMCharts.renderAvailabilityBand('cm-availability', allTargetData);
                 renderOutages(allOutageData);
@@ -192,6 +222,7 @@
             }
 
             var tdDur = document.createElement('td');
+            tdDur.style.textAlign = 'right';
             tdDur.textContent = g.duration ? formatDuration(g.duration) : '\u2014';
 
             tr.appendChild(tdTarget);
