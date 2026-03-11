@@ -1,0 +1,218 @@
+<!-- ═══ Panel: Connection Monitor (Module) ═══ -->
+<div class="settings-panel" id="panel-mod-docsight_connection_monitor">
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="activity"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t['docsight.connection_monitor.connection_monitor'] or 'Connection Monitor' }}</div>
+                    <div class="card-subtitle">{{ t['docsight.connection_monitor.connection_monitor_desc'] or 'Always-on latency monitoring for cable troubleshooting' }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-info">
+                <span class="toggle-title">{{ t['docsight.connection_monitor.cm_enable'] or 'Enable Connection Monitor' }}</span>
+                <span class="toggle-desc">{{ t['docsight.connection_monitor.cm_enable_hint'] or 'Continuously probes configured targets and tracks latency, packet loss, and outages.' }}</span>
+            </div>
+            <input type="hidden" name="connection_monitor_enabled" value="false">
+            <label class="toggle">
+                <input type="checkbox" id="connection_monitor_enabled" name="connection_monitor_enabled" value="true" {% if config.connection_monitor_enabled %}checked{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="form-grid cols-2" style="margin-top: var(--space-md);">
+            <div class="form-field">
+                <label class="form-label" for="connection_monitor_poll_interval_ms">{{ t['docsight.connection_monitor.cm_poll_interval'] or 'Probe interval (ms)' }}</label>
+                <input class="form-input" type="number" id="connection_monitor_poll_interval_ms" name="connection_monitor_poll_interval_ms" value="{{ config.connection_monitor_poll_interval_ms or 5000 }}" min="1000" step="1000">
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_poll_interval_hint'] or 'Time between probes per target. Default: 5000ms (5s). Minimum: 1000ms.' }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="connection_monitor_probe_method">{{ t['docsight.connection_monitor.cm_probe_method'] or 'Probe method' }}</label>
+                <select class="form-input form-select" id="connection_monitor_probe_method" name="connection_monitor_probe_method">
+                    <option value="auto" {% if config.connection_monitor_probe_method == 'auto' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_auto'] or 'Auto (ICMP preferred)' }}</option>
+                    <option value="icmp" {% if config.connection_monitor_probe_method == 'icmp' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_icmp'] or 'ICMP only' }}</option>
+                    <option value="tcp" {% if config.connection_monitor_probe_method == 'tcp' %}selected{% endif %}>{{ t['docsight.connection_monitor.cm_probe_tcp'] or 'TCP only' }}</option>
+                </select>
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_probe_method_hint'] or 'Auto tries ICMP first, falls back to TCP if not available. TCP works everywhere.' }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="connection_monitor_tcp_port">{{ t['docsight.connection_monitor.cm_tcp_port'] or 'TCP port' }}</label>
+                <input class="form-input" type="number" id="connection_monitor_tcp_port" name="connection_monitor_tcp_port" value="{{ config.connection_monitor_tcp_port or 443 }}" min="1" max="65535">
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_tcp_port_hint'] or 'Port used for TCP probes. Default: 443.' }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="connection_monitor_retention_days">{{ t['docsight.connection_monitor.cm_retention'] or 'Keep samples (days)' }}</label>
+                <input class="form-input" type="number" id="connection_monitor_retention_days" name="connection_monitor_retention_days" value="{{ config.connection_monitor_retention_days if config.connection_monitor_retention_days is not none else 0 }}" min="0">
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_retention_hint'] or '0 = keep all data. Otherwise, delete samples older than this many days.' }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="connection_monitor_outage_threshold">{{ t['docsight.connection_monitor.cm_outage_threshold'] or 'Outage threshold' }}</label>
+                <input class="form-input" type="number" id="connection_monitor_outage_threshold" name="connection_monitor_outage_threshold" value="{{ config.connection_monitor_outage_threshold or 5 }}" min="1">
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_outage_threshold_hint'] or 'Consecutive timeouts before an outage event is triggered.' }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="connection_monitor_loss_warning_pct">{{ t['docsight.connection_monitor.cm_loss_warning'] or 'Loss warning (%)' }}</label>
+                <input class="form-input" type="number" id="connection_monitor_loss_warning_pct" name="connection_monitor_loss_warning_pct" value="{{ config.connection_monitor_loss_warning_pct if config.connection_monitor_loss_warning_pct is not none else 2.0 }}" min="0" step="0.1">
+                <span class="form-hint">{{ t['docsight.connection_monitor.cm_loss_warning_hint'] or 'Packet loss percentage that triggers a warning event.' }}</span>
+            </div>
+        </div>
+
+        <!-- Target Management -->
+        <div style="margin-top: var(--space-xl);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm);">
+                <div class="section-label">{{ t['docsight.connection_monitor.cm_targets'] or 'Targets' }}</div>
+                <button type="button" class="btn btn-ghost btn-sm" id="cm-add-target-btn">
+                    <i data-lucide="plus" style="width:14px;height:14px;"></i>
+                    {{ t['docsight.connection_monitor.cm_add_target'] or 'Add target' }}
+                </button>
+            </div>
+            <span class="form-hint" style="display: block; margin-bottom: var(--space-md);">{{ t['docsight.connection_monitor.cm_targets_hint'] or 'IP addresses or hostnames to monitor.' }}</span>
+            <div id="cm-targets-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var listEl = document.getElementById('cm-targets-list');
+    var addBtn = document.getElementById('cm-add-target-btn');
+
+    var i18n = {
+        label:  (window.__t && window.__t['docsight.connection_monitor.cm_target_label']) || 'Label',
+        host:   (window.__t && window.__t['docsight.connection_monitor.cm_target_host'])  || 'Host',
+        remove: (window.__t && window.__t['docsight.connection_monitor.cm_remove'])       || 'Remove'
+    };
+
+    function makeInput(id, value, placeholder) {
+        var el = document.createElement('input');
+        el.className = 'form-input';
+        el.type = 'text';
+        el.id = id;
+        el.value = value || '';
+        el.placeholder = placeholder || '';
+        return el;
+    }
+
+    function makeLabel(forId, text) {
+        var el = document.createElement('label');
+        el.className = 'form-label';
+        el.htmlFor = forId;
+        el.textContent = text;
+        return el;
+    }
+
+    function renderTarget(target) {
+        var row = document.createElement('div');
+        row.className = 'form-grid cols-2';
+        row.style.cssText = 'align-items: end; margin-bottom: var(--space-sm);';
+        row.dataset.targetId = target.id;
+
+        // Label field
+        var labelField = document.createElement('div');
+        labelField.className = 'form-field';
+        var labelInput = makeInput('cm-label-' + target.id, target.label, 'Gateway');
+        labelInput.dataset.field = 'label';
+        labelField.appendChild(makeLabel('cm-label-' + target.id, i18n.label));
+        labelField.appendChild(labelInput);
+
+        // Host field + remove button wrapper
+        var hostField = document.createElement('div');
+        hostField.className = 'form-field';
+        hostField.style.cssText = 'display: flex; gap: var(--space-sm); align-items: flex-end;';
+
+        var hostWrap = document.createElement('div');
+        hostWrap.style.flex = '1';
+        var hostInput = makeInput('cm-host-' + target.id, target.host, '8.8.8.8');
+        hostInput.dataset.field = 'host';
+        hostWrap.appendChild(makeLabel('cm-host-' + target.id, i18n.host));
+        hostWrap.appendChild(hostInput);
+
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-ghost btn-sm';
+        removeBtn.style.flexShrink = '0';
+        removeBtn.dataset.remove = target.id;
+
+        var trashIcon = document.createElement('i');
+        trashIcon.setAttribute('data-lucide', 'trash-2');
+        trashIcon.style.cssText = 'width:14px;height:14px;';
+        var removeText = document.createElement('span');
+        removeText.style.marginLeft = '4px';
+        removeText.textContent = i18n.remove;
+        removeBtn.appendChild(trashIcon);
+        removeBtn.appendChild(removeText);
+
+        hostField.appendChild(hostWrap);
+        hostField.appendChild(removeBtn);
+
+        row.appendChild(labelField);
+        row.appendChild(hostField);
+
+        // Save on blur
+        [labelInput, hostInput].forEach(function (input) {
+            input.addEventListener('blur', function () {
+                var patch = {};
+                patch[input.dataset.field] = input.value.trim();
+                if (!patch[input.dataset.field]) return;
+                fetch('/api/connection-monitor/targets/' + target.id, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(patch)
+                });
+            });
+        });
+
+        // Remove target
+        removeBtn.addEventListener('click', function () {
+            var tid = removeBtn.dataset.remove;
+            fetch('/api/connection-monitor/targets/' + tid, {method: 'DELETE'})
+                .then(function (res) {
+                    if (res.ok) row.remove();
+                });
+        });
+
+        if (window.lucide) window.lucide.createIcons({nameAttr: 'data-lucide', nodes: [row]});
+        return row;
+    }
+
+    function loadTargets() {
+        fetch('/api/connection-monitor/targets')
+            .then(function (res) { return res.json(); })
+            .then(function (targets) {
+                while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+                targets.forEach(function (target) {
+                    listEl.appendChild(renderTarget(target));
+                });
+            })
+            .catch(function () {});
+    }
+
+    addBtn.addEventListener('click', function () {
+        fetch('/api/connection-monitor/targets', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({label: 'New target', host: ''})
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.id) {
+                    var newRow = renderTarget({id: data.id, label: 'New target', host: ''});
+                    listEl.appendChild(newRow);
+                    if (window.lucide) window.lucide.createIcons({nameAttr: 'data-lucide'});
+                    var hostInput = document.getElementById('cm-host-' + data.id);
+                    if (hostInput) hostInput.focus();
+                }
+            })
+            .catch(function () {});
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadTargets);
+    } else {
+        loadTargets();
+    }
+})();
+</script>
