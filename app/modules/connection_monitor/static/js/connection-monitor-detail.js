@@ -117,19 +117,51 @@
         var tbody = document.getElementById('cm-outage-tbody');
         if (!tbody) return;
 
-        // Flatten all outages with target info, sorted by start time desc
-        var allOutages = [];
+        // Flatten all outages, then group overlapping ones across targets
+        var flat = [];
         allOutageData.forEach(function(od) {
             if (!od.outages) return;
             od.outages.forEach(function(o) {
-                allOutages.push({ target: od.target, outage: o });
+                flat.push({ target: od.target, outage: o });
             });
         });
-        allOutages.sort(function(a, b) { return (b.outage.start || 0) - (a.outage.start || 0); });
+        flat.sort(function(a, b) { return (a.outage.start || 0) - (b.outage.start || 0); });
+
+        // Merge outages that overlap in time (same root cause across targets)
+        var grouped = [];
+        flat.forEach(function(item) {
+            var o = item.outage;
+            var merged = false;
+            for (var i = grouped.length - 1; i >= 0; i--) {
+                var g = grouped[i];
+                // Overlap if starts are within 60s of each other
+                if (Math.abs((g.start || 0) - (o.start || 0)) < 60) {
+                    if (g.targets.indexOf(item.target.label) === -1) {
+                        g.targets.push(item.target.label);
+                    }
+                    // Use widest window
+                    if (o.end && g.end && o.end > g.end) g.end = o.end;
+                    if (!o.end) g.end = null;
+                    g.duration = Math.max(g.duration || 0, o.duration_seconds || 0);
+                    merged = true;
+                    break;
+                }
+            }
+            if (!merged) {
+                grouped.push({
+                    targets: [item.target.label],
+                    start: o.start,
+                    end: o.end,
+                    duration: o.duration_seconds || 0,
+                    ongoing: !o.end
+                });
+            }
+        });
+        grouped.sort(function(a, b) { return (b.start || 0) - (a.start || 0); });
 
         tbody.textContent = '';
 
-        if (allOutages.length === 0) {
+        if (grouped.length === 0) {
             var emptyRow = document.createElement('tr');
             var emptyCell = document.createElement('td');
             emptyCell.colSpan = 4;
@@ -140,28 +172,27 @@
             return;
         }
 
-        allOutages.forEach(function(item) {
-            var o = item.outage;
+        grouped.forEach(function(g) {
             var tr = document.createElement('tr');
 
             var tdTarget = document.createElement('td');
-            tdTarget.textContent = item.target.label;
+            tdTarget.textContent = g.targets.join(', ');
 
             var tdStart = document.createElement('td');
-            tdStart.textContent = new Date(o.start * 1000).toLocaleString();
+            tdStart.textContent = new Date(g.start * 1000).toLocaleString();
 
             var tdEnd = document.createElement('td');
-            if (o.end) {
-                tdEnd.textContent = new Date(o.end * 1000).toLocaleString();
-            } else {
+            if (g.ongoing) {
                 var span = document.createElement('span');
                 span.style.color = 'var(--crit)';
                 span.textContent = 'Ongoing';
                 tdEnd.appendChild(span);
+            } else if (g.end) {
+                tdEnd.textContent = new Date(g.end * 1000).toLocaleString();
             }
 
             var tdDur = document.createElement('td');
-            tdDur.textContent = o.duration_seconds ? formatDuration(o.duration_seconds) : '\u2014';
+            tdDur.textContent = g.duration ? formatDuration(g.duration) : '\u2014';
 
             tr.appendChild(tdTarget);
             tr.appendChild(tdStart);
