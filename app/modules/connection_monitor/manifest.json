@@ -1,0 +1,32 @@
+{
+  "id": "docsight.connection_monitor",
+  "name": "Connection Monitor",
+  "description": "Always-on latency monitoring with ICMP/TCP probing for cable troubleshooting",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "integration",
+  "contributes": {
+    "collector": "collector.py:ConnectionMonitorCollector",
+    "routes": "routes.py",
+    "settings": "templates/connection_monitor_settings.html",
+    "card": "templates/connection_monitor_card.html",
+    "tab": "templates/connection_monitor_detail.html",
+    "static": "static/",
+    "i18n": "i18n/"
+  },
+  "config": {
+    "connection_monitor_enabled": false,
+    "connection_monitor_poll_interval_ms": 5000,
+    "connection_monitor_probe_method": "auto",
+    "connection_monitor_tcp_port": 443,
+    "connection_monitor_retention_days": 0,
+    "connection_monitor_outage_threshold": 5,
+    "connection_monitor_loss_warning_pct": 2.0
+  },
+  "menu": {
+    "label_key": "docsight.connection_monitor.connection_monitor",
+    "icon": "activity",
+    "order": 25
+  }
+}
