@@ -16,6 +16,8 @@
         <button class="trend-tab" data-cm-range="21600" onclick="cmSetRange(this, 21600)">6h</button>
         <button class="trend-tab" data-cm-range="86400" onclick="cmSetRange(this, 86400)">24h</button>
         <button class="trend-tab" data-cm-range="604800" onclick="cmSetRange(this, 604800)">7d</button>
+        <button class="trend-tab" data-cm-range="2592000" onclick="cmSetRange(this, 2592000)">30d</button>
+        <button class="trend-tab" data-cm-range="7776000" onclick="cmSetRange(this, 7776000)">90d</button>
     </div>
 
     <!-- No data message -->
@@ -47,6 +49,12 @@
         <!-- Combined latency + loss chart (PingPlotter-style) -->
         <div class="glass" style="padding:16px; margin-bottom:16px;">
             <div id="cm-combined-chart"></div>
+            <div id="cm-resolution-indicator" style="display:none; text-align:right; font-size:0.75rem; color:var(--text-muted); margin-top:4px;"
+                 data-label-raw="{{ t.get('docsight.connection_monitor.cm_resolution_raw', 'Raw samples') }}"
+                 data-label-1min="{{ t.get('docsight.connection_monitor.cm_resolution_1min', '1-min averages') }}"
+                 data-label-5min="{{ t.get('docsight.connection_monitor.cm_resolution_5min', '5-min averages') }}"
+                 data-label-1hr="{{ t.get('docsight.connection_monitor.cm_resolution_1hr', '1-hour averages') }}"
+            ></div>
         </div>
 
         <!-- Availability band -->
