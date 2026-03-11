@@ -337,6 +337,90 @@ class ConnectionMonitorStorage:
                 )
             return created
 
+    def reaggregate_buckets(
+        self,
+        target_id: int,
+        cutoff: float,
+        source_seconds: int,
+        target_seconds: int,
+    ) -> int:
+        """Roll up smaller aggregated buckets into larger ones.
+
+        Aggregates source_seconds buckets older than cutoff into
+        target_seconds buckets, then deletes the source buckets.
+        p95 is approximated as MAX(p95) of constituent buckets.
+        Returns number of target buckets created.
+        """
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT bucket_start, avg_latency_ms, min_latency_ms,
+                          max_latency_ms, p95_latency_ms, packet_loss_pct,
+                          sample_count
+                   FROM connection_samples_aggregated
+                   WHERE target_id = ? AND bucket_seconds = ? AND bucket_start < ?
+                   ORDER BY bucket_start""",
+                (target_id, source_seconds, cutoff),
+            ).fetchall()
+
+            if not rows:
+                return 0
+
+            # Group into target-sized buckets
+            buckets: dict[float, list] = {}
+            for row in rows:
+                bucket_start = (row["bucket_start"] // target_seconds) * target_seconds
+                if bucket_start not in buckets:
+                    buckets[bucket_start] = []
+                buckets[bucket_start].append(row)
+
+            created = 0
+            for bucket_start, sources in buckets.items():
+                total_count = sum(s["sample_count"] for s in sources)
+                # Weighted average for avg_latency
+                non_null = [s for s in sources if s["avg_latency_ms"] is not None]
+                if non_null:
+                    weight_sum = sum(s["sample_count"] for s in non_null)
+                    avg_lat = sum(
+                        s["avg_latency_ms"] * s["sample_count"] for s in non_null
+                    ) / weight_sum if weight_sum > 0 else None
+                    min_lat = min(s["min_latency_ms"] for s in non_null)
+                    max_lat = max(s["max_latency_ms"] for s in non_null)
+                    p95_vals = [s["p95_latency_ms"] for s in non_null if s["p95_latency_ms"] is not None]
+                    p95_lat = max(p95_vals) if p95_vals else None
+                else:
+                    avg_lat = min_lat = max_lat = p95_lat = None
+
+                # Weighted loss
+                loss_pct = round(
+                    sum(s["packet_loss_pct"] * s["sample_count"] for s in sources)
+                    / total_count, 2
+                ) if total_count > 0 else 0.0
+
+                conn.execute(
+                    """INSERT OR REPLACE INTO connection_samples_aggregated
+                       (target_id, bucket_start, bucket_seconds,
+                        avg_latency_ms, min_latency_ms, max_latency_ms,
+                        p95_latency_ms, packet_loss_pct, sample_count)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (target_id, bucket_start, target_seconds,
+                     avg_lat, min_lat, max_lat, p95_lat, loss_pct, total_count),
+                )
+                created += 1
+
+            # Delete source buckets
+            conn.execute(
+                """DELETE FROM connection_samples_aggregated
+                   WHERE target_id = ? AND bucket_seconds = ? AND bucket_start < ?""",
+                (target_id, source_seconds, cutoff),
+            )
+
+            if created:
+                logger.info(
+                    "Connection Monitor: re-aggregated %d x %ds buckets into %d x %ds buckets for target %d",
+                    len(rows), source_seconds, created, target_seconds, target_id,
+                )
+            return created
+
     # --- Retention ---
 
     def cleanup(self, retention_days: int) -> int:

@@ -301,3 +301,61 @@ class TestAggregation:
         """Querying aggregated samples with no data returns empty list."""
         tid = storage.create_target("Test", "1.1.1.1")
         assert storage.get_aggregated_samples(tid, bucket_seconds=60) == []
+
+    def test_reaggregate_60s_to_300s(self, storage):
+        """60s buckets older than cutoff should be re-aggregated into 300s buckets."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        # Align base to a 300s boundary so all 5 x 60s buckets land in one window
+        base = (1700000000 // 300) * 300  # 1699999800.0
+        # Insert 5 x 60s buckets (covering one 300s window)
+        for i in range(5):
+            with storage._connect() as conn:
+                conn.execute(
+                    """INSERT INTO connection_samples_aggregated
+                       (target_id, bucket_start, bucket_seconds,
+                        avg_latency_ms, min_latency_ms, max_latency_ms,
+                        p95_latency_ms, packet_loss_pct, sample_count)
+                       VALUES (?, ?, 60, ?, ?, ?, ?, ?, ?)""",
+                    (tid, base + i * 60, (i + 1) * 10.0, (i + 1) * 5.0,
+                     (i + 1) * 20.0, (i + 1) * 18.0, 0.0, 12),
+                )
+
+        storage.reaggregate_buckets(tid, cutoff=base + 400,
+                                     source_seconds=60, target_seconds=300)
+
+        # 60s buckets should be deleted
+        agg_60 = storage.get_aggregated_samples(tid, bucket_seconds=60)
+        assert len(agg_60) == 0
+
+        # 300s bucket should exist
+        agg_300 = storage.get_aggregated_samples(tid, bucket_seconds=300)
+        assert len(agg_300) == 1
+        bucket = agg_300[0]
+        assert bucket["sample_count"] == 60  # 5 * 12
+        assert bucket["min_latency_ms"] == 5.0   # min of all min values
+        assert bucket["max_latency_ms"] == 100.0  # max of all max values
+        assert bucket["p95_latency_ms"] == 90.0   # max of all p95 values
+
+    def test_reaggregate_all_timeout_sources(self, storage):
+        """Re-aggregation of all-timeout buckets should produce null latencies."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        # Align base to a 300s boundary so all 3 x 60s buckets land in one window
+        base = (1700000000 // 300) * 300  # 1699999800.0
+        with storage._connect() as conn:
+            for i in range(3):
+                conn.execute(
+                    """INSERT INTO connection_samples_aggregated
+                       (target_id, bucket_start, bucket_seconds,
+                        avg_latency_ms, min_latency_ms, max_latency_ms,
+                        p95_latency_ms, packet_loss_pct, sample_count)
+                       VALUES (?, ?, 60, NULL, NULL, NULL, NULL, 100.0, 10)""",
+                    (tid, base + i * 60),
+                )
+
+        storage.reaggregate_buckets(tid, cutoff=base + 300,
+                                     source_seconds=60, target_seconds=300)
+        agg = storage.get_aggregated_samples(tid, bucket_seconds=300)
+        assert len(agg) == 1
+        assert agg[0]["avg_latency_ms"] is None
+        assert agg[0]["packet_loss_pct"] == 100.0
+        assert agg[0]["sample_count"] == 30
