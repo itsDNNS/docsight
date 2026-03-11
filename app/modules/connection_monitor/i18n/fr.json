@@ -48,5 +48,11 @@
   "cm_per_target_title": "Statistiques par cible",
   "cm_per_target_samples": "Echantillons",
   "cm_diag_external": "Probleme externe - passerelle OK mais cibles externes montrent une perte de paquets",
-  "cm_diag_internal": "Probleme interne/FAI - passerelle egalement affectee"
+  "cm_diag_internal": "Probleme interne/FAI - passerelle egalement affectee",
+  "cm_range_30d": "30j",
+  "cm_range_90d": "90j",
+  "cm_resolution_raw": "Donnees brutes",
+  "cm_resolution_1min": "Moyennes 1 min",
+  "cm_resolution_5min": "Moyennes 5 min",
+  "cm_resolution_1hr": "Moyennes 1 h"
 }

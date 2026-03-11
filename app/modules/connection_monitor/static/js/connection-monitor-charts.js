@@ -46,6 +46,47 @@ var CMCharts = (function() {
     }
 
     /**
+     * uPlot plugin: fill a band between two series (min/max range for aggregated data).
+     */
+    function bandPlugin(minSeriesIdx, maxSeriesIdx, color) {
+        return {
+            hooks: {
+                draw: [function(u) {
+                    var ctx = u.ctx;
+                    var minData = u.data[minSeriesIdx];
+                    var maxData = u.data[maxSeriesIdx];
+                    if (!minData || !maxData) return;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
+                    ctx.clip();
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    var started = false;
+                    for (var i = 0; i < maxData.length; i++) {
+                        if (maxData[i] != null && minData[i] != null) {
+                            var x = u.valToPos(u.data[0][i], 'x', true);
+                            var y = u.valToPos(maxData[i], u.series[minSeriesIdx].scale, true);
+                            if (!started) { ctx.moveTo(x, y); started = true; }
+                            else ctx.lineTo(x, y);
+                        }
+                    }
+                    for (var i = minData.length - 1; i >= 0; i--) {
+                        if (maxData[i] != null && minData[i] != null) {
+                            var x = u.valToPos(u.data[0][i], 'x', true);
+                            var y = u.valToPos(minData[i], u.series[minSeriesIdx].scale, true);
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }]
+            }
+        };
+    }
+
+    /**
      * uPlot plugin: draw red vertical lines at packet loss indices.
      * Uses 'draw' hook so lines render ON TOP of series (like PingPlotter).
      */
@@ -112,26 +153,46 @@ var CMCharts = (function() {
         // Build datasets (one per target) and collect loss indices
         var datasets = [];
         var lossSet = {};
+        var bandPlugins = [];
 
         allTargetData.forEach(function(td, tIdx) {
             var sampleMap = {};
             td.samples.forEach(function(s) {
                 sampleMap[s.timestamp] = s;
-                if (s.timeout) lossSet[tsIndex[s.timestamp]] = true;
+                if (s.packet_loss_pct > 0) lossSet[tsIndex[s.timestamp]] = true;
             });
-
             var data = new Array(timestamps.length);
+            var minData = new Array(timestamps.length);
+            var maxData = new Array(timestamps.length);
+            var hasAggregated = false;
             for (var i = 0; i < timestamps.length; i++) {
                 var s = sampleMap[timestamps[i]];
-                data[i] = (s && !s.timeout && s.latency_ms != null) ? s.latency_ms : null;
+                if (s && s.latency_ms != null) {
+                    data[i] = s.latency_ms;
+                    minData[i] = s.min_latency_ms;
+                    maxData[i] = s.max_latency_ms;
+                    if (s.min_latency_ms != null) hasAggregated = true;
+                } else {
+                    data[i] = null;
+                    minData[i] = null;
+                    maxData[i] = null;
+                }
             }
-
+            var color = TARGET_COLORS[tIdx % TARGET_COLORS.length];
             datasets.push({
                 label: td.target.label + (td.target.host ? ' (' + td.target.host + ')' : ''),
                 data: data,
-                color: TARGET_COLORS[tIdx % TARGET_COLORS.length],
-                spanGaps: false
+                color: color,
+                spanGaps: false,
+                dashed: hasAggregated ? true : undefined
             });
+            if (hasAggregated) {
+                datasets.push({ data: minData, color: 'transparent', label: '_min_' + tIdx, show: false });
+                datasets.push({ data: maxData, color: 'transparent', label: '_max_' + tIdx, show: false });
+                // uPlot series[0] is x-axis, so data indices are offset by +1
+                var bandColor = color.replace(/[\d.]+\)$/, '0.12)');
+                bandPlugins.push(bandPlugin(datasets.length - 1, datasets.length, bandColor));
+            }
         });
 
         var lossIndices = Object.keys(lossSet).map(Number).sort(function(a, b) { return a - b; });
@@ -153,7 +214,7 @@ var CMCharts = (function() {
                 if (val == null) return '';
                 return ctx.dataset.label + ': ' + val.toFixed(1) + ' ms';
             },
-            plugins: [lossMarkersPlugin(lossIndices), zoomPlugin()]
+            plugins: [lossMarkersPlugin(lossIndices), zoomPlugin()].concat(bandPlugins)
         });
     }
 
@@ -170,13 +231,13 @@ var CMCharts = (function() {
             return;
         }
 
-        // Build unified timeline with timeout counts
+        // Build unified timeline with weighted loss counts
         var timeMap = {};
         allTargetData.forEach(function(td) {
             td.samples.forEach(function(s) {
-                if (!timeMap[s.timestamp]) timeMap[s.timestamp] = { total: 0, timeout: 0 };
-                timeMap[s.timestamp].total++;
-                if (s.timeout) timeMap[s.timestamp].timeout++;
+                if (!timeMap[s.timestamp]) timeMap[s.timestamp] = { total: 0, lossWeight: 0 };
+                timeMap[s.timestamp].total += (s.sample_count || 1);
+                timeMap[s.timestamp].lossWeight += (s.packet_loss_pct || 0) * (s.sample_count || 1);
             });
         });
         var timestamps = Object.keys(timeMap).map(Number).sort(function(a, b) { return a - b; });
@@ -210,9 +271,10 @@ var CMCharts = (function() {
     }
 
     function stateOf(entry) {
-        if (!entry) return 'ok';
-        if (entry.timeout === entry.total) return 'down';
-        if (entry.timeout > 0) return 'degraded';
+        if (!entry || entry.total === 0) return 'ok';
+        var lossPct = entry.lossWeight / entry.total;
+        if (lossPct >= 100) return 'down';
+        if (lossPct > 0) return 'degraded';
         return 'ok';
     }
 
@@ -226,28 +288,38 @@ var CMCharts = (function() {
 
         if (!allTargetData || allTargetData.length === 0) return;
 
-        // Aggregate across all targets
-        var latencies = [];
-        var totalSamples = 0;
-        var timeouts = 0;
-
+        // Aggregate across all targets using weighted computation
+        var weightedLatSum = 0;
+        var weightedCount = 0;
+        var globalMin = Infinity;
+        var globalMax = -Infinity;
+        var p95Values = [];
+        var totalSampleCount = 0;
+        var weightedLossSum = 0;
         allTargetData.forEach(function(td) {
             if (!td.samples) return;
             td.samples.forEach(function(s) {
-                totalSamples++;
-                if (s.timeout) { timeouts++; }
-                else if (s.latency_ms != null) { latencies.push(s.latency_ms); }
+                var count = s.sample_count || 1;
+                totalSampleCount += count;
+                weightedLossSum += (s.packet_loss_pct || 0) * count;
+                if (s.latency_ms != null) {
+                    weightedLatSum += s.latency_ms * count;
+                    weightedCount += count;
+                    var sMin = s.min_latency_ms != null ? s.min_latency_ms : s.latency_ms;
+                    var sMax = s.max_latency_ms != null ? s.max_latency_ms : s.latency_ms;
+                    if (sMin < globalMin) globalMin = sMin;
+                    if (sMax > globalMax) globalMax = sMax;
+                    if (s.p95_latency_ms != null) p95Values.push(s.p95_latency_ms);
+                    else p95Values.push(s.latency_ms);
+                }
             });
         });
-
-        if (latencies.length === 0) return;
-
-        latencies.sort(function(a, b) { return a - b; });
-        var min = latencies[0];
-        var max = latencies[latencies.length - 1];
-        var avg = latencies.reduce(function(a, b) { return a + b; }, 0) / latencies.length;
-        var p95 = latencies[Math.floor(latencies.length * 0.95)];
-        var lossPct = totalSamples > 0 ? (timeouts / totalSamples * 100) : 0;
+        if (weightedCount === 0) return;
+        var avg = weightedLatSum / weightedCount;
+        var min = globalMin;
+        var max = globalMax;
+        var p95 = Math.max.apply(null, p95Values);
+        var lossPct = totalSampleCount > 0 ? (weightedLossSum / totalSampleCount) : 0;
 
         var cards = [
             { label: 'Avg Latency', value: avg.toFixed(1) + ' ms', color: avg < 30 ? 'var(--good)' : avg < 100 ? 'var(--warn, orange)' : 'var(--crit)' },
@@ -255,7 +327,7 @@ var CMCharts = (function() {
             { label: 'Max', value: max.toFixed(1) + ' ms', color: max > 100 ? 'var(--crit)' : 'var(--text-muted)' },
             { label: 'P95', value: p95.toFixed(1) + ' ms', color: p95 > 100 ? 'var(--warn, orange)' : 'var(--text-muted)' },
             { label: 'Packet Loss', value: lossPct.toFixed(2) + '%', color: lossPct > 2 ? 'var(--crit)' : lossPct > 0 ? 'var(--warn, orange)' : 'var(--good)' },
-            { label: 'Samples', value: totalSamples.toLocaleString(), color: 'var(--text-muted)' }
+            { label: 'Samples', value: totalSampleCount.toLocaleString(), color: 'var(--text-muted)' }
         ];
 
         cards.forEach(function(c) {
@@ -303,30 +375,40 @@ var CMCharts = (function() {
         var lDiagExt = container.dataset.diagExternal || 'External issue - gateway OK but external targets show packet loss';
         var lDiagInt = container.dataset.diagInternal || 'Internal/ISP issue - gateway also affected';
 
-        // Calculate per-target stats
+        // Calculate per-target stats using weighted computation
         var stats = allTargetData.map(function(td, tIdx) {
-            var latencies = [];
-            var totalSamples = 0;
-            var timeouts = 0;
+            var wLatSum = 0, wCount = 0, tMin = Infinity, tMax = -Infinity;
+            var tP95Vals = [], tTotalCount = 0, tLossWeight = 0;
 
             if (td.samples) {
                 td.samples.forEach(function(s) {
-                    totalSamples++;
-                    if (s.timeout) timeouts++;
-                    else if (s.latency_ms != null) latencies.push(s.latency_ms);
+                    var count = s.sample_count || 1;
+                    tTotalCount += count;
+                    tLossWeight += (s.packet_loss_pct || 0) * count;
+                    if (s.latency_ms != null) {
+                        wLatSum += s.latency_ms * count;
+                        wCount += count;
+                        var sMin = s.min_latency_ms != null ? s.min_latency_ms : s.latency_ms;
+                        var sMax = s.max_latency_ms != null ? s.max_latency_ms : s.latency_ms;
+                        if (sMin < tMin) tMin = sMin;
+                        if (sMax > tMax) tMax = sMax;
+                        tP95Vals.push(s.p95_latency_ms != null ? s.p95_latency_ms : s.latency_ms);
+                    }
                 });
             }
 
-            latencies.sort(function(a, b) { return a - b; });
+            var avg = wCount > 0 ? wLatSum / wCount : null;
+            var p95 = tP95Vals.length > 0 ? Math.max.apply(null, tP95Vals) : null;
+            var lossPct = tTotalCount > 0 ? (tLossWeight / tTotalCount) : 0;
 
             return {
                 label: td.target.label,
                 host: td.target.host,
                 color: TARGET_COLORS[tIdx % TARGET_COLORS.length],
-                avg: latencies.length > 0 ? (latencies.reduce(function(a, b) { return a + b; }, 0) / latencies.length) : null,
-                p95: latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.95)] : null,
-                loss: totalSamples > 0 ? (timeouts / totalSamples * 100) : 0,
-                samples: totalSamples,
+                avg: avg,
+                p95: p95,
+                loss: lossPct,
+                samples: tTotalCount,
                 isLocal: isPrivateIP(td.target.host)
             };
         });

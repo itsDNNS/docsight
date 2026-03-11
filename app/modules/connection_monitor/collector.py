@@ -80,8 +80,9 @@ class ConnectionMonitorCollector(Collector):
             # Check events
             self._check_events(samples)
 
-            # Periodic retention cleanup
+            # Periodic aggregation + retention cleanup
             if now - self._last_cleanup >= _CLEANUP_INTERVAL_S:
+                self._cm_storage.aggregate()
                 retention = int(
                     self._config_mgr.get("connection_monitor_retention_days", 0)
                 )

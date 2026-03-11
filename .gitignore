@@ -12,6 +12,7 @@ config.json
 
 # Plans and design docs (local only)
 docs/plans/
+docs/superpowers/
 
 # Internal development docs (belong in workspace, not repo)
 PHASE-*.md

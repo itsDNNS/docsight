@@ -3,6 +3,7 @@
 import csv
 import io
 import logging
+import time
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request, Response
@@ -100,6 +101,14 @@ def api_delete_target(target_id):
 
 # --- Samples ---
 
+# Resolution mapping: name -> bucket_seconds
+_RESOLUTION_MAP = {
+    "raw": None,
+    "1min": 60,
+    "5min": 300,
+    "1hr": 3600,
+}
+
 @bp.route("/api/connection-monitor/samples/<int:target_id>")
 @require_auth
 def api_get_samples(target_id):
@@ -107,8 +116,73 @@ def api_get_samples(target_id):
     start = request.args.get("start", type=float)
     end = request.args.get("end", type=float)
     limit = request.args.get("limit", 10000, type=int)
-    samples = storage.get_samples(target_id, start=start, end=end, limit=limit)
-    return jsonify(samples)
+    resolution = request.args.get("resolution", "auto")
+
+    # Determine resolution
+    if resolution == "auto":
+        time_range = (end - start) if start is not None and end is not None else 0
+        if time_range <= 86400:
+            res_name, bucket_seconds, blended = "raw", None, False
+        elif time_range <= 7 * 86400:
+            res_name, bucket_seconds, blended = "raw", None, True
+        elif time_range <= 30 * 86400:
+            res_name, bucket_seconds, blended = "1min", 60, True
+        elif time_range <= 90 * 86400:
+            res_name, bucket_seconds, blended = "5min", 300, False
+        else:
+            res_name, bucket_seconds, blended = "1hr", 3600, False
+    else:
+        bucket_seconds = _RESOLUTION_MAP.get(resolution)
+        res_name = resolution
+        blended = False
+
+    # Fetch data
+    samples = []
+
+    if bucket_seconds is None or blended:
+        raw_start = start
+        if blended and bucket_seconds is not None:
+            raw_start = max(start, time.time() - 7 * 86400) if start else time.time() - 7 * 86400
+        raw = storage.get_samples(target_id, start=raw_start, end=end, limit=limit)
+        for s in raw:
+            samples.append({
+                "timestamp": s["timestamp"],
+                "latency_ms": s["latency_ms"],
+                "min_latency_ms": None,
+                "max_latency_ms": None,
+                "p95_latency_ms": None,
+                "packet_loss_pct": 100.0 if s["timeout"] else 0.0,
+                "sample_count": 1,
+            })
+
+    if bucket_seconds is not None:
+        agg_end = end
+        if blended:
+            agg_end = time.time() - 7 * 86400
+        agg = storage.get_aggregated_samples(
+            target_id, bucket_seconds=bucket_seconds, start=start, end=agg_end,
+        )
+        for a in agg:
+            samples.append({
+                "timestamp": a["bucket_start"],
+                "latency_ms": a["avg_latency_ms"],
+                "min_latency_ms": a["min_latency_ms"],
+                "max_latency_ms": a["max_latency_ms"],
+                "p95_latency_ms": a["p95_latency_ms"],
+                "packet_loss_pct": a["packet_loss_pct"],
+                "sample_count": a["sample_count"],
+            })
+
+    samples.sort(key=lambda s: s["timestamp"])
+
+    return jsonify({
+        "meta": {
+            "resolution": res_name,
+            "bucket_seconds": bucket_seconds,
+            "blended": blended,
+        },
+        "samples": samples,
+    })
 
 
 # --- Summary ---
@@ -153,17 +227,35 @@ def api_export_csv(target_id):
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
     end = request.args.get("end", type=float)
-    samples = storage.get_samples(target_id, start=start, end=end, limit=0)
+    resolution = request.args.get("resolution", "raw")
 
     target = storage.get_target(target_id)
     label = target["label"].replace(" ", "_") if target else str(target_id)
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["datetime", "latency_ms", "timeout", "probe_method"])
-    for s in samples:
-        dt = datetime.fromtimestamp(s["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-        writer.writerow([dt, s["latency_ms"], s["timeout"], s["probe_method"]])
+
+    bucket_seconds = _RESOLUTION_MAP.get(resolution)
+
+    if bucket_seconds is not None:
+        # Aggregated export
+        writer.writerow(["datetime", "avg_latency_ms", "min_latency_ms",
+                         "max_latency_ms", "p95_latency_ms", "packet_loss_pct", "sample_count"])
+        agg = storage.get_aggregated_samples(
+            target_id, bucket_seconds=bucket_seconds, start=start, end=end,
+        )
+        for a in agg:
+            dt = datetime.fromtimestamp(a["bucket_start"]).strftime("%Y-%m-%d %H:%M:%S")
+            writer.writerow([dt, a["avg_latency_ms"], a["min_latency_ms"],
+                             a["max_latency_ms"], a["p95_latency_ms"],
+                             a["packet_loss_pct"], a["sample_count"]])
+    else:
+        # Raw export (backward compatible)
+        writer.writerow(["datetime", "latency_ms", "timeout", "probe_method"])
+        samples = storage.get_samples(target_id, start=start, end=end, limit=0)
+        for s in samples:
+            dt = datetime.fromtimestamp(s["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
+            writer.writerow([dt, s["latency_ms"], s["timeout"], s["probe_method"]])
 
     return Response(
         output.getvalue(),
