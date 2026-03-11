@@ -13,6 +13,15 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint("connection_monitor_module", __name__)
 
+
+@bp.after_request
+def _no_cache_api(response):
+    """Prevent browser from caching API responses."""
+    if request.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 # Lazy-initialized storage
 _storage = None
 
