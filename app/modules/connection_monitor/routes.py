@@ -47,11 +47,11 @@ def api_get_targets():
 def api_create_target():
     storage = _get_cm_storage()
     data = request.get_json()
-    if not data or not data.get("label") or not data.get("host"):
-        return jsonify({"error": "label and host required"}), 400
+    if not data or not data.get("label"):
+        return jsonify({"error": "label required"}), 400
     tid = storage.create_target(
         label=data["label"],
-        host=data["host"],
+        host=data.get("host", ""),
         poll_interval_ms=data.get("poll_interval_ms", 5000),
         probe_method=data.get("probe_method", "auto"),
         tcp_port=data.get("tcp_port", 443),

@@ -65,6 +65,17 @@ class TestTargetsAPI:
         data = resp.get_json()
         assert data["id"] == 1
 
+    def test_create_target_without_host(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/targets",
+            json={"label": "New target"},
+        )
+        assert resp.status_code == 201
+        data = resp.get_json()
+        assert data["id"] == 1
+
     def test_update_target(self, client):
         c, storage = client
         storage.create_target("Test", "1.1.1.1")
