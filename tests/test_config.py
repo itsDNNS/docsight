@@ -33,6 +33,9 @@ class TestConfigDefaults:
     def test_mqtt_not_configured_initially(self, config):
         assert config.is_mqtt_configured() is False
 
+    def test_smokeping_module_disabled_by_default(self, config):
+        assert config.get("disabled_modules") == "docsight.smokeping"
+
 
 class TestConfigSaveLoad:
     def test_save_and_load(self, tmp_data_dir):
@@ -210,6 +213,17 @@ class TestConfigState:
     def test_segment_utilization_enabled_can_be_disabled(self, config):
         config.save({"segment_utilization_enabled": False})
         assert config.is_segment_utilization_enabled() is False
+
+    def test_existing_smokeping_config_keeps_module_enabled(self, config):
+        config.save({
+            "smokeping_url": "https://smokeping.example.com/smokeping",
+            "smokeping_targets": "InternetSites.Google",
+        })
+        assert config.get("disabled_modules") == ""
+
+    def test_explicit_disabled_modules_override_is_preserved(self, config):
+        config.save({"disabled_modules": "docsight.smokeping,test.integration"})
+        assert config.get("disabled_modules") == "docsight.smokeping,test.integration"
 
 
 class TestConfigUrlValidation:
