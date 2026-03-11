@@ -41,6 +41,7 @@
   "cm_outage_start": "Inicio",
   "cm_outage_end": "Fin",
   "cm_outage_duration": "Duracion",
+  "cm_outage_target": "Objetivo",
   "cm_outage_ongoing": "En curso",
   "cm_export_csv": "Exportar CSV",
   "cm_no_data": "Sin datos aun. Active el monitor de conexion en la configuracion."

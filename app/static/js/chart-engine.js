@@ -404,6 +404,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     /* Plugins */
     var plugins = [tooltipPlugin(labels, tooltipLabelCallback)];
     if (zones) plugins.push(zonesPlugin(zones));
+    if (opts && opts.plugins) { opts.plugins.forEach(function(p) { plugins.push(p); }); }
 
     /* Build options */
     var width = container.offsetWidth || 400;

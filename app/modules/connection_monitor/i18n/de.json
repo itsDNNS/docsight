@@ -41,6 +41,7 @@
   "cm_outage_start": "Beginn",
   "cm_outage_end": "Ende",
   "cm_outage_duration": "Dauer",
+  "cm_outage_target": "Ziel",
   "cm_outage_ongoing": "Andauernd",
   "cm_export_csv": "CSV exportieren",
   "cm_no_data": "Noch keine Daten. Aktiviere den Verbindungsmonitor in den Einstellungen."

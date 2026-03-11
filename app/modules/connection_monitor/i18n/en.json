@@ -41,6 +41,7 @@
   "cm_outage_start": "Start",
   "cm_outage_end": "End",
   "cm_outage_duration": "Duration",
+  "cm_outage_target": "Target",
   "cm_outage_ongoing": "Ongoing",
   "cm_export_csv": "Export CSV",
   "cm_no_data": "No data yet. Enable the Connection Monitor in settings to start collecting."
