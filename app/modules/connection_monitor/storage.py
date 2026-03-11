@@ -53,6 +53,27 @@ class ConnectionMonitorStorage:
                 CREATE INDEX IF NOT EXISTS idx_samples_target_ts
                 ON connection_samples (target_id, timestamp)
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS connection_samples_aggregated (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    target_id INTEGER NOT NULL,
+                    bucket_start REAL NOT NULL,
+                    bucket_seconds INTEGER NOT NULL,
+                    avg_latency_ms REAL,
+                    min_latency_ms REAL,
+                    max_latency_ms REAL,
+                    p95_latency_ms REAL,
+                    packet_loss_pct REAL NOT NULL,
+                    sample_count INTEGER NOT NULL,
+                    FOREIGN KEY (target_id) REFERENCES connection_targets(id)
+                        ON DELETE CASCADE,
+                    UNIQUE(target_id, bucket_start, bucket_seconds)
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_agg_target_bucket
+                ON connection_samples_aggregated (target_id, bucket_seconds, bucket_start)
+            """)
 
     # --- Target CRUD ---
 

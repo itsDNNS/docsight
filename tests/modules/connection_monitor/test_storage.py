@@ -180,3 +180,13 @@ class TestOutages:
         storage.save_samples(samples)
         outages = storage.get_outages(tid, threshold=5)
         assert len(outages) == 0
+
+
+class TestAggregation:
+    def test_aggregated_table_exists(self, storage):
+        """The aggregated table should be created on init."""
+        with storage._connect() as conn:
+            row = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='connection_samples_aggregated'"
+            ).fetchone()
+            assert row is not None
