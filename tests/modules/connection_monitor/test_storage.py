@@ -190,3 +190,114 @@ class TestAggregation:
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='connection_samples_aggregated'"
             ).fetchone()
             assert row is not None
+
+    def test_aggregate_raw_to_60s(self, storage):
+        """Raw samples older than cutoff should be aggregated into 60s buckets."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        base = 1700000000.0
+        samples = [
+            {"target_id": tid, "timestamp": base + 5, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": base + 10, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": base + 15, "latency_ms": 30.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": base + 20, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
+        ]
+        storage.save_samples(samples)
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, bucket_seconds=60)
+        raw = storage.get_samples(tid)
+        assert len(raw) == 0
+        agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
+        assert len(agg) == 1
+        bucket = agg[0]
+        assert bucket["sample_count"] == 4
+        assert abs(bucket["avg_latency_ms"] - 20.0) < 0.01
+        assert bucket["min_latency_ms"] == 10.0
+        assert bucket["max_latency_ms"] == 30.0
+        assert abs(bucket["packet_loss_pct"] - 25.0) < 0.01
+        assert bucket["p95_latency_ms"] is not None
+
+    def test_aggregate_all_timeout_bucket(self, storage):
+        """A bucket with only timeouts should have null latencies and 100% loss."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        base = 1700000000.0
+        samples = [
+            {"target_id": tid, "timestamp": base + 5, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": base + 10, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
+        ]
+        storage.save_samples(samples)
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, bucket_seconds=60)
+        agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
+        assert len(agg) == 1
+        bucket = agg[0]
+        assert bucket["avg_latency_ms"] is None
+        assert bucket["min_latency_ms"] is None
+        assert bucket["max_latency_ms"] is None
+        assert bucket["p95_latency_ms"] is None
+        assert bucket["packet_loss_pct"] == 100.0
+        assert bucket["sample_count"] == 2
+
+    def test_aggregate_creates_multiple_buckets(self, storage):
+        """Samples spanning multiple 60s windows should create separate buckets."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        base = 1700000000.0
+        samples = [
+            {"target_id": tid, "timestamp": base + 5, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": base + 65, "latency_ms": 50.0, "timeout": False, "probe_method": "tcp"},
+        ]
+        storage.save_samples(samples)
+        created = storage.aggregate_raw_to_buckets(tid, cutoff=base + 200, bucket_seconds=60)
+        assert created == 2
+        agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
+        assert len(agg) == 2
+        assert agg[0]["avg_latency_ms"] == 10.0
+        assert agg[1]["avg_latency_ms"] == 50.0
+
+    def test_aggregate_preserves_recent_samples(self, storage):
+        """Samples newer than cutoff should not be aggregated."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        base = 1700000000.0
+        samples = [
+            {"target_id": tid, "timestamp": base + 5, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": base + 100, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
+        ]
+        storage.save_samples(samples)
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 50, bucket_seconds=60)
+        raw = storage.get_samples(tid)
+        assert len(raw) == 1
+        assert raw[0]["latency_ms"] == 20.0
+        agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
+        assert len(agg) == 1
+
+    def test_aggregate_single_sample_bucket(self, storage):
+        """A bucket with exactly one sample should produce correct aggregates."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        base = 1700000000.0
+        storage.save_samples([
+            {"target_id": tid, "timestamp": base + 5, "latency_ms": 42.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, bucket_seconds=60)
+        agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
+        assert len(agg) == 1
+        bucket = agg[0]
+        assert bucket["sample_count"] == 1
+        assert bucket["avg_latency_ms"] == 42.0
+        assert bucket["min_latency_ms"] == 42.0
+        assert bucket["max_latency_ms"] == 42.0
+        assert bucket["p95_latency_ms"] == 42.0
+        assert bucket["packet_loss_pct"] == 0.0
+
+    def test_aggregate_empty_range_is_noop(self, storage):
+        """Aggregation with no old-enough samples should be a no-op."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        base = 1700000000.0
+        storage.save_samples([
+            {"target_id": tid, "timestamp": base + 5, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        created = storage.aggregate_raw_to_buckets(tid, cutoff=base, bucket_seconds=60)
+        assert created == 0
+        assert len(storage.get_samples(tid)) == 1
+        assert len(storage.get_aggregated_samples(tid, bucket_seconds=60)) == 0
+
+    def test_get_aggregated_samples_empty(self, storage):
+        """Querying aggregated samples with no data returns empty list."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        assert storage.get_aggregated_samples(tid, bucket_seconds=60) == []

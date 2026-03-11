@@ -239,6 +239,104 @@ class ConnectionMonitorStorage:
             })
         return outages
 
+    # --- Aggregation ---
+
+    def get_aggregated_samples(
+        self,
+        target_id: int,
+        bucket_seconds: int,
+        start: float | None = None,
+        end: float | None = None,
+    ) -> list[dict]:
+        """Get aggregated samples for a target at a specific resolution."""
+        clauses = ["target_id = ?", "bucket_seconds = ?"]
+        params: list = [target_id, bucket_seconds]
+        if start is not None:
+            clauses.append("bucket_start >= ?")
+            params.append(start)
+        if end is not None:
+            clauses.append("bucket_start <= ?")
+            params.append(end)
+        where = " AND ".join(clauses)
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"SELECT * FROM connection_samples_aggregated WHERE {where} ORDER BY bucket_start",
+                params,
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def aggregate_raw_to_buckets(
+        self, target_id: int, cutoff: float, bucket_seconds: int = 60
+    ) -> int:
+        """Aggregate raw samples older than cutoff into fixed-size buckets.
+
+        Computes avg/min/max/p95 latency, packet loss %, and sample count
+        per bucket. Deletes aggregated raw samples. Returns number of
+        buckets created.
+        """
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT timestamp, latency_ms, timeout
+                   FROM connection_samples
+                   WHERE target_id = ? AND timestamp < ?
+                   ORDER BY timestamp""",
+                (target_id, cutoff),
+            ).fetchall()
+
+            if not rows:
+                return 0
+
+            buckets: dict[float, list] = {}
+            for row in rows:
+                bucket_start = (row["timestamp"] // bucket_seconds) * bucket_seconds
+                if bucket_start not in buckets:
+                    buckets[bucket_start] = []
+                buckets[bucket_start].append(row)
+
+            created = 0
+            for bucket_start, samples in buckets.items():
+                latencies = [
+                    s["latency_ms"] for s in samples
+                    if not s["timeout"] and s["latency_ms"] is not None
+                ]
+                total = len(samples)
+                timeouts = sum(1 for s in samples if s["timeout"])
+
+                avg_lat = sum(latencies) / len(latencies) if latencies else None
+                min_lat = min(latencies) if latencies else None
+                max_lat = max(latencies) if latencies else None
+                loss_pct = round(timeouts / total * 100, 2) if total > 0 else 0.0
+
+                # p95 via nearest-rank
+                p95_lat = None
+                if latencies:
+                    sorted_lat = sorted(latencies)
+                    idx = min(int(len(sorted_lat) * 0.95), len(sorted_lat) - 1)
+                    p95_lat = sorted_lat[idx]
+
+                conn.execute(
+                    """INSERT OR REPLACE INTO connection_samples_aggregated
+                       (target_id, bucket_start, bucket_seconds,
+                        avg_latency_ms, min_latency_ms, max_latency_ms,
+                        p95_latency_ms, packet_loss_pct, sample_count)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (target_id, bucket_start, bucket_seconds,
+                     avg_lat, min_lat, max_lat, p95_lat, loss_pct, total),
+                )
+                created += 1
+
+            conn.execute(
+                "DELETE FROM connection_samples WHERE target_id = ? AND timestamp < ?",
+                (target_id, cutoff),
+            )
+
+            if created:
+                logger.info(
+                    "Connection Monitor: aggregated %d raw samples into %d buckets (%ds) for target %d",
+                    len(rows), created, bucket_seconds, target_id,
+                )
+            return created
+
     # --- Retention ---
 
     def cleanup(self, retention_days: int) -> int:
