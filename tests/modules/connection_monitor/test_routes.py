@@ -65,16 +65,45 @@ class TestTargetsAPI:
         data = resp.get_json()
         assert data["id"] == 1
 
-    def test_create_target_without_host(self, client):
-        c, _ = client
+    def test_create_target_without_host_is_disabled(self, client):
+        c, storage = client
         _auth_session(c)
         resp = c.post(
             "/api/connection-monitor/targets",
             json={"label": "New target"},
         )
         assert resp.status_code == 201
-        data = resp.get_json()
-        assert data["id"] == 1
+        target = storage.get_target(resp.get_json()["id"])
+        assert not target["enabled"]
+
+    def test_create_target_with_host_is_enabled(self, client):
+        c, storage = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/targets",
+            json={"label": "Test", "host": "1.1.1.1"},
+        )
+        assert resp.status_code == 201
+        target = storage.get_target(resp.get_json()["id"])
+        assert target["enabled"]
+
+    def test_update_host_auto_enables_target(self, client):
+        c, storage = client
+        _auth_session(c)
+        # Create disabled target (no host)
+        resp = c.post(
+            "/api/connection-monitor/targets",
+            json={"label": "New target"},
+        )
+        tid = resp.get_json()["id"]
+        assert not storage.get_target(tid)["enabled"]
+        # Update with host - should auto-enable
+        resp = c.put(
+            f"/api/connection-monitor/targets/{tid}",
+            json={"host": "8.8.8.8"},
+        )
+        assert resp.status_code == 200
+        assert storage.get_target(tid)["enabled"]
 
     def test_update_target(self, client):
         c, storage = client
@@ -171,3 +200,52 @@ class TestCapabilityAPI:
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["method"] == "tcp"
+
+
+class TestAuthProtection:
+    """Verify all endpoints return 401 when auth is enabled but not provided."""
+
+    @pytest.fixture
+    def auth_client(self, app):
+        """Client with auth enforcement enabled via a mock config manager."""
+        flask_app, storage = app
+        mock_cfg = MagicMock()
+        mock_cfg.get.side_effect = lambda key, default=None: {
+            "admin_password": "hashed_pw",
+        }.get(key, default)
+        with patch("app.web._config_manager", mock_cfg):
+            yield flask_app.test_client(), storage
+
+    def test_targets_get_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.get("/api/connection-monitor/targets").status_code == 401
+
+    def test_targets_post_requires_auth(self, auth_client):
+        c, _ = auth_client
+        resp = c.post("/api/connection-monitor/targets", json={"label": "X", "host": "1.1.1.1"})
+        assert resp.status_code == 401
+
+    def test_samples_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.get("/api/connection-monitor/samples/1").status_code == 401
+
+    def test_summary_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.get("/api/connection-monitor/summary").status_code == 401
+
+    def test_outages_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.get("/api/connection-monitor/outages/1").status_code == 401
+
+    def test_export_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.get("/api/connection-monitor/export/1").status_code == 401
+
+    def test_capability_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.get("/api/connection-monitor/capability").status_code == 401
+
+    def test_authenticated_request_passes(self, auth_client):
+        c, _ = auth_client
+        _auth_session(c)
+        assert c.get("/api/connection-monitor/targets").status_code == 200

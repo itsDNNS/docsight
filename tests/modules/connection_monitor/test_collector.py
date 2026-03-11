@@ -9,6 +9,12 @@ from app.modules.connection_monitor.probe import ProbeResult
 from app.collectors.base import CollectorResult
 
 
+@pytest.fixture(autouse=True)
+def _set_data_dir(tmp_path, monkeypatch):
+    """Point DATA_DIR to a temp directory so storage init doesn't hit /data."""
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+
+
 @pytest.fixture
 def mock_deps(tmp_path):
     config_mgr = MagicMock()
