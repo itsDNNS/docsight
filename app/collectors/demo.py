@@ -206,6 +206,7 @@ class DemoCollector(Collector):
         self._seed_incident_containers(now)
         self._seed_bnetz_measurements(now)
         self._seed_weather_data(now)
+        self._seed_connection_monitor_data(now)
 
     def _seed_history(self, now):
         """Generate 9 months of historical snapshots (every 15 min)."""
@@ -887,6 +888,107 @@ class DemoCollector(Collector):
                 [(r["timestamp"], r["temperature"]) for r in records],
             )
         log.info("Demo: seeded %d weather records (%d days)", len(records), days)
+
+    def _seed_connection_monitor_data(self, now):
+        """Seed 7 days of Connection Monitor data showing a typical cable troubleshooting scenario.
+
+        Story: User notices evening lag and dropped video calls. Enables Connection Monitor.
+        Gateway is always fine (proves home network OK), but external targets show:
+        - Evening congestion (19-23h): latency spikes, occasional packet loss
+        - Two short outages (~1-3 min) on different days
+        - One longer outage (~8 min) that prompted the investigation
+        """
+        try:
+            from app.modules.connection_monitor.storage import ConnectionMonitorStorage
+        except ImportError:
+            log.debug("Demo: connection_monitor module not available, skipping")
+            return
+
+        data_dir = os.path.dirname(self._storage.db_path)
+        cm_db = os.path.join(data_dir, "connection_monitor.db")
+        cm = ConnectionMonitorStorage(cm_db)
+
+        # Purge existing demo targets/samples
+        with cm._connect() as conn:
+            conn.execute("DELETE FROM connection_samples")
+            conn.execute("DELETE FROM connection_targets")
+
+        # Create targets
+        gw_id = cm.create_target("Gateway", "192.168.178.1")
+        cf_id = cm.create_target("Cloudflare DNS", "1.1.1.1")
+        gg_id = cm.create_target("Google DNS", "8.8.8.8")
+
+        rng = random.Random(2026)
+        days = 7
+        interval_s = 10  # 10s between samples
+        samples_per_day = 86400 // interval_s  # 8640
+
+        # Outage windows (day_offset, hour_start, duration_minutes)
+        outages = [
+            (2, 20.5, 2),    # Day 3: short 2-min outage during evening
+            (4, 21.0, 3),    # Day 5: 3-min outage
+            (5, 19.75, 8),   # Day 6: the big one - 8 min outage that triggered investigation
+        ]
+
+        rows = []
+        for d in range(days):
+            day_start = now - timedelta(days=days - d)
+            for s in range(samples_per_day):
+                ts = day_start.timestamp() + s * interval_s
+                hour = (s * interval_s / 3600) % 24
+
+                # Check if we're in an outage window (external targets only)
+                in_outage = False
+                for o_day, o_hour, o_dur in outages:
+                    if d == o_day and o_hour <= hour < o_hour + o_dur / 60:
+                        in_outage = True
+                        break
+
+                # Evening congestion window
+                evening = 19 <= hour < 23
+                late_evening = 20 <= hour < 22  # worst window
+
+                # --- Gateway: always fast, 1-3ms ---
+                gw_lat = round(rng.uniform(0.8, 3.0), 2)
+                rows.append((gw_id, ts, gw_lat, False, "tcp"))
+
+                # --- External targets ---
+                for tid in (cf_id, gg_id):
+                    base = 11.0 if tid == cf_id else 14.0
+
+                    if in_outage:
+                        # Full timeout
+                        rows.append((tid, ts, None, True, "tcp"))
+                    elif late_evening:
+                        # Heavy congestion: spikes + occasional loss
+                        if rng.random() < 0.04:
+                            rows.append((tid, ts, None, True, "tcp"))
+                        else:
+                            spike = rng.uniform(30, 250) if rng.random() < 0.3 else rng.uniform(0, 20)
+                            lat = round(base + spike, 2)
+                            rows.append((tid, ts, lat, False, "tcp"))
+                    elif evening:
+                        # Moderate congestion: elevated latency, rare loss
+                        if rng.random() < 0.008:
+                            rows.append((tid, ts, None, True, "tcp"))
+                        else:
+                            spike = rng.uniform(5, 60) if rng.random() < 0.15 else rng.uniform(0, 8)
+                            lat = round(base + spike, 2)
+                            rows.append((tid, ts, lat, False, "tcp"))
+                    else:
+                        # Normal: stable low latency
+                        lat = round(base + rng.uniform(-2, 3), 2)
+                        rows.append((tid, ts, lat, False, "tcp"))
+
+        # Bulk insert
+        with cm._connect() as conn:
+            conn.executemany(
+                "INSERT INTO connection_samples (target_id, timestamp, latency_ms, timeout, probe_method) "
+                "VALUES (?, ?, ?, ?, ?)",
+                rows,
+            )
+
+        log.info("Demo: seeded %d connection monitor samples (%d days, 3 targets)", len(rows), days)
 
     @staticmethod
     def _generate_bqm_png(width=800, height=200, seed=0):
