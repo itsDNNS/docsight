@@ -4,12 +4,16 @@ import logging
 import os
 import socket
 import struct
+import subprocess
 import time
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 PROBE_TIMEOUT_S = 2.0
+ICMP_HELPER_PATH = os.environ.get(
+    "DOCSIGHT_ICMP_HELPER", "/usr/local/bin/docsight-icmp-helper"
+)
 
 
 @dataclass
@@ -26,6 +30,10 @@ class ProbeEngine:
 
     def __init__(self, method: str = "auto"):
         self._fallback_reason: str | None = None
+        self._helper_path = ICMP_HELPER_PATH
+        self._helper_available = (
+            os.path.isfile(self._helper_path) and os.access(self._helper_path, os.X_OK)
+        )
         if method == "auto":
             self.detected_method = self._detect_method()
         elif method in ("icmp", "tcp"):
@@ -36,6 +44,10 @@ class ProbeEngine:
 
     def _detect_method(self) -> str:
         """Try ICMP raw socket; fall back to TCP if not permitted."""
+        helper_reason = self._helper_check()
+        if helper_reason is None:
+            logger.info("ICMP helper available - using ICMP probing")
+            return "icmp"
         try:
             with socket.socket(
                 socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP
@@ -44,10 +56,10 @@ class ProbeEngine:
             logger.info("ICMP raw socket available - using ICMP probing")
             return "icmp"
         except (PermissionError, OSError) as exc:
-            self._fallback_reason = str(exc)
+            self._fallback_reason = helper_reason or str(exc)
             logger.warning(
                 "ICMP raw socket not available (%s) - falling back to TCP",
-                exc,
+                self._fallback_reason,
             )
             return "tcp"
 
@@ -88,6 +100,10 @@ class ProbeEngine:
 
     def _icmp_probe(self, host: str) -> ProbeResult:
         """Send ICMP echo request and measure round-trip time."""
+        helper_result = self._icmp_probe_with_helper(host)
+        if helper_result is not None:
+            return helper_result
+
         try:
             dest = socket.gethostbyname(host)
         except socket.gaierror:
@@ -132,6 +148,61 @@ class ProbeEngine:
             return ProbeResult(latency_ms=None, timeout=True, method="icmp")
         finally:
             sock.close()
+
+    def _helper_check(self) -> str | None | bool:
+        """Return None when helper is usable, otherwise reason/False."""
+        if not self._helper_available:
+            return False
+        try:
+            proc = subprocess.run(
+                [self._helper_path, "--check"],
+                capture_output=True,
+                text=True,
+                timeout=PROBE_TIMEOUT_S + 1,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            return str(exc)
+        if proc.returncode == 0:
+            return None
+        return (proc.stderr or proc.stdout or "helper check failed").strip()
+
+    def _icmp_probe_with_helper(self, host: str) -> ProbeResult | None:
+        """Run a single ICMP probe via the dedicated helper when present."""
+        if not self._helper_available:
+            return None
+        try:
+            proc = subprocess.run(
+                [self._helper_path, host, str(int(PROBE_TIMEOUT_S * 1000))],
+                capture_output=True,
+                text=True,
+                timeout=PROBE_TIMEOUT_S + 1,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            logger.debug("ICMP helper execution failed for %s: %s", host, exc)
+            return None
+
+        output = (proc.stdout or "").strip()
+        if proc.returncode == 0:
+            try:
+                return ProbeResult(
+                    latency_ms=round(float(output), 2),
+                    timeout=False,
+                    method="icmp",
+                )
+            except ValueError:
+                logger.debug("ICMP helper returned invalid latency for %s: %r", host, output)
+                return None
+        if proc.returncode == 1:
+            return ProbeResult(latency_ms=None, timeout=True, method="icmp")
+
+        logger.debug(
+            "ICMP helper failed for %s: %s",
+            host,
+            (proc.stderr or output or f"exit {proc.returncode}").strip(),
+        )
+        return None
 
     @staticmethod
     def _build_icmp_packet(seq: int, ident: int) -> bytes:

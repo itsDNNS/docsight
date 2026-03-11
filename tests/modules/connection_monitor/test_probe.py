@@ -1,6 +1,7 @@
 """Tests for the Connection Monitor probe engine."""
 
 import socket
+import subprocess
 from unittest.mock import patch, MagicMock
 import pytest
 
@@ -21,6 +22,20 @@ class TestProbeResult:
 
 
 class TestProbeEngineAutoDetection:
+    def test_auto_selects_icmp_when_helper_check_succeeds(self):
+        helper_ok = subprocess.CompletedProcess(
+            args=["docsight-icmp-helper", "--check"],
+            returncode=0,
+            stdout="ok\n",
+            stderr="",
+        )
+        with patch("app.modules.connection_monitor.probe.os.path.isfile", return_value=True), \
+             patch("app.modules.connection_monitor.probe.os.access", return_value=True), \
+             patch("app.modules.connection_monitor.probe.subprocess.run", return_value=helper_ok), \
+             patch("app.modules.connection_monitor.probe.socket.socket", side_effect=PermissionError):
+            engine = ProbeEngine(method="auto")
+            assert engine.detected_method == "icmp"
+
     def test_auto_selects_icmp_when_raw_socket_available(self):
         mock_sock = MagicMock()
         with patch("app.modules.connection_monitor.probe.socket.socket", return_value=mock_sock):
@@ -89,6 +104,53 @@ class TestTCPProbe:
 
 
 class TestICMPProbe:
+    def test_icmp_helper_success(self):
+        helper_ok = subprocess.CompletedProcess(
+            args=["docsight-icmp-helper", "1.1.1.1", "2000"],
+            returncode=0,
+            stdout="5.23\n",
+            stderr="",
+        )
+        with patch("app.modules.connection_monitor.probe.os.path.isfile", return_value=True), \
+             patch("app.modules.connection_monitor.probe.os.access", return_value=True), \
+             patch("app.modules.connection_monitor.probe.subprocess.run", side_effect=[
+                 subprocess.CompletedProcess(
+                     args=["docsight-icmp-helper", "--check"],
+                     returncode=0,
+                     stdout="ok\n",
+                     stderr="",
+                 ),
+                 helper_ok,
+             ]):
+            engine = ProbeEngine(method="auto")
+            result = engine.probe("1.1.1.1")
+            assert result.timeout is False
+            assert result.method == "icmp"
+            assert result.latency_ms == 5.23
+
+    def test_icmp_helper_timeout(self):
+        with patch("app.modules.connection_monitor.probe.os.path.isfile", return_value=True), \
+             patch("app.modules.connection_monitor.probe.os.access", return_value=True), \
+             patch("app.modules.connection_monitor.probe.subprocess.run", side_effect=[
+                 subprocess.CompletedProcess(
+                     args=["docsight-icmp-helper", "--check"],
+                     returncode=0,
+                     stdout="ok\n",
+                     stderr="",
+                 ),
+                 subprocess.CompletedProcess(
+                     args=["docsight-icmp-helper", "1.1.1.1", "2000"],
+                     returncode=1,
+                     stdout="TIMEOUT\n",
+                     stderr="",
+                 ),
+             ]):
+            engine = ProbeEngine(method="auto")
+            result = engine.probe("1.1.1.1")
+            assert result.timeout is True
+            assert result.latency_ms is None
+            assert result.method == "icmp"
+
     def test_icmp_success(self):
         engine = ProbeEngine(method="icmp")
         with patch.object(engine, "_icmp_probe") as mock_icmp:
