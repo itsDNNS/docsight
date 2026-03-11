@@ -19,7 +19,7 @@
   },
   "menu": {
     "label_key": "docsight.bqm.bqm_title",
-    "icon": "activity",
+    "icon": "chart-spline",
     "order": 22
   }
 }

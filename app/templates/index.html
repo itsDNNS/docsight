@@ -75,9 +75,9 @@
                     <i data-lucide="bell"></i> {{ t.event_log }}
                     <span class="nav-badge" id="event-badge" style="display:none;"></span>
                 </a>
-                {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}
-                <a class="nav-item" data-view="modulation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.get('docsight.modulation.title', 'Modulation Performance') }}">
-                    <i data-lucide="bar-chart-3"></i> {{ t.get('docsight.modulation.title', 'Modulation Performance') }}
+                {% if speedtest_configured or bqm_configured %}
+                <a class="nav-item" data-view="correlation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.correlation_analysis }}">
+                    <i data-lucide="bar-chart-3"></i> {{ t.correlation_analysis }}
                 </a>
                 {% endif %}
                 <a class="nav-item" data-view="trends" data-nav-icon="trending-up" data-nav-title="{{ t.signal_trends }}">
@@ -86,19 +86,9 @@
                 <a class="nav-item" data-view="channels" data-nav-icon="layers" data-nav-title="{{ t.channels }}">
                     <i data-lucide="layers"></i> {{ t.channels }}
                 </a>
-                {% if speedtest_configured or bqm_configured %}
-                <a class="nav-item" data-view="correlation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.correlation_analysis }}">
-                    <i data-lucide="bar-chart-3"></i> {{ t.correlation_analysis }}
-                </a>
-                {% endif %}
-                {% if gaming_quality_enabled %}
-                <a class="nav-item" data-view="gaming" data-nav-icon="gamepad-2" data-nav-title="{{ t.gaming_quality_label }}">
-                    <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
-                </a>
-                {% endif %}
-                {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
-                <a class="nav-item" data-view="comparison" data-nav-icon="git-compare-arrows" data-nav-title="{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}">
-                    <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
+                {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
+                <a class="nav-item" data-view="connection-monitor" data-nav-icon="activity" data-nav-title="{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}">
+                    <i data-lucide="activity"></i> {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
                 </a>
                 {% endif %}
                 {% if is_fritzbox and segment_utilization_enabled %}
@@ -106,9 +96,19 @@
                     <i data-lucide="gauge"></i> {{ t.seg_title }}
                 </a>
                 {% endif %}
-                {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-                <a class="nav-item" data-view="connection-monitor" data-nav-icon="activity" data-nav-title="{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}">
-                    <i data-lucide="activity"></i> {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
+                {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
+                <a class="nav-item" data-view="comparison" data-nav-icon="git-compare-arrows" data-nav-title="{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}">
+                    <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
+                </a>
+                {% endif %}
+                {% if gaming_quality_enabled %}
+                <a class="nav-item" data-view="gaming" data-nav-icon="gamepad-2" data-nav-title="{{ t.gaming_quality_label }}">
+                    <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
+                </a>
+                {% endif %}
+                {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}
+                <a class="nav-item" data-view="modulation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.get('docsight.modulation.title', 'Modulation Performance') }}">
+                    <i data-lucide="bar-chart-3"></i> {{ t.get('docsight.modulation.title', 'Modulation Performance') }}
                 </a>
                 {% endif %}
             </div>
@@ -129,8 +129,8 @@
                 {% endif %}
                 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
                 {% if bqm_configured %}
-                <a class="nav-item" data-view="bqm" data-nav-icon="activity" data-nav-title="{{ t.bqm_title }}">
-                    <i data-lucide="activity"></i> {{ t.bqm_title }}
+                <a class="nav-item" data-view="bqm" data-nav-icon="chart-spline" data-nav-title="{{ t.bqm_title }}">
+                    <i data-lucide="chart-spline"></i> {{ t.bqm_title }}
                 </a>
                 {% else %}
                 <a class="nav-item" onclick="openBqmSetupModal()">
