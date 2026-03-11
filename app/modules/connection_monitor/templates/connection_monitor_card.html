@@ -1,0 +1,13 @@
+{# ═══ Module Card: Connection Monitor ═══ #}
+<div class="metrics-grid">
+    <div class="metric-card glass" id="connection-monitor-card" style="cursor:pointer;" onclick="switchView('mod-docsight-connection-monitor')">
+        <div class="metric-label">
+            <i data-lucide="activity" style="width:14px;height:14px;"></i>
+            {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
+        </div>
+        <div class="metric-value" id="cm-card-status">—</div>
+        <div class="metric-sub" id="cm-card-details"></div>
+    </div>
+</div>
+
+<script src="/modules/docsight.connection_monitor/static/js/connection-monitor-card.js"></script>
