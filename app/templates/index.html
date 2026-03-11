@@ -107,7 +107,7 @@
                 </a>
                 {% endif %}
                 {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-                <a class="nav-item" data-view="mod-docsight-connection-monitor" data-nav-icon="activity" data-nav-title="{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}">
+                <a class="nav-item" data-view="connection-monitor" data-nav-icon="activity" data-nav-title="{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}">
                     <i data-lucide="activity"></i> {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
                 </a>
                 {% endif %}
@@ -1805,7 +1805,7 @@
    MODULE VIEWS - Dynamically rendered from enabled modules with tab template
    ══════════════════════════════════════════════════════════════════════════ #}
 {% for mod in modules if mod.template_paths.get('tab') %}
-<div id="{% if mod.id == 'docsight.modulation' %}view-modulation{% elif mod.id == 'docsight.comparison' %}view-comparison{% else %}view-mod-{{ mod.id|replace('.', '-') }}{% endif %}" class="view">
+<div id="{% if mod.id == 'docsight.modulation' %}view-modulation{% elif mod.id == 'docsight.comparison' %}view-comparison{% elif mod.id == 'docsight.connection_monitor' %}view-connection-monitor{% else %}view-mod-{{ mod.id|replace('.', '-') }}{% endif %}" class="view">
     {% include mod.template_paths['tab'] %}
 </div>
 {% endfor %}
