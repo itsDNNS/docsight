@@ -506,16 +506,12 @@
             </div>
         </div>
         {% endif %}
-    </div>
 
-    {# ══════════════════════════════════════════════════════════════════════════
-       BREITBANDMESSUNG (BNetzA) - Conditional card, only shown when data exists
-       ══════════════════════════════════════════════════════════════════════════ #}
-    {% if bnetz_enabled and bnetz_latest and bnetz_latest.download_measured_avg is not none %}
-    {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
-    {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
-    {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
-    <div class="metrics-grid" style="grid-template-columns:1fr;">
+        {# ── BNetzA card (inline with other metric cards) ── #}
+        {% if bnetz_enabled and bnetz_latest and bnetz_latest.download_measured_avg is not none %}
+        {% set bnetz_dl_pct = ((bnetz_latest.download_measured_avg / bnetz_latest.download_max_tariff * 100)|round(0)|int) if bnetz_latest.download_max_tariff and bnetz_latest.download_measured_avg else 0 %}
+        {% set bnetz_ul_pct = ((bnetz_latest.upload_measured_avg / bnetz_latest.upload_max_tariff * 100)|round(0)|int) if bnetz_latest.upload_max_tariff and bnetz_latest.upload_measured_avg else 0 %}
+        {% set bnetz_has_deviation = bnetz_latest.verdict_download == 'deviation' or bnetz_latest.verdict_upload == 'deviation' %}
         <div class="metric-card glass">
             <div class="metric-header">
                 <span class="metric-label">{{ t.bnetz_title }}</span>
@@ -530,13 +526,23 @@
                 <span class="range">{{ bnetz_latest.date }} &middot; {{ bnetz_latest.provider }}</span>
             </div>
         </div>
-    </div>
-    {% endif %}
+        {% endif %}
 
-    {# ── Connection Monitor Card (before donuts, with the other metric cards) ── #}
-    {% for mod in modules if mod.id == 'docsight.connection_monitor' and mod.template_paths.get('card') %}
-    {% include mod.template_paths['card'] %}
-    {% endfor %}
+        {# ── Connection Monitor card (inline with other metric cards) ── #}
+        {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
+        <div class="metric-card glass" id="connection-monitor-card" style="cursor:pointer;" onclick="switchView('connection-monitor')">
+            <div class="metric-label">
+                <i data-lucide="activity" style="width:14px;height:14px;"></i>
+                {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
+            </div>
+            <div class="metric-value" id="cm-card-status">&mdash;</div>
+            <div class="metric-sub" id="cm-card-details"></div>
+        </div>
+        {% endif %}
+    </div>
+    {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
+    <script src="/modules/docsight.connection_monitor/static/js/connection-monitor-card.js"></script>
+    {% endif %}
 
     {# ══════════════════════════════════════════════════════════════════════════
        CHANNEL HEALTH OVERVIEW — Ring gauges for DS/US health distribution
