@@ -421,6 +421,37 @@ class ConnectionMonitorStorage:
                 )
             return created
 
+    # Tier boundaries in seconds
+    _TIER_RAW_MAX_AGE = 7 * 86400       # 7 days
+    _TIER_60S_MAX_AGE = 30 * 86400      # 30 days
+    _TIER_300S_MAX_AGE = 90 * 86400     # 90 days
+
+    def aggregate(self):
+        """Run the full aggregation cascade for all targets.
+
+        1. Raw samples older than 7d -> 60s buckets
+        2. 60s buckets older than 30d -> 300s buckets
+        3. 300s buckets older than 90d -> 3600s buckets
+        """
+        now = time.time()
+        targets = self.get_targets()
+        for t in targets:
+            tid = t["id"]
+            # Step 1: raw -> 60s
+            self.aggregate_raw_to_buckets(
+                tid, cutoff=now - self._TIER_RAW_MAX_AGE, bucket_seconds=60
+            )
+            # Step 2: 60s -> 300s
+            self.reaggregate_buckets(
+                tid, cutoff=now - self._TIER_60S_MAX_AGE,
+                source_seconds=60, target_seconds=300
+            )
+            # Step 3: 300s -> 3600s
+            self.reaggregate_buckets(
+                tid, cutoff=now - self._TIER_300S_MAX_AGE,
+                source_seconds=300, target_seconds=3600
+            )
+
     # --- Retention ---
 
     def cleanup(self, retention_days: int) -> int:
@@ -433,6 +464,11 @@ class ConnectionMonitorStorage:
                 (cutoff,),
             )
             deleted = cur.rowcount
+            cur2 = conn.execute(
+                "DELETE FROM connection_samples_aggregated WHERE bucket_start < ?",
+                (cutoff,),
+            )
+            deleted += cur2.rowcount
             if deleted:
-                logger.info("Connection Monitor: cleaned up %d old samples", deleted)
+                logger.info("Connection Monitor: cleaned up %d old samples/buckets", deleted)
             return deleted

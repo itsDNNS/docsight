@@ -129,6 +129,29 @@ class TestRetention:
         assert deleted == 0
         assert len(storage.get_samples(tid)) == 1
 
+    def test_cleanup_deletes_old_aggregated_data(self, storage):
+        """cleanup() should also delete old aggregated samples."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        old_ts = now - 200 * 86400  # 200 days ago
+
+        # Insert an aggregated bucket
+        with storage._connect() as conn:
+            conn.execute(
+                """INSERT INTO connection_samples_aggregated
+                   (target_id, bucket_start, bucket_seconds,
+                    avg_latency_ms, min_latency_ms, max_latency_ms,
+                    p95_latency_ms, packet_loss_pct, sample_count)
+                   VALUES (?, ?, 3600, 10.0, 5.0, 20.0, 18.0, 0.0, 100)""",
+                (tid, old_ts),
+            )
+
+        deleted = storage.cleanup(retention_days=180)
+        assert deleted == 1  # exactly one aggregated row
+
+        agg = storage.get_aggregated_samples(tid, bucket_seconds=3600)
+        assert len(agg) == 0
+
 
 class TestSummary:
     def test_summary_returns_stats(self, storage):
@@ -359,3 +382,75 @@ class TestAggregation:
         assert agg[0]["avg_latency_ms"] is None
         assert agg[0]["packet_loss_pct"] == 100.0
         assert agg[0]["sample_count"] == 30
+
+    def test_aggregate_full_cascade(self, storage):
+        """aggregate() should cascade: raw -> 60s -> 300s -> 3600s."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+
+        # Insert raw samples at different ages
+        samples = []
+        # 8 days ago (should become 60s buckets)
+        for i in range(10):
+            samples.append({
+                "target_id": tid,
+                "timestamp": now - 8 * 86400 + i * 5,
+                "latency_ms": 10.0 + i,
+                "timeout": False,
+                "probe_method": "tcp",
+            })
+        # 35 days ago (should cascade to 300s)
+        for i in range(10):
+            samples.append({
+                "target_id": tid,
+                "timestamp": now - 35 * 86400 + i * 5,
+                "latency_ms": 20.0 + i,
+                "timeout": False,
+                "probe_method": "tcp",
+            })
+        # 100 days ago (should cascade to 3600s)
+        for i in range(10):
+            samples.append({
+                "target_id": tid,
+                "timestamp": now - 100 * 86400 + i * 5,
+                "latency_ms": 30.0 + i,
+                "timeout": False,
+                "probe_method": "tcp",
+            })
+        # Recent (should stay raw)
+        samples.append({
+            "target_id": tid,
+            "timestamp": now - 60,
+            "latency_ms": 5.0,
+            "timeout": False,
+            "probe_method": "tcp",
+        })
+        storage.save_samples(samples)
+
+        storage.aggregate()
+
+        # Recent raw sample preserved
+        raw = storage.get_samples(tid)
+        assert len(raw) == 1
+        assert raw[0]["latency_ms"] == 5.0
+
+        # 8-day-old data: should be in 60s buckets
+        agg_60 = storage.get_aggregated_samples(
+            tid, bucket_seconds=60,
+            start=now - 9 * 86400, end=now - 7 * 86400,
+        )
+        assert len(agg_60) >= 1
+
+        # 35-day-old data: should have cascaded through 60s to 300s
+        agg_300 = storage.get_aggregated_samples(
+            tid, bucket_seconds=300,
+            start=now - 36 * 86400, end=now - 30 * 86400,
+        )
+        assert len(agg_300) >= 1
+
+        # 100-day-old data: should have cascaded through 60s -> 300s -> 3600s
+        agg_3600 = storage.get_aggregated_samples(
+            tid, bucket_seconds=3600,
+            start=now - 101 * 86400, end=now - 90 * 86400,
+        )
+        assert len(agg_3600) >= 1
