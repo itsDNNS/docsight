@@ -8,6 +8,18 @@
 
     var currentRange = 3600; // 1h default
     var targets = [];
+    var refreshTimer = null;
+
+    function updateRefreshInterval() {
+        if (refreshTimer) clearInterval(refreshTimer);
+        var interval = currentRange <= 86400 ? 10000 : 60000;
+        refreshTimer = setInterval(function() {
+            var view = document.getElementById('cm-detail-view');
+            if (view && view.closest('.view.active')) {
+                loadData();
+            }
+        }, interval);
+    }
 
     window.cmSetRange = function(btn, seconds) {
         currentRange = seconds;
@@ -16,6 +28,7 @@
         });
         btn.classList.add('active');
         loadData();
+        updateRefreshInterval();
     };
 
     window.cmExportCsv = function(targetId) {
@@ -66,13 +79,7 @@
 
         loadTargets();
 
-        // Auto-refresh every 10s when view is active
-        setInterval(function() {
-            var view = document.getElementById('cm-detail-view');
-            if (view && view.closest('.view.active')) {
-                loadData();
-            }
-        }, 10000);
+        updateRefreshInterval();
     }
 
     function loadTargets() {
@@ -99,7 +106,7 @@
         var samplePromises = targets.map(function(t) {
             return fetch('/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + now + '&limit=0')
                 .then(function(r) { return r.json(); })
-                .then(function(samples) { return { target: t, samples: samples }; });
+                .then(function(data) { return { target: t, samples: data.samples, meta: data.meta }; });
         });
 
         // Fetch outages for ALL targets in parallel
@@ -119,6 +126,7 @@
                 });
                 if (!hasSamples) { showNoData(); return; }
 
+                var meta = allTargetData.length > 0 ? allTargetData[0].meta : null;
                 hideNoData();
                 CMCharts.renderStatsCards('cm-stats-cards', allTargetData);
                 CMCharts.renderPerTargetStats('cm-per-target-stats', allTargetData);
@@ -126,6 +134,7 @@
                 CMCharts.renderAvailabilityBand('cm-availability', allTargetData);
                 renderOutages(allOutageData);
                 renderExportLinks();
+                renderResolutionIndicator(meta);
             })
             .catch(function() {});
     }
@@ -240,6 +249,19 @@
         var h = Math.floor(seconds / 3600);
         var m = Math.floor((seconds % 3600) / 60);
         return h + 'h ' + m + 'm';
+    }
+
+    function renderResolutionIndicator(meta) {
+        var el = document.getElementById('cm-resolution-indicator');
+        if (!el || !meta) return;
+        var labels = {
+            'raw': el.dataset.labelRaw || 'Raw samples',
+            '1min': el.dataset.label1min || '1-min averages',
+            '5min': el.dataset.label5min || '5-min averages',
+            '1hr': el.dataset.label1hr || '1-hour averages'
+        };
+        el.textContent = labels[meta.resolution] || meta.resolution;
+        el.style.display = '';
     }
 
     function showNoData() {
