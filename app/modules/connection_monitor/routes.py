@@ -227,17 +227,35 @@ def api_export_csv(target_id):
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
     end = request.args.get("end", type=float)
-    samples = storage.get_samples(target_id, start=start, end=end, limit=0)
+    resolution = request.args.get("resolution", "raw")
 
     target = storage.get_target(target_id)
     label = target["label"].replace(" ", "_") if target else str(target_id)
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["datetime", "latency_ms", "timeout", "probe_method"])
-    for s in samples:
-        dt = datetime.fromtimestamp(s["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-        writer.writerow([dt, s["latency_ms"], s["timeout"], s["probe_method"]])
+
+    bucket_seconds = _RESOLUTION_MAP.get(resolution)
+
+    if bucket_seconds is not None:
+        # Aggregated export
+        writer.writerow(["datetime", "avg_latency_ms", "min_latency_ms",
+                         "max_latency_ms", "p95_latency_ms", "packet_loss_pct", "sample_count"])
+        agg = storage.get_aggregated_samples(
+            target_id, bucket_seconds=bucket_seconds, start=start, end=end,
+        )
+        for a in agg:
+            dt = datetime.fromtimestamp(a["bucket_start"]).strftime("%Y-%m-%d %H:%M:%S")
+            writer.writerow([dt, a["avg_latency_ms"], a["min_latency_ms"],
+                             a["max_latency_ms"], a["p95_latency_ms"],
+                             a["packet_loss_pct"], a["sample_count"]])
+    else:
+        # Raw export (backward compatible)
+        writer.writerow(["datetime", "latency_ms", "timeout", "probe_method"])
+        samples = storage.get_samples(target_id, start=start, end=end, limit=0)
+        for s in samples:
+            dt = datetime.fromtimestamp(s["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
+            writer.writerow([dt, s["latency_ms"], s["timeout"], s["probe_method"]])
 
     return Response(
         output.getvalue(),

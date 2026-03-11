@@ -285,6 +285,29 @@ class TestExportAPI:
         rows = list(reader)
         assert len(rows) == 2  # header + 1 data row
 
+    def test_csv_export_aggregated(self, client):
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        with storage._connect() as conn:
+            conn.execute(
+                """INSERT INTO connection_samples_aggregated
+                   (target_id, bucket_start, bucket_seconds,
+                    avg_latency_ms, min_latency_ms, max_latency_ms,
+                    p95_latency_ms, packet_loss_pct, sample_count)
+                   VALUES (?, ?, 60, 15.0, 10.0, 20.0, 18.0, 5.0, 12)""",
+                (tid, now - 500),
+            )
+        resp = c.get(f"/api/connection-monitor/export/{tid}?resolution=1min")
+        assert resp.status_code == 200
+        assert "text/csv" in resp.content_type
+        content = resp.data.decode()
+        reader = csv.reader(io.StringIO(content))
+        rows = list(reader)
+        assert len(rows) == 2  # header + 1 data row
+        assert "avg_latency_ms" in rows[0]
+        assert "packet_loss_pct" in rows[0]
+
 
 class TestCapabilityAPI:
     def test_capability(self, client):
