@@ -44,5 +44,9 @@
   "cm_outage_target": "Objetivo",
   "cm_outage_ongoing": "En curso",
   "cm_export_csv": "Exportar CSV",
-  "cm_no_data": "Sin datos aun. Active el monitor de conexion en la configuracion."
+  "cm_no_data": "Sin datos aun. Active el monitor de conexion en la configuracion.",
+  "cm_per_target_title": "Estadisticas por objetivo",
+  "cm_per_target_samples": "Muestras",
+  "cm_diag_external": "Problema externo - gateway OK pero objetivos externos muestran perdida de paquetes",
+  "cm_diag_internal": "Problema interno/ISP - gateway tambien afectado"
 }

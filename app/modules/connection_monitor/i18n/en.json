@@ -44,5 +44,9 @@
   "cm_outage_target": "Target",
   "cm_outage_ongoing": "Ongoing",
   "cm_export_csv": "Export CSV",
-  "cm_no_data": "No data yet. Enable the Connection Monitor in settings to start collecting."
+  "cm_no_data": "No data yet. Enable the Connection Monitor in settings to start collecting.",
+  "cm_per_target_title": "Per-Target Statistics",
+  "cm_per_target_samples": "Samples",
+  "cm_diag_external": "External issue - gateway OK but external targets show packet loss",
+  "cm_diag_internal": "Internal/ISP issue - gateway also affected"
 }

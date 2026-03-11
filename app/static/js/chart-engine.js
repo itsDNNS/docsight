@@ -291,10 +291,21 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     if (opts && opts.yMin !== undefined) yRange[0] = opts.yMin;
     if (opts && opts.yMax !== undefined) yRange[1] = opts.yMax;
 
+    var zoomable = opts && opts.zoomable;
     var scales = {
-        x: { time: false, range: function() { return [-0.5, n - 0.5]; } },
+        x: { time: false },
         y: {}
     };
+    if (zoomable) {
+        /* Zoom-aware: auto off so setScale isn't overridden by data range */
+        scales.x.auto = false;
+        scales.x.range = function(u, dmin, dmax) {
+            if (u._zoomRange) return [u._zoomRange.min, u._zoomRange.max];
+            return [0, n - 1];
+        };
+    } else {
+        scales.x.range = function() { return [-0.5, n - 0.5]; };
+    }
     if (yRange[0] !== null && yRange[1] !== null) {
         scales.y.range = function(u, dmin, dmax) {
             var lo = yRange[0] !== null ? yRange[0] : dmin;
@@ -399,6 +410,9 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     };
     if (isTrendChart) {
         cursor.sync = { key: 'docsight-trends', setSeries: false };
+    }
+    if (zoomable) {
+        cursor.drag = { x: true, y: false, uni: 10 };
     }
     /* Plugins */
     var plugins = [tooltipPlugin(labels, tooltipLabelCallback)];

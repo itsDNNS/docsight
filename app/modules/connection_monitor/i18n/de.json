@@ -44,5 +44,9 @@
   "cm_outage_target": "Ziel",
   "cm_outage_ongoing": "Andauernd",
   "cm_export_csv": "CSV exportieren",
-  "cm_no_data": "Noch keine Daten. Aktiviere den Verbindungsmonitor in den Einstellungen."
+  "cm_no_data": "Noch keine Daten. Aktiviere den Verbindungsmonitor in den Einstellungen.",
+  "cm_per_target_title": "Statistiken pro Ziel",
+  "cm_per_target_samples": "Messungen",
+  "cm_diag_external": "Externes Problem - Gateway OK, aber externe Ziele zeigen Paketverlust",
+  "cm_diag_internal": "Internes/ISP-Problem - Gateway ebenfalls betroffen"
 }

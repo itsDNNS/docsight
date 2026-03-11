@@ -26,6 +26,22 @@
     <!-- Stats cards -->
     <div id="cm-stats-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:16px;"></div>
 
+    <!-- Per-target stats comparison -->
+    <div class="glass" style="padding:16px; margin-bottom:16px;">
+        <h3 style="margin:0 0 10px; font-size:0.85rem; color:var(--text-muted);">
+            {{ t.get('docsight.connection_monitor.cm_per_target_title', 'Per-Target Statistics') }}
+        </h3>
+        <div id="cm-per-target-stats"
+             data-l-target="{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}"
+             data-l-avg="{{ t.get('docsight.connection_monitor.cm_avg_latency', 'Avg') }}"
+             data-l-p95="P95"
+             data-l-loss="{{ t.get('docsight.connection_monitor.cm_packet_loss', 'Packet Loss') }}"
+             data-l-samples="{{ t.get('docsight.connection_monitor.cm_per_target_samples', 'Samples') }}"
+             data-diag-external="{{ t.get('docsight.connection_monitor.cm_diag_external', 'External issue - gateway OK but external targets show packet loss') }}"
+             data-diag-internal="{{ t.get('docsight.connection_monitor.cm_diag_internal', 'Internal/ISP issue - gateway also affected') }}"
+        ></div>
+    </div>
+
     <!-- Charts section -->
     <div id="cm-charts-section">
         <!-- Combined latency + loss chart (PingPlotter-style) -->

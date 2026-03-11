@@ -121,6 +121,7 @@
 
                 hideNoData();
                 CMCharts.renderStatsCards('cm-stats-cards', allTargetData);
+                CMCharts.renderPerTargetStats('cm-per-target-stats', allTargetData);
                 CMCharts.renderCombinedChart('cm-combined-chart', allTargetData);
                 CMCharts.renderAvailabilityBand('cm-availability', allTargetData);
                 renderOutages(allOutageData);

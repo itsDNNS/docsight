@@ -44,5 +44,9 @@
   "cm_outage_target": "Cible",
   "cm_outage_ongoing": "En cours",
   "cm_export_csv": "Exporter CSV",
-  "cm_no_data": "Pas encore de donnees. Activez le moniteur de connexion dans les parametres."
+  "cm_no_data": "Pas encore de donnees. Activez le moniteur de connexion dans les parametres.",
+  "cm_per_target_title": "Statistiques par cible",
+  "cm_per_target_samples": "Echantillons",
+  "cm_diag_external": "Probleme externe - passerelle OK mais cibles externes montrent une perte de paquets",
+  "cm_diag_internal": "Probleme interne/FAI - passerelle egalement affectee"
 }

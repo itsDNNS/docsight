@@ -18,29 +18,26 @@ var CMCharts = (function() {
 
     /**
      * uPlot plugin: drag-to-zoom on X-axis, double-click to reset.
-     * Uses opts hook to enable cursor.drag before chart creation.
+     * Requires zoomable:true in renderChart opts (disables fixed x-scale range).
      */
     function zoomPlugin() {
-        var fullRange = null;
         return {
-            opts: function(self, opts) {
-                opts.cursor = opts.cursor || {};
-                opts.cursor.drag = { x: true, y: false, uni: 10 };
-                opts.select = { show: true };
-                return opts;
-            },
             hooks: {
+                init: [function(u) {
+                    u.over.style.cursor = 'crosshair';
+                }],
                 ready: [function(u) {
-                    fullRange = { min: u.data[0][0], max: u.data[0][u.data[0].length - 1] };
                     u.over.addEventListener('dblclick', function() {
-                        if (fullRange) u.setScale('x', fullRange);
+                        u._zoomRange = null;
+                        u.setScale('x', { min: 0, max: u.data[0].length - 1 });
                     });
                 }],
                 setSelect: [function(u) {
                     var min = u.posToVal(u.select.left, 'x');
                     var max = u.posToVal(u.select.left + u.select.width, 'x');
                     if (max - min > 1) {
-                        u.setScale('x', { min: min, max: max });
+                        u._zoomRange = { min: min, max: max };
+                        u.setScale('x', u._zoomRange);
                     }
                     u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
                 }]
@@ -150,6 +147,7 @@ var CMCharts = (function() {
 
         renderChart(containerId, labels, datasets, 'line', zones, {
             yMin: 0,
+            zoomable: true,
             tooltipLabelCallback: function(ctx) {
                 var val = ctx.parsed.y;
                 if (val == null) return '';
@@ -276,10 +274,163 @@ var CMCharts = (function() {
         });
     }
 
+    /**
+     * Detect if a host is a private/local IP (gateway, router, LAN device).
+     */
+    function isPrivateIP(host) {
+        if (!host) return false;
+        return /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.)/.test(host);
+    }
+
+    /**
+     * Render per-target stats comparison table with fault diagnosis.
+     * Shows each target's metrics side-by-side so the user can see
+     * "Gateway 0% loss, Cloudflare 2% loss = external problem".
+     */
+    function renderPerTargetStats(containerId, allTargetData) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        container.textContent = '';
+
+        if (!allTargetData || allTargetData.length === 0) return;
+
+        // Read i18n labels from data attributes
+        var lTarget = container.dataset.lTarget || 'Target';
+        var lAvg = container.dataset.lAvg || 'Avg';
+        var lP95 = container.dataset.lP95 || 'P95';
+        var lLoss = container.dataset.lLoss || 'Packet Loss';
+        var lSamples = container.dataset.lSamples || 'Samples';
+        var lDiagExt = container.dataset.diagExternal || 'External issue - gateway OK but external targets show packet loss';
+        var lDiagInt = container.dataset.diagInternal || 'Internal/ISP issue - gateway also affected';
+
+        // Calculate per-target stats
+        var stats = allTargetData.map(function(td, tIdx) {
+            var latencies = [];
+            var totalSamples = 0;
+            var timeouts = 0;
+
+            if (td.samples) {
+                td.samples.forEach(function(s) {
+                    totalSamples++;
+                    if (s.timeout) timeouts++;
+                    else if (s.latency_ms != null) latencies.push(s.latency_ms);
+                });
+            }
+
+            latencies.sort(function(a, b) { return a - b; });
+
+            return {
+                label: td.target.label,
+                host: td.target.host,
+                color: TARGET_COLORS[tIdx % TARGET_COLORS.length],
+                avg: latencies.length > 0 ? (latencies.reduce(function(a, b) { return a + b; }, 0) / latencies.length) : null,
+                p95: latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.95)] : null,
+                loss: totalSamples > 0 ? (timeouts / totalSamples * 100) : 0,
+                samples: totalSamples,
+                isLocal: isPrivateIP(td.target.host)
+            };
+        });
+
+        // Build table
+        var table = document.createElement('table');
+        table.className = 'data-table';
+        table.style.cssText = 'width:100%;';
+
+        var thead = document.createElement('thead');
+        var headerRow = document.createElement('tr');
+        [lTarget, lAvg, lP95, lLoss, lSamples].forEach(function(text, i) {
+            var th = document.createElement('th');
+            th.textContent = text;
+            if (i >= 3) th.style.textAlign = 'right';
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        var tbody = document.createElement('tbody');
+        stats.forEach(function(s) {
+            var tr = document.createElement('tr');
+
+            // Target with color dot
+            var tdTarget = document.createElement('td');
+            var dot = document.createElement('span');
+            dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;background:' + s.color;
+            tdTarget.appendChild(dot);
+            var nameSpan = document.createElement('span');
+            nameSpan.textContent = s.label;
+            tdTarget.appendChild(nameSpan);
+            if (s.host) {
+                var hostSpan = document.createElement('span');
+                hostSpan.style.cssText = 'color:var(--text-muted);font-size:0.8em;margin-left:4px;';
+                hostSpan.textContent = '(' + s.host + ')';
+                tdTarget.appendChild(hostSpan);
+            }
+
+            var tdAvg = document.createElement('td');
+            tdAvg.textContent = s.avg != null ? s.avg.toFixed(1) + ' ms' : '-';
+
+            var tdP95 = document.createElement('td');
+            tdP95.textContent = s.p95 != null ? s.p95.toFixed(1) + ' ms' : '-';
+
+            // Packet Loss with color
+            var tdLoss = document.createElement('td');
+            tdLoss.style.cssText = 'text-align:right;font-weight:600;';
+            tdLoss.style.color = s.loss > 2 ? 'var(--crit)' : s.loss > 0 ? 'var(--warn, orange)' : 'var(--good)';
+            tdLoss.textContent = s.loss.toFixed(2) + '%';
+
+            var tdSamples = document.createElement('td');
+            tdSamples.style.cssText = 'text-align:right;color:var(--text-muted);';
+            tdSamples.textContent = s.samples.toLocaleString();
+
+            tr.appendChild(tdTarget);
+            tr.appendChild(tdAvg);
+            tr.appendChild(tdP95);
+            tr.appendChild(tdLoss);
+            tr.appendChild(tdSamples);
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        container.appendChild(table);
+
+        // Fault diagnosis: compare local vs external targets
+        var localStats = stats.filter(function(s) { return s.isLocal; });
+        var externalStats = stats.filter(function(s) { return !s.isLocal; });
+
+        var hasExternalLoss = externalStats.some(function(s) { return s.loss > 1; });
+        var hasLocalLoss = localStats.some(function(s) { return s.loss > 1; });
+
+        if (hasExternalLoss && !hasLocalLoss && localStats.length > 0) {
+            var diag = document.createElement('div');
+            diag.style.cssText = 'margin-top:8px;padding:8px 12px;border-radius:6px;font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;background:rgba(239,68,68,0.12);color:var(--crit);';
+            var icon = document.createElement('i');
+            icon.setAttribute('data-lucide', 'alert-triangle');
+            icon.style.cssText = 'width:16px;height:16px;';
+            diag.appendChild(icon);
+            var txt = document.createElement('span');
+            txt.textContent = lDiagExt;
+            diag.appendChild(txt);
+            container.appendChild(diag);
+            if (window.lucide) lucide.createIcons();
+        } else if (hasLocalLoss && hasExternalLoss) {
+            var diag = document.createElement('div');
+            diag.style.cssText = 'margin-top:8px;padding:8px 12px;border-radius:6px;font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;background:rgba(234,179,8,0.12);color:var(--warn, orange);';
+            var icon = document.createElement('i');
+            icon.setAttribute('data-lucide', 'wifi-off');
+            icon.style.cssText = 'width:16px;height:16px;';
+            diag.appendChild(icon);
+            var txt = document.createElement('span');
+            txt.textContent = lDiagInt;
+            diag.appendChild(txt);
+            container.appendChild(diag);
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
     return {
         renderCombinedChart: renderCombinedChart,
         renderAvailabilityBand: renderAvailabilityBand,
         renderStatsCards: renderStatsCards,
+        renderPerTargetStats: renderPerTargetStats,
         TARGET_COLORS: TARGET_COLORS
     };
 })();
