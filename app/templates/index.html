@@ -106,6 +106,11 @@
                     <i data-lucide="gauge"></i> {{ t.seg_title }}
                 </a>
                 {% endif %}
+                {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
+                <a class="nav-item" data-view="mod-docsight-connection-monitor" data-nav-icon="activity" data-nav-title="{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}">
+                    <i data-lucide="activity"></i> {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
+                </a>
+                {% endif %}
             </div>
         </div>
         <div class="nav-section" data-nav-section="external" data-nav-label="{{ t.sidebar_external }}">
@@ -170,7 +175,7 @@
             </div>
         </div>
         {% set tab_modules = [] %}
-        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in ('docsight.modulation', 'docsight.comparison') %}
+        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in ('docsight.modulation', 'docsight.comparison', 'docsight.connection_monitor') %}
             {% if tab_modules.append(mod) %}{% endif %}
         {% endfor %}
         {% if tab_modules %}
