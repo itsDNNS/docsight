@@ -279,7 +279,13 @@
             '5min': el.dataset.label5min || '5-min averages',
             '1hr': el.dataset.label1hr || '1-hour averages'
         };
-        el.textContent = labels[meta.resolution] || meta.resolution;
+        if (meta.mixed && Array.isArray(meta.tiers_used) && meta.tiers_used.length > 0) {
+            el.textContent = meta.tiers_used.map(function(tier) {
+                return labels[tier] || tier;
+            }).join(' + ');
+        } else {
+            el.textContent = labels[meta.resolution] || meta.resolution;
+        }
         el.style.display = '';
     }
 

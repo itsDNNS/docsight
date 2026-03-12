@@ -199,7 +199,13 @@ def _compress_samples(samples: list[dict], start: float | None, end: float | Non
     return compressed
 
 
-def _append_raw_samples(samples: list[dict], raw_rows: list[dict]):
+def _exclusive_upper_bound(value: float) -> float:
+    """Turn an inclusive tier boundary into an exclusive upper limit."""
+    return math.nextafter(value, float("-inf"))
+
+
+def _append_raw_samples(samples: list[dict], raw_rows: list[dict]) -> int:
+    count = 0
     for s in raw_rows:
         samples.append({
             "timestamp": s["timestamp"],
@@ -210,9 +216,12 @@ def _append_raw_samples(samples: list[dict], raw_rows: list[dict]):
             "packet_loss_pct": 100.0 if s["timeout"] else 0.0,
             "sample_count": 1,
         })
+        count += 1
+    return count
 
 
-def _append_aggregated_samples(samples: list[dict], agg_rows: list[dict]):
+def _append_aggregated_samples(samples: list[dict], agg_rows: list[dict]) -> int:
+    count = 0
     for a in agg_rows:
         samples.append({
             "timestamp": a["bucket_start"],
@@ -223,6 +232,8 @@ def _append_aggregated_samples(samples: list[dict], agg_rows: list[dict]):
             "packet_loss_pct": a["packet_loss_pct"],
             "sample_count": a["sample_count"],
         })
+        count += 1
+    return count
 
 @bp.route("/api/connection-monitor/samples/<int:target_id>")
 @require_auth
@@ -256,16 +267,19 @@ def api_get_samples(target_id):
 
     # Fetch data
     samples = []
+    tiers_used: list[str] = []
 
     if resolution != "auto" or not has_explicit_range:
         if bucket_seconds is None:
             raw = storage.get_samples(target_id, start=start, end=end, limit=limit)
-            _append_raw_samples(samples, raw)
+            if _append_raw_samples(samples, raw):
+                tiers_used.append("raw")
         else:
             agg = storage.get_aggregated_samples(
                 target_id, bucket_seconds=bucket_seconds, start=start, end=end,
             )
-            _append_aggregated_samples(samples, agg)
+            if _append_aggregated_samples(samples, agg):
+                tiers_used.append(res_name)
     else:
         now_ts = time.time()
         range_start = start if start is not None else float("-inf")
@@ -275,30 +289,34 @@ def api_get_samples(target_id):
             raw_start = max(range_start, now_ts - _RAW_MAX_AGE)
             if raw_start <= range_end:
                 raw = storage.get_samples(target_id, start=raw_start, end=end, limit=limit)
-                _append_raw_samples(samples, raw)
+                if _append_raw_samples(samples, raw):
+                    tiers_used.append("raw")
 
             agg_60_start = max(range_start, now_ts - _AGG_60S_MAX_AGE)
-            agg_60_end = min(range_end, now_ts - _RAW_MAX_AGE)
+            agg_60_end = _exclusive_upper_bound(min(range_end, now_ts - _RAW_MAX_AGE))
             if agg_60_start <= agg_60_end:
                 agg_60 = storage.get_aggregated_samples(
                     target_id, bucket_seconds=60, start=agg_60_start, end=agg_60_end,
                 )
-                _append_aggregated_samples(samples, agg_60)
+                if _append_aggregated_samples(samples, agg_60):
+                    tiers_used.append("1min")
 
             agg_300_start = max(range_start, now_ts - _AGG_300S_MAX_AGE)
-            agg_300_end = min(range_end, now_ts - _AGG_60S_MAX_AGE)
+            agg_300_end = _exclusive_upper_bound(min(range_end, now_ts - _AGG_60S_MAX_AGE))
             if agg_300_start <= agg_300_end:
                 agg_300 = storage.get_aggregated_samples(
                     target_id, bucket_seconds=300, start=agg_300_start, end=agg_300_end,
                 )
-                _append_aggregated_samples(samples, agg_300)
+                if _append_aggregated_samples(samples, agg_300):
+                    tiers_used.append("5min")
 
-            agg_3600_end = min(range_end, now_ts - _AGG_300S_MAX_AGE)
+            agg_3600_end = _exclusive_upper_bound(min(range_end, now_ts - _AGG_300S_MAX_AGE))
             if time_range > _AGG_300S_MAX_AGE and range_start <= agg_3600_end:
                 agg_3600 = storage.get_aggregated_samples(
                     target_id, bucket_seconds=3600, start=range_start, end=agg_3600_end,
                 )
-                _append_aggregated_samples(samples, agg_3600)
+                if _append_aggregated_samples(samples, agg_3600):
+                    tiers_used.append("1hr")
 
     samples.sort(key=lambda s: s["timestamp"])
     samples = _compress_samples(samples, start=start, end=end, max_points=max_points)
@@ -308,6 +326,8 @@ def api_get_samples(target_id):
             "resolution": res_name,
             "bucket_seconds": bucket_seconds,
             "blended": blended,
+            "mixed": len(tiers_used) > 1,
+            "tiers_used": tiers_used,
         },
         "samples": samples,
     })
