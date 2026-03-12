@@ -106,6 +106,36 @@ def _health_index_for_group(observations, direction, docsis_version):
     return round(max(0, min(100, index)), 1)
 
 
+def _health_index_for_channel_baselines(observations, channel_baselines):
+    """Compute health index relative to each channel's observed baseline.
+
+    Used for downstream groups where some channels are expected to top out at a
+    lower QAM order (for example fixed 64QAM channels in mixed DOCSIS 3.0
+    segments). Each observation is scored against the highest numeric QAM seen
+    for that channel in the selected dataset.
+    """
+    numeric = [
+        (channel_id, qam)
+        for channel_id, _, qam in observations
+        if channel_id is not None and qam is not None
+    ]
+    if not numeric:
+        return None
+
+    scores = []
+    for channel_id, qam in numeric:
+        baseline_qam = channel_baselines.get(channel_id) or qam
+        baseline_bits = math.log2(max(baseline_qam, 4))
+        denominator = baseline_bits - 2
+        if denominator <= 0:
+            score = 100.0
+        else:
+            score = 100 * (math.log2(qam) - 2) / denominator
+        scores.append(max(0, min(100, score)))
+
+    return round(sum(scores) / len(scores), 1)
+
+
 # ── Distribution helpers ─────────────────────────────────────────────
 
 
@@ -150,6 +180,29 @@ def _degraded_qam_threshold(direction, docsis_version, default_threshold):
     1024QAM operating point.
     """
     return DEGRADED_QAM_THRESHOLDS.get((direction, docsis_version), default_threshold)
+
+
+def _channel_identity(ch):
+    """Return a stable per-channel identity for modulation baselines."""
+    return ch.get("channel_id", ch.get("frequency"))
+
+
+def _build_channel_baselines(by_date, version):
+    """Return highest numeric QAM observed per channel across the full range."""
+    baselines = {}
+    for date_groups in by_date.values():
+        for channels in date_groups:
+            for ch in channels:
+                if ch.get("docsis_version", "3.0") != version:
+                    continue
+                channel_id = _channel_identity(ch)
+                if channel_id is None:
+                    continue
+                _, qam = _canonical_label(_channel_modulation(ch))
+                if qam is None:
+                    continue
+                baselines[channel_id] = max(baselines.get(channel_id, 0), qam)
+    return baselines
 
 
 # ── Multi-day overview (distribution v2) ─────────────────────────────
@@ -257,14 +310,17 @@ def _weighted_avg(values_weights):
 def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
     """Build a single protocol group result dict."""
     effective_threshold = _degraded_qam_threshold(direction, version, threshold)
+    channel_baselines = _build_channel_baselines(by_date, version)
 
     # Collect observations per day, only for channels of this version
     all_observations = []
+    all_health_observations = []
     channel_ids = set()
     days = []
 
     for date_str in sorted_dates:
         day_observations = []
+        day_health_observations = []
         day_sample_count = 0
 
         for channels in by_date[date_str]:
@@ -273,16 +329,22 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
                 continue
             day_sample_count += 1
             for ch in group_channels:
-                channel_ids.add(ch.get("channel_id"))
+                channel_id = _channel_identity(ch)
+                channel_ids.add(channel_id)
                 mod_str = _channel_modulation(ch)
                 label, qam = _canonical_label(mod_str)
                 day_observations.append((label, qam))
+                day_health_observations.append((channel_id, label, qam))
 
         if not day_observations:
             continue
 
         all_observations.extend(day_observations)
-        hi = _health_index_for_group(day_observations, direction, version)
+        all_health_observations.extend(day_health_observations)
+        if direction == "ds":
+            hi = _health_index_for_channel_baselines(day_health_observations, channel_baselines)
+        else:
+            hi = _health_index_for_group(day_observations, direction, version)
         lq = _low_qam_pct(day_observations, effective_threshold)
 
         # Count degraded channels for this day
@@ -303,7 +365,10 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
 
     max_qam = MAX_QAM.get((direction, version), 4096)
     max_qam_label = f"{max_qam}QAM"
-    overall_hi = _health_index_for_group(all_observations, direction, version)
+    if direction == "ds":
+        overall_hi = _health_index_for_channel_baselines(all_health_observations, channel_baselines)
+    else:
+        overall_hi = _health_index_for_group(all_observations, direction, version)
     overall_lq = _low_qam_pct(all_observations, effective_threshold)
     overall_dist = _distribution_pct(all_observations)
     dominant = max(overall_dist, key=overall_dist.get) if overall_dist else None
@@ -424,9 +489,16 @@ def compute_intraday(snapshots, direction, tz_name, date_str, low_qam_threshold=
         for cid, cdata in sorted(by_version[version], key=lambda x: x[0]):
             timeline = cdata["timeline"]
             periods = _modulation_periods(timeline)
-            hi = _health_index_for_group(
-                [(l, q) for _, l, q in timeline], direction, version
-            )
+            if direction == "ds":
+                channel_baseline = max((q for _, _, q in timeline if q is not None), default=None)
+                hi = _health_index_for_channel_baselines(
+                    [(cid, l, q) for _, l, q in timeline],
+                    {cid: channel_baseline} if channel_baseline is not None else {},
+                )
+            else:
+                hi = _health_index_for_group(
+                    [(l, q) for _, l, q in timeline], direction, version
+                )
             degraded_threshold = _degraded_qam_threshold(direction, version, low_qam_threshold)
             degraded_events = _build_degraded_events(periods, degraded_threshold)
             degraded = len(degraded_events) > 0

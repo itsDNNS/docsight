@@ -571,6 +571,38 @@ class TestComputeDistributionV2:
         pg = result["protocol_groups"][0]
         assert pg["health_index"] == 100.0
 
+    def test_health_index_ds30_fixed_64qam_channels_stay_healthy(self):
+        """Fixed 64QAM DS channels should not lower the v2 health index."""
+        ds_channels = [
+            {"channel_id": 1, "modulation": "256QAM", "docsis_version": "3.0"},
+            {"channel_id": 2, "modulation": "64QAM", "docsis_version": "3.0"},
+            {"channel_id": 3, "modulation": "64QAM", "docsis_version": "3.0"},
+        ]
+        snaps = [
+            _make_snapshot("2026-03-01T10:00:00Z", ds_channels=ds_channels),
+            _make_snapshot("2026-03-01T14:00:00Z", ds_channels=ds_channels),
+        ]
+        result = compute_distribution_v2(snaps, "ds", "UTC")
+        pg = result["protocol_groups"][0]
+        assert pg["health_index"] == 100.0
+        assert pg["days"][0]["health_index"] == 100.0
+
+    def test_health_index_ds30_still_drops_when_channel_falls_below_its_baseline(self):
+        """A DS channel that drops from 256QAM to 64QAM should still lower health."""
+        snaps = [
+            _make_snapshot(
+                "2026-03-01T10:00:00Z",
+                ds_channels=[{"channel_id": 1, "modulation": "256QAM", "docsis_version": "3.0"}],
+            ),
+            _make_snapshot(
+                "2026-03-01T14:00:00Z",
+                ds_channels=[{"channel_id": 1, "modulation": "64QAM", "docsis_version": "3.0"}],
+            ),
+        ]
+        result = compute_distribution_v2(snaps, "ds", "UTC")
+        pg = result["protocol_groups"][0]
+        assert pg["health_index"] == 83.3
+
     def test_degraded_channel_count(self):
         us_channels = [
             {"channel_id": 1, "modulation": "64QAM", "docsis_version": "3.0"},
@@ -696,6 +728,7 @@ class TestComputeIntraday:
         result = compute_intraday(snaps, "ds", "UTC", "2026-03-01")
         ch = result["protocol_groups"][0]["channels"][0]
         assert ch["degraded"] is False
+        assert ch["health_index"] == 100.0
         assert ch["summary"] == ""
 
     def test_multi_protocol_groups(self):
