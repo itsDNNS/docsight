@@ -10,9 +10,11 @@
     var targets = [];
     var refreshTimer = null;
     var lastResolution = 'raw';
+    var pinnedDayView = null; // { date: 'YYYY-MM-DD', start: epoch, end: epoch } when viewing a pinned day
 
     function updateRefreshInterval() {
         if (refreshTimer) clearInterval(refreshTimer);
+        if (pinnedDayView) return; // no auto-refresh for pinned day views
         var interval = currentRange <= 86400 ? 10000 : 60000;
         refreshTimer = setInterval(function() {
             var view = document.getElementById('cm-detail-view');
@@ -27,25 +29,139 @@
     }
 
     window.cmSetRange = function(btn, seconds) {
+        pinnedDayView = null;
         currentRange = seconds;
         document.querySelectorAll('[data-cm-range]').forEach(function(b) {
             b.classList.remove('active');
         });
         btn.classList.add('active');
+        updatePinButton();
         loadData();
         updateRefreshInterval();
     };
 
     window.cmExportCsv = function(targetId) {
-        var now = Date.now() / 1000;
-        var start = now - currentRange;
+        var start, end;
+        if (pinnedDayView) {
+            start = pinnedDayView.start;
+            end = pinnedDayView.end;
+        } else {
+            var now = Date.now() / 1000;
+            start = now - currentRange;
+            end = now;
+        }
         var a = document.createElement('a');
-        a.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + now + '&resolution=' + lastResolution;
+        a.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + end + '&resolution=' + lastResolution;
         a.download = '';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     };
+
+    // --- Pin Button ---
+
+    function updatePinButton() {
+        var existing = document.getElementById('cm-pin-day-btn');
+        if (existing) existing.remove();
+
+        if (currentRange !== 86400 || pinnedDayView) return;
+
+        var container = document.querySelector('#cm-detail-view [data-cm-range]');
+        if (!container) return;
+        var parent = container.parentElement;
+
+        var btn = document.createElement('button');
+        btn.id = 'cm-pin-day-btn';
+        btn.className = 'trend-tab';
+        btn.style.cssText = 'font-size:0.75rem;padding:4px 10px;margin-left:4px;';
+        btn.textContent = '\uD83D\uDCCC Pin this day';
+        btn.onclick = function() {
+            var ts = Math.floor(Date.now() / 1000);
+            fetch('/api/connection-monitor/pinned-days', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ timestamp: ts })
+            }).then(function() {
+                loadPinnedDays();
+            });
+        };
+        parent.appendChild(btn);
+    }
+
+    // --- Pinned Days Bar ---
+
+    function loadPinnedDays() {
+        fetch('/api/connection-monitor/pinned-days')
+            .then(function(r) { return r.json(); })
+            .then(function(days) {
+                renderPinnedDays(days);
+            })
+            .catch(function() {});
+    }
+
+    function renderPinnedDays(days) {
+        var bar = document.getElementById('cm-pinned-days-bar');
+        var container = document.getElementById('cm-pinned-days');
+        if (!bar || !container) return;
+
+        container.textContent = '';
+        if (days.length === 0) {
+            bar.style.display = 'none';
+            return;
+        }
+        bar.style.display = '';
+
+        days.forEach(function(day) {
+            var chip = document.createElement('button');
+            chip.className = 'trend-tab';
+            chip.style.cssText = 'font-size:0.72rem;padding:3px 8px;display:inline-flex;align-items:center;gap:4px;';
+            if (pinnedDayView && pinnedDayView.date === day.date) {
+                chip.classList.add('active');
+            }
+
+            var label = day.label ? day.date + ' (' + day.label + ')' : day.date;
+            var textSpan = document.createElement('span');
+            textSpan.textContent = label;
+            textSpan.style.cursor = 'pointer';
+            textSpan.onclick = function(e) {
+                e.stopPropagation();
+                viewPinnedDay(day.date, day.utc_start, day.utc_end);
+            };
+
+            var removeBtn = document.createElement('span');
+            removeBtn.textContent = '\u00d7';
+            removeBtn.style.cssText = 'cursor:pointer;font-size:0.85rem;line-height:1;opacity:0.6;';
+            removeBtn.onclick = function(e) {
+                e.stopPropagation();
+                fetch('/api/connection-monitor/pinned-days/' + day.date, { method: 'DELETE' })
+                    .then(function() { loadPinnedDays(); });
+            };
+
+            chip.appendChild(textSpan);
+            chip.appendChild(removeBtn);
+            container.appendChild(chip);
+        });
+    }
+
+    function viewPinnedDay(dateStr, utcStart, utcEnd) {
+        pinnedDayView = {
+            date: dateStr,
+            start: utcStart,
+            end: utcEnd
+        };
+
+        // Deactivate range buttons
+        document.querySelectorAll('[data-cm-range]').forEach(function(b) {
+            b.classList.remove('active');
+        });
+        var pinBtn = document.getElementById('cm-pin-day-btn');
+        if (pinBtn) pinBtn.remove();
+
+        if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+
+        loadData();
+        loadPinnedDays(); // refresh to highlight active
+    }
 
     function init() {
         fetch('/api/connection-monitor/capability')
@@ -83,6 +199,7 @@
             .catch(function() {});
 
         loadTargets();
+        loadPinnedDays();
 
         updateRefreshInterval();
     }
@@ -94,6 +211,7 @@
                 targets = data.filter(function(t) { return t.enabled; });
                 if (targets.length > 0) {
                     loadData();
+                    updatePinButton();
                 } else {
                     showNoData();
                 }
@@ -105,13 +223,22 @@
         if (targets.length === 0) { showNoData(); return; }
 
         var now = Date.now() / 1000;
-        var start = now - currentRange;
-        var maxPoints = getMaxPointsForRange(currentRange);
+        var start, end;
+        if (pinnedDayView) {
+            start = pinnedDayView.start;
+            end = pinnedDayView.end;
+        } else {
+            start = now - currentRange;
+            end = now;
+        }
+        var maxPoints = pinnedDayView ? 0 : getMaxPointsForRange(currentRange);
 
         // Fetch samples for ALL targets in parallel
         var samplePromises = targets.map(function(t) {
-            var url = '/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + now + '&limit=0';
-            if (maxPoints > 0) {
+            var url = '/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + end + '&limit=0';
+            if (pinnedDayView) {
+                url += '&resolution=raw';
+            } else if (maxPoints > 0) {
                 url += '&max_points=' + maxPoints;
             }
             return fetch(url)
@@ -119,12 +246,12 @@
                 .then(function(data) { return { target: t, samples: data.samples, meta: data.meta }; });
         });
 
-        var statsPromise = fetch('/api/connection-monitor/stats?start=' + start + '&end=' + now)
+        var statsPromise = fetch('/api/connection-monitor/stats?start=' + start + '&end=' + end)
             .then(function(r) { return r.json(); });
 
         // Fetch outages for ALL targets in parallel
         var outagePromises = targets.map(function(t) {
-            return fetch('/api/connection-monitor/outages/' + t.id + '?start=' + start + '&end=' + now)
+            return fetch('/api/connection-monitor/outages/' + t.id + '?start=' + start + '&end=' + end)
                 .then(function(r) { return r.json(); })
                 .then(function(outages) { return { target: t, outages: outages }; });
         });
@@ -279,6 +406,11 @@
             '5min': el.dataset.label5min || '5-min averages',
             '1hr': el.dataset.label1hr || '1-hour averages'
         };
+        if (pinnedDayView) {
+            el.textContent = 'Pinned: ' + pinnedDayView.date + ' (full resolution)';
+            el.style.display = '';
+            return;
+        }
         if (meta.mixed && Array.isArray(meta.tiers_used) && meta.tiers_used.length > 0) {
             el.textContent = meta.tiers_used.map(function(tier) {
                 return labels[tier] || tier;

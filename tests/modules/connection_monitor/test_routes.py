@@ -28,7 +28,8 @@ def app(tmp_path):
     import app.modules.connection_monitor.routes as routes_mod
     routes_mod._storage = storage
 
-    with patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe):
+    with patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe), \
+         patch("app.modules.connection_monitor.routes._get_tz", return_value="UTC"):
         yield app, storage
 
     # Clean up
@@ -397,6 +398,142 @@ class TestSamplesResolution:
         assert sum(sample["sample_count"] for sample in data["samples"]) == 120
 
 
+class TestPinnedDaysAPI:
+    def test_list_pinned_days_empty(self, client):
+        c, _ = client
+        resp = c.get("/api/connection-monitor/pinned-days")
+        assert resp.status_code == 200
+        assert resp.get_json() == []
+
+    def test_pin_day(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"date": "2026-03-10"},
+        )
+        assert resp.status_code == 201
+        days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert len(days) == 1
+        assert days[0]["date"] == "2026-03-10"
+        assert "utc_start" in days[0]
+        assert "utc_end" in days[0]
+
+    def test_pin_day_via_timestamp(self, client):
+        """POST with timestamp instead of date derives date server-side."""
+        c, _ = client
+        _auth_session(c)
+        from datetime import datetime, timezone
+        # 2026-03-10 12:00:00 UTC
+        ts = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc).timestamp()
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"timestamp": ts},
+        )
+        assert resp.status_code == 201
+        days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert len(days) == 1
+        assert days[0]["date"] == "2026-03-10"
+
+    def test_pin_day_with_label(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"date": "2026-03-10", "label": "Outage"},
+        )
+        assert resp.status_code == 201
+        days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert days[0]["label"] == "Outage"
+
+    def test_pin_day_invalid_date(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"date": "not-a-date"},
+        )
+        assert resp.status_code == 400
+
+    def test_pin_day_future_date(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"date": "2099-01-01"},
+        )
+        assert resp.status_code == 400
+
+    def test_pin_day_missing_date_and_timestamp(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={},
+        )
+        assert resp.status_code == 400
+
+    def test_unpin_day(self, client):
+        c, _ = client
+        _auth_session(c)
+        c.post("/api/connection-monitor/pinned-days", json={"date": "2026-03-10"})
+        resp = c.delete("/api/connection-monitor/pinned-days/2026-03-10")
+        assert resp.status_code == 200
+        days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert len(days) == 0
+
+    def test_unpin_nonexistent(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.delete("/api/connection-monitor/pinned-days/2026-01-01")
+        assert resp.status_code == 404
+
+    def test_pinned_day_older_than_7d_returns_raw(self, client):
+        """Pinned day raw data should be served when resolution=raw, even beyond the 7d window."""
+        c, storage = client
+        _auth_session(c)
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        old_ts = now - 10 * 86400  # 10 days ago
+        from datetime import datetime
+        old_date = datetime.fromtimestamp(old_ts).strftime("%Y-%m-%d")
+        storage.pin_day(old_date)
+        storage.save_samples([
+            {"target_id": tid, "timestamp": old_ts, "latency_ms": 42.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": old_ts + 5, "latency_ms": 43.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        # Simulate what the JS does for pinned days: resolution=raw
+        resp = c.get(
+            f"/api/connection-monitor/samples/{tid}"
+            f"?start={old_ts - 3600}&end={old_ts + 86400}&limit=0&resolution=raw"
+        )
+        data = resp.get_json()
+        assert data["meta"]["resolution"] == "raw"
+        assert len(data["samples"]) == 2
+        assert data["samples"][0]["latency_ms"] == 42.0
+        assert data["samples"][0]["sample_count"] == 1
+
+    def test_pinned_day_older_than_7d_export_returns_raw(self, client):
+        """CSV export of a pinned day should return raw samples."""
+        c, storage = client
+        _auth_session(c)
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        old_ts = now - 10 * 86400
+        from datetime import datetime
+        old_date = datetime.fromtimestamp(old_ts).strftime("%Y-%m-%d")
+        storage.pin_day(old_date)
+        storage.save_samples([
+            {"target_id": tid, "timestamp": old_ts, "latency_ms": 42.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        resp = c.get(f"/api/connection-monitor/export/{tid}?start={old_ts - 3600}&end={old_ts + 86400}&resolution=raw")
+        assert resp.status_code == 200
+        import csv, io
+        rows = list(csv.reader(io.StringIO(resp.data.decode())))
+        assert len(rows) == 2  # header + 1 data row
+        assert "latency_ms" in rows[0]
+
+
 class TestSummaryAPI:
     def test_get_summary(self, client):
         c, storage = client
@@ -534,6 +671,19 @@ class TestAuthProtection:
     def test_capability_requires_auth(self, auth_client):
         c, _ = auth_client
         assert c.get("/api/connection-monitor/capability").status_code == 401
+
+    def test_pinned_days_get_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.get("/api/connection-monitor/pinned-days").status_code == 401
+
+    def test_pinned_days_post_requires_auth(self, auth_client):
+        c, _ = auth_client
+        resp = c.post("/api/connection-monitor/pinned-days", json={"date": "2026-03-10"})
+        assert resp.status_code == 401
+
+    def test_pinned_days_delete_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.delete("/api/connection-monitor/pinned-days/2026-03-10").status_code == 401
 
     def test_authenticated_request_passes(self, auth_client):
         c, _ = auth_client

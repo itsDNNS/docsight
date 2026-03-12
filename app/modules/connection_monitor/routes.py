@@ -4,6 +4,7 @@ import csv
 import io
 import logging
 import math
+import re
 import time
 from datetime import datetime
 
@@ -97,6 +98,83 @@ def api_update_target(target_id):
 def api_delete_target(target_id):
     storage = _get_cm_storage()
     storage.delete_target(target_id)
+    return jsonify({"ok": True})
+
+
+# --- Pinned Days ---
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _get_tz():
+    from app.web import _get_tz_name
+    return _get_tz_name()
+
+
+def _date_to_epoch_range(date_str, tz_name):
+    """Convert YYYY-MM-DD to (start_epoch, end_epoch) in the configured timezone."""
+    from app.tz import local_date_to_utc_range, _parse_utc
+    start_utc, end_utc = local_date_to_utc_range(date_str, tz_name)
+    return (_parse_utc(start_utc).timestamp(), _parse_utc(end_utc).timestamp())
+
+
+@bp.route("/api/connection-monitor/pinned-days", methods=["GET"])
+@require_auth
+def api_get_pinned_days():
+    storage = _get_cm_storage()
+    tz = _get_tz()
+    days = storage.get_pinned_days()
+    for day in days:
+        start, end = _date_to_epoch_range(day["date"], tz)
+        day["utc_start"] = start
+        day["utc_end"] = end
+    return jsonify(days)
+
+
+@bp.route("/api/connection-monitor/pinned-days", methods=["POST"])
+@require_auth
+def api_pin_day():
+    storage = _get_cm_storage()
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "date required"}), 400
+
+    date_str = data.get("date")
+    if not date_str:
+        # Derive date from timestamp using server timezone
+        ts = data.get("timestamp")
+        if ts is None:
+            return jsonify({"error": "date or timestamp required"}), 400
+        try:
+            ts = float(ts)
+        except (ValueError, TypeError):
+            return jsonify({"error": "invalid timestamp"}), 400
+        tz = _get_tz()
+        from datetime import timezone as _utc_tz
+        from app.tz import to_local_display
+        utc_str = datetime.fromtimestamp(ts, tz=_utc_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        date_str = to_local_display(utc_str, tz, fmt="%Y-%m-%d")
+
+    if not _DATE_RE.match(date_str):
+        return jsonify({"error": "invalid date format, expected YYYY-MM-DD"}), 400
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"error": "invalid date"}), 400
+    from app.tz import local_today
+    today = local_today(_get_tz())
+    if date_str > today:
+        return jsonify({"error": "cannot pin a future date"}), 400
+    storage.pin_day(date_str, label=data.get("label"))
+    return jsonify({"ok": True}), 201
+
+
+@bp.route("/api/connection-monitor/pinned-days/<date>", methods=["DELETE"])
+@require_auth
+def api_unpin_day(date):
+    storage = _get_cm_storage()
+    if not storage.unpin_day(date):
+        return jsonify({"error": "not found"}), 404
     return jsonify({"ok": True})
 
 
