@@ -201,6 +201,17 @@ function updateCompareActionLabels() {
     if (addAllBtn) addAllBtn.textContent = getComparePresetLabel(getCompareDirection());
 }
 
+function showCompareError(message, error) {
+    var loadingEl = document.getElementById('compare-loading');
+    var emptyEl = document.getElementById('compare-empty');
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (emptyEl) {
+        emptyEl.textContent = message;
+        emptyEl.style.display = '';
+    }
+    if (error) console.error('Channel compare error:', error);
+}
+
 function clearCompareCharts() {
     document.getElementById('compare-charts').style.display = 'none';
     document.getElementById('compare-loading').style.display = 'none';
@@ -209,28 +220,38 @@ function clearCompareCharts() {
     });
 }
 
-function loadCompareChannelList() {
+function populateCompareChannelList(data) {
     var dir = getCompareDirection();
     var sel = document.getElementById('compare-channel-select');
     updateCompareActionLabels();
+    sel.innerHTML = '<option value="">' + (T.select_channel || 'Select Channel') + '</option>';
+    var channels = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
+    channels.forEach(function(ch) {
+        var already = _compareChannels.some(function(c) { return c.id === ch.channel_id; });
+        if (already) return;
+        var opt = document.createElement('option');
+        opt.value = ch.channel_id;
+        opt.dataset.docsis = ch.docsis_version || '3.0';
+        opt.dataset.freq = ch.frequency || '';
+        var prefix = dir === 'ds' ? 'DS' : 'US';
+        opt.textContent = prefix + ' ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
+        sel.appendChild(opt);
+    });
+}
+
+function loadCompareChannelList(data) {
+    if (data) {
+        populateCompareChannelList(data);
+        return;
+    }
     fetch('/api/channels')
         .then(function(r) { return r.json(); })
-        .then(function(data) {
-            sel.innerHTML = '<option value="">' + (T.select_channel || 'Select Channel') + '</option>';
-            var channels = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
-            channels.forEach(function(ch) {
-                var already = _compareChannels.some(function(c) { return c.id === ch.channel_id; });
-                if (already) return;
-                var opt = document.createElement('option');
-                opt.value = ch.channel_id;
-                opt.dataset.docsis = ch.docsis_version || '3.0';
-                opt.dataset.freq = ch.frequency || '';
-                var prefix = dir === 'ds' ? 'DS' : 'US';
-                opt.textContent = prefix + ' ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
-                sel.appendChild(opt);
-            });
+        .then(function(payload) {
+            populateCompareChannelList(payload);
         })
-        .catch(function() {});
+        .catch(function(error) {
+            showCompareError(T.trend_error || 'Error loading data.', error);
+        });
 }
 
 function onCompareDirectionChange() {
@@ -249,7 +270,7 @@ function addCompareChannel() {
     var opt = sel.options[sel.selectedIndex];
     if (!opt || !opt.value) return;
     if (_compareChannels.length >= 6) {
-        alert(T.max_channels_reached || 'Maximum 6 channels');
+        alert(T.max_channels_reached || 'Maximum 6 channels in manual selection');
         return;
     }
     _comparePreset = null;
@@ -287,10 +308,12 @@ function addAllCompareChannels() {
                 return buildCompareChannelEntry(ch, index, dir);
             });
             renderCompareChips();
-            loadCompareChannelList();
+            loadCompareChannelList(data);
             loadCompareCharts();
         })
-        .catch(function() {});
+        .catch(function(error) {
+            showCompareError(T.trend_error || 'Error loading data.', error);
+        });
 }
 window.addAllCompareChannels = addAllCompareChannels;
 

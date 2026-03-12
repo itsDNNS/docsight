@@ -465,6 +465,7 @@
   "all_downstream": "",
   "all_upstream": "",
   "max_channels_reached": "",
+  "clear_selection": "",
   "select_direction": "",
   "no_channels_selected": "",
   "bqm_import": "",
