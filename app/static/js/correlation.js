@@ -51,8 +51,8 @@ function loadCorrelationData() {
 
     /* Calculate time range for weather fetch */
     var now = new Date();
-    var wEnd = now.toISOString().replace('T', ' ').substring(0, 19) + 'Z';
-    var wStart = new Date(now.getTime() - parseInt(hours) * 3600000).toISOString().replace('T', ' ').substring(0, 19) + 'Z';
+    var wEnd = now.toISOString().substring(0, 19) + 'Z';
+    var wStart = new Date(now.getTime() - parseInt(hours) * 3600000).toISOString().substring(0, 19) + 'Z';
     var weatherUrl = '/api/weather/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
 
     var segmentUrl = '/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);

@@ -5,6 +5,15 @@ import threading
 from datetime import datetime, timezone
 
 
+def _normalize_range_ts(ts, separator="T"):
+    """Accept either ISO 'T' or legacy space-separated timestamps for queries."""
+    if not ts or len(ts) < 19:
+        return ts
+    if ts[10] not in ("T", " "):
+        return ts
+    return ts[:10] + separator + ts[11:]
+
+
 class SegmentUtilizationStorage:
     """Standalone storage for cable segment utilization data.
 
@@ -63,6 +72,8 @@ class SegmentUtilizationStorage:
 
     def get_range(self, start_ts, end_ts):
         """Return records within a time range, sorted by timestamp ascending."""
+        start_ts = _normalize_range_ts(start_ts, "T")
+        end_ts = _normalize_range_ts(end_ts, "T")
         conn = self._connect()
         try:
             rows = conn.execute(
@@ -87,6 +98,8 @@ class SegmentUtilizationStorage:
 
     def get_stats(self, start_ts, end_ts):
         """Return min/max/avg statistics for the given time range."""
+        start_ts = _normalize_range_ts(start_ts, "T")
+        end_ts = _normalize_range_ts(end_ts, "T")
         conn = self._connect()
         try:
             row = conn.execute(

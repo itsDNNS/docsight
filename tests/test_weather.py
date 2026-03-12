@@ -131,6 +131,18 @@ class TestWeatherStorage:
         assert len(results) == 1
         assert results[0]["temperature"] == 4.0
 
+    def test_get_weather_in_range_accepts_iso_t_query_timestamps(self, tmp_path):
+        storage = WeatherStorage(str(tmp_path / "test.db"))
+        records = [
+            {"timestamp": "2026-02-25 10:00:00Z", "temperature": 3.0},
+            {"timestamp": "2026-02-26 10:00:00Z", "temperature": 4.0},
+            {"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0},
+        ]
+        storage.save_weather_data(records)
+        results = storage.get_weather_in_range("2026-02-26T00:00:00Z", "2026-02-27T00:00:00Z")
+        assert len(results) == 1
+        assert results[0]["temperature"] == 4.0
+
     def test_get_weather_count(self, tmp_path):
         storage = WeatherStorage(str(tmp_path / "test.db"))
         assert storage.get_weather_count() == 0
