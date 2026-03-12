@@ -41,10 +41,17 @@
     };
 
     window.cmExportCsv = function(targetId) {
-        var now = Date.now() / 1000;
-        var start = now - currentRange;
+        var start, end;
+        if (pinnedDayView) {
+            start = pinnedDayView.start;
+            end = pinnedDayView.end;
+        } else {
+            var now = Date.now() / 1000;
+            start = now - currentRange;
+            end = now;
+        }
         var a = document.createElement('a');
-        a.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + now + '&resolution=' + lastResolution;
+        a.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + end + '&resolution=' + lastResolution;
         a.download = '';
         document.body.appendChild(a);
         a.click();
@@ -69,14 +76,11 @@
         btn.style.cssText = 'font-size:0.75rem;padding:4px 10px;margin-left:4px;';
         btn.textContent = '\uD83D\uDCCC Pin this day';
         btn.onclick = function() {
-            var now = new Date();
-            var dateStr = now.getFullYear() + '-' +
-                String(now.getMonth() + 1).padStart(2, '0') + '-' +
-                String(now.getDate()).padStart(2, '0');
+            var ts = Math.floor(Date.now() / 1000);
             fetch('/api/connection-monitor/pinned-days', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date: dateStr })
+                body: JSON.stringify({ timestamp: ts })
             }).then(function() {
                 loadPinnedDays();
             });
@@ -121,7 +125,7 @@
             textSpan.style.cursor = 'pointer';
             textSpan.onclick = function(e) {
                 e.stopPropagation();
-                viewPinnedDay(day.date);
+                viewPinnedDay(day.date, day.utc_start, day.utc_end);
             };
 
             var removeBtn = document.createElement('span');
@@ -139,16 +143,11 @@
         });
     }
 
-    function viewPinnedDay(dateStr) {
-        var parts = dateStr.split('-');
-        var dayStart = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        var dayEnd = new Date(dayStart);
-        dayEnd.setDate(dayEnd.getDate() + 1);
-
+    function viewPinnedDay(dateStr, utcStart, utcEnd) {
         pinnedDayView = {
             date: dateStr,
-            start: dayStart.getTime() / 1000,
-            end: dayEnd.getTime() / 1000
+            start: utcStart,
+            end: utcEnd
         };
 
         // Deactivate range buttons

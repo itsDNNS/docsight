@@ -28,7 +28,8 @@ def app(tmp_path):
     import app.modules.connection_monitor.routes as routes_mod
     routes_mod._storage = storage
 
-    with patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe):
+    with patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe), \
+         patch("app.modules.connection_monitor.routes._get_tz", return_value="UTC"):
         yield app, storage
 
     # Clean up
@@ -415,6 +416,24 @@ class TestPinnedDaysAPI:
         days = c.get("/api/connection-monitor/pinned-days").get_json()
         assert len(days) == 1
         assert days[0]["date"] == "2026-03-10"
+        assert "utc_start" in days[0]
+        assert "utc_end" in days[0]
+
+    def test_pin_day_via_timestamp(self, client):
+        """POST with timestamp instead of date derives date server-side."""
+        c, _ = client
+        _auth_session(c)
+        from datetime import datetime, timezone
+        # 2026-03-10 12:00:00 UTC
+        ts = datetime(2026, 3, 10, 12, 0, 0, tzinfo=timezone.utc).timestamp()
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"timestamp": ts},
+        )
+        assert resp.status_code == 201
+        days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert len(days) == 1
+        assert days[0]["date"] == "2026-03-10"
 
     def test_pin_day_with_label(self, client):
         c, _ = client
@@ -445,7 +464,7 @@ class TestPinnedDaysAPI:
         )
         assert resp.status_code == 400
 
-    def test_pin_day_missing_date(self, client):
+    def test_pin_day_missing_date_and_timestamp(self, client):
         c, _ = client
         _auth_session(c)
         resp = c.post(
