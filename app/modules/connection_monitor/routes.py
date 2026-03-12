@@ -110,6 +110,10 @@ _RESOLUTION_MAP = {
     "1hr": 3600,
 }
 
+_RAW_MAX_AGE = 7 * 86400
+_AGG_60S_MAX_AGE = 30 * 86400
+_AGG_300S_MAX_AGE = 90 * 86400
+
 
 def _compress_samples(samples: list[dict], start: float | None, end: float | None, max_points: int | None) -> list[dict]:
     """Downsample chart samples to keep browser payloads bounded."""
@@ -194,6 +198,32 @@ def _compress_samples(samples: list[dict], start: float | None, end: float | Non
 
     return compressed
 
+
+def _append_raw_samples(samples: list[dict], raw_rows: list[dict]):
+    for s in raw_rows:
+        samples.append({
+            "timestamp": s["timestamp"],
+            "latency_ms": s["latency_ms"],
+            "min_latency_ms": None,
+            "max_latency_ms": None,
+            "p95_latency_ms": None,
+            "packet_loss_pct": 100.0 if s["timeout"] else 0.0,
+            "sample_count": 1,
+        })
+
+
+def _append_aggregated_samples(samples: list[dict], agg_rows: list[dict]):
+    for a in agg_rows:
+        samples.append({
+            "timestamp": a["bucket_start"],
+            "latency_ms": a["avg_latency_ms"],
+            "min_latency_ms": a["min_latency_ms"],
+            "max_latency_ms": a["max_latency_ms"],
+            "p95_latency_ms": a["p95_latency_ms"],
+            "packet_loss_pct": a["packet_loss_pct"],
+            "sample_count": a["sample_count"],
+        })
+
 @bp.route("/api/connection-monitor/samples/<int:target_id>")
 @require_auth
 def api_get_samples(target_id):
@@ -204,19 +234,20 @@ def api_get_samples(target_id):
     resolution = request.args.get("resolution", "auto")
     max_points = request.args.get("max_points", type=int)
 
+    time_range = (end - start) if start is not None and end is not None else 0
+
     # Determine resolution
     if resolution == "auto":
-        time_range = (end - start) if start is not None and end is not None else 0
         if time_range <= 86400:
             res_name, bucket_seconds, blended = "raw", None, False
-        elif time_range <= 7 * 86400:
+        elif time_range <= _RAW_MAX_AGE:
             res_name, bucket_seconds, blended = "raw", None, True
-        elif time_range <= 30 * 86400:
+        elif time_range <= _AGG_60S_MAX_AGE:
             res_name, bucket_seconds, blended = "1min", 60, True
-        elif time_range <= 90 * 86400:
-            res_name, bucket_seconds, blended = "5min", 300, False
+        elif time_range <= _AGG_300S_MAX_AGE:
+            res_name, bucket_seconds, blended = "5min", 300, True
         else:
-            res_name, bucket_seconds, blended = "1hr", 3600, False
+            res_name, bucket_seconds, blended = "1hr", 3600, True
     else:
         bucket_seconds = _RESOLUTION_MAP.get(resolution)
         res_name = resolution
@@ -225,39 +256,48 @@ def api_get_samples(target_id):
     # Fetch data
     samples = []
 
-    if bucket_seconds is None or blended:
-        raw_start = start
-        if blended and bucket_seconds is not None:
-            raw_start = max(start, time.time() - 7 * 86400) if start else time.time() - 7 * 86400
-        raw = storage.get_samples(target_id, start=raw_start, end=end, limit=limit)
-        for s in raw:
-            samples.append({
-                "timestamp": s["timestamp"],
-                "latency_ms": s["latency_ms"],
-                "min_latency_ms": None,
-                "max_latency_ms": None,
-                "p95_latency_ms": None,
-                "packet_loss_pct": 100.0 if s["timeout"] else 0.0,
-                "sample_count": 1,
-            })
+    if resolution != "auto":
+        if bucket_seconds is None:
+            raw = storage.get_samples(target_id, start=start, end=end, limit=limit)
+            _append_raw_samples(samples, raw)
+        else:
+            agg = storage.get_aggregated_samples(
+                target_id, bucket_seconds=bucket_seconds, start=start, end=end,
+            )
+            _append_aggregated_samples(samples, agg)
+    else:
+        now_ts = time.time()
+        range_start = start if start is not None else float("-inf")
+        range_end = end if end is not None else now_ts
 
-    if bucket_seconds is not None:
-        agg_end = end
-        if blended:
-            agg_end = time.time() - 7 * 86400
-        agg = storage.get_aggregated_samples(
-            target_id, bucket_seconds=bucket_seconds, start=start, end=agg_end,
-        )
-        for a in agg:
-            samples.append({
-                "timestamp": a["bucket_start"],
-                "latency_ms": a["avg_latency_ms"],
-                "min_latency_ms": a["min_latency_ms"],
-                "max_latency_ms": a["max_latency_ms"],
-                "p95_latency_ms": a["p95_latency_ms"],
-                "packet_loss_pct": a["packet_loss_pct"],
-                "sample_count": a["sample_count"],
-            })
+        if range_start <= range_end:
+            raw_start = max(range_start, now_ts - _RAW_MAX_AGE)
+            if raw_start <= range_end:
+                raw = storage.get_samples(target_id, start=raw_start, end=end, limit=limit)
+                _append_raw_samples(samples, raw)
+
+            agg_60_start = max(range_start, now_ts - _AGG_60S_MAX_AGE)
+            agg_60_end = min(range_end, now_ts - _RAW_MAX_AGE)
+            if agg_60_start <= agg_60_end:
+                agg_60 = storage.get_aggregated_samples(
+                    target_id, bucket_seconds=60, start=agg_60_start, end=agg_60_end,
+                )
+                _append_aggregated_samples(samples, agg_60)
+
+            agg_300_start = max(range_start, now_ts - _AGG_300S_MAX_AGE)
+            agg_300_end = min(range_end, now_ts - _AGG_60S_MAX_AGE)
+            if agg_300_start <= agg_300_end:
+                agg_300 = storage.get_aggregated_samples(
+                    target_id, bucket_seconds=300, start=agg_300_start, end=agg_300_end,
+                )
+                _append_aggregated_samples(samples, agg_300)
+
+            agg_3600_end = min(range_end, now_ts - _AGG_300S_MAX_AGE)
+            if time_range > _AGG_300S_MAX_AGE and range_start <= agg_3600_end:
+                agg_3600 = storage.get_aggregated_samples(
+                    target_id, bucket_seconds=3600, start=range_start, end=agg_3600_end,
+                )
+                _append_aggregated_samples(samples, agg_3600)
 
     samples.sort(key=lambda s: s["timestamp"])
     samples = _compress_samples(samples, start=start, end=end, max_points=max_points)

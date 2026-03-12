@@ -240,6 +240,57 @@ class TestSamplesResolution:
         assert data["samples"][0]["min_latency_ms"] is not None
         assert data["samples"][1]["min_latency_ms"] is None
 
+    def test_auto_90d_range_keeps_recent_raw_data(self, client):
+        """A 90d range should still show current raw data even before older buckets exist."""
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        storage.save_samples([
+            {"target_id": tid, "timestamp": now - 3600, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        resp = c.get(f"/api/connection-monitor/samples/{tid}?start={now - 90 * 86400}&end={now}")
+        data = resp.get_json()
+        assert data["meta"]["resolution"] == "5min"
+        assert data["meta"]["blended"] is True
+        assert len(data["samples"]) == 1
+        assert data["samples"][0]["latency_ms"] == 10.0
+        assert data["samples"][0]["min_latency_ms"] is None
+
+    def test_auto_90d_range_blends_raw_60s_and_300s(self, client):
+        """A 90d range should combine recent raw data with 60s and 300s buckets."""
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        storage.save_samples([
+            {"target_id": tid, "timestamp": now - 3600, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        with storage._connect() as conn:
+            conn.execute(
+                """INSERT INTO connection_samples_aggregated
+                   (target_id, bucket_start, bucket_seconds,
+                    avg_latency_ms, min_latency_ms, max_latency_ms,
+                    p95_latency_ms, packet_loss_pct, sample_count)
+                   VALUES (?, ?, 60, 15.0, 10.0, 20.0, 18.0, 0.0, 12)""",
+                (tid, now - 14 * 86400),
+            )
+            conn.execute(
+                """INSERT INTO connection_samples_aggregated
+                   (target_id, bucket_start, bucket_seconds,
+                    avg_latency_ms, min_latency_ms, max_latency_ms,
+                    p95_latency_ms, packet_loss_pct, sample_count)
+                   VALUES (?, ?, 300, 25.0, 20.0, 30.0, 28.0, 1.0, 60)""",
+                (tid, now - 45 * 86400),
+            )
+        resp = c.get(f"/api/connection-monitor/samples/{tid}?start={now - 90 * 86400}&end={now}")
+        data = resp.get_json()
+        assert data["meta"]["resolution"] == "5min"
+        assert data["meta"]["blended"] is True
+        assert len(data["samples"]) == 3
+        assert data["samples"][0]["timestamp"] < data["samples"][1]["timestamp"] < data["samples"][2]["timestamp"]
+        assert data["samples"][0]["min_latency_ms"] is not None
+        assert data["samples"][1]["min_latency_ms"] is not None
+        assert data["samples"][2]["min_latency_ms"] is None
+
     def test_get_samples_with_max_points(self, client):
         c, storage = client
         tid = storage.create_target("Test", "1.1.1.1")
