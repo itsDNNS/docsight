@@ -41,6 +41,13 @@ class TestGetRange:
         ranged = storage.get_range(start, end)
         assert len(ranged) == 2
 
+    def test_get_range_accepts_legacy_space_separated_query_timestamps(self, storage):
+        storage.save_at("2026-03-09T10:00:00Z", 1.0, 2.0, 0.1, 0.2)
+        storage.save_at("2026-03-09T10:01:00Z", 3.0, 4.0, 0.3, 0.4)
+        ranged = storage.get_range("2026-03-09 09:59:00Z", "2026-03-09 10:00:30Z")
+        assert len(ranged) == 1
+        assert ranged[0]["ds_total"] == pytest.approx(1.0)
+
     def test_get_range_empty(self, storage):
         assert storage.get_range("2000-01-01T00:00:00Z", "2000-01-02T00:00:00Z") == []
 

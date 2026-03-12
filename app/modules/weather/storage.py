@@ -6,6 +6,15 @@ import sqlite3
 log = logging.getLogger("docsis.storage.weather")
 
 
+def _normalize_range_ts(ts, separator=" "):
+    """Accept either ISO 'T' or legacy space-separated timestamps for queries."""
+    if not ts or len(ts) < 19:
+        return ts
+    if ts[10] not in ("T", " "):
+        return ts
+    return ts[:10] + separator + ts[11:]
+
+
 class WeatherStorage:
     """Standalone weather data storage (not a mixin).
 
@@ -60,6 +69,8 @@ class WeatherStorage:
 
     def get_weather_in_range(self, start_ts, end_ts):
         """Return weather data within a timestamp range, oldest first."""
+        start_ts = _normalize_range_ts(start_ts, " ")
+        end_ts = _normalize_range_ts(end_ts, " ")
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
