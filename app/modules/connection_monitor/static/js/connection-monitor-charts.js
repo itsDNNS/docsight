@@ -120,6 +120,18 @@ var CMCharts = (function() {
 
     function p2(n) { return n < 10 ? '0' + n : '' + n; }
 
+    function sampleCountOf(sample) {
+        return sample && sample.sample_count ? sample.sample_count : 1;
+    }
+
+    function lossPctOf(sample) {
+        if (!sample) return 0;
+        if (sample.packet_loss_pct != null) return sample.packet_loss_pct;
+        var sampleCount = sampleCountOf(sample);
+        var timeoutCount = sample.timeout_count != null ? sample.timeout_count : (sample.timeout ? sampleCount : 0);
+        return sampleCount > 0 ? (timeoutCount / sampleCount * 100) : 0;
+    }
+
     /**
      * Render combined PingPlotter-style chart with all targets overlaid.
      * @param {string} containerId - DOM element ID
@@ -159,7 +171,7 @@ var CMCharts = (function() {
             var sampleMap = {};
             td.samples.forEach(function(s) {
                 sampleMap[s.timestamp] = s;
-                if (s.packet_loss_pct > 0) lossSet[tsIndex[s.timestamp]] = true;
+                if (lossPctOf(s) > 0) lossSet[tsIndex[s.timestamp]] = true;
             });
             var data = new Array(timestamps.length);
             var minData = new Array(timestamps.length);
@@ -236,8 +248,8 @@ var CMCharts = (function() {
         allTargetData.forEach(function(td) {
             td.samples.forEach(function(s) {
                 if (!timeMap[s.timestamp]) timeMap[s.timestamp] = { total: 0, lossWeight: 0 };
-                timeMap[s.timestamp].total += (s.sample_count || 1);
-                timeMap[s.timestamp].lossWeight += (s.packet_loss_pct || 0) * (s.sample_count || 1);
+                timeMap[s.timestamp].total += sampleCount;
+                timeMap[s.timestamp].lossWeight += lossPctOf(s) * sampleCount;
             });
         });
         var timestamps = Object.keys(timeMap).map(Number).sort(function(a, b) { return a - b; });
@@ -288,46 +300,90 @@ var CMCharts = (function() {
 
         if (!allTargetData || allTargetData.length === 0) return;
 
-        // Aggregate across all targets using weighted computation
-        var weightedLatSum = 0;
-        var weightedCount = 0;
-        var globalMin = Infinity;
-        var globalMax = -Infinity;
-        var p95Values = [];
-        var totalSampleCount = 0;
-        var weightedLossSum = 0;
-        allTargetData.forEach(function(td) {
-            if (!td.samples) return;
-            td.samples.forEach(function(s) {
-                var count = s.sample_count || 1;
-                totalSampleCount += count;
-                weightedLossSum += (s.packet_loss_pct || 0) * count;
-                if (s.latency_ms != null) {
-                    weightedLatSum += s.latency_ms * count;
-                    weightedCount += count;
-                    var sMin = s.min_latency_ms != null ? s.min_latency_ms : s.latency_ms;
-                    var sMax = s.max_latency_ms != null ? s.max_latency_ms : s.latency_ms;
-                    if (sMin < globalMin) globalMin = sMin;
-                    if (sMax > globalMax) globalMax = sMax;
-                    if (s.p95_latency_ms != null) p95Values.push(s.p95_latency_ms);
-                    else p95Values.push(s.latency_ms);
+        // Prefer exact range stats from the backend when present.
+        var statsAvailable = allTargetData.every(function(td) { return !!td.stats; });
+
+        var min = null;
+        var max = null;
+        var avg = null;
+        var p95 = null;
+        var totalSamples = 0;
+        var totalTimeouts = 0;
+
+        if (statsAvailable) {
+            var weightedLatencySum = 0;
+            var weightedLatencyCount = 0;
+            var p95Values = [];
+
+            allTargetData.forEach(function(td) {
+                var stats = td.stats;
+                var sampleCount = stats.sample_count || 0;
+                var latencyCount = stats.latency_count || 0;
+                var packetLoss = stats.packet_loss_pct || 0;
+                var timeouts = Math.round(sampleCount * packetLoss / 100);
+
+                totalSamples += sampleCount;
+                totalTimeouts += timeouts;
+                weightedLatencyCount += latencyCount;
+                weightedLatencySum += (stats.avg_latency_ms || 0) * latencyCount;
+
+                if (stats.min_latency_ms != null) {
+                    min = min == null ? stats.min_latency_ms : Math.min(min, stats.min_latency_ms);
+                }
+                if (stats.max_latency_ms != null) {
+                    max = max == null ? stats.max_latency_ms : Math.max(max, stats.max_latency_ms);
+                }
+                if (stats.p95_latency_ms != null) {
+                    p95Values.push(stats.p95_latency_ms);
                 }
             });
-        });
-        if (weightedCount === 0) return;
-        var avg = weightedLatSum / weightedCount;
-        var min = globalMin;
-        var max = globalMax;
-        var p95 = Math.max.apply(null, p95Values);
-        var lossPct = totalSampleCount > 0 ? (weightedLossSum / totalSampleCount) : 0;
+
+            avg = weightedLatencyCount > 0 ? (weightedLatencySum / weightedLatencyCount) : null;
+            if (p95Values.length > 0) {
+                p95Values.sort(function(a, b) { return a - b; });
+                p95 = p95Values[Math.floor(p95Values.length * 0.95)];
+            }
+        } else {
+            var weightedLatencySum = 0;
+            var weightedLatencyCount = 0;
+            var p95Values = [];
+            allTargetData.forEach(function(td) {
+                if (!td.samples) return;
+                td.samples.forEach(function(s) {
+                    var sampleCount = sampleCountOf(s);
+                    totalSamples += sampleCount;
+                    totalTimeouts += sampleCount * lossPctOf(s) / 100;
+                    if (s.latency_ms != null) {
+                        weightedLatencySum += s.latency_ms * sampleCount;
+                        weightedLatencyCount += sampleCount;
+                        var minLatency = s.min_latency_ms != null ? s.min_latency_ms : s.latency_ms;
+                        var maxLatency = s.max_latency_ms != null ? s.max_latency_ms : s.latency_ms;
+                        min = min == null ? minLatency : Math.min(min, minLatency);
+                        max = max == null ? maxLatency : Math.max(max, maxLatency);
+                        p95Values.push(s.p95_latency_ms != null ? s.p95_latency_ms : s.latency_ms);
+                    }
+                });
+            });
+
+            if (weightedLatencyCount > 0) {
+                avg = weightedLatencySum / weightedLatencyCount;
+            }
+            if (p95Values.length > 0) {
+                p95Values.sort(function(a, b) { return a - b; });
+                p95 = p95Values[Math.floor(p95Values.length * 0.95)];
+            }
+        }
+
+        if (avg == null || min == null || max == null) return;
+        var lossPct = totalSamples > 0 ? (totalTimeouts / totalSamples * 100) : 0;
 
         var cards = [
             { label: 'Avg Latency', value: avg.toFixed(1) + ' ms', color: avg < 30 ? 'var(--good)' : avg < 100 ? 'var(--warn, orange)' : 'var(--crit)' },
             { label: 'Min', value: min.toFixed(1) + ' ms', color: 'var(--text-muted)' },
             { label: 'Max', value: max.toFixed(1) + ' ms', color: max > 100 ? 'var(--crit)' : 'var(--text-muted)' },
-            { label: 'P95', value: p95.toFixed(1) + ' ms', color: p95 > 100 ? 'var(--warn, orange)' : 'var(--text-muted)' },
+            { label: 'P95', value: p95 != null ? p95.toFixed(1) + ' ms' : '-', color: p95 != null && p95 > 100 ? 'var(--warn, orange)' : 'var(--text-muted)' },
             { label: 'Packet Loss', value: lossPct.toFixed(2) + '%', color: lossPct > 2 ? 'var(--crit)' : lossPct > 0 ? 'var(--warn, orange)' : 'var(--good)' },
-            { label: 'Samples', value: totalSampleCount.toLocaleString(), color: 'var(--text-muted)' }
+            { label: 'Samples', value: totalSamples.toLocaleString(), color: 'var(--text-muted)' }
         ];
 
         cards.forEach(function(c) {
@@ -377,38 +433,44 @@ var CMCharts = (function() {
 
         // Calculate per-target stats using weighted computation
         var stats = allTargetData.map(function(td, tIdx) {
-            var wLatSum = 0, wCount = 0, tMin = Infinity, tMax = -Infinity;
-            var tP95Vals = [], tTotalCount = 0, tLossWeight = 0;
+            var totalSamples = 0;
+            var avg = null;
+            var p95 = null;
+            var loss = 0;
 
-            if (td.samples) {
-                td.samples.forEach(function(s) {
-                    var count = s.sample_count || 1;
-                    tTotalCount += count;
-                    tLossWeight += (s.packet_loss_pct || 0) * count;
-                    if (s.latency_ms != null) {
-                        wLatSum += s.latency_ms * count;
-                        wCount += count;
-                        var sMin = s.min_latency_ms != null ? s.min_latency_ms : s.latency_ms;
-                        var sMax = s.max_latency_ms != null ? s.max_latency_ms : s.latency_ms;
-                        if (sMin < tMin) tMin = sMin;
-                        if (sMax > tMax) tMax = sMax;
-                        tP95Vals.push(s.p95_latency_ms != null ? s.p95_latency_ms : s.latency_ms);
-                    }
-                });
+            if (td.stats) {
+                totalSamples = td.stats.sample_count || 0;
+                avg = td.stats.avg_latency_ms;
+                p95 = td.stats.p95_latency_ms;
+                loss = td.stats.packet_loss_pct || 0;
+            } else {
+                var latencies = [];
+                var timeouts = 0;
+
+                if (td.samples) {
+                    td.samples.forEach(function(s) {
+                        var sampleCount = sampleCountOf(s);
+                        totalSamples += sampleCount;
+                        timeouts += sampleCount * lossPctOf(s) / 100;
+                        if (s.latency_ms != null) {
+                            latencies.push(s.p95_latency_ms != null ? s.p95_latency_ms : s.latency_ms);
+                        }
+                    });
+                }
+
+                latencies.sort(function(a, b) { return a - b; });
+                avg = latencies.length > 0 ? (latencies.reduce(function(a, b) { return a + b; }, 0) / latencies.length) : null;
+                p95 = latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.95)] : null;
+                loss = totalSamples > 0 ? (timeouts / totalSamples * 100) : 0;
             }
-
-            var avg = wCount > 0 ? wLatSum / wCount : null;
-            var p95 = tP95Vals.length > 0 ? Math.max.apply(null, tP95Vals) : null;
-            var lossPct = tTotalCount > 0 ? (tLossWeight / tTotalCount) : 0;
-
             return {
                 label: td.target.label,
                 host: td.target.host,
                 color: TARGET_COLORS[tIdx % TARGET_COLORS.length],
                 avg: avg,
                 p95: p95,
-                loss: lossPct,
-                samples: tTotalCount,
+                loss: loss,
+                samples: totalSamples,
                 isLocal: isPrivateIP(td.target.host)
             };
         });

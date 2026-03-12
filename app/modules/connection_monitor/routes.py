@@ -3,6 +3,7 @@
 import csv
 import io
 import logging
+import math
 import time
 from datetime import datetime
 
@@ -109,6 +110,90 @@ _RESOLUTION_MAP = {
     "1hr": 3600,
 }
 
+
+def _compress_samples(samples: list[dict], start: float | None, end: float | None, max_points: int | None) -> list[dict]:
+    """Downsample chart samples to keep browser payloads bounded."""
+    if not max_points or max_points <= 0 or len(samples) <= max_points:
+        return samples
+
+    range_start = start if start is not None else samples[0]["timestamp"]
+    range_end = end if end is not None else samples[-1]["timestamp"]
+    bucket_seconds = max(1, math.ceil(max(range_end - range_start, 1) / max_points))
+    buckets: dict[int, dict] = {}
+
+    for sample in samples:
+        bucket_idx = int((sample["timestamp"] - range_start) // bucket_seconds)
+        bucket = buckets.setdefault(bucket_idx, {
+            "timestamp": range_start + bucket_idx * bucket_seconds,
+            "sample_count": 0,
+            "loss_weight": 0.0,
+            "latency_sum": 0.0,
+            "latency_count": 0,
+            "min_latency_ms": None,
+            "max_latency_ms": None,
+            "p95_values": [],
+        })
+
+        sample_count = sample.get("sample_count") or 1
+        loss_pct = sample.get("packet_loss_pct")
+        if loss_pct is None:
+            timeout_count = sample.get("timeout_count")
+            if timeout_count is None:
+                timeout_count = sample_count if sample.get("timeout") else 0
+            loss_pct = (timeout_count / sample_count * 100.0) if sample_count > 0 else 0.0
+
+        bucket["sample_count"] += sample_count
+        bucket["loss_weight"] += loss_pct * sample_count
+
+        latency = sample.get("latency_ms")
+        if latency is not None:
+            bucket["latency_sum"] += latency * sample_count
+            bucket["latency_count"] += sample_count
+
+        min_latency = sample.get("min_latency_ms")
+        if min_latency is None:
+            min_latency = latency
+        if min_latency is not None:
+            current = bucket["min_latency_ms"]
+            bucket["min_latency_ms"] = min_latency if current is None else min(current, min_latency)
+
+        max_latency = sample.get("max_latency_ms")
+        if max_latency is None:
+            max_latency = latency
+        if max_latency is not None:
+            current = bucket["max_latency_ms"]
+            bucket["max_latency_ms"] = max_latency if current is None else max(current, max_latency)
+
+        p95_latency = sample.get("p95_latency_ms")
+        if p95_latency is None:
+            p95_latency = latency
+        if p95_latency is not None:
+            bucket["p95_values"].append(p95_latency)
+
+    compressed = []
+    for bucket in [buckets[idx] for idx in sorted(buckets)]:
+        latency_count = bucket["latency_count"]
+        avg_latency = None
+        if latency_count > 0:
+            avg_latency = bucket["latency_sum"] / latency_count
+
+        p95_latency = None
+        if bucket["p95_values"]:
+            bucket["p95_values"].sort()
+            p95_latency = bucket["p95_values"][math.floor(len(bucket["p95_values"]) * 0.95)]
+
+        compressed.append({
+            "timestamp": bucket["timestamp"],
+            "latency_ms": avg_latency,
+            "min_latency_ms": bucket["min_latency_ms"],
+            "max_latency_ms": bucket["max_latency_ms"],
+            "p95_latency_ms": p95_latency,
+            "packet_loss_pct": round(bucket["loss_weight"] / bucket["sample_count"], 2) if bucket["sample_count"] else 0.0,
+            "sample_count": bucket["sample_count"],
+        })
+
+    return compressed
+
 @bp.route("/api/connection-monitor/samples/<int:target_id>")
 @require_auth
 def api_get_samples(target_id):
@@ -117,6 +202,7 @@ def api_get_samples(target_id):
     end = request.args.get("end", type=float)
     limit = request.args.get("limit", 10000, type=int)
     resolution = request.args.get("resolution", "auto")
+    max_points = request.args.get("max_points", type=int)
 
     # Determine resolution
     if resolution == "auto":
@@ -174,6 +260,7 @@ def api_get_samples(target_id):
             })
 
     samples.sort(key=lambda s: s["timestamp"])
+    samples = _compress_samples(samples, start=start, end=end, max_points=max_points)
 
     return jsonify({
         "meta": {
@@ -183,6 +270,25 @@ def api_get_samples(target_id):
         },
         "samples": samples,
     })
+
+
+# --- Range Stats ---
+
+@bp.route("/api/connection-monitor/stats")
+@require_auth
+def api_get_range_stats():
+    storage = _get_cm_storage()
+    start = request.args.get("start", type=float)
+    end = request.args.get("end", type=float)
+    targets = storage.get_targets()
+    stats = {}
+    for t in targets:
+        stats[t["id"]] = storage.get_range_stats(
+            t["id"],
+            start=start,
+            end=end,
+        )
+    return jsonify(stats)
 
 
 # --- Summary ---

@@ -240,6 +240,29 @@ class TestSamplesResolution:
         assert data["samples"][0]["min_latency_ms"] is not None
         assert data["samples"][1]["min_latency_ms"] is None
 
+    def test_get_samples_with_max_points(self, client):
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        storage.save_samples([
+            {
+                "target_id": tid,
+                "timestamp": now - (120 - i),
+                "latency_ms": float(10 + (i % 5)),
+                "timeout": i % 17 == 0,
+                "probe_method": "tcp",
+            }
+            for i in range(120)
+        ])
+        resp = c.get(
+            f"/api/connection-monitor/samples/{tid}?start={now - 120}&end={now}&limit=0&max_points=10"
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert len(data["samples"]) <= 10
+        assert "sample_count" in data["samples"][0]
+        assert "packet_loss_pct" in data["samples"][0]
+
 
 class TestSummaryAPI:
     def test_get_summary(self, client):
@@ -251,6 +274,24 @@ class TestSummaryAPI:
         ])
         resp = c.get("/api/connection-monitor/summary")
         assert resp.status_code == 200
+
+    def test_get_range_stats(self, client):
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        storage.save_samples([
+            {"target_id": tid, "timestamp": now - 40, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": now - 30, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": now - 20, "latency_ms": 30.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": now - 10, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
+        ])
+        resp = c.get(f"/api/connection-monitor/stats?start={now - 60}&end={now}")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        stats = data[str(tid)]
+        assert stats["sample_count"] == 4
+        assert stats["latency_count"] == 3
+        assert stats["p95_latency_ms"] == 30.0
 
 
 class TestOutagesAPI:

@@ -102,6 +102,32 @@ class TestSamples:
         result = storage.get_samples(tid, limit=0)
         assert len(result) == 20
 
+    def test_get_samples_with_max_points_downsamples(self, storage):
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        samples = [
+            {
+                "target_id": tid,
+                "timestamp": now - (120 - i),
+                "latency_ms": float(10 + (i % 5)),
+                "timeout": i % 17 == 0,
+                "probe_method": "tcp",
+            }
+            for i in range(120)
+        ]
+        storage.save_samples(samples)
+        result = storage.get_samples(
+            tid,
+            start=now - 120,
+            end=now,
+            limit=0,
+            max_points=10,
+        )
+        assert len(result) <= 10
+        assert "sample_count" in result[0]
+        assert "timeout_count" in result[0]
+        assert sum(row["sample_count"] for row in result) == 120
+
 
 class TestRetention:
     def test_cleanup_old_samples(self, storage):
@@ -168,6 +194,24 @@ class TestSummary:
         assert abs(summary["packet_loss_pct"] - 33.33) < 1
         assert summary["min_latency_ms"] == 10.0
         assert summary["max_latency_ms"] == 20.0
+
+    def test_range_stats_returns_exact_metrics(self, storage):
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        storage.save_samples([
+            {"target_id": tid, "timestamp": now - 40, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": now - 30, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": now - 20, "latency_ms": 30.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": now - 10, "latency_ms": None, "timeout": True, "probe_method": "tcp"},
+        ])
+        stats = storage.get_range_stats(tid, start=now - 60, end=now)
+        assert stats["sample_count"] == 4
+        assert stats["latency_count"] == 3
+        assert stats["avg_latency_ms"] == 20.0
+        assert stats["min_latency_ms"] == 10.0
+        assert stats["max_latency_ms"] == 30.0
+        assert stats["p95_latency_ms"] == 30.0
+        assert abs(stats["packet_loss_pct"] - 25.0) < 0.01
 
 
 class TestOutages:

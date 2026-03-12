@@ -1,6 +1,7 @@
 """SQLite storage for Connection Monitor targets and samples."""
 
 import logging
+import math
 import os
 import sqlite3
 import time
@@ -142,14 +143,12 @@ class ConnectionMonitorStorage:
                 samples,
             )
 
-    def get_samples(
+    def _build_sample_where(
         self,
         target_id: int,
         start: float | None = None,
         end: float | None = None,
-        limit: int = 10000,
-    ) -> list[dict]:
-        """Get samples for a target. limit <= 0 means no limit."""
+    ) -> tuple[str, list]:
         clauses = ["target_id = ?"]
         params: list = [target_id]
         if start is not None:
@@ -158,7 +157,57 @@ class ConnectionMonitorStorage:
         if end is not None:
             clauses.append("timestamp <= ?")
             params.append(end)
-        where = " AND ".join(clauses)
+        return " AND ".join(clauses), params
+
+    def get_samples(
+        self,
+        target_id: int,
+        start: float | None = None,
+        end: float | None = None,
+        limit: int = 10000,
+        max_points: int | None = None,
+    ) -> list[dict]:
+        """Get samples for a target. limit <= 0 means no limit."""
+        where, params = self._build_sample_where(target_id, start=start, end=end)
+
+        if max_points and max_points > 0:
+            with self._connect() as conn:
+                total_count = conn.execute(
+                    f"SELECT COUNT(*) FROM connection_samples WHERE {where}",
+                    params,
+                ).fetchone()[0]
+                if total_count > max_points:
+                    bucket_base = start or 0
+                    bucket_seconds = max(
+                        1,
+                        math.ceil(((end or time.time()) - (start or 0)) / max_points),
+                    )
+                    rows = conn.execute(
+                        f"""
+                        SELECT
+                            ? + CAST((timestamp - ?) / ? AS INTEGER) * ? AS timestamp,
+                            AVG(CASE WHEN timeout = 0 THEN latency_ms END) AS latency_ms,
+                            MAX(CASE WHEN timeout = 1 THEN 1 ELSE 0 END) AS timeout,
+                            MIN(probe_method) AS probe_method,
+                            COUNT(*) AS sample_count,
+                            SUM(CASE WHEN timeout = 1 THEN 1 ELSE 0 END) AS timeout_count
+                        FROM connection_samples
+                        WHERE {where}
+                        GROUP BY CAST((timestamp - ?) / ? AS INTEGER)
+                        ORDER BY timestamp
+                        """,
+                        [
+                            bucket_base,
+                            bucket_base,
+                            bucket_seconds,
+                            bucket_seconds,
+                            *params,
+                            bucket_base,
+                            bucket_seconds,
+                        ],
+                    ).fetchall()
+                    return [dict(r) for r in rows]
+
         query = f"SELECT * FROM connection_samples WHERE {where} ORDER BY timestamp"
         if limit > 0:
             query += " LIMIT ?"
@@ -166,6 +215,50 @@ class ConnectionMonitorStorage:
         with self._connect() as conn:
             rows = conn.execute(query, params).fetchall()
             return [dict(r) for r in rows]
+
+    def get_range_stats(
+        self,
+        target_id: int,
+        start: float | None = None,
+        end: float | None = None,
+    ) -> dict:
+        where, params = self._build_sample_where(target_id, start=start, end=end)
+        with self._connect() as conn:
+            row = conn.execute(
+                f"""
+                SELECT
+                    COUNT(*) AS sample_count,
+                    COUNT(CASE WHEN timeout = 0 AND latency_ms IS NOT NULL THEN 1 END) AS latency_count,
+                    AVG(CASE WHEN timeout = 0 THEN latency_ms END) AS avg_latency_ms,
+                    MIN(CASE WHEN timeout = 0 THEN latency_ms END) AS min_latency_ms,
+                    MAX(CASE WHEN timeout = 0 THEN latency_ms END) AS max_latency_ms,
+                    ROUND(
+                        100.0 * SUM(CASE WHEN timeout = 1 THEN 1 ELSE 0 END) / MAX(COUNT(*), 1),
+                        2
+                    ) AS packet_loss_pct
+                FROM connection_samples
+                WHERE {where}
+                """,
+                params,
+            ).fetchone()
+            stats = dict(row) if row else {}
+            latency_count = stats.get("latency_count") or 0
+            if latency_count > 0:
+                p95_offset = max(0, math.ceil(latency_count * 0.95) - 1)
+                p95_row = conn.execute(
+                    f"""
+                    SELECT latency_ms
+                    FROM connection_samples
+                    WHERE {where} AND timeout = 0 AND latency_ms IS NOT NULL
+                    ORDER BY latency_ms
+                    LIMIT 1 OFFSET ?
+                    """,
+                    [*params, p95_offset],
+                ).fetchone()
+                stats["p95_latency_ms"] = p95_row["latency_ms"] if p95_row else None
+            else:
+                stats["p95_latency_ms"] = None
+            return stats
 
     # --- Summary ---
 

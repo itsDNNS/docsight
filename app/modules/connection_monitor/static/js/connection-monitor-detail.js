@@ -22,6 +22,10 @@
         }, interval);
     }
 
+    function getMaxPointsForRange(seconds) {
+        return seconds >= 86400 ? 1440 : 0;
+    }
+
     window.cmSetRange = function(btn, seconds) {
         currentRange = seconds;
         document.querySelectorAll('[data-cm-range]').forEach(function(b) {
@@ -102,13 +106,21 @@
 
         var now = Date.now() / 1000;
         var start = now - currentRange;
+        var maxPoints = getMaxPointsForRange(currentRange);
 
         // Fetch samples for ALL targets in parallel
         var samplePromises = targets.map(function(t) {
-            return fetch('/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + now + '&limit=0')
+            var url = '/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + now + '&limit=0';
+            if (maxPoints > 0) {
+                url += '&max_points=' + maxPoints;
+            }
+            return fetch(url)
                 .then(function(r) { return r.json(); })
                 .then(function(data) { return { target: t, samples: data.samples, meta: data.meta }; });
         });
+
+        var statsPromise = fetch('/api/connection-monitor/stats?start=' + start + '&end=' + now)
+            .then(function(r) { return r.json(); });
 
         // Fetch outages for ALL targets in parallel
         var outagePromises = targets.map(function(t) {
@@ -117,10 +129,15 @@
                 .then(function(outages) { return { target: t, outages: outages }; });
         });
 
-        Promise.all([Promise.all(samplePromises), Promise.all(outagePromises)])
+        Promise.all([Promise.all(samplePromises), Promise.all(outagePromises), statsPromise])
             .then(function(results) {
                 var allTargetData = results[0];
                 var allOutageData = results[1];
+                var statsByTarget = results[2] || {};
+
+                allTargetData.forEach(function(td) {
+                    td.stats = statsByTarget[String(td.target.id)] || statsByTarget[td.target.id] || null;
+                });
 
                 var hasSamples = allTargetData.some(function(td) {
                     return td.samples && td.samples.length > 0;
