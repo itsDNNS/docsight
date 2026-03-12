@@ -5,6 +5,8 @@ range switching, API responses, i18n, theme switching, correlation
 integration, and JS error-free operation.
 """
 
+import re
+
 import pytest
 
 
@@ -408,6 +410,61 @@ class TestSegmentCorrelation:
         if legend.count() > 0:
             text = legend.text_content()
             assert "Segment" in text, f"Legend should mention Segment, got: {text}"
+
+    def test_correlation_defaults_disable_poor_signal_and_line_metrics_have_no_area_fill(self, fritzbox_page):
+        """Poor Signal starts disabled and isolated line metrics render without area fills."""
+        fritzbox_page.locator('a.nav-item[data-view="correlation"]').click()
+        fritzbox_page.wait_for_timeout(3000)
+
+        poor_signal = fritzbox_page.locator('#correlation-legend span[data-metric="poorSignal"]')
+        assert poor_signal.count() == 1
+        assert re.search(r"\bdisabled\b", poor_signal.get_attribute("class") or "")
+
+        gradient_calls = fritzbox_page.evaluate("""
+            () => {
+                var originalGradient = CanvasRenderingContext2D.prototype.createLinearGradient;
+                var gradientCalls = 0;
+                CanvasRenderingContext2D.prototype.createLinearGradient = function() {
+                    gradientCalls += 1;
+                    return originalGradient.apply(this, arguments);
+                };
+                try {
+                    window._corrVisible = {
+                        snr: true,
+                        txPower: false,
+                        dsPower: false,
+                        download: false,
+                        upload: false,
+                        events: false,
+                        errors: false,
+                        poorSignal: false,
+                        temperature: false,
+                        segmentDs: false,
+                        segmentUs: false
+                    };
+                    window.renderCorrelationChart(window._correlationData);
+                    window._corrVisible = {
+                        snr: false,
+                        txPower: false,
+                        dsPower: false,
+                        download: true,
+                        upload: false,
+                        events: false,
+                        errors: false,
+                        poorSignal: false,
+                        temperature: false,
+                        segmentDs: false,
+                        segmentUs: false
+                    };
+                    window.renderCorrelationChart(window._correlationData);
+                    return gradientCalls;
+                } finally {
+                    CanvasRenderingContext2D.prototype.createLinearGradient = originalGradient;
+                }
+            }
+        """)
+
+        assert gradient_calls == 0
 
     def test_correlation_hover_shows_tooltip_and_highlights_timeline(self, fritzbox_page):
         """Hovering the correlation chart should keep tooltip and timeline sync working with segment data."""

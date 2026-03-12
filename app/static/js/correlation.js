@@ -3,7 +3,7 @@
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
 var _correlationChart = null;
-var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: true, temperature: true, segmentDs: true, segmentUs: false };
+var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: false, temperature: true, segmentDs: true, segmentUs: false };
 var _corrWeatherData = [];
 var _corrSegmentData = [];
 var _corrChartState = null; // Stores scales/data for tooltip lookups
@@ -172,7 +172,7 @@ function renderCorrelationChart(data) {
 
     // Segment utilization axis (0-100% scale)
     var segment = _corrSegmentData || [];
-    var segDsColor = '#a855f7'; // purple
+    var segDsColor = '#0ea5e9'; // sky blue
     var segUsColor = '#6366f1'; // indigo
     function ySegment(v) { return pad.top + plotH - (v / 100) * plotH; }
 
@@ -270,22 +270,8 @@ function renderCorrelationChart(data) {
         ctx.restore();
     }
 
-    // Draw modem SNR line with gradient fill
+    // Draw modem SNR line without an area fill to keep the chart uncluttered
     if (_corrVisible.snr && modem.length > 1) {
-        var gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
-        gradient.addColorStop(0, 'rgba(168,85,247,0.3)');
-        gradient.addColorStop(1, 'rgba(168,85,247,0)');
-        ctx.beginPath();
-        ctx.moveTo(xScale(new Date(modem[0].timestamp).getTime()), pad.top + plotH);
-        for (var i = 0; i < modem.length; i++) {
-            var x = xScale(new Date(modem[i].timestamp).getTime());
-            var y = ySnr(modem[i].ds_snr_min || snrMin);
-            ctx.lineTo(x, y);
-        }
-        ctx.lineTo(xScale(new Date(modem[modem.length - 1].timestamp).getTime()), pad.top + plotH);
-        ctx.closePath();
-        ctx.fillStyle = gradient;
-        ctx.fill();
         ctx.beginPath();
         for (var i = 0; i < modem.length; i++) {
             var x = xScale(new Date(modem[i].timestamp).getTime());
@@ -392,22 +378,8 @@ function renderCorrelationChart(data) {
 
     // Draw speedtest lines
     if (sortedSpeedtest.length > 1) {
-        // Download line with gradient fill
+        // Download line without an area fill
         if (_corrVisible.download) {
-            var dlGrad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
-            dlGrad.addColorStop(0, 'rgba(76,175,80,0.2)');
-            dlGrad.addColorStop(1, 'rgba(76,175,80,0)');
-            ctx.beginPath();
-            ctx.moveTo(xScale(new Date(sortedSpeedtest[0].timestamp).getTime()), pad.top + plotH);
-            for (var i = 0; i < sortedSpeedtest.length; i++) {
-                var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
-                var y = yDl(sortedSpeedtest[i].download_mbps || 0);
-                ctx.lineTo(x, y);
-            }
-            ctx.lineTo(xScale(new Date(sortedSpeedtest[sortedSpeedtest.length - 1].timestamp).getTime()), pad.top + plotH);
-            ctx.closePath();
-            ctx.fillStyle = dlGrad;
-            ctx.fill();
             ctx.beginPath();
             for (var i = 0; i < sortedSpeedtest.length; i++) {
                 var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
