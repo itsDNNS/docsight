@@ -170,8 +170,8 @@ def api_channel_compare():
         channel_ids = [int(c.strip()) for c in channels_param.split(",") if c.strip()]
     except ValueError:
         return jsonify({"error": "channels must be comma-separated integers"}), 400
-    if len(channel_ids) > 6:
-        return jsonify({"error": "maximum 6 channels"}), 400
+    if len(channel_ids) > 64:
+        return jsonify({"error": "maximum 64 channels"}), 400
     if not channel_ids:
         return jsonify({"error": "at least one channel required"}), 400
     result = _storage.get_multi_channel_history(channel_ids, direction, days)

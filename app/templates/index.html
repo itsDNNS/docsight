@@ -1311,7 +1311,9 @@
                 <button class="trend-tab" data-value="us" onclick="selectPill(this, onCompareDirectionChange)">{{ t.upstream }}</button>
             </div>
             <select id="compare-channel-select" class="channel-select-styled"><option value="">{{ t.select_channel }}</option></select>
-            <button class="compare-add-btn" onclick="addCompareChannel()">+ {{ t.add_channel }}</button>
+            <button id="compare-add-btn" class="compare-add-btn" onclick="addCompareChannel()">+ {{ t.add_channel }}</button>
+            <button id="compare-add-all-btn" class="compare-add-btn" onclick="addAllCompareChannels()">{{ t.all_downstream }}</button>
+            <button id="compare-clear-btn" class="compare-add-btn" onclick="clearCompareChannels()">{{ t.nav_reset }}</button>
             <div class="trend-tabs" id="compare-time-tabs">
                 <button class="trend-tab" data-value="1" onclick="selectPill(this, loadCompareCharts)">1d</button>
                 <button class="trend-tab" data-value="3" onclick="selectPill(this, loadCompareCharts)">3d</button>

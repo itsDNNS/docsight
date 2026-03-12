@@ -494,6 +494,8 @@
   "bqm_no_data_range": "Keine BQM-Daten in diesem Zeitraum",
   "channel_compare": "Kanalvergleich",
   "add_channel": "Hinzufügen",
+  "all_downstream": "Alle Downstream-Kanaele",
+  "all_upstream": "Alle Upstream-Kanaele",
   "max_channels_reached": "Maximal 6 Kanäle",
   "select_direction": "Richtung wählen",
   "no_channels_selected": "Kanäle zum Vergleich auswählen",

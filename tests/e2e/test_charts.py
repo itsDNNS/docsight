@@ -288,6 +288,22 @@ class TestCompareCharts:
                 if cmp_power.count() >= 1:
                     assert True  # Power chart rendered
 
+    def test_compare_all_downstream_preset_renders_chart(self, demo_page):
+        """All Downstream preset should render the compare charts without manual picks."""
+        navigate_to_channels(demo_page)
+        compare_tab = demo_page.locator('.trend-tab[data-value="compare"]')
+        if compare_tab.count() > 0:
+            compare_tab.first.click()
+            demo_page.wait_for_timeout(500)
+
+            add_all_btn = demo_page.locator("#compare-add-all-btn")
+            if add_all_btn.count() > 0:
+                add_all_btn.click()
+                demo_page.wait_for_timeout(1500)
+                wait_for_uplot(demo_page, "chart-cmp-power")
+                chips = demo_page.locator("#compare-chips .compare-chip")
+                assert chips.count() >= 1
+
 
 # ── Theme Toggle ──
 

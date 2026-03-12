@@ -489,6 +489,8 @@
   "bqm_no_data_range": "No hay datos BQM en este periodo",
   "channel_compare": "Comparacion de canales",
   "add_channel": "Agregar",
+  "all_downstream": "Todos los canales de bajada",
+  "all_upstream": "Todos los canales de subida",
   "max_channels_reached": "Maximo 6 canales",
   "select_direction": "Seleccionar direccion",
   "no_channels_selected": "Seleccione canales para comparar",

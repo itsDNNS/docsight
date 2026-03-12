@@ -204,3 +204,37 @@ class TestChannelHistoryEndpoint:
         # days=200 should be clamped to 90
         resp2 = c.get("/api/channel-history?channel_id=1&direction=ds&days=200")
         assert resp2.status_code == 200
+
+
+class TestChannelCompareEndpoint:
+    def test_returns_multiple_channels(self, client):
+        c, s = client
+        ds_channels = []
+        for channel_id in range(1, 9):
+            ds_channels.append({
+                "channel_id": channel_id,
+                "frequency": f"{114 + channel_id}.0 MHz",
+                "power": 5.0 + channel_id,
+                "modulation": "256QAM",
+                "snr": 38.0,
+                "correctable_errors": channel_id,
+                "uncorrectable_errors": 0,
+                "docsis_version": "3.0",
+                "health": "good",
+                "health_detail": "",
+            })
+        s.save_snapshot(_make_analysis(ds_channels=ds_channels))
+        resp = c.get("/api/channel-compare?channels=1,2,3,4,5,6,7,8&direction=ds&days=7")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert set(data.keys()) == {"1", "2", "3", "4", "5", "6", "7", "8"}
+        assert data["8"][0]["power"] == 13.0
+
+    def test_rejects_more_than_64_channels(self, client):
+        c, s = client
+        s.save_snapshot(_make_analysis())
+        ids = ",".join(str(i) for i in range(1, 66))
+        resp = c.get(f"/api/channel-compare?channels={ids}&direction=ds&days=7")
+        assert resp.status_code == 400
+        data = json.loads(resp.data)
+        assert data["error"] == "maximum 64 channels"
