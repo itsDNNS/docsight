@@ -102,33 +102,6 @@ class TestSamples:
         result = storage.get_samples(tid, limit=0)
         assert len(result) == 20
 
-    def test_get_samples_with_max_points_downsamples(self, storage):
-        tid = storage.create_target("Test", "1.1.1.1")
-        now = time.time()
-        samples = [
-            {
-                "target_id": tid,
-                "timestamp": now - (120 - i),
-                "latency_ms": float(10 + (i % 5)),
-                "timeout": i % 17 == 0,
-                "probe_method": "tcp",
-            }
-            for i in range(120)
-        ]
-        storage.save_samples(samples)
-        result = storage.get_samples(
-            tid,
-            start=now - 120,
-            end=now,
-            limit=0,
-            max_points=10,
-        )
-        assert len(result) <= 10
-        assert "sample_count" in result[0]
-        assert "timeout_count" in result[0]
-        assert sum(row["sample_count"] for row in result) == 120
-
-
 class TestRetention:
     def test_cleanup_old_samples(self, storage):
         tid = storage.create_target("Test", "1.1.1.1")

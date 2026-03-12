@@ -247,6 +247,7 @@ var CMCharts = (function() {
         var timeMap = {};
         allTargetData.forEach(function(td) {
             td.samples.forEach(function(s) {
+                var sampleCount = sampleCountOf(s);
                 if (!timeMap[s.timestamp]) timeMap[s.timestamp] = { total: 0, lossWeight: 0 };
                 timeMap[s.timestamp].total += sampleCount;
                 timeMap[s.timestamp].lossWeight += lossPctOf(s) * sampleCount;

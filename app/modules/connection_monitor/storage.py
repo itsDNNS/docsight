@@ -165,48 +165,9 @@ class ConnectionMonitorStorage:
         start: float | None = None,
         end: float | None = None,
         limit: int = 10000,
-        max_points: int | None = None,
     ) -> list[dict]:
         """Get samples for a target. limit <= 0 means no limit."""
         where, params = self._build_sample_where(target_id, start=start, end=end)
-
-        if max_points and max_points > 0:
-            with self._connect() as conn:
-                total_count = conn.execute(
-                    f"SELECT COUNT(*) FROM connection_samples WHERE {where}",
-                    params,
-                ).fetchone()[0]
-                if total_count > max_points:
-                    bucket_base = start or 0
-                    bucket_seconds = max(
-                        1,
-                        math.ceil(((end or time.time()) - (start or 0)) / max_points),
-                    )
-                    rows = conn.execute(
-                        f"""
-                        SELECT
-                            ? + CAST((timestamp - ?) / ? AS INTEGER) * ? AS timestamp,
-                            AVG(CASE WHEN timeout = 0 THEN latency_ms END) AS latency_ms,
-                            MAX(CASE WHEN timeout = 1 THEN 1 ELSE 0 END) AS timeout,
-                            MIN(probe_method) AS probe_method,
-                            COUNT(*) AS sample_count,
-                            SUM(CASE WHEN timeout = 1 THEN 1 ELSE 0 END) AS timeout_count
-                        FROM connection_samples
-                        WHERE {where}
-                        GROUP BY CAST((timestamp - ?) / ? AS INTEGER)
-                        ORDER BY timestamp
-                        """,
-                        [
-                            bucket_base,
-                            bucket_base,
-                            bucket_seconds,
-                            bucket_seconds,
-                            *params,
-                            bucket_base,
-                            bucket_seconds,
-                        ],
-                    ).fetchall()
-                    return [dict(r) for r in rows]
 
         query = f"SELECT * FROM connection_samples WHERE {where} ORDER BY timestamp"
         if limit > 0:

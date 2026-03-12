@@ -262,6 +262,7 @@ class TestSamplesResolution:
         assert len(data["samples"]) <= 10
         assert "sample_count" in data["samples"][0]
         assert "packet_loss_pct" in data["samples"][0]
+        assert sum(sample["sample_count"] for sample in data["samples"]) == 120
 
 
 class TestSummaryAPI:
