@@ -397,6 +397,79 @@ class TestSamplesResolution:
         assert sum(sample["sample_count"] for sample in data["samples"]) == 120
 
 
+class TestPinnedDaysAPI:
+    def test_list_pinned_days_empty(self, client):
+        c, _ = client
+        resp = c.get("/api/connection-monitor/pinned-days")
+        assert resp.status_code == 200
+        assert resp.get_json() == []
+
+    def test_pin_day(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"date": "2026-03-10"},
+        )
+        assert resp.status_code == 201
+        days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert len(days) == 1
+        assert days[0]["date"] == "2026-03-10"
+
+    def test_pin_day_with_label(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"date": "2026-03-10", "label": "Outage"},
+        )
+        assert resp.status_code == 201
+        days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert days[0]["label"] == "Outage"
+
+    def test_pin_day_invalid_date(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"date": "not-a-date"},
+        )
+        assert resp.status_code == 400
+
+    def test_pin_day_future_date(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={"date": "2099-01-01"},
+        )
+        assert resp.status_code == 400
+
+    def test_pin_day_missing_date(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.post(
+            "/api/connection-monitor/pinned-days",
+            json={},
+        )
+        assert resp.status_code == 400
+
+    def test_unpin_day(self, client):
+        c, _ = client
+        _auth_session(c)
+        c.post("/api/connection-monitor/pinned-days", json={"date": "2026-03-10"})
+        resp = c.delete("/api/connection-monitor/pinned-days/2026-03-10")
+        assert resp.status_code == 200
+        days = c.get("/api/connection-monitor/pinned-days").get_json()
+        assert len(days) == 0
+
+    def test_unpin_nonexistent(self, client):
+        c, _ = client
+        _auth_session(c)
+        resp = c.delete("/api/connection-monitor/pinned-days/2026-01-01")
+        assert resp.status_code == 404
+
+
 class TestSummaryAPI:
     def test_get_summary(self, client):
         c, storage = client
@@ -534,6 +607,19 @@ class TestAuthProtection:
     def test_capability_requires_auth(self, auth_client):
         c, _ = auth_client
         assert c.get("/api/connection-monitor/capability").status_code == 401
+
+    def test_pinned_days_get_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.get("/api/connection-monitor/pinned-days").status_code == 401
+
+    def test_pinned_days_post_requires_auth(self, auth_client):
+        c, _ = auth_client
+        resp = c.post("/api/connection-monitor/pinned-days", json={"date": "2026-03-10"})
+        assert resp.status_code == 401
+
+    def test_pinned_days_delete_requires_auth(self, auth_client):
+        c, _ = auth_client
+        assert c.delete("/api/connection-monitor/pinned-days/2026-03-10").status_code == 401
 
     def test_authenticated_request_passes(self, auth_client):
         c, _ = auth_client

@@ -75,6 +75,43 @@ class ConnectionMonitorStorage:
                 CREATE INDEX IF NOT EXISTS idx_agg_target_bucket
                 ON connection_samples_aggregated (target_id, bucket_seconds, bucket_start)
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS connection_monitor_pinned_days (
+                    date TEXT NOT NULL PRIMARY KEY,
+                    label TEXT,
+                    created_at REAL NOT NULL
+                )
+            """)
+
+    # --- Pinned Days ---
+
+    def pin_day(self, date: str, label: str | None = None):
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO connection_monitor_pinned_days (date, label, created_at) VALUES (?, ?, ?)",
+                (date, label, time.time()),
+            )
+
+    def unpin_day(self, date: str) -> bool:
+        with self._connect() as conn:
+            cur = conn.execute(
+                "DELETE FROM connection_monitor_pinned_days WHERE date = ?", (date,)
+            )
+            return cur.rowcount > 0
+
+    def get_pinned_days(self) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM connection_monitor_pinned_days ORDER BY date DESC"
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def is_day_pinned(self, date: str) -> bool:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM connection_monitor_pinned_days WHERE date = ?", (date,)
+            ).fetchone()
+            return row is not None
 
     # --- Target CRUD ---
 
@@ -380,7 +417,9 @@ class ConnectionMonitorStorage:
                 created += 1
 
             conn.execute(
-                "DELETE FROM connection_samples WHERE target_id = ? AND timestamp < ?",
+                """DELETE FROM connection_samples WHERE target_id = ? AND timestamp < ?
+                   AND date(timestamp, 'unixepoch', 'localtime')
+                       NOT IN (SELECT date FROM connection_monitor_pinned_days)""",
                 (target_id, cutoff),
             )
 
@@ -514,7 +553,9 @@ class ConnectionMonitorStorage:
         cutoff = time.time() - (retention_days * 86400)
         with self._connect() as conn:
             cur = conn.execute(
-                "DELETE FROM connection_samples WHERE timestamp < ?",
+                """DELETE FROM connection_samples WHERE timestamp < ?
+                   AND date(timestamp, 'unixepoch', 'localtime')
+                       NOT IN (SELECT date FROM connection_monitor_pinned_days)""",
                 (cutoff,),
             )
             deleted = cur.rowcount

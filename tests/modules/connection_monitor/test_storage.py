@@ -102,6 +102,91 @@ class TestSamples:
         result = storage.get_samples(tid, limit=0)
         assert len(result) == 20
 
+class TestPinnedDays:
+    def test_pin_day(self, storage):
+        storage.pin_day("2026-03-10")
+        days = storage.get_pinned_days()
+        assert len(days) == 1
+        assert days[0]["date"] == "2026-03-10"
+        assert days[0]["label"] is None
+
+    def test_pin_day_with_label(self, storage):
+        storage.pin_day("2026-03-10", label="Outage investigation")
+        days = storage.get_pinned_days()
+        assert days[0]["label"] == "Outage investigation"
+
+    def test_pin_day_idempotent(self, storage):
+        storage.pin_day("2026-03-10")
+        storage.pin_day("2026-03-10")
+        days = storage.get_pinned_days()
+        assert len(days) == 1
+
+    def test_unpin_day(self, storage):
+        storage.pin_day("2026-03-10")
+        assert storage.unpin_day("2026-03-10") is True
+        assert storage.get_pinned_days() == []
+
+    def test_unpin_nonexistent(self, storage):
+        assert storage.unpin_day("2026-01-01") is False
+
+    def test_is_day_pinned(self, storage):
+        assert storage.is_day_pinned("2026-03-10") is False
+        storage.pin_day("2026-03-10")
+        assert storage.is_day_pinned("2026-03-10") is True
+
+    def test_cleanup_skips_pinned_days(self, storage):
+        """Pinned day samples should survive cleanup."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        # Sample from 10 days ago
+        from datetime import datetime
+        old_ts = now - (10 * 86400)
+        old_date = datetime.fromtimestamp(old_ts).strftime("%Y-%m-%d")
+        storage.pin_day(old_date)
+        storage.save_samples([
+            {"target_id": tid, "timestamp": old_ts, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        deleted = storage.cleanup(retention_days=7)
+        assert deleted == 0
+        assert len(storage.get_samples(tid)) == 1
+
+    def test_cleanup_deletes_unpinned(self, storage):
+        """After unpinning, cleanup should delete old samples."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        from datetime import datetime
+        old_ts = now - (10 * 86400)
+        old_date = datetime.fromtimestamp(old_ts).strftime("%Y-%m-%d")
+        storage.pin_day(old_date)
+        storage.save_samples([
+            {"target_id": tid, "timestamp": old_ts, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        # Unpin and cleanup
+        storage.unpin_day(old_date)
+        deleted = storage.cleanup(retention_days=7)
+        assert deleted == 1
+        assert len(storage.get_samples(tid)) == 0
+
+    def test_aggregation_skips_pinned_days(self, storage):
+        """Raw samples for pinned days should survive aggregation."""
+        tid = storage.create_target("Test", "1.1.1.1")
+        from datetime import datetime
+        base = 1700000000.0
+        base_date = datetime.fromtimestamp(base + 5).strftime("%Y-%m-%d")
+        storage.pin_day(base_date)
+        storage.save_samples([
+            {"target_id": tid, "timestamp": base + 5, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": base + 10, "latency_ms": 20.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        storage.aggregate_raw_to_buckets(tid, cutoff=base + 100, bucket_seconds=60)
+        # Raw samples should still exist (pinned)
+        raw = storage.get_samples(tid)
+        assert len(raw) == 2
+        # Aggregated bucket should still be created
+        agg = storage.get_aggregated_samples(tid, bucket_seconds=60)
+        assert len(agg) == 1
+
+
 class TestRetention:
     def test_cleanup_old_samples(self, storage):
         tid = storage.create_target("Test", "1.1.1.1")

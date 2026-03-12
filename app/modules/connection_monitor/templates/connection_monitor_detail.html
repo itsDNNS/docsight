@@ -20,6 +20,14 @@
         <button class="trend-tab" data-cm-range="7776000" onclick="cmSetRange(this, 7776000)">90d</button>
     </div>
 
+    <!-- Pinned days bar -->
+    <div id="cm-pinned-days-bar" style="display:none; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:0.8rem; color:var(--text-muted);">Pinned:</span>
+            <div id="cm-pinned-days" style="display:flex; gap:4px; flex-wrap:wrap;"></div>
+        </div>
+    </div>
+
     <!-- No data message -->
     <div id="cm-no-data" style="display:none; text-align:center; padding:60px 20px; color:var(--text-muted);">
         {{ t.get('docsight.connection_monitor.cm_no_data', 'No data yet. Enable the Connection Monitor in settings to start collecting.') }}

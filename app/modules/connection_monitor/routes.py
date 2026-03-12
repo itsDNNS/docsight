@@ -4,6 +4,7 @@ import csv
 import io
 import logging
 import math
+import re
 import time
 from datetime import datetime
 
@@ -97,6 +98,47 @@ def api_update_target(target_id):
 def api_delete_target(target_id):
     storage = _get_cm_storage()
     storage.delete_target(target_id)
+    return jsonify({"ok": True})
+
+
+# --- Pinned Days ---
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+@bp.route("/api/connection-monitor/pinned-days", methods=["GET"])
+@require_auth
+def api_get_pinned_days():
+    storage = _get_cm_storage()
+    return jsonify(storage.get_pinned_days())
+
+
+@bp.route("/api/connection-monitor/pinned-days", methods=["POST"])
+@require_auth
+def api_pin_day():
+    storage = _get_cm_storage()
+    data = request.get_json()
+    if not data or not data.get("date"):
+        return jsonify({"error": "date required"}), 400
+    date_str = data["date"]
+    if not _DATE_RE.match(date_str):
+        return jsonify({"error": "invalid date format, expected YYYY-MM-DD"}), 400
+    try:
+        parsed = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"error": "invalid date"}), 400
+    if parsed.date() > datetime.now().date():
+        return jsonify({"error": "cannot pin a future date"}), 400
+    storage.pin_day(date_str, label=data.get("label"))
+    return jsonify({"ok": True}), 201
+
+
+@bp.route("/api/connection-monitor/pinned-days/<date>", methods=["DELETE"])
+@require_auth
+def api_unpin_day(date):
+    storage = _get_cm_storage()
+    if not storage.unpin_day(date):
+        return jsonify({"error": "not found"}), 404
     return jsonify({"ok": True})
 
 
