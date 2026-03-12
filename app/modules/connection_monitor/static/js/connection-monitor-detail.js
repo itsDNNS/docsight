@@ -236,7 +236,9 @@
         // Fetch samples for ALL targets in parallel
         var samplePromises = targets.map(function(t) {
             var url = '/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + end + '&limit=0';
-            if (maxPoints > 0) {
+            if (pinnedDayView) {
+                url += '&resolution=raw';
+            } else if (maxPoints > 0) {
                 url += '&max_points=' + maxPoints;
             }
             return fetch(url)

@@ -488,6 +488,51 @@ class TestPinnedDaysAPI:
         resp = c.delete("/api/connection-monitor/pinned-days/2026-01-01")
         assert resp.status_code == 404
 
+    def test_pinned_day_older_than_7d_returns_raw(self, client):
+        """Pinned day raw data should be served when resolution=raw, even beyond the 7d window."""
+        c, storage = client
+        _auth_session(c)
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        old_ts = now - 10 * 86400  # 10 days ago
+        from datetime import datetime
+        old_date = datetime.fromtimestamp(old_ts).strftime("%Y-%m-%d")
+        storage.pin_day(old_date)
+        storage.save_samples([
+            {"target_id": tid, "timestamp": old_ts, "latency_ms": 42.0, "timeout": False, "probe_method": "tcp"},
+            {"target_id": tid, "timestamp": old_ts + 5, "latency_ms": 43.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        # Simulate what the JS does for pinned days: resolution=raw
+        resp = c.get(
+            f"/api/connection-monitor/samples/{tid}"
+            f"?start={old_ts - 3600}&end={old_ts + 86400}&limit=0&resolution=raw"
+        )
+        data = resp.get_json()
+        assert data["meta"]["resolution"] == "raw"
+        assert len(data["samples"]) == 2
+        assert data["samples"][0]["latency_ms"] == 42.0
+        assert data["samples"][0]["sample_count"] == 1
+
+    def test_pinned_day_older_than_7d_export_returns_raw(self, client):
+        """CSV export of a pinned day should return raw samples."""
+        c, storage = client
+        _auth_session(c)
+        tid = storage.create_target("Test", "1.1.1.1")
+        now = time.time()
+        old_ts = now - 10 * 86400
+        from datetime import datetime
+        old_date = datetime.fromtimestamp(old_ts).strftime("%Y-%m-%d")
+        storage.pin_day(old_date)
+        storage.save_samples([
+            {"target_id": tid, "timestamp": old_ts, "latency_ms": 42.0, "timeout": False, "probe_method": "tcp"},
+        ])
+        resp = c.get(f"/api/connection-monitor/export/{tid}?start={old_ts - 3600}&end={old_ts + 86400}&resolution=raw")
+        assert resp.status_code == 200
+        import csv, io
+        rows = list(csv.reader(io.StringIO(resp.data.decode())))
+        assert len(rows) == 2  # header + 1 data row
+        assert "latency_ms" in rows[0]
+
 
 class TestSummaryAPI:
     def test_get_summary(self, client):
