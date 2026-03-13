@@ -417,7 +417,7 @@
             {% set sev = 'crit' if 'critical' in issue else 'warn' %}
             {% set sev_label = t.health_critical if 'critical' in issue else t.health_marginal %}
             <div class="insight-card">
-                <div class="insight-severity-bar {{ sev }}"></div>
+                <div class="insight-icon {{ sev }}"><i data-lucide="alert-circle"></i></div>
                 <div class="insight-content">
                     <div class="insight-condition">
                         {{ issue_labels.get(issue, issue) }}

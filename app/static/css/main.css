@@ -435,14 +435,17 @@ body.is-offline .offline-banner { display: flex; }
   transition: border-color 0.2s;
 }
 .insight-card:hover { border-color: var(--glass-border); }
-.insight-severity-bar {
-  width: 3px;
-  min-height: 100%;
-  border-radius: 2px;
+.insight-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
-.insight-severity-bar.crit { background: var(--crit); }
-.insight-severity-bar.warn { background: var(--warn); }
+.insight-icon svg { width: 16px; height: 16px; }
+.insight-icon.crit { background: var(--crit-muted); color: var(--crit); }
+.insight-icon.warn { background: var(--warn-muted); color: var(--warn); }
 .insight-content { flex: 1; min-width: 0; }
 .insight-condition {
   font-weight: 550;
