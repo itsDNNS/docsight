@@ -400,40 +400,93 @@ body.is-offline .offline-banner { display: flex; }
   position: relative;
 }
 
-/* ── Issues Panel ── */
-.issues-panel {
+/* ── Insights Panel (#219) ── */
+.insights-panel {
   padding: var(--space-md);
   margin-bottom: var(--space-md);
   animation: staggerIn 0.5s var(--ease-out-expo) 0.25s both;
 }
-.issues-header {
+.insights-header {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
-.issue-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
-  padding: var(--space-md) 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.issue-item:last-child { border-bottom: none; }
-.issue-icon {
-  width: 32px; height: 32px;
-  border-radius: var(--radius-sm);
+.insights-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--info-muted);
+  color: var(--info);
   flex-shrink: 0;
 }
-.issue-icon.tolerated { background: var(--tolerated-muted); color: var(--tolerated); }
-.issue-icon.warn { background: var(--warn-muted); color: var(--warn); }
-.issue-icon.crit { background: var(--crit-muted); color: var(--crit); }
-.issue-icon svg { width: 16px; height: 16px; }
-.issue-text { font-size: 0.85rem; font-weight: 500; }
-.issue-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+.insights-icon svg { width: 16px; height: 16px; }
+.insights-title { font-weight: 600; font-size: 0.9rem; }
+.insights-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+.insight-card {
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.02);
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.insight-card:hover { border-color: var(--glass-border); }
+.insight-severity-bar {
+  width: 3px;
+  min-height: 100%;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.insight-severity-bar.crit { background: var(--crit); }
+.insight-severity-bar.warn { background: var(--warn); }
+.insight-content { flex: 1; min-width: 0; }
+.insight-condition {
+  font-weight: 550;
+  font-size: 0.88rem;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.insight-explanation {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+.insight-action {
+  font-size: 0.78rem;
+  color: var(--info);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.insight-action svg { flex-shrink: 0; }
+.insights-healthy {
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  animation: staggerIn 0.5s var(--ease-out-expo) 0.25s both;
+}
+.insights-healthy-icon {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--good-muted);
+  color: var(--good);
+  flex-shrink: 0;
+}
+.insights-healthy-icon svg { width: 14px; height: 14px; }
+.insights-healthy-text { font-size: 0.85rem; color: var(--text-secondary); }
 
 /* ── Metric Cards ── */
 .metrics-grid {
@@ -752,7 +805,7 @@ body.is-offline .offline-banner { display: flex; }
   .ring-wrap canvas { width: 100px; height: 100px; }
   .ring-pct { font-size: 1.4rem; }
   .ring-title { font-size: 0.95rem; }
-  .issues-panel { padding: var(--space-lg); }
+  .insights-panel { padding: var(--space-lg); }
   .channel-header { padding: var(--space-lg) var(--space-lg) var(--space-md); flex-direction: row; align-items: center; justify-content: space-between; }
   .app-main { padding: var(--space-lg); padding-bottom: calc(var(--space-lg) + var(--safe-bottom)); }
 }
@@ -778,7 +831,7 @@ body.is-offline .offline-banner { display: flex; }
   .hero-title { font-size: 1.5rem; }
   .metrics-grid { gap: var(--space-md); margin-bottom: var(--space-lg); }
   .health-overview { gap: var(--space-md); margin-bottom: var(--space-lg); }
-  .issues-panel { margin-bottom: var(--space-lg); }
+  .insights-panel { margin-bottom: var(--space-lg); }
   .channels-section { margin-bottom: var(--space-lg); }
   .channel-table tbody tr:hover { background: rgba(255,255,255,0.02); }
 }

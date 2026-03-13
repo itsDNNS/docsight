@@ -389,25 +389,53 @@
         </div>
     </div>
 
-    {# ── Issues Panel — only marginal + critical, tolerated is shown in metric cards ── #}
+    {# ── Insights Panel — actionable guidance from health issues (#219) ── #}
     {% set active_issues = [] %}
     {% for issue in s.health_issues %}{% if 'tolerated' not in issue %}{% if active_issues.append(issue) %}{% endif %}{% endif %}{% endfor %}
+    {% set issue_actions = {
+        "ds_power_critical": t.get("insight_action_ds_power_critical", ""),
+        "ds_power_marginal": t.get("insight_action_ds_power_marginal", ""),
+        "us_power_critical_low": t.get("insight_action_us_power_critical", ""),
+        "us_power_critical_high": t.get("insight_action_us_power_critical", ""),
+        "us_power_marginal_low": t.get("insight_action_us_power_marginal", ""),
+        "us_power_marginal_high": t.get("insight_action_us_power_marginal", ""),
+        "us_modulation_marginal": t.get("insight_action_us_modulation", ""),
+        "us_modulation_critical": t.get("insight_action_us_modulation", ""),
+        "snr_critical": t.get("insight_action_snr_critical", ""),
+        "snr_marginal": t.get("insight_action_snr_marginal", ""),
+        "uncorr_errors_high": t.get("insight_action_uncorr_errors", ""),
+        "uncorr_errors_critical": t.get("insight_action_uncorr_errors", ""),
+    } %}
     {% if active_issues %}
-    <div class="issues-panel glass">
-        <div class="issues-header">
-            <div class="metric-icon amber"><i data-lucide="alert-circle"></i></div>
-            <span style="font-weight:600;">{{ t.active_issues or 'Active Issues' }}</span>
-            <span class="badge badge-warn">{{ active_issues|length }}</span>
+    <div class="insights-panel glass">
+        <div class="insights-header">
+            <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
+            <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
         </div>
-        {% for issue in active_issues %}
-        <div class="issue-item">
-            <div class="issue-icon {{ 'crit' if 'critical' in issue else 'warn' }}"><i data-lucide="alert-circle"></i></div>
-            <div>
-                <div class="issue-text">{{ issue_labels.get(issue, issue) }}</div>
-                <div class="issue-desc">{{ issue_descs.get(issue, '') }}</div>
+        <div class="insights-list">
+            {% for issue in active_issues %}
+            {% set sev = 'crit' if 'critical' in issue else 'warn' %}
+            {% set sev_label = t.health_critical if 'critical' in issue else t.health_marginal %}
+            <div class="insight-card">
+                <div class="insight-severity-bar {{ sev }}"></div>
+                <div class="insight-content">
+                    <div class="insight-condition">
+                        {{ issue_labels.get(issue, issue) }}
+                        <span class="badge badge-{{ sev }}">{{ sev_label }}</span>
+                    </div>
+                    <div class="insight-explanation">{{ issue_descs.get(issue, '') }}</div>
+                    {% if issue_actions.get(issue) %}
+                    <div class="insight-action"><i data-lucide="arrow-right" style="width:12px;height:12px;"></i> {{ issue_actions[issue] }}</div>
+                    {% endif %}
+                </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+    </div>
+    {% else %}
+    <div class="insights-healthy glass">
+        <div class="insights-healthy-icon"><i data-lucide="check-circle" style="width:14px;height:14px;"></i></div>
+        <span class="insights-healthy-text">{{ t.get("insights_all_healthy", "All channels within healthy ranges — no action needed.") }}</span>
     </div>
     {% endif %}
 
