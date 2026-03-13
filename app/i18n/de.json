@@ -84,6 +84,7 @@
     "issue_uncorr_errors_critical_desc": "Die Rate unkorrigierbarer Fehler hat den kritischen Schwellenwert überschritten. Dies verursacht Paketverluste und Verbindungsabbrüche. Prüfe dein Koax-Kabel und kontaktiere deinen Anbieter.",
     "insights_title": "Insights",
     "insights_all_healthy": "Alle Kanäle im gesunden Bereich — kein Handlungsbedarf.",
+    "insights_tolerated": "Leichte Abweichungen erkannt, liegen aber im Toleranzbereich.",
     "insight_action_ds_power_critical": "Prüfe Koax-Kabelverbindungen und kontaktiere deinen Anbieter für eine Signalmessung",
     "insight_action_ds_power_marginal": "Beobachte den Wert. Falls er anhält oder sich verschlechtert, kontaktiere deinen Anbieter",
     "insight_action_us_power_critical": "Prüfe Koax-Kabelverbindungen und fordere eine Signalmessung bei deinem Anbieter an",

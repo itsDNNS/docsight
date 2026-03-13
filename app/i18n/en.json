@@ -84,6 +84,7 @@
     "issue_uncorr_errors_critical_desc": "The uncorrectable error rate has exceeded the critical threshold. This causes packet loss and connection drops. Check your coax cabling and contact your ISP.",
     "insights_title": "Insights",
     "insights_all_healthy": "All channels within healthy ranges — no action needed.",
+    "insights_tolerated": "Minor deviations detected, but within tolerance.",
     "insight_action_ds_power_critical": "Check coax cable connections and contact your ISP for a signal check",
     "insight_action_ds_power_marginal": "Monitor over time. If this persists or worsens, contact your ISP",
     "insight_action_us_power_critical": "Check coax cable connections and request a signal check from your ISP",
