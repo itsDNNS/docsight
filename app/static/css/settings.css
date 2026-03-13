@@ -498,6 +498,21 @@ html, body {
   border-bottom: 1px solid var(--glass-border);
 }
 .toggle-row:last-child { border-bottom: none; }
+.toggle-row-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.toggle-section-divider {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-md) 0 var(--space-xs);
+  margin-top: var(--space-sm);
+  border-top: 1px solid var(--glass-border);
+}
 
 .toggle-info {
   display: flex;
