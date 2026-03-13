@@ -494,9 +494,12 @@ function clearDirty() {
 
 /**
  * Save the settings form via /api/config.
+ * Uses the same error display and lang/tz reload logic as the normal submit.
  * Returns a Promise that resolves to true on success, false on failure.
  */
 function _saveForm() {
+    var errEl = document.getElementById('global-error');
+    if (errEl) errEl.style.display = 'none';
     var data = getFormData();
     return fetch('/api/config', {
         method: 'POST',
@@ -508,15 +511,31 @@ function _saveForm() {
         if (res.success) {
             clearDirty();
             showToast(T.settings_saved || 'Settings saved', true);
+            var newLang = document.getElementById('language').value;
+            var newTz = document.getElementById('timezone').value;
+            if (newLang !== currentLang || newTz !== currentTz) {
+                setTimeout(function() { location.reload(); }, 800);
+            }
             return true;
+        }
+        if (errEl) {
+            errEl.textContent = res.error || T.save_failed;
+            errEl.style.display = 'block';
         }
         return false;
     })
-    .catch(function() { return false; });
+    .catch(function() {
+        if (errEl) {
+            errEl.textContent = T.network_error;
+            errEl.style.display = 'block';
+        }
+        return false;
+    });
 }
 
 /**
  * If the form has unsaved changes, ask the user to save or discard.
+ * OK = save first, then proceed.  Cancel = abort the action entirely.
  * Returns a Promise that resolves to true if the action may proceed.
  */
 function _guardUnsaved() {
@@ -525,9 +544,8 @@ function _guardUnsaved() {
     if (confirm(msg)) {
         return _saveForm();
     }
-    /* User chose not to save - discard and allow the action */
-    clearDirty();
-    return Promise.resolve(true);
+    /* User chose Cancel - abort the action, keep unsaved changes */
+    return Promise.resolve(false);
 }
 
 /* ── Submit ── */
