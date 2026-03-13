@@ -417,6 +417,7 @@ html, body {
 .form-grid {
   display: grid;
   gap: var(--space-md);
+  align-items: start;
 }
 .form-grid.cols-2 {
   grid-template-columns: 1fr 1fr;
