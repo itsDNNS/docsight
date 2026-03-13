@@ -76,6 +76,7 @@
     "issue_uncorr_errors_critical_desc": "",
     "insights_title": "",
     "insights_all_healthy": "",
+    "insights_tolerated": "",
     "insight_action_ds_power_critical": "",
     "insight_action_ds_power_marginal": "",
     "insight_action_us_power_critical": "",
