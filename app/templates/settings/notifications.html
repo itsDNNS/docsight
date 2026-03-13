@@ -63,9 +63,9 @@
         </div>
     </div>
 
-    <!-- Per-Event Cooldowns Card -->
-    <div class="settings-card glass">
-        <div class="card-header">
+    <!-- Per-Event Cooldowns Card (collapsible) -->
+    <div class="settings-card glass collapsible-card collapsed" id="per-event-cooldowns">
+        <div class="card-header card-collapse-toggle" onclick="toggleCardCollapse(this)">
             <div class="card-title-group">
                 <div class="card-icon amber">
                     <i data-lucide="timer"></i>
@@ -75,7 +75,9 @@
                     <div class="card-subtitle">{{ t.notify_per_event_desc }}</div>
                 </div>
             </div>
+            <i data-lucide="chevron-down" class="card-collapse-icon"></i>
         </div>
+        <div class="card-collapse-body">
         <table class="cooldown-table">
             <thead>
                 <tr>
@@ -131,6 +133,7 @@
             </tbody>
         </table>
         <span class="form-hint" style="display:block;margin-top:var(--space-md);">{{ t.notify_disabled_hint }}</span>
+        </div>
     </div>
 
     <!-- Test Card -->

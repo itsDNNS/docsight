@@ -364,6 +364,33 @@ html, body {
   margin-top: 2px;
 }
 
+/* ─── Collapsible Cards ─── */
+.collapsible-card .card-collapse-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+.card-collapse-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.collapsible-card .card-collapse-body {
+  overflow: hidden;
+  max-height: 800px;
+  transition: max-height 0.3s ease;
+}
+.collapsible-card.collapsed .card-collapse-body {
+  max-height: 0;
+}
+.collapsible-card.collapsed .card-collapse-toggle {
+  margin-bottom: 0;
+}
+.collapsible-card.collapsed .card-collapse-icon {
+  transform: rotate(-90deg);
+}
+
 /* ─── Section Labels ─── */
 .section-label {
   font-size: 0.72rem;
@@ -1206,7 +1233,7 @@ html, body {
 }
 
 /* ─── Responsive ─── */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s var(--ease-out-expo);

@@ -65,6 +65,15 @@ function closeMobileSidebar() {
     if (backdrop) backdrop.classList.remove('active');
 }
 
+/* ── Collapsible Cards ── */
+function toggleCardCollapse(headerEl) {
+    var card = headerEl.closest('.collapsible-card');
+    if (card) {
+        card.classList.toggle('collapsed');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
+
 /* ── API Token Management ── */
 function _tokenCell(text, style) {
     var td = document.createElement('td');
