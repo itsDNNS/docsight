@@ -432,7 +432,7 @@
             {% endfor %}
         </div>
     </div>
-    {% else %}
+    {% elif s.health == 'good' %}
     <div class="insights-healthy glass">
         <div class="insights-healthy-icon"><i data-lucide="check-circle" style="width:14px;height:14px;"></i></div>
         <span class="insights-healthy-text">{{ t.get("insights_all_healthy", "All channels within healthy ranges — no action needed.") }}</span>
