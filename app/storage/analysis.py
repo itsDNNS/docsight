@@ -146,7 +146,7 @@ class AnalysisMixin:
             channels = json.loads(channels_json)
             for ch in channels:
                 try:
-                    stored_id = int(ch.get("channel_id", 0))
+                    stored_id = int(float(ch.get("channel_id", 0)))
                 except (ValueError, TypeError):
                     stored_id = ch.get("channel_id")
                 if stored_id == channel_id:
@@ -179,7 +179,7 @@ class AnalysisMixin:
             channels = json.loads(channels_json)
             for ch in channels:
                 try:
-                    cid = int(ch.get("channel_id", 0))
+                    cid = int(float(ch.get("channel_id", 0)))
                 except (ValueError, TypeError):
                     cid = ch.get("channel_id")
                 if cid in channel_set:

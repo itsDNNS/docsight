@@ -307,6 +307,25 @@ class TestChannelParsing:
         assert ch["power"] == 45.0
         assert ch["docsis_version"] == "3.0"
 
+    def test_string_channel_id_parsed_to_int(self):
+        """Vodafone Station driver returns channelID as string like '1.0'."""
+        data = _make_data(
+            ds30=[{**_make_ds30(1), "channelID": "1.0"}],
+            us30=[{**_make_us30(1), "channelID": "2"}],
+        )
+        result = analyze(data)
+        assert result["ds_channels"][0]["channel_id"] == 1
+        assert result["us_channels"][0]["channel_id"] == 2
+
+    def test_empty_channel_id_defaults_to_zero(self):
+        """TG driver may return empty ChannelID - should not crash analyze()."""
+        data = _make_data(
+            ds30=[{**_make_ds30(1), "channelID": ""}],
+            us30=[_make_us30(1)],
+        )
+        result = analyze(data)
+        assert result["ds_channels"][0]["channel_id"] == 0
+
     def test_per_channel_health(self):
         data = _make_data(
             ds30=[

@@ -139,6 +139,33 @@ class TestGetChannelHistory:
         assert len(result) == 1
         assert result[0]["power"] == 5.2
 
+    def test_float_string_channel_id_matches(self, storage):
+        """CGA driver stored channel_id as '1.0' via str(parse_number()).
+        Ensure channel history handles float-string IDs from existing data."""
+        ds = [
+            {"channel_id": "1.0", "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "256QAM", "snr": 38.1, "correctable_errors": 10,
+             "uncorrectable_errors": 2, "docsis_version": "3.0",
+             "health": "good", "health_detail": ""},
+        ]
+        storage.save_snapshot(_make_analysis(ds_channels=ds))
+        result = storage.get_channel_history(1, "ds", days=7)
+        assert len(result) == 1
+        assert result[0]["power"] == 5.2
+
+    def test_multi_channel_float_string_id(self, storage):
+        """get_multi_channel_history must also handle '1.0' style IDs."""
+        ds = [
+            {"channel_id": "1.0", "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "256QAM", "snr": 38.1, "correctable_errors": 10,
+             "uncorrectable_errors": 2, "docsis_version": "3.0",
+             "health": "good", "health_detail": ""},
+        ]
+        storage.save_snapshot(_make_analysis(ds_channels=ds))
+        result = storage.get_multi_channel_history([1], "ds", days=7)
+        assert len(result[1]) == 1
+        assert result[1][0]["power"] == 5.2
+
 
 class TestGetCurrentChannels:
     def test_returns_channels(self, storage):

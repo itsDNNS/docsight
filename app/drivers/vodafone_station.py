@@ -289,7 +289,7 @@ class VodafoneStationDriver(ModemDriver):
         # SC-QAM Downstream channels (DOCSIS 3.0)
         for ch in data.get("downstream", []) or []:
             try:
-                channel_id = str(self._parse_number(ch.get("channelid", "0")))
+                channel_id = int(self._parse_number(ch.get("channelid", "0")))
                 freq = self._parse_number(ch.get("CentralFrequency", "0"))
                 power = self._parse_number(ch.get("power", "0"))
                 snr = self._parse_number(ch.get("SNR", "0"))
@@ -317,7 +317,7 @@ class VodafoneStationDriver(ModemDriver):
         # OFDM Downstream channels (DOCSIS 3.1)
         for ch in data.get("ofdm_downstream", []) or []:
             try:
-                channel_id = str(self._parse_number(ch.get("channelid_ofdm", "0")))
+                channel_id = int(self._parse_number(ch.get("channelid_ofdm", "0")))
                 freq = self._parse_number(ch.get("CentralFrequency_ofdm", "0"))
                 power = self._parse_number(ch.get("power_ofdm", "0"))
                 snr = self._parse_number(ch.get("SNR_ofdm", "0"))
@@ -344,7 +344,7 @@ class VodafoneStationDriver(ModemDriver):
         # SC-QAM Upstream channels (DOCSIS 3.0)
         for ch in data.get("upstream", []) or []:
             try:
-                channel_id = str(self._parse_number(ch.get("channelidup", "0")))
+                channel_id = int(self._parse_number(ch.get("channelidup", "0")))
                 freq = self._parse_number(ch.get("CentralFrequency", "0"))
                 power = self._parse_number(ch.get("power", "0"))
                 modulation = self._normalize_modulation(ch.get("FFT", ""))
@@ -365,7 +365,7 @@ class VodafoneStationDriver(ModemDriver):
         # OFDMA Upstream channels (DOCSIS 3.1)
         for ch in data.get("ofdma_upstream", []) or []:
             try:
-                channel_id = str(self._parse_number(ch.get("channelidup", "0")))
+                channel_id = int(self._parse_number(ch.get("channelidup", "0")))
                 freq = self._parse_number(ch.get("CentralFrequency", "0"))
                 power = self._parse_number(ch.get("power", "0"))
 
@@ -626,7 +626,7 @@ class VodafoneStationDriver(ModemDriver):
 
         for ch in ds_raw:
             try:
-                channel_id = str(ch.get("ChannelID", ""))
+                channel_id = int(float(ch.get("ChannelID", 0)))
                 ch_type = ch.get("ChannelType", "SC-QAM")
                 freq = self._parse_tg_frequency(ch.get("Frequency", "0"))
                 power = self._parse_tg_power(ch.get("PowerLevel", "0"))
@@ -656,7 +656,7 @@ class VodafoneStationDriver(ModemDriver):
 
         for ch in us_raw:
             try:
-                channel_id = str(ch.get("ChannelID", ""))
+                channel_id = int(float(ch.get("ChannelID", 0)))
                 ch_type = ch.get("ChannelType", "SC-QAM")
                 freq = self._parse_tg_frequency(ch.get("Frequency", "0"))
                 power = self._parse_tg_power(ch.get("PowerLevel", "0"))
