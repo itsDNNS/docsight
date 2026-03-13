@@ -2,6 +2,121 @@
 /* Extracted from IIFE – depends on: T, charts, renderChart, getPillValue,
    DS_POWER_THRESHOLDS, DS_SNR_THRESHOLDS, US_POWER_THRESHOLDS */
 
+/* ── Channel State URL Persistence ── */
+/* Hash format: #channels?mode=timeline&dir=ds&channel=42&days=7
+   Compare:     #channels?mode=compare&dir=us&days=30&channels=1,2,3
+   Preset:      #channels?mode=compare&dir=ds&days=7&preset=all */
+
+function parseChannelHash() {
+    var hash = location.hash.replace('#', '');
+    var qIdx = hash.indexOf('?');
+    if (qIdx === -1) return {};
+    var params = {};
+    hash.substring(qIdx + 1).split('&').forEach(function(pair) {
+        var kv = pair.split('=');
+        if (kv.length === 2) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+    });
+    return params;
+}
+
+function writeChannelHash() {
+    if (typeof currentView === 'undefined' || currentView !== 'channels') return;
+    var mode = getPillValue('channel-mode-tabs') || 'timeline';
+    var params = ['mode=' + mode];
+    if (mode === 'timeline') {
+        var sel = document.getElementById('channel-select');
+        var val = sel ? sel.value : '';
+        if (val) {
+            var parts = val.split('-');
+            params.push('dir=' + parts[0]);
+            params.push('channel=' + parts[1]);
+        }
+        params.push('days=' + (getPillValue('channel-time-tabs') || '7'));
+    } else {
+        params.push('dir=' + getCompareDirection());
+        params.push('days=' + (getPillValue('compare-time-tabs') || '7'));
+        if (_comparePreset === 'all') {
+            params.push('preset=all');
+        } else if (_compareChannels.length > 0) {
+            var ids = _compareChannels.map(function(c) { return c.id; });
+            ids.sort(function(a, b) { return a - b; });
+            ids = ids.filter(function(v, i, a) { return i === 0 || a[i - 1] !== v; });
+            params.push('channels=' + ids.join(','));
+        }
+    }
+    history.replaceState(null, '', '#channels?' + params.join('&'));
+}
+
+function setPillByValue(containerId, value) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    container.querySelectorAll('.trend-tab').forEach(function(t) {
+        t.classList.toggle('active', t.dataset.value === value);
+    });
+}
+
+function initChannelView() {
+    var params = parseChannelHash();
+    loadChannelList(function() {
+        if (!params.mode) {
+            var mode = getPillValue('channel-mode-tabs') || 'timeline';
+            if (mode === 'compare') loadCompareChannelList();
+            writeChannelHash();
+            return;
+        }
+        setPillByValue('channel-mode-tabs', params.mode);
+        switchChannelMode();
+
+        if (params.mode === 'timeline') {
+            if (params.days) setPillByValue('channel-time-tabs', params.days);
+            if (params.dir && params.channel) {
+                var sel = document.getElementById('channel-select');
+                sel.value = params.dir + '-' + params.channel;
+                if (sel.value === params.dir + '-' + params.channel) {
+                    loadChannelTimeline();
+                    return;
+                }
+            }
+            writeChannelHash();
+        } else if (params.mode === 'compare') {
+            if (params.dir) setPillByValue('compare-dir-tabs', params.dir);
+            if (params.days) setPillByValue('compare-time-tabs', params.days);
+            updateCompareActionLabels();
+            if (params.preset === 'all') {
+                addAllCompareChannels();
+            } else if (params.channels) {
+                var channelIds = params.channels.split(',').map(function(s) { return parseInt(s); });
+                var dir = params.dir || 'ds';
+                fetch('/api/channels')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var available = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
+                        _compareChannels = [];
+                        channelIds.forEach(function(id) {
+                            for (var i = 0; i < available.length; i++) {
+                                if (available[i].channel_id === id) {
+                                    _compareChannels.push(buildCompareChannelEntry(available[i], _compareChannels.length, dir));
+                                    break;
+                                }
+                            }
+                        });
+                        renderCompareChips();
+                        populateCompareChannelList(data);
+                        if (_compareChannels.length > 0) loadCompareCharts();
+                        else writeChannelHash();
+                    })
+                    .catch(function() { writeChannelHash(); });
+            } else {
+                loadCompareChannelList();
+                writeChannelHash();
+            }
+        } else {
+            writeChannelHash();
+        }
+    });
+}
+window.initChannelView = initChannelView;
+
 /* ── Channel Mode Switch (Timeline / Compare) ── */
 function switchChannelMode() {
     var mode = getPillValue('channel-mode-tabs') || 'timeline';
@@ -21,14 +136,15 @@ function switchChannelMode() {
         if (timelineControls) timelineControls.style.display = 'contents';
         if (compareControls) compareControls.style.display = 'none';
     }
+    writeChannelHash();
 }
 window.switchChannelMode = switchChannelMode;
 
 /* ── Channel Timeline ── */
 var _channelsLoaded = false;
 
-function loadChannelList() {
-    if (_channelsLoaded) return;
+function loadChannelList(callback) {
+    if (_channelsLoaded) { if (callback) callback(); return; }
     var sel = document.getElementById('channel-select');
     fetch('/api/channels')
         .then(function(r) { return r.json(); })
@@ -61,8 +177,9 @@ function loadChannelList() {
                 sel.appendChild(grp2);
             }
             _channelsLoaded = true;
+            if (callback) callback();
         })
-        .catch(function() {});
+        .catch(function() { if (callback) callback(); });
 }
 
 function loadChannelTimeline() {
@@ -82,6 +199,7 @@ function loadChannelTimeline() {
     var selectedOpt = sel.options[sel.selectedIndex];
     var docsisVersion = selectedOpt ? selectedOpt.dataset.docsis || '3.0' : '3.0';
     var days = getPillValue('channel-time-tabs');
+    writeChannelHash();
 
     loadingEl.style.display = '';
     chartsEl.style.display = 'none';
@@ -266,6 +384,7 @@ function onCompareDirectionChange() {
     emptyEl.style.display = 'none';
     clearCompareCharts();
     loadCompareChannelList();
+    writeChannelHash();
 }
 window.onCompareDirectionChange = onCompareDirectionChange;
 
@@ -291,6 +410,7 @@ function addCompareChannel() {
     renderCompareChips();
     loadCompareChannelList();
     loadCompareCharts();
+    writeChannelHash();
 }
 window.addCompareChannel = addCompareChannel;
 
@@ -314,6 +434,7 @@ function addAllCompareChannels() {
             renderCompareChips();
             loadCompareChannelList(data);
             loadCompareCharts();
+            writeChannelHash();
         })
         .catch(function(error) {
             showCompareError(T.trend_error || 'Error loading data.', error);
@@ -328,6 +449,7 @@ function clearCompareChannels() {
     document.getElementById('compare-empty').style.display = 'none';
     clearCompareCharts();
     loadCompareChannelList();
+    writeChannelHash();
 }
 window.clearCompareChannels = clearCompareChannels;
 
@@ -343,6 +465,7 @@ function removeCompareChannel(id) {
     } else {
         clearCompareCharts();
     }
+    writeChannelHash();
 }
 window.removeCompareChannel = removeCompareChannel;
 
@@ -380,6 +503,7 @@ function loadCompareCharts() {
     var dir = getCompareDirection();
     var days = getPillValue('compare-time-tabs') || '7';
     var ids = _compareChannels.map(function(c) { return c.id; }).join(',');
+    writeChannelHash();
 
     loadingEl.style.display = '';
     chartsEl.style.display = 'none';

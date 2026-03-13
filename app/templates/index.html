@@ -2324,9 +2324,7 @@ var T = {{ t|tojson }};
         } else if (view === 'events') {
             if (typeof loadEvents === 'function') loadEvents();
         } else if (view === 'channels') {
-            if (typeof loadChannelList === 'function') loadChannelList();
-            var mode = getPillValue('channel-mode-tabs') || 'timeline';
-            if (mode === 'compare' && typeof loadCompareChannelList === 'function') loadCompareChannelList();
+            if (typeof initChannelView === 'function') initChannelView();
         } else if (view === 'correlation') {
             loadCorrelationData();
         } else if (view === 'bnetz') {
@@ -2358,9 +2356,11 @@ var T = {{ t|tojson }};
     function viewFromHash() {
         var h = location.hash.replace('#', '');
         if (!h) return null;
+        // Strip query params (e.g. #channels?mode=timeline → channels)
+        var view = h.split('?')[0];
         // Accept any view that exists in DOM (supports module views)
-        var el = document.getElementById('view-' + h) || (h === 'live' && document.getElementById('view-dashboard'));
-        return el ? h : null;
+        var el = document.getElementById('view-' + view) || (view === 'live' && document.getElementById('view-dashboard'));
+        return el ? view : null;
     }
     window.addEventListener('hashchange', function() {
         var v = viewFromHash();
