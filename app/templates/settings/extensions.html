@@ -18,64 +18,43 @@
             </div>
         </div>
 
-        <!-- Built-in feature toggles -->
-        <div class="toggle-row">
-            <div class="toggle-info">
-                <span class="toggle-title">{{ t.gaming_quality_label }}</span>
-                <span class="toggle-desc">{{ t.gaming_quality_hint }}</span>
-            </div>
-            <input type="hidden" name="gaming_quality_enabled" value="false">
-            <label class="toggle">
-                <input type="checkbox" id="gaming_quality_enabled" name="gaming_quality_enabled" value="true" {% if config.gaming_quality_enabled %}checked{% endif %}>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-
-        <div class="toggle-row">
-            <div class="toggle-info">
-                <span class="toggle-title">{{ t.bnetz_title }}</span>
-                <span class="toggle-desc">{{ t.bnetz_upload_hint }}</span>
-            </div>
-            <input type="hidden" name="bnetz_enabled" value="false">
-            <label class="toggle">
-                <input type="checkbox" id="bnetz_enabled" name="bnetz_enabled" value="true" {% if config.bnetz_enabled %}checked{% endif %}>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-
-        <div class="toggle-row{% if config.modem_type != 'fritzbox' %} toggle-row-disabled{% endif %}">
-            <div class="toggle-info">
-                <span class="toggle-title">{{ t.get('seg_title', 'Segment Utilization') }}</span>
-                <span class="toggle-desc">
-                    {% if config.modem_type != 'fritzbox' %}{{ t.get('modules_requires_fritzbox', 'Requires FRITZ!Box') }}{% else %}{{ t.get('seg_subtitle', 'Cable segment utilization monitoring.') }}{% endif %}
-                </span>
-            </div>
-            <input type="hidden" name="segment_utilization_enabled" value="false">
-            <label class="toggle">
-                <input type="checkbox" id="segment_utilization_enabled" name="segment_utilization_enabled" value="true" {% if config.segment_utilization_enabled and config.modem_type == 'fritzbox' %}checked{% endif %} {% if config.modem_type != 'fritzbox' %}disabled{% endif %}>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
-
+        {# Build a unified, alphabetically sorted list of all extensions #}
+        {% set seg_disabled = config.modem_type != 'fritzbox' %}
+        {% set seg_desc = t.get('modules_requires_fritzbox', 'Requires FRITZ!Box') if seg_disabled else t.get('seg_subtitle', 'Cable segment utilization monitoring.') %}
+        {% set all_ext = [] %}
+        {% if all_ext.append({'name': t.gaming_quality_label, 'desc': t.gaming_quality_hint, 'kind': 'form', 'field': 'gaming_quality_enabled', 'checked': config.gaming_quality_enabled, 'disabled': false}) %}{% endif %}
+        {% if all_ext.append({'name': t.bnetz_title, 'desc': t.bnetz_upload_hint, 'kind': 'form', 'field': 'bnetz_enabled', 'checked': config.bnetz_enabled, 'disabled': false}) %}{% endif %}
+        {% if all_ext.append({'name': t.get('seg_title', 'Segment Utilization'), 'desc': seg_desc, 'kind': 'form', 'field': 'segment_utilization_enabled', 'checked': config.segment_utilization_enabled and not seg_disabled, 'disabled': seg_disabled}) %}{% endif %}
         {% if all_modules %}
-        {% set non_theme = all_modules|selectattr('type', 'ne', 'theme')|list %}
-        {% for mod in non_theme|sort(attribute='name') %}
-        <div class="toggle-row" data-module-id="{{ mod.id }}">
-            <div class="toggle-info">
-                <span class="toggle-title">
-                    {{ mod.name }}
-                    {% if mod.error %}<span class="module-badge badge-error">{{ t.modules_error }}</span>{% endif %}
-                </span>
-                <span class="toggle-desc">{{ mod.description }}</span>
-            </div>
-            <label class="toggle module-toggle">
-                <input type="checkbox" class="module-toggle-input"
-                       data-module-id="{{ mod.id }}"
-                       {% if mod.enabled %}checked{% endif %}>
-                <span class="toggle-slider"></span>
-            </label>
-        </div>
+        {% for mod in all_modules|selectattr('type', 'ne', 'theme')|list %}
+        {% if all_ext.append({'name': mod.name, 'desc': mod.description, 'kind': 'module', 'mod_id': mod.id, 'checked': mod.enabled, 'disabled': false, 'error': mod.error}) %}{% endif %}
         {% endfor %}
         {% endif %}
+
+        {% for ext in all_ext|sort(attribute='name') %}
+        <div class="toggle-row{% if ext.disabled %} toggle-row-disabled{% endif %}"{% if ext.kind == 'module' %} data-module-id="{{ ext.mod_id }}"{% endif %}>
+            <div class="toggle-info">
+                <span class="toggle-title">
+                    {{ ext.name }}
+                    {% if ext.error is defined and ext.error %}<span class="module-badge badge-error">{{ t.modules_error }}</span>{% endif %}
+                </span>
+                <span class="toggle-desc">{{ ext.desc }}</span>
+            </div>
+            {% if ext.kind == 'form' %}
+            <input type="hidden" name="{{ ext.field }}" value="false">
+            <label class="toggle">
+                <input type="checkbox" id="{{ ext.field }}" name="{{ ext.field }}" value="true" {% if ext.checked %}checked{% endif %} {% if ext.disabled %}disabled{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+            {% elif ext.kind == 'module' %}
+            <label class="toggle module-toggle">
+                <input type="checkbox" class="module-toggle-input"
+                       data-module-id="{{ ext.mod_id }}"
+                       {% if ext.checked %}checked{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
 </div>
