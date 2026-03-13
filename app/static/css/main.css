@@ -490,6 +490,25 @@ body.is-offline .offline-banner { display: flex; }
 }
 .insights-healthy-icon svg { width: 14px; height: 14px; }
 .insights-healthy-text { font-size: 0.85rem; color: var(--text-secondary); }
+.insights-tolerated {
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  animation: staggerIn 0.5s var(--ease-out-expo) 0.25s both;
+}
+.insights-tolerated-icon {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tolerated-muted);
+  color: var(--tolerated);
+  flex-shrink: 0;
+}
+.insights-tolerated-icon svg { width: 14px; height: 14px; }
 
 /* ── Metric Cards ── */
 .metrics-grid {

@@ -433,8 +433,8 @@
         </div>
     </div>
     {% elif s.health == 'tolerated' %}
-    <div class="insights-healthy glass" style="border-left: 3px solid var(--tolerated);">
-        <div class="insights-healthy-icon" style="background: var(--tolerated-muted); color: var(--tolerated);"><i data-lucide="info" style="width:14px;height:14px;"></i></div>
+    <div class="insights-tolerated glass">
+        <div class="insights-tolerated-icon"><i data-lucide="info" style="width:14px;height:14px;"></i></div>
         <span class="insights-healthy-text">{{ t.get("insights_tolerated", "Minor deviations detected, but within tolerance.") }}</span>
     </div>
     {% elif s.health == 'good' %}
