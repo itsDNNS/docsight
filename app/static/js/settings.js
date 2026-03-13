@@ -476,12 +476,58 @@ function initUnsavedDetection() {
     }
     form.addEventListener('input', markDirty);
     form.addEventListener('change', markDirty);
+
+    /* P1: warn on page leave when unsaved changes exist */
+    window.addEventListener('beforeunload', function(e) {
+        if (_formDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
 }
 
 function clearDirty() {
     _formDirty = false;
     var footer = document.getElementById('save-footer');
     if (footer) footer.classList.remove('visible');
+}
+
+/**
+ * Save the settings form via /api/config.
+ * Returns a Promise that resolves to true on success, false on failure.
+ */
+function _saveForm() {
+    var data = getFormData();
+    return fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.success) {
+            clearDirty();
+            showToast(T.settings_saved || 'Settings saved', true);
+            return true;
+        }
+        return false;
+    })
+    .catch(function() { return false; });
+}
+
+/**
+ * If the form has unsaved changes, ask the user to save or discard.
+ * Returns a Promise that resolves to true if the action may proceed.
+ */
+function _guardUnsaved() {
+    if (!_formDirty) return Promise.resolve(true);
+    var msg = T.unsaved_confirm || 'You have unsaved settings changes. Save them before continuing?';
+    if (confirm(msg)) {
+        return _saveForm();
+    }
+    /* User chose not to save - discard and allow the action */
+    clearDirty();
+    return Promise.resolve(true);
 }
 
 /* ── Submit ── */
@@ -939,27 +985,33 @@ function initModuleToggles() {
             var action = this.checked ? 'enable' : 'disable';
             var toggleEl = this;
 
-            fetch('/api/modules/' + moduleId + '/' + action, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(res) {
-                if (res.success) {
-                    showToast(T.settings_saved || 'Saved');
-                    var banner = document.getElementById('module-restart-banner');
-                    if (banner) {
-                        banner.style.display = 'flex';
-                        lucide.createIcons({nodes: [banner]});
-                    }
-                } else {
+            _guardUnsaved().then(function(proceed) {
+                if (!proceed) {
                     toggleEl.checked = !toggleEl.checked;
-                    showToast(res.error || 'Error', true);
+                    return;
                 }
-            })
-            .catch(function() {
-                toggleEl.checked = !toggleEl.checked;
-                showToast(T.network_error || 'Network error', true);
+                fetch('/api/modules/' + moduleId + '/' + action, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.success) {
+                        showToast(T.settings_saved || 'Saved');
+                        var banner = document.getElementById('module-restart-banner');
+                        if (banner) {
+                            banner.style.display = 'flex';
+                            lucide.createIcons({nodes: [banner]});
+                        }
+                    } else {
+                        toggleEl.checked = !toggleEl.checked;
+                        showToast(res.error || 'Error', true);
+                    }
+                })
+                .catch(function() {
+                    toggleEl.checked = !toggleEl.checked;
+                    showToast(T.network_error || 'Network error', true);
+                });
             });
         });
     });
@@ -1011,24 +1063,26 @@ function applyPreviewedTheme() {
 }
 
 function applyTheme(themeId) {
-    fetch('/api/modules/' + themeId + '/enable', { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                localStorage.setItem('docsight-active-theme', themeId);
-                localStorage.setItem('docsight-active-theme', themeId);
-                var overlay = document.getElementById('theme-preview-overlay');
-                if (overlay) overlay.style.display = 'none';
-                _previewingThemeId = null;
-                _originalStyles = {};
-                location.reload();
-            } else {
-                showToast(data.error || (T.theme_apply_failed || 'Failed to apply theme'), true);
-            }
-        })
-        .catch(function(err) {
-            showToast((T.error_prefix || 'Error') + ': ' + err.message, true);
-        });
+    _guardUnsaved().then(function(proceed) {
+        if (!proceed) return;
+        fetch('/api/modules/' + themeId + '/enable', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    localStorage.setItem('docsight-active-theme', themeId);
+                    var overlay = document.getElementById('theme-preview-overlay');
+                    if (overlay) overlay.style.display = 'none';
+                    _previewingThemeId = null;
+                    _originalStyles = {};
+                    location.reload();
+                } else {
+                    showToast(data.error || (T.theme_apply_failed || 'Failed to apply theme'), true);
+                }
+            })
+            .catch(function(err) {
+                showToast((T.error_prefix || 'Error') + ': ' + err.message, true);
+            });
+    });
 }
 
 

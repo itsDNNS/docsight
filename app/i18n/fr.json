@@ -10,6 +10,7 @@
   "security": "Securite",
   "modules": "Modules",
   "unsaved_changes": "Modifications non enregistrees",
+  "unsaved_confirm": "Des modifications ne sont pas enregistrees. Les sauvegarder avant de continuer?",
   "home": "Accueil",
   "day_trend": "Tendance du jour",
   "week_trend": "Tendance de la semaine",

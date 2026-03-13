@@ -10,6 +10,7 @@
   "security": "Security",
   "modules": "Modules",
   "unsaved_changes": "Unsaved changes",
+  "unsaved_confirm": "You have unsaved settings changes. Save them before continuing?",
   "home": "Home",
   "day_trend": "Day Trend",
   "week_trend": "Week Trend",

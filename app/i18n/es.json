@@ -10,6 +10,7 @@
   "security": "Seguridad",
   "modules": "Modulos",
   "unsaved_changes": "Cambios sin guardar",
+  "unsaved_confirm": "Hay cambios sin guardar. Guardarlos antes de continuar?",
   "home": "Inicio",
   "day_trend": "Tendencia diaria",
   "week_trend": "Tendencia semanal",

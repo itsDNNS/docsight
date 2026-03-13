@@ -10,6 +10,7 @@
   "security": "Sicherheit",
   "modules": "Module",
   "unsaved_changes": "Ungespeicherte Änderungen",
+  "unsaved_confirm": "Es gibt ungespeicherte Änderungen. Vor dem Fortfahren speichern?",
   "home": "Home",
   "day_trend": "Tagesverlauf",
   "week_trend": "Wochentrend",
