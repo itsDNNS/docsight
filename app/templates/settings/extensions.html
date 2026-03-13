@@ -57,11 +57,8 @@
             </label>
         </div>
 
-        <!-- Installed modules -->
         {% if all_modules %}
         {% set non_theme = all_modules|selectattr('type', 'ne', 'theme')|list %}
-        {% if non_theme %}
-        <div class="toggle-section-divider">{{ t.modules_title }}</div>
         {% for mod in non_theme|sort(attribute='name') %}
         <div class="toggle-row" data-module-id="{{ mod.id }}">
             <div class="toggle-info">
@@ -80,7 +77,6 @@
             </label>
         </div>
         {% endfor %}
-        {% endif %}
         {% endif %}
     </div>
 </div>
