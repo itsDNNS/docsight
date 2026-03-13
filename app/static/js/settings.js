@@ -7,7 +7,7 @@
 
 /* ── Section Controller ── */
 var _currentSection = 'connection';
-var _saveHiddenSections = { support: true, extensions: true, themes: true };
+var _saveHiddenSections = { support: true, themes: true };
 
 function switchSection(id) {
     _currentSection = id;

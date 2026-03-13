@@ -76,24 +76,18 @@
                 <i data-lucide="package" class="nav-icon"></i>
                 {{ t.get('settings_extensions', 'Extensions') }}
             </button>
-        </div>
-
-        <!-- Module-specific Settings (dynamic, under extensions) -->
-        {% set settings_modules = [] %}
-        {% for mod in modules if mod.template_paths.get('settings') %}
-            {% if settings_modules.append(mod) %}{% endif %}
-        {% endfor %}
-        {% if settings_modules %}
-        <div class="nav-group">
+            {% set settings_modules = [] %}
+            {% for mod in modules if mod.template_paths.get('settings') %}
+                {% if settings_modules.append(mod) %}{% endif %}
+            {% endfor %}
             {% for mod in settings_modules|sort(attribute='name') %}
-            <button class="nav-item" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
+            <button class="nav-item nav-sub-item" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
                 <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}" class="nav-icon"></i>
                 {{ t.get(mod.menu.label_key, mod.name) }}
                 <span class="nav-badge {{ 'success' if mod.enabled else 'info' }}">{{ 'ON' if mod.enabled else 'OFF' }}</span>
             </button>
             {% endfor %}
         </div>
-        {% endif %}
 
         <!-- Support (bottom) -->
         <div style="margin-top: auto;">

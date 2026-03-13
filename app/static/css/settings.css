@@ -246,6 +246,15 @@ html, body {
 }
 .nav-item.active .nav-icon { opacity: 1; }
 
+.nav-sub-item {
+  padding-left: 32px;
+  font-size: 0.82rem;
+}
+.nav-sub-item .nav-icon {
+  width: 14px;
+  height: 14px;
+}
+
 .nav-badge {
   margin-left: auto;
   font-size: 0.65rem;
