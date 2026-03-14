@@ -1,0 +1,13 @@
+{
+  "id": "docsight.theme_doom",
+  "name": "Doom",
+  "description": "Dark reds, lava orange and brimstone — rip and tear",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "theme",
+  "contributes": {
+    "theme": "theme.json"
+  },
+  "config": {}
+}

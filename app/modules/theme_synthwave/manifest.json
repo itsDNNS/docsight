@@ -1,0 +1,13 @@
+{
+  "id": "docsight.theme_synthwave",
+  "name": "SynthWave",
+  "description": "Neon pink and cyan on deep violet — 80s retro futurism",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "theme",
+  "contributes": {
+    "theme": "theme.json"
+  },
+  "config": {}
+}

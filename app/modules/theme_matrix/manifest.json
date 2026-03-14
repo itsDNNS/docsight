@@ -1,0 +1,13 @@
+{
+  "id": "docsight.theme_matrix",
+  "name": "Matrix",
+  "description": "Phosphor green on black — enter the Matrix",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "theme",
+  "contributes": {
+    "theme": "theme.json"
+  },
+  "config": {}
+}

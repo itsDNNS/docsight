@@ -1,0 +1,13 @@
+{
+  "id": "docsight.theme_amber_terminal",
+  "name": "Amber Terminal",
+  "description": "Warm amber on black — classic CRT monitor nostalgia",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "theme",
+  "contributes": {
+    "theme": "theme.json"
+  },
+  "config": {}
+}
