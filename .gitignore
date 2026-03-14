@@ -10,9 +10,9 @@ deploy.sh
 .config_key
 config.json
 
-# Plans and design docs (local only)
-docs/plans/
-docs/superpowers/
+# Docs (local only, not for public repo)
+docs/*.md
+docs/**/*.md
 
 # Internal development docs (belong in workspace, not repo)
 PHASE-*.md
