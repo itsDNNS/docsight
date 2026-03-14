@@ -20,6 +20,15 @@ log = logging.getLogger("docsis.web")
 bp = Blueprint("backup_bp", __name__)
 
 
+def _int_config(config_mgr, key, default):
+    """Read an integer-like config value safely."""
+    try:
+        value = int(config_mgr.get(key, default))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
 @bp.route("/api/backup", methods=["POST"])
 @require_auth
 def api_backup_download():
@@ -47,7 +56,7 @@ def api_backup_scheduled():
     if not _config_manager:
         return jsonify({"error": "Not initialized"}), 500
     backup_path = _config_manager.get("backup_path", "/backup")
-    retention = _config_manager.get("backup_retention", 5)
+    retention = _int_config(_config_manager, "backup_retention", 5)
     try:
         from .backup import create_backup_to_file, cleanup_old_backups
         filename = create_backup_to_file(_config_manager.data_dir, backup_path)

@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 import tarfile
+from unittest.mock import MagicMock
 
 import pytest
 from io import BytesIO
@@ -20,6 +21,7 @@ from app.modules.backup.backup import (
     restore_backup,
     validate_backup,
 )
+from app.modules.backup.collector import BackupCollector
 
 
 # ── Fixtures ──
@@ -262,6 +264,46 @@ class TestListAndCleanup:
             f.write(b"fake")
         deleted = cleanup_old_backups(backup_dir, keep=5)
         assert deleted == 0
+
+
+class TestBackupCollectorConfig:
+    def test_uses_configured_interval_hours_from_string(self):
+        mgr = MagicMock()
+        mgr.get.side_effect = lambda key, default=None: {
+            "backup_interval_hours": "168",
+        }.get(key, default)
+
+        collector = BackupCollector(mgr)
+
+        assert collector.poll_interval_seconds == 168 * 3600
+
+    def test_collect_casts_retention_from_string(self, monkeypatch):
+        mgr = MagicMock()
+        mgr.data_dir = "/data"
+        mgr.get.side_effect = lambda key, default=None: {
+            "backup_path": "/backup",
+            "backup_retention": "5",
+        }.get(key, default)
+
+        calls = {}
+
+        def fake_create_backup_to_file(data_dir, backup_path):
+            calls["create"] = (data_dir, backup_path)
+            return "docsight_backup_test.tar.gz"
+
+        def fake_cleanup_old_backups(backup_path, keep=5):
+            calls["cleanup"] = (backup_path, keep)
+            return 0
+
+        monkeypatch.setattr("app.modules.backup.backup.create_backup_to_file", fake_create_backup_to_file)
+        monkeypatch.setattr("app.modules.backup.backup.cleanup_old_backups", fake_cleanup_old_backups)
+
+        collector = BackupCollector(mgr)
+        result = collector.collect()
+
+        assert result.success is True
+        assert calls["create"] == ("/data", "/backup")
+        assert calls["cleanup"] == ("/backup", 5)
 
 
 # ── TestBrowseDirectory ──
