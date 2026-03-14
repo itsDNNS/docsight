@@ -106,23 +106,23 @@ CONNECTION_INFO_FULL = {
 class TestDownstreamChannelMetrics:
     def test_ds_power_dbmv(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="1"} 3.0')
+        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="1",frequency="474"} 3.0')
 
     def test_ds_snr_db(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_downstream_snr_db{channel_id="1"} 35.0')
+        assert _has_metric(out, 'docsight_downstream_snr_db{channel_id="1",frequency="474"} 35.0')
 
     def test_ds_corrected_errors_total(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_downstream_corrected_errors_total{channel_id="1"} 100')
+        assert _has_metric(out, 'docsight_downstream_corrected_errors_total{channel_id="1",frequency="474"} 100')
 
     def test_ds_uncorrected_errors_total(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_downstream_uncorrected_errors_total{channel_id="1"} 5')
+        assert _has_metric(out, 'docsight_downstream_uncorrected_errors_total{channel_id="1",frequency="474"} 5')
 
     def test_ds_modulation_256qam(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_downstream_modulation{channel_id="1"} 256')
+        assert _has_metric(out, 'docsight_downstream_modulation{channel_id="1",frequency="474"} 256')
 
     def test_ds_snr_none_omits_line(self):
         analysis = {
@@ -146,7 +146,7 @@ class TestDownstreamChannelMetrics:
             "us_channels": [],
         }
         out = format_metrics(analysis, None, None, 0.0)
-        assert not _has_metric_approx(out, 'docsight_downstream_snr_db{channel_id="5"}')
+        assert not _has_metric_approx(out, 'docsight_downstream_snr_db{channel_id="5",frequency="474"}')
 
     def test_ds_modulation_ofdm_omits_line(self):
         """OFDM is not parseable as QAM order, so modulation line must be omitted."""
@@ -171,16 +171,16 @@ class TestDownstreamChannelMetrics:
             "us_channels": [],
         }
         out = format_metrics(analysis, None, None, 0.0)
-        assert not _has_metric_approx(out, 'docsight_downstream_modulation{channel_id="7"}')
+        assert not _has_metric_approx(out, 'docsight_downstream_modulation{channel_id="7",frequency="474"}')
 
     def test_multiple_ds_channels_separate_lines(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="1"} 3.0')
-        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="2"} -1.5')
+        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="1",frequency="474"} 3.0')
+        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="2",frequency="482"} -1.5')
 
     def test_ds_power_negative_value(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="2"} -1.5')
+        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="2",frequency="482"} -1.5')
 
     def test_ds_has_help_comment(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
@@ -200,11 +200,11 @@ class TestDownstreamChannelMetrics:
 class TestUpstreamChannelMetrics:
     def test_us_power_dbmv(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_upstream_power_dbmv{channel_id="1"} 42.0')
+        assert _has_metric(out, 'docsight_upstream_power_dbmv{channel_id="1",frequency="30"} 42.0')
 
     def test_us_modulation_64qam(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)
-        assert _has_metric(out, 'docsight_upstream_modulation{channel_id="1"} 64')
+        assert _has_metric(out, 'docsight_upstream_modulation{channel_id="1",frequency="30"} 64')
 
     def test_us_power_none_omits_line(self):
         analysis = {
@@ -225,7 +225,7 @@ class TestUpstreamChannelMetrics:
             }],
         }
         out = format_metrics(analysis, None, None, 0.0)
-        assert not _has_metric_approx(out, 'docsight_upstream_power_dbmv{channel_id="3"}')
+        assert not _has_metric_approx(out, 'docsight_upstream_power_dbmv{channel_id="3",frequency="30"}')
 
     def test_multiple_us_channels_separate_lines(self):
         analysis = {
@@ -257,8 +257,41 @@ class TestUpstreamChannelMetrics:
             ],
         }
         out = format_metrics(analysis, None, None, 0.0)
-        assert _has_metric(out, 'docsight_upstream_power_dbmv{channel_id="1"} 42.0')
-        assert _has_metric(out, 'docsight_upstream_power_dbmv{channel_id="2"} 45.0')
+        assert _has_metric(out, 'docsight_upstream_power_dbmv{channel_id="1",frequency="30"} 42.0')
+        assert _has_metric(out, 'docsight_upstream_power_dbmv{channel_id="2",frequency="38"} 45.0')
+
+    def test_frequency_label_normalizes_mhz_values(self):
+        analysis = {
+            "summary": {
+                "ds_total": 1, "us_total": 1,
+                "health": "good", "health_issues": [],
+                "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
+            },
+            "ds_channels": [{
+                "channel_id": 9,
+                "frequency": "114.0 MHz",
+                "power": 2.5,
+                "modulation": "256QAM",
+                "snr": 36.0,
+                "correctable_errors": 0,
+                "uncorrectable_errors": 0,
+                "docsis_version": "3.0",
+                "health": "good",
+                "health_detail": "",
+            }],
+            "us_channels": [{
+                "channel_id": 2,
+                "frequency": "44 MHz",
+                "power": 43.0,
+                "modulation": "64QAM",
+                "docsis_version": "3.0",
+                "health": "good",
+                "health_detail": "",
+            }],
+        }
+        out = format_metrics(analysis, None, None, 0.0)
+        assert _has_metric(out, 'docsight_downstream_power_dbmv{channel_id="9",frequency="114.0"} 2.5')
+        assert _has_metric(out, 'docsight_upstream_modulation{channel_id="2",frequency="44"} 64')
 
     def test_us_has_help_comment(self):
         out = format_metrics(ANALYSIS_FULL, None, None, 0.0)

@@ -9,6 +9,46 @@ from .analyzer import _parse_qam_order
 _HEALTH_MAP = {"good": 0, "tolerated": 1, "marginal": 2, "critical": 3}
 
 
+def _frequency_label(value):
+    """Normalize channel frequency for Prometheus labels.
+
+    Returns a string in MHz where possible, without the trailing unit.
+    """
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    lowered = text.lower()
+    if lowered.endswith("mhz"):
+        text = text[:-3].strip()
+        return text or None
+
+    try:
+        numeric = float(text)
+    except ValueError:
+        return text
+
+    if abs(numeric) >= 1_000_000:
+        numeric /= 1_000_000
+
+    if numeric.is_integer():
+        return str(int(numeric))
+
+    return f"{numeric:.3f}".rstrip("0").rstrip(".")
+
+
+def _channel_labels(channel):
+    """Build Prometheus labels for a DOCSIS channel metric."""
+    labels = {"channel_id": str(channel["channel_id"])}
+    frequency = _frequency_label(channel.get("frequency"))
+    if frequency is not None:
+        labels["frequency"] = frequency
+    return labels
+
+
 def _metric(lines, help_text, metric_type, name, value, labels=None):
     """Append HELP, TYPE, and a single value line to lines list."""
     lines.append(f"# HELP {name} {help_text}")
@@ -102,7 +142,7 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
             ch_id = ch["channel_id"]
             if ch.get("power") is not None:
                 _metric_value(lines, "docsight_downstream_power_dbmv", ch["power"],
-                              {"channel_id": str(ch_id)})
+                              _channel_labels(ch))
 
         _metric_family_open(
             lines,
@@ -113,7 +153,7 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
         for ch in ds_channels:
             if ch.get("snr") is not None:
                 _metric_value(lines, "docsight_downstream_snr_db", ch["snr"],
-                              {"channel_id": str(ch["channel_id"])})
+                              _channel_labels(ch))
 
         _metric_family_open(
             lines,
@@ -124,7 +164,7 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
         for ch in ds_channels:
             _metric_value(lines, "docsight_downstream_corrected_errors_total",
                           ch.get("correctable_errors", 0),
-                          {"channel_id": str(ch["channel_id"])})
+                          _channel_labels(ch))
 
         _metric_family_open(
             lines,
@@ -135,7 +175,7 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
         for ch in ds_channels:
             _metric_value(lines, "docsight_downstream_uncorrected_errors_total",
                           ch.get("uncorrectable_errors", 0),
-                          {"channel_id": str(ch["channel_id"])})
+                          _channel_labels(ch))
 
         _metric_family_open(
             lines,
@@ -147,7 +187,7 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
             qam = _parse_qam_order(ch.get("modulation", ""))
             if qam is not None:
                 _metric_value(lines, "docsight_downstream_modulation", qam,
-                              {"channel_id": str(ch["channel_id"])})
+                              _channel_labels(ch))
 
     # --- Upstream channel metrics ---
     us_channels = analysis.get("us_channels", []) if analysis else []
@@ -162,7 +202,7 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
         for ch in us_channels:
             if ch.get("power") is not None:
                 _metric_value(lines, "docsight_upstream_power_dbmv", ch["power"],
-                              {"channel_id": str(ch["channel_id"])})
+                              _channel_labels(ch))
 
         _metric_family_open(
             lines,
@@ -174,7 +214,7 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
             qam = _parse_qam_order(ch.get("modulation", ""))
             if qam is not None:
                 _metric_value(lines, "docsight_upstream_modulation", qam,
-                              {"channel_id": str(ch["channel_id"])})
+                              _channel_labels(ch))
 
     # --- Device info ---
     if device_info is not None:
