@@ -40,7 +40,7 @@ function switchSection(id) {
 
     /* Auto-load data for certain panels */
     if (id === 'security') loadApiTokens();
-    if (id === 'backup') loadBackupList();
+    if (target && target.querySelector('#backup-list')) loadBackupList();
     if (id === 'themes') refreshRegistry();
 
     /* URL hash */
@@ -710,8 +710,9 @@ function loadBackupList() {
     fetch('/api/backup/list')
     .then(function(r) { return r.json(); })
     .then(function(res) {
+        var backups = Array.isArray(res) ? res : (res && Array.isArray(res.backups) ? res.backups : []);
         el.textContent = '';
-        if (!res.backups || res.backups.length === 0) {
+        if (backups.length === 0) {
             var emptySpan = document.createElement('span');
             emptySpan.style.cssText = 'color:var(--muted);font-style:italic;';
             emptySpan.textContent = T.backup_none || 'No backups found';
@@ -721,9 +722,9 @@ function loadBackupList() {
         var table = document.createElement('table');
         table.style.cssText = 'width:100%;border-collapse:collapse;';
         var tbody = document.createElement('tbody');
-        res.backups.forEach(function(b) {
+        backups.forEach(function(b) {
             var sizeMB = (b.size / 1048576).toFixed(1);
-            var date = new Date(b.modified * 1000).toLocaleString();
+            var date = b.modified ? new Date(b.modified).toLocaleString() : '';
             var tr = document.createElement('tr');
             tr.style.cssText = 'border-bottom:1px solid var(--card-border);';
 

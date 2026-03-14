@@ -57,3 +57,31 @@ class TestSettingsFormElements:
     def test_back_to_dashboard_link(self, settings_page):
         link = settings_page.locator('a[href="/"]')
         assert link.count() > 0
+
+
+class TestBackupModule:
+    """Backup module settings interactions."""
+
+    def test_backup_section_loads_existing_backups(self, settings_page):
+        settings_page.route(
+            "**/api/backup/list",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body="""
+                [
+                  {
+                    "filename": "docsight_backup_2026-03-14_120000.tar.gz",
+                    "size": 3145728,
+                    "modified": "2026-03-14T12:00:00"
+                  }
+                ]
+                """,
+            ),
+        )
+
+        settings_page.locator('button[data-section="mod-docsight_backup"]').click()
+
+        backup_list = settings_page.locator("#backup-list")
+        assert backup_list.locator("code").first.text_content() == "docsight_backup_2026-03-14_120000.tar.gz"
+        assert backup_list.get_by_text("3.0 MB").count() > 0
