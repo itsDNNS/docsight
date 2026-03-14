@@ -394,8 +394,8 @@ def analyze(data: dict) -> dict:
             "power": power,
             "modulation": ch.get("modulation") or ch.get("type", ""),
             "snr": snr,
-            "correctable_errors": ch.get("corrErrors", 0),
-            "uncorrectable_errors": ch.get("nonCorrErrors", 0),
+            "correctable_errors": ch.get("corrErrors"),
+            "uncorrectable_errors": ch.get("nonCorrErrors"),
             "docsis_version": "3.0",
             "health": health,
             "health_detail": health_detail,
@@ -416,8 +416,8 @@ def analyze(data: dict) -> dict:
             "power": power,
             "modulation": ch.get("modulation") or ch.get("type", ""),
             "snr": snr,
-            "correctable_errors": ch.get("corrErrors", 0),
-            "uncorrectable_errors": ch.get("nonCorrErrors", 0),
+            "correctable_errors": ch.get("corrErrors"),
+            "uncorrectable_errors": ch.get("nonCorrErrors"),
             "docsis_version": "3.1",
             "health": health,
             "health_detail": health_detail,
@@ -480,8 +480,8 @@ def analyze(data: dict) -> dict:
     us_powers = [c["power"] for c in us_channels if c["power"] is not None]
     ds_snrs = [c["snr"] for c in ds_channels if c["snr"] is not None]
 
-    total_corr = sum(c["correctable_errors"] for c in ds_channels)
-    total_uncorr = sum(c["uncorrectable_errors"] for c in ds_channels)
+    total_corr = sum(c["correctable_errors"] for c in ds_channels if c["correctable_errors"] is not None)
+    total_uncorr = sum(c["uncorrectable_errors"] for c in ds_channels if c["uncorrectable_errors"] is not None)
 
     us_bitrates = [c["theoretical_bitrate"] for c in us_channels if c["theoretical_bitrate"] is not None]
     us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None

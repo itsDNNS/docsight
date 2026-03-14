@@ -308,8 +308,8 @@ class UltraHub7Driver(ModemDriver):
                     "mer": snr if snr > 0 else None,  # DOCSIS 3.1 uses MER
                     "mse": None,  # Not provided
                     "latency": 0,
-                    "corrErrors": 0,  # Not provided by Ultra Hub 7 API
-                    "nonCorrErrors": 0  # Not provided by Ultra Hub 7 API
+                    "corrErrors": None,  # Not provided by Ultra Hub 7 API
+                    "nonCorrErrors": None  # Not provided by Ultra Hub 7 API
                 })
 
             except (ValueError, TypeError) as e:

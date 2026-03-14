@@ -276,8 +276,8 @@ class CM3500Driver(ModemDriver):
                     "powerLevel": None,
                     "mer": mer_data,
                     "mse": None,
-                    "corrErrors": 0,
-                    "nonCorrErrors": 0,
+                    "corrErrors": None,
+                    "nonCorrErrors": None,
                 })
                 chan_id += 1
             except (ValueError, TypeError, IndexError) as e:

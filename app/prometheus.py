@@ -162,9 +162,10 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
             "docsight_downstream_corrected_errors_total",
         )
         for ch in ds_channels:
-            _metric_value(lines, "docsight_downstream_corrected_errors_total",
-                          ch.get("correctable_errors", 0),
-                          _channel_labels(ch))
+            if ch.get("correctable_errors") is not None:
+                _metric_value(lines, "docsight_downstream_corrected_errors_total",
+                              ch["correctable_errors"],
+                              _channel_labels(ch))
 
         _metric_family_open(
             lines,
@@ -173,9 +174,10 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
             "docsight_downstream_uncorrected_errors_total",
         )
         for ch in ds_channels:
-            _metric_value(lines, "docsight_downstream_uncorrected_errors_total",
-                          ch.get("uncorrectable_errors", 0),
-                          _channel_labels(ch))
+            if ch.get("uncorrectable_errors") is not None:
+                _metric_value(lines, "docsight_downstream_uncorrected_errors_total",
+                              ch["uncorrectable_errors"],
+                              _channel_labels(ch))
 
         _metric_family_open(
             lines,
