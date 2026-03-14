@@ -305,8 +305,17 @@ See [GitHub Releases](https://github.com/itsDNNS/docsight/releases).
 
 If DOCSight helps you, consider supporting development:
 
+<a href="https://github.com/sponsors/itsDNNS"><img src="https://img.shields.io/badge/GitHub%20Sponsors-Support%20DOCSight-24292f?logo=github&logoColor=white" alt="GitHub Sponsors"></a>
 <a href="https://ko-fi.com/itsdnns"><img src="https://img.shields.io/badge/Ko--fi-Support%20DOCSight-ff5e5b?logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
 <a href="https://paypal.me/itsDNNS"><img src="https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white" alt="PayPal"></a>
+
+DOCSight is open source and donations help fund ongoing development, hardware testing, documentation, and support work.
+
+## Brand Use
+
+The code is MIT-licensed, but the `DOCSight` name, logo, and project branding are governed separately. Community forks and commercial services may say they are "based on DOCSight" or "compatible with DOCSight", but must not present themselves as the official project without permission.
+
+See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 
 ## Documentation
 
@@ -315,6 +324,7 @@ If DOCSight helps you, consider supporting development:
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and extension guide |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development and contribution guidelines |
+| [TRADEMARKS.md](TRADEMARKS.md) | Brand, logo, and official-use policy |
 
 ## License
 
