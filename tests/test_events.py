@@ -508,3 +508,41 @@ class TestEventsAPI:
         resp = client.get("/api/events/count")
         data = json.loads(resp.data)
         assert data["count"] == 0
+
+
+# ── save_events_with_ids ──
+
+class TestSaveEventsWithIds:
+    def test_returns_list_of_ids(self, storage):
+        events = [
+            {"timestamp": "2026-03-15T10:00:00Z", "severity": "warning",
+             "event_type": "modulation_change", "message": "drop"},
+            {"timestamp": "2026-03-15T10:00:00Z", "severity": "info",
+             "event_type": "health_change", "message": "degraded"},
+        ]
+        ids = storage.save_events_with_ids(events)
+        assert len(ids) == 2
+        assert all(isinstance(i, int) for i in ids)
+        assert ids[0] != ids[1]
+
+    def test_events_retrievable_by_id(self, storage):
+        events = [
+            {"timestamp": "2026-03-15T10:00:00Z", "severity": "warning",
+             "event_type": "modulation_change", "message": "drop",
+             "details": {"direction": "downgrade"}},
+        ]
+        ids = storage.save_events_with_ids(events)
+        rows = storage.get_events()
+        assert rows[0]["id"] == ids[0]
+        assert rows[0]["event_type"] == "modulation_change"
+
+    def test_empty_list_returns_empty(self, storage):
+        assert storage.save_events_with_ids([]) == []
+
+    def test_annotates_events_with_id(self, storage):
+        events = [
+            {"timestamp": "2026-03-15T10:00:00Z", "severity": "warning",
+             "event_type": "modulation_change", "message": "drop"},
+        ]
+        ids = storage.save_events_with_ids(events)
+        assert events[0]["_id"] == ids[0]

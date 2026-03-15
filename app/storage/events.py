@@ -36,6 +36,32 @@ class EventMixin:
             )
         return len(events_list)
 
+    def save_events_with_ids(self, events_list, is_demo=False):
+        """Insert events individually and return list of row IDs.
+
+        Unlike save_events() (bulk executemany, returns count), this method
+        inserts one-by-one within a single transaction so each row ID is
+        captured. Each event dict is annotated with '_id' in-place.
+
+        Used by Smart Capture to correlate executions to source events.
+        """
+        if not events_list:
+            return []
+        ids = []
+        with sqlite3.connect(self.db_path) as conn:
+            for e in events_list:
+                cur = conn.execute(
+                    "INSERT INTO events (timestamp, severity, event_type, message, details, is_demo) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (e["timestamp"], e["severity"], e["event_type"], e["message"],
+                     json.dumps(e.get("details")) if e.get("details") else None,
+                     int(is_demo)),
+                )
+                row_id = cur.lastrowid
+                ids.append(row_id)
+                e["_id"] = row_id
+        return ids
+
     def get_events(self, limit=200, offset=0, severity=None, event_type=None, acknowledged=None):
         """Return list of event dicts, newest first, with optional filters."""
         query = "SELECT id, timestamp, severity, event_type, message, details, acknowledged FROM events"

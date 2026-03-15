@@ -74,7 +74,7 @@ class ModemCollector(Collector):
         # Event detection
         events = self._event_detector.check(analysis)
         if events:
-            self._storage.save_events(events)
+            self._storage.save_events_with_ids(events)
             log.info("Detected %d event(s)", len(events))
             if self._notifier:
                 self._notifier.dispatch(events)
