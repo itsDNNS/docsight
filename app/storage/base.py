@@ -154,6 +154,35 @@ class StorageBase:
                 )
             """)
 
+            # ── Smart Capture executions ──
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS smart_capture_executions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    trigger_event_id INTEGER,
+                    trigger_timestamp TEXT,
+                    trigger_type TEXT NOT NULL,
+                    action_type TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    fired_at TEXT,
+                    completed_at TEXT,
+                    claimed_at TEXT,
+                    attempt_count INTEGER NOT NULL DEFAULT 0,
+                    last_error TEXT,
+                    suppression_reason TEXT,
+                    linked_result_id INTEGER,
+                    details TEXT,
+                    created_at TEXT NOT NULL
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sc_exec_status
+                ON smart_capture_executions(status)
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sc_exec_created
+                ON smart_capture_executions(created_at)
+            """)
+
     def _connect(self):
         """Return a connection with foreign keys enabled."""
         conn = sqlite3.connect(self.db_path)

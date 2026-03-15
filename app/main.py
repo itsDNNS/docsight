@@ -106,12 +106,26 @@ def polling_loop(config_mgr, storage, stop_event):
         notifier = NotificationDispatcher(config_mgr)
         log.info("Notifications: webhook configured")
 
+    # Smart Capture (optional)
+    smart_capture = None
+    if config_mgr.get("sc_enabled", False):
+        from .smart_capture import SmartCaptureEngine, Trigger
+        smart_capture = SmartCaptureEngine(storage, config_mgr)
+        # Default trigger: modulation downgrades (v1 scope)
+        smart_capture.register_trigger(Trigger(
+            event_type="modulation_change",
+            action_type="capture",
+            min_severity="warning",
+            require_details={"direction": "downgrade"},
+        ))
+        log.info("Smart Capture: enabled with %d trigger(s)", len(smart_capture.triggers))
+
     web.update_state(poll_interval=config["poll_interval"])
 
     event_detector = EventDetector(hysteresis=config_mgr.get("health_hysteresis", 0))
     collectors = discover_collectors(
         config_mgr, storage, event_detector, mqtt_pub, web, analyzer,
-        notifier=notifier,
+        notifier=notifier, smart_capture=smart_capture,
     )
 
     # Inject collectors into web layer for manual polling and status endpoint
@@ -171,6 +185,7 @@ def polling_loop(config_mgr, storage, stop_event):
                         web=web,
                         poll_interval=config_mgr.get("poll_interval", 900),
                         notifier=notifier,
+                        smart_capture=smart_capture,
                     )
                     collectors = [
                         new_modem if c is modem_collector else c

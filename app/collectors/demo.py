@@ -45,7 +45,7 @@ class DemoCollector(Collector):
 
     name = "demo"
 
-    def __init__(self, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier=None):
+    def __init__(self, analyzer_fn, event_detector, storage, mqtt_pub, web, poll_interval, notifier=None, smart_capture=None):
         super().__init__(poll_interval)
         self._analyzer = analyzer_fn
         self._event_detector = event_detector
@@ -53,6 +53,7 @@ class DemoCollector(Collector):
         self._mqtt_pub = mqtt_pub
         self._web = web
         self._notifier = notifier
+        self._smart_capture = smart_capture
         self._discovery_published = False
         self._poll_count = 0
         self._device_info = {
@@ -184,10 +185,12 @@ class DemoCollector(Collector):
         # Event detection
         events = self._event_detector.check(analysis)
         if events:
-            self._storage.save_events(events)
+            self._storage.save_events_with_ids(events)
             log.info("Demo: detected %d event(s)", len(events))
             if self._notifier:
                 self._notifier.dispatch(events)
+            if self._smart_capture:
+                self._smart_capture.evaluate(events)
 
         return CollectorResult(source=self.name, data=analysis)
 

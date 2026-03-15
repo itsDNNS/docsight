@@ -55,7 +55,7 @@ COLLECTOR_REGISTRY = {
 }
 
 
-def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, analyzer, notifier=None):
+def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, analyzer, notifier=None, smart_capture=None):
     """Discover and instantiate all available collectors based on config.
 
     Args:
@@ -84,6 +84,7 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             web=web,
             poll_interval=config["poll_interval"],
             notifier=notifier,
+            smart_capture=smart_capture,
         ))
     # Modem collector (available if modem configured)
     elif config_mgr.is_configured():
@@ -107,6 +108,7 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             web=web,
             poll_interval=config["poll_interval"],
             notifier=notifier,
+            smart_capture=smart_capture,
         ))
 
         # Segment utilization collector (FritzBox only)

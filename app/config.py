@@ -48,6 +48,12 @@ DEFAULTS = {
     "active_theme": "",  # Module ID of active theme (empty = first available)
     "theme_registry_url": "https://raw.githubusercontent.com/itsDNNS/docsight-themes/main/registry.json",
     "health_hysteresis": 0,
+    "sc_enabled": False,
+    "sc_global_cooldown": 300,
+    "sc_trigger_cooldown": 900,
+    "sc_max_actions_per_hour": 4,
+    "sc_flapping_window": 3600,
+    "sc_flapping_threshold": 3,
 }
 
 ENV_MAP = {
@@ -88,6 +94,12 @@ ENV_MAP = {
     "weather_latitude": "WEATHER_LATITUDE",
     "weather_longitude": "WEATHER_LONGITUDE",
     "health_hysteresis": "HEALTH_HYSTERESIS",
+    "sc_enabled": "SC_ENABLED",
+    "sc_global_cooldown": "SC_GLOBAL_COOLDOWN",
+    "sc_trigger_cooldown": "SC_TRIGGER_COOLDOWN",
+    "sc_max_actions_per_hour": "SC_MAX_ACTIONS_PER_HOUR",
+    "sc_flapping_window": "SC_FLAPPING_WINDOW",
+    "sc_flapping_threshold": "SC_FLAPPING_THRESHOLD",
 }
 
 # Deprecated env vars (FRITZ_* -> MODEM_*) - checked as fallback
@@ -104,8 +116,10 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown", "health_hysteresis"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled"}
+INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown", "health_hysteresis",
+            "sc_global_cooldown", "sc_trigger_cooldown", "sc_max_actions_per_hour",
+            "sc_flapping_window", "sc_flapping_threshold"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled", "sc_enabled"}
 
 URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url"}
 _ALLOWED_URL_SCHEMES = {"http", "https"}

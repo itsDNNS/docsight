@@ -463,7 +463,7 @@ class TestModemCollector:
         c, _, _, event_detector, storage, _ = self._make_collector()
         event_detector.check.return_value = [{"type": "power_change"}]
         c.collect()
-        storage.save_events.assert_called_once()
+        storage.save_events_with_ids.assert_called_once()
 
     def test_collect_with_mqtt(self):
         mqtt = MagicMock()

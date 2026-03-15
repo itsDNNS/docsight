@@ -35,6 +35,10 @@ class CleanupMixin:
         ("api_tokens", "last_used_at"),
         ("bqm_graphs", "timestamp"),
         ("weather_data", "timestamp"),
+        ("smart_capture_executions", "created_at"),
+        ("smart_capture_executions", "fired_at"),
+        ("smart_capture_executions", "completed_at"),
+        ("smart_capture_executions", "claimed_at"),
     ]
 
     def migrate_to_utc(self, tz_name):
@@ -177,3 +181,12 @@ class CleanupMixin:
         events_deleted = self.delete_old_events(self.max_days)
         if events_deleted:
             log.info("Cleaned up %d old events (before %s)", events_deleted, cutoff)
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                sc_deleted = conn.execute(
+                    "DELETE FROM smart_capture_executions WHERE created_at < ?", (cutoff,)
+                ).rowcount
+            if sc_deleted:
+                log.info("Cleaned up %d old Smart Capture executions (before %s)", sc_deleted, cutoff)
+        except sqlite3.OperationalError:
+            pass  # Table may not exist on older schemas

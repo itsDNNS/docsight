@@ -5,6 +5,7 @@ from .snapshot import SnapshotMixin
 from .events import EventMixin
 from .analysis import AnalysisMixin
 from .tokens import TokenMixin
+from .smart_capture import SmartCaptureMixin
 from .cleanup import CleanupMixin
 
 __all__ = [
@@ -20,6 +21,7 @@ class SnapshotStorage(
     SnapshotMixin,
     EventMixin,
     AnalysisMixin,
+    SmartCaptureMixin,
     CleanupMixin,
     StorageBase,
 ):

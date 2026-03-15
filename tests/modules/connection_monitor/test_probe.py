@@ -43,12 +43,14 @@ class TestProbeEngineAutoDetection:
             assert engine.detected_method == "icmp"
 
     def test_auto_falls_back_to_tcp_on_permission_error(self):
-        with patch("app.modules.connection_monitor.probe.socket.socket", side_effect=PermissionError):
+        with patch("app.modules.connection_monitor.probe.os.path.isfile", return_value=False), \
+             patch("app.modules.connection_monitor.probe.socket.socket", side_effect=PermissionError):
             engine = ProbeEngine(method="auto")
             assert engine.detected_method == "tcp"
 
     def test_auto_falls_back_to_tcp_on_os_error(self):
-        with patch("app.modules.connection_monitor.probe.socket.socket", side_effect=OSError):
+        with patch("app.modules.connection_monitor.probe.os.path.isfile", return_value=False), \
+             patch("app.modules.connection_monitor.probe.socket.socket", side_effect=OSError):
             engine = ProbeEngine(method="auto")
             assert engine.detected_method == "tcp"
 
@@ -61,7 +63,8 @@ class TestProbeEngineAutoDetection:
         assert engine.detected_method == "tcp"
 
     def test_capability_info(self):
-        with patch("app.modules.connection_monitor.probe.socket.socket", side_effect=PermissionError):
+        with patch("app.modules.connection_monitor.probe.os.path.isfile", return_value=False), \
+             patch("app.modules.connection_monitor.probe.socket.socket", side_effect=PermissionError):
             engine = ProbeEngine(method="auto")
             info = engine.capability_info()
             assert info["method"] == "tcp"
