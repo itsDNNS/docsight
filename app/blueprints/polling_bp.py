@@ -87,6 +87,42 @@ def api_notifications_test():
     return jsonify(result)
 
 
+@polling_bp.route("/api/test-speedtest", methods=["POST"])
+@require_auth
+def api_test_speedtest():
+    """Test Speedtest Tracker connection."""
+    _config_manager = get_config_manager()
+    try:
+        data = request.get_json()
+        url = data.get("speedtest_tracker_url", "")
+        token = data.get("speedtest_tracker_token", "")
+        # Resolve masked token to real value
+        if token == PASSWORD_MASK and _config_manager:
+            token = _config_manager.get("speedtest_tracker_token", "")
+        if not url or not token:
+            return jsonify({"success": False, "error": "URL and token are required"})
+        from app.modules.speedtest.client import SpeedtestClient
+        client = SpeedtestClient(url, token)
+        results, error = client.get_latest_with_error(1)
+        if error:
+            return jsonify({"success": False, "error": error})
+        if results:
+            r = results[0]
+            return jsonify({
+                "success": True,
+                "results": len(results),
+                "latest": {
+                    "download": r.get("download_human") or f"{r.get('download_mbps', 0)} Mbps",
+                    "upload": r.get("upload_human") or f"{r.get('upload_mbps', 0)} Mbps",
+                    "ping": f"{r.get('ping_ms', 0)} ms",
+                },
+            })
+        return jsonify({"success": True, "results": 0})
+    except Exception as e:
+        log.warning("Speedtest Tracker test failed: %s", e)
+        return jsonify({"success": False, "error": type(e).__name__ + ": " + str(e).split("\n")[0][:200]})
+
+
 @polling_bp.route("/api/poll", methods=["POST"])
 @require_auth
 def api_poll():

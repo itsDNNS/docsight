@@ -38,7 +38,10 @@ class SpeedtestCollector(Collector):
         self._ensure_client()
 
         # Latest result for dashboard
-        results = self._client.get_latest(1)
+        results, error = self._client.get_latest_with_error(1)
+        if error:
+            log.warning("Speedtest fetch failed: %s", error)
+            return CollectorResult.failure(self.name, f"Speedtest Tracker: {error}")
         if results:
             self._web.update_state(speedtest_latest=results[0])
 

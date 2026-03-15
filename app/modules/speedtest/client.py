@@ -40,6 +40,11 @@ class SpeedtestClient:
 
     def get_latest(self, count=1):
         """Fetch the latest N speed test results."""
+        results, _ = self.get_latest_with_error(count)
+        return results
+
+    def get_latest_with_error(self, count=1):
+        """Fetch the latest N results, returning (results, error_string|None)."""
         try:
             resp = self.session.get(
                 self.base_url + "/api/v1/results",
@@ -48,10 +53,22 @@ class SpeedtestClient:
             )
             resp.raise_for_status()
             results = resp.json().get("data", [])
-            return [self._parse_result(r) for r in results]
+            return [self._parse_result(r) for r in results], None
+        except requests.ConnectionError as e:
+            msg = f"ConnectionError: {str(e).split(chr(10))[0][:200]}"
+            log.warning("Failed to fetch speedtest results: %s", msg)
+            return [], msg
+        except requests.HTTPError as e:
+            msg = f"HTTP {e.response.status_code}" if e.response is not None else str(e)
+            log.warning("Failed to fetch speedtest results: %s", msg)
+            return [], msg
+        except requests.Timeout:
+            log.warning("Speedtest Tracker request timed out")
+            return [], "Timeout (15s)"
         except Exception as e:
-            log.warning("Failed to fetch speedtest results: %s", e)
-            return []
+            msg = f"{type(e).__name__}: {str(e).split(chr(10))[0][:200]}"
+            log.warning("Failed to fetch speedtest results: %s", msg)
+            return [], msg
 
     def get_results(self, start_date=None, end_date=None, per_page=100):
         """Fetch speed test results, newest first. Paginates to collect up to per_page results."""

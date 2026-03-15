@@ -141,6 +141,51 @@ class TestSpeedtestClient:
         client = SpeedtestClient("http://example.com:8999/", "tok")
         assert client.base_url == "http://example.com:8999"
 
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_get_latest_with_error_success(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        client = self._make_client()
+        results, error = client.get_latest_with_error(1)
+        assert len(results) == 1
+        assert error is None
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_get_latest_with_error_connection_error(self, mock_get):
+        import requests as req
+        mock_get.side_effect = req.ConnectionError("Connection refused")
+
+        client = self._make_client()
+        results, error = client.get_latest_with_error(1)
+        assert results == []
+        assert "ConnectionError" in error
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_get_latest_with_error_http_error(self, mock_get):
+        import requests as req
+        mock_resp = MagicMock()
+        mock_resp.status_code = 401
+        mock_resp.raise_for_status.side_effect = req.HTTPError(response=mock_resp)
+        mock_get.return_value = mock_resp
+
+        client = self._make_client()
+        results, error = client.get_latest_with_error(1)
+        assert results == []
+        assert "401" in error
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_get_latest_with_error_timeout(self, mock_get):
+        import requests as req
+        mock_get.side_effect = req.Timeout("timed out")
+
+        client = self._make_client()
+        results, error = client.get_latest_with_error(1)
+        assert results == []
+        assert "Timeout" in error
+
 
 # ── Config Tests ──
 
@@ -224,6 +269,44 @@ class TestSpeedtestAPI:
         assert len(data) == 1
         assert data[0]["download_mbps"] == 1100.0
         assert data[0]["ping_ms"] == 12.5
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_api_test_speedtest_success(self, mock_get, speedtest_client):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        resp = speedtest_client.post("/api/test-speedtest", json={
+            "speedtest_tracker_url": "http://speedtest.local:8999",
+            "speedtest_tracker_token": "test-token",
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        assert data["results"] == 1
+        assert "download" in data["latest"]
+
+    def test_api_test_speedtest_missing_fields(self, speedtest_client):
+        resp = speedtest_client.post("/api/test-speedtest", json={})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is False
+        assert "required" in data["error"].lower()
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_api_test_speedtest_connection_error(self, mock_get, speedtest_client):
+        import requests as req
+        mock_get.side_effect = req.ConnectionError("Connection refused")
+
+        resp = speedtest_client.post("/api/test-speedtest", json={
+            "speedtest_tracker_url": "http://speedtest.local:8999",
+            "speedtest_tracker_token": "test-token",
+        })
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is False
+        assert "ConnectionError" in data["error"]
 
     def test_api_speedtest_not_configured(self, tmp_path):
         data_dir = str(tmp_path / "data2")

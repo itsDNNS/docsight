@@ -559,7 +559,7 @@ class TestSpeedtestCollector:
     @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_initializes_client(self, mock_cls):
         mock_client = MagicMock()
-        mock_client.get_latest.return_value = [{"id": 1, "download_mbps": 100}]
+        mock_client.get_latest_with_error.return_value = ([{"id": 1, "download_mbps": 100}], None)
         mock_client.get_results.return_value = []
         mock_cls.return_value = mock_client
 
@@ -570,7 +570,7 @@ class TestSpeedtestCollector:
     @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_updates_web_state(self, mock_cls):
         mock_client = MagicMock()
-        mock_client.get_latest.return_value = [{"id": 1}]
+        mock_client.get_latest_with_error.return_value = ([{"id": 1}], None)
         mock_client.get_results.return_value = []
         mock_cls.return_value = mock_client
 
@@ -579,9 +579,21 @@ class TestSpeedtestCollector:
         web.update_state.assert_called_once()
 
     @patch("app.modules.speedtest.collector.SpeedtestClient")
+    def test_collect_fetch_failure_returns_error(self, mock_cls):
+        mock_client = MagicMock()
+        mock_client.get_latest_with_error.return_value = ([], "ConnectionError: refused")
+        mock_cls.return_value = mock_client
+
+        c, _, _, web = self._make_collector()
+        result = c.collect()
+        assert result.success is False
+        assert "ConnectionError" in result.error
+        web.update_state.assert_not_called()
+
+    @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_delta_cache(self, mock_cls):
         mock_client = MagicMock()
-        mock_client.get_latest.return_value = []
+        mock_client.get_latest_with_error.return_value = ([], None)
         mock_client.get_results.return_value = [
             {"id": 1, "timestamp": "2025-01-01T00:00:00Z", "download_mbps": 100,
              "upload_mbps": 10, "download_human": "", "upload_human": "",
@@ -601,7 +613,7 @@ class TestSpeedtestCollector:
     def test_collect_delta_cache_failure_does_not_crash(self, mock_cls):
         """Delta cache failure should not prevent a successful collect result."""
         mock_client = MagicMock()
-        mock_client.get_latest.return_value = [{"id": 1}]
+        mock_client.get_latest_with_error.return_value = ([{"id": 1}], None)
         mock_client.get_results.side_effect = Exception("API timeout")
         mock_cls.return_value = mock_client
 

@@ -23,6 +23,13 @@
                 <input class="form-input" type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
                 <span class="form-hint">{{ t['docsight.speedtest.speedtest_token_hint'] or 'Bearer token from Speedtest Tracker settings' }}</span>
             </div>
+            <div class="form-field" style="grid-column: 1 / -1">
+                <button type="button" class="btn btn-secondary" onclick="testSpeedtest()">
+                    <i data-lucide="plug-zap"></i>
+                    {{ t.test_connection or 'Test Connection' }}
+                </button>
+                <div class="test-result" id="speedtest-test" style="display:none"></div>
+            </div>
             <div class="form-field">
                 <label class="form-label" for="booked_download">{{ t['docsight.speedtest.booked_download'] or 'Booked Download (Mbps)' }}</label>
                 <input class="form-input" type="number" id="booked_download" name="booked_download" value="{{ config.booked_download or '' }}" min="0" step="1" placeholder="e.g. 1000">

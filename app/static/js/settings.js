@@ -380,6 +380,54 @@ function testMqtt() {
     });
 }
 
+/* ── Speedtest Tracker Test ── */
+function testSpeedtest() {
+    var el = document.getElementById('speedtest-test');
+    el.className = 'test-result test-loading';
+    el.style.display = 'flex';
+    el.textContent = '';
+    var span = document.createElement('span');
+    span.textContent = '\u23F3';
+    el.appendChild(span);
+    el.appendChild(document.createTextNode(' ' + T.testing));
+    var data = getFormData();
+    fetch('/api/test-speedtest', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({speedtest_tracker_url: data.speedtest_tracker_url, speedtest_tracker_token: data.speedtest_tracker_token})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        el.textContent = '';
+        if (res.success) {
+            el.className = 'test-result test-ok';
+            var check = document.createElement('span');
+            check.className = 'check-icon';
+            check.textContent = '\u2713';
+            el.appendChild(check);
+            if (res.results > 0) {
+                el.appendChild(document.createTextNode(' ' + T.connected + ': ' + res.latest.download + ' \u2193 / ' + res.latest.upload + ' \u2191 / ' + res.latest.ping));
+            } else {
+                el.appendChild(document.createTextNode(' ' + T.connected + ' (' + (T.speedtest_no_results || 'no results yet') + ')'));
+            }
+        } else {
+            el.className = 'test-result test-fail';
+            var x = document.createElement('span');
+            x.textContent = '\u2717';
+            el.appendChild(x);
+            el.appendChild(document.createTextNode(' ' + T.error_prefix + ': ' + (res.error || T.unknown_error)));
+        }
+    })
+    .catch(function() {
+        el.textContent = '';
+        el.className = 'test-result test-fail';
+        var x = document.createElement('span');
+        x.textContent = '\u2717';
+        el.appendChild(x);
+        el.appendChild(document.createTextNode(' ' + T.network_error));
+    });
+}
+
 /* ── Notification Test ── */
 function testNotifications() {
     var el = document.getElementById('notify-test');
