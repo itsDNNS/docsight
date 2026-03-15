@@ -1,0 +1,1 @@
+"""Smart Capture action adapters."""

@@ -14,6 +14,7 @@ class SmartCaptureEngine:
     Sits alongside the NotificationDispatcher as an event consumer.
     Modules register triggers; the engine evaluates incoming events against
     them, applies guardrails, and writes execution records to storage.
+    Registered adapters are called to execute actions for pending executions.
     """
 
     def __init__(self, storage, config_mgr):
@@ -21,16 +22,27 @@ class SmartCaptureEngine:
         self._config = config_mgr
         self._guardrails = GuardrailChain(config_mgr)
         self._triggers: list[Trigger] = []
+        self._adapters: dict[str, object] = {}
 
     @property
     def triggers(self) -> list[Trigger]:
         return list(self._triggers)
+
+    @property
+    def adapter_action_types(self) -> list[str]:
+        """Return list of action types with registered adapters."""
+        return list(self._adapters.keys())
 
     def register_trigger(self, trigger: Trigger):
         """Register a trigger. Duplicates (same event_type + action_type) are ignored."""
         if trigger not in self._triggers:
             self._triggers.append(trigger)
             log.info("Registered trigger: %s -> %s", trigger.event_type, trigger.action_type)
+
+    def register_adapter(self, action_type: str, adapter):
+        """Register an action adapter for an action type."""
+        self._adapters[action_type] = adapter
+        log.info("Registered adapter for action_type=%s", action_type)
 
     def evaluate(self, events: list[dict]):
         """Evaluate a batch of events against registered triggers.
@@ -54,17 +66,15 @@ class SmartCaptureEngine:
         return bool(val)
 
     def _evaluate_event(self, event: dict):
-        # Collect all matching triggers for this event
         matches = [(t, event) for t in self._triggers if t.matches(event)]
         if not matches:
             return
 
-        # Evaluate as a batch — global cooldown applies once per event
         results = self._guardrails.check_batch(matches)
 
         for trigger, ev, allowed, reason in results:
             if allowed:
-                self._storage.save_execution(
+                execution_id = self._storage.save_execution(
                     trigger_type=ev["event_type"],
                     action_type=trigger.action_type,
                     status=ExecutionStatus.PENDING,
@@ -72,8 +82,16 @@ class SmartCaptureEngine:
                     trigger_timestamp=ev.get("timestamp"),
                     details=ev.get("details"),
                 )
-                log.info("Smart Capture: pending execution for %s -> %s",
-                         ev["event_type"], trigger.action_type)
+                log.info("Smart Capture: pending execution #%d for %s -> %s",
+                         execution_id, ev["event_type"], trigger.action_type)
+
+                adapter = self._adapters.get(trigger.action_type)
+                if adapter:
+                    try:
+                        adapter.execute(execution_id, ev)
+                    except Exception as e:
+                        log.error("Smart Capture: adapter error for #%d: %s",
+                                  execution_id, e)
             else:
                 self._storage.save_execution(
                     trigger_type=ev["event_type"],

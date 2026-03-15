@@ -276,3 +276,59 @@ class TestEndToEnd:
         row = storage.get_execution(eid)
         assert row["status"] == "completed"
         assert row["linked_result_id"] == 42
+
+
+class TestAdapterDispatch:
+    def test_adapter_called_on_pending_execution(self, storage):
+        config = _make_config()
+        engine = SmartCaptureEngine(storage, config)
+        engine.register_trigger(Trigger(event_type="modulation_change",
+                                        action_type="capture"))
+
+        mock_adapter = MagicMock()
+        mock_adapter.action_type = "capture"
+        mock_adapter.execute.return_value = (True, None)
+        engine.register_adapter("capture", mock_adapter)
+
+        event = {"event_type": "modulation_change", "severity": "warning",
+                 "timestamp": "2026-03-15T10:00:00Z", "message": "drop", "_id": 1}
+        engine.evaluate([event])
+
+        mock_adapter.execute.assert_called_once()
+        call_args = mock_adapter.execute.call_args
+        assert isinstance(call_args[0][0], int)  # execution_id
+        assert call_args[0][1] == event  # event dict
+
+    def test_no_adapter_registered_stays_pending(self, storage):
+        config = _make_config()
+        engine = SmartCaptureEngine(storage, config)
+        engine.register_trigger(Trigger(event_type="modulation_change",
+                                        action_type="capture"))
+        event = {"event_type": "modulation_change", "severity": "warning",
+                 "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
+        engine.evaluate([event])
+        rows = storage.get_executions()
+        assert rows[0]["status"] == "pending"
+
+    def test_suppressed_execution_does_not_call_adapter(self, storage):
+        config = _make_config(sc_global_cooldown=600)
+        engine = SmartCaptureEngine(storage, config)
+        engine.register_trigger(Trigger(event_type="modulation_change",
+                                        action_type="capture"))
+        mock_adapter = MagicMock()
+        mock_adapter.execute.return_value = (True, None)
+        engine.register_adapter("capture", mock_adapter)
+
+        event = {"event_type": "modulation_change", "severity": "warning",
+                 "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
+        engine.evaluate([event])  # first: allowed, adapter called
+        engine.evaluate([event])  # second: suppressed, adapter NOT called
+        assert mock_adapter.execute.call_count == 1
+
+    def test_adapter_action_types_property(self, storage):
+        config = _make_config()
+        engine = SmartCaptureEngine(storage, config)
+        assert engine.adapter_action_types == []
+        mock_adapter = MagicMock()
+        engine.register_adapter("capture", mock_adapter)
+        assert engine.adapter_action_types == ["capture"]
