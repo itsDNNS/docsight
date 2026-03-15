@@ -627,6 +627,96 @@ class TestSpeedtestCollector:
         assert c.name == "speedtest"
 
 
+# ── BackupCollector Tests ──
+
+
+class TestBackupCollector:
+    def _make_collector(self, configured=True, interval_hours=24, backups=None):
+        config_mgr = MagicMock()
+        config_mgr.is_backup_configured.return_value = configured
+        config_mgr.data_dir = "/data"
+        config_mgr.get.side_effect = lambda k, *a: {
+            "backup_path": "/backup",
+            "backup_interval_hours": interval_hours,
+            "backup_retention": 5,
+        }.get(k, a[0] if a else None)
+
+        from app.modules.backup.collector import BackupCollector
+        with patch("app.modules.backup.backup.list_backups", return_value=backups or []):
+            c = BackupCollector(config_mgr=config_mgr)
+        return c, config_mgr
+
+    def test_name(self):
+        c, _ = self._make_collector()
+        assert c.name == "backup"
+
+    def test_is_enabled(self):
+        c, _ = self._make_collector(configured=True)
+        assert c.is_enabled() is True
+        c2, _ = self._make_collector(configured=False)
+        assert c2.is_enabled() is False
+
+    def test_interval_from_config(self):
+        c, _ = self._make_collector(interval_hours=168)
+        assert c._poll_interval_seconds == 168 * 3600
+
+    def test_seed_last_poll_from_disk(self):
+        """_last_poll is seeded from newest backup file on init."""
+        from datetime import datetime, timedelta
+        two_hours_ago = (datetime.now() - timedelta(hours=2)).isoformat()
+        backups = [{"filename": "docsight_backup_test.tar.gz", "size": 100, "modified": two_hours_ago}]
+        c, _ = self._make_collector(backups=backups)
+        # _last_poll should be close to 2h ago, not 0
+        assert c._last_poll > 0
+        age = time.time() - c._last_poll
+        assert 7000 < age < 7400  # ~2h in seconds
+
+    def test_seed_no_backups_leaves_last_poll_zero(self):
+        """No backups on disk → _last_poll stays 0, first backup runs immediately."""
+        c, _ = self._make_collector(backups=[])
+        assert c._last_poll == 0.0
+
+    def test_should_poll_false_after_seed(self):
+        """Container restart with recent backup → should_poll() returns False."""
+        from datetime import datetime, timedelta
+        one_hour_ago = (datetime.now() - timedelta(hours=1)).isoformat()
+        backups = [{"filename": "docsight_backup_test.tar.gz", "size": 100, "modified": one_hour_ago}]
+        c, _ = self._make_collector(interval_hours=24, backups=backups)
+        assert c.should_poll() is False
+
+    def test_should_poll_true_when_backup_expired(self):
+        """Backup older than interval → should_poll() returns True."""
+        from datetime import datetime, timedelta
+        two_days_ago = (datetime.now() - timedelta(days=2)).isoformat()
+        backups = [{"filename": "docsight_backup_old.tar.gz", "size": 100, "modified": two_days_ago}]
+        c, _ = self._make_collector(interval_hours=24, backups=backups)
+        assert c.should_poll() is True
+
+    def test_seed_includes_manual_backups(self):
+        """Seed uses newest backup regardless of source (scheduled or manual).
+
+        After a restart, _last_poll anchors to the newest file on disk.
+        This means a manual backup can shift the automatic schedule, which
+        is by design: the guarantee is "at least one backup every <interval>".
+        """
+        from datetime import datetime, timedelta
+        one_hour_ago = (datetime.now() - timedelta(hours=1)).isoformat()
+        backups = [{"filename": "docsight_backup_2026-03-15_120000.tar.gz", "size": 100, "modified": one_hour_ago}]
+        c, _ = self._make_collector(interval_hours=24, backups=backups)
+        # _last_poll is seeded from the file, so should_poll() waits
+        assert c.should_poll() is False
+
+    @patch("app.modules.backup.backup.create_backup_to_file")
+    @patch("app.modules.backup.backup.cleanup_old_backups")
+    def test_collect_creates_backup(self, mock_cleanup, mock_create):
+        mock_create.return_value = "docsight_backup_2026-03-15.tar.gz"
+        c, _ = self._make_collector()
+        result = c.collect()
+        assert result.success is True
+        mock_create.assert_called_once()
+        mock_cleanup.assert_called_once()
+
+
 # ── BQMCollector Tests ──
 
 

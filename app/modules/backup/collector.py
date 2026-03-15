@@ -1,6 +1,7 @@
 """Scheduled backup collector."""
 
 import logging
+import time
 
 from app.collectors.base import Collector, CollectorResult
 
@@ -16,6 +17,30 @@ class BackupCollector(Collector):
         self._config_mgr = config_mgr
         interval_hours = self._get_interval_hours(config_mgr, poll_interval // 3600)
         super().__init__(interval_hours * 3600)
+        self._seed_last_poll()
+
+    def _seed_last_poll(self):
+        """Set _last_poll from newest backup on disk to survive container restarts.
+
+        Seeds from the newest file regardless of source (scheduled or manual).
+        This means a manual backup can shift the automatic schedule after a
+        restart, which is acceptable: the guarantee is "at least one backup
+        every <interval>", not "backups at a fixed time of day".
+        """
+        from datetime import datetime
+        from .backup import list_backups
+
+        backup_path = self._config_mgr.get("backup_path", "/backup")
+        backups = list_backups(backup_path)
+        if not backups:
+            return
+        try:
+            dt = datetime.fromisoformat(backups[0]["modified"])
+            self._last_poll = dt.timestamp()
+            age_hours = (time.time() - self._last_poll) / 3600
+            log.info("Backup schedule seeded from disk — newest backup is %.1fh old", age_hours)
+        except (ValueError, TypeError):
+            pass
 
     @staticmethod
     def _get_interval_hours(config_mgr, default_hours=24):
