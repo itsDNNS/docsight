@@ -4,6 +4,12 @@
 
 Fixes #<!-- issue number -->
 
+## User-Facing Impact
+
+<!-- Describe the visible behavior change for users, admins, or integrators -->
+
+- <!-- e.g. Adds a "Test Connection" button to Speedtest settings -->
+
 ## Type of Change
 
 <!-- Mark the relevant option with an 'x' -->
@@ -25,8 +31,11 @@ Fixes #<!-- issue number -->
 - [ ] I have tested my changes locally
 - [ ] All tests pass (`python -m pytest tests/ -v`)
 - [ ] I have added tests for new functionality
+- [ ] I have tested both success and failure paths (if applicable)
 - [ ] I have updated the documentation (if applicable)
 - [ ] I have added i18n translations for new strings (EN/DE/FR/ES)
+- [ ] I have documented any UI, API, or config impact (if applicable)
+- [ ] I have attached screenshots/video for UI changes (if applicable)
 
 ## Testing
 
@@ -41,10 +50,22 @@ Fixes #<!-- issue number -->
 1. <!-- Step 1 -->
 2. <!-- Step 2 -->
 
+**Verification Commands:**
+```bash
+# e.g.
+python -m pytest tests/test_speedtest.py -v
+```
+
+**Results:**
+```text
+# e.g.
+12 passed
+```
+
 **Screenshots (if applicable):**
 
 <!-- Add screenshots for UI changes -->
 
 ## Additional Notes
 
-<!-- Any additional context, known issues, or follow-up work needed -->
+<!-- Any additional context, known issues, follow-up work, or rollout notes -->
