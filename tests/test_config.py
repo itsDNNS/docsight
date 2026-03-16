@@ -131,6 +131,13 @@ class TestConfigSecrets:
         all_config = config.get_all(mask_secrets=True)
         assert all_config["admin_password"] == PASSWORD_MASK
 
+    def test_bqm_password_encrypted_at_rest(self, config, tmp_data_dir):
+        config.save({"bqm_password": "secret123"})
+        with open(os.path.join(tmp_data_dir, "config.json")) as f:
+            raw = json.load(f)
+        assert raw["bqm_password"] != "secret123"
+        assert config.get("bqm_password") == "secret123"
+
 
 class TestConfigEnvOverride:
     def test_env_overrides_file(self, tmp_data_dir, monkeypatch):
@@ -224,6 +231,13 @@ class TestConfigState:
     def test_explicit_disabled_modules_override_is_preserved(self, config):
         config.save({"disabled_modules": "docsight.smokeping,test.integration"})
         assert config.get("disabled_modules") == "docsight.smokeping,test.integration"
+
+    def test_bqm_requires_credentials(self, config):
+        assert config.is_bqm_configured() is False
+        config.save({"bqm_username": "user", "bqm_password": "pass"})
+        assert config.is_bqm_configured() is False
+        config.save({"bqm_username": "user", "bqm_password": "pass", "bqm_monitor_id": "12345"})
+        assert config.is_bqm_configured() is True
 
 
 class TestConfigUrlValidation:

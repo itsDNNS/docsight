@@ -1,5 +1,6 @@
 """Tests for ThinkBroadband BQM graph fetching, storage, and API."""
 
+import sqlite3
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -74,6 +75,42 @@ def sample_png():
     return b"\x89PNG\r\n\x1a\n" + b"\x00" * 200
 
 
+@pytest.fixture
+def sample_csv_rows():
+    return [
+        {
+            "timestamp": "2026-03-15T19:00:00+00:00",
+            "date": "2026-03-15",
+            "sent_polls": 100,
+            "lost_polls": 0,
+            "latency_min_ms": 30.43,
+            "latency_avg_ms": 33.85,
+            "latency_max_ms": 52.69,
+            "score": 1,
+        },
+        {
+            "timestamp": "2026-03-15T19:01:40+00:00",
+            "date": "2026-03-15",
+            "sent_polls": 100,
+            "lost_polls": 2,
+            "latency_min_ms": 30.62,
+            "latency_avg_ms": 34.38,
+            "latency_max_ms": 54.41,
+            "score": 201,
+        },
+        {
+            "timestamp": "2026-03-16T19:00:00+00:00",
+            "date": "2026-03-16",
+            "sent_polls": 100,
+            "lost_polls": 1,
+            "latency_min_ms": 28.12,
+            "latency_avg_ms": 31.56,
+            "latency_max_ms": 49.87,
+            "score": 201,
+        },
+    ]
+
+
 class TestBQMStorage:
     def test_save_and_get(self, bqm_storage, sample_png):
         bqm_storage.save_bqm_graph(sample_png)
@@ -146,6 +183,36 @@ class TestBQMStorage:
         s._cleanup()
         assert len(bs.get_bqm_dates()) == 1
 
+    def test_store_and_get_csv_data(self, bqm_storage, sample_csv_rows):
+        bqm_storage.store_csv_data(sample_csv_rows)
+        rows = bqm_storage.get_data_for_date("2026-03-15")
+        assert len(rows) == 2
+        assert rows[0]["latency_avg_ms"] == 33.85
+        assert rows[1]["lost_polls"] == 2
+
+    def test_csv_data_duplicate_timestamps_ignored(self, bqm_storage, sample_csv_rows):
+        bqm_storage.store_csv_data(sample_csv_rows[:2])
+        bqm_storage.store_csv_data(sample_csv_rows[:2])
+        rows = bqm_storage.get_data_for_date("2026-03-15")
+        assert len(rows) == 2
+
+    def test_get_data_for_range_and_dates(self, bqm_storage, sample_csv_rows):
+        bqm_storage.store_csv_data(sample_csv_rows)
+        rows = bqm_storage.get_data_for_range("2026-03-15", "2026-03-16")
+        assert len(rows) == 3
+        assert bqm_storage.get_csv_dates() == ["2026-03-16", "2026-03-15"]
+        assert bqm_storage.has_csv_data("2026-03-16") is True
+        assert bqm_storage.has_csv_data("2026-03-14") is False
+
+    def test_store_csv_data_reraises_storage_errors(self, bqm_storage, sample_csv_rows, monkeypatch):
+        def boom(*args, **kwargs):
+            raise sqlite3.OperationalError("database is locked")
+
+        monkeypatch.setattr("app.modules.bqm.storage.sqlite3.connect", boom)
+
+        with pytest.raises(sqlite3.OperationalError, match="database is locked"):
+            bqm_storage.store_csv_data(sample_csv_rows)
+
 
 # ── API Tests ──
 
@@ -157,7 +224,7 @@ def _reset_bqm_module_storage():
 
 
 @pytest.fixture
-def bqm_api_storage(tmp_path, sample_png):
+def bqm_api_storage(tmp_path, sample_png, sample_csv_rows):
     """Storage pre-loaded with a BQM graph for today."""
     import sqlite3
     from datetime import datetime
@@ -170,6 +237,7 @@ def bqm_api_storage(tmp_path, sample_png):
             "INSERT INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
             (today, datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), sample_png),
         )
+    bs.store_csv_data(sample_csv_rows)
     return s, today
 
 
@@ -226,6 +294,69 @@ class TestBQMAPI:
             assert resp.status_code == 200
             assert resp.get_json() == []
 
+    def test_bqm_csv_data_day(self, bqm_client):
+        client, _ = bqm_client
+        resp = client.get("/api/bqm/data/2026-03-15")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["date"] == "2026-03-15"
+        assert data["points"] == 2
+        assert data["data"]["timestamps"][0] == "2026-03-15T19:00:00+00:00"
+        assert data["data"]["lost_polls"] == [0, 2]
+
+    def test_bqm_csv_data_range(self, bqm_client):
+        client, _ = bqm_client
+        resp = client.get("/api/bqm/data/range?start=2026-03-15&end=2026-03-16")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["days"] == 2
+        assert data["points"] == 3
+        assert data["data"]["latency_avg"][-1] == 31.56
+
+    def test_bqm_csv_data_range_cap(self, bqm_client):
+        client, _ = bqm_client
+        resp = client.get("/api/bqm/data/range?start=2026-01-01&end=2026-04-15")
+        assert resp.status_code == 400
+
+    def test_bqm_data_dates(self, bqm_client):
+        client, today = bqm_client
+        resp = client.get("/api/bqm/data/dates")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["csv_dates"] == ["2026-03-16", "2026-03-15"]
+        assert today in data["png_dates"]
+
+    @patch("app.modules.bqm.routes.ThinkBroadbandAuth")
+    def test_validate_monitor_success(self, MockAuth, bqm_client):
+        client, _ = bqm_client
+        auth = MockAuth.return_value
+        auth.login.return_value = True
+        auth.validate_monitor_id.return_value = True
+        resp = client.post("/api/bqm/validate-monitor", json={
+            "username": "user",
+            "password": "pass",
+            "monitor_id": "12345",
+        })
+        assert resp.status_code == 200
+        assert resp.get_json() == {"valid": True}
+
+    @patch("app.modules.bqm.routes.ThinkBroadbandAuth")
+    def test_validate_monitor_login_failed(self, MockAuth, bqm_client):
+        client, _ = bqm_client
+        MockAuth.return_value.login.return_value = False
+        resp = client.post("/api/bqm/validate-monitor", json={
+            "username": "user",
+            "password": "wrong",
+            "monitor_id": "12345",
+        })
+        assert resp.status_code == 200
+        assert resp.get_json()["valid"] is False
+
+    def test_validate_monitor_missing_fields(self, bqm_client):
+        client, _ = bqm_client
+        resp = client.post("/api/bqm/validate-monitor", json={"username": "user"})
+        assert resp.status_code == 400
+
 
 class TestBQMLive:
     """Tests for the /api/bqm/live endpoint."""
@@ -274,3 +405,23 @@ class TestBQMLive:
         with app.test_client() as client:
             resp = client.get("/api/bqm/live")
             assert resp.status_code == 404
+
+
+class TestBqmUiRender:
+    def test_index_renders_chart_container_and_quick_ranges(self, bqm_client):
+        client, _ = bqm_client
+        resp = client.get("/")
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert 'id="bqm-chart-container"' in html
+        assert 'id="bqm-7d-btn"' in html
+        assert 'id="bqm-30d-btn"' in html
+        assert '/modules/docsight.bqm/static/bqm-chart.js' in html
+
+    def test_settings_renders_bqm_csv_fields(self, bqm_client):
+        with open("app/modules/bqm/templates/bqm_settings.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        assert 'id="bqm_username"' in html
+        assert 'id="bqm_password"' in html
+        assert 'id="bqm_monitor_id"' in html
+        assert 'id="bqm-validate-btn"' in html

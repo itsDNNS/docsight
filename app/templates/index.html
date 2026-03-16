@@ -926,6 +926,8 @@
     <div id="bqm-toolbar" class="bqm-toolbar">
         <button class="trend-tab bqm-quick" id="bqm-today-btn">{{ t.bqm_today }}</button>
         <button class="trend-tab bqm-quick" id="bqm-yesterday-btn">{{ t.bqm_yesterday }}</button>
+        <button class="trend-tab bqm-quick" id="bqm-7d-btn">{{ t.bqm_range_7d or '7d' }}</button>
+        <button class="trend-tab bqm-quick" id="bqm-30d-btn">{{ t.bqm_range_30d or '30d' }}</button>
         <div class="bqm-month-nav">
             <button id="bqm-month-prev" class="bqm-nav-btn">&#8249;</button>
             <span id="bqm-month-label" class="bqm-month-label"></span>
@@ -978,6 +980,7 @@
                     <span id="bqm-last-updated" class="bqm-last-updated" style="display:none;"></span>
                 </div>
             </div>
+            <div id="bqm-chart-container" class="bqm-chart-container" style="display:none;"></div>
             <div id="bqm-image-wrap" style="text-align:center;">
                 <img id="bqm-image" style="max-width:100%; border-radius:8px;" alt="BQM Graph">
             </div>
@@ -2609,6 +2612,7 @@ var T = {{ t|tojson }};
 
 </script>
 <script src="/static/js/journal.js"></script>
+<script src="/modules/docsight.bqm/static/bqm-chart.js"></script>
 <script src="/static/js/bqm.js"></script>
 <script src="/static/js/trends.js"></script>
 <script src="/static/js/channels.js"></script>

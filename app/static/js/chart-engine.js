@@ -30,6 +30,81 @@ function formatDateDE(str) {
     return p[2] + '.' + p[1] + '.' + p[0];
 }
 
+function chartXRange(u) {
+    var xData = u && u.data && u.data[0] ? u.data[0] : [];
+    if (!xData.length) return { min: 0, max: 0 };
+    return { min: xData[0], max: xData[xData.length - 1] };
+}
+
+/* ── Shared uPlot Plugins ── */
+function zoomPlugin() {
+    return {
+        hooks: {
+            init: [function(u) {
+                u.over.style.cursor = 'crosshair';
+            }],
+            ready: [function(u) {
+                u.over.addEventListener('dblclick', function() {
+                    u._zoomRange = null;
+                    var range = chartXRange(u);
+                    u.setScale('x', range);
+                });
+            }],
+            setSelect: [function(u) {
+                var min = u.posToVal(u.select.left, 'x');
+                var max = u.posToVal(u.select.left + u.select.width, 'x');
+                if (max - min > 1) {
+                    u._zoomRange = { min: min, max: max };
+                    u.setScale('x', u._zoomRange);
+                }
+                u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
+            }]
+        }
+    };
+}
+
+function bandPlugin(minSeriesIdx, maxSeriesIdx, color) {
+    return {
+        hooks: {
+            draw: [function(u) {
+                var ctx = u.ctx;
+                var minData = u.data[minSeriesIdx];
+                var maxData = u.data[maxSeriesIdx];
+                if (!minData || !maxData) return;
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
+                ctx.clip();
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                var started = false;
+                for (var i = 0; i < maxData.length; i++) {
+                    if (maxData[i] != null && minData[i] != null) {
+                        var x = u.valToPos(u.data[0][i], 'x', true);
+                        var y = u.valToPos(maxData[i], u.series[minSeriesIdx].scale, true);
+                        if (!started) {
+                            ctx.moveTo(x, y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+                for (var j = minData.length - 1; j >= 0; j--) {
+                    if (maxData[j] != null && minData[j] != null) {
+                        var x2 = u.valToPos(u.data[0][j], 'x', true);
+                        var y2 = u.valToPos(minData[j], u.series[minSeriesIdx].scale, true);
+                        ctx.lineTo(x2, y2);
+                    }
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }]
+        }
+    };
+}
+
 /* ── DOCSIS Threshold Definitions ── */
 var DS_POWER_THRESHOLDS = [
     {value: -4, fill: false, lineColor: 'rgba(76,175,80,0.5)'},
@@ -212,8 +287,10 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     var n = labels.length;
 
     /* Build columnar data: [xIndices, series1, series2, ...] */
-    var xData = [];
-    for (var xi = 0; xi < n; xi++) xData.push(xi);
+    var xData = opts && opts.xData ? opts.xData.slice() : [];
+    if (!xData.length) {
+        for (var xi = 0; xi < n; xi++) xData.push(xi);
+    }
     var uData = [xData];
     var allDatasets = datasets.slice();
 
@@ -239,8 +316,10 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             width: isBar ? 0 : 2,
             fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined),
             points: { show: showPoints, size: ds.pointSize || 6 },
-            spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false
+            spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false,
+            show: ds.show !== undefined ? ds.show : true,
         };
+        if (ds.scale) s.scale = ds.scale;
         if (isBar) {
             s.paths = barPaths;
             s.points = { show: false };
@@ -303,10 +382,14 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         scales.x.auto = false;
         scales.x.range = function(u, dmin, dmax) {
             if (u._zoomRange) return [u._zoomRange.min, u._zoomRange.max];
-            return [0, n - 1];
+            var range = chartXRange(u);
+            return [range.min, range.max];
         };
     } else {
-        scales.x.range = function() { return [-0.5, n - 0.5]; };
+        scales.x.range = function() {
+            if (xData.length <= 1) return [-0.5, 0.5];
+            return [xData[0], xData[xData.length - 1]];
+        };
     }
     if (yRange[0] !== null && yRange[1] !== null) {
         scales.y.range = function(u, dmin, dmax) {
@@ -320,24 +403,35 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     if (hasTemp) {
         scales.temp = {};
     }
+    if (opts && opts.scales) {
+        Object.keys(opts.scales).forEach(function(key) {
+            scales[key] = opts.scales[key];
+        });
+    }
 
     /* Axes — pick evenly spaced label positions */
     var xSplits = [];
     var wantTicks = 6;
     if (n <= wantTicks) {
-        for (var li = 0; li < n; li++) xSplits.push(li);
+        for (var li = 0; li < n; li++) xSplits.push(xData[li]);
     } else {
         var gap = (n - 1) / (wantTicks - 1);
         for (var ti = 0; ti < wantTicks; ti++) {
-            xSplits.push(Math.round(ti * gap));
+            xSplits.push(xData[Math.round(ti * gap)]);
         }
     }
+
+    var xLabelMap = {};
+    for (var li2 = 0; li2 < xData.length; li2++) xLabelMap[xData[li2]] = labels[li2] || '';
 
     var axes = [
         {
             scale: 'x',
             splits: function() { return xSplits; },
-            values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
+            values: function(u, vals) {
+                if (opts && opts.xValueCallback) return vals.map(function(v) { return opts.xValueCallback(v); });
+                return vals.map(function(v) { return xLabelMap[v] || ''; });
+            },
             stroke: textColor,
             grid: { show: false },
             ticks: { show: false },
@@ -401,6 +495,9 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             values: function(u, vals) { return vals.map(function(v) { return v.toFixed(0) + '°'; }); }
         });
     }
+    if (opts && opts.axes) {
+        opts.axes.forEach(function(axis) { axes.push(axis); });
+    }
 
     /* Sync crosshairs for trend charts */
     var isTrendChart = ['chart-ds-power', 'chart-ds-snr', 'chart-us-power', 'chart-errors'].indexOf(canvasId) >= 0;
@@ -423,9 +520,12 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
 
     /* Build options */
     var width = container.offsetWidth || 400;
-    var height = Math.round(width * 0.55);
-    if (height < 180) height = 180;
-    if (height > 350) height = 350;
+    var heightRatio = opts && opts.heightRatio ? opts.heightRatio : 0.55;
+    var minHeight = opts && opts.minHeight ? opts.minHeight : 180;
+    var maxHeight = opts && opts.maxHeight ? opts.maxHeight : 350;
+    var height = Math.round(width * heightRatio);
+    if (height < minHeight) height = minHeight;
+    if (height > maxHeight) height = maxHeight;
 
     var uOpts = {
         width: width,
@@ -447,9 +547,9 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         var entry = entries[0];
         var w = Math.round(entry.contentRect.width);
         if (w > 0 && Math.abs(w - chart.width) > 5) {
-            var h = Math.round(w * 0.55);
-            if (h < 180) h = 180;
-            if (h > 350) h = 350;
+            var h = Math.round(w * heightRatio);
+            if (h < minHeight) h = minHeight;
+            if (h > maxHeight) h = maxHeight;
             chart.setSize({width: w, height: h});
         }
     });
