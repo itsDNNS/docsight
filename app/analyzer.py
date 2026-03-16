@@ -20,8 +20,8 @@ _thresholds = {}
 _FALLBACK_THRESHOLDS = {
     "downstream_power": {
         "_default": "256QAM",
-        "256QAM": {"good": [-3.9, 13.0], "warning": [-5.9, 18.0], "critical": [-8.0, 20.0]},
-        "4096QAM": {"good": [-1.9, 15.0], "warning": [-3.9, 20.0], "critical": [-6.0, 22.0]},
+        "256QAM": {"good": [-4.0, 13.0], "warning": [-6.0, 15.0], "critical": [-8.0, 16.0]},
+        "4096QAM": {"good": [-2.0, 15.0], "warning": [-4.0, 16.0], "critical": [-6.0, 16.0]},
     },
     "upstream_power": {
         "_default": "sc_qam",
@@ -30,7 +30,7 @@ _FALLBACK_THRESHOLDS = {
     },
     "snr": {
         "_default": "256QAM",
-        "256QAM": {"good_min": 33.0, "warning_min": 31.0, "critical_min": 30.0},
+        "256QAM": {"good_min": 33.0, "warning_min": 31.0, "critical_min": 29.0},
         "4096QAM": {"good_min": 40.0, "warning_min": 38.0, "critical_min": 36.0},
     },
     "upstream_modulation": {"critical_max_qam": 4, "warning_max_qam": 16},

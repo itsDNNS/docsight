@@ -90,7 +90,7 @@ def test_format_threshold_table_uses_real_values():
     # Check that values come from thresholds.json, not hardcoded
     ds_256 = [r for r in rows if r["category"] == "DS Power" and r["variant"] == "256QAM"]
     assert len(ds_256) == 1
-    assert "-3.9" in ds_256[0]["good"]
+    assert "-4.0" in ds_256[0]["good"]
     assert "13.0" in ds_256[0]["good"]
     # Upstream modulation thresholds
     us_mod = [r for r in rows if r["category"] == "US Modulation"]
@@ -104,9 +104,9 @@ def test_default_warn_thresholds():
     assert "ds_power" in warn
     assert "us_power" in warn
     assert "snr" in warn
-    # 256QAM tolerated: -5.9 to 18.0
-    assert "-5.9" in warn["ds_power"]
-    assert "18.0" in warn["ds_power"]
+    # 256QAM warning: -6.0 to 15.0
+    assert "-6.0" in warn["ds_power"]
+    assert "15.0" in warn["ds_power"]
     # EuroDOCSIS 3.0 tolerated: 37.1 to 51.0
     assert "37.1" in warn["us_power"]
     assert "51.0" in warn["us_power"]
@@ -140,7 +140,7 @@ def test_generate_report_with_none_channel_values():
 def test_complaint_text_uses_real_thresholds():
     text = generate_complaint_text(MOCK_SNAPSHOTS)
     # Should contain real threshold values from thresholds.json
-    assert "-5.9 to 18.0 dBmV" in text
+    assert "-6.0 to 15.0 dBmV" in text
     assert "37.1 to 51.0 dBmV" in text
     assert ">= 31.0 dB" in text
 
