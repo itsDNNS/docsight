@@ -108,23 +108,36 @@ def polling_loop(config_mgr, storage, stop_event):
 
     # Smart Capture (always instantiated — _is_enabled() gates at runtime)
     from .smart_capture import SmartCaptureEngine, Trigger
+    from .smart_capture.sub_filters import (
+        modulation_sub_filter, snr_sub_filter, error_spike_sub_filter,
+        health_sub_filter, packet_loss_sub_filter,
+    )
     smart_capture = SmartCaptureEngine(storage, config_mgr)
     smart_capture.register_trigger(Trigger(
         event_type="modulation_change", action_type="capture",
         config_key="sc_trigger_modulation",
         min_severity="warning", require_details={"direction": "downgrade"},
+        sub_filter=modulation_sub_filter,
     ))
     smart_capture.register_trigger(Trigger(
         event_type="snr_change", action_type="capture",
         config_key="sc_trigger_snr", min_severity="warning",
+        sub_filter=snr_sub_filter,
     ))
     smart_capture.register_trigger(Trigger(
         event_type="error_spike", action_type="capture",
         config_key="sc_trigger_error_spike",
+        sub_filter=error_spike_sub_filter,
     ))
     smart_capture.register_trigger(Trigger(
         event_type="health_change", action_type="capture",
         config_key="sc_trigger_health", min_severity="warning",
+        sub_filter=health_sub_filter,
+    ))
+    smart_capture.register_trigger(Trigger(
+        event_type="cm_packet_loss_warning", action_type="capture",
+        config_key="sc_trigger_packet_loss",
+        sub_filter=packet_loss_sub_filter,
     ))
     log.info("Smart Capture: registered %d trigger(s)", len(smart_capture.triggers))
 
