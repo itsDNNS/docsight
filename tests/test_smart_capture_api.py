@@ -161,9 +161,13 @@ class TestSmartCaptureSettingsRender:
         resp = client.get("/settings")
         html = resp.data.decode()
         assert 'value="4096QAM"' in html
+        assert 'value="2048QAM"' in html
+        assert 'value="1024QAM"' in html
         assert 'value="512QAM"' in html
         assert 'value="256QAM"' in html
+        assert 'value="128QAM"' in html
         assert 'value="64QAM"' in html
+        assert 'value="32QAM"' in html
         assert 'value="16QAM"' in html
         assert 'value="8QAM"' in html
 
