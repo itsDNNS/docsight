@@ -241,6 +241,44 @@ class TestSpeedtestAdapterMatching:
         adapter.on_results_imported([{"id": 42, "timestamp": ""}])
         assert len(storage.get_fired_unmatched("capture")) == 1
 
+    def test_matches_offset_bearing_timestamp(self, storage):
+        """STT may return timestamps with +00:00 instead of Z."""
+        adapter = self._make_adapter(storage)
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:05Z",
+        )
+        adapter.on_results_imported([
+            {"id": 42, "timestamp": "2026-03-15T10:00:42+00:00"},
+        ])
+        assert storage.get_execution(eid)["status"] == "completed"
+        assert storage.get_execution(eid)["linked_result_id"] == 42
+
+    def test_converts_non_utc_offset_to_utc(self, storage):
+        """Timestamp with +02:00 offset must be converted to UTC for correct matching."""
+        adapter = self._make_adapter(storage)
+        # fired_at is 10:00:05 UTC
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:05Z",
+        )
+        # Result at 12:00:42+02:00 = 10:00:42 UTC — within window
+        adapter.on_results_imported([
+            {"id": 42, "timestamp": "2026-03-15T12:00:42+02:00"},
+        ])
+        assert storage.get_execution(eid)["status"] == "completed"
+
+    def test_handles_fractional_seconds(self, storage):
+        adapter = self._make_adapter(storage)
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:05Z",
+        )
+        adapter.on_results_imported([
+            {"id": 42, "timestamp": "2026-03-15T10:00:42.123456+00:00"},
+        ])
+        assert storage.get_execution(eid)["status"] == "completed"
+
 
 # ── E2E & Race Condition Tests ──
 

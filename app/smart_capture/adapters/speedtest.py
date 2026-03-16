@@ -123,14 +123,23 @@ class SpeedtestAdapter(ActionAdapter):
 
     @staticmethod
     def _parse_timestamp(ts: str) -> datetime | None:
-        """Parse ISO-8601 timestamp to datetime. Returns None on failure."""
+        """Parse ISO-8601 timestamp to UTC datetime via fromisoformat().
+
+        Handles Z-suffix, offset-bearing timestamps (+00:00, +02:00),
+        and fractional seconds. All results are converted to UTC.
+        """
         if not ts:
             return None
         try:
-            clean = ts.rstrip("Z")
-            if "." in clean:
-                clean = clean.split(".")[0]
-            dt = datetime.strptime(clean, "%Y-%m-%dT%H:%M:%S")
-            return dt.replace(tzinfo=timezone.utc)
+            # fromisoformat handles offsets and fractional seconds natively
+            # but needs Z replaced with +00:00 on Python < 3.11
+            normalized = ts.replace("Z", "+00:00") if ts.endswith("Z") else ts
+            dt = datetime.fromisoformat(normalized)
+            # Convert to UTC if offset-aware
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(timezone.utc)
+            else:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
         except (ValueError, TypeError):
             return None
