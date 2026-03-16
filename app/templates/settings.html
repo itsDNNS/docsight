@@ -64,6 +64,10 @@
                 <i data-lucide="bell" class="nav-icon"></i>
                 {{ t.notifications }}
             </button>
+            <button class="nav-item" data-section="smart_capture" onclick="switchSection('smart_capture')">
+                <i data-lucide="zap" class="nav-icon"></i>
+                {{ t.get('smart_capture', 'Smart Capture') }}
+            </button>
             <button class="nav-item" data-section="appearance" onclick="switchSection('appearance')">
                 <i data-lucide="palette" class="nav-icon"></i>
                 {{ t.appearance }}
@@ -140,6 +144,7 @@
             {% include 'settings/connection.html' %}
             {% include 'settings/general.html' %}
             {% include 'settings/notifications.html' %}
+            {% include 'settings/smart_capture.html' %}
             {% include 'settings/appearance.html' %}
             {% include 'settings/security.html' %}
             {% include 'settings/extensions.html' %}
@@ -171,6 +176,7 @@ var SECTION_TITLES = {
     connection: T.step_modem || 'Connection',
     general: T.general || 'General',
     notifications: T.get ? (T.get('notifications') || 'Notifications') : 'Notifications',
+    smart_capture: T.smart_capture || 'Smart Capture',
     appearance: T.appearance || 'Appearance',
     security: T.get ? (T.get('security') || 'Security') : 'Security',
     extensions: T.get ? (T.get('settings_extensions') || 'Extensions') : 'Extensions',

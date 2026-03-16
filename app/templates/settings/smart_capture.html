@@ -1,0 +1,133 @@
+<div class="settings-panel" id="panel-smart_capture">
+
+    {# ── Master Toggle ── #}
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple"><i data-lucide="zap"></i></div>
+                <div>
+                    <div class="card-title">{{ t.get('smart_capture', 'Smart Capture') }}</div>
+                    <div class="card-subtitle">{{ t.get('sc_enable_desc', 'Automatically trigger measurements when signal degradation is detected') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-grid cols-2">
+            <div class="form-group full-width">
+                <label class="toggle">
+                    <input type="checkbox" id="sc_enabled" name="sc_enabled" {{ 'checked' if config.get('sc_enabled') }}>
+                    <span class="toggle-slider"></span>
+                </label>
+                <label for="sc_enabled" style="margin-left:8px;">{{ t.get('sc_enable', 'Enable Smart Capture') }}</label>
+            </div>
+        </div>
+    </div>
+
+    {# ── Trigger Cards ── #}
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue"><i data-lucide="target"></i></div>
+                <div>
+                    <div class="card-title">{{ t.get('sc_triggers', 'Trigger Events') }}</div>
+                    <div class="card-subtitle">{{ t.get('sc_triggers_desc', 'Choose which signal degradation events should trigger a measurement') }}</div>
+                </div>
+            </div>
+        </div>
+        <div style="padding: 0 var(--card-padding) var(--card-padding);">
+            {% set triggers = [
+                ('sc_trigger_modulation', 'sc_trigger_modulation', 'sc_trigger_modulation_desc', 'activity'),
+                ('sc_trigger_snr', 'sc_trigger_snr', 'sc_trigger_snr_desc', 'signal'),
+                ('sc_trigger_error_spike', 'sc_trigger_error_spike', 'sc_trigger_error_spike_desc', 'alert-triangle'),
+                ('sc_trigger_health', 'sc_trigger_health', 'sc_trigger_health_desc', 'heart-pulse'),
+            ] %}
+            {% for key, name_key, desc_key, icon in triggers %}
+            <div class="sc-trigger-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="{{ icon }}" style="width:16px;height:16px;color:var(--muted);"></i>
+                        <span style="font-weight:500;">{{ t.get(name_key, name_key) }}</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="{{ key }}" {{ 'checked' if config.get(key) }}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                    {{ t.get(desc_key, desc_key) }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# ── Guardrails ── #}
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon amber"><i data-lucide="shield"></i></div>
+                <div>
+                    <div class="card-title">{{ t.get('sc_guardrails', 'Guardrails') }}</div>
+                    <div class="card-subtitle">{{ t.get('sc_guardrails_desc', 'Rate limiting to prevent excessive test triggers') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-grid cols-2">
+            <div class="form-group">
+                <label for="sc_global_cooldown">{{ t.get('sc_global_cooldown', 'Global cooldown (seconds)') }}</label>
+                <input type="number" id="sc_global_cooldown" name="sc_global_cooldown"
+                       value="{{ config.get('sc_global_cooldown', 300) }}" min="0" max="86400">
+            </div>
+            <div class="form-group">
+                <label for="sc_trigger_cooldown">{{ t.get('sc_trigger_cooldown_label', 'Per-trigger cooldown (seconds)') }}</label>
+                <input type="number" id="sc_trigger_cooldown" name="sc_trigger_cooldown"
+                       value="{{ config.get('sc_trigger_cooldown', 900) }}" min="0" max="86400">
+            </div>
+            <div class="form-group">
+                <label for="sc_max_actions_per_hour">{{ t.get('sc_max_actions_per_hour', 'Max actions per hour') }}</label>
+                <input type="number" id="sc_max_actions_per_hour" name="sc_max_actions_per_hour"
+                       value="{{ config.get('sc_max_actions_per_hour', 4) }}" min="1" max="60">
+            </div>
+        </div>
+    </div>
+
+    {# ── No Adapter Warning ── #}
+    {% if not config.get('speedtest_tracker_url') or not config.get('speedtest_tracker_token') %}
+    <div class="settings-card glass" style="border-left: 3px solid var(--warn);">
+        <div style="padding: var(--card-padding); display:flex; align-items:center; gap:8px; color:var(--warn);">
+            <i data-lucide="alert-triangle" style="width:16px;height:16px;"></i>
+            <span>{{ t.get('sc_no_adapter_warning', 'No action adapter configured. Enable Speedtest Tracker to use Smart Capture.') }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Execution History ── #}
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon green"><i data-lucide="history"></i></div>
+                <div>
+                    <div class="card-title">{{ t.get('sc_history', 'Execution History') }}</div>
+                </div>
+            </div>
+        </div>
+        <div id="sc-history-container" style="padding: 0 var(--card-padding) var(--card-padding);">
+            <div id="sc-history-empty" style="color:var(--muted);text-align:center;padding:24px;">
+                {{ t.get('sc_history_empty', 'No executions yet. Smart Capture will log activity here once enabled.') }}
+            </div>
+            <div id="sc-history-table-wrap" class="table-card" style="display:none;">
+                <table id="sc-history-table">
+                    <thead>
+                        <tr>
+                            <th>{{ t.get('sc_col_timestamp', 'Timestamp') }}</th>
+                            <th>{{ t.get('sc_col_trigger', 'Trigger') }}</th>
+                            <th>{{ t.get('sc_col_status', 'Status') }}</th>
+                            <th>{{ t.get('sc_col_details', 'Details') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sc-history-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
