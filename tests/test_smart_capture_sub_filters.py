@@ -203,3 +203,46 @@ class TestCMCollectorSmartCapture:
                 mock_engine = MagicMock()
                 collector.set_smart_capture(mock_engine)
                 assert collector._smart_capture is mock_engine
+
+    def test_check_events_calls_evaluate_with_annotated_events(self):
+        """_check_events() must save via save_events_with_ids and pass annotated events to evaluate."""
+        from unittest.mock import patch, call
+        cm_defaults = {
+            "connection_monitor_probe_method": "auto",
+            "connection_monitor_outage_threshold": "5",
+            "connection_monitor_loss_warning_pct": "2.0",
+        }
+        with patch("app.modules.connection_monitor.collector.ConnectionMonitorStorage"):
+            with patch("app.modules.connection_monitor.collector.ProbeEngine"):
+                from app.modules.connection_monitor.collector import ConnectionMonitorCollector
+                config = MagicMock()
+                config.get = MagicMock(side_effect=lambda k, d=None: cm_defaults.get(k, d))
+                storage = MagicMock()
+                storage.db_path = ":memory:"
+                web = MagicMock()
+                collector = ConnectionMonitorCollector(config_mgr=config, storage=storage, web=web)
+
+        mock_engine = MagicMock()
+        collector.set_smart_capture(mock_engine)
+
+        # Simulate events from event_rules
+        test_events = [
+            {"timestamp": "2026-03-16T10:00:00Z", "severity": "warning",
+             "event_type": "cm_packet_loss_warning", "message": "5% loss",
+             "details": {"target_id": 1, "packet_loss_pct": 5.0, "window_seconds": 60}},
+        ]
+        collector._event_rules = MagicMock()
+        collector._event_rules.check_probe_result.return_value = test_events
+        collector._event_rules.check_window_stats.return_value = []
+
+        # Mock core_storage to have save_events_with_ids
+        collector._core_storage = MagicMock()
+        collector._core_storage.save_events_with_ids = MagicMock()
+
+        samples = [{"target_id": 1, "timeout": False}]
+        collector._check_events(samples)
+
+        # Verify save_events_with_ids was called (not save_events)
+        collector._core_storage.save_events_with_ids.assert_called_once_with(test_events)
+        # Verify evaluate was called with the same events
+        mock_engine.evaluate.assert_called_once_with(test_events)
