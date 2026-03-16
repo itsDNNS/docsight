@@ -600,16 +600,19 @@ def inject_auth():
         active_id = _config_manager.get("active_theme", "")
         theme_modules = _module_loader.get_theme_modules()
         active_mod = None
+        classic_mod = None
         first_with_data = None
         for m in theme_modules:
             if m.theme_data:
                 if first_with_data is None:
                     first_with_data = m
+                if m.id == "docsight.theme_classic":
+                    classic_mod = m
                 if m.id == active_id:
                     active_mod = m
                     break
         if active_mod is None:
-            active_mod = first_with_data  # fallback to first available
+            active_mod = classic_mod or first_with_data
         if active_mod:
             active_theme_data = active_mod.theme_data
             active_theme_id = active_mod.id
