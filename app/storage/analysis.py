@@ -14,13 +14,13 @@ class AnalysisMixin:
         Args:
             start_ts: UTC start timestamp (with Z suffix)
             end_ts: UTC end timestamp (with Z suffix)
-            sources: set of source names to include (modem, speedtest, events).
-                     None means all.
+            sources: set of source names to include (modem, speedtest, events,
+                     bnetz, segment, capture). None means all.
 
         Returns list of dicts with 'timestamp', 'source', and source-specific fields.
         """
         if sources is None:
-            sources = {"modem", "speedtest", "events", "bnetz", "segment"}
+            sources = {"modem", "speedtest", "events", "bnetz", "segment", "capture"}
         timeline = []
 
         if "modem" in sources:
@@ -104,8 +104,7 @@ class AnalysisMixin:
                 })
 
         # Smart Capture executions
-        capture_active = sources is None or "capture" in sources
-        if capture_active:
+        if "capture" in sources:
             try:
                 with sqlite3.connect(self.db_path) as conn:
                     conn.row_factory = sqlite3.Row
@@ -124,6 +123,7 @@ class AnalysisMixin:
                         "action_type": r["action_type"],
                         "linked_result_id": r["linked_result_id"],
                         "suppression_reason": r["suppression_reason"],
+                        "last_error": r["last_error"],
                     }
                     if r["details"]:
                         try:
