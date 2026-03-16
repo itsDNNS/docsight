@@ -832,9 +832,9 @@
     "sc_trigger_direction_us": "Upstream only",
     "sc_trigger_min_qam": "Min QAM level",
     "sc_trigger_min_qam_any": "Any downgrade",
-    "sc_trigger_min_qam_256": "Below 256QAM",
-    "sc_trigger_min_qam_64": "Below 64QAM",
-    "sc_trigger_min_qam_16": "Below 16QAM",
+    "sc_trigger_min_qam_256": "At or below 256QAM",
+    "sc_trigger_min_qam_64": "At or below 64QAM",
+    "sc_trigger_min_qam_16": "At or below 16QAM",
     "sc_trigger_min_delta": "Min error delta",
     "sc_trigger_min_delta_hint": "0 = trigger on any spike",
     "sc_trigger_health_level": "Health level",
@@ -844,5 +844,12 @@
     "sc_trigger_packet_loss_desc": "Triggers when Connection Monitor detects high packet loss on any target",
     "sc_trigger_packet_loss_min_pct": "Min packet loss %",
     "sc_trigger_packet_loss_min_pct_hint": "Requires Connection Monitor module. Only fires when packet loss exceeds both this threshold and the Connection Monitor warning threshold.",
-    "event_type_cm_packet_loss_warning": "Packet Loss Warning"
+    "event_type_cm_packet_loss_warning": "Packet Loss Warning",
+    "sc_trigger_min_qam_4096": "At or below 4096QAM (DOCSIS 3.1)",
+    "sc_trigger_min_qam_2048": "At or below 2048QAM",
+    "sc_trigger_min_qam_1024": "At or below 1024QAM",
+    "sc_trigger_min_qam_128": "At or below 128QAM",
+    "sc_trigger_min_qam_32": "At or below 32QAM",
+    "sc_trigger_min_qam_8": "At or below 8QAM",
+    "sc_trigger_min_qam_512": "At or below 512QAM"
 }

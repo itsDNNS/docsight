@@ -24,8 +24,8 @@ def modulation_sub_filter(config, event):
         # Direction filter
         if direction != "both" and c.get("direction", "").upper() != direction.upper():
             continue
-        # QAM threshold filter: trigger only if current rank is below min_rank
-        if min_rank > 0 and c.get("current_rank", 0) >= min_rank:
+        # QAM threshold filter: trigger if current rank is at or below min_rank
+        if min_rank > 0 and c.get("current_rank", 0) > min_rank:
             continue
         qualifying.append(c)
 

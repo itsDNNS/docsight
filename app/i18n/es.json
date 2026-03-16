@@ -827,9 +827,9 @@
     "sc_trigger_direction_us": "Solo ascendente",
     "sc_trigger_min_qam": "Nivel QAM minimo",
     "sc_trigger_min_qam_any": "Cualquier degradacion",
-    "sc_trigger_min_qam_256": "Por debajo de 256QAM",
-    "sc_trigger_min_qam_64": "Por debajo de 64QAM",
-    "sc_trigger_min_qam_16": "Por debajo de 16QAM",
+    "sc_trigger_min_qam_256": "At or below 256QAM",
+    "sc_trigger_min_qam_64": "At or below 64QAM",
+    "sc_trigger_min_qam_16": "At or below 16QAM",
     "sc_trigger_min_delta": "Delta de errores minimo",
     "sc_trigger_min_delta_hint": "0 = activar en cualquier pico",
     "sc_trigger_health_level": "Nivel de salud",
@@ -839,5 +839,12 @@
     "sc_trigger_packet_loss_desc": "Se activa cuando el Connection Monitor detecta alta perdida de paquetes",
     "sc_trigger_packet_loss_min_pct": "Perdida de paquetes min %",
     "sc_trigger_packet_loss_min_pct_hint": "Requiere el modulo Connection Monitor. Solo se activa cuando la perdida supera este umbral y el umbral de advertencia del Connection Monitor.",
-    "event_type_cm_packet_loss_warning": "Alerta perdida de paquetes"
+    "event_type_cm_packet_loss_warning": "Alerta perdida de paquetes",
+    "sc_trigger_min_qam_4096": "At or below 4096QAM (DOCSIS 3.1)",
+    "sc_trigger_min_qam_2048": "At or below 2048QAM",
+    "sc_trigger_min_qam_1024": "At or below 1024QAM",
+    "sc_trigger_min_qam_128": "At or below 128QAM",
+    "sc_trigger_min_qam_32": "At or below 32QAM",
+    "sc_trigger_min_qam_8": "At or below 8QAM",
+    "sc_trigger_min_qam_512": "At or below 512QAM"
 }

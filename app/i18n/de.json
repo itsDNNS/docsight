@@ -832,9 +832,9 @@
     "sc_trigger_direction_us": "Nur Upstream",
     "sc_trigger_min_qam": "Min. QAM-Stufe",
     "sc_trigger_min_qam_any": "Jede Verschlechterung",
-    "sc_trigger_min_qam_256": "Unter 256QAM",
-    "sc_trigger_min_qam_64": "Unter 64QAM",
-    "sc_trigger_min_qam_16": "Unter 16QAM",
+    "sc_trigger_min_qam_256": "Ab 256QAM und darunter",
+    "sc_trigger_min_qam_64": "Ab 64QAM und darunter",
+    "sc_trigger_min_qam_16": "Ab 16QAM und darunter",
     "sc_trigger_min_delta": "Min. Fehlerdelta",
     "sc_trigger_min_delta_hint": "0 = bei jedem Fehlersprung auslösen",
     "sc_trigger_health_level": "Gesundheitsstufe",
@@ -844,5 +844,12 @@
     "sc_trigger_packet_loss_desc": "Wird ausgelöst wenn der Connection Monitor hohen Paketverlust auf einem Ziel erkennt",
     "sc_trigger_packet_loss_min_pct": "Min. Paketverlust %",
     "sc_trigger_packet_loss_min_pct_hint": "Benötigt Connection Monitor Modul. Löst nur aus wenn der Paketverlust sowohl diesen Schwellwert als auch den Connection Monitor Warnschwellwert überschreitet.",
-    "event_type_cm_packet_loss_warning": "Paketverlust-Warnung"
+    "event_type_cm_packet_loss_warning": "Paketverlust-Warnung",
+    "sc_trigger_min_qam_4096": "Ab 4096QAM und darunter (DOCSIS 3.1)",
+    "sc_trigger_min_qam_2048": "Ab 2048QAM und darunter",
+    "sc_trigger_min_qam_1024": "Ab 1024QAM und darunter",
+    "sc_trigger_min_qam_128": "Ab 128QAM und darunter",
+    "sc_trigger_min_qam_32": "Ab 32QAM und darunter",
+    "sc_trigger_min_qam_8": "Ab 8QAM und darunter",
+    "sc_trigger_min_qam_512": "Ab 512QAM und darunter"
 }

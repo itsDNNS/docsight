@@ -57,17 +57,24 @@ class TestModulationSubFilter:
         ])
         assert modulation_sub_filter(config, event) is False
 
-    def test_min_qam_threshold(self):
-        """Only trigger when current rank is below 256QAM (rank 7)."""
+    def test_min_qam_at_threshold_passes(self):
+        """Trigger when current rank equals threshold (at or below)."""
+        config = _config(sc_trigger_modulation_min_qam="16QAM")
+        # 16QAM (rank 3) equals threshold (rank 3) -> qualifies
+        event = self._event([{"channel": 1, "direction": "DS", "prev_rank": 7, "current_rank": 3}])
+        assert modulation_sub_filter(config, event) is True
+
+    def test_min_qam_below_threshold_passes(self):
+        """Trigger when current rank is below threshold."""
         config = _config(sc_trigger_modulation_min_qam="256QAM")
-        # 64QAM (rank 5) is below 256QAM (rank 7) → qualifies
+        # 64QAM (rank 5) is below 256QAM (rank 7) -> qualifies
         event = self._event([{"channel": 1, "direction": "DS", "prev_rank": 7, "current_rank": 5}])
         assert modulation_sub_filter(config, event) is True
 
-    def test_min_qam_above_threshold(self):
-        """Don't trigger when current rank is at or above threshold."""
+    def test_min_qam_above_threshold_fails(self):
+        """Don't trigger when current rank is above threshold."""
         config = _config(sc_trigger_modulation_min_qam="64QAM")
-        # 256QAM (rank 7) is above 64QAM (rank 5) → does not qualify
+        # 256QAM (rank 7) is above 64QAM (rank 5) -> does not qualify
         event = self._event([{"channel": 1, "direction": "DS", "prev_rank": 9, "current_rank": 7}])
         assert modulation_sub_filter(config, event) is False
 

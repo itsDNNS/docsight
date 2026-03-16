@@ -64,9 +64,16 @@
                             <label for="sc_trigger_modulation_min_qam">{{ t.get('sc_trigger_min_qam', 'Min QAM level') }}</label>
                             <select id="sc_trigger_modulation_min_qam" name="sc_trigger_modulation_min_qam">
                                 <option value="" {{ 'selected' if not config.get('sc_trigger_modulation_min_qam') }}>{{ t.get('sc_trigger_min_qam_any', 'Any downgrade') }}</option>
-                                <option value="256QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '256QAM' }}>{{ t.get('sc_trigger_min_qam_256', 'Below 256QAM') }}</option>
-                                <option value="64QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '64QAM' }}>{{ t.get('sc_trigger_min_qam_64', 'Below 64QAM') }}</option>
-                                <option value="16QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '16QAM' }}>{{ t.get('sc_trigger_min_qam_16', 'Below 16QAM') }}</option>
+                                <option value="4096QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '4096QAM' }}>{{ t.get('sc_trigger_min_qam_4096', 'At or below 4096QAM (DOCSIS 3.1)') }}</option>
+                                <option value="2048QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '2048QAM' }}>{{ t.get('sc_trigger_min_qam_2048', 'At or below 2048QAM') }}</option>
+                                <option value="1024QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '1024QAM' }}>{{ t.get('sc_trigger_min_qam_1024', 'At or below 1024QAM') }}</option>
+                                <option value="512QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '512QAM' }}>{{ t.get('sc_trigger_min_qam_512', 'At or below 512QAM') }}</option>
+                                <option value="256QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '256QAM' }}>{{ t.get('sc_trigger_min_qam_256', 'At or below 256QAM') }}</option>
+                                <option value="128QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '128QAM' }}>{{ t.get('sc_trigger_min_qam_128', 'At or below 128QAM') }}</option>
+                                <option value="64QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '64QAM' }}>{{ t.get('sc_trigger_min_qam_64', 'At or below 64QAM') }}</option>
+                                <option value="32QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '32QAM' }}>{{ t.get('sc_trigger_min_qam_32', 'At or below 32QAM') }}</option>
+                                <option value="16QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '16QAM' }}>{{ t.get('sc_trigger_min_qam_16', 'At or below 16QAM') }}</option>
+                                <option value="8QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '8QAM' }}>{{ t.get('sc_trigger_min_qam_8', 'At or below 8QAM') }}</option>
                             </select>
                         </div>
                     </div>
