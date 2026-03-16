@@ -42,5 +42,21 @@
   "bqm_delete_confirm": "DELETE eingeben zum Bestätigen",
   "bqm_delete_success": "{0} Bilder gelöscht",
   "bqm_collect_time": "Tägliche Erfassungszeit",
-  "bqm_collect_time_hint": "Uhrzeit für den täglichen BQM-Abruf (Container-Zeitzone)"
+  "bqm_collect_time_hint": "Uhrzeit für den täglichen BQM-Abruf (Container-Zeitzone)",
+  "bqm_username": "Benutzername",
+  "bqm_password": "Passwort",
+  "bqm_monitor_id": "Monitor-ID",
+  "bqm_monitor_id_help": "Gib die numerische ThinkBroadband-Monitor-ID aus deiner Dashboard-URL ein.",
+  "bqm_validate": "Prüfen",
+  "bqm_validate_success": "Monitor erfolgreich geprüft.",
+  "bqm_validate_failed": "Prüfung fehlgeschlagen.",
+  "bqm_chart_latency": "Latenz",
+  "bqm_chart_lost_polls": "Verlorene Polls",
+  "bqm_chart_avg": "Ø-Latenz",
+  "bqm_chart_range": "Min/Max-Bereich",
+  "bqm_chart_loss": "Paketverlust",
+  "bqm_no_csv_data": "Keine CSV-Daten für dieses Datum.",
+  "bqm_range_7d": "7T",
+  "bqm_range_30d": "30T",
+  "bqm_csv_dates_only": "In diesem Bereich gibt es nur PNG-Fallback-Daten."
 }

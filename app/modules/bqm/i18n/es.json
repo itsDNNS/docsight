@@ -42,5 +42,21 @@
   "bqm_delete_confirm": "Escriba DELETE para confirmar",
   "bqm_delete_success": "{0} imagenes eliminadas",
   "bqm_collect_time": "Hora de recopilacion diaria",
-  "bqm_collect_time_hint": "Hora del dia para obtener el grafico BQM (zona horaria del contenedor)"
+  "bqm_collect_time_hint": "Hora del dia para obtener el grafico BQM (zona horaria del contenedor)",
+  "bqm_username": "Usuario",
+  "bqm_password": "Contrasena",
+  "bqm_monitor_id": "ID del monitor",
+  "bqm_monitor_id_help": "Introduce el ID numerico de ThinkBroadband desde la URL de tu panel.",
+  "bqm_validate": "Validar",
+  "bqm_validate_success": "Monitor validado correctamente.",
+  "bqm_validate_failed": "La validacion ha fallado.",
+  "bqm_chart_latency": "Latencia",
+  "bqm_chart_lost_polls": "Sondeos perdidos",
+  "bqm_chart_avg": "Latencia media",
+  "bqm_chart_range": "Rango min/max",
+  "bqm_chart_loss": "Perdida de paquetes",
+  "bqm_no_csv_data": "No hay datos CSV para esta fecha.",
+  "bqm_range_7d": "7d",
+  "bqm_range_30d": "30d",
+  "bqm_csv_dates_only": "Este rango solo tiene datos PNG de respaldo."
 }

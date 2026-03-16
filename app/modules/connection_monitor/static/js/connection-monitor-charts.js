@@ -3,7 +3,7 @@
  * All targets overlaid in one chart with threshold zones and packet loss markers.
  * Uses renderChart() from chart-engine.js with custom loss markers plugin.
  */
-/* global renderChart, charts */
+/* global renderChart, charts, zoomPlugin, bandPlugin */
 var CMCharts = (function() {
     'use strict';
 
@@ -15,76 +15,6 @@ var CMCharts = (function() {
         'rgba(52,211,153,0.9)',   // teal
         'rgba(251,113,133,0.9)'   // pink
     ];
-
-    /**
-     * uPlot plugin: drag-to-zoom on X-axis, double-click to reset.
-     * Requires zoomable:true in renderChart opts (disables fixed x-scale range).
-     */
-    function zoomPlugin() {
-        return {
-            hooks: {
-                init: [function(u) {
-                    u.over.style.cursor = 'crosshair';
-                }],
-                ready: [function(u) {
-                    u.over.addEventListener('dblclick', function() {
-                        u._zoomRange = null;
-                        u.setScale('x', { min: 0, max: u.data[0].length - 1 });
-                    });
-                }],
-                setSelect: [function(u) {
-                    var min = u.posToVal(u.select.left, 'x');
-                    var max = u.posToVal(u.select.left + u.select.width, 'x');
-                    if (max - min > 1) {
-                        u._zoomRange = { min: min, max: max };
-                        u.setScale('x', u._zoomRange);
-                    }
-                    u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
-                }]
-            }
-        };
-    }
-
-    /**
-     * uPlot plugin: fill a band between two series (min/max range for aggregated data).
-     */
-    function bandPlugin(minSeriesIdx, maxSeriesIdx, color) {
-        return {
-            hooks: {
-                draw: [function(u) {
-                    var ctx = u.ctx;
-                    var minData = u.data[minSeriesIdx];
-                    var maxData = u.data[maxSeriesIdx];
-                    if (!minData || !maxData) return;
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
-                    ctx.clip();
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
-                    var started = false;
-                    for (var i = 0; i < maxData.length; i++) {
-                        if (maxData[i] != null && minData[i] != null) {
-                            var x = u.valToPos(u.data[0][i], 'x', true);
-                            var y = u.valToPos(maxData[i], u.series[minSeriesIdx].scale, true);
-                            if (!started) { ctx.moveTo(x, y); started = true; }
-                            else ctx.lineTo(x, y);
-                        }
-                    }
-                    for (var i = minData.length - 1; i >= 0; i--) {
-                        if (maxData[i] != null && minData[i] != null) {
-                            var x = u.valToPos(u.data[0][i], 'x', true);
-                            var y = u.valToPos(minData[i], u.series[minSeriesIdx].scale, true);
-                            ctx.lineTo(x, y);
-                        }
-                    }
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.restore();
-                }]
-            }
-        };
-    }
 
     /**
      * uPlot plugin: draw red vertical lines at packet loss indices.

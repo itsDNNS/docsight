@@ -1,6 +1,7 @@
 """BQM module routes."""
 
 import logging
+from datetime import datetime
 
 from flask import Blueprint, request, jsonify, make_response
 
@@ -10,6 +11,7 @@ from app.web import (
     _valid_date, _get_client_ip, _get_tz_name,
 )
 from .storage import BqmStorage
+from .auth import ThinkBroadbandAuth, ThinkBroadbandBatchAbort
 
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web.bqm")
@@ -29,6 +31,16 @@ def _get_bqm_storage():
     return _storage
 
 
+def _rows_to_columns(rows):
+    return {
+        "timestamps": [row["timestamp"] for row in rows],
+        "latency_min": [row["latency_min_ms"] for row in rows],
+        "latency_avg": [row["latency_avg_ms"] for row in rows],
+        "latency_max": [row["latency_max_ms"] for row in rows],
+        "lost_polls": [row["lost_polls"] for row in rows],
+    }
+
+
 @bp.route("/api/bqm/dates")
 @require_auth
 def api_bqm_dates():
@@ -37,6 +49,64 @@ def api_bqm_dates():
     if bs:
         return jsonify(bs.get_bqm_dates())
     return jsonify([])
+
+
+@bp.route("/api/bqm/data/<date>")
+@require_auth
+def api_bqm_data(date):
+    """Return column-oriented BQM CSV data for a single day."""
+    bs = _get_bqm_storage()
+    if not _valid_date(date):
+        return jsonify({"error": "Invalid date format"}), 400
+    if not bs:
+        return jsonify({"error": "No storage"}), 404
+    rows = bs.get_data_for_date(date)
+    return jsonify({
+        "date": date,
+        "points": len(rows),
+        "data": _rows_to_columns(rows),
+    })
+
+
+@bp.route("/api/bqm/data/range")
+@require_auth
+def api_bqm_data_range():
+    """Return column-oriented BQM CSV data for a date range."""
+    bs = _get_bqm_storage()
+    start = request.args.get("start", "")
+    end = request.args.get("end", "")
+    if not _valid_date(start) or not _valid_date(end):
+        return jsonify({"error": "Invalid date format"}), 400
+    start_dt = datetime.strptime(start, "%Y-%m-%d").date()
+    end_dt = datetime.strptime(end, "%Y-%m-%d").date()
+    if end_dt < start_dt:
+        return jsonify({"error": "Invalid date range"}), 400
+    days = (end_dt - start_dt).days + 1
+    if days > 90:
+        return jsonify({"error": "Range too large (max 90 days)"}), 400
+    if not bs:
+        return jsonify({"error": "No storage"}), 404
+    rows = bs.get_data_for_range(start, end)
+    return jsonify({
+        "start": start,
+        "end": end,
+        "days": days,
+        "points": len(rows),
+        "data": _rows_to_columns(rows),
+    })
+
+
+@bp.route("/api/bqm/data/dates")
+@require_auth
+def api_bqm_data_dates():
+    """Return dates with CSV data and legacy PNG data."""
+    bs = _get_bqm_storage()
+    if not bs:
+        return jsonify({"csv_dates": [], "png_dates": []})
+    return jsonify({
+        "csv_dates": bs.get_csv_dates(),
+        "png_dates": bs.get_bqm_dates(),
+    })
 
 
 @bp.route("/api/bqm/image/<date>")
@@ -94,6 +164,27 @@ def api_bqm_live():
     if ts:
         resp.headers["X-BQM-Timestamp"] = ts
     return resp
+
+
+@bp.route("/api/bqm/validate-monitor", methods=["POST"])
+@require_auth
+def api_bqm_validate_monitor():
+    """Validate ThinkBroadband credentials and monitor id."""
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+    monitor_id = (data.get("monitor_id") or "").strip()
+    if not username or not password or not monitor_id:
+        return jsonify({"valid": False, "error": "Missing username, password, or monitor_id"}), 400
+    try:
+        client = ThinkBroadbandAuth(username, password)
+        if not client.login():
+            return jsonify({"valid": False, "error": "Login failed: invalid credentials"})
+        if not client.validate_monitor_id(monitor_id):
+            return jsonify({"valid": False, "error": "Monitor validation failed"})
+        return jsonify({"valid": True})
+    except ThinkBroadbandBatchAbort as exc:
+        return jsonify({"valid": False, "error": f"ThinkBroadband rejected the request: {exc}"})
 
 
 @bp.route("/api/bqm/import", methods=["POST"])

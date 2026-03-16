@@ -697,7 +697,12 @@ def index():
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
     if demo_mode and not isp_name:
         isp_name = "Vodafone Kabel"
-    bqm_configured = _config_manager.is_bqm_configured() if _config_manager else False
+    bqm_configured = bool(
+        _config_manager and (
+            _config_manager.is_bqm_configured()
+            or _config_manager.get("bqm_url")
+        )
+    )
     smokeping_configured = _config_manager.is_smokeping_configured() if _config_manager else False
     speedtest_configured = _config_manager.is_speedtest_configured() if _config_manager else False
     gaming_quality_enabled = _config_manager.is_gaming_quality_enabled() if _config_manager else False

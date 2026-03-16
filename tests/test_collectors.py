@@ -725,8 +725,10 @@ class TestBQMCollector:
         config_mgr = MagicMock()
         config_mgr.is_bqm_configured.return_value = configured
         config_mgr.get.side_effect = lambda k, *a: {
-            "bqm_url": "https://example.com/graph.png",
             "bqm_collect_time": collect_time,
+            "bqm_username": "user",
+            "bqm_password": "pass",
+            "bqm_monitor_id": "12345",
         }.get(k, a[0] if a else None)
 
         storage = MagicMock()
@@ -743,56 +745,94 @@ class TestBQMCollector:
         c, *_ = self._make_collector(configured=False)
         assert c.is_enabled() is False
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_success(self, mock_fetch):
-        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
+    @patch("app.modules.bqm.collector.parse_bqm_csv")
+    @patch("app.modules.bqm.collector.ThinkBroadbandAuth")
+    def test_collect_success(self, MockAuth, mock_parse):
+        mock_parse.return_value = [{
+            "timestamp": "2026-03-15T19:00:00+00:00",
+            "date": "2026-03-15",
+            "sent_polls": 100,
+            "lost_polls": 0,
+            "latency_min_ms": 30.0,
+            "latency_avg_ms": 35.0,
+            "latency_max_ms": 40.0,
+            "score": 1,
+        }]
+        MockAuth.return_value.login.return_value = True
+        MockAuth.return_value.download_csv.return_value = '"Timestamp",...\n'
         c, _, storage = self._make_collector()
         result = c.collect()
         assert result.success is True
         assert c._last_date is not None
-        # Verify graph was saved to internal BqmStorage
-        dates = c._storage.get_bqm_dates()
-        assert len(dates) == 1
+        assert c._storage.get_csv_dates() == ["2026-03-15"]
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_stores_yesterday_when_before_noon(self, mock_fetch):
-        """Collect time before 12:00 should store as yesterday."""
+    @patch("app.modules.bqm.collector.parse_bqm_csv", return_value=[{
+        "timestamp": "2026-03-15T19:00:00+00:00",
+        "date": "2026-03-15",
+        "sent_polls": 100,
+        "lost_polls": 0,
+        "latency_min_ms": 30.0,
+        "latency_avg_ms": 35.0,
+        "latency_max_ms": 40.0,
+        "score": 1,
+    }])
+    @patch("app.modules.bqm.collector.ThinkBroadbandAuth")
+    def test_collect_stores_yesterday_when_before_noon(self, MockAuth, _mock_parse):
+        """Collect time before 12:00 should request yesterday."""
         from datetime import date, timedelta
-        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
+        MockAuth.return_value.login.return_value = True
         c, _, storage = self._make_collector(collect_time="02:00")
         c.collect()
-        dates = c._storage.get_bqm_dates()
         expected = (date.today() - timedelta(days=1)).isoformat()
-        assert dates[0] == expected
+        MockAuth.return_value.download_csv.assert_called_once_with("12345", expected)
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_stores_today_when_after_noon(self, mock_fetch):
-        """Collect time at/after 12:00 should store as today."""
+    @patch("app.modules.bqm.collector.parse_bqm_csv", return_value=[{
+        "timestamp": "2026-03-15T19:00:00+00:00",
+        "date": "2026-03-15",
+        "sent_polls": 100,
+        "lost_polls": 0,
+        "latency_min_ms": 30.0,
+        "latency_avg_ms": 35.0,
+        "latency_max_ms": 40.0,
+        "score": 1,
+    }])
+    @patch("app.modules.bqm.collector.ThinkBroadbandAuth")
+    def test_collect_stores_today_when_after_noon(self, MockAuth, _mock_parse):
+        """Collect time at/after 12:00 should request today."""
         from datetime import date
-        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
+        MockAuth.return_value.login.return_value = True
         c, _, storage = self._make_collector(collect_time="14:00")
         c.collect()
-        dates = c._storage.get_bqm_dates()
-        assert dates[0] == date.today().isoformat()
+        MockAuth.return_value.download_csv.assert_called_once_with("12345", date.today().isoformat())
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_skips_same_day(self, mock_fetch):
-        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
+    @patch("app.modules.bqm.collector.parse_bqm_csv", return_value=[{
+        "timestamp": "2026-03-15T19:00:00+00:00",
+        "date": "2026-03-15",
+        "sent_polls": 100,
+        "lost_polls": 0,
+        "latency_min_ms": 30.0,
+        "latency_avg_ms": 35.0,
+        "latency_max_ms": 40.0,
+        "score": 1,
+    }])
+    @patch("app.modules.bqm.collector.ThinkBroadbandAuth")
+    def test_collect_skips_same_day(self, MockAuth, _mock_parse):
+        MockAuth.return_value.login.return_value = True
         c, _, storage = self._make_collector()
         c.collect()
         result = c.collect()
         assert result.data == {"skipped": True}
-        assert mock_fetch.call_count == 1
+        assert MockAuth.return_value.download_csv.call_count == 1
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_fetch_failure(self, mock_fetch):
-        mock_fetch.return_value = None
+    @patch("app.modules.bqm.collector.ThinkBroadbandAuth")
+    def test_collect_fetch_failure(self, MockAuth):
+        MockAuth.return_value.login.return_value = True
+        MockAuth.return_value.download_csv.return_value = ""
         c, _, storage = self._make_collector()
         result = c.collect()
         assert result.success is False
-        assert "Failed" in result.error
-        # No graph should be stored in internal storage on failure
-        assert c._storage.get_bqm_dates() == []
+        assert "download" in result.error
+        assert c._storage.get_csv_dates() == []
 
     def test_name(self):
         c, *_ = self._make_collector()

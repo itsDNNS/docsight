@@ -15,7 +15,10 @@
   },
   "config": {
     "bqm_url": "",
-    "bqm_collect_time": "02:00"
+    "bqm_collect_time": "02:00",
+    "bqm_username": "",
+    "bqm_password": "",
+    "bqm_monitor_id": ""
   },
   "menu": {
     "label_key": "docsight.bqm.bqm_title",
