@@ -3,8 +3,10 @@
 import json
 import pytest
 
+from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.smart_capture.types import ExecutionStatus
+from app.web import app, init_config, init_storage
 
 
 @pytest.fixture
@@ -12,30 +14,35 @@ def storage(tmp_path):
     return SnapshotStorage(str(tmp_path / "test.db"), max_days=7)
 
 
-class TestExecutionsAPI:
-    def test_returns_empty_list(self, storage):
-        from app.web import app, init_storage
-        init_storage(storage)
-        with app.test_client() as client:
-            resp = client.get("/api/smart-capture/executions")
-            data = json.loads(resp.data)
-            assert resp.status_code == 200
-            assert data["executions"] == []
+@pytest.fixture
+def client(tmp_path, storage):
+    config_mgr = ConfigManager(str(tmp_path / "config"))
+    config_mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
+    init_config(config_mgr)
+    init_storage(storage)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        yield c
 
-    def test_returns_executions(self, storage):
+
+class TestExecutionsAPI:
+    def test_returns_empty_list(self, client):
+        resp = client.get("/api/smart-capture/executions")
+        data = json.loads(resp.data)
+        assert resp.status_code == 200
+        assert data["executions"] == []
+
+    def test_returns_executions(self, storage, client):
         storage.save_execution(
             trigger_type="modulation_change", action_type="capture",
             status=ExecutionStatus.PENDING,
         )
-        from app.web import app, init_storage
-        init_storage(storage)
-        with app.test_client() as client:
-            resp = client.get("/api/smart-capture/executions")
-            data = json.loads(resp.data)
-            assert len(data["executions"]) == 1
-            assert data["executions"][0]["trigger_type"] == "modulation_change"
+        resp = client.get("/api/smart-capture/executions")
+        data = json.loads(resp.data)
+        assert len(data["executions"]) == 1
+        assert data["executions"][0]["trigger_type"] == "modulation_change"
 
-    def test_respects_status_filter(self, storage):
+    def test_respects_status_filter(self, storage, client):
         storage.save_execution(
             trigger_type="a", action_type="capture",
             status=ExecutionStatus.PENDING,
@@ -45,13 +52,10 @@ class TestExecutionsAPI:
             status=ExecutionStatus.SUPPRESSED,
             suppression_reason="cooldown",
         )
-        from app.web import app, init_storage
-        init_storage(storage)
-        with app.test_client() as client:
-            resp = client.get("/api/smart-capture/executions?status=pending")
-            data = json.loads(resp.data)
-            assert len(data["executions"]) == 1
-            assert data["executions"][0]["status"] == "pending"
+        resp = client.get("/api/smart-capture/executions?status=pending")
+        data = json.loads(resp.data)
+        assert len(data["executions"]) == 1
+        assert data["executions"][0]["status"] == "pending"
 
 
 class TestSpeedtestAnnotation:
