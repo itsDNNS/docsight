@@ -58,7 +58,7 @@ function loadCorrelationData() {
     var segmentUrl = '/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
 
     Promise.all([
-        fetch('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events').then(function(r) { return r.json(); }),
+        fetch('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture').then(function(r) { return r.json(); }),
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         fetch(segmentUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
     ]).then(function(results) {
