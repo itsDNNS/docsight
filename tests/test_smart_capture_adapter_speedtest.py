@@ -343,6 +343,53 @@ class TestEndToEnd:
         assert row["linked_result_id"] == 42
 
 
+class TestEventEmission:
+    def test_fired_execution_emits_event(self, storage):
+        config = _make_config()
+        with patch("app.smart_capture.adapters.speedtest.requests.Session") as MockSession:
+            mock_session = MagicMock()
+            mock_session.post.return_value = MagicMock(status_code=201)
+            MockSession.return_value = mock_session
+            from app.smart_capture.adapters.speedtest import SpeedtestAdapter
+            adapter = SpeedtestAdapter(storage, config)
+
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.PENDING,
+        )
+
+        with patch.object(adapter, '_session') as mock_sess:
+            mock_sess.post.return_value = MagicMock(status_code=201)
+            adapter.execute(eid, {
+                "event_type": "modulation_change", "severity": "warning",
+                "timestamp": "2026-03-16T10:00:00Z",
+                "message": "Modulation dropped on 1 channel(s)",
+            })
+
+        events = storage.get_events(event_type="smart_capture_triggered")
+        assert len(events) == 1
+        assert events[0]["severity"] == "info"
+        assert "modulation" in events[0]["message"].lower()
+
+    def test_failed_execution_no_event(self, storage):
+        config = _make_config()
+        with patch("app.smart_capture.adapters.speedtest.requests.Session") as MockSession:
+            mock_session = MagicMock()
+            mock_session.post.return_value = MagicMock(status_code=500, text="error")
+            MockSession.return_value = mock_session
+            from app.smart_capture.adapters.speedtest import SpeedtestAdapter
+            adapter = SpeedtestAdapter(storage, config)
+
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.PENDING,
+        )
+        adapter.execute(eid, {"event_type": "modulation_change"})
+
+        events = storage.get_events(event_type="smart_capture_triggered")
+        assert len(events) == 0
+
+
 class TestExpiryRace:
     def test_claim_prevents_double_transition(self, storage):
         """If expiry runs while matching is in progress, claim_execution prevents conflict."""

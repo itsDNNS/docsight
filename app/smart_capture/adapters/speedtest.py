@@ -35,10 +35,24 @@ class SpeedtestAdapter(ActionAdapter):
             resp = self._session.post(self._run_url, timeout=15)
             if resp.status_code == 201:
                 from ...tz import utc_now
+                ts = utc_now()
                 self._storage.update_execution(
                     execution_id,
                     status=ExecutionStatus.FIRED,
-                    fired_at=utc_now(),
+                    fired_at=ts,
+                )
+                # Emit event for Event Log visibility
+                self._storage.save_event(
+                    timestamp=ts,
+                    severity="info",
+                    event_type="smart_capture_triggered",
+                    message=f"Speedtest triggered by {event.get('event_type', 'unknown')}",
+                    details={
+                        "trigger_type": event.get("event_type"),
+                        "action_type": self.action_type,
+                        "execution_id": execution_id,
+                        "source_event": event.get("message", ""),
+                    },
                 )
                 log.info("Smart Capture: triggered STT run (execution #%d)", execution_id)
                 return True, None
