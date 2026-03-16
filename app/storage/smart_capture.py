@@ -49,7 +49,8 @@ class SmartCaptureMixin:
         return result
 
     def update_execution(self, execution_id, status=None, fired_at=None,
-                         completed_at=None, linked_result_id=None):
+                         completed_at=None, linked_result_id=None,
+                         last_error=None, attempt_count=None):
         """Update fields on an existing execution record."""
         updates = []
         params = []
@@ -65,6 +66,12 @@ class SmartCaptureMixin:
         if linked_result_id is not None:
             updates.append("linked_result_id = ?")
             params.append(linked_result_id)
+        if last_error is not None:
+            updates.append("last_error = ?")
+            params.append(last_error)
+        if attempt_count is not None:
+            updates.append("attempt_count = ?")
+            params.append(attempt_count)
         if not updates:
             return
         params.append(execution_id)
@@ -73,6 +80,67 @@ class SmartCaptureMixin:
                 f"UPDATE smart_capture_executions SET {', '.join(updates)} WHERE id = ?",
                 params,
             )
+
+    def get_fired_unmatched(self, action_type):
+        """Return FIRED executions without a linked result, filtered by action_type.
+        Ordered by fired_at ASC (oldest first) for FIFO matching."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM smart_capture_executions "
+                "WHERE status = 'fired' AND linked_result_id IS NULL "
+                "AND action_type = ? ORDER BY fired_at ASC",
+                (action_type,),
+            ).fetchall()
+        results = []
+        for r in rows:
+            record = dict(r)
+            if record["details"]:
+                try:
+                    record["details"] = json.loads(record["details"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            results.append(record)
+        return results
+
+    def expire_stale_fired(self, cutoff_timestamp, action_type=None):
+        """Bulk-expire FIRED executions with fired_at before cutoff and no linked result.
+        Optionally filtered by action_type. Returns count of expired rows."""
+        query = (
+            "UPDATE smart_capture_executions "
+            "SET status = 'expired', "
+            "last_error = 'no matching result within timeout window' "
+            "WHERE status = 'fired' AND fired_at < ? AND linked_result_id IS NULL"
+        )
+        params = [cutoff_timestamp]
+        if action_type:
+            query += " AND action_type = ?"
+            params.append(action_type)
+        with sqlite3.connect(self.db_path) as conn:
+            rowcount = conn.execute(query, params).rowcount
+        return rowcount
+
+    def claim_execution(self, execution_id, expected_status, new_status,
+                        completed_at=None, linked_result_id=None):
+        """Conditionally update execution only if current status matches expected_status.
+        Returns True if the row was updated, False if status had already changed.
+        Prevents race between expiry (main loop) and matching (collector thread)."""
+        updates = ["status = ?"]
+        params = [new_status.value if hasattr(new_status, 'value') else str(new_status)]
+        if completed_at is not None:
+            updates.append("completed_at = ?")
+            params.append(completed_at)
+        if linked_result_id is not None:
+            updates.append("linked_result_id = ?")
+            params.append(linked_result_id)
+        params.extend([execution_id, expected_status])
+        with sqlite3.connect(self.db_path) as conn:
+            rowcount = conn.execute(
+                f"UPDATE smart_capture_executions SET {', '.join(updates)} "
+                "WHERE id = ? AND status = ?",
+                params,
+            ).rowcount
+        return rowcount > 0
 
     def get_executions(self, limit=50, offset=0, status=None):
         """Return execution records, newest first."""

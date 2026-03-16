@@ -18,9 +18,9 @@ def utc_now():
     return datetime.now(timezone.utc).strftime(_UTC_FMT)
 
 
-def utc_cutoff(days=0, hours=0):
-    """Return UTC timestamp N days/hours in the past as 'YYYY-MM-DDTHH:MM:SSZ'."""
-    dt = datetime.now(timezone.utc) - timedelta(days=days, hours=hours)
+def utc_cutoff(days=0, hours=0, minutes=0):
+    """Return UTC timestamp N days/hours/minutes in the past as 'YYYY-MM-DDTHH:MM:SSZ'."""
+    dt = datetime.now(timezone.utc) - timedelta(days=days, hours=hours, minutes=minutes)
     return dt.strftime(_UTC_FMT)
 
 

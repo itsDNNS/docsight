@@ -149,3 +149,130 @@ class TestCountExecutionsSince:
                                suppression_reason="test")
         count = storage.count_executions_since("2020-01-01T00:00:00Z")
         assert count == 2
+
+
+class TestUpdateExecutionExtended:
+    def test_update_last_error(self, storage):
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.PENDING,
+        )
+        storage.update_execution(eid, status=ExecutionStatus.EXPIRED,
+                                 last_error="Connection refused",
+                                 attempt_count=1)
+        row = storage.get_execution(eid)
+        assert row["status"] == "expired"
+        assert row["last_error"] == "Connection refused"
+        assert row["attempt_count"] == 1
+
+
+class TestGetFiredUnmatched:
+    def test_returns_fired_without_linked_result(self, storage):
+        storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:00Z",
+        )
+        storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.PENDING,
+        )
+        rows = storage.get_fired_unmatched("capture")
+        assert len(rows) == 1
+        assert rows[0]["status"] == "fired"
+
+    def test_excludes_already_linked(self, storage):
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:00Z",
+        )
+        storage.update_execution(eid, status=ExecutionStatus.COMPLETED,
+                                 completed_at="2026-03-15T10:01:00Z",
+                                 linked_result_id=42)
+        rows = storage.get_fired_unmatched("capture")
+        assert len(rows) == 0
+
+    def test_filters_by_action_type(self, storage):
+        storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:00Z",
+        )
+        storage.save_execution(
+            trigger_type="modulation_change", action_type="webhook",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:00Z",
+        )
+        rows = storage.get_fired_unmatched("capture")
+        assert len(rows) == 1
+        assert rows[0]["action_type"] == "capture"
+
+
+class TestExpireStaleFired:
+    def test_expires_old_unmatched(self, storage):
+        storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T09:00:00Z",
+        )
+        count = storage.expire_stale_fired("2026-03-15T09:15:00Z")
+        assert count == 1
+        row = storage.get_executions()[0]
+        assert row["status"] == "expired"
+        assert "no matching" in row["last_error"]
+
+    def test_does_not_expire_recent(self, storage):
+        storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:00Z",
+        )
+        count = storage.expire_stale_fired("2026-03-15T09:55:00Z")
+        assert count == 0
+
+    def test_does_not_expire_already_linked(self, storage):
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T09:00:00Z",
+        )
+        storage.update_execution(eid, status=ExecutionStatus.COMPLETED,
+                                 linked_result_id=42)
+        count = storage.expire_stale_fired("2026-03-15T09:15:00Z")
+        assert count == 0
+
+    def test_filters_by_action_type(self, storage):
+        storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T09:00:00Z",
+        )
+        storage.save_execution(
+            trigger_type="modulation_change", action_type="webhook",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T09:00:00Z",
+        )
+        count = storage.expire_stale_fired("2026-03-15T09:15:00Z", action_type="capture")
+        assert count == 1
+        rows = storage.get_fired_unmatched("webhook")
+        assert len(rows) == 1
+
+
+class TestClaimExecution:
+    def test_claim_succeeds_when_status_matches(self, storage):
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:00Z",
+        )
+        ok = storage.claim_execution(eid, expected_status="fired",
+                                     new_status=ExecutionStatus.COMPLETED,
+                                     completed_at="2026-03-15T10:01:00Z",
+                                     linked_result_id=42)
+        assert ok is True
+        row = storage.get_execution(eid)
+        assert row["status"] == "completed"
+        assert row["linked_result_id"] == 42
+
+    def test_claim_fails_when_status_changed(self, storage):
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.EXPIRED,
+        )
+        ok = storage.claim_execution(eid, expected_status="fired",
+                                     new_status=ExecutionStatus.COMPLETED,
+                                     linked_result_id=42)
+        assert ok is False
+        row = storage.get_execution(eid)
+        assert row["status"] == "expired"

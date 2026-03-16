@@ -128,6 +128,16 @@ def polling_loop(config_mgr, storage, stop_event):
         notifier=notifier, smart_capture=smart_capture,
     )
 
+    # Wire STT adapter if Smart Capture enabled, STT configured, and not demo mode
+    if smart_capture and config_mgr.is_speedtest_configured() and not config_mgr.is_demo_mode():
+        from .smart_capture.adapters.speedtest import SpeedtestAdapter
+        stt_adapter = SpeedtestAdapter(storage, config_mgr)
+        smart_capture.register_adapter("capture", stt_adapter)
+        stt_collector = next((c for c in collectors if c.name == "speedtest"), None)
+        if stt_collector:
+            stt_collector.on_import = stt_adapter.on_results_imported
+            log.info("Smart Capture: STT adapter wired to speedtest collector")
+
     # Inject collectors into web layer for manual polling and status endpoint
     modem_collector = next((c for c in collectors if c.name in ("modem", "demo")), None)
     if modem_collector:
@@ -233,6 +243,21 @@ def polling_loop(config_mgr, storage, stop_event):
                     if not future.done():
                         log.error("%s: timed out after 120s", collector.name)
                         future.cancel()
+
+            # ── Smart Capture expiry check (every 60s) ──
+            if smart_capture and smart_capture.adapter_action_types:
+                if not hasattr(polling_loop, '_sc_expiry_counter'):
+                    polling_loop._sc_expiry_counter = 0
+                polling_loop._sc_expiry_counter += 1
+                if polling_loop._sc_expiry_counter >= 60:
+                    polling_loop._sc_expiry_counter = 0
+                    from .tz import utc_cutoff
+                    cutoff = utc_cutoff(minutes=10)
+                    for action_type in smart_capture.adapter_action_types:
+                        expired = storage.expire_stale_fired(cutoff, action_type=action_type)
+                        if expired:
+                            log.info("Smart Capture: expired %d stale %s executions",
+                                     expired, action_type)
 
             stop_event.wait(1)
     finally:

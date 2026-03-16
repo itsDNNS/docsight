@@ -24,6 +24,10 @@ QUICK-TEST-*.md
 phase*.png
 mockup*.png
 
+# Virtual environments
+.venv/
+venv/
+
 # Development artifacts
 *.backup*
 *.bak

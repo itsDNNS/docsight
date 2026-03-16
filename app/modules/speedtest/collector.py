@@ -21,6 +21,7 @@ class SpeedtestCollector(Collector):
         self._web = web
         self._client = None
         self._last_url = None
+        self.on_import = None  # Optional callback for Smart Capture
 
     def is_enabled(self) -> bool:
         return self._config_mgr.is_speedtest_configured()
@@ -49,17 +50,23 @@ class SpeedtestCollector(Collector):
         try:
             last_id = self._storage.get_latest_speedtest_id()
             cached_count = self._storage.get_speedtest_count()
-            if cached_count < 50:
+            is_backfill = cached_count < 50
+            if is_backfill:
                 new_results = self._client.get_results(per_page=2000)
             else:
                 new_results = self._client.get_newer_than(last_id)
             if new_results:
+                genuinely_new = [r for r in new_results if r.get("id", 0) > last_id]
                 self._storage.save_speedtest_results(new_results)
                 log.info(
                     "Cached %d new speedtest results (total: %d)",
                     len(new_results),
                     cached_count + len(new_results),
                 )
+                # Skip on_import during initial backfill to avoid matching
+                # historical results to fresh FIRED executions
+                if genuinely_new and self.on_import and not is_backfill:
+                    self.on_import(genuinely_new)
         except Exception as e:
             log.warning("Speedtest delta cache failed: %s", e)
 
