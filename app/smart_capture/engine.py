@@ -78,6 +78,14 @@ class SmartCaptureEngine:
         if not matches:
             return
 
+        # Apply sub-filter if set
+        matches = [
+            (t, ev) for t, ev in matches
+            if t.sub_filter is None or t.sub_filter(self._config, ev)
+        ]
+        if not matches:
+            return
+
         results = self._guardrails.check_batch(matches)
 
         for trigger, ev, allowed, reason in results:

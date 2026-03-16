@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Callable
 
 SEVERITY_RANK = {"info": 0, "warning": 1, "critical": 2}
 
@@ -26,6 +27,7 @@ class Trigger:
     config_key: str | None = None
     min_severity: str | None = None
     require_details: dict | None = field(default=None, hash=False)
+    sub_filter: Callable | None = field(default=None, repr=False, hash=False, compare=False)
 
     def matches(self, event: dict) -> bool:
         if event.get("event_type") != self.event_type:

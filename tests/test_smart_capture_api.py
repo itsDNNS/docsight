@@ -129,3 +129,42 @@ class TestCorrelationCaptureSource:
                      if e.get("source") == "event"
                      and e.get("event_type") == "smart_capture_triggered"]
         assert len(sc_events) == 1
+
+
+class TestSmartCaptureSettingsRender:
+    """Verify Smart Capture settings section renders with sub-settings controls."""
+
+    def test_settings_contains_smart_capture_section(self, client):
+        resp = client.get("/settings")
+        html = resp.data.decode()
+        assert 'id="panel-smart_capture"' in html
+
+    def test_settings_contains_trigger_cards(self, client):
+        resp = client.get("/settings")
+        html = resp.data.decode()
+        assert 'data-trigger="sc_trigger_modulation"' in html
+        assert 'data-trigger="sc_trigger_snr"' in html
+        assert 'data-trigger="sc_trigger_error_spike"' in html
+        assert 'data-trigger="sc_trigger_health"' in html
+        assert 'data-trigger="sc_trigger_packet_loss"' in html
+
+    def test_settings_contains_sub_settings_controls(self, client):
+        resp = client.get("/settings")
+        html = resp.data.decode()
+        assert 'name="sc_trigger_modulation_direction"' in html
+        assert 'name="sc_trigger_modulation_min_qam"' in html
+        assert 'name="sc_trigger_error_spike_min_delta"' in html
+        assert 'name="sc_trigger_health_level"' in html
+        assert 'name="sc_trigger_packet_loss_min_pct"' in html
+
+    def test_settings_contains_qam_dropdown_options(self, client):
+        resp = client.get("/settings")
+        html = resp.data.decode()
+        assert 'value="256QAM"' in html
+        assert 'value="64QAM"' in html
+        assert 'value="16QAM"' in html
+
+    def test_settings_contains_packet_loss_hint(self, client):
+        resp = client.get("/settings")
+        html = resp.data.decode()
+        assert 'Connection Monitor' in html

@@ -1,7 +1,6 @@
 """Detect significant signal changes between consecutive DOCSIS snapshots."""
 
 import logging
-import re
 import threading
 
 from .tz import utc_now
@@ -15,42 +14,10 @@ UNCORR_SPIKE_THRESHOLD = 1000
 # Import SNR thresholds from analyzer (loaded from thresholds.json)
 from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
-# QAM hierarchy: higher value = better modulation
-QAM_ORDER = {
-    "QPSK": 1, "4QAM": 1,
-    "8QAM": 2,
-    "16QAM": 3,
-    "32QAM": 4,
-    "64QAM": 5,
-    "128QAM": 6,
-    "256QAM": 7,
-    "512QAM": 8,
-    "1024QAM": 9,
-    "2048QAM": 10,
-    "4096QAM": 11,
-}
+from .docsis_utils import QAM_ORDER, qam_rank as _qam_rank
+
 # A drop of this many levels or more counts as critical (e.g. 256QAM → 16QAM = 4 levels)
 QAM_CRITICAL_DROP = 3
-
-
-def _qam_rank(modulation):
-    """Get QAM rank for any modulation format.
-
-    Handles both driver formats: "256QAM" (Ultra Hub 7, CM3500)
-    and "qam_256" (Vodafone Station, CH7465, TC4400).
-    """
-    if not modulation:
-        return 0
-    rank = QAM_ORDER.get(modulation)
-    if rank is not None:
-        return rank
-    mod = modulation.upper().replace("-", "").replace("_", "")
-    if mod == "QPSK":
-        return QAM_ORDER["QPSK"]
-    m = re.search(r"(\d+)", mod)
-    if m and "QAM" in mod:
-        return QAM_ORDER.get(f"{m.group(1)}QAM", 0)
-    return 0
 
 
 class EventDetector:
@@ -253,6 +220,8 @@ class EventDetector:
                 entry = {"channel": ch_id, "direction": "DS", "prev": prev_ds[ch_id], "current": cur_ds[ch_id]}
                 cur_rank = _qam_rank(cur_ds[ch_id])
                 prev_rank = _qam_rank(prev_ds[ch_id])
+                entry["prev_rank"] = prev_rank
+                entry["current_rank"] = cur_rank
                 entry["rank_drop"] = prev_rank - cur_rank
                 if cur_rank < prev_rank:
                     downgrades.append(entry)
@@ -263,6 +232,8 @@ class EventDetector:
                 entry = {"channel": ch_id, "direction": "US", "prev": prev_us[ch_id], "current": cur_us[ch_id]}
                 cur_rank = _qam_rank(cur_us[ch_id])
                 prev_rank = _qam_rank(prev_us[ch_id])
+                entry["prev_rank"] = prev_rank
+                entry["current_rank"] = cur_rank
                 entry["rank_drop"] = prev_rank - cur_rank
                 if cur_rank < prev_rank:
                     downgrades.append(entry)

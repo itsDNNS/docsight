@@ -1314,3 +1314,28 @@ function loadSmartCaptureHistory() {
             if (empty) empty.textContent = T.sc_history_error || 'Failed to load execution history';
         });
 }
+
+/* ── Smart Capture Sub-Settings Toggle ── */
+function initSmartCaptureToggles() {
+    document.querySelectorAll('.sc-trigger-toggle').forEach(function(toggle) {
+        toggle.addEventListener('change', function() {
+            var card = this.closest('.sc-trigger-card');
+            if (!card) return;
+            var sub = card.querySelector('.sc-sub-settings');
+            if (sub) {
+                if (this.checked) {
+                    sub.classList.add('visible');
+                } else {
+                    sub.classList.remove('visible');
+                }
+            }
+        });
+    });
+}
+
+// Initialize on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSmartCaptureToggles);
+} else {
+    initSmartCaptureToggles();
+}

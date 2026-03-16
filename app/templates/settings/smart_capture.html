@@ -34,29 +34,144 @@
             </div>
         </div>
         <div style="padding: 0 var(--card-padding) var(--card-padding);">
-            {% set triggers = [
-                ('sc_trigger_modulation', 'sc_trigger_modulation', 'sc_trigger_modulation_desc', 'activity'),
-                ('sc_trigger_snr', 'sc_trigger_snr', 'sc_trigger_snr_desc', 'signal'),
-                ('sc_trigger_error_spike', 'sc_trigger_error_spike', 'sc_trigger_error_spike_desc', 'alert-triangle'),
-                ('sc_trigger_health', 'sc_trigger_health', 'sc_trigger_health_desc', 'heart-pulse'),
-            ] %}
-            {% for key, name_key, desc_key, icon in triggers %}
-            <div class="sc-trigger-card">
+
+            {# ── Modulation downgrade ── #}
+            <div class="sc-trigger-card" data-trigger="sc_trigger_modulation">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="{{ icon }}" style="width:16px;height:16px;color:var(--muted);"></i>
-                        <span style="font-weight:500;">{{ t.get(name_key, name_key) }}</span>
+                        <i data-lucide="activity" style="width:16px;height:16px;color:var(--muted);"></i>
+                        <span style="font-weight:500;">{{ t.get('sc_trigger_modulation', 'Modulation downgrade') }}</span>
                     </div>
                     <label class="toggle">
-                        <input type="checkbox" name="{{ key }}" {{ 'checked' if config.get(key) }}>
+                        <input type="checkbox" name="sc_trigger_modulation" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_modulation') }}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
                 <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
-                    {{ t.get(desc_key, desc_key) }}
+                    {{ t.get('sc_trigger_modulation_desc', 'Triggers when QAM level drops on any channel (e.g. 256QAM to 64QAM). Only downgrades with severity warning or critical.') }}
+                </div>
+                <div class="sc-sub-settings {{ 'visible' if config.get('sc_trigger_modulation') }}">
+                    <div class="form-grid cols-2">
+                        <div class="form-group">
+                            <label for="sc_trigger_modulation_direction">{{ t.get('sc_trigger_direction', 'Direction') }}</label>
+                            <select id="sc_trigger_modulation_direction" name="sc_trigger_modulation_direction">
+                                <option value="both" {{ 'selected' if config.get('sc_trigger_modulation_direction', 'both') == 'both' }}>{{ t.get('sc_trigger_direction_both', 'Both') }}</option>
+                                <option value="DS" {{ 'selected' if config.get('sc_trigger_modulation_direction') == 'DS' }}>{{ t.get('sc_trigger_direction_ds', 'Downstream only') }}</option>
+                                <option value="US" {{ 'selected' if config.get('sc_trigger_modulation_direction') == 'US' }}>{{ t.get('sc_trigger_direction_us', 'Upstream only') }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sc_trigger_modulation_min_qam">{{ t.get('sc_trigger_min_qam', 'Min QAM level') }}</label>
+                            <select id="sc_trigger_modulation_min_qam" name="sc_trigger_modulation_min_qam">
+                                <option value="" {{ 'selected' if not config.get('sc_trigger_modulation_min_qam') }}>{{ t.get('sc_trigger_min_qam_any', 'Any downgrade') }}</option>
+                                <option value="256QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '256QAM' }}>{{ t.get('sc_trigger_min_qam_256', 'Below 256QAM') }}</option>
+                                <option value="64QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '64QAM' }}>{{ t.get('sc_trigger_min_qam_64', 'Below 64QAM') }}</option>
+                                <option value="16QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '16QAM' }}>{{ t.get('sc_trigger_min_qam_16', 'Below 16QAM') }}</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
-            {% endfor %}
+
+            {# ── SNR degradation ── #}
+            <div class="sc-trigger-card" data-trigger="sc_trigger_snr">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="signal" style="width:16px;height:16px;color:var(--muted);"></i>
+                        <span style="font-weight:500;">{{ t.get('sc_trigger_snr', 'SNR degradation') }}</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="sc_trigger_snr" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_snr') }}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                    {{ t.get('sc_trigger_snr_desc', 'Triggers when signal-to-noise ratio drops below warning threshold.') }}
+                </div>
+            </div>
+
+            {# ── Error spike ── #}
+            <div class="sc-trigger-card" data-trigger="sc_trigger_error_spike">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="alert-triangle" style="width:16px;height:16px;color:var(--muted);"></i>
+                        <span style="font-weight:500;">{{ t.get('sc_trigger_error_spike', 'Error spike') }}</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="sc_trigger_error_spike" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_error_spike') }}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                    {{ t.get('sc_trigger_error_spike_desc', 'Triggers when uncorrectable errors jump significantly between polls.') }}
+                </div>
+                <div class="sc-sub-settings {{ 'visible' if config.get('sc_trigger_error_spike') }}">
+                    <div class="form-grid cols-2">
+                        <div class="form-group">
+                            <label for="sc_trigger_error_spike_min_delta">{{ t.get('sc_trigger_min_delta', 'Min error delta') }}</label>
+                            <input type="number" id="sc_trigger_error_spike_min_delta" name="sc_trigger_error_spike_min_delta"
+                                   value="{{ config.get('sc_trigger_error_spike_min_delta', 0) }}" min="0">
+                            <div class="form-hint">{{ t.get('sc_trigger_min_delta_hint', '0 = trigger on any spike') }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Health change ── #}
+            <div class="sc-trigger-card" data-trigger="sc_trigger_health">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="heart-pulse" style="width:16px;height:16px;color:var(--muted);"></i>
+                        <span style="font-weight:500;">{{ t.get('sc_trigger_health', 'Health change') }}</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="sc_trigger_health" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_health') }}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                    {{ t.get('sc_trigger_health_desc', 'Triggers when connection health degrades to marginal or critical.') }}
+                </div>
+                <div class="sc-sub-settings {{ 'visible' if config.get('sc_trigger_health') }}">
+                    <div class="form-grid cols-2">
+                        <div class="form-group">
+                            <label for="sc_trigger_health_level">{{ t.get('sc_trigger_health_level', 'Health level') }}</label>
+                            <select id="sc_trigger_health_level" name="sc_trigger_health_level">
+                                <option value="any_degradation" {{ 'selected' if config.get('sc_trigger_health_level', 'any_degradation') == 'any_degradation' }}>{{ t.get('sc_trigger_health_level_any', 'Any degradation') }}</option>
+                                <option value="critical_only" {{ 'selected' if config.get('sc_trigger_health_level') == 'critical_only' }}>{{ t.get('sc_trigger_health_level_critical', 'Critical only') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Packet loss warning ── #}
+            <div class="sc-trigger-card" data-trigger="sc_trigger_packet_loss">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i data-lucide="wifi-off" style="width:16px;height:16px;color:var(--muted);"></i>
+                        <span style="font-weight:500;">{{ t.get('sc_trigger_packet_loss', 'Packet loss warning') }}</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="sc_trigger_packet_loss" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_packet_loss') }}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                    {{ t.get('sc_trigger_packet_loss_desc', 'Triggers when Connection Monitor detects high packet loss on any target') }}
+                </div>
+                <div class="sc-sub-settings {{ 'visible' if config.get('sc_trigger_packet_loss') }}">
+                    <div class="form-grid cols-2">
+                        <div class="form-group">
+                            <label for="sc_trigger_packet_loss_min_pct">{{ t.get('sc_trigger_packet_loss_min_pct', 'Min packet loss %') }}</label>
+                            <input type="number" id="sc_trigger_packet_loss_min_pct" name="sc_trigger_packet_loss_min_pct"
+                                   value="{{ config.get('sc_trigger_packet_loss_min_pct', '5.0') }}" min="0" max="100" step="0.1">
+                            <div class="form-hint">{{ t.get('sc_trigger_packet_loss_min_pct_hint', 'Requires Connection Monitor module. Only fires when packet loss exceeds both this threshold and the Connection Monitor warning threshold.') }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 

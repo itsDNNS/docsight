@@ -108,23 +108,36 @@ def polling_loop(config_mgr, storage, stop_event):
 
     # Smart Capture (always instantiated — _is_enabled() gates at runtime)
     from .smart_capture import SmartCaptureEngine, Trigger
+    from .smart_capture.sub_filters import (
+        modulation_sub_filter, snr_sub_filter, error_spike_sub_filter,
+        health_sub_filter, packet_loss_sub_filter,
+    )
     smart_capture = SmartCaptureEngine(storage, config_mgr)
     smart_capture.register_trigger(Trigger(
         event_type="modulation_change", action_type="capture",
         config_key="sc_trigger_modulation",
         min_severity="warning", require_details={"direction": "downgrade"},
+        sub_filter=modulation_sub_filter,
     ))
     smart_capture.register_trigger(Trigger(
         event_type="snr_change", action_type="capture",
         config_key="sc_trigger_snr", min_severity="warning",
+        sub_filter=snr_sub_filter,
     ))
     smart_capture.register_trigger(Trigger(
         event_type="error_spike", action_type="capture",
         config_key="sc_trigger_error_spike",
+        sub_filter=error_spike_sub_filter,
     ))
     smart_capture.register_trigger(Trigger(
         event_type="health_change", action_type="capture",
         config_key="sc_trigger_health", min_severity="warning",
+        sub_filter=health_sub_filter,
+    ))
+    smart_capture.register_trigger(Trigger(
+        event_type="cm_packet_loss_warning", action_type="capture",
+        config_key="sc_trigger_packet_loss",
+        sub_filter=packet_loss_sub_filter,
     ))
     log.info("Smart Capture: registered %d trigger(s)", len(smart_capture.triggers))
 
@@ -145,6 +158,12 @@ def polling_loop(config_mgr, storage, stop_event):
         if stt_collector:
             stt_collector.on_import = stt_adapter.on_results_imported
             log.info("Smart Capture: STT adapter wired to speedtest collector")
+
+    # Wire Smart Capture to Connection Monitor collector
+    cm_collector = next((c for c in collectors if c.name == "connection_monitor"), None)
+    if cm_collector and hasattr(cm_collector, 'set_smart_capture'):
+        cm_collector.set_smart_capture(smart_capture)
+        log.info("Smart Capture: wired to Connection Monitor collector")
 
     # Inject collectors into web layer for manual polling and status endpoint
     modem_collector = next((c for c in collectors if c.name in ("modem", "demo")), None)

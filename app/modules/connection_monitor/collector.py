@@ -41,6 +41,11 @@ class ConnectionMonitorCollector(Collector):
         self._cm_storage = ConnectionMonitorStorage(db_path)
 
         self._seeded = False
+        self._smart_capture = None
+
+    def set_smart_capture(self, smart_capture):
+        """Inject Smart Capture engine for event evaluation."""
+        self._smart_capture = smart_capture
 
     def is_enabled(self) -> bool:
         return bool(self._config_mgr.get("connection_monitor_enabled", False))
@@ -148,8 +153,10 @@ class ConnectionMonitorCollector(Collector):
             )
             all_events.extend(events)
 
-        if all_events and hasattr(self._core_storage, "save_events"):
-            self._core_storage.save_events(all_events)
+        if all_events and hasattr(self._core_storage, "save_events_with_ids"):
+            self._core_storage.save_events_with_ids(all_events)
+            if self._smart_capture:
+                self._smart_capture.evaluate(all_events)
 
     def _ensure_default_targets(self):
         """Seed default targets on first enable."""
