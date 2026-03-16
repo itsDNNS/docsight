@@ -1494,3 +1494,19 @@ html, body {
   border-color: rgba(124, 58, 237, 0.3);
   box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.1), 0 8px 32px -8px rgba(124, 58, 237, 0.08);
 }
+
+/* ── Smart Capture ── */
+.sc-trigger-card {
+  padding: 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.sc-trigger-card:last-child {
+  margin-bottom: 0;
+}
+.sc-status-completed { color: var(--good); }
+.sc-status-fired { color: var(--warn); }
+.sc-status-pending { color: var(--accent); }
+.sc-status-suppressed { color: var(--muted); }
+.sc-status-expired { color: var(--crit); }

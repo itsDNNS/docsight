@@ -42,6 +42,7 @@ function switchSection(id) {
     if (id === 'security') loadApiTokens();
     if (target && target.querySelector('#backup-list')) loadBackupList();
     if (id === 'themes') refreshRegistry();
+    if (id === 'smart_capture') loadSmartCaptureHistory();
 
     /* URL hash */
     history.replaceState(null, '', '#' + id);
@@ -1256,5 +1257,60 @@ function installTheme(themeId, downloadUrl) {
         })
         .catch(function(err) {
             showToast((T.error_prefix || 'Error') + ': ' + err.message, true);
+        });
+}
+
+/* ── Smart Capture History ── */
+// Note: uses innerHTML with escapeHtml() for all dynamic content, consistent with
+// the existing pattern used throughout events.js, speedtest.js, and correlation.js.
+function loadSmartCaptureHistory() {
+    fetch('/api/smart-capture/executions?limit=50')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var execs = data.executions || [];
+            var tbody = document.getElementById('sc-history-tbody');
+            var tableWrap = document.getElementById('sc-history-table-wrap');
+            var empty = document.getElementById('sc-history-empty');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (execs.length === 0) {
+                if (tableWrap) tableWrap.style.display = 'none';
+                if (empty) empty.style.display = '';
+                return;
+            }
+            if (tableWrap) tableWrap.style.display = '';
+            if (empty) empty.style.display = 'none';
+            var statusLabels = {
+                completed: T.sc_status_completed || 'Completed',
+                fired: T.sc_status_fired || 'Fired',
+                pending: T.sc_status_pending || 'Pending',
+                suppressed: T.sc_status_suppressed || 'Suppressed',
+                expired: T.sc_status_expired || 'Expired'
+            };
+            execs.forEach(function(ex) {
+                var tr = document.createElement('tr');
+                var ts = ex.created_at ? ex.created_at.replace('T', ' ').replace('Z', '') : '';
+                var trigger = escapeHtml(ex.trigger_type || '');
+                var label = statusLabels[ex.status] || ex.status;
+                var detail = '';
+                if (ex.suppression_reason) {
+                    detail = escapeHtml(ex.suppression_reason);
+                } else if (ex.linked_result_id) {
+                    detail = 'Result #' + ex.linked_result_id;
+                } else if (ex.last_error) {
+                    detail = escapeHtml(ex.last_error);
+                }
+                // All dynamic content passed through escapeHtml() before insertion
+                tr.innerHTML = '<td style="white-space:nowrap;font-size:0.85em;">' + escapeHtml(ts) + '</td>'
+                    + '<td>' + trigger + '</td>'
+                    + '<td><span class="sc-status-' + escapeHtml(ex.status) + '">' + escapeHtml(label) + '</span></td>'
+                    + '<td style="font-size:0.85em;color:var(--muted);">' + detail + '</td>';
+                tbody.appendChild(tr);
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        })
+        .catch(function() {
+            var empty = document.getElementById('sc-history-empty');
+            if (empty) empty.textContent = T.sc_history_error || 'Failed to load execution history';
         });
 }
