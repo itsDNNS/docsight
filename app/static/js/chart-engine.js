@@ -201,34 +201,9 @@ function prepareContainer(canvasId) {
 
 /* ── Render Chart ── */
 function renderChart(canvasId, labels, datasets, type, zones, opts) {
-    // In-place update: if chart exists with same series count, update data
-    // instead of destroying. This preserves zoom state and prevents scroll jumps.
     var existing = charts[canvasId];
-    if (existing && existing._docsightParams) {
-        var oldDs = existing._docsightParams.datasets;
-        var sameStructure = oldDs && oldDs.length === datasets.length;
-        if (sameStructure && type === existing._docsightParams.type) {
-            var xData = [];
-            for (var ui = 0; ui < labels.length; ui++) xData.push(ui);
-            var uData = [xData];
-            datasets.forEach(function(ds) { uData.push(ds.data); });
-            // Preserve temp overlay if present
-            if (existing._docsightParams.opts && existing._docsightParams.opts.tempData && _tempOverlayVisible) {
-                uData.push(existing._docsightParams.opts.tempData);
-            }
-            existing._docsightParams = {labels: labels, datasets: datasets, type: type, zones: zones, opts: opts};
-            // Update label formatter to use new labels
-            if (existing.series[0]) {
-                existing.series[0].value = function(u, v) { return labels[v] || ''; };
-            }
-            existing.setData(uData);
-            // Restore zoom if user had zoomed
-            if (existing._zoomRange) {
-                existing.setScale('x', existing._zoomRange);
-            }
-            return;
-        }
-    }
+    // Save zoom state before potential destroy — restore after recreate
+    var savedZoom = existing && existing._zoomRange ? existing._zoomRange : null;
 
     if (existing) { existing.destroy(); delete charts[canvasId]; }
     var container = prepareContainer(canvasId);
@@ -470,6 +445,12 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     var chart = new uPlot(uOpts, uData, container);
     charts[canvasId] = chart;
     chart._docsightParams = {labels: labels, datasets: datasets, type: type, zones: zones, opts: opts};
+
+    /* Restore zoom state from previous chart instance (survives destroy/recreate) */
+    if (savedZoom && zoomable) {
+        chart._zoomRange = savedZoom;
+        chart.setScale('x', savedZoom);
+    }
 
     /* Responsive resize */
     var resizeObserver = new ResizeObserver(function(entries) {
