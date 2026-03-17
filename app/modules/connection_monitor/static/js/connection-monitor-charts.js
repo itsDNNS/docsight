@@ -235,13 +235,25 @@ var CMCharts = (function() {
 
         var lossIndices = Object.keys(lossSet).map(Number).sort(function(a, b) { return a - b; });
 
+        // Compute dynamic Y-max from actual data with headroom
+        var dataMax = 0;
+        datasets.forEach(function(ds) {
+            ds.data.forEach(function(v) { if (v != null && v > dataMax) dataMax = v; });
+        });
+        // Snap to next threshold zone boundary for clean visuals
+        var yMax;
+        if (dataMax <= 30) yMax = Math.max(dataMax * 1.3, 10);
+        else if (dataMax <= 100) yMax = Math.min(dataMax * 1.2, 120);
+        else yMax = dataMax * 1.15;
+        yMax = Math.ceil(yMax);
+
         // PingPlotter-style threshold zones (vertically scaled backgrounds)
         // lineColor: transparent suppresses the dashed boundary lines
         var zones = [
             { min: 0, max: 30, color: 'rgba(34,197,94,0.12)', lineColor: 'transparent' },
             { min: 30, max: 100, color: 'rgba(234,179,8,0.10)', lineColor: 'transparent' },
             { min: 100, max: 10000, color: 'rgba(239,68,68,0.08)', lineColor: 'transparent' },
-            { yMin: 0, yMax: 200 }
+            { yMin: 0, yMax: yMax }
         ];
 
         renderChart(containerId, labels, datasets, 'line', zones, {
