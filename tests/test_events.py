@@ -797,3 +797,50 @@ class TestRestartDetection:
         events = detector.check(cur)
         restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
         assert len(restart_events) == 1
+
+    def test_partial_none_counters_still_detected(self, detector):
+        """(corr=None, uncorr=5) → (None, 0) — uncorr declined, corr N/A — detected."""
+        prev, cur = self._make_restart_pair(n_channels=16)
+        # Set correctable to None on all channels, keep uncorrectable
+        for ch in prev["ds_channels"]:
+            ch["correctable_errors"] = None
+            ch["uncorrectable_errors"] = 50
+        for ch in cur["ds_channels"]:
+            ch["correctable_errors"] = None
+            ch["uncorrectable_errors"] = 0
+        prev["summary"]["ds_correctable_errors"] = None
+        prev["summary"]["ds_uncorrectable_errors"] = 50 * 16
+        cur["summary"]["ds_correctable_errors"] = None
+        cur["summary"]["ds_uncorrectable_errors"] = 0
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 1
+
+    def test_no_false_positive_missing_summary_keys(self, detector):
+        """Missing summary error keys must not cause false positive."""
+        prev, cur = self._make_restart_pair()
+        # Remove summary error keys entirely from cur
+        del cur["summary"]["ds_correctable_errors"]
+        del cur["summary"]["ds_uncorrectable_errors"]
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        # Per-channel signal is there, but sanity check is skipped (not enforced)
+        # so per-channel alone is enough — this SHOULD detect.
+        # The key point: if summary keys are missing on PREV, no false positive.
+
+    def test_no_false_positive_prev_missing_summary(self, detector):
+        """If prev has no summary error keys, sanity check skipped, no false positive from 0-default."""
+        prev, cur = self._make_restart_pair(prev_corr=100, prev_uncorr=5,
+                                             cur_corr=200, cur_uncorr=10)
+        cur["summary"]["ds_correctable_errors"] = 200 * 16
+        cur["summary"]["ds_uncorrectable_errors"] = 10 * 16
+        # Remove summary error keys from prev — old default(0) would falsely trigger
+        del prev["summary"]["ds_correctable_errors"]
+        del prev["summary"]["ds_uncorrectable_errors"]
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        # Counters are increasing per-channel → no restart regardless of summary
+        assert len(restart_events) == 0

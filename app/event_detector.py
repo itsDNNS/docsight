@@ -309,14 +309,20 @@ class EventDetector:
             c_corr = c.get("correctable_errors")
             c_uncorr = c.get("uncorrectable_errors")
 
-            if any(v is None for v in (p_corr, p_uncorr, c_corr, c_uncorr)):
-                continue
+            # Evaluate each counter family independently.
+            # A channel is valid if at least one counter pair is comparable.
+            # A channel is declining if at least one counter declined and none increased.
+            has_corr = p_corr is not None and c_corr is not None
+            has_uncorr = p_uncorr is not None and c_uncorr is not None
+
+            if not has_corr and not has_uncorr:
+                continue  # No comparable counters at all
 
             valid_channels += 1
-            corr_declined = c_corr < p_corr
-            uncorr_declined = c_uncorr < p_uncorr
-            corr_ok = c_corr <= p_corr
-            uncorr_ok = c_uncorr <= p_uncorr
+            corr_declined = has_corr and c_corr < p_corr
+            uncorr_declined = has_uncorr and c_uncorr < p_uncorr
+            corr_ok = not has_corr or c_corr <= p_corr
+            uncorr_ok = not has_uncorr or c_uncorr <= p_uncorr
             if (corr_declined or uncorr_declined) and corr_ok and uncorr_ok:
                 declining_channels += 1
 
@@ -325,16 +331,22 @@ class EventDetector:
         if declining_channels / valid_channels < RESTART_CHANNEL_THRESHOLD:
             return
 
-        # Sanity check: at least one summary total must decline
+        # Sanity check: at least one summary total must decline.
+        # If either snapshot is missing the summary keys entirely, skip the
+        # sanity check (rely on per-channel signal alone) rather than
+        # defaulting to 0 which would create false positives.
         prev_s = prev.get("summary", {})
         cur_s = cur.get("summary", {})
-        prev_corr_total = prev_s.get("ds_correctable_errors", 0)
-        prev_uncorr_total = prev_s.get("ds_uncorrectable_errors", 0)
-        cur_corr_total = cur_s.get("ds_correctable_errors", 0)
-        cur_uncorr_total = cur_s.get("ds_uncorrectable_errors", 0)
+        prev_corr_total = prev_s.get("ds_correctable_errors")
+        prev_uncorr_total = prev_s.get("ds_uncorrectable_errors")
+        cur_corr_total = cur_s.get("ds_correctable_errors")
+        cur_uncorr_total = cur_s.get("ds_uncorrectable_errors")
 
-        if cur_corr_total >= prev_corr_total and cur_uncorr_total >= prev_uncorr_total:
-            return  # Neither total declining
+        # Only enforce sanity check if all four values are present
+        if all(v is not None for v in (prev_corr_total, prev_uncorr_total,
+                                        cur_corr_total, cur_uncorr_total)):
+            if cur_corr_total >= prev_corr_total and cur_uncorr_total >= prev_uncorr_total:
+                return  # Neither total declining
 
         events.append({
             "timestamp": ts,
