@@ -294,6 +294,12 @@ def polling_loop(config_mgr, storage, stop_event):
             stop_event.wait(1)
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
+        for c in collectors:
+            if hasattr(c, "stop"):
+                try:
+                    c.stop()
+                except Exception:
+                    pass
 
     # Cleanup MQTT
     if mqtt_pub:
