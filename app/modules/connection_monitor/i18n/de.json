@@ -56,7 +56,7 @@
   "cm_resolution_5min": "5-Min-Durchschnitte",
   "cm_resolution_1hr": "1-Std-Durchschnitte",
   "traceroute.run_button": "Traceroute starten",
-  "traceroute.running": "Traceroute wird ausgefuehrt...",
+  "traceroute.running": "Traceroute wird ausgeführt...",
   "traceroute.result": "Traceroute-Ergebnis",
   "traceroute.trigger_manual": "Manuell",
   "traceroute.trigger_outage": "Ausfall",
