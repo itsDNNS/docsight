@@ -40,6 +40,9 @@ driver_registry.register_builtin("hitron", "app.drivers.hitron.HitronDriver",
 driver_registry.register_builtin("sagemcom", "app.drivers.sagemcom.SagemcomDriver",
                                  "Sagemcom F@st 3896",
                                  hints={"default_url": "http://192.168.100.1", "default_user": "admin"})
+driver_registry.register_builtin("cgm4981", "app.drivers.cgm4981.CGM4981Driver",
+                                 "Technicolor CGM4981COM (Cox Panoramic Gateway PM8 / XB8)",
+                                 hints={"default_url": "http://192.168.0.1", "default_user": "admin"})
 driver_registry.register_builtin("generic", "app.drivers.generic.GenericDriver", "Generic Router (No DOCSIS)",
                                  hints={"credentials_required": False})
 
