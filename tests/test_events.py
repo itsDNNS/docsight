@@ -546,3 +546,254 @@ class TestSaveEventsWithIds:
         ]
         ids = storage.save_events_with_ids(events)
         assert events[0]["_id"] == ids[0]
+
+
+# ── Restart Detection Tests ──
+
+class TestRestartDetection:
+    def _make_restart_pair(self, prev_corr=100, prev_uncorr=5,
+                           cur_corr=0, cur_uncorr=0, n_channels=16):
+        prev_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": prev_corr,
+             "uncorrectable_errors": prev_uncorr, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, n_channels + 1)
+        ]
+        cur_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": cur_corr,
+             "uncorrectable_errors": cur_uncorr, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, n_channels + 1)
+        ]
+        prev = _make_analysis(ds_channels=prev_channels, ds_total=n_channels,
+                              ds_uncorrectable_errors=prev_uncorr * n_channels)
+        prev["summary"]["ds_correctable_errors"] = prev_corr * n_channels
+        cur = _make_analysis(ds_channels=cur_channels, ds_total=n_channels,
+                             ds_uncorrectable_errors=cur_uncorr * n_channels)
+        cur["summary"]["ds_correctable_errors"] = cur_corr * n_channels
+        return prev, cur
+
+    def test_restart_detected(self, detector):
+        """All 16 channels reset from (500,20) to (0,0) — restart detected."""
+        prev, cur = self._make_restart_pair(prev_corr=500, prev_uncorr=20,
+                                            cur_corr=0, cur_uncorr=0, n_channels=16)
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 1
+        assert restart_events[0]["details"]["affected_channels"] == 16
+
+    def test_restart_partial_channels(self, detector):
+        """14/16 channels decline, 2 unchanged — still detected."""
+        prev_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 100,
+             "uncorrectable_errors": 5, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 17)
+        ]
+        cur_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0,
+             "correctable_errors": 0 if i <= 14 else 100,
+             "uncorrectable_errors": 0 if i <= 14 else 5,
+             "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 17)
+        ]
+        prev = _make_analysis(ds_channels=prev_channels, ds_total=16,
+                              ds_uncorrectable_errors=5 * 16)
+        prev["summary"]["ds_correctable_errors"] = 100 * 16
+        cur = _make_analysis(ds_channels=cur_channels, ds_total=16,
+                             ds_uncorrectable_errors=0 * 14 + 5 * 2)
+        cur["summary"]["ds_correctable_errors"] = 0 * 14 + 100 * 2
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 1
+        assert restart_events[0]["details"]["affected_channels"] == 14
+
+    def test_no_restart_below_threshold(self, detector):
+        """7/10 channels decline (70%) — below 80% threshold, not detected."""
+        prev_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 100,
+             "uncorrectable_errors": 5, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 11)
+        ]
+        cur_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0,
+             "correctable_errors": 0 if i <= 7 else 100,
+             "uncorrectable_errors": 0 if i <= 7 else 5,
+             "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 11)
+        ]
+        prev = _make_analysis(ds_channels=prev_channels, ds_total=10,
+                              ds_uncorrectable_errors=5 * 10)
+        prev["summary"]["ds_correctable_errors"] = 100 * 10
+        cur = _make_analysis(ds_channels=cur_channels, ds_total=10,
+                             ds_uncorrectable_errors=0 * 7 + 5 * 3)
+        cur["summary"]["ds_correctable_errors"] = 0 * 7 + 100 * 3
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 0
+
+    def test_no_restart_first_poll(self, detector):
+        """First poll (no prev) — no restart event, only monitoring_started."""
+        _, cur = self._make_restart_pair()
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 0
+
+    def test_no_restart_counters_increasing(self, detector):
+        """Counters go up — normal operation, no restart."""
+        prev, cur = self._make_restart_pair(prev_corr=100, prev_uncorr=5,
+                                            cur_corr=200, cur_uncorr=10)
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 0
+
+    def test_no_restart_insufficient_overlap(self, detector):
+        """Current has completely different channel IDs — no overlap."""
+        prev_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 100,
+             "uncorrectable_errors": 5, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 17)
+        ]
+        cur_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 0,
+             "uncorrectable_errors": 0, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(101, 117)
+        ]
+        prev = _make_analysis(ds_channels=prev_channels, ds_total=16,
+                              ds_uncorrectable_errors=80)
+        prev["summary"]["ds_correctable_errors"] = 1600
+        cur = _make_analysis(ds_channels=cur_channels, ds_total=16,
+                             ds_uncorrectable_errors=0)
+        cur["summary"]["ds_correctable_errors"] = 0
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 0
+
+    def test_no_restart_too_few_channels(self, detector):
+        """Only 3 channels — below RESTART_MIN_OVERLAP (4)."""
+        prev, cur = self._make_restart_pair(prev_corr=100, prev_uncorr=5,
+                                            cur_corr=0, cur_uncorr=0, n_channels=3)
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 0
+
+    def test_no_restart_totals_not_declining(self, detector):
+        """Per-channel declining but summary totals overridden high — no event."""
+        prev, cur = self._make_restart_pair(prev_corr=100, prev_uncorr=5,
+                                            cur_corr=0, cur_uncorr=0)
+        # Override totals so they don't decline
+        cur["summary"]["ds_correctable_errors"] = 99999
+        cur["summary"]["ds_uncorrectable_errors"] = 99999
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 0
+
+    def test_no_restart_none_counters(self, detector):
+        """Prev channels have None correctable_errors — skipped, no event."""
+        prev_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": None,
+             "uncorrectable_errors": None, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 17)
+        ]
+        cur_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 0,
+             "uncorrectable_errors": 0, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 17)
+        ]
+        prev = _make_analysis(ds_channels=prev_channels, ds_total=16,
+                              ds_uncorrectable_errors=80)
+        prev["summary"]["ds_correctable_errors"] = 1600
+        cur = _make_analysis(ds_channels=cur_channels, ds_total=16,
+                             ds_uncorrectable_errors=0)
+        cur["summary"]["ds_correctable_errors"] = 0
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 0
+
+    def test_restart_with_some_channel_change(self, detector):
+        """12/16 overlap and declining — detected despite channel churn."""
+        prev_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 100,
+             "uncorrectable_errors": 5, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 17)
+        ]
+        # Channels 1-12 overlap (declining), channels 101-104 are new
+        cur_channels = [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 0,
+             "uncorrectable_errors": 0, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(1, 13)
+        ] + [
+            {"channel_id": i, "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 0,
+             "uncorrectable_errors": 0, "docsis_version": "3.0",
+             "health": "good", "health_detail": "", "frequency": "602 MHz"}
+            for i in range(101, 105)
+        ]
+        prev = _make_analysis(ds_channels=prev_channels, ds_total=16,
+                              ds_uncorrectable_errors=80)
+        prev["summary"]["ds_correctable_errors"] = 1600
+        cur = _make_analysis(ds_channels=cur_channels, ds_total=16,
+                             ds_uncorrectable_errors=0)
+        cur["summary"]["ds_correctable_errors"] = 0
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 1
+
+    def test_channels_already_zero(self, detector):
+        """(0,0) to (0,0) — nothing actually declined, no event."""
+        prev, cur = self._make_restart_pair(prev_corr=0, prev_uncorr=0,
+                                            cur_corr=0, cur_uncorr=0)
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 0
+
+    def test_restart_does_not_trigger_error_spike(self, detector):
+        """Restart pattern must NOT also emit an error_spike event."""
+        prev, cur = self._make_restart_pair(prev_corr=500, prev_uncorr=20,
+                                            cur_corr=0, cur_uncorr=0)
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        spike_events = [e for e in events if e["event_type"] == "error_spike"]
+        assert len(restart_events) == 1
+        assert len(spike_events) == 0
+
+    def test_channel_with_zero_uncorr_before_restart(self, detector):
+        """(500,0) to (0,0) — corr declined, uncorr same — detected."""
+        prev, cur = self._make_restart_pair(prev_corr=500, prev_uncorr=0,
+                                            cur_corr=0, cur_uncorr=0)
+        detector.check(prev)
+        events = detector.check(cur)
+        restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
+        assert len(restart_events) == 1
