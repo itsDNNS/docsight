@@ -54,5 +54,19 @@
   "cm_resolution_raw": "Datos crudos",
   "cm_resolution_1min": "Promedios de 1 min",
   "cm_resolution_5min": "Promedios de 5 min",
-  "cm_resolution_1hr": "Promedios de 1 h"
+  "cm_resolution_1hr": "Promedios de 1 h",
+  "traceroute.run_button": "Ejecutar Traceroute",
+  "traceroute.running": "Ejecutando traceroute...",
+  "traceroute.result": "Resultado del Traceroute",
+  "traceroute.trigger_manual": "Manual",
+  "traceroute.trigger_outage": "Corte",
+  "traceroute.trigger_packet_loss": "Perdida de paquetes",
+  "traceroute.hop": "Salto",
+  "traceroute.hops": "Saltos",
+  "traceroute.reached": "Objetivo alcanzado",
+  "traceroute.not_reached": "Objetivo no alcanzado",
+  "traceroute.history": "Historial de Traceroute",
+  "traceroute.no_traces": "Aun no se han registrado traceroutes.",
+  "traceroute.probes_responded": "Sondas",
+  "traceroute.partial_result": "Resultado parcial (timeout)"
 }
