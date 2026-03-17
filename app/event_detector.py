@@ -11,6 +11,11 @@ log = logging.getLogger("docsis.events")
 POWER_SHIFT_THRESHOLD = 2.0  # dBmV shift to trigger power_change
 UNCORR_SPIKE_THRESHOLD = 1000
 
+# Restart detection thresholds
+RESTART_CHANNEL_THRESHOLD = 0.8    # 80% of valid channels must be declining
+RESTART_MIN_OVERLAP = 4            # Minimum overlapping channels for fair comparison
+RESTART_MIN_CONTINUITY = 0.5       # Minimum overlap ratio (vs either snapshot)
+
 # Import SNR thresholds from analyzer (loaded from thresholds.json)
 from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
@@ -67,6 +72,8 @@ class EventDetector:
         self._check_channels(events, ts, cur_s, prev_s)
         # Modulation change
         self._check_modulation(events, ts, analysis, prev)
+        # Restart detection (before errors — restart causes negative delta)
+        self._check_restart(events, ts, analysis, prev)
         # Error spike
         self._check_errors(events, ts, cur_s, prev_s)
 
@@ -272,3 +279,74 @@ class EventDetector:
                 "message": f"Uncorrectable errors jumped by {delta:,} (from {uncorr_prev:,} to {uncorr_cur:,})",
                 "details": {"prev": uncorr_prev, "current": uncorr_cur, "delta": delta},
             })
+
+    def _check_restart(self, events, ts, cur, prev):
+        """Detect modem restart via per-channel error counter reset."""
+        prev_channels = {ch["channel_id"]: ch for ch in prev.get("ds_channels", [])}
+        cur_channels = {ch["channel_id"]: ch for ch in cur.get("ds_channels", [])}
+
+        overlap_ids = set(prev_channels.keys()) & set(cur_channels.keys())
+
+        # Guard: insufficient continuity
+        prev_count = len(prev_channels)
+        cur_count = len(cur_channels)
+        if len(overlap_ids) < RESTART_MIN_OVERLAP:
+            return
+        if prev_count > 0 and len(overlap_ids) / prev_count < RESTART_MIN_CONTINUITY:
+            return
+        if cur_count > 0 and len(overlap_ids) / cur_count < RESTART_MIN_CONTINUITY:
+            return
+
+        # Count channels with declining counters
+        valid_channels = 0
+        declining_channels = 0
+
+        for ch_id in overlap_ids:
+            p = prev_channels[ch_id]
+            c = cur_channels[ch_id]
+            p_corr = p.get("correctable_errors")
+            p_uncorr = p.get("uncorrectable_errors")
+            c_corr = c.get("correctable_errors")
+            c_uncorr = c.get("uncorrectable_errors")
+
+            if any(v is None for v in (p_corr, p_uncorr, c_corr, c_uncorr)):
+                continue
+
+            valid_channels += 1
+            corr_declined = c_corr < p_corr
+            uncorr_declined = c_uncorr < p_uncorr
+            corr_ok = c_corr <= p_corr
+            uncorr_ok = c_uncorr <= p_uncorr
+            if (corr_declined or uncorr_declined) and corr_ok and uncorr_ok:
+                declining_channels += 1
+
+        if valid_channels < RESTART_MIN_OVERLAP:
+            return
+        if declining_channels / valid_channels < RESTART_CHANNEL_THRESHOLD:
+            return
+
+        # Sanity check: at least one summary total must decline
+        prev_s = prev.get("summary", {})
+        cur_s = cur.get("summary", {})
+        prev_corr_total = prev_s.get("ds_correctable_errors", 0)
+        prev_uncorr_total = prev_s.get("ds_uncorrectable_errors", 0)
+        cur_corr_total = cur_s.get("ds_correctable_errors", 0)
+        cur_uncorr_total = cur_s.get("ds_uncorrectable_errors", 0)
+
+        if cur_corr_total >= prev_corr_total and cur_uncorr_total >= prev_uncorr_total:
+            return  # Neither total declining
+
+        events.append({
+            "timestamp": ts,
+            "severity": "info",
+            "event_type": "modem_restart_detected",
+            "message": "Detected modem restart or counter reset pattern",
+            "details": {
+                "affected_channels": declining_channels,
+                "total_channels": valid_channels,
+                "prev_corr_total": prev_corr_total,
+                "prev_uncorr_total": prev_uncorr_total,
+                "current_corr_total": cur_corr_total,
+                "current_uncorr_total": cur_uncorr_total,
+            },
+        })
