@@ -9,6 +9,8 @@ from app.collectors.base import Collector, CollectorResult
 from app.modules.connection_monitor.event_rules import ConnectionEventRules
 from app.modules.connection_monitor.probe import ProbeEngine
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
+from app.modules.connection_monitor.traceroute_probe import TracerouteProbe
+from app.modules.connection_monitor.traceroute_trigger import TracerouteTrigger
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,7 @@ class ConnectionMonitorCollector(Collector):
 
         method = config_mgr.get("connection_monitor_probe_method", "auto")
         self._probe = ProbeEngine(method=method)
+        self._traceroute_probe = TracerouteProbe()
         self._last_probe: dict[int, float] = {}
         self._last_cleanup = 0.0
         self._event_rules = ConnectionEventRules(
@@ -39,6 +42,10 @@ class ConnectionMonitorCollector(Collector):
         data_dir = os.environ.get("DATA_DIR", "/data")
         db_path = os.path.join(data_dir, "connection_monitor.db")
         self._cm_storage = ConnectionMonitorStorage(db_path)
+        self._traceroute_trigger = TracerouteTrigger(
+            probe=self._traceroute_probe,
+            storage=self._cm_storage,
+        )
 
         self._seeded = False
         self._smart_capture = None
@@ -92,6 +99,7 @@ class ConnectionMonitorCollector(Collector):
                     self._config_mgr.get("connection_monitor_retention_days", 0)
                 )
                 self._cm_storage.cleanup(retention)
+                self._cm_storage.cleanup_traces(retention)
                 self._last_cleanup = now
 
             return CollectorResult.ok(self.name, {"probed": len(due)})
@@ -153,6 +161,9 @@ class ConnectionMonitorCollector(Collector):
             )
             all_events.extend(events)
 
+        for event in all_events:
+            self._traceroute_trigger.on_event(event)
+
         if all_events and hasattr(self._core_storage, "save_events_with_ids"):
             self._core_storage.save_events_with_ids(all_events)
             if self._smart_capture:
@@ -175,3 +186,7 @@ class ConnectionMonitorCollector(Collector):
     def get_probe(self) -> ProbeEngine:
         """Expose probe engine for capability endpoint."""
         return self._probe
+
+    def stop(self):
+        """Shutdown background resources."""
+        self._traceroute_trigger.shutdown()

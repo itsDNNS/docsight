@@ -993,6 +993,94 @@ class DemoCollector(Collector):
 
         log.info("Demo: seeded %d connection monitor samples (%d days, 3 targets)", len(rows), days)
 
+        # --- Seed traceroute traces ---
+        self._seed_traceroute_traces(cm, cf_id, gg_id, now, rng)
+
+    def _seed_traceroute_traces(self, cm, cf_id, gg_id, now, rng):
+        """Seed realistic traceroute traces for demo targets."""
+        import hashlib
+
+        # Realistic hop templates: home -> ISP -> backbone -> target
+        hop_templates = {
+            cf_id: [
+                {"hop_ip": "192.168.178.1", "hop_host": "fritz.box", "base_lat": 1.2},
+                {"hop_ip": "62.155.243.1", "hop_host": "dslam-ffm.telekom.de", "base_lat": 5.8},
+                {"hop_ip": "62.157.250.22", "hop_host": "cr-ffm01.telekom.de", "base_lat": 8.1},
+                {"hop_ip": "62.157.250.89", "hop_host": "cr-ffm02.telekom.de", "base_lat": 8.9},
+                {"hop_ip": "80.156.160.178", "hop_host": "decix-peer.telekom.de", "base_lat": 10.3},
+                {"hop_ip": "172.71.128.2", "hop_host": "cloudflare-ic.decix.net", "base_lat": 11.0},
+                {"hop_ip": "172.71.128.34", "hop_host": None, "base_lat": 11.5},
+                {"hop_ip": "104.16.132.229", "hop_host": "one.one.one.one", "base_lat": 11.8},
+                {"hop_ip": None, "hop_host": None, "base_lat": None},  # timeout hop
+                {"hop_ip": "172.71.0.150", "hop_host": None, "base_lat": 12.1},
+                {"hop_ip": "1.1.1.1", "hop_host": "one.one.one.one", "base_lat": 12.4},
+            ],
+            gg_id: [
+                {"hop_ip": "192.168.178.1", "hop_host": "fritz.box", "base_lat": 1.1},
+                {"hop_ip": "62.155.243.1", "hop_host": "dslam-ffm.telekom.de", "base_lat": 5.6},
+                {"hop_ip": "62.157.250.22", "hop_host": "cr-ffm01.telekom.de", "base_lat": 8.0},
+                {"hop_ip": "62.157.250.89", "hop_host": "cr-ffm02.telekom.de", "base_lat": 8.7},
+                {"hop_ip": "80.156.160.178", "hop_host": "decix-peer.telekom.de", "base_lat": 10.1},
+                {"hop_ip": "209.85.149.32", "hop_host": "google-ic.decix.net", "base_lat": 11.2},
+                {"hop_ip": "108.170.236.57", "hop_host": None, "base_lat": 12.0},
+                {"hop_ip": "142.251.51.15", "hop_host": None, "base_lat": 13.1},
+                {"hop_ip": None, "hop_host": None, "base_lat": None},  # timeout hop
+                {"hop_ip": "108.170.232.97", "hop_host": None, "base_lat": 13.8},
+                {"hop_ip": "142.250.236.131", "hop_host": None, "base_lat": 14.2},
+                {"hop_ip": "8.8.8.8", "hop_host": "dns.google", "base_lat": 14.5},
+            ],
+        }
+
+        trace_configs = [
+            {"target_id": cf_id, "days_ago": 5, "trigger": "outage", "reached": True},
+            {"target_id": cf_id, "days_ago": 2, "trigger": "packet_loss", "reached": True},
+            {"target_id": cf_id, "days_ago": 0, "trigger": "manual", "reached": True},
+            {"target_id": gg_id, "days_ago": 4, "trigger": "outage", "reached": True},
+            {"target_id": gg_id, "days_ago": 1, "trigger": "manual", "reached": True},
+        ]
+
+        for tc in trace_configs:
+            template = hop_templates[tc["target_id"]]
+            hops = []
+            ips_for_fp = []
+            for i, tmpl in enumerate(template):
+                if tmpl["base_lat"] is None:
+                    # Timeout hop
+                    hops.append({
+                        "hop_index": i + 1,
+                        "hop_ip": None,
+                        "hop_host": None,
+                        "latency_ms": None,
+                        "probes_responded": 0,
+                    })
+                    ips_for_fp.append("*")
+                else:
+                    lat = round(tmpl["base_lat"] + rng.uniform(-0.5, 0.5), 2)
+                    probes = 3 if rng.random() > 0.05 else rng.randint(1, 2)
+                    hops.append({
+                        "hop_index": i + 1,
+                        "hop_ip": tmpl["hop_ip"],
+                        "hop_host": tmpl["hop_host"],
+                        "latency_ms": lat,
+                        "probes_responded": probes,
+                    })
+                    ips_for_fp.append(tmpl["hop_ip"] or "*")
+
+            fp = hashlib.md5(">".join(ips_for_fp).encode()).hexdigest()[:16]
+            ts = (now - timedelta(days=tc["days_ago"], hours=rng.randint(0, 12))).timestamp()
+
+            cm.save_trace(
+                target_id=tc["target_id"],
+                timestamp=ts,
+                trigger_reason=tc["trigger"],
+                hops=hops,
+                route_fingerprint=fp,
+                reached_target=tc["reached"],
+                is_demo=True,
+            )
+
+        log.info("Demo: seeded %d traceroute traces", len(trace_configs))
+
     @staticmethod
     def _generate_bqm_png(width=800, height=200, seed=0):
         """Generate a simple BQM-style quality graph as PNG bytes."""

@@ -96,6 +96,37 @@
             </table>
         </div>
     </div>
+
+    <!-- Traceroute -->
+    <div class="glass" style="padding:16px; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+            <h3 style="margin:0;">{{ t.get('docsight.connection_monitor.traceroute.history', 'Traceroute History') }}</h3>
+            <div style="flex:1;"></div>
+            <div id="cm-traceroute-target-select" style="display:flex; gap:4px; align-items:center; flex-wrap:wrap;"></div>
+            <button id="cm-traceroute-btn" class="btn btn-secondary" onclick="cmRunTraceroute()" style="font-size:0.8rem; padding:4px 12px;">
+                {{ t.get('docsight.connection_monitor.traceroute.run_button', 'Run Traceroute') }}
+            </button>
+        </div>
+        <div id="cm-traceroute-result" style="display:none; margin-bottom:12px;"></div>
+        <div id="cm-traceroute-no-traces" style="display:none; text-align:center; padding:20px; color:var(--text-muted);">
+            {{ t.get('docsight.connection_monitor.traceroute.no_traces', 'No traceroutes recorded yet.') }}
+        </div>
+        <div id="cm-traceroute-history" style="overflow-x:auto;">
+            <table class="data-table" id="cm-traceroute-table" style="width:100%; display:none;">
+                <thead>
+                    <tr>
+                        <th style="width:25%;">{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}</th>
+                        <th style="width:25%;">{{ t.get('docsight.connection_monitor.cm_outage_start', 'Start') }}</th>
+                        <th style="width:12%;">{{ t.get('docsight.connection_monitor.traceroute.hops', 'Hops') }}</th>
+                        <th style="width:18%;">Fingerprint</th>
+                        <th style="width:10%;">{{ t.get('docsight.connection_monitor.traceroute.reached', 'Target reached') }}</th>
+                        <th style="width:10%;">Trigger</th>
+                    </tr>
+                </thead>
+                <tbody id="cm-traceroute-tbody"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script src="/modules/docsight.connection_monitor/static/js/connection-monitor-charts.js"></script>

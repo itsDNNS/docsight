@@ -85,11 +85,15 @@ class TestSpeedtestAnnotation:
 
 class TestCorrelationCaptureSource:
     def test_capture_entries_in_timeline(self, storage):
-        # Insert a Smart Capture execution
-        storage.save_execution(
-            trigger_type="modulation_change", action_type="capture",
-            status=ExecutionStatus.FIRED, fired_at="2026-03-16T10:00:05Z",
-        )
+        # Insert a Smart Capture execution. Mock utc_now so created_at falls
+        # within the query range (save_execution uses utc_now for created_at).
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr("app.storage.smart_capture.utc_now",
+                        lambda: "2026-03-16T10:00:05Z")
+            storage.save_execution(
+                trigger_type="modulation_change", action_type="capture",
+                status=ExecutionStatus.FIRED, fired_at="2026-03-16T10:00:05Z",
+            )
         timeline = storage.get_correlation_timeline(
             "2026-03-16T00:00:00Z", "2026-03-16T23:59:59Z",
             sources={"capture"},

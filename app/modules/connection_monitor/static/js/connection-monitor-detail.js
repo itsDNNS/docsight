@@ -217,6 +217,7 @@
                 if (targets.length > 0) {
                     loadData();
                     updatePinButton();
+                    initTracerouteTargetSelect();
                 } else {
                     showNoData();
                 }
@@ -439,6 +440,266 @@
         if (noData) noData.style.display = 'none';
         if (chartsEl) chartsEl.style.display = '';
     }
+
+    // --- Traceroute ---
+
+    var trSelectedTargetId = null;
+
+    function initTracerouteTargetSelect() {
+        var container = document.getElementById('cm-traceroute-target-select');
+        if (!container || targets.length === 0) return;
+        container.textContent = '';
+
+        targets.forEach(function(t, i) {
+            var btn = document.createElement('button');
+            btn.className = 'trend-tab' + (i === 0 ? ' active' : '');
+            btn.style.cssText = 'font-size:0.75rem;padding:4px 10px;';
+            btn.textContent = t.label;
+            btn.dataset.targetId = t.id;
+            btn.onclick = function() {
+                container.querySelectorAll('.trend-tab').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                trSelectedTargetId = t.id;
+                loadTraceHistory();
+            };
+            container.appendChild(btn);
+        });
+
+        trSelectedTargetId = targets[0].id;
+        loadTraceHistory();
+    }
+
+    function loadTraceHistory() {
+        if (!trSelectedTargetId) return;
+        fetch('/api/connection-monitor/traces/' + trSelectedTargetId)
+            .then(function(r) { return r.json(); })
+            .then(function(traces) {
+                renderTraceHistory(traces);
+            })
+            .catch(function() {});
+    }
+
+    function renderTraceHistory(traces) {
+        var tbody = document.getElementById('cm-traceroute-tbody');
+        var table = document.getElementById('cm-traceroute-table');
+        var noTraces = document.getElementById('cm-traceroute-no-traces');
+        if (!tbody || !table) return;
+
+        tbody.textContent = '';
+
+        if (!traces || traces.length === 0) {
+            table.style.display = 'none';
+            if (noTraces) noTraces.style.display = '';
+            return;
+        }
+
+        table.style.display = '';
+        if (noTraces) noTraces.style.display = 'none';
+
+        // Find target label
+        var targetLabel = '';
+        targets.forEach(function(t) {
+            if (t.id === trSelectedTargetId) targetLabel = t.label;
+        });
+
+        traces.forEach(function(trace) {
+            var tr = document.createElement('tr');
+            tr.style.cursor = 'pointer';
+            tr.onclick = function() { toggleTraceDetail(tr, trace.id); };
+
+            var tdTarget = document.createElement('td');
+            tdTarget.textContent = targetLabel;
+
+            var tdTime = document.createElement('td');
+            tdTime.textContent = new Date(trace.timestamp).toLocaleString();
+
+            var tdHops = document.createElement('td');
+            tdHops.textContent = trace.hop_count;
+
+            var tdFp = document.createElement('td');
+            tdFp.style.cssText = 'font-family:monospace;font-size:0.8rem;';
+            tdFp.textContent = trace.route_fingerprint ? trace.route_fingerprint.substring(0, 12) : '\u2014';
+
+            var tdReached = document.createElement('td');
+            var reachedSpan = document.createElement('span');
+            reachedSpan.style.cssText = 'font-size:0.8rem;padding:2px 6px;border-radius:4px;';
+            if (trace.reached_target) {
+                reachedSpan.style.cssText += 'background:rgba(34,197,94,0.15);color:#22c55e;';
+                reachedSpan.textContent = '\u2713';
+            } else {
+                reachedSpan.style.cssText += 'background:rgba(239,68,68,0.15);color:#ef4444;';
+                reachedSpan.textContent = '\u2717';
+            }
+            tdReached.appendChild(reachedSpan);
+
+            var tdTrigger = document.createElement('td');
+            tdTrigger.style.fontSize = '0.8rem';
+            tdTrigger.textContent = trace.trigger_reason || '\u2014';
+
+            tr.appendChild(tdTarget);
+            tr.appendChild(tdTime);
+            tr.appendChild(tdHops);
+            tr.appendChild(tdFp);
+            tr.appendChild(tdReached);
+            tr.appendChild(tdTrigger);
+            tbody.appendChild(tr);
+        });
+    }
+
+    function toggleTraceDetail(row, traceId) {
+        // If already expanded, collapse
+        var existing = row.nextElementSibling;
+        if (existing && existing.classList.contains('trace-detail-row')) {
+            existing.remove();
+            return;
+        }
+        // Remove any other expanded detail row
+        var table = row.closest('table');
+        if (table) {
+            table.querySelectorAll('.trace-detail-row').forEach(function(r) { r.remove(); });
+        }
+
+        // Fetch detail
+        fetch('/api/connection-monitor/trace/' + traceId)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var detailRow = document.createElement('tr');
+                detailRow.className = 'trace-detail-row';
+                var td = document.createElement('td');
+                td.colSpan = 6;
+                td.style.cssText = 'padding:8px 16px;background:rgba(255,255,255,0.03);';
+
+                var hops = data.hops || [];
+                if (hops.length === 0) {
+                    td.textContent = '\u2014';
+                } else {
+                    var hopTable = document.createElement('table');
+                    hopTable.style.cssText = 'width:100%;font-size:0.8rem;';
+                    var thead = document.createElement('thead');
+                    var headRow = document.createElement('tr');
+                    ['#', 'IP', 'Hostname', 'Latency', 'Probes'].forEach(function(label) {
+                        var th = document.createElement('th');
+                        th.style.cssText = 'padding:4px 8px;font-weight:600;text-align:left;';
+                        th.textContent = label;
+                        headRow.appendChild(th);
+                    });
+                    thead.appendChild(headRow);
+                    hopTable.appendChild(thead);
+
+                    var hopsBody = document.createElement('tbody');
+                    hops.forEach(function(hop) {
+                        var htr = document.createElement('tr');
+                        var tdIdx = document.createElement('td');
+                        tdIdx.style.padding = '3px 8px';
+                        tdIdx.textContent = hop.hop_index;
+
+                        var tdIp = document.createElement('td');
+                        tdIp.style.cssText = 'padding:3px 8px;font-family:monospace;';
+                        tdIp.textContent = hop.hop_ip || '*';
+
+                        var tdHost = document.createElement('td');
+                        tdHost.style.padding = '3px 8px';
+                        tdHost.textContent = hop.hop_host || '\u2014';
+
+                        var tdLat = document.createElement('td');
+                        tdLat.style.padding = '3px 8px';
+                        if (hop.latency_ms !== null && hop.latency_ms !== undefined) {
+                            tdLat.textContent = hop.latency_ms.toFixed(2) + ' ms';
+                        } else {
+                            tdLat.textContent = '*';
+                            tdLat.style.color = 'var(--text-muted)';
+                        }
+
+                        var tdProbes = document.createElement('td');
+                        tdProbes.style.padding = '3px 8px';
+                        tdProbes.textContent = hop.probes_responded !== undefined ? hop.probes_responded + '/3' : '\u2014';
+
+                        htr.appendChild(tdIdx);
+                        htr.appendChild(tdIp);
+                        htr.appendChild(tdHost);
+                        htr.appendChild(tdLat);
+                        htr.appendChild(tdProbes);
+                        hopsBody.appendChild(htr);
+                    });
+                    hopTable.appendChild(hopsBody);
+                    td.appendChild(hopTable);
+                }
+
+                detailRow.appendChild(td);
+                row.parentNode.insertBefore(detailRow, row.nextSibling);
+            })
+            .catch(function() {});
+    }
+
+    function renderTracerouteResult(data) {
+        var resultDiv = document.getElementById('cm-traceroute-result');
+        if (!resultDiv) return;
+        resultDiv.textContent = '';
+
+        if (data.error) {
+            resultDiv.style.display = '';
+            var errBox = document.createElement('div');
+            errBox.style.cssText = 'padding:8px 12px;border-radius:6px;background:rgba(239,68,68,0.1);color:#ef4444;font-size:0.85rem;';
+            errBox.textContent = data.error;
+            resultDiv.appendChild(errBox);
+            return;
+        }
+
+        resultDiv.style.display = '';
+        var reached = data.reached_target;
+        var color = reached ? '#22c55e' : '#ef4444';
+        var bg = reached ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
+        var statusText = reached ? 'Target reached' : 'Target not reached';
+
+        var box = document.createElement('div');
+        box.style.cssText = 'padding:8px 12px;border-radius:6px;background:' + bg + ';font-size:0.85rem;';
+
+        var statusSpan = document.createElement('span');
+        statusSpan.style.cssText = 'color:' + color + ';font-weight:600;';
+        statusSpan.textContent = statusText;
+        box.appendChild(statusSpan);
+
+        var infoText = document.createTextNode(' \u2014 ' + data.hop_count + ' hops');
+        box.appendChild(infoText);
+
+        if (data.route_fingerprint) {
+            var fpText = document.createTextNode(', fingerprint: ');
+            box.appendChild(fpText);
+            var fpCode = document.createElement('code');
+            fpCode.style.fontSize = '0.8rem';
+            fpCode.textContent = data.route_fingerprint.substring(0, 12);
+            box.appendChild(fpCode);
+        }
+
+        resultDiv.appendChild(box);
+        // Auto-hide after 8s
+        setTimeout(function() { resultDiv.style.display = 'none'; }, 8000);
+    }
+
+    window.cmRunTraceroute = function() {
+        if (!trSelectedTargetId) return;
+        var btn = document.getElementById('cm-traceroute-btn');
+        if (!btn) return;
+
+        var origText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Running traceroute...';
+
+        fetch('/api/connection-monitor/traceroute/' + trSelectedTargetId, { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                btn.disabled = false;
+                btn.textContent = origText;
+                renderTracerouteResult(data);
+                if (!data.error) {
+                    loadTraceHistory();
+                }
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.textContent = origText;
+            });
+    };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

@@ -6,7 +6,7 @@ import logging
 import math
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request, Response
 
@@ -48,6 +48,31 @@ def _get_probe_engine():
     cfg = get_config_manager()
     method = cfg.get("connection_monitor_probe_method", "auto") if cfg else "auto"
     return ProbeEngine(method=method)
+
+
+_traceroute_probe = None
+
+
+def _get_traceroute_probe():
+    global _traceroute_probe
+    if _traceroute_probe is None:
+        from app.modules.connection_monitor.traceroute_probe import TracerouteProbe
+        _traceroute_probe = TracerouteProbe()
+    return _traceroute_probe
+
+
+def _epoch_to_iso(ts):
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _hop_to_dict(hop):
+    return {
+        "hop_index": hop.hop_index,
+        "hop_ip": hop.hop_ip,
+        "hop_host": hop.hop_host,
+        "latency_ms": hop.latency_ms,
+        "probes_responded": hop.probes_responded,
+    }
 
 
 # --- Targets ---
@@ -516,3 +541,67 @@ def api_export_csv(target_id):
 def api_capability():
     probe = _get_probe_engine()
     return jsonify(probe.capability_info())
+
+
+# --- Traceroute ---
+
+@bp.route("/api/connection-monitor/traceroute/<int:target_id>", methods=["POST"])
+@require_auth
+def api_run_traceroute(target_id):
+    storage = _get_cm_storage()
+    target = storage.get_target(target_id)
+    if not target:
+        return jsonify({"error": "Target not found"}), 404
+
+    probe = _get_traceroute_probe()
+    result = probe.run(target["host"])
+
+    trace_id = storage.save_trace(
+        target_id=target_id,
+        timestamp=time.time(),
+        trigger_reason="manual",
+        hops=[{
+            "hop_index": h.hop_index, "hop_ip": h.hop_ip,
+            "hop_host": h.hop_host, "latency_ms": h.latency_ms,
+            "probes_responded": h.probes_responded,
+        } for h in result.hops],
+        route_fingerprint=result.route_fingerprint,
+        reached_target=result.reached_target,
+    )
+
+    return jsonify({
+        "trace_id": trace_id,
+        "timestamp": _epoch_to_iso(time.time()),
+        "trigger_reason": "manual",
+        "reached_target": result.reached_target,
+        "hop_count": len(result.hops),
+        "route_fingerprint": result.route_fingerprint,
+        "hops": [_hop_to_dict(h) for h in result.hops],
+    })
+
+
+@bp.route("/api/connection-monitor/traces/<int:target_id>")
+@require_auth
+def api_get_traces(target_id):
+    storage = _get_cm_storage()
+    start = request.args.get("start", type=float)
+    end = request.args.get("end", type=float)
+    limit = request.args.get("limit", 100, type=int)
+    limit = max(1, min(limit, 1000))
+    traces = storage.get_traces(target_id, start=start, end=end, limit=limit)
+    for t in traces:
+        t["timestamp"] = _epoch_to_iso(t["timestamp"])
+    return jsonify(traces)
+
+
+@bp.route("/api/connection-monitor/trace/<int:trace_id>")
+@require_auth
+def api_get_trace_detail(trace_id):
+    storage = _get_cm_storage()
+    trace = storage.get_trace(trace_id)
+    if not trace:
+        return jsonify({"error": "Trace not found"}), 404
+    hops = storage.get_trace_hops(trace_id)
+    trace["timestamp"] = _epoch_to_iso(trace["timestamp"])
+    trace["hops"] = hops
+    return jsonify(trace)
