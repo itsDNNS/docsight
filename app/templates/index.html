@@ -1664,7 +1664,7 @@
                 <button class="trend-tab" data-value="90" onclick="selectPill(this, filterSpeedtestData)">90d</button>
                 <button class="trend-tab" data-value="all" onclick="selectPill(this, filterSpeedtestData)">{{ t.fetch_all }}</button>
             </div>
-            <button class="btn btn-primary btn-sm" id="speedtest-run-btn" onclick="runSpeedtest()"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>
+            {% if not demo_mode %}<button class="btn btn-primary btn-sm" id="speedtest-run-btn" onclick="runSpeedtest()"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
             <button class="refresh-btn" id="speedtest-refresh-btn" title="{{ t.refresh }}" onclick="loadSpeedtestHistory()"><i data-lucide="refresh-cw"></i></button>
         </div>
     </div>
