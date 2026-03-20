@@ -210,6 +210,9 @@ def api_speedtest_run():
     if not _config_manager or not _config_manager.is_speedtest_configured():
         return jsonify({"success": False, "error": "Speedtest Tracker not configured"}), 400
 
+    if _config_manager.is_demo_mode():
+        return jsonify({"success": False, "error": "Not available in demo mode"}), 400
+
     now = time.time()
     if now - _last_trigger_ts < _TRIGGER_COOLDOWN:
         remaining = int(_TRIGGER_COOLDOWN - (now - _last_trigger_ts))

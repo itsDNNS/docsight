@@ -389,3 +389,22 @@ class TestSpeedtestRun:
             resp = client.post("/api/speedtest/run")
             assert resp.status_code == 400
             assert "not configured" in resp.get_json()["error"]
+
+    def test_run_blocked_in_demo_mode(self, tmp_path):
+        data_dir = str(tmp_path / "data4")
+        mgr = ConfigManager(data_dir)
+        mgr.save({
+            "modem_password": "test",
+            "modem_type": "fritzbox",
+            "demo_mode": True,
+            "speedtest_tracker_url": "http://speedtest.local:8999",
+            "speedtest_tracker_token": "test-token",
+        })
+        init_config(mgr)
+        init_storage(None)
+        _reset_speedtest_module_storage()
+        app.config["TESTING"] = True
+        with app.test_client() as client:
+            resp = client.post("/api/speedtest/run")
+            assert resp.status_code == 400
+            assert "demo" in resp.get_json()["error"].lower()
