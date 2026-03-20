@@ -1,9 +1,9 @@
 {# ═══ Module Card: Connection Monitor ═══ #}
 <div class="metrics-grid">
     <div class="metric-card glass" id="connection-monitor-card" style="cursor:pointer;" onclick="switchView('connection-monitor')">
-        <div class="metric-label">
-            <i data-lucide="activity" style="width:14px;height:14px;"></i>
-            {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
+        <div class="metric-header">
+            <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
+            <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>
         </div>
         <div class="metric-value" id="cm-card-status">—</div>
         <div class="metric-sub" id="cm-card-details"></div>
