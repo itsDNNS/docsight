@@ -483,10 +483,10 @@ function runSpeedtest() {
                 showToast((res.data.error || 'Failed'), 'error');
                 return;
             }
-            // Poll for the new result
+            // Poll for the new result: wait 30s, then check every 5s
             var attempts = 0;
-            var maxAttempts = 24; // ~2 minutes
-            var pollInterval = setInterval(function() {
+            var maxAttempts = 18; // 30s initial + 18*5s = ~2 minutes total
+            setTimeout(function() { var pollInterval = setInterval(function() {
                 attempts++;
                 fetch('/api/speedtest?count=1')
                     .then(function(r) { return r.json(); })
@@ -508,7 +508,7 @@ function runSpeedtest() {
                             showToast(T.speedtest_timeout || 'Speedtest is taking longer than expected. Refresh to check.', 'warning');
                         }
                     });
-            }, 5000);
+            }, 5000); }, 30000);
         })
         .catch(function() {
             _setRunBtnState(btn, false);
