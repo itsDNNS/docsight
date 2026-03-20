@@ -26,7 +26,7 @@
   },
   "menu": {
     "label_key": "docsight.connection_monitor.connection_monitor",
-    "icon": "activity",
+    "icon": "satellite-dish",
     "order": 25
   }
 }
