@@ -224,7 +224,7 @@ def api_speedtest_run():
         resp = requests.post(
             f"{url}/api/v1/speedtests/run",
             headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
-            timeout=15,
+            timeout=90,
         )
         if resp.status_code == 201:
             _last_trigger_ts = now

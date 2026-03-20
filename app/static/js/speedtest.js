@@ -478,7 +478,11 @@ function runSpeedtest() {
         .then(function(latest) {
             var lastId = (latest && latest.length > 0) ? latest[0].id : 0;
             return fetch('/api/speedtest/run', {method: 'POST'})
-                .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
+                .then(function(r) {
+                    return r.json()
+                        .catch(function() { return {error: 'Unexpected response'}; })
+                        .then(function(d) { return {ok: r.ok, data: d}; });
+                })
                 .then(function(res) {
                     if (!res.ok) {
                         _setRunBtnState(btn, false);
