@@ -1,7 +1,9 @@
 """Speedtest module routes."""
 
 import logging
+import time
 
+import requests
 from flask import Blueprint, request, jsonify
 
 from app.web import require_auth, get_config_manager, get_state, get_storage
@@ -14,6 +16,10 @@ bp = Blueprint("speedtest_module", __name__)
 
 # Lazy-initialized module-local storage
 _storage = None
+
+# Rate-limit: track last manual trigger timestamp
+_last_trigger_ts = 0
+_TRIGGER_COOLDOWN = 60  # seconds
 
 
 def _get_speedtest_storage():
@@ -193,3 +199,45 @@ def api_speedtest_signal(result_id):
         "us_total": s.get("us_total", 0),
         "us_channels": us_channels,
     })
+
+
+@bp.route("/api/speedtest/run", methods=["POST"])
+@require_auth
+def api_speedtest_run():
+    """Trigger a speedtest run via the Speedtest Tracker API."""
+    global _last_trigger_ts
+    _config_manager = get_config_manager()
+    if not _config_manager or not _config_manager.is_speedtest_configured():
+        return jsonify({"success": False, "error": "Speedtest Tracker not configured"}), 400
+
+    if _config_manager.is_demo_mode():
+        return jsonify({"success": False, "error": "Not available in demo mode"}), 400
+
+    now = time.time()
+    if now - _last_trigger_ts < _TRIGGER_COOLDOWN:
+        remaining = int(_TRIGGER_COOLDOWN - (now - _last_trigger_ts))
+        return jsonify({"success": False, "error": f"Rate limited, retry in {remaining}s"}), 429
+
+    url = _config_manager.get("speedtest_tracker_url", "").rstrip("/")
+    token = _config_manager.get("speedtest_tracker_token", "")
+    try:
+        resp = requests.post(
+            f"{url}/api/v1/speedtests/run",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+            timeout=15,
+        )
+        if resp.status_code == 201:
+            _last_trigger_ts = now
+            log.info("Speedtest manually triggered via UI")
+            return jsonify({"success": True})
+        else:
+            error = f"Speedtest Tracker returned {resp.status_code}"
+            log.warning("Manual speedtest trigger failed: %s", error)
+            return jsonify({"success": False, "error": error}), 502
+    except requests.ConnectionError:
+        return jsonify({"success": False, "error": "Cannot reach Speedtest Tracker"}), 502
+    except requests.Timeout:
+        return jsonify({"success": False, "error": "Speedtest Tracker timeout"}), 504
+    except Exception as e:
+        log.warning("Manual speedtest trigger error: %s", e)
+        return jsonify({"success": False, "error": str(e)}), 500

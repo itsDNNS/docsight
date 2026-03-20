@@ -447,6 +447,88 @@ function showMoreSpeedtest() {
     renderSpeedtestRows();
 }
 
+function _setRunBtnState(btn, loading, origHTML) {
+    if (loading) {
+        btn.disabled = true;
+        btn.textContent = '';
+        var icon = document.createElement('i');
+        icon.setAttribute('data-lucide', 'loader-2');
+        icon.className = 'spin';
+        btn.appendChild(icon);
+        btn.appendChild(document.createTextNode(' ' + (T.speedtest_running || 'Running...')));
+    } else {
+        btn.disabled = false;
+        btn.textContent = '';
+        var playIcon = document.createElement('i');
+        playIcon.setAttribute('data-lucide', 'play');
+        btn.appendChild(playIcon);
+        btn.appendChild(document.createTextNode(' ' + (T.run_speedtest || 'Run Speedtest')));
+    }
+    if (window.lucide) lucide.createIcons({nodes: [btn]});
+}
+
+function runSpeedtest() {
+    var btn = document.getElementById('speedtest-run-btn');
+    if (!btn || btn.disabled) return;
+    _setRunBtnState(btn, true);
+
+    // Fetch the current latest ID from the server (not stale cache)
+    fetch('/api/speedtest?count=1')
+        .then(function(r) { return r.json(); })
+        .then(function(latest) {
+            var lastId = (latest && latest.length > 0) ? latest[0].id : 0;
+            return fetch('/api/speedtest/run', {method: 'POST'})
+                .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
+                .then(function(res) {
+                    if (!res.ok) {
+                        _setRunBtnState(btn, false);
+                        showToast((res.data.error || 'Failed'), 'error');
+                        return;
+                    }
+                    // Poll for the new result: wait 30s, then check every 5s
+                    var attempts = 0;
+                    var maxAttempts = 18; // 30s initial + 18*5s = ~2 minutes total
+                    setTimeout(function() {
+                        var pollInterval = setInterval(function() {
+                            attempts++;
+                            fetch('/api/speedtest?count=1')
+                                .then(function(r) { return r.json(); })
+                                .then(function(data) {
+                                    if (data && data.length > 0 && data[0].id > lastId) {
+                                        clearInterval(pollInterval);
+                                        _setRunBtnState(btn, false);
+                                        var r = data[0];
+                                        showToast(
+                                            (T.speedtest_complete || 'Speedtest complete') + ': ' +
+                                            r.download_mbps + ' / ' + r.upload_mbps + ' Mbps, ' +
+                                            r.ping_ms + ' ms',
+                                            'success'
+                                        );
+                                        loadSpeedtestHistory();
+                                    } else if (attempts >= maxAttempts) {
+                                        clearInterval(pollInterval);
+                                        _setRunBtnState(btn, false);
+                                        showToast(T.speedtest_timeout || 'Speedtest is taking longer than expected. Refresh to check.', 'warning');
+                                    }
+                                })
+                                .catch(function() {
+                                    // Transient poll error - don't stop, just skip this attempt
+                                    if (attempts >= maxAttempts) {
+                                        clearInterval(pollInterval);
+                                        _setRunBtnState(btn, false);
+                                        showToast(T.speedtest_timeout || 'Speedtest is taking longer than expected. Refresh to check.', 'warning');
+                                    }
+                                });
+                        }, 5000);
+                    }, 30000);
+                });
+        })
+        .catch(function() {
+            _setRunBtnState(btn, false);
+            showToast(T.network_error || 'Network error', 'error');
+        });
+}
+
 (function() {
     var ths = document.querySelectorAll('#speedtest-table thead th[data-col]');
     ths.forEach(function(th) {
