@@ -19,5 +19,9 @@
   "speedtest_setup_step_2": "",
   "speedtest_setup_step_3": "",
   "speedtest_no_data": "",
-  "speedtest_setup": ""
+  "speedtest_setup": "",
+  "run_speedtest": "",
+  "speedtest_running": "",
+  "speedtest_complete": "",
+  "speedtest_timeout": ""
 }
