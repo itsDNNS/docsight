@@ -1,6 +1,7 @@
 """Incident Report PDF generator for DOCSight."""
 
 import io
+import json
 import logging
 import os
 from datetime import datetime
@@ -231,583 +232,54 @@ def _format_diagnostic_complaint(notes, s):
 # ---------------------------------------------------------------------------
 # Localised strings for PDF reports
 # ---------------------------------------------------------------------------
-REPORT_STRINGS = {
-    "en": {
-        "report_title": "DOCSight Incident Report",
-        "generated": "Generated:",
-        "page": "Page",
-        "footer": "DOCSight Incident Report",
-        # Section titles
-        "section_connection_info": "Connection Information",
-        "section_current_status": "Current Status",
-        "section_historical": "Historical Analysis",
-        "section_thresholds": "Reference: DOCSIS Signal Thresholds",
-        "section_complaint": "ISP Complaint Template",
-        # Labels
-        "isp": "ISP",
-        "tariff": "Tariff",
-        "modem": "Modem",
-        "report_period": "Report Period",
-        "data_points": "Data Points",
-        "connection_health": "Connection Health",
-        "issues": "Issues",
-        "ds_channels": "Downstream Channels",
-        "us_channels": "Upstream Channels",
-        "period_to": "to",
-        # Table headers
-        "col_ch": "CH",
-        "col_freq": "Freq",
-        "col_power": "Power",
-        "col_snr": "SNR",
-        "col_mod": "Mod",
-        "col_corr_err": "Corr Err",
-        "col_uncorr_err": "Uncorr Err",
-        "col_health": "Health",
-        "col_multiplex": "Multiplex",
-        "col_parameter": "Parameter",
-        "col_modulation": "Modulation",
-        "col_good": "Good",
-        "col_tolerated": "Tolerated",
-        "col_critical_thresh": "Critical",
-        "col_reference": "Reference",
-        # Stats
-        "total_measurements": "Total Measurements",
-        "measurements_critical": "CRITICAL health",
-        "measurements_marginal": "MARGINAL health",
-        "measurements_tolerated": "TOLERATED health",
-        "worst_recorded": "Worst Recorded Values",
-        "ds_power_worst": "DS Power (worst max)",
-        "us_power_worst": "US Power (worst max)",
-        "ds_snr_worst": "DS SNR (worst min)",
-        "uncorr_err_max": "Uncorrectable Errors (max)",
-        "corr_err_max": "Correctable Errors (max)",
-        "worst_ds_channels": "Most Problematic Downstream Channels",
-        "worst_us_channels": "Most Problematic Upstream Channels",
-        "channel_unhealthy": "Channel {cid}: unhealthy in {count}/{total} measurements ({pct}%)",
-        # Complaint letter
-        "complaint_subject": "Subject: Persistent DOCSIS Signal Quality Issues — Request for Technical Inspection",
-        "complaint_greeting": "Dear {isp} Technical Support,",
-        "complaint_body": (
-            "I am writing to formally document ongoing signal quality issues with my cable internet connection. "
-            "Using automated monitoring (DOCSight), I have collected {count} measurements "
-            "between {start} and {end}."
-        ),
-        "complaint_findings": "Key findings:",
-        "complaint_poor_rate": "Connection rated CRITICAL in {poor} of {total} measurements ({pct}%)",
-        "complaint_ds_power": "Worst downstream power: {val} dBmV (threshold: {thresh})",
-        "complaint_us_power": "Worst upstream power: {val} dBmV (threshold: {thresh})",
-        "complaint_snr": "Worst downstream SNR: {val} dB (threshold: {thresh})",
-        "complaint_uncorr": "Peak uncorrectable errors: {val}",
-        "complaint_exceed": (
-            "These values exceed the acceptable ranges defined in the DOCSIS specification and indicate "
-            "physical layer issues that require on-site investigation."
-        ),
-        "complaint_request": "I request:",
-        "complaint_req1": "A qualified technician visit to inspect the coaxial infrastructure",
-        "complaint_req2": "Signal level measurements at the tap and at my premises",
-        "complaint_req3": "Written documentation of findings and corrective actions",
-        "complaint_escalation": (
-            "The full monitoring data is attached to this report. I reserve the right to escalate this matter "
-            "to the Bundesnetzagentur (Federal Network Agency) if the issue is not resolved within a reasonable timeframe."
-        ),
-        "complaint_closing_label": "Sincerely,",
-        "complaint_closing": "Sincerely,\n[Your Name]\n[Customer Number]\n[Address]",
-        "complaint_short_subject": "Subject: DOCSIS Signal Quality Issues",
-        "complaint_short_greeting": "Dear Technical Support,",
-        "complaint_short_body": (
-            "I am experiencing persistent signal quality issues with my cable internet connection. "
-            "Please see the attached monitoring data for details."
-        ),
-        "complaint_short_closing": "Sincerely,\n[Your Name]",
-        # Diagnostic notes
-        "section_diagnostic_notes": "Diagnostic Notes",
-        "diag_note_high": "Channel {ch} ({ch_type}): {metric} of {value} dBmV exceeds expected maximum ({spec} dBmV) by {pct}%.",
-        "diag_note_low": "Channel {ch} ({ch_type}): {metric} of {value} dBmV is below expected minimum ({spec} dBmV) by {pct}%.",
-        "diag_note_snr_low": "Channel {ch} ({ch_type}): {metric} of {value} dB is below expected minimum ({spec} dB) by {pct}%.",
-        "diag_note_isp_hint": "Values this far outside specification typically indicate an ISP-side configuration or infrastructure issue, not a customer equipment problem.",
-        "complaint_diag_header": "Diagnostic analysis:",
-        # Incident-scoped report
-        "incident_report_title": "DOCSight Complaint Report",
-        "section_incident_summary": "Incident Summary",
-        "incident_name": "Incident",
-        "incident_status": "Status",
-        "incident_period": "Period",
-        "incident_duration": "Duration",
-        "incident_duration_days": "{days} days",
-        "incident_duration_ongoing": "ongoing",
-        "section_speedtest": "Speed Test Results",
-        "speedtest_date": "Date",
-        "speedtest_download": "Download",
-        "speedtest_upload": "Upload",
-        "speedtest_ping": "Ping",
-        "speedtest_avg": "Average",
-        "speedtest_min": "Minimum",
-        "section_bnetz": "BNetzA Measurements",
-        "section_journal": "Journal Entries",
-        "journal_attachments": "{count} attachment(s)",
-        # BNetzA complaint section
-        "complaint_bnetz_header": "Official Broadband Measurement (Bundesnetzagentur):",
-        "complaint_bnetz_body": (
-            "According to the official measurement protocol dated {date}, conducted in compliance with "
-            "the Breitbandmessung methodology, the following contractual deviations were recorded:"
-        ),
-        "complaint_bnetz_tariff": "Tariff: {tariff} ({provider})",
-        "complaint_bnetz_dl": "Contracted download speed: {max} Mbit/s / Measured average download: {avg} Mbit/s ({pct}% of contracted maximum)",
-        "complaint_bnetz_ul": "Contracted upload speed: {max} Mbit/s / Measured average upload: {avg} Mbit/s ({pct}% of contracted maximum)",
-        "complaint_bnetz_verdict": "Verdict: Download {verdict_dl} / Upload {verdict_ul}",
-        "complaint_bnetz_legal": (
-            "Under Section 57(4) TKG, the consistently measured speeds fall below the contractually "
-            "guaranteed service levels, establishing grounds for fee reduction or contract termination."
-        ),
-        "issue_labels": {
-            "ds_power_critical": "Downstream power out of spec",
-            "ds_power_marginal": "Downstream power approaching limits",
-            "ds_power_tolerated": "Downstream power slightly out of spec",
-            "us_power_critical_low": "Upstream power critically low",
-            "us_power_critical_high": "Upstream power critically high",
-            "us_power_marginal_low": "Upstream power below acceptable",
-            "us_power_marginal_high": "Upstream power elevated",
-            "us_power_tolerated_low": "Upstream power slightly low",
-            "us_power_tolerated_high": "Upstream power slightly high",
-            "snr_critical": "SNR critically low",
-            "snr_marginal": "SNR below acceptable",
-            "snr_tolerated": "SNR slightly below ideal",
-            "us_modulation_critical": "Upstream modulation critically degraded",
-            "us_modulation_marginal": "Upstream modulation degraded",
-            "uncorr_errors_high": "High uncorrectable errors",
-            "uncorr_errors_critical": "Uncorrectable error rate critical",
-        },
-    },
-    "de": {
-        "report_title": "DOCSight Störungsbericht",
-        "generated": "Erstellt:",
-        "page": "Seite",
-        "footer": "DOCSight Störungsbericht",
-        "section_connection_info": "Verbindungsinformationen",
-        "section_current_status": "Aktueller Status",
-        "section_historical": "Historische Analyse",
-        "section_thresholds": "Referenz: DOCSIS-Signalgrenzwerte",
-        "section_complaint": "ISP-Beschwerdevorlage",
-        "isp": "ISP",
-        "tariff": "Tarif",
-        "modem": "Modem",
-        "report_period": "Berichtszeitraum",
-        "data_points": "Datenpunkte",
-        "connection_health": "Verbindungsqualität",
-        "issues": "Probleme",
-        "ds_channels": "Downstream-Kanäle",
-        "us_channels": "Upstream-Kanäle",
-        "period_to": "bis",
-        "col_ch": "CH",
-        "col_freq": "Freq",
-        "col_power": "Pegel",
-        "col_snr": "SNR",
-        "col_mod": "Mod",
-        "col_corr_err": "Korr Err",
-        "col_uncorr_err": "Unkorr Err",
-        "col_health": "Zustand",
-        "col_multiplex": "Multiplex",
-        "col_parameter": "Parameter",
-        "col_modulation": "Modulation",
-        "col_good": "Gut",
-        "col_tolerated": "Toleriert",
-        "col_critical_thresh": "Kritisch",
-        "col_reference": "Referenz",
-        "total_measurements": "Messungen gesamt",
-        "measurements_critical": "Zustand KRITISCH",
-        "measurements_marginal": "Zustand GRENZWERTIG",
-        "measurements_tolerated": "Zustand TOLERIERT",
-        "worst_recorded": "Schlechteste gemessene Werte",
-        "ds_power_worst": "DS-Pegel (schlechtester Max.)",
-        "us_power_worst": "US-Pegel (schlechtester Max.)",
-        "ds_snr_worst": "DS-SNR (schlechtester Min.)",
-        "uncorr_err_max": "Nicht korrigierbare Fehler (Max.)",
-        "corr_err_max": "Korrigierbare Fehler (Max.)",
-        "worst_ds_channels": "Problematischste Downstream-Kanäle",
-        "worst_us_channels": "Problematischste Upstream-Kanäle",
-        "channel_unhealthy": "Kanal {cid}: auffällig in {count}/{total} Messungen ({pct}%)",
-        "complaint_subject": "Betreff: Anhaltende DOCSIS-Signalqualitätsprobleme — Antrag auf technische Überprüfung",
-        "complaint_greeting": "Sehr geehrte Damen und Herren der technischen Abteilung von {isp},",
-        "complaint_body": (
-            "hiermit dokumentiere ich formell anhaltende Signalqualitätsprobleme meines Kabelinternetanschlusses. "
-            "Mithilfe automatisierter Überwachung (DOCSight) habe ich {count} Messungen "
-            "im Zeitraum vom {start} bis {end} erfasst."
-        ),
-        "complaint_findings": "Wesentliche Ergebnisse:",
-        "complaint_poor_rate": "Verbindung als KRITISCH bewertet in {poor} von {total} Messungen ({pct}%)",
-        "complaint_ds_power": "Schlechtester Downstream-Pegel: {val} dBmV (Grenzwert: {thresh})",
-        "complaint_us_power": "Schlechtester Upstream-Pegel: {val} dBmV (Grenzwert: {thresh})",
-        "complaint_snr": "Schlechtester Downstream-SNR: {val} dB (Grenzwert: {thresh})",
-        "complaint_uncorr": "Maximale nicht korrigierbare Fehler: {val}",
-        "complaint_exceed": (
-            "Diese Werte überschreiten die in der DOCSIS-Spezifikation definierten zulässigen Bereiche und deuten "
-            "auf Probleme der physikalischen Schicht hin, die eine Vor-Ort-Untersuchung erfordern."
-        ),
-        "complaint_request": "Ich beantrage:",
-        "complaint_req1": "Einen Technikerbesuch zur Überprüfung der Koaxialinfrastruktur",
-        "complaint_req2": "Signalpegelmessungen am Übergabepunkt und an meinem Anschluss",
-        "complaint_req3": "Schriftliche Dokumentation der Ergebnisse und Korrekturmaßnahmen",
-        "complaint_escalation": (
-            "Die vollständigen Überwachungsdaten sind diesem Bericht beigefügt. Ich behalte mir vor, "
-            "diese Angelegenheit an die Bundesnetzagentur weiterzuleiten, sofern das Problem nicht "
-            "innerhalb einer angemessenen Frist behoben wird."
-        ),
-        "complaint_closing_label": "Mit freundlichen Grüßen",
-        "complaint_closing": "Mit freundlichen Grüßen\n[Ihr Name]\n[Kundennummer]\n[Adresse]",
-        "complaint_short_subject": "Betreff: DOCSIS-Signalqualitätsprobleme",
-        "complaint_short_greeting": "Sehr geehrte Damen und Herren,",
-        "complaint_short_body": (
-            "ich habe anhaltende Signalqualitätsprobleme mit meinem Kabelinternetanschluss. "
-            "Bitte entnehmen Sie die Details den beigefügten Überwachungsdaten."
-        ),
-        "complaint_short_closing": "Mit freundlichen Grüßen\n[Ihr Name]",
-        # Diagnostic notes
-        "section_diagnostic_notes": "Diagnostische Hinweise",
-        "diag_note_high": "Kanal {ch} ({ch_type}): {metric} von {value} dBmV überschreitet den erwarteten Maximalwert ({spec} dBmV) um {pct}%.",
-        "diag_note_low": "Kanal {ch} ({ch_type}): {metric} von {value} dBmV unterschreitet den erwarteten Minimalwert ({spec} dBmV) um {pct}%.",
-        "diag_note_snr_low": "Kanal {ch} ({ch_type}): {metric} von {value} dB unterschreitet den erwarteten Minimalwert ({spec} dB) um {pct}%.",
-        "diag_note_isp_hint": "Werte, die so weit außerhalb der Spezifikation liegen, deuten typischerweise auf ein anbieterseitiges Konfigurations- oder Infrastrukturproblem hin, nicht auf ein Problem der Kundengeräte.",
-        "complaint_diag_header": "Diagnostische Analyse:",
-        # Incident-scoped report
-        "incident_report_title": "DOCSight Beschwerdebericht",
-        "section_incident_summary": "Zusammenfassung",
-        "incident_name": "Vorfall",
-        "incident_status": "Status",
-        "incident_period": "Zeitraum",
-        "incident_duration": "Dauer",
-        "incident_duration_days": "{days} Tage",
-        "incident_duration_ongoing": "andauernd",
-        "section_speedtest": "Geschwindigkeitstests",
-        "speedtest_date": "Datum",
-        "speedtest_download": "Download",
-        "speedtest_upload": "Upload",
-        "speedtest_ping": "Ping",
-        "speedtest_avg": "Durchschnitt",
-        "speedtest_min": "Minimum",
-        "section_bnetz": "BNetzA-Messungen",
-        "section_journal": "Journal-Eintraege",
-        "journal_attachments": "{count} Anhang/Anhaenge",
-        # BNetzA complaint section
-        "complaint_bnetz_header": "Offizielle Breitbandmessung (Bundesnetzagentur):",
-        "complaint_bnetz_body": (
-            "Laut dem offiziellen Messprotokoll vom {date}, durchgeführt gemäß der "
-            "Breitbandmessung-Methodik, wurden folgende vertragliche Abweichungen festgestellt:"
-        ),
-        "complaint_bnetz_tariff": "Tarif: {tariff} ({provider})",
-        "complaint_bnetz_dl": "Vertragliche Download-Geschwindigkeit: {max} Mbit/s / Gemessener Durchschnitt: {avg} Mbit/s ({pct}% des vertraglichen Maximums)",
-        "complaint_bnetz_ul": "Vertragliche Upload-Geschwindigkeit: {max} Mbit/s / Gemessener Durchschnitt: {avg} Mbit/s ({pct}% des vertraglichen Maximums)",
-        "complaint_bnetz_verdict": "Bewertung: Download {verdict_dl} / Upload {verdict_ul}",
-        "complaint_bnetz_legal": (
-            "Gemäß § 57 Abs. 4 TKG unterschreiten die gemessenen Geschwindigkeiten dauerhaft die vertraglich "
-            "zugesicherten Leistungswerte, was eine Grundlage für Entgeltminderung oder Vertragskündigung darstellt."
-        ),
-        "issue_labels": {
-            "ds_power_critical": "Downstream-Pegel außerhalb der Spezifikation",
-            "ds_power_marginal": "Downstream-Pegel nähert sich Grenzwerten",
-            "ds_power_tolerated": "Downstream-Pegel leicht außerhalb der Norm",
-            "us_power_critical_low": "Upstream-Sendeleistung kritisch niedrig",
-            "us_power_critical_high": "Upstream-Sendeleistung kritisch hoch",
-            "us_power_marginal_low": "Upstream-Sendeleistung unter dem akzeptablen Bereich",
-            "us_power_marginal_high": "Upstream-Sendeleistung erhöht",
-            "us_power_tolerated_low": "Upstream-Sendeleistung leicht niedrig",
-            "us_power_tolerated_high": "Upstream-Sendeleistung leicht hoch",
-            "snr_critical": "Signal-Rausch-Verhältnis kritisch niedrig",
-            "snr_marginal": "Signal-Rausch-Verhältnis unter dem akzeptablen Bereich",
-            "snr_tolerated": "Signal-Rausch-Verhältnis leicht unter dem Ideal",
-            "us_modulation_critical": "Upstream-Modulation kritisch herabgesetzt",
-            "us_modulation_marginal": "Upstream-Modulation herabgesetzt",
-            "uncorr_errors_high": "Hohe Anzahl unkorrigierbarer Fehler",
-            "uncorr_errors_critical": "Unkorrigierbare Fehlerrate kritisch",
-        },
-    },
-    "fr": {
-        "report_title": "DOCSight Rapport d'incident",
-        "generated": "Généré :",
-        "page": "Page",
-        "footer": "DOCSight Rapport d'incident",
-        "section_connection_info": "Informations de connexion",
-        "section_current_status": "État actuel",
-        "section_historical": "Analyse historique",
-        "section_thresholds": "Référence : Seuils de signal DOCSIS",
-        "section_complaint": "Modèle de réclamation FAI",
-        "isp": "FAI",
-        "tariff": "Forfait",
-        "modem": "Modem",
-        "report_period": "Période du rapport",
-        "data_points": "Points de données",
-        "connection_health": "Santé de la connexion",
-        "issues": "Problèmes",
-        "ds_channels": "Canaux descendants",
-        "us_channels": "Canaux montants",
-        "period_to": "au",
-        "col_ch": "CH",
-        "col_freq": "Fréq",
-        "col_power": "Puiss",
-        "col_snr": "SNR",
-        "col_mod": "Mod",
-        "col_corr_err": "Err Corr",
-        "col_uncorr_err": "Err Non-c",
-        "col_health": "État",
-        "col_multiplex": "Multiplex",
-        "col_parameter": "Paramètre",
-        "col_modulation": "Modulation",
-        "col_good": "Bon",
-        "col_tolerated": "Toléré",
-        "col_critical_thresh": "Critique",
-        "col_reference": "Référence",
-        "total_measurements": "Mesures totales",
-        "measurements_critical": "État CRITIQUE",
-        "measurements_marginal": "État LIMITE",
-        "measurements_tolerated": "État TOLÉRÉ",
-        "worst_recorded": "Pires valeurs enregistrées",
-        "ds_power_worst": "Puiss DS (pire max)",
-        "us_power_worst": "Puiss US (pire max)",
-        "ds_snr_worst": "SNR DS (pire min)",
-        "uncorr_err_max": "Erreurs non corrigeables (max)",
-        "corr_err_max": "Erreurs corrigeables (max)",
-        "worst_ds_channels": "Canaux descendants les plus problématiques",
-        "worst_us_channels": "Canaux montants les plus problématiques",
-        "channel_unhealthy": "Canal {cid} : défaillant dans {count}/{total} mesures ({pct}%)",
-        "complaint_subject": "Objet : Problèmes persistants de qualité du signal DOCSIS — Demande d'inspection technique",
-        "complaint_greeting": "Madame, Monsieur, Service technique de {isp},",
-        "complaint_body": (
-            "Par la présente, je documente formellement des problèmes persistants de qualité du signal "
-            "de ma connexion Internet par câble. À l'aide d'une surveillance automatisée (DOCSight), "
-            "j'ai collecté {count} mesures entre le {start} et le {end}."
-        ),
-        "complaint_findings": "Résultats principaux :",
-        "complaint_poor_rate": "Connexion évaluée CRITIQUE dans {poor} sur {total} mesures ({pct}%)",
-        "complaint_ds_power": "Pire puissance descendante : {val} dBmV (seuil : {thresh})",
-        "complaint_us_power": "Pire puissance montante : {val} dBmV (seuil : {thresh})",
-        "complaint_snr": "Pire SNR descendant : {val} dB (seuil : {thresh})",
-        "complaint_uncorr": "Maximum d'erreurs non corrigeables : {val}",
-        "complaint_exceed": (
-            "Ces valeurs dépassent les plages acceptables définies dans la spécification DOCSIS et indiquent "
-            "des problèmes de couche physique nécessitant une investigation sur site."
-        ),
-        "complaint_request": "Je demande :",
-        "complaint_req1": "La visite d'un technicien qualifié pour inspecter l'infrastructure coaxiale",
-        "complaint_req2": "Des mesures de niveau de signal au point de raccordement et dans mes locaux",
-        "complaint_req3": "Une documentation écrite des constats et des mesures correctives",
-        "complaint_escalation": (
-            "L'ensemble des données de surveillance est joint à ce rapport. Je me réserve le droit de saisir "
-            "l'ARCEP (Autorité de régulation des communications électroniques et des postes) si le problème "
-            "n'est pas résolu dans un délai raisonnable."
-        ),
-        "complaint_closing_label": "Veuillez agréer mes salutations distinguées,",
-        "complaint_closing": "Veuillez agréer mes salutations distinguées,\n[Votre nom]\n[Numéro client]\n[Adresse]",
-        "complaint_short_subject": "Objet : Problèmes de qualité du signal DOCSIS",
-        "complaint_short_greeting": "Madame, Monsieur,",
-        "complaint_short_body": (
-            "Je rencontre des problèmes persistants de qualité du signal de ma connexion Internet par câble. "
-            "Veuillez consulter les données de surveillance jointes pour plus de détails."
-        ),
-        "complaint_short_closing": "Veuillez agréer mes salutations distinguées,\n[Votre nom]",
-        # Diagnostic notes
-        "section_diagnostic_notes": "Notes de diagnostic",
-        "diag_note_high": "Canal {ch} ({ch_type}) : {metric} de {value} dBmV dépasse le maximum attendu ({spec} dBmV) de {pct}%.",
-        "diag_note_low": "Canal {ch} ({ch_type}) : {metric} de {value} dBmV est inférieur au minimum attendu ({spec} dBmV) de {pct}%.",
-        "diag_note_snr_low": "Canal {ch} ({ch_type}) : {metric} de {value} dB est inférieur au minimum attendu ({spec} dB) de {pct}%.",
-        "diag_note_isp_hint": "Des valeurs aussi éloignées de la spécification indiquent généralement un problème de configuration ou d'infrastructure côté FAI, et non un problème d'équipement client.",
-        "complaint_diag_header": "Analyse diagnostique :",
-        # Incident-scoped report
-        "incident_report_title": "DOCSight Rapport de plainte",
-        "section_incident_summary": "Resume de l'incident",
-        "incident_name": "Incident",
-        "incident_status": "Statut",
-        "incident_period": "Periode",
-        "incident_duration": "Duree",
-        "incident_duration_days": "{days} jours",
-        "incident_duration_ongoing": "en cours",
-        "section_speedtest": "Tests de debit",
-        "speedtest_date": "Date",
-        "speedtest_download": "Telechargement",
-        "speedtest_upload": "Envoi",
-        "speedtest_ping": "Ping",
-        "speedtest_avg": "Moyenne",
-        "speedtest_min": "Minimum",
-        "section_bnetz": "Mesures BNetzA",
-        "section_journal": "Entrees du journal",
-        "journal_attachments": "{count} piece(s) jointe(s)",
-        # BNetzA complaint section
-        "complaint_bnetz_header": "Mesure officielle du haut débit (Bundesnetzagentur) :",
-        "complaint_bnetz_body": (
-            "Selon le protocole de mesure officiel du {date}, réalisé conformément à la "
-            "méthodologie Breitbandmessung, les écarts contractuels suivants ont été constatés :"
-        ),
-        "complaint_bnetz_tariff": "Forfait : {tariff} ({provider})",
-        "complaint_bnetz_dl": "Débit descendant contractuel : {max} Mbit/s / Débit descendant mesuré : {avg} Mbit/s ({pct}% du maximum contractuel)",
-        "complaint_bnetz_ul": "Débit montant contractuel : {max} Mbit/s / Débit montant mesuré : {avg} Mbit/s ({pct}% du maximum contractuel)",
-        "complaint_bnetz_verdict": "Verdict : Descendant {verdict_dl} / Montant {verdict_ul}",
-        "complaint_bnetz_legal": (
-            "Conformément aux dispositions de l'ARCEP relatives aux obligations de qualité de service, "
-            "les débits mesurés sont systématiquement inférieurs aux niveaux de service contractuels, "
-            "établissant un fondement pour une réduction tarifaire ou la résiliation du contrat."
-        ),
-        "issue_labels": {
-            "ds_power_critical": "Puissance descendante hors spécification",
-            "ds_power_marginal": "Puissance descendante proche des limites",
-            "ds_power_tolerated": "Puissance descendante légèrement hors norme",
-            "us_power_critical_low": "Puissance montante critique (trop basse)",
-            "us_power_critical_high": "Puissance montante critique (trop haute)",
-            "us_power_marginal_low": "Puissance montante en dessous de l'acceptable",
-            "us_power_marginal_high": "Puissance montante élevée",
-            "us_power_tolerated_low": "Puissance montante légèrement basse",
-            "us_power_tolerated_high": "Puissance montante légèrement haute",
-            "snr_critical": "Rapport signal/bruit critique",
-            "snr_marginal": "Rapport signal-bruit en dessous de l'acceptable",
-            "snr_tolerated": "Rapport signal-bruit légèrement sous l'idéal",
-            "us_modulation_critical": "Modulation montante critiquement dégradée",
-            "us_modulation_marginal": "Modulation montante dégradée",
-            "uncorr_errors_high": "Nombre élevé d'erreurs non corrigeables",
-            "uncorr_errors_critical": "Taux d'erreurs non corrigeables critique",
-        },
-    },
-    "es": {
-        "report_title": "DOCSight Informe de incidencia",
-        "generated": "Generado:",
-        "page": "Página",
-        "footer": "DOCSight Informe de incidencia",
-        "section_connection_info": "Información de conexión",
-        "section_current_status": "Estado actual",
-        "section_historical": "Análisis histórico",
-        "section_thresholds": "Referencia: Umbrales de señal DOCSIS",
-        "section_complaint": "Plantilla de reclamación al ISP",
-        "isp": "ISP",
-        "tariff": "Tarifa",
-        "modem": "Módem",
-        "report_period": "Período del informe",
-        "data_points": "Puntos de datos",
-        "connection_health": "Salud de la conexión",
-        "issues": "Problemas",
-        "ds_channels": "Canales descendentes",
-        "us_channels": "Canales ascendentes",
-        "period_to": "a",
-        "col_ch": "CH",
-        "col_freq": "Frec",
-        "col_power": "Pot",
-        "col_snr": "SNR",
-        "col_mod": "Mod",
-        "col_corr_err": "Err Corr",
-        "col_uncorr_err": "Err No-c",
-        "col_health": "Estado",
-        "col_multiplex": "Multiplex",
-        "col_parameter": "Parámetro",
-        "col_modulation": "Modulación",
-        "col_good": "Bueno",
-        "col_tolerated": "Tolerado",
-        "col_critical_thresh": "Crítico",
-        "col_reference": "Referencia",
-        "total_measurements": "Mediciones totales",
-        "measurements_critical": "Estado CRÍTICO",
-        "measurements_marginal": "Estado MARGINAL",
-        "measurements_tolerated": "Estado TOLERADO",
-        "worst_recorded": "Peores valores registrados",
-        "ds_power_worst": "Pot DS (peor máx)",
-        "us_power_worst": "Pot US (peor máx)",
-        "ds_snr_worst": "SNR DS (peor mín)",
-        "uncorr_err_max": "Errores no corregibles (máx)",
-        "corr_err_max": "Errores corregibles (máx)",
-        "worst_ds_channels": "Canales descendentes más problemáticos",
-        "worst_us_channels": "Canales ascendentes más problemáticos",
-        "channel_unhealthy": "Canal {cid}: defectuoso en {count}/{total} mediciones ({pct}%)",
-        "complaint_subject": "Asunto: Problemas persistentes de calidad de señal DOCSIS — Solicitud de inspección técnica",
-        "complaint_greeting": "Estimado servicio técnico de {isp},",
-        "complaint_body": (
-            "Por medio de la presente, documento formalmente problemas persistentes de calidad de señal "
-            "en mi conexión de Internet por cable. Mediante monitorización automatizada (DOCSight), "
-            "he recopilado {count} mediciones entre el {start} y el {end}."
-        ),
-        "complaint_findings": "Hallazgos principales:",
-        "complaint_poor_rate": "Conexión calificada como CRÍTICA en {poor} de {total} mediciones ({pct}%)",
-        "complaint_ds_power": "Peor potencia descendente: {val} dBmV (umbral: {thresh})",
-        "complaint_us_power": "Peor potencia ascendente: {val} dBmV (umbral: {thresh})",
-        "complaint_snr": "Peor SNR descendente: {val} dB (umbral: {thresh})",
-        "complaint_uncorr": "Máximo de errores no corregibles: {val}",
-        "complaint_exceed": (
-            "Estos valores exceden los rangos aceptables definidos en la especificación DOCSIS e indican "
-            "problemas de capa física que requieren una investigación en el sitio."
-        ),
-        "complaint_request": "Solicito:",
-        "complaint_req1": "Una visita de un técnico cualificado para inspeccionar la infraestructura coaxial",
-        "complaint_req2": "Mediciones de nivel de señal en el punto de conexión y en mis instalaciones",
-        "complaint_req3": "Documentación escrita de los hallazgos y las acciones correctivas",
-        "complaint_escalation": (
-            "Los datos completos de monitorización se adjuntan a este informe. Me reservo el derecho de elevar "
-            "este asunto a la Secretaría de Estado de Telecomunicaciones e Infraestructuras Digitales "
-            "si el problema no se resuelve en un plazo razonable."
-        ),
-        "complaint_closing_label": "Atentamente,",
-        "complaint_closing": "Atentamente,\n[Su nombre]\n[Número de cliente]\n[Dirección]",
-        "complaint_short_subject": "Asunto: Problemas de calidad de señal DOCSIS",
-        "complaint_short_greeting": "Estimado servicio técnico,",
-        "complaint_short_body": (
-            "Estoy experimentando problemas persistentes de calidad de señal en mi conexión de Internet por cable. "
-            "Consulte los datos de monitorización adjuntos para más detalles."
-        ),
-        "complaint_short_closing": "Atentamente,\n[Su nombre]",
-        # Diagnostic notes
-        "section_diagnostic_notes": "Notas de diagnóstico",
-        "diag_note_high": "Canal {ch} ({ch_type}): {metric} de {value} dBmV supera el máximo esperado ({spec} dBmV) en un {pct}%.",
-        "diag_note_low": "Canal {ch} ({ch_type}): {metric} de {value} dBmV está por debajo del mínimo esperado ({spec} dBmV) en un {pct}%.",
-        "diag_note_snr_low": "Canal {ch} ({ch_type}): {metric} de {value} dB está por debajo del mínimo esperado ({spec} dB) en un {pct}%.",
-        "diag_note_isp_hint": "Valores tan alejados de la especificación suelen indicar un problema de configuración o infraestructura del proveedor, no un problema del equipo del cliente.",
-        "complaint_diag_header": "Análisis diagnóstico:",
-        # Incident-scoped report
-        "incident_report_title": "DOCSight Informe de queja",
-        "section_incident_summary": "Resumen del incidente",
-        "incident_name": "Incidente",
-        "incident_status": "Estado",
-        "incident_period": "Periodo",
-        "incident_duration": "Duracion",
-        "incident_duration_days": "{days} dias",
-        "incident_duration_ongoing": "en curso",
-        "section_speedtest": "Pruebas de velocidad",
-        "speedtest_date": "Fecha",
-        "speedtest_download": "Descarga",
-        "speedtest_upload": "Subida",
-        "speedtest_ping": "Ping",
-        "speedtest_avg": "Promedio",
-        "speedtest_min": "Minimo",
-        "section_bnetz": "Mediciones BNetzA",
-        "section_journal": "Entradas del diario",
-        "journal_attachments": "{count} adjunto(s)",
-        # BNetzA complaint section
-        "complaint_bnetz_header": "Medición oficial de banda ancha (Bundesnetzagentur):",
-        "complaint_bnetz_body": (
-            "Según el protocolo de medición oficial del {date}, realizado conforme a la "
-            "metodología Breitbandmessung, se registraron las siguientes desviaciones contractuales:"
-        ),
-        "complaint_bnetz_tariff": "Tarifa: {tariff} ({provider})",
-        "complaint_bnetz_dl": "Velocidad de descarga contratada: {max} Mbit/s / Promedio medido: {avg} Mbit/s ({pct}% del máximo contratado)",
-        "complaint_bnetz_ul": "Velocidad de subida contratada: {max} Mbit/s / Promedio medido: {avg} Mbit/s ({pct}% del máximo contratado)",
-        "complaint_bnetz_verdict": "Resultado: Descarga {verdict_dl} / Subida {verdict_ul}",
-        "complaint_bnetz_legal": (
-            "De acuerdo con las disposiciones de la Secretaría de Estado de Telecomunicaciones "
-            "e Infraestructuras Digitales sobre obligaciones de calidad del servicio, las velocidades "
-            "medidas se encuentran por debajo de los niveles contractuales, lo que constituye fundamento "
-            "para una reducción de la tarifa o la terminación del contrato."
-        ),
-        "issue_labels": {
-            "ds_power_critical": "Potencia descendente fuera de especificación",
-            "ds_power_marginal": "Potencia descendente acercándose a los límites",
-            "ds_power_tolerated": "Potencia descendente ligeramente fuera de norma",
-            "us_power_critical_low": "Potencia ascendente críticamente baja",
-            "us_power_critical_high": "Potencia ascendente críticamente alta",
-            "us_power_marginal_low": "Potencia ascendente por debajo de lo aceptable",
-            "us_power_marginal_high": "Potencia ascendente elevada",
-            "us_power_tolerated_low": "Potencia ascendente ligeramente baja",
-            "us_power_tolerated_high": "Potencia ascendente ligeramente alta",
-            "snr_critical": "Relación señal/ruido críticamente baja",
-            "snr_marginal": "Relación señal-ruido por debajo de lo aceptable",
-            "snr_tolerated": "Relación señal-ruido ligeramente por debajo del ideal",
-            "us_modulation_critical": "Modulación ascendente críticamente degradada",
-            "us_modulation_marginal": "Modulación ascendente degradada",
-            "uncorr_errors_high": "Alto número de errores no corregibles",
-            "uncorr_errors_critical": "Tasa de errores no corregibles crítica",
-        },
-    },
-}
+_REPORT_I18N_DIR = os.path.join(os.path.dirname(__file__), "i18n")
+
+
+def _load_report_strings():
+    if not os.path.isdir(_REPORT_I18N_DIR):
+        raise RuntimeError(f"Report i18n directory missing: {_REPORT_I18N_DIR}")
+
+    strings = {}
+    for fname in sorted(os.listdir(_REPORT_I18N_DIR)):
+        if not fname.endswith(".json") or fname == "template.json":
+            continue
+
+        lang = fname[:-5]
+        fpath = os.path.join(_REPORT_I18N_DIR, fname)
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as exc:
+            if lang == "en":
+                raise RuntimeError(f"Failed to load required report i18n file {fpath}") from exc
+            log.warning("Failed to load optional report i18n file %s: %s", fpath, exc)
+            continue
+
+        if not isinstance(data, dict):
+            if lang == "en":
+                raise RuntimeError(f"Required report i18n file {fpath} does not contain a JSON object")
+            log.warning("Skipping non-object report i18n payload in %s", fpath)
+            continue
+
+        strings[lang] = {
+            key: value for key, value in data.items()
+            if not str(key).startswith("_")
+        }
+
+    if "en" not in strings:
+        raise RuntimeError("Report i18n requires app/modules/reports/i18n/en.json")
+
+    return strings
+
+
+REPORT_STRINGS = _load_report_strings()
+
+
+def _get_report_strings(lang="en"):
+    strings = dict(REPORT_STRINGS["en"])
+    if lang != "en":
+        strings.update(REPORT_STRINGS.get(lang, {}))
+    return strings
 
 
 class IncidentReport(FPDF):
@@ -816,7 +288,7 @@ class IncidentReport(FPDF):
     def __init__(self, lang="en"):
         super().__init__()
         self.lang = lang
-        self._s = REPORT_STRINGS.get(lang, REPORT_STRINGS["en"])
+        self._s = _get_report_strings(lang)
         self.add_font("dejavu", "", os.path.join(_FONT_DIR, "DejaVuSans.ttf"))
         self.add_font("dejavu", "B", os.path.join(_FONT_DIR, "DejaVuSans-Bold.ttf"))
         self.add_font("dejavu", "I", os.path.join(_FONT_DIR, "DejaVuSans-Oblique.ttf"))
@@ -1025,7 +497,7 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
     """
     config = config or {}
     connection_info = connection_info or {}
-    s = REPORT_STRINGS.get(lang, REPORT_STRINGS["en"])
+    s = _get_report_strings(lang)
     pdf = IncidentReport(lang=lang)
     pdf.alias_nb_pages()
     pdf.add_page()
@@ -1274,7 +746,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
     """
     config = config or {}
     connection_info = connection_info or {}
-    s = REPORT_STRINGS.get(lang, REPORT_STRINGS["en"])
+    s = _get_report_strings(lang)
     pdf = IncidentReport(lang=lang)
     # Override the header title for incident reports
     pdf._s = dict(pdf._s)
@@ -1590,7 +1062,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
         str: Complaint letter text
     """
     config = config or {}
-    s = REPORT_STRINGS.get(lang, REPORT_STRINGS["en"])
+    s = _get_report_strings(lang)
     isp = config.get("isp_name", "Unknown ISP")
 
     # Build closing with actual customer data
