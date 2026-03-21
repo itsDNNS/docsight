@@ -61,6 +61,31 @@ class SpeedtestStorage:
                     conn.execute("ALTER TABLE speedtest_results ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
             except Exception:
                 pass
+            # Migration: normalize existing timestamps to UTC Z-suffix
+            try:
+                rows = conn.execute(
+                    "SELECT id, timestamp FROM speedtest_results "
+                    "WHERE timestamp LIKE '%+%' OR timestamp LIKE '%-%:%'"
+                ).fetchall()
+                if rows:
+                    from datetime import datetime, timezone
+                    updates = []
+                    for row_id, ts in rows:
+                        try:
+                            dt = datetime.fromisoformat(ts)
+                            if dt.tzinfo is not None:
+                                dt = dt.astimezone(timezone.utc)
+                            updates.append((dt.strftime("%Y-%m-%dT%H:%M:%SZ"), row_id))
+                        except (ValueError, TypeError):
+                            pass
+                    if updates:
+                        conn.executemany(
+                            "UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
+                            updates,
+                        )
+                        log.info("Normalized %d existing timestamps to UTC", len(updates))
+            except Exception:
+                pass
 
     def save_speedtest_results(self, results):
         """Bulk insert speedtest results, ignoring duplicates by id."""
