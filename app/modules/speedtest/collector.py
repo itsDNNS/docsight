@@ -52,22 +52,21 @@ class SpeedtestCollector(Collector):
         try:
             last_id = self._storage.get_latest_speedtest_id()
             cached_count = self._storage.get_speedtest_count()
+            # ID-reset detection: compare remote max ID with cache max ID
+            if cached_count > 0 and last_id > 0:
+                remote_latest = self._client.get_latest(1)
+                if remote_latest and remote_latest[0].get("id", 0) < last_id:
+                    log.info(
+                        "Speedtest ID reset detected (cache=%d, remote=%d), rebuilding",
+                        last_id, remote_latest[0]["id"],
+                    )
+                    self._storage.clear_cache()
+                    cached_count = 0
             is_backfill = cached_count < 50
             if is_backfill:
                 new_results = self._client.get_results(per_page=2000)
             else:
                 new_results = self._client.get_newer_than(last_id)
-                # ID-reset detection: remote max ID < cache max ID = server replaced
-                if not new_results and last_id > 0:
-                    remote_latest = self._client.get_latest(1)
-                    if remote_latest and remote_latest[0].get("id", 0) < last_id:
-                        log.info(
-                            "Speedtest ID reset detected (cache=%d, remote=%d), rebuilding",
-                            last_id, remote_latest[0]["id"],
-                        )
-                        self._storage.clear_cache()
-                        new_results = self._client.get_results(per_page=2000)
-                        is_backfill = True
             if new_results:
                 genuinely_new = [r for r in new_results if r.get("id", 0) > last_id]
                 self._storage.save_speedtest_results(new_results)

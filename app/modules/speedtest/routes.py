@@ -118,23 +118,21 @@ def api_speedtest():
             # Detect server switch and clear stale cache
             ss.check_source_url(stt_url)
             cached_count = ss.get_speedtest_count()
+            last_id = ss.get_latest_speedtest_id()
+            # ID-reset detection: compare remote max ID with cache max ID
+            if cached_count > 0 and last_id > 0:
+                remote_latest = client.get_latest(1)
+                if remote_latest and remote_latest[0].get("id", 0) < last_id:
+                    log.info(
+                        "Speedtest ID reset detected (cache max=%d, remote max=%d), rebuilding",
+                        last_id, remote_latest[0]["id"],
+                    )
+                    ss.clear_cache()
+                    cached_count = 0
             if cached_count < 50:
                 new_results = client.get_results(per_page=2000)
             else:
-                last_id = ss.get_latest_speedtest_id()
                 new_results = client.get_newer_than(last_id)
-                # ID-reset detection: if delta returned nothing, check if
-                # the remote's latest ID is lower than our cache's max ID.
-                # This means the server was replaced (IDs reset).
-                if not new_results and last_id > 0:
-                    remote_latest = client.get_latest(1)
-                    if remote_latest and remote_latest[0].get("id", 0) < last_id:
-                        log.info(
-                            "Speedtest ID reset detected (cache max=%d, remote max=%d), rebuilding",
-                            last_id, remote_latest[0]["id"],
-                        )
-                        ss.clear_cache()
-                        new_results = client.get_results(per_page=2000)
             if new_results:
                 ss.save_speedtest_results(new_results)
                 log.info("Cached %d new speedtest results", len(new_results))
