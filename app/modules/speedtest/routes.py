@@ -121,8 +121,13 @@ def api_speedtest():
             last_id = ss.get_latest_speedtest_id()
             # ID-reset detection: compare remote max ID with cache max ID
             if cached_count > 0 and last_id > 0:
-                remote_latest = client.get_latest(1)
-                if remote_latest and remote_latest[0].get("id", 0) < last_id:
+                remote_latest, fetch_err = client.get_latest_with_error(1)
+                if fetch_err is None and not remote_latest:
+                    # Remote is reachable but empty — server was wiped
+                    log.info("Remote has no results but cache has %d, clearing", cached_count)
+                    ss.clear_cache()
+                    cached_count = 0
+                elif remote_latest and remote_latest[0].get("id", 0) < last_id:
                     log.info(
                         "Speedtest ID reset detected (cache max=%d, remote max=%d), rebuilding",
                         last_id, remote_latest[0]["id"],
