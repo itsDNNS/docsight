@@ -271,5 +271,7 @@ def api_speedtest_clear_cache():
     if not ss:
         return jsonify({"success": False, "error": "Storage not initialized"}), 500
     count = ss.clear_cache()
+    from app.web import clear_speedtest_latest
+    clear_speedtest_latest()
     log.info("Speedtest cache cleared via API (%d results removed)", count)
     return jsonify({"success": True, "cleared": count})
