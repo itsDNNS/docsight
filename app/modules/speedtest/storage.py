@@ -61,29 +61,39 @@ class SpeedtestStorage:
                     conn.execute("ALTER TABLE speedtest_results ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
             except Exception:
                 pass
-            # Migration: normalize existing timestamps to UTC Z-suffix
+            # One-time migration: normalize offset-bearing timestamps to UTC Z-suffix.
+            # Only runs once, tracked via speedtest_meta to avoid repeated scans.
             try:
-                rows = conn.execute(
-                    "SELECT id, timestamp FROM speedtest_results "
-                    "WHERE timestamp LIKE '%+%' OR timestamp LIKE '%-%:%'"
-                ).fetchall()
-                if rows:
-                    from datetime import datetime, timezone
-                    updates = []
-                    for row_id, ts in rows:
-                        try:
-                            dt = datetime.fromisoformat(ts)
-                            if dt.tzinfo is not None:
-                                dt = dt.astimezone(timezone.utc)
-                            updates.append((dt.strftime("%Y-%m-%dT%H:%M:%SZ"), row_id))
-                        except (ValueError, TypeError):
-                            pass
-                    if updates:
-                        conn.executemany(
-                            "UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
-                            updates,
-                        )
-                        log.info("Normalized %d existing timestamps to UTC", len(updates))
+                migrated = conn.execute(
+                    "SELECT value FROM speedtest_meta WHERE key = 'ts_migrated'"
+                ).fetchone()
+                if not migrated:
+                    # Match only timestamps with explicit +HH:MM or -HH:MM offset
+                    # (not plain ISO like 2026-03-21T12:34:56 or ...Z)
+                    rows = conn.execute(
+                        "SELECT id, timestamp FROM speedtest_results "
+                        "WHERE timestamp GLOB '*[+-][0-9][0-9]:[0-9][0-9]'"
+                    ).fetchall()
+                    if rows:
+                        from datetime import datetime, timezone
+                        updates = []
+                        for row_id, ts in rows:
+                            try:
+                                dt = datetime.fromisoformat(ts)
+                                if dt.tzinfo is not None:
+                                    dt = dt.astimezone(timezone.utc)
+                                    updates.append((dt.strftime("%Y-%m-%dT%H:%M:%SZ"), row_id))
+                            except (ValueError, TypeError):
+                                pass
+                        if updates:
+                            conn.executemany(
+                                "UPDATE speedtest_results SET timestamp = ? WHERE id = ?",
+                                updates,
+                            )
+                            log.info("Normalized %d existing timestamps to UTC", len(updates))
+                    conn.execute(
+                        "INSERT OR REPLACE INTO speedtest_meta (key, value) VALUES ('ts_migrated', '1')"
+                    )
             except Exception:
                 pass
 
