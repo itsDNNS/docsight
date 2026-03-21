@@ -126,6 +126,8 @@ def api_speedtest():
                     # Remote is reachable but empty — server was wiped
                     log.info("Remote has no results but cache has %d, clearing", cached_count)
                     ss.clear_cache()
+                    from app.web import clear_speedtest_latest
+                    clear_speedtest_latest()
                     cached_count = 0
                 elif remote_latest and remote_latest[0].get("id", 0) < last_id:
                     log.info(
