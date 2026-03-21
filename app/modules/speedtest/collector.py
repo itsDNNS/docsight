@@ -53,12 +53,16 @@ class SpeedtestCollector(Collector):
             last_id = self._storage.get_latest_speedtest_id()
             cached_count = self._storage.get_speedtest_count()
             # ID-reset detection: reuse the result already fetched above
-            if cached_count > 0 and last_id > 0 and results:
-                remote_id = results[0].get("id", 0)
-                if remote_id < last_id:
+            if cached_count > 0 and last_id > 0:
+                if not error and not results:
+                    # Remote reachable but empty — server was wiped
+                    log.info("Remote has no results but cache has %d, clearing", cached_count)
+                    self._storage.clear_cache()
+                    cached_count = 0
+                elif results and results[0].get("id", 0) < last_id:
                     log.info(
                         "Speedtest ID reset detected (cache=%d, remote=%d), rebuilding",
-                        last_id, remote_id,
+                        last_id, results[0].get("id", 0),
                     )
                     self._storage.clear_cache()
                     cached_count = 0
