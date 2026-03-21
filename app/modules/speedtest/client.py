@@ -19,14 +19,29 @@ class SpeedtestClient:
             "Accept": "application/json",
         })
 
+    @staticmethod
+    def _normalize_ts(ts):
+        """Normalize a timestamp to ISO 8601 UTC with Z suffix for consistent sorting."""
+        if not ts:
+            return ts
+        try:
+            from datetime import datetime, timezone
+            dt = datetime.fromisoformat(ts)
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(timezone.utc)
+            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        except (ValueError, TypeError):
+            return ts
+
     def _parse_result(self, item):
         """Extract relevant fields from a single API result object."""
         data = item.get("data") or {}
         ping_obj = data.get("ping") or {}
         server = data.get("server") or {}
+        raw_ts = data.get("timestamp") or item.get("created_at", "")
         return {
             "id": item.get("id"),
-            "timestamp": data.get("timestamp") or item.get("created_at", ""),
+            "timestamp": self._normalize_ts(raw_ts),
             "download_mbps": round(item.get("download_bits", 0) / 1_000_000, 2),
             "upload_mbps": round(item.get("upload_bits", 0) / 1_000_000, 2),
             "download_human": item.get("download_bits_human", ""),

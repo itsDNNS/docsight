@@ -96,7 +96,7 @@ class SpeedtestStorage:
                 "SELECT id, timestamp, download_mbps, upload_mbps, download_human, "
                 "upload_human, ping_ms, jitter_ms, packet_loss_pct, "
                 "server_id, server_name "
-                "FROM speedtest_results ORDER BY timestamp DESC LIMIT ?",
+                "FROM speedtest_results ORDER BY timestamp DESC, id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         return [dict(r) for r in rows]
@@ -149,6 +149,22 @@ class SpeedtestStorage:
                 (key, value),
             )
 
+    @staticmethod
+    def _normalize_url(url):
+        """Normalize URL for comparison (strip trailing slash, lowercase scheme/host)."""
+        if not url:
+            return url
+        url = url.strip().rstrip("/")
+        # Lowercase scheme and host portion
+        if "://" in url:
+            scheme, rest = url.split("://", 1)
+            if "/" in rest:
+                host, path = rest.split("/", 1)
+                url = f"{scheme.lower()}://{host.lower()}/{path}"
+            else:
+                url = f"{scheme.lower()}://{rest.lower()}"
+        return url
+
     def check_source_url(self, url):
         """Check if the tracker URL changed. If so, clear the cache and update.
 
@@ -156,7 +172,8 @@ class SpeedtestStorage:
         """
         if not url:
             return False
-        stored = self.get_meta("source_url")
+        url = self._normalize_url(url)
+        stored = self._normalize_url(self.get_meta("source_url"))
         if stored and stored != url:
             log.info(
                 "Speedtest Tracker URL changed (%s -> %s), clearing cache",
