@@ -110,10 +110,13 @@ def api_speedtest():
     if ss:
         try:
             from .client import SpeedtestClient
+            stt_url = _config_manager.get("speedtest_tracker_url")
             client = SpeedtestClient(
-                _config_manager.get("speedtest_tracker_url"),
+                stt_url,
                 _config_manager.get("speedtest_tracker_token"),
             )
+            # Detect server switch and clear stale cache
+            ss.check_source_url(stt_url)
             cached_count = ss.get_speedtest_count()
             if cached_count < 50:
                 new_results = client.get_results(per_page=2000)
@@ -241,3 +244,15 @@ def api_speedtest_run():
     except Exception as e:
         log.warning("Manual speedtest trigger error: %s", e)
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route("/api/speedtest/cache", methods=["DELETE"])
+@require_auth
+def api_speedtest_clear_cache():
+    """Clear the local speedtest results cache."""
+    ss = _get_speedtest_storage()
+    if not ss:
+        return jsonify({"success": False, "error": "Storage not initialized"}), 500
+    count = ss.clear_cache()
+    log.info("Speedtest cache cleared via API (%d results removed)", count)
+    return jsonify({"success": True, "cleared": count})

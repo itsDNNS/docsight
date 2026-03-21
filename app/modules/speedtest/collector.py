@@ -33,6 +33,8 @@ class SpeedtestCollector(Collector):
             token = self._config_mgr.get("speedtest_tracker_token")
             self._client = SpeedtestClient(url, token)
             self._last_url = url
+            # Detect server switch and clear stale cache
+            self._storage.check_source_url(url)
             log.info("Speedtest Tracker: %s", url)
 
     def collect(self) -> CollectorResult:
