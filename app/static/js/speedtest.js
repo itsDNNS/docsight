@@ -265,8 +265,9 @@ function renderSpeedtestChart() {
     canvas.height = h * dpr;
     var ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
-    // Padding
-    var padL = 60, padR = 60, padT = 20, padB = 30;
+    // Padding (reduced on narrow screens)
+    var mobile = w < 500;
+    var padL = mobile ? 40 : 60, padR = mobile ? 30 : 60, padT = 20, padB = 30;
     var cw = w - padL - padR;
     var ch = h - padT - padB;
     // Extract data arrays
