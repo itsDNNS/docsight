@@ -827,10 +827,13 @@ class TestBQMCollector:
         assert "download" in result.error
         assert c._storage.get_csv_dates() == []
 
-    def test_collect_skips_png_url(self):
+    @patch("app.modules.bqm.collector.BQMCollector._collect_png")
+    def test_collect_png_url_delegates(self, mock_png):
+        mock_png.return_value = CollectorResult.ok("bqm", {"mode": "png"})
         c, _, storage = self._make_collector(bqm_url="https://www.thinkbroadband.com/share/abc.png")
         result = c.collect()
-        assert result.data.get("reason") == "png_mode"
+        assert result.data.get("mode") == "png"
+        mock_png.assert_called_once()
 
     def test_name(self):
         c, *_ = self._make_collector()
