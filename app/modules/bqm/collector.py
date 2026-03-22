@@ -54,7 +54,11 @@ class BQMCollector(Collector):
         if today == self._last_date:
             return CollectorResult(source=self.name, data={"skipped": True})
 
+        from .auth import is_csv_url
         bqm_url = self._config_mgr.get("bqm_url") or ""
+        if not is_csv_url(bqm_url):
+            # Legacy PNG mode — skip CSV collection
+            return CollectorResult(source=self.name, data={"skipped": True, "reason": "png_mode"})
         share_id = extract_share_id(bqm_url)
         if not share_id:
             # Legacy PNG mode or not configured — skip CSV collection
