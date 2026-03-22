@@ -532,13 +532,18 @@ function importBqmCsv() {
     formData.append('file', input.files[0]);
 
     fetch('/api/bqm/import-csv', { method: 'POST', body: formData })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            if (!r.ok && r.headers.get('content-type') && r.headers.get('content-type').indexOf('json') === -1) {
+                throw new Error('Upload failed (HTTP ' + r.status + ')');
+            }
+            return r.json();
+        })
         .then(function(data) {
             if (data.error) {
                 if (status) { status.textContent = data.error; status.className = 'bqm-csv-status error'; }
             } else {
                 if (status) {
-                    status.textContent = data.imported_rows + ' rows imported (' + data.days + ' days, ' + data.date_range.start + ' to ' + data.date_range.end + ')';
+                    status.textContent = data.parsed_rows + ' rows imported (' + data.days + ' days, ' + data.date_range.start + ' to ' + data.date_range.end + ')';
                     status.className = 'bqm-csv-status ok';
                 }
                 if (typeof loadBqmCalendar === 'function') loadBqmCalendar();

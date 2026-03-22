@@ -265,11 +265,17 @@ def api_bqm_import_csv():
     if not bs:
         return jsonify({"error": "No storage"}), 500
 
+    _MAX_CSV_SIZE = 50 * 1024 * 1024  # 50 MB
+
     f = request.files.get("file")
     if not f:
         return jsonify({"error": "No file provided"}), 400
 
-    content = f.read().decode("utf-8", errors="replace")
+    raw = f.read()
+    if len(raw) > _MAX_CSV_SIZE:
+        return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
+    content = raw.decode("utf-8", errors="replace")
+    del raw
     if not content.strip():
         return jsonify({"error": "Empty file"}), 400
 
@@ -277,17 +283,24 @@ def api_bqm_import_csv():
         rows = parse_bqm_csv(content)
     except ValueError as exc:
         return jsonify({"error": f"Invalid CSV: {exc}"}), 400
+    del content
 
+    total_parsed = len(rows)
     if not rows:
         return jsonify({"error": "CSV contained no valid data rows"}), 400
 
-    bs.store_csv_data(rows)
+    try:
+        bs.store_csv_data(rows)
+    except Exception as exc:
+        log.error("BQM CSV import DB error: %s", exc)
+        return jsonify({"error": f"Database error: {exc}"}), 500
+
     dates = sorted(set(r["date"] for r in rows))
-    log.info("BQM CSV import: %d rows across %d days (%s to %s)",
-             len(rows), len(dates), dates[0], dates[-1])
+    log.info("BQM CSV import: %d rows parsed, %d days (%s to %s)",
+             total_parsed, len(dates), dates[0], dates[-1])
 
     return jsonify({
-        "imported_rows": len(rows),
+        "parsed_rows": total_parsed,
         "days": len(dates),
         "date_range": {"start": dates[0], "end": dates[-1]},
     })
