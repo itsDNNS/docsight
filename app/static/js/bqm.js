@@ -533,7 +533,8 @@ function importBqmCsv() {
 
     fetch('/api/bqm/import-csv', { method: 'POST', body: formData })
         .then(function(r) {
-            if (!r.ok && r.headers.get('content-type') && r.headers.get('content-type').indexOf('json') === -1) {
+            var ct = r.headers.get('content-type') || '';
+            if (ct.indexOf('json') === -1) {
                 throw new Error('Upload failed (HTTP ' + r.status + ')');
             }
             return r.json();

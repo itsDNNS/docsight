@@ -271,6 +271,10 @@ def api_bqm_import_csv():
     if not f:
         return jsonify({"error": "No file provided"}), 400
 
+    # Check Content-Length header before reading (server-level protection)
+    if request.content_length and request.content_length > _MAX_CSV_SIZE:
+        return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
+
     raw = f.read()
     if len(raw) > _MAX_CSV_SIZE:
         return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
