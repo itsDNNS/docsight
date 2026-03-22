@@ -830,7 +830,7 @@ class TestBQMCollector:
     def test_collect_skips_png_url(self):
         c, _, storage = self._make_collector(bqm_url="https://www.thinkbroadband.com/share/abc.png")
         result = c.collect()
-        assert result.data.get("reason") == "no_csv"
+        assert result.data.get("reason") == "png_mode"
 
     def test_name(self):
         c, *_ = self._make_collector()
