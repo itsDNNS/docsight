@@ -131,12 +131,12 @@ class TestConfigSecrets:
         all_config = config.get_all(mask_secrets=True)
         assert all_config["admin_password"] == PASSWORD_MASK
 
-    def test_bqm_password_encrypted_at_rest(self, config, tmp_data_dir):
-        config.save({"bqm_password": "secret123"})
+    def test_speedtest_token_encrypted_at_rest(self, config, tmp_data_dir):
+        config.save({"speedtest_tracker_token": "secret123"})
         with open(os.path.join(tmp_data_dir, "config.json")) as f:
             raw = json.load(f)
-        assert raw["bqm_password"] != "secret123"
-        assert config.get("bqm_password") == "secret123"
+        assert raw["speedtest_tracker_token"] != "secret123"
+        assert config.get("speedtest_tracker_token") == "secret123"
 
 
 class TestConfigEnvOverride:
@@ -232,11 +232,9 @@ class TestConfigState:
         config.save({"disabled_modules": "docsight.smokeping,test.integration"})
         assert config.get("disabled_modules") == "docsight.smokeping,test.integration"
 
-    def test_bqm_requires_credentials(self, config):
+    def test_bqm_requires_url(self, config):
         assert config.is_bqm_configured() is False
-        config.save({"bqm_username": "user", "bqm_password": "pass"})
-        assert config.is_bqm_configured() is False
-        config.save({"bqm_username": "user", "bqm_password": "pass", "bqm_monitor_id": "12345"})
+        config.save({"bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123-2-y.csv"})
         assert config.is_bqm_configured() is True
 
 

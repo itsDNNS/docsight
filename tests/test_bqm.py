@@ -326,35 +326,33 @@ class TestBQMAPI:
         assert data["csv_dates"] == ["2026-03-16", "2026-03-15"]
         assert today in data["png_dates"]
 
-    @patch("app.modules.bqm.routes.ThinkBroadbandAuth")
-    def test_validate_monitor_success(self, MockAuth, bqm_client):
+    @patch("app.modules.bqm.routes.validate_share_id")
+    @patch("app.modules.bqm.routes.extract_share_id")
+    def test_validate_monitor_success(self, mock_extract, mock_validate, bqm_client):
         client, _ = bqm_client
-        auth = MockAuth.return_value
-        auth.login.return_value = True
-        auth.validate_monitor_id.return_value = True
+        mock_extract.return_value = "abc123-2"
+        mock_validate.return_value = True
         resp = client.post("/api/bqm/validate-monitor", json={
-            "username": "user",
-            "password": "pass",
-            "monitor_id": "12345",
+            "url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456789012345678901234567890abcd-2-y.csv",
         })
         assert resp.status_code == 200
         assert resp.get_json() == {"valid": True}
 
-    @patch("app.modules.bqm.routes.ThinkBroadbandAuth")
-    def test_validate_monitor_login_failed(self, MockAuth, bqm_client):
+    @patch("app.modules.bqm.routes.validate_share_id")
+    @patch("app.modules.bqm.routes.extract_share_id")
+    def test_validate_monitor_login_failed(self, mock_extract, mock_validate, bqm_client):
         client, _ = bqm_client
-        MockAuth.return_value.login.return_value = False
+        mock_extract.return_value = "abc123-2"
+        mock_validate.return_value = False
         resp = client.post("/api/bqm/validate-monitor", json={
-            "username": "user",
-            "password": "wrong",
-            "monitor_id": "12345",
+            "url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456789012345678901234567890abcd-2-y.csv",
         })
         assert resp.status_code == 200
         assert resp.get_json()["valid"] is False
 
     def test_validate_monitor_missing_fields(self, bqm_client):
         client, _ = bqm_client
-        resp = client.post("/api/bqm/validate-monitor", json={"username": "user"})
+        resp = client.post("/api/bqm/validate-monitor", json={})
         assert resp.status_code == 400
 
 
@@ -421,7 +419,5 @@ class TestBqmUiRender:
     def test_settings_renders_bqm_csv_fields(self, bqm_client):
         with open("app/modules/bqm/templates/bqm_settings.html", "r", encoding="utf-8") as f:
             html = f.read()
-        assert 'id="bqm_username"' in html
-        assert 'id="bqm_password"' in html
-        assert 'id="bqm_monitor_id"' in html
-        assert 'id="bqm-validate-btn"' in html
+        assert 'id="bqm_url"' in html
+        assert 'id="bqm_collect_time"' in html

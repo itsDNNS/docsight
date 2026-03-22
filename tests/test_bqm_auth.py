@@ -15,12 +15,12 @@ from app.modules.bqm.auth import (
 
 class TestExtractShareId:
     def test_full_csv_url(self):
-        url = "https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456-2-y.csv"
-        assert extract_share_id(url) == "abc123def456-2"
+        url = "https://www.thinkbroadband.com/broadband/monitoring/quality/share/bd77751689f2f7b8d47d99899335aef060c9e768-2-y.csv"
+        assert extract_share_id(url) == "bd77751689f2f7b8d47d99899335aef060c9e768-2"
 
     def test_full_png_url(self):
-        url = "https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456-2.png"
-        assert extract_share_id(url) == "abc123def456-2"
+        url = "https://www.thinkbroadband.com/broadband/monitoring/quality/share/bd77751689f2f7b8d47d99899335aef060c9e768-2.png"
+        assert extract_share_id(url) == "bd77751689f2f7b8d47d99899335aef060c9e768-2"
 
     def test_bare_hash(self):
         assert extract_share_id("abc123def456789012345678901234567890abcd-2") == "abc123def456789012345678901234567890abcd-2"
