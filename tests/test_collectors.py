@@ -721,12 +721,12 @@ class TestBackupCollector:
 
 
 class TestBQMCollector:
-    def _make_collector(self, configured=True, collect_time="02:00"):
+    def _make_collector(self, configured=True, collect_time="02:00", bqm_url="https://www.thinkbroadband.com/broadband/monitoring/quality/share/bd77751689f2f7b8d47d99899335aef060c9e768-2-y.csv"):
         config_mgr = MagicMock()
         config_mgr.is_bqm_configured.return_value = configured
         config_mgr.get.side_effect = lambda k, *a: {
-            "bqm_url": "https://example.com/graph.png",
             "bqm_collect_time": collect_time,
+            "bqm_url": bqm_url,
         }.get(k, a[0] if a else None)
 
         storage = MagicMock()
@@ -743,56 +743,97 @@ class TestBQMCollector:
         c, *_ = self._make_collector(configured=False)
         assert c.is_enabled() is False
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_success(self, mock_fetch):
-        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
+    @patch("app.modules.bqm.collector.parse_bqm_csv")
+    @patch("app.modules.bqm.collector.fetch_share_csv")
+    def test_collect_success(self, mock_fetch, mock_parse):
+        mock_fetch.return_value = '"Timestamp",...\n'
+        mock_parse.return_value = [{
+            "timestamp": "2026-03-15T19:00:00+00:00",
+            "date": "2026-03-15",
+            "sent_polls": 100,
+            "lost_polls": 0,
+            "latency_min_ms": 30.0,
+            "latency_avg_ms": 35.0,
+            "latency_max_ms": 40.0,
+            "score": 1,
+        }]
         c, _, storage = self._make_collector()
         result = c.collect()
         assert result.success is True
         assert c._last_date is not None
-        # Verify graph was saved to internal BqmStorage
-        dates = c._storage.get_bqm_dates()
-        assert len(dates) == 1
+        assert c._storage.get_csv_dates() == ["2026-03-15"]
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_stores_yesterday_when_before_noon(self, mock_fetch):
-        """Collect time before 12:00 should store as yesterday."""
-        from datetime import date, timedelta
-        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
+    @patch("app.modules.bqm.collector.parse_bqm_csv", return_value=[{
+        "timestamp": "2026-03-15T19:00:00+00:00",
+        "date": "2026-03-15",
+        "sent_polls": 100,
+        "lost_polls": 0,
+        "latency_min_ms": 30.0,
+        "latency_avg_ms": 35.0,
+        "latency_max_ms": 40.0,
+        "score": 1,
+    }])
+    @patch("app.modules.bqm.collector.fetch_share_csv")
+    def test_collect_stores_yesterday_when_before_noon(self, mock_fetch, _mock_parse):
+        """Collect always fetches yesterday CSV via share URL."""
+        mock_fetch.return_value = '"Timestamp",...\n'
         c, _, storage = self._make_collector(collect_time="02:00")
         c.collect()
-        dates = c._storage.get_bqm_dates()
-        expected = (date.today() - timedelta(days=1)).isoformat()
-        assert dates[0] == expected
+        mock_fetch.assert_called_once_with("bd77751689f2f7b8d47d99899335aef060c9e768-2", variant="y")
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_stores_today_when_after_noon(self, mock_fetch):
-        """Collect time at/after 12:00 should store as today."""
-        from datetime import date
-        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
+    @patch("app.modules.bqm.collector.parse_bqm_csv", return_value=[{
+        "timestamp": "2026-03-15T19:00:00+00:00",
+        "date": "2026-03-15",
+        "sent_polls": 100,
+        "lost_polls": 0,
+        "latency_min_ms": 30.0,
+        "latency_avg_ms": 35.0,
+        "latency_max_ms": 40.0,
+        "score": 1,
+    }])
+    @patch("app.modules.bqm.collector.fetch_share_csv")
+    def test_collect_stores_today_when_after_noon(self, mock_fetch, _mock_parse):
+        """Collect time doesn't affect share URL — always fetches yesterday variant."""
+        mock_fetch.return_value = '"Timestamp",...\n'
         c, _, storage = self._make_collector(collect_time="14:00")
         c.collect()
-        dates = c._storage.get_bqm_dates()
-        assert dates[0] == date.today().isoformat()
+        mock_fetch.assert_called_once_with("bd77751689f2f7b8d47d99899335aef060c9e768-2", variant="y")
 
-    @patch("app.modules.bqm.collector.fetch_graph")
-    def test_collect_skips_same_day(self, mock_fetch):
-        mock_fetch.return_value = b"\x89PNG" + b"\x00" * 200
+    @patch("app.modules.bqm.collector.parse_bqm_csv", return_value=[{
+        "timestamp": "2026-03-15T19:00:00+00:00",
+        "date": "2026-03-15",
+        "sent_polls": 100,
+        "lost_polls": 0,
+        "latency_min_ms": 30.0,
+        "latency_avg_ms": 35.0,
+        "latency_max_ms": 40.0,
+        "score": 1,
+    }])
+    @patch("app.modules.bqm.collector.fetch_share_csv")
+    def test_collect_skips_same_day(self, mock_fetch, _mock_parse):
+        mock_fetch.return_value = '"Timestamp",...\n'
         c, _, storage = self._make_collector()
         c.collect()
         result = c.collect()
         assert result.data == {"skipped": True}
         assert mock_fetch.call_count == 1
 
-    @patch("app.modules.bqm.collector.fetch_graph")
+    @patch("app.modules.bqm.collector.fetch_share_csv")
     def test_collect_fetch_failure(self, mock_fetch):
-        mock_fetch.return_value = None
+        mock_fetch.return_value = ""
         c, _, storage = self._make_collector()
         result = c.collect()
         assert result.success is False
-        assert "Failed" in result.error
-        # No graph should be stored in internal storage on failure
-        assert c._storage.get_bqm_dates() == []
+        assert "download" in result.error
+        assert c._storage.get_csv_dates() == []
+
+    @patch("app.modules.bqm.collector.BQMCollector._collect_png")
+    def test_collect_png_url_delegates(self, mock_png):
+        mock_png.return_value = CollectorResult.ok("bqm", {"mode": "png"})
+        c, _, storage = self._make_collector(bqm_url="https://www.thinkbroadband.com/share/abc.png")
+        result = c.collect()
+        assert result.data.get("mode") == "png"
+        mock_png.assert_called_once()
 
     def test_name(self):
         c, *_ = self._make_collector()
@@ -801,11 +842,11 @@ class TestBQMCollector:
     @patch("app.modules.bqm.collector.random")
     @patch("app.modules.bqm.collector.time")
     def test_should_poll_before_target(self, mock_time, mock_random):
-        """Should not poll if current time is before target - spread offset."""
-        mock_random.randint.return_value = 30  # 30 min offset -> target 01:30
+        """Should not poll if current time is before target + spread offset."""
+        mock_random.randint.return_value = 30  # 30 min offset -> target 02:30
         mock_time.strftime.side_effect = lambda fmt: {
             "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "01:25",
+            "%H:%M": "02:25",
         }[fmt]
         c, *_ = self._make_collector(collect_time="02:00")
         assert c.should_poll() is False
@@ -813,11 +854,11 @@ class TestBQMCollector:
     @patch("app.modules.bqm.collector.random")
     @patch("app.modules.bqm.collector.time")
     def test_should_poll_after_target(self, mock_time, mock_random):
-        """Should poll if current time is at/after target - spread offset."""
-        mock_random.randint.return_value = 30  # 30 min offset -> target 01:30
+        """Should poll if current time is at/after target + spread offset."""
+        mock_random.randint.return_value = 30  # 30 min offset -> target 02:30
         mock_time.strftime.side_effect = lambda fmt: {
             "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "01:30",
+            "%H:%M": "02:30",
         }[fmt]
         c, *_ = self._make_collector(collect_time="02:00")
         assert c.should_poll() is True
@@ -847,12 +888,12 @@ class TestBQMCollector:
     @patch("app.modules.bqm.collector.time")
     def test_spread_clamped_to_0030(self, mock_time, mock_random):
         """Spread must never schedule collection before 00:30."""
-        mock_random.randint.return_value = 100  # 02:00 - 100min = 00:20 -> clamp 00:30
+        mock_random.randint.return_value = 0  # 00:20 + 0 = 00:20 -> clamp 00:30
         mock_time.strftime.side_effect = lambda fmt: {
             "%Y-%m-%d": "2026-02-19",
             "%H:%M": "00:25",
         }[fmt]
-        c, *_ = self._make_collector(collect_time="02:00")
+        c, *_ = self._make_collector(collect_time="00:20")
         assert c.should_poll() is False  # 00:25 < 00:30
 
         mock_time.strftime.side_effect = lambda fmt: {
@@ -863,14 +904,14 @@ class TestBQMCollector:
 
     @patch("app.modules.bqm.collector.random")
     @patch("app.modules.bqm.collector.time")
-    def test_spread_offset_wraps_past_midnight(self, mock_time, mock_random):
-        """Spread offset should wrap correctly past midnight (01:00 - 90min = 23:30)."""
-        mock_random.randint.return_value = 90  # 01:00 - 90 min = 23:30
+    def test_spread_offset_capped_at_2359(self, mock_time, mock_random):
+        """Spread offset is capped at 23:59, never wraps past midnight."""
+        mock_random.randint.return_value = 120  # 22:00 + 120 min = 24:00 -> cap 23:59
         mock_time.strftime.side_effect = lambda fmt: {
             "%Y-%m-%d": "2026-02-19",
-            "%H:%M": "23:30",
+            "%H:%M": "23:59",
         }[fmt]
-        c, *_ = self._make_collector(collect_time="01:00")
+        c, *_ = self._make_collector(collect_time="22:00")
         assert c.should_poll() is True
 
 

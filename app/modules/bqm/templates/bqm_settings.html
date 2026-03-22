@@ -14,14 +14,14 @@
         </div>
         <div class="form-grid">
             <div class="form-field">
-                <label class="form-label" for="bqm_url">{{ t['docsight.bqm.bqm_share_url'] or 'BQM Share URL' }}</label>
-                <input class="form-input" type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
-                <span class="form-hint">{{ t['docsight.bqm.bqm_url_hint'] or 'Paste your ThinkBroadband BQM share link (.png)' }}</span>
+                <label class="form-label" for="bqm_url">{{ t['docsight.bqm.bqm_share_url'] or 'Share URL' }}</label>
+                <input class="form-input" type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...csv">
+                <span class="form-hint">{{ t['docsight.bqm.bqm_url_hint'] or 'Paste your ThinkBroadband share link. Use a CSV link for interactive charts, or PNG for legacy image mode.' }}</span>
             </div>
             <div class="form-field">
                 <label class="form-label" for="bqm_collect_time">{{ t['docsight.bqm.bqm_collect_time'] or 'Daily collection time' }}</label>
                 <input class="form-input" type="time" id="bqm_collect_time" name="bqm_collect_time" value="{{ config.bqm_collect_time }}">
-                <span class="form-hint">{{ t['docsight.bqm.bqm_collect_time_hint'] or 'Time of day to fetch the BQM graph (container timezone)' }}</span>
+                <span class="form-hint">{{ t['docsight.bqm.bqm_collect_time_hint'] or 'Time of day to fetch the BQM data (container timezone)' }}</span>
             </div>
         </div>
     </div>

@@ -1261,6 +1261,11 @@ function installTheme(themeId, downloadUrl) {
         });
 }
 
+function validateBqmMonitor() {
+    // Legacy function name kept for backwards compatibility
+    // No longer used — validation removed from settings UI
+}
+
 /* ── Smart Capture History ── */
 // Note: uses innerHTML with escapeHtml() for all dynamic content, consistent with
 // the existing pattern used throughout events.js, speedtest.js, and correlation.js.

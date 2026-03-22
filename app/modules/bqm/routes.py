@@ -1,6 +1,7 @@
 """BQM module routes."""
 
 import logging
+from datetime import datetime
 
 from flask import Blueprint, request, jsonify, make_response
 
@@ -10,6 +11,7 @@ from app.web import (
     _valid_date, _get_client_ip, _get_tz_name,
 )
 from .storage import BqmStorage
+from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort
 
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web.bqm")
@@ -29,6 +31,16 @@ def _get_bqm_storage():
     return _storage
 
 
+def _rows_to_columns(rows):
+    return {
+        "timestamps": [row["timestamp"] for row in rows],
+        "latency_min": [row["latency_min_ms"] for row in rows],
+        "latency_avg": [row["latency_avg_ms"] for row in rows],
+        "latency_max": [row["latency_max_ms"] for row in rows],
+        "lost_polls": [row["lost_polls"] for row in rows],
+    }
+
+
 @bp.route("/api/bqm/dates")
 @require_auth
 def api_bqm_dates():
@@ -37,6 +49,64 @@ def api_bqm_dates():
     if bs:
         return jsonify(bs.get_bqm_dates())
     return jsonify([])
+
+
+@bp.route("/api/bqm/data/<date>")
+@require_auth
+def api_bqm_data(date):
+    """Return column-oriented BQM CSV data for a single day."""
+    bs = _get_bqm_storage()
+    if not _valid_date(date):
+        return jsonify({"error": "Invalid date format"}), 400
+    if not bs:
+        return jsonify({"error": "No storage"}), 404
+    rows = bs.get_data_for_date(date)
+    return jsonify({
+        "date": date,
+        "points": len(rows),
+        "data": _rows_to_columns(rows),
+    })
+
+
+@bp.route("/api/bqm/data/range")
+@require_auth
+def api_bqm_data_range():
+    """Return column-oriented BQM CSV data for a date range."""
+    bs = _get_bqm_storage()
+    start = request.args.get("start", "")
+    end = request.args.get("end", "")
+    if not _valid_date(start) or not _valid_date(end):
+        return jsonify({"error": "Invalid date format"}), 400
+    start_dt = datetime.strptime(start, "%Y-%m-%d").date()
+    end_dt = datetime.strptime(end, "%Y-%m-%d").date()
+    if end_dt < start_dt:
+        return jsonify({"error": "Invalid date range"}), 400
+    days = (end_dt - start_dt).days + 1
+    if days > 90:
+        return jsonify({"error": "Range too large (max 90 days)"}), 400
+    if not bs:
+        return jsonify({"error": "No storage"}), 404
+    rows = bs.get_data_for_range(start, end)
+    return jsonify({
+        "start": start,
+        "end": end,
+        "days": days,
+        "points": len(rows),
+        "data": _rows_to_columns(rows),
+    })
+
+
+@bp.route("/api/bqm/data/dates")
+@require_auth
+def api_bqm_data_dates():
+    """Return dates with CSV data and legacy PNG data."""
+    bs = _get_bqm_storage()
+    if not bs:
+        return jsonify({"csv_dates": [], "png_dates": []})
+    return jsonify({
+        "csv_dates": bs.get_csv_dates(),
+        "png_dates": bs.get_bqm_dates(),
+    })
 
 
 @bp.route("/api/bqm/image/<date>")
@@ -70,7 +140,9 @@ def api_bqm_live():
     source = "cached"
     ts = None
 
-    if bqm_url and not (_config_manager and _config_manager.is_demo_mode()):
+    # Only fetch live PNG if the URL is a PNG share link (not CSV/XML)
+    is_png = bqm_url and bqm_url.strip().lower().endswith(".png")
+    if is_png and not (_config_manager and _config_manager.is_demo_mode()):
         image = fetch_graph(bqm_url)
         if image:
             from app.tz import utc_now
@@ -94,6 +166,25 @@ def api_bqm_live():
     if ts:
         resp.headers["X-BQM-Timestamp"] = ts
     return resp
+
+
+@bp.route("/api/bqm/validate-monitor", methods=["POST"])
+@require_auth
+def api_bqm_validate_monitor():
+    """Validate a ThinkBroadband share URL by attempting a CSV download."""
+    data = request.get_json() or {}
+    url = (data.get("url") or "").strip()
+    if not url:
+        return jsonify({"valid": False, "error": "Missing share URL"}), 400
+    share_id = extract_share_id(url)
+    if not share_id:
+        return jsonify({"valid": False, "error": "Could not extract share ID from URL"})
+    try:
+        if not validate_share_id(share_id):
+            return jsonify({"valid": False, "error": "Share URL did not return valid CSV data"})
+        return jsonify({"valid": True})
+    except ThinkBroadbandBatchAbort as exc:
+        return jsonify({"valid": False, "error": f"ThinkBroadband rejected the request: {exc}"})
 
 
 @bp.route("/api/bqm/import", methods=["POST"])
@@ -161,6 +252,67 @@ def api_bqm_import():
         "replaced": replaced,
         "skipped_dates": skipped_dates,
         "errors": errors,
+    })
+
+
+_MAX_CSV_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+@bp.before_request
+def _limit_csv_upload():
+    """Reject oversized uploads before Flask parses the multipart body."""
+    if request.path == "/api/bqm/import-csv" and request.method == "POST":
+        if request.content_length and request.content_length > _MAX_CSV_SIZE:
+            return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
+
+
+@bp.route("/api/bqm/import-csv", methods=["POST"])
+@require_auth
+def api_bqm_import_csv():
+    """Bulk-import BQM CSV data (e.g. 12-month ThinkBroadband export)."""
+    from .csv_parser import parse_bqm_csv
+
+    bs = _get_bqm_storage()
+    if not bs:
+        return jsonify({"error": "No storage"}), 500
+
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "No file provided"}), 400
+
+    # Read and check actual file size (not request size)
+    raw = f.read()
+    if len(raw) > _MAX_CSV_SIZE:
+        return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
+    content = raw.decode("utf-8", errors="replace")
+    del raw
+    if not content.strip():
+        return jsonify({"error": "Empty file"}), 400
+
+    try:
+        rows = parse_bqm_csv(content)
+    except ValueError as exc:
+        return jsonify({"error": f"Invalid CSV: {exc}"}), 400
+    del content
+
+    total_parsed = len(rows)
+    if not rows:
+        return jsonify({"error": "CSV contained no valid data rows"}), 400
+
+    try:
+        bs.store_csv_data(rows)
+    except Exception as exc:
+        log.error("BQM CSV import DB error: %s", exc)
+        return jsonify({"error": f"Database error: {exc}"}), 500
+
+    dates = sorted(set(r["date"] for r in rows))
+    log.info("BQM CSV import: %d rows parsed, %d days (%s to %s)",
+             total_parsed, len(dates), dates[0], dates[-1])
+
+    return jsonify({
+        "parsed_rows": total_parsed,
+        "days": len(dates),
+        "date_range": {"start": dates[0], "end": dates[-1]},
     })
 
 

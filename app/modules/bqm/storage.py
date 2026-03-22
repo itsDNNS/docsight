@@ -1,4 +1,4 @@
-"""Standalone BQM graph storage."""
+"""Standalone BQM storage for legacy PNG graphs and native CSV data."""
 
 import logging
 import sqlite3
@@ -11,7 +11,7 @@ log = logging.getLogger("docsis.storage.bqm")
 class BqmStorage:
     """Standalone BQM data storage (not a mixin).
 
-    Creates the bqm_graphs table if it doesn't exist.
+    Creates the bqm_graphs and bqm_data tables if they don't exist.
     """
 
     def __init__(self, db_path, tz_name=""):
@@ -20,7 +20,7 @@ class BqmStorage:
         self._ensure_table()
 
     def _ensure_table(self):
-        """Create the bqm_graphs table if it doesn't exist."""
+        """Create the BQM tables if they don't exist."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS bqm_graphs ("
@@ -31,6 +31,24 @@ class BqmStorage:
                 "  is_demo INTEGER NOT NULL DEFAULT 0"
                 ")"
             )
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS bqm_data ("
+                "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "  timestamp TEXT NOT NULL,"
+                "  date TEXT NOT NULL,"
+                "  sent_polls INTEGER NOT NULL,"
+                "  lost_polls INTEGER NOT NULL DEFAULT 0,"
+                "  latency_min_ms REAL NOT NULL,"
+                "  latency_avg_ms REAL NOT NULL,"
+                "  latency_max_ms REAL NOT NULL,"
+                "  score INTEGER NOT NULL,"
+                "  UNIQUE(timestamp)"
+                ")"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_bqm_data_date "
+                "ON bqm_data(date)"
+            )
             # Migration: add is_demo column if missing
             try:
                 cols = [r[1] for r in conn.execute("PRAGMA table_info(bqm_graphs)").fetchall()]
@@ -38,6 +56,78 @@ class BqmStorage:
                     conn.execute("ALTER TABLE bqm_graphs ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
             except Exception:
                 pass
+
+    def store_csv_data(self, rows):
+        """Bulk insert CSV-derived BQM rows, ignoring duplicates by timestamp."""
+        if not rows:
+            return
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("PRAGMA busy_timeout = 5000")
+                conn.executemany(
+                    "INSERT OR IGNORE INTO bqm_data "
+                    "(timestamp, date, sent_polls, lost_polls, latency_min_ms, "
+                    "latency_avg_ms, latency_max_ms, score) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        (
+                            row["timestamp"],
+                            row["date"],
+                            row["sent_polls"],
+                            row["lost_polls"],
+                            row["latency_min_ms"],
+                            row["latency_avg_ms"],
+                            row["latency_max_ms"],
+                            row["score"],
+                        )
+                        for row in rows
+                    ],
+                )
+            log.debug("Stored %d BQM CSV rows", len(rows))
+        except Exception as e:
+            log.error("Failed to store BQM CSV rows: %s", e)
+            raise
+
+    def _rows_for_query(self, query, params):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_data_for_date(self, target_date):
+        """Return BQM CSV rows for a single date, oldest first."""
+        return self._rows_for_query(
+            "SELECT timestamp, date, sent_polls, lost_polls, latency_min_ms, "
+            "latency_avg_ms, latency_max_ms, score "
+            "FROM bqm_data WHERE date = ? ORDER BY timestamp",
+            (target_date,),
+        )
+
+    def get_data_for_range(self, start_date, end_date):
+        """Return BQM CSV rows across a date range, oldest first."""
+        return self._rows_for_query(
+            "SELECT timestamp, date, sent_polls, lost_polls, latency_min_ms, "
+            "latency_avg_ms, latency_max_ms, score "
+            "FROM bqm_data WHERE date >= ? AND date <= ? ORDER BY timestamp",
+            (start_date, end_date),
+        )
+
+    def get_csv_dates(self):
+        """Return list of dates with CSV data (newest first)."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT DISTINCT date FROM bqm_data ORDER BY date DESC"
+            ).fetchall()
+        return [r[0] for r in rows]
+
+    def has_csv_data(self, target_date):
+        """Return True if CSV data exists for the given date."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT 1 FROM bqm_data WHERE date = ? LIMIT 1",
+                (target_date,),
+            ).fetchone()
+        return row is not None
 
     def save_bqm_graph(self, image_data, graph_date=None):
         """Save BQM graph. Skips if already exists (UNIQUE date)."""
