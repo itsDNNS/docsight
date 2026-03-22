@@ -414,7 +414,7 @@ class TestBqmUiRender:
         assert 'id="bqm-chart-container"' in html
         assert 'id="bqm-7d-btn"' in html
         assert 'id="bqm-30d-btn"' in html
-        assert '/modules/docsight.bqm/static/bqm-chart.js' in html
+        assert '/modules/docsight.bqm/static/js/bqm-chart.js' in html
 
     def test_settings_renders_bqm_csv_fields(self, bqm_client):
         with open("app/modules/bqm/templates/bqm_settings.html", "r", encoding="utf-8") as f:
