@@ -42,7 +42,10 @@ class BQMCollector(Collector):
         total = h * 60 + m + self._spread_offset
         if total < 30:
             total = 30  # never fire before 00:30
-        target = f"{(total // 60) % 24:02d}:{total % 60:02d}"
+        # Cap at 23:59 to prevent wrap-around firing a day early
+        if total >= 1440:
+            total = 1439
+        target = f"{total // 60:02d}:{total % 60:02d}"
         now_hm = time.strftime("%H:%M")
         return now_hm >= target
 

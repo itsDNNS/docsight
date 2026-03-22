@@ -140,7 +140,9 @@ def api_bqm_live():
     source = "cached"
     ts = None
 
-    if bqm_url and not (_config_manager and _config_manager.is_demo_mode()):
+    # Only fetch live PNG if the URL is a PNG share link (not CSV/XML)
+    is_png = bqm_url and bqm_url.strip().lower().endswith(".png")
+    if is_png and not (_config_manager and _config_manager.is_demo_mode()):
         image = fetch_graph(bqm_url)
         if image:
             from app.tz import utc_now

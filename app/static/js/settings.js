@@ -249,7 +249,7 @@ function showToast(msg, ok) {
 
 /* ── Form Data ── */
 var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token', 'notify_webhook_token', 'bqm_password'];
+var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token', 'notify_webhook_token'];
 
 function escHtml(s) {
     var d = document.createElement('div');
@@ -1262,47 +1262,8 @@ function installTheme(themeId, downloadUrl) {
 }
 
 function validateBqmMonitor() {
-    var btn = document.getElementById('bqm-validate-btn');
-    var status = document.getElementById('bqm-validate-status');
-    var username = document.getElementById('bqm_username');
-    var password = document.getElementById('bqm_password');
-    var monitorId = document.getElementById('bqm_monitor_id');
-    if (!btn || !status || !username || !password || !monitorId) return;
-
-    status.className = 'bqm-validate-status';
-    status.textContent = T.testing || 'Testing...';
-    btn.disabled = true;
-
-    fetch('/api/bqm/validate-monitor', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            username: username.value,
-            password: password.value,
-            monitor_id: monitorId.value,
-        }),
-    })
-        .then(function(r) {
-            return r.json().then(function(data) {
-                return {ok: r.ok, data: data};
-            });
-        })
-        .then(function(res) {
-            if (res.data.valid) {
-                status.className = 'bqm-validate-status ok';
-                status.textContent = T.bqm_validate_success || 'Monitor validated successfully.';
-                return;
-            }
-            status.className = 'bqm-validate-status error';
-            status.textContent = res.data.error || (T.bqm_validate_failed || 'Validation failed.');
-        })
-        .catch(function(err) {
-            status.className = 'bqm-validate-status error';
-            status.textContent = (T.error_prefix || 'Error') + ': ' + err.message;
-        })
-        .finally(function() {
-            btn.disabled = false;
-        });
+    // Legacy function name kept for backwards compatibility
+    // No longer used — validation removed from settings UI
 }
 
 /* ── Smart Capture History ── */
