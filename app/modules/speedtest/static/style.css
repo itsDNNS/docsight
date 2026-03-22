@@ -126,7 +126,14 @@
     background: rgba(168,85,247,0.08);
 }
 
-/* Responsive table card */
+/* Speedtest controls bar */
+.speedtest-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
     .speedtest-chart-card {
         padding: var(--space-md, 16px);
@@ -135,5 +142,57 @@
     #speedtest-table tbody td {
         padding: 8px 12px;
         font-size: 0.8em;
+    }
+}
+
+@media (max-width: 640px) {
+    .speedtest-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+    }
+    .speedtest-controls .trend-tabs {
+        order: 1;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .speedtest-controls .trend-tabs .trend-tab {
+        padding: 6px 14px;
+        font-size: 0.82em;
+    }
+    .speedtest-controls #speedtest-run-btn {
+        order: 2;
+    }
+    .speedtest-controls #speedtest-refresh-btn {
+        order: 3;
+    }
+    .speedtest-chart-card {
+        padding: var(--space-sm, 12px);
+    }
+    .speedtest-chart-wrap canvas {
+        height: 180px;
+    }
+    .speedtest-chart-legend {
+        flex-wrap: wrap;
+        gap: 8px 14px;
+    }
+    #speedtest-table thead th,
+    #speedtest-table tbody td {
+        padding: 6px 8px;
+        font-size: 0.78em;
+    }
+    .st-signal-detail {
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 6px 10px;
+        padding: 8px 10px;
+    }
+    .st-signal-detail .st-us-mods span {
+        word-break: break-word;
+    }
+    .trend-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 }

@@ -11,6 +11,11 @@ log = logging.getLogger("docsis.events")
 POWER_SHIFT_THRESHOLD = 2.0  # dBmV shift to trigger power_change
 UNCORR_SPIKE_THRESHOLD = 1000
 
+# Restart detection thresholds
+RESTART_CHANNEL_THRESHOLD = 0.8    # 80% of valid channels must be declining
+RESTART_MIN_OVERLAP = 4            # Minimum overlapping channels for fair comparison
+RESTART_MIN_CONTINUITY = 0.5       # Minimum overlap ratio (vs either snapshot)
+
 # Import SNR thresholds from analyzer (loaded from thresholds.json)
 from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
@@ -67,6 +72,8 @@ class EventDetector:
         self._check_channels(events, ts, cur_s, prev_s)
         # Modulation change
         self._check_modulation(events, ts, analysis, prev)
+        # Restart detection (before errors — restart causes negative delta)
+        self._check_restart(events, ts, analysis, prev)
         # Error spike
         self._check_errors(events, ts, cur_s, prev_s)
 
@@ -272,3 +279,86 @@ class EventDetector:
                 "message": f"Uncorrectable errors jumped by {delta:,} (from {uncorr_prev:,} to {uncorr_cur:,})",
                 "details": {"prev": uncorr_prev, "current": uncorr_cur, "delta": delta},
             })
+
+    def _check_restart(self, events, ts, cur, prev):
+        """Detect modem restart via per-channel error counter reset."""
+        prev_channels = {ch["channel_id"]: ch for ch in prev.get("ds_channels", [])}
+        cur_channels = {ch["channel_id"]: ch for ch in cur.get("ds_channels", [])}
+
+        overlap_ids = set(prev_channels.keys()) & set(cur_channels.keys())
+
+        # Guard: insufficient continuity
+        prev_count = len(prev_channels)
+        cur_count = len(cur_channels)
+        if len(overlap_ids) < RESTART_MIN_OVERLAP:
+            return
+        if prev_count > 0 and len(overlap_ids) / prev_count < RESTART_MIN_CONTINUITY:
+            return
+        if cur_count > 0 and len(overlap_ids) / cur_count < RESTART_MIN_CONTINUITY:
+            return
+
+        # Count channels with declining counters
+        valid_channels = 0
+        declining_channels = 0
+
+        for ch_id in overlap_ids:
+            p = prev_channels[ch_id]
+            c = cur_channels[ch_id]
+            p_corr = p.get("correctable_errors")
+            p_uncorr = p.get("uncorrectable_errors")
+            c_corr = c.get("correctable_errors")
+            c_uncorr = c.get("uncorrectable_errors")
+
+            # Evaluate each counter family independently.
+            # A channel is valid if at least one counter pair is comparable.
+            # A channel is declining if at least one counter declined and none increased.
+            has_corr = p_corr is not None and c_corr is not None
+            has_uncorr = p_uncorr is not None and c_uncorr is not None
+
+            if not has_corr and not has_uncorr:
+                continue  # No comparable counters at all
+
+            valid_channels += 1
+            corr_declined = has_corr and c_corr < p_corr
+            uncorr_declined = has_uncorr and c_uncorr < p_uncorr
+            corr_ok = not has_corr or c_corr <= p_corr
+            uncorr_ok = not has_uncorr or c_uncorr <= p_uncorr
+            if (corr_declined or uncorr_declined) and corr_ok and uncorr_ok:
+                declining_channels += 1
+
+        if valid_channels < RESTART_MIN_OVERLAP:
+            return
+        if declining_channels / valid_channels < RESTART_CHANNEL_THRESHOLD:
+            return
+
+        # Sanity check: at least one summary total must decline.
+        # If either snapshot is missing the summary keys entirely, skip the
+        # sanity check (rely on per-channel signal alone) rather than
+        # defaulting to 0 which would create false positives.
+        prev_s = prev.get("summary", {})
+        cur_s = cur.get("summary", {})
+        prev_corr_total = prev_s.get("ds_correctable_errors")
+        prev_uncorr_total = prev_s.get("ds_uncorrectable_errors")
+        cur_corr_total = cur_s.get("ds_correctable_errors")
+        cur_uncorr_total = cur_s.get("ds_uncorrectable_errors")
+
+        # Only enforce sanity check if all four values are present
+        if all(v is not None for v in (prev_corr_total, prev_uncorr_total,
+                                        cur_corr_total, cur_uncorr_total)):
+            if cur_corr_total >= prev_corr_total and cur_uncorr_total >= prev_uncorr_total:
+                return  # Neither total declining
+
+        events.append({
+            "timestamp": ts,
+            "severity": "info",
+            "event_type": "modem_restart_detected",
+            "message": "Detected modem restart or counter reset pattern",
+            "details": {
+                "affected_channels": declining_channels,
+                "total_channels": valid_channels,
+                "prev_corr_total": prev_corr_total,
+                "prev_uncorr_total": prev_uncorr_total,
+                "current_corr_total": cur_corr_total,
+                "current_uncorr_total": cur_uncorr_total,
+            },
+        })

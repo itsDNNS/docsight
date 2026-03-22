@@ -306,6 +306,7 @@
     "event_type_snr_change": "Changement de SNR",
     "event_type_channel_change": "Changement de canal",
     "event_type_modulation_change": "Changement de modulation",
+    "event_type_modem_restart_detected": "Redémarrage du modem détecté",
     "event_type_error_spike": "Pic d'erreurs",
     "event_acknowledged": "Confirme",
     "event_all_severities": "Toutes les gravites",

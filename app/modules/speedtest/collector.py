@@ -33,6 +33,8 @@ class SpeedtestCollector(Collector):
             token = self._config_mgr.get("speedtest_tracker_token")
             self._client = SpeedtestClient(url, token)
             self._last_url = url
+            # Detect server switch and clear stale cache
+            self._storage.check_source_url(url)
             log.info("Speedtest Tracker: %s", url)
 
     def collect(self) -> CollectorResult:
@@ -50,6 +52,21 @@ class SpeedtestCollector(Collector):
         try:
             last_id = self._storage.get_latest_speedtest_id()
             cached_count = self._storage.get_speedtest_count()
+            # ID-reset detection: reuse the result already fetched above
+            if cached_count > 0 and last_id > 0:
+                if not error and not results:
+                    # Remote reachable but empty — server was wiped
+                    log.info("Remote has no results but cache has %d, clearing", cached_count)
+                    self._storage.clear_cache()
+                    self._web.clear_speedtest_latest()
+                    cached_count = 0
+                elif results and results[0].get("id", 0) < last_id:
+                    log.info(
+                        "Speedtest ID reset detected (cache=%d, remote=%d), rebuilding",
+                        last_id, results[0].get("id", 0),
+                    )
+                    self._storage.clear_cache()
+                    cached_count = 0
             is_backfill = cached_count < 50
             if is_backfill:
                 new_results = self._client.get_results(per_page=2000)

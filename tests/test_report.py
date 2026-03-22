@@ -176,6 +176,48 @@ def test_complaint_text_includes_comparison_evidence():
     assert "Uncorrectable error delta: 127." in text
 
 
+def test_complaint_text_localizes_comparison_evidence_in_german():
+    comparison_data = {
+        "period_a": {
+            "from": "2026-03-17T23:00:00Z",
+            "to": "2026-03-18T22:59:00Z",
+            "snapshots": 23,
+            "health_distribution": {"good": 20, "tolerated": 3},
+        },
+        "period_b": {
+            "from": "2026-03-18T23:00:00Z",
+            "to": "2026-03-19T20:11:00Z",
+            "snapshots": 29,
+            "health_distribution": {"good": 29},
+        },
+        "delta": {
+            "ds_power": 0.8,
+            "ds_snr": -1.2,
+            "us_power": -0.4,
+            "uncorr_errors": 11,
+            "verdict": "degraded",
+        },
+    }
+
+    text = generate_complaint_text(
+        MOCK_SNAPSHOTS,
+        lang="de",
+        comparison_data=comparison_data,
+    )
+
+    assert "Vorher/Nachher-Vergleich als Nachweis:" in text
+    assert "Verglichen wurde 2026-03-17 23:00 bis 2026-03-18 22:59 mit 2026-03-18 23:00 bis 2026-03-19 20:11." in text
+    assert "Messpunkte: Zeitraum A 23, Zeitraum B 29." in text
+    assert "Gesamtbewertung: Verschlechtert." in text
+    assert "Dominanter Gesundheitsstatus wechselte von Gut (87%) zu Gut (100%)." in text
+
+
+def test_complaint_text_falls_back_to_english_for_unknown_language():
+    text = generate_complaint_text(MOCK_SNAPSHOTS, lang="zz")
+    assert "Key findings:" in text
+    assert "Worst downstream power:" in text
+
+
 def test_generate_report_accepts_comparison_evidence():
     comparison_data = {
         "period_a": {

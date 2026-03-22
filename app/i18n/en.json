@@ -314,6 +314,7 @@
     "event_type_snr_change": "SNR Change",
     "event_type_channel_change": "Channel Change",
     "event_type_modulation_change": "Modulation Change",
+    "event_type_modem_restart_detected": "Modem restart detected",
     "event_type_error_spike": "Error Spike",
     "event_acknowledged": "Acknowledged",
     "event_all_severities": "All Severities",

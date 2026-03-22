@@ -54,5 +54,19 @@
   "cm_resolution_raw": "Rohdaten",
   "cm_resolution_1min": "1-Min-Durchschnitte",
   "cm_resolution_5min": "5-Min-Durchschnitte",
-  "cm_resolution_1hr": "1-Std-Durchschnitte"
+  "cm_resolution_1hr": "1-Std-Durchschnitte",
+  "traceroute.run_button": "Traceroute starten",
+  "traceroute.running": "Traceroute wird ausgeführt...",
+  "traceroute.result": "Traceroute-Ergebnis",
+  "traceroute.trigger_manual": "Manuell",
+  "traceroute.trigger_outage": "Ausfall",
+  "traceroute.trigger_packet_loss": "Paketverlust",
+  "traceroute.hop": "Hop",
+  "traceroute.hops": "Hops",
+  "traceroute.reached": "Ziel erreicht",
+  "traceroute.not_reached": "Ziel nicht erreicht",
+  "traceroute.history": "Traceroute-Verlauf",
+  "traceroute.no_traces": "Noch keine Traceroutes aufgezeichnet.",
+  "traceroute.probes_responded": "Antworten",
+  "traceroute.partial_result": "Teilergebnis (Zeitüberschreitung)"
 }

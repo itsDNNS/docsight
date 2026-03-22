@@ -82,6 +82,33 @@ class ConnectionMonitorStorage:
                     created_at REAL NOT NULL
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS traceroute_traces (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    target_id INTEGER NOT NULL,
+                    timestamp REAL NOT NULL,
+                    trigger_reason TEXT NOT NULL,
+                    hop_count INTEGER NOT NULL,
+                    route_fingerprint TEXT,
+                    reached_target INTEGER NOT NULL DEFAULT 0,
+                    is_demo INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (target_id) REFERENCES connection_targets(id) ON DELETE CASCADE
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_traces_target_ts ON traceroute_traces(target_id, timestamp)")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS traceroute_hops (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    trace_id INTEGER NOT NULL,
+                    hop_index INTEGER NOT NULL,
+                    hop_ip TEXT,
+                    hop_host TEXT,
+                    latency_ms REAL,
+                    probes_responded INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (trace_id) REFERENCES traceroute_traces(id) ON DELETE CASCADE
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_hops_trace ON traceroute_hops(trace_id)")
 
     # --- Pinned Days ---
 
@@ -544,6 +571,83 @@ class ConnectionMonitorStorage:
                 tid, cutoff=now - self._TIER_300S_MAX_AGE,
                 source_seconds=300, target_seconds=3600
             )
+
+    # --- Traceroute CRUD ---
+
+    def save_trace(self, target_id, timestamp, trigger_reason, hops,
+                   route_fingerprint, reached_target, is_demo=False):
+        with self._connect() as conn:
+            cur = conn.execute(
+                """INSERT INTO traceroute_traces
+                   (target_id, timestamp, trigger_reason, hop_count,
+                    route_fingerprint, reached_target, is_demo)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (target_id, timestamp, trigger_reason, len(hops),
+                 route_fingerprint, int(reached_target), int(is_demo)),
+            )
+            trace_id = cur.lastrowid
+            if hops:
+                conn.executemany(
+                    """INSERT INTO traceroute_hops
+                       (trace_id, hop_index, hop_ip, hop_host, latency_ms, probes_responded)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    [(trace_id, h["hop_index"], h["hop_ip"], h.get("hop_host"),
+                      h.get("latency_ms"), h.get("probes_responded", 0)) for h in hops],
+                )
+            return trace_id
+
+    def get_traces(self, target_id, start=None, end=None, limit=100):
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            sql = "SELECT * FROM traceroute_traces WHERE target_id = ?"
+            params = [target_id]
+            if start is not None:
+                sql += " AND timestamp >= ?"
+                params.append(start)
+            if end is not None:
+                sql += " AND timestamp <= ?"
+                params.append(end)
+            sql += " ORDER BY timestamp DESC LIMIT ?"
+            params.append(limit)
+            rows = conn.execute(sql, params).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_trace(self, trace_id):
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT * FROM traceroute_traces WHERE id = ?", (trace_id,)
+            ).fetchone()
+            return dict(row) if row else None
+
+    def get_trace_hops(self, trace_id):
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM traceroute_hops WHERE trace_id = ? ORDER BY hop_index",
+                (trace_id,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def cleanup_traces(self, retention_days):
+        if not retention_days:
+            return
+        import time as _time
+        cutoff = _time.time() - (retention_days * 86400)
+        pinned = self.get_pinned_days()
+        with self._connect() as conn:
+            if pinned:
+                placeholders = ",".join("?" * len(pinned))
+                conn.execute(
+                    f"DELETE FROM traceroute_traces WHERE timestamp < ? AND date(timestamp, 'unixepoch') NOT IN ({placeholders})",
+                    [cutoff] + [p["date"] for p in pinned],
+                )
+            else:
+                conn.execute("DELETE FROM traceroute_traces WHERE timestamp < ?", (cutoff,))
+
+    def purge_demo_traces(self):
+        with self._connect() as conn:
+            conn.execute("DELETE FROM traceroute_traces WHERE is_demo = 1")
 
     # --- Retention ---
 

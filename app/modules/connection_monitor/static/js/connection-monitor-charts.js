@@ -3,7 +3,7 @@
  * All targets overlaid in one chart with threshold zones and packet loss markers.
  * Uses renderChart() from chart-engine.js with custom loss markers plugin.
  */
-/* global renderChart, charts, zoomPlugin, bandPlugin */
+/* global renderChart, charts */
 var CMCharts = (function() {
     'use strict';
 
@@ -15,6 +15,102 @@ var CMCharts = (function() {
         'rgba(52,211,153,0.9)',   // teal
         'rgba(251,113,133,0.9)'   // pink
     ];
+
+    /**
+     * uPlot plugin: drag-to-zoom on X-axis, double-click to reset.
+     * Requires zoomable:true in renderChart opts (disables fixed x-scale range).
+     */
+    function zoomPlugin() {
+        function showResetBtn(u) {
+            if (u._resetBtn) { u._resetBtn.style.display = ''; return; }
+            var btn = document.createElement('button');
+            btn.textContent = '\u2715 Reset Zoom';
+            btn.style.cssText = 'position:absolute;top:8px;right:8px;z-index:10;' +
+                'font-size:0.7rem;padding:3px 8px;border:1px solid rgba(255,255,255,0.2);' +
+                'border-radius:4px;background:rgba(30,30,30,0.85);color:#ccc;cursor:pointer;' +
+                'backdrop-filter:blur(4px);transition:opacity 0.15s;';
+            btn.onmouseenter = function() { btn.style.color = '#fff'; };
+            btn.onmouseleave = function() { btn.style.color = '#ccc'; };
+            btn.onclick = function() {
+                u._zoomRange = null;
+                u.setScale('x', { min: 0, max: u.data[0].length - 1 });
+                btn.style.display = 'none';
+            };
+            u.root.style.position = 'relative';
+            u.root.appendChild(btn);
+            u._resetBtn = btn;
+        }
+        function hideResetBtn(u) {
+            if (u._resetBtn) u._resetBtn.style.display = 'none';
+        }
+        return {
+            hooks: {
+                init: [function(u) {
+                    u.over.style.cursor = 'crosshair';
+                    // Hint: show drag-to-zoom tooltip on first hover
+                    u.over.title = 'Drag to zoom, double-click to reset';
+                }],
+                ready: [function(u) {
+                    u.over.addEventListener('dblclick', function() {
+                        u._zoomRange = null;
+                        u.setScale('x', { min: 0, max: u.data[0].length - 1 });
+                        hideResetBtn(u);
+                    });
+                }],
+                setSelect: [function(u) {
+                    var min = u.posToVal(u.select.left, 'x');
+                    var max = u.posToVal(u.select.left + u.select.width, 'x');
+                    if (max - min > 1) {
+                        u._zoomRange = { min: min, max: max };
+                        u.setScale('x', u._zoomRange);
+                        showResetBtn(u);
+                    }
+                    u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
+                }]
+            }
+        };
+    }
+
+    /**
+     * uPlot plugin: fill a band between two series (min/max range for aggregated data).
+     */
+    function bandPlugin(minSeriesIdx, maxSeriesIdx, color) {
+        return {
+            hooks: {
+                draw: [function(u) {
+                    var ctx = u.ctx;
+                    var minData = u.data[minSeriesIdx];
+                    var maxData = u.data[maxSeriesIdx];
+                    if (!minData || !maxData) return;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
+                    ctx.clip();
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    var started = false;
+                    for (var i = 0; i < maxData.length; i++) {
+                        if (maxData[i] != null && minData[i] != null) {
+                            var x = u.valToPos(u.data[0][i], 'x', true);
+                            var y = u.valToPos(maxData[i], u.series[minSeriesIdx].scale, true);
+                            if (!started) { ctx.moveTo(x, y); started = true; }
+                            else ctx.lineTo(x, y);
+                        }
+                    }
+                    for (var i = minData.length - 1; i >= 0; i--) {
+                        if (maxData[i] != null && minData[i] != null) {
+                            var x = u.valToPos(u.data[0][i], 'x', true);
+                            var y = u.valToPos(minData[i], u.series[minSeriesIdx].scale, true);
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }]
+            }
+        };
+    }
 
     /**
      * uPlot plugin: draw red vertical lines at packet loss indices.
@@ -139,13 +235,25 @@ var CMCharts = (function() {
 
         var lossIndices = Object.keys(lossSet).map(Number).sort(function(a, b) { return a - b; });
 
+        // Compute dynamic Y-max from actual data with headroom
+        var dataMax = 0;
+        datasets.forEach(function(ds) {
+            ds.data.forEach(function(v) { if (v != null && v > dataMax) dataMax = v; });
+        });
+        // 40ms floor ensures green zone is always visible with breathing room.
+        // Above 30ms: moderate headroom. Above 100ms: tighter headroom.
+        var yMax;
+        if (dataMax <= 30) yMax = 40;
+        else if (dataMax <= 100) yMax = Math.ceil(dataMax * 1.2);
+        else yMax = Math.ceil(dataMax * 1.15);
+
         // PingPlotter-style threshold zones (vertically scaled backgrounds)
         // lineColor: transparent suppresses the dashed boundary lines
         var zones = [
             { min: 0, max: 30, color: 'rgba(34,197,94,0.12)', lineColor: 'transparent' },
             { min: 30, max: 100, color: 'rgba(234,179,8,0.10)', lineColor: 'transparent' },
             { min: 100, max: 10000, color: 'rgba(239,68,68,0.08)', lineColor: 'transparent' },
-            { yMin: 0, yMax: 200 }
+            { yMin: 0, yMax: yMax }
         ];
 
         renderChart(containerId, labels, datasets, 'line', zones, {

@@ -51,6 +51,7 @@ def make_template(source):
     Rules:
         - String values become ""
         - List values become []
+        - Dict values recurse into empty-string templates
         - The _meta object becomes {"language_name": "", "flag": ""}
         - Everything else (unexpected) is kept as-is for safety
     """
@@ -58,6 +59,8 @@ def make_template(source):
     for key, value in source.items():
         if key == "_meta" and isinstance(value, dict):
             template[key] = {"language_name": "", "flag": ""}
+        elif isinstance(value, dict):
+            template[key] = make_template(value)
         elif isinstance(value, str):
             template[key] = ""
         elif isinstance(value, list):
@@ -66,6 +69,19 @@ def make_template(source):
             # Unexpected type -- keep it so nothing is silently lost
             template[key] = value
     return template
+
+
+def flatten_key_paths(value, prefix=""):
+    """Return nested dotted key paths for dict structures."""
+    if not isinstance(value, dict):
+        return set()
+
+    paths = set()
+    for key, child in value.items():
+        path = f"{prefix}.{key}" if prefix else key
+        paths.add(path)
+        paths.update(flatten_key_paths(child, path))
+    return paths
 
 
 def cmd_generate():
@@ -101,14 +117,14 @@ def cmd_validate():
     for label, i18n_dir in dirs:
         en_path = i18n_dir / "en.json"
         source = load_json(en_path)
-        source_keys = set(source.keys())
+        source_keys = flatten_key_paths(source)
 
         for lang_file in sorted(i18n_dir.glob("*.json")):
             if lang_file.name in SKIP_FILES:
                 continue
 
             lang = load_json(lang_file)
-            lang_keys = set(lang.keys())
+            lang_keys = flatten_key_paths(lang)
 
             missing = source_keys - lang_keys
             extra = lang_keys - source_keys

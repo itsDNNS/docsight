@@ -1,7 +1,9 @@
 """Speedtest module routes."""
 
 import logging
+import time
 
+import requests
 from flask import Blueprint, request, jsonify
 
 from app.web import require_auth, get_config_manager, get_state, get_storage
@@ -14,6 +16,10 @@ bp = Blueprint("speedtest_module", __name__)
 
 # Lazy-initialized module-local storage
 _storage = None
+
+# Rate-limit: track last manual trigger timestamp
+_last_trigger_ts = 0
+_TRIGGER_COOLDOWN = 60  # seconds
 
 
 def _get_speedtest_storage():
@@ -104,15 +110,35 @@ def api_speedtest():
     if ss:
         try:
             from .client import SpeedtestClient
+            stt_url = _config_manager.get("speedtest_tracker_url")
             client = SpeedtestClient(
-                _config_manager.get("speedtest_tracker_url"),
+                stt_url,
                 _config_manager.get("speedtest_tracker_token"),
             )
+            # Detect server switch and clear stale cache
+            ss.check_source_url(stt_url)
             cached_count = ss.get_speedtest_count()
+            last_id = ss.get_latest_speedtest_id()
+            # ID-reset detection: compare remote max ID with cache max ID
+            if cached_count > 0 and last_id > 0:
+                remote_latest, fetch_err = client.get_latest_with_error(1)
+                if fetch_err is None and not remote_latest:
+                    # Remote is reachable but empty — server was wiped
+                    log.info("Remote has no results but cache has %d, clearing", cached_count)
+                    ss.clear_cache()
+                    from app.web import clear_speedtest_latest
+                    clear_speedtest_latest()
+                    cached_count = 0
+                elif remote_latest and remote_latest[0].get("id", 0) < last_id:
+                    log.info(
+                        "Speedtest ID reset detected (cache max=%d, remote max=%d), rebuilding",
+                        last_id, remote_latest[0]["id"],
+                    )
+                    ss.clear_cache()
+                    cached_count = 0
             if cached_count < 50:
                 new_results = client.get_results(per_page=2000)
             else:
-                last_id = ss.get_latest_speedtest_id()
                 new_results = client.get_newer_than(last_id)
             if new_results:
                 ss.save_speedtest_results(new_results)
@@ -193,3 +219,59 @@ def api_speedtest_signal(result_id):
         "us_total": s.get("us_total", 0),
         "us_channels": us_channels,
     })
+
+
+@bp.route("/api/speedtest/run", methods=["POST"])
+@require_auth
+def api_speedtest_run():
+    """Trigger a speedtest run via the Speedtest Tracker API."""
+    global _last_trigger_ts
+    _config_manager = get_config_manager()
+    if not _config_manager or not _config_manager.is_speedtest_configured():
+        return jsonify({"success": False, "error": "Speedtest Tracker not configured"}), 400
+
+    if _config_manager.is_demo_mode():
+        return jsonify({"success": False, "error": "Not available in demo mode"}), 400
+
+    now = time.time()
+    if now - _last_trigger_ts < _TRIGGER_COOLDOWN:
+        remaining = int(_TRIGGER_COOLDOWN - (now - _last_trigger_ts))
+        return jsonify({"success": False, "error": f"Rate limited, retry in {remaining}s"}), 429
+
+    url = _config_manager.get("speedtest_tracker_url", "").rstrip("/")
+    token = _config_manager.get("speedtest_tracker_token", "")
+    try:
+        resp = requests.post(
+            f"{url}/api/v1/speedtests/run",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+            timeout=90,
+        )
+        if resp.status_code == 201:
+            _last_trigger_ts = now
+            log.info("Speedtest manually triggered via UI")
+            return jsonify({"success": True})
+        else:
+            error = f"Speedtest Tracker returned {resp.status_code}"
+            log.warning("Manual speedtest trigger failed: %s", error)
+            return jsonify({"success": False, "error": error}), 502
+    except requests.ConnectionError:
+        return jsonify({"success": False, "error": "Cannot reach Speedtest Tracker"}), 502
+    except requests.Timeout:
+        return jsonify({"success": False, "error": "Speedtest Tracker timeout"}), 504
+    except Exception as e:
+        log.warning("Manual speedtest trigger error: %s", e)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route("/api/speedtest/cache", methods=["DELETE"])
+@require_auth
+def api_speedtest_clear_cache():
+    """Clear the local speedtest results cache."""
+    ss = _get_speedtest_storage()
+    if not ss:
+        return jsonify({"success": False, "error": "Storage not initialized"}), 500
+    count = ss.clear_cache()
+    from app.web import clear_speedtest_latest
+    clear_speedtest_latest()
+    log.info("Speedtest cache cleared via API (%d results removed)", count)
+    return jsonify({"success": True, "cleared": count})

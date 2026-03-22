@@ -19,5 +19,9 @@
   "speedtest_setup_step_2": "Gehe in Speedtest Tracker zu <b>Einstellungen &rarr; API</b> und erstelle ein API-Token",
   "speedtest_setup_step_3": "Füge deine Speedtest Tracker <b>URL</b> und dein <b>API-Token</b> in den DOCSight <b>Einstellungen</b> ein",
   "speedtest_no_data": "Keine Speedtest-Ergebnisse verfügbar.",
-  "speedtest_setup": "Speedtest Einrichtung"
+  "speedtest_setup": "Speedtest Einrichtung",
+  "run_speedtest": "Speedtest starten",
+  "speedtest_running": "Läuft...",
+  "speedtest_complete": "Speedtest abgeschlossen",
+  "speedtest_timeout": "Speedtest dauert länger als erwartet. Aktualisiere die Seite."
 }

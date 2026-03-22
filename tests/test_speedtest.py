@@ -320,3 +320,91 @@ class TestSpeedtestAPI:
             resp = client.get("/api/speedtest?days=7")
             assert resp.status_code == 200
             assert resp.get_json() == []
+
+
+class TestSpeedtestRun:
+    """Tests for POST /api/speedtest/run."""
+
+    def _reset_rate_limit(self):
+        import app.modules.speedtest.routes as sr
+        sr._last_trigger_ts = 0
+
+    @patch("app.modules.speedtest.routes.requests.post")
+    def test_run_success(self, mock_post, speedtest_client):
+        self._reset_rate_limit()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 201
+        mock_post.return_value = mock_resp
+
+        resp = speedtest_client.post("/api/speedtest/run")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        mock_post.assert_called_once()
+
+    @patch("app.modules.speedtest.routes.requests.post")
+    def test_run_rate_limited(self, mock_post, speedtest_client):
+        self._reset_rate_limit()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 201
+        mock_post.return_value = mock_resp
+
+        resp1 = speedtest_client.post("/api/speedtest/run")
+        assert resp1.status_code == 200
+
+        resp2 = speedtest_client.post("/api/speedtest/run")
+        assert resp2.status_code == 429
+        assert "Rate limited" in resp2.get_json()["error"]
+
+    @patch("app.modules.speedtest.routes.requests.post")
+    def test_run_stt_error(self, mock_post, speedtest_client):
+        self._reset_rate_limit()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_post.return_value = mock_resp
+
+        resp = speedtest_client.post("/api/speedtest/run")
+        assert resp.status_code == 502
+        assert resp.get_json()["success"] is False
+
+    @patch("app.modules.speedtest.routes.requests.post")
+    def test_run_connection_error(self, mock_post, speedtest_client):
+        self._reset_rate_limit()
+        import requests as req
+        mock_post.side_effect = req.ConnectionError("refused")
+
+        resp = speedtest_client.post("/api/speedtest/run")
+        assert resp.status_code == 502
+        assert "Cannot reach" in resp.get_json()["error"]
+
+    def test_run_not_configured(self, tmp_path):
+        data_dir = str(tmp_path / "data3")
+        mgr = ConfigManager(data_dir)
+        mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
+        init_config(mgr)
+        init_storage(None)
+        _reset_speedtest_module_storage()
+        app.config["TESTING"] = True
+        with app.test_client() as client:
+            resp = client.post("/api/speedtest/run")
+            assert resp.status_code == 400
+            assert "not configured" in resp.get_json()["error"]
+
+    def test_run_blocked_in_demo_mode(self, tmp_path):
+        data_dir = str(tmp_path / "data4")
+        mgr = ConfigManager(data_dir)
+        mgr.save({
+            "modem_password": "test",
+            "modem_type": "fritzbox",
+            "demo_mode": True,
+            "speedtest_tracker_url": "http://speedtest.local:8999",
+            "speedtest_tracker_token": "test-token",
+        })
+        init_config(mgr)
+        init_storage(None)
+        _reset_speedtest_module_storage()
+        app.config["TESTING"] = True
+        with app.test_client() as client:
+            resp = client.post("/api/speedtest/run")
+            assert resp.status_code == 400
+            assert "demo" in resp.get_json()["error"].lower()

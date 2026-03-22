@@ -23,6 +23,13 @@ var _currentSeverityFilter = '';
 var _hideOperational = true;
 var _OPERATIONAL_EVENT_TYPES = { monitoring_started: true, monitoring_stopped: true };
 
+function _eventTypeLabel(eventType) {
+    var explicit = _eventTypeLabels[eventType];
+    if (explicit) return explicit;
+    var i18nKey = 'event_type_' + eventType;
+    return T[i18nKey] || eventType;
+}
+
 /* ── Rich event message formatter ── */
 function _fmtNum(n) {
     if (typeof n !== 'number') return escapeHtml(String(n));
@@ -196,7 +203,7 @@ function loadEvents(append) {
                 var sevLabel = _sevLabels[ev.severity] || ev.severity;
                 var sevIcons = { info: 'info', warning: 'triangle-alert', critical: 'octagon-alert' };
                 var sevIcon = sevIcons[ev.severity] || 'info';
-                var typeLabel = _eventTypeLabels[ev.event_type] || ev.event_type;
+                var typeLabel = _eventTypeLabel(ev.event_type);
                 // Note: escapeHtml is used on all user-facing content to prevent XSS.
                 // The ack button uses a hardcoded event ID (integer) which is safe.
                 var ackBtn = ev.acknowledged

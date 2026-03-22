@@ -116,6 +116,13 @@ def api_demo_migrate():
         return jsonify({"success": False, "error": "Storage not initialized"}), 500
     try:
         purged = _storage.purge_demo_data()
+        # Purge demo traceroute traces from Connection Monitor
+        import os
+        from app.modules.connection_monitor.storage import ConnectionMonitorStorage
+        cm_db_path = os.path.join(os.environ.get("DATA_DIR", "/data"), "connection_monitor.db")
+        if os.path.exists(cm_db_path):
+            cm_storage = ConnectionMonitorStorage(cm_db_path)
+            cm_storage.purge_demo_traces()
         _config_manager.save({"demo_mode": False})
         _storage.max_days = _config_manager.get("history_days", 7)
         audit_log.info("Demo migration: ip=%s purged=%d rows", _get_client_ip(), purged)

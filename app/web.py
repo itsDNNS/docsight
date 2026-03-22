@@ -657,6 +657,12 @@ def update_state(analysis=None, error=None, poll_interval=None, connection_info=
             _state["weather_latest"] = weather_latest
 
 
+def clear_speedtest_latest():
+    """Clear the cached speedtest_latest from state (e.g. after server reset)."""
+    with _state_lock:
+        _state["speedtest_latest"] = None
+
+
 def get_state() -> dict:
     """Return a snapshot of the shared web state (thread-safe)."""
     with _state_lock:
