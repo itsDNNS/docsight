@@ -255,6 +255,17 @@ def api_bqm_import():
     })
 
 
+_MAX_CSV_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+@bp.before_request
+def _limit_csv_upload():
+    """Reject oversized uploads before Flask parses the multipart body."""
+    if request.path == "/api/bqm/import-csv" and request.method == "POST":
+        if request.content_length and request.content_length > _MAX_CSV_SIZE:
+            return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
+
+
 @bp.route("/api/bqm/import-csv", methods=["POST"])
 @require_auth
 def api_bqm_import_csv():
@@ -265,16 +276,11 @@ def api_bqm_import_csv():
     if not bs:
         return jsonify({"error": "No storage"}), 500
 
-    _MAX_CSV_SIZE = 50 * 1024 * 1024  # 50 MB
-
     f = request.files.get("file")
     if not f:
         return jsonify({"error": "No file provided"}), 400
 
-    # Check Content-Length header before reading (server-level protection)
-    if request.content_length and request.content_length > _MAX_CSV_SIZE:
-        return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
-
+    # Read and check actual file size (not request size)
     raw = f.read()
     if len(raw) > _MAX_CSV_SIZE:
         return jsonify({"error": f"File too large (max {_MAX_CSV_SIZE // 1024 // 1024} MB)"}), 413
