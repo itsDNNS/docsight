@@ -255,6 +255,44 @@ def api_bqm_import():
     })
 
 
+@bp.route("/api/bqm/import-csv", methods=["POST"])
+@require_auth
+def api_bqm_import_csv():
+    """Bulk-import BQM CSV data (e.g. 12-month ThinkBroadband export)."""
+    from .csv_parser import parse_bqm_csv
+
+    bs = _get_bqm_storage()
+    if not bs:
+        return jsonify({"error": "No storage"}), 500
+
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"error": "No file provided"}), 400
+
+    content = f.read().decode("utf-8", errors="replace")
+    if not content.strip():
+        return jsonify({"error": "Empty file"}), 400
+
+    try:
+        rows = parse_bqm_csv(content)
+    except ValueError as exc:
+        return jsonify({"error": f"Invalid CSV: {exc}"}), 400
+
+    if not rows:
+        return jsonify({"error": "CSV contained no valid data rows"}), 400
+
+    bs.store_csv_data(rows)
+    dates = sorted(set(r["date"] for r in rows))
+    log.info("BQM CSV import: %d rows across %d days (%s to %s)",
+             len(rows), len(dates), dates[0], dates[-1])
+
+    return jsonify({
+        "imported_rows": len(rows),
+        "days": len(dates),
+        "date_range": {"start": dates[0], "end": dates[-1]},
+    })
+
+
 @bp.route("/api/bqm/images", methods=["DELETE"])
 @require_auth
 def api_bqm_delete():

@@ -518,6 +518,41 @@ function detectDateFromFilename(filename) {
     return '';
 }
 
+/* ── CSV Bulk Import ── */
+
+function importBqmCsv() {
+    var input = document.getElementById('bqm-csv-file');
+    if (!input || !input.files.length) return;
+    var btn = document.getElementById('bqm-csv-import-btn');
+    var status = document.getElementById('bqm-csv-import-status');
+    if (btn) btn.disabled = true;
+    if (status) { status.textContent = 'Importing...'; status.className = 'bqm-csv-status'; }
+
+    var formData = new FormData();
+    formData.append('file', input.files[0]);
+
+    fetch('/api/bqm/import-csv', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                if (status) { status.textContent = data.error; status.className = 'bqm-csv-status error'; }
+            } else {
+                if (status) {
+                    status.textContent = data.imported_rows + ' rows imported (' + data.days + ' days, ' + data.date_range.start + ' to ' + data.date_range.end + ')';
+                    status.className = 'bqm-csv-status ok';
+                }
+                if (typeof loadBqmCalendar === 'function') loadBqmCalendar();
+            }
+        })
+        .catch(function(err) {
+            if (status) { status.textContent = 'Error: ' + err.message; status.className = 'bqm-csv-status error'; }
+        })
+        .finally(function() {
+            if (btn) btn.disabled = false;
+            if (input) input.value = '';
+        });
+}
+
 function openBqmImportModal() {
     _bqmImportFiles = [];
     var modal = document.getElementById('bqm-import-modal');
