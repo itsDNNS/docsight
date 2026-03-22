@@ -10,7 +10,6 @@
 .bqm-month-nav {
     display: inline-flex; align-items: center; gap: 4px;
 }
-.bqm-slideshow-controls { max-width: 420px; margin-left: auto; margin-right: auto; }
 .bqm-nav-btn {
     background: none; border: 1px solid var(--input-border);
     color: var(--text); border-radius: 4px; cursor: pointer;
@@ -82,30 +81,6 @@
 .bqm-day.range-start::after, .bqm-day.range-end::after { opacity: 0; }
 .bqm-day.other-month { opacity: 0.3; }
 
-/* Slideshow controls */
-.bqm-slideshow-controls {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-bottom: 12px;
-}
-.bqm-ctrl-btn {
-    background: none; border: 1px solid var(--input-border);
-    color: var(--text); border-radius: 6px; cursor: pointer;
-    padding: 6px 10px; display: inline-flex; align-items: center;
-    transition: all 0.15s ease;
-}
-.bqm-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
-.bqm-ctrl-btn svg { width: 16px; height: 16px; }
-.bqm-ctrl-btn.playing {
-    border-color: var(--accent-purple, var(--accent));
-    color: var(--accent-purple, var(--accent));
-    background: rgba(168,85,247,0.1);
-}
-.bqm-speed-tabs {
-    display: inline-flex; align-items: center; gap: 4px;
-}
-.bqm-speed-label {
-    font-size: 0.8em; color: var(--text-muted, #888); margin-right: 2px;
-}
 .bqm-range-label {
     font-size: 0.8em; color: var(--text-muted, #888); margin-left: auto;
 }

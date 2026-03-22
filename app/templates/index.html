@@ -956,22 +956,7 @@
         </div>
         <div id="bqm-calendar-grid" class="bqm-calendar-grid"></div>
     </div>
-    <!-- Slideshow controls -->
-    <div id="bqm-slideshow-controls" class="bqm-slideshow-controls">
-        <button id="bqm-play-btn" class="bqm-ctrl-btn" title="{{ t.bqm_play }}">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="6,4 20,12 6,20"/></svg>
-        </button>
-        <button id="bqm-stop-btn" class="bqm-ctrl-btn" title="{{ t.bqm_stop }}" style="display:none;">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-        </button>
-        <div class="bqm-speed-tabs" id="bqm-speed-tabs">
-            <span class="bqm-speed-label">{{ t.bqm_speed }}:</span>
-            <button class="trend-tab" data-speed="1000">1s</button>
-            <button class="trend-tab active" data-speed="2000">2s</button>
-            <button class="trend-tab" data-speed="5000">5s</button>
-        </div>
-        <span id="bqm-range-label" class="bqm-range-label"></span>
-    </div>
+    <span id="bqm-range-label" class="bqm-range-label"></span>
     <div id="bqm-content">
         <div id="bqm-card" class="bqm-card" style="display:none;">
             <div class="chart-card-header">
@@ -983,6 +968,10 @@
                     <div class="chart-label">{{ t.bqm_title }}</div>
                     <span id="bqm-live-badge" class="bqm-live-badge" style="display:none;">{{ t.bqm_live }}</span>
                     <span id="bqm-last-updated" class="bqm-last-updated" style="display:none;"></span>
+                </div>
+                <div id="bqm-view-toggle" class="trend-tabs" style="display:none;">
+                    <button class="trend-tab active" id="bqm-toggle-uplot">uPlot</button>
+                    <button class="trend-tab" id="bqm-toggle-png">PNG</button>
                 </div>
             </div>
             <div id="bqm-chart-container" class="bqm-chart-container" style="display:none;"></div>
@@ -2358,7 +2347,6 @@ var T = {{ t|tojson }};
 
         stopAutoRefresh();
         if (typeof stopBqmLiveRefresh === 'function') stopBqmLiveRefresh();
-        if (typeof stopBqmSlideshow === 'function') stopBqmSlideshow();
 
         // View-specific init callbacks
         if (view === 'live') {
@@ -2421,7 +2409,7 @@ var T = {{ t|tojson }};
 
     /* BNetzA Breitbandmessung → integrations.js */
 
-    /* BQM Calendar, Live, Slideshow → bqm.js */
+    /* BQM Calendar, Live → bqm.js */
 
     /* ── Auto Refresh with Countdown ── */
     var refreshTimer = null;

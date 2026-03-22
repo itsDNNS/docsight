@@ -103,7 +103,7 @@ var BQMChart = (function() {
                 loss: {
                     range: function(u, dmin, dmax) {
                         var maxVal = Math.max(lossMax, dmax || 0, 1);
-                        return [0, maxVal];
+                        return [maxVal, 0];
                     },
                 },
             },

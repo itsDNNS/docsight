@@ -416,8 +416,55 @@ class TestBqmUiRender:
         assert 'id="bqm-30d-btn"' in html
         assert '/modules/docsight.bqm/static/js/bqm-chart.js' in html
 
+    def test_index_renders_view_toggle(self, bqm_client):
+        """Toggle buttons for uPlot/PNG must exist in the BQM card header."""
+        client, _ = bqm_client
+        resp = client.get("/")
+        html = resp.get_data(as_text=True)
+        assert 'id="bqm-view-toggle"' in html
+        assert 'id="bqm-toggle-uplot"' in html
+        assert 'id="bqm-toggle-png"' in html
+
+    def test_index_no_slideshow_controls(self, bqm_client):
+        """Slideshow controls must no longer be rendered."""
+        client, _ = bqm_client
+        resp = client.get("/")
+        html = resp.get_data(as_text=True)
+        assert 'id="bqm-slideshow-controls"' not in html
+        assert 'id="bqm-play-btn"' not in html
+        assert 'id="bqm-stop-btn"' not in html
+        assert 'id="bqm-speed-tabs"' not in html
+
     def test_settings_renders_bqm_csv_fields(self, bqm_client):
         with open("app/modules/bqm/templates/bqm_settings.html", "r", encoding="utf-8") as f:
             html = f.read()
         assert 'id="bqm_url"' in html
         assert 'id="bqm_collect_time"' in html
+
+
+class TestBqmChartConfig:
+    """Verify bqm-chart.js has correct scale and toggle config."""
+
+    def test_loss_scale_inverted(self):
+        """Loss Y-axis must be inverted: range returns [maxVal, 0]."""
+        with open("app/modules/bqm/static/js/bqm-chart.js", "r") as f:
+            js = f.read()
+        # The scale range must return [maxVal, 0] (inverted), not [0, maxVal]
+        assert "return [maxVal, 0]" in js
+        assert "return [0, maxVal]" not in js
+
+    def test_toggle_logic_in_bqm_js(self):
+        """bqm.js must contain toggle handler wiring."""
+        with open("app/static/js/bqm.js", "r") as f:
+            js = f.read()
+        assert "bqm-toggle-uplot" in js
+        assert "bqm-toggle-png" in js
+        assert "updateBqmViewToggle" in js
+
+    def test_no_slideshow_in_bqm_js(self):
+        """bqm.js must not contain any slideshow references."""
+        with open("app/static/js/bqm.js", "r") as f:
+            js = f.read()
+        assert "slideshow" not in js.lower()
+        assert "bqm-play" not in js
+        assert "bqm-stop-btn" not in js
