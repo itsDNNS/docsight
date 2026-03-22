@@ -57,11 +57,10 @@ class BQMCollector(Collector):
         from .auth import is_csv_url
         bqm_url = self._config_mgr.get("bqm_url") or ""
         if not is_csv_url(bqm_url):
-            # Legacy PNG mode — skip CSV collection
-            return CollectorResult(source=self.name, data={"skipped": True, "reason": "png_mode"})
+            # Legacy PNG mode — fetch and store the graph image
+            return self._collect_png(bqm_url)
         share_id = extract_share_id(bqm_url)
         if not share_id:
-            # Legacy PNG mode or not configured — skip CSV collection
             return CollectorResult(source=self.name, data={"skipped": True, "reason": "no_csv"})
 
         graph_date = (date.today() - timedelta(days=1)).isoformat()
@@ -80,3 +79,19 @@ class BQMCollector(Collector):
             return CollectorResult.failure(self.name, f"ThinkBroadband batch aborted: {exc}")
         except ValueError as exc:
             return CollectorResult.failure(self.name, f"Invalid BQM CSV: {exc}")
+
+    def _collect_png(self, url):
+        """Legacy PNG collection: fetch graph image and store it."""
+        today = time.strftime("%Y-%m-%d")
+        from .thinkbroadband import fetch_graph
+        image = fetch_graph(url)
+        if image:
+            collect_time = self._config_mgr.get("bqm_collect_time") or "02:00"
+            if collect_time < "12:00":
+                graph_date = (date.today() - timedelta(days=1)).isoformat()
+            else:
+                graph_date = date.today().isoformat()
+            self._storage.save_bqm_graph(image, graph_date=graph_date)
+            self._last_date = today
+            return CollectorResult.ok(self.name, {"date": graph_date, "mode": "png"})
+        return CollectorResult.failure(self.name, "Failed to fetch BQM graph")

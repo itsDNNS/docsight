@@ -2,7 +2,7 @@
   "bqm_title": "BQM-Graphen",
   "bqm_optional": "optional",
   "bqm_share_url": "BQM Share-URL",
-  "bqm_url_hint": "ThinkBroadband BQM Share-Link einfügen (.png)",
+  "bqm_url_hint": "ThinkBroadband BQM Share-Link einfügen (.csv für Charts, .png für Legacy-Bilder)",
   "bqm_no_data": "Kein BQM-Graph für dieses Datum.",
   "bqm_setup_title": "Broadband Quality Monitor (BQM)",
   "bqm_setup_intro": "BQM von ThinkBroadband überwacht deine Verbindungsqualität, indem es deine öffentliche IP von externen Servern aus anpingt. DOCSight kann BQM-Graphen neben deinen Modemdaten anzeigen.",

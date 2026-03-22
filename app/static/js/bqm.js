@@ -547,7 +547,7 @@ function importBqmCsv() {
                     status.textContent = data.parsed_rows + ' rows imported (' + data.days + ' days, ' + data.date_range.start + ' to ' + data.date_range.end + ')';
                     status.className = 'bqm-csv-status ok';
                 }
-                if (typeof loadBqmCalendar === 'function') loadBqmCalendar();
+                fetchBqmDates(function() { renderBqmCalendar(_bqmCalYear, _bqmCalMonth); });
             }
         })
         .catch(function(err) {
