@@ -14,7 +14,7 @@ log = logging.getLogger("docsis.config")
 POLL_MIN = 60
 POLL_MAX = 14400
 
-SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token", "notify_webhook_token", "bqm_password"}
+SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token", "notify_webhook_token"}
 DEMO_HIDE_KEYS = {"bqm_url", "speedtest_tracker_url",
                   "notify_webhook_url", "mqtt_host", "mqtt_user", "mqtt_topic_prefix",
                   "mqtt_discovery_prefix"}
@@ -374,12 +374,8 @@ class ConfigManager:
         return bool(self.get("smokeping_url") and self.get("smokeping_targets")) or self.is_demo_mode()
 
     def is_bqm_configured(self):
-        """True if BQM CSV credentials are configured, or demo mode is active."""
-        return bool(
-            self.get("bqm_username")
-            and self.get("bqm_password")
-            and self.get("bqm_monitor_id")
-        ) or self.is_demo_mode()
+        """True if bqm_url is set or demo mode is active (BQM is optional)."""
+        return bool(self.get("bqm_url")) or self.is_demo_mode()
 
     def is_gaming_quality_enabled(self):
         """True if gaming quality index is enabled, or demo mode is active."""

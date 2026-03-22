@@ -1,4 +1,4 @@
-"""BQM collector -- daily ThinkBroadband CSV fetch."""
+"""BQM collector -- daily ThinkBroadband CSV fetch via public share URL."""
 
 import logging
 import random
@@ -6,7 +6,7 @@ import time
 from datetime import date, timedelta
 
 from app.collectors.base import Collector, CollectorResult
-from .auth import ThinkBroadbandAuth, ThinkBroadbandBatchAbort
+from .auth import extract_share_id, fetch_share_csv, ThinkBroadbandBatchAbort
 from .csv_parser import parse_bqm_csv
 from .storage import BqmStorage
 
@@ -14,11 +14,10 @@ log = logging.getLogger("docsis.collector.bqm")
 
 
 class BQMCollector(Collector):
-    """Fetches ThinkBroadband BQM CSV data once per day.
+    """Fetches ThinkBroadband BQM CSV data once per day via share URL.
 
     Uses time-of-day scheduling instead of interval-based polling.
-    If collect_time is before 12:00, the graph date is stored as yesterday
-    (the 24h export represents the previous day). Otherwise stored as today.
+    Fetches the "yesterday" CSV (00:00-23:59) which is available after 00:30.
     """
 
     name = "bqm"
@@ -28,7 +27,7 @@ class BQMCollector(Collector):
         self._config_mgr = config_mgr
         self._storage = BqmStorage(storage.db_path)
         self._last_date = None
-        self._spread_offset = random.randint(0, 120)  # 0-120 min before target
+        self._spread_offset = random.randint(0, 120)  # 0-120 min after 00:30
 
     def is_enabled(self) -> bool:
         return self._config_mgr.is_bqm_configured()
@@ -40,8 +39,8 @@ class BQMCollector(Collector):
             return False
         target = self._config_mgr.get("bqm_collect_time") or "02:00"
         h, m = map(int, target.split(":"))
-        total = h * 60 + m - self._spread_offset
-        if 0 <= total < 30:
+        total = h * 60 + m + self._spread_offset
+        if total < 30:
             total = 30  # never fire before 00:30
         target = f"{(total // 60) % 24:02d}:{total % 60:02d}"
         now_hm = time.strftime("%H:%M")
@@ -52,20 +51,16 @@ class BQMCollector(Collector):
         if today == self._last_date:
             return CollectorResult(source=self.name, data={"skipped": True})
 
-        collect_time = self._config_mgr.get("bqm_collect_time") or "02:00"
-        if collect_time < "12:00":
-            graph_date = (date.today() - timedelta(days=1)).isoformat()
-        else:
-            graph_date = date.today().isoformat()
+        bqm_url = self._config_mgr.get("bqm_url") or ""
+        share_id = extract_share_id(bqm_url)
+        if not share_id:
+            # Legacy PNG mode or not configured — skip CSV collection
+            return CollectorResult(source=self.name, data={"skipped": True, "reason": "no_csv"})
 
-        client = ThinkBroadbandAuth(
-            self._config_mgr.get("bqm_username") or "",
-            self._config_mgr.get("bqm_password") or "",
-        )
+        graph_date = (date.today() - timedelta(days=1)).isoformat()
+
         try:
-            if not client.login():
-                return CollectorResult.failure(self.name, "Failed to authenticate with ThinkBroadband")
-            content = client.download_csv(self._config_mgr.get("bqm_monitor_id") or "", graph_date)
+            content = fetch_share_csv(share_id, variant="y")
             if not content:
                 return CollectorResult.failure(self.name, "Failed to download BQM CSV")
             rows = parse_bqm_csv(content)

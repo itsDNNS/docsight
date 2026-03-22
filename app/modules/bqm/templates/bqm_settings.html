@@ -14,31 +14,14 @@
         </div>
         <div class="form-grid">
             <div class="form-field">
-                <label class="form-label" for="bqm_username">{{ t['docsight.bqm.bqm_username'] or 'Username' }}</label>
-                <input class="form-input" type="text" id="bqm_username" name="bqm_username" value="{{ config.bqm_username or '' }}">
-            </div>
-            <div class="form-field">
-                <label class="form-label" for="bqm_password">{{ t['docsight.bqm.bqm_password'] or 'Password' }}</label>
-                <input class="form-input" type="password" id="bqm_password" name="bqm_password" value="" placeholder="{% if config.bqm_password %}{{ t.saved_ph }}{% endif %}">
-            </div>
-            <div class="form-field">
-                <label class="form-label" for="bqm_monitor_id">{{ t['docsight.bqm.bqm_monitor_id'] or 'Monitor ID' }}</label>
-                <div class="bqm-validate-row">
-                    <input class="form-input" type="text" id="bqm_monitor_id" name="bqm_monitor_id" value="{{ config.bqm_monitor_id or '' }}">
-                    <button class="btn btn-secondary" type="button" onclick="validateBqmMonitor()" id="bqm-validate-btn">{{ t['docsight.bqm.bqm_validate'] or 'Validate' }}</button>
-                </div>
-                <span class="form-hint">{{ t['docsight.bqm.bqm_monitor_id_help'] or 'Enter the numeric ThinkBroadband monitor ID from your dashboard URL.' }}</span>
-                <div id="bqm-validate-status" class="bqm-validate-status"></div>
-            </div>
-            <div class="form-field">
-                <label class="form-label" for="bqm_url">{{ t['docsight.bqm.bqm_share_url'] or 'Share URL (optional, for live preview)' }}</label>
-                <input class="form-input" type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...png">
-                <span class="form-hint">{{ t['docsight.bqm.bqm_url_hint'] or 'Optional: paste your ThinkBroadband share link (.png) for live PNG preview.' }}</span>
+                <label class="form-label" for="bqm_url">{{ t['docsight.bqm.bqm_share_url'] or 'Share URL' }}</label>
+                <input class="form-input" type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...csv">
+                <span class="form-hint">{{ t['docsight.bqm.bqm_url_hint'] or 'Paste your ThinkBroadband share link. Use a CSV link for interactive charts, or PNG for legacy image mode.' }}</span>
             </div>
             <div class="form-field">
                 <label class="form-label" for="bqm_collect_time">{{ t['docsight.bqm.bqm_collect_time'] or 'Daily collection time' }}</label>
                 <input class="form-input" type="time" id="bqm_collect_time" name="bqm_collect_time" value="{{ config.bqm_collect_time }}">
-                <span class="form-hint">{{ t['docsight.bqm.bqm_collect_time_hint'] or 'Time of day to fetch the BQM graph (container timezone)' }}</span>
+                <span class="form-hint">{{ t['docsight.bqm.bqm_collect_time_hint'] or 'Time of day to fetch the BQM data (container timezone)' }}</span>
             </div>
         </div>
     </div>

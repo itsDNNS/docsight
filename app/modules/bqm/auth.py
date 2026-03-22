@@ -1,7 +1,7 @@
-"""ThinkBroadband authentication and CSV download helpers."""
+"""ThinkBroadband BQM CSV download via public share URLs."""
 
 import logging
-from datetime import date
+import re
 
 import requests
 
@@ -10,98 +10,86 @@ from app.web import APP_VERSION
 log = logging.getLogger("docsis.bqm.auth")
 
 BASE_URL = "https://www.thinkbroadband.com"
-LOGIN_PATH = "/auth/login"
-CSV_PATH = "/my-profile/broadband-quality-monitor/download-csv/{monitor_id}/{target_date}"
+SHARE_PATH = "/broadband/monitoring/quality/share/"
+
+# Match share hash from various URL formats
+_SHARE_HASH_RE = re.compile(
+    r"(?:https?://www\.thinkbroadband\.com)?(?:/broadband/monitoring/quality/share/)?"
+    r"([a-f0-9]{40,}(?:-\d+)?)"
+)
 
 
 class ThinkBroadbandBatchAbort(Exception):
     """Abort the current collection batch and let collector backoff handle retries."""
 
 
-class ThinkBroadbandAuth:
-    """Session-backed client for ThinkBroadband BQM CSV downloads."""
+def extract_share_id(url: str) -> str | None:
+    """Extract the share hash from a ThinkBroadband URL or bare hash.
 
-    def __init__(self, username: str, password: str):
-        self._username = username
-        self._password = password
-        self._session = requests.Session()
-        self._session.headers.update({
-            "User-Agent": f"DOCSight/{APP_VERSION} (+https://github.com/itsDNNS/docsight)",
-            "Accept": "text/csv,text/plain;q=0.9,*/*;q=0.8",
-        })
+    Accepts:
+        - Full share URL (PNG, CSV, XML)
+        - Bare share hash with channel suffix (e.g. abc123-2)
+    Returns the base hash (without file suffix like .png, -y.csv, -l.csv).
+    """
+    if not url:
+        return None
+    # Strip known suffixes
+    url = url.strip()
+    for suffix in (".png", "-y.csv", "-l.csv", ".csv", ".xml"):
+        if url.endswith(suffix):
+            url = url[: -len(suffix)]
+            break
+    m = _SHARE_HASH_RE.search(url)
+    return m.group(1) if m else None
 
-    def _login_request(self) -> requests.Response:
-        return self._session.post(
-            BASE_URL + LOGIN_PATH,
-            data={"username": self._username, "password": self._password},
+
+def is_csv_url(url: str) -> bool:
+    """Check if the user entered a CSV share URL (vs legacy PNG)."""
+    url = (url or "").strip().lower()
+    return url.endswith((".csv", ".xml")) or "-y.csv" in url or "-l.csv" in url
+
+
+def fetch_share_csv(share_id: str, variant: str = "y") -> str:
+    """Download CSV from a ThinkBroadband public share URL.
+
+    Args:
+        share_id: The share hash (e.g. bd77751689f2f7b8d47d99...-2)
+        variant: 'y' for yesterday, 'l' for live 24h
+    Returns:
+        CSV content as string, or empty string on failure.
+    """
+    url = f"{BASE_URL}{SHARE_PATH}{share_id}-{variant}.csv"
+    try:
+        response = requests.get(
+            url,
+            headers={
+                "User-Agent": f"DOCSight/{APP_VERSION} (+https://github.com/itsDNNS/docsight)",
+                "Accept": "text/csv,text/plain;q=0.9,*/*;q=0.8",
+            },
             timeout=30,
-            allow_redirects=True,
         )
-
-    def _csv_request(self, monitor_id: str, target_date: str) -> requests.Response:
-        return self._session.get(
-            BASE_URL + CSV_PATH.format(monitor_id=monitor_id, target_date=target_date),
-            timeout=30,
-            allow_redirects=True,
-        )
-
-    def _is_csv_response(self, response: requests.Response) -> bool:
-        content_type = (response.headers.get("Content-Type") or "").lower()
-        return response.status_code == 200 and ("csv" in content_type or response.text.startswith('"Timestamp",'))
-
-    def _handle_rate_limit(self, response: requests.Response, action: str):
         if response.status_code in (403, 429):
-            log.warning("ThinkBroadband %s aborted with HTTP %s", action, response.status_code)
+            log.warning("ThinkBroadband CSV aborted with HTTP %s", response.status_code)
             raise ThinkBroadbandBatchAbort(f"HTTP {response.status_code}")
-
-    def login(self) -> bool:
-        """Authenticate and persist the session cookie."""
-        try:
-            response = self._login_request()
-            self._handle_rate_limit(response, "login")
-            if response.status_code >= 400:
-                log.warning("ThinkBroadband login failed with HTTP %s", response.status_code)
-                return False
-            return True
-        except ThinkBroadbandBatchAbort:
-            raise
-        except requests.RequestException as exc:
-            log.warning("ThinkBroadband login request failed: %s", exc)
-            return False
-
-    def download_csv(self, monitor_id: str, target_date: str) -> str:
-        """Download a CSV export, re-authenticating once on session expiry."""
-        response = None
-        try:
-            for attempt in range(2):
-                response = self._csv_request(monitor_id, target_date)
-                self._handle_rate_limit(response, "CSV download")
-                if self._is_csv_response(response):
-                    return response.text
-                if attempt == 0 and self.login():
-                    continue
-                break
-        except ThinkBroadbandBatchAbort:
-            raise
-        except requests.RequestException as exc:
-            log.warning("ThinkBroadband CSV request failed: %s", exc)
+        if response.status_code != 200:
+            log.warning("ThinkBroadband CSV download failed: HTTP %s", response.status_code)
             return ""
-        log.warning(
-            "ThinkBroadband CSV download failed for monitor=%s date=%s with HTTP %s",
-            monitor_id,
-            target_date,
-            response.status_code if response is not None else "n/a",
-        )
+        content_type = (response.headers.get("Content-Type") or "").lower()
+        if "csv" in content_type or response.text.startswith('"Timestamp"'):
+            return response.text
+        log.warning("ThinkBroadband response is not CSV (content-type: %s)", content_type)
+        return ""
+    except ThinkBroadbandBatchAbort:
+        raise
+    except requests.RequestException as exc:
+        log.warning("ThinkBroadband CSV request failed: %s", exc)
         return ""
 
-    def validate_monitor_id(self, monitor_id: str) -> bool:
-        """Check whether the configured monitor can be downloaded with the current session."""
-        try:
-            response = self._csv_request(monitor_id, date.today().isoformat())
-            self._handle_rate_limit(response, "monitor validation")
-            return self._is_csv_response(response)
-        except ThinkBroadbandBatchAbort:
-            raise
-        except requests.RequestException as exc:
-            log.warning("ThinkBroadband monitor validation failed: %s", exc)
-            return False
+
+def validate_share_id(share_id: str) -> bool:
+    """Check whether the share ID returns valid CSV data."""
+    try:
+        csv = fetch_share_csv(share_id, variant="y")
+        return bool(csv)
+    except ThinkBroadbandBatchAbort:
+        return False

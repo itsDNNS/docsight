@@ -11,7 +11,7 @@ from app.web import (
     _valid_date, _get_client_ip, _get_tz_name,
 )
 from .storage import BqmStorage
-from .auth import ThinkBroadbandAuth, ThinkBroadbandBatchAbort
+from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort
 
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web.bqm")
@@ -169,19 +169,17 @@ def api_bqm_live():
 @bp.route("/api/bqm/validate-monitor", methods=["POST"])
 @require_auth
 def api_bqm_validate_monitor():
-    """Validate ThinkBroadband credentials and monitor id."""
+    """Validate a ThinkBroadband share URL by attempting a CSV download."""
     data = request.get_json() or {}
-    username = (data.get("username") or "").strip()
-    password = data.get("password") or ""
-    monitor_id = (data.get("monitor_id") or "").strip()
-    if not username or not password or not monitor_id:
-        return jsonify({"valid": False, "error": "Missing username, password, or monitor_id"}), 400
+    url = (data.get("url") or "").strip()
+    if not url:
+        return jsonify({"valid": False, "error": "Missing share URL"}), 400
+    share_id = extract_share_id(url)
+    if not share_id:
+        return jsonify({"valid": False, "error": "Could not extract share ID from URL"})
     try:
-        client = ThinkBroadbandAuth(username, password)
-        if not client.login():
-            return jsonify({"valid": False, "error": "Login failed: invalid credentials"})
-        if not client.validate_monitor_id(monitor_id):
-            return jsonify({"valid": False, "error": "Monitor validation failed"})
+        if not validate_share_id(share_id):
+            return jsonify({"valid": False, "error": "Share URL did not return valid CSV data"})
         return jsonify({"valid": True})
     except ThinkBroadbandBatchAbort as exc:
         return jsonify({"valid": False, "error": f"ThinkBroadband rejected the request: {exc}"})
