@@ -61,7 +61,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: 10px 20px;
+    padding: var(--space-sm) var(--space-lg);
     background: var(--accent-purple, var(--accent));
     color: #fff;
     border: none;
@@ -209,7 +209,7 @@
     width: 48px;
     height: 48px;
     object-fit: cover;
-    border-radius: var(--space-xs);
+    border-radius: var(--radius-sm);
     background: var(--bg);
 }
 .attachment-icon {
@@ -220,7 +220,7 @@
     justify-content: center;
     font-size: 1.5em;
     background: var(--bg);
-    border-radius: var(--space-xs);
+    border-radius: var(--radius-sm);
 }
 .attachment-info {
     display: flex;
@@ -267,6 +267,9 @@
 .btn-upload:hover {
     border-color: var(--accent);
     color: var(--accent);
+}
+.btn-upload:active {
+    opacity: 0.8;
 }
 .btn-upload:focus-visible {
     outline: 2px solid var(--accent);
@@ -402,7 +405,7 @@
     display: inline-block;
     font-size: 0.75em;
     padding: 1px 6px;
-    border-radius: var(--space-xs);
+    border-radius: var(--radius-sm);
     background: var(--warn, #f59e0b);
     color: #000;
     margin-left: 6px;
@@ -415,7 +418,7 @@
     display: inline-block;
     font-size: 0.7em;
     padding: 1px 6px;
-    border-radius: var(--space-xs);
+    border-radius: var(--radius-sm);
     background: var(--danger, #ef4444);
     color: #fff;
     margin-left: 6px;
@@ -692,7 +695,7 @@ mark.search-highlight {
 .incident-summary-badge {
     display: inline-block;
     padding: 2px 10px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -717,7 +720,7 @@ mark.search-highlight {
     font-size: 1rem;
     color: var(--muted);
     padding: 2px 6px;
-    border-radius: var(--space-xs);
+    border-radius: var(--radius-sm);
     transition: color 0.15s var(--ease-out-expo);
 }
 .incident-summary-edit:hover {
@@ -752,6 +755,9 @@ mark.search-highlight {
 .btn-bulk-toggle:hover {
     background: rgba(255,255,255,0.1);
     color: var(--text);
+}
+.btn-bulk-toggle:active {
+    opacity: 0.8;
 }
 .btn-bulk-toggle:focus-visible {
     outline: 2px solid var(--accent);
@@ -825,7 +831,7 @@ mark.search-highlight {
     align-items: center;
     gap: var(--space-xs);
     padding: var(--space-xs) var(--space-sm);
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     background: var(--accent-muted);
     color: var(--accent);
     font-size: 0.8rem;
@@ -1104,7 +1110,7 @@ mark.search-highlight {
     border: 1px solid var(--accent);
     color: var(--accent);
     padding: 3px 12px;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     font-size: 0.78rem;
     font-family: inherit;
     font-weight: 600;
