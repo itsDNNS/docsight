@@ -82,6 +82,11 @@
     border-color: var(--accent-purple, var(--accent));
     box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
 }
+.comparison-select:focus-visible,
+.comparison-input:focus-visible {
+    outline: 2px solid var(--amethyst);
+    outline-offset: 2px;
+}
 
 .comparison-date-pair {
     display: grid;

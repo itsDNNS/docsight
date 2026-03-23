@@ -120,6 +120,7 @@
             var rect = overEl.getBoundingClientRect();
             var left = rect.left + u.cursor.left;
             var top = rect.top + u.cursor.top;
+            // Forced reflow to measure dimensions is intentional for tooltip positioning
             var tw = tooltip.offsetWidth;
             var th = tooltip.offsetHeight;
             var x = left + 12;

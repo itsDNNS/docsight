@@ -56,7 +56,7 @@
 </header>
 
 <!-- Sidebar -->
-<nav class="sidebar" id="sidebar">
+<nav class="sidebar" id="sidebar" aria-label="Main navigation">
     <div class="sidebar-header">
         <div class="sidebar-logo"><img src="/static/logo.svg" alt="DOCSight" width="18" height="18"></div>
         <div>
@@ -69,17 +69,17 @@
         <div class="nav-section" data-nav-section="monitoring" data-nav-label="{{ t.sidebar_monitoring }}">
             <div class="nav-group-label">{{ t.sidebar_monitoring }}</div>
             <div class="nav-section-items">
-                <a class="nav-item active" data-view="live" data-nav-icon="layout-dashboard" data-nav-title="{{ t.home }}">
+                <a class="nav-item active" tabindex="0" data-view="live" data-nav-icon="layout-dashboard" data-nav-title="{{ t.home }}">
                     <i data-lucide="layout-dashboard"></i> {{ t.home }}
                 </a>
-                <a class="nav-item" data-view="events" data-nav-icon="bell" data-nav-title="{{ t.event_log }}">
+                <a class="nav-item" tabindex="0" data-view="events" data-nav-icon="bell" data-nav-title="{{ t.event_log }}">
                     <i data-lucide="bell"></i> {{ t.event_log }}
                     <span class="nav-badge" id="event-badge" style="display:none;"></span>
                 </a>
-                <a class="nav-item" data-view="channels" data-nav-icon="layers" data-nav-title="{{ t.channels }}">
+                <a class="nav-item" tabindex="0" data-view="channels" data-nav-icon="layers" data-nav-title="{{ t.channels }}">
                     <i data-lucide="layers"></i> {{ t.channels }}
                 </a>
-                <a class="nav-item" data-view="trends" data-nav-icon="trending-up" data-nav-title="{{ t.signal_trends }}">
+                <a class="nav-item" tabindex="0" data-view="trends" data-nav-icon="trending-up" data-nav-title="{{ t.signal_trends }}">
                     <i data-lucide="trending-up"></i> {{ t.signal_trends }}
                 </a>
             </div>
@@ -94,38 +94,38 @@
         {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}{% if analysis_items.append('modulation') %}{% endif %}{% endif %}
         {% if analysis_items %}
         <div class="nav-section nav-section-collapsible" data-nav-section="analysis" data-nav-label="{{ t.get('sidebar_analysis', 'Analysis') }}">
-            <div class="nav-group-label nav-group-toggle" onclick="toggleNavSection(this)">
+            <div class="nav-group-label nav-group-toggle" role="button" tabindex="0" aria-expanded="false" onclick="toggleNavSection(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 {{ t.get('sidebar_analysis', 'Analysis') }}
                 <i data-lucide="chevron-down" class="nav-toggle-icon"></i>
             </div>
             <div class="nav-section-items">
                 {% if speedtest_configured or bqm_configured %}
-                <a class="nav-item" data-view="correlation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.correlation_analysis }}">
+                <a class="nav-item" tabindex="0" data-view="correlation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.correlation_analysis }}">
                     <i data-lucide="bar-chart-3"></i> {{ t.correlation_analysis }}
                 </a>
                 {% endif %}
                 {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-                <a class="nav-item" data-view="connection-monitor" data-nav-icon="satellite-dish" data-nav-title="{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}">
+                <a class="nav-item" tabindex="0" data-view="connection-monitor" data-nav-icon="satellite-dish" data-nav-title="{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}">
                     <i data-lucide="satellite-dish"></i> {{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}
                 </a>
                 {% endif %}
                 {% if is_fritzbox and segment_utilization_enabled %}
-                <a class="nav-item" data-view="segment-utilization" data-nav-icon="gauge" data-nav-title="{{ t.seg_title }}">
+                <a class="nav-item" tabindex="0" data-view="segment-utilization" data-nav-icon="gauge" data-nav-title="{{ t.seg_title }}">
                     <i data-lucide="gauge"></i> {{ t.seg_title }}
                 </a>
                 {% endif %}
                 {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
-                <a class="nav-item" data-view="comparison" data-nav-icon="git-compare-arrows" data-nav-title="{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}">
+                <a class="nav-item" tabindex="0" data-view="comparison" data-nav-icon="git-compare-arrows" data-nav-title="{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}">
                     <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
                 </a>
                 {% endif %}
                 {% if gaming_quality_enabled %}
-                <a class="nav-item" data-view="gaming" data-nav-icon="gamepad-2" data-nav-title="{{ t.gaming_quality_label }}">
+                <a class="nav-item" tabindex="0" data-view="gaming" data-nav-icon="gamepad-2" data-nav-title="{{ t.gaming_quality_label }}">
                     <i data-lucide="gamepad-2"></i> {{ t.gaming_quality_label }}
                 </a>
                 {% endif %}
                 {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}
-                <a class="nav-item" data-view="modulation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.get('docsight.modulation.title', 'Modulation Performance') }}">
+                <a class="nav-item" tabindex="0" data-view="modulation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.get('docsight.modulation.title', 'Modulation Performance') }}">
                     <i data-lucide="bar-chart-3"></i> {{ t.get('docsight.modulation.title', 'Modulation Performance') }}
                 </a>
                 {% endif %}
@@ -137,7 +137,7 @@
             <div class="nav-section-items">
                 {% if modules|selectattr('id', 'equalto', 'docsight.speedtest')|list %}
                 {% if speedtest_configured %}
-                <a class="nav-item" data-view="speedtest" data-nav-icon="rabbit" data-nav-title="{{ t.speedtest }}">
+                <a class="nav-item" tabindex="0" data-view="speedtest" data-nav-icon="rabbit" data-nav-title="{{ t.speedtest }}">
                     <i data-lucide="rabbit"></i> {{ t.speedtest }}
                 </a>
                 {% else %}
@@ -148,7 +148,7 @@
                 {% endif %}
                 {% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
                 {% if bqm_configured %}
-                <a class="nav-item" data-view="bqm" data-nav-icon="chart-spline" data-nav-title="{{ t.bqm_title }}">
+                <a class="nav-item" tabindex="0" data-view="bqm" data-nav-icon="chart-spline" data-nav-title="{{ t.bqm_title }}">
                     <i data-lucide="chart-spline"></i> {{ t.bqm_title }}
                 </a>
                 {% else %}
@@ -159,7 +159,7 @@
                 {% endif %}
                 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
                 {% if smokeping_configured %}
-                <a class="nav-item" data-view="smokeping" data-nav-icon="radar" data-nav-title="{{ t.smokeping_title }}">
+                <a class="nav-item" tabindex="0" data-view="smokeping" data-nav-icon="radar" data-nav-title="{{ t.smokeping_title }}">
                     <i data-lucide="radar"></i> {{ t.smokeping_title }}
                 </a>
                 {% else %}
@@ -169,7 +169,7 @@
                 {% endif %}
                 {% endif %}
                 {% if bnetz_enabled and modules|selectattr('id', 'equalto', 'docsight.bnetz')|list %}
-                <a class="nav-item" data-view="bnetz" data-nav-icon="file-check" data-nav-title="{{ t.bnetz_title }}">
+                <a class="nav-item" tabindex="0" data-view="bnetz" data-nav-icon="file-check" data-nav-title="{{ t.bnetz_title }}">
                     <i data-lucide="file-check"></i> {{ t.bnetz_title }}
                 </a>
                 {% endif %}
@@ -179,17 +179,17 @@
             <div class="nav-group-label">{{ t.sidebar_documentation }}</div>
             <div class="nav-section-items">
                 {% if modules|selectattr('id', 'equalto', 'docsight.journal')|list %}
-                <a class="nav-item" data-view="journal" data-nav-icon="clipboard-list" data-nav-title="{{ t.incident_journal }}">
+                <a class="nav-item" tabindex="0" data-view="journal" data-nav-icon="clipboard-list" data-nav-title="{{ t.incident_journal }}">
                     <i data-lucide="clipboard-list"></i> {{ t.incident_journal }}
                 </a>
                 {% endif %}
-                <a class="nav-item" id="export-link" href="javascript:void(0)" onclick="exportForLLM()">
+                <button class="nav-item" id="export-link" onclick="exportForLLM()">
                     <i data-lucide="file-output"></i> {{ t.export_llm }}
-                </a>
+                </button>
                 {% if modules|selectattr('id', 'equalto', 'docsight.reports')|list %}
-                <a class="nav-item" id="report-link" href="javascript:void(0)" onclick="openReportModal()">
+                <button class="nav-item" id="report-link" onclick="openReportModal()">
                     <i data-lucide="file-text"></i> {{ t.incident_report }}
-                </a>
+                </button>
                 {% endif %}
             </div>
         </div>
@@ -202,7 +202,7 @@
             <div class="nav-group-label">{{ t.sidebar_extensions }}</div>
             <div class="nav-section-items">
                 {% for mod in tab_modules|sort(attribute='menu.order') %}
-                <a class="nav-item" data-view="mod-{{ mod.id|replace('.', '-') }}" data-nav-icon="{{ mod.menu.get('icon', 'puzzle') }}" data-nav-title="{{ t.get(mod.menu.label_key, mod.name) }}">
+                <a class="nav-item" tabindex="0" data-view="mod-{{ mod.id|replace('.', '-') }}" data-nav-icon="{{ mod.menu.get('icon', 'puzzle') }}" data-nav-title="{{ t.get(mod.menu.label_key, mod.name) }}">
                     <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}"></i>
                     {{ t.get(mod.menu.label_key, mod.name) }}
                 </a>
@@ -671,7 +671,7 @@
 
         {% for group in ds|groupby('docsis_version')|reverse %}
         <div class="docsis-group">
-            <div class="docsis-group-header" onclick="if(!event.target.closest('.glossary-hint'))this.parentElement.classList.toggle('open')">
+            <div class="docsis-group-header" role="button" tabindex="0" onclick="if(!event.target.closest('.glossary-hint'))this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 <i data-lucide="chevron-right"></i>
                 DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
             </div>
@@ -729,7 +729,7 @@
 
         {% for group in us|groupby('docsis_version')|reverse %}
         <div class="docsis-group">
-            <div class="docsis-group-header" onclick="if(!event.target.closest('.glossary-hint'))this.parentElement.classList.toggle('open')">
+            <div class="docsis-group-header" role="button" tabindex="0" onclick="if(!event.target.closest('.glossary-hint'))this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 <i data-lucide="chevron-right"></i>
                 DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
             </div>
@@ -985,10 +985,10 @@
 {% endif %}
 
 <!-- ═══ BQM Import Modal ═══ -->
-<div class="modal-overlay" id="bqm-import-modal" onclick="if(event.target===this)closeBqmImportModal()">
+<div class="modal-overlay" id="bqm-import-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-import-modal-title" onclick="if(event.target===this)closeBqmImportModal()">
     <div class="modal" style="max-width:800px;">
         <div class="modal-header">
-            <h2>{{ t.bqm_import_title }}</h2>
+            <h2 id="bqm-import-modal-title">{{ t.bqm_import_title }}</h2>
             <button class="modal-close" onclick="closeBqmImportModal()">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
@@ -1484,7 +1484,7 @@
 </div>
 
 <!-- ═══ Entry Modal ═══ -->
-<div class="modal-overlay" id="entry-modal" onclick="if(event.target===this)closeEntryModal()">
+<div class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" onclick="if(event.target===this)closeEntryModal()">
     <div class="modal" style="max-width:640px;">
         <div class="modal-header">
             <div style="display:flex;align-items:center;gap:10px;">
@@ -1543,7 +1543,7 @@
 </div>
 
 <!-- ═══ Incident Container Modal ═══ -->
-<div class="modal-overlay" id="incident-container-modal" onclick="if(event.target===this)closeIncidentModal()">
+<div class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title" onclick="if(event.target===this)closeIncidentModal()">
     <div class="modal incident-container-modal" style="max-width:560px;">
         <div class="modal-header">
             <h2 id="incident-container-modal-title"></h2>
@@ -1600,10 +1600,10 @@
 </div>
 
 <!-- ═══ Import Modal ═══ -->
-<div class="modal-overlay" id="import-modal" onclick="if(event.target===this)closeImportModal()">
+<div class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onclick="if(event.target===this)closeImportModal()">
     <div class="modal" style="max-width:900px;">
         <div class="modal-header">
-            <h2>{{ t.import_incidents }}</h2>
+            <h2 id="import-modal-title">{{ t.import_incidents }}</h2>
             <button class="modal-close" onclick="closeImportModal()">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
@@ -1878,10 +1878,10 @@
 </div><!-- /app-layout -->
 
 <!-- Speedtest Setup Modal -->
-<div class="modal-overlay" id="speedtest-setup-modal" onclick="if(event.target===this)closeSpeedtestSetupModal()">
+<div class="modal-overlay" id="speedtest-setup-modal" role="dialog" aria-modal="true" aria-labelledby="speedtest-setup-modal-title" onclick="if(event.target===this)closeSpeedtestSetupModal()">
     <div class="modal">
         <div class="modal-header">
-            <h2>&#9889; {{ t.speedtest_setup_title }}</h2>
+            <h2 id="speedtest-setup-modal-title">&#9889; {{ t.speedtest_setup_title }}</h2>
             <button class="modal-close" onclick="closeSpeedtestSetupModal()">&times;</button>
         </div>
         <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
@@ -1911,10 +1911,10 @@
 </div>
 
 <!-- BQM Setup Modal -->
-<div class="modal-overlay" id="bqm-setup-modal" onclick="if(event.target===this)closeBqmSetupModal()">
+<div class="modal-overlay" id="bqm-setup-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-setup-modal-title" onclick="if(event.target===this)closeBqmSetupModal()">
     <div class="modal">
         <div class="modal-header">
-            <h2>&#128200; {{ t.bqm_setup_title }}</h2>
+            <h2 id="bqm-setup-modal-title">&#128200; {{ t.bqm_setup_title }}</h2>
             <button class="modal-close" onclick="closeBqmSetupModal()">&times;</button>
         </div>
         <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
@@ -1946,10 +1946,10 @@
 
 <!-- Smokeping Setup Modal -->
 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
-<div class="modal-overlay" id="smokeping-setup-modal" onclick="if(event.target===this)closeSmokepingSetupModal()">
+<div class="modal-overlay" id="smokeping-setup-modal" role="dialog" aria-modal="true" aria-labelledby="smokeping-setup-modal-title" onclick="if(event.target===this)closeSmokepingSetupModal()">
     <div class="modal">
         <div class="modal-header">
-            <h2>&#128225; {{ t.smokeping_setup_title }}</h2>
+            <h2 id="smokeping-setup-modal-title">&#128225; {{ t.smokeping_setup_title }}</h2>
             <button class="modal-close" onclick="closeSmokepingSetupModal()">&times;</button>
         </div>
         <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
@@ -1972,10 +1972,10 @@
 {% endif %}
 
 <!-- Report Modal -->
-<div class="modal-overlay" id="report-modal" onclick="if(event.target===this)closeReportModal()">
+<div class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" onclick="if(event.target===this)closeReportModal()">
     <div class="modal" style="max-width:800px;">
         <div class="modal-header">
-            <h2>{{ t.incident_report }}</h2>
+            <h2 id="report-modal-title">{{ t.incident_report }}</h2>
             <button class="modal-close" onclick="closeReportModal()">&times;</button>
         </div>
         <p class="modal-hint">{{ t.report_description }}</p>
@@ -2043,7 +2043,7 @@
 </div>
 
 <!-- Chart Zoom Modal -->
-<div class="chart-zoom-overlay" id="chart-zoom-overlay" onclick="if(event.target===this)closeChartZoom()">
+<div class="chart-zoom-overlay" id="chart-zoom-overlay" role="dialog" aria-modal="true" aria-labelledby="chart-zoom-title" onclick="if(event.target===this)closeChartZoom()">
     <div class="chart-zoom-modal">
         <div class="modal-header">
             <h2 id="chart-zoom-title"></h2>
@@ -2054,10 +2054,10 @@
 </div>
 
 <!-- Export Modal -->
-<div class="modal-overlay" id="export-modal">
+<div class="modal-overlay" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
     <div class="modal">
         <div class="modal-header">
-            <h2>{{ t.export_title }}</h2>
+            <h2 id="export-modal-title">{{ t.export_title }}</h2>
             <button class="modal-close" onclick="closeExportModal()">&times;</button>
         </div>
         <p class="modal-hint">{{ t.export_hint }}</p>
@@ -2267,6 +2267,7 @@ var T = {{ t|tojson }};
         var section = labelEl.closest('.nav-section-collapsible');
         if (section) {
             section.classList.toggle('collapsed');
+            labelEl.setAttribute('aria-expanded', labelEl.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     };
@@ -2322,6 +2323,13 @@ var T = {{ t|tojson }};
         if (!link || !sidebar.contains(link)) return;
         if (isMobile()) { closeSidebar(); }
         switchView(link.getAttribute('data-view'));
+    });
+    sidebar.addEventListener('keydown', function(event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        var link = event.target.closest('.nav-item[data-view]');
+        if (!link || !sidebar.contains(link)) return;
+        event.preventDefault();
+        link.click();
     });
 
     /* ── Pill tab helpers ── */

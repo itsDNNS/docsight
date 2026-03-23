@@ -236,6 +236,7 @@ function tooltipPlugin(labels, tooltipLabelCallback) {
 
         var left = u.cursor.left;
         var top = u.cursor.top;
+        // Forced reflow to measure dimensions is intentional for tooltip positioning
         var tw = tooltip.offsetWidth;
         var th = tooltip.offsetHeight;
         var plotW = u.over.offsetWidth;
@@ -567,15 +568,19 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         });
     }
 
-    /* Responsive resize */
+    /* Responsive resize (debounced to avoid rapid setSize calls) */
+    var resizeTimer;
     var resizeObserver = new ResizeObserver(function(entries) {
         var entry = entries[0];
         var w = Math.round(entry.contentRect.width);
         if (w > 0 && Math.abs(w - chart.width) > 5) {
-            var h = Math.round(w * heightRatio);
-            if (h < minHeight) h = minHeight;
-            if (h > maxHeight) h = maxHeight;
-            chart.setSize({width: w, height: h});
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                var h = Math.round(w * heightRatio);
+                if (h < minHeight) h = minHeight;
+                if (h > maxHeight) h = maxHeight;
+                chart.setSize({width: w, height: h});
+            }, 100);
         }
     });
     resizeObserver.observe(container);

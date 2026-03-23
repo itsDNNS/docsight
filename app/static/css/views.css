@@ -5,8 +5,8 @@
 .sort-indicator { margin-left: 4px; font-size: 0.8em; opacity: 0.7; }
 
 .error-box {
-    background: rgba(244,67,54,0.15); border: 1px solid var(--crit);
-    color: var(--crit); padding: 12px; border-radius: 6px; margin-bottom: 16px;
+    background: var(--crit-muted); border: 1px solid var(--crit);
+    color: var(--crit); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px;
 }
 
 .waiting {
@@ -70,24 +70,24 @@
     cursor: pointer;
     font-family: inherit;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
     border-radius: 20px;
 }
 .trend-tab:hover {
     color: var(--text);
-    background: rgba(168,85,247,0.1);
+    background: var(--amethyst-muted);
 }
 .trend-tab.active {
     background: var(--accent-purple, var(--accent));
     color: #fff;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--amethyst) 30%, transparent);
 }
 .trend-tab.temp-toggle {
     padding: 6px 10px;
     color: var(--text-secondary, var(--muted));
     opacity: 0.6;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
 }
 .trend-tab.temp-toggle:hover { opacity: 1; background: rgba(249,115,22,0.1); }
 .trend-tab.temp-toggle.active {
@@ -110,12 +110,12 @@
     border-radius: var(--radius-md, 8px);
     padding: var(--space-lg, 20px);
     position: relative;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
 }
 .chart-card:hover {
     border-color: var(--accent-purple, var(--accent));
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+    box-shadow: 0 4px 12px var(--amethyst-muted);
 }
 
 /* Chart header with icon */
@@ -155,7 +155,7 @@
     position: absolute;
     z-index: 100;
     padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     line-height: 1.5;
     pointer-events: none;
@@ -182,17 +182,17 @@
     font-size: 1.1em;
     cursor: pointer;
     padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     line-height: 1;
     opacity: 0.6;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
     flex-shrink: 0;
 }
 .chart-expand-btn:hover {
     opacity: 1;
     color: var(--accent-purple, var(--accent));
     border-color: var(--accent-purple, var(--accent));
-    background: rgba(168,85,247,0.1);
+    background: var(--amethyst-muted);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -241,19 +241,19 @@
     cursor: pointer;
     font-family: inherit;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
     border-radius: 20px;
     white-space: nowrap;
 }
 .severity-pill:hover {
     color: var(--text);
-    background: rgba(168,85,247,0.1);
+    background: var(--amethyst-muted);
 }
 .severity-pill.active {
     background: var(--accent-purple, var(--accent));
     color: #fff;
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--amethyst) 30%, transparent);
 }
 
 /* Phase 4.3: Table card wrapper (shared — used by Events + Correlation) */
@@ -309,7 +309,7 @@
     border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 #events-table tbody tr:hover {
-    background: rgba(168,85,247,0.08);
+    background: color-mix(in srgb, var(--amethyst) 8%, transparent);
 }
 #events-table tbody tr.event-acked {
     opacity: 0.5;
@@ -388,7 +388,7 @@
     cursor: pointer;
     font-size: 0.8em;
     font-family: inherit;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
 }
 .btn-ack:hover {
     background: var(--accent-purple, var(--accent));
@@ -407,12 +407,12 @@
     font-size: 0.85em;
     font-family: inherit;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
 }
 .btn-ack-all:hover {
     background: var(--accent-purple, var(--accent));
     color: #fff;
-    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--amethyst) 30%, transparent);
 }
 
 /* Phase 4.3: Show More button */
@@ -426,7 +426,7 @@
     font-size: 0.85em;
     font-family: inherit;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
 }
 .btn-show-more:hover {
     background: var(--accent-purple, var(--accent));
@@ -496,12 +496,12 @@
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-lg, 20px);
     margin-bottom: var(--space-xl, 24px);
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
 }
 .correlation-chart-card:hover {
     border-color: var(--accent-purple, #a855f7);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
+    box-shadow: 0 4px 12px var(--amethyst-muted);
 }
 .correlation-chart-wrap {
     position: relative;
@@ -523,7 +523,7 @@
     pointer-events: none;
     background: var(--card-bg, #1e1e2e);
     border: 1px solid var(--accent-purple, #a855f7);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 8px 12px;
     font-size: 0.8em;
     z-index: 10;
@@ -558,7 +558,7 @@
     gap: 4px;
     background: transparent;
     border: 1px solid var(--card-border, var(--input-border));
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     padding: 4px 8px;
     font-size: 0.72em;
     color: var(--muted);
@@ -566,7 +566,7 @@
     transition: all 0.2s;
 }
 .chart-export-btn:hover {
-    background: rgba(168,85,247,0.1);
+    background: var(--amethyst-muted);
     border-color: var(--accent-purple, #a855f7);
     color: var(--text);
 }
@@ -577,7 +577,7 @@
     background: var(--accent-purple, #a855f7);
     color: #fff;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     padding: 4px 10px;
     font-size: 0.75em;
     cursor: pointer;
@@ -648,10 +648,10 @@
     cursor: pointer;
 }
 #correlation-table tbody tr:hover {
-    background: rgba(168,85,247,0.08);
+    background: color-mix(in srgb, var(--amethyst) 8%, transparent);
 }
 #correlation-table tbody tr.corr-highlight {
-    background: rgba(168,85,247,0.3) !important;
+    background: color-mix(in srgb, var(--amethyst) 30%, transparent) !important;
     box-shadow: inset 4px 0 0 var(--accent-purple, #a855f7);
 }
 #correlation-table tbody tr.corr-highlight td {
@@ -671,7 +671,7 @@
     letter-spacing: 0.5px;
 }
 #correlation-table .source-badge.modem {
-    background: rgba(168,85,247,0.2);
+    background: color-mix(in srgb, var(--amethyst) 20%, transparent);
     color: var(--accent-purple, #a855f7);
 }
 #correlation-table .source-badge.speedtest {
@@ -720,7 +720,7 @@
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--input-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 12px 16px;
     font-size: 0.82em;
     font-weight: normal;
@@ -768,7 +768,7 @@
     display: inline-flex;
     align-items: center;
     padding: 4px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
     gap: 6px;
     cursor: help;
@@ -794,7 +794,7 @@
 }
 .gaming-a, .gaming-b { background: rgba(76,175,80,0.15); color: var(--color-good, var(--good)); }
 .gaming-c { background: rgba(255,152,0,0.15); color: var(--color-warn, var(--warn)); }
-.gaming-d, .gaming-f { background: rgba(244,67,54,0.15); color: var(--color-crit, var(--crit)); }
+.gaming-d, .gaming-f { background: var(--crit-muted); color: var(--color-crit, var(--crit)); }
 
 /* ── Gaming Quality View ── */
 .gaming-overview {
@@ -891,6 +891,7 @@
     height: 100%;
     border-radius: 3px;
     transition: width 0.4s ease;
+    will-change: width;
 }
 .fill-good { background: var(--color-good, var(--good)); }
 .fill-warn { background: var(--color-warn, var(--warn)); }
@@ -910,7 +911,7 @@
 .gaming-gauge-band {
     display: flex;
     height: 32px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
 }
 .gaming-gauge-segment {
@@ -1020,7 +1021,7 @@
     font-size: 11px;
     white-space: nowrap;
     border-radius: 4px;
-    border: 1px solid rgba(168, 85, 247, 0.3);
+    border: 1px solid color-mix(in srgb, var(--amethyst) 30%, transparent);
     z-index: 1000;
     pointer-events: none;
 }
@@ -1036,7 +1037,7 @@
 }
 
 .hero-card.health-crit .issue-badge {
-    background: rgba(244,67,54,0.15);
+    background: var(--crit-muted);
     color: var(--color-crit, var(--crit));
 }
 
@@ -1044,12 +1045,12 @@
 /* ── Shared Button Utilities ── */
 .btn-small {
     padding: 5px 14px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
     border: none;
-    transition: all 0.15s ease;
+    transition: all 0.15s var(--ease-out-expo);
 }
 .btn-accent {
     background: var(--accent-purple, var(--accent));
@@ -1102,7 +1103,12 @@
 .compare-controls select:focus {
     outline: none;
     border-color: var(--accent-purple, var(--accent));
-    box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--amethyst) 20%, transparent);
+}
+.channel-select-styled:focus-visible,
+.compare-controls select:focus-visible {
+    outline: 2px solid var(--amethyst);
+    outline-offset: 2px;
 }
 .compare-add-btn {
     padding: 8px 18px;
@@ -1114,13 +1120,13 @@
     font-family: inherit;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
 }
 .compare-add-btn:hover {
     color: #fff;
     background: var(--accent-purple, var(--accent));
     border-color: var(--accent-purple, var(--accent));
-    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--amethyst) 30%, transparent);
 }
 .compare-chips {
     display: flex;

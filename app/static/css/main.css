@@ -141,6 +141,8 @@
 .nav-item svg { flex-shrink: 0; }
 .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
 .nav-item:active { background: rgba(255,255,255,0.06); }
+.nav-item:focus { outline: none; }
+.nav-item:focus-visible { outline: 2px solid var(--amethyst); outline-offset: -2px; }
 .nav-item.active { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--text-primary); font-weight: 550; }
 .nav-item.active::before {
   content: '';

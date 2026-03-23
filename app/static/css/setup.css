@@ -252,7 +252,11 @@
   transition: all 0.2s;
   min-height: 44px;
   width: 100%;
-  outline: none;
+}
+.form-input:focus, .form-select:focus { outline: none; }
+.form-input:focus-visible, .form-select:focus-visible {
+  outline: 2px solid var(--amethyst);
+  outline-offset: 2px;
 }
 [data-theme="light"] .form-input,
 [data-theme="light"] .form-select {
