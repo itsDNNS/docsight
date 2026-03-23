@@ -172,6 +172,10 @@ function switchChannelMode() {
         if (!sel || !sel.value) {
             document.getElementById('channel-empty').style.display = '';
             document.getElementById('channel-no-data').style.display = 'none';
+        } else {
+            // Restore info bar for already-selected channel
+            var cparts = sel.value.split('-');
+            _updateChannelInfoBar(cparts[0], cparts[1]);
         }
     }
     writeChannelHash();
