@@ -139,10 +139,10 @@ function filterEventsBySeverity(severity) {
     _currentSeverityFilter = severity;
     var pills = document.querySelectorAll('.severity-pill');
     pills.forEach(function(pill) {
-        if (pill.getAttribute('data-severity') === severity) {
-            pill.classList.add('active');
-        } else {
-            pill.classList.remove('active');
+        var isActive = pill.getAttribute('data-severity') === severity;
+        pill.classList.toggle('active', isActive);
+        if (pill.hasAttribute('aria-pressed')) {
+            pill.setAttribute('aria-pressed', String(isActive));
         }
     });
     loadEvents();
