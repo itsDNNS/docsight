@@ -1765,7 +1765,7 @@
         <h3 class="gaming-section-title">{{ t.gaming_components_title }}</h3>
         <div class="gaming-comp-grid">
         {% for key, comp in gaming_index.components.items()|sort(attribute='1.weight', reverse=true) %}
-            <div class="gaming-comp-row" tabindex="0" role="button" aria-expanded="false" onclick="this.classList.toggle('open');this.setAttribute('aria-expanded',this.classList.contains('open'))">
+            <div class="gaming-comp-row" tabindex="0" role="button" aria-expanded="false" onclick="this.classList.toggle('open');this.setAttribute('aria-expanded',this.classList.contains('open'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 <span class="gaming-comp-icon">
                     {% if key == 'latency' %}<i data-lucide="timer"></i>
                     {% elif key == 'jitter' %}<i data-lucide="waves"></i>
