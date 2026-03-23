@@ -172,16 +172,21 @@ function renderCorrelationChart(data) {
 
     // Segment utilization axis (0-100% scale)
     var segment = _corrSegmentData || [];
-    var segDsColor = '#0ea5e9'; // sky blue
-    var segUsColor = '#6366f1'; // indigo
+    function _cssColor(prop, fallback) {
+        var s = getComputedStyle(document.documentElement);
+        return s.getPropertyValue(prop).trim() || fallback;
+    }
+
+    var segDsColor = _cssColor('--corr-color-seg-ds', '#0ea5e9');
+    var segUsColor = _cssColor('--corr-color-seg-us', '#6366f1');
     function ySegment(v) { return pad.top + plotH - (v / 100) * plotH; }
 
-    var uploadColor = '#06b6d4'; // cyan
-    var snrColor = 'rgba(168,85,247,1)'; // purple
-    var txColor = '#f59e0b'; // amber/orange
-    var dsPowerColor = '#ec4899'; // pink
-    var errorColor = 'rgba(239,68,68,0.6)'; // red semi-transparent
-    var tempColor = '#f97316'; // orange
+    var uploadColor = _cssColor('--corr-color-upload', '#06b6d4');
+    var snrColor = _cssColor('--corr-color-snr', 'rgba(168,85,247,1)');
+    var txColor = _cssColor('--corr-color-tx-power', '#f59e0b');
+    var dsPowerColor = _cssColor('--corr-color-ds-power', '#ec4899');
+    var errorColor = _cssColor('--corr-color-errors', 'rgba(239,68,68,0.6)');
+    var tempColor = _cssColor('--corr-color-temperature', '#f97316');
 
     var style = getComputedStyle(document.documentElement);
     var textColor = style.getPropertyValue('--muted').trim() || '#888';
@@ -573,11 +578,11 @@ function renderCorrelationChart(data) {
             var filterCount = 0, totalTypes = 0;
             for (var et in item.eventTypes) { totalTypes++; if (_corrEventFilter[et]) filterCount++; }
             var filterBadge = filterCount < totalTypes ? ' <span style="font-size:0.7em;opacity:0.7;">(' + filterCount + '/' + totalTypes + ')</span>' : '';
-            return '<span data-metric="events" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + '; position:relative;">' + item.label + filterBadge +
-                ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '" style="cursor:pointer; font-size:0.75em; opacity:0.6; margin-left:2px;">&#9881;</span></span>';
+            return '<span data-metric="events" tabindex="0" role="button" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + '; position:relative;">' + item.label + filterBadge +
+                ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '">&#9881;</span></span>';
         }
-        return '<span data-metric="' + item.metric + '" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + '</span>';
-    }).join('') + '<span data-metric="poorSignal" class="' + (_corrVisible.poorSignal ? '' : 'disabled') + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="background:rgba(244,67,54,0.15); padding:1px 6px; border-radius:3px; font-size:0.8em; color:#f44336;">' + (T.correlation_poor_signal || 'Poor Signal') + '</span>';
+        return '<span data-metric="' + item.metric + '" tabindex="0" role="button" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + '</span>';
+    }).join('') + '<span data-metric="poorSignal" tabindex="0" role="button" class="corr-poor-signal-badge' + (_corrVisible.poorSignal ? '' : ' disabled') + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '">' + (T.correlation_poor_signal || 'Poor Signal') + '</span>';
 
     // Event filter popover
     var filterBtn = legend.querySelector('.corr-event-filter-btn');
@@ -588,7 +593,7 @@ function renderCorrelationChart(data) {
             if (existing) { existing.remove(); return; }
             var pop = document.createElement('div');
             pop.id = 'corr-event-popover';
-            pop.style.cssText = 'position:absolute; z-index:100; background:var(--bg,#1f2937); border:1px solid var(--card-border,rgba(255,255,255,0.08)); border-radius:8px; padding:8px 12px; min-width:180px; box-shadow:0 4px 16px rgba(0,0,0,0.4); font-size:0.85em;';
+            pop.className = 'corr-event-popover';
             var typeLabel = {
                 health_change: T.event_type_health_change || 'Health Change',
                 power_change: T.event_type_power_change || 'Power Change',
@@ -643,6 +648,12 @@ function renderCorrelationChart(data) {
             if (_corrVisible[metric] && visibleCount <= 1) return;
             _corrVisible[metric] = !_corrVisible[metric];
             renderCorrelationChart(data);
+        });
+        legendSpans[li].addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+            }
         });
     }
 

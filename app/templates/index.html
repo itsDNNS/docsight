@@ -1081,7 +1081,7 @@
             <button class="trend-tab" data-value="168" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_168 }}</button>
         </div>
     </div>
-    <p class="correlation-desc" style="color:var(--muted); font-size:0.85em; margin:0 0 16px;">{{ t.correlation_desc }}</p>
+    <p class="correlation-desc">{{ t.correlation_desc }}</p>
 
     <div id="correlation-loading" class="waiting" style="display:none;">
         <div class="skeleton skel-chart"></div>
@@ -1104,20 +1104,20 @@
                 </div>
                 <div class="chart-export-buttons">
                     <button class="chart-export-btn" onclick="_corrExportPNG()" title="{{ t.chart_export_png }}">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         PNG
                     </button>
                     <button class="chart-export-btn" onclick="_corrExportCSV()" title="{{ t.chart_export_csv }}">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         CSV
                     </button>
                 </div>
             </div>
             <div class="correlation-chart-wrap">
                 <canvas id="correlation-chart"></canvas>
-                <canvas id="correlation-overlay" class="correlation-overlay"></canvas>
+                <canvas id="correlation-overlay" class="correlation-overlay" role="img" aria-label="Signal correlation chart"></canvas>
                 <div class="correlation-tooltip" id="correlation-tooltip"></div>
-                <div class="correlation-zoom-reset" id="correlation-zoom-reset" style="display:none;" onclick="_corrResetZoom()">{{ t.chart_reset_zoom }}</div>
+                <button type="button" class="correlation-zoom-reset" id="correlation-zoom-reset" style="display:none;" onclick="_corrResetZoom()">{{ t.chart_reset_zoom }}</button>
                 <div class="correlation-chart-legend" id="correlation-legend"></div>
             </div>
         </div>
