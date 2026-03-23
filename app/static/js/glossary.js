@@ -53,10 +53,16 @@
       hint.setAttribute('data-glossary-init', '1');
       hint.setAttribute('tabindex', '0');
       hint.setAttribute('role', 'button');
-      // Use the popover text as aria-label for i18n, fallback to generic
+      // Use the popover text as aria-label for i18n, skip empty hints
       var source = hint.querySelector('.glossary-popover');
-      var label = source ? source.textContent.trim().substring(0, 60) : 'Info';
-      hint.setAttribute('aria-label', label);
+      var label = source ? source.textContent.trim() : '';
+      if (!label) {
+        // Empty glossary text — don't make it focusable
+        hint.removeAttribute('tabindex');
+        hint.removeAttribute('role');
+        return;
+      }
+      hint.setAttribute('aria-label', label.substring(0, 60));
     });
   }
   initHints();
