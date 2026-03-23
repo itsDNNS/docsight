@@ -254,6 +254,10 @@
   width: 100%;
   outline: none;
 }
+.form-input:focus-visible, .form-select:focus-visible {
+  outline: 2px solid var(--amethyst);
+  outline-offset: 2px;
+}
 [data-theme="light"] .form-input,
 [data-theme="light"] .form-select {
   background: rgba(0, 0, 0, 0.03);

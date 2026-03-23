@@ -923,7 +923,7 @@ function _setupCorrelationTooltip(overlay, octx) {
         tooltip.innerHTML = html;
         tooltip.style.display = 'block';
 
-        // Position tooltip — flip to left side if near right edge
+        // Position tooltip — forced reflow to measure dimensions is intentional here
         var ttW = tooltip.offsetWidth;
         var ttH = tooltip.offsetHeight;
         var ttX = mouseX + 12;
