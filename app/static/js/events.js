@@ -128,7 +128,10 @@ function formatEventMessage(ev) {
 function toggleHideOperational() {
     _hideOperational = !_hideOperational;
     var btn = document.getElementById('hide-operational-btn');
-    if (btn) btn.classList.toggle('active', _hideOperational);
+    if (btn) {
+        btn.classList.toggle('active', _hideOperational);
+        btn.setAttribute('aria-pressed', String(_hideOperational));
+    }
     loadEvents();
 }
 
@@ -207,7 +210,7 @@ function loadEvents(append) {
                 // Note: escapeHtml is used on all user-facing content to prevent XSS.
                 // The ack button uses a hardcoded event ID (integer) which is safe.
                 var ackBtn = ev.acknowledged
-                    ? '<span style="color:var(--muted);font-size:0.8em;">&#10003;</span>'
+                    ? '<span class="ev-ack-mark">&#10003;</span>'
                     : '<button class="btn-ack" onclick="acknowledgeEvent(' + ev.id + ', event)">&#10003;</button>';
                 tr.innerHTML =
                     '<td style="white-space:nowrap;">' + escapeHtml(ev.timestamp.replace('T', ' ')) + '</td>' +
