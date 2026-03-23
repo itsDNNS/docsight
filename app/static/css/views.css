@@ -254,13 +254,15 @@
     font-family: inherit;
     font-weight: 500;
     transition: all 0.2s var(--ease-out-expo);
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     white-space: nowrap;
 }
 .severity-pill:hover {
     color: var(--text);
     background: var(--amethyst-muted);
 }
+.severity-pill:active { opacity: 0.8; }
+.severity-pill:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 .severity-pill.active {
     background: var(--accent-purple, var(--accent));
     color: #fff;
@@ -340,16 +342,16 @@
 /* Event message formatting */
 .ev-val { font-family: var(--font-mono, monospace); font-weight: 600; white-space: nowrap; display: inline-block; }
 .ev-arrow-icon { display: inline-block; width: 14px; height: 14px; margin: 0 4px; vertical-align: middle; color: var(--muted); }
-.ev-up { color: var(--color-ok, #22c55e); }
-.ev-down { color: var(--color-crit, #ef4444); }
-.ev-warn { color: var(--color-warn, #f59e0b); }
+.ev-up { color: var(--good); }
+.ev-down { color: var(--crit); }
+.ev-warn { color: var(--warn); }
 .ev-muted { color: var(--muted); font-size: 0.9em; }
 .ev-sub { display: block; margin-top: 2px; padding-left: 12px; font-size: 0.9em; color: var(--muted); }
 .ev-label { color: var(--text-secondary, var(--muted)); margin-right: 6px; white-space: nowrap; display: inline-block; }
 .health-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
-.health-dot.good { background: var(--color-ok, #22c55e); }
-.health-dot.marginal { background: var(--color-warn, #f59e0b); }
-.health-dot.poor { background: var(--color-crit, #ef4444); }
+.health-dot.good { background: var(--good); }
+.health-dot.marginal { background: var(--warn); }
+.health-dot.poor { background: var(--crit); }
 .health-dot.unknown { background: var(--muted); }
 
 /* Phase 4.3: Sidebar event badge (purple instead of red) */
@@ -366,7 +368,7 @@
 .sev-critical { color: var(--crit); }
 .sev-icon { display: none; }
 .sev-badge-info {
-    background: rgba(59,130,246,0.2);
+    background: var(--info-muted);
     color: var(--info);
     padding: 2px 8px;
     border-radius: 4px;
@@ -374,7 +376,7 @@
     font-weight: bold;
 }
 .sev-badge-warning {
-    background: rgba(245,158,11,0.25);
+    background: var(--warn-muted);
     color: var(--warn);
     padding: 2px 8px;
     border-radius: 4px;
@@ -382,7 +384,7 @@
     font-weight: bold;
 }
 .sev-badge-critical {
-    background: rgba(239,68,68,0.25);
+    background: var(--crit-muted);
     color: var(--crit);
     padding: 2px 8px;
     border-radius: 4px;
@@ -392,7 +394,8 @@
 
 /* Phase 4.3: Acknowledge button (modern pill style) */
 .btn-ack {
-    padding: 4px 12px;
+    padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
     border: 1px solid var(--input-border);
     border-radius: 16px;
     background: transparent;
@@ -407,12 +410,14 @@
     color: #fff;
     border-color: var(--accent-purple, var(--accent));
 }
+.btn-ack:active { opacity: 0.7; }
+.btn-ack:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 
 /* Phase 4.3: Acknowledge All button (modern purple accent) */
 .btn-ack-all {
     padding: 8px 16px;
     border: 1px solid var(--accent-purple, var(--accent));
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     background: transparent;
     color: var(--accent-purple, var(--accent));
     cursor: pointer;
@@ -426,12 +431,14 @@
     color: #fff;
     box-shadow: 0 2px 8px color-mix(in srgb, var(--amethyst) 30%, transparent);
 }
+.btn-ack-all:active { opacity: 0.8; }
+.btn-ack-all:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 
 /* Phase 4.3: Show More button */
 .btn-show-more {
     padding: 8px 24px;
     border: 1px solid var(--input-border);
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     background: var(--card-bg, var(--card));
     color: var(--text);
     cursor: pointer;
@@ -445,6 +452,10 @@
     color: #fff;
     border-color: var(--accent-purple, var(--accent));
 }
+.btn-show-more:active { opacity: 0.8; }
+.btn-show-more:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
+
+.ev-ack-mark { color: var(--text-muted); font-size: 0.8em; }
 
 .events-empty {
     text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.95em;
@@ -465,6 +476,7 @@
     .severity-pill {
         padding: 6px 12px;
         font-size: 0.75em;
+        min-height: 44px;
     }
     .table-card-header {
         flex-direction: column;

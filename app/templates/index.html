@@ -1287,12 +1287,12 @@
     <div class="events-filter-section">
         <div class="events-filter-label">{{ t.event_severity }}:</div>
         <div class="events-severity-pills">
-            <button class="severity-pill active" data-severity="" onclick="filterEventsBySeverity('')">{{ t.event_all_severities }}</button>
-            <button class="severity-pill" data-severity="info" onclick="filterEventsBySeverity('info')">{{ t.event_severity_info }}</button>
-            <button class="severity-pill" data-severity="warning" onclick="filterEventsBySeverity('warning')">{{ t.event_severity_warning }}</button>
-            <button class="severity-pill" data-severity="critical" onclick="filterEventsBySeverity('critical')">{{ t.event_severity_critical }}</button>
+            <button class="severity-pill active" data-severity="" onclick="filterEventsBySeverity('')" aria-pressed="true">{{ t.event_all_severities }}</button>
+            <button class="severity-pill" data-severity="info" onclick="filterEventsBySeverity('info')" aria-pressed="false">{{ t.event_severity_info }}</button>
+            <button class="severity-pill" data-severity="warning" onclick="filterEventsBySeverity('warning')" aria-pressed="false">{{ t.event_severity_warning }}</button>
+            <button class="severity-pill" data-severity="critical" onclick="filterEventsBySeverity('critical')" aria-pressed="false">{{ t.event_severity_critical }}</button>
             <span style="border-left:1px solid var(--card-border, rgba(255,255,255,0.08)); height:20px; margin:0 8px;"></span>
-            <button class="severity-pill active" id="hide-operational-btn" onclick="toggleHideOperational()">{{ t.event_hide_operational }}</button>
+            <button class="severity-pill active" id="hide-operational-btn" onclick="toggleHideOperational()" aria-pressed="true">{{ t.event_hide_operational }}</button>
         </div>
     </div>
     
@@ -1317,11 +1317,11 @@
         </div>
         <table id="events-table">
             <thead><tr>
-                <th>{{ t.timestamp }}</th>
-                <th>{{ t.event_severity }}</th>
-                <th>{{ t.event_type }}</th>
-                <th>{{ t.event_message }}</th>
-                <th></th>
+                <th scope="col">{{ t.timestamp }}</th>
+                <th scope="col">{{ t.event_severity }}</th>
+                <th scope="col">{{ t.event_type }}</th>
+                <th scope="col">{{ t.event_message }}</th>
+                <th scope="col"></th>
             </tr></thead>
             <tbody id="events-tbody"></tbody>
         </table>
