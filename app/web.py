@@ -245,35 +245,43 @@ def _valid_date(date_str):
         return True
     except ValueError:
         return False
-_SAFE_HTML_RE = re.compile(r"<(?!/?(?:b|a|strong|em|br)\b)[^>]+>", re.IGNORECASE)
-_DANGEROUS_ATTR_RE = re.compile(
-    r'[\s/]+(?:on\w+|formaction)\s*=\s*(?:["\'][^"\']*["\']|\S+)', re.IGNORECASE
-)
-_HREF_ATTR_RE = re.compile(r'href\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|(\S+))', re.IGNORECASE)
+_STRIP_TAGS_RE = re.compile(r"<(?!/?(?:b|a|strong|em|br)\b)[^>]+>", re.IGNORECASE)
+_OPEN_TAG_RE = re.compile(r"<(a|b|strong|em|br)([\s/][^>]*)?>", re.IGNORECASE)
+_HREF_VAL_RE = re.compile(r'href\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|(\S+))', re.IGNORECASE)
 _SAFE_HREF_RE = re.compile(r'^(?:https?://|#|/(?!/))[\x20-\x7E]*$', re.IGNORECASE)
 
 
-def _sanitize_href(match: re.Match) -> str:
-    """Replace href with '#' unless it matches the safe URL allowlist."""
-    value = match.group(1) or match.group(2) or match.group(3) or ""
+def _clean_tag(match: re.Match) -> str:
+    """Strip all attributes from allowed tags, except safe href on <a>."""
+    tag_name = match.group(1).lower()
+    attrs = match.group(2) or ""
+
+    if tag_name != "a" or not attrs.strip():
+        return f"<{tag_name}>"
+
+    # Extract and validate href
+    href_match = _HREF_VAL_RE.search(attrs)
+    if not href_match:
+        return "<a>"
+
+    href_val = href_match.group(1) or href_match.group(2) or href_match.group(3) or ""
     # Strip control characters and HTML entities that could hide javascript:
-    stripped = re.sub(r'[\x00-\x1f]|&#?\w+;', '', value)
+    stripped = re.sub(r'[\x00-\x1f]|&#?\w+;', '', href_val)
     if _SAFE_HREF_RE.match(stripped):
-        return match.group(0)  # keep original
-    return 'href="#"'
+        return f'<a href="{href_val}">'
+    return '<a href="#">'
 
 
 @app.template_filter("safe_html")
 def safe_html_filter(value):
     """Allow only <b>, <a>, <strong>, <em>, <br> tags — strip everything else.
 
-    Additionally strips event-handler attributes and only permits href values
-    matching an allowlist (https://, http://, #, /) to prevent XSS.
+    On allowed tags, all attributes are removed except href on <a>.
+    href values must match an allowlist (https://, http://, #, /).
     """
     from markupsafe import Markup
-    cleaned = _SAFE_HTML_RE.sub("", str(value))
-    cleaned = _DANGEROUS_ATTR_RE.sub("", cleaned)
-    cleaned = _HREF_ATTR_RE.sub(_sanitize_href, cleaned)
+    cleaned = _STRIP_TAGS_RE.sub("", str(value))
+    cleaned = _OPEN_TAG_RE.sub(_clean_tag, cleaned)
     return Markup(cleaned)
 
 

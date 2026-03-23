@@ -255,6 +255,12 @@ class TestSafeHtmlXSS:
         result = str(filter_fn('<a href="#section">jump</a>'))
         assert 'href="#section"' in result
 
+    def test_no_space_before_onclick(self, filter_fn):
+        """onclick directly after closing quote must be stripped."""
+        result = str(filter_fn('<a href="/page"onclick="alert(1)">click</a>'))
+        assert "onclick" not in result.lower()
+        assert "alert" not in result.lower()
+
     def test_strips_onmouseover(self, filter_fn):
         result = str(filter_fn('<b onmouseover="alert(1)">bold</b>'))
         assert "onmouseover" not in result.lower()

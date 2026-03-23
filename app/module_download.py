@@ -78,17 +78,25 @@ def download_github_directory(download_url: str, target_dir: str, timeout: int =
             entries = json.loads(resp.read())
 
         for entry in entries:
-            name = entry.get("name", "")
+            name = os.path.basename(entry.get("name", ""))
             entry_type = entry.get("type", "")
+
+            if not name or name in (".", ".."):
+                log.warning("Skipping suspicious entry name: %r", entry.get("name"))
+                continue
+
+            candidate = os.path.realpath(os.path.join(target_dir, name))
+            if not candidate.startswith(os.path.realpath(target_dir) + os.sep):
+                log.warning("Path traversal blocked: %r", entry.get("name"))
+                continue
 
             if entry_type == "file":
                 file_url = entry.get("download_url")
                 if not file_url or not is_trusted_url(file_url):
                     log.warning("Skipping untrusted file URL: %s", file_url)
                     continue
-                target_path = os.path.join(target_dir, name)
                 with urllib.request.urlopen(file_url, timeout=timeout) as resp:
-                    with open(target_path, "wb") as f:
+                    with open(candidate, "wb") as f:
                         f.write(resp.read())
 
             elif entry_type == "dir":
@@ -96,8 +104,7 @@ def download_github_directory(download_url: str, target_dir: str, timeout: int =
                 if not is_trusted_url(subdir_url):
                     log.warning("Skipping untrusted dir URL: %s", subdir_url)
                     continue
-                subdir_path = os.path.join(target_dir, name)
-                if not download_github_directory(subdir_url, subdir_path, timeout):
+                if not download_github_directory(subdir_url, candidate, timeout):
                     shutil.rmtree(target_dir, ignore_errors=True)
                     return False
 
