@@ -945,40 +945,178 @@ html, body {
 }
 
 /* ─── Support Section ─── */
-.support-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+
+/* Quote block for personal story */
+.support-quote {
+  border-left: 3px solid var(--amethyst);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+  background: var(--tint-subtle);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.support-quote p {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+.support-quote cite {
+  font-style: normal;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--amethyst-light);
+}
+
+/* Primary CTA (GitHub Sponsors) */
+.support-card-primary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--amethyst) 12%, transparent), color-mix(in srgb, var(--sapphire) 8%, transparent));
+  border: 1px solid color-mix(in srgb, var(--amethyst) 25%, transparent);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-out-expo);
+  margin-bottom: var(--space-md);
+}
+.support-card-primary:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--amethyst) 40%, transparent);
+  box-shadow: 0 8px 32px -8px color-mix(in srgb, var(--amethyst) 20%, transparent);
+}
+.support-card-primary:active {
+  transform: translateY(0);
+}
+.support-card-primary-content {
+  display: flex;
+  align-items: center;
   gap: var(--space-md);
 }
+.support-card-primary-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--amethyst) 15%, transparent);
+  color: var(--amethyst-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.support-card-primary-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.support-card-primary-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.support-card-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s var(--ease-out-expo), color 0.2s;
+}
+.support-card-primary:hover .support-card-arrow {
+  transform: translateX(4px);
+  color: var(--amethyst-light);
+}
+
+/* Secondary cards (PayPal, Ko-fi) */
+.support-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
 .support-card {
-  padding: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-md);
   background: var(--tint-subtle);
   border: 1px solid var(--glass-border);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
   transition: all 0.25s var(--ease-out-expo);
   cursor: pointer;
   text-decoration: none;
   color: inherit;
-  display: block;
 }
 .support-card:hover {
-  background: var(--border-tint);
+  background: var(--tint-hover);
   transform: translateY(-2px);
-  border-color: rgba(120,130,180,0.25);
+  border-color: color-mix(in srgb, var(--amethyst) 20%, transparent);
+  box-shadow: 0 4px 16px -4px color-mix(in srgb, var(--amethyst) 12%, transparent);
+}
+.support-card:active {
+  transform: translateY(0);
 }
 .support-card-icon {
-  font-size: 1.8rem;
-  margin-bottom: 12px;
+  width: 22px;
+  height: 22px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+.support-card:hover .support-card-icon {
+  color: var(--amethyst-light);
 }
 .support-card-title {
   font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 4px;
+  font-size: 0.88rem;
 }
 .support-card-desc {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+/* Star CTA */
+.support-star {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--tint-subtle);
+  border: 1px solid var(--glass-border);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.support-star > i, .support-star > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--warn);
+  flex-shrink: 0;
+}
+.support-star-link {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--amethyst-light);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.support-star-link:hover {
+  color: var(--text-primary);
+}
+.support-star-link i, .support-star-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Light mode adjustments */
+[data-theme="light"] .support-card-primary {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--amethyst) 8%, transparent), color-mix(in srgb, var(--sapphire) 5%, transparent));
+}
+[data-theme="light"] .support-quote cite {
+  color: var(--amethyst);
 }
 
 /* ─── Save Footer ─── */

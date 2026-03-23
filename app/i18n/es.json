@@ -634,6 +634,7 @@
     "support_kofi": "Ko-fi",
     "support_kofi_desc": "Invítame un café",
     "support_github": "GitHub Sponsors",
+    "support_star": "Dale una estrella en GitHub para que otros descubran DOCSight",
     "support_github_desc": "Patrocinio mensual",
     "modem_connected": "Conectado: {model}",
     "mqtt_connected": "Conectado",
