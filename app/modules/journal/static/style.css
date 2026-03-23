@@ -50,6 +50,9 @@
     background: var(--accent-purple, var(--accent));
     color: #fff;
 }
+.journal-export-dropdown button:active {
+    filter: brightness(0.85);
+}
 .journal-header .trend-title {
     font-size: 1.5em;
     color: var(--accent-purple, var(--accent));
@@ -549,6 +552,10 @@ mark.search-highlight {
     background: rgba(168,85,247,0.08);
     color: var(--text);
 }
+.icon-pick:active {
+    background: rgba(168,85,247,0.25);
+    border-color: var(--accent-purple, var(--accent));
+}
 .icon-pick:focus-visible {
     outline: 2px solid var(--accent-purple, var(--accent));
     outline-offset: 2px;
@@ -725,6 +732,9 @@ mark.search-highlight {
 }
 .incident-summary-edit:hover {
     color: var(--accent);
+}
+.incident-summary-edit:active {
+    opacity: 0.8;
 }
 .incident-summary-edit:focus-visible {
     outline: 2px solid var(--accent);
