@@ -85,6 +85,8 @@ function loadCorrelationData() {
 }
 
 function renderCorrelationChart(data) {
+    // Clear pin state when chart is redrawn (legend toggle, zoom, resize)
+    if (_corrPinnedRow) _corrUnpinRow();
     var canvas = document.getElementById('correlation-chart');
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
@@ -716,6 +718,8 @@ function _setupCorrelationTooltip(overlay, octx) {
     });
 
     newOverlay.addEventListener('mousemove', function(e) {
+        // Clear pin when user interacts with chart directly
+        if (_corrPinnedRow) _corrUnpinRow();
         if (!_corrChartState) return;
         var st = _corrChartState;
         var rect = newOverlay.getBoundingClientRect();
