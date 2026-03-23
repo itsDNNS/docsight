@@ -261,6 +261,18 @@ class TestSafeHtmlXSS:
         assert "onclick" not in result.lower()
         assert "alert" not in result.lower()
 
+    def test_closing_tag_attrs_stripped(self, filter_fn):
+        """Closing tags with injected attributes must be sanitized."""
+        result = str(filter_fn('</a onmouseover="alert(1)">'))
+        assert "onmouseover" not in result.lower()
+        assert "</a>" in result
+
+    def test_control_char_in_href_stripped(self, filter_fn):
+        """Control chars in href must be stripped from output."""
+        result = str(filter_fn('<a href="https://x.com\x01foo">link</a>'))
+        assert "\x01" not in result
+        assert "https://x.com" in result
+
     def test_strips_onmouseover(self, filter_fn):
         result = str(filter_fn('<b onmouseover="alert(1)">bold</b>'))
         assert "onmouseover" not in result.lower()

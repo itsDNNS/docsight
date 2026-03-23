@@ -246,6 +246,7 @@ def _valid_date(date_str):
     except ValueError:
         return False
 _STRIP_TAGS_RE = re.compile(r"<(?!/?(?:b|a|strong|em|br)\b)[^>]+>", re.IGNORECASE)
+_CLOSE_TAG_RE = re.compile(r"</(a|b|strong|em|br)\s[^>]*>", re.IGNORECASE)
 _OPEN_TAG_RE = re.compile(r"<(a|b|strong|em|br)([\s/][^>]*)?>", re.IGNORECASE)
 _HREF_VAL_RE = re.compile(r'href\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|(\S+))', re.IGNORECASE)
 _SAFE_HREF_RE = re.compile(r'^(?:https?://|#|/(?!/))[\x20-\x7E]*$', re.IGNORECASE)
@@ -268,7 +269,7 @@ def _clean_tag(match: re.Match) -> str:
     # Strip control characters and HTML entities that could hide javascript:
     stripped = re.sub(r'[\x00-\x1f]|&#?\w+;', '', href_val)
     if _SAFE_HREF_RE.match(stripped):
-        return f'<a href="{href_val}">'
+        return f'<a href="{stripped}">'
     return '<a href="#">'
 
 
@@ -281,6 +282,7 @@ def safe_html_filter(value):
     """
     from markupsafe import Markup
     cleaned = _STRIP_TAGS_RE.sub("", str(value))
+    cleaned = _CLOSE_TAG_RE.sub(lambda m: f"</{m.group(1)}>", cleaned)
     cleaned = _OPEN_TAG_RE.sub(_clean_tag, cleaned)
     return Markup(cleaned)
 
