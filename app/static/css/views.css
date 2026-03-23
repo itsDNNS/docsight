@@ -1125,7 +1125,7 @@
     color: var(--good);
 }
 .gaming-genres-summary i, .gaming-genres-summary svg { width: 18px; height: 18px; flex-shrink: 0; }
-.gaming-genres-collapsed { display: none; }
+.gaming-genre-cards.gaming-genres-collapsed { display: none; }
 .gaming-genre-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
