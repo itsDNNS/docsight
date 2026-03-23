@@ -1,43 +1,69 @@
-/* Modulation Performance module styles (v2) */
+/* Modulation Performance module styles (v3 — polished) */
 
-.modulation-kpi-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-lg, 20px);
+/* ── Controls header ── */
+.mod-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md, 16px);
     margin-bottom: var(--space-lg, 20px);
+    flex-wrap: wrap;
 }
-
-.modulation-kpi-card {
-    text-align: center;
-    padding: var(--space-lg, 20px) var(--space-md, 16px);
-}
-
-.modulation-kpi-label {
-    font-size: 0.85em;
-    color: var(--text-secondary, var(--muted));
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 500;
-}
-
-.modulation-kpi-value {
-    font-size: 2em;
+.mod-view-title {
+    margin: 0;
+    font-size: 1.15em;
     font-weight: 700;
-    line-height: 1.2;
+    flex-shrink: 0;
+}
+.mod-controls-tabs {
+    display: flex;
+    gap: var(--space-sm, 8px);
+    flex-wrap: wrap;
+}
+
+/* ── KPI strip (compact, inline) ── */
+.mod-kpi-strip {
+    display: flex;
+    gap: var(--space-lg, 20px);
+    padding: var(--space-md, 16px) var(--space-lg, 20px);
+    margin-bottom: var(--space-lg, 20px);
+    background: var(--card-bg, var(--surface));
+    border: 1px solid var(--card-border, var(--glass-border));
+    border-radius: var(--radius-md, 12px);
+    flex-wrap: wrap;
+}
+.mod-kpi-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm, 8px);
+    position: relative;
+}
+.mod-kpi-item-label {
+    font-size: 0.78em;
+    font-weight: 500;
+    color: var(--text-muted, var(--muted));
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.mod-kpi-item-value {
+    font-size: 1.3em;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
 }
-
-.modulation-kpi-sub {
-    font-size: 0.8em;
+.mod-kpi-item-sub {
+    font-size: 0.78em;
     color: var(--text-secondary, var(--muted));
-    margin-top: 4px;
-    min-height: 1.2em;
 }
 
-.modulation-kpi-value.good { color: var(--green, #22c55e); }
-.modulation-kpi-value.warning { color: var(--yellow, #eab308); }
-.modulation-kpi-value.critical { color: var(--red, #ef4444); }
+/* KPI value health coloring — uses design system tokens */
+.mod-kpi-item-value.good { color: var(--good, #10b981); }
+.mod-kpi-item-value.warning { color: var(--warn, #f59e0b); }
+.mod-kpi-item-value.critical { color: var(--crit, #ef4444); }
+
+/* Legacy selectors (JS uses these on old KPI cards too) */
+.modulation-kpi-value.good { color: var(--good, #10b981); }
+.modulation-kpi-value.warning { color: var(--warn, #f59e0b); }
+.modulation-kpi-value.critical { color: var(--crit, #ef4444); }
 
 .modulation-chart-wrap {
     position: relative;
@@ -50,7 +76,7 @@
     height: 100%;
 }
 
-/* Protocol group sections */
+/* ── Protocol group sections ── */
 .mod-protocol-group {
     margin-bottom: var(--space-xl, 28px);
 }
@@ -65,7 +91,7 @@
 
 .mod-protocol-group-header h3 {
     margin: 0;
-    font-size: 1.1em;
+    font-size: 1.05em;
 }
 
 .mod-protocol-badge {
@@ -76,27 +102,29 @@
     border-radius: 12px;
     font-size: 0.75em;
     font-weight: 600;
-    background: var(--surface-2, rgba(255,255,255,0.08));
+    background: var(--tint-hover, rgba(255,255,255,0.04));
     color: var(--text-secondary, var(--muted));
 }
 
 .mod-protocol-badge.degraded {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--red, #ef4444);
+    background: var(--crit-muted, rgba(239, 68, 68, 0.15));
+    color: var(--crit, #ef4444);
 }
 
+/* Per-protocol KPIs — smaller inline row, not full cards */
 .mod-group-kpi-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
     gap: var(--space-sm, 10px);
     margin-bottom: var(--space-md, 16px);
+    flex-wrap: wrap;
 }
 
 .mod-group-kpi {
-    text-align: center;
-    padding: var(--space-sm, 10px);
-    background: var(--surface-2, rgba(255,255,255,0.03));
-    border-radius: var(--radius, 8px);
+    padding: var(--space-sm, 10px) var(--space-md, 16px);
+    background: var(--tint-subtle, rgba(255,255,255,0.02));
+    border-radius: var(--radius-sm, 8px);
+    flex: 1;
+    min-width: 100px;
 }
 
 .mod-group-kpi-label {
@@ -108,22 +136,22 @@
 }
 
 .mod-group-kpi-value {
-    font-size: 1.3em;
+    font-size: 1.2em;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
 }
 
-/* Channel summary cards (intraday) */
+/* ── Channel summary cards (intraday) ── */
 .mod-channel-summary {
     padding: var(--space-md, 16px);
     margin-bottom: var(--space-sm, 10px);
-    border-radius: var(--radius, 8px);
+    border-radius: var(--radius-sm, 8px);
     background: var(--card-bg, var(--surface));
-    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.08));
 }
 
 .mod-channel-summary.degraded {
-    border-left: 3px solid var(--red, #ef4444);
+    border-left: 3px solid var(--crit, #ef4444);
 }
 
 .mod-channel-summary-header {
@@ -156,22 +184,23 @@
     gap: 4px;
     padding: 4px 10px;
     border-radius: 999px;
-    background: var(--surface-2, rgba(255,255,255,0.05));
+    background: var(--tint-hover, rgba(255,255,255,0.05));
     color: var(--text-secondary, var(--muted));
     font-size: 0.75em;
     font-weight: 600;
 }
 
 .mod-channel-insight.warning {
-    background: rgba(245, 158, 11, 0.14);
-    color: var(--yellow, #eab308);
+    background: var(--warn-muted, rgba(245, 158, 11, 0.14));
+    color: var(--warn, #f59e0b);
 }
 
 .mod-channel-insight.critical {
-    background: rgba(239, 68, 68, 0.14);
-    color: var(--red, #ef4444);
+    background: var(--crit-muted, rgba(239, 68, 68, 0.14));
+    color: var(--crit, #ef4444);
 }
 
+/* ── Event list (intraday) ── */
 .mod-event-list {
     display: grid;
     gap: 8px;
@@ -184,9 +213,9 @@
     gap: 10px;
     align-items: center;
     padding: 10px 12px;
-    border-radius: var(--radius, 8px);
-    background: var(--surface-2, rgba(255,255,255,0.03));
-    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: var(--radius-sm, 8px);
+    background: var(--tint-subtle, rgba(255,255,255,0.02));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.04));
 }
 
 .mod-event-time {
@@ -202,7 +231,7 @@
 }
 
 .mod-event-modulation {
-    color: var(--yellow, #eab308);
+    color: var(--warn, #f59e0b);
     font-size: 0.85em;
     font-weight: 700;
 }
@@ -223,7 +252,7 @@
 .mod-event-share {
     font-size: 0.95em;
     font-weight: 700;
-    color: var(--text-primary, #fff);
+    color: var(--text-primary, var(--text));
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
@@ -242,7 +271,7 @@
 
 .mod-event-toggle:hover,
 .mod-event-toggle.open {
-    color: var(--text-primary, #fff);
+    color: var(--text-primary, var(--text));
 }
 
 .modulation-intraday-chart-wrap {
@@ -258,21 +287,49 @@
     height: 100%;
 }
 
-/* Disclaimer */
+/* ── Intraday header ── */
+.mod-intraday-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.mod-intraday-header .trend-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.mod-intraday-header .trend-tab i,
+.mod-intraday-header .trend-tab svg {
+    width: 14px;
+    height: 14px;
+}
+.mod-intraday-title {
+    margin: 0;
+}
+
+/* ── Disclaimer ── */
 .modulation-disclaimer {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     padding: var(--space-sm, 10px) var(--space-md, 16px);
     margin-top: var(--space-lg, 20px);
-    border-radius: var(--radius, 8px);
-    background: var(--surface-2, rgba(255,255,255,0.03));
+    border-radius: var(--radius-sm, 8px);
+    background: var(--tint-subtle, rgba(255,255,255,0.02));
     color: var(--text-secondary, var(--muted));
     font-size: 0.8em;
     line-height: 1.5;
 }
+.modulation-disclaimer i,
+.modulation-disclaimer svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
 
-/* Click hint */
+/* ── Click hint ── */
 .modulation-click-hint {
     display: flex;
     align-items: center;
@@ -281,7 +338,13 @@
     color: var(--text-secondary, var(--muted));
     font-size: 0.8em;
 }
+.modulation-click-hint i,
+.modulation-click-hint svg {
+    width: 14px;
+    height: 14px;
+}
 
+/* ── Custom legend ── */
 .modulation-custom-legend {
     display: flex;
     flex-wrap: wrap;
@@ -305,12 +368,21 @@
     flex-shrink: 0;
 }
 
+/* ── Responsive ── */
 @media (max-width: 768px) {
-    .modulation-kpi-row {
-        grid-template-columns: 1fr;
+    .mod-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .mod-kpi-strip {
+        flex-direction: column;
+        gap: var(--space-sm, 8px);
     }
     .mod-group-kpi-row {
-        grid-template-columns: repeat(2, 1fr);
+        flex-wrap: wrap;
+    }
+    .mod-group-kpi {
+        min-width: calc(50% - var(--space-sm, 10px));
     }
     .mod-protocol-group .charts-grid {
         grid-template-columns: 1fr;

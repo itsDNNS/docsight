@@ -133,7 +133,7 @@ function updateOverviewKPIs(data) {
     var hiEl = document.getElementById('mod-kpi-health');
     if (hiEl) {
         hiEl.textContent = hi !== null && hi !== undefined ? hi.toFixed(1) : '—';
-        hiEl.className = 'modulation-kpi-value ' + healthClass(hi);
+        hiEl.className = 'mod-kpi-item-value ' + healthClass(hi);
     }
     var hiDelta = document.getElementById('mod-kpi-health-delta');
     if (hiDelta) hiDelta.textContent = hi !== null ? '/100' : '';
@@ -141,7 +141,7 @@ function updateOverviewKPIs(data) {
     var lqEl = document.getElementById('mod-kpi-lowqam');
     if (lqEl) {
         lqEl.textContent = lq.toFixed(1) + '%';
-        lqEl.className = 'modulation-kpi-value ' + lowQamClass(lq);
+        lqEl.className = 'mod-kpi-item-value ' + lowQamClass(lq);
     }
     var lqHint = document.getElementById('mod-kpi-lowqam-hint');
     if (lqHint) lqHint.textContent = '\u2264 16QAM';
@@ -149,7 +149,7 @@ function updateOverviewKPIs(data) {
     var dEl = document.getElementById('mod-kpi-density');
     if (dEl) {
         dEl.textContent = (density * 100).toFixed(0) + '%';
-        dEl.className = 'modulation-kpi-value ' + densityClass(density);
+        dEl.className = 'mod-kpi-item-value ' + densityClass(density);
     }
     var dHint = document.getElementById('mod-kpi-density-hint');
     if (dHint) {
@@ -176,8 +176,10 @@ function renderProtocolGroups(data) {
         var titleText = dirLabel + ' DOCSIS ' + pg.docsis_version + ' (max ' + pg.max_qam + ')';
         header.appendChild(_el('h3', null, titleText));
 
-        var chBadge = _el('span', 'mod-protocol-badge',
-            pg.channel_count + ' ' + (T['docsight.modulation.channels_label'] || 'Channels'));
+        var chLabel = pg.channel_count === 1
+            ? (T['docsight.modulation.channel_label'] || 'Channel')
+            : (T['docsight.modulation.channels_label'] || 'Channels');
+        var chBadge = _el('span', 'mod-protocol-badge', pg.channel_count + ' ' + chLabel);
         header.appendChild(chBadge);
 
         if (pg.degraded_channel_count > 0) {

@@ -23,13 +23,10 @@
   z-index: 2;
 }
 
-/* Inside modulation KPI cards: top-left corner */
-.modulation-kpi-card .glossary-hint {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  margin: 0;
-  z-index: 2;
+/* Inside modulation KPI strip: inline, no absolute positioning */
+.mod-kpi-item .glossary-hint {
+  margin-left: 0;
+  order: -1;
 }
 
 .glossary-hint > i,

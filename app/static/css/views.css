@@ -126,8 +126,6 @@
 }
 .chart-card:hover {
     border-color: var(--accent-purple, var(--accent));
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--amethyst-muted);
 }
 
 /* Chart header with icon */

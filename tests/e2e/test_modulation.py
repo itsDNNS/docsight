@@ -83,7 +83,7 @@ class TestModulationTabStructure:
         assert "active" in tab7.get_attribute("class")
 
     def test_kpi_cards_present(self):
-        cards = self.page.locator(".modulation-kpi-card")
+        cards = self.page.locator(".mod-kpi-item")
         assert cards.count() == 3
 
     def test_overview_container_present(self):
