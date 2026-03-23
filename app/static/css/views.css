@@ -1277,8 +1277,8 @@
 }
 .ch-info-health.good { color: var(--good); }
 .ch-info-health.tolerated { color: var(--tolerated, var(--warn)); }
-.ch-info-health.warn { color: var(--warn); }
-.ch-info-health.crit { color: var(--crit); }
+.ch-info-health.marginal, .ch-info-health.warn { color: var(--warn); }
+.ch-info-health.critical, .ch-info-health.crit { color: var(--crit); }
 
 /* Channel onboarding (empty state) */
 .ch-onboarding {

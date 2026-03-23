@@ -168,9 +168,8 @@ function switchChannelMode() {
         if (compareControls) compareControls.style.display = 'none';
         var sel = document.getElementById('channel-select');
         if (!sel || !sel.value) {
-            var chEmpty = document.getElementById('channel-empty');
-            chEmpty.textContent = T.channel_select_prompt || 'Select a channel above to view its signal history.';
-            chEmpty.style.display = '';
+            document.getElementById('channel-empty').style.display = '';
+            document.getElementById('channel-no-data').style.display = 'none';
         }
     }
     writeChannelHash();
@@ -287,10 +286,12 @@ function loadChannelTimeline() {
     var val = sel.value;
     var chartsEl = document.getElementById('channel-charts');
     var emptyEl = document.getElementById('channel-empty');
+    var noDataEl = document.getElementById('channel-no-data');
     var loadingEl = document.getElementById('channel-loading');
     var infoBar = document.getElementById('channel-info-bar');
     if (!val) {
         chartsEl.style.display = 'none';
+        noDataEl.style.display = 'none';
         loadingEl.style.display = 'none';
         if (infoBar) infoBar.style.display = 'none';
         emptyEl.style.display = '';
@@ -308,6 +309,7 @@ function loadChannelTimeline() {
     loadingEl.style.display = '';
     chartsEl.style.display = 'none';
     emptyEl.style.display = 'none';
+    noDataEl.style.display = 'none';
     _updateChannelInfoBar(direction, channelId);
 
     fetch('/api/channel-history?channel_id=' + channelId + '&direction=' + direction + '&days=' + days)
@@ -315,8 +317,8 @@ function loadChannelTimeline() {
         .then(function(data) {
             loadingEl.style.display = 'none';
             if (!data || data.length === 0) {
-                emptyEl.textContent = T.no_channel_data || 'No data available for this channel.';
-                emptyEl.style.display = '';
+                noDataEl.textContent = T.no_channel_data || 'No data available for this channel.';
+                noDataEl.style.display = '';
                 return;
             }
             chartsEl.style.display = '';
