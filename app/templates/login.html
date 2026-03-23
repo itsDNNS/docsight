@@ -112,8 +112,7 @@
         <div class="error" role="alert">{{ error }}</div>
         {% endif %}
         <form method="POST">
-            <label for="login-password" class="hint" style="display:none;">{{ t.password }}</label>
-            <input type="password" id="login-password" name="password" placeholder="{{ t.password }}" autofocus required>
+            <input type="password" id="login-password" name="password" placeholder="{{ t.password }}" aria-label="{{ t.password }}" autofocus required>
             <button type="submit">{{ t.login_button }}</button>
         </form>
     </div>

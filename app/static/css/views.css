@@ -981,8 +981,7 @@
 .gaming-comp-fill {
     height: 100%;
     border-radius: 3px;
-    transform-origin: left;
-    transition: transform 0.4s var(--ease-out-expo);
+    transition: width 0.4s var(--ease-out-expo);
 }
 .fill-good { background: var(--color-good, var(--good)); }
 .fill-warn { background: var(--color-warn, var(--warn)); }
