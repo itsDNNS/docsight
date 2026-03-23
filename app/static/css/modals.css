@@ -2,111 +2,236 @@
 
 /* ── Chart Zoom Modal ── */
 .chart-zoom-overlay {
-    position: fixed; inset: 0; background: var(--overlay);
-    z-index: 200; display: none; justify-content: center; align-items: center;
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    z-index: 200;
+    display: none;
+    justify-content: center;
+    align-items: center;
 }
 .chart-zoom-overlay.open { display: flex; }
 .chart-zoom-modal {
-    background: var(--surface); border-radius: 10px;
-    padding: 20px; width: 90vw; height: 80vh;
-    display: flex; flex-direction: column;
-    border: 1px solid var(--input-border);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    width: 90vw;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-lg);
 }
-.chart-zoom-modal .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.chart-zoom-modal .modal-header h2 { font-size: 1.1em; color: var(--accent); margin: 0; }
-.chart-zoom-modal > div:last-child { flex: 1; min-height: 0; width: 100%; overflow: hidden; }
+.chart-zoom-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+.chart-zoom-modal .modal-header h2 {
+    font-size: 1.1em;
+    color: var(--amethyst-light, var(--accent));
+    margin: 0;
+}
+.chart-zoom-modal > div:last-child {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+}
 .no-data-msg {
-    text-align: center; padding: 40px 20px;
-    color: var(--muted); font-size: 0.95em;
+    text-align: center;
+    padding: var(--space-2xl) var(--space-lg);
+    color: var(--text-muted);
+    font-size: 0.95em;
 }
 
 
-/* ── Export Modal ── */
+/* ── Shared Modal ── */
 .modal-overlay {
-    position: fixed; inset: 0; background: var(--overlay);
-    z-index: 200; display: none; justify-content: center; align-items: center;
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    z-index: 200;
+    display: none;
+    justify-content: center;
+    align-items: center;
 }
 .modal-overlay.open { display: flex; }
+
 .modal {
-    background: var(--surface); border-radius: 10px;
-    padding: 20px; max-width: 720px; width: 90%; max-height: 85vh;
-    display: flex; flex-direction: column;
-    border: 1px solid var(--input-border);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    max-width: 720px;
+    width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-lg);
 }
+
 .modal-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
 }
-.modal-header h2 { 
-    font-size: 1.2em; 
-    color: var(--accent-purple, var(--accent)); 
-    margin: 0; 
+.modal-header h2 {
+    font-size: 1.2em;
+    color: var(--amethyst-light, var(--accent));
+    margin: 0;
     font-weight: 600;
 }
+
 .modal-close {
-    background: none; 
-    border: none; 
-    color: var(--muted);
-    font-size: 1.4em; 
-    cursor: pointer; 
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.4em;
+    cursor: pointer;
     line-height: 1;
-    transition: color 0.2s ease;
+    padding: var(--space-xs);
+    border-radius: var(--radius-sm);
+    transition: color 0.2s var(--ease-out-expo);
 }
-.modal-close:hover { 
-    color: var(--accent-purple, var(--accent)); 
+.modal-close:hover {
+    color: var(--amethyst-light, var(--accent));
 }
-.modal-hint { font-size: 0.85em; color: var(--muted); margin-bottom: 12px; }
+.modal-close:active {
+    opacity: 0.7;
+}
+.modal-close:focus-visible {
+    outline: 2px solid var(--amethyst);
+    outline-offset: 2px;
+}
+
+.modal-hint {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin-bottom: var(--space-sm);
+}
+
 .modal-body {
-    flex: 1; overflow-y: auto; margin-bottom: 12px;
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: var(--space-sm);
 }
 .modal-body textarea {
-    width: 100%; min-height: 300px; background: var(--bg);
-    color: var(--text); border: 1px solid var(--input-border);
-    border-radius: 6px; padding: 12px; font-size: 0.82em;
-    font-family: 'Consolas', 'Monaco', monospace; resize: vertical;
+    width: 100%;
+    min-height: 300px;
+    background: var(--void);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+    font-size: 0.82em;
+    font-family: var(--font-mono);
+    resize: vertical;
+    transition: border-color 0.2s var(--ease-out-expo);
 }
-.modal-footer { 
-    display: flex; 
-    gap: 12px; 
-    justify-content: flex-end; 
-    margin-top: var(--space-md, 16px);
+.modal-body textarea:focus {
+    outline: none;
+    border-color: var(--amethyst);
+    box-shadow: 0 0 0 3px var(--amethyst-muted);
 }
+
+/* ── Export Mode Selector ── */
+.export-mode-selector {
+    display: flex;
+    gap: var(--space-sm);
+    padding: 0 var(--space-lg);
+    margin-bottom: var(--space-sm);
+}
+.export-mode-selector label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    cursor: pointer;
+    font-size: 0.88em;
+    color: var(--text-secondary);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    transition: color 0.15s var(--ease-out-expo);
+}
+.export-mode-selector label:hover {
+    color: var(--text-primary);
+}
+.export-mode-selector input[type="radio"] {
+    accent-color: var(--amethyst);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+.export-mode-selector svg {
+    width: 16px;
+    height: 16px;
+    color: var(--amethyst-light);
+}
+
+/* ── Modal Footer ── */
+.modal-footer {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+    margin-top: var(--space-md);
+}
+
 .modal-footer .btn,
 .incident-modal-footer .btn {
-    display: inline-block; 
-    padding: 10px 24px; 
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: var(--space-sm) var(--space-lg);
+    min-height: 44px;
     border: none;
-    border-radius: 50px !important; /* Pill-style buttons */
-    cursor: pointer; 
+    border-radius: var(--radius-pill);
+    cursor: pointer;
     font-size: 0.9em;
-    font-family: inherit; 
+    font-family: inherit;
     font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s var(--ease-out-expo);
 }
-.btn-accent { 
-    background: var(--accent-purple, var(--accent)); 
+
+.btn-accent {
+    background: var(--grad-primary);
     color: #fff;
-    box-shadow: 0 2px 8px rgba(168,85,247,0.3);
+    box-shadow: 0 2px 8px rgba(124,58,237,0.3);
 }
-.btn-accent:hover { 
-    background: var(--accent-hover, var(--purple-600));
+.btn-accent:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+    box-shadow: 0 8px 24px -4px rgba(124,58,237,0.4);
 }
+.btn-accent:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(124,58,237,0.2);
+}
+.btn-accent:focus-visible {
+    outline: 2px solid var(--amethyst);
+    outline-offset: 2px;
+}
+
 .btn-muted {
     background: transparent;
-    color: var(--text);
-    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
 }
-.btn-muted:hover { 
-    background: rgba(168,85,247,0.1);
-    border-color: var(--accent-purple);
+.btn-muted:hover {
+    background: var(--amethyst-muted);
+    border-color: var(--amethyst);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(168,85,247,0.2);
-    border-color: var(--accent-purple, var(--accent));
+}
+.btn-muted:active {
+    transform: translateY(0);
+    opacity: 0.8;
+}
+.btn-muted:focus-visible {
+    outline: 2px solid var(--amethyst);
+    outline-offset: 2px;
 }
