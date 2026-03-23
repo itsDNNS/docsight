@@ -38,6 +38,7 @@ def _rows_to_columns(rows):
         "latency_avg": [row["latency_avg_ms"] for row in rows],
         "latency_max": [row["latency_max_ms"] for row in rows],
         "lost_polls": [row["lost_polls"] for row in rows],
+        "sent_polls": [row["sent_polls"] for row in rows],
     }
 
 

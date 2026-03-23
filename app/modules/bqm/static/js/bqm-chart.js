@@ -59,8 +59,11 @@ var BQMChart = (function() {
         var latencyMin = payload.data.latency_min || [];
         var latencyMax = payload.data.latency_max || [];
         var lostPolls = payload.data.lost_polls || [];
+        var sentPolls = payload.data.sent_polls || [];
         var hasLoss = lostPolls.some(function(v) { return v > 0; });
-        var lossMax = hasLoss ? Math.max.apply(null, lostPolls) : 1;
+        // Scale loss axis to max sent polls (typically 100 per 5-min slot)
+        var sentMax = sentPolls.length ? Math.max.apply(null, sentPolls) : 100;
+        if (sentMax < 1) sentMax = 100;
         var xData = toUnixSeries(timestamps);
         var labels = timestamps.map(function(ts) {
             return formatTick(Math.floor(new Date(ts).getTime() / 1000));
@@ -76,11 +79,11 @@ var BQMChart = (function() {
             {
                 label: (T && T.bqm_chart_range) || 'Min/Max Range',
                 data: latencyMin,
-                color: 'transparent',
+                color: 'rgba(96,165,250,0.12)',
                 show: false,
             },
             {
-                label: (T && T.bqm_chart_range) || 'Min/Max Range',
+                label: '\u200b',
                 data: latencyMax,
                 color: 'transparent',
                 show: false,
@@ -101,9 +104,10 @@ var BQMChart = (function() {
             heightRatio: 0.48,
             scales: {
                 loss: {
-                    range: function(u, dmin, dmax) {
-                        var maxVal = Math.max(lossMax, dmax || 0, 1);
-                        return [maxVal, 0];
+                    range: function() {
+                        // Fixed range: 0 at bottom (top of chart), sentMax at top (bottom of bars)
+                        // so 35 lost polls out of 100 sent = 35% bar height
+                        return [sentMax, 0];
                     },
                 },
             },
@@ -118,7 +122,10 @@ var BQMChart = (function() {
                 gap: 4,
                 values: function(u, vals) {
                     if (!hasLoss) return vals.map(function() { return ''; });
-                    return vals.map(function(v) { return Number(v).toFixed(0); });
+                    return vals.map(function(v) {
+                        var pct = Math.round((Number(v) / sentMax) * 100);
+                        return pct + '%';
+                    });
                 },
             }],
             tooltipLabelCallback: function(ctx) {

@@ -446,12 +446,12 @@ class TestBqmChartConfig:
     """Verify bqm-chart.js has correct scale and toggle config."""
 
     def test_loss_scale_inverted(self):
-        """Loss Y-axis must be inverted: range returns [maxVal, 0]."""
+        """Loss Y-axis must be inverted: range returns [sentMax, 0]."""
         with open("app/modules/bqm/static/js/bqm-chart.js", "r") as f:
             js = f.read()
-        # The scale range must return [maxVal, 0] (inverted), not [0, maxVal]
-        assert "return [maxVal, 0]" in js
-        assert "return [0, maxVal]" not in js
+        # The scale range must return [sentMax, 0] (inverted), not [0, sentMax]
+        assert "return [sentMax, 0]" in js
+        assert "return [0, sentMax]" not in js
 
     def test_toggle_logic_in_bqm_js(self):
         """bqm.js must contain toggle handler wiring."""
