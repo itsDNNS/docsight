@@ -365,6 +365,7 @@
     "welcome_desc": "Verbinde dein Modem mit DOCSight.",
     "finish_setup": "Einrichtung abschließen",
     "correlation_analysis": "Korrelation",
+    "correlation_subtitle": "Beweismaterial fuer ISP-Beschwerden sammeln",
     "correlation_title": "Quellenübergreifende Korrelation",
     "correlation_desc": "Modemsignaldaten, Speedtest Ergebnisse und erkannte Ereignisse auf einer gemeinsamen Zeitachse korrelieren, um Muster zu erkennen und Belege für ISP Beschwerden zu sammeln.",
     "correlation_no_data": "Keine Korrelationsdaten für diesen Zeitraum verfügbar.",

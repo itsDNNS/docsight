@@ -995,6 +995,16 @@ function _corrHighlightTableRows(modemPt, speedPt, eventPt) {
     }
 }
 
+var _corrPinnedRow = null;
+function _corrUnpinRow() {
+    if (_corrPinnedRow) {
+        _corrPinnedRow.classList.remove('corr-pinned');
+        _corrPinnedRow = null;
+    }
+    _corrClearTableHighlight();
+    _corrClearChartHighlight();
+}
+
 function _corrClearTableHighlight() {
     var highlighted = document.querySelectorAll('#correlation-tbody tr.corr-highlight');
     for (var i = 0; i < highlighted.length; i++) {
@@ -1238,12 +1248,24 @@ function renderCorrelationTable(data) {
             + '<td>' + msg + '</td>'
             + '<td style="font-size:0.82em; color:var(--muted);">' + details + '</td>';
         tr.addEventListener('mouseenter', function() {
+            if (_corrPinnedRow) return;
             var rowTs = this.getAttribute('data-ts');
             var rowSrc = this.getAttribute('data-src');
             _corrHighlightFromTable(rowTs, rowSrc);
         });
         tr.addEventListener('mouseleave', function() {
+            if (_corrPinnedRow) return;
             _corrClearChartHighlight();
+        });
+        tr.addEventListener('click', function() {
+            var wasPinned = _corrPinnedRow === this;
+            _corrUnpinRow();
+            if (wasPinned) return;
+            _corrPinnedRow = this;
+            this.classList.add('corr-pinned');
+            var rowTs = this.getAttribute('data-ts');
+            var rowSrc = this.getAttribute('data-src');
+            _corrHighlightFromTable(rowTs, rowSrc);
         });
         tbody.appendChild(tr);
         count++;

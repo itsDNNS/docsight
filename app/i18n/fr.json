@@ -357,6 +357,7 @@
     "welcome_desc": "Connectons votre modem.",
     "finish_setup": "Terminer la configuration",
     "correlation_analysis": "Correlation",
+    "correlation_subtitle": "Rassembler des preuves pour les reclamations FAI",
     "correlation_title": "Correlation multi-sources",
     "correlation_desc": "Correlez les donnees de signal modem, les resultats de speedtest et les evenements detectes sur une chronologie unifiee pour identifier les schemas et constituer des preuves pour les reclamations FAI.",
     "correlation_no_data": "Aucune donnee de correlation disponible pour cette periode.",

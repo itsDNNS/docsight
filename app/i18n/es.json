@@ -360,6 +360,7 @@
     "welcome_desc": "Conectemos tu modem.",
     "finish_setup": "Completar configuracion",
     "correlation_analysis": "Correlacion",
+    "correlation_subtitle": "Recopilar evidencia para quejas al ISP",
     "correlation_title": "Correlacion multi-fuente",
     "correlation_desc": "Correlaciona datos de senal del modem, resultados de speedtest y eventos detectados en una linea temporal unificada para identificar patrones y recopilar evidencia para quejas al ISP.",
     "correlation_no_data": "No hay datos de correlacion disponibles para este periodo.",

@@ -365,6 +365,7 @@
     "welcome_desc": "Let's connect to your modem.",
     "finish_setup": "Complete Setup",
     "correlation_analysis": "Correlation",
+    "correlation_subtitle": "Build evidence for ISP complaints",
     "correlation_title": "Cross-Source Correlation",
     "correlation_desc": "Correlate modem signal data, speedtest results, and detected events on a unified timeline to identify patterns and build evidence for ISP complaints.",
     "correlation_no_data": "No correlation data available for this period.",

@@ -1076,15 +1076,17 @@
 <!-- ═══ View: Correlation Analysis ═══ -->
 {% if speedtest_configured or bqm_configured %}
 <div id="view-correlation" class="view">
-    <div class="trend-header">
-        <span class="trend-title">{{ t.correlation_title }}</span>
+    <div class="correlation-header">
+        <div class="correlation-header-left">
+            <span class="correlation-view-title">{{ t.correlation_title }}</span>
+            <span class="correlation-view-subtitle">{{ t.get('correlation_subtitle', 'Build evidence for ISP complaints') }}</span>
+        </div>
         <div class="trend-tabs" id="correlation-tabs">
             <button class="trend-tab active" data-value="24" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_24 }}</button>
             <button class="trend-tab" data-value="48" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_48 }}</button>
             <button class="trend-tab" data-value="168" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_168 }}</button>
         </div>
     </div>
-    <p class="correlation-desc">{{ t.correlation_desc }}</p>
 
     <div id="correlation-loading" class="waiting" style="display:none;">
         <div class="skeleton skel-chart"></div>
@@ -1130,9 +1132,8 @@
     <div id="correlation-table-card" class="table-card" style="display:none;">
         <div class="table-card-header">
             <div class="table-card-title">
-                <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                    <polyline points="9 22 9 12 15 12 15 22"/>
+                <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                 </svg>
                 <span>{{ t.correlation_timeline }}</span>
             </div>
