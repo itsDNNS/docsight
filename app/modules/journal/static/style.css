@@ -5,28 +5,28 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: var(--space-lg, 20px);
-    gap: var(--space-sm, 10px);
+    margin-bottom: var(--space-lg);
+    gap: var(--space-sm);
 }
 .journal-header-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
     justify-content: center;
 }
 .btn-delete-all {
     font-size: 0.85em;
-    padding: 8px 16px;
+    padding: var(--space-sm) var(--space-md);
 }
 .journal-export-dropdown {
     display: none;
     position: absolute;
     top: 100%;
     right: 0;
-    margin-top: 4px;
-    background: var(--card-bg, #23232a);
-    border: 1px solid var(--border, #333);
-    border-radius: 8px;
+    margin-top: var(--space-xs);
+    background: var(--card-bg, var(--card));
+    border: 1px solid var(--card-border, var(--input-border));
+    border-radius: var(--radius-sm);
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     z-index: 100;
     min-width: 120px;
@@ -36,18 +36,22 @@
 .journal-export-dropdown button {
     display: block;
     width: 100%;
-    padding: 10px 16px;
+    padding: var(--space-sm) var(--space-md);
     background: none;
     border: none;
-    color: var(--text, #e0e0e0);
+    color: var(--text);
     font-size: 0.9em;
+    font-family: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s var(--ease-out-expo);
 }
 .journal-export-dropdown button:hover {
     background: var(--accent-purple, var(--accent));
     color: #fff;
+}
+.journal-export-dropdown button:active {
+    filter: brightness(0.85);
 }
 .journal-header .trend-title {
     font-size: 1.5em;
@@ -59,23 +63,31 @@
 .btn-new-entry {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
     background: var(--accent-purple, var(--accent));
     color: #fff;
     border: none;
-    border-radius: 50px;
+    border-radius: var(--radius-pill);
     cursor: pointer;
     font-size: 0.9em;
     font-family: inherit;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
     box-shadow: 0 2px 8px rgba(168,85,247,0.3);
 }
 .btn-new-entry:hover {
     background: var(--accent-hover, var(--purple-600));
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(168,85,247,0.4);
+}
+.btn-new-entry:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(168,85,247,0.3);
+}
+.btn-new-entry:focus-visible {
+    outline: 2px solid var(--accent-purple, var(--accent));
+    outline-offset: 2px;
 }
 
 /* Journal table in card wrapper */
@@ -90,12 +102,13 @@
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
-    padding: 12px 16px;
+    padding: var(--space-sm) var(--space-md);
     text-align: left;
     font-weight: 600;
     font-size: 0.85em;
     color: var(--text);
     border-bottom: 1px solid var(--card-border, var(--input-border));
+    transition: background 0.15s var(--ease-out-expo);
 }
 #journal-table th:hover {
     background: rgba(168,85,247,0.1);
@@ -103,8 +116,8 @@
 /* Card-style rows with clear separation */
 #journal-table tbody tr {
     cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 8px solid var(--bg); /* Thick spacer between rows */
+    transition: all 0.2s var(--ease-out-expo);
+    border-bottom: var(--space-sm) solid var(--bg);
     background: rgba(255,255,255,0.02);
 }
 #journal-table tbody tr:hover {
@@ -112,8 +125,12 @@
     transform: translateX(2px);
     box-shadow: -3px 0 0 0 var(--accent-purple);
 }
+#journal-table tbody tr:active {
+    transform: translateX(0);
+    background: rgba(168,85,247,0.2);
+}
 #journal-table tbody td {
-    padding: 16px 20px; /* More breathing room */
+    padding: var(--space-md) 20px;
     vertical-align: top;
     border-left: 1px solid rgba(255,255,255,0.03);
 }
@@ -133,14 +150,14 @@
 }
 .journal-empty {
     text-align: center;
-    padding: 60px 20px;
+    padding: var(--space-2xl) var(--space-lg);
     color: var(--muted);
     font-size: 0.95em;
 }
 
 /* Modernized form styling */
 .incident-form-group {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-md);
 }
 .incident-form-group label {
     display: block;
@@ -152,14 +169,14 @@
 .incident-form-group input,
 .incident-form-group textarea {
     width: 100%;
-    padding: 12px 14px;
+    padding: var(--space-sm) 14px;
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--input-border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-family: inherit;
     font-size: 0.92em;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo);
 }
 .incident-form-group textarea {
     min-height: 150px;
@@ -171,49 +188,111 @@
     border-color: var(--accent-purple, var(--accent));
     box-shadow: 0 0 0 3px rgba(168,85,247,0.1);
 }
-.attachment-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.attachment-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
 .attachment-item {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--card); border-radius: 6px; padding: 6px 10px;
-    font-size: 0.82em; border: 1px solid var(--input-border);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    padding: 6px var(--space-sm);
+    font-size: 0.82em;
+    border: 1px solid var(--input-border);
+    transition: border-color 0.15s var(--ease-out-expo);
+}
+.attachment-item:hover {
+    border-color: var(--accent);
 }
 .attachment-thumb {
-    width: 48px; height: 48px; object-fit: cover; border-radius: 4px;
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
     background: var(--bg);
 }
 .attachment-icon {
-    width: 48px; height: 48px; display: flex; align-items: center;
-    justify-content: center; font-size: 1.5em; background: var(--bg);
-    border-radius: 4px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
 }
-.attachment-info { display: flex; flex-direction: column; gap: 2px; }
-.attachment-name { color: var(--text); word-break: break-all; }
-.attachment-actions { display: flex; gap: 4px; }
+.attachment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.attachment-name {
+    color: var(--text);
+    word-break: break-all;
+}
+.attachment-actions {
+    display: flex;
+    gap: var(--space-xs);
+}
 .attachment-actions a,
 .attachment-actions button {
-    background: none; border: none; color: var(--muted); cursor: pointer;
-    font-size: 0.9em; padding: 2px 4px; text-decoration: none;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 2px var(--space-xs);
+    text-decoration: none;
+    transition: color 0.15s var(--ease-out-expo);
 }
 .attachment-actions a:hover,
-.attachment-actions button:hover { color: var(--accent); }
-.btn-upload {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px; background: var(--card); color: var(--text);
-    border: 1px solid var(--input-border); border-radius: 6px;
-    cursor: pointer; font-size: 0.85em; font-family: inherit;
+.attachment-actions button:hover {
+    color: var(--accent);
 }
-.btn-upload:hover { border-color: var(--accent); color: var(--accent); }
+.attachment-actions a:active,
+.attachment-actions button:active {
+    opacity: 0.7;
+}
+.btn-upload {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.85em;
+    font-family: inherit;
+    transition: all 0.15s var(--ease-out-expo);
+}
+.btn-upload:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.btn-upload:active {
+    opacity: 0.8;
+}
+.btn-upload:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
 .btn-danger {
     background: var(--crit);
     color: #fff;
     border: none;
-    padding: 10px 24px;
-    border-radius: 50px; /* Pill-style */
+    padding: 10px var(--space-lg);
+    border-radius: var(--radius-pill);
     cursor: pointer;
     font-size: 0.9em;
     font-family: inherit;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
     box-shadow: 0 2px 8px rgba(239,68,68,0.3);
 }
 .btn-danger:hover {
@@ -221,36 +300,58 @@
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(239,68,68,0.4);
 }
-.modal-footer-left { display: flex; gap: 10px; flex: 1; }
+.btn-danger:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(239,68,68,0.3);
+}
+.btn-danger:focus-visible {
+    outline: 2px solid var(--crit);
+    outline-offset: 2px;
+}
+.modal-footer-left {
+    display: flex;
+    gap: var(--space-sm);
+    flex: 1;
+}
 .incident-modal-footer {
-    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
 }
 .upload-spinner {
-    display: inline-block; width: 16px; height: 16px;
-    border: 2px solid var(--input-border); border-top: 2px solid var(--accent);
-    border-radius: 50%; animation: spin 0.8s linear infinite;
-    vertical-align: middle; margin-left: 6px;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--input-border);
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-left: 6px;
 }
 
 /* Import Modal */
 .import-upload-zone {
     border: 2px dashed var(--input-border);
-    border-radius: 12px;
-    padding: 40px 20px;
+    border-radius: var(--radius-md);
+    padding: var(--space-2xl) var(--space-lg);
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
 }
 .import-upload-zone:hover,
 .import-upload-zone.dragover {
     border-color: var(--accent-purple, var(--accent));
     background: rgba(168,85,247,0.05);
 }
-.import-upload-zone p { margin: 8px 0 0; }
+.import-upload-zone p {
+    margin: var(--space-sm) 0 0;
+}
 .import-info {
-    padding: 10px 14px;
-    margin-bottom: 10px;
-    border-radius: 8px;
+    padding: var(--space-sm) 14px;
+    margin-bottom: var(--space-sm);
+    border-radius: var(--radius-sm);
     background: var(--surface-2, rgba(0,0,0,0.15));
     font-size: 0.9em;
     color: var(--text);
@@ -258,8 +359,8 @@
 .import-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
 }
 .import-select-all {
     display: flex;
@@ -272,7 +373,7 @@
 .import-table-wrap {
     max-height: 400px;
     overflow-y: auto;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--card-border, var(--input-border));
 }
 .import-table {
@@ -283,17 +384,20 @@
     position: sticky;
     top: 0;
     background: var(--surface-2, rgba(0,0,0,0.3));
-    padding: 10px 12px;
+    padding: var(--space-sm);
     text-align: left;
     font-size: 0.85em;
     font-weight: 600;
     z-index: 1;
 }
 .import-table tbody td {
-    padding: 8px 12px;
+    padding: var(--space-sm);
     border-top: 1px solid var(--card-border, rgba(255,255,255,0.05));
     font-size: 0.85em;
     vertical-align: top;
+}
+.import-table tbody tr {
+    transition: background 0.15s var(--ease-out-expo);
 }
 .import-table tbody tr:hover {
     background: rgba(168,85,247,0.08);
@@ -308,7 +412,7 @@
     display: inline-block;
     font-size: 0.75em;
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background: var(--warn, #f59e0b);
     color: #000;
     margin-left: 6px;
@@ -321,7 +425,7 @@
     display: inline-block;
     font-size: 0.7em;
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background: var(--danger, #ef4444);
     color: #fff;
     margin-left: 6px;
@@ -331,8 +435,8 @@
 .journal-search-wrap {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: var(--space-md, 14px);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
@@ -343,9 +447,9 @@
     flex: 1;
     background: var(--surface-2, rgba(0,0,0,0.2));
     border: 1px solid var(--input-border);
-    border-radius: 50px;
-    padding: 0 16px;
-    transition: all 0.3s ease;
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-md);
+    transition: all 0.25s var(--ease-out-expo);
     position: relative;
 }
 .journal-search-box:focus-within {
@@ -357,7 +461,7 @@
     height: 18px;
     color: var(--muted);
     flex-shrink: 0;
-    transition: color 0.3s ease;
+    transition: color 0.25s var(--ease-out-expo);
 }
 .journal-search-box:focus-within .journal-search-icon {
     color: var(--accent-purple, var(--accent));
@@ -369,7 +473,7 @@
     color: var(--text);
     font-size: 0.9em;
     font-family: inherit;
-    padding: 10px 12px;
+    padding: 10px var(--space-sm);
     outline: none;
 }
 .journal-search-box input::placeholder {
@@ -384,10 +488,13 @@
     cursor: pointer;
     padding: 0 2px;
     line-height: 1;
-    transition: color 0.2s;
+    transition: color 0.15s var(--ease-out-expo);
 }
 .journal-search-clear:hover {
     color: var(--text);
+}
+.journal-search-clear:active {
+    opacity: 0.7;
 }
 .journal-search-count {
     font-size: 0.8em;
@@ -416,7 +523,7 @@ mark.search-highlight {
 .journal-icon-cell {
     width: 36px;
     text-align: center;
-    padding: 12px 8px !important;
+    padding: var(--space-sm) var(--space-sm) !important;
 }
 .incident-modal-icon {
     display: flex;
@@ -439,11 +546,11 @@ mark.search-highlight {
     justify-content: center;
     width: 38px;
     height: 38px;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     border: 2px solid var(--input-border);
     background: var(--surface-2, rgba(0,0,0,0.15));
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s var(--ease-out-expo);
     padding: 0;
     color: var(--muted);
 }
@@ -451,6 +558,14 @@ mark.search-highlight {
     border-color: var(--accent-purple, var(--accent));
     background: rgba(168,85,247,0.08);
     color: var(--text);
+}
+.icon-pick:active {
+    background: rgba(168,85,247,0.25);
+    border-color: var(--accent-purple, var(--accent));
+}
+.icon-pick:focus-visible {
+    outline: 2px solid var(--accent-purple, var(--accent));
+    outline-offset: 2px;
 }
 .icon-pick.active {
     border-color: var(--accent-purple, var(--accent));
@@ -469,7 +584,7 @@ mark.search-highlight {
     top: 0;
     z-index: 2;
     background: var(--surface-2, rgba(0,0,0,0.3));
-    padding: 8px 16px !important;
+    padding: var(--space-sm) var(--space-md) !important;
     font-weight: 700;
     font-size: 0.85em;
     color: var(--accent-purple, var(--accent));
@@ -488,8 +603,8 @@ mark.search-highlight {
 .incident-filter-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 0 0 16px 0;
+    gap: var(--space-sm);
+    padding: 0 0 var(--space-md) 0;
     align-items: center;
 }
 .incident-pill {
@@ -497,19 +612,26 @@ mark.search-highlight {
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--card-border);
     background: var(--card);
     color: var(--text-secondary);
     font-size: 0.85rem;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.15s var(--ease-out-expo);
     white-space: nowrap;
 }
 .incident-pill:hover {
     background: var(--hover-bg);
     border-color: var(--accent);
     color: var(--text);
+}
+.incident-pill:active {
+    opacity: 0.8;
+}
+.incident-pill:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 .incident-pill.active {
     background: var(--accent-muted);
@@ -533,10 +655,10 @@ mark.search-highlight {
 }
 .incident-pill-edit {
     display: none;
-    margin-left: 4px;
+    margin-left: var(--space-xs);
     font-size: 0.8rem;
     color: var(--muted);
-    transition: color 0.15s;
+    transition: color 0.15s var(--ease-out-expo);
 }
 .incident-pill-has-edit:hover .incident-pill-edit {
     display: inline;
@@ -556,12 +678,19 @@ mark.search-highlight {
     color: var(--muted);
     font-size: 1.1rem;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.15s var(--ease-out-expo);
 }
 .incident-pill-add:hover {
     border-color: var(--accent);
     color: var(--accent);
     background: var(--accent-muted);
+}
+.incident-pill-add:active {
+    opacity: 0.8;
+}
+.incident-pill-add:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 /* Incident Summary */
@@ -569,13 +698,13 @@ mark.search-highlight {
     background: var(--card);
     border: 1px solid var(--card-border);
     border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    margin-bottom: 16px;
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
 }
 .incident-summary-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
 }
 .incident-summary-title {
@@ -586,7 +715,7 @@ mark.search-highlight {
 .incident-summary-badge {
     display: inline-block;
     padding: 2px 10px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -611,11 +740,18 @@ mark.search-highlight {
     font-size: 1rem;
     color: var(--muted);
     padding: 2px 6px;
-    border-radius: 4px;
-    transition: color 0.15s;
+    border-radius: var(--radius-sm);
+    transition: color 0.15s var(--ease-out-expo);
 }
 .incident-summary-edit:hover {
     color: var(--accent);
+}
+.incident-summary-edit:active {
+    opacity: 0.8;
+}
+.incident-summary-edit:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 .incident-summary-desc {
     margin-top: 6px;
@@ -630,16 +766,26 @@ mark.search-highlight {
     align-items: center;
     gap: 6px;
     padding: 5px 14px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
     border: 1px solid var(--input-border);
     background: rgba(255,255,255,0.05);
     color: var(--text-secondary);
-    transition: all 0.15s ease;
+    transition: all 0.15s var(--ease-out-expo);
 }
-.btn-bulk-toggle:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.btn-bulk-toggle:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+}
+.btn-bulk-toggle:active {
+    opacity: 0.8;
+}
+.btn-bulk-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
 .btn-bulk-active {
     background: var(--accent-purple, var(--accent)) !important;
     color: #fff !important;
@@ -649,7 +795,9 @@ mark.search-highlight {
 .journal-check-cell { text-align: center; width: 36px; }
 .journal-check-cell input[type="checkbox"],
 .journal-check-col input[type="checkbox"] {
-    width: 16px; height: 16px; cursor: pointer;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
     accent-color: var(--accent-purple, var(--accent));
 }
 .journal-row-selected {
@@ -658,14 +806,14 @@ mark.search-highlight {
 .journal-bulk-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
-    padding: 10px 16px;
+    padding: var(--space-sm) var(--space-md);
     background: var(--card);
     border: 1px solid var(--accent-purple, var(--accent));
-    border-radius: var(--radius-sm, 8px);
-    margin-bottom: 12px;
-    animation: fadeIn 0.15s ease;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-sm);
+    animation: fadeIn 0.15s var(--ease-out-expo);
 }
 .journal-bulk-count {
     font-weight: 600;
@@ -674,12 +822,13 @@ mark.search-highlight {
     white-space: nowrap;
 }
 .journal-bulk-select {
-    padding: 5px 10px;
-    border-radius: 6px;
+    padding: 5px var(--space-sm);
+    border-radius: var(--radius-sm);
     border: 1px solid var(--input-border);
     background: var(--input-bg);
     color: var(--text);
     font-size: 0.85rem;
+    font-family: inherit;
     min-width: 180px;
 }
 .journal-bulk-sep {
@@ -688,23 +837,24 @@ mark.search-highlight {
 
 /* Incident Container Modal */
 .incident-container-modal .incident-form-group {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-md);
 }
 .incident-container-modal select {
     width: 100%;
-    padding: 8px 12px;
+    padding: var(--space-sm);
     border-radius: var(--radius-sm);
     border: 1px solid var(--input-border);
     background: var(--card);
     color: var(--text);
     font-size: 0.9rem;
+    font-family: inherit;
 }
 .incident-container-modal .entry-count-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 12px;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
     background: var(--accent-muted);
     color: var(--accent);
     font-size: 0.8rem;
@@ -714,12 +864,13 @@ mark.search-highlight {
 /* Entry Modal: Incident Select */
 .entry-incident-select {
     width: 100%;
-    padding: 8px 12px;
+    padding: var(--space-sm);
     border-radius: var(--radius-sm);
     border: 1px solid var(--input-border);
     background: var(--card);
     color: var(--text);
     font-size: 0.9rem;
+    font-family: inherit;
 }
 
 /* Incident Timeline View */
@@ -735,23 +886,31 @@ mark.search-highlight {
     padding: 6px 14px;
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
+    font-family: inherit;
     cursor: pointer;
-    transition: all 0.15s;
-    margin-bottom: 16px;
+    transition: all 0.15s var(--ease-out-expo);
+    margin-bottom: var(--space-md);
 }
 .incident-timeline-back:hover {
     color: var(--text);
     border-color: var(--accent);
     background: var(--accent-muted);
 }
+.incident-timeline-back:active {
+    opacity: 0.8;
+}
+.incident-timeline-back:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
 
 /* Timeline Cards */
 .incident-timeline-card {
     background: var(--card-bg, var(--card));
     border: 1px solid var(--card-border, var(--input-border));
-    border-radius: var(--radius-md, 8px);
-    padding: var(--space-lg, 20px);
-    margin-bottom: 16px;
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
 }
 
 /* Header Card */
@@ -759,16 +918,16 @@ mark.search-highlight {
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-sm);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
 }
 .incident-timeline-meta {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -777,7 +936,7 @@ mark.search-highlight {
 .incident-timeline-meta-item {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
 }
 .incident-timeline-meta-item svg {
     width: 14px;
@@ -788,7 +947,7 @@ mark.search-highlight {
     font-size: 0.9rem;
     color: var(--text-secondary);
     line-height: 1.5;
-    margin-top: 8px;
+    margin-top: var(--space-sm);
 }
 
 /* PDF Download Button */
@@ -796,17 +955,17 @@ mark.search-highlight {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-top: 12px;
-    padding: 8px 16px;
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
     background: var(--accent-purple, var(--accent));
     color: #fff;
     border: none;
-    border-radius: 50px;
+    border-radius: var(--radius-pill);
     cursor: pointer;
     font-size: 0.85em;
     font-family: inherit;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all 0.2s var(--ease-out-expo);
     box-shadow: 0 2px 8px rgba(168,85,247,0.3);
 }
 .incident-timeline-pdf-btn:hover {
@@ -814,10 +973,18 @@ mark.search-highlight {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(168,85,247,0.4);
 }
+.incident-timeline-pdf-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(168,85,247,0.3);
+}
 .incident-timeline-pdf-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+.incident-timeline-pdf-btn:focus-visible {
+    outline: 2px solid var(--accent-purple, var(--accent));
+    outline-offset: 2px;
 }
 .incident-timeline-pdf-btn svg {
     width: 16px;
@@ -829,10 +996,10 @@ mark.search-highlight {
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 12px;
+    margin-bottom: var(--space-sm);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 .incident-timeline-section-title svg {
     width: 16px;
@@ -844,21 +1011,24 @@ mark.search-highlight {
 .incident-timeline-entries-grid {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 .incident-timeline-entry {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 10px 14px;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 14px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--card-border);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.15s var(--ease-out-expo);
 }
 .incident-timeline-entry:hover {
     border-color: var(--accent);
     background: var(--hover-bg);
+}
+.incident-timeline-entry:active {
+    background: rgba(168,85,247,0.12);
 }
 .incident-timeline-entry-icon {
     flex-shrink: 0;
@@ -867,7 +1037,7 @@ mark.search-highlight {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: var(--accent-muted);
     color: var(--accent);
 }
@@ -924,7 +1094,7 @@ mark.search-highlight {
 }
 .incident-timeline-signals th,
 .incident-timeline-signals td {
-    padding: 6px 10px;
+    padding: 6px var(--space-sm);
     font-size: 0.82rem;
     text-align: left;
     border-bottom: 1px solid var(--card-border);
@@ -940,8 +1110,8 @@ mark.search-highlight {
 /* Source Badges */
 .timeline-source-badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 2px var(--space-sm);
+    border-radius: var(--radius-sm);
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -966,22 +1136,30 @@ mark.search-highlight {
     border: 1px solid var(--accent);
     color: var(--accent);
     padding: 3px 12px;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     font-size: 0.78rem;
+    font-family: inherit;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.15s var(--ease-out-expo);
     white-space: nowrap;
 }
 .incident-summary-timeline-btn:hover {
     background: var(--accent);
     color: #fff;
 }
+.incident-summary-timeline-btn:active {
+    opacity: 0.85;
+}
+.incident-summary-timeline-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
 
 /* Empty state for timeline */
 .incident-timeline-empty {
     text-align: center;
-    padding: 24px;
+    padding: var(--space-lg);
     color: var(--muted);
     font-size: 0.9rem;
 }
@@ -990,8 +1168,8 @@ mark.search-highlight {
 .incident-timeline-bnetz-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 10px 0;
+    gap: var(--space-md);
+    padding: var(--space-sm) 0;
     border-bottom: 1px solid var(--card-border);
     font-size: 0.85rem;
 }
@@ -1002,7 +1180,20 @@ mark.search-highlight {
     font-weight: 600;
 }
 
+/* ── Responsive ── */
 @media (max-width: 768px) {
+    .journal-hide-mobile {
+        display: none;
+    }
+    .journal-header-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+    .journal-header-actions .btn-new-entry {
+        flex: 1;
+        justify-content: center;
+        min-height: 44px;
+    }
     .incident-timeline-entry {
         flex-direction: column;
         gap: 6px;
@@ -1010,6 +1201,33 @@ mark.search-highlight {
     .incident-timeline-meta {
         flex-direction: column;
         align-items: flex-start;
-        gap: 4px;
+        gap: var(--space-xs);
+    }
+    .incident-filter-bar {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: var(--space-sm);
+    }
+    .incident-filter-bar::-webkit-scrollbar {
+        display: none;
+    }
+    .incident-pill {
+        min-height: 44px;
+    }
+    .incident-pill-add {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    .journal-bulk-bar {
+        padding: var(--space-sm);
+    }
+    .journal-bulk-select {
+        min-width: 0;
+        flex: 1;
+    }
+    .incident-timeline-card {
+        padding: var(--space-md);
     }
 }
