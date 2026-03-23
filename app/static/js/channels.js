@@ -272,11 +272,14 @@ function _updateChannelInfoBar(direction, channelId) {
 
     bar.appendChild(_makeInfoItem(dir + ' ' + channelId, true));
     bar.appendChild(_makeInfoSep());
-    if (ch.frequency) bar.appendChild(_makeInfoItem(ch.frequency + ' MHz'));
+    if (ch.frequency) {
+        var freqStr = String(ch.frequency);
+        bar.appendChild(_makeInfoItem(freqStr.indexOf('MHz') === -1 ? freqStr + ' MHz' : freqStr));
+    }
     bar.appendChild(_makeInfoItem('DOCSIS ' + (ch.docsis_version || '3.0')));
     bar.appendChild(_makeInfoSep());
-    if (ch.power != null) bar.appendChild(_makeInfoItemWithLabel(T.power_dbmv || 'Power', ch.power, 'dBmV'));
-    if (ch.snr != null) bar.appendChild(_makeInfoItemWithLabel(T.snr_db || 'SNR', ch.snr, 'dB'));
+    if (ch.power != null) bar.appendChild(_makeInfoItemWithLabel('Power', ch.power, 'dBmV'));
+    if (ch.snr != null) bar.appendChild(_makeInfoItemWithLabel('SNR', ch.snr, 'dB'));
     bar.appendChild(_makeInfoSep());
     var healthEl = document.createElement('span');
     healthEl.className = 'ch-info-health ' + health;
