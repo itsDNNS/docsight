@@ -286,6 +286,7 @@ html, body {
 }
 .card-icon svg, .card-icon i { width: 20px; height: 20px; }
 .card-icon.purple { background: var(--amethyst-muted); color: var(--amethyst-light); }
+[data-theme="light"] .card-icon.purple { color: var(--amethyst); }
 .card-icon.blue { background: color-mix(in srgb, var(--sapphire) 15%, transparent); color: var(--sapphire); }
 .card-icon.green { background: var(--good-muted); color: var(--success); }
 .card-icon.amber { background: var(--warn-muted); color: var(--warning); }
