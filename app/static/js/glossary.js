@@ -6,6 +6,8 @@
   // Single shared popover appended to body (escapes overflow:hidden + transform)
   var overlay = document.createElement('div');
   overlay.className = 'glossary-popover';
+  overlay.id = 'glossary-popover-overlay';
+  overlay.setAttribute('role', 'tooltip');
   document.body.appendChild(overlay);
 
   var activeHint = null;
@@ -15,6 +17,7 @@
     overlay.classList.remove('above');
     if (activeHint) {
       activeHint.classList.remove('open');
+      activeHint.removeAttribute('aria-describedby');
       activeHint = null;
     }
   }
@@ -25,6 +28,7 @@
     overlay.textContent = source.textContent;
     overlay.style.display = 'block';
     overlay.classList.remove('above');
+    hint.setAttribute('aria-describedby', 'glossary-popover-overlay');
 
     var r = hint.getBoundingClientRect();
     var top = r.bottom + 8;
@@ -42,19 +46,31 @@
     }
   }
 
-  // Make hints keyboard-accessible
-  document.querySelectorAll('.glossary-hint').forEach(function (hint) {
-    hint.setAttribute('tabindex', '0');
-    hint.setAttribute('role', 'button');
-    hint.setAttribute('aria-label', 'Show definition');
-  });
+  // Make hints keyboard-accessible (re-runnable after innerHTML refresh)
+  function initHints() {
+    document.querySelectorAll('.glossary-hint').forEach(function (hint) {
+      if (hint.hasAttribute('data-glossary-init')) return;
+      hint.setAttribute('data-glossary-init', '1');
+      hint.setAttribute('tabindex', '0');
+      hint.setAttribute('role', 'button');
+      // Use the popover text as aria-label for i18n, fallback to generic
+      var source = hint.querySelector('.glossary-popover');
+      var label = source ? source.textContent.trim().substring(0, 60) : 'Info';
+      hint.setAttribute('aria-label', label);
+    });
+  }
+  initHints();
 
-  // Toggle on Enter/Space for keyboard users
+  // Expose for dashboard refresh cycle
+  window.initGlossaryHints = initHints;
+
+  // Toggle on Enter/Space for keyboard users (with stopPropagation to prevent parent handlers)
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' || e.key === ' ') {
       var hint = e.target.closest('.glossary-hint');
       if (hint) {
         e.preventDefault();
+        e.stopPropagation();
         hint.click();
       }
     }

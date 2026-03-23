@@ -2529,6 +2529,9 @@ var T = {{ t|tojson }};
                 // Re-init Lucide icons (lost on innerHTML replace)
                 lucide.createIcons();
 
+                // Re-init glossary keyboard a11y (lost on innerHTML replace)
+                if (typeof window.initGlossaryHints === 'function') window.initGlossaryHints();
+
                 // Refresh event badge count
                 fetch('/api/events/count')
                     .then(function(r) { return r.json(); })

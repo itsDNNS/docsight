@@ -1037,8 +1037,8 @@ html, body {
   -webkit-backdrop-filter: blur(8px);
   font-family: inherit;
 }
-.toast-ok { background: rgba(16, 185, 129, 0.95); color: var(--text-on-accent); }
-.toast-fail { background: rgba(239, 68, 68, 0.95); color: var(--text-on-accent); }
+.toast-ok { background: rgba(16, 185, 129, 0.95); color: #fff; }
+.toast-fail { background: rgba(239, 68, 68, 0.95); color: #fff; }
 
 /* ─── Error Message ─── */
 .error-msg {
@@ -1471,7 +1471,7 @@ html, body {
 }
 .badge-verified {
   background: var(--good);
-  color: var(--text-on-accent);
+  color: #fff;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 0.7em;
