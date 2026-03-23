@@ -247,10 +247,10 @@ def _valid_date(date_str):
         return False
 _SAFE_HTML_RE = re.compile(r"<(?!/?(?:b|a|strong|em|br)\b)[^>]+>", re.IGNORECASE)
 _DANGEROUS_ATTR_RE = re.compile(
-    r'\s+(?:on\w+|formaction)\s*=\s*["\'][^"\']*["\']', re.IGNORECASE
+    r'\s+(?:on\w+|formaction)\s*=\s*(?:["\'][^"\']*["\']|\S+)', re.IGNORECASE
 )
 _JAVASCRIPT_HREF_RE = re.compile(
-    r'href\s*=\s*["\']?\s*javascript:', re.IGNORECASE
+    r'href\s*=\s*(?:["\']?\s*javascript:[^"\'>\s]*["\']?)', re.IGNORECASE
 )
 
 
@@ -264,7 +264,7 @@ def safe_html_filter(value):
     from markupsafe import Markup
     cleaned = _SAFE_HTML_RE.sub("", str(value))
     cleaned = _DANGEROUS_ATTR_RE.sub("", cleaned)
-    cleaned = _JAVASCRIPT_HREF_RE.sub('href="', cleaned)
+    cleaned = _JAVASCRIPT_HREF_RE.sub('href="#"', cleaned)
     return Markup(cleaned)
 
 

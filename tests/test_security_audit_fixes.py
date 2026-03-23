@@ -102,11 +102,11 @@ class TestRestoreRateLimit:
                     yield c
 
     @pytest.fixture(autouse=True)
-    def clear_rate_limits(self):
-        from app.modules.backup.routes import _restore_attempts
-        _restore_attempts.clear()
+    def _clear_rate_limits(self):
+        from app.modules.backup import routes as br
+        br._restore_attempts.clear()
         yield
-        _restore_attempts.clear()
+        br._restore_attempts.clear()
 
     def test_restore_validate_rate_limited(self, client):
         """After 5 attempts, further unauthenticated restore/validate should be blocked."""
@@ -143,30 +143,38 @@ class TestRestoreRateLimit:
         assert resp.status_code == 429
 
     def test_authenticated_restore_not_rate_limited(self):
-        """Authenticated users bypass the rate limit."""
-        from app import web
+        """Configured+authenticated instances skip the rate limit path entirely."""
+        from flask import Flask
         from app.config import ConfigManager
+        from app.modules.backup import routes as br
+
+        br._restore_attempts.clear()
+
+        test_app = Flask(__name__)
+        test_app.config["TESTING"] = True
+        test_app.secret_key = "test-secret"
 
         with tempfile.TemporaryDirectory() as td:
             cfg = ConfigManager(td)
             cfg.save({"admin_password": "testpass", "modem_type": "demo"})
-            web.init_config(cfg)
-            web.init_storage(None)
-            web.init_collector(None)
-            web.init_collectors([])
-            web.app.config["TESTING"] = True
-            with web.app.test_client() as c:
-                # Login first
-                c.post("/login", data={"password": "testpass"})
-                # Even after many attempts, should not be rate-limited
-                for _ in range(10):
-                    c.post(
-                        "/api/restore/validate",
-                        data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
-                        content_type="multipart/form-data",
-                    )
-                # No 429 expected - the endpoint requires auth and
-                # rate-limit only applies to unconfigured instances
+
+            with patch("app.modules.backup.routes.get_config_manager", return_value=cfg), \
+                 patch("app.modules.backup.routes._auth_required", return_value=False), \
+                 patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"):
+                from app.modules.backup.routes import bp as backup_bp
+                fresh_bp = type(backup_bp)(backup_bp.name + "_auth_test", backup_bp.import_name)
+                for deferred in backup_bp.deferred_functions:
+                    fresh_bp.record(deferred)
+                test_app.register_blueprint(backup_bp)
+                with test_app.test_client() as c:
+                    for i in range(10):
+                        resp = c.post(
+                            "/api/restore/validate",
+                            data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
+                            content_type="multipart/form-data",
+                        )
+                        # Configured instance skips rate-limit code path
+                        assert resp.status_code != 429, f"Rate-limited on attempt {i+1}"
 
 
 # ── Finding 3: XSS in safe_html filter ──
@@ -197,6 +205,24 @@ class TestSafeHtmlXSS:
     def test_strips_onclick(self, filter_fn):
         result = str(filter_fn('<a href="#" onclick="alert(1)">click</a>'))
         assert "onclick" not in result.lower()
+
+    def test_strips_unquoted_onclick(self, filter_fn):
+        result = str(filter_fn('<a onclick=alert(1) href="#">click</a>'))
+        assert "onclick" not in result.lower()
+        assert "alert" not in result.lower()
+
+    def test_strips_unquoted_onmouseover(self, filter_fn):
+        result = str(filter_fn('<b onmouseover=alert(1)>bold</b>'))
+        assert "onmouseover" not in result.lower()
+
+    def test_javascript_href_replaced_with_hash(self, filter_fn):
+        result = str(filter_fn('<a href="javascript:alert(1)">click</a>'))
+        assert 'href="#"' in result
+        assert "javascript:" not in result.lower()
+
+    def test_unquoted_javascript_href(self, filter_fn):
+        result = str(filter_fn('<a href=javascript:alert(1)>click</a>'))
+        assert "javascript:" not in result.lower()
 
     def test_strips_onmouseover(self, filter_fn):
         result = str(filter_fn('<b onmouseover="alert(1)">bold</b>'))
