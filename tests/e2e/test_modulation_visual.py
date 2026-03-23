@@ -135,13 +135,13 @@ class TestKPICardVisuals:
     """Verify KPI cards render with proper structure."""
 
     def test_kpi_row_layout(self, modulation_page):
-        row = modulation_page.locator(".modulation-kpi-row")
+        row = modulation_page.locator(".mod-kpi-strip")
         box = row.bounding_box()
         assert box is not None, "KPI row not visible"
         assert box["width"] > 300, f"KPI row too narrow: {box['width']}px"
 
     def test_kpi_cards_same_height(self, modulation_page):
-        cards = modulation_page.locator(".modulation-kpi-card")
+        cards = modulation_page.locator(".mod-kpi-item")
         heights = []
         for i in range(cards.count()):
             box = cards.nth(i).bounding_box()
@@ -152,7 +152,7 @@ class TestKPICardVisuals:
             assert max_diff < 30, f"KPI card heights differ too much: {heights}"
 
     def test_kpi_cards_screenshot(self, modulation_page):
-        row = modulation_page.locator(".modulation-kpi-row")
+        row = modulation_page.locator(".mod-kpi-strip")
         row.screenshot(path=os.path.join(SCREENSHOT_DIR, "kpi_cards.png"))
 
     def test_health_kpi_has_value(self, modulation_page):
@@ -195,7 +195,7 @@ class TestResponsiveLayout:
     """Verify layout adapts to mobile viewports."""
 
     def test_kpi_cards_stack_on_mobile(self, modulation_page_mobile):
-        cards = modulation_page_mobile.locator(".modulation-kpi-card")
+        cards = modulation_page_mobile.locator(".mod-kpi-item")
         if cards.count() >= 2:
             box0 = cards.nth(0).bounding_box()
             box1 = cards.nth(1).bounding_box()
