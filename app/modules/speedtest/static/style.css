@@ -43,11 +43,6 @@
     margin-bottom: var(--space-xl, 24px);
     transition: all 0.2s ease;
 }
-.speedtest-chart-card:hover {
-    border-color: var(--accent-purple, #a855f7);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(168,85,247,0.15);
-}
 .speedtest-chart-wrap {
     position: relative;
     width: 100%;
@@ -131,6 +126,40 @@
     display: flex;
     gap: 8px;
     align-items: center;
+}
+
+/* Value highlighting */
+.val-bad { color: var(--crit); }
+
+/* Empty state */
+.speedtest-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 24px;
+}
+.speedtest-empty-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+.speedtest-empty-desc {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    max-width: 360px;
+    line-height: 1.5;
+}
+.speedtest-empty-state.speedtest-empty-error .speedtest-empty-title,
+.speedtest-empty-state.speedtest-empty-error .speedtest-empty-desc,
+.speedtest-empty-state.speedtest-empty-error .btn,
+.speedtest-empty-state.speedtest-empty-error [data-lucide] {
+    display: none;
+}
+.speedtest-empty-state.speedtest-empty-error::after {
+    content: attr(data-error);
+    color: var(--text-muted);
 }
 
 /* Responsive */

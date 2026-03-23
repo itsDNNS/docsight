@@ -23,5 +23,7 @@
   "run_speedtest": "",
   "speedtest_running": "",
   "speedtest_complete": "",
-  "speedtest_timeout": ""
+  "speedtest_timeout": "",
+  "speedtest_empty_title": "",
+  "speedtest_empty_desc": ""
 }

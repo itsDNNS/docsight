@@ -23,5 +23,7 @@
   "run_speedtest": "Run Speedtest",
   "speedtest_running": "Running...",
   "speedtest_complete": "Speedtest complete",
-  "speedtest_timeout": "Speedtest is taking longer than expected. Refresh to check."
+  "speedtest_timeout": "Speedtest is taking longer than expected. Refresh to check.",
+  "speedtest_empty_title": "No speedtest results yet",
+  "speedtest_empty_desc": "Automated tests will appear here once the schedule runs. You can also start a manual test."
 }

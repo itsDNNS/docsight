@@ -1688,7 +1688,12 @@
     <div id="speedtest-loading" class="waiting" style="display:none;">
         <div class="skeleton skel-chart"></div>
     </div>
-    <div id="speedtest-no-data" class="no-data-msg" style="display:none;"></div>
+    <div id="speedtest-no-data" class="no-data-msg speedtest-empty-state" style="display:none;">
+        <i data-lucide="wifi-off" style="width:40px;height:40px;color:var(--text-muted);margin-bottom:12px;"></i>
+        <div class="speedtest-empty-title">{{ t.speedtest_empty_title or 'No speedtest results yet' }}</div>
+        <div class="speedtest-empty-desc">{{ t.speedtest_empty_desc or 'Automated tests will appear here once the schedule runs. You can also start a manual test.' }}</div>
+        {% if not demo_mode %}<button class="btn btn-primary btn-sm" onclick="runSpeedtest()" style="margin-top:12px;"><i data-lucide="play"></i> {{ t.run_speedtest }}</button>{% endif %}
+    </div>
     <div id="speedtest-chart-container" style="display:none;">
         <!-- Phase 4.2: Modern card wrapper for speedtest chart -->
         <div class="speedtest-chart-card">

@@ -23,5 +23,7 @@
   "run_speedtest": "Speedtest starten",
   "speedtest_running": "Läuft...",
   "speedtest_complete": "Speedtest abgeschlossen",
-  "speedtest_timeout": "Speedtest dauert länger als erwartet. Aktualisiere die Seite."
+  "speedtest_timeout": "Speedtest dauert länger als erwartet. Aktualisiere die Seite.",
+  "speedtest_empty_title": "Noch keine Speedtest-Ergebnisse",
+  "speedtest_empty_desc": "Automatische Tests erscheinen hier, sobald der Zeitplan läuft. Du kannst auch einen manuellen Test starten."
 }

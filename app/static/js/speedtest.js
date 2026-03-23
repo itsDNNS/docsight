@@ -5,6 +5,7 @@ var _speedtestAllData = [];
 var _speedtestVisible = 50;
 var _speedtestSortCol = 'timestamp';
 var _speedtestSortDir = 'desc';
+var _signalCache = {};
 
 function formatSpeedtestTimestamp(ts) {
     if (!ts) return '';
@@ -38,8 +39,8 @@ function loadSpeedtestHistory() {
         .then(function(data) {
             if (loading) loading.style.display = 'none';
             if (!data || data.length === 0) {
-                noData.textContent = T.speedtest_no_data || 'No speedtest data.';
-                noData.style.display = 'block';
+                noData.classList.remove('speedtest-empty-error');
+                noData.style.display = '';
                 return;
             }
             _speedtestRawData = data;
@@ -47,8 +48,9 @@ function loadSpeedtestHistory() {
         })
         .catch(function() {
             if (loading) loading.style.display = 'none';
-            noData.textContent = T.network_error || 'Error';
-            noData.style.display = 'block';
+            noData.classList.add('speedtest-empty-error');
+            noData.setAttribute('data-error', T.network_error || 'Error');
+            noData.style.display = '';
         });
 }
 
@@ -69,8 +71,8 @@ function filterSpeedtestData() {
     if (_speedtestAllData.length === 0) {
         if (table) table.style.display = 'none';
         if (noData) {
-            noData.textContent = T.speedtest_no_data || 'No speedtest data.';
-            noData.style.display = 'block';
+            noData.classList.remove('speedtest-empty-error');
+            noData.style.display = '';
         }
         var cc = document.getElementById('speedtest-chart-container');
         if (cc) cc.style.display = 'none';
@@ -186,6 +188,76 @@ function renderSpeedtestRows() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+function _renderSignalDetail(data, container) {
+    container.textContent = '';
+    if (!data.found) {
+        var noDataSpan = document.createElement('span');
+        noDataSpan.className = 'st-sig-no-data';
+        noDataSpan.textContent = data.message || T.signal_no_snapshot;
+        container.appendChild(noDataSpan);
+        return;
+    }
+    var healthClass = 'health-' + (data.health || 'unknown');
+    var healthLabels = {good: T.health_good || 'Good', tolerated: T.health_tolerated || 'Tolerated', marginal: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'};
+    var healthLabel = healthLabels[data.health] || data.health;
+    var items = [
+        {label: T.signal_health || 'Health', value: healthLabel, badge: healthClass},
+        {label: T.signal_ds_power || 'DS Power', value: data.ds_power_min + ' / ' + data.ds_power_avg + ' / ' + data.ds_power_max + ' dBmV'},
+        {label: T.signal_ds_snr || 'DS SNR', value: data.ds_snr_min + ' / ' + data.ds_snr_avg + ' dB'},
+        {label: T.signal_us_power || 'US Power', value: data.us_power_min + ' / ' + data.us_power_avg + ' / ' + data.us_power_max + ' dBmV'},
+        {label: T.signal_errors || 'Errors', value: (data.ds_correctable_errors || 0).toLocaleString() + ' ' + (T.signal_corr || 'corr.') + ' / ' + (data.ds_uncorrectable_errors || 0).toLocaleString() + ' ' + (T.signal_uncorr || 'uncorr.')},
+        {label: (T.signal_ds_channels || 'DS') + ' / ' + (T.signal_us_channels || 'US'), value: (data.ds_total || 0) + ' / ' + (data.us_total || 0)}
+    ];
+    items.forEach(function(item) {
+        var div = document.createElement('div');
+        div.className = 'st-sig-item';
+        var lbl = document.createElement('span');
+        lbl.className = 'st-sig-label';
+        lbl.textContent = item.label;
+        div.appendChild(lbl);
+        if (item.badge) {
+            var badge = document.createElement('span');
+            badge.className = 'st-health-badge ' + item.badge;
+            badge.textContent = item.value;
+            div.appendChild(badge);
+        } else {
+            var val = document.createElement('span');
+            val.className = 'st-sig-value';
+            val.textContent = item.value;
+            div.appendChild(val);
+        }
+        container.appendChild(div);
+    });
+    if (data.us_channels && data.us_channels.length > 0) {
+        var modsDiv = document.createElement('div');
+        modsDiv.className = 'st-us-mods';
+        var modsLabel = document.createElement('span');
+        modsLabel.className = 'st-sig-label';
+        modsLabel.textContent = (T.signal_us_modulation || 'US Modulation') + ': ';
+        modsDiv.appendChild(modsLabel);
+        for (var c = 0; c < data.us_channels.length; c++) {
+            var ch = data.us_channels[c];
+            var chSpan = document.createElement('span');
+            chSpan.textContent = 'Ch' + (ch.channel_id || c) + ': ' + (ch.modulation || '?');
+            modsDiv.appendChild(chSpan);
+        }
+        container.appendChild(modsDiv);
+    }
+    var snapDiv = document.createElement('div');
+    snapDiv.className = 'st-sig-item';
+    var snapLabel = document.createElement('span');
+    snapLabel.className = 'st-sig-label';
+    snapLabel.textContent = T.signal_snapshot_time || 'Snapshot';
+    snapDiv.appendChild(snapLabel);
+    var snapVal = document.createElement('span');
+    snapVal.className = 'st-sig-value';
+    snapVal.style.fontSize = '0.85em';
+    snapVal.style.color = 'var(--muted)';
+    snapVal.textContent = data.snapshot_timestamp || '';
+    snapDiv.appendChild(snapVal);
+    container.appendChild(snapDiv);
+}
+
 function toggleSpeedtestSignal(btn) {
     var id = btn.getAttribute('data-id');
     var parentRow = btn.closest('tr');
@@ -196,55 +268,44 @@ function toggleSpeedtestSignal(btn) {
         btn.classList.remove('open');
         return;
     }
-    // Create detail row and fetch data
+    // Create detail row and populate (from cache or fetch)
     btn.classList.add('open');
     var newRow = document.createElement('tr');
     newRow.className = 'st-signal-row';
     var cols = parentRow.children.length;
     var td = document.createElement('td');
     td.colSpan = cols;
-    td.innerHTML = '<div class="st-signal-detail"><span class="st-sig-no-data" style="text-align:center;">...</span></div>';
+    td.textContent = '...';
+    var detailDiv = document.createElement('div');
+    detailDiv.className = 'st-signal-detail';
+    var loadSpan = document.createElement('span');
+    loadSpan.className = 'st-sig-no-data';
+    loadSpan.style.textAlign = 'center';
+    loadSpan.textContent = '...';
+    detailDiv.appendChild(loadSpan);
+    td.textContent = '';
+    td.appendChild(detailDiv);
     newRow.appendChild(td);
     parentRow.after(newRow);
-    fetch('/api/speedtest/' + id + '/signal')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            var container = newRow.querySelector('.st-signal-detail');
-            if (!data.found) {
-                container.innerHTML = '<span class="st-sig-no-data">' + escapeHtml(data.message || T.signal_no_snapshot) + '</span>';
-                return;
-            }
-            var healthClass = 'health-' + (data.health || 'unknown');
-            var healthLabel = {good: T.health_good || 'Good', tolerated: T.health_tolerated || 'Tolerated', marginal: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'}[data.health] || data.health;
-            var html = '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_health || 'Health') + '</span>'
-                + '<span class="st-health-badge ' + healthClass + '">' + escapeHtml(healthLabel) + '</span></div>'
-                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_ds_power || 'DS Power') + '</span>'
-                + '<span class="st-sig-value">' + data.ds_power_min + ' / ' + data.ds_power_avg + ' / ' + data.ds_power_max + ' dBmV</span></div>'
-                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_ds_snr || 'DS SNR') + '</span>'
-                + '<span class="st-sig-value">' + data.ds_snr_min + ' / ' + data.ds_snr_avg + ' dB</span></div>'
-                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_us_power || 'US Power') + '</span>'
-                + '<span class="st-sig-value">' + data.us_power_min + ' / ' + data.us_power_avg + ' / ' + data.us_power_max + ' dBmV</span></div>'
-                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_errors || 'Errors') + '</span>'
-                + '<span class="st-sig-value">' + (data.ds_correctable_errors || 0).toLocaleString() + ' ' + (T.signal_corr || 'corr.') + ' / '
-                + (data.ds_uncorrectable_errors || 0).toLocaleString() + ' ' + (T.signal_uncorr || 'uncorr.') + '</span></div>'
-                + '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_ds_channels || 'DS') + ' / ' + (T.signal_us_channels || 'US') + '</span>'
-                + '<span class="st-sig-value">' + (data.ds_total || 0) + ' / ' + (data.us_total || 0) + '</span></div>';
-            if (data.us_channels && data.us_channels.length > 0) {
-                html += '<div class="st-us-mods"><span class="st-sig-label">' + (T.signal_us_modulation || 'US Modulation') + ': </span>';
-                for (var c = 0; c < data.us_channels.length; c++) {
-                    var ch = data.us_channels[c];
-                    html += '<span>Ch' + (ch.channel_id || c) + ': ' + escapeHtml(ch.modulation || '?') + '</span>';
-                }
-                html += '</div>';
-            }
-            html += '<div class="st-sig-item"><span class="st-sig-label">' + (T.signal_snapshot_time || 'Snapshot') + '</span>'
-                + '<span class="st-sig-value" style="font-size:0.85em; color:var(--muted);">' + escapeHtml(data.snapshot_timestamp || '') + '</span></div>';
-            container.innerHTML = html;
-        })
-        .catch(function() {
-            var container = newRow.querySelector('.st-signal-detail');
-            if (container) { container.textContent = ''; var errSpan = document.createElement('span'); errSpan.className = 'st-sig-no-data'; errSpan.textContent = T.signal_error_loading || 'Error loading signal data'; container.appendChild(errSpan); }
-        });
+
+    var container = newRow.querySelector('.st-signal-detail');
+    if (_signalCache[id]) {
+        _renderSignalDetail(_signalCache[id], container);
+    } else {
+        fetch('/api/speedtest/' + id + '/signal')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                _signalCache[id] = data;
+                _renderSignalDetail(data, container);
+            })
+            .catch(function() {
+                container.textContent = '';
+                var errSpan = document.createElement('span');
+                errSpan.className = 'st-sig-no-data';
+                errSpan.textContent = T.signal_error_loading || 'Error loading signal data';
+                container.appendChild(errSpan);
+            });
+    }
 }
 
 function renderSpeedtestChart() {
@@ -298,9 +359,11 @@ function renderSpeedtestChart() {
     // Grid lines + left Y axis labels (speed)
     var cs = getComputedStyle(document.documentElement);
     var mutedColor = cs.getPropertyValue('--muted').trim() || '#888';
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    var gridColor = cs.getPropertyValue('--border-subtle').trim() || 'rgba(255,255,255,0.07)';
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
-    ctx.font = '11px monospace';
+    var monoFont = cs.getPropertyValue('--font-mono').trim() || 'monospace';
+    ctx.font = '11px ' + monoFont;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     var gridLines = 5;
@@ -319,7 +382,7 @@ function renderSpeedtestChart() {
         ctx.fillText(pingVal.toFixed(0), w - padR + 6, gy);
     }
     ctx.fillStyle = mutedColor;
-    ctx.font = '10px monospace';
+    ctx.font = '10px ' + monoFont;
     ctx.textAlign = 'center';
     ctx.save();
     ctx.translate(12, padT + ch / 2);
@@ -333,7 +396,7 @@ function renderSpeedtestChart() {
     ctx.restore();
     // X axis labels (timestamps)
     ctx.fillStyle = mutedColor;
-    ctx.font = '10px monospace';
+    ctx.font = '10px ' + monoFont;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     var labelCount = Math.min(6, data.length);
@@ -403,17 +466,17 @@ function renderSpeedtestChart() {
     drawLine(uls, ySpeed, '#22c55e', ['rgba(34,197,94,0.3)', 'rgba(34,197,94,0)']);
     drawLine(dls, ySpeed, '#a855f7', ['rgba(168,85,247,0.3)', 'rgba(168,85,247,0)']);
     drawLine(pings, yPing, '#f59e0b', 'rgba(245,158,11,0.10)');
-    // Hover interaction
+    // Hover / touch interaction
     var tooltip = document.getElementById('speedtest-chart-tooltip');
     // Move tooltip to body so it's never clipped
     if (tooltip.parentElement !== document.body) document.body.appendChild(tooltip);
     tooltip.style.position = 'fixed';
-    function onMouseMove(e) {
+    function showTooltipAt(clientX, clientY) {
         var rect = canvas.getBoundingClientRect();
         var scaleX = w / rect.width;
         var scaleY = h / rect.height;
-        var mx = (e.clientX - rect.left) * scaleX;
-        var my = (e.clientY - rect.top) * scaleY;
+        var mx = (clientX - rect.left) * scaleX;
+        var my = (clientY - rect.top) * scaleY;
         if (mx < padL || mx > w - padR || my < padT || my > padT + ch) {
             tooltip.style.display = 'none'; return;
         }
@@ -422,20 +485,55 @@ function renderSpeedtestChart() {
         if (idx < 0) idx = 0;
         if (idx >= data.length) idx = data.length - 1;
         tooltip.style.display = 'block';
-        tooltip.innerHTML = '<strong>' + escapeHtml(formatSpeedtestTimestamp(data[idx].timestamp)) + '</strong><br>'
-            + '<span style="color:#a855f7">&#9660;</span> ' + (T.speedtest_dl || 'DL') + ': ' + dls[idx].toFixed(2) + ' Mbps<br>'
-            + '<span style="color:#22c55e">&#9650;</span> ' + (T.speedtest_ul || 'UL') + ': ' + uls[idx].toFixed(2) + ' Mbps<br>'
-            + '<span style="color:#f59e0b">&#9679;</span> ' + (T.speedtest_ping || 'Ping') + ': ' + pings[idx].toFixed(1) + ' ms';
-        tooltip.style.left = (e.clientX + 14) + 'px';
-        tooltip.style.top = (e.clientY - 10) + 'px';
+        tooltip.textContent = '';
+        var strong = document.createElement('strong');
+        strong.textContent = formatSpeedtestTimestamp(data[idx].timestamp);
+        tooltip.appendChild(strong);
+        var lines = [
+            {color: '#a855f7', sym: '\u25BC', label: T.speedtest_dl || 'DL', val: dls[idx].toFixed(2) + ' Mbps'},
+            {color: '#22c55e', sym: '\u25B2', label: T.speedtest_ul || 'UL', val: uls[idx].toFixed(2) + ' Mbps'},
+            {color: '#f59e0b', sym: '\u25CF', label: T.speedtest_ping || 'Ping', val: pings[idx].toFixed(1) + ' ms'}
+        ];
+        lines.forEach(function(line) {
+            tooltip.appendChild(document.createElement('br'));
+            var span = document.createElement('span');
+            span.style.color = line.color;
+            span.textContent = line.sym;
+            tooltip.appendChild(span);
+            tooltip.appendChild(document.createTextNode(' ' + line.label + ': ' + line.val));
+        });
+        // Position with edge detection
+        var tipW = tooltip.offsetWidth || 160;
+        var leftPos = clientX + 14;
+        if (leftPos + tipW > window.innerWidth - 8) {
+            leftPos = clientX - tipW - 14;
+        }
+        tooltip.style.left = leftPos + 'px';
+        tooltip.style.top = (clientY - 10) + 'px';
     }
+    function onMouseMove(e) { showTooltipAt(e.clientX, e.clientY); }
     function onMouseLeave() { tooltip.style.display = 'none'; }
+    function onTouchMove(e) {
+        if (e.touches.length === 1) {
+            e.preventDefault();
+            var touch = e.touches[0];
+            showTooltipAt(touch.clientX, touch.clientY);
+        }
+    }
+    function onTouchEnd() { tooltip.style.display = 'none'; }
+    // Clean up old handlers
     if (canvas._chartMoveHandler) canvas.removeEventListener('mousemove', canvas._chartMoveHandler);
     if (canvas._chartLeaveHandler) canvas.removeEventListener('mouseleave', canvas._chartLeaveHandler);
+    if (canvas._chartTouchMoveHandler) canvas.removeEventListener('touchmove', canvas._chartTouchMoveHandler);
+    if (canvas._chartTouchEndHandler) canvas.removeEventListener('touchend', canvas._chartTouchEndHandler);
     canvas._chartMoveHandler = onMouseMove;
     canvas._chartLeaveHandler = onMouseLeave;
+    canvas._chartTouchMoveHandler = onTouchMove;
+    canvas._chartTouchEndHandler = onTouchEnd;
     canvas.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mouseleave', onMouseLeave);
+    canvas.addEventListener('touchmove', onTouchMove, {passive: false});
+    canvas.addEventListener('touchend', onTouchEnd);
 }
 
 // Resize handler for speedtest chart only
@@ -448,7 +546,10 @@ function showMoreSpeedtest() {
     renderSpeedtestRows();
 }
 
-function _setRunBtnState(btn, loading, origHTML) {
+var _runElapsedTimer = null;
+
+function _setRunBtnState(btn, loading) {
+    if (_runElapsedTimer) { clearInterval(_runElapsedTimer); _runElapsedTimer = null; }
     if (loading) {
         btn.disabled = true;
         btn.textContent = '';
@@ -456,7 +557,13 @@ function _setRunBtnState(btn, loading, origHTML) {
         icon.setAttribute('data-lucide', 'loader-2');
         icon.className = 'spin';
         btn.appendChild(icon);
-        btn.appendChild(document.createTextNode(' ' + (T.speedtest_running || 'Running...')));
+        var textNode = document.createTextNode(' ' + (T.speedtest_running || 'Running...') + ' 0s');
+        btn.appendChild(textNode);
+        var startTime = Date.now();
+        _runElapsedTimer = setInterval(function() {
+            var elapsed = Math.round((Date.now() - startTime) / 1000);
+            textNode.textContent = ' ' + (T.speedtest_running || 'Running...') + ' ' + elapsed + 's';
+        }, 1000);
     } else {
         btn.disabled = false;
         btn.textContent = '';

@@ -23,5 +23,7 @@
   "run_speedtest": "Ejecutar Speedtest",
   "speedtest_running": "Ejecutando...",
   "speedtest_complete": "Speedtest completado",
-  "speedtest_timeout": "El speedtest está tardando más de lo esperado. Actualiza para comprobar."
+  "speedtest_timeout": "El speedtest está tardando más de lo esperado. Actualiza para comprobar.",
+  "speedtest_empty_title": "Aún no hay resultados de speedtest",
+  "speedtest_empty_desc": "Los tests automáticos aparecerán aquí cuando se ejecute la programación. También puedes iniciar un test manual."
 }
