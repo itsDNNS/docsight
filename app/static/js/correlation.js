@@ -85,6 +85,8 @@ function loadCorrelationData() {
 }
 
 function renderCorrelationChart(data) {
+    // Clear pin state when chart is redrawn (legend toggle, zoom, resize)
+    if (_corrPinnedRow) _corrUnpinRow();
     var canvas = document.getElementById('correlation-chart');
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
@@ -716,6 +718,8 @@ function _setupCorrelationTooltip(overlay, octx) {
     });
 
     newOverlay.addEventListener('mousemove', function(e) {
+        // Clear pin when user interacts with chart directly
+        if (_corrPinnedRow) _corrUnpinRow();
         if (!_corrChartState) return;
         var st = _corrChartState;
         var rect = newOverlay.getBoundingClientRect();
@@ -947,17 +951,24 @@ function _setupCorrelationTooltip(overlay, octx) {
         tooltip.style.left = ttX + 'px';
         tooltip.style.top = ttY + 'px';
 
-        // Highlight corresponding table rows
-        _corrHighlightTableRows(nearestModem, nearestSpeed, nearestEvent);
+        // Highlight corresponding table rows (skip if a row is pinned)
+        if (!_corrPinnedRow) {
+            _corrHighlightTableRows(nearestModem, nearestSpeed, nearestEvent);
+        }
     });
 
     newOverlay.addEventListener('mouseleave', function() {
         dragStart = null;
         if (!_corrChartState) return;
         var st = _corrChartState;
-        newOctx.clearRect(0, 0, st.W, st.H);
+        // Don't clear chart highlight if a row is pinned
+        if (!_corrPinnedRow) {
+            newOctx.clearRect(0, 0, st.W, st.H);
+        }
         tooltip.style.display = 'none';
-        _corrClearTableHighlight();
+        if (!_corrPinnedRow) {
+            _corrClearTableHighlight();
+        }
     });
 }
 
@@ -993,6 +1004,17 @@ function _corrHighlightTableRows(modemPt, speedPt, eventPt) {
             wrap.scrollTo({ top: scrollTarget, behavior: 'smooth' });
         }
     }
+}
+
+var _corrPinnedRow = null;
+function _corrUnpinRow() {
+    if (_corrPinnedRow) {
+        _corrPinnedRow.classList.remove('corr-pinned');
+        _corrPinnedRow.removeAttribute('aria-selected');
+        _corrPinnedRow = null;
+    }
+    _corrClearTableHighlight();
+    _corrClearChartHighlight();
 }
 
 function _corrClearTableHighlight() {
@@ -1132,8 +1154,9 @@ function _corrExportCSV() {
 }
 
 function renderCorrelationTable(data) {
+    _corrPinnedRow = null;
     var tbody = document.getElementById('correlation-tbody');
-    tbody.innerHTML = '';
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
     // Show newest first in table
     var sorted = data.slice().reverse();
@@ -1186,6 +1209,8 @@ function renderCorrelationTable(data) {
         var tr = document.createElement('tr');
         tr.setAttribute('data-ts', e.timestamp);
         tr.setAttribute('data-src', e.source);
+        tr.setAttribute('tabindex', '0');
+        tr.setAttribute('role', 'row');
         var ts = escapeHtml(e.timestamp.replace('T', ' '));
         var src = e.source;
         var msg = '';
@@ -1238,12 +1263,31 @@ function renderCorrelationTable(data) {
             + '<td>' + msg + '</td>'
             + '<td style="font-size:0.82em; color:var(--muted);">' + details + '</td>';
         tr.addEventListener('mouseenter', function() {
+            if (_corrPinnedRow) return;
             var rowTs = this.getAttribute('data-ts');
             var rowSrc = this.getAttribute('data-src');
             _corrHighlightFromTable(rowTs, rowSrc);
         });
         tr.addEventListener('mouseleave', function() {
+            if (_corrPinnedRow) return;
             _corrClearChartHighlight();
+        });
+        tr.addEventListener('click', function() {
+            var wasPinned = _corrPinnedRow === this;
+            _corrUnpinRow();
+            if (wasPinned) return;
+            _corrPinnedRow = this;
+            this.classList.add('corr-pinned');
+            this.setAttribute('aria-selected', 'true');
+            var rowTs = this.getAttribute('data-ts');
+            var rowSrc = this.getAttribute('data-src');
+            _corrHighlightFromTable(rowTs, rowSrc);
+        });
+        tr.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+            }
         });
         tbody.appendChild(tr);
         count++;
