@@ -201,7 +201,7 @@
 
 .btn-accent {
     background: var(--grad-primary);
-    color: #fff;
+    color: var(--text-on-accent);
     /* Shadow color manually synced with --amethyst (#7c3aed = rgb(124,58,237)) */
     box-shadow: 0 2px 8px rgba(124,58,237,0.3);
 }

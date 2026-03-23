@@ -8,105 +8,112 @@
     <link rel="icon" type="image/png" href="/static/icon.png">
     <link rel="apple-touch-icon" href="/static/icon.png">
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#a855f7">
+    <meta name="theme-color" content="#7c3aed">
+    <link rel="stylesheet" href="/static/css/fonts.css">
+    <link rel="stylesheet" href="/static/css/tokens.css">
     <style>
-        :root, [data-theme="dark"] {
-            --bg: #1a1a2e;
-            --surface: #16213e;
-            --card: #0f3460;
-            --text: #e0e0e0;
-            --muted: #888;
-            --crit: #f44336;
-            --accent: #00adb5;
-            --input-bg: #0d1b3e;
-            --input-border: rgba(255,255,255,0.15);
-        }
-        [data-theme="light"] {
-            --bg: #f0f2f5;
-            --surface: #ffffff;
-            --card: #e8edf2;
-            --text: #1a1a2e;
-            --muted: #666;
-            --crit: #c62828;
-            --accent: #00838f;
-            --input-bg: #f8f9fa;
-            --input-border: rgba(0,0,0,0.15);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
+            font-family: var(--font-sans);
+            background: var(--void);
+            color: var(--text-primary);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
+            -webkit-font-smoothing: antialiased;
         }
         .login-box {
             background: var(--surface);
-            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
             padding: 2.5rem;
             width: 100%;
             max-width: 380px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow-lg);
         }
         .login-box h1 {
             font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
             margin-bottom: 0.25rem;
         }
         .login-box .hint {
-            color: var(--muted);
+            color: var(--text-muted);
             font-size: 0.85rem;
             margin-bottom: 1.5rem;
         }
         .login-box .error {
-            background: rgba(244,67,54,0.15);
+            background: var(--crit-muted);
             color: var(--crit);
             padding: 0.5rem 0.75rem;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             font-size: 0.85rem;
             margin-bottom: 1rem;
         }
         .login-box input[type="password"] {
             width: 100%;
             padding: 0.65rem 0.75rem;
-            border-radius: 6px;
-            border: 1px solid var(--input-border);
-            background: var(--input-bg);
-            color: var(--text);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--glass-border);
+            background: var(--elevated);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
             font-size: 1rem;
             margin-bottom: 1rem;
+            transition: border-color 0.2s;
         }
         .login-box input:focus {
             outline: none;
-            border-color: var(--accent);
+            border-color: var(--amethyst);
+        }
+        .login-box input:focus-visible {
+            box-shadow: 0 0 0 3px var(--amethyst-muted);
         }
         .login-box button {
             width: 100%;
             padding: 0.65rem;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             border: none;
-            background: var(--accent);
-            color: #fff;
+            background: var(--grad-primary);
+            color: #f0edff;
+            font-family: var(--font-sans);
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
+            min-height: 44px;
+            transition: transform 0.2s var(--ease-out-expo), box-shadow 0.2s var(--ease-out-expo);
         }
         .login-box button:hover {
-            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px -4px rgba(124,58,237,0.3);
+        }
+        .login-box button:active {
+            transform: translateY(0);
+        }
+        .login-box button:focus-visible {
+            outline: 2px solid var(--amethyst);
+            outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
 <body>
     <div class="login-box">
-        <img src="/static/icon.png" alt="DOCSight" style="width:64px;height:64px;border-radius:14px;display:block;margin:0 auto 12px;">
+        <img src="/static/icon.png" alt="DOCSight" style="width:64px;height:64px;border-radius:var(--radius-md);display:block;margin:0 auto 12px;">
         <h1>DOCSight</h1>
         <p class="hint">{{ t.login_hint }}</p>
         {% if error %}
-        <div class="error">{{ error }}</div>
+        <div class="error" role="alert">{{ error }}</div>
         {% endif %}
         <form method="POST">
-            <input type="password" name="password" placeholder="{{ t.password }}" autofocus required>
+            <label for="login-password" class="hint" style="display:none;">{{ t.password }}</label>
+            <input type="password" id="login-password" name="password" placeholder="{{ t.password }}" autofocus required>
             <button type="submit">{{ t.login_button }}</button>
         </form>
     </div>

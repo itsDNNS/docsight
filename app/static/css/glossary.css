@@ -6,6 +6,12 @@
   cursor: pointer;
   margin-left: 4px;
   vertical-align: middle;
+  /* Keyboard focusable via JS tabindex */
+}
+.glossary-hint:focus-visible {
+  outline: 2px solid var(--amethyst);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Inside metric cards: position in top-left corner */

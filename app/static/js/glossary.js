@@ -42,6 +42,24 @@
     }
   }
 
+  // Make hints keyboard-accessible
+  document.querySelectorAll('.glossary-hint').forEach(function (hint) {
+    hint.setAttribute('tabindex', '0');
+    hint.setAttribute('role', 'button');
+    hint.setAttribute('aria-label', 'Show definition');
+  });
+
+  // Toggle on Enter/Space for keyboard users
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      var hint = e.target.closest('.glossary-hint');
+      if (hint) {
+        e.preventDefault();
+        hint.click();
+      }
+    }
+  });
+
   document.addEventListener('click', function (e) {
     // Ignore clicks on the overlay itself
     if (e.target === overlay) return;

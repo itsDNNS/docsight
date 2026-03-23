@@ -32,11 +32,20 @@
   --text-primary: #e8edff;
   --text-secondary: #9ba3c8;
   --text-muted: #7880a6;
+  --text-on-accent: #f0edff;
 
   /* Glass */
   --glass-bg: rgba(17, 22, 40, 0.65);
   --glass-border: rgba(120, 130, 180, 0.12);
   --glass-blur: blur(24px) saturate(1.2);
+
+  /* Tints (theme-aware) */
+  --tint-subtle: rgba(255, 255, 255, 0.02);
+  --tint-hover: rgba(255, 255, 255, 0.04);
+  --tint-active: rgba(255, 255, 255, 0.06);
+  --tint-emphasis: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.03);
+  --border-tint: rgba(255, 255, 255, 0.05);
 
   /* Spacing */
   --space-xs: 4px;
@@ -60,7 +69,7 @@
 
   /* Easing */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.25, 1, 0.5, 1);
 
   /* Typography */
   --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
@@ -117,6 +126,13 @@
 
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(120, 100, 160, 0.15);
+
+  --tint-subtle: rgba(0, 0, 0, 0.02);
+  --tint-hover: rgba(0, 0, 0, 0.04);
+  --tint-active: rgba(0, 0, 0, 0.06);
+  --tint-emphasis: rgba(0, 0, 0, 0.08);
+  --border-subtle: rgba(0, 0, 0, 0.05);
+  --border-tint: rgba(0, 0, 0, 0.08);
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
