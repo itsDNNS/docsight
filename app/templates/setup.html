@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang }}" data-theme="dark">
+<html lang="{{ lang }}" data-theme="{{ theme|default('dark') }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -23,13 +23,13 @@
 
 <!-- Controls Bar -->
 <div class="setup-controls">
-    <select class="btn btn-ghost" id="lang-select" onchange="location.href='?lang='+this.value" style="padding:8px 12px;font-size:0.82rem;">
+    <select class="btn btn-ghost setup-lang-select" id="lang-select" onchange="location.href='?lang='+this.value" aria-label="Select language">
         {% for code, name in languages.items() %}
         <option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ lang_flags.get(code, '') }} {{ name }}</option>
         {% endfor %}
     </select>
-    <button class="btn btn-ghost" onclick="toggleTheme()" style="gap:6px;">
-        <i data-lucide="sun-moon" style="width:16px;height:16px;"></i> {{ t.theme_toggle }}
+    <button class="btn btn-ghost setup-theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+        <i data-lucide="sun-moon" class="setup-icon-sm"></i> {{ t.theme_toggle }}
     </button>
 </div>
 
@@ -42,14 +42,14 @@
 <!-- Start Choice -->
 <div id="setup-start" class="step-content active">
     <div class="choice-grid">
-        <div class="choice-card glass" onclick="startFreshSetup()" role="button" tabindex="0">
+        <div class="choice-card glass" onclick="startFreshSetup()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
             <div class="card-icon purple">
                 <i data-lucide="settings"></i>
             </div>
             <div class="card-title">{{ t.setup_fresh }}</div>
             <div class="card-desc">{{ t.setup_fresh_desc }}</div>
         </div>
-        <div class="choice-card glass" onclick="startRestore()" role="button" tabindex="0">
+        <div class="choice-card glass" onclick="startRestore()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
             <div class="card-icon blue">
                 <i data-lucide="archive-restore"></i>
             </div>
@@ -57,7 +57,7 @@
             <div class="card-desc">{{ t.setup_restore_desc }}</div>
         </div>
     </div>
-    <p class="setup-subtitle" style="text-align:center;">{{ t.setup_start_desc }}</p>
+    <p class="setup-subtitle">{{ t.setup_start_desc }}</p>
 </div>
 
 <!-- Restore UI -->
@@ -78,14 +78,14 @@
         <div class="form-grid">
             <div class="form-field">
                 <label class="form-label" for="restore-file">{{ t.restore_select_file }}</label>
-                <input class="form-input" type="file" id="restore-file" accept=".tar.gz,.gz" onchange="validateRestoreFile()" style="padding:10px;">
+                <input class="form-input" type="file" id="restore-file" accept=".tar.gz,.gz" onchange="validateRestoreFile()">
             </div>
         </div>
 
         <div id="restore-meta" style="display:none;">
             <div class="setup-info" id="restore-meta-info"></div>
             <button type="button" class="btn btn-primary" onclick="doRestore()" id="restore-confirm-btn">
-                <i data-lucide="archive-restore" style="width:16px;height:16px;"></i>
+                <i data-lucide="archive-restore" class="setup-icon-sm"></i>
                 {{ t.restore_confirm }}
             </button>
         </div>
@@ -94,7 +94,7 @@
 
         <div class="setup-actions" style="margin-top:var(--space-md);">
             <button type="button" class="btn btn-ghost" onclick="backToStart()">
-                <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+                <i data-lucide="arrow-left" class="setup-icon-sm"></i>
                 {{ t.back }}
             </button>
         </div>
@@ -104,17 +104,17 @@
 <!-- Stepper -->
 <div class="setup-stepper" id="setup-stepper" style="display:none;">
     <div class="stepper-step active" data-step="1">
-        <div class="stepper-circle"><i data-lucide="radio" style="width:20px;height:20px;"></i></div>
+        <div class="stepper-circle"><i data-lucide="radio" class="setup-icon-md"></i></div>
         <span class="stepper-label">{{ t.modem_connection }}</span>
     </div>
     <div class="stepper-line"></div>
     <div class="stepper-step" data-step="2">
-        <div class="stepper-circle"><i data-lucide="sliders-horizontal" style="width:20px;height:20px;"></i></div>
+        <div class="stepper-circle"><i data-lucide="sliders-horizontal" class="setup-icon-md"></i></div>
         <span class="stepper-label">{{ t.settings }}</span>
     </div>
     <div class="stepper-line"></div>
     <div class="stepper-step" data-step="3">
-        <div class="stepper-circle"><i data-lucide="check-circle" style="width:20px;height:20px;"></i></div>
+        <div class="stepper-circle"><i data-lucide="check-circle" class="setup-icon-md"></i></div>
         <span class="stepper-label">{{ t.step_review }}</span>
     </div>
 </div>
@@ -171,7 +171,7 @@
 
             <div>
                 <button type="button" class="btn btn-ghost" onclick="testConnection()" id="test-conn-btn">
-                    <i data-lucide="wifi" style="width:16px;height:16px;"></i>
+                    <i data-lucide="wifi" class="setup-icon-sm"></i>
                     {{ t.test_connection }}
                 </button>
                 <div class="test-result" id="test-result"></div>
@@ -181,7 +181,7 @@
         <div class="setup-actions">
             <button type="button" class="btn btn-primary" onclick="nextStep(2)">
                 {{ t.next }}
-                <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
+                <i data-lucide="arrow-right" class="setup-icon-sm"></i>
             </button>
         </div>
     </div>
@@ -224,12 +224,12 @@
 
         <div class="setup-actions">
             <button type="button" class="btn btn-ghost" onclick="prevStep(1)">
-                <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+                <i data-lucide="arrow-left" class="setup-icon-sm"></i>
                 {{ t.back }}
             </button>
             <button type="button" class="btn btn-primary" onclick="nextStep(3)">
                 {{ t.next }}
-                <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
+                <i data-lucide="arrow-right" class="setup-icon-sm"></i>
             </button>
         </div>
     </div>
@@ -259,11 +259,11 @@
 
         <div class="setup-actions">
             <button type="button" class="btn btn-ghost" onclick="prevStep(2)">
-                <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+                <i data-lucide="arrow-left" class="setup-icon-sm"></i>
                 {{ t.back }}
             </button>
             <button type="submit" class="btn btn-primary" id="submit-btn">
-                <i data-lucide="check-circle" style="width:16px;height:16px;"></i>
+                <i data-lucide="check-circle" class="setup-icon-sm"></i>
                 {{ t.complete_setup }}
             </button>
         </div>
@@ -314,7 +314,7 @@ function _setButtonLoading(btn, iconName, text) {
     while (btn.firstChild) btn.removeChild(btn.firstChild);
     var icon = document.createElement('i');
     icon.setAttribute('data-lucide', iconName);
-    icon.style.cssText = 'width:16px;height:16px;';
+    icon.className = 'setup-icon-sm';
     if (iconName === 'loader-2') icon.classList.add('spin');
     btn.appendChild(icon);
     btn.appendChild(document.createTextNode(' ' + text));
@@ -510,8 +510,8 @@ function _showResultLoading(resultDiv, text) {
     while (resultDiv.firstChild) resultDiv.removeChild(resultDiv.firstChild);
     var icon = document.createElement('i');
     icon.setAttribute('data-lucide', 'loader-2');
-    icon.className = 'spin';
-    icon.style.cssText = 'width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:6px;';
+    icon.className = 'spin setup-icon-sm';
+    icon.style.cssText = 'display:inline-block;vertical-align:middle;margin-right:6px;';
     resultDiv.appendChild(icon);
     resultDiv.appendChild(document.createTextNode(' ' + text));
     lucide.createIcons({nodes: [resultDiv]});
