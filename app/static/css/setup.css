@@ -28,8 +28,11 @@
 @keyframes meshDrift2 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(60px,-40px) scale(1.1)} }
 
 /* ── Card Icon Colors ── */
-.card-icon.purple { background: rgba(124,58,237,0.15); color: var(--amethyst-light); }
-.card-icon.blue { background: rgba(59,130,246,0.15); color: var(--sapphire); }
+.card-icon.purple { background: var(--amethyst-muted); color: var(--amethyst-light); }
+[data-theme="light"] .card-icon.purple { color: var(--amethyst); }
+[data-theme="light"] .stepper-step.active .stepper-label { color: var(--amethyst); }
+[data-theme="light"] .setup-info strong { color: var(--amethyst); }
+.card-icon.blue { background: color-mix(in srgb, var(--sapphire) 15%, transparent); color: var(--sapphire); }
 
 /* ── Layout ── */
 .setup-layout {
@@ -110,7 +113,7 @@
   background: var(--grad-primary);
   border-color: transparent;
   color: #fff;
-  box-shadow: 0 4px 16px -2px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 4px 16px -2px color-mix(in srgb, var(--amethyst) 40%, transparent);
 }
 .stepper-step.done .stepper-circle {
   background: var(--amethyst);
@@ -156,8 +159,15 @@
 }
 .choice-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(124, 58, 237, 0.3);
-  box-shadow: 0 8px 32px -8px rgba(124, 58, 237, 0.15);
+  border-color: color-mix(in srgb, var(--amethyst) 30%, transparent);
+  box-shadow: 0 8px 32px -8px color-mix(in srgb, var(--amethyst) 15%, transparent);
+}
+.choice-card:active {
+  transform: translateY(-2px);
+}
+.choice-card:focus-visible {
+  outline: 2px solid var(--amethyst);
+  outline-offset: 2px;
 }
 .choice-card .card-icon {
   width: 56px;
@@ -201,12 +211,12 @@
 .settings-card .card-title-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 .settings-card .card-icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -265,8 +275,8 @@
 .form-input:focus,
 .form-select:focus {
   border-color: var(--amethyst);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
-  background: rgba(124, 58, 237, 0.04);
+  box-shadow: 0 0 0 3px var(--amethyst-muted);
+  background: color-mix(in srgb, var(--amethyst) 4%, transparent);
 }
 .form-input::placeholder {
   color: var(--text-muted);
@@ -295,7 +305,7 @@
 /* ── Info Box ── */
 .setup-info {
   background: var(--amethyst-muted);
-  border: 1px solid rgba(124, 58, 237, 0.2);
+  border: 1px solid color-mix(in srgb, var(--amethyst) 20%, transparent);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   margin-bottom: var(--space-md);
@@ -309,7 +319,7 @@
 /* ── Actions ── */
 .setup-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-sm);
   margin-top: var(--space-lg);
 }
 
@@ -324,15 +334,15 @@
 }
 .test-result.success {
   display: block;
-  background: rgba(16, 185, 129, 0.1);
+  background: var(--good-muted);
   color: var(--good);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid color-mix(in srgb, var(--good) 20%, transparent);
 }
 .test-result.error {
   display: block;
-  background: rgba(239, 68, 68, 0.1);
+  background: var(--crit-muted);
   color: var(--crit);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid color-mix(in srgb, var(--crit) 20%, transparent);
 }
 
 /* ── Spin (loading icon) ── */
@@ -341,6 +351,23 @@
   to { transform: rotate(360deg); }
 }
 .spin { animation: spin 1s linear infinite; }
+
+/* ── Button Interaction States ── */
+.btn:focus-visible {
+  outline: 2px solid var(--amethyst);
+  outline-offset: 2px;
+}
+.btn:active {
+  opacity: 0.8;
+}
+
+/* ── Inline Style Replacements ── */
+.setup-icon-sm { width: 16px; height: 16px; }
+.setup-icon-md { width: 20px; height: 20px; }
+.setup-lang-select { padding: var(--space-sm) var(--space-sm); font-size: 0.82rem; }
+.setup-theme-btn { gap: 6px; }
+.setup-subtitle { text-align: center; }
+.form-input[type="file"] { padding: var(--space-sm); }
 
 /* ── Mobile ── */
 @media (max-width: 640px) {

@@ -49,3 +49,4 @@ tasks/
 tests/e2e/screenshots/
 
 .superpowers/
+.agents/
