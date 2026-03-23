@@ -19,7 +19,7 @@
     background: none;
     border: 1px solid var(--input-border);
     color: var(--text);
-    border-radius: var(--space-xs);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 1em;
     font-family: inherit;
@@ -217,7 +217,7 @@
 .bqm-import-thumb {
     width: 60px;
     height: 36px;
-    border-radius: var(--space-xs);
+    border-radius: var(--radius-sm);
     object-fit: cover;
     display: block;
 }
@@ -235,7 +235,7 @@
     color: var(--warn);
     font-size: 0.75em;
     padding: 2px var(--space-sm);
-    border-radius: var(--space-sm);
+    border-radius: var(--radius-sm);
 }
 .bqm-import-date-missing {
     border-color: var(--crit) !important;
@@ -249,7 +249,7 @@
     background: var(--crit-muted);
 }
 .bqm-offset-input {
-    background: var(--surface-2, rgba(0,0,0,0.15));
+    background: var(--elevated);
     border: 1px solid var(--input-border);
     color: var(--text);
     border-radius: var(--radius-sm);
@@ -260,7 +260,7 @@
     text-align: center;
 }
 .bqm-import-table input[type="date"] {
-    background: var(--surface-2, rgba(0,0,0,0.15));
+    background: var(--elevated);
     border: 1px solid var(--input-border);
     color: var(--text);
     border-radius: var(--radius-sm);
