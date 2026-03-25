@@ -604,6 +604,44 @@ class TestFullDataFlow:
         with pytest.raises(RuntimeError, match="XMO_UNKNOWN_PATH_ERR"):
             driver._raw_post({"request": {}})
 
+    @patch("app.drivers.sagemcom.time")
+    def test_login_recovers_from_session_error(self, mock_time, driver):
+        """Login must reset session and retry when modem returns XMO_INVALID_SESSION_ERR."""
+        session_error = {
+            "reply": {
+                "uid": 0, "id": 1,
+                "error": {"code": 16777219, "description": "XMO_INVALID_SESSION_ERR"},
+                "actions": [],
+                "events": [],
+            }
+        }
+        call_count = [0]
+
+        def side_effect(*args, **kwargs):
+            call_count[0] += 1
+            resp = MagicMock()
+            resp.ok = True
+            resp.status_code = 200
+            if call_count[0] == 1:
+                resp.json.return_value = session_error
+            else:
+                resp.json.return_value = _login_response()
+            return resp
+
+        with patch.object(driver, "_reset_session", wraps=driver._reset_session) as mock_reset:
+            driver._session.post = side_effect
+            original_raw_post = driver._raw_post
+
+            def patched_raw_post(body):
+                driver._session.post = side_effect
+                return original_raw_post(body)
+
+            driver._raw_post = patched_raw_post
+            driver.login()
+            mock_reset.assert_called_once()
+        assert driver._logged_in is True
+        assert call_count[0] == 2  # session error + successful re-login
+
 
 # -- Connection info --
 
