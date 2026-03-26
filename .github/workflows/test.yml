@@ -24,9 +24,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: |
-          pip install --require-hashes -r requirements.txt
-          pip install pytest
+        run: pip install --require-hashes -r requirements-test.txt
 
       - name: Run tests
         run: python -m pytest tests/ -v --tb=short --ignore=tests/e2e
@@ -38,15 +36,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: "3.12"
-
       - name: Audit dependencies for known vulnerabilities
-        run: |
-          pip install pip-audit
-          pip-audit -r requirements.txt
+        uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
+        with:
+          inputs: requirements.txt
 
   i18n:
     runs-on: ubuntu-latest
