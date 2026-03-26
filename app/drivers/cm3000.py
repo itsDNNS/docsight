@@ -129,12 +129,14 @@ class CM3000Driver(ModemDriver):
         total = len(ds30) + len(us30) + len(ds31) + len(us31)
         if total == 0:
             log.warning(
-                "CM3000 parsed 0 channels (DS QAM regex=%s, US ATDMA regex=%s, "
-                "DS OFDM regex=%s, US OFDMA regex=%s, page length=%d)",
-                _RE_DS_QAM.search(html) is not None,
-                _RE_US_ATDMA.search(html) is not None,
-                _RE_DS_OFDM.search(html) is not None,
-                _RE_US_OFDMA.search(html) is not None,
+                "CM3000 parsed 0 channels "
+                "(InitDsTableTagValue=%s, InitUsTableTagValue=%s, "
+                "InitDsOfdmTableTagValue=%s, InitUsOfdmaTableTagValue=%s, "
+                "page length=%d)",
+                bool(self._extract_tag_value_list(html, "InitDsTableTagValue")),
+                bool(self._extract_tag_value_list(html, "InitUsTableTagValue")),
+                bool(self._extract_tag_value_list(html, "InitDsOfdmTableTagValue")),
+                bool(self._extract_tag_value_list(html, "InitUsOfdmaTableTagValue")),
                 len(html),
             )
 

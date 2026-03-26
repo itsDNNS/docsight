@@ -68,7 +68,7 @@ def api_smokeping_graph(target, timespan):
         return jsonify({"error": "Failed to fetch graph"}), 502
 
     content = r.content
-    if not content or content[:4] != b"\x89PNG":
+    if not content or content[:8] != b"\x89PNG\r\n\x1a\n":
         return jsonify({"error": "Invalid image response from Smokeping"}), 502
 
     resp = make_response(content)
