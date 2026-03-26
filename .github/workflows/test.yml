@@ -36,12 +36,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      # Audits production deps only; test deps (requirements-test.txt) are
+      # hash-pinned and do not ship in the Docker image.
       - name: Audit dependencies for known vulnerabilities
         uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
-          inputs: requirements.txt requirements-test.txt
-          ignore-vulns: |
-            CVE-2026-4539
+          inputs: requirements.txt
 
   i18n:
     runs-on: ubuntu-latest
