@@ -1,5 +1,5 @@
 # --- builder stage: compile native dependencies ---
-FROM python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4 AS builder
+FROM python:3.14-slim@sha256:fb83750094b46fd6b8adaa80f66e2302ecbe45d513f6cece637a841e1025b4ca AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -17,7 +17,7 @@ RUN mkdir -p /build/out && \
     gcc -O2 -Wall -o /build/out/docsight-traceroute-helper /build/traceroute_helper.c
 
 # --- runtime stage: slim final image ---
-FROM python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+FROM python:3.14-slim@sha256:fb83750094b46fd6b8adaa80f66e2302ecbe45d513f6cece637a841e1025b4ca
 ARG VERSION=dev
 WORKDIR /app
 RUN echo "${VERSION}" > /app/VERSION
