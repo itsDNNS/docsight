@@ -1356,60 +1356,129 @@ if (document.readyState === 'loading') {
 }
 
 /* ── Community Module Registry ── */
+var _registryFetching = false;
+
 function refreshModuleRegistry() {
     var gallery = document.getElementById('module-registry-gallery');
     var empty = document.getElementById('module-registry-empty');
-    if (!gallery) return;
+    var loading = document.getElementById('module-registry-loading');
+    if (!gallery || _registryFetching) return;
+    _registryFetching = true;
+
+    if (loading) loading.style.display = '';
+    if (empty) empty.style.display = 'none';
+    gallery.style.display = 'none';
 
     fetch('/api/modules/registry')
         .then(function(r) { return r.json(); })
         .then(function(modules) {
+            if (loading) loading.style.display = 'none';
             if (!modules || modules.length === 0) {
                 gallery.style.display = 'none';
                 if (empty) empty.style.display = '';
-                if (empty) empty.textContent = T.extensions_no_modules || 'No community modules available.';
                 return;
             }
             gallery.style.display = '';
             if (empty) empty.style.display = 'none';
-            // Build module cards using escapeHtml for all dynamic content
-            var html = '';
-            modules.forEach(function(mod) {
-                var status = mod.status || 'not_installed';
-                var badge = mod.verified ? '<span class="module-badge badge-verified">' + escapeHtml(T.extensions_verified || 'Verified') + '</span>' : '';
-                var statusLabel = '';
-                var actionBtn = '';
-                if (status === 'not_installed') {
-                    statusLabel = '<span style="color:var(--muted);">' + escapeHtml(T.extensions_not_installed || 'Not installed') + '</span>';
-                    actionBtn = '<button class="btn btn-secondary btn-sm" onclick="installModule(\'' + escapeHtml(mod.id) + '\', \'' + escapeHtml(mod.download_url) + '\')">' + escapeHtml(T.extensions_install || 'Install') + '</button>';
-                } else if (status === 'installed_disabled') {
-                    statusLabel = '<span style="color:var(--warn);">' + escapeHtml(T.extensions_installed || 'Installed') + '</span>';
-                    actionBtn = '<button class="btn btn-secondary btn-sm" onclick="uninstallModule(\'' + escapeHtml(mod.id) + '\')">' + escapeHtml(T.extensions_uninstall || 'Uninstall') + '</button>';
-                } else {
-                    statusLabel = '<span style="color:var(--good);">' + escapeHtml(T.extensions_installed || 'Installed') + '</span>';
-                    actionBtn = '<button class="btn btn-secondary btn-sm" onclick="uninstallModule(\'' + escapeHtml(mod.id) + '\')">' + escapeHtml(T.extensions_uninstall || 'Uninstall') + '</button>';
-                }
-                html += '<div class="module-registry-card">'
-                    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
-                    + '<div>'
-                    + '<div style="font-weight:500;">' + escapeHtml(mod.name || mod.id) + ' ' + badge + '</div>'
-                    + '<div style="color:var(--muted);font-size:0.85em;margin-top:2px;">' + escapeHtml(mod.description || '') + '</div>'
-                    + '<div style="color:var(--muted);font-size:0.8em;margin-top:4px;">'
-                    + escapeHtml(mod.author || '') + ' &middot; v' + escapeHtml(mod.version || '') + ' &middot; ' + statusLabel
-                    + '</div>'
-                    + '</div>'
-                    + '<div style="margin-left:12px;flex-shrink:0;">' + actionBtn + '</div>'
-                    + '</div></div>';
-            });
-            gallery.innerHTML = html;
+
+            // Build cards — dynamic content assigned via textContent (inherently safe)
+            _renderRegistryCards(gallery, modules);
             if (typeof lucide !== 'undefined') lucide.createIcons();
         })
-        .catch(function(e) {
-            if (empty) { empty.style.display = ''; empty.textContent = T.extensions_fetch_failed || 'Failed to load registry.'; }
-        });
+        .catch(function() {
+            if (loading) loading.style.display = 'none';
+            gallery.style.display = 'none';
+            if (empty) empty.style.display = '';
+            showToast(T.extensions_fetch_failed || 'Failed to load registry.', true);
+        })
+        .finally(function() { _registryFetching = false; });
 }
 
-function installModule(id, downloadUrl) {
+function _renderRegistryCards(gallery, modules) {
+    while (gallery.firstChild) gallery.removeChild(gallery.firstChild);
+
+    modules.forEach(function(mod) {
+        var status = mod.status || 'not_installed';
+
+        var card = document.createElement('div');
+        card.className = 'module-registry-card';
+
+        var info = document.createElement('div');
+        info.className = 'registry-card-info';
+
+        var nameRow = document.createElement('div');
+        nameRow.className = 'registry-card-name';
+        nameRow.textContent = mod.name || mod.id;
+        if (mod.verified) {
+            var vBadge = document.createElement('span');
+            vBadge.className = 'module-badge badge-verified';
+            vBadge.textContent = T.extensions_verified || 'Verified';
+            nameRow.appendChild(vBadge);
+        }
+
+        var desc = document.createElement('div');
+        desc.className = 'registry-card-desc';
+        desc.textContent = mod.description || '';
+
+        var meta = document.createElement('div');
+        meta.className = 'registry-card-meta';
+        meta.textContent = (mod.author || '') + ' \u00B7 v' + (mod.version || '') + ' \u00B7 ';
+        var statusSpan = document.createElement('span');
+        if (status === 'not_installed') {
+            statusSpan.textContent = T.extensions_not_installed || 'Not installed';
+        } else if (status === 'installed_disabled') {
+            statusSpan.textContent = T.extensions_installed || 'Installed';
+            statusSpan.className = 'registry-status-warn';
+        } else {
+            statusSpan.textContent = T.extensions_installed || 'Installed';
+            statusSpan.className = 'registry-status-good';
+        }
+        meta.appendChild(statusSpan);
+
+        info.appendChild(nameRow);
+        info.appendChild(desc);
+        info.appendChild(meta);
+
+        var action = document.createElement('div');
+        action.className = 'registry-card-action';
+
+        var btn = document.createElement('button');
+        if (status === 'not_installed') {
+            btn.className = 'btn btn-sm btn-install';
+            btn.textContent = T.extensions_install || 'Install';
+            btn.addEventListener('click', function(e) { installModule(e, mod.id, mod.download_url); });
+        } else {
+            btn.className = 'btn btn-sm btn-uninstall';
+            btn.textContent = T.extensions_uninstall || 'Uninstall';
+            btn.addEventListener('click', function(e) { uninstallModule(e, mod.id); });
+        }
+        action.appendChild(btn);
+
+        card.appendChild(info);
+        card.appendChild(action);
+        gallery.appendChild(card);
+    });
+}
+
+/* Two-step install: first click shows "Confirm?", second click installs */
+function installModule(e, id, downloadUrl) {
+    var btn = e.currentTarget;
+    if (btn.dataset.confirmPending !== 'true') {
+        btn.dataset.confirmPending = 'true';
+        btn.className = 'btn btn-sm btn-confirm';
+        btn.textContent = T.extensions_confirm || 'Confirm?';
+        btn._resetTimer = setTimeout(function() {
+            btn.dataset.confirmPending = 'false';
+            btn.className = 'btn btn-sm btn-install';
+            btn.textContent = T.extensions_install || 'Install';
+        }, 3000);
+        return;
+    }
+    clearTimeout(btn._resetTimer);
+    btn.dataset.confirmPending = 'false';
+    btn.disabled = true;
+    btn.textContent = '...';
+
     fetch('/api/modules/install', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -1420,18 +1489,42 @@ function installModule(id, downloadUrl) {
         if (data.success) {
             showToast(T.extensions_install_success || 'Module installed successfully');
             var banner = document.getElementById('module-restart-banner');
-            if (banner) banner.style.display = '';
+            if (banner) { banner.style.display = ''; if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]}); }
             refreshModuleRegistry();
         } else {
             showToast(data.error || (T.extensions_install_failed || 'Installation failed'), true);
+            btn.disabled = false;
+            btn.className = 'btn btn-sm btn-install';
+            btn.textContent = T.extensions_install || 'Install';
         }
     })
-    .catch(function(e) {
-        showToast((T.extensions_install_failed || 'Installation failed') + ': ' + e.message, true);
+    .catch(function(err) {
+        showToast((T.extensions_install_failed || 'Installation failed') + ': ' + err.message, true);
+        btn.disabled = false;
+        btn.className = 'btn btn-sm btn-install';
+        btn.textContent = T.extensions_install || 'Install';
     });
 }
 
-function uninstallModule(id) {
+/* Two-step uninstall */
+function uninstallModule(e, id) {
+    var btn = e.currentTarget;
+    if (btn.dataset.confirmPending !== 'true') {
+        btn.dataset.confirmPending = 'true';
+        btn.className = 'btn btn-sm btn-confirm';
+        btn.textContent = T.extensions_confirm || 'Confirm?';
+        btn._resetTimer = setTimeout(function() {
+            btn.dataset.confirmPending = 'false';
+            btn.className = 'btn btn-sm btn-uninstall';
+            btn.textContent = T.extensions_uninstall || 'Uninstall';
+        }, 3000);
+        return;
+    }
+    clearTimeout(btn._resetTimer);
+    btn.dataset.confirmPending = 'false';
+    btn.disabled = true;
+    btn.textContent = '...';
+
     fetch('/api/modules/uninstall', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -1442,13 +1535,19 @@ function uninstallModule(id) {
         if (data.success) {
             showToast(T.extensions_uninstall_success || 'Module uninstalled');
             var banner = document.getElementById('module-restart-banner');
-            if (banner) banner.style.display = '';
+            if (banner) { banner.style.display = ''; if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]}); }
             refreshModuleRegistry();
         } else {
-            showToast(data.error || 'Uninstall failed', true);
+            showToast(data.error || (T.extensions_uninstall_failed || 'Uninstall failed'), true);
+            btn.disabled = false;
+            btn.className = 'btn btn-sm btn-uninstall';
+            btn.textContent = T.extensions_uninstall || 'Uninstall';
         }
     })
-    .catch(function(e) {
-        showToast('Uninstall failed: ' + e.message, true);
+    .catch(function(err) {
+        showToast((T.extensions_uninstall_failed || 'Uninstall failed') + ': ' + err.message, true);
+        btn.disabled = false;
+        btn.className = 'btn btn-sm btn-uninstall';
+        btn.textContent = T.extensions_uninstall || 'Uninstall';
     });
 }

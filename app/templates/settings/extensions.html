@@ -18,21 +18,43 @@
             </div>
         </div>
 
-        {# Build a unified, alphabetically sorted list of all extensions #}
+        {# Build grouped extension lists #}
         {% set seg_disabled = config.modem_type != 'fritzbox' %}
         {% set seg_desc = t.get('modules_requires_fritzbox', 'Requires FRITZ!Box') if seg_disabled else t.get('seg_subtitle', 'Cable segment utilization monitoring.') %}
-        {% set all_ext = [] %}
-        {% if all_ext.append({'name': t.gaming_quality_label, 'desc': t.gaming_quality_hint, 'kind': 'form', 'field': 'gaming_quality_enabled', 'checked': config.gaming_quality_enabled, 'disabled': false}) %}{% endif %}
-        {% if all_ext.append({'name': t.bnetz_title, 'desc': t.bnetz_upload_hint, 'kind': 'form', 'field': 'bnetz_enabled', 'checked': config.bnetz_enabled, 'disabled': false}) %}{% endif %}
-        {% if all_ext.append({'name': t.get('seg_title', 'Segment Utilization'), 'desc': seg_desc, 'kind': 'form', 'field': 'segment_utilization_enabled', 'checked': config.segment_utilization_enabled and not seg_disabled, 'disabled': seg_disabled}) %}{% endif %}
+
+        {% set features = [] %}
+        {% if features.append({'name': t.gaming_quality_label, 'desc': t.gaming_quality_hint, 'field': 'gaming_quality_enabled', 'checked': config.gaming_quality_enabled, 'disabled': false}) %}{% endif %}
+        {% if features.append({'name': t.bnetz_title, 'desc': t.bnetz_upload_hint, 'field': 'bnetz_enabled', 'checked': config.bnetz_enabled, 'disabled': false}) %}{% endif %}
+        {% if features.append({'name': t.get('seg_title', 'Segment Utilization'), 'desc': seg_desc, 'field': 'segment_utilization_enabled', 'checked': config.segment_utilization_enabled and not seg_disabled, 'disabled': seg_disabled}) %}{% endif %}
+
+        {% set modules_list = [] %}
         {% if all_modules %}
         {% for mod in all_modules|selectattr('type', 'ne', 'theme')|list %}
-        {% if all_ext.append({'name': mod.name, 'desc': mod.description, 'kind': 'module', 'mod_id': mod.id, 'checked': mod.enabled, 'disabled': false, 'error': mod.error}) %}{% endif %}
+        {% if modules_list.append({'name': mod.name, 'desc': mod.description, 'mod_id': mod.id, 'checked': mod.enabled, 'disabled': false, 'error': mod.error}) %}{% endif %}
         {% endfor %}
         {% endif %}
 
-        {% for ext in all_ext|sort(attribute='name') %}
-        <div class="toggle-row{% if ext.disabled %} toggle-row-disabled{% endif %}"{% if ext.kind == 'module' %} data-module-id="{{ ext.mod_id }}"{% endif %}>
+        {# ── Features ── #}
+        <div class="toggle-section-divider">{{ t.get('ext_features', 'Features') }}</div>
+        {% for ext in features|sort(attribute='name') %}
+        <div class="toggle-row{% if ext.disabled %} toggle-row-disabled{% endif %}">
+            <div class="toggle-info">
+                <span class="toggle-title">{{ ext.name }}</span>
+                <span class="toggle-desc">{{ ext.desc }}</span>
+            </div>
+            <input type="hidden" name="{{ ext.field }}" value="false">
+            <label class="toggle">
+                <input type="checkbox" id="{{ ext.field }}" name="{{ ext.field }}" value="true" {% if ext.checked %}checked{% endif %} {% if ext.disabled %}disabled{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        {% endfor %}
+
+        {# ── Modules ── #}
+        {% if modules_list %}
+        <div class="toggle-section-divider">{{ t.get('ext_modules', 'Modules') }}</div>
+        {% for ext in modules_list|sort(attribute='name') %}
+        <div class="toggle-row{% if ext.disabled %} toggle-row-disabled{% endif %}" data-module-id="{{ ext.mod_id }}">
             <div class="toggle-info">
                 <span class="toggle-title">
                     {{ ext.name }}
@@ -40,22 +62,15 @@
                 </span>
                 <span class="toggle-desc">{{ ext.desc }}</span>
             </div>
-            {% if ext.kind == 'form' %}
-            <input type="hidden" name="{{ ext.field }}" value="false">
-            <label class="toggle">
-                <input type="checkbox" id="{{ ext.field }}" name="{{ ext.field }}" value="true" {% if ext.checked %}checked{% endif %} {% if ext.disabled %}disabled{% endif %}>
-                <span class="toggle-slider"></span>
-            </label>
-            {% elif ext.kind == 'module' %}
             <label class="toggle module-toggle">
                 <input type="checkbox" class="module-toggle-input"
                        data-module-id="{{ ext.mod_id }}"
                        {% if ext.checked %}checked{% endif %}>
                 <span class="toggle-slider"></span>
             </label>
-            {% endif %}
         </div>
         {% endfor %}
+        {% endif %}
     </div>
 
     {# ── Community Modules ── #}
@@ -70,14 +85,18 @@
                     <div class="card-subtitle">{{ t.get('extensions_community_desc', 'Browse and install modules from the community registry') }}</div>
                 </div>
             </div>
-            <button class="btn btn-secondary" onclick="refreshModuleRegistry()" id="module-registry-refresh">
-                <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
-                {{ t.get('extensions_browse', 'Browse') }}
+            <button class="btn btn-ghost" onclick="refreshModuleRegistry()" id="module-registry-refresh" title="{{ t.get('extensions_refresh', 'Refresh') }}">
+                <i data-lucide="refresh-cw" style="width:16px;height:16px;"></i>
             </button>
         </div>
         <div id="module-registry-container" style="padding: 0 var(--card-padding) var(--card-padding);">
-            <div id="module-registry-empty" style="color:var(--muted);text-align:center;padding:24px;">
-                {{ t.get('extensions_browse_hint', 'Click Browse to load available community modules.') }}
+            <div id="module-registry-loading" class="registry-loading">
+                <i data-lucide="loader-2" style="width:18px;height:18px;"></i>
+                {{ t.get('extensions_loading', 'Loading community modules...') }}
+            </div>
+            <div id="module-registry-empty" class="registry-empty" style="display:none;">
+                <i data-lucide="package-open"></i>
+                {{ t.get('extensions_no_modules', 'No community modules available yet.') }}
             </div>
             <div id="module-registry-gallery" style="display:none;"></div>
         </div>

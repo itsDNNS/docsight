@@ -5,6 +5,7 @@
 :root {
   /* Settings-specific tokens (not in tokens.css) */
   --sidebar-width: 260px;
+  --card-padding: var(--space-lg);
   --success: var(--good);
   --warning: var(--warn);
   --danger: var(--crit);
@@ -442,6 +443,19 @@ html, body {
   pointer-events: none;
 }
 
+/* Active toggle state — full-bleed highlight with left accent */
+.toggle-row:has(input:checked):not(.toggle-row-disabled) {
+  background: var(--tint-subtle);
+  margin-inline: calc(var(--card-padding) * -1);
+  padding-inline: var(--card-padding);
+  border-left: 2px solid var(--amethyst);
+  padding-left: calc(var(--card-padding) - 2px);
+}
+/* Dim unchecked extensions so enabled ones pop */
+#panel-extensions .toggle-row:not(:has(input:checked)):not(.toggle-row-disabled) .toggle-title {
+  color: var(--text-secondary);
+}
+
 .toggle-section-divider {
   font-size: 0.72rem;
   font-weight: 600;
@@ -451,6 +465,10 @@ html, body {
   padding: var(--space-md) 0 var(--space-xs);
   margin-top: var(--space-sm);
   border-top: 1px solid var(--glass-border);
+}
+.card-header + .toggle-section-divider {
+  border-top: none;
+  margin-top: 0;
 }
 
 .toggle-info {
@@ -478,7 +496,7 @@ html, body {
   position: absolute;
   inset: 0;
   background: rgba(120,130,180,0.3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition: all 0.3s var(--ease-smooth);
 }
@@ -1614,14 +1632,74 @@ html, body {
 
 /* Community module registry */
 .module-registry-card {
-  padding: 12px;
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
+  transition: background 0.15s var(--ease-smooth);
 }
-.module-registry-card:last-child {
-  margin-bottom: 0;
+.module-registry-card:last-child { margin-bottom: 0; }
+.module-registry-card:hover { background: var(--tint-hover); }
+
+.registry-card-info { min-width: 0; flex: 1; }
+.registry-card-name {
+  font-weight: 500;
+  font-size: 0.92rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
+.registry-card-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.registry-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.registry-card-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.registry-status-warn { color: var(--warn); }
+.registry-status-good { color: var(--good); }
+
+/* Registry states */
+.registry-empty {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.registry-empty i {
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--space-sm);
+  opacity: 0.3;
+}
+.registry-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.registry-loading i { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Registry action buttons */
 .badge-verified {
   background: var(--good);
   color: #fff;
@@ -1634,3 +1712,26 @@ html, body {
   padding: 4px 10px;
   font-size: 0.8em;
 }
+.btn-install {
+  background: var(--good-muted);
+  color: var(--good);
+  border: 1px solid color-mix(in srgb, var(--good) 20%, transparent);
+}
+.btn-install:hover { background: color-mix(in srgb, var(--good) 20%, transparent); }
+.btn-uninstall {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--glass-border);
+}
+.btn-uninstall:hover {
+  color: var(--crit);
+  background: var(--crit-muted);
+  border-color: color-mix(in srgb, var(--crit) 20%, transparent);
+}
+.btn-confirm {
+  background: var(--warn-muted);
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
+  animation: confirmPulse 0.3s var(--ease-out-expo);
+}
+@keyframes confirmPulse { 0% { transform: scale(0.95); } 100% { transform: scale(1); } }
