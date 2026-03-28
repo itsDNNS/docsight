@@ -800,7 +800,8 @@ body.is-offline .offline-banner { display: flex; }
 .table-scroll-wrapper.scrolled-end::after { opacity: 0; }
 
 /* ── Surface Hierarchy ──
-   Hero + health rings keep full glass treatment.
+   Hero + health rings keep full glass treatment for visual prominence.
+   insights-panel keeps glass to signal urgent health issues.
    Everything else uses quieter surfaces so data speaks louder. */
 
 .metric-card.glass {

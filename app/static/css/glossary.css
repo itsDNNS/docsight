@@ -24,7 +24,8 @@
   opacity: 0;
   transition: opacity 0.2s;
 }
-.metric-card:hover .glossary-hint {
+.metric-card:hover .glossary-hint,
+.metric-card .glossary-hint:focus-visible {
   opacity: 1;
 }
 
