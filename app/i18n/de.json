@@ -816,6 +816,8 @@
   "sc_history": "Ausführungsverlauf",
   "sc_history_empty": "Noch keine Ausführungen. Smart Capture protokolliert Aktivitäten hier sobald es aktiviert ist.",
   "sc_history_error": "Ausführungsverlauf konnte nicht geladen werden",
+  "sc_history_loading": "Ausführungsverlauf wird geladen...",
+  "sc_guardrails_summary": "Maximal %max%/Stunde, mindestens %cooldown% Abstand",
   "sc_status_pending": "Ausstehend",
   "sc_status_fired": "Ausgelöst",
   "sc_status_completed": "Abgeschlossen",

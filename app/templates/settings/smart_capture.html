@@ -1,6 +1,6 @@
 <div class="settings-panel" id="panel-smart_capture">
 
-    {# ── Master Toggle ── #}
+    {# ── Triggers + Master Toggle ── #}
     <div class="settings-card glass">
         <div class="card-header">
             <div class="card-title-group">
@@ -10,47 +10,30 @@
                     <div class="card-subtitle">{{ t.get('sc_enable_desc', 'Automatically trigger measurements when signal degradation is detected') }}</div>
                 </div>
             </div>
+            <label class="toggle">
+                <input type="checkbox" id="sc_enabled" name="sc_enabled" {{ 'checked' if config.get('sc_enabled') }}>
+                <span class="toggle-slider"></span>
+            </label>
         </div>
-        <div class="form-grid cols-2">
-            <div class="form-group full-width">
-                <label class="toggle">
-                    <input type="checkbox" id="sc_enabled" name="sc_enabled" {{ 'checked' if config.get('sc_enabled') }}>
-                    <span class="toggle-slider"></span>
-                </label>
-                <label for="sc_enabled" style="margin-left:8px;">{{ t.get('sc_enable', 'Enable Smart Capture') }}</label>
-            </div>
-        </div>
-    </div>
 
-    {# ── Trigger Cards ── #}
-    <div class="settings-card glass">
-        <div class="card-header">
-            <div class="card-title-group">
-                <div class="card-icon blue"><i data-lucide="target"></i></div>
-                <div>
-                    <div class="card-title">{{ t.get('sc_triggers', 'Trigger Events') }}</div>
-                    <div class="card-subtitle">{{ t.get('sc_triggers_desc', 'Choose which signal degradation events should trigger a measurement') }}</div>
-                </div>
-            </div>
-        </div>
-        <div style="padding: 0 var(--card-padding) var(--card-padding);">
+        <div class="sc-triggers-body">
 
             {# ── Modulation downgrade ── #}
             <div class="sc-trigger-card" data-trigger="sc_trigger_modulation">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="activity" style="width:16px;height:16px;color:var(--muted);"></i>
-                        <span style="font-weight:500;">{{ t.get('sc_trigger_modulation', 'Modulation downgrade') }}</span>
+                <div class="sc-trigger-header">
+                    <div class="sc-trigger-label">
+                        <i data-lucide="activity" class="sc-trigger-icon"></i>
+                        <span class="sc-trigger-name">{{ t.get('sc_trigger_modulation', 'Modulation downgrade') }}</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="sc_trigger_modulation" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_modulation') }}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
-                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                <div class="sc-trigger-desc">
                     {{ t.get('sc_trigger_modulation_desc', 'Triggers when QAM level drops on any channel (e.g. 256QAM to 64QAM). Only downgrades with severity warning or critical.') }}
                 </div>
-                <div class="sc-sub-settings {{ 'visible' if config.get('sc_trigger_modulation') }}">
+                <div class="sc-sub-settings">
                     <div class="form-grid cols-2">
                         <div class="form-group">
                             <label for="sc_trigger_modulation_direction">{{ t.get('sc_trigger_direction', 'Direction') }}</label>
@@ -82,37 +65,37 @@
 
             {# ── SNR degradation ── #}
             <div class="sc-trigger-card" data-trigger="sc_trigger_snr">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="signal" style="width:16px;height:16px;color:var(--muted);"></i>
-                        <span style="font-weight:500;">{{ t.get('sc_trigger_snr', 'SNR degradation') }}</span>
+                <div class="sc-trigger-header">
+                    <div class="sc-trigger-label">
+                        <i data-lucide="signal" class="sc-trigger-icon"></i>
+                        <span class="sc-trigger-name">{{ t.get('sc_trigger_snr', 'SNR degradation') }}</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="sc_trigger_snr" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_snr') }}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
-                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                <div class="sc-trigger-desc">
                     {{ t.get('sc_trigger_snr_desc', 'Triggers when signal-to-noise ratio drops below warning threshold.') }}
                 </div>
             </div>
 
             {# ── Error spike ── #}
             <div class="sc-trigger-card" data-trigger="sc_trigger_error_spike">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="alert-triangle" style="width:16px;height:16px;color:var(--muted);"></i>
-                        <span style="font-weight:500;">{{ t.get('sc_trigger_error_spike', 'Error spike') }}</span>
+                <div class="sc-trigger-header">
+                    <div class="sc-trigger-label">
+                        <i data-lucide="alert-triangle" class="sc-trigger-icon"></i>
+                        <span class="sc-trigger-name">{{ t.get('sc_trigger_error_spike', 'Error spike') }}</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="sc_trigger_error_spike" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_error_spike') }}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
-                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                <div class="sc-trigger-desc">
                     {{ t.get('sc_trigger_error_spike_desc', 'Triggers when uncorrectable errors jump significantly between polls.') }}
                 </div>
-                <div class="sc-sub-settings {{ 'visible' if config.get('sc_trigger_error_spike') }}">
+                <div class="sc-sub-settings">
                     <div class="form-grid cols-2">
                         <div class="form-group">
                             <label for="sc_trigger_error_spike_min_delta">{{ t.get('sc_trigger_min_delta', 'Min error delta') }}</label>
@@ -126,20 +109,20 @@
 
             {# ── Health change ── #}
             <div class="sc-trigger-card" data-trigger="sc_trigger_health">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="heart-pulse" style="width:16px;height:16px;color:var(--muted);"></i>
-                        <span style="font-weight:500;">{{ t.get('sc_trigger_health', 'Health change') }}</span>
+                <div class="sc-trigger-header">
+                    <div class="sc-trigger-label">
+                        <i data-lucide="heart-pulse" class="sc-trigger-icon"></i>
+                        <span class="sc-trigger-name">{{ t.get('sc_trigger_health', 'Health change') }}</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="sc_trigger_health" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_health') }}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
-                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                <div class="sc-trigger-desc">
                     {{ t.get('sc_trigger_health_desc', 'Triggers when connection health degrades to marginal or critical.') }}
                 </div>
-                <div class="sc-sub-settings {{ 'visible' if config.get('sc_trigger_health') }}">
+                <div class="sc-sub-settings">
                     <div class="form-grid cols-2">
                         <div class="form-group">
                             <label for="sc_trigger_health_level">{{ t.get('sc_trigger_health_level', 'Health level') }}</label>
@@ -154,20 +137,20 @@
 
             {# ── Packet loss warning ── #}
             <div class="sc-trigger-card" data-trigger="sc_trigger_packet_loss">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <i data-lucide="wifi-off" style="width:16px;height:16px;color:var(--muted);"></i>
-                        <span style="font-weight:500;">{{ t.get('sc_trigger_packet_loss', 'Packet loss warning') }}</span>
+                <div class="sc-trigger-header">
+                    <div class="sc-trigger-label">
+                        <i data-lucide="wifi-off" class="sc-trigger-icon"></i>
+                        <span class="sc-trigger-name">{{ t.get('sc_trigger_packet_loss', 'Packet loss warning') }}</span>
                     </div>
                     <label class="toggle">
                         <input type="checkbox" name="sc_trigger_packet_loss" class="sc-trigger-toggle" {{ 'checked' if config.get('sc_trigger_packet_loss') }}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
-                <div style="color:var(--muted);font-size:0.85em;margin-top:4px;margin-left:24px;">
+                <div class="sc-trigger-desc">
                     {{ t.get('sc_trigger_packet_loss_desc', 'Triggers when Connection Monitor detects high packet loss on any target') }}
                 </div>
-                <div class="sc-sub-settings {{ 'visible' if config.get('sc_trigger_packet_loss') }}">
+                <div class="sc-sub-settings">
                     <div class="form-grid cols-2">
                         <div class="form-group">
                             <label for="sc_trigger_packet_loss_min_pct">{{ t.get('sc_trigger_packet_loss_min_pct', 'Min packet loss %') }}</label>
@@ -182,74 +165,81 @@
         </div>
     </div>
 
-    {# ── Guardrails ── #}
-    <div class="settings-card glass">
-        <div class="card-header">
-            <div class="card-title-group">
-                <div class="card-icon amber"><i data-lucide="shield"></i></div>
-                <div>
-                    <div class="card-title">{{ t.get('sc_guardrails', 'Guardrails') }}</div>
-                    <div class="card-subtitle">{{ t.get('sc_guardrails_desc', 'Rate limiting to prevent excessive test triggers') }}</div>
+    <div id="sc-dependent-content">
+
+        {# ── Guardrails ── #}
+        <div class="settings-card glass">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon amber"><i data-lucide="shield"></i></div>
+                    <div>
+                        <div class="card-title">{{ t.get('sc_guardrails', 'Guardrails') }}</div>
+                        <div class="card-subtitle">{{ t.get('sc_guardrails_desc', 'Rate limiting to prevent excessive test triggers') }}</div>
+                    </div>
                 </div>
             </div>
+            <div class="form-grid cols-2">
+                <div class="form-group">
+                    <label for="sc_global_cooldown">{{ t.get('sc_global_cooldown', 'Global cooldown (seconds)') }}</label>
+                    <input type="number" id="sc_global_cooldown" name="sc_global_cooldown"
+                           value="{{ config.get('sc_global_cooldown', 300) }}" min="0" max="86400">
+                </div>
+                <div class="form-group">
+                    <label for="sc_trigger_cooldown">{{ t.get('sc_trigger_cooldown_label', 'Per-trigger cooldown (seconds)') }}</label>
+                    <input type="number" id="sc_trigger_cooldown" name="sc_trigger_cooldown"
+                           value="{{ config.get('sc_trigger_cooldown', 900) }}" min="0" max="86400">
+                </div>
+                <div class="form-group">
+                    <label for="sc_max_actions_per_hour">{{ t.get('sc_max_actions_per_hour', 'Max actions per hour') }}</label>
+                    <input type="number" id="sc_max_actions_per_hour" name="sc_max_actions_per_hour"
+                           value="{{ config.get('sc_max_actions_per_hour', 4) }}" min="1" max="60">
+                </div>
+            </div>
+            <div class="sc-guardrails-summary" id="sc-guardrails-summary"></div>
         </div>
-        <div class="form-grid cols-2">
-            <div class="form-group">
-                <label for="sc_global_cooldown">{{ t.get('sc_global_cooldown', 'Global cooldown (seconds)') }}</label>
-                <input type="number" id="sc_global_cooldown" name="sc_global_cooldown"
-                       value="{{ config.get('sc_global_cooldown', 300) }}" min="0" max="86400">
-            </div>
-            <div class="form-group">
-                <label for="sc_trigger_cooldown">{{ t.get('sc_trigger_cooldown_label', 'Per-trigger cooldown (seconds)') }}</label>
-                <input type="number" id="sc_trigger_cooldown" name="sc_trigger_cooldown"
-                       value="{{ config.get('sc_trigger_cooldown', 900) }}" min="0" max="86400">
-            </div>
-            <div class="form-group">
-                <label for="sc_max_actions_per_hour">{{ t.get('sc_max_actions_per_hour', 'Max actions per hour') }}</label>
-                <input type="number" id="sc_max_actions_per_hour" name="sc_max_actions_per_hour"
-                       value="{{ config.get('sc_max_actions_per_hour', 4) }}" min="1" max="60">
-            </div>
-        </div>
-    </div>
 
-    {# ── No Adapter Warning ── #}
-    {% if not config.get('speedtest_tracker_url') or not config.get('speedtest_tracker_token') %}
-    <div class="settings-card glass" style="border-left: 3px solid var(--warn);">
-        <div style="padding: var(--card-padding); display:flex; align-items:center; gap:8px; color:var(--warn);">
-            <i data-lucide="alert-triangle" style="width:16px;height:16px;"></i>
+        {# ── No Adapter Warning ── #}
+        {% if not config.get('speedtest_tracker_url') or not config.get('speedtest_tracker_token') %}
+        <div class="module-restart-banner">
+            <i data-lucide="alert-triangle"></i>
             <span>{{ t.get('sc_no_adapter_warning', 'No action adapter configured. Enable Speedtest Tracker to use Smart Capture.') }}</span>
         </div>
-    </div>
-    {% endif %}
+        {% endif %}
 
-    {# ── Execution History ── #}
-    <div class="settings-card glass">
-        <div class="card-header">
-            <div class="card-title-group">
-                <div class="card-icon green"><i data-lucide="history"></i></div>
-                <div>
-                    <div class="card-title">{{ t.get('sc_history', 'Execution History') }}</div>
+        {# ── Execution History ── #}
+        <div class="settings-card glass">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <div class="card-icon green"><i data-lucide="history"></i></div>
+                    <div>
+                        <div class="card-title">{{ t.get('sc_history', 'Execution History') }}</div>
+                    </div>
+                </div>
+            </div>
+            <div id="sc-history-container" style="padding: 0 var(--card-padding) var(--card-padding);">
+                <div id="sc-history-loading" class="sc-history-loading">
+                    <i data-lucide="loader-2" style="width:18px;height:18px;"></i>
+                    {{ t.get('sc_history_loading', 'Loading execution history...') }}
+                </div>
+                <div id="sc-history-empty" class="sc-history-empty" style="display:none;">
+                    <i data-lucide="zap-off"></i>
+                    {{ t.get('sc_history_empty', 'No executions yet. Smart Capture will log activity here once enabled.') }}
+                </div>
+                <div id="sc-history-table-wrap" class="table-card" style="display:none;">
+                    <table id="sc-history-table">
+                        <thead>
+                            <tr>
+                                <th>{{ t.get('sc_col_timestamp', 'Timestamp') }}</th>
+                                <th>{{ t.get('sc_col_trigger', 'Trigger') }}</th>
+                                <th>{{ t.get('sc_col_status', 'Status') }}</th>
+                                <th>{{ t.get('sc_col_details', 'Details') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sc-history-tbody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
-        <div id="sc-history-container" style="padding: 0 var(--card-padding) var(--card-padding);">
-            <div id="sc-history-empty" style="color:var(--muted);text-align:center;padding:24px;">
-                {{ t.get('sc_history_empty', 'No executions yet. Smart Capture will log activity here once enabled.') }}
-            </div>
-            <div id="sc-history-table-wrap" class="table-card" style="display:none;">
-                <table id="sc-history-table">
-                    <thead>
-                        <tr>
-                            <th>{{ t.get('sc_col_timestamp', 'Timestamp') }}</th>
-                            <th>{{ t.get('sc_col_trigger', 'Trigger') }}</th>
-                            <th>{{ t.get('sc_col_status', 'Status') }}</th>
-                            <th>{{ t.get('sc_col_details', 'Details') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sc-history-tbody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 
+    </div>
 </div>
