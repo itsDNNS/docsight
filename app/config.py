@@ -34,6 +34,7 @@ DEFAULTS = {
     "theme": "dark",
     "font_family": "outfit",
     "language": "en",
+    "temperature_unit": "celsius",
     "isp_name": "",
     "admin_password": "",
     "demo_mode": False,

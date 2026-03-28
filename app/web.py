@@ -810,6 +810,7 @@ def index():
         bnetz_enabled=bnetz_enabled,
         bnetz_latest=bnetz_latest,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
+        temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",
     )
 
 

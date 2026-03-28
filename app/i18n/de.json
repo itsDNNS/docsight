@@ -389,6 +389,7 @@
   "not_required": "Nicht erforderlich für dieses Modem",
   "vodafone_no_error_counters": "Fehlerzähler sind nicht bei allen Vodafone Station Modellen verfügbar.",
   "temperature": "Temperatur",
+  "temperature_unit": "Temperatureinheit",
   "temp_overlay_show": "Temperatur-Overlay anzeigen",
   "temp_overlay_hide": "Temperatur-Overlay ausblenden",
   "enabled": "Aktiviert",

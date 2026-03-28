@@ -389,6 +389,7 @@
   "not_required": "Not required for this modem",
   "vodafone_no_error_counters": "Error counters are not available for all Vodafone Station models.",
   "temperature": "Temperature",
+  "temperature_unit": "Temperature Unit",
   "temp_overlay_show": "Show temperature overlay",
   "temp_overlay_hide": "Hide temperature overlay",
   "enabled": "Enabled",

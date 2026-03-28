@@ -167,10 +167,12 @@ function renderCorrelationChart(data) {
 
     // Temperature axis (separate scale, dashed line)
     var weather = _corrWeatherData || [];
-    var tempValues = weather.map(function(d) { return d.temperature; }).filter(function(v) { return v != null; });
-    var tempMin = tempValues.length ? Math.floor(Math.min.apply(null, tempValues) - 2) : -10;
-    var tempMax = tempValues.length ? Math.ceil(Math.max.apply(null, tempValues) + 2) : 40;
-    function yTemp(v) { return pad.top + plotH - (v - tempMin) / (tempMax - tempMin) * plotH; }
+    var _isFahrenheit = typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit';
+    function _toDisplayTemp(c) { return _isFahrenheit ? c * 9 / 5 + 32 : c; }
+    var tempValues = weather.map(function(d) { return _toDisplayTemp(d.temperature); }).filter(function(v) { return v != null && !isNaN(v); });
+    var tempMin = tempValues.length ? Math.floor(Math.min.apply(null, tempValues) - 2) : (_isFahrenheit ? 14 : -10);
+    var tempMax = tempValues.length ? Math.ceil(Math.max.apply(null, tempValues) + 2) : (_isFahrenheit ? 104 : 40);
+    function yTemp(v) { var dv = _toDisplayTemp(v); return pad.top + plotH - (dv - tempMin) / (tempMax - tempMin) * plotH; }
 
     // Segment utilization axis (0-100% scale)
     var segment = _corrSegmentData || [];
@@ -568,7 +570,7 @@ function renderCorrelationChart(data) {
         legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; ' + (T.correlation_events || 'Events'), eventTypes: eventTypes });
     }
     if (weather.length > 0) {
-        legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (°C)' });
+        legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (' + (typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit' ? '°F' : '°C') + ')' });
     }
     if (segment.length > 0) {
         legendItems.push({ metric: 'segmentDs', color: segDsColor, label: '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)') });
@@ -916,7 +918,7 @@ function _setupCorrelationTooltip(overlay, octx) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + escapeHtml(nearestEvent.message || nearestEvent.severity || '') + '</div>';
         }
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + nearestWeather.temperature.toFixed(1) + ' \u00B0C</div>';
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + fmtTemp(nearestWeather.temperature) + '</div>';
         }
         // Segment utilization tooltip (numeric-only server data, same innerHTML pattern as above)
         if (st.segment && st.segment.length > 0) {

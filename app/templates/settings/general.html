@@ -69,6 +69,13 @@
                     {% endfor %}
                 </select>
             </div>
+            <div class="form-field">
+                <label class="form-label" for="temperature_unit">{{ t.get('temperature_unit', 'Temperature Unit') }}</label>
+                <select class="form-input form-select" id="temperature_unit" name="temperature_unit">
+                    <option value="celsius" {% if config.temperature_unit == 'celsius' %}selected{% endif %}>Celsius (°C)</option>
+                    <option value="fahrenheit" {% if config.temperature_unit == 'fahrenheit' %}selected{% endif %}>Fahrenheit (°F)</option>
+                </select>
+            </div>
         </div>
     </div>
 </div>
