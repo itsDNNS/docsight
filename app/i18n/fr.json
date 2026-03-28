@@ -808,6 +808,8 @@
   "sc_history": "Historique des executions",
   "sc_history_empty": "Aucune execution pour le moment. Smart Capture enregistrera les activites ici une fois active.",
   "sc_history_error": "Echec du chargement de l'historique des executions",
+  "sc_history_loading": "Chargement de l'historique des executions...",
+  "sc_guardrails_summary": "Maximum %max%/heure, minimum %cooldown% entre chaque",
   "sc_status_pending": "En attente",
   "sc_status_fired": "Declenche",
   "sc_status_completed": "Termine",

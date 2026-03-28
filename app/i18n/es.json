@@ -811,6 +811,8 @@
   "sc_history": "Historial de ejecuciones",
   "sc_history_empty": "Sin ejecuciones aun. Smart Capture registrara la actividad aqui una vez activado.",
   "sc_history_error": "Error al cargar el historial de ejecuciones",
+  "sc_history_loading": "Cargando historial de ejecuciones...",
+  "sc_guardrails_summary": "Maximo %max%/hora, minimo %cooldown% entre capturas",
   "sc_status_pending": "Pendiente",
   "sc_status_fired": "Activado",
   "sc_status_completed": "Completado",

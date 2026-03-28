@@ -1279,22 +1279,27 @@ function validateBqmMonitor() {
 // Note: uses innerHTML with escapeHtml() for all dynamic content, consistent with
 // the existing pattern used throughout events.js, speedtest.js, and correlation.js.
 function loadSmartCaptureHistory() {
+    var loading = document.getElementById('sc-history-loading');
+    var empty = document.getElementById('sc-history-empty');
+    var tableWrap = document.getElementById('sc-history-table-wrap');
+    var tbody = document.getElementById('sc-history-tbody');
+    if (!tbody) return;
+
+    if (loading) loading.style.display = '';
+    if (empty) empty.style.display = 'none';
+    if (tableWrap) tableWrap.style.display = 'none';
+
     fetch('/api/smart-capture/executions?limit=50')
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            if (loading) loading.style.display = 'none';
             var execs = data.executions || [];
-            var tbody = document.getElementById('sc-history-tbody');
-            var tableWrap = document.getElementById('sc-history-table-wrap');
-            var empty = document.getElementById('sc-history-empty');
-            if (!tbody) return;
-            tbody.innerHTML = '';
+            while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
             if (execs.length === 0) {
-                if (tableWrap) tableWrap.style.display = 'none';
                 if (empty) empty.style.display = '';
                 return;
             }
             if (tableWrap) tableWrap.style.display = '';
-            if (empty) empty.style.display = 'none';
             var statusLabels = {
                 completed: T.sc_status_completed || 'Completed',
                 fired: T.sc_status_fired || 'Fired',
@@ -1315,7 +1320,7 @@ function loadSmartCaptureHistory() {
                 } else if (ex.last_error) {
                     detail = escapeHtml(ex.last_error);
                 }
-                // All dynamic content passed through escapeHtml() before insertion
+                // Dynamic content sanitized via escapeHtml before insertion
                 tr.innerHTML = '<td style="white-space:nowrap;font-size:0.85em;">' + escapeHtml(ts) + '</td>'
                     + '<td>' + trigger + '</td>'
                     + '<td><span class="sc-status-' + escapeHtml(ex.status) + '">' + escapeHtml(label) + '</span></td>'
@@ -1325,35 +1330,43 @@ function loadSmartCaptureHistory() {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         })
         .catch(function() {
-            var empty = document.getElementById('sc-history-empty');
-            if (empty) empty.textContent = T.sc_history_error || 'Failed to load execution history';
+            if (loading) loading.style.display = 'none';
+            if (empty) empty.style.display = '';
+            showToast(T.sc_history_error || 'Failed to load execution history', false);
         });
 }
 
-/* ── Smart Capture Sub-Settings Toggle ── */
-function initSmartCaptureToggles() {
-    document.querySelectorAll('.sc-trigger-toggle').forEach(function(toggle) {
-        toggle.addEventListener('change', function() {
-            var card = this.closest('.sc-trigger-card');
-            if (!card) return;
-            var sub = card.querySelector('.sc-sub-settings');
-            if (sub) {
-                if (this.checked) {
-                    sub.classList.add('visible');
-                } else {
-                    sub.classList.remove('visible');
-                }
-            }
-        });
-    });
+/* ── Smart Capture Guardrails Summary ── */
+function updateGuardrailsSummary() {
+    var el = document.getElementById('sc-guardrails-summary');
+    var cooldownEl = document.getElementById('sc_global_cooldown');
+    var maxEl = document.getElementById('sc_max_actions_per_hour');
+    if (!el || !cooldownEl || !maxEl) return;
+    var cooldown = parseInt(cooldownEl.value) || 0;
+    var maxPerHour = parseInt(maxEl.value) || 1;
+    var cooldownStr;
+    if (cooldown >= 3600) cooldownStr = Math.round(cooldown / 3600) + 'h';
+    else if (cooldown >= 60) cooldownStr = Math.round(cooldown / 60) + ' min';
+    else cooldownStr = cooldown + 's';
+    var tpl = T.sc_guardrails_summary || 'At most %max%/hour, minimum %cooldown% apart';
+    el.textContent = tpl.replace('%max%', maxPerHour).replace('%cooldown%', cooldownStr);
 }
 
-// Initialize on page load
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSmartCaptureToggles);
-} else {
-    initSmartCaptureToggles();
-}
+// Initialize guardrails summary on load and input
+(function() {
+    function init() {
+        updateGuardrailsSummary();
+        ['sc_global_cooldown', 'sc_max_actions_per_hour'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('input', updateGuardrailsSummary);
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
 
 /* ── Community Module Registry ── */
 var _registryFetching = false;

@@ -816,6 +816,8 @@
   "sc_history": "Execution History",
   "sc_history_empty": "No executions yet. Smart Capture will log activity here once enabled.",
   "sc_history_error": "Failed to load execution history",
+  "sc_history_loading": "Loading execution history...",
+  "sc_guardrails_summary": "At most %max%/hour, minimum %cooldown% apart",
   "sc_status_pending": "Pending",
   "sc_status_fired": "Fired",
   "sc_status_completed": "Completed",
