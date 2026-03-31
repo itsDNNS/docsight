@@ -130,7 +130,7 @@ class SurfboardDriver(ModemDriver):
         self._session.close()
         self._session = requests.Session()
         self._session.verify = False
-        if self._legacy_tls_needed:
+        if self._legacy_tls_active():
             self._mount_legacy_tls()
         self._private_key = ""
         self._cookie = ""
@@ -159,6 +159,11 @@ class SurfboardDriver(ModemDriver):
     def _mount_legacy_tls(self) -> None:
         """Mount the legacy TLS adapter on the current session."""
         self._session.mount("https://", _LegacyTLSAdapter())
+        self._session.headers["Connection"] = "close"
+
+    def _legacy_tls_active(self) -> bool:
+        """Return True once legacy TLS has been tried or successfully used."""
+        return self._legacy_tls_attempted or self._legacy_tls_needed
 
     def _fallback_to_legacy_tls(self) -> bool:
         """Retry HTTPS with legacy TLS context once after a handshake failure."""
@@ -220,22 +225,31 @@ class SurfboardDriver(ModemDriver):
                     "SURFboard TLS error, retrying with fresh session"
                 )
                 time.sleep(1)
-            except requests.ConnectionError:
-                if self._fallback_to_http():
+            except requests.ConnectionError as e:
+                # If legacy TLS was in use (Phase 1 may have succeeded),
+                # preserve the adapter so _fresh_session() remounts it.
+                if self._legacy_tls_attempted:
+                    self._legacy_tls_needed = True
+                if not self._legacy_tls_needed and self._fallback_to_http():
                     time.sleep(1)
                     continue
                 conn_errors += 1
                 self._fresh_session()
                 if conn_errors >= 3:
-                    msg = "SURFboard login failed: connection refused after retry"
+                    if self._legacy_tls_needed and self._fallback_to_http():
+                        conn_errors = 0
+                        time.sleep(1)
+                        continue
+                    msg = f"SURFboard login failed: {e}"
                     if tls_error:
                         msg = (
                             f"SURFboard login failed: TLS error ({tls_error}), "
-                            "connection refused on HTTP fallback"
+                            f"{e}"
                         )
                     raise RuntimeError(msg)
                 log.warning(
-                    "SURFboard connection lost, retrying with fresh session"
+                    "SURFboard connection lost, retrying with fresh session: %s",
+                    e,
                 )
                 time.sleep(1)
             except RuntimeError as e:
@@ -315,7 +329,7 @@ class SurfboardDriver(ModemDriver):
         for algo in algos:
             algo_name = "sha256" if algo is hashlib.sha256 else "md5"
             try:
-                self._try_phase2(algo, challenge, public_key)
+                self._try_phase2(algo, challenge, public_key, cookie)
                 self._hmac_algo = algo_name
                 log.debug("SURFboard HMAC algorithm: %s", algo_name)
                 return
@@ -331,37 +345,58 @@ class SurfboardDriver(ModemDriver):
 
         raise RuntimeError(last_error or "SURFboard login failed")
 
-    def _try_phase2(self, algo, challenge: str, public_key: str) -> None:
+    def _try_phase2(self, algo, challenge: str, public_key: str,
+                    cookie: str) -> None:
         """Derive keys and send Phase 2 login using the given algorithm."""
-        self._private_key = hmac.new(
-            (public_key + self._password).encode(),
-            challenge.encode(),
-            algo,
-        ).hexdigest().upper()
+        retried = False
+        while True:
+            self._private_key = hmac.new(
+                (public_key + self._password).encode(),
+                challenge.encode(),
+                algo,
+            ).hexdigest().upper()
 
-        login_password = hmac.new(
-            self._private_key.encode(),
-            challenge.encode(),
-            algo,
-        ).hexdigest().upper()
+            login_password = hmac.new(
+                self._private_key.encode(),
+                challenge.encode(),
+                algo,
+            ).hexdigest().upper()
 
-        self._session.cookies.set("PrivateKey", self._private_key)
+            self._session.cookies.set("PrivateKey", self._private_key)
 
-        body = {
-            "Login": {
-                "Action": "login",
-                "Username": self._user,
-                "LoginPassword": login_password,
-                "Captcha": "",
-                "PrivateLogin": "LoginPassword",
+            body = {
+                "Login": {
+                    "Action": "login",
+                    "Username": self._user,
+                    "LoginPassword": login_password,
+                    "Captcha": "",
+                    "PrivateLogin": "LoginPassword",
+                }
             }
-        }
-        resp = self._hnap_post("Login", body, auth_algo=algo)
-        login_resp = resp.get("LoginResponse", {})
-        result = login_resp.get("LoginResult", "")
+            try:
+                resp = self._hnap_post("Login", body, auth_algo=algo)
+            except requests.ConnectionError as e:
+                if retried or not self._legacy_tls_active():
+                    msg = f"SURFboard phase 2 failed: {e}"
+                    if self._legacy_tls_active():
+                        msg = f"SURFboard phase 2 failed under legacy TLS: {e}"
+                    raise requests.ConnectionError(msg) from e
+                retried = True
+                log.warning(
+                    "SURFboard phase 2 connection reset under legacy TLS, "
+                    "retrying with fresh session",
+                )
+                self._fresh_session()
+                self._cookie = cookie
+                self._session.cookies.set("uid", cookie)
+                continue
 
-        if result != "OK":
-            raise RuntimeError(f"SURFboard login failed: {result}")
+            login_resp = resp.get("LoginResponse", {})
+            result = login_resp.get("LoginResult", "")
+
+            if result != "OK":
+                raise RuntimeError(f"SURFboard login failed: {result}")
+            return
 
     def get_docsis_data(self) -> dict:
         """Retrieve DOCSIS channel data via HNAP GetMultipleHNAPs.
@@ -586,6 +621,8 @@ class SurfboardDriver(ModemDriver):
             "SOAPACTION": soap_action,
             "HNAP_AUTH": f"{auth_hash} {ts}",
         }
+        if self._legacy_tls_active():
+            headers["Connection"] = "close"
 
         r = self._session.post(url, json=body, headers=headers, timeout=30)
         if not r.ok:
