@@ -1145,7 +1145,7 @@ class TestLegacyTLSFallback:
              patch("app.drivers.surfboard.time"):
             with pytest.raises(
                 RuntimeError,
-                match=r"TLS error.*SSLV3.*connection refused on HTTP",
+                match=r"TLS error.*SSLV3.*connection refused",
             ):
                 driver.login()
 
@@ -1175,6 +1175,7 @@ class TestLegacyTLSFallback:
 
         adapter = driver._session.get_adapter("https://")
         assert isinstance(adapter, _LegacyTLSAdapter)
+        assert driver._session.headers["Connection"] == "close"
 
     def test_non_ssl_connection_error_skips_legacy_tls(self):
         """Generic ConnectionError (not SSL) goes straight to HTTP fallback."""
@@ -1196,3 +1197,70 @@ class TestLegacyTLSFallback:
         assert urls_seen[0] == "https://192.168.100.1"
         assert urls_seen[1] == "http://192.168.100.1"
         assert driver._legacy_tls_attempted is False
+
+    def test_legacy_tls_forces_connection_close_header(self, driver):
+        """Legacy TLS mode forces Connection: close on HNAP requests."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"result": "ok"}
+        mock_response.raise_for_status = MagicMock()
+
+        driver._legacy_tls_needed = True
+
+        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
+             patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.return_value = 1700000000.0
+            driver._hnap_post("GetMultipleHNAPs", {"GetMultipleHNAPs": {}})
+
+        call_kwargs = mock_post.call_args
+        headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
+        assert headers["Connection"] == "close"
+
+    def test_legacy_tls_phase2_reset_retries_on_fresh_session(self):
+        """Phase 2 reset under legacy TLS retries once on a fresh session."""
+        import requests as req
+
+        driver = SurfboardDriver("https://192.168.100.1", "admin", "password")
+        driver._legacy_tls_needed = True
+        phase2_session_ids = []
+
+        def mock_hnap_post(action, body, **kwargs):
+            login_data = body.get("Login", {})
+            if login_data.get("Action") == "request":
+                return HNAP_LOGIN_PHASE1
+            phase2_session_ids.append(id(driver._session))
+            if len(phase2_session_ids) == 1:
+                raise req.ConnectionError("Connection reset by peer")
+            return HNAP_LOGIN_PHASE2
+
+        with patch.object(driver, "_hnap_post", side_effect=mock_hnap_post), \
+             patch.object(driver, "_fresh_session", wraps=driver._fresh_session) as fresh_session, \
+             patch("app.drivers.surfboard.time"):
+            driver.login()
+
+        assert fresh_session.call_count == 1
+        assert len(phase2_session_ids) == 2
+        assert phase2_session_ids[0] != phase2_session_ids[1]
+        assert driver._logged_in is True
+        assert driver._session.headers["Connection"] == "close"
+
+    def test_legacy_tls_phase2_reset_failure_reports_context(self):
+        """When phase 2 keeps resetting, the failure mentions legacy TLS phase 2."""
+        import requests as req
+
+        driver = SurfboardDriver("https://192.168.100.1", "admin", "password")
+        driver._legacy_tls_needed = True
+        driver._http_fallback_url = ""
+
+        def mock_hnap_post(action, body, **kwargs):
+            login_data = body.get("Login", {})
+            if login_data.get("Action") == "request":
+                return HNAP_LOGIN_PHASE1
+            raise req.ConnectionError("Connection reset by peer")
+
+        with patch.object(driver, "_hnap_post", side_effect=mock_hnap_post), \
+             patch("app.drivers.surfboard.time"):
+            with pytest.raises(
+                RuntimeError,
+                match=r"phase 2.*Connection reset by peer",
+            ):
+                driver.login()
