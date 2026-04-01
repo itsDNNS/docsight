@@ -563,6 +563,28 @@ class TestHnapAuth:
             headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
             assert headers["SOAPACTION"] == '"http://purenetworks.com/HNAP1/Login"'
 
+    def test_chunked_read_error_is_treated_as_connection_error(self, driver):
+        """Body-read connection resets are normalized to ConnectionError."""
+        import requests as req
+        from urllib3.exceptions import ProtocolError
+
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.side_effect = req.exceptions.ChunkedEncodingError(
+            ProtocolError(
+                "Connection broken: ConnectionResetError(104, 'Connection reset by peer')",
+                ConnectionResetError(104, "Connection reset by peer"),
+            )
+        )
+
+        with patch.object(driver._session, "post", return_value=mock_response):
+            with pytest.raises(
+                req.ConnectionError,
+                match=r"Connection broken: ConnectionResetError",
+            ):
+                driver._hnap_post("Login", {"Login": {}})
+
 
 # -- Downstream SC-QAM --
 
@@ -1264,3 +1286,39 @@ class TestLegacyTLSFallback:
                 match=r"phase 2.*Connection reset by peer",
             ):
                 driver.login()
+
+    def test_legacy_tls_phase2_chunked_read_retry_succeeds(self):
+        """Legacy TLS phase 2 retries when the response body resets after HTTP 200."""
+        import requests as req
+        from urllib3.exceptions import ProtocolError
+
+        driver = SurfboardDriver("https://192.168.100.1", "admin", "password")
+        driver._legacy_tls_needed = True
+
+        phase1 = MagicMock()
+        phase1.ok = True
+        phase1.raise_for_status = MagicMock()
+        phase1.json.return_value = HNAP_LOGIN_PHASE1
+
+        phase2_reset = MagicMock()
+        phase2_reset.ok = True
+        phase2_reset.raise_for_status = MagicMock()
+        phase2_reset.json.side_effect = req.exceptions.ChunkedEncodingError(
+            ProtocolError(
+                "Connection broken: ConnectionResetError(104, 'Connection reset by peer')",
+                ConnectionResetError(104, "Connection reset by peer"),
+            )
+        )
+
+        phase2_ok = MagicMock()
+        phase2_ok.ok = True
+        phase2_ok.raise_for_status = MagicMock()
+        phase2_ok.json.return_value = HNAP_LOGIN_PHASE2
+
+        with patch.object(req.Session, "post", side_effect=[phase1, phase2_reset, phase2_ok]), \
+             patch.object(driver, "_fresh_session", wraps=driver._fresh_session) as fresh_session, \
+             patch("app.drivers.surfboard.time"):
+            driver.login()
+
+        assert fresh_session.call_count == 1
+        assert driver._logged_in is True

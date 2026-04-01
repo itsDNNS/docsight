@@ -624,12 +624,18 @@ class SurfboardDriver(ModemDriver):
         if self._legacy_tls_active():
             headers["Connection"] = "close"
 
-        r = self._session.post(url, json=body, headers=headers, timeout=30)
-        if not r.ok:
-            log.debug("HNAP %s returned HTTP %d (%d bytes): %s",
-                       action, r.status_code, len(r.content), r.text[:500])
-        r.raise_for_status()
-        return r.json()
+        try:
+            r = self._session.post(url, json=body, headers=headers, timeout=30)
+            if not r.ok:
+                log.debug("HNAP %s returned HTTP %d (%d bytes): %s",
+                           action, r.status_code, len(r.content), r.text[:500])
+            r.raise_for_status()
+            return r.json()
+        except requests.exceptions.ChunkedEncodingError as e:
+            # Some SB8200 units reset the socket after sending HTTP 200 headers
+            # but before the response body is fully readable. Treat that as the
+            # same transport-level failure path as a dropped connection.
+            raise requests.ConnectionError(str(e)) from e
 
     # -- Channel parsers --
 
