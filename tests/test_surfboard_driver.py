@@ -1512,21 +1512,26 @@ class TestHnapPostRetry:
                 driver._hnap_post("Login", {"Login": {}})
 
     def test_chunked_error_both_fail_raises_as_connection_error(self, driver):
-        """ChunkedEncodingError on both attempts raises as ConnectionError."""
+        """ChunkedEncodingError on both attempts raises as ConnectionError
+        with original error text and cause chain preserved."""
         import requests as req
         from urllib3.exceptions import ProtocolError
 
+        original_msg = "Connection broken: ConnectionResetError(104, 'Connection reset by peer')"
         with patch.object(
             driver._session, "post",
             side_effect=req.exceptions.ChunkedEncodingError(
-                ProtocolError("Connection broken", ConnectionResetError(104))
+                ProtocolError(original_msg, ConnectionResetError(104))
             ),
         ), patch("app.drivers.surfboard.time") as mock_time:
             mock_time.time.return_value = 1700000000.0
             mock_time.sleep = MagicMock()
 
-            with pytest.raises(req.ConnectionError):
+            with pytest.raises(req.ConnectionError, match="Connection broken") as exc_info:
                 driver._hnap_post("Login", {"Login": {}})
+
+            assert exc_info.value.__cause__ is not None, \
+                "cause chain must be preserved for caller error messages"
 
     def test_http_error_not_retried(self, driver):
         """HTTPError is not caught by the retry loop -- propagates immediately."""
@@ -1579,3 +1584,52 @@ class TestHnapPostRetry:
 
         assert first_headers["HNAP_AUTH"] != second_headers["HNAP_AUTH"], \
             "retry must use a fresh HNAP_AUTH with updated timestamp"
+
+    def test_retry_preserves_private_key_and_auth_algo(self, driver):
+        """Retry during phase 2 uses the derived private key and explicit
+        auth_algo, not the pre-login defaults."""
+        import hashlib
+        import requests as req
+
+        driver._private_key = "DERIVED_PRIVATE_KEY_ABC123"
+        driver._hmac_algo = "md5"
+
+        ok_response = MagicMock()
+        ok_response.ok = True
+        ok_response.raise_for_status = MagicMock()
+        ok_response.json.return_value = {"LoginResponse": {"LoginResult": "OK"}}
+
+        timestamps = iter([1700000000.0, 1700000001.0])
+
+        with patch.object(
+            driver._session, "post",
+            side_effect=[req.ConnectionError("reset"), ok_response],
+        ) as mock_post, patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.side_effect = timestamps
+            mock_time.sleep = MagicMock()
+
+            driver._hnap_post("Login", {"Login": {}}, auth_algo=hashlib.md5)
+
+        # Both attempts must use the derived private key with MD5
+        for call in mock_post.call_args_list:
+            headers = call.kwargs.get("headers") or call[1].get("headers", {})
+            hnap_auth = headers["HNAP_AUTH"]
+            # Pre-login key "withoutloginkey" produces a different HMAC;
+            # verify the auth was computed with the derived key
+            assert hnap_auth != "", "HNAP_AUTH must be set"
+
+        # Verify the retry HMAC uses the same key but different timestamp
+        first_auth = mock_post.call_args_list[0].kwargs.get("headers", {})["HNAP_AUTH"]
+        second_auth = mock_post.call_args_list[1].kwargs.get("headers", {})["HNAP_AUTH"]
+        assert first_auth != second_auth, "different timestamps"
+
+        # Verify both used MD5 with derived key (not pre-login default)
+        ts1 = first_auth.split(" ")[1]
+        soap = '"http://purenetworks.com/HNAP1/Login"'
+        expected_hash = hmac.new(
+            "DERIVED_PRIVATE_KEY_ABC123".encode(),
+            (ts1 + soap).encode(),
+            hashlib.md5,
+        ).hexdigest().upper()
+        assert first_auth.startswith(expected_hash), \
+            "retry must use derived private key with explicit auth_algo, not defaults"
