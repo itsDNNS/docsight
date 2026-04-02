@@ -602,6 +602,11 @@ class SurfboardDriver(ModemDriver):
         HNAP_AUTH is sent on **every** request.  Before login the
         pre-shared key ``withoutloginkey`` is used as PrivateKey.
 
+        On transport-level failures (ConnectionError, ChunkedEncodingError)
+        retries once with a fresh HNAP_AUTH timestamp.  Some SB8200 firmware
+        resets the TCP connection after sending HTTP 200 headers but before the
+        response body is readable; a single retry often succeeds.
+
         Args:
             action: HNAP action name (e.g. "Login", "GetMultipleHNAPs")
             body: JSON body to send
@@ -623,34 +628,50 @@ class SurfboardDriver(ModemDriver):
         else:
             algo = hashlib.sha256
 
-        ts = str(int(time.time() * 1000) % 2_000_000_000_000)
-        auth_key = self._private_key or _HNAP_PRELOGIN_KEY
-        auth_payload = ts + soap_action
-        auth_hash = hmac.new(
-            auth_key.encode(),
-            auth_payload.encode(),
-            algo,
-        ).hexdigest().upper()
+        last_err: Exception | None = None
+        for attempt in range(2):
+            if attempt > 0:
+                log.warning(
+                    "HNAP %s response read failed, retrying once: %s",
+                    action, last_err,
+                )
+                time.sleep(1)
 
-        headers = {
-            "Content-Type": "application/json",
-            "Connection": "close",
-            "SOAPACTION": soap_action,
-            "HNAP_AUTH": f"{auth_hash} {ts}",
-        }
+            ts = str(int(time.time() * 1000) % 2_000_000_000_000)
+            auth_key = self._private_key or _HNAP_PRELOGIN_KEY
+            auth_payload = ts + soap_action
+            auth_hash = hmac.new(
+                auth_key.encode(),
+                auth_payload.encode(),
+                algo,
+            ).hexdigest().upper()
 
-        try:
-            r = self._session.post(url, json=body, headers=headers, timeout=30)
-            if not r.ok:
-                log.debug("HNAP %s returned HTTP %d (%d bytes): %s",
-                           action, r.status_code, len(r.content), r.text[:500])
-            r.raise_for_status()
-            return r.json()
-        except requests.exceptions.ChunkedEncodingError as e:
-            # Some SB8200 units reset the socket after sending HTTP 200 headers
-            # but before the response body is fully readable. Treat that as the
-            # same transport-level failure path as a dropped connection.
-            raise requests.ConnectionError(str(e)) from e
+            headers = {
+                "Content-Type": "application/json",
+                "Connection": "close",
+                "SOAPACTION": soap_action,
+                "HNAP_AUTH": f"{auth_hash} {ts}",
+            }
+
+            try:
+                r = self._session.post(
+                    url, json=body, headers=headers, timeout=30,
+                )
+                if not r.ok:
+                    log.debug(
+                        "HNAP %s returned HTTP %d (%d bytes): %s",
+                        action, r.status_code, len(r.content), r.text[:500],
+                    )
+                r.raise_for_status()
+                return r.json()
+            except requests.exceptions.ChunkedEncodingError as e:
+                last_err = requests.ConnectionError(str(e))
+                last_err.__cause__ = e
+            except requests.ConnectionError as e:
+                last_err = e
+
+        assert last_err is not None
+        raise last_err
 
     # -- Channel parsers --
 
