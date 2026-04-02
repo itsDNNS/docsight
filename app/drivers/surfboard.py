@@ -159,7 +159,6 @@ class SurfboardDriver(ModemDriver):
     def _mount_legacy_tls(self) -> None:
         """Mount the legacy TLS adapter on the current session."""
         self._session.mount("https://", _LegacyTLSAdapter())
-        self._session.headers["Connection"] = "close"
 
     def _legacy_tls_active(self) -> bool:
         """Return True once legacy TLS has been tried or successfully used."""
@@ -403,9 +402,26 @@ class SurfboardDriver(ModemDriver):
 
         On HTTP 500: tries the other action namespace before re-authenticating.
         On other HTTP errors: re-authenticates (session expired).
+        On ConnectionError: fresh session + re-authenticate + retry once.
+            Resets speculative namespace so auto-detection restarts cleanly.
         """
+        saved_ns = self._action_ns
         try:
             return self._fetch_docsis_data()
+        except requests.ConnectionError as e:
+            log.warning(
+                "DOCSIS data fetch connection error, "
+                "re-authenticating with fresh session: %s", e,
+            )
+            self._action_ns = saved_ns
+            self._fresh_session()
+            self._logged_in = False
+            self.login()
+            try:
+                return self._fetch_docsis_data()
+            except requests.ConnectionError:
+                self._action_ns = saved_ns
+                raise
         except requests.HTTPError as e:
             status = e.response.status_code if e.response is not None else 0
 
@@ -419,7 +435,7 @@ class SurfboardDriver(ModemDriver):
                 self._action_ns = other
                 try:
                     return self._fetch_docsis_data()
-                except requests.HTTPError:
+                except (requests.HTTPError, requests.ConnectionError):
                     self._action_ns = prev_ns
 
             log.warning(
@@ -618,11 +634,10 @@ class SurfboardDriver(ModemDriver):
 
         headers = {
             "Content-Type": "application/json",
+            "Connection": "close",
             "SOAPACTION": soap_action,
             "HNAP_AUTH": f"{auth_hash} {ts}",
         }
-        if self._legacy_tls_active():
-            headers["Connection"] = "close"
 
         try:
             r = self._session.post(url, json=body, headers=headers, timeout=30)

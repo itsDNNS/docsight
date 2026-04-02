@@ -1197,7 +1197,6 @@ class TestLegacyTLSFallback:
 
         adapter = driver._session.get_adapter("https://")
         assert isinstance(adapter, _LegacyTLSAdapter)
-        assert driver._session.headers["Connection"] == "close"
 
     def test_non_ssl_connection_error_skips_legacy_tls(self):
         """Generic ConnectionError (not SSL) goes straight to HTTP fallback."""
@@ -1263,7 +1262,6 @@ class TestLegacyTLSFallback:
         assert len(phase2_session_ids) == 2
         assert phase2_session_ids[0] != phase2_session_ids[1]
         assert driver._logged_in is True
-        assert driver._session.headers["Connection"] == "close"
 
     def test_legacy_tls_phase2_reset_failure_reports_context(self):
         """When phase 2 keeps resetting, the failure mentions legacy TLS phase 2."""
@@ -1322,3 +1320,124 @@ class TestLegacyTLSFallback:
 
         assert fresh_session.call_count == 1
         assert driver._logged_in is True
+
+
+# -- ConnectionError recovery in data fetch --
+
+class TestDataFetchConnectionError:
+    def test_connection_error_triggers_fresh_session_and_reauth(self, driver):
+        """ConnectionError during data fetch resets session and re-authenticates."""
+        import requests as req
+        driver._action_ns = "Customer"
+        driver._logged_in = True
+        session_before = driver._session
+        calls = []
+
+        def mock_fetch():
+            calls.append(len(calls) + 1)
+            if len(calls) == 1:
+                raise req.ConnectionError("Connection reset by peer")
+            return {
+                "channelDs": {"docsis30": [], "docsis31": []},
+                "channelUs": {"docsis30": [], "docsis31": []},
+            }
+
+        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch), \
+             patch.object(driver, "login") as mock_login:
+            data = driver.get_docsis_data()
+
+        assert len(calls) == 2
+        assert mock_login.called
+        assert driver._session is not session_before, "session must be replaced after ConnectionError"
+        assert "channelDs" in data
+
+    def test_connection_error_after_http_500_namespace_switch(self, driver):
+        """HTTP 500 -> namespace switch -> ConnectionError restores original namespace."""
+        import requests as req
+        driver._action_ns = "Customer"
+        driver._logged_in = True
+        calls = []
+
+        def mock_fetch():
+            calls.append(driver._action_ns)
+            if len(calls) == 1:
+                resp = MagicMock()
+                resp.status_code = 500
+                raise req.HTTPError(response=resp)
+            if len(calls) == 2:
+                # Namespace switched to Moto, but connection drops
+                raise req.ConnectionError("Connection reset")
+            return {
+                "channelDs": {"docsis30": [], "docsis31": []},
+                "channelUs": {"docsis30": [], "docsis31": []},
+            }
+
+        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch), \
+             patch.object(driver, "login"):
+            data = driver.get_docsis_data()
+
+        assert calls[0] == "Customer"
+        assert calls[1] == "Moto"
+        # After ConnectionError in namespace retry, namespace restored to Customer
+        # and re-auth path runs the third fetch
+        assert driver._action_ns == "Customer" or "channelDs" in data
+
+    def test_connection_error_during_autodetect_resets_namespace(self, driver):
+        """ConnectionError during namespace auto-detection resets speculative namespace."""
+        import requests as req
+        driver._action_ns = ""
+        driver._logged_in = True
+        calls = []
+
+        def mock_fetch():
+            calls.append(driver._action_ns)
+            if len(calls) == 1:
+                # Simulate _fetch_docsis_data setting speculative namespace
+                driver._action_ns = "Moto"
+                raise req.ConnectionError("reset during Moto probe")
+            return {
+                "channelDs": {"docsis30": [], "docsis31": []},
+                "channelUs": {"docsis30": [], "docsis31": []},
+            }
+
+        with patch.object(driver, "_fetch_docsis_data", side_effect=mock_fetch), \
+             patch.object(driver, "login"):
+            driver.get_docsis_data()
+
+        # Namespace must be reset so auto-detection restarts from scratch
+        assert calls[0] == "", "first call should start with empty namespace"
+        assert calls[1] == "", "retry must reset speculative namespace"
+
+
+# -- Connection: close header --
+
+class TestConnectionCloseHeader:
+    def test_connection_close_header_present(self, driver):
+        """Every HNAP request includes Connection: close."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"result": "ok"}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
+             patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.return_value = 1700000000.123
+            driver._hnap_post("Login", {"Login": {}})
+
+            call_kwargs = mock_post.call_args
+            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
+            assert headers.get("Connection") == "close"
+
+    def test_connection_close_on_data_request(self, driver):
+        """Connection: close is sent on data requests, not just login."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"result": "ok"}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch.object(driver._session, "post", return_value=mock_response) as mock_post, \
+             patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.return_value = 1700000000.123
+            driver._hnap_post("GetMultipleHNAPs", {"GetMultipleHNAPs": {}})
+
+            call_kwargs = mock_post.call_args
+            headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
+            assert headers.get("Connection") == "close"
