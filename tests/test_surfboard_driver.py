@@ -1286,7 +1286,8 @@ class TestLegacyTLSFallback:
                 driver.login()
 
     def test_legacy_tls_phase2_chunked_read_retry_succeeds(self):
-        """Legacy TLS phase 2 retries when the response body resets after HTTP 200."""
+        """Legacy TLS phase 2 body read failure is retried inside _hnap_post
+        without needing a full session reset."""
         import requests as req
         from urllib3.exceptions import ProtocolError
 
@@ -1318,7 +1319,8 @@ class TestLegacyTLSFallback:
              patch("app.drivers.surfboard.time"):
             driver.login()
 
-        assert fresh_session.call_count == 1
+        # _hnap_post retries internally -- no full session reset needed
+        assert fresh_session.call_count == 0
         assert driver._logged_in is True
 
 
@@ -1441,3 +1443,139 @@ class TestConnectionCloseHeader:
             call_kwargs = mock_post.call_args
             headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
             assert headers.get("Connection") == "close"
+
+
+# -- _hnap_post transport-level retry --
+
+class TestHnapPostRetry:
+    def test_connection_error_retries_once_and_succeeds(self, driver):
+        """ConnectionError on first attempt retries; second attempt succeeds."""
+        import requests as req
+
+        ok_response = MagicMock()
+        ok_response.ok = True
+        ok_response.raise_for_status = MagicMock()
+        ok_response.json.return_value = {"LoginResponse": {"LoginResult": "OK"}}
+
+        with patch.object(
+            driver._session, "post",
+            side_effect=[req.ConnectionError("reset"), ok_response],
+        ) as mock_post, patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.return_value = 1700000000.0
+            mock_time.sleep = MagicMock()
+
+            result = driver._hnap_post("Login", {"Login": {}})
+
+        assert result == {"LoginResponse": {"LoginResult": "OK"}}
+        assert mock_post.call_count == 2
+        mock_time.sleep.assert_called_once_with(1)
+
+    def test_chunked_encoding_error_retries_once_and_succeeds(self, driver):
+        """ChunkedEncodingError on first attempt retries; second succeeds."""
+        import requests as req
+        from urllib3.exceptions import ProtocolError
+
+        ok_response = MagicMock()
+        ok_response.ok = True
+        ok_response.raise_for_status = MagicMock()
+        ok_response.json.return_value = {"result": "ok"}
+
+        with patch.object(
+            driver._session, "post",
+            side_effect=[
+                req.exceptions.ChunkedEncodingError(
+                    ProtocolError("Connection broken", ConnectionResetError(104))
+                ),
+                ok_response,
+            ],
+        ) as mock_post, patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.return_value = 1700000000.0
+            mock_time.sleep = MagicMock()
+
+            result = driver._hnap_post("Login", {"Login": {}})
+
+        assert result == {"result": "ok"}
+        assert mock_post.call_count == 2
+
+    def test_both_attempts_fail_raises_connection_error(self, driver):
+        """When both attempts fail, ConnectionError propagates."""
+        import requests as req
+
+        with patch.object(
+            driver._session, "post",
+            side_effect=req.ConnectionError("persistent reset"),
+        ), patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.return_value = 1700000000.0
+            mock_time.sleep = MagicMock()
+
+            with pytest.raises(req.ConnectionError, match="persistent reset"):
+                driver._hnap_post("Login", {"Login": {}})
+
+    def test_chunked_error_both_fail_raises_as_connection_error(self, driver):
+        """ChunkedEncodingError on both attempts raises as ConnectionError."""
+        import requests as req
+        from urllib3.exceptions import ProtocolError
+
+        with patch.object(
+            driver._session, "post",
+            side_effect=req.exceptions.ChunkedEncodingError(
+                ProtocolError("Connection broken", ConnectionResetError(104))
+            ),
+        ), patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.return_value = 1700000000.0
+            mock_time.sleep = MagicMock()
+
+            with pytest.raises(req.ConnectionError):
+                driver._hnap_post("Login", {"Login": {}})
+
+    def test_http_error_not_retried(self, driver):
+        """HTTPError is not caught by the retry loop -- propagates immediately."""
+        import requests as req
+
+        error_response = MagicMock()
+        error_response.ok = False
+        error_response.status_code = 500
+        error_response.content = b"error"
+        error_response.text = "error"
+        error_response.raise_for_status.side_effect = req.HTTPError(
+            response=error_response
+        )
+
+        with patch.object(
+            driver._session, "post", return_value=error_response,
+        ) as mock_post, patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.return_value = 1700000000.0
+
+            with pytest.raises(req.HTTPError):
+                driver._hnap_post("Login", {"Login": {}})
+
+        # Only one attempt -- no retry on HTTPError
+        assert mock_post.call_count == 1
+
+    def test_retry_regenerates_hnap_auth(self, driver):
+        """Retry generates a fresh HNAP_AUTH with updated timestamp."""
+        import requests as req
+
+        ok_response = MagicMock()
+        ok_response.ok = True
+        ok_response.raise_for_status = MagicMock()
+        ok_response.json.return_value = {"result": "ok"}
+
+        timestamps = iter([1700000000.0, 1700000001.0])
+
+        with patch.object(
+            driver._session, "post",
+            side_effect=[req.ConnectionError("reset"), ok_response],
+        ) as mock_post, patch("app.drivers.surfboard.time") as mock_time:
+            mock_time.time.side_effect = timestamps
+            mock_time.sleep = MagicMock()
+
+            driver._hnap_post("Login", {"Login": {}})
+
+        first_headers = mock_post.call_args_list[0].kwargs.get("headers") or \
+                        mock_post.call_args_list[0][1].get("headers", {})
+        second_headers = mock_post.call_args_list[1].kwargs.get("headers") or \
+                         mock_post.call_args_list[1][1].get("headers", {})
+
+        assert first_headers["HNAP_AUTH"] != second_headers["HNAP_AUTH"], \
+            "retry must use a fresh HNAP_AUTH with updated timestamp"
