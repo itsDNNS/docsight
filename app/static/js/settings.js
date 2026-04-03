@@ -446,6 +446,30 @@ function testSpeedtest() {
     });
 }
 
+/* ── Speedtest Cache Clear ── */
+function clearSpeedtestCache(btn) {
+    if (!confirm(T.clear_cache_confirm || 'Clear all cached speedtest results? They will be re-synced on the next poll cycle.')) return;
+    btn.disabled = true;
+    fetch('/api/speedtest/cache', { method: 'DELETE' })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            btn.disabled = false;
+            if (res.success) {
+                var count = res.cleared || 0;
+                btn.textContent = '\u2713 ' + count + ' ' + (T.cleared || 'cleared');
+                setTimeout(function() {
+                    btn.textContent = '';
+                    var icon = document.createElement('i');
+                    icon.setAttribute('data-lucide', 'trash-2');
+                    btn.appendChild(icon);
+                    btn.appendChild(document.createTextNode(' ' + (T['docsight.speedtest.clear_cache'] || 'Clear Cache')));
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }, 2000);
+            }
+        })
+        .catch(function() { btn.disabled = false; });
+}
+
 /* ── Notification Test ── */
 function testNotifications() {
     var el = document.getElementById('notify-test');

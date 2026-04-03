@@ -41,5 +41,7 @@
   "speedtest_detail_dl_transfer": "Download",
   "speedtest_detail_ul_transfer": "Upload",
   "speedtest_detail_ookla": "Ookla-Ergebnis",
-  "speedtest_detail_view_ookla": "Auf Speedtest.net ansehen"
+  "speedtest_detail_view_ookla": "Auf Speedtest.net ansehen",
+  "clear_cache": "Cache leeren",
+  "clear_cache_hint": "Zwischengespeicherte Ergebnisse löschen und neu synchronisieren"
 }
