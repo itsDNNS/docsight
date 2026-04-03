@@ -1123,11 +1123,75 @@ function _corrClearChartHighlight() {
 }
 
 function _corrExportPNG() {
-    var canvas = document.getElementById('correlation-chart');
-    if (!canvas) return;
+    var chart = document.getElementById('correlation-chart');
+    if (!chart) return;
+    var overlay = document.getElementById('correlation-overlay');
+
+    // Collect visible legend items from DOM (extract only direct text, not child elements)
+    var legendEl = document.getElementById('correlation-legend');
+    var items = [];
+    if (legendEl) {
+        var spans = legendEl.querySelectorAll('span[data-metric]');
+        for (var i = 0; i < spans.length; i++) {
+            if (spans[i].classList.contains('disabled')) continue;
+            var label = '';
+            for (var n = 0; n < spans[i].childNodes.length; n++) {
+                if (spans[i].childNodes[n].nodeType === 3) label += spans[i].childNodes[n].textContent;
+            }
+            label = label.trim();
+            if (label) items.push({ label: label, color: spans[i].style.color || getComputedStyle(spans[i]).color });
+        }
+    }
+
+    // Build composite canvas: chart + overlay + legend row
+    var dpr = window.devicePixelRatio || 1;
+    var logicalW = chart.width / dpr;
+    var legendH = items.length > 0 ? 36 : 0;
+    var exp = document.createElement('canvas');
+    exp.width = chart.width;
+    exp.height = chart.height + legendH * dpr;
+    var ctx = exp.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Background
+    var bg = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim() || '#1a1a2e';
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, exp.width / dpr, exp.height / dpr);
+
+    // Draw chart + overlay (both already at physical resolution)
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(chart, 0, 0);
+    if (overlay) ctx.drawImage(overlay, 0, 0);
+
+    // Draw legend (scale down font if it overflows)
+    if (items.length > 0) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var chartH = chart.height / dpr;
+        var fontSize = 11;
+        var gap = 20;
+        var maxW = logicalW - 20;
+        ctx.font = fontSize + 'px system-ui, sans-serif';
+        var totalW = gap * (items.length - 1);
+        for (var j = 0; j < items.length; j++) totalW += ctx.measureText(items[j].label).width;
+        if (totalW > maxW && totalW > 0) {
+            fontSize = Math.max(8, Math.floor(fontSize * maxW / totalW));
+            gap = Math.max(8, Math.floor(gap * maxW / totalW));
+            ctx.font = fontSize + 'px system-ui, sans-serif';
+            totalW = gap * (items.length - 1);
+            for (var r = 0; r < items.length; r++) totalW += ctx.measureText(items[r].label).width;
+        }
+        var startX = (logicalW - totalW) / 2;
+        var y = chartH + legendH / 2 + fontSize / 3;
+        for (var k = 0; k < items.length; k++) {
+            ctx.fillStyle = items[k].color;
+            ctx.fillText(items[k].label, startX, y);
+            startX += ctx.measureText(items[k].label).width + gap;
+        }
+    }
+
     var link = document.createElement('a');
     link.download = 'correlation-chart-' + new Date().toISOString().slice(0, 10) + '.png';
-    link.href = canvas.toDataURL('image/png');
+    link.href = exp.toDataURL('image/png');
     link.click();
 }
 
