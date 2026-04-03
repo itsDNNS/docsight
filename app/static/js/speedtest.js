@@ -260,8 +260,17 @@ function _renderSignalDetail(data, container) {
     container.appendChild(snapDiv);
 }
 
+function _hasEnrichedData(data) {
+    var keys = ['isp', 'server_host', 'server_location', 'server_country', 'server_ip',
+        'ping_low', 'ping_high', 'dl_latency_iqm', 'dl_latency_jitter',
+        'ul_latency_iqm', 'ul_latency_jitter', 'dl_bytes', 'ul_bytes',
+        'dl_elapsed_ms', 'ul_elapsed_ms', 'external_ip', 'is_vpn', 'result_url'];
+    for (var i = 0; i < keys.length; i++) { if (data[keys[i]] != null) return true; }
+    return false;
+}
+
 function _renderEnrichedDetail(data, container) {
-    if (!data.isp && !data.server_host && !data.result_url && data.dl_bytes == null) return;
+    if (!_hasEnrichedData(data)) return;
 
     var section = document.createElement('div');
     section.className = 'st-enriched-detail';
@@ -334,13 +343,14 @@ function _renderEnrichedDetail(data, container) {
     var loc = [data.server_location, data.server_country].filter(Boolean).join(', ');
     addGroup(T.speedtest_detail_server || 'Server', [
         {label: T.speedtest_detail_server_location || 'Location', value: loc || null},
-        {label: T.speedtest_detail_server_host || 'Host', value: data.server_host},
+        {label: T.speedtest_detail_server_host || 'Host', value: data.server_host || null},
+        {label: 'IP', value: data.server_ip || null},
     ]);
 
     // Latency
     var pingRange = (data.ping_low != null && data.ping_high != null) ? data.ping_low + ' \u2013 ' + data.ping_high + ' ms' : null;
-    var dlLat = (data.dl_latency_iqm != null) ? data.dl_latency_iqm + ' / ' + (data.dl_latency_jitter || 0) + ' ms' : null;
-    var ulLat = (data.ul_latency_iqm != null) ? data.ul_latency_iqm + ' / ' + (data.ul_latency_jitter || 0) + ' ms' : null;
+    var dlLat = (data.dl_latency_iqm != null) ? data.dl_latency_iqm + ' / ' + (data.dl_latency_jitter != null ? data.dl_latency_jitter : '---') + ' ms' : null;
+    var ulLat = (data.ul_latency_iqm != null) ? data.ul_latency_iqm + ' / ' + (data.ul_latency_jitter != null ? data.ul_latency_jitter : '---') + ' ms' : null;
     addGroup(T.speedtest_detail_latency || 'Latency Details', [
         {label: T.speedtest_detail_ping_range || 'Ping Range', value: pingRange},
         {label: T.speedtest_detail_dl_latency || 'DL Latency (IQM / Jitter)', value: dlLat},
@@ -348,17 +358,19 @@ function _renderEnrichedDetail(data, container) {
     ]);
 
     // Transfer
-    var dlTransfer = (data.dl_bytes != null) ? fmtBytes(data.dl_bytes) + ' in ' + fmtDuration(data.dl_elapsed_ms) : null;
-    var ulTransfer = (data.ul_bytes != null) ? fmtBytes(data.ul_bytes) + ' in ' + fmtDuration(data.ul_elapsed_ms) : null;
+    var dlDur = fmtDuration(data.dl_elapsed_ms);
+    var dlTransfer = (data.dl_bytes != null) ? fmtBytes(data.dl_bytes) + (dlDur ? ' in ' + dlDur : '') : null;
+    var ulDur = fmtDuration(data.ul_elapsed_ms);
+    var ulTransfer = (data.ul_bytes != null) ? fmtBytes(data.ul_bytes) + (ulDur ? ' in ' + ulDur : '') : null;
     addGroup(T.speedtest_detail_transfer || 'Transfer', [
         {label: T.speedtest_detail_dl_transfer || 'Download', value: dlTransfer},
         {label: T.speedtest_detail_ul_transfer || 'Upload', value: ulTransfer},
     ]);
 
-    // Ookla link
-    if (data.result_url) {
+    // Ookla link (only allow https:// URLs)
+    if (data.result_url && data.result_url.indexOf('https://') === 0) {
         addGroup(T.speedtest_detail_ookla || 'Ookla Result', [
-            {label: '', value: T.speedtest_detail_view_ookla || 'View on Speedtest.net', href: data.result_url},
+            {label: '', value: '\u2197 ' + (T.speedtest_detail_view_ookla || 'View on Speedtest.net'), href: data.result_url},
         ]);
     }
 
