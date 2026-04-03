@@ -6,6 +6,7 @@ var _speedtestVisible = 50;
 var _speedtestSortCol = 'timestamp';
 var _speedtestSortDir = 'desc';
 var _signalCache = {};
+var _enrichedCache = {};
 
 function formatSpeedtestTimestamp(ts) {
     if (!ts) return '';
@@ -259,6 +260,111 @@ function _renderSignalDetail(data, container) {
     container.appendChild(snapDiv);
 }
 
+function _renderEnrichedDetail(data, container) {
+    if (!data.isp && !data.server_host && !data.result_url && data.dl_bytes == null) return;
+
+    var section = document.createElement('div');
+    section.className = 'st-enriched-detail';
+
+    function addGroup(title, items) {
+        var group = document.createElement('div');
+        group.className = 'st-enriched-group';
+        var heading = document.createElement('div');
+        heading.className = 'st-enriched-heading';
+        heading.textContent = title;
+        group.appendChild(heading);
+        var grid = document.createElement('div');
+        grid.className = 'st-enriched-grid';
+        items.forEach(function(item) {
+            if (item.value == null) return;
+            var div = document.createElement('div');
+            div.className = 'st-sig-item';
+            var lbl = document.createElement('span');
+            lbl.className = 'st-sig-label';
+            lbl.textContent = item.label;
+            div.appendChild(lbl);
+            if (item.href) {
+                var link = document.createElement('a');
+                link.href = item.href;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.className = 'st-sig-value st-ookla-link';
+                link.textContent = item.value;
+                div.appendChild(link);
+            } else if (item.badge) {
+                var badge = document.createElement('span');
+                badge.className = 'st-health-badge ' + item.badge;
+                badge.textContent = item.value;
+                div.appendChild(badge);
+            } else {
+                var val = document.createElement('span');
+                val.className = 'st-sig-value';
+                val.textContent = item.value;
+                div.appendChild(val);
+            }
+            grid.appendChild(div);
+        });
+        if (grid.children.length > 0) {
+            group.appendChild(grid);
+            section.appendChild(group);
+        }
+    }
+
+    function fmtBytes(bytes) {
+        if (bytes == null) return null;
+        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+        return (bytes / 1024).toFixed(0) + ' KB';
+    }
+
+    function fmtDuration(ms) {
+        if (ms == null) return null;
+        return (ms / 1000).toFixed(1) + 's';
+    }
+
+    // Connection
+    var connItems = [
+        {label: T.speedtest_detail_isp || 'ISP', value: data.isp},
+        {label: T.speedtest_detail_external_ip || 'External IP', value: data.external_ip},
+    ];
+    if (data.is_vpn) connItems.push({label: T.speedtest_detail_vpn || 'VPN', value: 'Yes', badge: 'health-tolerated'});
+    addGroup(T.speedtest_detail_connection || 'Connection', connItems);
+
+    // Server
+    var loc = [data.server_location, data.server_country].filter(Boolean).join(', ');
+    addGroup(T.speedtest_detail_server || 'Server', [
+        {label: T.speedtest_detail_server_location || 'Location', value: loc || null},
+        {label: T.speedtest_detail_server_host || 'Host', value: data.server_host},
+    ]);
+
+    // Latency
+    var pingRange = (data.ping_low != null && data.ping_high != null) ? data.ping_low + ' \u2013 ' + data.ping_high + ' ms' : null;
+    var dlLat = (data.dl_latency_iqm != null) ? data.dl_latency_iqm + ' / ' + (data.dl_latency_jitter || 0) + ' ms' : null;
+    var ulLat = (data.ul_latency_iqm != null) ? data.ul_latency_iqm + ' / ' + (data.ul_latency_jitter || 0) + ' ms' : null;
+    addGroup(T.speedtest_detail_latency || 'Latency Details', [
+        {label: T.speedtest_detail_ping_range || 'Ping Range', value: pingRange},
+        {label: T.speedtest_detail_dl_latency || 'DL Latency (IQM / Jitter)', value: dlLat},
+        {label: T.speedtest_detail_ul_latency || 'UL Latency (IQM / Jitter)', value: ulLat},
+    ]);
+
+    // Transfer
+    var dlTransfer = (data.dl_bytes != null) ? fmtBytes(data.dl_bytes) + ' in ' + fmtDuration(data.dl_elapsed_ms) : null;
+    var ulTransfer = (data.ul_bytes != null) ? fmtBytes(data.ul_bytes) + ' in ' + fmtDuration(data.ul_elapsed_ms) : null;
+    addGroup(T.speedtest_detail_transfer || 'Transfer', [
+        {label: T.speedtest_detail_dl_transfer || 'Download', value: dlTransfer},
+        {label: T.speedtest_detail_ul_transfer || 'Upload', value: ulTransfer},
+    ]);
+
+    // Ookla link
+    if (data.result_url) {
+        addGroup(T.speedtest_detail_ookla || 'Ookla Result', [
+            {label: '', value: T.speedtest_detail_view_ookla || 'View on Speedtest.net', href: data.result_url},
+        ]);
+    }
+
+    container.appendChild(section);
+}
+
 function toggleSpeedtestSignal(btn) {
     var id = btn.getAttribute('data-id');
     var parentRow = btn.closest('tr');
@@ -284,6 +390,9 @@ function toggleSpeedtestSignal(btn) {
     loadSpan.textContent = '...';
     detailDiv.appendChild(loadSpan);
     td.appendChild(detailDiv);
+    var enrichedDiv = document.createElement('div');
+    enrichedDiv.className = 'st-enriched-wrap';
+    td.appendChild(enrichedDiv);
     newRow.appendChild(td);
     parentRow.after(newRow);
 
@@ -304,6 +413,19 @@ function toggleSpeedtestSignal(btn) {
                 errSpan.textContent = T.signal_error_loading || 'Error loading signal data';
                 container.appendChild(errSpan);
             });
+    }
+
+    // Fetch enriched detail
+    if (_enrichedCache[id]) {
+        _renderEnrichedDetail(_enrichedCache[id], enrichedDiv);
+    } else {
+        fetch('/api/speedtest/' + id)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                _enrichedCache[id] = data;
+                _renderEnrichedDetail(data, enrichedDiv);
+            })
+            .catch(function() {});
     }
 }
 
