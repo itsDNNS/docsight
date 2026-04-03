@@ -23,10 +23,14 @@
                 <input class="form-input" type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
                 <span class="form-hint">{{ t['docsight.speedtest.speedtest_token_hint'] or 'Bearer token from Speedtest Tracker settings' }}</span>
             </div>
-            <div class="form-field" style="grid-column: 1 / -1">
+            <div class="form-field" style="grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
                 <button type="button" class="btn btn-secondary" onclick="testSpeedtest()">
                     <i data-lucide="plug-zap"></i>
                     {{ t.test_connection or 'Test Connection' }}
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="clearSpeedtestCache(this)" title="{{ t['docsight.speedtest.clear_cache_hint'] or 'Delete cached results and re-sync from Speedtest Tracker' }}">
+                    <i data-lucide="trash-2"></i>
+                    {{ t['docsight.speedtest.clear_cache'] or 'Clear Cache' }}
                 </button>
                 <div class="test-result" id="speedtest-test" style="display:none"></div>
             </div>

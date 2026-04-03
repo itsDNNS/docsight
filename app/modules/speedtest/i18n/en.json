@@ -41,5 +41,7 @@
   "speedtest_detail_dl_transfer": "Download",
   "speedtest_detail_ul_transfer": "Upload",
   "speedtest_detail_ookla": "Ookla Result",
-  "speedtest_detail_view_ookla": "View on Speedtest.net"
+  "speedtest_detail_view_ookla": "View on Speedtest.net",
+  "clear_cache": "Clear Cache",
+  "clear_cache_hint": "Delete cached results and re-sync from Speedtest Tracker"
 }

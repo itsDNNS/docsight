@@ -41,5 +41,7 @@
   "speedtest_detail_dl_transfer": "Descarga",
   "speedtest_detail_ul_transfer": "Subida",
   "speedtest_detail_ookla": "Resultado Ookla",
-  "speedtest_detail_view_ookla": "Ver en Speedtest.net"
+  "speedtest_detail_view_ookla": "Ver en Speedtest.net",
+  "clear_cache": "Vaciar caché",
+  "clear_cache_hint": "Eliminar resultados en caché y resincronizar"
 }
