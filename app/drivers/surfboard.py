@@ -205,10 +205,11 @@ class SurfboardDriver(ModemDriver):
                         "SURFboard HTML login returned token (%d bytes), "
                         "fetching page with session token", len(token),
                     )
+                    from urllib.parse import quote
                     prefix = "ct_" if not token.startswith("ct_") else ""
                     token_url = (
                         f"{self._url}/cmconnectionstatus.html"
-                        f"?{prefix}{token}"
+                        f"?{prefix}{quote(token, safe='')}"
                     )
                     r2 = self._session.get(token_url, timeout=30)
                     r2.raise_for_status()

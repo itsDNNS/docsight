@@ -86,7 +86,7 @@ class TestHtmlFallbackActivation:
         assert "/cmconnectionstatus.html?login_" in url
 
     def test_html_fallback_failure_raises_both_errors(self, driver):
-        """When both HNAP and HTML fail, both errors are reported."""
+        """When both HNAP (ConnectionError) and HTML fail, both errors are reported."""
         def fail_hnap():
             raise requests.ConnectionError("HNAP refused")
 
@@ -97,6 +97,20 @@ class TestHtmlFallbackActivation:
              patch.object(driver, "_html_login", side_effect=fail_html), \
              patch("app.drivers.surfboard.time"), \
              pytest.raises(RuntimeError, match="HNAP refused.*HTML fallback also failed.*timeout"):
+            driver.login()
+
+    def test_html_fallback_failure_ssl_raises_both_errors(self, driver):
+        """When both HNAP (SSLError) and HTML fail, both errors are reported."""
+        def fail_hnap():
+            raise requests.exceptions.SSLError("TLS handshake failure")
+
+        def fail_html():
+            raise RuntimeError("SURFboard HTML login failed: no channel data")
+
+        with patch.object(driver, "_do_login", side_effect=fail_hnap), \
+             patch.object(driver, "_html_login", side_effect=fail_html), \
+             patch("app.drivers.surfboard.time"), \
+             pytest.raises(RuntimeError, match="TLS error.*HTML fallback also failed.*no channel data"):
             driver.login()
 
 
