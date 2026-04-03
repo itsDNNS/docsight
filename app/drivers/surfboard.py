@@ -182,10 +182,11 @@ class SurfboardDriver(ModemDriver):
         """Authenticate via HTML GET endpoint (fallback for broken HNAP).
 
         Uses the browser login path: GET /cmconnectionstatus.html?login_{base64}
-        This works on SB8200 firmware where HNAP POST body reads fail.
+        Some SB8200 firmware versions use a two-step flow:
+          1. GET ?login_{creds} -> short response containing a session token
+          2. GET ?ct_{token}    -> full page with channel data
 
-        Validates that the response contains channel tables to distinguish
-        a successful auth from a login page or error page.
+        Validates that the final response contains channel tables.
         """
         creds = base64.b64encode(
             f"{self._user}:{self._password}".encode()
@@ -195,6 +196,24 @@ class SurfboardDriver(ModemDriver):
             r = self._session.get(url, timeout=30)
             r.raise_for_status()
             body = r.text
+
+            # Two-step login: short response contains a session token
+            if len(body) < 500 and "downstream" not in body.lower():
+                token = body.strip()
+                if token:
+                    log.info(
+                        "SURFboard HTML login returned token (%d bytes), "
+                        "fetching page with session token", len(token),
+                    )
+                    prefix = "ct_" if not token.startswith("ct_") else ""
+                    token_url = (
+                        f"{self._url}/cmconnectionstatus.html"
+                        f"?{prefix}{token}"
+                    )
+                    r2 = self._session.get(token_url, timeout=30)
+                    r2.raise_for_status()
+                    body = r2.text
+
             if len(body) < 500 or "downstream" not in body.lower():
                 raise RuntimeError(
                     "SURFboard HTML login failed: response does not contain "
@@ -281,8 +300,10 @@ class SurfboardDriver(ModemDriver):
                             "(HNAP broken on this firmware)"
                         )
                         return
-                    except RuntimeError:
-                        raise RuntimeError(msg)
+                    except RuntimeError as html_err:
+                        raise RuntimeError(
+                            f"{msg}; HTML fallback also failed: {html_err}"
+                        )
                 log.warning(
                     "SURFboard TLS error, retrying with fresh session"
                 )
@@ -320,8 +341,10 @@ class SurfboardDriver(ModemDriver):
                             "(HNAP broken on this firmware)"
                         )
                         return
-                    except RuntimeError:
-                        raise RuntimeError(msg)
+                    except RuntimeError as html_err:
+                        raise RuntimeError(
+                            f"{msg}; HTML fallback also failed: {html_err}"
+                        )
                 log.warning(
                     "SURFboard connection lost, retrying with fresh session: %s",
                     e,

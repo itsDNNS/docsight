@@ -85,8 +85,8 @@ class TestHtmlFallbackActivation:
         url = mock_get.call_args[0][0]
         assert "/cmconnectionstatus.html?login_" in url
 
-    def test_html_fallback_failure_raises_original_error(self, driver):
-        """When both HNAP and HTML fail, the original HNAP error is raised."""
+    def test_html_fallback_failure_raises_both_errors(self, driver):
+        """When both HNAP and HTML fail, both errors are reported."""
         def fail_hnap():
             raise requests.ConnectionError("HNAP refused")
 
@@ -96,7 +96,7 @@ class TestHtmlFallbackActivation:
         with patch.object(driver, "_do_login", side_effect=fail_hnap), \
              patch.object(driver, "_html_login", side_effect=fail_html), \
              patch("app.drivers.surfboard.time"), \
-             pytest.raises(RuntimeError, match="SURFboard login failed.*HNAP refused"):
+             pytest.raises(RuntimeError, match="HNAP refused.*HTML fallback also failed.*timeout"):
             driver.login()
 
 
@@ -154,6 +154,61 @@ class TestHtmlLogin:
         mock_resp.raise_for_status = MagicMock()
 
         with patch.object(driver._session, "get", return_value=mock_resp):
+            with pytest.raises(RuntimeError, match="does not contain channel data"):
+                driver._html_login()
+
+    def test_html_login_two_step_token_flow(self, driver):
+        """SB8200 two-step login: first request returns token, second returns page."""
+        token_resp = MagicMock()
+        token_resp.status_code = 200
+        token_resp.text = "g41RVNXNpuhbYnriIr24TOdXxInHu4o"
+        token_resp.raise_for_status = MagicMock()
+
+        page_resp = MagicMock()
+        page_resp.status_code = 200
+        page_resp.text = STATUS_HTML
+        page_resp.raise_for_status = MagicMock()
+
+        with patch.object(
+            driver._session, "get", side_effect=[token_resp, page_resp]
+        ) as mock_get:
+            driver._html_login()
+
+        assert driver._logged_in is True
+        assert driver._html_status_cache == STATUS_HTML
+        # Second request should use ct_ prefix + token
+        second_url = mock_get.call_args_list[1][0][0]
+        assert "?ct_g41RVNXNpuhbYnriIr24TOdXxInHu4o" in second_url
+
+    def test_html_login_two_step_token_already_has_prefix(self, driver):
+        """Token response that already includes ct_ prefix is not doubled."""
+        token_resp = MagicMock()
+        token_resp.status_code = 200
+        token_resp.text = "ct_abcdef123456"
+        token_resp.raise_for_status = MagicMock()
+
+        page_resp = MagicMock()
+        page_resp.status_code = 200
+        page_resp.text = STATUS_HTML
+        page_resp.raise_for_status = MagicMock()
+
+        with patch.object(
+            driver._session, "get", side_effect=[token_resp, page_resp]
+        ) as mock_get:
+            driver._html_login()
+
+        second_url = mock_get.call_args_list[1][0][0]
+        assert "?ct_abcdef123456" in second_url
+        assert "ct_ct_" not in second_url
+
+    def test_html_login_two_step_empty_token_fails(self, driver):
+        """Two-step flow with empty token response still fails validation."""
+        token_resp = MagicMock()
+        token_resp.status_code = 200
+        token_resp.text = ""
+        token_resp.raise_for_status = MagicMock()
+
+        with patch.object(driver._session, "get", return_value=token_resp):
             with pytest.raises(RuntimeError, match="does not contain channel data"):
                 driver._html_login()
 
