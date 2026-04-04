@@ -14,6 +14,12 @@ from .storage import SnapshotStorage
 
 from .collectors import discover_collectors
 
+try:
+    from .drivers.surfboard import TransientHtmlChannelPageError as _TransientHtmlError
+except ImportError:
+    class _TransientHtmlError(Exception):  # type: ignore[no-redef]
+        """Stub -- never raised when surfboard driver is absent."""
+
 logging.basicConfig(
     level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -260,6 +266,9 @@ def polling_loop(config_mgr, storage, stop_event):
                         else:
                             collector.record_failure()
                             log.warning("%s: %s", collector.name, result.error)
+                    except _TransientHtmlError:
+                        collector.record_skip()
+                        log.warning("%s: transient HTML response, skipping poll", collector.name)
                     except Exception as e:
                         collector.record_failure()
                         log.error("%s error: %s", collector.name, e)

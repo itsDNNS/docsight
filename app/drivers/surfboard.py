@@ -35,6 +35,14 @@ from .base import ModemDriver
 
 log = logging.getLogger("docsis.driver.surfboard")
 
+
+class TransientHtmlChannelPageError(RuntimeError):
+    """Raised when HTML login gets a response without channel data after retry.
+
+    Treated as a skippable transient failure by the scheduler -- no dashboard
+    error, no backoff, previous data stays.
+    """
+
 _HNAP_LOGIN_URI = '"http://purenetworks.com/HNAP1/Login"'
 _HNAP_MULTI_URI = '"http://purenetworks.com/HNAP1/GetMultipleHNAPs"'
 _HNAP_PRELOGIN_KEY = "withoutloginkey"
@@ -178,6 +186,44 @@ class SurfboardDriver(ModemDriver):
         )
         return True
 
+    @staticmethod
+    def _body_preview(text: str, limit: int = 200) -> str:
+        """Collapse whitespace and truncate for log output."""
+        collapsed = " ".join(text.split())
+        if len(collapsed) > limit:
+            return collapsed[:limit] + "..."
+        return collapsed
+
+    def _html_login_attempt(self) -> str:
+        """Single HTML login attempt. Returns the response body or raises."""
+        creds = base64.b64encode(
+            f"{self._user}:{self._password}".encode()
+        ).decode()
+        url = f"{self._url}/cmconnectionstatus.html?login_{creds}"
+        r = self._session.get(url, timeout=30)
+        r.raise_for_status()
+        body = r.text
+
+        # Two-step login: short response contains a session token
+        if len(body) < 500 and "downstream" not in body.lower():
+            token = body.strip()
+            if token:
+                log.info(
+                    "SURFboard HTML login returned token (%d bytes), "
+                    "fetching page with session token", len(token),
+                )
+                from urllib.parse import quote
+                prefix = "ct_" if not token.startswith("ct_") else ""
+                token_url = (
+                    f"{self._url}/cmconnectionstatus.html"
+                    f"?{prefix}{quote(token, safe='')}"
+                )
+                r2 = self._session.get(token_url, timeout=30)
+                r2.raise_for_status()
+                body = r2.text
+
+        return body
+
     def _html_login(self) -> None:
         """Authenticate via HTML GET endpoint (fallback for broken HNAP).
 
@@ -187,39 +233,26 @@ class SurfboardDriver(ModemDriver):
           2. GET ?ct_{token}    -> full page with channel data
 
         Validates that the final response contains channel tables.
+        On a non-channel response, resets the session and retries once.
         """
-        creds = base64.b64encode(
-            f"{self._user}:{self._password}".encode()
-        ).decode()
-        url = f"{self._url}/cmconnectionstatus.html?login_{creds}"
         try:
-            r = self._session.get(url, timeout=30)
-            r.raise_for_status()
-            body = r.text
-
-            # Two-step login: short response contains a session token
-            if len(body) < 500 and "downstream" not in body.lower():
-                token = body.strip()
-                if token:
-                    log.info(
-                        "SURFboard HTML login returned token (%d bytes), "
-                        "fetching page with session token", len(token),
-                    )
-                    from urllib.parse import quote
-                    prefix = "ct_" if not token.startswith("ct_") else ""
-                    token_url = (
-                        f"{self._url}/cmconnectionstatus.html"
-                        f"?{prefix}{quote(token, safe='')}"
-                    )
-                    r2 = self._session.get(token_url, timeout=30)
-                    r2.raise_for_status()
-                    body = r2.text
+            body = self._html_login_attempt()
 
             if len(body) < 500 or "downstream" not in body.lower():
-                raise RuntimeError(
-                    "SURFboard HTML login failed: response does not contain "
-                    f"channel data ({len(body)} bytes)"
+                log.warning(
+                    "SURFboard HTML login: non-channel response (%d bytes), "
+                    "resetting session and retrying. Preview: %s",
+                    len(body), self._body_preview(body),
                 )
+                self._fresh_session()
+                body = self._html_login_attempt()
+
+            if len(body) < 500 or "downstream" not in body.lower():
+                raise TransientHtmlChannelPageError(
+                    f"SURFboard HTML login: non-channel response after retry "
+                    f"({len(body)} bytes). Preview: {self._body_preview(body)}"
+                )
+
             self._html_status_cache = body
             self._logged_in = True
             log.info("SURFboard HTML login OK (%d bytes)", len(body))
@@ -301,6 +334,8 @@ class SurfboardDriver(ModemDriver):
                             "(HNAP broken on this firmware)"
                         )
                         return
+                    except TransientHtmlChannelPageError:
+                        raise  # let transient HTML errors propagate for skip handling
                     except RuntimeError as html_err:
                         raise RuntimeError(
                             f"{msg}; HTML fallback also failed: {html_err}"
@@ -342,6 +377,8 @@ class SurfboardDriver(ModemDriver):
                             "(HNAP broken on this firmware)"
                         )
                         return
+                    except TransientHtmlChannelPageError:
+                        raise  # let transient HTML errors propagate for skip handling
                     except RuntimeError as html_err:
                         raise RuntimeError(
                             f"{msg}; HTML fallback also failed: {html_err}"

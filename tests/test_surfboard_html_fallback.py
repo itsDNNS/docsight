@@ -148,27 +148,26 @@ class TestHtmlLogin:
         assert driver._logged_in is True
 
     def test_html_login_rejects_short_response(self, driver):
-        """HTML login rejects responses without channel data (login page, error)."""
+        """HTML login rejects responses without channel data after retry."""
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.text = "<html><body>Login</body></html>"
         mock_resp.raise_for_status = MagicMock()
 
-        with patch.object(driver._session, "get", return_value=mock_resp):
-            with pytest.raises(RuntimeError, match="does not contain channel data"):
+        from app.drivers.surfboard import TransientHtmlChannelPageError
+        with patch.object(driver, "_fresh_session"), \
+             patch.object(driver, "_html_login_attempt", return_value=mock_resp.text):
+            with pytest.raises(TransientHtmlChannelPageError, match="non-channel response after retry"):
                 driver._html_login()
 
         assert driver._logged_in is False
 
     def test_html_login_rejects_response_without_downstream(self, driver):
-        """HTML login rejects responses that don't contain 'downstream'."""
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = "x" * 600  # long enough but no channel keywords
-        mock_resp.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "get", return_value=mock_resp):
-            with pytest.raises(RuntimeError, match="does not contain channel data"):
+        """HTML login rejects responses that don't contain 'downstream' after retry."""
+        from app.drivers.surfboard import TransientHtmlChannelPageError
+        with patch.object(driver, "_fresh_session"), \
+             patch.object(driver, "_html_login_attempt", return_value="x" * 600):
+            with pytest.raises(TransientHtmlChannelPageError, match="non-channel response after retry"):
                 driver._html_login()
 
     def test_html_login_two_step_token_flow(self, driver):
@@ -216,14 +215,11 @@ class TestHtmlLogin:
         assert "ct_ct_" not in second_url
 
     def test_html_login_two_step_empty_token_fails(self, driver):
-        """Two-step flow with empty token response still fails validation."""
-        token_resp = MagicMock()
-        token_resp.status_code = 200
-        token_resp.text = ""
-        token_resp.raise_for_status = MagicMock()
-
-        with patch.object(driver._session, "get", return_value=token_resp):
-            with pytest.raises(RuntimeError, match="does not contain channel data"):
+        """Two-step flow with empty token response still fails validation after retry."""
+        from app.drivers.surfboard import TransientHtmlChannelPageError
+        with patch.object(driver, "_fresh_session"), \
+             patch.object(driver, "_html_login_attempt", return_value=""):
+            with pytest.raises(TransientHtmlChannelPageError, match="non-channel response after retry"):
                 driver._html_login()
 
 
