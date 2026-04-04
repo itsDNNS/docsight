@@ -127,6 +127,19 @@ class Collector(ABC):
             self._last_failure_time = 0.0
             self._last_poll = time.time()
 
+    def record_skip(self):
+        """Advance poll timestamp without penalty or failure count.
+
+        Used for transient issues where the poll should be retried at the
+        normal interval without triggering backoff or dashboard errors.
+        Resets any accumulated penalty so the next poll uses the base interval.
+        """
+        with self._lock:
+            self._consecutive_failures = 0
+            self._last_failure_time = 0.0
+            self._last_poll = time.time()
+            log.info("%s: Poll skipped (transient), next attempt at normal interval", self.name)
+
     def record_failure(self):
         """Increment penalty counter and update last poll timestamp."""
         with self._lock:
