@@ -184,8 +184,8 @@ def parse_bnetz_pdf(pdf_bytes):
                 result["verdict_download"] = "ok"
             # Also try: "Abweichung ... im Download wurde ..."
             if "Abweichung" in page_text:
-                dl_section = page_text.split("im Download")[0] if "im Upload" in page_text else page_text
-                if "wurde festgestellt" in page_text.split("im Download")[-1].split("im Upload")[0] if "im Upload" in page_text else "wurde festgestellt" in page_text:
+                dl_part = page_text.split("im Download")[-1].split("im Upload")[0] if "im Upload" in page_text else page_text
+                if "wurde festgestellt" in dl_part:
                     pass  # already handled above
 
         if "Ergebnis der Messkampagne im Upload" in page_text:

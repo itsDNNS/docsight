@@ -8,8 +8,6 @@ from .module_download import (
     fetch_registry as _fetch_registry,
     download_github_directory,
     is_trusted_url,
-    validate_registry_entry,
-    REQUIRED_ENTRY_FIELDS,
     TRUSTED_HOSTS,
 )
 

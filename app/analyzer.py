@@ -4,9 +4,7 @@ Thresholds are loaded dynamically from the active threshold module.
 The module loader calls set_thresholds() during startup.
 """
 
-import json
 import logging
-import os
 import re
 
 from .tz import utc_now, _parse_utc

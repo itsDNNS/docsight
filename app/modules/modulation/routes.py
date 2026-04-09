@@ -51,7 +51,7 @@ def api_modulation_distribution():
 def api_modulation_intraday():
     """Return per-channel modulation timeline for a single day."""
     from .engine import compute_intraday
-    from app.tz import utc_now, utc_cutoff, to_local
+    from app.tz import utc_now, to_local
 
     storage = get_storage()
     if not storage:

@@ -86,11 +86,3 @@ class WeatherStorage:
         with sqlite3.connect(self.db_path) as conn:
             row = conn.execute("SELECT COUNT(*) FROM weather_data").fetchone()
         return row[0] if row else 0
-
-    def get_latest_weather_timestamp(self):
-        """Return the newest weather timestamp, or None if empty."""
-        with sqlite3.connect(self.db_path) as conn:
-            row = conn.execute(
-                "SELECT MAX(timestamp) FROM weather_data"
-            ).fetchone()
-        return row[0] if row and row[0] else None

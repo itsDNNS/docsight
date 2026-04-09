@@ -11,7 +11,6 @@ import shutil
 import sqlite3
 import tarfile
 import tempfile
-import time
 from datetime import datetime, timezone
 from io import BytesIO
 

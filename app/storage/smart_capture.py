@@ -3,7 +3,7 @@
 import json
 import sqlite3
 
-from ..tz import utc_now, utc_cutoff
+from ..tz import utc_now
 
 
 class SmartCaptureMixin:
@@ -165,17 +165,6 @@ class SmartCaptureMixin:
             results.append(record)
         return results
 
-    def count_executions_since(self, since_timestamp, status=None):
-        """Count executions created after the given timestamp."""
-        query = "SELECT COUNT(*) FROM smart_capture_executions WHERE created_at >= ?"
-        params = [since_timestamp]
-        if status:
-            query += " AND status = ?"
-            params.append(status)
-        with sqlite3.connect(self.db_path) as conn:
-            row = conn.execute(query, params).fetchone()
-        return row[0] if row else 0
-
     def expire_stale_pending(self, cutoff_timestamp):
         """Bulk-expire PENDING executions with created_at before cutoff.
         Handles orphaned executions when no adapter is registered."""
@@ -189,13 +178,3 @@ class SmartCaptureMixin:
             ).rowcount
         return rowcount
 
-    def delete_old_executions(self, days):
-        """Delete executions older than given days. Returns count deleted."""
-        if days <= 0:
-            return 0
-        cutoff = utc_cutoff(days=days)
-        with sqlite3.connect(self.db_path) as conn:
-            deleted = conn.execute(
-                "DELETE FROM smart_capture_executions WHERE created_at < ?", (cutoff,)
-            ).rowcount
-        return deleted

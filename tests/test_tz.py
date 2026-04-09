@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from app.tz import (
     utc_now, utc_cutoff, to_local, to_local_display,
-    local_to_utc, local_now, local_today, local_date_to_utc_range,
+    local_to_utc, local_today, local_date_to_utc_range,
     guess_iana_timezone,
 )
 
@@ -152,20 +152,6 @@ class TestLocalToUtc:
         assert result.endswith("Z")
         datetime.strptime(result[:-1], "%Y-%m-%dT%H:%M:%S")
 
-
-class TestLocalNow:
-    def test_returns_string(self):
-        result = local_now("Europe/Berlin")
-        assert isinstance(result, str)
-        assert "T" in result
-
-    def test_empty_tz(self):
-        result = local_now("")
-        assert isinstance(result, str)
-
-    def test_custom_format(self):
-        result = local_now("UTC", fmt="%Y-%m-%d")
-        assert len(result) == 10
 
 
 class TestLocalToday:

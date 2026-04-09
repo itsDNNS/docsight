@@ -4,7 +4,8 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from app.theme_registry import fetch_registry, validate_registry_entry
+from app.theme_registry import fetch_registry
+from app.module_download import validate_registry_entry
 
 
 class TestValidateRegistryEntry:

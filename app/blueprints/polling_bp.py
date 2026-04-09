@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 
 from app.web import (
     require_auth,
-    get_config_manager, get_storage, get_modem_collector, get_collectors,
+    get_config_manager, get_modem_collector, get_collectors,
     get_last_manual_poll, set_last_manual_poll,
     _get_lang,
 )

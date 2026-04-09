@@ -85,15 +85,6 @@ def local_to_utc(local_ts, tz_name):
     return utc_dt.strftime(_UTC_FMT)
 
 
-def local_now(tz_name, fmt=_LOCAL_FMT):
-    """Return current local time in the given timezone.
-
-    Useful for scheduling comparisons (e.g. 'is it past snapshot_time?').
-    """
-    if not tz_name:
-        return datetime.now(timezone.utc).strftime(fmt)
-    return datetime.now(ZoneInfo(tz_name)).strftime(fmt)
-
 
 def local_today(tz_name):
     """Return today's date (YYYY-MM-DD) in the user's timezone."""

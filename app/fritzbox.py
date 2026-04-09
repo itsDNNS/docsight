@@ -1,7 +1,6 @@
 """FritzBox authentication and DOCSIS data retrieval."""
 
 import hashlib
-import json
 import logging
 import xml.etree.ElementTree as ET
 

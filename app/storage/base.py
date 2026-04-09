@@ -4,7 +4,6 @@ import logging
 import os
 import sqlite3
 
-from ..tz import utc_now, utc_cutoff, local_to_utc
 
 ALLOWED_MIME_TYPES = {
     "image/png", "image/jpeg", "image/gif", "image/webp",

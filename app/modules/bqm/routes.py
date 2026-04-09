@@ -7,8 +7,7 @@ from flask import Blueprint, request, jsonify, make_response
 
 from app.web import (
     require_auth,
-    get_storage, get_config_manager, get_state,
-    _valid_date, _get_client_ip, _get_tz_name,
+    get_storage, get_config_manager, _valid_date, _get_client_ip, _get_tz_name,
 )
 from .storage import BqmStorage
 from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort

@@ -11,11 +11,10 @@ from flask import Blueprint, request, jsonify, send_file, make_response
 
 from app.web import (
     require_auth,
-    get_storage, get_config_manager, get_state,
+    get_config_manager, get_state,
     _valid_date, _localize_timestamps, _get_client_ip, _get_lang, _get_tz_name,
 )
 from app.storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_ENTRY
-from app.i18n import get_translations
 
 from werkzeug.utils import secure_filename
 

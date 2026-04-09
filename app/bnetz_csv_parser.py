@@ -22,7 +22,6 @@ def _parse_de_float(s):
         return None
     s = s.strip()
     has_comma = "," in s
-    has_dot = "." in s
     if has_comma:
         # German format: dots are thousands separators, comma is decimal
         s = s.replace(".", "").replace(",", ".")

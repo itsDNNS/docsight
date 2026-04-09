@@ -130,26 +130,6 @@ class TestGetExecutions:
         assert rows[0]["status"] == "suppressed"
 
 
-class TestCountExecutionsSince:
-    def test_counts_in_window(self, storage):
-        storage.save_execution(trigger_type="modulation_change",
-                               action_type="capture", status=ExecutionStatus.PENDING)
-        storage.save_execution(trigger_type="modulation_change",
-                               action_type="capture", status=ExecutionStatus.SUPPRESSED,
-                               suppression_reason="test")
-        count = storage.count_executions_since("2020-01-01T00:00:00Z",
-                                               status="pending")
-        assert count == 1
-
-    def test_counts_all_statuses(self, storage):
-        storage.save_execution(trigger_type="a",
-                               action_type="capture", status=ExecutionStatus.PENDING)
-        storage.save_execution(trigger_type="b",
-                               action_type="capture", status=ExecutionStatus.SUPPRESSED,
-                               suppression_reason="test")
-        count = storage.count_executions_since("2020-01-01T00:00:00Z")
-        assert count == 2
-
 
 class TestUpdateExecutionExtended:
     def test_update_last_error(self, storage):

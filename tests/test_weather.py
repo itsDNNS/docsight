@@ -149,14 +149,6 @@ class TestWeatherStorage:
         storage.save_weather_data([{"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0}])
         assert storage.get_weather_count() == 1
 
-    def test_get_latest_weather_timestamp(self, tmp_path):
-        storage = WeatherStorage(str(tmp_path / "test.db"))
-        assert storage.get_latest_weather_timestamp() is None
-        storage.save_weather_data([
-            {"timestamp": "2026-02-26 10:00:00Z", "temperature": 4.0},
-            {"timestamp": "2026-02-27 10:00:00Z", "temperature": 5.0},
-        ])
-        assert storage.get_latest_weather_timestamp() == "2026-02-27 10:00:00Z"
 
 
 # ── WeatherCollector Tests ──

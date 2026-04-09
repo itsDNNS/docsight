@@ -297,7 +297,6 @@ class UltraHub7Driver(ModemDriver):
                 modulation = self._normalize_modulation(ch.get("Modulation", ""))
                 power = self._parse_power(ch.get("PowerLevel", "0"))
                 snr = self._parse_snr(ch.get("SNRLevel", ""))
-                lock_status = ch.get("LockStatus", "")
 
                 # Map to FritzBox-compatible format for analyzer
                 result.append({
@@ -329,7 +328,6 @@ class UltraHub7Driver(ModemDriver):
                 frequency = self._parse_frequency(ch.get("Frequency", "0"))
                 modulation = self._normalize_modulation(ch.get("Modulation", ""))
                 power = self._parse_power(ch.get("PowerLevel", "0"))
-                lock_status = ch.get("LockStatus", "")
 
                 # Map to FritzBox-compatible format for analyzer
                 result.append({

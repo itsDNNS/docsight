@@ -164,7 +164,7 @@ class AnalysisMixin:
         direction: 'ds' or 'us'. Returns list of dicts with timestamp + channel fields."""
         _COL_MAP = {"ds": "ds_channels_json", "us": "us_channels_json"}
         channel_id = int(channel_id)
-        col = _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
+        _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
         cutoff = utc_cutoff(days=days)
         with sqlite3.connect(self.db_path) as conn:
             if direction == "ds":

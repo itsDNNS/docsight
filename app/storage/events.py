@@ -3,7 +3,7 @@
 import json
 import sqlite3
 
-from ..tz import utc_now, utc_cutoff
+from ..tz import utc_cutoff
 
 
 class EventMixin:

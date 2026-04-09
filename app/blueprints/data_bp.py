@@ -1,7 +1,6 @@
 """Data retrieval routes: trends, export, snapshots."""
 
 import logging
-import math
 from datetime import datetime, timedelta
 
 from flask import Blueprint, request, jsonify
@@ -9,9 +8,8 @@ from flask import Blueprint, request, jsonify
 from app.web import (
     require_auth,
     get_storage, get_config_manager, get_state,
-    _localize_timestamps, _get_lang,
+    _localize_timestamps,
 )
-from app.gaming_index import compute_gaming_index
 
 log = logging.getLogger("docsis.web")
 

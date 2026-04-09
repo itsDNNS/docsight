@@ -139,7 +139,7 @@ def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
             "docsight_downstream_power_dbmv",
         )
         for ch in ds_channels:
-            ch_id = ch["channel_id"]
+            ch["channel_id"]
             if ch.get("power") is not None:
                 _metric_value(lines, "docsight_downstream_power_dbmv", ch["power"],
                               _channel_labels(ch))

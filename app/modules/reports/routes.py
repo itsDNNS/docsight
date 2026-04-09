@@ -1,7 +1,6 @@
 """Report generation routes."""
 
 import logging
-import re
 from datetime import datetime
 
 from flask import Blueprint, request, jsonify, make_response

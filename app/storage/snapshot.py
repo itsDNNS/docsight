@@ -4,7 +4,7 @@ import json
 import logging
 import sqlite3
 
-from ..tz import utc_now, utc_cutoff
+from ..tz import utc_now
 
 log = logging.getLogger("docsis.storage")
 
@@ -53,77 +53,6 @@ class SnapshotMixin:
             "ds_channels": json.loads(row[1]),
             "us_channels": json.loads(row[2]),
         }
-
-    def get_dates_with_data(self):
-        """Return list of dates (YYYY-MM-DD) that have at least one snapshot.
-
-        Converts UTC timestamps to local dates using the configured timezone,
-        so the returned dates match the user's calendar.
-        """
-        from ..tz import to_local
-        tz = self.tz_name
-        with sqlite3.connect(self.db_path) as conn:
-            rows = conn.execute(
-                "SELECT DISTINCT timestamp FROM snapshots ORDER BY timestamp"
-            ).fetchall()
-        # Convert each UTC timestamp to local date and deduplicate
-        dates = sorted({to_local(r[0], tz)[:10] for r in rows if r[0]})
-        return dates
-
-    def get_daily_snapshot(self, date, target_time="06:00"):
-        """Get the snapshot closest to target_time on the given date.
-
-        date and target_time are local concepts — converted to UTC for querying.
-        """
-        from ..tz import local_date_to_utc_range, local_to_utc as _l2u
-        tz = self.tz_name
-        start_utc, end_utc = local_date_to_utc_range(date, tz)
-        target_utc = _l2u(f"{date}T{target_time}:00", tz)
-        with sqlite3.connect(self.db_path) as conn:
-            row = conn.execute(
-                """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
-                   FROM snapshots
-                   WHERE timestamp >= ? AND timestamp <= ?
-                   ORDER BY ABS(julianday(timestamp) - julianday(?))
-                   LIMIT 1""",
-                (start_utc, end_utc, target_utc),
-            ).fetchone()
-        if not row:
-            return None
-        return {
-            "timestamp": row[0],
-            "summary": json.loads(row[1]),
-            "ds_channels": json.loads(row[2]),
-            "us_channels": json.loads(row[3]),
-        }
-
-    def get_trend_data(self, start_date, end_date, target_time="06:00"):
-        """Get summary data points for a date range, one per day (closest to target_time).
-        Returns list of {date, timestamp, ...summary_fields}.
-
-        start_date and end_date are local calendar dates (YYYY-MM-DD).
-        """
-        from ..tz import to_local, local_date_to_utc_range
-        tz = self.tz_name
-        # Get the full UTC range covering both local date boundaries
-        range_start, _ = local_date_to_utc_range(start_date, tz)
-        _, range_end = local_date_to_utc_range(end_date, tz)
-        with sqlite3.connect(self.db_path) as conn:
-            rows = conn.execute(
-                "SELECT DISTINCT timestamp FROM snapshots WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
-                (range_start, range_end),
-            ).fetchall()
-        # Convert UTC timestamps to local dates and deduplicate
-        dates = sorted({to_local(r[0], tz)[:10] for r in rows if r[0]})
-
-        results = []
-        for date in dates:
-            snap = self.get_daily_snapshot(date, target_time)
-            if snap:
-                entry = {"date": date, "timestamp": snap["timestamp"]}
-                entry.update(snap["summary"])
-                results.append(entry)
-        return results
 
     def get_range_data(self, start_ts, end_ts):
         """Get all snapshots between two ISO timestamps (inclusive)."""
