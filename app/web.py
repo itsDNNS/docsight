@@ -221,8 +221,24 @@ def _fetch_update():
         _update_cache["checking"] = False
 
 def _version_newer(latest, current):
-    """Compare date-based version strings (e.g. '2026-02-16.1' > '2026-02-13.8')."""
-    return latest > current
+    """Compare date-based version strings (e.g. '2026-02-16.1' > '2026-02-13.8').
+
+    Splits on '.' to compare the date part lexicographically and the
+    trailing build number numerically so that '.10' > '.9'.
+    """
+    def _parts(v):
+        # "2026-02-16.1" -> ("2026-02-16", 1)
+        dot = v.rfind(".")
+        if dot == -1:
+            return (v, 0)
+        date_part = v[:dot]
+        try:
+            build = int(v[dot + 1:])
+        except ValueError:
+            build = 0
+        return (date_part, build)
+
+    return _parts(latest) > _parts(current)
 
 
 app = Flask(__name__, template_folder="templates")

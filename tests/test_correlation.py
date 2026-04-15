@@ -291,3 +291,43 @@ class TestCorrelationAPI:
         assert resp.status_code == 200
         resp = client_with_storage.get("/api/correlation?hours=0")
         assert resp.status_code == 200
+
+    def test_correlation_segment_source_filter(self, client_with_storage, storage):
+        """Segment source can be explicitly selected via API sources param."""
+        from unittest.mock import patch, MagicMock
+
+        mock_seg = MagicMock()
+        mock_seg.get_range.return_value = [
+            {"timestamp": utc_now(), "ds_total": 5.0, "us_total": 10.0,
+             "ds_own": 0.1, "us_own": 0.2},
+        ]
+        with patch("app.storage.segment_utilization.SegmentUtilizationStorage", return_value=mock_seg):
+            resp = client_with_storage.get("/api/correlation?hours=1&sources=segment")
+        data = json.loads(resp.data)
+        assert resp.status_code == 200
+        assert len(data) >= 1
+        assert all(e["source"] == "segment" for e in data)
+
+    def test_correlation_segment_excluded_when_not_requested(self, client_with_storage, storage, sample_analysis):
+        """Segment source is excluded when other sources are explicitly listed."""
+        from unittest.mock import patch, MagicMock
+
+        ts = utc_now()
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(
+                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
+                (ts, json.dumps(sample_analysis["summary"]),
+                 json.dumps(sample_analysis["ds_channels"]),
+                 json.dumps(sample_analysis["us_channels"])),
+            )
+        # Seed segment data so it would appear if filtering were broken
+        mock_seg = MagicMock()
+        mock_seg.get_range.return_value = [
+            {"timestamp": ts, "ds_total": 5.0, "us_total": 10.0,
+             "ds_own": 0.1, "us_own": 0.2},
+        ]
+        with patch("app.storage.segment_utilization.SegmentUtilizationStorage", return_value=mock_seg):
+            resp = client_with_storage.get("/api/correlation?hours=1&sources=modem")
+        data = json.loads(resp.data)
+        assert len(data) >= 1
+        assert all(e["source"] == "modem" for e in data)

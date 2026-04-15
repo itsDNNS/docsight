@@ -186,7 +186,7 @@ def api_correlation():
     """Return unified timeline with data from all sources for cross-source correlation.
     Query params:
       hours: int (default 24, max 168)
-      sources: comma-separated list of modem,speedtest,events (default all)
+      sources: comma-separated list of modem,speedtest,events,bnetz,capture,segment (default all)
     """
     _storage = get_storage()
     if not _storage:
@@ -199,7 +199,7 @@ def api_correlation():
 
     sources_param = request.args.get("sources", "")
     if sources_param:
-        valid = {"modem", "speedtest", "events", "bnetz", "capture"}
+        valid = {"modem", "speedtest", "events", "bnetz", "capture", "segment"}
         sources = valid & set(s.strip() for s in sources_param.split(","))
         if not sources:
             sources = valid
