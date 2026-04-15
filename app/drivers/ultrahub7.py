@@ -6,6 +6,8 @@ and fetches DOCSIS channel data via clean JSON APIs.
 Based on HAR analysis from Tmo-Dev and aiovodafone patterns.
 """
 
+from __future__ import annotations
+
 import base64
 import json
 import logging
@@ -17,6 +19,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.ultrahub7")
 
@@ -216,12 +219,11 @@ class UltraHub7Driver(ModemDriver):
 
         return iv[: (15 - loop)]
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve raw DOCSIS channel data."""
         if not self._csrf_token:
             raise RuntimeError("Not authenticated. Call login() first.")
 
-        # Headers for AJAX requests
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
             "X-Requested-With": "XMLHttpRequest",
@@ -230,7 +232,6 @@ class UltraHub7Driver(ModemDriver):
         }
 
         try:
-            # Fetch downstream channels
             ds_url = f"{self._url}/api/docsis/downstream/list.jst"
             ds_response = self._session.get(
                 ds_url,
@@ -240,8 +241,6 @@ class UltraHub7Driver(ModemDriver):
             ds_response.raise_for_status()
             ds_data = ds_response.json()
 
-
-            # Fetch upstream channels
             us_url = f"{self._url}/api/docsis/upstream/list.jst"
             us_response = self._session.get(
                 us_url,
@@ -251,8 +250,6 @@ class UltraHub7Driver(ModemDriver):
             us_response.raise_for_status()
             us_data = us_response.json()
 
-
-            # Parse and convert to DOCSight schema
             downstream = self._parse_downstream_channels(ds_data.get("channels", []))
             upstream = self._parse_upstream_channels(us_data.get("channels", []))
 
@@ -269,7 +266,7 @@ class UltraHub7Driver(ModemDriver):
             self._session.cookies.clear()
             raise RuntimeError(f"DOCSIS data retrieval failed: {e}")
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Retrieve device model and firmware info."""
         # Ultra Hub 7 doesn't expose device info via a dedicated endpoint
         # Return static info based on driver
@@ -279,26 +276,25 @@ class UltraHub7Driver(ModemDriver):
             "sw_version": "",  # Not available via API
         }
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Retrieve internet connection info (speeds, type)."""
         # Ultra Hub 7 doesn't expose connection info via DOCSIS API
         # Return empty dict (will use Fritz!Box fallback in analyzer)
         return {}
 
-    def _parse_downstream_channels(self, channels: list) -> list:
+    def _parse_downstream_channels(self, channels: list[dict[str, str]]) -> list[RawChannel]:
         """Parse downstream channel data from Ultra Hub 7 API format."""
         result = []
         
         for ch in channels:
             try:
-                # Parse fields with proper type conversion
                 channel_id = int(ch.get("ChannelID", "0"))
                 frequency = self._parse_frequency(ch.get("Frequency", "0"))
                 modulation = self._normalize_modulation(ch.get("Modulation", ""))
                 power = self._parse_power(ch.get("PowerLevel", "0"))
                 snr = self._parse_snr(ch.get("SNRLevel", ""))
 
-                # Map to FritzBox-compatible format for analyzer
+                # FritzBox-compatible format expected by analyzer
                 result.append({
                     "channelID": str(channel_id),
                     "type": modulation,
@@ -317,19 +313,18 @@ class UltraHub7Driver(ModemDriver):
 
         return result
 
-    def _parse_upstream_channels(self, channels: list) -> list:
+    def _parse_upstream_channels(self, channels: list[dict[str, str]]) -> list[RawChannel]:
         """Parse upstream channel data from Ultra Hub 7 API format."""
         result = []
         
         for ch in channels:
             try:
-                # Parse fields with proper type conversion
                 channel_id = int(ch.get("ChannelID", "0"))
                 frequency = self._parse_frequency(ch.get("Frequency", "0"))
                 modulation = self._normalize_modulation(ch.get("Modulation", ""))
                 power = self._parse_power(ch.get("PowerLevel", "0"))
 
-                # Map to FritzBox-compatible format for analyzer
+                # FritzBox-compatible format expected by analyzer
                 result.append({
                     "channelID": str(channel_id),
                     "type": modulation,
@@ -353,7 +348,6 @@ class UltraHub7Driver(ModemDriver):
             return 0.0
         
         try:
-            # Strip whitespace and split on first space
             parts = freq_str.strip().split()
             return float(parts[0])
         except (IndexError, ValueError):
@@ -369,7 +363,6 @@ class UltraHub7Driver(ModemDriver):
             return 0.0
         
         try:
-            # Split on space and take first part
             parts = power_str.strip().split()
             return float(parts[0])
         except (IndexError, ValueError):
@@ -402,6 +395,4 @@ class UltraHub7Driver(ModemDriver):
         if not modulation:
             return ""
         
-        # Remove hyphens and normalize to uppercase
-        # "256-QAM" → "256QAM", "OFDM" → "OFDM"
         return modulation.upper().replace("-", "")

@@ -14,7 +14,10 @@ from datetime import datetime, timedelta
 import requests as _requests
 
 from flask import Flask, render_template, request, jsonify, redirect, session, send_from_directory
+from jinja2 import FileSystemLoader, ChoiceLoader
+from markupsafe import Markup
 from werkzeug.security import check_password_hash
+from zoneinfo import available_timezones
 
 from .config import POLL_MIN, POLL_MAX
 from .gaming_index import compute_gaming_index
@@ -25,13 +28,12 @@ _IANA_REGIONS = {"Africa", "America", "Antarctica", "Arctic", "Asia",
 
 def _get_iana_timezones():
     """Return sorted list of IANA timezone names (no POSIX abbreviations)."""
-    from zoneinfo import available_timezones
     return ["UTC"] + sorted(
         tz for tz in available_timezones()
         if tz.split("/")[0] in _IANA_REGIONS
     )
 
-from .tz import guess_iana_timezone as _guess_iana_timezone
+from .tz import guess_iana_timezone as _guess_iana_timezone, to_local as _to_local
 
 def _server_tz_info():
     """Return server timezone name and UTC offset in minutes."""
@@ -194,7 +196,6 @@ def _check_for_update():
         return None
     if not _update_cache["checking"]:
         _update_cache["checking"] = True
-        import threading
         threading.Thread(target=_fetch_update, daemon=True).start()
     return _update_cache["latest"]
 
@@ -296,7 +297,6 @@ def safe_html_filter(value):
     On allowed tags, all attributes are removed except href on <a>.
     href values must match an allowlist (https://, http://, #, /).
     """
-    from markupsafe import Markup
     cleaned = _STRIP_TAGS_RE.sub("", str(value))
     cleaned = _CLOSE_TAG_RE.sub(lambda m: f"</{m.group(1)}>", cleaned)
     cleaned = _OPEN_TAG_RE.sub(_clean_tag, cleaned)
@@ -386,8 +386,7 @@ def _get_tz_name():
         tz = _config_manager.get("timezone")
         if tz:
             return tz
-    from .tz import guess_iana_timezone
-    return guess_iana_timezone()
+    return _guess_iana_timezone()
 
 
 def _localize_timestamps(data, keys=("timestamp", "created_at", "updated_at", "last_used_at")):
@@ -395,20 +394,19 @@ def _localize_timestamps(data, keys=("timestamp", "created_at", "updated_at", "l
 
     Works on dicts and lists of dicts. Modifies data in-place and returns it.
     """
-    from .tz import to_local
     tz = _get_tz_name()
     if not tz:
         return data
     if isinstance(data, dict):
         for k in keys:
             if k in data and data[k] and isinstance(data[k], str) and data[k].endswith("Z"):
-                data[k] = to_local(data[k], tz)
+                data[k] = _to_local(data[k], tz)
     elif isinstance(data, list):
         for item in data:
             if isinstance(item, dict):
                 for k in keys:
                     if k in item and item[k] and isinstance(item[k], str) and item[k].endswith("Z"):
-                        item[k] = to_local(item[k], tz)
+                        item[k] = _to_local(item[k], tz)
     return data
 
 
@@ -418,9 +416,8 @@ def _jinja_localtime(value):
     """Jinja2 filter: convert UTC timestamp to local display time."""
     if not value or not isinstance(value, str):
         return value
-    from .tz import to_local
     tz = _get_tz_name()
-    return to_local(value, tz) if tz else value.rstrip("Z")
+    return _to_local(value, tz) if tz else value.rstrip("Z")
 
 
 def _jinja_localiso(value):
@@ -520,8 +517,6 @@ def init_modules(module_loader):
 
 def setup_module_templates(module_loader):
     """Add module template directories to Jinja2's search path."""
-    from jinja2 import FileSystemLoader, ChoiceLoader
-
     loaders = [app.jinja_loader]  # keep default loader first
     for mod in module_loader.get_enabled_modules():
         tpl_dir = os.path.join(mod.path, "templates")
@@ -570,7 +565,6 @@ def _auth_required():
         return False
     if session.get("authenticated"):
         return False
-    # Check Bearer token
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer ") and _storage:
         token = auth_header[7:]
@@ -729,7 +723,7 @@ def clear_speedtest_latest():
         _state["speedtest_latest"] = None
 
 
-def get_state() -> dict:
+def get_state() -> dict[str, object]:
     """Return a snapshot of the shared web state (thread-safe)."""
     with _state_lock:
         return dict(_state)

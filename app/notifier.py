@@ -1,4 +1,6 @@
-"""Notification dispatcher — routes events to external channels (webhook, etc.)."""
+"""Notification dispatcher -- routes events to external channels (webhook, etc.)."""
+
+from __future__ import annotations
 
 import json
 import logging
@@ -7,6 +9,7 @@ import time
 from abc import ABC, abstractmethod
 import requests
 
+from .types import EventDict, NotificationPayload, NotificationTestResult
 from .tz import utc_now
 
 log = logging.getLogger("docsis.notifier")
@@ -36,7 +39,7 @@ class NotificationChannel(ABC):
     """Base class for notification channels."""
 
     @abstractmethod
-    def send(self, payload: dict) -> bool:
+    def send(self, payload: NotificationPayload) -> bool:
         """Send a notification payload. Returns True on success."""
 
 
@@ -49,7 +52,7 @@ class WebhookChannel(NotificationChannel):
         if headers:
             self._headers.update(headers)
 
-    def send(self, payload: dict) -> bool:
+    def send(self, payload: NotificationPayload) -> bool:
         try:
             r = requests.post(
                 self._url,
@@ -72,7 +75,7 @@ class DiscordWebhookChannel(NotificationChannel):
         self._log_label = "Discord webhook"
 
     @staticmethod
-    def _format_embed(payload: dict) -> dict:
+    def _format_embed(payload: NotificationPayload) -> dict[str, object]:
         """Convert a DOCSight notification payload into a Discord embed."""
         severity = payload.get("severity", "info")
         event_type = payload.get("event_type", "unknown")
@@ -112,7 +115,7 @@ class DiscordWebhookChannel(NotificationChannel):
 
         return embed
 
-    def send(self, payload: dict) -> bool:
+    def send(self, payload: NotificationPayload) -> bool:
         try:
             discord_payload = {"embeds": [self._format_embed(payload)]}
             r = requests.post(
@@ -174,7 +177,7 @@ class NotificationDispatcher:
                 self._channels.append(WebhookChannel(url, headers))
                 log.info("Notification channel: webhook configured")
 
-    def dispatch(self, events: list):
+    def dispatch(self, events: list[EventDict]) -> None:
         """Send qualifying events to all configured channels."""
         if not self._channels:
             return
@@ -216,7 +219,7 @@ class NotificationDispatcher:
         return True
 
     @staticmethod
-    def _build_payload(event):
+    def _build_payload(event: EventDict) -> NotificationPayload:
         return {
             "source": "docsight",
             "timestamp": event.get("timestamp", utc_now()),
@@ -226,7 +229,7 @@ class NotificationDispatcher:
             "details": event.get("details", {}),
         }
 
-    def test(self) -> dict:
+    def test(self) -> NotificationTestResult:
         """Send a test notification to all channels. Returns {success, error}."""
         if not self._channels:
             return {"success": False, "error": "No notification channels configured"}

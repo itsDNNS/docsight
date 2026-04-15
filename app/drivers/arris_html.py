@@ -13,9 +13,13 @@ DOCSIS version is inferred from modulation / channel type:
 - US: "OFDM" in type without "SC-QAM" = OFDMA (3.1), else SC-QAM (3.0)
 """
 
+from __future__ import annotations
+
 import logging
 
 from bs4 import BeautifulSoup, Tag
+
+from ..types import DocsisDataFritz, RawChannel
 
 log = logging.getLogger("docsis.arris_html")
 
@@ -24,7 +28,7 @@ log = logging.getLogger("docsis.arris_html")
 # Public API
 # ---------------------------------------------------------------------------
 
-def parse_arris_channel_tables(html: str) -> dict:
+def parse_arris_channel_tables(html: str) -> DocsisDataFritz:
     """Parse Arris modem status page HTML into DOCSight channel format.
 
     Returns::
@@ -118,7 +122,7 @@ def _parse_downstream(table) -> tuple:
             corrected = int(cells[6])
             uncorrectables = int(cells[7])
 
-            channel: dict = {
+            channel: RawChannel = {
                 "channelID": channel_id,
                 "frequency": frequency,
                 "powerLevel": power,
@@ -177,7 +181,7 @@ def _parse_upstream(table) -> tuple:
             frequency = _parse_freq_hz(cells[4])
             power = _parse_value(cells[6])
 
-            channel: dict = {
+            channel: RawChannel = {
                 "channelID": channel_id,
                 "frequency": frequency,
                 "powerLevel": power,
@@ -205,21 +209,17 @@ def _parse_upstream(table) -> tuple:
 
 def _parse_freq_hz(freq_str: str) -> str:
     """Convert ``'795000000 Hz'`` to ``'795 MHz'``."""
-    if not freq_str:
-        return ""
-    parts = freq_str.strip().split()
-    try:
-        hz = float(parts[0])
-        mhz = hz / 1_000_000
-        if mhz == int(mhz):
-            return f"{int(mhz)} MHz"
-        return f"{mhz:.1f} MHz"
-    except (ValueError, IndexError):
-        return freq_str
+    from .utils import hz_to_mhz
+    return hz_to_mhz(freq_str)
 
 
 def _parse_value(val_str: str):
-    """Parse ``'8.2 dBmV'`` or ``'43.0 dB'`` to float."""
+    """Parse ``'8.2 dBmV'`` or ``'43.0 dB'`` to float.
+
+    Note: Returns None (not 0.0) for empty/unparseable input, unlike
+    parse_number(). This preserves arris_html's existing behaviour where
+    None signals "value not present" vs 0.0 for "value is zero".
+    """
     if not val_str:
         return None
     parts = val_str.strip().split()

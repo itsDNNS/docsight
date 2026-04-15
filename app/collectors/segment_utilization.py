@@ -2,6 +2,7 @@
 
 import logging
 import time
+from datetime import datetime, timezone
 
 import requests
 
@@ -61,8 +62,6 @@ class SegmentUtilizationCollector(Collector):
             return CollectorResult.failure(self.name, f"API request failed: {e}")
 
         try:
-            from datetime import datetime, timezone
-
             body = resp.json()
             data_items = body["data"]
             own = next(d for d in data_items if d["type"] == "own")

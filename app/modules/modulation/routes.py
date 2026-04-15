@@ -1,10 +1,14 @@
 """Modulation performance API routes (v2)."""
 
 import logging
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
 
+from app.tz import to_local, utc_now, utc_cutoff
 from app.web import require_auth, get_storage, get_config_manager
+
+from .engine import compute_distribution_v2, compute_intraday, compute_trend
 
 log = logging.getLogger("docsis.web")
 
@@ -23,9 +27,6 @@ def _get_tz():
 @require_auth
 def api_modulation_distribution():
     """Return per-protocol-group distribution, health index, and trend per day."""
-    from .engine import compute_distribution_v2
-    from app.tz import utc_now, utc_cutoff
-
     storage = get_storage()
     if not storage:
         return jsonify({"error": "No storage available"}), 503
@@ -50,9 +51,6 @@ def api_modulation_distribution():
 @require_auth
 def api_modulation_intraday():
     """Return per-channel modulation timeline for a single day."""
-    from .engine import compute_intraday
-    from app.tz import utc_now, to_local
-
     storage = get_storage()
     if not storage:
         return jsonify({"error": "No storage available"}), 503
@@ -70,11 +68,10 @@ def api_modulation_intraday():
         date_str = now_local[:10]
 
     # Fetch data covering the requested date (± 1 day for timezone edge cases)
-    from datetime import datetime, timedelta
     try:
         target = datetime.strptime(date_str, "%Y-%m-%d")
     except (ValueError, TypeError):
-        target = datetime.utcnow()
+        target = datetime.now(timezone.utc)
     start_ts = (target - timedelta(days=1)).strftime("%Y-%m-%dT00:00:00Z")
     end_ts = (target + timedelta(days=2)).strftime("%Y-%m-%dT00:00:00Z")
 
@@ -89,9 +86,6 @@ def api_modulation_intraday():
 @require_auth
 def api_modulation_trend():
     """Return per-day trend data (health index + low-QAM %) for the trend chart."""
-    from .engine import compute_trend
-    from app.tz import utc_now, utc_cutoff
-
     storage = get_storage()
     if not storage:
         return jsonify({"error": "No storage available"}), 503

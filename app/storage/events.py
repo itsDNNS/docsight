@@ -1,14 +1,17 @@
 """Event log mixin."""
 
+from __future__ import annotations
+
 import json
 import sqlite3
 
+from ..types import EventDict
 from ..tz import utc_cutoff
 
 
 class EventMixin:
 
-    def save_event(self, timestamp, severity, event_type, message, details=None):
+    def save_event(self, timestamp: str, severity: str, event_type: str, message: str, details: dict | None = None) -> int:
         """Save a single event. Returns the new event id."""
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.execute(
@@ -19,7 +22,7 @@ class EventMixin:
             )
             return cur.lastrowid
 
-    def save_events(self, events_list, is_demo=False):
+    def save_events(self, events_list: list[EventDict], is_demo: bool = False) -> int:
         """Bulk insert events. Returns count of inserted rows."""
         if not events_list:
             return 0
@@ -36,7 +39,7 @@ class EventMixin:
             )
         return len(events_list)
 
-    def save_events_with_ids(self, events_list, is_demo=False):
+    def save_events_with_ids(self, events_list: list[EventDict], is_demo: bool = False) -> list[int]:
         """Insert events individually and return list of row IDs.
 
         Unlike save_events() (bulk executemany, returns count), this method
@@ -62,7 +65,7 @@ class EventMixin:
                 e["_id"] = row_id
         return ids
 
-    def get_events(self, limit=200, offset=0, severity=None, event_type=None, acknowledged=None):
+    def get_events(self, limit: int = 200, offset: int = 0, severity: str | None = None, event_type: str | None = None, acknowledged: bool | None = None) -> list[dict]:
         """Return list of event dicts, newest first, with optional filters."""
         query = "SELECT id, timestamp, severity, event_type, message, details, acknowledged FROM events"
         conditions = []
@@ -123,7 +126,7 @@ class EventMixin:
             ).rowcount
         return rowcount
 
-    def get_recent_events(self, hours=48):
+    def get_recent_events(self, hours: int = 48) -> list[dict]:
         """Return events from the last N hours, newest first."""
         cutoff = utc_cutoff(hours=hours)
         with sqlite3.connect(self.db_path) as conn:

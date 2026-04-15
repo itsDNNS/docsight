@@ -5,11 +5,14 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify, make_response
 
+from app.tz import utc_now, utc_cutoff
 from app.web import (
     require_auth,
     get_storage, get_config_manager, get_state,
     _get_lang,
 )
+
+from .report import generate_complaint_text, generate_report
 
 log = logging.getLogger("docsis.web")
 
@@ -34,8 +37,6 @@ def _get_comparison_data(storage):
 @require_auth
 def api_report():
     """Generate a PDF incident report."""
-    from .report import generate_report
-
     _storage = get_storage()
     _config_manager = get_config_manager()
     state = get_state()
@@ -44,11 +45,10 @@ def api_report():
         return jsonify({"error": "No data available"}), 404
 
     # Time range: default last 7 days, configurable via ?days=N
-    from app.tz import utc_now as _utc_now, utc_cutoff as _utc_cutoff
     days = request.args.get("days", 7, type=int)
     days = max(1, min(days, 90))
-    end_ts = _utc_now()
-    start_ts = _utc_cutoff(days=days)
+    end_ts = utc_now()
+    start_ts = utc_cutoff(days=days)
 
     snapshots = []
     if _storage:
@@ -78,19 +78,16 @@ def api_report():
 @require_auth
 def api_complaint():
     """Generate ISP complaint letter as text."""
-    from .report import generate_complaint_text
-
     _storage = get_storage()
     _config_manager = get_config_manager()
     analysis = get_state().get("analysis")
     if not analysis:
         return jsonify({"error": "No data available"}), 404
 
-    from app.tz import utc_now as _un, utc_cutoff as _uc
     days = request.args.get("days", 7, type=int)
     days = max(1, min(days, 90))
-    end_ts = _un()
-    start_ts = _uc(days=days)
+    end_ts = utc_now()
+    start_ts = utc_cutoff(days=days)
 
     snapshots = []
     if _storage:

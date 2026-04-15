@@ -27,12 +27,12 @@ def is_trusted_url(url: str) -> bool:
         return False
 
 
-def validate_registry_entry(entry: dict) -> bool:
+def validate_registry_entry(entry: dict[str, str]) -> bool:
     """Check if a registry entry has all required fields."""
     return REQUIRED_ENTRY_FIELDS.issubset(entry.keys())
 
 
-def fetch_registry(registry_url: str, key: str = "modules", timeout: int = 10) -> list[dict]:
+def fetch_registry(registry_url: str, key: str = "modules", timeout: int = 10) -> list[dict[str, str]]:
     """Fetch a registry index and return list of valid entries.
 
     Args:

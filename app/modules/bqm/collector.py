@@ -6,9 +6,11 @@ import time
 from datetime import date, timedelta
 
 from app.collectors.base import Collector, CollectorResult
-from .auth import extract_share_id, fetch_share_csv, ThinkBroadbandBatchAbort
+
+from .auth import extract_share_id, fetch_share_csv, is_csv_url, ThinkBroadbandBatchAbort
 from .csv_parser import parse_bqm_csv
 from .storage import BqmStorage
+from .thinkbroadband import fetch_graph
 
 log = logging.getLogger("docsis.collector.bqm")
 
@@ -54,7 +56,6 @@ class BQMCollector(Collector):
         if today == self._last_date:
             return CollectorResult(source=self.name, data={"skipped": True})
 
-        from .auth import is_csv_url
         bqm_url = self._config_mgr.get("bqm_url") or ""
         if not is_csv_url(bqm_url):
             # Legacy PNG mode — fetch and store the graph image
@@ -83,7 +84,6 @@ class BQMCollector(Collector):
     def _collect_png(self, url):
         """Legacy PNG collection: fetch graph image and store it."""
         today = time.strftime("%Y-%m-%d")
-        from .thinkbroadband import fetch_graph
         image = fetch_graph(url)
         if image:
             collect_time = self._config_mgr.get("bqm_collect_time") or "02:00"

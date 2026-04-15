@@ -6,8 +6,10 @@ import time
 import requests
 from flask import Blueprint, request, jsonify
 
-from app.web import require_auth, get_config_manager, get_state, get_storage
+from app.web import require_auth, get_config_manager, get_state, get_storage, clear_speedtest_latest
 from app.i18n import get_translations
+
+from .client import SpeedtestClient
 from .storage import SpeedtestStorage
 
 log = logging.getLogger("docsis.web.speedtest")
@@ -86,8 +88,7 @@ def _annotate_smart_capture(results, db_path):
 
 
 def _get_lang():
-    from flask import request as req
-    return req.cookies.get("lang", "en")
+    return request.cookies.get("lang", "en")
 
 
 @bp.route("/api/speedtest")
@@ -109,7 +110,6 @@ def api_speedtest():
     # Delta fetch: get new results from STT API and cache them
     if ss:
         try:
-            from .client import SpeedtestClient
             stt_url = _config_manager.get("speedtest_tracker_url")
             client = SpeedtestClient(
                 stt_url,
@@ -126,7 +126,6 @@ def api_speedtest():
                     # Remote is reachable but empty — server was wiped
                     log.info("Remote has no results but cache has %d, clearing", cached_count)
                     ss.clear_cache()
-                    from app.web import clear_speedtest_latest
                     clear_speedtest_latest()
                     cached_count = 0
                 elif remote_latest and remote_latest[0].get("id", 0) < last_id:
@@ -150,7 +149,6 @@ def api_speedtest():
         _annotate_smart_capture(enriched, ss.db_path)
         return jsonify(enriched)
     # Fallback: no storage, fetch directly
-    from .client import SpeedtestClient
     client = SpeedtestClient(
         _config_manager.get("speedtest_tracker_url"),
         _config_manager.get("speedtest_tracker_token"),
@@ -271,7 +269,6 @@ def api_speedtest_clear_cache():
     if not ss:
         return jsonify({"success": False, "error": "Storage not initialized"}), 500
     count = ss.clear_cache()
-    from app.web import clear_speedtest_latest
     clear_speedtest_latest()
     log.info("Speedtest cache cleared via API (%d results removed)", count)
     return jsonify({"success": True, "cleared": count})

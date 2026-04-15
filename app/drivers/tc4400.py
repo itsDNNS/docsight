@@ -10,12 +10,15 @@ References:
 - Technicolor_modem_scrape: https://github.com/Fluepke/Technicolor_modem_scrape
 """
 
+from __future__ import annotations
+
 import logging
 
 import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.tc4400")
 
@@ -44,7 +47,7 @@ class TC4400Driver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"TC4400 authentication failed: {e}")
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables.
 
         The page /cmconnectionstatus.html contains multiple tables:
@@ -77,7 +80,7 @@ class TC4400Driver(ModemDriver):
             "upstream": upstream,
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from /cmswinfo.html."""
         try:
             r = self._session.get(
@@ -104,13 +107,13 @@ class TC4400Driver(ModemDriver):
             ),
         }
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Not applicable for standalone modem."""
         return {}
 
     # ── Parsers ────────────────────────────────────────────────
 
-    def _parse_downstream(self, table) -> list:
+    def _parse_downstream(self, table) -> list[RawChannel]:
         """Parse downstream HTML table (SC-QAM + OFDM channels)."""
         rows = table.find_all("tr")
         if not rows:
@@ -180,7 +183,7 @@ class TC4400Driver(ModemDriver):
 
         return result
 
-    def _parse_upstream(self, table) -> list:
+    def _parse_upstream(self, table) -> list[RawChannel]:
         """Parse upstream HTML table (ATDMA + OFDMA channels)."""
         rows = table.find_all("tr")
         if not rows:
@@ -237,7 +240,7 @@ class TC4400Driver(ModemDriver):
                 return row
         return None
 
-    def _map_columns(self, headers: list[str]) -> dict:
+    def _map_columns(self, headers: list[str]) -> dict[str, int | None]:
         """Map header names to column indices.
 
         Uses fuzzy matching to handle firmware variations like
@@ -289,13 +292,13 @@ class TC4400Driver(ModemDriver):
         return col
 
     @staticmethod
-    def _cell(cells: list, index: int | None, default: str = "") -> str:
+    def _cell(cells: list[str], index: int | None, default: str = "") -> str:
         """Safely get a cell value by index."""
         if index is None or index >= len(cells):
             return default
         return cells[index]
 
-    def _parse_info_table(self, soup) -> dict:
+    def _parse_info_table(self, soup) -> dict[str, str]:
         """Parse key-value info table from /cmswinfo.html."""
         info = {}
         for table in soup.find_all("table"):
@@ -311,9 +314,11 @@ class TC4400Driver(ModemDriver):
     # ── Value Parsers ──────────────────────────────────────────
 
     def _parse_frequency(self, freq_str: str) -> float:
-        """Parse frequency string to MHz.
+        """Parse frequency string to MHz float.
 
         Handles: "279000000 Hz", "350000 kHz", "279 MHz"
+        Note: Returns float (MHz), not a string. TC4400 formats
+        the result itself in _parse_downstream/_parse_upstream.
         """
         if not freq_str:
             return 0.0
@@ -339,14 +344,8 @@ class TC4400Driver(ModemDriver):
 
     @staticmethod
     def _parse_number(value: str) -> float:
-        """Parse numeric value from string with unit suffix."""
-        if not value:
-            return 0.0
-        parts = value.strip().split()
-        try:
-            return float(parts[0])
-        except (IndexError, ValueError):
-            return 0.0
+        from .utils import parse_number
+        return parse_number(value)
 
     @staticmethod
     def _normalize_modulation(modulation: str) -> str:

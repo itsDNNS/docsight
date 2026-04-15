@@ -31,12 +31,15 @@ Implementation notes
       ``upstream_power.ofdma.good:     [37.0, 47.0]``
 """
 
+from __future__ import annotations
+
 import logging
 import re
 
 import requests
 
 from .base import ModemDriver
+from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 
 log = logging.getLogger("docsis.driver.cgm4981")
 
@@ -186,10 +189,6 @@ class CGM4981Driver(ModemDriver):
         self._session: requests.Session = requests.Session()
         self._status_html: str | None = None
 
-    # ------------------------------------------------------------------
-    # ModemDriver interface
-    # ------------------------------------------------------------------
-
     def login(self) -> None:
         """POST credentials to ``/check.jst`` and verify the session cookie."""
         self._status_html = None
@@ -214,7 +213,7 @@ class CGM4981Driver(ModemDriver):
             str(self._session.cookies.get(_SESSION_COOKIE, ""))[:8],
         )
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Return parsed downstream and upstream channel data."""
         html = self._fetch_status_page()
         ds_html, us_html, err_html = _split_sections(html)
@@ -245,9 +244,9 @@ class CGM4981Driver(ModemDriver):
             "channelUs": {"docsis30": us30, "docsis31": us31},
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Return model, firmware version, and uptime from the status page."""
-        info: dict = {
+        info: DeviceInfo = {
             "manufacturer": "Technicolor",
             "model":        "CGM4981COM",
             "sw_version":   "",
@@ -280,9 +279,9 @@ class CGM4981Driver(ModemDriver):
             pass
         return info
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Return WAN IP and connection status from the status page."""
-        info: dict = {}
+        info: ConnectionInfo = {}
         try:
             html = self._fetch_status_page()
             m = re.search(
@@ -296,10 +295,6 @@ class CGM4981Driver(ModemDriver):
         except Exception:
             pass
         return info
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
 
     def _fetch_status_page(self) -> str:
         """Fetch and cache ``/network_setup.jst``.  Re-authenticates on expiry."""
@@ -335,10 +330,6 @@ class CGM4981Driver(ModemDriver):
             return self._status_html
 
         raise RuntimeError("CGM4981 failed to fetch status page after 2 attempts")
-
-    # ------------------------------------------------------------------
-    # Channel builders
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _build_ds_channels(
@@ -383,7 +374,7 @@ class CGM4981Driver(ModemDriver):
                 pwr  = _float(powers[i]     if i < len(powers) else "")
                 corr, uncorr = err_map.get(cid, (0, 0))
 
-                ch: dict = {
+                ch: RawChannel = {
                     "channelID":      int(cid),
                     "frequency":      freq,
                     "powerLevel":     pwr,
@@ -430,7 +421,7 @@ class CGM4981Driver(ModemDriver):
                 freq = _freq_mhz(freqs[i]   if i < len(freqs)  else "")
                 pwr  = _float(powers[i]     if i < len(powers) else "")
 
-                ch: dict = {
+                ch: RawChannel = {
                     "channelID":   int(cid),
                     "frequency":   freq,
                     "powerLevel":  pwr,

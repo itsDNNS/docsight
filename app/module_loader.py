@@ -11,6 +11,10 @@ from typing import Any
 
 from flask import send_from_directory
 
+from app import analyzer as _analyzer
+from app import config as _cfg
+from app.i18n import _TRANSLATIONS
+
 log = logging.getLogger("docsis.modules")
 
 VALID_TYPES = {"driver", "integration", "analysis", "theme"}
@@ -46,19 +50,18 @@ class ModuleInfo:
     collector_class: type | None = None
     publisher_class: type | None = None
     driver_class: type | None = None
-    hints: dict = field(default_factory=dict)
-    thresholds_data: dict | None = None
-    theme_data: dict | None = None
+    hints: dict[str, object] = field(default_factory=dict)
+    thresholds_data: dict[str, object] | None = None
+    theme_data: dict[str, object] | None = None
     has_css: bool = False
     has_js: bool = False
 
 
-def validate_manifest(raw: dict, module_path: str) -> ModuleInfo:
+def validate_manifest(raw: dict[str, Any], module_path: str) -> ModuleInfo:
     """Validate a raw manifest dict and return a ModuleInfo.
 
     Raises ManifestError if the manifest is invalid.
     """
-    # Required fields
     missing = REQUIRED_FIELDS - set(raw.keys())
     if missing:
         raise ManifestError(f"Missing required fields: {', '.join(sorted(missing))}")
@@ -190,23 +193,21 @@ def discover_modules(
     return modules
 
 
-def register_module_config(config_defaults: dict) -> None:
+def register_module_config(config_defaults: dict[str, Any]) -> None:
     """Register a module's config defaults into the global config system.
 
     - Adds defaults to config.DEFAULTS (without overwriting existing keys)
     - Auto-detects bool/int keys and adds them to BOOL_KEYS/INT_KEYS
     """
-    from app import config as cfg
-
     for key, value in config_defaults.items():
-        if key in cfg.DEFAULTS:
+        if key in _cfg.DEFAULTS:
             log.debug("Config key '%s' already exists in core, skipping", key)
             continue
-        cfg.DEFAULTS[key] = value
+        _cfg.DEFAULTS[key] = value
         if isinstance(value, bool):
-            cfg.BOOL_KEYS.add(key)
+            _cfg.BOOL_KEYS.add(key)
         elif isinstance(value, int):
-            cfg.INT_KEYS.add(key)
+            _cfg.INT_KEYS.add(key)
 
 
 def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
@@ -218,8 +219,6 @@ def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
     if not os.path.isdir(i18n_dir):
         log.debug("No i18n directory for module '%s': %s", module_id, i18n_dir)
         return
-
-    from app.i18n import _TRANSLATIONS
 
     for fname in sorted(os.listdir(i18n_dir)):
         if not fname.endswith(".json"):
@@ -275,7 +274,6 @@ def load_module_routes(app, module_id: str, module_path: str, routes_file: str, 
         log.warning("Module '%s': routes file not found: %s", module_id, routes_path)
         return
 
-    # Dynamic import using importlib
     dir_name = os.path.basename(module_path)
     mod_name = f"app.modules.{dir_name}.routes"
     try:
@@ -486,7 +484,7 @@ def setup_module_static(app, module_id: str, module_path: str, static_subdir: st
 
 
 def setup_module_templates(
-    module_id: str, module_path: str, contributes: dict
+    module_id: str, module_path: str, contributes: dict[str, str]
 ) -> dict[str, str]:
     """Resolve module template paths to absolute file paths.
 
@@ -518,7 +516,7 @@ def setup_module_templates(
 REQUIRED_THRESHOLD_SECTIONS = {"downstream_power", "upstream_power", "snr"}
 
 
-def validate_thresholds(data: dict) -> None:
+def validate_thresholds(data: dict[str, object]) -> None:
     """Validate a threshold JSON structure.
 
     Raises ManifestError if required sections or keys are missing.
@@ -538,7 +536,7 @@ def validate_thresholds(data: dict) -> None:
 REQUIRED_THEME_SECTIONS = {"dark", "light"}
 
 
-def validate_theme(data: dict) -> None:
+def validate_theme(data: dict[str, object]) -> None:
     """Validate a theme.json structure.
 
     Raises ManifestError if required sections are missing or values are invalid.
@@ -672,8 +670,7 @@ class ModuleLoader:
                 tdata = json.load(f)
             validate_thresholds(tdata)
             mod.thresholds_data = tdata
-            from app import analyzer
-            analyzer.set_thresholds(tdata)
+            _analyzer.set_thresholds(tdata)
             log.info("Module '%s': loaded threshold profile", mod.id)
 
         # Theme

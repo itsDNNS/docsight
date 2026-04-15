@@ -1,17 +1,20 @@
 """Snapshot CRUD and trend/range queries mixin."""
 
+from __future__ import annotations
+
 import json
 import logging
 import sqlite3
 
-from ..tz import utc_now
+from ..types import AnalysisResult
+from ..tz import local_date_to_utc_range, utc_now
 
 log = logging.getLogger("docsis.storage")
 
 
 class SnapshotMixin:
 
-    def save_snapshot(self, analysis):
+    def save_snapshot(self, analysis: AnalysisResult) -> None:
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
         ts = utc_now()
         try:
@@ -31,7 +34,7 @@ class SnapshotMixin:
             return
         self._cleanup()
 
-    def get_snapshot_list(self):
+    def get_snapshot_list(self) -> list[str]:
         """Return list of available snapshot timestamps (newest first)."""
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
@@ -39,7 +42,7 @@ class SnapshotMixin:
             ).fetchall()
         return [r[0] for r in rows]
 
-    def get_snapshot(self, timestamp):
+    def get_snapshot(self, timestamp: str) -> AnalysisResult | None:
         """Load a single snapshot by timestamp. Returns analysis dict or None."""
         with sqlite3.connect(self.db_path) as conn:
             row = conn.execute(
@@ -54,7 +57,7 @@ class SnapshotMixin:
             "us_channels": json.loads(row[2]),
         }
 
-    def get_range_data(self, start_ts, end_ts):
+    def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:
         """Get all snapshots between two ISO timestamps (inclusive)."""
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
@@ -78,7 +81,6 @@ class SnapshotMixin:
 
         date is a local calendar date — converted to UTC range for querying.
         """
-        from ..tz import local_date_to_utc_range
         start_utc, end_utc = local_date_to_utc_range(date, self.tz_name)
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
@@ -98,7 +100,6 @@ class SnapshotMixin:
 
         start_date and end_date are local calendar dates — converted to UTC range.
         """
-        from ..tz import local_date_to_utc_range
         range_start, _ = local_date_to_utc_range(start_date, self.tz_name)
         _, range_end = local_date_to_utc_range(end_date, self.tz_name)
         with sqlite3.connect(self.db_path) as conn:
@@ -115,7 +116,7 @@ class SnapshotMixin:
             results.append(entry)
         return results
 
-    def get_closest_snapshot(self, timestamp):
+    def get_closest_snapshot(self, timestamp: str) -> dict | None:
         """Find the snapshot closest to a given ISO timestamp (within 2 hours).
         Returns analysis dict with timestamp, or None if nothing within range.
 

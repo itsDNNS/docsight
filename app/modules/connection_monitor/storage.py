@@ -214,7 +214,7 @@ class ConnectionMonitorStorage:
         end: float | None = None,
     ) -> tuple[str, list]:
         clauses = ["target_id = ?"]
-        params: list = [target_id]
+        params: list[object] = [target_id]
         if start is not None:
             clauses.append("timestamp >= ?")
             params.append(start)
@@ -246,7 +246,7 @@ class ConnectionMonitorStorage:
         target_id: int,
         start: float | None = None,
         end: float | None = None,
-    ) -> dict:
+    ) -> dict[str, object]:
         where, params = self._build_sample_where(target_id, start=start, end=end)
         with self._connect() as conn:
             row = conn.execute(
@@ -287,7 +287,7 @@ class ConnectionMonitorStorage:
 
     # --- Summary ---
 
-    def get_summary(self, target_id: int, window_seconds: int = 60) -> dict:
+    def get_summary(self, target_id: int, window_seconds: int = 60) -> dict[str, object]:
         cutoff = time.time() - window_seconds
         with self._connect() as conn:
             row = conn.execute(
@@ -314,7 +314,7 @@ class ConnectionMonitorStorage:
     ) -> list[dict]:
         """Derive outages from consecutive timeout sequences."""
         clauses = ["target_id = ?"]
-        params: list = [target_id]
+        params: list[object] = [target_id]
         if start is not None:
             clauses.append("timestamp >= ?")
             params.append(start)
@@ -368,7 +368,7 @@ class ConnectionMonitorStorage:
     ) -> list[dict]:
         """Get aggregated samples for a target at a specific resolution."""
         clauses = ["target_id = ?", "bucket_seconds = ?"]
-        params: list = [target_id, bucket_seconds]
+        params: list[object] = [target_id, bucket_seconds]
         if start is not None:
             clauses.append("bucket_start >= ?")
             params.append(start)
@@ -632,8 +632,7 @@ class ConnectionMonitorStorage:
     def cleanup_traces(self, retention_days):
         if not retention_days:
             return
-        import time as _time
-        cutoff = _time.time() - (retention_days * 86400)
+        cutoff = time.time() - (retention_days * 86400)
         pinned = self.get_pinned_days()
         with self._connect() as conn:
             if pinned:

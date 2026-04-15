@@ -9,8 +9,12 @@ from app.web import (
     require_auth,
     get_storage, get_config_manager, _valid_date, _get_client_ip, _get_tz_name,
 )
-from .storage import BqmStorage
+from app.tz import local_today, utc_now
+
 from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort
+from .csv_parser import parse_bqm_csv
+from .storage import BqmStorage
+from .thinkbroadband import fetch_graph
 
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web.bqm")
@@ -131,8 +135,6 @@ def api_bqm_image(date):
 @require_auth
 def api_bqm_live():
     """Fetch live BQM graph PNG from ThinkBroadband, fallback to today's cached."""
-    from .thinkbroadband import fetch_graph
-
     _config_manager = get_config_manager()
     bs = _get_bqm_storage()
     bqm_url = _config_manager.get("bqm_url") if _config_manager else None
@@ -145,12 +147,10 @@ def api_bqm_live():
     if is_png and not (_config_manager and _config_manager.is_demo_mode()):
         image = fetch_graph(bqm_url)
         if image:
-            from app.tz import utc_now
             source = "live"
             ts = utc_now()
 
     if not image and bs:
-        from app.tz import local_today
         today = local_today(_get_tz_name())
         image = bs.get_bqm_graph(today)
         if image:
@@ -270,8 +270,6 @@ def _limit_csv_upload():
 @require_auth
 def api_bqm_import_csv():
     """Bulk-import BQM CSV data (e.g. 12-month ThinkBroadband export)."""
-    from .csv_parser import parse_bqm_csv
-
     bs = _get_bqm_storage()
     if not bs:
         return jsonify({"error": "No storage"}), 500

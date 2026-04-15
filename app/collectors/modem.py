@@ -1,4 +1,6 @@
-"""Modem collector — DOCSIS data, analysis, events, MQTT, storage."""
+"""Modem collector -- DOCSIS data, analysis, events, MQTT, storage."""
+
+from __future__ import annotations
 
 import logging
 import time
@@ -6,6 +8,7 @@ import time
 from .base import Collector, CollectorResult
 from ..analyzer import apply_spike_suppression
 from ..gaming_index import compute_gaming_index
+from ..types import AnalysisResult, ConnectionInfo, DeviceInfo
 
 log = logging.getLogger("docsis.collector.modem")
 
@@ -26,8 +29,8 @@ class ModemCollector(Collector):
         self._web = web
         self._notifier = notifier
         self._smart_capture = smart_capture
-        self._device_info = None
-        self._connection_info = None
+        self._device_info: DeviceInfo | None = None
+        self._connection_info: ConnectionInfo | None = None
         self._discovery_published = False
 
     def collect(self) -> CollectorResult:

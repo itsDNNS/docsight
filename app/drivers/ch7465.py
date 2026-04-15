@@ -7,6 +7,8 @@ It provides channel data via XML APIs that require a session id and a session to
 after every HTTP request.
 """
 
+from __future__ import annotations
+
 import hashlib
 import logging
 import xml.etree.ElementTree as ET
@@ -14,9 +16,8 @@ import requests
 import re
 import weakref
 from enum import Enum
-from typing import Optional
-
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.ch7465")
 
@@ -34,7 +35,7 @@ class Action(Enum):
     LOGIN = 15
     LOGOUT = 16
 
-def _node_text(node: Optional[ET.Element], default: str = "") -> str:
+def _node_text(node: ET.Element | None, default: str = "") -> str:
     """Helper function: Extract the text from one XML element (with fallback to `default` if the node does not exist)."""
     if node is not None and node.text is not None:
         return node.text
@@ -62,7 +63,7 @@ class CH7465Driver(ModemDriver):
         # the application is exited.
         self._finalizer = weakref.finalize(self, CH7465Driver._cleanup, url, session)
         self._finalizer.atexit = True
-        self._is_play: Optional[bool] = None
+        self._is_play: bool | None = None
 
     @staticmethod
     def _cleanup(url: str, session: requests.Session):
@@ -127,7 +128,7 @@ class CH7465Driver(ModemDriver):
         self._session.cookies.set("SID", sid)
         log.info("Auth OK (SID: %s)", sid)
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Query DOCSIS channel data."""
         result = {
             "docsis": "3.0",
@@ -186,7 +187,7 @@ class CH7465Driver(ModemDriver):
 
         return result
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Try to get CH7465 model info."""
         try:
             xml = self._get_data(Query.GLOBAL_SETTINGS)
@@ -219,7 +220,7 @@ class CH7465Driver(ModemDriver):
         except Exception:
             return {"manufacturer": "Compal", "model": "CH7465", "sw_version": ""}
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Get internet connection info."""
         try:
             xml = self._get_data(Query.CONNECTION_STATUS)
@@ -280,7 +281,7 @@ class CH7465Driver(ModemDriver):
         r.raise_for_status()
         return r.text
 
-    def _set_data(self, function: Action, data: dict) -> str:
+    def _set_data(self, function: Action, data: dict[str, str]) -> str:
         """Execute an action on the modem."""
         if 'fun' in data:
             raise ValueError("invalid data key in CH7465VF command")

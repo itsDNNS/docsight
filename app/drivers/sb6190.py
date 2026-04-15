@@ -6,37 +6,20 @@ CSRF nonce. Channel data is on /cgi-bin/status in standard (non-transposed)
 HTML tables where each row is one channel. Device info is on /cgi-bin/swinfo.
 """
 
+from __future__ import annotations
+
 import base64
 import logging
 import random
-import ssl
 from urllib.parse import quote
 
 import requests
 from bs4 import BeautifulSoup
-from requests.adapters import HTTPAdapter
-from urllib3.util.ssl_ import create_urllib3_context
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.sb6190")
-
-
-class _LegacyTLSAdapter(HTTPAdapter):
-    """Allow weak DH keys for the SB6190's TLS configuration.
-
-    The SB6190 ships with a certificate using a 1024 DH key that modern
-    OpenSSL rejects by default. This adapter lowers the security level for
-    connections to the modem only.
-    """
-
-    def init_poolmanager(self, *args, **kwargs):
-        ctx = create_urllib3_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
-        kwargs["ssl_context"] = ctx
-        super().init_poolmanager(*args, **kwargs)
 
 
 class SB6190Driver(ModemDriver):
@@ -54,8 +37,8 @@ class SB6190Driver(ModemDriver):
         super().__init__(url, user, password)
         self._session = requests.Session()
         self._session.verify = False
-        adapter = _LegacyTLSAdapter()
-        self._session.mount("https://", adapter)
+        from .utils import make_legacy_tls_adapter
+        self._session.mount("https://", make_legacy_tls_adapter(sec_level=1))
 
     def login(self) -> None:
         # The SB6190 login page JS URL-encodes the full "username=..." and
@@ -87,7 +70,7 @@ class SB6190Driver(ModemDriver):
             raise RuntimeError("SB6190 login failed: authenticated status page not returned")
         log.info("SB6190 login OK")
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         try:
             r = self._session.get(f"{self._url}/cgi-bin/status", timeout=30)
             r.raise_for_status()
@@ -111,7 +94,7 @@ class SB6190Driver(ModemDriver):
             "channelUs": {"docsis30": self._parse_upstream(us_table), "docsis31": []},
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         try:
             r = self._session.get(f"{self._url}/cgi-bin/swinfo", timeout=30)
             r.raise_for_status()
@@ -135,12 +118,12 @@ class SB6190Driver(ModemDriver):
             "sw_version": info.get("sw_version", ""),
         }
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         return {}
 
     # -- Parsers --
 
-    def _parse_downstream(self, table) -> list:
+    def _parse_downstream(self, table) -> list[RawChannel]:
         """Parse downstream table: each row = one channel.
 
         Columns: Channel | Lock Status | Modulation | Channel ID |
@@ -169,7 +152,7 @@ class SB6190Driver(ModemDriver):
                 log.warning("Failed to parse SB6190 DS channel: %s", e)
         return result
 
-    def _parse_upstream(self, table) -> list:
+    def _parse_upstream(self, table) -> list[RawChannel]:
         """Parse upstream table: each row = one channel.
 
         Columns: Channel | Lock Status | US Channel Type | Channel ID |
@@ -198,25 +181,13 @@ class SB6190Driver(ModemDriver):
 
     @staticmethod
     def _normalize_mhz(freq_str: str) -> str:
-        """Normalize 'X.XX MHz' to 'X MHz' or 'X.Y MHz'."""
-        parts = freq_str.strip().split()
-        try:
-            mhz = float(parts[0])
-            if mhz == int(mhz):
-                return f"{int(mhz)} MHz"
-            return f"{mhz:.1f} MHz"
-        except (ValueError, IndexError):
-            return freq_str
+        from .utils import normalize_mhz
+        return normalize_mhz(freq_str)
 
     @staticmethod
     def _parse_number(val_str: str) -> float:
-        """Parse '10.50 dBmV' or '40.95 dB' to float."""
-        if not val_str:
-            return 0.0
-        try:
-            return float(val_str.strip().split()[0])
-        except (ValueError, IndexError):
-            return 0.0
+        from .utils import parse_number
+        return parse_number(val_str)
 
     @staticmethod
     def _is_authenticated_status_page(html: str) -> bool:

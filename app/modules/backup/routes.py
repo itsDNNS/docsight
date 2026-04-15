@@ -16,6 +16,11 @@ from app.web import (
 
 from werkzeug.utils import secure_filename
 
+from .backup import (
+    browse_directory, cleanup_old_backups, create_backup, create_backup_to_file,
+    list_backups, restore_backup, validate_backup,
+)
+
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web")
 
@@ -58,7 +63,6 @@ def api_backup_download():
     if not _config_manager:
         return jsonify({"error": "Not initialized"}), 500
     try:
-        from .backup import create_backup
         buf = create_backup(_config_manager.data_dir)
         ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         filename = f"docsight_backup_{ts}.tar.gz"
@@ -79,7 +83,6 @@ def api_backup_scheduled():
     backup_path = _config_manager.get("backup_path", "/backup")
     retention = _int_config(_config_manager, "backup_retention", 5)
     try:
-        from .backup import create_backup_to_file, cleanup_old_backups
         filename = create_backup_to_file(_config_manager.data_dir, backup_path)
         cleanup_old_backups(backup_path, keep=retention)
         audit_log.info("Scheduled backup created: ip=%s file=%s", _get_client_ip(), filename)
@@ -97,7 +100,6 @@ def api_backup_list():
     if not _config_manager:
         return jsonify([])
     backup_path = _config_manager.get("backup_path", "/backup")
-    from .backup import list_backups
     return jsonify(list_backups(backup_path))
 
 
@@ -148,7 +150,6 @@ def api_restore_validate():
     if len(data) > 500 * 1024 * 1024:  # 500 MB limit
         return jsonify({"error": "File too large"}), 400
     try:
-        from .backup import validate_backup
         meta = validate_backup(data)
         return jsonify({"valid": True, "meta": meta})
     except ValueError as e:
@@ -179,7 +180,6 @@ def api_restore():
     if len(data) > 500 * 1024 * 1024:
         return jsonify({"error": "File too large"}), 400
     try:
-        from .backup import restore_backup
         data_dir = _config_manager.data_dir if _config_manager else "/data"
         result = restore_backup(data, data_dir)
         audit_log.info(
@@ -211,7 +211,6 @@ def api_browse():
     """Browse server-side directories for backup path selection."""
     path = request.args.get("path", "/backup")
     try:
-        from .backup import browse_directory
         result = browse_directory(path)
         return jsonify(result)
     except ValueError as e:

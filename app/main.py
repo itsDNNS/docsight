@@ -11,6 +11,7 @@ from . import analyzer, web
 from .config import ConfigManager
 from .event_detector import EventDetector
 from .storage import SnapshotStorage
+from .tz import guess_iana_timezone, utc_cutoff
 
 from .collectors import discover_collectors
 
@@ -287,7 +288,6 @@ def polling_loop(config_mgr, storage, stop_event):
                 polling_loop._sc_expiry_counter += 1
                 if polling_loop._sc_expiry_counter >= 60:
                     polling_loop._sc_expiry_counter = 0
-                    from .tz import utc_cutoff
                     cutoff = utc_cutoff(minutes=10)
                     for action_type in smart_capture.adapter_action_types:
                         expired = storage.expire_stale_fired(cutoff, action_type=action_type)
@@ -332,12 +332,10 @@ def main():
 
     log.info("DOCSight starting")
 
-    # Initialize snapshot storage
     db_path = os.path.join(data_dir, "docsis_history.db")
     storage = SnapshotStorage(db_path, max_days=config_mgr.get("history_days", 7))
 
     # UTC migration + timezone setup
-    from .tz import guess_iana_timezone
     tz_name = config_mgr.get("timezone") or guess_iana_timezone()
     storage.migrate_to_utc(tz_name)
     storage.set_timezone(tz_name)

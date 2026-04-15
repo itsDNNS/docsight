@@ -1,11 +1,15 @@
 """Base classes for the unified Collector Architecture."""
 
+from __future__ import annotations
+
 import logging
 import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
+
+from ..types import CollectorStatus
 
 log = logging.getLogger("docsis.collector")
 
@@ -15,7 +19,7 @@ class CollectorResult:
     """Result of a single collection run."""
 
     source: str
-    data: Any = None
+    data: Any = None  # Varies by collector: AnalysisResult, dict, None, etc.
     success: bool = True
     error: str | None = None
     timestamp: float = field(default_factory=time.time)
@@ -154,11 +158,11 @@ class Collector(ABC):
                 int(self._effective_interval_unlocked()), penalty
             )
 
-    def get_status(self) -> dict:
+    def get_status(self) -> CollectorStatus:
         """Return collector health status for monitoring.
 
         Returns:
-            dict with keys: name, enabled, failures, penalty, next_poll, last_poll
+            CollectorStatus with keys: name, enabled, failures, penalty, next_poll, last_poll
         """
         with self._lock:
             now = time.time()

@@ -1,10 +1,15 @@
-"""Speedtest Tracker action adapter — triggers STT runs and links results."""
+"""Speedtest Tracker action adapter -- triggers STT runs and links results."""
+
+from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone, timedelta
+from typing import Any
 
 import requests
 
+from ...tz import utc_now
+from ...types import EventDict
 from ..types import ExecutionStatus
 from .base import ActionAdapter
 
@@ -29,12 +34,11 @@ class SpeedtestAdapter(ActionAdapter):
             "Accept": "application/json",
         })
 
-    def execute(self, execution_id: int, event: dict) -> tuple[bool, str | None]:
+    def execute(self, execution_id: int, event: EventDict) -> tuple[bool, str | None]:
         """POST to STT run endpoint. Updates execution to FIRED or EXPIRED."""
         try:
             resp = self._session.post(self._run_url, timeout=15)
             if resp.status_code == 201:
-                from ...tz import utc_now
                 ts = utc_now()
                 self._storage.update_execution(
                     execution_id,
@@ -79,7 +83,7 @@ class SpeedtestAdapter(ActionAdapter):
                         execution_id, error)
             return False, error
 
-    def on_results_imported(self, results: list[dict]):
+    def on_results_imported(self, results: list[dict[str, Any]]) -> None:
         """Match newly imported speedtest results to FIRED executions.
 
         For each FIRED execution (FIFO, oldest first), find the closest
@@ -122,7 +126,6 @@ class SpeedtestAdapter(ActionAdapter):
                         best_distance = distance
 
             if best_result is not None:
-                from ...tz import utc_now
                 ok = self._storage.claim_execution(
                     execution["id"],
                     expected_status="fired",

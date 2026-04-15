@@ -1,9 +1,12 @@
 """Unified driver registry for built-in and module-contributed modem drivers."""
 
+from __future__ import annotations
+
 import importlib
 import logging
 
 from .base import ModemDriver
+from ..types import DriverHints
 
 log = logging.getLogger("docsis.drivers")
 
@@ -17,17 +20,17 @@ class DriverRegistry:
 
     def __init__(self):
         self._builtin: dict[str, str] = {}
-        self._module_drivers: dict[str, type] = {}
+        self._module_drivers: dict[str, type[ModemDriver]] = {}
         self._display_names: dict[str, str] = {}
-        self._hints: dict[str, dict] = {}
+        self._hints: dict[str, DriverHints] = {}
 
-    def register_builtin(self, type_key: str, class_path: str, display_name: str, hints: dict | None = None) -> None:
+    def register_builtin(self, type_key: str, class_path: str, display_name: str, hints: DriverHints | None = None) -> None:
         self._builtin[type_key] = class_path
         self._display_names[type_key] = display_name
         if hints:
             self._hints[type_key] = hints
 
-    def register_module_driver(self, type_key: str, cls: type, display_name: str, hints: dict | None = None) -> None:
+    def register_module_driver(self, type_key: str, cls: type[ModemDriver], display_name: str, hints: DriverHints | None = None) -> None:
         self._module_drivers[type_key] = cls
         self._display_names[type_key] = display_name
         if hints:
@@ -60,7 +63,7 @@ class DriverRegistry:
     def get_all_type_keys(self) -> set[str]:
         return set(self._builtin) | set(self._module_drivers)
 
-    def get_driver_hints(self) -> dict[str, dict]:
+    def get_driver_hints(self) -> dict[str, DriverHints]:
         """Return UI hints for all registered drivers, keyed by type_key."""
         return dict(self._hints)
 

@@ -12,15 +12,16 @@ Endpoints:
 - /data/getCMInit.asp   — Provisioning status
 """
 
+from __future__ import annotations
+
 import logging
-import ssl
 import time
 
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.ssl_ import create_urllib3_context
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
+from .utils import make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.hitron")
 
@@ -35,22 +36,6 @@ _DS_MODULATION = {
 }
 
 
-class _LegacyTLSAdapter(HTTPAdapter):
-    """Allow weak certificate keys for CODA modems that use HTTPS.
-
-    Some CODA-56 units serve HTTPS with certificates using short keys
-    that modern OpenSSL rejects by default.
-    """
-
-    def init_poolmanager(self, *args, **kwargs):
-        ctx = create_urllib3_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
-        kwargs["ssl_context"] = ctx
-        super().init_poolmanager(*args, **kwargs)
-
-
 class HitronDriver(ModemDriver):
     """Driver for Hitron CODA DOCSIS 3.1 cable modems.
 
@@ -62,7 +47,7 @@ class HitronDriver(ModemDriver):
         super().__init__(url, user, password)
         self._session = requests.Session()
         self._session.verify = False
-        self._session.mount("https://", _LegacyTLSAdapter())
+        self._session.mount("https://", make_legacy_tls_adapter(sec_level=1))
         self._session.timeout = 30
 
     def login(self) -> None:
@@ -81,7 +66,7 @@ class HitronDriver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"Hitron connection failed: {e}")
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from all four endpoints."""
         ds30 = self._fetch_ds_scqam()
         us30 = self._fetch_us_scqam()
@@ -93,7 +78,7 @@ class HitronDriver(ModemDriver):
             "channelUs": {"docsis30": us30, "docsis31": us31},
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Return static device info (model not available via API)."""
         return {
             "manufacturer": "Hitron",
@@ -101,13 +86,13 @@ class HitronDriver(ModemDriver):
             "sw_version": "",
         }
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Hitron CODA is a standalone modem — no connection info."""
         return {}
 
     # -- Data fetchers --
 
-    def _fetch_json(self, path: str) -> list:
+    def _fetch_json(self, path: str) -> list[dict[str, str]]:
         """Fetch a JSON array from an ASP endpoint."""
         try:
             r = self._session.get(
@@ -120,7 +105,7 @@ class HitronDriver(ModemDriver):
             log.warning("Hitron fetch %s failed: %s", path, e)
             return []
 
-    def _fetch_ds_scqam(self) -> list:
+    def _fetch_ds_scqam(self) -> list[RawChannel]:
         """Parse downstream SC-QAM channels (DOCSIS 3.0)."""
         channels = []
         for ch in self._fetch_json("/data/dsinfo.asp"):
@@ -141,7 +126,7 @@ class HitronDriver(ModemDriver):
                 log.warning("Failed to parse Hitron DS row: %s", e)
         return channels
 
-    def _fetch_us_scqam(self) -> list:
+    def _fetch_us_scqam(self) -> list[RawChannel]:
         """Parse upstream SC-QAM channels (DOCSIS 3.0)."""
         channels = []
         for ch in self._fetch_json("/data/usinfo.asp"):
@@ -157,7 +142,7 @@ class HitronDriver(ModemDriver):
                 log.warning("Failed to parse Hitron US row: %s", e)
         return channels
 
-    def _fetch_ds_ofdm(self) -> list:
+    def _fetch_ds_ofdm(self) -> list[RawChannel]:
         """Parse downstream OFDM channels (DOCSIS 3.1)."""
         channels = []
         for ch in self._fetch_json("/data/dsofdminfo.asp"):
@@ -180,7 +165,7 @@ class HitronDriver(ModemDriver):
                 log.warning("Failed to parse Hitron DS OFDM row: %s", e)
         return channels
 
-    def _fetch_us_ofdma(self) -> list:
+    def _fetch_us_ofdma(self) -> list[RawChannel]:
         """Parse upstream OFDMA channels (DOCSIS 3.1)."""
         channels = []
         for ch in self._fetch_json("/data/usofdminfo.asp"):
@@ -208,12 +193,5 @@ class HitronDriver(ModemDriver):
 
     @staticmethod
     def _hz_to_mhz(hz_str: str) -> str:
-        """Convert '591000000' to '591 MHz'."""
-        try:
-            hz = float(str(hz_str).strip())
-            mhz = hz / 1_000_000
-            if mhz == int(mhz):
-                return f"{int(mhz)} MHz"
-            return f"{mhz:.1f} MHz"
-        except (ValueError, TypeError):
-            return str(hz_str)
+        from .utils import hz_to_mhz
+        return hz_to_mhz(hz_str)

@@ -1,6 +1,7 @@
 """Speedtest Tracker API client – fetches speed test results."""
 
 import logging
+from datetime import datetime, timezone
 
 import requests
 
@@ -25,7 +26,6 @@ class SpeedtestClient:
         if not ts:
             return ts
         try:
-            from datetime import datetime, timezone
             dt = datetime.fromisoformat(ts)
             if dt.tzinfo is not None:
                 dt = dt.astimezone(timezone.utc)

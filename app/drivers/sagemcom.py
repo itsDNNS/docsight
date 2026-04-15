@@ -12,6 +12,8 @@ Channel data is retrieved via getValue actions with XPaths into the device
 data model (Device/Docsis/CableModem/Downstreams and Upstreams).
 """
 
+from __future__ import annotations
+
 import hashlib
 import logging
 import random
@@ -20,6 +22,7 @@ import time
 import requests
 
 from .base import ModemDriver
+from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 
 log = logging.getLogger("docsis.driver.sagemcom")
 
@@ -145,7 +148,7 @@ class SagemcomDriver(ModemDriver):
             f"{self._user}:{self._server_nonce}:{self._password_hash}".encode()
         ).hexdigest()
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         try:
             return self._fetch_docsis_data()
         except (requests.HTTPError, RuntimeError) as e:
@@ -154,7 +157,7 @@ class SagemcomDriver(ModemDriver):
             self.login()
             return self._fetch_docsis_data()
 
-    def _fetch_docsis_data(self) -> dict:
+    def _fetch_docsis_data(self) -> DocsisData:
         actions = [
             {"id": 0, "method": "getValue",
              "xpath": "Device/Docsis/CableModem/Downstreams",
@@ -185,7 +188,7 @@ class SagemcomDriver(ModemDriver):
             "channelUs": {"docsis30": us30, "docsis31": us31},
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         try:
             actions = [
                 {"id": 0, "method": "getValue",
@@ -216,17 +219,17 @@ class SagemcomDriver(ModemDriver):
             self._logged_in = False
             return {"manufacturer": "Sagemcom", "model": "", "sw_version": ""}
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         return {}
 
     # -- XMO API transport --
 
-    def _api_call(self, actions: list) -> dict:
+    def _api_call(self, actions: list[dict[str, object]]) -> dict[str, object]:
         self._request_id += 1
         body = self._build_request(actions)
         return self._raw_post(body)
 
-    def _build_request(self, actions: list, priority: bool = False) -> dict:
+    def _build_request(self, actions: list[dict[str, object]], priority: bool = False) -> dict[str, object]:
         cnonce = random.randint(0, 4294967295)
         auth_key = ""
 
@@ -246,7 +249,7 @@ class SagemcomDriver(ModemDriver):
             }
         }
 
-    def _raw_post(self, body: dict) -> dict:
+    def _raw_post(self, body: dict[str, object]) -> dict[str, object]:
         url = f"{self._url}{_API_PATH}"
         r = self._session.post(
             url,
@@ -284,7 +287,7 @@ class SagemcomDriver(ModemDriver):
 
     # -- Channel parsers --
 
-    def _parse_downstream(self, channels: list) -> tuple[list, list]:
+    def _parse_downstream(self, channels: list[dict[str, object]]) -> tuple[list[RawChannel], list[RawChannel]]:
         ds30 = []
         ds31 = []
 
@@ -331,7 +334,7 @@ class SagemcomDriver(ModemDriver):
 
         return ds30, ds31
 
-    def _parse_upstream(self, channels: list) -> tuple[list, list]:
+    def _parse_upstream(self, channels: list[dict[str, object]]) -> tuple[list[RawChannel], list[RawChannel]]:
         us30 = []
         us31 = []
 
@@ -373,12 +376,11 @@ class SagemcomDriver(ModemDriver):
 
     @staticmethod
     def _hz_to_mhz(freq_hz) -> str:
+        """Convert Hz to MHz string. Returns '' for falsy input (0, None, '')."""
         if not freq_hz:
             return ""
-        mhz = float(freq_hz) / 1_000_000
-        if mhz == int(mhz):
-            return f"{int(mhz)} MHz"
-        return f"{mhz:.1f} MHz"
+        from .utils import hz_to_mhz
+        return hz_to_mhz(freq_hz)
 
     @staticmethod
     def _is_ofdm_downstream(modulation: str, bandwidth: int) -> bool:

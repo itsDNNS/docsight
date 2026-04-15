@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
 
 from app.i18n import get_translations
+from app.storage.segment_utilization import SegmentUtilizationStorage
 from app.web import get_config_manager, get_storage, require_auth
 
 log = logging.getLogger("docsis.web.segment")
@@ -25,7 +26,6 @@ def _get_storage():
     if _storage_instance is None:
         storage = get_storage()
         if storage:
-            from app.storage.segment_utilization import SegmentUtilizationStorage
             _storage_instance = SegmentUtilizationStorage(storage.db_path)
     return _storage_instance
 

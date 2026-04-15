@@ -14,7 +14,7 @@ class TracerouteTrigger:
         self._last_trace: dict[int, float] = {}
         self._executor = ThreadPoolExecutor(max_workers=1)
 
-    def on_event(self, event: dict) -> None:
+    def on_event(self, event: dict[str, object]) -> None:
         event_type = event.get("event_type")
         if event_type not in ("cm_target_unreachable", "cm_packet_loss_warning"):
             return

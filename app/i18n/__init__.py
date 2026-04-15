@@ -8,7 +8,6 @@ _TRANSLATIONS = {}
 LANGUAGES = {}
 LANG_FLAGS = {}
 
-# Load all *.json files in this directory
 for _fname in sorted(os.listdir(_DIR)):
     if not _fname.endswith(".json"):
         continue

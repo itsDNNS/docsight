@@ -4,9 +4,12 @@ Thresholds are loaded dynamically from the active threshold module.
 The module loader calls set_thresholds() during startup.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 
+from .types import AnalysisResult, DocsisData
 from .tz import utc_now, _parse_utc
 
 log = logging.getLogger("docsis.analyzer")
@@ -41,7 +44,7 @@ _FALLBACK_THRESHOLDS = {
 }
 
 
-def set_thresholds(data: dict):
+def set_thresholds(data: dict[str, object]) -> None:
     """Set thresholds from a loaded threshold module."""
     global _thresholds
     _thresholds = data
@@ -144,7 +147,7 @@ def _get_spike_expiry_hours():
     return errors.get("spike_expiry_hours", 48)
 
 
-def apply_spike_suppression(analysis, last_spike_ts):
+def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None) -> None:
     """Suppress uncorrectable error penalization if a past spike has expired.
 
     Called as a post-processing step after analyze(). If the most recent
@@ -153,7 +156,7 @@ def apply_spike_suppression(analysis, last_spike_ts):
     issues are suppressed.
 
     Args:
-        analysis: dict from analyze() — modified in place
+        analysis: AnalysisResult from analyze() -- modified in place
         last_spike_ts: UTC timestamp string of latest error_spike, or None
     """
     if not last_spike_ts:
@@ -355,13 +358,13 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
     return _channel_health(issues), _health_detail(issues)
 
 
-def analyze(data: dict) -> dict:
+def analyze(data: DocsisData) -> AnalysisResult:
     """Analyze DOCSIS data and return structured result.
 
-    Returns dict with keys:
-        summary: dict of summary metrics
-        ds_channels: list of downstream channel dicts
-        us_channels: list of upstream channel dicts
+    Returns AnalysisResult with keys:
+        summary: AnalysisSummary of aggregate metrics
+        ds_channels: list of DownstreamChannel dicts
+        us_channels: list of UpstreamChannel dicts
     """
     # Handle new driver format (TC4400, Ultra Hub 7, Vodafone Station, etc.)
     # These drivers return {"docsis": "3.1", "downstream": [...], "upstream": [...]}

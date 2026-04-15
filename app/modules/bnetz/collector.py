@@ -5,6 +5,9 @@ import os
 import shutil
 
 from app.collectors.base import Collector, CollectorResult
+
+from .csv_parser import parse_bnetz_csv
+from .parser import parse_bnetz_pdf
 from .storage import BnetzStorage
 
 log = logging.getLogger("docsis.collector.bnetz_watcher")
@@ -96,8 +99,6 @@ class BnetzWatcherCollector(Collector):
 
     def _import_pdf(self, fpath):
         """Import a single PDF file."""
-        from .parser import parse_bnetz_pdf
-
         with open(fpath, "rb") as f:
             pdf_bytes = f.read()
 
@@ -107,8 +108,6 @@ class BnetzWatcherCollector(Collector):
 
     def _import_csv(self, fpath):
         """Import a single CSV file."""
-        from .csv_parser import parse_bnetz_csv
-
         with open(fpath, "r", encoding="utf-8-sig") as f:
             content = f.read()
 
@@ -116,7 +115,7 @@ class BnetzWatcherCollector(Collector):
         self._storage.save_bnetz_measurement(parsed, pdf_bytes=None, source="csv_import")
         log.info("Imported BNetzA CSV: %s", os.path.basename(fpath))
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, object]:
         """Return collector status with watch directory info."""
         status = super().get_status()
         status["watch_dir"] = self._config_mgr.get("bnetz_watch_dir", "/data/bnetz")

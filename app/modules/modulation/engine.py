@@ -9,6 +9,8 @@ import re
 from datetime import datetime
 from collections import defaultdict
 
+from app.tz import to_local
+
 
 # Maximum QAM order per (direction, docsis_version) — used for health index scaling.
 MAX_QAM = {
@@ -213,8 +215,6 @@ def compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold=16)
 
     Returns dict with protocol_groups[], aggregate{}, sample metadata, disclaimer.
     """
-    from app.tz import to_local
-
     channel_key = "us_channels" if direction == "us" else "ds_channels"
 
     # Collect all snapshots grouped by local date
@@ -321,13 +321,11 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
     for date_str in sorted_dates:
         day_observations = []
         day_health_observations = []
-        day_sample_count = 0
 
         for channels in by_date[date_str]:
             group_channels = [ch for ch in channels if ch.get("docsis_version", "3.0") == version]
             if not group_channels:
                 continue
-            day_sample_count += 1
             for ch in group_channels:
                 channel_id = _channel_identity(ch)
                 channel_ids.add(channel_id)
@@ -433,8 +431,6 @@ def compute_intraday(snapshots, direction, tz_name, date_str, low_qam_threshold=
 
     Returns dict with protocol_groups[] each containing channels[] with timeline.
     """
-    from app.tz import to_local
-
     channel_key = "us_channels" if direction == "us" else "ds_channels"
 
     # Filter snapshots for the requested day, sorted by time

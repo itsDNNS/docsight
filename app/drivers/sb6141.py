@@ -11,6 +11,8 @@ This driver may also work with other Motorola/Arris SB6xxx modems
 (SB6121, SB6183) that share the same web UI format.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 
@@ -18,6 +20,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.sb6141")
 
@@ -49,7 +52,7 @@ class SB6141Driver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"SB6141 connection failed: {e}")
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from transposed HTML tables."""
         try:
             r = self._session.get(
@@ -88,7 +91,7 @@ class SB6141Driver(ModemDriver):
             "channelUs": {"docsis30": us_channels, "docsis31": []},
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from /cmHelpData.htm."""
         try:
             r = self._session.get(
@@ -119,13 +122,13 @@ class SB6141Driver(ModemDriver):
             "sw_version": firmware,
         }
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Standalone modem, no connection info."""
         return {}
 
     # -- Transposed table parsers --
 
-    def _parse_downstream(self, ds_table, cw_table) -> list:
+    def _parse_downstream(self, ds_table, cw_table) -> list[RawChannel]:
         """Parse transposed downstream + codewords tables.
 
         In the SB6141 tables, each row is a metric and each column is a
@@ -177,7 +180,7 @@ class SB6141Driver(ModemDriver):
 
         return result
 
-    def _parse_upstream(self, us_table) -> list:
+    def _parse_upstream(self, us_table) -> list[RawChannel]:
         """Parse transposed upstream table."""
         if not us_table:
             return []
@@ -217,7 +220,7 @@ class SB6141Driver(ModemDriver):
     # -- Table helpers --
 
     @staticmethod
-    def _extract_transposed_rows(table) -> list:
+    def _extract_transposed_rows(table) -> list[tuple[str, list[str]]]:
         """Extract rows from a transposed table.
 
         Returns list of (label, [values]) tuples, skipping the header row.
@@ -237,7 +240,7 @@ class SB6141Driver(ModemDriver):
         return rows
 
     @staticmethod
-    def _get_row_values(rows: list, keyword: str) -> list:
+    def _get_row_values(rows: list[tuple[str, list[str]]], keyword: str) -> list[str]:
         """Find a row by keyword in the label and return its values."""
         keyword = keyword.lower()
         for label, values in rows:
@@ -267,30 +270,14 @@ class SB6141Driver(ModemDriver):
                 last_mod = cleaned
         return last_mod
 
-    # -- Value parsers --
+    # -- Value parsers (delegated to shared utils) --
 
     @staticmethod
     def _parse_freq_hz(freq_str: str) -> str:
-        """Convert '465000000 Hz' to '465 MHz'."""
-        if not freq_str:
-            return ""
-        parts = freq_str.strip().split()
-        try:
-            hz = float(parts[0])
-            mhz = hz / 1_000_000
-            if mhz == int(mhz):
-                return f"{int(mhz)} MHz"
-            return f"{mhz:.1f} MHz"
-        except (ValueError, IndexError):
-            return freq_str
+        from .utils import hz_to_mhz
+        return hz_to_mhz(freq_str)
 
     @staticmethod
     def _parse_number(val_str: str) -> float:
-        """Parse '35 dB' or '3 dBmV' or '5.120 Msym/sec' to float."""
-        if not val_str:
-            return 0.0
-        parts = val_str.strip().split()
-        try:
-            return float(parts[0])
-        except (ValueError, IndexError):
-            return 0.0
+        from .utils import parse_number
+        return parse_number(val_str)

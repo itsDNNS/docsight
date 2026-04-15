@@ -20,6 +20,8 @@ Channel data arrives as pipe-delimited strings ("|+|" between channels,
 "^" between fields within a channel).
 """
 
+from __future__ import annotations
+
 import base64
 import hashlib
 import hmac
@@ -32,6 +34,7 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.surfboard")
 
@@ -259,7 +262,7 @@ class SurfboardDriver(ModemDriver):
         except requests.RequestException as e:
             raise RuntimeError(f"SURFboard HTML login failed: {e}")
 
-    def _html_get_docsis_data(self) -> dict:
+    def _html_get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS data via HTML table scraping (fallback mode)."""
         from .arris_html import parse_arris_channel_tables
 
@@ -534,7 +537,7 @@ class SurfboardDriver(ModemDriver):
                 raise RuntimeError(f"SURFboard login failed: {result}")
             return
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data via HNAP GetMultipleHNAPs.
 
         On HTTP 500: tries the other action namespace before re-authenticating.
@@ -585,7 +588,7 @@ class SurfboardDriver(ModemDriver):
             self.login()
             return self._fetch_docsis_data()
 
-    def _fetch_docsis_data(self) -> dict:
+    def _fetch_docsis_data(self) -> DocsisData:
         """Internal: fetch and parse DOCSIS channel data.
 
         Auto-detects action namespace (Customer vs Moto) on first call
@@ -643,7 +646,7 @@ class SurfboardDriver(ModemDriver):
             "channelUs": {"docsis30": us30, "docsis31": us31},
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Retrieve device model and firmware from HNAP."""
         if self._html_mode:
             return {"manufacturer": "Arris", "model": "SB8200", "sw_version": ""}
@@ -704,13 +707,13 @@ class SurfboardDriver(ModemDriver):
             conn.get("StatusSoftwareSfVer", ""),
         )
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Standalone modem -- no connection info available."""
         return {}
 
     # -- Namespace helpers --
 
-    def _make_actions(self, *suffixes: str) -> dict:
+    def _make_actions(self, *suffixes: str) -> dict[str, str]:
         """Build HNAP action dict using current namespace.
 
         Returns e.g. {"GetCustomerStatusDownstreamChannelInfo": "", ...}
@@ -736,8 +739,8 @@ class SurfboardDriver(ModemDriver):
 
     # -- HNAP transport --
 
-    def _hnap_post(self, action: str, body: dict, *,
-                   auth_algo=None) -> dict:
+    def _hnap_post(self, action: str, body: dict[str, str], *,
+                   auth_algo: str | None = None) -> dict[str, object]:
         """Send an HNAP1 JSON POST request.
 
         HNAP_AUTH is sent on **every** request.  Before login the
@@ -933,15 +936,8 @@ class SurfboardDriver(ModemDriver):
 
     @staticmethod
     def _hz_to_mhz(freq_hz: int) -> str:
-        """Convert integer Hz to MHz string.
-
-        705000000 -> "705 MHz"
-        29200000  -> "29.2 MHz"
-        """
-        mhz = freq_hz / 1_000_000
-        if mhz == int(mhz):
-            return f"{int(mhz)} MHz"
-        return f"{mhz:.1f} MHz"
+        from .utils import hz_to_mhz
+        return hz_to_mhz(freq_hz)
 
     @staticmethod
     def _normalize_modulation(mod: str) -> str:

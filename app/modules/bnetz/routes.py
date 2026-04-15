@@ -8,6 +8,8 @@ from flask import Blueprint, request, jsonify, send_file
 from app.web import require_auth, get_storage, _get_client_ip, _get_lang
 from app.storage import MAX_ATTACHMENT_SIZE
 from app.i18n import get_translations
+from .csv_parser import parse_bnetz_csv
+from .parser import parse_bnetz_pdf
 from .storage import BnetzStorage
 
 audit_log = logging.getLogger("docsis.audit")
@@ -57,7 +59,6 @@ def api_bnetz_upload():
 
     if is_csv:
         try:
-            from .csv_parser import parse_bnetz_csv
             csv_content = file_bytes.decode("utf-8-sig")
             parsed = parse_bnetz_csv(csv_content)
         except (ValueError, UnicodeDecodeError) as e:
@@ -67,7 +68,6 @@ def api_bnetz_upload():
         if not file_bytes[:5] == b"%PDF-":
             return jsonify({"error": "Not a valid PDF file"}), 400
         try:
-            from .parser import parse_bnetz_pdf
             parsed = parse_bnetz_pdf(file_bytes)
         except ValueError as e:
             return jsonify({"error": t.get("bnetz_parse_error", str(e))}), 400

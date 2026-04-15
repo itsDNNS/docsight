@@ -2,6 +2,7 @@
 
 import logging
 import time
+from datetime import datetime
 
 from app.collectors.base import Collector, CollectorResult
 
@@ -27,9 +28,7 @@ class BackupCollector(Collector):
         restart, which is acceptable: the guarantee is "at least one backup
         every <interval>", not "backups at a fixed time of day".
         """
-        from datetime import datetime
         from .backup import list_backups
-
         backup_path = self._config_mgr.get("backup_path", "/backup")
         backups = list_backups(backup_path)
         if not backups:
@@ -65,7 +64,6 @@ class BackupCollector(Collector):
 
     def collect(self):
         from .backup import create_backup_to_file, cleanup_old_backups
-
         data_dir = self._config_mgr.data_dir
         backup_path = self._config_mgr.get("backup_path", "/backup")
         retention = self._get_retention(self._config_mgr)

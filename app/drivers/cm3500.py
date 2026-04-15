@@ -13,6 +13,8 @@ Tables are identified by their preceding <h4> heading:
 Device info is available on the same status page.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 
@@ -20,6 +22,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.cm3500")
 
@@ -67,7 +70,7 @@ class CM3500Driver(ModemDriver):
             except requests.RequestException as e:
                 raise RuntimeError(f"CM3500 authentication failed: {e}")
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables on status page.
 
         Returns pre-split format so the analyzer correctly labels
@@ -95,7 +98,7 @@ class CM3500Driver(ModemDriver):
             "channelUs": {"docsis30": us30, "docsis31": us31},
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from status page."""
         try:
             soup = self._fetch_status_page()
@@ -130,7 +133,7 @@ class CM3500Driver(ModemDriver):
         except Exception:
             return {"manufacturer": "Arris", "model": "CM3500B", "sw_version": ""}
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Parse provisioned speeds from config_params_cgi service flows."""
         try:
             r = self._session.get(
@@ -145,7 +148,7 @@ class CM3500Driver(ModemDriver):
         return self._parse_service_flows(r.text)
 
     @staticmethod
-    def _parse_service_flows(html: str) -> dict:
+    def _parse_service_flows(html: str) -> ConnectionInfo:
         """Extract max downstream/upstream speeds from service flow config.
 
         The config_params_cgi page contains a <pre> block with service flows.
@@ -199,7 +202,7 @@ class CM3500Driver(ModemDriver):
             raise RuntimeError(f"CM3500 status page retrieval failed: {e}")
         return BeautifulSoup(r.text, "html.parser")
 
-    def _find_table_sections(self, soup) -> dict:
+    def _find_table_sections(self, soup) -> dict[str, object]:
         """Map <h4> heading text to the following <table> element."""
         sections = {}
         for h4 in soup.find_all("h4"):
@@ -211,7 +214,7 @@ class CM3500Driver(ModemDriver):
 
     # -- Downstream parsers --
 
-    def _parse_ds_qam(self, table) -> list:
+    def _parse_ds_qam(self, table) -> list[RawChannel]:
         """Parse Downstream QAM table.
 
         Columns: (label), DCID, Freq, Power, SNR, Modulation, Octets,
@@ -241,7 +244,7 @@ class CM3500Driver(ModemDriver):
                 log.warning("Failed to parse CM3500 DS QAM row: %s", e)
         return result
 
-    def _parse_ds_ofdm(self, table) -> list:
+    def _parse_ds_ofdm(self, table) -> list[RawChannel]:
         """Parse Downstream OFDM table.
 
         Columns: (label), FFT Type, Channel Width(MHz), # Active Subcarriers,
@@ -286,7 +289,7 @@ class CM3500Driver(ModemDriver):
 
     # -- Upstream parsers --
 
-    def _parse_us_qam(self, table) -> list:
+    def _parse_us_qam(self, table) -> list[RawChannel]:
         """Parse Upstream QAM table.
 
         Columns: (label), UCID, Freq, Power, Channel Type, Symbol Rate, Modulation
@@ -319,7 +322,7 @@ class CM3500Driver(ModemDriver):
                 log.warning("Failed to parse CM3500 US QAM row: %s", e)
         return result
 
-    def _parse_us_ofdm(self, table) -> list:
+    def _parse_us_ofdm(self, table) -> list[RawChannel]:
         """Parse Upstream OFDM table.
 
         Columns: (label), FFT Type, Channel Width(MHz), # Active Subcarriers,
@@ -363,18 +366,12 @@ class CM3500Driver(ModemDriver):
 
     @staticmethod
     def _parse_number(value: str) -> float:
-        """Parse numeric value from string with optional unit suffix."""
-        if not value:
-            return 0.0
-        parts = value.strip().split()
-        try:
-            return float(parts[0])
-        except (ValueError, IndexError):
-            return 0.0
+        from .utils import parse_number
+        return parse_number(value)
 
     @staticmethod
     def _format_freq(freq_str: str) -> str:
-        """Normalize frequency string to 'NNN MHz' format."""
+        """Normalize frequency string to 'NNN MHz' format (always integer)."""
         if not freq_str:
             return ""
         parts = freq_str.strip().split()

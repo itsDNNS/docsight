@@ -1,8 +1,11 @@
 """FritzBox driver — wraps the existing fritzbox module."""
 
+from __future__ import annotations
+
 import logging
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 from .. import fritzbox as fb
 
 log = logging.getLogger("docsis.driver.fritzbox")
@@ -27,13 +30,13 @@ class FritzBoxDriver(ModemDriver):
     def login(self) -> None:
         self._sid = fb.login(self._url, self._user, self._password)
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         data = fb.get_docsis_data(self._url, self._sid)
         self._compensate_us31_power(data)
         return data
 
     @staticmethod
-    def _compensate_us31_power(data: dict) -> None:
+    def _compensate_us31_power(data: DocsisData) -> None:
         """Add +6 dB to DOCSIS 3.1 upstream power to correct Fritz!Box display bug."""
         us31 = data.get("channelUs", {}).get("docsis31", [])
         for ch in us31:
@@ -43,10 +46,10 @@ class FritzBoxDriver(ModemDriver):
             except (TypeError, ValueError):
                 pass
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         info = fb.get_device_info(self._url, self._sid)
         info.setdefault("manufacturer", "AVM")
         return info
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         return fb.get_connection_info(self._url, self._sid)

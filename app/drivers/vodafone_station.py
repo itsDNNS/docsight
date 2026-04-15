@@ -11,6 +11,8 @@ References:
 - TG3442DE: PR #13 (Arris AES-CCM flow), vodafone-station-cli
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import re
@@ -21,6 +23,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.vodafone_station")
 
@@ -55,7 +58,7 @@ class VodafoneStationDriver(ModemDriver):
         else:
             self._login_tg()
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data."""
         if self._variant == self.VARIANT_CGA:
             return self._get_docsis_cga()
@@ -63,7 +66,7 @@ class VodafoneStationDriver(ModemDriver):
             return self._get_docsis_tg()
         raise RuntimeError("Not authenticated. Call login() first.")
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Retrieve device model and firmware info."""
         if self._variant == self.VARIANT_CGA:
             return self._get_device_info_cga()
@@ -73,7 +76,7 @@ class VodafoneStationDriver(ModemDriver):
             "sw_version": "",
         }
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Retrieve internet connection info."""
         return {}
 
@@ -246,7 +249,7 @@ class VodafoneStationDriver(ModemDriver):
         r.raise_for_status()
         return r
 
-    def _get_docsis_cga(self) -> dict:
+    def _get_docsis_cga(self) -> DocsisData:
         """CGA: Fetch DOCSIS data from JSON API.
 
         Response format: {"error": "ok", "data": {"downstream": [...], "upstream": [...],
@@ -392,7 +395,7 @@ class VodafoneStationDriver(ModemDriver):
             "channelUs": {"docsis30": us_30, "docsis31": us_31},
         }
 
-    def _get_device_info_cga(self) -> dict:
+    def _get_device_info_cga(self) -> DeviceInfo:
         """CGA: Retrieve device info from API."""
         try:
             r = self._cga_request("GET", "/api/v1/sta_device_info")
@@ -570,7 +573,7 @@ class VodafoneStationDriver(ModemDriver):
         # Step 8: Set credential cookie from base_95x.js
         self._set_tg_credential_cookie()
 
-    def _get_docsis_tg(self) -> dict:
+    def _get_docsis_tg(self) -> DocsisData:
         """TG: Fetch DOCSIS data from status_docsis_data.php.
 
         The endpoint returns HTML with embedded JS variables:

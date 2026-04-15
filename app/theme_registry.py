@@ -8,13 +8,11 @@ from .module_download import (
     fetch_registry as _fetch_registry,
     download_github_directory,
     is_trusted_url,
-    TRUSTED_HOSTS,
 )
 
 log = logging.getLogger("docsis.themes")
 
-# Re-export for backward compatibility
-_ALLOWED_DOWNLOAD_HOSTS = TRUSTED_HOSTS
+# Re-export for backward compatibility (used by tests)
 _is_trusted_url = is_trusted_url
 
 

@@ -3,7 +3,7 @@
 import logging
 import sqlite3
 
-from app.tz import utc_now
+from app.tz import local_today, utc_now
 
 log = logging.getLogger("docsis.storage.bqm")
 
@@ -131,7 +131,6 @@ class BqmStorage:
 
     def save_bqm_graph(self, image_data, graph_date=None):
         """Save BQM graph. Skips if already exists (UNIQUE date)."""
-        from app.tz import local_today
         target_date = graph_date or local_today(self.tz_name)
         ts = utc_now()
         try:

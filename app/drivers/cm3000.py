@@ -15,6 +15,8 @@ Authentication starts with direct status page access and falls back to the
 web login form on firmware that redirects through Login.htm first.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 from urllib.parse import urljoin
@@ -22,6 +24,7 @@ from urllib.parse import urljoin
 import requests
 
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.cm3000")
 
@@ -113,7 +116,7 @@ class CM3000Driver(ModemDriver):
                 self._log_status_page_diagnostics(r.text, "login")
                 raise e
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from JavaScript on status page.
 
         Returns pre-split format so the analyzer correctly labels
@@ -145,7 +148,7 @@ class CM3000Driver(ModemDriver):
             "channelUs": {"docsis30": us30, "docsis31": us31},
         }
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Extract device info from InitTagValue()."""
         try:
             html = self._fetch_status_page()
@@ -170,7 +173,7 @@ class CM3000Driver(ModemDriver):
         except Exception:
             return {"manufacturer": "Netgear", "model": "CM3000", "sw_version": ""}
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Standalone modem -- no connection info available."""
         return {}
 
@@ -224,7 +227,7 @@ class CM3000Driver(ModemDriver):
             log.debug("CM3000 form login failed: %s", exc)
             return False
 
-    def _apply_login_credentials(self, payload: dict) -> None:
+    def _apply_login_credentials(self, payload: dict[str, str]) -> None:
         """Populate parsed login form fields with configured credentials."""
         lowered = {k.lower(): k for k in payload}
         user_keys = [k for k in payload if any(token in k.lower() for token in ("loginname", "username", "user", "name"))]
@@ -298,7 +301,7 @@ class CM3000Driver(ModemDriver):
             )
 
     @staticmethod
-    def _status_page_diagnostics(html: str) -> dict:
+    def _status_page_diagnostics(html: str) -> dict[str, object]:
         """Summarize the response shape for debugging failed CM3000 auth."""
         if not html:
             return {
@@ -352,7 +355,7 @@ class CM3000Driver(ModemDriver):
 
     # -- Channel parsers --
 
-    def _parse_ds_qam(self, html: str) -> list:
+    def _parse_ds_qam(self, html: str) -> list[RawChannel]:
         """Parse downstream SC-QAM channels from InitDsTableTagValue().
 
         Per channel (9 fields):
@@ -382,7 +385,7 @@ class CM3000Driver(ModemDriver):
                 log.warning("Failed to parse CM3000 DS QAM channel: %s", e)
         return result
 
-    def _parse_us_atdma(self, html: str) -> list:
+    def _parse_us_atdma(self, html: str) -> list[RawChannel]:
         """Parse upstream ATDMA channels from InitUsTableTagValue().
 
         Per channel (7 fields):
@@ -409,7 +412,7 @@ class CM3000Driver(ModemDriver):
                 log.warning("Failed to parse CM3000 US ATDMA channel: %s", e)
         return result
 
-    def _parse_ds_ofdm(self, html: str) -> list:
+    def _parse_ds_ofdm(self, html: str) -> list[RawChannel]:
         """Parse downstream OFDM channels from InitDsOfdmTableTagValue().
 
         Per channel (11 fields):
@@ -439,7 +442,7 @@ class CM3000Driver(ModemDriver):
                 log.warning("Failed to parse CM3000 DS OFDM channel: %s", e)
         return result
 
-    def _parse_us_ofdma(self, html: str) -> list:
+    def _parse_us_ofdma(self, html: str) -> list[RawChannel]:
         """Parse upstream OFDMA channels from InitUsOfdmaTableTagValue().
 
         Per channel (6 fields):
@@ -552,37 +555,13 @@ class CM3000Driver(ModemDriver):
 
     @staticmethod
     def _hz_to_mhz(freq_str: str) -> str:
-        """Convert frequency string from Hz to MHz format.
-
-        '495000000 Hz' -> '495 MHz'
-        '0' -> '0 MHz'
-        """
-        parts = freq_str.strip().split()
-        try:
-            hz = float(parts[0])
-            mhz = hz / 1_000_000
-            # Use int if it's a whole number, otherwise one decimal
-            if mhz == int(mhz):
-                return f"{int(mhz)} MHz"
-            return f"{mhz:.1f} MHz"
-        except (ValueError, IndexError):
-            return freq_str
+        from .utils import hz_to_mhz
+        return hz_to_mhz(freq_str)
 
     @staticmethod
     def _parse_number(value: str) -> float:
-        """Parse numeric value from string with optional unit suffix.
-
-        '43.3 dBmV' -> 43.3
-        '-0.32 dBmV' -> -0.32
-        '41.8 dB' -> 41.8
-        """
-        if not value:
-            return 0.0
-        parts = value.strip().split()
-        try:
-            return float(parts[0])
-        except (ValueError, IndexError):
-            return 0.0
+        from .utils import parse_number
+        return parse_number(value)
 
     @staticmethod
     def _normalize_modulation(mod: str) -> str:

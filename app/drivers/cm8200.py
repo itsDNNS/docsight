@@ -24,37 +24,20 @@ DOCSIS version is inferred from modulation/channel type:
 - US: "OFDM Upstream" type = OFDMA (3.1), "SC-QAM Upstream" = 3.0
 """
 
+from __future__ import annotations
+
 import base64
 import logging
-import ssl
 
 import requests
 from bs4 import BeautifulSoup
-from requests.adapters import HTTPAdapter
-from urllib3.util.ssl_ import create_urllib3_context
 
 from .arris_html import parse_arris_channel_tables
 from .base import ModemDriver
+from ..types import DocsisData, DeviceInfo, ConnectionInfo
+from .utils import make_legacy_tls_adapter
 
 log = logging.getLogger("docsis.driver.cm8200")
-
-
-class _LegacyTLSAdapter(HTTPAdapter):
-    """Allow 1024-bit RSA keys for ancient modem certs.
-
-    The CM8200A ships with a Broadcom factory certificate using a 1024-bit
-    RSA key.  Modern OpenSSL defaults reject keys smaller than 2048 bits,
-    causing a TLS handshake failure.  This adapter lowers the security
-    level for connections to the modem only.
-    """
-
-    def init_poolmanager(self, *args, **kwargs):
-        ctx = create_urllib3_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        ctx.set_ciphers("DEFAULT:@SECLEVEL=0")
-        kwargs["ssl_context"] = ctx
-        super().init_poolmanager(*args, **kwargs)
 
 
 class CM8200Driver(ModemDriver):
@@ -72,7 +55,7 @@ class CM8200Driver(ModemDriver):
         super().__init__(url, user, password)
         self._session = requests.Session()
         self._session.verify = False
-        self._session.mount("https://", _LegacyTLSAdapter())
+        self._session.mount("https://", make_legacy_tls_adapter(sec_level=0))
         self._status_html = None
         self._cookie_header = None
 
@@ -192,18 +175,18 @@ class CM8200Driver(ModemDriver):
                     self._session.close()
                     self._session = requests.Session()
                     self._session.verify = False
-                    self._session.mount("https://", _LegacyTLSAdapter())
+                    self._session.mount("https://", make_legacy_tls_adapter(sec_level=0))
                     continue
                 raise RuntimeError("CM8200 authentication failed: connection refused after retry")
             except requests.RequestException as e:
                 raise RuntimeError(f"CM8200 authentication failed: {e}")
 
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from HTML tables on status page."""
         soup = self._fetch_status_page()
         return parse_arris_channel_tables(str(soup))
 
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Retrieve device info from status page."""
         try:
             soup = self._fetch_status_page()
@@ -217,7 +200,7 @@ class CM8200Driver(ModemDriver):
         except Exception:
             return {"manufacturer": "Arris", "model": "CM8200A", "sw_version": ""}
 
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """CM8200A is a standalone modem with no connection info."""
         return {}
 

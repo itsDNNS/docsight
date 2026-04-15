@@ -1,6 +1,10 @@
 """Base class for modem drivers."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+
+from ..types import ConnectionInfo, DeviceInfo, DocsisData
 
 
 class ModemDriver(ABC):
@@ -21,16 +25,16 @@ class ModemDriver(ABC):
         ...
 
     @abstractmethod
-    def get_docsis_data(self) -> dict:
+    def get_docsis_data(self) -> DocsisData:
         """Retrieve raw DOCSIS channel data."""
         ...
 
     @abstractmethod
-    def get_device_info(self) -> dict:
+    def get_device_info(self) -> DeviceInfo:
         """Retrieve device model and firmware info."""
         ...
 
     @abstractmethod
-    def get_connection_info(self) -> dict:
+    def get_connection_info(self) -> ConnectionInfo:
         """Retrieve internet connection info (speeds, type)."""
         ...

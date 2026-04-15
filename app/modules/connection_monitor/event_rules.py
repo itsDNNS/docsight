@@ -19,7 +19,7 @@ class ConnectionEventRules:
         # Per-target loss cooldown: {target_id: last_warning_ts}
         self._loss_cooldown: dict[int, float] = {}
 
-    def _get_state(self, target_id: int) -> dict:
+    def _get_state(self, target_id: int) -> dict[str, object]:
         if target_id not in self._target_state:
             self._target_state[target_id] = {
                 "consecutive_timeouts": 0,

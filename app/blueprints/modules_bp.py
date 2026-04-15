@@ -1,10 +1,15 @@
 """Module management API endpoints."""
 
+import json
 import logging
 import os
+import shutil
 
 from flask import Blueprint, jsonify, request
 
+from app.module_download import download_github_directory, fetch_registry as fetch_module_registry
+from app.module_loader import validate_manifest
+from app.theme_registry import download_theme, fetch_registry as fetch_theme_registry
 from app.web import get_config_manager, get_module_loader, require_auth
 
 log = logging.getLogger("docsis.modules")
@@ -166,8 +171,7 @@ def api_themes_registry():
         "https://raw.githubusercontent.com/itsDNNS/docsight-themes/main/registry.json",
     )
 
-    from app.theme_registry import fetch_registry
-    themes = fetch_registry(registry_url)
+    themes = fetch_theme_registry(registry_url)
 
     loader = get_module_loader()
     installed_ids = set()
@@ -189,7 +193,6 @@ def api_themes_install():
     modules_dir = os.environ.get("MODULES_DIR", "/modules")
     theme_dir = os.path.join(modules_dir, data["id"].replace(".", "_"))
 
-    from app.theme_registry import download_theme
     if download_theme(data["download_url"], theme_dir):
         return jsonify({"success": True, "restart_required": True})
     else:
@@ -210,7 +213,6 @@ def _scan_installed_community_ids():
         manifest_path = os.path.join(modules_dir, entry, "manifest.json")
         if os.path.isfile(manifest_path):
             try:
-                import json
                 with open(manifest_path) as f:
                     data = json.load(f)
                 mod_id = data.get("id", "")
@@ -234,8 +236,7 @@ def api_modules_registry():
         "https://raw.githubusercontent.com/itsDNNS/docsight-modules/main/registry.json",
     )
 
-    from app.module_download import fetch_registry
-    modules = fetch_registry(registry_url, key="modules")
+    modules = fetch_module_registry(registry_url, key="modules")
 
     # Determine install status via disk detection
     installed_ids = _scan_installed_community_ids()
@@ -287,27 +288,22 @@ def api_modules_install():
         return jsonify({"success": False, "error": "Module already installed"}), 409
 
     # Download
-    from app.module_download import download_github_directory
     if not download_github_directory(data["download_url"], target_dir):
         return jsonify({"success": False, "error": "Download failed"}), 500
 
     # Post-download validation
-    import json as json_mod
     manifest_path = os.path.join(target_dir, "manifest.json")
     if not os.path.isfile(manifest_path):
-        import shutil
         shutil.rmtree(target_dir, ignore_errors=True)
         return jsonify({"success": False, "error": "Downloaded module missing manifest.json"}), 500
 
     try:
         with open(manifest_path) as f:
-            manifest = json_mod.load(f)
-        from app.module_loader import validate_manifest
+            manifest = json.load(f)
         validate_manifest(manifest, target_dir)
         if manifest.get("id") != mod_id:
             raise ValueError(f"Manifest ID '{manifest.get('id')}' does not match requested ID '{mod_id}'")
     except Exception as e:
-        import shutil
         shutil.rmtree(target_dir, ignore_errors=True)
         return jsonify({"success": False, "error": f"Invalid module: {e}"}), 500
 
@@ -334,7 +330,6 @@ def api_modules_uninstall():
     mod_id = data["id"]
     modules_dir = _get_modules_dir()
 
-    # Find the module directory
     installed = _scan_installed_community_ids()
     if mod_id not in installed:
         return jsonify({"success": False, "error": "Module not installed"}), 404
@@ -354,7 +349,6 @@ def api_modules_uninstall():
         if mod and mod.builtin:
             return jsonify({"success": False, "error": "Cannot uninstall built-in module"}), 403
 
-    import shutil
     shutil.rmtree(target_dir, ignore_errors=True)
 
     # Remove from disabled_modules if present

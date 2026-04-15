@@ -4,7 +4,6 @@ from .registry import DriverRegistry
 
 driver_registry = DriverRegistry()
 
-# Register built-in drivers
 driver_registry.register_builtin("fritzbox", "app.drivers.fritzbox.FritzBoxDriver", "AVM FRITZ!Box",
                                  hints={"default_url": "http://192.168.178.1", "default_user": "admin"})
 driver_registry.register_builtin("tc4400", "app.drivers.tc4400.TC4400Driver", "Technicolor TC4400",

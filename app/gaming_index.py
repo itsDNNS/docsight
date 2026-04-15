@@ -4,7 +4,10 @@ Combines DOCSIS signal health with Speedtest Tracker latency data
 to produce a 0-100 score and A-F grade.
 """
 
+from __future__ import annotations
+
 from .analyzer import _get_snr_thresholds
+from .types import AnalysisResult, GamingIndex
 
 
 def _score_latency(ping_ms):
@@ -83,15 +86,15 @@ def _grade(score):
     return "F"
 
 
-def compute_gaming_index(analysis, speedtest):
+def compute_gaming_index(analysis: AnalysisResult | None, speedtest: dict | None) -> GamingIndex | None:
     """Compute gaming quality index from DOCSIS analysis and speedtest data.
 
     Args:
-        analysis: dict from analyzer.analyze() or None
+        analysis: AnalysisResult from analyzer.analyze() or None
         speedtest: dict with ping_ms, jitter_ms, packet_loss_pct or None
 
     Returns:
-        dict with score, grade, components, has_speedtest or None if no data
+        GamingIndex with score, grade, components, has_speedtest or None if no data
     """
     if not analysis:
         return None

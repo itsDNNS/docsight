@@ -249,7 +249,6 @@ def _detect_mapping_from_data(rows, skip=None):
             if not val:
                 continue
 
-            # Check if it looks like a date
             if _is_date_like(val):
                 date_scores[col_idx] += 1
 

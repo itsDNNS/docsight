@@ -1,9 +1,12 @@
 """Prometheus text format exposition formatter for DOCSight metrics.
 
-Pure function — no Flask dependency, no side effects.
+Pure function -- no Flask dependency, no side effects.
 """
 
+from __future__ import annotations
+
 from .analyzer import _parse_qam_order
+from .types import AnalysisResult, ConnectionInfo, DeviceInfo
 
 # Health string to numeric mapping
 _HEALTH_MAP = {"good": 0, "tolerated": 1, "marginal": 2, "critical": 3}
@@ -75,13 +78,18 @@ def _metric_value(lines, name, value, labels=None):
         lines.append(f"{name} {value}")
 
 
-def format_metrics(analysis, device_info, connection_info, last_poll_timestamp):
+def format_metrics(
+    analysis: AnalysisResult | None,
+    device_info: DeviceInfo | None,
+    connection_info: ConnectionInfo | None,
+    last_poll_timestamp: float,
+) -> str:
     """Format DOCSight state as Prometheus text exposition format.
 
     Args:
-        analysis: dict from analyzer.analyze() or None
-        device_info: dict from driver.get_device_info() or None
-        connection_info: dict from driver.get_connection_info() or None
+        analysis: AnalysisResult from analyzer.analyze() or None
+        device_info: DeviceInfo from driver.get_device_info() or None
+        connection_info: ConnectionInfo from driver.get_connection_info() or None
         last_poll_timestamp: float (Unix epoch) or 0.0
 
     Returns:

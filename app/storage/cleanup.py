@@ -6,7 +6,7 @@ import shutil
 import sqlite3
 from datetime import datetime, timedelta
 
-from ..tz import utc_now, utc_cutoff, local_to_utc
+from ..tz import local_today, utc_now, utc_cutoff, local_to_utc
 
 log = logging.getLogger("docsis.storage")
 
@@ -156,7 +156,6 @@ class CleanupMixin:
             ).rowcount
         if deleted:
             log.info("Cleaned up %d old snapshots (before %s)", deleted, cutoff)
-        from ..tz import local_today
         tz = getattr(self, 'tz_name', '')
         today = local_today(tz)
         cutoff_date = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=self.max_days)).strftime("%Y-%m-%d")

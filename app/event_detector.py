@@ -1,8 +1,11 @@
 """Detect significant signal changes between consecutive DOCSIS snapshots."""
 
+from __future__ import annotations
+
 import logging
 import threading
 
+from .types import AnalysisResult, EventDict
 from .tz import utc_now
 
 log = logging.getLogger("docsis.events")
@@ -16,7 +19,6 @@ RESTART_CHANNEL_THRESHOLD = 0.8    # 80% of valid channels must be declining
 RESTART_MIN_OVERLAP = 4            # Minimum overlapping channels for fair comparison
 RESTART_MIN_CONTINUITY = 0.5       # Minimum overlap ratio (vs either snapshot)
 
-# Import SNR thresholds from analyzer (loaded from thresholds.json)
 from app.analyzer import _get_snr_thresholds as _snr_thresholds
 
 from .docsis_utils import qam_rank as _qam_rank
@@ -36,7 +38,7 @@ class EventDetector:
         self._pending_health = None
         self._pending_count = 0
 
-    def check(self, analysis):
+    def check(self, analysis: AnalysisResult) -> list[EventDict]:
         """Compare current analysis with previous, return list of event dicts.
 
         Called after each poll. On first call (no previous), stores baseline

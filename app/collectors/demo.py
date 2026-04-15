@@ -151,7 +151,6 @@ class DemoCollector(Collector):
     def collect(self) -> CollectorResult:
         self._poll_count += 1
 
-        # Update simulated uptime
         self._device_info["uptime_seconds"] = int(time.time()) % 8640000
 
         # First poll: publish device/connection info + seed demo history
@@ -916,7 +915,6 @@ class DemoCollector(Collector):
             conn.execute("DELETE FROM connection_samples")
             conn.execute("DELETE FROM connection_targets")
 
-        # Create targets
         gw_id = cm.create_target("Gateway", "192.168.178.1")
         cf_id = cm.create_target("Cloudflare DNS", "1.1.1.1")
         gg_id = cm.create_target("Google DNS", "8.8.8.8")
@@ -983,7 +981,6 @@ class DemoCollector(Collector):
                         lat = round(base + rng.uniform(-2, 3), 2)
                         rows.append((tid, ts, lat, False, "tcp"))
 
-        # Bulk insert
         with cm._connect() as conn:
             conn.executemany(
                 "INSERT INTO connection_samples (target_id, timestamp, latency_ms, timeout, probe_method) "
@@ -993,7 +990,6 @@ class DemoCollector(Collector):
 
         log.info("Demo: seeded %d connection monitor samples (%d days, 3 targets)", len(rows), days)
 
-        # --- Seed traceroute traces ---
         self._seed_traceroute_traces(cm, cf_id, gg_id, now, rng)
 
     def _seed_traceroute_traces(self, cm, cf_id, gg_id, now, rng):

@@ -63,7 +63,7 @@ class ProbeEngine:
             )
             return "tcp"
 
-    def capability_info(self) -> dict:
+    def capability_info(self) -> dict[str, str]:
         """Return probe method info for the UI."""
         info = {"method": self.detected_method}
         if self._fallback_reason is not None:

@@ -5,6 +5,8 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify
 
+from app.analyzer import get_thresholds
+from app.tz import utc_now, utc_cutoff
 from app.web import (
     require_auth,
     get_storage, get_config_manager, get_state,
@@ -77,7 +79,6 @@ def api_device():
 @require_auth
 def api_thresholds():
     """Return active analysis thresholds (read-only)."""
-    from app.analyzer import get_thresholds
     return jsonify(get_thresholds())
 
 
@@ -191,7 +192,6 @@ def api_correlation():
     _storage = get_storage()
     if not _storage:
         return jsonify([])
-    from app.tz import utc_now, utc_cutoff
     hours = request.args.get("hours", 24, type=int)
     hours = max(1, min(hours, 168))
     end_ts = utc_now()

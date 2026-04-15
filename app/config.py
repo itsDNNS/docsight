@@ -379,33 +379,32 @@ class ConfigManager:
         """True if bqm_url is set or demo mode is active (BQM is optional)."""
         return bool(self.get("bqm_url")) or self.is_demo_mode()
 
+    def _get_bool(self, key):
+        """Get a config value and coerce it to bool.
+
+        Handles both native bool values and string representations
+        from web form submissions or environment variables.
+        """
+        val = self.get(key)
+        if isinstance(val, str):
+            return val.lower() in ("true", "1", "yes")
+        return bool(val)
+
     def is_gaming_quality_enabled(self):
         """True if gaming quality index is enabled, or demo mode is active."""
-        val = self.get("gaming_quality_enabled")
-        if isinstance(val, str):
-            val = val.lower() in ("true", "1", "yes")
-        return bool(val) or self.is_demo_mode()
+        return self._get_bool("gaming_quality_enabled") or self.is_demo_mode()
 
     def is_segment_utilization_enabled(self):
         """True if FRITZ!Box segment utilization is enabled."""
-        val = self.get("segment_utilization_enabled")
-        if isinstance(val, str):
-            val = val.lower() in ("true", "1", "yes")
-        return bool(val)
+        return self._get_bool("segment_utilization_enabled")
 
     def is_bnetz_enabled(self):
         """True if BNetzA broadband measurement feature is enabled."""
-        val = self.get("bnetz_enabled")
-        if isinstance(val, str):
-            val = val.lower() in ("true", "1", "yes")
-        return bool(val)
+        return self._get_bool("bnetz_enabled")
 
     def is_bnetz_watch_configured(self):
         """True if BNetzA file watcher is enabled and BNetzA feature is enabled."""
-        val = self.get("bnetz_watch_enabled")
-        if isinstance(val, str):
-            val = val.lower() in ("true", "1", "yes")
-        return bool(val) and self.is_bnetz_enabled()
+        return self._get_bool("bnetz_watch_enabled") and self.is_bnetz_enabled()
 
     def is_notify_configured(self):
         """True if a notification webhook URL is set."""
@@ -417,19 +416,13 @@ class ConfigManager:
 
     def is_weather_configured(self):
         """True if weather is enabled and latitude/longitude are set, or demo mode is active."""
-        val = self.get("weather_enabled")
-        if isinstance(val, str):
-            val = val.lower() in ("true", "1", "yes")
         lat = self.get("weather_latitude")
         lon = self.get("weather_longitude")
-        return (bool(val) and bool(lat) and bool(lon)) or self.is_demo_mode()
+        return (self._get_bool("weather_enabled") and bool(lat) and bool(lon)) or self.is_demo_mode()
 
     def is_backup_configured(self):
         """True if automatic backups are enabled and a backup path is set."""
-        val = self.get("backup_enabled")
-        if isinstance(val, str):
-            val = val.lower() in ("true", "1", "yes")
-        return bool(val) and bool(self.get("backup_path"))
+        return self._get_bool("backup_enabled") and bool(self.get("backup_path"))
 
     def get_theme(self):
         """Return 'dark' or 'light'."""

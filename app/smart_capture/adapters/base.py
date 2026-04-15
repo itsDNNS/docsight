@@ -1,5 +1,11 @@
 """Base class for Smart Capture action adapters."""
 
+from __future__ import annotations
+
+from typing import Any
+
+from ...types import EventDict
+
 
 class ActionAdapter:
     """Base class for Smart Capture action adapters.
@@ -12,7 +18,7 @@ class ActionAdapter:
     def __init__(self, action_type: str):
         self.action_type = action_type
 
-    def execute(self, execution_id: int, event: dict) -> tuple[bool, str | None]:
+    def execute(self, execution_id: int, event: EventDict) -> tuple[bool, str | None]:
         """Fire the action. Returns (success, error_message).
 
         Called by the engine immediately after save_execution(PENDING).
@@ -21,6 +27,6 @@ class ActionAdapter:
         """
         raise NotImplementedError
 
-    def on_results_imported(self, results: list[dict]):
+    def on_results_imported(self, results: list[dict[str, Any]]) -> None:
         """Called when new results are available for matching. Optional."""
         pass

@@ -1,6 +1,8 @@
 """Configuration and API token management routes."""
 
 import logging
+import os
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, request, jsonify
 
@@ -30,10 +32,9 @@ def api_config():
             return jsonify({"success": False, "error": "No data"}), 400
         # Validate timezone if provided
         if "timezone" in data and data["timezone"]:
-            from zoneinfo import ZoneInfo
             try:
                 ZoneInfo(data["timezone"])
-            except (KeyError, Exception):
+            except Exception:
                 return jsonify({"success": False, "error": "Invalid timezone"}), 400
         # Clamp poll_interval to allowed range
         if "poll_interval" in data:
@@ -117,7 +118,6 @@ def api_demo_migrate():
     try:
         purged = _storage.purge_demo_data()
         # Purge demo traceroute traces from Connection Monitor
-        import os
         from app.modules.connection_monitor.storage import ConnectionMonitorStorage
         cm_db_path = os.path.join(os.environ.get("DATA_DIR", "/data"), "connection_monitor.db")
         if os.path.exists(cm_db_path):

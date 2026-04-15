@@ -1,7 +1,11 @@
-"""Smart Capture execution engine — evaluates events, applies guardrails, records executions."""
+"""Smart Capture execution engine -- evaluates events, applies guardrails, records executions."""
+
+from __future__ import annotations
 
 import logging
 
+from ..types import EventDict
+from .adapters.base import ActionAdapter
 from .guardrails import GuardrailChain
 from .types import ExecutionStatus, Trigger
 
@@ -22,7 +26,7 @@ class SmartCaptureEngine:
         self._config = config_mgr
         self._guardrails = GuardrailChain(config_mgr)
         self._triggers: list[Trigger] = []
-        self._adapters: dict[str, object] = {}
+        self._adapters: dict[str, ActionAdapter] = {}
 
     @property
     def triggers(self) -> list[Trigger]:
@@ -39,12 +43,12 @@ class SmartCaptureEngine:
             self._triggers.append(trigger)
             log.info("Registered trigger: %s -> %s", trigger.event_type, trigger.action_type)
 
-    def register_adapter(self, action_type: str, adapter):
+    def register_adapter(self, action_type: str, adapter: ActionAdapter) -> None:
         """Register an action adapter for an action type."""
         self._adapters[action_type] = adapter
         log.info("Registered adapter for action_type=%s", action_type)
 
-    def evaluate(self, events: list[dict]):
+    def evaluate(self, events: list[EventDict]) -> None:
         """Evaluate a batch of events against registered triggers.
 
         For each event, collect matching triggers, then pass them through
@@ -65,7 +69,7 @@ class SmartCaptureEngine:
             return val.lower() in ("true", "1", "yes", "on")
         return bool(val)
 
-    def _evaluate_event(self, event: dict):
+    def _evaluate_event(self, event: EventDict) -> None:
         matches = [(t, event) for t in self._triggers if t.matches(event)]
         if not matches:
             return

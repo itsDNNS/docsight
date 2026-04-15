@@ -5,16 +5,21 @@ import json
 import logging
 import re
 from datetime import datetime
+import io
 from io import BytesIO
 
 from flask import Blueprint, request, jsonify, send_file, make_response
 
+from app.tz import local_date_to_utc_range
 from app.web import (
     require_auth,
-    get_config_manager, get_state,
+    get_config_manager, get_state, get_storage,
     _valid_date, _localize_timestamps, _get_client_ip, _get_lang, _get_tz_name,
 )
 from app.storage import ALLOWED_MIME_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_ENTRY
+
+from .import_parser import parse_file
+from .storage import JournalStorage
 
 from werkzeug.utils import secure_filename
 
@@ -28,11 +33,9 @@ _VALID_INCIDENT_STATUSES = {"open", "resolved", "escalated"}
 
 def _get_journal_storage():
     """Get JournalStorage for journal-specific queries."""
-    from app.web import get_storage
     core = get_storage()
     if not core:
         return None
-    from .storage import JournalStorage
     return JournalStorage(core.db_path)
 
 
@@ -86,7 +89,6 @@ def api_journal_export():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     if fmt == "csv":
-        import io
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(["ID", "Date", "Title", "Description", "Icon", "Incident ID", "Attachments", "Created", "Updated"])
@@ -328,7 +330,6 @@ def api_journal_import_preview():
     if len(file_bytes) > 5 * 1024 * 1024:
         return jsonify({"error": "File too large (max 5 MB)"}), 400
 
-    from .import_parser import parse_file
     try:
         result = parse_file(file_bytes, f.filename)
     except ValueError as e:
@@ -572,13 +573,11 @@ def api_incident_timeline(incident_id):
     timeline = []
     bnetz = []
     if incident.get("start_date"):
-        from app.tz import local_date_to_utc_range
         tz = _get_tz_name()
         start_ts, _ = local_date_to_utc_range(incident["start_date"], tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
         _, end_ts = local_date_to_utc_range(end_date, tz)
-        from app.web import get_storage as _get_core_storage
-        _core = _get_core_storage()
+        _core = get_storage()
         if _core:
             timeline = _core.get_correlation_timeline(start_ts, end_ts)
         try:
@@ -628,13 +627,11 @@ def api_incident_report(incident_id):
     speedtests = []
     bnetz = []
     if incident.get("start_date"):
-        from app.tz import local_date_to_utc_range as _ldr
         _tz = _get_tz_name()
-        start_ts, _ = _ldr(incident["start_date"], _tz)
+        start_ts, _ = local_date_to_utc_range(incident["start_date"], _tz)
         end_date = incident.get("end_date") or datetime.now().strftime("%Y-%m-%d")
-        _, end_ts = _ldr(end_date, _tz)
-        from app.web import get_storage as _get_core_storage
-        _core = _get_core_storage()
+        _, end_ts = local_date_to_utc_range(end_date, _tz)
+        _core = get_storage()
         snapshots = _core.get_range_data(start_ts, end_ts) if _core else []
         try:
             from app.modules.speedtest.storage import SpeedtestStorage

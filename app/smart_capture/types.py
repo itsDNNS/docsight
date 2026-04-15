@@ -1,8 +1,12 @@
-"""Smart Capture types — execution status and trigger definitions."""
+"""Smart Capture types -- execution status and trigger definitions."""
+
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Callable
+from typing import Any, Callable
+
+from ..types import EventDict
 
 SEVERITY_RANK = {"info": 0, "warning": 1, "critical": 2}
 
@@ -26,10 +30,10 @@ class Trigger:
     action_type: str
     config_key: str | None = None
     min_severity: str | None = None
-    require_details: dict | None = field(default=None, hash=False)
-    sub_filter: Callable | None = field(default=None, repr=False, hash=False, compare=False)
+    require_details: dict[str, Any] | None = field(default=None, hash=False)
+    sub_filter: Callable[..., bool] | None = field(default=None, repr=False, hash=False, compare=False)
 
-    def matches(self, event: dict) -> bool:
+    def matches(self, event: EventDict) -> bool:
         if event.get("event_type") != self.event_type:
             return False
         if self.min_severity:

@@ -2,7 +2,7 @@
 
 import sqlite3
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 def _normalize_range_ts(ts, separator="T"):
@@ -127,8 +127,6 @@ class SegmentUtilizationStorage:
 
         Returns total number of rows removed by aggregation.
         """
-        from datetime import timedelta
-
         now = datetime.now(timezone.utc)
         removed = 0
 
@@ -198,7 +196,6 @@ class SegmentUtilizationStorage:
 
     def cleanup(self, days=365):
         """Delete records older than the given number of days. Returns count deleted."""
-        from datetime import timedelta
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
         with self._lock:
             conn = self._connect()

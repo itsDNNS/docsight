@@ -4,13 +4,19 @@ import csv
 import io
 import logging
 import math
+import os
 import re
 import time
 from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request, Response
 
-from app.web import require_auth
+from app.tz import local_date_to_utc_range, local_today, to_local_display, _parse_utc
+from app.web import get_config_manager, require_auth, _get_tz_name
+
+from .probe import ProbeEngine
+from .storage import ConnectionMonitorStorage
+from .traceroute_probe import TracerouteProbe
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +39,6 @@ def _get_cm_storage():
     """Get ConnectionMonitorStorage. Uses DATA_DIR like collector."""
     global _storage
     if _storage is None:
-        import os
-        from app.modules.connection_monitor.storage import ConnectionMonitorStorage
         data_dir = os.environ.get("DATA_DIR", "/data")
         db_path = os.path.join(data_dir, "connection_monitor.db")
         _storage = ConnectionMonitorStorage(db_path)
@@ -43,8 +47,6 @@ def _get_cm_storage():
 
 def _get_probe_engine():
     """Get ProbeEngine for capability info using configured method."""
-    from app.modules.connection_monitor.probe import ProbeEngine
-    from app.web import get_config_manager
     cfg = get_config_manager()
     method = cfg.get("connection_monitor_probe_method", "auto") if cfg else "auto"
     return ProbeEngine(method=method)
@@ -56,7 +58,6 @@ _traceroute_probe = None
 def _get_traceroute_probe():
     global _traceroute_probe
     if _traceroute_probe is None:
-        from app.modules.connection_monitor.traceroute_probe import TracerouteProbe
         _traceroute_probe = TracerouteProbe()
     return _traceroute_probe
 
@@ -132,13 +133,11 @@ _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _get_tz():
-    from app.web import _get_tz_name
     return _get_tz_name()
 
 
 def _date_to_epoch_range(date_str, tz_name):
     """Convert YYYY-MM-DD to (start_epoch, end_epoch) in the configured timezone."""
-    from app.tz import local_date_to_utc_range, _parse_utc
     start_utc, end_utc = local_date_to_utc_range(date_str, tz_name)
     return (_parse_utc(start_utc).timestamp(), _parse_utc(end_utc).timestamp())
 
@@ -175,9 +174,7 @@ def api_pin_day():
         except (ValueError, TypeError):
             return jsonify({"error": "invalid timestamp"}), 400
         tz = _get_tz()
-        from datetime import timezone as _utc_tz
-        from app.tz import to_local_display
-        utc_str = datetime.fromtimestamp(ts, tz=_utc_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        utc_str = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         date_str = to_local_display(utc_str, tz, fmt="%Y-%m-%d")
 
     if not _DATE_RE.match(date_str):
@@ -186,7 +183,6 @@ def api_pin_day():
         datetime.strptime(date_str, "%Y-%m-%d")
     except ValueError:
         return jsonify({"error": "invalid date"}), 400
-    from app.tz import local_today
     today = local_today(_get_tz())
     if date_str > today:
         return jsonify({"error": "cannot pin a future date"}), 400
@@ -368,7 +364,6 @@ def api_get_samples(target_id):
         res_name = resolution
         blended = False
 
-    # Fetch data
     samples = []
     tiers_used: list[str] = []
 
@@ -478,7 +473,6 @@ def api_get_summary():
 @bp.route("/api/connection-monitor/outages/<int:target_id>")
 @require_auth
 def api_get_outages(target_id):
-    from app.web import get_config_manager
     storage = _get_cm_storage()
     start = request.args.get("start", type=float)
     end = request.args.get("end", type=float)

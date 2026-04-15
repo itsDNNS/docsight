@@ -2,6 +2,7 @@
 
 import logging
 import sqlite3
+from datetime import datetime, timezone
 
 log = logging.getLogger("docsis.storage.speedtest")
 
@@ -105,7 +106,6 @@ class SpeedtestStorage:
                         "WHERE timestamp GLOB '*[+-][0-9][0-9]:[0-9][0-9]'"
                     ).fetchall()
                     if rows:
-                        from datetime import datetime, timezone
                         updates = []
                         for row_id, ts in rows:
                             try:

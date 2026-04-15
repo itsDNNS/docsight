@@ -336,7 +336,21 @@ class TestCH7465Driver:
 
 
 class TestCH7465PlayDriver:
-    @patch("app.drivers.ch7465_play.requests.Session")
+    @patch("weakref.finalize")
+    @patch("app.drivers.ch7465.requests.Session")
+    def test_init_registers_only_base_finalizer(self, mock_session_cls, mock_finalize):
+        """Play driver keeps the base cleanup finalizer instead of adding a second one."""
+        mock_finalizer = MagicMock()
+        mock_finalize.return_value = mock_finalizer
+
+        d = CH7465PlayDriver("http://192.168.0.1", "", "mypassword")
+
+        assert d._is_play is True
+        assert mock_finalize.call_count == 1
+        assert d._finalizer is mock_finalizer
+        assert d._finalizer.atexit is True
+
+    @patch("app.drivers.ch7465.requests.Session")
     def test_login_sends_plaintext_password(self, mock_session_cls):
         """Play firmware login sends plaintext password (not SHA256)."""
         d = CH7465PlayDriver("http://192.168.0.1", "", "mypassword")
@@ -348,7 +362,7 @@ class TestCH7465PlayDriver:
         payload = d._set_data.call_args[0][1]
         assert payload["Password"] == "mypassword"  # plaintext, not SHA256
 
-    @patch("app.drivers.ch7465_play.requests.Session")
+    @patch("app.drivers.ch7465.requests.Session")
     def test_login_always_sends_username_null(self, mock_session_cls):
         """Play firmware login always sends Username='NULL'."""
         d = CH7465PlayDriver("http://192.168.0.1", "anything", "pass")
@@ -360,7 +374,7 @@ class TestCH7465PlayDriver:
         payload = d._set_data.call_args[0][1]
         assert payload["Username"] == "NULL"
 
-    @patch("app.drivers.ch7465_play.requests.Session")
+    @patch("app.drivers.ch7465.requests.Session")
     def test_token_included_in_get_data(self, mock_session_cls):
         """sessionToken cookie is always included in _get_data POST params."""
         d = CH7465PlayDriver("http://192.168.0.1", "", "pass")
@@ -373,7 +387,7 @@ class TestCH7465PlayDriver:
         post_data = d._session.post.call_args[1]["data"]
         assert post_data["token"] == "tok123"
 
-    @patch("app.drivers.ch7465_play.requests.Session")
+    @patch("app.drivers.ch7465.requests.Session")
     def test_token_included_in_set_data(self, mock_session_cls):
         """sessionToken cookie is always included in _set_data POST params."""
         d = CH7465PlayDriver("http://192.168.0.1", "", "pass")
@@ -386,7 +400,7 @@ class TestCH7465PlayDriver:
         post_data = d._session.post.call_args[1]["data"]
         assert post_data["token"] == "tok456"
 
-    @patch("app.drivers.ch7465_play.requests.Session")
+    @patch("app.drivers.ch7465.requests.Session")
     def test_login_failure_raises(self, mock_session_cls):
         """Login raises RuntimeError on auth failure."""
         d = CH7465PlayDriver("http://192.168.0.1", "", "wrongpass")

@@ -1,16 +1,20 @@
 """FritzBox authentication and DOCSIS data retrieval."""
 
+from __future__ import annotations
+
 import hashlib
 import logging
 import xml.etree.ElementTree as ET
 
 import requests
 
+from .types import ConnectionInfo, DeviceInfo, DocsisData
+
 log = logging.getLogger("docsis.fritzbox")
 _TR064_NS = {"tr64": "urn:dslforum-org:device-1-0"}
 
 
-def _get_data_page(url: str, sid: str, page: str) -> dict:
+def _get_data_page(url: str, sid: str, page: str) -> dict[str, object]:
     """Fetch a FritzBox data.lua page and return its data payload."""
     r = requests.post(
         f"{url}/data.lua",
@@ -28,7 +32,7 @@ def _get_data_page(url: str, sid: str, page: str) -> dict:
     return r.json().get("data", {})
 
 
-def _parse_fritzos_device_info(data: dict) -> dict:
+def _parse_fritzos_device_info(data: dict[str, object]) -> DeviceInfo:
     """Extract model/version/uptime from a FritzBox fritzos object."""
     fritzos = data.get("fritzos", {})
     if not fritzos:
@@ -85,12 +89,12 @@ def login(url: str, user: str, password: str) -> str:
     return sid
 
 
-def get_docsis_data(url: str, sid: str) -> dict:
+def get_docsis_data(url: str, sid: str) -> DocsisData:
     """Query DOCSIS channel data from FritzBox."""
     return _get_data_page(url, sid, "docInfo")
 
 
-def get_device_info(url: str, sid: str) -> dict:
+def get_device_info(url: str, sid: str) -> DeviceInfo:
     """Try to get FritzBox model info."""
     for page in ("home", "boxinfo", "overview"):
         try:
@@ -117,7 +121,7 @@ def get_device_info(url: str, sid: str) -> dict:
         return {"model": "FRITZ!Box", "sw_version": ""}
 
 
-def get_connection_info(url: str, sid: str) -> dict:
+def get_connection_info(url: str, sid: str) -> ConnectionInfo:
     """Get internet connection info (speeds, type) from netMoni page."""
     try:
         data = _get_data_page(url, sid, "netMoni")
