@@ -40,6 +40,31 @@ def _safe_child_path(base_dir: str, child_name: str) -> str:
     return real_candidate
 
 
+_ALLOWED_CHILD_FILES = frozenset({"manifest.json"})
+
+
+def _safe_child_file(validated_dir: str, filename: str) -> str:
+    """Return the path to a known child file inside a validated directory.
+
+    *validated_dir* must already be the output of :func:`_safe_child_path`.
+    *filename* must be in the ``_ALLOWED_CHILD_FILES`` allowlist.
+
+    Raises ``ValueError`` if *filename* is not allowed or the resolved
+    path escapes *validated_dir*.
+    """
+    if filename not in _ALLOWED_CHILD_FILES:
+        raise ValueError(f"Filename not in allowlist: {filename!r}")
+
+    candidate = os.path.join(validated_dir, filename)
+    real_dir = os.path.realpath(validated_dir)
+    real_candidate = os.path.realpath(candidate)
+
+    if os.path.commonpath([real_dir, real_candidate]) != real_dir:
+        raise ValueError(f"Child file escapes directory: {filename!r}")
+
+    return real_candidate
+
+
 def _serialize_module(mod):
     """Convert ModuleInfo to JSON-safe dict."""
     return {
@@ -321,7 +346,7 @@ def api_modules_install():
         return jsonify({"success": False, "error": "Download failed"}), 500
 
     # Post-download validation
-    manifest_path = os.path.join(target_dir, "manifest.json")
+    manifest_path = _safe_child_file(target_dir, "manifest.json")
     if not os.path.isfile(manifest_path):
         shutil.rmtree(target_dir, ignore_errors=True)
         return jsonify({"success": False, "error": "Downloaded module missing manifest.json"}), 500
