@@ -54,7 +54,7 @@ This runs on port **8767** (`http://localhost:8767`) in demo mode. Production us
 python -m pytest tests/ -v
 ```
 
-1100+ tests cover analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. All tests must pass before submitting a PR.
+The test suite covers analyzers, collectors, drivers, event detection, API endpoints, config, MQTT, i18n, and PDF generation. All tests must pass before submitting a PR.
 
 ## Running Locally
 
@@ -78,7 +78,7 @@ app/
   collectors/        - Collector implementations (modem, demo, speedtest, bqm)
     base.py          - Abstract Collector with fail-safe and locking
     __init__.py      - Registry and discover_collectors()
-  drivers/           - Modem driver implementations (11 drivers)
+  drivers/           - Modem driver implementations for the supported hardware families
     base.py          - Abstract ModemDriver interface
     registry.py      - Driver registry (auto-detection + manual selection)
   modules/           - Built-in modules (backup, bnetz, bqm, journal, mqtt, ...)
@@ -87,7 +87,7 @@ app/
   fonts/             - Bundled DejaVu fonts for PDF generation
   static/            - Static assets (icons, etc.)
   templates/         - Jinja2 HTML templates
-tests/               - pytest test suite (1100+ tests)
+tests/               - pytest test suite
 docker-compose.yml     - Production Docker setup
 docker-compose.dev.yml - Development Docker setup
 ```

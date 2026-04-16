@@ -828,7 +828,7 @@ def test_my_collector_success():
 ## Testing
 
 **Framework:** pytest
-**Coverage:** 1100+ tests
+**Coverage:** Extensive pytest suite across analyzers, collectors, storage, web, config, and integrations
 
 **Run tests:**
 ```bash
