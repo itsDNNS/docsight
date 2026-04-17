@@ -752,9 +752,11 @@ function _setupCorrelationTooltip(overlay, octx) {
         // Convert mouseX to timestamp
         var tHover = st.tMin + (mouseX - st.pad.left) / st.plotW * (st.tMax - st.tMin);
 
-        // Find nearest modem point
+        // Find nearest modem point — always when modem data exists, since TX Power,
+        // DS Power, and Errors each have their own visibility flags and must survive
+        // SNR being toggled off (see issue #331).
         var nearestModem = null;
-        if (st.modem.length > 0 && _corrVisible.snr) {
+        if (st.modem.length > 0) {
             var bestDist = Infinity;
             for (var i = 0; i < st.modem.length; i++) {
                 var ts = new Date(st.modem[i].timestamp).getTime();
