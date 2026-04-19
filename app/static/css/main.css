@@ -840,19 +840,26 @@ body.is-offline .offline-banner { display: flex; }
   .metrics-grid { grid-template-columns: 1fr 1fr; gap: var(--space-md); }
   .health-overview { grid-template-columns: 1fr 1fr; }
   .hero-header { flex-direction: row; align-items: flex-start; justify-content: space-between; }
-  .hero-status { flex: 1; min-width: 0; }
+  /* .hero-status uses flex-basis: auto (content-based) rather than the
+     shorthand `flex: 1` (which expands to `1 1 0%`). With a 0 basis the
+     flex algorithm only fed the left column the leftover free space after
+     .hero-right took its full content width, which was not enough for the
+     hero-title on long health labels such as "Critical" on top of the
+     hero-subtitle. An auto basis gives .hero-status its intrinsic content
+     width up front, so the available space is shared proportionally
+     between both sides during shrink and the hero-title always has room
+     to render (reported as issue #336). */
+  .hero-status { flex: 1 1 auto; min-width: 0; }
   .hero-right { flex-shrink: 1; min-width: 0; justify-content: flex-end; }
   .hero-meta { min-width: 0; }
-  /* .hero-meta keeps its base `flex-wrap: wrap` at this breakpoint.
-     A prior `flex-wrap: nowrap` override forced the meta strip onto one line,
-     which exceeded the flex row width on modems with long model and firmware
-     strings. Letting `.hero-right` and `.hero-meta` shrink to the available
-     width allows the wrap behavior to engage before the left column gets
-     squeezed too far, which prevents the
-     hero-title overflow horizontally and the hero-subtitle collapse into a
-     narrow vertical column (reported as issue #336). On wider desktops the
-     meta items still render on a single line because `flex-wrap: wrap` only
-     wraps when content actually overflows. */
+  /* .hero-meta keeps its base `flex-wrap: wrap` at this breakpoint. A prior
+     `flex-wrap: nowrap` override forced the meta strip onto one line, which
+     combined with `.hero-right { flex-shrink: 0 }` and `.hero-status`'s
+     0 flex-basis squeezed the left column. Allowing both sides to shrink
+     plus letting .hero-meta wrap now produces a balanced two-row meta
+     layout on narrow viewports without touching the single-row layout on
+     wider desktops, because `flex-wrap: wrap` only wraps when content
+     actually overflows. */
   /* hero-title uses clamp() for fluid scaling */
   .hero-chart-wrap { height: 120px; }
   .hero-card { padding: var(--space-lg); }
