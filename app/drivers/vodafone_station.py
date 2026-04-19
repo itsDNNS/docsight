@@ -1,14 +1,14 @@
 """Vodafone Station driver for DOCSight.
 
 Supports two hardware variants with auto-detection:
-- CGA (CGA6444VF, CGA4322DE): Clean JSON API + double PBKDF2 auth
-- TG (TG3442DE): HTML parsing + AES-CCM auth
+- CGA (CGA6444VF/CGA4322DE): Clean JSON API + double PBKDF2 auth
+- TG (TG6442VF/TG3442DE): HTML parsing + AES-CCM auth
 
 Variant is auto-detected on first login attempt.
 
 References:
 - CGA6444VF: ZahrtheMad (tested & confirmed), aiovodafone patterns
-- TG3442DE: PR #13 (Arris AES-CCM flow), vodafone-station-cli
+- TG3442DE: PR #13 (ARRIS AES-CCM flow), vodafone-station-cli
 """
 
 from __future__ import annotations
@@ -29,10 +29,10 @@ log = logging.getLogger("docsis.driver.vodafone_station")
 
 
 class VodafoneStationDriver(ModemDriver):
-    """Driver for Vodafone Station (Arris TG3442DE, CGA6444VF, Technicolor CGA4322DE)."""
+    """Driver for Vodafone Station (CommScope/ARRIS TG6442VF/TG3442DE, CommScope/Technicolor CGA6444VF/CGA4322DE)."""
 
-    VARIANT_CGA = "cga"  # CGA6444VF / CGA4322DE (JSON API + double PBKDF2)
-    VARIANT_TG = "tg"    # TG3442DE (HTML + AES-CCM)
+    VARIANT_CGA = "cga"  # CGA6444VF/CGA4322DE (JSON API + double PBKDF2)
+    VARIANT_TG = "tg"    # TG6442VF/TG3442DE (HTML + AES-CCM)
 
     def __init__(self, url: str, user: str, password: str):
         super().__init__(url, user, password)
@@ -70,11 +70,7 @@ class VodafoneStationDriver(ModemDriver):
         """Retrieve device model and firmware info."""
         if self._variant == self.VARIANT_CGA:
             return self._get_device_info_cga()
-        return {
-            "manufacturer": "Arris",
-            "model": "Vodafone Station (TG3442DE)",
-            "sw_version": "",
-        }
+        return self._get_device_info_tg()
 
     def get_connection_info(self) -> ConnectionInfo:
         """Retrieve internet connection info."""
@@ -88,7 +84,7 @@ class VodafoneStationDriver(ModemDriver):
         try:
             self._login_cga()
             self._variant = self.VARIANT_CGA
-            log.info("Detected Vodafone Station variant: CGA (CGA6444VF/CGA4322DE)")
+            log.info("Detected Vodafone Station variant: CGA")
             return
         except Exception as e:
             log.warning("CGA login attempt failed: %s — trying TG variant", e)
@@ -98,7 +94,7 @@ class VodafoneStationDriver(ModemDriver):
         try:
             self._login_tg()
             self._variant = self.VARIANT_TG
-            log.info("Detected Vodafone Station variant: TG (TG3442DE)")
+            log.info("Detected Vodafone Station variant: TG")
             return
         except Exception as e:
             log.error("TG login attempt also failed: %s", e)
@@ -111,10 +107,10 @@ class VodafoneStationDriver(ModemDriver):
                 "Check URL, username, and password."
             )
 
-    # ── CGA Variant (CGA6444VF / CGA4322DE) ──────────────────
+    # ── CGA Variant (CGA6444VF/CGA4322DE) ──────────────────
 
     def _login_cga(self) -> None:
-        """CGA auth: double PBKDF2-SHA256 (CGA6444VF / CGA4322DE).
+        """CGA auth: double PBKDF2-SHA256 (CGA6444VF/CGA4322DE).
 
         Based on ZahrtheMad's CGA6444VF documentation and fthomys reference:
         1. Set session headers + cwd=No cookie
@@ -401,16 +397,73 @@ class VodafoneStationDriver(ModemDriver):
             r = self._cga_request("GET", "/api/v1/sta_device_info")
             info = r.json()
             return {
-                "manufacturer": info.get("manufacturer", "Arris"),
+                "manufacturer": info.get("manufacturer", "CommScope/Technicolor"),
                 "model": info.get("modelName", info.get("model", "Vodafone Station")),
                 "sw_version": info.get("softwareVersion", info.get("swVersion", "")),
             }
         except Exception:
             return {
-                "manufacturer": "Arris",
-                "model": "Vodafone Station (CGA)",
+                "manufacturer": "CommScope/Technicolor",
+                "model": "Vodafone Station (CGA6444VF/CGA4322DE)",
                 "sw_version": "",
             }
+
+    def _get_device_info_tg(self) -> DeviceInfo:
+            """TG: Retrieve device info from HTML."""
+            try:
+                r = self._session.get(f"{self._url}/php/status_status_data.php", timeout=5)
+                r.raise_for_status()
+                text = r.text
+
+                # 2nd fetch for docsis_status/reboot_reason
+                r2 = self._session.get(f"{self._url}/?status_status", timeout=5)
+                r2.raise_for_status()
+                text2 = r2.text
+
+                def extract(text, marker):
+                    return text.split(marker)[1].split("'")[0] if marker in text else ""
+                hw_version = extract(text, "js_HWTypeVersion = '")
+                sw_version = extract(text, "js_FWVersion = '")
+                wan_ipv4 = extract(text, "js_ipv4addr = '")
+                wan_ipv6 = extract(text, "js_ipv6addr = '")
+                docsis_status = extract(text2, "_ga.modemConnectionStatus = '")
+                reboot_reason = (extract(text2, "_ga.lastRebootReason = '") or "").lower()
+                
+                # Normalize DOCSIS status
+                docsis_status = {
+                "DOCSIS Online": "online",
+                "DOCSIS Offline": "offline",
+                }.get(docsis_status, docsis_status)
+
+                # Extract and Normalize uptime
+                uptime_raw = extract(text, "js_UptimeSinceReboot = '")
+                parts = [int(x) for x in uptime_raw.split(",")] if uptime_raw else [0, 0, 0]
+                uptime_seconds = parts[0]*86400 + parts[1]*3600 + parts[2]*60
+
+                return {
+                    "manufacturer": "CommScope/ARRIS",
+                    "model": "Vodafone Station (TG6442VF/TG3442DE)",
+                    "hw_version": hw_version,
+                    "sw_version": sw_version,
+                    "docsis_status": docsis_status,
+                    "uptime_seconds": uptime_seconds,
+                    "reboot_reason": reboot_reason,
+                    "wan_ipv4": wan_ipv4,
+                    "wan_ipv6": wan_ipv6,
+                }
+            
+            except Exception:
+                return {
+                    "manufacturer": "CommScope/ARRIS",
+                    "model": "Vodafone Station (TG6442VF/TG3442DE)",
+                    "hw_version": "",
+                    "sw_version": "",
+                    "docsis_status": "",
+                    "uptime_seconds": "",
+                    "reboot_reason": "",
+                    "wan_ipv4": "",
+                    "wan_ipv6": "",
+                }
 
     def _invalidate_cga_session(self) -> None:
         """Clear CGA session state and session-level headers."""
@@ -420,10 +473,10 @@ class VodafoneStationDriver(ModemDriver):
         for key in ("User-Agent", "X-Requested-With", "Referer"):
             self._session.headers.pop(key, None)
 
-    # ── TG Variant (TG3442DE) ─────────────────────────────────
+    # ── TG Variant (TG6442VF/TG3442DE) ─────────────────────────────────
 
     def _login_tg(self) -> None:
-        """TG auth: AES-CCM encrypted credentials (Arris TG3442DE).
+        """TG auth: AES-CCM encrypted credentials (CommScope/ARRIS TG6442VF/TG3442DE).
 
         Based on arris-tg3442de-exporter and vodafone-station-cli:
         1. GET login page -> extract currentSessionId, myIv, mySalt from JS
@@ -708,7 +761,7 @@ class VodafoneStationDriver(ModemDriver):
     def _set_tg_credential_cookie(self):
         """Fetch and set the credential cookie from the modem's base_95x.js.
 
-        The TG3442DE firmware requires this cookie for authenticated data
+        The TG6442VF/TG3442DE firmware requires this cookie for authenticated data
         requests. The browser's login JavaScript sets it via createCookie().
         """
         try:
