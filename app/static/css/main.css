@@ -841,12 +841,14 @@ body.is-offline .offline-banner { display: flex; }
   .health-overview { grid-template-columns: 1fr 1fr; }
   .hero-header { flex-direction: row; align-items: flex-start; justify-content: space-between; }
   .hero-status { flex: 1; min-width: 0; }
-  .hero-right { flex-shrink: 0; justify-content: flex-end; }
+  .hero-right { flex-shrink: 1; min-width: 0; justify-content: flex-end; }
+  .hero-meta { min-width: 0; }
   /* .hero-meta keeps its base `flex-wrap: wrap` at this breakpoint.
      A prior `flex-wrap: nowrap` override forced the meta strip onto one line,
      which exceeded the flex row width on modems with long model and firmware
-     strings. Because `.hero-right` cannot shrink and `.hero-status` has
-     `min-width: 0`, the left column got squeezed too far, making the
+     strings. Letting `.hero-right` and `.hero-meta` shrink to the available
+     width allows the wrap behavior to engage before the left column gets
+     squeezed too far, which prevents the
      hero-title overflow horizontally and the hero-subtitle collapse into a
      narrow vertical column (reported as issue #336). On wider desktops the
      meta items still render on a single line because `flex-wrap: wrap` only
