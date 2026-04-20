@@ -882,5 +882,15 @@
   "font_family": "Font",
   "font_family_desc": "Choose the interface font",
   "use_system_font": "Use system font",
-  "use_system_font_hint": "Replace Outfit with your operating system's default font. Can improve readability on remote desktop (RDP) connections."
+  "use_system_font_hint": "Replace Outfit with your operating system's default font. Can improve readability on remote desktop (RDP) connections.",
+  "isp_name_tooltip": "internet service provider",
+  "device_model_tooltip": "device model",
+  "hw_version_tooltip": "hardware version/revision",
+  "sw_version_tooltip": "software/firmware version",
+  "docsis_status_tooltip": "DOCSIS connection status",
+  "uptime_tooltip": "uptime",
+  "reboot_reason_tooltip": "reason for the last reboot",
+  "channel_count_tooltip": "# of downstream/upstream DOCSIS channels",
+  "wan_ipv4_tooltip": "WAN IPv4 address",
+  "wan_ipv6_tooltip": "WAN IPv6 address"
 }
