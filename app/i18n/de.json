@@ -882,5 +882,15 @@
   "font_family": "Schriftart",
   "font_family_desc": "Schriftart der Oberfläche wählen",
   "use_system_font": "Systemschriftart verwenden",
-  "use_system_font_hint": "Ersetzt Outfit durch die Standard-Schriftart deines Betriebssystems. Kann die Lesbarkeit bei Remote-Desktop-Verbindungen (RDP) verbessern."
+  "use_system_font_hint": "Ersetzt Outfit durch die Standard-Schriftart deines Betriebssystems. Kann die Lesbarkeit bei Remote-Desktop-Verbindungen (RDP) verbessern.",
+  "isp_name_tooltip": "Internetanbieter",
+  "device_model_tooltip": "Gerätemodell",
+  "hw_version_tooltip": "Hardware Version/Revision",
+  "sw_version_tooltip": "Software/Firmware Version",
+  "docsis_status_tooltip": "DOCSIS Verbindungsstatus",
+  "uptime_tooltip": "Betriebszeit",
+  "reboot_reason_tooltip": "Grund für den letzten Neustart",
+  "channel_count_tooltip": "# der Downstream/Upstream DOCSIS Kanäle",
+  "wan_ipv4_tooltip": "WAN IPv4 Adresse",
+  "wan_ipv6_tooltip": "WAN IPv6 Adresse"
 }
