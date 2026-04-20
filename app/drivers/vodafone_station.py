@@ -409,62 +409,70 @@ class VodafoneStationDriver(ModemDriver):
             }
 
     def _get_device_info_tg(self) -> DeviceInfo:
-            """TG: Retrieve device info from HTML."""
-            try:
-                r = self._session.get(f"{self._url}/php/status_status_data.php", timeout=5)
-                r.raise_for_status()
-                text = r.text
+        """TG: Retrieve device info from HTML"""
+        import re
 
-                # 2nd fetch for docsis_status/reboot_reason
-                r2 = self._session.get(f"{self._url}/?status_status", timeout=5)
-                r2.raise_for_status()
-                text2 = r2.text
+        def fetch_status_pages():
+            r1 = self._session.get(f"{self._url}/php/status_status_data.php", timeout=5)
+            r1.raise_for_status()
 
-                def extract(text, marker):
-                    return text.split(marker)[1].split("'")[0] if marker in text else ""
-                hw_version = extract(text, "js_HWTypeVersion = '")
-                sw_version = extract(text, "js_FWVersion = '")
-                wan_ipv4 = extract(text, "js_ipv4addr = '")
-                wan_ipv6 = extract(text, "js_ipv6addr = '")
-                docsis_status = extract(text2, "_ga.modemConnectionStatus = '")
-                reboot_reason = (extract(text2, "_ga.lastRebootReason = '") or "").lower()
-                
-                # Normalize DOCSIS status
-                docsis_status = {
+            r2 = self._session.get(f"{self._url}/?status_status", timeout=5)
+            r2.raise_for_status()
+
+            return r1.text, r2.text
+
+        def parse_status(text, text2):
+            def extract(text, marker, field_name):
+                if marker not in text:
+                    log.warning("marker '%s' not found while parsing %s", marker, field_name)
+                    return ""
+                try:
+                    return text.split(marker, 1)[1].split("'", 1)[0]
+                except (IndexError, ValueError):
+                    log.warning("failed to parse %s using marker '%s'", field_name, marker)
+                    return ""
+
+            hw_version = extract(text, "js_HWTypeVersion = '", "hw_version")
+            sw_version = extract(text, "js_FWVersion = '", "sw_version")
+            wan_ipv4 = extract(text, "js_ipv4addr = '", "wan_ipv4")
+            wan_ipv6 = extract(text, "js_ipv6addr = '", "wan_ipv6")
+
+            docsis_status = extract(text2, "_ga.modemConnectionStatus = '", "docsis_status")
+            reboot_reason = (extract(text2, "_ga.lastRebootReason = '", "reboot_reason") or "").lower()
+
+            docsis_status = {
                 "DOCSIS Online": "online",
                 "DOCSIS Offline": "offline",
-                }.get(docsis_status, docsis_status)
+                }.get(docsis_status, docsis_status.lower())
 
-                # Extract and Normalize uptime
-                uptime_raw = extract(text, "js_UptimeSinceReboot = '")
-                parts = [int(x) for x in uptime_raw.split(",")] if uptime_raw else [0, 0, 0]
-                uptime_seconds = parts[0]*86400 + parts[1]*3600 + parts[2]*60
+            uptime_seconds = 0
+            m = re.search(r"js_UptimeSinceReboot = '(\d+),(\d+),(\d+)", text)
+            if m:
+                d, h, m_ = map(int, m.groups())
+                uptime_seconds = d * 86400 + h * 3600 + m_ * 60
+            else:
+                log.warning("uptime format not found or changed")
 
-                return {
-                    "manufacturer": "CommScope/ARRIS",
-                    "model": "Vodafone Station (TG6442VF/TG3442DE)",
-                    "hw_version": hw_version,
-                    "sw_version": sw_version,
-                    "docsis_status": docsis_status,
-                    "uptime_seconds": uptime_seconds,
-                    "reboot_reason": reboot_reason,
-                    "wan_ipv4": wan_ipv4,
-                    "wan_ipv6": wan_ipv6,
-                }
-            
-            except Exception:
-                return {
-                    "manufacturer": "CommScope/ARRIS",
-                    "model": "Vodafone Station (TG6442VF/TG3442DE)",
-                    "hw_version": "",
-                    "sw_version": "",
-                    "docsis_status": "",
-                    "uptime_seconds": "",
-                    "reboot_reason": "",
-                    "wan_ipv4": "",
-                    "wan_ipv6": "",
-                }
+            return {
+                "hw_version": hw_version,
+                "sw_version": sw_version,
+                "wan_ipv4": wan_ipv4,
+                "wan_ipv6": wan_ipv6,
+                "docsis_status": docsis_status,
+                "reboot_reason": reboot_reason,
+                "uptime_seconds": uptime_seconds,
+            }
 
+        # actual execution flow
+        text, text2 = fetch_status_pages()
+        data = parse_status(text, text2)
+
+        return {
+            "manufacturer": "CommScope/ARRIS",
+            "model": "Vodafone Station (TG6442VF/TG3442DE)",
+            **data
+        }
+    
     def _invalidate_cga_session(self) -> None:
         """Clear CGA session state and session-level headers."""
         self._cga_token = None
