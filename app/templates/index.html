@@ -365,37 +365,82 @@
             </div>
             <div class="hero-right">
                 <div class="hero-meta">
-                    {% if isp_name %}
-                    <span class="hero-meta-item"><i data-lucide="wifi"></i> {{ isp_name }}</span>
-                    {% endif %}
-                    {% if connection_info and connection_info.max_downstream_kbps %}
-                    <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} MBit/s</span>
-                    {% elif booked_download and booked_download > 0 %}
-                    <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ booked_download|int }}/{{ booked_upload|int }} MBit/s</span>
-                    {% endif %}
-                    <span class="hero-meta-item"><i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch</span>
-                    {% if device_info and device_info.model %}
-                    <span class="hero-meta-item"><i data-lucide="router"></i> {{ device_info.model }}</span>
-                    {% endif %}
-                    {% if device_info and device_info.sw_version %}
-                    <span class="hero-meta-item"><i data-lucide="cpu"></i> {{ device_info.sw_version }}</span>
-                    {% endif %}
-                    {% if device_info and device_info.get('uptime_seconds') is not none %}
-                    <span class="hero-meta-item"><i data-lucide="clock"></i> {{ device_info.uptime_seconds|fmt_uptime }}</span>
-                    {% endif %}
-                    {% if gaming_quality_enabled and gaming_index %}
-                    {% set _g = gaming_index.grade|upper %}
-                    {% set _badge_class = 'badge-good' if _g in ('A', 'B') else ('badge-warn' if _g == 'C' else 'badge-crit') %}
-                    <span class="hero-meta-item" style="cursor:help;"
-                          title="{{ gaming_index.score }}/100 — {{ t['gaming_tooltip_' ~ gaming_index.grade|lower] }}{% if not gaming_index.has_speedtest %} ({{ t.gaming_no_speedtest }}){% endif %}">
-                        <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i> {{ t.gaming_badge_label }} <span class="badge {{ _badge_class }}" style="margin-left:2px;">{{ gaming_index.grade }}</span>
-                    </span>
-                    {% endif %}
-                    <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
-                    <span class="hero-meta-item desktop-only" style="cursor:pointer;" title="{{ t.refresh }}"
-                          onclick="var rb=document.getElementById('refresh-btn');if(rb)rb.click();">
-                        <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> {{ t.refresh }}
-                    </span>
+                        {% if isp_name %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.isp_name_tooltip }}">
+                            <i data-lucide="cloud"></i> {{ isp_name }}
+                        </span>
+                        {% endif %}
+                        {% if device_info and device_info.model %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.device_model_tooltip }}">
+                            <i data-lucide="router"></i> {{ device_info.model }}
+                        </span>
+                        {% endif %}
+                        {% if device_info and device_info.hw_version %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.hw_version_tooltip }}">
+                            <i data-lucide="cpu"></i> {{ device_info.hw_version }}
+                        </span>
+                        {% endif %}
+                        {% if device_info and device_info.sw_version %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.sw_version_tooltip }}">
+                            <i data-lucide="package"></i> {{ device_info.sw_version }}
+                        </span>
+                        {% endif %}
+                        {% if device_info and device_info.get('uptime_seconds') is not none %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.uptime_tooltip }}">
+                            <i data-lucide="clock"></i> {{ device_info.uptime_seconds|fmt_uptime }}
+                        </span>
+                        {% endif %}
+                        {% if device_info and device_info.reboot_reason %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.reboot_reason_tooltip }}">
+                            <i data-lucide="rotate-cw-square"></i> {{ device_info.reboot_reason }}
+                        </span>
+                        {% endif %}
+                        {% if device_info and device_info.docsis_status %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.docsis_status_tooltip }}">
+                            <i data-lucide="arrow-down-up"></i> {{ device_info.docsis_status }}
+                        </span>
+                        {% endif %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.channel_count_tooltip }}">
+                            <i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch
+                        </span>                      
+                        {% if connection_info and connection_info.max_downstream_kbps %}
+                        <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} MBit/s</span>
+                        {% elif booked_download and booked_download > 0 %}
+                        <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ booked_download|int }}/{{ booked_upload|int }} MBit/s</span>
+                        {% endif %}
+                        {% if device_info and device_info.wan_ipv4 %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.wan_ipv4_tooltip }}">
+                            <i data-lucide="globe"></i> {{ device_info.wan_ipv4 }}
+                        </span>
+                        {% endif %}
+                        {% if device_info and device_info.wan_ipv6 %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ t.wan_ipv6_tooltip }}">
+                            <i data-lucide="globe"></i> {{ device_info.wan_ipv6 }}
+                        </span>
+                        {% endif %}
+                        {% if gaming_quality_enabled and gaming_index %}
+                        {% set _g = gaming_index.grade|upper %}
+                        {% set _badge_class = 'badge-good' if _g in ('A', 'B') else ('badge-warn' if _g == 'C' else 'badge-crit') %}
+                        <span class="hero-meta-item" style="cursor:help;"
+                            title="{{ gaming_index.score }}/100 — {{ t['gaming_tooltip_' ~ gaming_index.grade|lower] }}{% if not gaming_index.has_speedtest %} ({{ t.gaming_no_speedtest }}){% endif %}">
+                            <i data-lucide="gamepad-2" style="width:14px;height:14px;"></i> {{ t.gaming_badge_label }} <span class="badge {{ _badge_class }}" style="margin-left:2px;">{{ gaming_index.grade }}</span>
+                        </span>
+                        {% endif %}
+                        <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
+                        <span class="hero-meta-item desktop-only" style="cursor:pointer;" title="{{ t.refresh }}"
+                            onclick="var rb=document.getElementById('refresh-btn');if(rb)rb.click();">
+                            <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> {{ t.refresh }}
+                        </span>
                 </div>
             </div>
         </div>
