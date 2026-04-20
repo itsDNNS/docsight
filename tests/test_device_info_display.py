@@ -143,7 +143,7 @@ class TestDeviceInfoDashboard:
         update_state(device_info={"model": "TC4400", "sw_version": "2.1.0beta3"})
         html = self._render_index(client)
         assert "2.1.0beta3" in html
-        assert 'data-lucide="cpu"' in html
+        assert 'data-lucide="package"' in html
 
     def test_uptime_badge_rendered(self, client):
         """Uptime badge appears when uptime_seconds is present."""
@@ -162,7 +162,7 @@ class TestDeviceInfoDashboard:
         update_state(device_info={"model": "Hitron CODA-56", "sw_version": ""})
         html = self._render_index(client)
         assert "Hitron CODA-56" in html
-        assert 'data-lucide="cpu"' not in html
+        assert 'data-lucide="package"' not in html
 
     def test_no_uptime_badge_when_missing(self, client):
         """No uptime badge when uptime_seconds is not in device_info."""
