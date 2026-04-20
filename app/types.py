@@ -190,8 +190,13 @@ class DeviceInfo(TypedDict, total=False):
 
     manufacturer: str
     model: str
-    sw_version: str
+    hw_version: str     # hardware version/revision
+    sw_version: str     # firmware/software version
+    docsis_status: str  # e.g. online/offline/syncing
     uptime_seconds: int
+    reboot_reason: str  # reason for the last reboot
+    wan_ipv4: str
+    wan_ipv6: str
 
 
 class ConnectionInfo(TypedDict, total=False):
