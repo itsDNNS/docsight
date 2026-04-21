@@ -96,12 +96,24 @@ docker-compose.dev.yml - Development Docker setup
 
 Translations live in `app/i18n/` as JSON files:
 
-- `en.json` — English
-- `de.json` — German
-- `fr.json` — French
-- `es.json` — Spanish
+- `en.json` - English
+- `de.json` - German
+- `fr.json` - French
+- `es.json` - Spanish
 
-Each file has a `_meta` field with `language_name` and `flag`. When adding or changing UI strings, update **all 4 files**.
+Each file has a `_meta` field with `language_name` and `flag`. When adding or changing UI strings, update **all existing language files**.
+
+### Adding a New Language
+
+DOCSight is used internationally and translations from native speakers are welcome. To add a new language:
+
+1. Copy `app/i18n/template.json` to `app/i18n/<lang>.json` (e.g. `sv.json` for Swedish, `nl.json` for Dutch). Use the ISO 639-1 two-letter code.
+2. Fill in `_meta.language_name` (native spelling, e.g. `Svenska` not `Swedish`) and `_meta.flag` (emoji flag).
+3. Translate the values. Keep the JSON keys untouched. Preserve any `{placeholder}` tokens in the strings.
+4. Run `python scripts/i18n_check.py --validate` to make sure no keys are missing or extra compared to `en.json`.
+5. Open a PR. Mention in the description whether you are able to keep the translation updated when new strings are added in the future.
+
+We prefer new languages to be contributed by people who actually use the tool in that language, so the translation sounds natural and stays maintained over time. Partial translations are fine - missing keys fall back to English automatically.
 
 ## Pull Request Guidelines
 
@@ -109,7 +121,7 @@ Each file has a `_meta` field with `language_name` and `flag`. When adding or ch
 - **Keep changes focused and minimal.** Smaller PRs are easier to review and more likely to be merged.
 - **Follow the pipeline architecture.** New functionality must integrate into the existing data flow, not bypass it.
 - Add tests for new functionality
-- Maintain all 4 language translations (EN/DE/FR/ES) in `app/i18n/*.json`
+- Maintain all existing language translations in `app/i18n/*.json` (run `python scripts/i18n_check.py --validate`)
 - Run the full test suite before submitting a PR
 - AI-generated bulk PRs without prior discussion will not be merged
 
