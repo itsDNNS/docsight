@@ -192,6 +192,7 @@ var currentLang = '{{ lang }}';
 var currentTz = '{{ config.timezone|default("", true) }}';
 try { var savedCooldowns = JSON.parse('{{ config.notify_cooldowns|default("{}")|e }}'); } catch(e) { var savedCooldowns = {}; }
 var DRIVER_HINTS = {{ driver_hints | tojson }};
+window.SECRET_FIELDS = {{ secret_fields | tojson }};
 </script>
 <script src="/static/js/utils.js"></script>
 <script src="/static/js/settings.js"></script>

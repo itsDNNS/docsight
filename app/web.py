@@ -921,7 +921,31 @@ def settings():
             "manage_label": t.get("step_modem", "Modem"),
         },
     ]
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, driver_hints=driver_hints, demo_mode=demo_mode, timezones=_get_iana_timezones(), iana_tz=iana_tz, tz_is_posix=tz_is_posix, all_modules=all_modules, built_in_features=built_in_features)
+    from .config import HASH_KEYS, SECRET_KEYS
+
+    secret_fields = sorted(SECRET_KEYS | HASH_KEYS)
+    return render_template(
+        "settings.html",
+        config=config,
+        theme=theme,
+        poll_min=POLL_MIN,
+        poll_max=POLL_MAX,
+        t=t,
+        lang=lang,
+        languages=LANGUAGES,
+        lang_flags=LANG_FLAGS,
+        server_tz=tz_name,
+        server_tz_offset=tz_offset,
+        modem_types=modem_types,
+        driver_hints=driver_hints,
+        demo_mode=demo_mode,
+        timezones=_get_iana_timezones(),
+        iana_tz=iana_tz,
+        tz_is_posix=tz_is_posix,
+        all_modules=all_modules,
+        built_in_features=built_in_features,
+        secret_fields=secret_fields,
+    )
 
 
 @app.after_request

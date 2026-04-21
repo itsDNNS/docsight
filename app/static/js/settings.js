@@ -265,7 +265,13 @@ function showToast(msg, ok) {
 
 /* ── Form Data ── */
 var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
-var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token', 'notify_webhook_token'];
+var SECRET_FIELDS = window.SECRET_FIELDS || [
+    'modem_password',
+    'mqtt_password',
+    'admin_password',
+    'speedtest_tracker_token',
+    'notify_webhook_token'
+];
 
 function escHtml(s) {
     var d = document.createElement('div');

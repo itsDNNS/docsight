@@ -44,6 +44,7 @@ class ModuleInfo:
     homepage: str = ""
     license: str = ""
     config: dict[str, Any] = field(default_factory=dict)
+    config_secrets: list[str] = field(default_factory=list)
     menu: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
     error: str | None = None
@@ -108,6 +109,22 @@ def validate_manifest(raw: dict[str, Any], module_path: str) -> ModuleInfo:
     norm = os.path.normpath(module_path).replace("\\", "/")
     builtin = "/app/modules/" in norm or "\\app\\modules\\" in os.path.normpath(module_path)
 
+    config_secrets_raw = raw.get("config_secrets", [])
+    if not isinstance(config_secrets_raw, list) or not all(isinstance(s, str) for s in config_secrets_raw):
+        raise ManifestError("'config_secrets' must be a list of strings")
+    config_defaults = raw.get("config", {}) or {}
+    if not builtin:
+        conflicting_keys = sorted(set(config_defaults) & set(_cfg.DEFAULTS))
+        if conflicting_keys:
+            raise ManifestError(
+                f"community module config keys conflict with existing core keys: {conflicting_keys}"
+            )
+    unknown_secrets = [s for s in config_secrets_raw if s not in config_defaults]
+    if unknown_secrets:
+        raise ManifestError(
+            f"'config_secrets' references keys not declared in 'config': {sorted(unknown_secrets)}"
+        )
+
     return ModuleInfo(
         id=mod_id,
         name=raw["name"],
@@ -121,7 +138,8 @@ def validate_manifest(raw: dict[str, Any], module_path: str) -> ModuleInfo:
         builtin=builtin,
         homepage=raw.get("homepage", ""),
         license=raw.get("license", ""),
-        config=raw.get("config", {}),
+        config=config_defaults,
+        config_secrets=list(config_secrets_raw),
         menu={**{"order": 999}, **raw.get("menu", {})},
         hints=raw.get("hints", {}),
     )
@@ -194,11 +212,16 @@ def discover_modules(
     return modules
 
 
-def register_module_config(config_defaults: dict[str, Any]) -> None:
+def register_module_config(
+    config_defaults: dict[str, Any],
+    secret_keys: list[str] | None = None,
+) -> None:
     """Register a module's config defaults into the global config system.
 
     - Adds defaults to config.DEFAULTS (without overwriting existing keys)
     - Auto-detects bool/int keys and adds them to BOOL_KEYS/INT_KEYS
+    - Adds any declared secret keys to SECRET_KEYS so they are encrypted at rest
+      and masked in /api/config responses.
     """
     for key, value in config_defaults.items():
         if key in _cfg.DEFAULTS:
@@ -209,6 +232,8 @@ def register_module_config(config_defaults: dict[str, Any]) -> None:
             _cfg.BOOL_KEYS.add(key)
         elif isinstance(value, int):
             _cfg.INT_KEYS.add(key)
+    for key in (secret_keys or []):
+        _cfg.SECRET_KEYS.add(key)
 
 
 def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
@@ -632,7 +657,7 @@ class ModuleLoader:
 
         # Config defaults
         if mod.config:
-            register_module_config(mod.config)
+            register_module_config(mod.config, secret_keys=mod.config_secrets)
 
         # i18n
         if "i18n" in c:

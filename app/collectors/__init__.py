@@ -135,7 +135,7 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
                     else:
                         mod_cfg = _ModuleConfigProxy(
                             config_mgr,
-                            allowed_secret_keys=set(mod.config.keys()) & SECRET_KEYS,
+                            allowed_secret_keys=set(mod.config_secrets) & SECRET_KEYS,
                         )
                     c = mod.collector_class(
                         config_mgr=mod_cfg,

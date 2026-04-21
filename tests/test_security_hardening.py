@@ -140,6 +140,19 @@ class TestModuleConfigProxy:
         )
         assert proxy.get("speedtest_tracker_token") == "mytoken"
 
+    def test_allowed_secret_does_not_unlock_other_secrets(self, tmp_path):
+        cfg = ConfigManager(str(tmp_path))
+        cfg.save({
+            "speedtest_tracker_token": "mytoken",
+            "modem_password": "secret123",
+        })
+
+        proxy = _ModuleConfigProxy(
+            cfg, allowed_secret_keys={"speedtest_tracker_token"}
+        )
+        assert proxy.get("speedtest_tracker_token") == "mytoken"
+        assert proxy.get("modem_password") is None
+
     def test_get_all_masks_secrets(self, tmp_path):
         cfg = ConfigManager(str(tmp_path))
         cfg.save({"modem_password": "secret", "language": "en"})
