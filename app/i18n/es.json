@@ -877,5 +877,15 @@
   "font_family": "Fuente",
   "font_family_desc": "Elegir la fuente de la interfaz",
   "use_system_font": "Usar fuente del sistema",
-  "use_system_font_hint": "Reemplaza Outfit con la fuente predeterminada del sistema operativo. Puede mejorar la legibilidad en conexiones de escritorio remoto (RDP)."
+  "use_system_font_hint": "Reemplaza Outfit con la fuente predeterminada del sistema operativo. Puede mejorar la legibilidad en conexiones de escritorio remoto (RDP).",
+  "isp_name_tooltip": "proveedor de servicios de internet",
+  "device_model_tooltip": "modelo del dispositivo",
+  "hw_version_tooltip": "version/revision del hardware",
+  "sw_version_tooltip": "version de software/firmware",
+  "docsis_status_tooltip": "estado de la conexion DOCSIS",
+  "uptime_tooltip": "tiempo de actividad",
+  "reboot_reason_tooltip": "motivo del ultimo reinicio",
+  "channel_count_tooltip": "numero de canales DOCSIS de bajada/subida",
+  "wan_ipv4_tooltip": "direccion IPv4 WAN",
+  "wan_ipv6_tooltip": "direccion IPv6 WAN"
 }

@@ -874,5 +874,15 @@
   "font_family": "Police",
   "font_family_desc": "Choisir la police de l'interface",
   "use_system_font": "Utiliser la police système",
-  "use_system_font_hint": "Remplace Outfit par la police par défaut de votre système. Peut améliorer la lisibilité en connexion bureau à distance (RDP)."
+  "use_system_font_hint": "Remplace Outfit par la police par défaut de votre système. Peut améliorer la lisibilité en connexion bureau à distance (RDP).",
+  "isp_name_tooltip": "fournisseur d'accès à internet",
+  "device_model_tooltip": "modèle de l'appareil",
+  "hw_version_tooltip": "version/révision du matériel",
+  "sw_version_tooltip": "version logiciel/firmware",
+  "docsis_status_tooltip": "état de la connexion DOCSIS",
+  "uptime_tooltip": "temps de fonctionnement",
+  "reboot_reason_tooltip": "raison du dernier redémarrage",
+  "channel_count_tooltip": "nombre de canaux DOCSIS descendants/montants",
+  "wan_ipv4_tooltip": "adresse IPv4 WAN",
+  "wan_ipv6_tooltip": "adresse IPv6 WAN"
 }
