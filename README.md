@@ -37,7 +37,7 @@
 </p>
 
 <p align="center">
-  <em>One dashboard for signal health, long-term evidence, incident history, and complaint-ready exports.</em>
+  <em>Correlate signal health, incident history, and complaint-ready exports in one self-hosted evidence workflow.</em>
 </p>
 
 ---
