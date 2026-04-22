@@ -1,0 +1,56 @@
+name: Documentation Improvement
+description: Report unclear, missing, outdated, or misleading documentation
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve DOCSight documentation.
+
+        Use this form for docs gaps, confusing setup steps, stale screenshots, or missing explanations.
+        For product bugs, use the bug report form instead.
+
+  - type: dropdown
+    id: doc_area
+    attributes:
+      label: Documentation Area
+      options:
+        - README
+        - Wiki installation / setup
+        - Wiki feature docs
+        - Reverse proxy / deployment docs
+        - Contributing / architecture docs
+        - Screenshots / visuals
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: page
+    attributes:
+      label: Page or File
+      description: Link the page, wiki entry, or file if possible
+      placeholder: e.g. README.md or https://github.com/itsDNNS/docsight/wiki/Installation
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is wrong or missing?
+      placeholder: The reverse proxy guide does not explain how `/api` forwarding should work for DOCSight.
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What would make it better?
+      placeholder: Add one working Nginx example plus a short explanation of the `/api` path handling.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Extra Context
+      description: Add screenshots, error messages, or notes from your setup if useful
+      placeholder: I got stuck at this step because ...

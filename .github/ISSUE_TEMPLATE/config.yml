@@ -8,14 +8,14 @@ contact_links:
     about: Discuss new features and product ideas before opening implementation work
   - name: 🧰 Show and tell
     url: https://github.com/itsDNNS/docsight/discussions/categories/show-and-tell
-    about: Share your setup, exports, dashboards, and evidence workflow with the community
-  - name: 📚 Documentation
+    about: Share your setup, dashboards, exports, and evidence workflow with the community
+  - name: 📚 Docs and installation guides
     url: https://github.com/itsDNNS/docsight/wiki
     about: Read the wiki, install guides, and architecture docs first
-  - name: 🔐 Security vulnerability reporting
+  - name: 🛡️ Security vulnerability reporting
     url: https://github.com/itsDNNS/docsight/security/advisories/new
     about: Report vulnerabilities privately instead of opening a public issue
-  - name: ☕ Support the Project (Ko-fi)
+  - name: ☕ Support the project on Ko-fi
     url: https://ko-fi.com/itsdnns
     about: Support DOCSight development on Ko-fi
   - name: 💙 Donate via PayPal

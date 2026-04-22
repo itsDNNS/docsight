@@ -1,13 +1,49 @@
 name: Bug Report
-description: Report a bug or unexpected behavior
+description: Report a confirmed bug, regression, or broken workflow in DOCSight
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug.
+        Thanks for reporting a bug.
 
-        If you are still unsure whether this is a bug, a setup problem, or a modem-specific limitation, please start in [Q&A Discussions](https://github.com/itsDNNS/docsight/discussions/categories/q-a) first.
+        If you are still unsure whether this is a bug, a setup issue, a reverse proxy problem, or a modem-specific limitation, please start in [Q&A Discussions](https://github.com/itsDNNS/docsight/discussions/categories/q-a) first.
+
+        For new modem support, please use the dedicated modem support request form instead of this template.
+
+  - type: dropdown
+    id: bug_type
+    attributes:
+      label: Bug Type
+      description: What kind of problem is this?
+      options:
+        - Regression (worked before, broken now)
+        - New bug / unexpected behavior
+        - UI / visual issue
+        - Performance problem
+        - Data quality / analysis issue
+        - Integration issue
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected_area
+    attributes:
+      label: Affected Area
+      description: Which part of DOCSight is affected most?
+      options:
+        - Monitoring dashboard
+        - Signal trends / channel analysis
+        - Event log / incident journal
+        - Connection monitor / network analysis
+        - Complaint / export workflow
+        - Speedtest / BQM / BNetzA
+        - Home Assistant / MQTT / Prometheus
+        - Setup / configuration / auth
+        - Reverse proxy / deployment
+        - Other
+    validations:
+      required: true
 
   - type: dropdown
     id: version
@@ -16,38 +52,18 @@ body:
       description: Which version are you using?
       options:
         - Latest release
-        - Older release (specify below)
+        - Older release (specified below)
+        - Main / self-built checkout
+        - Not sure
     validations:
       required: true
 
   - type: input
     id: version_specific
     attributes:
-      label: Specific Version
-      description: "If using an older release, specify the version tag (e.g., v2026-02-13.10)"
-      placeholder: v2026-02-13.10
-
-  - type: dropdown
-    id: modem
-    attributes:
-      label: Cable Modem
-      description: Which modem are you using?
-      options:
-        - Fritz!Box Cable (6490/6590/6591/6660/6690)
-        - Vodafone Station (CGA6444VF/CGA4322DE)
-        - Vodafone Station (TG3442DE)
-        - Vodafone Ultra Hub 7
-        - Technicolor TC4400
-        - Other (specify below)
-    validations:
-      required: true
-
-  - type: input
-    id: modem_other
-    attributes:
-      label: Other Modem
-      description: If you selected "Other", specify the modem model
-      placeholder: e.g., Netgear CM1000
+      label: Exact Version or Commit
+      description: Fill this in if you are not on the latest release
+      placeholder: e.g. v2026-04-20.1 or commit SHA
 
   - type: dropdown
     id: deployment
@@ -55,22 +71,56 @@ body:
       label: Deployment Method
       description: How are you running DOCSight?
       options:
-        - Docker (docker-compose)
-        - Docker (docker run)
-        - Synology NAS
+        - Docker Compose
+        - docker run
         - Unraid
-        - Proxmox
-        - Python (local)
-        - Other (specify below)
+        - Synology NAS
+        - Proxmox / LXC / VM
+        - Python / local checkout
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: modem_mode
+    attributes:
+      label: Hardware Path
+      description: What is DOCSight connected to?
+      options:
+        - Supported DOCSIS cable modem/router
+        - Generic Router mode (fiber / DSL / satellite)
+        - Demo mode only
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: modem_model
+    attributes:
+      label: Modem / Router Model
+      description: Include the exact modem/router model when relevant
+      placeholder: e.g. FRITZ!Box 6690 Cable, Vodafone Station TG3442DE
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: Reproducibility
+      description: How often does this happen?
+      options:
+        - Always
+        - Often
+        - Intermittently
+        - Happened once so far
+        - Not sure yet
     validations:
       required: true
 
   - type: textarea
-    id: description
+    id: summary
     attributes:
-      label: Bug Description
-      description: A clear and concise description of what the bug is
-      placeholder: When I click X, Y happens instead of Z
+      label: What happened?
+      description: Give a short, concrete summary of the bug
+      placeholder: After opening Signal Trends, the chart area stays blank and the browser console shows an error.
     validations:
       required: true
 
@@ -78,35 +128,57 @@ body:
     id: steps
     attributes:
       label: Steps to Reproduce
-      description: How can we reproduce this behavior?
+      description: Tell us exactly how to reproduce it
       placeholder: |
-        1. Go to Dashboard
-        2. Click on "Export"
-        3. See error
+        1. Open DOCSight
+        2. Go to Signal Trends
+        3. Change the period to 30 days
+        4. See the broken chart
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: Expected Behavior
-      description: What did you expect to happen?
-      placeholder: The export should download successfully
+      label: What did you expect to happen?
+      placeholder: The chart should render the selected time range.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened?
+      placeholder: The chart area stays empty and no data points are rendered.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: demo_mode
+    attributes:
+      label: Does this also happen in Demo Mode?
+      description: This helps separate product bugs from device-specific data issues
+      options:
+        - Yes
+        - No
+        - I could not test Demo Mode
+        - Not applicable
+    validations:
+      required: true
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs
-      description: |
-        Paste relevant logs here (check Docker logs with `docker logs docsight`).
-        If sensitive information is present, redact IP addresses and credentials.
+      label: Relevant Logs or Console Errors
+      description: Paste relevant logs here. Redact secrets, IPs, tokens, and customer data if needed.
       render: shell
       placeholder: |
         [ERROR] docsis.main: ...
+        Uncaught TypeError: ...
 
   - type: textarea
-    id: additional
+    id: evidence
     attributes:
-      label: Additional Context
-      description: Add any other context, screenshots, or information about the problem
-      placeholder: This started happening after upgrading to v2026-02-13.10
+      label: Screenshots, Exports, or Extra Context
+      description: Add screenshots, exported snippets, or any additional context that helps explain the bug
+      placeholder: This started after updating from v2026-04-12.2 to v2026-04-20.1.

@@ -1,70 +1,113 @@
 name: Feature Request
-description: Suggest a new feature or enhancement
+description: Propose a feature, workflow improvement, or integration for DOCSight
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for your feature suggestion. Please check the [Roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap) first to see if it is already planned.
+        Thanks for the feature request.
 
+        Please check the [Roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap) first.
         If you want to discuss scope, tradeoffs, or rough direction before opening a formal request, start in [Ideas Discussions](https://github.com/itsDNNS/docsight/discussions/categories/ideas).
+
+  - type: dropdown
+    id: request_type
+    attributes:
+      label: Request Type
+      description: What kind of request is this?
+      options:
+        - New feature
+        - Improvement to an existing workflow
+        - New integration
+        - New analysis / visualization
+        - Export / complaint workflow improvement
+        - API / automation improvement
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected Area
+      options:
+        - Monitoring dashboard
+        - Signal trends / channel analysis
+        - Event log / incident journal
+        - Connection monitor / gaming quality
+        - Complaint / report / export workflow
+        - Speedtest / BQM / BNetzA
+        - Home Assistant / MQTT / Prometheus
+        - Setup / configuration / auth
+        - Modules / extensibility
+        - API / automation
+        - Other
+    validations:
+      required: true
 
   - type: textarea
     id: problem
     attributes:
       label: Problem or Use Case
-      description: What problem would this feature solve? Is your feature request related to a specific issue?
+      description: What problem are you trying to solve?
       placeholder: |
-        I'm frustrated when...
-        It would be helpful if...
+        I can see that my connection degrades over time, but I cannot easily compare two ISP maintenance windows in one export.
     validations:
       required: true
 
   - type: textarea
-    id: solution
+    id: proposed_solution
     attributes:
       label: Proposed Solution
-      description: Describe the feature or enhancement you'd like to see
+      description: Describe the feature or improvement you want to see
       placeholder: |
-        Add a button that...
-        Integrate with X to...
+        Add a comparison export that lets me select two time ranges and attach the result directly to a complaint PDF.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why_now
+    attributes:
+      label: Why This Matters
+      description: Who benefits, and what gets easier or better?
+      placeholder: |
+        This would help users prove recurring issues more clearly when their ISP keeps asking for before/after evidence.
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives Considered
-      description: Have you considered any alternative solutions or workarounds?
+      label: Alternatives or Workarounds Considered
+      description: Have you tried another path already?
       placeholder: |
-        I tried using X but...
-        Another approach could be...
+        Right now I export multiple screenshots and manually combine them.
 
   - type: dropdown
-    id: priority
+    id: deployment_context
     attributes:
-      label: Priority
-      description: How important is this feature to you?
+      label: Where Would You Use It?
       options:
-        - Nice to have
-        - Would be very helpful
-        - Critical for my use case
+        - DOCSIS cable setup
+        - Generic Router mode
+        - Both
+        - Not sure
     validations:
       required: true
 
   - type: checkboxes
-    id: contribute
+    id: contribution
     attributes:
-      label: Contribution
-      description: Are you willing to help implement this feature?
+      label: I can help with
       options:
-        - label: I can help with testing
-        - label: I can contribute code (PR)
-        - label: I can help with documentation
+        - label: Testing
+        - label: UX feedback
+        - label: Documentation
+        - label: Code / PR
 
   - type: textarea
-    id: additional
+    id: context
     attributes:
-      label: Additional Context
-      description: Add any other context, screenshots, or mockups about the feature request
-      placeholder: Here's a screenshot of how this works in another tool...
+      label: Extra Context, Mockups, or References
+      description: Add screenshots, links, examples, or sketches if helpful
+      placeholder: A similar workflow exists in ...

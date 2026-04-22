@@ -189,11 +189,11 @@ A few highlights from the interface:
 
 | Dashboard | Signal Trends |
 |---|---|
-| ![Dark](docs/screenshots/dashboard-dark.png) | ![Trends](docs/screenshots/trends.png) |
+| ![Dashboard](docs/screenshots/dashboard-dark.png) | ![Signal Trends](docs/screenshots/trends.png) |
 
-| Incident Journal | Correlation Analysis |
+| Incident Journal | Complaint Workflow |
 |---|---|
-| ![Journal](docs/screenshots/journal.png) | ![Correlation](docs/screenshots/correlation.png) |
+| ![Incident Journal](docs/screenshots/journal.png) | ![Complaint Workflow](docs/screenshots/complaint-workflow.png) |
 
 <details>
 <summary>See the extended screenshot gallery</summary>
@@ -305,6 +305,7 @@ Use the right channel so questions, bug reports, modem requests, and real-world 
 | Feature ideas and roadmap feedback | [GitHub Discussions: Ideas](https://github.com/itsDNNS/docsight/discussions/categories/ideas) |
 | Share your setup, exports, or evidence workflow | [GitHub Discussions: Show and tell](https://github.com/itsDNNS/docsight/discussions/categories/show-and-tell) |
 | Confirmed bugs and regressions | [Bug report issue form](https://github.com/itsDNNS/docsight/issues/new?template=bug_report.yml) |
+| Documentation gaps or stale screenshots | [Documentation improvement form](https://github.com/itsDNNS/docsight/issues/new?template=documentation.yml) |
 | New modem support requests | [Modem support request form](https://github.com/itsDNNS/docsight/issues/new?template=modem_support.yml) |
 | Security vulnerabilities | [Private security advisory](https://github.com/itsDNNS/docsight/security/advisories/new) |
 
