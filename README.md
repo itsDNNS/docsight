@@ -17,11 +17,15 @@
 </p>
 
 <p align="center">
-  DOCSight continuously monitors your connection, catches the issues your ISP misses in one-off snapshots, and builds a timestamped evidence trail you can use &mdash; from live diagnostics and trend charts to incident reports and complaint-ready exports.
+  DOCSight continuously monitors your connection, catches the issues your ISP misses in one-off snapshots, and builds a timestamped evidence trail you can use, from live diagnostics and trend charts to incident reports and complaint-ready exports.
 </p>
 
 <p align="center">
   Available in 🇬🇧 🇩🇪 🇪🇸 🇫🇷
+</p>
+
+<p align="center">
+  <strong>Self-hosted</strong> • <strong>Demo mode</strong> • <strong>Complaint-ready exports</strong> • <strong>16 modem families</strong> • <strong>Home Assistant + MQTT</strong> • <strong>4 languages</strong> • <strong>MIT licensed</strong>
 </p>
 
 ![Dashboard](docs/screenshots/dashboard-dark.png)
@@ -56,10 +60,10 @@ Most connection problems aren't one-time events. They come and go, making them n
 
 DOCSight runs in the background and builds your case over time:
 
-- **Hour 1** — You see your current signal health and any active issues
-- **Week 1** — Trend charts reveal patterns your ISP can't see from a single snapshot
-- **Month 1** — The event log, incident journal, and correlation analysis paint a complete picture
-- **When you call your ISP** — DOCSight turns weeks of evidence into reports, exports, and complaint-ready documentation
+- **Hour 1:** You see your current signal health and any active issues
+- **Week 1:** Trend charts reveal patterns your ISP can't see from a single snapshot
+- **Month 1:** The event log, incident journal, and correlation analysis paint a complete picture
+- **When you call your ISP:** DOCSight turns weeks of evidence into reports, exports, and complaint-ready documentation
 
 The longer DOCSight runs, the stronger your evidence gets.
 
@@ -95,11 +99,43 @@ Turns raw diagnostics into reports and complaint-ready exports you can send to y
 
 ---
 
+## Best Fit For
+
+### People who keep getting dismissed by their ISP
+
+DOCSight is a strong fit if your connection drops out, slows down, or behaves inconsistently and you need more than a one-time screenshot.
+
+- prove recurring problems over days and weeks instead of a single bad moment
+- keep an incident history with your own notes and attachments
+- compare before and after a technician visit, modem swap, or ISP claim
+- turn raw monitoring into exports and complaint-ready documentation
+
+### Self-hosters who want proof, not just pretty charts
+
+DOCSight is also a strong fit if you want something that:
+
+- runs locally on your own hardware with no cloud dependency
+- supports real DOCSIS cable signal monitoring instead of generic uptime checks only
+- integrates with Home Assistant, MQTT, and external measurement sources
+- is documented deeply enough that you can inspect, extend, and actually trust it
+
+---
+
+## Start in the Way That Fits You
+
+- **Want to see the product first?** Start with the [demo](#option-1-try-the-demo) and explore 9 months of realistic DOCSIS data instantly.
+- **Want it running fast on your own hardware?** Use [Get Started](#get-started) and then follow the [full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation).
+- **Want to confirm your hardware path first?** Jump to [Supported Hardware](#supported-hardware).
+- **Want to inspect the architecture before you trust it?** Read [ARCHITECTURE.md](ARCHITECTURE.md).
+- **Want versioned builds and release notes?** Check [GitHub Releases](https://github.com/itsDNNS/docsight/releases).
+
+---
+
 ## Is This For Me?
 
 | | |
 |---|---|
-| ✅ You have **cable internet** (coax/DOCSIS) | DOCSight is built for this — full signal monitoring |
+| ✅ You have **cable internet** (coax/DOCSIS) | DOCSight is built for this, with full signal monitoring |
 | ✅ You have **fiber, DSL, or satellite** | Generic Router mode still gives you speed tracking, latency monitoring, incident logging, evidence reports, and modules |
 | ✅ Your internet **drops out or is slower** than what you're paying for | DOCSight documents it over time |
 | ✅ Your ISP says **"everything is fine on our end"** | DOCSight gives you the data to push back with confidence |
@@ -192,16 +228,16 @@ DOCSight supports **16 modem families** out of the box and also offers **Generic
 
 ### Common setups
 
-- **Vodafone Station** (CGA4233, TG3442DE) — bridge mode compatible
+- **Vodafone Station** (CGA4233, TG3442DE): bridge mode compatible
 - **AVM FRITZ!Box Cable** (6490, 6590, 6591, 6660, 6690)
 - **Vodafone Ultra Hub 7** (Sercomm)
 - **Unitymedia Connect Box** (CH7465)
-- **Sagemcom F@st 3896** — JSON-RPC API
+- **Sagemcom F@st 3896:** JSON-RPC API
 - **Technicolor TC4400**
-- **Arris SURFboard** (S33, S34, SB8200) — HNAP1 API
+- **Arris SURFboard** (S33, S34, SB8200): HNAP1 API
 - **Hitron CODA-56**
 - **Netgear CM3000**
-- **Generic Router mode** — no DOCSIS signal pages, but still supports speed tracking, latency monitoring, incident logging, reports, and modules
+- **Generic Router mode:** no DOCSIS signal pages, but still supports speed tracking, latency monitoring, incident logging, reports, and modules
 
 [See the full compatibility and setup docs in the wiki →](https://github.com/itsDNNS/docsight/wiki)
 
@@ -255,7 +291,7 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation.
 
 ## Requirements
 
-- Docker (or any OCI-compatible container runtime) — or see [Running without Docker](https://github.com/itsDNNS/docsight/wiki/Running-without-Docker) for a native Python setup
+- Docker (or any OCI-compatible container runtime), or see [Running without Docker](https://github.com/itsDNNS/docsight/wiki/Running-without-Docker) for a native Python setup
 - A supported DOCSIS cable modem/router (see above), or any router via Generic Router mode
 - MQTT broker (optional, for Home Assistant)
 
@@ -292,6 +328,7 @@ See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 | Document | Scope |
 |---|---|
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
+| [GitHub Releases](https://github.com/itsDNNS/docsight/releases) | Versioned builds and release notes |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and extension guide |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development and contribution guidelines |
 | [TRADEMARKS.md](TRADEMARKS.md) | Brand, logo, and official-use policy |
