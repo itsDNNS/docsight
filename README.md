@@ -25,11 +25,11 @@
 </p>
 
 <p align="center">
-  DOCSight monitors DOCSIS cable signal health over time, documents instability and outages, and turns recurring slowdowns into evidence you can use with your ISP.
+  DOCSight tracks cable signal health, recurring slowdowns, and outages so you have evidence when your ISP says everything is fine.
 </p>
 
 <p align="center">
-  <strong>Self-hosted</strong> • <strong>Demo mode</strong> • <strong>Complaint-ready exports</strong> • <strong>16 modem families</strong> • <strong>Home Assistant + MQTT</strong> • <strong>EN / DE / FR / ES</strong> • <strong>MIT licensed</strong>
+  <strong>Self-hosted</strong> • <strong>Demo mode</strong> • <strong>Exports</strong> • <strong>16 modem families</strong> • <strong>Home Assistant + MQTT</strong> • <strong>4 languages</strong> • <strong>MIT license</strong>
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@
 </p>
 
 <p align="center">
-  <em>Correlate signal health, incident history, and complaint-ready exports in one self-hosted evidence workflow.</em>
+  <em>Correlation, incident history, and complaint-ready exports in one workflow.</em>
 </p>
 
 ---
