@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  Track signal issues, slowdowns, and outages so you have proof when your ISP says everything is fine.
+  Track signal issues, slowdowns, and outages so you have proof when your ISP says the line looks normal.
 </p>
 
 <p align="center">
