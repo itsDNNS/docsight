@@ -29,7 +29,7 @@
 </p>
 
 <p align="center">
-  <strong>Self-hosted</strong> • <strong>Demo mode</strong> • <strong>Exports</strong> • <strong>16 modem families</strong> • <strong>Home Assistant + MQTT</strong> • <strong>4 languages</strong> • <strong>MIT license</strong>
+  <strong>Self-hosted</strong> • <strong>Demo</strong> • <strong>Exports</strong> • <strong>16 modem families</strong> • <strong>HA + MQTT</strong> • <strong>4 languages</strong> • <strong>MIT</strong>
 </p>
 
 <p align="center">
