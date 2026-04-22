@@ -295,7 +295,7 @@ def _is_date_like(val):
 
 
 def _extract_year_context(rows):
-    """Extract year context from month-header rows (Dennis format).
+    """Extract year context from month-header rows in spreadsheet-style imports.
 
     Returns dict mapping row_index -> year for all rows under a month header,
     including month-header rows themselves (they may contain data).

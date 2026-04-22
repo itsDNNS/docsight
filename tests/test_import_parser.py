@@ -453,13 +453,13 @@ class TestHelpers:
 
 # ── Full Integration Tests ──
 
-class TestIntegrationDennisExcelFormat:
-    """Simulate Dennis' Excel structure:
+class TestIntegrationSpreadsheetFormat:
+    """Simulate a real-world spreadsheet layout:
     Column A: month headers, Column B: dates, Column C: events, Column D: details.
     """
 
-    def _build_dennis_csv(self):
-        """Build CSV mimicking the real spreadsheet layout."""
+    def _build_sample_csv(self):
+        """Build CSV mimicking a typical spreadsheet layout."""
         lines = [
             # Row 0: column headers
             "Monat;Datum;Ereignis;Details",
@@ -490,7 +490,7 @@ class TestIntegrationDennisExcelFormat:
 
     def test_full_parse_year_assignment(self):
         """All entries should get the correct year through month headers."""
-        csv_bytes = _make_csv_bytes(self._build_dennis_csv())
+        csv_bytes = _make_csv_bytes(self._build_sample_csv())
         result = parse_file(csv_bytes, "incidents.csv")
 
         rows = result["rows"]
@@ -517,7 +517,7 @@ class TestIntegrationDennisExcelFormat:
 
     def test_full_parse_month_header_row_with_data_included(self):
         """The 'November (2023)' row also has data in cols B/C/D, so it must be parsed."""
-        csv_bytes = _make_csv_bytes(self._build_dennis_csv())
+        csv_bytes = _make_csv_bytes(self._build_sample_csv())
         result = parse_file(csv_bytes, "incidents.csv")
 
         titles = [r["title"] for r in result["rows"]]
@@ -525,7 +525,7 @@ class TestIntegrationDennisExcelFormat:
 
     def test_full_parse_empty_month_headers_skipped(self):
         """Month header rows with no data (Dezember, Januar, etc.) should be skipped."""
-        csv_bytes = _make_csv_bytes(self._build_dennis_csv())
+        csv_bytes = _make_csv_bytes(self._build_sample_csv())
         result = parse_file(csv_bytes, "incidents.csv")
 
         # No row should have "Dezember", "Januar", etc. as a title
@@ -535,7 +535,7 @@ class TestIntegrationDennisExcelFormat:
 
     def test_full_parse_total_count(self):
         """Total number of parsed entries should match expected data rows."""
-        csv_bytes = _make_csv_bytes(self._build_dennis_csv())
+        csv_bytes = _make_csv_bytes(self._build_sample_csv())
         result = parse_file(csv_bytes, "incidents.csv")
 
         # 8 data rows: Server down, Recovery, Maintenance, DNS issue,
@@ -544,13 +544,13 @@ class TestIntegrationDennisExcelFormat:
 
     def test_full_parse_no_skipped_entries(self):
         """All entries have valid dates, so none should be skipped."""
-        csv_bytes = _make_csv_bytes(self._build_dennis_csv())
+        csv_bytes = _make_csv_bytes(self._build_sample_csv())
         result = parse_file(csv_bytes, "incidents.csv")
         assert result["skipped"] == 0
 
     def test_full_parse_mapping_detected(self):
         """Column mapping should detect Datum, Ereignis, Details."""
-        csv_bytes = _make_csv_bytes(self._build_dennis_csv())
+        csv_bytes = _make_csv_bytes(self._build_sample_csv())
         result = parse_file(csv_bytes, "incidents.csv")
 
         assert "date" in result["mapping"]

@@ -132,10 +132,10 @@ FULL_API_RESPONSE = {
             "latency": {"iqm": 80.022, "low": 11.653, "high": 1547.885, "jitter": 41.352},
         },
         "packetLoss": 0,
-        "isp": "Vodafone Germany",
-        "interface": {"internalIp": "192.168.178.27", "externalIp": "31.16.193.86", "isVpn": False},
-        "server": {"id": 44081, "host": "speedtest.23m.com", "port": 8080,
-                   "name": "23M GmbH", "location": "Frankfurt am Main",
+        "isp": "ExampleNet Germany",
+        "interface": {"internalIp": "192.0.2.27", "externalIp": "203.0.113.86", "isVpn": False},
+        "server": {"id": 44081, "host": "speedtest.example.net", "port": 8080,
+                   "name": "ExampleNet Test Server", "location": "Frankfurt am Main",
                    "country": "Germany", "ip": "212.83.32.10"},
         "result": {"id": "abc-uuid", "url": "https://www.speedtest.net/result/c/abc-uuid", "persisted": True},
     },
@@ -147,8 +147,8 @@ def test_parse_result_extracts_enriched_fields():
     client = SpeedtestClient.__new__(SpeedtestClient)
     result = client._parse_result(FULL_API_RESPONSE)
 
-    assert result["isp"] == "Vodafone Germany"
-    assert result["server_host"] == "speedtest.23m.com"
+    assert result["isp"] == "ExampleNet Germany"
+    assert result["server_host"] == "speedtest.example.net"
     assert result["server_location"] == "Frankfurt am Main"
     assert result["server_country"] == "Germany"
     assert result["server_ip"] == "212.83.32.10"
@@ -162,7 +162,7 @@ def test_parse_result_extracts_enriched_fields():
     assert result["ul_bytes"] == 41127544
     assert result["dl_elapsed_ms"] == 9903
     assert result["ul_elapsed_ms"] == 6102
-    assert result["external_ip"] == "31.16.193.86"
+    assert result["external_ip"] == "203.0.113.86"
     assert result["is_vpn"] is False
     assert result["result_url"] == "https://www.speedtest.net/result/c/abc-uuid"
 
