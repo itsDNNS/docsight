@@ -61,29 +61,19 @@ class TestThemeContributes:
         }
         validate_theme(data)  # Should not raise
 
-    def test_validate_theme_missing_dark(self):
+    def test_validate_theme_invalid_shapes(self):
         from app.module_loader import validate_theme
-        data = {"light": {"--bg": "#ffffff"}}
-        with pytest.raises(ManifestError, match="dark"):
-            validate_theme(data)
 
-    def test_validate_theme_missing_light(self):
-        from app.module_loader import validate_theme
-        data = {"dark": {"--bg": "#1f2937"}}
-        with pytest.raises(ManifestError, match="light"):
-            validate_theme(data)
+        invalid_cases = [
+            ({"light": {"--bg": "#ffffff"}}, "dark"),
+            ({"dark": {"--bg": "#1f2937"}}, "light"),
+            ({"dark": {}, "light": {"--bg": "#fff"}}, "empty"),
+            ({"dark": {"--bg": 123}, "light": {"--bg": "#fff"}}, "string"),
+        ]
 
-    def test_validate_theme_empty_section(self):
-        from app.module_loader import validate_theme
-        data = {"dark": {}, "light": {"--bg": "#fff"}}
-        with pytest.raises(ManifestError, match="empty"):
-            validate_theme(data)
-
-    def test_validate_theme_non_string_value(self):
-        from app.module_loader import validate_theme
-        data = {"dark": {"--bg": 123}, "light": {"--bg": "#fff"}}
-        with pytest.raises(ManifestError, match="string"):
-            validate_theme(data)
+        for data, error_match in invalid_cases:
+            with pytest.raises(ManifestError, match=error_match):
+                validate_theme(data)
 
     def test_validate_theme_with_meta(self):
         from app.module_loader import validate_theme

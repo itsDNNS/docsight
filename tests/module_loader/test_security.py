@@ -27,8 +27,8 @@ _VALID_THEME = {
 class TestThemeSecurity:
     """Theme modules must NOT have collector, routes, or publisher."""
 
-    def test_theme_with_collector_rejected(self):
-        raw = {
+    def test_theme_forbidden_contributions_rejected(self):
+        base = {
             "id": "test.badtheme",
             "name": "Bad Theme",
             "description": "d",
@@ -36,38 +36,19 @@ class TestThemeSecurity:
             "author": "Test",
             "minAppVersion": "2026.2",
             "type": "theme",
-            "contributes": {"theme": "theme.json", "collector": "collector.py:Foo"},
         }
-        with pytest.raises(ManifestError, match="collector"):
-            validate_manifest(raw, "/path")
 
-    def test_theme_with_routes_rejected(self):
-        raw = {
-            "id": "test.badtheme",
-            "name": "Bad Theme",
-            "description": "d",
-            "version": "1.0.0",
-            "author": "Test",
-            "minAppVersion": "2026.2",
-            "type": "theme",
-            "contributes": {"theme": "theme.json", "routes": "routes.py"},
-        }
-        with pytest.raises(ManifestError, match="routes"):
-            validate_manifest(raw, "/path")
-
-    def test_theme_with_publisher_rejected(self):
-        raw = {
-            "id": "test.badtheme",
-            "name": "Bad Theme",
-            "description": "d",
-            "version": "1.0.0",
-            "author": "Test",
-            "minAppVersion": "2026.2",
-            "type": "theme",
-            "contributes": {"theme": "theme.json", "publisher": "pub.py:Foo"},
-        }
-        with pytest.raises(ManifestError, match="publisher"):
-            validate_manifest(raw, "/path")
+        for contribution, spec in {
+            "collector": "collector.py:Foo",
+            "routes": "routes.py",
+            "publisher": "pub.py:Foo",
+        }.items():
+            raw = {
+                **base,
+                "contributes": {"theme": "theme.json", contribution: spec},
+            }
+            with pytest.raises(ManifestError, match=contribution):
+                validate_manifest(raw, "/path")
 
     def test_theme_with_static_allowed(self):
         raw = {
@@ -373,8 +354,8 @@ class TestLoadModuleDriver:
 
 
 class TestDriverModuleSecurity:
-    def test_driver_module_cannot_contribute_collector(self):
-        raw = {
+    def test_driver_module_forbidden_contributions_rejected(self):
+        base = {
             "id": "community.mydriver",
             "name": "My Driver",
             "description": "A driver",
@@ -382,24 +363,18 @@ class TestDriverModuleSecurity:
             "author": "Test",
             "minAppVersion": "2026.2",
             "type": "driver",
-            "contributes": {"driver": "driver.py:MyDriver", "collector": "collector.py:Foo"},
         }
-        with pytest.raises(ManifestError, match="must not contribute"):
-            validate_manifest(raw, "/path")
 
-    def test_driver_module_cannot_contribute_publisher(self):
-        raw = {
-            "id": "community.mydriver",
-            "name": "My Driver",
-            "description": "A driver",
-            "version": "1.0.0",
-            "author": "Test",
-            "minAppVersion": "2026.2",
-            "type": "driver",
-            "contributes": {"driver": "driver.py:MyDriver", "publisher": "pub.py:Foo"},
-        }
-        with pytest.raises(ManifestError, match="must not contribute"):
-            validate_manifest(raw, "/path")
+        for contribution, spec in {
+            "collector": "collector.py:Foo",
+            "publisher": "pub.py:Foo",
+        }.items():
+            raw = {
+                **base,
+                "contributes": {"driver": "driver.py:MyDriver", contribution: spec},
+            }
+            with pytest.raises(ManifestError, match="must not contribute"):
+                validate_manifest(raw, "/path")
 
     def test_driver_module_with_only_driver_is_valid(self):
         raw = {
