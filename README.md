@@ -25,15 +25,11 @@
 </p>
 
 <p align="center">
-  DOCSight monitors DOCSIS cable signal health, tracks bad performance over time, and turns recurring slowdowns, instability, and outages into evidence you can actually use.
+  DOCSight monitors DOCSIS cable signal health over time, documents instability and outages, and turns recurring slowdowns into evidence you can use with your ISP.
 </p>
 
 <p align="center">
-  Available in 🇬🇧 🇩🇪 🇪🇸 🇫🇷
-</p>
-
-<p align="center">
-  <strong>Self-hosted</strong> • <strong>Demo mode</strong> • <strong>Complaint-ready exports</strong> • <strong>16 modem families</strong> • <strong>Home Assistant + MQTT</strong> • <strong>4 languages</strong> • <strong>MIT licensed</strong>
+  <strong>Self-hosted</strong> • <strong>Demo mode</strong> • <strong>Complaint-ready exports</strong> • <strong>16 modem families</strong> • <strong>Home Assistant + MQTT</strong> • <strong>EN / DE / FR / ES</strong> • <strong>MIT licensed</strong>
 </p>
 
 <p align="center">
@@ -41,28 +37,30 @@
 </p>
 
 <p align="center">
-  <em>DOCSIS signal monitoring, long-term performance history, incident tracking, and complaint-ready exports in one self-hosted dashboard.</em>
+  <em>One dashboard for signal health, long-term evidence, incident history, and complaint-ready exports.</em>
 </p>
 
 ---
 
 ## Get Started
 
+Start with the fastest path for your setup.
+
 ### Option 1: Try the demo
 
-No router required. Demo mode generates 9 months of realistic DOCSIS data so you can explore everything immediately.
+No router required. Demo mode generates 9 months of realistic DOCSIS data so you can explore the full workflow immediately.
 
 ```bash
 docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:latest
 ```
 
-### Option 2: Connect your own router
+### Option 2: Connect your own modem or router
 
 ```bash
 docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
 ```
 
-Open `http://localhost:8765`, then either explore the demo or connect your router in the setup wizard.
+Open `http://localhost:8765`, then choose Demo Mode, a supported DOCSIS modem, or Generic Router mode in the setup wizard.
 
 [Full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation) | [Example Compose Stacks](https://github.com/itsDNNS/docsight/wiki/Example-Compose-Stacks)
 
@@ -70,20 +68,20 @@ Open `http://localhost:8765`, then either explore the demo or connect your route
 
 ## From Suspicion to Evidence
 
-Most connection problems aren't one-time events. They come and go, making them nearly impossible to prove when you call your ISP.
+Most connection problems are intermittent. That makes them easy to feel and hard to prove when your ISP only looks at a single snapshot.
 
 DOCSight runs in the background and builds your case over time:
 
-- **Hour 1:** You see your current signal health and any active issues
-- **Week 1:** Trend charts reveal patterns your ISP can't see from a single snapshot
-- **Month 1:** The event log, incident journal, and correlation analysis paint a complete picture
+- **Hour 1:** See current signal health, current performance, and active issues
+- **Week 1:** Trend charts reveal patterns your ISP cannot dismiss as a one-off
+- **Month 1:** Incident history, event logs, and before/after comparisons make the pattern hard to ignore
 - **When you call your ISP:** DOCSight turns weeks of evidence into reports, exports, and complaint-ready documentation
 
 The longer DOCSight runs, the stronger your evidence gets.
 
 ---
 
-## What DOCSight Does
+## How DOCSight Helps
 
 <table>
 <tr>
@@ -145,7 +143,7 @@ DOCSight is also a strong fit if you want something that:
 
 ---
 
-## Is This For Me?
+## Connection Types and Use Cases
 
 | | |
 |---|---|
@@ -197,9 +195,9 @@ Also includes 4 languages (EN/DE/FR/ES), light/dark mode, PWA/offline support, a
 
 ---
 
-## Screenshots
+## Product Tour
 
-A few highlights from the interface:
+A few key views from the evidence workflow:
 
 | Dashboard | Signal Trends |
 |---|---|
