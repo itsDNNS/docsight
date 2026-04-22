@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <strong>Your ISP says everything is fine. DOCSight gives you the DOCSIS evidence that it isn't.</strong>
+  <strong>Your ISP says everything is fine. DOCSight gives you proof.</strong>
 </p>
 
 <p align="center">
