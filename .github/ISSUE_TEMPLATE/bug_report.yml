@@ -5,7 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug! Please fill out the information below.
+        Thanks for taking the time to report a bug.
+
+        If you are still unsure whether this is a bug, a setup problem, or a modem-specific limitation, please start in [Q&A Discussions](https://github.com/itsDNNS/docsight/discussions/categories/q-a) first.
 
   - type: dropdown
     id: version

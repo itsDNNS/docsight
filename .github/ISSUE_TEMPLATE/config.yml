@@ -1,14 +1,23 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Community Discussions
-    url: https://github.com/itsDNNS/docsight/discussions
-    about: Ask questions, share ideas, or discuss DOCSight with the community
+  - name: 🙋 Q&A and troubleshooting
+    url: https://github.com/itsDNNS/docsight/discussions/categories/q-a
+    about: Use Discussions for setup help, reverse proxy questions, and troubleshooting
+  - name: 💡 Ideas and roadmap feedback
+    url: https://github.com/itsDNNS/docsight/discussions/categories/ideas
+    about: Discuss new features and product ideas before opening implementation work
+  - name: 🧰 Show and tell
+    url: https://github.com/itsDNNS/docsight/discussions/categories/show-and-tell
+    about: Share your setup, exports, dashboards, and evidence workflow with the community
   - name: 📚 Documentation
     url: https://github.com/itsDNNS/docsight/wiki
-    about: Read the full documentation and setup guides
+    about: Read the wiki, install guides, and architecture docs first
+  - name: 🔐 Security vulnerability reporting
+    url: https://github.com/itsDNNS/docsight/security/advisories/new
+    about: Report vulnerabilities privately instead of opening a public issue
   - name: ☕ Support the Project (Ko-fi)
     url: https://ko-fi.com/itsdnns
-    about: Buy me a coffee if DOCSight helps you fight your ISP!
+    about: Support DOCSight development on Ko-fi
   - name: 💙 Donate via PayPal
     url: https://paypal.me/itsDNNS
     about: Support DOCSight development via PayPal

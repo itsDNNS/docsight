@@ -5,7 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for your feature suggestion! Please check the [Roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap) first to see if it's already planned.
+        Thanks for your feature suggestion. Please check the [Roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap) first to see if it is already planned.
+
+        If you want to discuss scope, tradeoffs, or rough direction before opening a formal request, start in [Ideas Discussions](https://github.com/itsDNNS/docsight/discussions/categories/ideas).
 
   - type: textarea
     id: problem

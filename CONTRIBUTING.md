@@ -1,10 +1,12 @@
 # Contributing to DOCSight
 
-Thanks for your interest in contributing!
+Thanks for your interest in contributing.
+
+If you need setup help, troubleshooting, or want to share a real-world DOCSight deployment, start with [SUPPORT.md](SUPPORT.md) so you end up in the right place first.
 
 ## Before You Start
 
-**Please open an issue first** before working on any new feature or significant change. This lets us discuss the approach and make sure it fits the project architecture. PRs without a prior issue may be closed.
+**Please open an issue or start an Ideas discussion first** before working on any new feature or significant change. This lets us discuss the approach and make sure it fits the project architecture. PRs without prior discussion may be closed.
 
 This is especially important for:
 - New features or modules

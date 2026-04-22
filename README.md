@@ -295,9 +295,24 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation.
 - A supported DOCSIS cable modem/router (see above), or any router via Generic Router mode
 - MQTT broker (optional, for Home Assistant)
 
+## Community and Support
+
+Use the right channel so questions, bug reports, modem requests, and real-world examples do not get mixed together.
+
+| Need | Best place |
+| --- | --- |
+| Setup help and troubleshooting | [GitHub Discussions: Q&A](https://github.com/itsDNNS/docsight/discussions/categories/q-a) |
+| Feature ideas and roadmap feedback | [GitHub Discussions: Ideas](https://github.com/itsDNNS/docsight/discussions/categories/ideas) |
+| Share your setup, exports, or evidence workflow | [GitHub Discussions: Show and tell](https://github.com/itsDNNS/docsight/discussions/categories/show-and-tell) |
+| Confirmed bugs and regressions | [Bug report issue form](https://github.com/itsDNNS/docsight/issues/new?template=bug_report.yml) |
+| New modem support requests | [Modem support request form](https://github.com/itsDNNS/docsight/issues/new?template=modem_support.yml) |
+| Security vulnerabilities | [Private security advisory](https://github.com/itsDNNS/docsight/security/advisories/new) |
+
+For the full routing guide, see [SUPPORT.md](SUPPORT.md).
+
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue before working on new features.**
+See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue or start an Ideas discussion before working on new features.**
 
 ## Roadmap
 
@@ -329,6 +344,7 @@ See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 |---|---|
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
 | [GitHub Releases](https://github.com/itsDNNS/docsight/releases) | Versioned builds and release notes |
+| [SUPPORT.md](SUPPORT.md) | Support routing, community channels, and issue guidance |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and extension guide |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development and contribution guidelines |
 | [TRADEMARKS.md](TRADEMARKS.md) | Brand, logo, and official-use policy |
