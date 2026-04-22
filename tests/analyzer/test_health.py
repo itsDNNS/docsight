@@ -99,143 +99,160 @@ class TestHealthGood:
 # -- Health assessment: tolerated --
 
 class TestHealthTolerated:
-    def test_ds_power_tolerated(self):
-        """DS power 15 dBmV is tolerated (between good_max 13 and warn_max 18)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=15.0, mse="-35")],
-            us30=[_make_us30(1, power=44.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "tolerated"
-        assert "ds_power_tolerated" in result["summary"]["health_issues"]
+    def test_threshold_classifications(self):
+        cases = [
+            {
+                "label": "ds power tolerated",
+                "expected_issue": "ds_power_tolerated",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=15.0, mse="-35")],
+                    us30=[_make_us30(1, power=44.0)],
+                ),
+            },
+            {
+                "label": "ds power tolerated low",
+                "expected_issue": "ds_power_tolerated",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=-5.0, mse="-35")],
+                    us30=[_make_us30(1, power=44.0)],
+                ),
+            },
+            {
+                "label": "us power tolerated high",
+                "expected_issue": "us_power_tolerated_high",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-35")],
+                    us30=[_make_us30(1, power=49.0)],
+                ),
+            },
+            {
+                "label": "us power tolerated low",
+                "expected_issue": "us_power_tolerated_low",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-35")],
+                    us30=[_make_us30(1, power=40.0)],
+                ),
+            },
+            {
+                "label": "snr tolerated",
+                "expected_issue": "snr_tolerated",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-31")],
+                    us30=[_make_us30(1, power=42.0)],
+                ),
+            },
+        ]
 
-    def test_us_power_tolerated_high(self):
-        """US power 49 dBmV is tolerated (between good_max 47 and warn_max 51)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us30=[_make_us30(1, power=49.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "tolerated"
-        assert "us_power_tolerated_high" in result["summary"]["health_issues"]
-
-    def test_us_power_tolerated_low(self):
-        """US power 40 dBmV is tolerated (between warn_min 37.1 and good_min 41.1)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us30=[_make_us30(1, power=40.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "tolerated"
-        assert "us_power_tolerated_low" in result["summary"]["health_issues"]
-
-    def test_snr_tolerated(self):
-        """SNR 31 dB is tolerated (between warn_min 31 and good_min 33)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-31")],
-            us30=[_make_us30(1, power=42.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "tolerated"
-        assert "snr_tolerated" in result["summary"]["health_issues"]
+        for case in cases:
+            result = analyze(case["data"])
+            assert result["summary"]["health"] == "tolerated", case["label"]
+            assert case["expected_issue"] in result["summary"]["health_issues"], case["label"]
 
 
 # -- Health assessment: marginal --
 
 class TestHealthMarginal:
-    def test_ds_power_marginal(self):
-        """DS power 15.5 dBmV is marginal (between warn_max 15 and crit_max 16)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=15.5, mse="-35")],
-            us30=[_make_us30(1, power=44.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "marginal"
-        assert "ds_power_marginal" in result["summary"]["health_issues"]
+    def test_threshold_classifications(self):
+        cases = [
+            {
+                "label": "ds power marginal",
+                "expected_issue": "ds_power_marginal",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=15.5, mse="-35")],
+                    us30=[_make_us30(1, power=44.0)],
+                ),
+            },
+            {
+                "label": "ds power marginal low",
+                "expected_issue": "ds_power_marginal",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=-6.5, mse="-35")],
+                    us30=[_make_us30(1, power=44.0)],
+                ),
+            },
+            {
+                "label": "us power marginal high",
+                "expected_issue": "us_power_marginal_high",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-35")],
+                    us30=[_make_us30(1, power=52.0)],
+                ),
+            },
+            {
+                "label": "us power marginal low",
+                "expected_issue": "us_power_marginal_low",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-35")],
+                    us30=[_make_us30(1, power=36.0)],
+                ),
+            },
+            {
+                "label": "snr marginal",
+                "expected_issue": "snr_marginal",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-30.5")],
+                    us30=[_make_us30(1, power=42.0)],
+                ),
+            },
+        ]
 
-    def test_us_power_marginal_high(self):
-        """US power 52 dBmV is marginal (between warn_max 51 and crit_max 53)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us30=[_make_us30(1, power=52.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "marginal"
-        assert "us_power_marginal_high" in result["summary"]["health_issues"]
-
-    def test_us_power_marginal_low(self):
-        """US power 36 dBmV is marginal (between crit_min 35 and warn_min 37.1)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us30=[_make_us30(1, power=36.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "marginal"
-        assert "us_power_marginal_low" in result["summary"]["health_issues"]
-
-    def test_snr_marginal(self):
-        """SNR 30.5 dB is marginal (between crit_min 30 and warn_min 31)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-30.5")],
-            us30=[_make_us30(1, power=42.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "marginal"
-        assert "snr_marginal" in result["summary"]["health_issues"]
+        for case in cases:
+            result = analyze(case["data"])
+            assert result["summary"]["health"] == "marginal", case["label"]
+            assert case["expected_issue"] in result["summary"]["health_issues"], case["label"]
 
 
 # -- Health assessment: critical --
 
 class TestHealthCritical:
-    def test_ds_power_critical(self):
-        """DS power 21 dBmV is critical (>20)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=21.0, mse="-35")],
-            us30=[_make_us30(1, power=44.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "critical"
-        assert "ds_power_critical" in result["summary"]["health_issues"]
+    def test_threshold_classifications(self):
+        cases = [
+            {
+                "label": "ds power critical high",
+                "expected_issue": "ds_power_critical",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=21.0, mse="-35")],
+                    us30=[_make_us30(1, power=44.0)],
+                ),
+            },
+            {
+                "label": "ds power critical low",
+                "expected_issue": "ds_power_critical",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=-9.0, mse="-35")],
+                    us30=[_make_us30(1, power=44.0)],
+                ),
+            },
+            {
+                "label": "us power critical high",
+                "expected_issue": "us_power_critical_high",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-35")],
+                    us30=[_make_us30(1, power=55.0)],
+                ),
+            },
+            {
+                "label": "us power critical low",
+                "expected_issue": "us_power_critical_low",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-35")],
+                    us30=[_make_us30(1, power=33.0)],
+                ),
+            },
+            {
+                "label": "snr critical",
+                "expected_issue": "snr_critical",
+                "data": _make_data(
+                    ds30=[_make_ds30(1, power=2.0, mse="-27")],
+                    us30=[_make_us30(1, power=42.0)],
+                ),
+            },
+        ]
 
-    def test_ds_power_critical_negative(self):
-        """DS power -9 dBmV is also critical (<-8)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=-9.0, mse="-35")],
-            us30=[_make_us30(1, power=44.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "critical"
-        assert "ds_power_critical" in result["summary"]["health_issues"]
-
-    def test_us_power_critical_high(self):
-        """US power 55 dBmV is critical (>53)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us30=[_make_us30(1, power=55.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "critical"
-        assert "us_power_critical_high" in result["summary"]["health_issues"]
-
-    def test_us_power_critical_low(self):
-        """US power 33 dBmV is critical (<35)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-35")],
-            us30=[_make_us30(1, power=33.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "critical"
-        assert "us_power_critical_low" in result["summary"]["health_issues"]
-
-    def test_snr_critical(self):
-        """SNR 27 dB is critical (<30)."""
-        data = _make_data(
-            ds30=[_make_ds30(1, power=2.0, mse="-27")],
-            us30=[_make_us30(1, power=42.0)],
-        )
-        result = analyze(data)
-        assert result["summary"]["health"] == "critical"
-        assert "snr_critical" in result["summary"]["health_issues"]
+        for case in cases:
+            result = analyze(case["data"])
+            assert result["summary"]["health"] == "critical", case["label"]
+            assert case["expected_issue"] in result["summary"]["health_issues"], case["label"]
 
     def test_uncorrectable_errors(self):
         """High uncorrectable error percent triggers issue."""

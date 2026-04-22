@@ -132,21 +132,17 @@ class TestOFDMAUpstream:
     def teardown_method(self):
         analyzer._thresholds = self._orig
 
-    def test_ofdma_channel_good(self):
-        ch = {"powerLevel": "45.0", "modulation": "OFDMA", "type": "OFDMA"}
-        health, detail = analyzer._assess_us_channel(ch)
-        assert health == "good"
+    def test_ofdma_channel_threshold_classifications(self):
+        cases = [
+            {"label": "good", "power": "45.0", "expected": "good"},
+            {"label": "tolerated", "power": "40.5", "expected": "tolerated"},
+            {"label": "critical low", "power": "37.0", "expected": "critical"},
+        ]
 
-    def test_ofdma_channel_tolerated(self):
-        """OFDMA power 40.5 is tolerated (between warn_min 40.1 and good_min 44.1)."""
-        ch = {"powerLevel": "40.5", "modulation": "OFDMA", "type": "OFDMA"}
-        health, detail = analyzer._assess_us_channel(ch)
-        assert health == "tolerated"
-
-    def test_ofdma_channel_critical_low(self):
-        ch = {"powerLevel": "37.0", "modulation": "OFDMA", "type": "OFDMA"}
-        health, detail = analyzer._assess_us_channel(ch)
-        assert health == "critical"
+        for case in cases:
+            ch = {"powerLevel": case["power"], "modulation": "OFDMA", "type": "OFDMA"}
+            health, detail = analyzer._assess_us_channel(ch)
+            assert health == case["expected"], case["label"]
 
     def test_sc_qam_still_uses_sc_qam_thresholds(self):
         ch = {"powerLevel": "42.0", "modulation": "64QAM", "type": "ATDMA"}
@@ -170,7 +166,7 @@ class TestOFDMAUpstream:
         channel = result["us_channels"][0]
         assert channel["modulation"] == "OFDMA"
         assert channel["profile_modulation"] == "128QAM"
-        assert channel["power_health"] in ("warning", "critical", "tolerated")
+        assert channel["power_health"] == "tolerated"
 
 
 class TestPercentErrors:
@@ -189,29 +185,53 @@ class TestPercentErrors:
         assert "uncorr_errors_high" not in result["summary"]["health_issues"]
         assert "uncorr_errors_critical" not in result["summary"]["health_issues"]
 
-    def test_warning_threshold(self):
-        # 1% uncorrectable => warning
-        data = _make_data(ds30=[_make_ds30(1, corr=9900, uncorr=100)])
-        result = analyze(data)
-        assert "uncorr_errors_high" in result["summary"]["health_issues"]
+    def test_percent_error_threshold_classifications(self):
+        cases = [
+            {
+                "label": "warning threshold",
+                "corr": 9900,
+                "uncorr": 100,
+                "expected_present": "uncorr_errors_high",
+                "expected_absent": "uncorr_errors_critical",
+            },
+            {
+                "label": "critical threshold",
+                "corr": 9500,
+                "uncorr": 500,
+                "expected_present": "uncorr_errors_critical",
+                "expected_absent": "uncorr_errors_high",
+            },
+        ]
 
-    def test_critical_threshold(self):
-        # 5% uncorrectable => critical
-        data = _make_data(ds30=[_make_ds30(1, corr=9500, uncorr=500)])
-        result = analyze(data)
-        assert "uncorr_errors_critical" in result["summary"]["health_issues"]
+        for case in cases:
+            data = _make_data(ds30=[_make_ds30(1, corr=case["corr"], uncorr=case["uncorr"])])
+            result = analyze(data)
+            issues = result["summary"]["health_issues"]
+            assert case["expected_present"] in issues, case["label"]
+            assert case["expected_absent"] not in issues, case["label"]
 
-    def test_zero_codewords_no_error(self):
-        data = _make_data(ds30=[_make_ds30(1, corr=0, uncorr=0)])
-        result = analyze(data)
-        assert "uncorr_errors_high" not in result["summary"]["health_issues"]
-        assert "uncorr_errors_critical" not in result["summary"]["health_issues"]
+    def test_percent_error_suppression_cases(self):
+        cases = [
+            {
+                "label": "zero codewords",
+                "corr": 0,
+                "uncorr": 0,
+                "expected_pct": None,
+            },
+            {
+                "label": "below minimum codewords",
+                "corr": 3,
+                "uncorr": 3,
+                "expected_pct": 0.0,
+            },
+        ]
 
-    def test_below_min_codewords_suppressed(self):
-        # 50% uncorrectable but only 6 total codewords — below min_codewords threshold
-        data = _make_data(ds30=[_make_ds30(1, corr=3, uncorr=3)])
-        result = analyze(data)
-        assert result["summary"]["ds_uncorr_pct"] == 0.0
-        assert "uncorr_errors_high" not in result["summary"]["health_issues"]
-        assert "uncorr_errors_critical" not in result["summary"]["health_issues"]
+        for case in cases:
+            data = _make_data(ds30=[_make_ds30(1, corr=case["corr"], uncorr=case["uncorr"])])
+            result = analyze(data)
+            issues = result["summary"]["health_issues"]
+            assert "uncorr_errors_high" not in issues, case["label"]
+            assert "uncorr_errors_critical" not in issues, case["label"]
+            if case["expected_pct"] is not None:
+                assert result["summary"]["ds_uncorr_pct"] == case["expected_pct"], case["label"]
 
