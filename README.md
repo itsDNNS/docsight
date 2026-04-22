@@ -25,7 +25,7 @@
 </p>
 
 <p align="center">
-  DOCSight tracks cable signal health, recurring slowdowns, and outages so you have evidence when your ISP says everything is fine.
+  Track signal issues, slowdowns, and outages so you have proof when your ISP says everything is fine.
 </p>
 
 <p align="center">
