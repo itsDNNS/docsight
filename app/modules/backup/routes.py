@@ -164,9 +164,11 @@ def api_restore():
     Auth required if already configured.
     """
     _config_manager = get_config_manager()
-    if _config_manager and _config_manager.is_configured() and _auth_required():
+    if _config_manager is None:
+        return jsonify({"error": "Not initialized"}), 500
+    if _config_manager.is_configured() and _auth_required():
         return redirect("/login")
-    if not (_config_manager and _config_manager.is_configured()):
+    if not _config_manager.is_configured():
         if _check_restore_rate_limit():
             audit_log.warning("Restore rate limit exceeded: ip=%s", _get_client_ip())
             return jsonify({"error": "Too many attempts"}), 429
@@ -180,23 +182,20 @@ def api_restore():
     if len(data) > 500 * 1024 * 1024:
         return jsonify({"error": "File too large"}), 400
     try:
-        data_dir = _config_manager.data_dir if _config_manager else "/data"
-        result = restore_backup(data, data_dir)
+        result = restore_backup(data, _config_manager.data_dir)
         audit_log.info(
             "Backup restored: ip=%s files=%s",
             _get_client_ip(), result["restored_files"],
         )
         # Reload config so the app recognizes the restored state
-        if _config_manager:
-            _config_manager._load()
+        _config_manager._load()
         _on_config_changed = get_on_config_changed()
         if _on_config_changed:
             _on_config_changed()
-        configured = bool(_config_manager and _config_manager.is_configured())
         return jsonify({
             "success": True,
             "restored_files": result["restored_files"],
-            "configured": configured,
+            "configured": _config_manager.is_configured(),
         })
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

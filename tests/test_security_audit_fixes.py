@@ -142,6 +142,36 @@ class TestRestoreRateLimit:
         )
         assert resp.status_code == 429
 
+    def test_restore_without_config_manager_rejected(self):
+        """If the config manager is not initialized, /api/restore must bail out
+        before touching the filesystem — no fallback to a hardcoded data dir."""
+        from flask import Flask
+        from app.modules.backup import routes as br
+        from app.modules.backup.routes import bp as backup_bp
+
+        test_app = Flask(__name__)
+        test_app.config["TESTING"] = True
+        test_app.secret_key = "test-secret"
+
+        with patch("app.modules.backup.routes.get_config_manager", return_value=None), \
+             patch("app.modules.backup.routes._auth_required", return_value=False), \
+             patch("app.modules.backup.routes._get_client_ip", return_value="127.0.0.1"), \
+             patch("app.modules.backup.routes.restore_backup") as mock_restore:
+            test_app.register_blueprint(backup_bp)
+            with test_app.test_client() as c:
+                resp = c.post(
+                    "/api/restore",
+                    data={"file": (io.BytesIO(b"dummy"), "backup.tar.gz")},
+                    content_type="multipart/form-data",
+                )
+            assert resp.status_code == 500
+            assert resp.get_json() == {"error": "Not initialized"}
+            # The missing guard previously let restore_backup run against "/data".
+            mock_restore.assert_not_called()
+            # Must not count as a rate-limit attempt either — the request never
+            # reached the rate-limited code path.
+            assert br._restore_attempts.get("127.0.0.1", []) == []
+
     def test_authenticated_restore_not_rate_limited(self):
         """Configured+authenticated instances skip the rate limit path entirely."""
         from flask import Flask
