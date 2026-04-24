@@ -57,6 +57,16 @@
             </div>
         </div>
 
+        <div class="chart-card fritz-cable-events" id="fritz-cable-events-card">
+            <div class="fritz-cable-events-header">
+                <div class="fritz-cable-panel-title">{{ t.get('seg_events_title', 'Segment Saturation Events') }}</div>
+                <div class="fritz-cable-events-meta" id="fritz-cable-events-meta"></div>
+            </div>
+            <div class="fritz-cable-events-subtitle">{{ t.get('seg_events_subtitle', 'Periods where downstream or upstream load stayed at or above the threshold.') }}</div>
+            <div class="fritz-cable-events-status" id="fritz-cable-events-status"></div>
+            <ul class="fritz-cable-events-list" id="fritz-cable-events-list"></ul>
+        </div>
+
         <div class="chart-card fritz-cable-note">
             {{ t.get('seg_note', 'Segment utilization values are estimates provided by the FRITZ!Box and may differ from actual CMTS-wide load.') }}
         </div>
