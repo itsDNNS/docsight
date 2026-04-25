@@ -118,6 +118,24 @@
                     <td><span class="badge badge-muted">{{ t.severity_info }}</span></td>
                     <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="modulation_change" min="1" step="1" placeholder="default"></td>
                 </tr>
+                <tr class="notify-event-row" data-event="device_reboot">
+                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="device_reboot" checked><span class="toggle-slider"></span></label></td>
+                    <td><span class="event-name">{{ t.notify_event_device_reboot }}</span></td>
+                    <td><span class="badge badge-warning">{{ t.severity_warning }}</span></td>
+                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="device_reboot" min="1" step="1" placeholder="default"></td>
+                </tr>
+                <tr class="notify-event-row" data-event="device_sw_update">
+                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="device_sw_update" checked><span class="toggle-slider"></span></label></td>
+                    <td><span class="event-name">{{ t.notify_event_device_sw_update }}</span></td>
+                    <td><span class="badge badge-muted">{{ t.severity_info }}</span></td>
+                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="device_sw_update" min="1" step="1" placeholder="default"></td>
+                </tr>
+                <tr class="notify-event-row" data-event="device_ip_change">
+                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="device_ip_change" checked><span class="toggle-slider"></span></label></td>
+                    <td><span class="event-name">{{ t.notify_event_device_ip_change }}</span></td>
+                    <td><span class="badge badge-muted">{{ t.severity_info }}</span></td>
+                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="device_ip_change" min="1" step="1" placeholder="default"></td>
+                </tr>
                 <tr class="notify-event-row" data-event="error_spike">
                     <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="error_spike" checked><span class="toggle-slider"></span></label></td>
                     <td><span class="event-name">{{ t.notify_event_error_spike }}</span></td>

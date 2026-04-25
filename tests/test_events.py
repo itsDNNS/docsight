@@ -99,9 +99,16 @@ class TestEventStorage:
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         storage.save_event(ts, "info", "channel_change", "Msg")
         storage.save_event(ts, "warning", "power_change", "Msg")
-        assert storage.get_event_count() == 2
         assert storage.get_event_count(acknowledged=0) == 2
         assert storage.get_event_count(acknowledged=1) == 0
+
+    def test_event_count_with_severity(self, storage):
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        storage.save_event(ts, "info", "channel_change", "Msg")
+        storage.save_event(ts, "warning", "power_change", "Msg")
+        assert storage.get_event_count(severity="warning") == 1
+        assert storage.get_event_count(severity="info") == 1
+        assert storage.get_event_count(severity="critical") == 0
 
     def test_acknowledge_event(self, storage):
         ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -508,6 +515,28 @@ class TestEventsAPI:
         resp = client.get("/api/events/count")
         data = json.loads(resp.data)
         assert data["count"] == 0
+
+    def test_get_events_with_prefix(self, client, api_storage):
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        api_storage.save_event(ts, "info", "device_reboot", "Device rebooted")
+        api_storage.save_event(ts, "info", "power_change", "Power change")
+        
+        # Test filtering by prefix
+        resp = client.get("/api/events?event_prefix=device_")
+        data = json.loads(resp.data)
+        assert len(data["events"]) == 1
+        assert data["events"][0]["event_type"] == "device_reboot"
+        assert data["unacknowledged_count"] == 1
+
+    def test_events_count_with_prefix(self, client, api_storage):
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        api_storage.save_event(ts, "info", "device_reboot", "Device rebooted")
+        api_storage.save_event(ts, "info", "power_change", "Power change")
+        
+        # Test count filtering by prefix
+        resp = client.get("/api/events/count?event_prefix=device_")
+        data = json.loads(resp.data)
+        assert data["count"] == 1
 
 
 # ── save_events_with_ids ──

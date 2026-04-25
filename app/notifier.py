@@ -148,44 +148,39 @@ class NotificationDispatcher:
 
     def __init__(self, config_mgr):
         self._config_mgr = config_mgr
-        self._channels = []
         self._cooldown_tracker = {}  # event_type -> last_sent_timestamp
-        try:
-            self._default_cooldown = int(config_mgr.get("notify_cooldown", 3600))
-        except (ValueError, TypeError):
-            self._default_cooldown = 3600
-        try:
-            self._cooldown_overrides = json.loads(
-                config_mgr.get("notify_cooldowns", "{}")
-            )
-        except (json.JSONDecodeError, TypeError):
-            self._cooldown_overrides = {}
-        self._min_severity = config_mgr.get("notify_min_severity", "warning")
-        self._setup_channels()
 
-    def _setup_channels(self):
+    def _get_cooldown_overrides(self) -> dict[str, int]:
+        try:
+            return json.loads(self._config_mgr.get("notify_cooldowns", "{}"))
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
+    def _get_channels(self) -> list[NotificationChannel]:
+        channels = []
         url = self._config_mgr.get("notify_webhook_url")
         if url:
             if is_discord_webhook_url(url):
-                self._channels.append(DiscordWebhookChannel(url))
-                log.info("Notification channel: Discord webhook configured")
+                channels.append(DiscordWebhookChannel(url))
             else:
                 headers = {}
                 token = self._config_mgr.get("notify_webhook_token")
                 if token:
                     headers["Authorization"] = f"Bearer {token}"
-                self._channels.append(WebhookChannel(url, headers))
-                log.info("Notification channel: webhook configured")
+                channels.append(WebhookChannel(url, headers))
+        return channels
 
     def dispatch(self, events: list[EventDict]) -> None:
         """Send qualifying events to all configured channels."""
-        if not self._channels:
+        channels = self._get_channels()
+        if not channels:
             return
+            
         for event in events:
             if not self._should_send(event):
                 continue
             payload = self._build_payload(event)
-            for channel in self._channels:
+            for channel in channels:
                 try:
                     channel.send(payload)
                 except Exception as e:
@@ -196,7 +191,8 @@ class NotificationDispatcher:
 
     def _should_send(self, event) -> bool:
         # Severity filter
-        min_level = SEVERITY_ORDER.get(self._min_severity, 1)
+        min_severity = self._config_mgr.get("notify_min_severity", "warning")
+        min_level = SEVERITY_ORDER.get(min_severity, 1)
         event_level = SEVERITY_ORDER.get(event.get("severity", "info"), 0)
         if event_level < min_level:
             return False
@@ -204,12 +200,21 @@ class NotificationDispatcher:
         # Cooldown per event_type
         now = time.time()
         key = event.get("event_type", "unknown")
-        cooldown = self._cooldown_overrides.get(key, self._default_cooldown)
+        
+        try:
+            default_cooldown = int(self._config_mgr.get("notify_cooldown", 3600))
+        except (ValueError, TypeError):
+            default_cooldown = 3600
+            
+        overrides = self._get_cooldown_overrides()
+        cooldown = overrides.get(key, default_cooldown)
+        
         if isinstance(cooldown, str):
             try:
                 cooldown = int(cooldown)
             except ValueError:
-                cooldown = self._default_cooldown
+                cooldown = default_cooldown
+        
         if cooldown == 0:  # 0 = disabled, never send this type
             return False
         if key in self._cooldown_tracker:
@@ -231,7 +236,8 @@ class NotificationDispatcher:
 
     def test(self) -> NotificationTestResult:
         """Send a test notification to all channels. Returns {success, error}."""
-        if not self._channels:
+        channels = self._get_channels()
+        if not channels:
             return {"success": False, "error": "No notification channels configured"}
         payload = {
             "source": "docsight",
@@ -242,7 +248,7 @@ class NotificationDispatcher:
             "details": {"test": True},
         }
         errors = []
-        for channel in self._channels:
+        for channel in channels:
             try:
                 if not channel.send(payload):
                     errors.append(f"{type(channel).__name__}: send returned false")

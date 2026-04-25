@@ -82,6 +82,16 @@ class StorageBase:
                 )
             """)
             conn.execute("""
+                CREATE TABLE IF NOT EXISTS device_state (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    uptime_seconds INTEGER,
+                    sw_version TEXT,
+                    wan_ipv4 TEXT,
+                    wan_ipv6 TEXT,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+            conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_snapshots_ts
                 ON snapshots(timestamp)
             """)

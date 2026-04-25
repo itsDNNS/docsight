@@ -410,7 +410,7 @@
                         <span class="hero-meta-item" style="cursor:help;"
                             title="{{ t.channel_count_tooltip }}">
                             <i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch
-                        </span>                      
+                        </span>
                         {% if connection_info and connection_info.max_downstream_kbps %}
                         <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} MBit/s</span>
                         {% elif booked_download and booked_download > 0 %}
@@ -938,7 +938,7 @@
             </div>
             <canvas id="chart-ds-power"></canvas>
         </div>
-        
+
         <!-- DS SNR Chart -->
         <div class="chart-card">
             <div class="chart-card-header">
@@ -952,7 +952,7 @@
             </div>
             <canvas id="chart-ds-snr"></canvas>
         </div>
-        
+
         <!-- US Power Chart -->
         <div class="chart-card">
             <div class="chart-card-header">
@@ -966,7 +966,7 @@
             </div>
             <canvas id="chart-us-power"></canvas>
         </div>
-        
+
         <!-- Errors Chart -->
         <div class="chart-card">
             <div class="chart-card-header">
@@ -1292,7 +1292,7 @@
         <div class="skeleton skel-row"></div>
     </div>
     <div id="journal-empty" class="journal-empty" style="display:none;"></div>
-    
+
     <!-- Phase 4.5: Card wrapper for journal table -->
     <div id="journal-table-card" class="table-card" style="display:none;">
         <div class="table-card-header">
@@ -1352,7 +1352,7 @@
     <div class="events-header">
         <span class="trend-title">{{ t.event_log }}</span>
     </div>
-    
+
     <!-- Phase 4.3: Pill filter toggles for severity -->
     <div class="events-filter-section">
         <div class="events-filter-label">{{ t.event_severity }}:</div>
@@ -1361,11 +1361,12 @@
             <button class="severity-pill" data-severity="info" onclick="filterEventsBySeverity('info')" aria-pressed="false">{{ t.event_severity_info }}</button>
             <button class="severity-pill" data-severity="warning" onclick="filterEventsBySeverity('warning')" aria-pressed="false">{{ t.event_severity_warning }}</button>
             <button class="severity-pill" data-severity="critical" onclick="filterEventsBySeverity('critical')" aria-pressed="false">{{ t.event_severity_critical }}</button>
+            <button class="severity-pill" id="device-filter-pill" onclick="filterEventsByDevice()" aria-pressed="false">{{ t.event_filter_device }}</button>
             <span style="border-left:1px solid var(--card-border, rgba(255,255,255,0.08)); height:20px; margin:0 8px;"></span>
             <button class="severity-pill active" id="hide-operational-btn" onclick="toggleHideOperational()" aria-pressed="true">{{ t.event_hide_operational }}</button>
         </div>
     </div>
-    
+
     <div id="events-loading" class="waiting" style="display:none;">
         <div class="skeleton skel-row"></div>
         <div class="skeleton skel-row"></div>
@@ -1373,7 +1374,7 @@
         <div class="skeleton skel-row"></div>
     </div>
     <div id="events-empty" class="events-empty" style="display:none;"></div>
-    
+
     <!-- Phase 4.3: Card wrapper for events table -->
     <div id="events-table-card" class="table-card" style="display:none;">
         <div class="table-card-header">
@@ -1396,7 +1397,7 @@
             <tbody id="events-tbody"></tbody>
         </table>
     </div>
-    
+
     <div id="events-show-more" style="text-align:center; padding:16px; display:none;">
         <button class="btn-show-more" onclick="loadMoreEvents()">{{ t.show_more }}</button>
     </div>
@@ -2185,10 +2186,10 @@
 <script>
 (function() {
     'use strict';
-    
+
     // Store chart instances globally to prevent memory leaks on refresh
     window.donutCharts = window.donutCharts || {};
-    
+
     function renderDonut(canvasId) {
         var c = document.getElementById(canvasId);
         if (!c) return;
@@ -2242,15 +2243,15 @@
             angle += sweep;
         });
     }
-    
+
     function initDonuts() {
         renderDonut('ds-health-donut');
         renderDonut('us-health-donut');
     }
-    
+
     // Expose refresh function globally for manual updates (refreshData after innerHTML replace)
     window.refreshDonuts = initDonuts;
-    
+
     // Wait for DOM to be fully loaded
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initDonuts);
@@ -2486,6 +2487,9 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 
         // Re-initialize Lucide icons after view switch
         lucide.createIcons();
+
+        // Refresh event badge to reflect view context (filtered vs global)
+        if (typeof refreshEventBadge === 'function') refreshEventBadge();
     }
     window.switchView = switchView;
 
@@ -2619,11 +2623,10 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
                 // Re-init glossary keyboard a11y (lost on innerHTML replace)
                 if (typeof window.initGlossaryHints === 'function') window.initGlossaryHints();
 
-                // Refresh event badge count
-                fetch('/api/events/count')
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { updateEventBadge(d.count || 0); })
-                    .catch(function() {});
+                // Refresh event badge count (respecting current filters)
+                if (typeof window.refreshEventBadge === 'function') {
+                    window.refreshEventBadge();
+                }
             })
             .catch(function(err) {
                 console.warn('Auto-refresh failed:', err);

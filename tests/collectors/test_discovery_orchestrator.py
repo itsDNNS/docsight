@@ -23,6 +23,7 @@ class TestDiscoverCollectors:
         import tempfile, os
         s = MagicMock()
         s.db_path = os.path.join(tmp_path or tempfile.mkdtemp(), "test.db")
+        s.get_device_state.return_value = {}
         return s
 
     def _make_config_mgr(self, poll_interval=60, bnetz_watch=False):
@@ -195,6 +196,7 @@ class TestPollingLoopOrchestrator:
         import tempfile, os
         s = MagicMock()
         s.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
+        s.get_device_state.return_value = {}
         return s
 
     def _make_config_mgr(self):
@@ -241,6 +243,7 @@ class TestPollingLoopOrchestrator:
         storage = MagicMock()
         import tempfile, os
         storage.db_path = os.path.join(tempfile.mkdtemp(), "test.db")
+        storage.get_device_state.return_value = {}
         stop = threading.Event()
 
         original_wait = stop.wait

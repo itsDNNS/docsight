@@ -28,11 +28,20 @@ def api_events_list():
     event_type = request.args.get("event_type") or None
     ack_param = request.args.get("acknowledged")
     acknowledged = int(ack_param) if ack_param is not None and ack_param != "" else None
+    event_prefix = request.args.get("event_prefix") or None
+    exclude_operational = request.args.get("exclude_operational", "false").lower() == "true"
+
     events = _storage.get_events(
         limit=limit, offset=offset, severity=severity,
         event_type=event_type, acknowledged=acknowledged,
+        exclude_operational=exclude_operational, event_prefix=event_prefix
     )
-    unack = _storage.get_event_count(acknowledged=0)
+    unack = _storage.get_event_count(
+        acknowledged=0,
+        exclude_operational=exclude_operational,
+        event_prefix=event_prefix,
+        severity=severity
+    )
     _localize_timestamps(events)
     return jsonify({"events": events, "unacknowledged_count": unack})
 
@@ -44,7 +53,16 @@ def api_events_count():
     _storage = get_storage()
     if not _storage:
         return jsonify({"count": 0})
-    return jsonify({"count": _storage.get_event_count(acknowledged=0)})
+    event_prefix = request.args.get("event_prefix") or None
+    severity = request.args.get("severity") or None
+    exclude_operational = request.args.get("exclude_operational", "false").lower() == "true"
+    count = _storage.get_event_count(
+        acknowledged=0,
+        exclude_operational=exclude_operational,
+        event_prefix=event_prefix,
+        severity=severity
+    )
+    return jsonify({"count": count})
 
 
 @events_bp.route("/api/events/<int:event_id>/acknowledge", methods=["POST"])

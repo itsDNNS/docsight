@@ -40,6 +40,7 @@ class TestModemCollector:
 
         storage = MagicMock()
         storage.get_latest_spike_timestamp.return_value = None
+        storage.get_device_state.return_value = {}
         web = MagicMock()
 
         c = ModemCollector(
@@ -109,6 +110,141 @@ class TestModemCollector:
         c, *_ = self._make_collector()
         assert c.name == "modem"
 
+    def test_format_uptime(self):
+        from app.collectors.modem import format_uptime
+        assert format_uptime(None) == "unknown"
+        assert format_uptime(60) == "0d 0h 1m"
+        assert format_uptime(3660) == "0d 1h 1m"
+        assert format_uptime(90060) == "1d 1h 1m"
+        assert format_uptime(86400) == "1d 0h 0m"
+        assert format_uptime(0) == "0d 0h 0m"
+
+    def test_device_reboot_detected(self):
+        c, driver, _, _, storage, _ = self._make_collector()
+        # Mock previous state: uptime 1000s
+        storage.get_device_state.return_value = {
+            "uptime_seconds": 60000,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1"
+        }
+        # Mock current state: uptime 500s (decreased)
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 500,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1",
+            "reboot_reason": "power cycle"
+        }
+        c.collect()
+        
+        # Check that events were logged
+        storage.save_events.assert_called_once()
+        events = storage.save_events.call_args[0][0]
+        assert len(events) == 1
+        assert events[0]["event_type"] == "device_reboot"
+        assert events[0]["severity"] == "warning"
+        assert "Prior uptime: 0d 16h 40m, Reason: power cycle" in events[0]["message"]
+        
+        # Check that device state was updated
+        storage.update_device_state.assert_called_once()
+        args = storage.update_device_state.call_args[0]
+        assert args[0] == 500  # uptime
+        assert args[1] == "1.0" # sw_version
+
+    def test_device_reboot_reason_visibility(self):
+        """Verify that reason is omitted when None and shown when 'unknown'."""
+        c, driver, _, _, storage, _ = self._make_collector()
+        
+        # 1. Driver is silent (None)
+        storage.get_device_state.return_value = {"uptime_seconds": 60000, "sw_version": "1.0"}
+        driver.get_device_info.return_value = {"uptime_seconds": 100, "sw_version": "1.0"} # No reboot_reason
+        c.collect()
+        events = storage.save_events.call_args[0][0]
+        assert "Prior uptime: 0d 16h 40m" == events[0]["message"]
+        
+        storage.save_events.reset_mock()
+        
+        # 2. Driver explicitly says 'unknown'
+        storage.get_device_state.return_value = {"uptime_seconds": 60000, "sw_version": "1.0"}
+        driver.get_device_info.return_value = {"uptime_seconds": 100, "sw_version": "1.0", "reboot_reason": "unknown"}
+        c.collect()
+        events = storage.save_events.call_args[0][0]
+        assert "Prior uptime: 0d 16h 40m, Reason: unknown" == events[0]["message"]
+
+    def test_device_sw_update_detected(self):
+        c, driver, _, _, storage, _ = self._make_collector()
+        storage.get_device_state.return_value = {
+            "uptime_seconds": 60000,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1"
+        }
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 50,
+            "sw_version": "2.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1",
+            "reboot_reason": "firmware upgrade"
+        }
+        c.collect()
+        
+        storage.save_events.assert_called_once()
+        events = storage.save_events.call_args[0][0]
+        assert len(events) == 1
+        assert events[0]["event_type"] == "device_sw_update"
+        assert events[0]["severity"] == "info"
+        assert "Prior uptime: 0d 16h 40m, SW: 1.0 → 2.0, Reason: firmware upgrade" == events[0]["message"]
+
+    def test_device_ip_change_detected(self):
+        c, driver, _, _, storage, _ = self._make_collector()
+        storage.get_device_state.return_value = {
+            "uptime_seconds": 60000,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1"
+        }
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 70000,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.2",
+            "wan_ipv6": "::1",
+            "reboot_reason": "unknown"
+        }
+        c.collect()
+        
+        storage.save_events.assert_called_once()
+        events = storage.save_events.call_args[0][0]
+        assert len(events) == 1
+        assert events[0]["event_type"] == "device_ip_change"
+        assert events[0]["severity"] == "info"
+        assert "WAN IPv4: 203.0.113.1 → 203.0.113.2" in events[0]["message"]
+
+    def test_device_reboot_with_ip_change(self):
+        c, driver, _, _, storage, _ = self._make_collector()
+        storage.get_device_state.return_value = {
+            "uptime_seconds": 60000,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1"
+        }
+        # Reboot AND IP change
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 50,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.2",
+            "wan_ipv6": "::1",
+            "reboot_reason": "power cycle"
+        }
+        c.collect()
+        
+        storage.save_events.assert_called_once()
+        events = storage.save_events.call_args[0][0]
+        assert len(events) == 1
+        # Should be combined into reboot
+        assert events[0]["event_type"] == "device_reboot"
+        assert "WAN IPv4: 203.0.113.1 → 203.0.113.2" in events[0]["message"]
+
 
 class TestModemCollectorSpikeSuppression:
     """Verify spike suppression is called in the collector pipeline."""
@@ -122,6 +258,7 @@ class TestModemCollectorSpikeSuppression:
 
         mock_storage = MagicMock()
         mock_storage.get_latest_spike_timestamp.return_value = None
+        mock_storage.get_device_state.return_value = {}
         mock_web = MagicMock()
         mock_web._state = {}
 
@@ -157,6 +294,7 @@ class TestModemCollectorErrors:
         event_detector = MagicMock()
         storage = MagicMock()
         storage.get_latest_spike_timestamp.return_value = None
+        storage.get_device_state.return_value = {}
         web = MagicMock()
         c = ModemCollector(
             driver=driver, analyzer_fn=analyzer_fn, event_detector=event_detector,
@@ -213,3 +351,134 @@ class TestModemCollectorErrors:
 
 # ── Orchestrator Integration Tests (E1) ──
 
+
+
+# ── Device Event / Smart Capture Isolation Regression Tests ──
+
+
+class TestDeviceEventSmartCaptureIsolation:
+    """Regression: device lifecycle events must never trigger Smart Capture,
+    and the first poll must only establish a baseline without firing events.
+
+    Smart Capture is wired exclusively to the signal-quality event_detector
+    path. Reboot / SW-update / IP-change events are stored and dispatched to
+    the notifier but must not reach smart_capture.evaluate().
+    """
+
+    def _make_collector(self, initial_state=None):
+        driver = MagicMock()
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 1000,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1",
+            "reboot_reason": None,
+        }
+        driver.get_connection_info.return_value = None
+        driver.get_docsis_data.return_value = {}
+
+        analyzer_fn = MagicMock(return_value={
+            "ds_channels": [], "us_channels": [], "summary": {},
+        })
+        event_detector = MagicMock()
+        event_detector.check.return_value = []
+
+        storage = MagicMock()
+        storage.get_latest_spike_timestamp.return_value = None
+        storage.get_device_state.return_value = initial_state if initial_state is not None else {}
+
+        web = MagicMock()
+        web._state = {}
+
+        smart_capture = MagicMock()
+
+        c = ModemCollector(
+            driver=driver,
+            analyzer_fn=analyzer_fn,
+            event_detector=event_detector,
+            storage=storage,
+            mqtt_pub=None,
+            web=web,
+            poll_interval=60,
+            smart_capture=smart_capture,
+        )
+        return c, driver, storage, smart_capture
+
+    def test_reboot_does_not_trigger_smart_capture(self):
+        """A detected reboot must not call smart_capture.evaluate()."""
+        c, driver, storage, smart_capture = self._make_collector(
+            initial_state={"uptime_seconds": 60000, "sw_version": "1.0",
+                           "wan_ipv4": "203.0.113.1", "wan_ipv6": "::1"}
+        )
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 50,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1",
+            "reboot_reason": "power cycle",
+        }
+        c.collect()
+
+        storage.save_events.assert_called_once()
+        events = storage.save_events.call_args[0][0]
+        assert events[0]["event_type"] == "device_reboot"
+        smart_capture.evaluate.assert_not_called()
+
+    def test_sw_update_does_not_trigger_smart_capture(self):
+        """A detected software update must not call smart_capture.evaluate()."""
+        c, driver, storage, smart_capture = self._make_collector(
+            initial_state={"uptime_seconds": 60000, "sw_version": "1.0",
+                           "wan_ipv4": "203.0.113.1", "wan_ipv6": "::1"}
+        )
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 50,
+            "sw_version": "2.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1",
+            "reboot_reason": "firmware upgrade",
+        }
+        c.collect()
+
+        storage.save_events.assert_called_once()
+        events = storage.save_events.call_args[0][0]
+        assert events[0]["event_type"] == "device_sw_update"
+        smart_capture.evaluate.assert_not_called()
+
+    def test_ip_change_does_not_trigger_smart_capture(self):
+        """A standalone IP change must not call smart_capture.evaluate()."""
+        c, driver, storage, smart_capture = self._make_collector(
+            initial_state={"uptime_seconds": 60000, "sw_version": "1.0",
+                           "wan_ipv4": "203.0.113.1", "wan_ipv6": "::1"}
+        )
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 70000,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.2",
+            "wan_ipv6": "::1",
+            "reboot_reason": None,
+        }
+        c.collect()
+
+        storage.save_events.assert_called_once()
+        events = storage.save_events.call_args[0][0]
+        assert events[0]["event_type"] == "device_ip_change"
+        smart_capture.evaluate.assert_not_called()
+
+    def test_first_poll_establishes_baseline_no_event_fired(self):
+        """On the very first poll (no prior state in DB), no lifecycle event
+        must be stored and Smart Capture must not be called."""
+        c, driver, storage, smart_capture = self._make_collector(initial_state=None)
+        storage.get_device_state.return_value = None
+
+        driver.get_device_info.return_value = {
+            "uptime_seconds": 5000,
+            "sw_version": "1.0",
+            "wan_ipv4": "203.0.113.1",
+            "wan_ipv6": "::1",
+            "reboot_reason": None,
+        }
+        c.collect()
+
+        storage.save_events.assert_not_called()
+        smart_capture.evaluate.assert_not_called()
+        storage.update_device_state.assert_called_once()

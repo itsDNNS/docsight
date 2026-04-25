@@ -1,4 +1,4 @@
-{
+﻿{
   "_meta": {
     "language_name": "",
     "flag": ""
@@ -296,6 +296,9 @@
   "event_type_channel_change": "",
   "event_type_modulation_change": "",
   "event_type_error_spike": "",
+  "event_type_device_sw_update": "",
+  "event_type_device_reboot": "",
+  "event_type_device_ip_change": "",
   "event_acknowledged": "",
   "event_all_severities": "",
   "event_all_types": "",
@@ -702,6 +705,9 @@
   "notify_event_snr_change": "",
   "notify_event_channel_change": "",
   "notify_event_modulation_change": "",
+  "notify_event_device_sw_update": "",
+  "notify_event_device_reboot": "",
+  "notify_event_device_ip_change": "",
   "notify_event_error_spike": "",
   "notify_event_monitoring_started": "",
   "severity_critical": "",

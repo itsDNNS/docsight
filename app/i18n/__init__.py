@@ -12,7 +12,7 @@ for _fname in sorted(os.listdir(_DIR)):
     if not _fname.endswith(".json"):
         continue
     _code = _fname[:-5]  # "en.json" -> "en"
-    with open(os.path.join(_DIR, _fname), "r", encoding="utf-8") as _f:
+    with open(os.path.join(_DIR, _fname), "r", encoding="utf-8-sig") as _f:
         _data = json.load(_f)
     _meta = _data.pop("_meta", {})
     _TRANSLATIONS[_code] = _data

@@ -65,7 +65,7 @@ class EventMixin:
                 e["_id"] = row_id
         return ids
 
-    def get_events(self, limit: int = 200, offset: int = 0, severity: str | None = None, event_type: str | None = None, acknowledged: bool | None = None) -> list[dict]:
+    def get_events(self, limit: int = 200, offset: int = 0, severity: str | None = None, event_type: str | None = None, acknowledged: bool | None = None, exclude_operational: bool = False, event_prefix: str | None = None) -> list[dict]:
         """Return list of event dicts, newest first, with optional filters."""
         query = "SELECT id, timestamp, severity, event_type, message, details, acknowledged FROM events"
         conditions = []
@@ -79,6 +79,11 @@ class EventMixin:
         if acknowledged is not None:
             conditions.append("acknowledged = ?")
             params.append(int(acknowledged))
+        if exclude_operational:
+            conditions.append("event_type NOT IN ('monitoring_started', 'monitoring_stopped')")
+        if event_prefix:
+            conditions.append("event_type LIKE ?")
+            params.append(event_prefix + '%')
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY timestamp DESC, id DESC LIMIT ? OFFSET ?"
@@ -97,17 +102,28 @@ class EventMixin:
             results.append(event)
         return results
 
-    def get_event_count(self, acknowledged=None):
-        """Return event count, optionally filtered by acknowledged status."""
+    def get_event_count(self, acknowledged=None, exclude_operational: bool = False, event_prefix: str | None = None, severity: str | None = None):
+        """Return event count, optionally filtered by status, type or severity."""
+        query = "SELECT COUNT(*) FROM events"
+        conditions = []
+        params = []
         if acknowledged is not None:
-            with sqlite3.connect(self.db_path) as conn:
-                row = conn.execute(
-                    "SELECT COUNT(*) FROM events WHERE acknowledged = ?",
-                    (int(acknowledged),),
-                ).fetchone()
-        else:
-            with sqlite3.connect(self.db_path) as conn:
-                row = conn.execute("SELECT COUNT(*) FROM events").fetchone()
+            conditions.append("acknowledged = ?")
+            params.append(int(acknowledged))
+        if exclude_operational:
+            conditions.append("event_type NOT IN ('monitoring_started', 'monitoring_stopped')")
+        if event_prefix:
+            conditions.append("event_type LIKE ?")
+            params.append(event_prefix + '%')
+        if severity:
+            conditions.append("severity = ?")
+            params.append(severity)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(query, params).fetchone()
         return row[0] if row else 0
 
     def acknowledge_event(self, event_id):

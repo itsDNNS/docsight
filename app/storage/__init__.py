@@ -7,6 +7,7 @@ from .analysis import AnalysisMixin
 from .tokens import TokenMixin
 from .smart_capture import SmartCaptureMixin
 from .cleanup import CleanupMixin
+from .device import DeviceStorageMixin
 
 __all__ = [
     "SnapshotStorage",
@@ -23,6 +24,7 @@ class SnapshotStorage(
     AnalysisMixin,
     SmartCaptureMixin,
     CleanupMixin,
+    DeviceStorageMixin,
     StorageBase,
 ):
     """Persist DOCSIS analysis snapshots to SQLite."""
