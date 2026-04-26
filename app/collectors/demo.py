@@ -498,7 +498,7 @@ class DemoCollector(Collector):
                 "details": {"prev": 37.0, "current": snr_val, "threshold": "warning"},
             })
 
-        # Channel change events scattered across 9 months
+        # Channel change events
         for d in [240, 180, 120, 60, 25, 3]:
             t = now - timedelta(days=d, hours=random.randint(0, 23))
             events.extend([
@@ -517,6 +517,37 @@ class DemoCollector(Collector):
                     "details": {"direction": "downstream", "prev": 24, "current": 25},
                 },
             ])
+
+        # Device Tracking Events (Reboots, SW updates, IP changes)
+        # 1. A firmware update 6 months ago
+        t_sw = now - timedelta(days=180, hours=3)
+        events.append({
+            "timestamp": t_sw.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "severity": "info",
+            "event_type": "device_sw_update",
+            "message": "Reboot: (reason: firmware upgrade) Prior uptime: 112d 14h 7m, SW: v1.8.4 → v2.0.1, WAN IPv4/v6: 93.212.4.11 / 2001:db8::1 → 93.212.5.82 / 2001:db8::2",
+            "details": {"old_sw": "v1.8.4", "new_sw": "v2.0.1", "reboot_reason": "firmware upgrade", "prior_uptime": 9727620, "ip_changed": True}
+        })
+
+        # 2. A simple reboot 3 months ago
+        t_rb = now - timedelta(days=90, hours=14)
+        events.append({
+            "timestamp": t_rb.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "severity": "warning",
+            "event_type": "device_reboot",
+            "message": "Reboot: (reason: power cycle) Prior uptime: 89d 22h 0m",
+            "details": {"reboot_reason": "power cycle", "prior_uptime": 7768800, "ip_changed": False}
+        })
+
+        # 3. An IP change (no reboot) 1 month ago
+        t_ip = now - timedelta(days=30, hours=1)
+        events.append({
+            "timestamp": t_ip.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "severity": "info",
+            "event_type": "device_ip_change",
+            "message": "WAN IPv4: 93.212.5.82 → 93.212.8.194",
+            "details": {"old_ipv4": "93.212.5.82", "new_ipv4": "93.212.8.194"}
+        })
 
         self._storage.save_events(events, is_demo=True)
         log.info("Demo: seeded %d events", len(events))

@@ -12,6 +12,21 @@ _MP_CTX = multiprocessing.get_context("spawn")
 _WAITRESS_KWARGS = {"threads": 2, "_quiet": True, "asyncore_use_poll": True}
 
 
+@pytest.fixture(scope="session")
+def browser_type_launch_args(browser_type_launch_args):
+    """WSL2-friendly Chromium launch arguments to prevent flakiness."""
+    return {
+        **browser_type_launch_args,
+        "args": [
+            *(browser_type_launch_args.get("args", [])),
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--disable-setuid-sandbox",
+            "--no-sandbox",
+        ],
+    }
+
+
 def _find_free_port():
     """Return an available TCP port on localhost."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -107,7 +122,7 @@ def _start_server(data_dir, port, admin_password=None):
     serve(web.app, host="127.0.0.1", port=port, **_WAITRESS_KWARGS)
 
 
-def _wait_for_server(port, timeout=60):
+def _wait_for_server(port, timeout=150):
     """Poll /health until the server responds or timeout."""
     url = f"http://127.0.0.1:{port}/health"
     deadline = time.time() + timeout

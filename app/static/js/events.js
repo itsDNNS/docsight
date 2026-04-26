@@ -3,12 +3,17 @@
 /* ── State ── */
 var _eventsOffset = 0;
 var _eventsPageSize = 50;
+var _eventsRequestCount = 0;
+var _badgeRequestCount = 0;
 var _eventTypeLabels = {
     health_change: T.event_type_health_change || 'Health Change',
     power_change: T.event_type_power_change || 'Power Change',
     snr_change: T.event_type_snr_change || 'SNR Change',
     channel_change: T.event_type_channel_change || 'Channel Change',
     modulation_change: T.event_type_modulation_change || 'Modulation Change',
+    device_sw_update: T.event_type_device_sw_update || 'Software Update',
+    device_reboot: T.event_type_device_reboot || 'Device Reboot',
+    device_ip_change: T.event_type_device_ip_change || 'IP Change',
     error_spike: T.event_type_error_spike || 'Error Spike',
     smart_capture_triggered: T.event_type_smart_capture_triggered || 'Smart Capture'
 };
@@ -20,6 +25,7 @@ var _sevLabels = {
 
 /* Phase 4.3: Pill filter toggle function */
 var _currentSeverityFilter = '';
+var _deviceOnlyFilter = false;
 var _hideOperational = true;
 var _OPERATIONAL_EVENT_TYPES = { monitoring_started: true, monitoring_stopped: true };
 
@@ -133,10 +139,12 @@ function toggleHideOperational() {
         btn.setAttribute('aria-pressed', String(_hideOperational));
     }
     loadEvents();
+    refreshEventBadge();
 }
 
 function filterEventsBySeverity(severity) {
     _currentSeverityFilter = severity;
+    _deviceOnlyFilter = false;
     var pills = document.querySelectorAll('.severity-pill:not(#hide-operational-btn)');
     pills.forEach(function(pill) {
         var isActive = pill.getAttribute('data-severity') === severity;
@@ -146,13 +154,38 @@ function filterEventsBySeverity(severity) {
         }
     });
     loadEvents();
+    refreshEventBadge();
+}
+
+function filterEventsByDevice() {
+    _deviceOnlyFilter = !_deviceOnlyFilter;
+    _currentSeverityFilter = '';
+
+    var pills = document.querySelectorAll('.severity-pill:not(#hide-operational-btn)');
+    pills.forEach(function(pill) {
+        if (pill.id === 'device-filter-pill') {
+            pill.classList.toggle('active', _deviceOnlyFilter);
+            pill.setAttribute('aria-pressed', String(_deviceOnlyFilter));
+        } else {
+            pill.classList.remove('active');
+            if (pill.hasAttribute('aria-pressed')) {
+                pill.setAttribute('aria-pressed', 'false');
+            }
+        }
+    });
+    loadEvents();
+    refreshEventBadge();
 }
 
 function loadEvents(append) {
     if (!append) _eventsOffset = 0;
+    var tableRequestId = ++_eventsRequestCount;
+    var badgeRequestId = ++_badgeRequestCount;
     var severity = _currentSeverityFilter;
     var params = '?limit=' + _eventsPageSize + '&offset=' + _eventsOffset;
     if (severity) params += '&severity=' + severity;
+    if (_hideOperational) params += '&exclude_operational=true';
+    if (_deviceOnlyFilter) params += '&event_prefix=device_';
 
     var tbody = document.getElementById('events-tbody');
     var tableCard = document.getElementById('events-table-card');
@@ -177,52 +210,44 @@ function loadEvents(append) {
             var events = data.events || [];
             var unack = data.unacknowledged_count || 0;
 
-            // Filter operational events client-side
-            if (_hideOperational) {
-                var opCount = 0;
-                events = events.filter(function(ev) {
-                    if (_OPERATIONAL_EVENT_TYPES[ev.event_type]) {
-                        if (!ev.acknowledged) opCount++;
-                        return false;
-                    }
-                    return true;
+            // Events and unack count are now natively filtered by the backend!
+            // Events and unack count are now natively filtered by the backend!
+            var eventsViewEl = document.getElementById('view-events');
+            if (badgeRequestId === _badgeRequestCount && eventsViewEl && eventsViewEl.classList.contains('active')) {
+                updateEventBadge(unack);
+                ackAllBtn.style.display = unack > 0 ? '' : 'none';
+            }
+
+            if (tableRequestId === _eventsRequestCount) {
+                if (events.length === 0 && !append) {
+                    empty.textContent = T.event_no_events || 'No events detected yet.';
+                    empty.style.display = '';
+                    return;
+                }
+                events.forEach(function(ev) {
+                    var tr = document.createElement('tr');
+                    if (ev.acknowledged) tr.className = 'event-acked';
+                    tr.setAttribute('data-event-id', ev.id);
+                    var sevClass = 'sev-badge-' + ev.severity;
+                    var sevLabel = _sevLabels[ev.severity] || ev.severity;
+                    var sevIcons = { info: 'info', warning: 'triangle-alert', critical: 'octagon-alert' };
+                    var sevIcon = sevIcons[ev.severity] || 'info';
+                    var typeLabel = _eventTypeLabel(ev.event_type);
+                    var ackBtn = ev.acknowledged
+                        ? '<span class="ev-ack-mark">&#10003;</span>'
+                        : '<button class="btn-ack" onclick="acknowledgeEvent(' + ev.id + ', event)">&#10003;</button>';
+                    tr.innerHTML =
+                        '<td style="white-space:nowrap;">' + escapeHtml(ev.timestamp.replace('T', ' ')) + '</td>' +
+                        '<td><span class="' + sevClass + '"><span class="sev-text">' + sevLabel + '</span><i data-lucide="' + sevIcon + '" class="sev-icon"></i></span></td>' +
+                        '<td>' + escapeHtml(typeLabel) + '</td>' +
+                        '<td class="event-msg">' + formatEventMessage(ev) + '</td>' +
+                        '<td class="event-actions">' + ackBtn + '</td>';
+                    tbody.appendChild(tr);
                 });
-                unack = Math.max(0, unack - opCount);
+                tableCard.style.display = '';
+                moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
-
-            updateEventBadge(unack);
-            ackAllBtn.style.display = unack > 0 ? '' : 'none';
-
-            if (events.length === 0 && !append) {
-                empty.textContent = T.event_no_events || 'No events detected yet.';
-                empty.style.display = '';
-                return;
-            }
-            events.forEach(function(ev) {
-                var tr = document.createElement('tr');
-                if (ev.acknowledged) tr.className = 'event-acked';
-                tr.setAttribute('data-event-id', ev.id);
-                var sevClass = 'sev-badge-' + ev.severity;
-                var sevLabel = _sevLabels[ev.severity] || ev.severity;
-                var sevIcons = { info: 'info', warning: 'triangle-alert', critical: 'octagon-alert' };
-                var sevIcon = sevIcons[ev.severity] || 'info';
-                var typeLabel = _eventTypeLabel(ev.event_type);
-                // Note: escapeHtml is used on all user-facing content to prevent XSS.
-                // The ack button uses a hardcoded event ID (integer) which is safe.
-                var ackBtn = ev.acknowledged
-                    ? '<span class="ev-ack-mark">&#10003;</span>'
-                    : '<button class="btn-ack" onclick="acknowledgeEvent(' + ev.id + ', event)">&#10003;</button>';
-                tr.innerHTML =
-                    '<td style="white-space:nowrap;">' + escapeHtml(ev.timestamp.replace('T', ' ')) + '</td>' +
-                    '<td><span class="' + sevClass + '"><span class="sev-text">' + sevLabel + '</span><i data-lucide="' + sevIcon + '" class="sev-icon"></i></span></td>' +
-                    '<td>' + escapeHtml(typeLabel) + '</td>' +
-                    '<td class="event-msg">' + formatEventMessage(ev) + '</td>' +
-                    '<td class="event-actions">' + ackBtn + '</td>';
-                tbody.appendChild(tr);
-            });
-            tableCard.style.display = '';
-            moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
-            if (typeof lucide !== 'undefined') lucide.createIcons();
         })
         .catch(function() {
             loading.style.display = 'none';
@@ -271,19 +296,40 @@ function updateEventBadge(count) {
     });
 }
 
-// Fetch badge count on page load (exclude operational if hidden)
-fetch('/api/events?limit=200&offset=0')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        var unack = data.unacknowledged_count || 0;
-        if (_hideOperational) {
-            var events = data.events || [];
-            var opCount = 0;
-            events.forEach(function(ev) {
-                if (_OPERATIONAL_EVENT_TYPES[ev.event_type] && !ev.acknowledged) opCount++;
-            });
-            unack = Math.max(0, unack - opCount);
+window.refreshEventBadge = function() {
+    var params = '';
+    var eventsViewEl = document.getElementById('view-events');
+    var isEventsView = eventsViewEl && eventsViewEl.classList.contains('active');
+    var requestId = ++_badgeRequestCount;
+
+    if (typeof _hideOperational !== 'undefined' && _hideOperational) {
+        params += (params ? '&' : '?') + 'exclude_operational=true';
+    }
+
+    // Only apply severity/device filters if we are actually looking at the events view
+    if (isEventsView) {
+        if (typeof _deviceOnlyFilter !== 'undefined' && _deviceOnlyFilter) {
+            params += (params ? '&' : '?') + 'event_prefix=device_';
         }
-        updateEventBadge(unack);
-    })
-    .catch(function() {});
+        if (typeof _currentSeverityFilter !== 'undefined' && _currentSeverityFilter) {
+            params += (params ? '&' : '?') + 'severity=' + _currentSeverityFilter;
+        }
+    }
+    
+    params += (params ? '&' : '?') + 't=' + Date.now();
+
+    fetch('/api/events/count' + params)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (requestId === _badgeRequestCount) {
+                updateEventBadge(data.count || 0);
+            }
+        })
+        .catch(function() {});
+};
+
+// Fetch badge count on page load
+refreshEventBadge();
+
+// Periodically refresh badge count
+setInterval(refreshEventBadge, 60000);

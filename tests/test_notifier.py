@@ -280,15 +280,17 @@ class TestDispatcherChannelSetup:
         dispatcher = NotificationDispatcher(
             self._make_config("https://discord.com/api/webhooks/123/abc"),
         )
-        assert len(dispatcher._channels) == 1
-        assert isinstance(dispatcher._channels[0], DiscordWebhookChannel)
+        channels = dispatcher._get_channels()
+        assert len(channels) == 1
+        assert isinstance(channels[0], DiscordWebhookChannel)
 
     def test_generic_url_creates_webhook_channel(self):
         dispatcher = NotificationDispatcher(
             self._make_config("https://ntfy.sh/docsight"),
         )
-        assert len(dispatcher._channels) == 1
-        assert isinstance(dispatcher._channels[0], WebhookChannel)
+        channels = dispatcher._get_channels()
+        assert len(channels) == 1
+        assert isinstance(channels[0], WebhookChannel)
 
     def test_discord_url_ignores_token(self):
         dispatcher = NotificationDispatcher(
@@ -297,8 +299,9 @@ class TestDispatcherChannelSetup:
                 token="should-be-ignored",
             ),
         )
-        assert isinstance(dispatcher._channels[0], DiscordWebhookChannel)
+        channels = dispatcher._get_channels()
+        assert isinstance(channels[0], DiscordWebhookChannel)
 
     def test_no_url_creates_no_channels(self):
         dispatcher = NotificationDispatcher(self._make_config(None))
-        assert len(dispatcher._channels) == 0
+        assert len(dispatcher._get_channels()) == 0
