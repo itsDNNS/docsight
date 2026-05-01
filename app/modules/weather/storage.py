@@ -2,6 +2,9 @@
 
 import logging
 import sqlite3
+import threading
+from collections import defaultdict
+from pathlib import Path
 
 log = logging.getLogger("docsis.storage.weather")
 
@@ -22,9 +25,12 @@ class WeatherStorage:
     """
 
     BUSY_TIMEOUT_MS = 5000
+    _locks = defaultdict(threading.RLock)
 
     def __init__(self, db_path):
         self.db_path = db_path
+        lock_key = str(Path(db_path).expanduser().resolve(strict=False))
+        self._lock = self._locks[lock_key]
         self._ensure_table()
 
     def _connect(self):
@@ -36,14 +42,15 @@ class WeatherStorage:
 
     def _ensure_table(self):
         """Create the weather_data table if it doesn't exist."""
-        with self._connect() as conn:
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS weather_data ("
-                "  timestamp TEXT PRIMARY KEY,"
-                "  temperature REAL NOT NULL,"
-                "  is_demo INTEGER DEFAULT 0"
-                ")"
-            )
+        with self._lock:
+            with self._connect() as conn:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS weather_data ("
+                    "  timestamp TEXT PRIMARY KEY,"
+                    "  temperature REAL NOT NULL,"
+                    "  is_demo INTEGER DEFAULT 0"
+                    ")"
+                )
 
     def save_weather_data(self, records, is_demo=False):
         """Bulk insert weather records, ignoring duplicates by timestamp.
@@ -55,12 +62,13 @@ class WeatherStorage:
         if not records:
             return
         try:
-            with self._connect() as conn:
-                conn.executemany(
-                    "INSERT OR IGNORE INTO weather_data "
-                    "(timestamp, temperature, is_demo) VALUES (?, ?, ?)",
-                    [(r["timestamp"], r["temperature"], int(is_demo)) for r in records],
-                )
+            with self._lock:
+                with self._connect() as conn:
+                    conn.executemany(
+                        "INSERT OR IGNORE INTO weather_data "
+                        "(timestamp, temperature, is_demo) VALUES (?, ?, ?)",
+                        [(r["timestamp"], r["temperature"], int(is_demo)) for r in records],
+                    )
             log.debug("Saved %d weather records", len(records))
         except Exception as e:
             log.error("Failed to save weather data: %s", e)
