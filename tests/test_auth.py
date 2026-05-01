@@ -179,7 +179,7 @@ class TestApiTokenAuth:
         """An invalid Bearer token returns 401 JSON."""
         resp = auth_client_with_storage.get(
             "/api/snapshots",
-            headers={"Authorization": "Bearer dsk_invalid_garbage"},
+            headers={"Authorization": "Bearer dsk_nope"},
         )
         assert resp.status_code == 401
         data = resp.get_json()
