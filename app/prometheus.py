@@ -269,6 +269,17 @@ def format_metrics(
                 1 if str(docsis_status).lower() == "online" else 0,
             )
 
+        # dynamic numeric metric: uptime
+        uptime = device_info.get("uptime_seconds")
+        if uptime is not None:
+            _metric(
+                lines,
+                "Device uptime in seconds",
+                "gauge",
+                "docsight_device_uptime_seconds",
+                uptime,
+            )
+
         reboot_reason = device_info.get("reboot_reason")
         if reboot_reason not in (None, ""):
             _metric(
@@ -280,15 +291,26 @@ def format_metrics(
                 {"reason": reboot_reason},
             )
 
-        # dynamic numeric metric: uptime
-        uptime = device_info.get("uptime_seconds")
-        if uptime is not None:
+        wan_ipv4 = device_info.get("wan_ipv4")
+        if wan_ipv4 not in (None, ""):
             _metric(
                 lines,
-                "Device uptime in seconds",
+                "WAN IPv4 address (label carries the value, metric is always 1)",
                 "gauge",
-                "docsight_device_uptime_seconds",
-                uptime,
+                "docsight_device_wan_ipv4_info",
+                1,
+                {"wan_ipv4": wan_ipv4},
+            )
+
+        wan_ipv6 = device_info.get("wan_ipv6")
+        if wan_ipv6 not in (None, ""):
+            _metric(
+                lines,
+                "WAN IPv6 address (label carries the value, metric is always 1)",
+                "gauge",
+                "docsight_device_wan_ipv6_info",
+                1,
+                {"wan_ipv6": wan_ipv6},
             )
 
     # --- Connection info ---
