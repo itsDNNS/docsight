@@ -27,6 +27,20 @@ class TestIndexRoute:
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
 
+    def test_index_hides_error_card_when_unsupported(self, client, sample_analysis):
+        sample_analysis["summary"]["errors_supported"] = False
+        sample_analysis["summary"]["ds_correctable_errors"] = 0
+        sample_analysis["summary"]["ds_uncorrectable_errors"] = 0
+        sample_analysis["ds_channels"][0]["correctable_errors"] = None
+        sample_analysis["ds_channels"][0]["uncorrectable_errors"] = None
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/")
+
+        assert resp.status_code == 200
+        assert b'id="metric-errors-card"' not in resp.data
+        assert b"N/A</div>" not in resp.data
+
     def test_index_with_incomplete_bnetz(self, tmp_path, sample_analysis):
         """Dashboard hides BNetzA card when entry has NULL fields (#148)."""
         mgr = ConfigManager(str(tmp_path / "data_bnetz"))

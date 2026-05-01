@@ -119,6 +119,59 @@ class TestGetChannelHistory:
         result_30 = storage.get_channel_history(1, "ds", days=30)
         assert len(result_30) == 2
 
+    def test_preserves_unsupported_error_values(self, storage):
+        ds = [
+            {"channel_id": 1, "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "256QAM", "snr": 38.1, "correctable_errors": None,
+             "uncorrectable_errors": None, "docsis_version": "3.0",
+             "health": "good", "health_detail": ""},
+        ]
+        storage.save_snapshot(_make_analysis(ds_channels=ds))
+
+        result = storage.get_channel_history(1, "ds", days=7)
+
+        assert result[0]["correctable_errors"] is None
+        assert result[0]["uncorrectable_errors"] is None
+
+    def test_multi_channel_preserves_unsupported_error_values(self, storage):
+        ds = [
+            {"channel_id": 1, "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "256QAM", "snr": 38.1, "correctable_errors": None,
+             "uncorrectable_errors": None, "docsis_version": "3.0",
+             "health": "good", "health_detail": ""},
+        ]
+        storage.save_snapshot(_make_analysis(ds_channels=ds))
+
+        result = storage.get_multi_channel_history([1], "ds", days=7)
+
+        assert result[1][0]["correctable_errors"] is None
+        assert result[1][0]["uncorrectable_errors"] is None
+
+    def test_missing_error_values_are_unsupported(self, storage):
+        ds = [
+            {"channel_id": 1, "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "256QAM", "snr": 38.1, "docsis_version": "3.0",
+             "health": "good", "health_detail": ""},
+        ]
+        storage.save_snapshot(_make_analysis(ds_channels=ds))
+
+        result = storage.get_channel_history(1, "ds", days=7)
+
+        assert result[0]["correctable_errors"] is None
+        assert result[0]["uncorrectable_errors"] is None
+
+    def test_multi_channel_missing_error_values_are_unsupported(self, storage):
+        ds = [
+            {"channel_id": 1, "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "256QAM", "snr": 38.1, "docsis_version": "3.0",
+             "health": "good", "health_detail": ""},
+        ]
+        storage.save_snapshot(_make_analysis(ds_channels=ds))
+
+        result = storage.get_multi_channel_history([1], "ds", days=7)
+
+        assert result[1][0]["correctable_errors"] is None
+        assert result[1][0]["uncorrectable_errors"] is None
 
     def test_string_channel_id_matches(self, storage):
         """Drivers like Vodafone Station store channelID as string.

@@ -577,20 +577,13 @@
         </div>
 
         {# Card 4: Errors #}
-        <div class="metric-card glass">
+        {% if s.errors_supported is not defined or s.errors_supported %}
+        <div class="metric-card glass" id="metric-errors-card">
             <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
             <div class="metric-header">
                 <span class="metric-label">{{ t.card_errors }}</span>
                 <div class="metric-icon amber"><i data-lucide="alert-triangle"></i></div>
             </div>
-            {% if s.errors_supported is defined and not s.errors_supported %}
-            <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--text-muted);">N/A</div>
-            </div>
-            <div class="metric-sub">
-                <span class="badge badge-muted">{{ t.errors_not_available }}</span>
-            </div>
-            {% else %}
             <div class="metric-value-row">
                 <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorr_pct }}<span class="unit">%</span></div>
                 <canvas class="metric-spark" id="spark-errors" width="144" height="56"></canvas>
@@ -599,8 +592,8 @@
                 <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
                 <span class="range">{{ s.ds_correctable_errors|fmt_k }} {{ t.corr }} / {{ s.ds_uncorrectable_errors|fmt_k }} {{ t.uncorr }}</span>
             </div>
-            {% endif %}
         </div>
+        {% endif %}
 
         {# Card 4: Speed (conditional) #}
         {% if speedtest_configured and speedtest_latest %}
@@ -968,7 +961,7 @@
         </div>
 
         <!-- Errors Chart -->
-        <div class="chart-card">
+        <div class="chart-card" id="trend-errors-card">
             <div class="chart-card-header">
                 <div class="chart-header-content">
                     <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
