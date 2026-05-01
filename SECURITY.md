@@ -153,6 +153,36 @@ Security-relevant events are logged to the `docsis.audit` logger:
 4. **Review audit logs:** Check `docker logs docsight` or enable JSON audit logging for structured analysis
 5. **Backup your data:** `data/` directory contains all configuration and history
 
+## Defensive Review Checklist
+
+Maintainers use this checklist when reviewing changes that touch integration or export boundaries. Each boundary lists the regression tests that exercise it; those tests should pass before merging changes that affect the corresponding area.
+
+- **Modem/router response parsing** — driver code parses untrusted modem firmware output and must tolerate missing, malformed, or unexpected fields without crashing the poller.
+  - `tests/test_vodafone_station_tg.py`
+  - `tests/test_driver_registry.py`
+- **Import/export paths** — backup, history import, and report export flows handle user-supplied files and produce shareable output.
+  - `tests/test_import_parser.py`
+  - `tests/test_report.py`
+- **Local authentication/session handling** — login, session cookies, the `require_auth` decorator, and Bearer token verification.
+  - `tests/test_auth.py`
+  - `tests/test_security_hardening.py`
+- **Token and credential storage** — Fernet-at-rest storage for modem and webhook secrets, hash-only persistence for the admin password and API tokens, and config redaction.
+  - `tests/test_security_hardening.py`
+  - `tests/test_config.py`
+- **MQTT/Home Assistant integration payloads** — outbound notifier payload shaping, severity mapping, length limits, and log redaction for webhook URLs.
+  - `tests/test_notifier.py`
+- **Module/plugin manifest loading** — manifest validation and the install/list API surface.
+  - `tests/test_module_install_api.py`
+  - `tests/test_modules_api.py`
+- **Docker/self-hosted runtime defaults** — bundled image defaults, secret bootstrap, and end-to-end auth on a fresh deployment.
+  - `tests/test_config.py`
+  - `tests/e2e/test_auth.py`
+- **Rate limiting or abuse resistance** — login backoff and capture guardrails.
+  - `tests/test_auth.py`
+  - `tests/test_smart_capture_guardrails.py`
+- **Test fixtures and documentation examples** — keeps fixtures and public docs free of reusable-looking secrets so that example values cannot be mistaken for credentials.
+  - `tests/test_defensive_review_docs.py`
+
 ## Third-Party Dependencies
 
 DOCSight uses Python libraries from PyPI. We monitor dependencies for known vulnerabilities:

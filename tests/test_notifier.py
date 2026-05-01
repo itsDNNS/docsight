@@ -248,14 +248,14 @@ class TestDiscordWebhookSend:
         resp = MagicMock(status_code=404)
         resp.raise_for_status.side_effect = requests.HTTPError(response=resp)
         mock_post.return_value = resp
-        secret = "super-secret-token-xyz"
+        url_tail_marker = "REDACTED-PLACEHOLDER-VALUE"
         channel = DiscordWebhookChannel(
-            f"https://discord.com/api/webhooks/123/{secret}",
+            f"https://discord.com/api/webhooks/123/{url_tail_marker}",
         )
         with caplog.at_level(logging.WARNING, logger="docsis.notifier"):
             channel.send({"severity": "info", "event_type": "test",
                           "message": "x", "details": {}})
-        assert secret not in caplog.text
+        assert url_tail_marker not in caplog.text
         assert "123" not in caplog.text
         assert "404" in caplog.text
 
@@ -296,7 +296,7 @@ class TestDispatcherChannelSetup:
         dispatcher = NotificationDispatcher(
             self._make_config(
                 "https://discord.com/api/webhooks/123/abc",
-                token="should-be-ignored",
+                token="UNUSED",
             ),
         )
         channels = dispatcher._get_channels()
