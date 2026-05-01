@@ -1,8 +1,12 @@
 """Tests for event detection, storage, and API endpoints."""
 
 import json
+import shutil
+import subprocess
+import textwrap
 import pytest
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from app.storage import SnapshotStorage
 from app.event_detector import EventDetector
@@ -269,6 +273,7 @@ class TestEventDetector:
             "prev": 36.2,
             "current": 31.0,
             "delta": -5.2,
+            "threshold": "warning",
         }]
 
     def test_snr_drop_critical(self, detector):
@@ -301,6 +306,213 @@ class TestEventDetector:
 
         snr_event = next(e for e in events if e["event_type"] == "snr_change")
         assert snr_event["details"]["affected_channels"] == []
+
+    def test_snr_affected_channels_normalize_id_types(self, detector):
+        """String and int channel IDs map to the same logical channel."""
+        prev_channels = [
+            {"channel_id": "11", "frequency": "794 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.2, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+        cur_channels = [
+            {"channel_id": 11, "frequency": "794 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 31.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": "snr warning"},
+        ]
+
+        detector.check(_make_analysis(ds_snr_min=36.2, ds_total=1, ds_channels=prev_channels))
+        events = detector.check(_make_analysis(ds_snr_min=31.0, ds_total=1, ds_channels=cur_channels))
+
+        snr_event = next(e for e in events if e["event_type"] == "snr_change")
+        affected = snr_event["details"]["affected_channels"]
+        assert len(affected) == 1
+        assert str(affected[0]["channel"]) == "11"
+        assert affected[0]["prev"] == 36.2
+        assert affected[0]["current"] == 31.0
+        assert affected[0]["threshold"] == "warning"
+
+    def test_normalize_channel_id_collapses_int_valued_floats(self):
+        """Float-like IDs without a fractional part collapse to the int key."""
+        from app.event_detector import _normalize_channel_id
+
+        int_key = _normalize_channel_id(11)
+        assert _normalize_channel_id("11") == int_key
+        assert _normalize_channel_id("11.0") == int_key
+        assert _normalize_channel_id(11.0) == int_key
+        # Non-integer floats stay distinct from the int key
+        assert _normalize_channel_id("11.5") != int_key
+        assert _normalize_channel_id(11.5) != int_key
+
+    def test_snr_affected_channels_skips_missing_or_empty_ids(self, detector):
+        """Channels with missing/None/empty channel_id must not collapse together."""
+        prev_channels = [
+            {"channel_id": None, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": "", "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 5, "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+        cur_channels = [
+            {"channel_id": None, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 28.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+            {"channel_id": "", "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 28.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+            {"channel_id": 5, "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 31.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+        ]
+
+        detector.check(_make_analysis(ds_snr_min=36.0, ds_total=3, ds_channels=prev_channels))
+        events = detector.check(_make_analysis(ds_snr_min=31.0, ds_total=3, ds_channels=cur_channels))
+
+        snr_event = next(e for e in events if e["event_type"] == "snr_change")
+        affected = snr_event["details"]["affected_channels"]
+        assert len(affected) == 1
+        assert affected[0]["channel"] == 5
+
+    def test_snr_affected_channels_sort_with_mixed_id_types(self, detector):
+        """Sorting must not raise when channel IDs are a mix of int and str."""
+        prev_channels = [
+            {"channel_id": "10", "frequency": "794 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": "abc", "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+        cur_channels = [
+            {"channel_id": "10", "frequency": "794 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 30.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 30.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+            {"channel_id": "abc", "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 30.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+        ]
+
+        detector.check(_make_analysis(ds_snr_min=36.0, ds_total=3, ds_channels=prev_channels))
+        events = detector.check(_make_analysis(ds_snr_min=30.0, ds_total=3, ds_channels=cur_channels))
+
+        snr_event = next(e for e in events if e["event_type"] == "snr_change")
+        affected = snr_event["details"]["affected_channels"]
+        assert len(affected) == 3
+        # Deterministic ascending sort by current SNR
+        currents = [a["current"] for a in affected]
+        assert currents == sorted(currents)
+
+    def test_snr_critical_event_includes_warning_threshold_crossings(self, detector):
+        """A critical aggregate event must surface channels that crossed warning OR critical."""
+        prev_channels = [
+            {"channel_id": 1, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 3, "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 35.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+        cur_channels = [
+            {"channel_id": 1, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 27.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "critical", "health_detail": "snr critical"},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 31.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": "snr warning"},
+            {"channel_id": 3, "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 34.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+
+        detector.check(_make_analysis(ds_snr_min=35.0, ds_total=3, ds_channels=prev_channels))
+        events = detector.check(_make_analysis(ds_snr_min=27.0, ds_total=3, ds_channels=cur_channels))
+
+        snr_event = next(e for e in events if e["event_type"] == "snr_change")
+        assert snr_event["severity"] == "critical"
+        affected = snr_event["details"]["affected_channels"]
+        by_channel = {a["channel"]: a for a in affected}
+        assert set(by_channel) == {1, 2}
+        assert by_channel[1]["threshold"] == "critical"
+        assert by_channel[2]["threshold"] == "warning"
+
+    def test_snr_affected_channels_skips_non_numeric_snr(self, detector):
+        """Non-numeric SNR values must be ignored without raising."""
+        prev_channels = [
+            {"channel_id": 1, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": "n/a", "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+        cur_channels = [
+            {"channel_id": 1, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 30.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 31.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+        ]
+
+        detector.check(_make_analysis(ds_snr_min=36.0, ds_total=2, ds_channels=prev_channels))
+        events = detector.check(_make_analysis(ds_snr_min=30.0, ds_total=2, ds_channels=cur_channels))
+
+        snr_event = next(e for e in events if e["event_type"] == "snr_change")
+        affected = snr_event["details"]["affected_channels"]
+        assert len(affected) == 1
+        assert affected[0]["channel"] == 2
+
+    def test_snr_affected_channels_skips_non_finite_snr(self, detector):
+        """nan/inf/-inf SNR values (as numbers or strings) must be skipped."""
+        prev_channels = [
+            {"channel_id": 1, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": float("nan"), "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": "inf", "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 3, "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": "-Infinity", "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 4, "frequency": "626 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+        cur_channels = [
+            {"channel_id": 1, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 30.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": float("inf"), "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 3, "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": "nan", "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+            {"channel_id": 4, "frequency": "626 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 31.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": ""},
+        ]
+
+        detector.check(_make_analysis(ds_snr_min=36.0, ds_total=4, ds_channels=prev_channels))
+        events = detector.check(_make_analysis(ds_snr_min=30.0, ds_total=4, ds_channels=cur_channels))
+
+        snr_event = next(e for e in events if e["event_type"] == "snr_change")
+        affected = snr_event["details"]["affected_channels"]
+        # Only channel 4 has finite SNR on both sides and crossed the warning threshold.
+        assert len(affected) == 1
+        assert affected[0]["channel"] == 4
 
     def test_channel_count_change(self, detector):
         detector.check(_make_analysis(ds_total=33, us_total=4))
@@ -930,3 +1142,116 @@ class TestRestartDetection:
         restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
         # Counters are increasing per-channel → no restart regardless of summary
         assert len(restart_events) == 0
+
+
+# ── events.js rendering ──
+
+class TestEventsJsRendering:
+    """Behavioral checks for app/static/js/events.js via Node."""
+
+    @pytest.fixture(autouse=True)
+    def _require_node(self):
+        if shutil.which("node") is None:
+            pytest.skip("node runtime not available")
+
+    def _run_format(self, affected_channels):
+        repo_root = Path(__file__).resolve().parent.parent
+        events_js = repo_root / "app" / "static" / "js" / "events.js"
+        ev = {
+            "id": 1,
+            "timestamp": "2026-01-01T00:00:00",
+            "severity": "warning",
+            "event_type": "snr_change",
+            "message": "snr drop",
+            "details": {
+                "threshold": "warning",
+                "prev": 36.0,
+                "current": 31.0,
+                "affected_channels": affected_channels,
+            },
+        }
+        harness = textwrap.dedent(
+            """
+            const fs = require('fs');
+            const vm = require('vm');
+            const src = fs.readFileSync(process.argv[1], 'utf8');
+            const ev = JSON.parse(process.argv[2]);
+            const ctx = {
+                T: {},
+                escapeHtml: (s) => String(s),
+                document: {
+                    getElementById: () => null,
+                    querySelectorAll: () => [],
+                },
+                fetch: () => ({ then: () => ({ then: () => ({ catch: () => {} }) }) }),
+                setInterval: () => {},
+                console,
+            };
+            ctx.window = ctx;
+            vm.createContext(ctx);
+            vm.runInContext(src, ctx);
+            try {
+                const html = ctx.formatEventMessage(ev);
+                process.stdout.write('OK::' + html);
+            } catch (e) {
+                process.stdout.write('THROW::' + e.message);
+                process.exit(2);
+            }
+            """
+        )
+        result = subprocess.run(
+            ["node", "-e", harness, str(events_js), json.dumps(ev)],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        return result
+
+    def test_snr_render_handles_malformed_affected_entries(self):
+        """null/undefined/non-object entries must not break rendering."""
+        affected = [
+            None,
+            "not-an-object",
+            42,
+            True,
+            {"channel": 5, "prev": 36.0, "current": 31.0, "delta": -5.0},
+        ]
+        result = self._run_format(affected)
+        assert result.returncode == 0, (
+            f"events.js threw on malformed affected_channels:\n"
+            f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+        )
+        assert result.stdout.startswith("OK::"), result.stdout
+        html = result.stdout[len("OK::"):]
+        # The valid object entry should be rendered; junk entries dropped silently.
+        assert "Ch 5" in html
+        # Sanity: the output is a single rendered string (not an exception trace).
+        assert "TypeError" not in html
+
+    def test_snr_render_handles_all_malformed_affected_entries(self):
+        """If every entry is malformed, rendering still succeeds (no shown rows)."""
+        result = self._run_format([None, None, "x", 0])
+        assert result.returncode == 0, (
+            f"events.js threw on all-malformed affected_channels:\n"
+            f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+        )
+        assert result.stdout.startswith("OK::"), result.stdout
+
+    @pytest.mark.parametrize("malformed", [
+        "not-an-array",
+        42,
+        True,
+        {"channel": 5, "current": 30.0},
+    ])
+    def test_snr_render_handles_non_array_affected_channels(self, malformed):
+        """details.affected_channels itself being a truthy non-array must not throw."""
+        result = self._run_format(malformed)
+        assert result.returncode == 0, (
+            f"events.js threw on non-array affected_channels={malformed!r}:\n"
+            f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+        )
+        assert result.stdout.startswith("OK::"), result.stdout
+        html = result.stdout[len("OK::"):]
+        # Top-level SNR header must still render.
+        assert "SNR" in html
+        assert "TypeError" not in html

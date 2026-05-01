@@ -76,7 +76,8 @@ function formatEventMessage(ev) {
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val ' + thr + '">' + _fmtNum(d.current) + '</span> dB ' +
                 '<span class="ev-muted">(' + escapeHtml({warning: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'}[d.threshold] || d.threshold) + ')</span>';
-            var affected = d.affected_channels || [];
+            var affectedRaw = Array.isArray(d.affected_channels) ? d.affected_channels : [];
+            var affected = affectedRaw.filter(function(c) { return c && typeof c === 'object'; });
             var shown = affected.slice(0, 6);
             shown.forEach(function(c) {
                 var delta = typeof c.delta === 'number' ? c.delta : (c.current - c.prev);
