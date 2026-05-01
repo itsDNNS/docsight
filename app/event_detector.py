@@ -69,7 +69,7 @@ class EventDetector:
         # Power change
         self._check_power(events, ts, cur_s, prev_s)
         # SNR change
-        self._check_snr(events, ts, cur_s, prev_s)
+        self._check_snr(events, ts, analysis, prev)
         # Channel count change
         self._check_channels(events, ts, cur_s, prev_s)
         # Modulation change
@@ -164,7 +164,9 @@ class EventDetector:
                 "details": {"direction": "upstream", "prev": us_prev, "current": us_cur},
             })
 
-    def _check_snr(self, events, ts, cur, prev):
+    def _check_snr(self, events, ts, cur_analysis, prev_analysis):
+        cur = cur_analysis.get("summary", {})
+        prev = prev_analysis.get("summary", {})
         snr_cur = cur.get("ds_snr_min", 0)
         snr_prev = prev.get("ds_snr_min", 0)
         if snr_cur == snr_prev:
@@ -176,22 +178,65 @@ class EventDetector:
 
         # Crossed critical threshold
         if snr_cur < snr_crit and snr_prev >= snr_crit:
+            affected_channels = self._snr_affected_channels(cur_analysis, prev_analysis, snr_crit)
             events.append({
                 "timestamp": ts,
                 "severity": "critical",
                 "event_type": "snr_change",
                 "message": f"DS SNR min dropped to {snr_cur} dB (critical threshold: {snr_crit})",
-                "details": {"prev": snr_prev, "current": snr_cur, "threshold": "critical"},
+                "details": {
+                    "prev": snr_prev,
+                    "current": snr_cur,
+                    "threshold": "critical",
+                    "affected_channels": affected_channels,
+                },
             })
         # Crossed warning threshold
         elif snr_cur < snr_warn and snr_prev >= snr_warn:
+            affected_channels = self._snr_affected_channels(cur_analysis, prev_analysis, snr_warn)
             events.append({
                 "timestamp": ts,
                 "severity": "warning",
                 "event_type": "snr_change",
                 "message": f"DS SNR min dropped to {snr_cur} dB (warning threshold: {snr_warn})",
-                "details": {"prev": snr_prev, "current": snr_cur, "threshold": "warning"},
+                "details": {
+                    "prev": snr_prev,
+                    "current": snr_cur,
+                    "threshold": "warning",
+                    "affected_channels": affected_channels,
+                },
             })
+
+    @staticmethod
+    def _snr_affected_channels(cur_analysis, prev_analysis, threshold):
+        prev_channels = {ch.get("channel_id"): ch for ch in prev_analysis.get("ds_channels", [])}
+        affected = []
+
+        for cur_ch in cur_analysis.get("ds_channels", []):
+            ch_id = cur_ch.get("channel_id")
+            prev_ch = prev_channels.get(ch_id)
+            if not prev_ch:
+                continue
+
+            prev_snr = prev_ch.get("snr")
+            cur_snr = cur_ch.get("snr")
+            if prev_snr is None or cur_snr is None:
+                continue
+
+            if cur_snr < threshold <= prev_snr:
+                delta = round(cur_snr - prev_snr, 1)
+                affected.append({
+                    "channel": ch_id,
+                    "frequency": cur_ch.get("frequency") or prev_ch.get("frequency") or "",
+                    "docsis_version": cur_ch.get("docsis_version") or prev_ch.get("docsis_version") or "",
+                    "modulation": cur_ch.get("modulation") or prev_ch.get("modulation") or "",
+                    "prev": prev_snr,
+                    "current": cur_snr,
+                    "delta": 0.0 if delta == -0.0 else delta,
+                })
+
+        affected.sort(key=lambda ch: (ch["current"], ch["channel"]))
+        return affected
 
     def _check_channels(self, events, ts, cur, prev):
         ds_cur = cur.get("ds_total", 0)
