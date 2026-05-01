@@ -253,6 +253,21 @@ function _makeInfoSep() {
     return el;
 }
 
+function _hasChannelDocsisErrorSeries(data) {
+    return !!(data && data.some(function(d) {
+        return d && (d.correctable_errors != null || d.uncorrectable_errors != null);
+    }));
+}
+
+function _setChartCardVisible(cardId, chartId, visible) {
+    var card = document.getElementById(cardId);
+    if (card) card.style.display = visible ? '' : 'none';
+    if (!visible && charts[chartId]) {
+        charts[chartId].destroy();
+        delete charts[chartId];
+    }
+}
+
 function _updateChannelInfoBar(direction, channelId) {
     var bar = document.getElementById('channel-info-bar');
     if (!bar) return;
@@ -341,19 +356,21 @@ function loadChannelTimeline() {
             var powerThresholds = direction === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
             var powerCard = document.querySelector('#channel-charts .chart-card:first-child');
             var powerLabel = powerCard ? powerCard.querySelector('.chart-label') : null;
-            var errorsCard = document.getElementById('channel-errors-card');
             if (direction === 'ds') {
                 powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
                 powerThresholds = null; /* DS combines Power + SNR, thresholds don't apply */
                 if (powerLabel) powerLabel.textContent = (T.power_dbmv || 'Power') + ' & ' + (T.snr_db || 'SNR');
-                errorsCard.style.display = '';
-                renderChart('chart-ch-errors', xLabels, [
-                    {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
-                    {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
-                ], 'bar');
+                var showErrors = _hasChannelDocsisErrorSeries(data);
+                _setChartCardVisible('channel-errors-card', 'chart-ch-errors', showErrors);
+                if (showErrors) {
+                    renderChart('chart-ch-errors', xLabels, [
+                        {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
+                        {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
+                    ], 'bar');
+                }
             } else {
                 if (powerLabel) powerLabel.textContent = T.power_dbmv || 'Power (dBmV)';
-                errorsCard.style.display = 'none';
+                _setChartCardVisible('channel-errors-card', 'chart-ch-errors', false);
             }
             renderChart('chart-ch-power', xLabels, powerDatasets, null, powerThresholds);
 
@@ -707,28 +724,32 @@ function loadCompareCharts() {
             }
 
             // Errors Chart (DS only, lines not bars)
-            var errorsCard = document.getElementById('compare-errors-card');
             if (dir === 'ds') {
-                errorsCard.style.display = '';
-                var errorDatasets = [];
-                _compareChannels.forEach(function(ch) {
-                    errorDatasets.push({
-                        label: 'CH ' + ch.id + ' ' + (T.uncorrectable || 'Uncorr.'),
-                        data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.uncorrectable_errors : null; }),
-                        color: ch.color,
-                        showPoints: showPoints
-                    });
-                    errorDatasets.push({
-                        label: 'CH ' + ch.id + ' ' + (T.correctable || 'Corr.'),
-                        data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.correctable_errors : null; }),
-                        color: ch.color,
-                        dashed: true,
-                        showPoints: showPoints
-                    });
+                var compareHasErrors = _compareChannels.some(function(ch) {
+                    return _hasChannelDocsisErrorSeries(data[String(ch.id)] || []);
                 });
-                renderChart('chart-cmp-errors', xLabels, errorDatasets);
+                _setChartCardVisible('compare-errors-card', 'chart-cmp-errors', compareHasErrors);
+                if (compareHasErrors) {
+                    var errorDatasets = [];
+                    _compareChannels.forEach(function(ch) {
+                        errorDatasets.push({
+                            label: 'CH ' + ch.id + ' ' + (T.uncorrectable || 'Uncorr.'),
+                            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.uncorrectable_errors != null ? d.uncorrectable_errors : null; }),
+                            color: ch.color,
+                            showPoints: showPoints
+                        });
+                        errorDatasets.push({
+                            label: 'CH ' + ch.id + ' ' + (T.correctable || 'Corr.'),
+                            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.correctable_errors != null ? d.correctable_errors : null; }),
+                            color: ch.color,
+                            dashed: true,
+                            showPoints: showPoints
+                        });
+                    });
+                    renderChart('chart-cmp-errors', xLabels, errorDatasets);
+                }
             } else {
-                errorsCard.style.display = 'none';
+                _setChartCardVisible('compare-errors-card', 'chart-cmp-errors', false);
             }
 
             // Modulation Chart

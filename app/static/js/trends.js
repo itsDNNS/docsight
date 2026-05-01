@@ -74,6 +74,25 @@ function _alignWeatherToTrends(trendData, weatherData, range) {
     return temps;
 }
 
+function _supportsTrendDocsisErrors(row) {
+    if (!row) return false;
+    if (row.errors_supported === false) return false;
+    return row.errors_supported === true || row.ds_correctable_errors != null || row.ds_uncorrectable_errors != null;
+}
+
+function _hasTrendDocsisErrorSeries(data) {
+    return !!(data && data.some(_supportsTrendDocsisErrors));
+}
+
+function _setTrendErrorsVisible(visible) {
+    var card = document.getElementById('trend-errors-card');
+    if (card) card.style.display = visible ? '' : 'none';
+    if (!visible && charts['chart-errors']) {
+        charts['chart-errors'].destroy();
+        delete charts['chart-errors'];
+    }
+}
+
 function _renderTrendCharts() {
     var data = _lastTrendData;
     var range = _lastTrendRange;
@@ -94,10 +113,14 @@ function _renderTrendCharts() {
     renderChart('chart-us-power', xLabels,
         [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7'}],
         null, US_POWER_THRESHOLDS, tempOpts);
-    renderChart('chart-errors', xLabels, [
-        {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
-        {label: T.uncorrectable, data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
-    ], 'bar');
+    var showErrors = _hasTrendDocsisErrorSeries(data);
+    _setTrendErrorsVisible(showErrors);
+    if (showErrors) {
+        renderChart('chart-errors', xLabels, [
+            {label: T.correctable, data: data.map(function(d){ return d.ds_correctable_errors; }), color: '#2196f3'},
+            {label: T.uncorrectable, data: data.map(function(d){ return d.ds_uncorrectable_errors; }), color: '#f44336'}
+        ], 'bar');
+    }
 }
 
 function loadTrends(range) {

@@ -190,8 +190,8 @@ class AnalysisMixin:
                         "timestamp": ts,
                         "power": ch.get("power"),
                         "snr": ch.get("snr"),
-                        "correctable_errors": ch.get("correctable_errors", 0),
-                        "uncorrectable_errors": ch.get("uncorrectable_errors", 0),
+                        "correctable_errors": ch.get("correctable_errors"),
+                        "uncorrectable_errors": ch.get("uncorrectable_errors"),
                         "modulation": ch.get("modulation", ""),
                         "health": ch.get("health", ""),
                     })
@@ -223,8 +223,8 @@ class AnalysisMixin:
                         "timestamp": ts,
                         "power": ch.get("power"),
                         "snr": ch.get("snr"),
-                        "correctable_errors": ch.get("correctable_errors", 0),
-                        "uncorrectable_errors": ch.get("uncorrectable_errors", 0),
+                        "correctable_errors": ch.get("correctable_errors"),
+                        "uncorrectable_errors": ch.get("uncorrectable_errors"),
                         "modulation": ch.get("modulation", ""),
                         "frequency": ch.get("frequency", ""),
                     })

@@ -305,6 +305,76 @@ class TestCompareCharts:
                 assert chips.count() >= 1
 
 
+class TestUnsupportedDocsisErrorCharts:
+    """Unsupported DOCSIS error counters should remove misleading error charts."""
+
+    def test_trends_hide_errors_chart_when_error_counters_are_unsupported(self, demo_page):
+        demo_page.route(
+            "**/api/trends**",
+            lambda route: route.fulfill(json=[{
+                "timestamp": "2026-05-01T12:00:00",
+                "ds_power_avg": 1.2,
+                "ds_snr_avg": 38.5,
+                "us_power_avg": 42.1,
+                "errors_supported": False,
+                "ds_correctable_errors": None,
+                "ds_uncorrectable_errors": None,
+            }]),
+        )
+
+        navigate_to_trends(demo_page)
+
+        assert demo_page.locator("#trend-errors-card").is_hidden()
+        assert demo_page.locator("#chart-errors .uplot").count() == 0
+        wait_for_uplot(demo_page, "chart-ds-power")
+
+    def test_channel_timeline_hides_errors_chart_when_error_counters_are_unsupported(self, demo_page):
+        demo_page.route(
+            "**/api/channel-history**",
+            lambda route: route.fulfill(json=[{
+                "timestamp": "2026-05-01T12:00:00",
+                "power": 1.2,
+                "snr": 38.5,
+                "modulation": "256QAM",
+                "correctable_errors": None,
+                "uncorrectable_errors": None,
+            }]),
+        )
+
+        navigate_to_channels(demo_page)
+        select = demo_page.locator("#channel-select")
+        select.select_option(index=1)
+        wait_for_uplot(demo_page, "chart-ch-power")
+
+        assert demo_page.locator("#channel-errors-card").is_hidden()
+        assert demo_page.locator("#chart-ch-errors .uplot").count() == 0
+
+    def test_compare_hides_errors_chart_when_error_counters_are_unsupported(self, demo_page):
+        demo_page.route(
+            "**/api/channel-compare**",
+            lambda route: route.fulfill(json={
+                "1": [{
+                    "timestamp": "2026-05-01T12:00:00",
+                    "power": 1.2,
+                    "snr": 38.5,
+                    "modulation": "256QAM",
+                    "correctable_errors": None,
+                    "uncorrectable_errors": None,
+                }]
+            }),
+        )
+
+        navigate_to_channels(demo_page)
+        compare_tab = demo_page.locator('.trend-tab[data-value="compare"]')
+        compare_tab.first.click()
+        demo_page.wait_for_timeout(500)
+        demo_page.locator("#compare-add-all-btn").click()
+        wait_for_uplot(demo_page, "chart-cmp-power")
+
+        assert demo_page.locator("#compare-errors-card").is_hidden()
+        assert demo_page.locator("#chart-cmp-errors .uplot").count() == 0
+
+
 # ── Theme Toggle ──
 
 

@@ -477,14 +477,27 @@ class TestSegmentCorrelation:
         box = overlay.bounding_box()
         assert box, "Correlation overlay should be present for hover interactions"
 
-        fritzbox_page.mouse.move(box["x"] + box["width"] * 0.55, box["y"] + box["height"] * 0.45)
+        modem_row = fritzbox_page.locator('#correlation-tbody tr[data-src="modem"]').first
+        row_ts = modem_row.get_attribute("data-ts")
+        assert row_ts, "Correlation table should include at least one modem transition row"
+        hover_x = fritzbox_page.evaluate(
+            """
+            (rowTs) => {
+                const st = window._corrChartState;
+                return st.xScale(new Date(rowTs).getTime());
+            }
+            """,
+            row_ts,
+        )
+        fritzbox_page.mouse.move(box["x"] + hover_x, box["y"] + box["height"] * 0.45)
         fritzbox_page.wait_for_timeout(400)
 
         tooltip = fritzbox_page.locator("#correlation-tooltip")
         assert tooltip.is_visible(), "Correlation tooltip should appear on hover"
 
-        highlighted = fritzbox_page.locator("#correlation-tbody tr.corr-highlight")
-        assert highlighted.count() > 0, "Unified timeline should highlight at least one hovered entry"
+        assert modem_row.evaluate("el => el.classList.contains('corr-highlight')"), (
+            "Unified timeline should highlight the hovered modem transition row"
+        )
 
         hover_errors = [e for e in errors if "hoverT" in e or "undefined" in e.lower()]
         assert len(hover_errors) == 0, f"Correlation hover should not raise JS errors: {hover_errors}"
