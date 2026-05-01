@@ -23,6 +23,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from .base import ModemDriver
+from .utils import normalize_modulation
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.vodafone_station")
@@ -328,7 +329,7 @@ class VodafoneStationDriver(ModemDriver):
 
                 ds_31.append({
                     "channelID": channel_id,
-                    "type": "ofdm",
+                    "type": "OFDM",
                     "frequency": f"{int(freq)} MHz" if freq else "",
                     "powerLevel": power,
                     "mse": -snr if snr else None,
@@ -373,7 +374,7 @@ class VodafoneStationDriver(ModemDriver):
 
                 us_31.append({
                     "channelID": channel_id,
-                    "type": "ofdma",
+                    "type": "OFDMA",
                     "frequency": f"{int(freq)} MHz" if freq else "",
                     "powerLevel": power,
                     "multiplex": "",
@@ -719,7 +720,7 @@ class VodafoneStationDriver(ModemDriver):
                 is_ofdm = "OFDM" in ch_type.upper()
 
                 if is_ofdm:
-                    modulation = modulation or "ofdm"
+                    modulation = modulation or "OFDM"
 
                 ch_dict = {
                     "channelID": channel_id,
@@ -746,7 +747,7 @@ class VodafoneStationDriver(ModemDriver):
                 is_ofdma = "OFDMA" in ch_type.upper()
 
                 if is_ofdma:
-                    modulation = modulation or "ofdma"
+                    modulation = modulation or "OFDMA"
 
                 ch_dict = {
                     "channelID": channel_id,
@@ -916,17 +917,7 @@ class VodafoneStationDriver(ModemDriver):
     def _normalize_modulation(modulation: str) -> str:
         """Normalize modulation string to analyzer format.
 
-        Input: "256QAM", "64QAM", "OFDM", "4096QAM"
-        Output: "qam_256", "qam_64", "ofdm", "qam_4096"
+        Input: "256QAM", "64QAM", "OFDM", "4096QAM", "256-qam", "qam_64"
+        Output: "256QAM", "64QAM", "OFDM", "4096QAM", "256QAM", "64QAM"
         """
-        if not modulation:
-            return ""
-        mod = modulation.upper().replace("-", "")
-        if "OFDMA" in mod:
-            return "ofdma"
-        if "OFDM" in mod:
-            return "ofdm"
-        if "QAM" in mod:
-            num = mod.replace("QAM", "")
-            return f"qam_{num}" if num else "qam"
-        return modulation.lower()
+        return normalize_modulation(modulation)

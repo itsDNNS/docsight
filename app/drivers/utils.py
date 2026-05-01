@@ -6,6 +6,7 @@ automatically.
 """
 
 import logging
+import re
 import ssl
 
 from requests.adapters import HTTPAdapter
@@ -94,6 +95,48 @@ def hz_to_mhz(freq) -> str:
     if mhz == int(mhz):
         return f"{int(mhz)} MHz"
     return f"{mhz:.1f} MHz"
+
+
+_MOD_TOKEN_SPLIT = re.compile(r"[\s_\-]+")
+
+
+def normalize_modulation(modulation) -> str:
+    """Normalise a modulation string to a canonical analyzer label.
+
+    Handles vendor variations like "256QAM" / "256-qam" / "256 qam" /
+    "qam256" / "qam_256" -> "256QAM", "QPSK" / "qpsk" -> "QPSK",
+    "OFDM" / "ofdm" -> "OFDM", and similarly for OFDMA / ATDMA / TDMA.
+
+    Unknown non-empty values are returned uppercased and stripped so
+    downstream code keeps a stable, readable label.
+    """
+    if modulation is None:
+        return ""
+    if not isinstance(modulation, str):
+        modulation = str(modulation)
+    raw = modulation.strip()
+    if not raw:
+        return ""
+    mod = _MOD_TOKEN_SPLIT.sub("", raw).lower()
+    if not mod:
+        return raw.upper()
+
+    if "qpsk" in mod:
+        return "QPSK"
+    if "ofdma" in mod:
+        return "OFDMA"
+    if "ofdm" in mod:
+        return "OFDM"
+    if "atdma" in mod:
+        return "ATDMA"
+    if mod == "tdma":
+        return "TDMA"
+    if "qam" in mod:
+        num = mod.replace("qam", "")
+        if num.isdigit():
+            return f"{num}QAM"
+        return "QAM" if not num else f"{num.upper()}QAM"
+    return raw.upper()
 
 
 def normalize_mhz(freq_str: str) -> str:
