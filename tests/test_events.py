@@ -238,12 +238,69 @@ class TestEventDetector:
         assert len(snr_events) == 1
         assert snr_events[0]["severity"] == "warning"
 
+    def test_snr_drop_warning_includes_affected_channel_details(self, detector):
+        prev_channels = [
+            {"channel_id": 11, "frequency": "794 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.2, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 12, "frequency": "802 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+        cur_channels = [
+            {"channel_id": 11, "frequency": "794 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 31.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": "snr warning"},
+            {"channel_id": 12, "frequency": "802 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 35.8, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+
+        detector.check(_make_analysis(ds_snr_min=36.0, ds_total=2, ds_channels=prev_channels))
+        events = detector.check(_make_analysis(ds_snr_min=31.0, ds_total=2, ds_channels=cur_channels))
+
+        snr_event = next(e for e in events if e["event_type"] == "snr_change")
+        affected = snr_event["details"]["affected_channels"]
+        assert affected == [{
+            "channel": 11,
+            "frequency": "794 MHz",
+            "docsis_version": "3.0",
+            "modulation": "256QAM",
+            "prev": 36.2,
+            "current": 31.0,
+            "delta": -5.2,
+        }]
+
     def test_snr_drop_critical(self, detector):
         detector.check(_make_analysis(ds_snr_min=31.0))
         events = detector.check(_make_analysis(ds_snr_min=27.0))
         snr_events = [e for e in events if e["event_type"] == "snr_change"]
         assert len(snr_events) == 1
         assert snr_events[0]["severity"] == "critical"
+
+    def test_snr_drop_ignores_channels_without_comparable_snr(self, detector):
+        prev_channels = [
+            {"channel_id": 1, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": None, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+            {"channel_id": 2, "frequency": "610 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 36.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "good", "health_detail": ""},
+        ]
+        cur_channels = [
+            {"channel_id": 1, "frequency": "602 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 31.0, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": "snr warning"},
+            {"channel_id": 3, "frequency": "618 MHz", "power": 3.0, "modulation": "256QAM",
+             "snr": 30.5, "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.0", "health": "marginal", "health_detail": "snr warning"},
+        ]
+
+        detector.check(_make_analysis(ds_snr_min=36.0, ds_total=2, ds_channels=prev_channels))
+        events = detector.check(_make_analysis(ds_snr_min=30.5, ds_total=2, ds_channels=cur_channels))
+
+        snr_event = next(e for e in events if e["event_type"] == "snr_change")
+        assert snr_event["details"]["affected_channels"] == []
 
     def test_channel_count_change(self, detector):
         detector.check(_make_analysis(ds_total=33, us_total=4))

@@ -495,7 +495,22 @@ class DemoCollector(Collector):
                 "severity": "warning",
                 "event_type": "snr_change",
                 "message": f"DS SNR min dropped to {snr_val} dB (warning threshold: 33)",
-                "details": {"prev": 37.0, "current": snr_val, "threshold": "warning"},
+                "details": {
+                    "prev": 37.0,
+                    "current": snr_val,
+                    "threshold": "warning",
+                    "affected_channels": [
+                        {
+                            "channel": random.randint(10, 18),
+                            "frequency": f"{random.choice([746, 754, 762, 770, 778, 786, 794, 802])} MHz",
+                            "docsis_version": "3.0",
+                            "modulation": "256QAM",
+                            "prev": 37.0,
+                            "current": snr_val,
+                            "delta": round(snr_val - 37.0, 1),
+                        }
+                    ],
+                },
             })
 
         # Channel change events

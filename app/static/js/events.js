@@ -71,11 +71,32 @@ function formatEventMessage(ev) {
 
         case 'snr_change': {
             var thr = d.threshold === 'critical' ? 'ev-down' : 'ev-warn';
-            return '<span class="ev-label">' + (T.event_ds || 'DS') + ' SNR</span>' +
+            var html = '<span class="ev-label">' + (T.event_ds || 'DS') + ' SNR</span>' +
                 '<span class="ev-val">' + _fmtNum(d.prev) + '</span>' +
                 '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                 '<span class="ev-val ' + thr + '">' + _fmtNum(d.current) + '</span> dB ' +
                 '<span class="ev-muted">(' + escapeHtml({warning: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'}[d.threshold] || d.threshold) + ')</span>';
+            var affected = d.affected_channels || [];
+            var shown = affected.slice(0, 6);
+            shown.forEach(function(c) {
+                var delta = typeof c.delta === 'number' ? c.delta : (c.current - c.prev);
+                var sign = delta >= 0 ? '+' : '';
+                var channelLabel = (T.event_ds || 'DS') + ' Ch ' + escapeHtml(String(c.channel));
+                var meta = [];
+                if (c.frequency) meta.push(escapeHtml(String(c.frequency)));
+                if (c.modulation) meta.push(escapeHtml(String(c.modulation)));
+                html += '<span class="ev-sub">' + channelLabel +
+                    (meta.length ? ' · ' + meta.join(' · ') : '') + ': ' +
+                    '<span class="ev-val">' + _fmtNum(c.prev) + '</span>' +
+                    '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
+                    '<span class="ev-val ' + thr + '">' + _fmtNum(c.current) + '</span> dB ' +
+                    '<span class="ev-down">\u25BC ' + sign + _fmtNum(delta) + '</span>' +
+                    '</span>';
+            });
+            if (affected.length > shown.length) {
+                html += '<span class="ev-sub ev-muted">+' + (affected.length - shown.length) + ' more affected channel(s)</span>';
+            }
+            return html;
         }
 
         case 'channel_change': {
