@@ -299,6 +299,50 @@ def test_integration_setup_modals_are_guided_and_actionable(demo_page):
         expect(modal).not_to_be_visible()
 
 
+def test_guided_setup_modal_footers_do_not_cover_mobile_content(demo_page):
+    """Mobile setup modals should scroll their final content fully above footer actions."""
+    demo_page.set_viewport_size({"width": 393, "height": 852})
+    cases = [
+        ("openSpeedtestSetupModal()", "#speedtest-setup-modal"),
+        ("openBqmSetupModal()", "#bqm-setup-modal"),
+        ("openSmokepingSetupModal()", "#smokeping-setup-modal"),
+    ]
+
+    for opener, selector in cases:
+        demo_page.evaluate(opener)
+        modal = demo_page.locator(selector)
+        expect(modal).to_be_visible()
+        modal.locator(".modal-body").evaluate("el => { el.scrollTop = el.scrollHeight; }")
+        geometry = modal.evaluate(
+            """
+            (el) => {
+                const footer = el.querySelector('.modal-footer');
+                const body = el.querySelector('.modal-body');
+                const lastCard = body.querySelector('.setup-guide-card:last-child');
+                const footerRect = footer.getBoundingClientRect();
+                const bodyRect = body.getBoundingClientRect();
+                const lastRect = lastCard.getBoundingClientRect();
+                const footerStyle = getComputedStyle(footer);
+                return {
+                    lastCardBottom: lastRect.bottom,
+                    footerTop: footerRect.top,
+                    bodyBottom: bodyRect.bottom,
+                    footerWraps: footerRect.height >= 44,
+                    footerFlexWrap: footerStyle.flexWrap,
+                };
+            }
+            """
+        )
+
+        assert geometry["lastCardBottom"] <= geometry["footerTop"] - 8
+        assert geometry["bodyBottom"] <= geometry["footerTop"] - 8
+        assert geometry["footerWraps"] is True
+        assert geometry["footerFlexWrap"] == "wrap"
+
+        demo_page.keyboard.press("Escape")
+        expect(modal).not_to_be_visible()
+
+
 def test_integration_setup_copy_actions_provide_feedback(demo_page):
     """Copy actions in guided setup modals provide accessible feedback without native dialogs."""
     demo_page.evaluate("""
