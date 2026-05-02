@@ -35,6 +35,7 @@
 /* Verdict icon */
 .bnetz-verdict { text-align: center; }
 .bnetz-verdict i { width: 18px; height: 18px; }
+.bnetz-verdict-text { display: none; }
 
 /* Detail expand cell */
 .bnetz-detail-cell { padding: 0 8px 12px 24px; }
@@ -67,4 +68,109 @@
 
 @media (max-width: 600px) {
     .bnetz-detail-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    #bnetz-table-card {
+        overflow-x: hidden;
+    }
+
+    #bnetz-table,
+    #bnetz-table > tbody {
+        display: block;
+        width: 100%;
+    }
+
+    #bnetz-table > thead {
+        display: none;
+    }
+
+    #bnetz-table > tbody > tr[data-bnetz-idx] {
+        display: block;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--card-border, var(--input-border));
+    }
+
+    #bnetz-table > tbody > tr[data-bnetz-idx] > td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-tint, rgba(255,255,255,0.08));
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: right;
+    }
+
+    #bnetz-table > tbody > tr[data-bnetz-idx] > td:last-child {
+        border-bottom: none;
+    }
+
+    #bnetz-table > tbody > tr[data-bnetz-idx] > td::before {
+        content: attr(data-label);
+        flex: 0 0 min(46%, 150px);
+        color: var(--text-secondary, var(--text-muted));
+        font-size: 0.82em;
+        font-weight: 600;
+        text-align: left;
+    }
+
+    #bnetz-table > tbody > tr[data-bnetz-idx] > td:first-child {
+        align-items: center;
+    }
+
+    .bnetz-expand-btn {
+        min-width: 36px;
+        min-height: 36px;
+        margin-right: 4px;
+    }
+
+    #bnetz-table > tbody > tr[data-bnetz-idx] > .bnetz-verdict {
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .bnetz-verdict-text {
+        display: inline;
+        overflow-wrap: anywhere;
+    }
+
+    .bnetz-actions-cell {
+        display: flex !important;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+        white-space: normal;
+    }
+
+    .bnetz-actions-cell::before {
+        margin-right: auto;
+    }
+
+    .bnetz-action-btn {
+        min-width: 40px;
+        min-height: 40px;
+        margin-right: 0;
+    }
+
+    .bnetz-detail-cell {
+        display: block;
+        width: 100%;
+        padding: 10px 12px 14px;
+        overflow-x: hidden;
+    }
+
+    .bnetz-detail-table {
+        table-layout: fixed;
+    }
+
+    .bnetz-detail-table th,
+    .bnetz-detail-table td {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
 }

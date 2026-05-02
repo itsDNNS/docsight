@@ -1329,10 +1329,10 @@ function renderCorrelationTable(data) {
             details = typeLabels[e.event_type] || e.event_type || '';
         }
 
-        tr.innerHTML = '<td style="white-space:nowrap; font-size:0.82em;">' + ts + '</td>'
-            + '<td>' + src + '</td>'
-            + '<td>' + msg + '</td>'
-            + '<td style="font-size:0.82em; color:var(--muted);">' + details + '</td>';
+        tr.innerHTML = '<td data-label="' + escapeHtml(T.timestamp || 'Timestamp') + '" class="correlation-cell-timestamp">' + ts + '</td>'
+            + '<td data-label="' + escapeHtml(T.source || 'Source') + '" class="correlation-cell-source">' + src + '</td>'
+            + '<td data-label="' + escapeHtml(T.event_message || 'Message') + '" class="correlation-cell-message">' + msg + '</td>'
+            + '<td data-label="' + escapeHtml(T.event_details || 'Details') + '" class="correlation-cell-details">' + details + '</td>';
         tr.addEventListener('mouseenter', function() {
             if (_corrPinnedRow) return;
             var rowTs = this.getAttribute('data-ts');
