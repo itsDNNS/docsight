@@ -325,6 +325,94 @@ def test_integration_setup_copy_actions_provide_feedback(demo_page):
     expect(modal).not_to_be_visible()
 
 
+def test_journal_import_modal_shows_preview_and_validation_states(demo_page):
+    """Journal import exposes accepted formats, inline validation, preview counts, and selection state."""
+    _open_journal(demo_page)
+    demo_page.evaluate("openImportModal()")
+    modal = demo_page.locator("#import-modal")
+
+    expect(modal).to_be_visible()
+    expect(modal.get_by_role("button", name="Browse CSV or Excel file")).to_be_visible()
+    expect(modal.locator("#import-validation-state")).to_contain_text("Choose a CSV or Excel file")
+
+    demo_page.evaluate(
+        """
+        () => {
+            const file = new File(['not supported'], 'notes.txt', { type: 'text/plain' });
+            handleImportFile({ files: [file] });
+        }
+        """
+    )
+    expect(modal.locator("#import-validation-state")).to_contain_text("Unsupported file type")
+
+    demo_page.evaluate(
+        """
+        () => renderImportPreview({
+            total: 3,
+            skipped: 1,
+            duplicates: 1,
+            rows: [
+                { date: '2026-05-01', title: 'Outage window', description: 'Cable modem offline', skipped: false, duplicate: false },
+                { date: '2026-05-02', title: 'Existing packet loss', description: 'Already imported earlier', skipped: false, duplicate: true },
+                { date: '', raw_date: 'May 3', title: 'Needs date review', description: 'No parseable date', skipped: true, duplicate: false }
+            ]
+        })
+        """
+    )
+    expect(modal.locator("#import-validation-state")).to_contain_text("1 ready")
+    expect(modal.locator("#import-validation-state")).to_contain_text("1 duplicate")
+    expect(modal.locator("#import-validation-state")).to_contain_text("1 needs a date")
+    expect(modal.locator("#import-confirm-btn")).to_contain_text("Import 1 selected entry")
+    expect(modal.locator("#import-confirm-btn")).to_be_enabled()
+
+    modal.locator(".import-row-cb").first.uncheck()
+    expect(modal.locator("#import-validation-state")).to_contain_text("No valid rows selected")
+    expect(modal.locator("#import-confirm-btn")).to_be_disabled()
+
+    modal.locator(".import-row-skipped .import-row-cb").check()
+    expect(modal.locator("#import-validation-state")).to_contain_text("No valid rows selected")
+    expect(modal.locator("#import-confirm-btn")).to_be_disabled()
+
+
+def test_bqm_import_modal_shows_preview_and_validation_states(demo_page):
+    """BQM image import explains accepted files, validates dates, and summarizes readiness in the modal."""
+    demo_page.evaluate("openBqmImportModal()")
+    modal = demo_page.locator("#bqm-import-modal")
+
+    expect(modal).to_be_visible()
+    expect(modal.get_by_role("button", name="Browse BQM images")).to_be_visible()
+    expect(modal.locator("#bqm-import-validation-state")).to_contain_text("Choose PNG or JPEG BQM graph images")
+
+    demo_page.evaluate(
+        """
+        () => {
+            const bad = new File(['bad'], 'notes.txt', { type: 'text/plain' });
+            handleBqmImportFiles([bad]);
+        }
+        """
+    )
+    expect(modal.locator("#bqm-import-validation-state")).to_contain_text("Unsupported file type")
+
+    demo_page.evaluate(
+        """
+        () => {
+            window._bqmImportFiles = [
+                { file: new File(['png'], 'bqm-2026-05-01.png', { type: 'image/png' }), date: '2026-05-01', originalDate: '2026-05-01', thumbUrl: '' },
+                { file: new File(['png'], 'bqm-no-date.png', { type: 'image/png' }), date: '', originalDate: '', thumbUrl: '' }
+            ];
+            renderBqmImportPreview();
+        }
+        """
+    )
+    expect(modal.locator("#bqm-import-validation-state")).to_contain_text("1 ready")
+    expect(modal.locator("#bqm-import-validation-state")).to_contain_text("1 needs a date")
+    expect(modal.locator("#bqm-import-confirm-btn")).to_be_disabled()
+
+    modal.locator(".bqm-import-date-missing").fill("2026-05-02")
+    expect(modal.locator("#bqm-import-validation-state")).to_contain_text("2 ready")
+    expect(modal.locator("#bqm-import-confirm-btn")).to_be_enabled()
+
+
 def test_ai_export_modal_previews_privacy_scope_and_size(demo_page):
     """AI export modal explains local scope, included/excluded data, and output size before copying."""
     demo_page.route(

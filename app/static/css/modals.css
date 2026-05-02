@@ -361,6 +361,41 @@
     outline-offset: 2px;
 }
 
+.import-browse-btn {
+    margin-top: var(--space-sm, 8px);
+}
+
+.import-validation-state {
+    margin: 10px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-soft, rgba(255,255,255,0.04));
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.import-validation-state.is-success {
+    border-color: var(--accent-purple, var(--accent));
+    color: var(--fg);
+}
+
+.import-validation-state.is-warning {
+    border-color: #eab308;
+    color: var(--fg);
+}
+
+.import-validation-state.is-error {
+    border-color: #ef4444;
+    color: #fecaca;
+}
+
+.import-validation-state.is-progress,
+.import-validation-state.is-info {
+    border-color: var(--accent);
+    color: var(--fg);
+}
+
 /* ── Guided integration setup modals ── */
 .setup-guide-modal {
     max-width: 920px;

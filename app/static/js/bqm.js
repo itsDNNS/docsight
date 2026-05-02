@@ -466,14 +466,39 @@ function openBqmImportModal() {
     document.getElementById('bqm-import-overwrite').checked = false;
     document.getElementById('bqm-import-offset').value = '0';
     document.getElementById('bqm-import-tbody').innerHTML = '';
-    modal.classList.add('open');
+    setBqmImportValidationState(T.bqm_import_validation_choose || 'Choose PNG or JPEG BQM graph images. DOCSight will preview dates before importing.', 'info');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.open('bqm-import-modal');
+    } else {
+        modal.classList.add('open');
+    }
 }
 
 function closeBqmImportModal() {
-    document.getElementById('bqm-import-modal').classList.remove('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.close('bqm-import-modal');
+    } else {
+        document.getElementById('bqm-import-modal').classList.remove('open');
+    }
     // Revoke thumb URLs
     _bqmImportFiles.forEach(function(f) { if (f.thumbUrl) URL.revokeObjectURL(f.thumbUrl); });
     _bqmImportFiles = [];
+}
+
+function setBqmImportValidationState(message, tone) {
+    var el = document.getElementById('bqm-import-validation-state');
+    if (!el) return;
+    el.textContent = message || '';
+    el.className = 'import-validation-state' + (tone ? ' is-' + tone : '');
+}
+
+function updateBqmImportValidationState(datesDetected, datesMissing) {
+    var parts = [];
+    parts.push((T.bqm_import_validation_ready || '{0} ready').replace('{0}', datesDetected));
+    if (datesMissing) {
+        parts.push((T.bqm_import_validation_dates || '{0} needs a date').replace('{0}', datesMissing));
+    }
+    setBqmImportValidationState(parts.join(', '), datesMissing ? 'warning' : 'success');
 }
 
 function offsetDate(isoDate, days) {
@@ -506,7 +531,7 @@ function handleBqmImportFiles(fileList) {
         var thumbUrl = URL.createObjectURL(f);
         _bqmImportFiles.push({ file: f, date: date, originalDate: date, thumbUrl: thumbUrl });
     }
-    if (rejected > 0) showToast(T.bqm_import_invalid || 'Only PNG and JPEG images', 'error');
+    if (rejected > 0) setBqmImportValidationState(T.bqm_import_validation_unsupported || 'Unsupported file type. Only PNG and JPEG images are supported.', 'error');
     if (_bqmImportFiles.length > 0) {
         // Apply current offset to newly added files
         var days = parseInt(document.getElementById('bqm-import-offset').value) || 0;
@@ -570,6 +595,11 @@ function renderBqmImportPreview() {
             _bqmImportFiles[i].date = this.value;
             renderBqmImportPreview();
         });
+        dateInput.addEventListener('input', function() {
+            var i = parseInt(this.getAttribute('data-idx'));
+            _bqmImportFiles[i].date = this.value;
+            renderBqmImportPreview();
+        });
         tdDate.appendChild(dateInput);
         tr.appendChild(tdDate);
 
@@ -599,6 +629,7 @@ function renderBqmImportPreview() {
     var statusEl = document.getElementById('bqm-import-status');
     statusEl.textContent = datesDetected + ' dates detected' + (datesMissing > 0 ? ', ' + datesMissing + ' needs manual entry' : '');
     statusEl.style.display = 'block';
+    updateBqmImportValidationState(datesDetected, datesMissing);
 
     document.getElementById('bqm-import-dropzone').style.display = 'none';
     document.getElementById('bqm-import-options').style.display = 'block';
