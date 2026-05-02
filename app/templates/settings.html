@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/static/css/fonts.css">
     <link rel="stylesheet" href="/static/css/tokens.css">
     <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/modals.css">
     <link rel="stylesheet" href="/static/css/settings.css">
     {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
     <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
@@ -199,6 +200,7 @@ var currentTz = '{{ config.timezone|default("", true) }}';
 try { var savedCooldowns = JSON.parse({{ config.notify_cooldowns|default("{}")|tojson }}); } catch(e) { var savedCooldowns = {}; }
 var DRIVER_HINTS = {{ driver_hints | tojson }};
 </script>
+<script src="/static/js/modals.js"></script>
 <script src="/static/js/utils.js"></script>
 <script src="/static/js/notices.js"></script>
 <script src="/static/js/settings.js"></script>

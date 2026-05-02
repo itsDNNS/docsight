@@ -28,7 +28,7 @@
                     <i data-lucide="plug-zap"></i>
                     {{ t.test_connection or 'Test Connection' }}
                 </button>
-                <button type="button" class="btn btn-secondary" onclick="clearSpeedtestCache(this)" title="{{ t['docsight.speedtest.clear_cache_hint'] or 'Delete cached results and re-sync from Speedtest Tracker' }}">
+                <button type="button" id="speedtest_clear_cache" class="btn btn-secondary" onclick="clearSpeedtestCache(this)" title="{{ t['docsight.speedtest.clear_cache_hint'] or 'Delete cached results and re-sync from Speedtest Tracker' }}">
                     <i data-lucide="trash-2"></i>
                     {{ t['docsight.speedtest.clear_cache'] or 'Clear Cache' }}
                 </button>

@@ -257,6 +257,8 @@
             <strong>{{ t.timezone }}:</strong> <span id="review-tz"></span>
         </div>
 
+        <div class="test-result" id="setup-submit-result" role="status" aria-live="polite" tabindex="-1"></div>
+
         <div class="setup-actions">
             <button type="button" class="btn btn-ghost" onclick="prevStep(2)">
                 <i data-lucide="arrow-left" class="setup-icon-sm"></i>
@@ -363,6 +365,15 @@ async function testConnection() {
     _setButtonLoading(btn, 'wifi', '{{ t.test_connection }}');
 }
 
+function showSetupSubmitError(message) {
+    var resultDiv = document.getElementById('setup-submit-result');
+    if (!resultDiv) return;
+    resultDiv.className = 'test-result error';
+    resultDiv.textContent = '✗ ' + message;
+    resultDiv.style.display = 'block';
+    resultDiv.focus && resultDiv.focus({preventScroll: true});
+}
+
 // Form submission
 document.getElementById('setup-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -384,12 +395,12 @@ document.getElementById('setup-form').addEventListener('submit', async function(
         if(response.ok) {
             window.location.href = '/';
         } else {
-            alert('{{ t.setup_failed }}');
+            showSetupSubmitError('{{ t.setup_failed }}');
             btn.disabled = false;
             _setButtonLoading(btn, 'check-circle', '{{ t.complete_setup }}');
         }
     } catch(err) {
-        alert('{{ t.error_generic }}: ' + err.message);
+        showSetupSubmitError('{{ t.error_generic }}: ' + err.message);
         btn.disabled = false;
         _setButtonLoading(btn, 'check-circle', '{{ t.complete_setup }}');
     }

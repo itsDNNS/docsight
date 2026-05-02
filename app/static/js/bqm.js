@@ -747,15 +747,23 @@ function deleteBqmImages() {
             .replace('{0}', rangeDates.length)
             .replace('{1}', _bqmRangeStart)
             .replace('{2}', _bqmRangeEnd);
-        if (!confirm(msg)) return;
-
-        fetch('/api/bqm/images', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ start: _bqmRangeStart, end: _bqmRangeEnd })
+        docsightConfirm({
+            title: T.delete || 'Delete',
+            message: msg,
+            confirmText: T.delete || 'Delete',
+            cancelText: T.cancel || 'Cancel',
+            danger: true
+        }).then(function(confirmed) {
+            if (!confirmed) return null;
+            return fetch('/api/bqm/images', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start: _bqmRangeStart, end: _bqmRangeEnd })
+            });
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { return r ? r.json() : null; })
         .then(function(data) {
+            if (!data) return;
             var successMsg = (T.bqm_delete_success || '{0} images deleted').replace('{0}', data.deleted);
             showToast(successMsg, 'success');
             _bqmRangeStart = null;
@@ -766,17 +774,25 @@ function deleteBqmImages() {
     } else {
         // Delete all
         var msg = (T.bqm_delete_all || 'Delete all {0} BQM images?').replace('{0}', totalCount);
-        if (!confirm(msg)) return;
-        var confirmText = prompt(T.bqm_delete_confirm || 'Type DELETE to confirm');
-        if (confirmText !== 'DELETE') return;
-
-        fetch('/api/bqm/images', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ all: true, confirm: 'DELETE_ALL' })
+        docsightConfirm({
+            title: T.delete || 'Delete',
+            message: msg,
+            confirmText: T.delete || 'Delete',
+            cancelText: T.cancel || 'Cancel',
+            danger: true,
+            requireText: 'DELETE',
+            requireLabel: T.bqm_delete_confirm || 'Type DELETE to confirm'
+        }).then(function(confirmed) {
+            if (!confirmed) return null;
+            return fetch('/api/bqm/images', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ all: true, confirm: 'DELETE_ALL' })
+            });
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) { return r ? r.json() : null; })
         .then(function(data) {
+            if (!data) return;
             var successMsg = (T.bqm_delete_success || '{0} images deleted').replace('{0}', data.deleted);
             showToast(successMsg, 'success');
             _bqmRangeStart = null;

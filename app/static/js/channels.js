@@ -540,7 +540,7 @@ function addCompareChannel() {
     var opt = sel.options[sel.selectedIndex];
     if (!opt || !opt.value) return;
     if (_compareChannels.length >= 6) {
-        alert(T.max_channels_reached || 'Maximum 6 channels in manual selection');
+        showToast(T.max_channels_reached || 'Maximum 6 channels in manual selection', 'error');
         return;
     }
     _comparePreset = null;

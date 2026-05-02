@@ -1,0 +1,113 @@
+"""E2E coverage for DOCSight modal behavior."""
+
+from playwright.sync_api import expect
+
+
+def _open_journal(demo_page):
+    demo_page.locator('.nav-item[data-view="journal"]').click()
+    expect(demo_page.locator("#view-journal")).to_be_visible()
+
+
+def test_modal_focus_trap_escape_and_return_focus(demo_page):
+    """Dashboard modals move focus inside, trap Tab, close on Escape, and restore focus."""
+    _open_journal(demo_page)
+    opener = demo_page.get_by_role("button", name="New Entry")
+    opener.click()
+
+    modal = demo_page.locator("#entry-modal")
+    expect(modal).to_be_visible()
+    expect(modal).to_have_attribute("role", "dialog")
+    expect(modal).to_have_attribute("aria-modal", "true")
+
+    focused_inside = demo_page.evaluate(
+        """
+        () => {
+            const modal = document.querySelector('#entry-modal');
+            return modal && modal.contains(document.activeElement);
+        }
+        """
+    )
+    assert focused_inside
+
+    for _ in range(12):
+        demo_page.keyboard.press("Tab")
+        assert demo_page.evaluate(
+            """
+            () => {
+                const modal = document.querySelector('#entry-modal');
+                return modal && modal.contains(document.activeElement);
+            }
+            """
+        )
+
+    demo_page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+    assert opener.evaluate("el => el === document.activeElement")
+
+
+def test_settings_backup_browser_uses_accessible_modal_contract(settings_page):
+    """Backup directory browser follows the shared modal semantics and safety contract."""
+    settings_page.locator('button[data-section="mod-docsight_backup"]').click()
+    backup_enabled = settings_page.locator("#backup_enabled")
+    if not backup_enabled.is_checked():
+        backup_enabled.evaluate("el => { el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); }")
+    opener = settings_page.get_by_role("button", name="Browse")
+    settings_page.locator("#backup_path").evaluate("el => { el.value = '/'; }")
+    opener.click()
+
+    modal = settings_page.locator("#browse-modal")
+    expect(modal).to_be_visible()
+    expect(modal).to_have_attribute("role", "dialog")
+    expect(modal).to_have_attribute("aria-modal", "true")
+    expect(modal).to_have_attribute("aria-labelledby", "browse-modal-title")
+    expect(modal.locator("#browse-selected-path")).to_be_visible()
+    expect(modal.locator("#browse-status")).to_be_visible()
+
+    assert settings_page.evaluate(
+        """
+        () => {
+            const modal = document.querySelector('#browse-modal');
+            return modal && modal.contains(document.activeElement);
+        }
+        """
+    )
+
+    settings_page.evaluate(
+        """
+        () => {
+            const dirs = document.querySelector('#browse-dirs');
+            dirs.textContent = '';
+            dirs.appendChild(_createBrowseItem('tmp', '/tmp', 'folder', false));
+        }
+        """
+    )
+    first_dir = modal.locator(".browse-item").first
+    expect(first_dir).to_be_visible()
+    expect(first_dir).to_have_attribute("role", "button")
+    expect(first_dir).to_have_attribute("tabindex", "0")
+    first_dir.focus()
+    assert first_dir.evaluate("el => el === document.activeElement")
+    first_dir.press("Enter")
+    expect(modal.locator("#browse-status")).not_to_have_text("Loading...")
+
+    settings_page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+    settings_page.wait_for_function("el => el === document.activeElement", arg=opener.element_handle())
+
+
+def test_styled_confirm_dialog_replaces_native_confirm_for_speedtest_cache(settings_page):
+    """Important settings actions use DOCSight confirmation UI instead of native dialogs."""
+    native_dialogs = []
+    settings_page.on("dialog", lambda dialog: (native_dialogs.append(dialog.message), dialog.dismiss()))
+    settings_page.locator('button[data-section="mod-docsight_speedtest"]').click()
+    settings_page.locator("#speedtest_clear_cache").click()
+
+    confirm_modal = settings_page.locator("#docsight-confirm-modal")
+    expect(confirm_modal).to_be_visible()
+    expect(confirm_modal).to_have_attribute("role", "dialog")
+    expect(confirm_modal).to_contain_text("Clear")
+    expect(confirm_modal.get_by_role("button", name="Cancel")).to_be_visible()
+    assert native_dialogs == []
+
+    settings_page.keyboard.press("Escape")
+    expect(confirm_modal).not_to_be_visible()

@@ -157,10 +157,19 @@ function copyToken() {
 
 function revokeToken(id, name) {
     var msg = (T.api_token_revoke_confirm || 'Revoke token "{name}"?').replace('{name}', name);
-    if (!confirm(msg)) return;
-    fetch('/api/tokens/' + id, {method: 'DELETE'})
-    .then(function(r) { return r.json(); })
+    docsightConfirm({
+        title: T.api_token_revoke || 'Revoke token',
+        message: msg,
+        confirmText: T.revoke || 'Revoke',
+        cancelText: T.cancel || 'Cancel',
+        danger: true
+    }).then(function(confirmed) {
+        if (!confirmed) return null;
+        return fetch('/api/tokens/' + id, {method: 'DELETE'});
+    })
+    .then(function(r) { return r ? r.json() : null; })
     .then(function(data) {
+        if (!data) return;
         if (data.success) {
             showToast(T.api_token_revoked || 'Token revoked', true);
             document.getElementById('api-token-created-banner').style.display = 'none';
@@ -448,11 +457,21 @@ function testSpeedtest() {
 
 /* ── Speedtest Cache Clear ── */
 function clearSpeedtestCache(btn) {
-    if (!confirm(T.clear_cache_confirm || 'Clear all cached speedtest results? They will be re-synced on the next poll cycle.')) return;
-    btn.disabled = true;
-    fetch('/api/speedtest/cache', { method: 'DELETE' })
-        .then(function(r) { return r.json(); })
+    var message = T.clear_cache_confirm || 'Clear all cached speedtest results? They will be re-synced on the next poll cycle.';
+    docsightConfirm({
+        title: T['docsight.speedtest.clear_cache'] || 'Clear Cache',
+        message: message,
+        confirmText: T['docsight.speedtest.clear_cache'] || 'Clear Cache',
+        cancelText: T.cancel || 'Cancel',
+        danger: true
+    }).then(function(confirmed) {
+        if (!confirmed) return null;
+        btn.disabled = true;
+        return fetch('/api/speedtest/cache', { method: 'DELETE' });
+    })
+        .then(function(r) { return r ? r.json() : null; })
         .then(function(res) {
+            if (!res) return;
             btn.disabled = false;
             if (res.success) {
                 var count = res.cleared || 0;
@@ -516,7 +535,19 @@ function testNotifications() {
 /* ── Demo Migration ── */
 function migrateToLive() {
     var msg = T.demo_migrate_confirm || 'This will delete all demo data and switch to live mode. Your own entries will be kept. Continue?';
-    if (!confirm(msg)) return;
+    docsightConfirm({
+        title: T.demo_migrate || 'Switch to live mode',
+        message: msg,
+        confirmText: T.continue || 'Continue',
+        cancelText: T.cancel || 'Cancel',
+        danger: true
+    }).then(function(confirmed) {
+        if (!confirmed) return;
+        runDemoMigration();
+    });
+}
+
+function runDemoMigration() {
     var el = document.getElementById('migrate-result');
     el.className = 'test-result test-loading';
     el.style.display = 'flex';
@@ -640,11 +671,16 @@ function _saveForm() {
 function _guardUnsaved() {
     if (!_formDirty) return Promise.resolve(true);
     var msg = T.unsaved_confirm || 'You have unsaved settings changes. Save them before continuing?';
-    if (confirm(msg)) {
-        return _saveForm();
-    }
-    /* User chose Cancel - abort the action, keep unsaved changes */
-    return Promise.resolve(false);
+    return docsightConfirm({
+        title: T.unsaved_changes || 'Unsaved changes',
+        message: msg,
+        confirmText: T.save || 'Save',
+        cancelText: T.cancel || 'Cancel'
+    }).then(function(confirmed) {
+        if (confirmed) return _saveForm();
+        /* User chose Cancel - abort the action, keep unsaved changes */
+        return false;
+    });
 }
 
 /* ── Submit ── */
@@ -867,31 +903,44 @@ function loadBackupList() {
 }
 
 function deleteBackup(filename) {
-    if (!confirm(T.backup_delete_confirm || 'Delete this backup?')) return;
-    fetch('/api/backup/' + encodeURIComponent(filename), { method: 'DELETE' })
-    .then(function(r) { return r.json(); })
+    docsightConfirm({
+        title: T.delete || 'Delete',
+        message: T.backup_delete_confirm || 'Delete this backup?',
+        confirmText: T.delete || 'Delete',
+        cancelText: T.cancel || 'Cancel',
+        danger: true
+    }).then(function(confirmed) {
+        if (!confirmed) return null;
+        return fetch('/api/backup/' + encodeURIComponent(filename), { method: 'DELETE' });
+    })
+    .then(function(r) { return r ? r.json() : null; })
     .then(function(res) {
+        if (!res) return;
         if (res.success) {
             loadBackupList();
         } else {
-            alert(res.error || T.save_failed || 'Failed');
+            showToast(res.error || T.save_failed || 'Failed', false);
         }
     })
-    .catch(function() { alert(T.network_error || 'Network error'); });
+    .catch(function() { showToast(T.network_error || 'Network error', false); });
 }
 
 /* ── Directory Browser ── */
 var _browsePath = '/backup';
 
-function openBrowseModal() {
+function openBrowseModal(opener) {
     var modal = document.getElementById('browse-modal');
-    modal.style.display = 'flex';
     _browsePath = document.getElementById('backup_path').value || '/backup';
+    var selected = document.getElementById('browse-selected-path');
+    var status = document.getElementById('browse-status');
+    if (selected) selected.textContent = _browsePath;
+    if (status) status.textContent = T.loading || 'Loading...';
+    DOCSightModal.open(modal, {opener: opener || document.activeElement, labelledBy: 'browse-modal-title'});
     browseTo(_browsePath);
 }
 
 function closeBrowseModal() {
-    document.getElementById('browse-modal').style.display = 'none';
+    DOCSightModal.close('browse-modal');
 }
 
 function selectBrowsePath() {
@@ -903,12 +952,16 @@ function browseTo(path) {
     _browsePath = path;
     var bc = document.getElementById('browse-breadcrumb');
     var dirs = document.getElementById('browse-dirs');
+    var selected = document.getElementById('browse-selected-path');
+    var status = document.getElementById('browse-status');
     bc.textContent = path;
+    if (selected) selected.textContent = path;
     dirs.textContent = '';
     var loadingDiv = document.createElement('div');
     loadingDiv.style.cssText = 'padding:16px;color:var(--muted);text-align:center;';
     loadingDiv.textContent = '\u23F3 ' + (T.loading || 'Loading...');
     dirs.appendChild(loadingDiv);
+    if (status) status.textContent = T.loading || 'Loading...';
     fetch('/api/browse?path=' + encodeURIComponent(path))
     .then(function(r) { return r.json(); })
     .then(function(res) {
@@ -918,10 +971,12 @@ function browseTo(path) {
             errDiv.style.cssText = 'padding:16px;color:var(--error);';
             errDiv.textContent = res.error;
             dirs.appendChild(errDiv);
+            if (status) status.textContent = res.error;
             return;
         }
         _browsePath = res.path;
         bc.textContent = res.path;
+        if (selected) selected.textContent = res.path;
 
         if (res.parent) {
             var parentItem = _createBrowseItem('..', res.parent, 'corner-left-up', true);
@@ -937,6 +992,11 @@ function browseTo(path) {
             var item = _createBrowseItem(d.name, d.path, 'folder', false);
             dirs.appendChild(item);
         });
+        if (status) {
+            status.textContent = res.directories.length
+                ? res.directories.length + ' ' + (T.directories || 'directories')
+                : (T.backup_empty_dir || 'Empty directory');
+        }
         if (typeof lucide !== 'undefined') lucide.createIcons();
     })
     .catch(function() {
@@ -945,14 +1005,23 @@ function browseTo(path) {
         errDiv.style.cssText = 'padding:16px;color:var(--error);';
         errDiv.textContent = T.network_error;
         dirs.appendChild(errDiv);
+        if (status) status.textContent = T.network_error;
     });
 }
 
 function _createBrowseItem(label, targetPath, iconName, isMuted) {
     var div = document.createElement('div');
     div.className = 'browse-item';
+    div.setAttribute('role', 'button');
+    div.setAttribute('tabindex', '0');
+    div.setAttribute('aria-label', label);
     div.style.cssText = 'padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-radius:var(--radius-sm);';
     div.addEventListener('click', function() { browseTo(targetPath); });
+    div.addEventListener('keydown', function(event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        browseTo(targetPath);
+    });
     div.addEventListener('mouseenter', function() { this.style.background = 'var(--hover-bg)'; });
     div.addEventListener('mouseleave', function() { this.style.background = ''; });
 

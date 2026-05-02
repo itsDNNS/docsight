@@ -164,15 +164,23 @@ function uploadBnetzFromView(input) {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             input.value = '';
-            if (data.error) { alert(data.error); return; }
+            if (data.error) { showToast(data.error, 'error'); return; }
             loadBnetzData();
         })
-        .catch(function(e) { alert((T.bnetz_upload_failed || 'Upload failed') + ': ' + e); input.value = ''; });
+        .catch(function(e) { showToast((T.bnetz_upload_failed || 'Upload failed') + ': ' + e, 'error'); input.value = ''; });
 }
 
 function deleteBnetzFromView(id) {
-    if (!confirm(T.bnetz_delete_confirm)) return;
-    fetch('/api/bnetz/' + id, {method: 'DELETE'})
-        .then(function() { loadBnetzData(); });
+    docsightConfirm({
+        title: T.delete || 'Delete',
+        message: T.bnetz_delete_confirm || 'Delete this measurement?',
+        confirmText: T.delete || 'Delete',
+        cancelText: T.cancel || 'Cancel',
+        danger: true
+    }).then(function(confirmed) {
+        if (!confirmed) return null;
+        return fetch('/api/bnetz/' + id, {method: 'DELETE'});
+    })
+        .then(function(r) { if (r) loadBnetzData(); });
 }
 

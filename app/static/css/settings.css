@@ -1268,6 +1268,31 @@ html, body {
   font-family: var(--font-mono);
   border-bottom: 1px solid var(--glass-border);
 }
+.browse-modal-summary {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.browse-modal-summary code {
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.browse-modal-status {
+  min-height: 32px;
+  padding: 8px 24px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--glass-border);
+}
 .browse-modal-body {
   flex: 1;
   overflow-y: auto;
