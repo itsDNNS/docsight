@@ -37,6 +37,42 @@ class TestMobileLayout:
         # Allow tiny subpixel drift from browser layout math around x=0.
         assert box is not None and box["x"] >= -0.5
 
+    def test_closed_mobile_sidebar_removes_nav_from_tab_order(self, mobile_page):
+        """Closed off-canvas navigation must not expose hidden focus targets."""
+        focusable_in_closed_sidebar = mobile_page.evaluate(
+            """
+            () => Array.from(document.querySelectorAll(
+                '#sidebar a[href], #sidebar button, #sidebar input, '
+                + '#sidebar [role="button"], #sidebar [tabindex]'
+            )).filter((el) => {
+                const tabindex = el.getAttribute('tabindex');
+                return !el.disabled && tabindex !== '-1';
+            }).map((el) => el.textContent.trim() || el.getAttribute('aria-label') || el.id)
+            """
+        )
+
+        assert focusable_in_closed_sidebar == []
+
+    def test_mobile_sidebar_focus_moves_in_and_returns_on_escape(self, mobile_page):
+        """Opening mobile nav should expose links, focus them, and close accessibly."""
+        hamburger = mobile_page.locator("#hamburger")
+        hamburger.focus()
+        hamburger.click()
+        mobile_page.wait_for_timeout(300)
+
+        active_id = mobile_page.evaluate("document.activeElement && document.activeElement.id")
+        active_view = mobile_page.evaluate(
+            "document.activeElement && document.activeElement.getAttribute('data-view')"
+        )
+        assert active_id == "sidebar" or active_view == "live"
+        assert mobile_page.locator("#sidebar").get_attribute("aria-hidden") == "false"
+
+        mobile_page.keyboard.press("Escape")
+        mobile_page.wait_for_timeout(300)
+
+        assert mobile_page.locator("#sidebar").get_attribute("aria-hidden") == "true"
+        assert mobile_page.evaluate("document.activeElement && document.activeElement.id") == "hamburger"
+
     def test_primary_nav_items_in_sidebar(self, mobile_page):
         mobile_page.locator("#hamburger").click()
         mobile_page.wait_for_timeout(300)

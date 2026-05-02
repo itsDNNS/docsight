@@ -46,7 +46,7 @@
 
 <!-- Mobile Header -->
 <header class="mobile-header">
-    <button class="hamburger" id="hamburger" onclick="openSidebar()" aria-label="Menu">
+    <button class="hamburger" id="hamburger" onclick="openSidebar()" aria-label="Menu" aria-controls="sidebar" aria-expanded="false">
         <i data-lucide="menu"></i>
     </button>
     <span class="mobile-header-title">DOCSight</span>
@@ -59,7 +59,7 @@
 </header>
 
 <!-- Sidebar -->
-<nav class="sidebar" id="sidebar" aria-label="Main navigation">
+<nav class="sidebar" id="sidebar" aria-label="Main navigation" aria-hidden="true">
     <div class="sidebar-header">
         <div class="sidebar-logo"><img src="/static/logo.svg" alt="DOCSight" width="18" height="18"></div>
         <div>
@@ -2423,6 +2423,52 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 
     function isMobile() { return window.matchMedia('(max-width: 1023px)').matches; }
 
+    var sidebarLastOpener = null;
+    var sidebarFocusableSelector = 'a[href], button, input, select, textarea, [role="button"], [tabindex]';
+
+    function getSidebarFocusables() {
+        return Array.from(sidebar.querySelectorAll(sidebarFocusableSelector));
+    }
+
+    function setSidebarFocusSuppressed(suppressed) {
+        getSidebarFocusables().forEach(function(el) {
+            if (suppressed) {
+                if (!el.hasAttribute('data-sidebar-prev-tabindex')) {
+                    el.setAttribute('data-sidebar-prev-tabindex', el.getAttribute('tabindex') || '');
+                }
+                el.setAttribute('tabindex', '-1');
+            } else if (el.hasAttribute('data-sidebar-prev-tabindex')) {
+                var previous = el.getAttribute('data-sidebar-prev-tabindex');
+                if (previous) {
+                    el.setAttribute('tabindex', previous);
+                } else {
+                    el.removeAttribute('tabindex');
+                }
+                el.removeAttribute('data-sidebar-prev-tabindex');
+            }
+        });
+        if ('inert' in sidebar) {
+            sidebar.inert = suppressed;
+        }
+    }
+
+    function syncSidebarAccessibility() {
+        var closedOnMobile = isMobile() && !sidebar.classList.contains('open');
+        sidebar.setAttribute('aria-hidden', closedOnMobile ? 'true' : 'false');
+        setSidebarFocusSuppressed(closedOnMobile);
+        var hamburger = document.getElementById('hamburger');
+        if (hamburger) {
+            hamburger.setAttribute('aria-expanded', sidebar.classList.contains('open') ? 'true' : 'false');
+        }
+    }
+
+    function focusFirstSidebarItem() {
+        var first = getSidebarFocusables().find(function(el) {
+            return !el.disabled && el.offsetParent !== null;
+        });
+        if (first) first.focus({ preventScroll: true });
+    }
+
     function getSidebarLinks() {
         return Array.from(sidebar.querySelectorAll('.nav-section .nav-item[data-view]'));
     }
@@ -2443,15 +2489,32 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
     };
 
     window.openSidebar = function() {
+        sidebarLastOpener = document.activeElement;
         sidebar.classList.add('open');
         sidebarBackdrop.style.display = 'block';
         document.body.classList.add('sidebar-open');
+        syncSidebarAccessibility();
+        window.requestAnimationFrame(focusFirstSidebarItem);
     };
-    window.closeSidebar = function() {
+    window.closeSidebar = function(options) {
+        options = options || {};
         sidebar.classList.remove('open');
         sidebarBackdrop.style.display = 'none';
         document.body.classList.remove('sidebar-open');
+        syncSidebarAccessibility();
+        if (options.restoreFocus !== false && sidebarLastOpener && typeof sidebarLastOpener.focus === 'function') {
+            window.requestAnimationFrame(function() { sidebarLastOpener.focus({ preventScroll: true }); });
+        }
     };
+
+    syncSidebarAccessibility();
+    window.addEventListener('resize', syncSidebarAccessibility);
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && sidebar.classList.contains('open') && isMobile()) {
+            event.preventDefault();
+            closeSidebar();
+        }
+    });
 
     /* Swipe-to-close sidebar (mobile) */
     (function() {
@@ -2491,7 +2554,7 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
     sidebar.addEventListener('click', function(event) {
         var link = event.target.closest('.nav-item[data-view]');
         if (!link || !sidebar.contains(link)) return;
-        if (isMobile()) { closeSidebar(); }
+        if (isMobile()) { closeSidebar({ restoreFocus: false }); }
         switchView(link.getAttribute('data-view'));
     });
     /* Nav items are now <button>, so Enter/Space fires click natively */
