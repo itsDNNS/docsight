@@ -93,5 +93,20 @@
   "timeline_source_modem": "Modem",
   "timeline_source_speedtest": "Speedtest",
   "timeline_source_event": "Ereignis",
-  "timeline_no_data": "Keine Signaldaten für diesen Zeitraum"
+  "timeline_no_data": "Keine Signaldaten für diesen Zeitraum",
+  "entry_modal_intro": "Erfasse, was passiert ist, und verknüpfe Nachweise, die DOCSight später in eine ISP-taugliche Timeline übersetzen kann.",
+  "entry_icon_hint": "Wähle eine sichtbare Kategorie wie Ausfall, Paketverlust, Geschwindigkeitseinbruch, Wartung oder ISP-Kontakt.",
+  "entry_description_hint": "Notiere konkrete Symptome, Zeiten, Support-Referenzen, Modemzustände oder was sich an der Verbindung geändert hat.",
+  "entry_evidence_hint": "Nachweise können Modem-Screenshots, BQM-Bilder, Speedtest-Ergebnisse, SmokePing-Charts oder Support-Schreiben sein.",
+  "entry_create_action": "Eintrag erstellen",
+  "entry_update_action": "Eintrag aktualisieren",
+  "incident_modal_intro": "Gruppiere zusammengehörige Einträge und Nachweise, damit DOCSight eine klare Vorfall-Timeline und einen Berichtspfad bauen kann.",
+  "incident_icon_hint": "Wähle die Kategorie, die später in Filtern, Timelines und Exporten sofort verständlich ist.",
+  "incident_linked_evidence": "Verknüpfte Nachweise",
+  "incident_linked_entries_hint": "Journal-Einträge sind mit diesem Vorfall verknüpft",
+  "incident_empty_evidence_hint": "Ordne während des Vorfalls Journal-Einträge, Screenshots, Modem-Snapshots, BQM-Bilder, Speedtest-Ergebnisse oder SmokePing-Charts zu.",
+  "incident_build_report": "Bericht bauen",
+  "incident_create_action": "Vorfall erstellen",
+  "incident_update_action": "Vorfall aktualisieren",
+  "entry_save_before_upload": "Erstelle zuerst den Eintrag und hänge danach Nachweisdateien an."
 }

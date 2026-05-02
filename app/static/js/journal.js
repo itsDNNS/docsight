@@ -73,30 +73,39 @@ function renderIconPicker(selectedLabel) {
     var picker = document.getElementById('entry-icon-picker');
     var hiddenInput = document.getElementById('entry-icon-value');
     picker.innerHTML = '';
+    function markSelected(selectedButton) {
+        picker.querySelectorAll('.icon-pick').forEach(function(b) {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+        });
+        selectedButton.classList.add('active');
+        selectedButton.setAttribute('aria-pressed', 'true');
+    }
     // "None" button
     var noneBtn = document.createElement('button');
     noneBtn.type = 'button';
     noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
     noneBtn.title = T.icon_auto;
-    noneBtn.innerHTML = '<span style="font-size:14px;color:var(--muted);">' + T.icon_auto.toLowerCase() + '</span>';
+    noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
+    noneBtn.innerHTML = '<span class="icon-pick-symbol">' + T.icon_auto.toLowerCase() + '</span><span class="icon-pick-label">' + T.icon_auto + '</span>';
     noneBtn.onclick = function() {
         hiddenInput.value = '';
-        picker.querySelectorAll('.icon-pick').forEach(function(b) { b.classList.remove('active'); });
-        noneBtn.classList.add('active');
+        markSelected(noneBtn);
         updateModalIcon();
     };
     picker.appendChild(noneBtn);
 
     INCIDENT_ICONS.forEach(function(entry) {
         var btn = document.createElement('button');
+        var label = T['icon_' + entry.label] || entry.label;
         btn.type = 'button';
         btn.className = 'icon-pick' + (selectedLabel === entry.label ? ' active' : '');
-        btn.title = T['icon_' + entry.label] || entry.label;
-        btn.innerHTML = entry.icon;
+        btn.title = label;
+        btn.setAttribute('aria-pressed', selectedLabel === entry.label ? 'true' : 'false');
+        btn.innerHTML = '<span class="icon-pick-symbol">' + entry.icon + '</span><span class="icon-pick-label">' + label + '</span>';
         btn.onclick = function() {
             hiddenInput.value = entry.label;
-            picker.querySelectorAll('.icon-pick').forEach(function(b) { b.classList.remove('active'); });
-            btn.classList.add('active');
+            markSelected(btn);
             updateModalIcon();
         };
         picker.appendChild(btn);
@@ -314,11 +323,15 @@ function openEntryModal(entryId) {
     var deleteBtn = document.getElementById('entry-delete-btn');
     var attachSection = document.getElementById('entry-attachments-section');
     var attachList = document.getElementById('entry-attachment-list');
+    var uploadBtn = document.getElementById('entry-upload-btn');
+    var uploadHint = document.getElementById('entry-upload-hint');
+    var saveBtn = document.getElementById('entry-save-btn');
 
     attachList.innerHTML = '';
 
     if (entryId) {
         titleEl.textContent = T.edit_entry || 'Edit Entry';
+        if (saveBtn) saveBtn.textContent = T.entry_update_action || 'Update entry';
         deleteBtn.style.display = '';
         fetch('/api/journal/' + entryId)
             .then(function(r) { return r.json(); })
@@ -333,10 +346,13 @@ function openEntryModal(entryId) {
                 populateIncidentSelect(entry.incident_id);
                 renderAttachments(entry.attachments || [], attachList, entryId);
                 attachSection.style.display = '';
+                if (uploadBtn) uploadBtn.disabled = false;
+                if (uploadHint) uploadHint.textContent = '';
                 modal.classList.add('open');
             });
     } else {
         titleEl.textContent = T.new_entry || 'New Entry';
+        if (saveBtn) saveBtn.textContent = T.entry_create_action || 'Create entry';
         idEl.value = '';
         dateEl.value = todayStr();
         titleInput.value = '';
@@ -346,7 +362,9 @@ function openEntryModal(entryId) {
         updateModalIcon();
         populateIncidentSelect(_activeIncidentFilter > 0 ? _activeIncidentFilter : null);
         deleteBtn.style.display = 'none';
-        attachSection.style.display = 'none';
+        attachSection.style.display = '';
+        if (uploadBtn) uploadBtn.disabled = true;
+        if (uploadHint) uploadHint.textContent = T.entry_save_before_upload || 'Create the entry first, then attach evidence files.';
         modal.classList.add('open');
     }
 }
@@ -421,6 +439,12 @@ function saveEntry() {
                 document.getElementById('entry-modal-title').textContent = T.edit_entry || 'Edit Entry';
                 document.getElementById('entry-delete-btn').style.display = '';
                 document.getElementById('entry-attachments-section').style.display = '';
+                var uploadBtn = document.getElementById('entry-upload-btn');
+                var uploadHint = document.getElementById('entry-upload-hint');
+                var saveBtn = document.getElementById('entry-save-btn');
+                if (uploadBtn) uploadBtn.disabled = false;
+                if (uploadHint) uploadHint.textContent = '';
+                if (saveBtn) saveBtn.textContent = T.entry_update_action || 'Update entry';
                 showToast(T.saved || 'Saved', 'ok');
             } else {
                 closeEntryModal();
@@ -453,7 +477,12 @@ function deleteEntry() {
 
 function handleEntryFileUpload(input) {
     var incidentId = document.getElementById('entry-id').value;
-    if (!incidentId || !input.files || input.files.length === 0) return;
+    if (!incidentId) {
+        showToast(T.entry_save_before_upload || 'Create the entry first, then attach evidence files.', 'info');
+        input.value = '';
+        return;
+    }
+    if (!input.files || input.files.length === 0) return;
     var spinner = document.getElementById('entry-upload-spinner');
     var uploadBtn = document.getElementById('entry-upload-btn');
     spinner.style.display = 'inline';
@@ -838,8 +867,10 @@ function renderIncidentSummary(incidentId) {
     html += '<span class="incident-summary-badge ' + statusClass + '">' + statusLabel + '</span>';
     if (dateRange) html += '<span class="incident-summary-date">' + dateRange + '</span>';
     html += '<span class="incident-summary-count">' + (inc.entry_count || 0) + ' ' + (T.incident_entry_count || 'Entries') + '</span>';
+    html += '<span class="incident-summary-evidence">' + (T.incident_linked_evidence || 'Linked evidence') + '</span>';
     html += '<button class="incident-summary-edit" onclick="openIncidentModal(' + inc.id + ')" title="' + (T.incident_edit || 'Edit') + '">&#9998;</button>';
     html += '<button class="incident-summary-timeline-btn" onclick="openIncidentTimeline(' + inc.id + ')">' + (T.incident_view_timeline || 'View Timeline') + '</button>';
+    html += '<button class="incident-summary-report-btn" onclick="openIncidentTimeline(' + inc.id + ')">' + (T.incident_build_report || 'Build report') + '</button>';
     html += '</div>';
     if (inc.description) {
         var desc = inc.description.length > 200 ? inc.description.substring(0, 200) + '\u2026' : inc.description;
@@ -1347,27 +1378,36 @@ function renderContainerIconPicker(selectedLabel) {
     var picker = document.getElementById('incident-container-icon-picker');
     var hiddenInput = document.getElementById('incident-container-icon-value');
     picker.innerHTML = '';
+    function markSelected(selectedButton) {
+        picker.querySelectorAll('.icon-pick').forEach(function(b) {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+        });
+        selectedButton.classList.add('active');
+        selectedButton.setAttribute('aria-pressed', 'true');
+    }
     var noneBtn = document.createElement('button');
     noneBtn.type = 'button';
     noneBtn.className = 'icon-pick' + (!selectedLabel ? ' active' : '');
     noneBtn.title = T.icon_auto || 'Auto';
-    noneBtn.innerHTML = '<span style="font-size:14px;color:var(--muted);">' + (T.icon_auto || 'auto').toLowerCase() + '</span>';
+    noneBtn.setAttribute('aria-pressed', !selectedLabel ? 'true' : 'false');
+    noneBtn.innerHTML = '<span class="icon-pick-symbol">' + (T.icon_auto || 'auto').toLowerCase() + '</span><span class="icon-pick-label">' + (T.icon_auto || 'Auto') + '</span>';
     noneBtn.onclick = function() {
         hiddenInput.value = '';
-        picker.querySelectorAll('.icon-pick').forEach(function(b) { b.classList.remove('active'); });
-        noneBtn.classList.add('active');
+        markSelected(noneBtn);
     };
     picker.appendChild(noneBtn);
     INCIDENT_ICONS.forEach(function(entry) {
         var btn = document.createElement('button');
+        var label = T['icon_' + entry.label] || entry.label;
         btn.type = 'button';
         btn.className = 'icon-pick' + (selectedLabel === entry.label ? ' active' : '');
-        btn.title = T['icon_' + entry.label] || entry.label;
-        btn.innerHTML = entry.icon;
+        btn.title = label;
+        btn.setAttribute('aria-pressed', selectedLabel === entry.label ? 'true' : 'false');
+        btn.innerHTML = '<span class="icon-pick-symbol">' + entry.icon + '</span><span class="icon-pick-label">' + label + '</span>';
         btn.onclick = function() {
             hiddenInput.value = entry.label;
-            picker.querySelectorAll('.icon-pick').forEach(function(b) { b.classList.remove('active'); });
-            btn.classList.add('active');
+            markSelected(btn);
         };
         picker.appendChild(btn);
     });
@@ -1385,10 +1425,13 @@ function openIncidentModal(incidentId) {
     var iconVal = document.getElementById('incident-container-icon-value');
     var deleteBtn = document.getElementById('incident-container-delete-btn');
     var countSection = document.getElementById('incident-container-entry-count-section');
+    var emptyEvidenceSection = document.getElementById('incident-container-empty-evidence-section');
     var countEl = document.getElementById('incident-container-entry-count');
+    var saveBtn = document.getElementById('incident-container-save-btn');
 
     if (incidentId) {
         titleEl.textContent = T.incident_edit || 'Edit Incident';
+        if (saveBtn) saveBtn.textContent = T.incident_update_action || 'Update incident';
         deleteBtn.style.display = '';
         fetch('/api/incidents/' + incidentId)
             .then(function(r) { return r.json(); })
@@ -1404,13 +1447,16 @@ function openIncidentModal(incidentId) {
                 if (inc.entry_count !== undefined) {
                     countEl.textContent = inc.entry_count;
                     countSection.style.display = '';
+                    if (emptyEvidenceSection) emptyEvidenceSection.style.display = 'none';
                 } else {
                     countSection.style.display = 'none';
+                    if (emptyEvidenceSection) emptyEvidenceSection.style.display = '';
                 }
                 modal.classList.add('open');
             });
     } else {
         titleEl.textContent = T.incident_new || 'New Incident';
+        if (saveBtn) saveBtn.textContent = T.incident_create_action || 'Create incident';
         idEl.value = '';
         nameEl.value = '';
         statusEl.value = 'open';
@@ -1421,8 +1467,16 @@ function openIncidentModal(incidentId) {
         renderContainerIconPicker('');
         deleteBtn.style.display = 'none';
         countSection.style.display = 'none';
+        if (emptyEvidenceSection) emptyEvidenceSection.style.display = '';
         modal.classList.add('open');
     }
+}
+
+function openIncidentReportFromModal() {
+    var incidentId = document.getElementById('incident-container-id').value;
+    if (!incidentId) return;
+    closeIncidentModal();
+    openIncidentTimeline(parseInt(incidentId, 10));
 }
 
 function closeIncidentModal() {

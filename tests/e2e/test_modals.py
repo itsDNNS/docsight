@@ -111,3 +111,57 @@ def test_styled_confirm_dialog_replaces_native_confirm_for_speedtest_cache(setti
 
     settings_page.keyboard.press("Escape")
     expect(confirm_modal).not_to_be_visible()
+
+
+def test_journal_entry_modal_guides_evidence_capture(demo_page):
+    """Journal entries guide evidence-first capture with clear actions and icon labels."""
+    _open_journal(demo_page)
+    demo_page.get_by_role("button", name="New Entry").click()
+
+    modal = demo_page.locator("#entry-modal")
+    expect(modal).to_be_visible()
+    expect(modal).to_contain_text("Capture what happened")
+    expect(modal).to_contain_text("outage, packet loss, speed degradation")
+    expect(modal).to_contain_text("Evidence")
+    expect(modal.get_by_role("button", name="Create entry")).to_be_visible()
+    expect(modal.get_by_role("button", name="Outage")).to_be_visible()
+    expect(modal.get_by_role("button", name="Measurement")).to_be_visible()
+    assert modal.get_by_text("Incident Container").count() == 0
+
+
+def test_incident_modal_and_summary_offer_report_path(demo_page):
+    """Incidents use user-facing copy, show linked evidence counts, and offer report entry points."""
+    _open_journal(demo_page)
+    demo_page.evaluate("openIncidentModal()")
+
+    modal = demo_page.locator("#incident-container-modal")
+    expect(modal).to_be_visible()
+    expect(modal).to_contain_text("Group related entries and evidence")
+    expect(modal).to_contain_text("Linked evidence")
+    expect(modal.get_by_role("button", name="Create incident")).to_be_visible()
+    assert modal.get_by_text("Incident Container").count() == 0
+
+    demo_page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+
+    demo_page.evaluate(
+        """
+        () => {
+            window._incidentsData = [{
+                id: 381,
+                name: 'Packet loss evening window',
+                description: 'Repeated evening packet loss with attached modem evidence.',
+                status: 'open',
+                start_date: '2026-05-01',
+                end_date: null,
+                entry_count: 3
+            }];
+            renderIncidentSummary(381);
+        }
+        """
+    )
+    summary = demo_page.locator("#incident-summary")
+    expect(summary).to_be_visible()
+    expect(summary).to_contain_text("3 Entries")
+    expect(summary).to_contain_text("Linked evidence")
+    expect(summary.get_by_role("button", name="Build report")).to_be_visible()

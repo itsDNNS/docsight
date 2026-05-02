@@ -1231,3 +1231,79 @@ mark.search-highlight {
         padding: var(--space-md);
     }
 }
+/* Evidence-first journal and incident modals */
+.incident-modal-intro,
+.incident-field-hint {
+    margin: -2px 0 var(--space-sm);
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+.incident-modal-intro {
+    margin: 0 0 var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm);
+    background: rgba(168,85,247,0.08);
+}
+.incident-evidence-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.86rem;
+    margin-bottom: var(--space-sm);
+}
+.icon-pick {
+    min-width: 82px;
+    min-height: 42px;
+    padding: 4px 8px;
+    flex-direction: column;
+    gap: 2px;
+}
+.icon-pick-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 18px;
+}
+.icon-pick-label {
+    font-size: 0.68rem;
+    line-height: 1;
+    color: var(--text-secondary, var(--muted));
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.icon-pick.active .icon-pick-label,
+.icon-pick:hover .icon-pick-label {
+    color: inherit;
+}
+.incident-summary-evidence {
+    font-size: 0.78rem;
+    color: var(--accent-purple, var(--accent));
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(168,85,247,0.12);
+}
+.incident-summary-report-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--accent-purple, var(--accent));
+    border-radius: var(--radius-sm);
+    background: rgba(168,85,247,0.12);
+    color: var(--accent-purple, var(--accent));
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.incident-summary-report-btn:hover {
+    background: rgba(168,85,247,0.22);
+}
+.incident-summary-report-btn:focus-visible {
+    outline: 2px solid var(--accent-purple, var(--accent));
+    outline-offset: 2px;
+}
