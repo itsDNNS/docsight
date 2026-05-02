@@ -1185,14 +1185,39 @@ mark.search-highlight {
     .journal-hide-mobile {
         display: none;
     }
+    .journal-header {
+        align-items: stretch;
+    }
+    .journal-header .trend-title {
+        text-align: center;
+    }
     .journal-header-actions {
         width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         justify-content: stretch;
+        align-items: stretch;
     }
-    .journal-header-actions .btn-new-entry {
-        flex: 1;
-        justify-content: center;
+    .journal-header-actions .btn-new-entry,
+    .journal-header-actions .btn-danger {
+        width: 100%;
+        min-width: 0;
         min-height: 44px;
+        justify-content: center;
+        white-space: normal;
+        text-align: center;
+    }
+    .journal-export-wrapper {
+        display: block !important;
+        min-width: 0;
+    }
+    .journal-export-dropdown {
+        left: 0;
+        right: auto;
+        width: 100%;
+    }
+    .journal-export-dropdown button {
+        min-height: 40px;
     }
     .incident-timeline-entry {
         flex-direction: column;
@@ -1204,28 +1229,116 @@ mark.search-highlight {
         gap: var(--space-xs);
     }
     .incident-filter-bar {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        overflow: visible;
+        flex-wrap: wrap;
+        align-items: stretch;
         padding-bottom: var(--space-sm);
-    }
-    .incident-filter-bar::-webkit-scrollbar {
-        display: none;
     }
     .incident-pill {
         min-height: 44px;
+        max-width: 100%;
+        white-space: normal;
+        text-align: left;
     }
     .incident-pill-add {
         min-width: 44px;
         min-height: 44px;
+    }
+    #journal-table {
+        display: block;
+        width: 100%;
+    }
+    #journal-table thead {
+        display: none;
+    }
+    #journal-table tbody {
+        display: block;
+    }
+    #journal-table tbody tr {
+        display: block;
+        width: 100%;
+        padding: var(--space-sm) var(--space-md);
+        margin-bottom: var(--space-sm);
+        border: 1px solid var(--card-border, var(--input-border));
+        border-radius: var(--radius-sm);
+        background: rgba(255,255,255,0.03);
+    }
+    #journal-table tbody tr:hover {
+        transform: none;
+        box-shadow: 0 0 0 1px rgba(168,85,247,0.25);
+    }
+    #journal-table tbody tr.journal-month-header {
+        padding: 0;
+        margin: var(--space-sm) 0;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+    }
+    #journal-table tbody td {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border-left: none;
+    }
+    #journal-table tbody .journal-icon-cell {
+        float: left;
+        width: 28px;
+        margin: 1px var(--space-sm) var(--space-xs) 0;
+        color: var(--accent-purple, var(--accent));
+    }
+    #journal-table tbody .journal-date-cell {
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
+    #journal-table tbody .journal-title-cell {
+        color: var(--text);
+        font-size: 0.96rem;
+        font-weight: 650;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    #journal-table tbody .journal-clip {
+        display: none;
+        margin-top: var(--space-xs);
+        text-align: left;
+        color: var(--text-secondary, var(--muted));
+        font-size: 0.8rem;
+    }
+    #journal-table tbody .journal-clip:not(:empty) {
+        display: inline-flex;
+        align-items: center;
+        width: auto;
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        background: rgba(168,85,247,0.12);
+        color: var(--accent-purple, var(--accent));
+    }
+    #journal-table tbody .journal-check-cell {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 44px;
+        padding-bottom: var(--space-xs);
+    }
+    #journal-table tbody .journal-check-cell::after {
+        content: attr(data-label);
+        margin-left: var(--space-sm);
+        color: var(--text-secondary, var(--muted));
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+    #journal-table tbody .journal-check-cell input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
     }
     .journal-bulk-bar {
         padding: var(--space-sm);
     }
     .journal-bulk-select {
         min-width: 0;
-        flex: 1;
+        flex: 1 1 100%;
     }
     .incident-timeline-card {
         padding: var(--space-md);
