@@ -188,6 +188,83 @@
     box-shadow: 0 0 0 3px var(--amethyst-muted);
 }
 
+/* ── AI export privacy workflow ── */
+.export-privacy-note,
+.export-scope-card,
+.export-redaction-controls {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+.export-privacy-note {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-sm);
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+.export-privacy-note strong { color: var(--text); }
+.export-scope-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+.export-scope-card {
+    padding: var(--space-sm) var(--space-md);
+}
+.export-scope-card h3 {
+    margin: 0 0 var(--space-xs);
+    font-size: 0.95em;
+    color: var(--text);
+}
+.export-scope-card ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--text-muted);
+    font-size: 0.88em;
+    line-height: 1.5;
+}
+.export-redaction-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin: 0 0 var(--space-sm);
+}
+.export-redaction-controls legend {
+    padding: 0 var(--space-xs);
+    color: var(--text);
+    font-weight: 600;
+}
+.export-redaction-controls label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    color: var(--text-muted);
+    font-size: 0.88em;
+}
+.export-output-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xs);
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+#export-status.is-progress { color: var(--accent); }
+#export-status.is-success { color: var(--success, #43d18a); }
+#export-status.is-error { color: var(--danger, #ff6b6b); }
+#export-text {
+    min-height: 240px;
+}
+@media (max-width: 720px) {
+    .export-scope-grid { grid-template-columns: 1fr; }
+    .export-output-meta { flex-direction: column; }
+}
+
 /* ── Export Mode Selector ── */
 .export-mode-selector {
     display: flex;

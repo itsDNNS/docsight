@@ -2195,13 +2195,17 @@
 
 <!-- Export Modal -->
 <div class="modal-overlay" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
-    <div class="modal">
+    <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="export-modal-title">{{ t.export_title }}</h2>
-            <button class="modal-close" onclick="closeExportModal()">&times;</button>
+            <button class="modal-close" onclick="closeExportModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
         <p class="modal-hint">{{ t.export_hint }}</p>
-        <div class="export-mode-selector">
+        <div class="export-privacy-note">
+            <strong>{{ t.get('export_privacy_title', 'Generated locally') }}</strong>
+            <span>{{ t.get('export_privacy_text', 'DOCSight builds this export in your browser from local monitoring data. You decide where to paste or upload it.') }}</span>
+        </div>
+        <div class="export-mode-selector" role="radiogroup" aria-label="{{ t.get('export_scope_label', 'Export scope') }}">
             <label>
                 <input type="radio" name="export-mode" value="full" checked onchange="exportForLLM()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
@@ -2213,12 +2217,41 @@
                 {{ t.export_update }}
             </label>
         </div>
+        <div class="export-scope-grid">
+            <section class="export-scope-card">
+                <h3>{{ t.get('export_included_title', 'Included in this export') }}</h3>
+                <ul>
+                    <li>{{ t.get('export_included_signal', 'DOCSIS signal summary') }}</li>
+                    <li>{{ t.get('export_included_channels', 'Downstream and upstream channel tables') }}</li>
+                    <li>{{ t.get('export_included_history', 'Recent events, speedtests, incidents, and reference thresholds when available') }}</li>
+                </ul>
+            </section>
+            <section class="export-scope-card">
+                <h3>{{ t.get('export_excluded_title', 'Excluded by default') }}</h3>
+                <ul>
+                    <li>{{ t.get('export_excluded_remote', 'Remote upload to AI services') }}</li>
+                    <li>{{ t.get('export_excluded_credentials', 'Admin passwords, API tokens, and DOCSight credentials') }}</li>
+                    <li>{{ t.get('export_excluded_raw_logs', 'Raw logs or files outside the generated diagnostic summary') }}</li>
+                </ul>
+            </section>
+        </div>
+        <fieldset class="export-redaction-controls">
+            <legend>{{ t.get('export_redaction_title', 'Redaction controls') }}</legend>
+            <label><input type="checkbox" id="export-redact-ips" onchange="refreshExportPreview()"> {{ t.get('export_redact_ips', 'Redact IP addresses') }}</label>
+            <label><input type="checkbox" id="export-redact-hostnames" onchange="refreshExportPreview()"> {{ t.get('export_redact_hostnames', 'Redact hostnames') }}</label>
+            <label><input type="checkbox" id="export-redact-customers" onchange="refreshExportPreview()"> {{ t.get('export_redact_customers', 'Redact account or customer details') }}</label>
+        </fieldset>
+        <div class="export-output-meta">
+            <span id="export-size-indicator">0 {{ t.get('export_size_characters', 'characters') }}</span>
+            <span id="export-status" role="status" aria-live="polite"></span>
+        </div>
         <div class="modal-body">
-            <textarea id="export-text" readonly></textarea>
+            <textarea id="export-text" readonly aria-label="{{ t.get('export_preview_label', 'Export preview') }}"></textarea>
         </div>
         <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeExportModal()">{{ t.close }}</button>
-            <button class="btn btn-accent" id="export-copy-btn" onclick="copyExport()">{{ t.copy_clipboard }}</button>
+            <button class="btn btn-secondary" id="export-download-btn" onclick="downloadExportMarkdown()">{{ t.get('export_download_markdown', 'Download Markdown') }}</button>
+            <button class="btn btn-accent" id="export-copy-btn" onclick="copyExport()">{{ t.get('export_copy', 'Copy export') }}</button>
         </div>
     </div>
 </div>
