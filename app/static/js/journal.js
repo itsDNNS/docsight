@@ -432,10 +432,19 @@ function saveEntry() {
 function deleteEntry() {
     var entryId = document.getElementById('entry-id').value;
     if (!entryId) return;
-    if (!confirm(T.confirm_delete || 'Are you sure?')) return;
-    fetch('/api/journal/' + entryId, {method: 'DELETE'})
-        .then(function(r) { return r.json(); })
-        .then(function() {
+    docsightConfirm({
+        title: T.delete || 'Delete',
+        message: T.confirm_delete || 'Are you sure?',
+        confirmText: T.delete || 'Delete',
+        cancelText: T.cancel || 'Cancel',
+        danger: true
+    }).then(function(confirmed) {
+        if (!confirmed) return null;
+        return fetch('/api/journal/' + entryId, {method: 'DELETE'});
+    })
+        .then(function(r) { return r ? r.json() : null; })
+        .then(function(res) {
+            if (!res) return;
             closeEntryModal();
             loadJournal();
         })
@@ -706,19 +715,28 @@ function confirmImport() {
 function deleteAllEntries() {
     var count = document.querySelectorAll('#journal-tbody tr').length;
     if (count === 0) return;
-    if (!confirm(T.delete_all_confirm.replace('{n}', count))) return;
-    var confirmation = prompt(T.delete_all_type_confirm);
-    if (confirmation !== 'DELETE') {
-        showToast(T.delete_all_cancelled, 'error');
-        return;
-    }
-    fetch('/api/journal/batch', {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({all: true, confirm: 'DELETE_ALL'})
+    docsightConfirm({
+        title: T.delete_all || 'Delete all entries',
+        message: T.delete_all_confirm.replace('{n}', count),
+        confirmText: T.delete || 'Delete',
+        cancelText: T.cancel || 'Cancel',
+        danger: true,
+        requireText: 'DELETE',
+        requireLabel: T.delete_all_type_confirm || 'Type DELETE to confirm'
+    }).then(function(confirmed) {
+        if (!confirmed) {
+            showToast(T.delete_all_cancelled, 'error');
+            return null;
+        }
+        return fetch('/api/journal/batch', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({all: true, confirm: 'DELETE_ALL'})
+        });
     })
-        .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+        .then(function(r) { return r ? r.json().then(function(d) { return {status: r.status, data: d}; }) : null; })
         .then(function(res) {
+            if (!res) return;
             if (res.status >= 400) {
                 showToast(res.data.error || T.delete_failed, 'error');
                 return;
@@ -901,7 +919,7 @@ window.downloadIncidentPdf = function(incidentId, incidentName) {
             URL.revokeObjectURL(a.href);
         })
         .catch(function() {
-            alert(T.network_error || 'Error generating report');
+            showToast(T.network_error || 'Error generating report', 'error');
         })
         .finally(function() {
             if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
@@ -1447,10 +1465,19 @@ function saveIncident() {
 function deleteIncident() {
     var incidentId = document.getElementById('incident-container-id').value;
     if (!incidentId) return;
-    if (!confirm(T.incident_delete_confirm || 'Delete this incident? Entries will become unassigned.')) return;
-    fetch('/api/incidents/' + incidentId, {method: 'DELETE'})
-        .then(function(r) { return r.json(); })
-        .then(function() {
+    docsightConfirm({
+        title: T.delete || 'Delete',
+        message: T.incident_delete_confirm || 'Delete this incident? Entries will become unassigned.',
+        confirmText: T.delete || 'Delete',
+        cancelText: T.cancel || 'Cancel',
+        danger: true
+    }).then(function(confirmed) {
+        if (!confirmed) return null;
+        return fetch('/api/incidents/' + incidentId, {method: 'DELETE'});
+    })
+        .then(function(r) { return r ? r.json() : null; })
+        .then(function(res) {
+            if (!res) return;
             closeIncidentModal();
             _activeIncidentFilter = null;
             loadIncidents();

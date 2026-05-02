@@ -107,7 +107,7 @@ function generateComplaint() {
             document.getElementById('report-copy-btn').style.display = '';
             document.getElementById('report-pdf-btn').style.display = '';
         })
-        .catch(function(e) { alert('Error: ' + e); })
+        .catch(function(e) { showToast('Error: ' + e, 'error'); })
         .finally(function() { btn.disabled = false; btn.textContent = '\u270E ' + (T.generate_letter || 'Generate Letter'); });
 }
 function generateBnetzComplaint(bnetzId) {

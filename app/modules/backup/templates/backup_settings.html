@@ -52,7 +52,7 @@
                 <label class="form-label">{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
                 <div class="input-with-action">
                     <input class="form-input" type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly style="cursor:pointer;">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="openBrowseModal()">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="openBrowseModal(this)">
                         <i data-lucide="folder-open" style="width:14px;height:14px;"></i>
                         {{ t['docsight.backup.backup_browse'] or 'Browse' }}
                     </button>
@@ -90,16 +90,21 @@
 </div>
 
 <!-- ═══ Directory Browser Modal ═══ -->
-<div id="browse-modal" class="browse-modal-overlay">
+<div id="browse-modal" class="browse-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="browse-modal-title" aria-describedby="browse-status" tabindex="-1">
     <div class="browse-modal">
         <div class="browse-modal-header">
-            <h3>{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h3>
-            <button type="button" class="btn-icon" onclick="closeBrowseModal()">
+            <h3 id="browse-modal-title">{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h3>
+            <button type="button" class="btn-icon" onclick="closeBrowseModal()" aria-label="{{ t.close or 'Close' }}">
                 <i data-lucide="x"></i>
             </button>
         </div>
+        <div class="browse-modal-summary">
+            <span>{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</span>
+            <code id="browse-selected-path">{{ config.backup_path or '/backup' }}</code>
+        </div>
+        <div id="browse-status" class="browse-modal-status" role="status" aria-live="polite"></div>
         <div id="browse-breadcrumb" class="browse-modal-path"></div>
-        <div id="browse-dirs" class="browse-modal-body"></div>
+        <div id="browse-dirs" class="browse-modal-body" tabindex="0"></div>
         <div class="browse-modal-footer">
             <button type="button" class="btn btn-ghost" onclick="closeBrowseModal()">{{ t.cancel }}</button>
             <button type="button" class="btn btn-primary btn-sm" onclick="selectBrowsePath()">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
