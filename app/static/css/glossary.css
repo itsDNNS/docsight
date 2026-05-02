@@ -103,6 +103,22 @@ body > .glossary-popover.above::before {
 
 /* Mobile: full width bottom sheet */
 @media (max-width: 768px) {
+  .glossary-hint {
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+    border-radius: var(--radius-sm, 6px);
+  }
+  .metric-card .glossary-hint {
+    top: 4px;
+    left: 4px;
+    opacity: 1;
+  }
+  .mod-kpi-item .glossary-hint {
+    flex: 0 0 44px;
+  }
   body > .glossary-popover {
     left: 16px !important;
     right: 16px;
