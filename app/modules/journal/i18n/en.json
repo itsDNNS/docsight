@@ -93,5 +93,20 @@
   "timeline_source_modem": "Modem",
   "timeline_source_speedtest": "Speedtest",
   "timeline_source_event": "Event",
-  "timeline_no_data": "No signal data for this period"
+  "timeline_no_data": "No signal data for this period",
+  "entry_modal_intro": "Capture what happened and link the evidence DOCSight can turn into an ISP-ready timeline.",
+  "entry_icon_hint": "Choose a visible category such as outage, packet loss, speed degradation, maintenance, or contact with your ISP.",
+  "entry_description_hint": "Add concrete symptoms, times, support references, modem states, or what changed for the connection.",
+  "entry_evidence_hint": "Evidence can include modem screenshots, BQM images, Speedtest results, SmokePing charts, or support letters.",
+  "entry_create_action": "Create entry",
+  "entry_update_action": "Update entry",
+  "incident_modal_intro": "Group related entries and evidence so DOCSight can build one clear incident timeline and report path.",
+  "incident_icon_hint": "Pick the category users will recognize later in filters, timelines, and exports.",
+  "incident_linked_evidence": "Linked evidence",
+  "incident_linked_entries_hint": "journal entries linked to this incident",
+  "incident_empty_evidence_hint": "Assign journal entries, screenshots, modem snapshots, BQM images, Speedtest results, or SmokePing charts as the incident develops.",
+  "incident_build_report": "Build report",
+  "incident_create_action": "Create incident",
+  "incident_update_action": "Update incident",
+  "entry_save_before_upload": "Create the entry first, then attach evidence files."
 }

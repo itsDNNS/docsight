@@ -1588,6 +1588,7 @@
             <button class="modal-close" onclick="closeEntryModal()">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
+            <p class="incident-modal-intro">{{ t.get('entry_modal_intro', 'Capture what happened and link the evidence DOCSight can turn into an ISP-ready timeline.') }}</p>
             <input type="hidden" id="entry-id">
             <div class="incident-form-group">
                 <label for="entry-date">{{ t.incident_date }}</label>
@@ -1599,11 +1600,13 @@
             </div>
             <div class="incident-form-group">
                 <label>{{ t.icon }}</label>
+                <p class="incident-field-hint">{{ t.get('entry_icon_hint', 'Choose a visible category such as outage, packet loss, speed degradation, maintenance, or contact with your ISP.') }}</p>
                 <input type="hidden" id="entry-icon-value">
                 <div class="icon-picker" id="entry-icon-picker"></div>
             </div>
             <div class="incident-form-group">
                 <label for="entry-desc">{{ t.incident_description }}</label>
+                <p class="incident-field-hint">{{ t.get('entry_description_hint', 'Add concrete symptoms, times, support references, modem states, or what changed for the connection.') }}</p>
                 <textarea id="entry-desc" maxlength="10000" placeholder="{{ t.incident_description }}"></textarea>
             </div>
             <div class="incident-form-group">
@@ -1614,10 +1617,12 @@
             </div>
             <div class="incident-form-group" id="entry-attachments-section">
                 <label>{{ t.attachments }}</label>
+                <p class="incident-field-hint">{{ t.get('entry_evidence_hint', 'Evidence can include modem screenshots, BQM images, Speedtest results, SmokePing charts, or support letters.') }}</p>
                 <div class="attachment-list" id="entry-attachment-list"></div>
                 <button class="btn-upload" id="entry-upload-btn" onclick="document.getElementById('entry-file-input').click()">
                     &#128206; {{ t.upload_file }}
                 </button>
+                <p class="incident-field-hint" id="entry-upload-hint"></p>
                 <span id="entry-upload-spinner" style="display:none;"><span class="upload-spinner"></span></span>
                 <input type="file" id="entry-file-input" style="display:none;" multiple
                        accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain"
@@ -1630,7 +1635,7 @@
             </div>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-muted" onclick="closeEntryModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" onclick="saveEntry()">{{ t.save }}</button>
+                <button class="btn btn-accent" id="entry-save-btn" onclick="saveEntry()">{{ t.get('entry_create_action', 'Create entry') }}</button>
             </div>
         </div>
     </div>
@@ -1644,6 +1649,7 @@
             <button class="modal-close" onclick="closeIncidentModal()">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
+            <p class="incident-modal-intro">{{ t.get('incident_modal_intro', 'Group related entries and evidence so DOCSight can build one clear incident timeline and report path.') }}</p>
             <input type="hidden" id="incident-container-id">
             <div class="incident-form-group">
                 <label for="incident-container-name">{{ t.incident_name }}</label>
@@ -1669,6 +1675,7 @@
             </div>
             <div class="incident-form-group">
                 <label>{{ t.icon }}</label>
+                <p class="incident-field-hint">{{ t.get('incident_icon_hint', 'Pick the category users will recognize later in filters, timelines, and exports.') }}</p>
                 <input type="hidden" id="incident-container-icon-value">
                 <div class="icon-picker" id="incident-container-icon-picker"></div>
             </div>
@@ -1677,8 +1684,16 @@
                 <textarea id="incident-container-desc" maxlength="5000" placeholder="{{ t.incident_description }}"></textarea>
             </div>
             <div class="incident-form-group" id="incident-container-entry-count-section" style="display:none;">
-                <label>{{ t.incident_entry_count }}</label>
-                <span id="incident-container-entry-count" style="font-weight:600;"></span>
+                <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
+                <div class="incident-evidence-summary">
+                    <span id="incident-container-entry-count" style="font-weight:600;"></span>
+                    <span>{{ t.get('incident_linked_entries_hint', 'journal entries linked to this incident') }}</span>
+                </div>
+                <button type="button" class="btn-small btn-accent" id="incident-container-report-btn" onclick="openIncidentReportFromModal()">{{ t.get('incident_build_report', 'Build report') }}</button>
+            </div>
+            <div class="incident-form-group" id="incident-container-empty-evidence-section">
+                <label>{{ t.get('incident_linked_evidence', 'Linked evidence') }}</label>
+                <p class="incident-field-hint">{{ t.get('incident_empty_evidence_hint', 'Assign journal entries, screenshots, modem snapshots, BQM images, Speedtest results, or SmokePing charts as the incident develops.') }}</p>
             </div>
         </div>
         <div class="incident-modal-footer">
@@ -1687,7 +1702,7 @@
             </div>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-muted" onclick="closeIncidentModal()">{{ t.cancel }}</button>
-                <button class="btn btn-accent" onclick="saveIncident()">{{ t.save }}</button>
+                <button class="btn btn-accent" id="incident-container-save-btn" onclick="saveIncident()">{{ t.get('incident_create_action', 'Create incident') }}</button>
             </div>
         </div>
     </div>
