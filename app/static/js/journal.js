@@ -179,6 +179,10 @@ function loadJournal(searchQuery) {
         });
 }
 
+function escapeHtmlAttribute(value) {
+    return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function highlightText(text, query) {
     if (!query || !text) return escapeHtml(text);
     var escaped = escapeHtml(text);
@@ -245,12 +249,12 @@ function renderJournalTable(data, searchQuery) {
         var descHtml = q ? highlightText(desc, q) : escapeHtml(desc);
         var dateHtml = q ? highlightText(formatDateDE(inc.date), q) : formatDateDE(inc.date);
         tr.innerHTML =
-            (_bulkMode ? '<td class="journal-check-cell"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' onclick="toggleEntrySelection(this, ' + inc.id + ')"></td>' : '') +
-            '<td class="journal-icon-cell">' + iconHtml + '</td>' +
-            '<td>' + dateHtml + '</td>' +
-            '<td>' + titleHtml + '</td>' +
-            '<td class="journal-desc journal-hide-mobile">' + descHtml + '</td>' +
-            '<td class="journal-clip">' + clipCell + '</td>';
+            (_bulkMode ? '<td class="journal-check-cell" data-label="' + escapeHtmlAttribute(T.bulk_select || 'Select') + '"><input type="checkbox" class="journal-row-check" data-entry-id="' + inc.id + '"' + (isSelected ? ' checked' : '') + ' onclick="toggleEntrySelection(this, ' + inc.id + ')"></td>' : '') +
+            '<td class="journal-icon-cell" aria-hidden="true">' + iconHtml + '</td>' +
+            '<td class="journal-date-cell" data-label="' + escapeHtmlAttribute(T.incident_date || 'Date') + '">' + dateHtml + '</td>' +
+            '<td class="journal-title-cell" data-label="' + escapeHtmlAttribute(T.incident_title || 'Title') + '">' + titleHtml + '</td>' +
+            '<td class="journal-desc journal-hide-mobile" data-label="' + escapeHtmlAttribute(T.incident_description || 'Description') + '">' + descHtml + '</td>' +
+            '<td class="journal-clip" data-label="' + escapeHtmlAttribute(T.attachments || 'Attachments') + '">' + clipCell + '</td>';
         tbody.appendChild(tr);
     });
     // Update sort indicators in header

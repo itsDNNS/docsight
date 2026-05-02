@@ -148,3 +148,159 @@ class TestMobileLayout:
         assert row_geometry["rowRight"] <= row_geometry["viewportWidth"]
         assert row_geometry["detailsLeft"] >= 0
         assert row_geometry["detailsRight"] <= row_geometry["viewportWidth"]
+
+    def test_incident_journal_mobile_actions_chips_and_rows_are_scannable(self, mobile_page):
+        """Incident Journal should use mobile-first actions, wrapping chips, and card rows."""
+        mobile_page.evaluate("switchView('journal')")
+        mobile_page.wait_for_selector("#journal-table-card", state="visible")
+        mobile_page.wait_for_selector("#journal-tbody tr[data-id]")
+        mobile_page.evaluate(
+            """
+            () => {
+                window._incidentsData = [
+                    {id: 501, name: 'Upstream Noise Issue with very long mobile label', status: 'open', entry_count: 3},
+                    {id: 502, name: 'Firmware Update Issues and repeated support calls', status: 'escalated', entry_count: 1}
+                ];
+                window.renderIncidentBar(window._incidentsData);
+            }
+            """
+        )
+
+        geometry = mobile_page.evaluate(
+            """
+            () => {
+                const viewportWidth = window.innerWidth;
+                const visibleRows = Array.from(document.querySelectorAll('#journal-tbody tr[data-id]'));
+                const firstRow = visibleRows[0];
+                const titleCell = firstRow.querySelector('td:nth-child(3)');
+                const clipCell = firstRow.querySelector('.journal-clip');
+                const actionRects = Array.from(document.querySelectorAll('.journal-header-actions > button, .journal-export-wrapper > button')).map((button) => {
+                    const rect = button.getBoundingClientRect();
+                    return {left: rect.left, right: rect.right, height: rect.height, width: rect.width};
+                });
+                const chipRects = Array.from(document.querySelectorAll('#incident-filter-bar .incident-pill')).map((pill) => {
+                    const rect = pill.getBoundingClientRect();
+                    return {left: rect.left, right: rect.right, width: rect.width};
+                });
+                return {
+                    viewportWidth,
+                    viewOverflow: document.querySelector('#view-journal').scrollWidth - document.querySelector('#view-journal').clientWidth,
+                    actionsOverflow: document.querySelector('.journal-header-actions').scrollWidth - document.querySelector('.journal-header-actions').clientWidth,
+                    tableOverflow: document.querySelector('#journal-table-card').scrollWidth - document.querySelector('#journal-table-card').clientWidth,
+                    chipWrap: getComputedStyle(document.querySelector('#incident-filter-bar')).flexWrap,
+                    rowDisplay: getComputedStyle(firstRow).display,
+                    titleWidth: titleCell.getBoundingClientRect().width,
+                    clipDisplay: getComputedStyle(clipCell).display,
+                    actionRects,
+                    chipRects,
+                };
+            }
+            """
+        )
+
+        assert geometry["viewOverflow"] <= 1
+        assert geometry["actionsOverflow"] <= 1
+        assert geometry["tableOverflow"] <= 1
+        assert geometry["chipWrap"] == "wrap"
+        assert geometry["rowDisplay"] in {"block", "grid"}
+        assert geometry["titleWidth"] >= 220
+        assert geometry["clipDisplay"] == "none"
+        assert all(rect["height"] >= 44 for rect in geometry["actionRects"])
+        assert all(rect["left"] >= 0 and rect["right"] <= geometry["viewportWidth"] for rect in geometry["actionRects"])
+        assert all(rect["left"] >= 0 and rect["right"] <= geometry["viewportWidth"] for rect in geometry["chipRects"])
+
+    def test_incident_journal_mobile_bulk_selection_remains_accessible(self, mobile_page):
+        """Bulk mode controls should remain reachable in mobile card rows."""
+        mobile_page.evaluate("switchView('journal')")
+        mobile_page.wait_for_selector("#journal-table-card", state="visible")
+        mobile_page.wait_for_selector("#journal-tbody tr[data-id]")
+        mobile_page.locator("#btn-bulk-toggle").click()
+        mobile_page.wait_for_selector(".journal-row-check")
+
+        checkbox_geometry = mobile_page.locator("#journal-tbody tr[data-id] .journal-check-cell").first.evaluate(
+            """
+            (cell) => {
+                const rect = cell.getBoundingClientRect();
+                const inputRect = cell.querySelector('input').getBoundingClientRect();
+                return {
+                    cellLeft: rect.left,
+                    cellRight: rect.right,
+                    cellHeight: rect.height,
+                    inputLeft: inputRect.left,
+                    inputRight: inputRect.right,
+                    viewportWidth: window.innerWidth,
+                };
+            }
+            """
+        )
+
+        assert checkbox_geometry["cellLeft"] >= 0
+        assert checkbox_geometry["cellRight"] <= checkbox_geometry["viewportWidth"]
+        assert checkbox_geometry["cellHeight"] >= 44
+        assert checkbox_geometry["inputLeft"] >= 0
+        assert checkbox_geometry["inputRight"] <= checkbox_geometry["viewportWidth"]
+
+    def test_incident_journal_mobile_export_and_attachment_badges_fit_viewport(self, mobile_page):
+        """Export choices and attachment badges should remain usable in the mobile layout."""
+        mobile_page.evaluate("switchView('journal')")
+        mobile_page.wait_for_selector("#journal-table-card", state="visible")
+        mobile_page.evaluate(
+            """
+            () => {
+                window._journalSortCol = 'date';
+                window._journalSortAsc = false;
+                window.T = Object.assign({}, window.T, {
+                    attachments: 'Attachments "screenshots"',
+                    incident_date: 'Date "local"'
+                });
+                window.renderJournalTable([{
+                    id: 9001,
+                    date: '2026-05-02',
+                    title: 'Mobile evidence entry with attached screenshots and modem exports',
+                    description: 'Includes screenshots and diagnostics for the support case.',
+                    attachment_count: 2,
+                    icon: 'documentation'
+                }]);
+            }
+            """
+        )
+        mobile_page.locator(".journal-export-wrapper > button").click()
+
+        geometry = mobile_page.evaluate(
+            """
+            () => {
+                const viewportWidth = window.innerWidth;
+                const dropdown = document.querySelector('#journal-export-dropdown');
+                const dropdownRect = dropdown.getBoundingClientRect();
+                const optionRects = Array.from(dropdown.querySelectorAll('button')).map((button) => {
+                    const rect = button.getBoundingClientRect();
+                    return {left: rect.left, right: rect.right, height: rect.height};
+                });
+                const clip = document.querySelector('#journal-tbody tr[data-id] .journal-clip');
+                const clipRect = clip.getBoundingClientRect();
+                return {
+                    viewportWidth,
+                    dropdownLeft: dropdownRect.left,
+                    dropdownRight: dropdownRect.right,
+                    optionRects,
+                    clipDisplay: getComputedStyle(clip).display,
+                    clipText: clip.textContent.trim(),
+                    clipLeft: clipRect.left,
+                    clipRight: clipRect.right,
+                    clipLabel: clip.getAttribute('data-label'),
+                    dateLabel: document.querySelector('#journal-tbody tr[data-id] .journal-date-cell').getAttribute('data-label'),
+                };
+            }
+            """
+        )
+
+        assert geometry["dropdownLeft"] >= 0
+        assert geometry["dropdownRight"] <= geometry["viewportWidth"]
+        assert all(rect["left"] >= 0 and rect["right"] <= geometry["viewportWidth"] for rect in geometry["optionRects"])
+        assert all(rect["height"] >= 40 for rect in geometry["optionRects"])
+        assert geometry["clipDisplay"] == "inline-flex"
+        assert geometry["clipText"] == "📎 2"
+        assert geometry["clipLabel"] == 'Attachments "screenshots"'
+        assert geometry["dateLabel"] == 'Date "local"'
+        assert geometry["clipLeft"] >= 0
+        assert geometry["clipRight"] <= geometry["viewportWidth"]
