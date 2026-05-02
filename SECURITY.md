@@ -52,7 +52,26 @@ DOCSight is designed to run **100% locally** on your network:
 
 ### Maintainer notices and privacy
 
-DOCSight maintainer notices are bundled with the installed release and evaluated locally. DOCSight does not fetch a remote notices feed, render remote HTML, or send telemetry when showing or dismissing notices. Dismissals are stored locally in your DOCSight configuration by stable notice ID. If a remote notice feed is ever added, it should be explicitly opt-in and documented separately.
+DOCSight can show maintainer notices for important project, upgrade, or safety information. These notices are designed for self-hosted environments and follow the same local-first privacy model as the rest of DOCSight.
+
+Current notice behavior:
+
+- Notices are bundled with the installed DOCSight release.
+- Notice eligibility is evaluated locally against allowlisted fields such as notice ID, severity, location, audience, date window, and version constraints.
+- Dismissals are stored locally in the DOCSight configuration by stable notice ID.
+- Showing or dismissing a notice does not send telemetry, analytics, modem data, logs, credentials, tokens, configuration, usage information, or an installation ID anywhere.
+- DOCSight does not fetch a remote notice feed or render remote HTML for maintainer notices.
+
+If a remote notice feed is added in a future release, it must preserve the self-hosted trust model:
+
+- It must be explicitly opt-in and disabled by default.
+- Settings must show the feed URL and explain what is fetched.
+- The feed may only provide a public JSON document with allowlisted fields.
+- DOCSight must not upload private payloads, identifiers, analytics, or modem data while checking notices.
+- Remote HTML, untrusted Markdown, scripts, and tracking pixels are not allowed.
+- Offline or unavailable feeds should fail silently and keep the local instance usable.
+
+Modal or blocking notices are not allowed for normal release notes, feature announcements, fundraising, or general project updates. Use non-blocking dashboard or Settings/About notices for those cases. A modal notice is only appropriate for rare admin safety cases where acknowledgement protects the local installation, such as a required local migration, backup verification before a risky upgrade, or a strongly recommended security or data-integrity action.
 
 ## Security Features
 
