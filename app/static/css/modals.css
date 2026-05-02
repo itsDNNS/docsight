@@ -100,6 +100,13 @@
     border-radius: var(--radius-sm);
     transition: color 0.2s var(--ease-out-expo);
 }
+.modal-header > .modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+}
 .modal-close:hover {
     color: var(--amethyst-light, var(--accent));
 }

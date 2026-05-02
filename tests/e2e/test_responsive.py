@@ -304,3 +304,119 @@ class TestMobileLayout:
         assert geometry["dateLabel"] == 'Date "local"'
         assert geometry["clipLeft"] >= 0
         assert geometry["clipRight"] <= geometry["viewportWidth"]
+
+    def test_mobile_chart_tabs_help_and_close_targets_are_comfortable(self, mobile_page):
+        """Chart controls, tabs, help hints, and modal close buttons should meet mobile hit targets."""
+        mobile_page.evaluate("switchView('trends')")
+        mobile_page.wait_for_selector("#view-trends.active .chart-expand-btn", state="attached")
+        mobile_page.evaluate(
+            """
+            () => document.querySelectorAll(
+                '#view-trends.active .chart-card, #view-trends.active .chart-card canvas, #view-trends.active .chart-expand-btn'
+            ).forEach((el) => { el.style.display = el.matches('.chart-expand-btn') ? 'inline-flex' : 'block'; })
+            """
+        )
+
+        mobile_page.evaluate(
+            """
+            () => {
+                const fixture = document.createElement('div');
+                fixture.id = '__touch-target-fixture';
+                fixture.style.position = 'fixed';
+                fixture.style.left = '8px';
+                fixture.style.top = '80px';
+                fixture.style.zIndex = '9999';
+                fixture.innerHTML = '<button class="chart-expand-btn" type="button" aria-label="Expand chart">⛶</button><span class="glossary-hint" tabindex="0" aria-label="Help"><i>?</i></span>';
+                document.body.appendChild(fixture);
+            }
+            """
+        )
+
+        trends_targets = mobile_page.evaluate(
+            """
+            () => {
+                const viewportWidth = window.innerWidth;
+                const groups = {
+                    expand: '#__touch-target-fixture .chart-expand-btn',
+                    tabs: '#view-trends.active #trend-tabs .trend-tab',
+                    glossary: '#__touch-target-fixture .glossary-hint'
+                };
+                return Object.fromEntries(Object.entries(groups).map(([group, selector]) => [
+                    group,
+                    Array.from(document.querySelectorAll(selector)).map((el) => {
+                        const rect = el.getBoundingClientRect();
+                        const style = getComputedStyle(el);
+                        return {
+                            width: rect.width,
+                            height: rect.height,
+                            left: rect.left,
+                            right: rect.right,
+                            viewportWidth,
+                            opacity: Number(style.opacity),
+                            visibility: style.visibility,
+                            pointerEvents: style.pointerEvents,
+                        };
+                    }).filter((rect) => rect.width > 0 && rect.height > 0)
+                ]));
+            }
+            """
+        )
+
+        mobile_page.evaluate("switchView('speedtest')")
+        mobile_page.wait_for_selector("#view-speedtest.active #speedtest-tabs .trend-tab")
+        speedtest_tabs = mobile_page.locator("#view-speedtest.active #speedtest-tabs .trend-tab").evaluate_all(
+            """
+            tabs => tabs.map((tab) => {
+                const rect = tab.getBoundingClientRect();
+                return {width: rect.width, height: rect.height, left: rect.left, right: rect.right, viewportWidth: window.innerWidth};
+            })
+            """
+        )
+
+        mobile_page.evaluate("switchView('correlation')")
+        mobile_page.wait_for_selector("#view-correlation.active #correlation-tabs .trend-tab")
+        mobile_page.evaluate("document.querySelector('#correlation-chart-container').style.display = 'block'")
+        correlation_controls = mobile_page.evaluate(
+            """
+            () => Array.from(document.querySelectorAll(
+                '#view-correlation.active #correlation-tabs .trend-tab, #view-correlation.active .chart-export-btn'
+            )).map((el) => {
+                const rect = el.getBoundingClientRect();
+                return {width: rect.width, height: rect.height, left: rect.left, right: rect.right, viewportWidth: window.innerWidth};
+            })
+            """
+        )
+
+        mobile_page.locator("#view-correlation.active .chart-export-btn").first.click()
+        mobile_page.evaluate("window.DOCSightModal.open('bqm-import-modal')")
+        mobile_page.wait_for_selector("#bqm-import-modal.open .modal-header .modal-close")
+        modal_close_rect = mobile_page.locator("#bqm-import-modal.open .modal-header .modal-close").evaluate(
+            """
+            (button) => {
+                const rect = button.getBoundingClientRect();
+                return {width: rect.width, height: rect.height, left: rect.left, right: rect.right, viewportWidth: window.innerWidth};
+            }
+            """
+        )
+
+        assert trends_targets["expand"], "expected visible trend chart expand buttons"
+        assert trends_targets["tabs"], "expected visible trend tabs"
+        assert trends_targets["glossary"], "expected visible trend glossary hints"
+        assert speedtest_tabs, "expected visible speedtest tabs"
+        assert correlation_controls, "expected visible correlation tabs/export controls"
+        assert modal_close_rect, "expected visible modal close button"
+
+        all_targets = (
+            trends_targets["expand"]
+            + trends_targets["tabs"]
+            + trends_targets["glossary"]
+            + speedtest_tabs
+            + correlation_controls
+            + [modal_close_rect]
+        )
+        too_small = [rect for rect in all_targets if rect["width"] < 44 or rect["height"] < 44]
+        assert too_small == []
+        assert all(rect["left"] >= 0 and rect["right"] <= rect["viewportWidth"] for rect in all_targets)
+        assert all(rect["opacity"] > 0 for rect in trends_targets["glossary"])
+        assert all(rect["visibility"] == "visible" for rect in trends_targets["glossary"])
+        assert all(rect["pointerEvents"] != "none" for rect in trends_targets["glossary"])

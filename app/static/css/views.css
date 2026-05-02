@@ -181,6 +181,34 @@
     .trend-tabs {
         width: 100%;
         justify-content: center;
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+    .trend-tab {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 10px 16px;
+        line-height: 1.2;
+        text-align: center;
+    }
+    .chart-expand-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px;
+    }
+    .chart-export-btn,
+    .correlation-zoom-reset {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px 12px;
+        align-items: center;
+        justify-content: center;
     }
 }
 
