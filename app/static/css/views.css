@@ -811,10 +811,61 @@
         border: 1px solid var(--glass-border, var(--card-border));
         border-radius: var(--radius-pill, 100px);
     }
-    #correlation-table thead th,
+    #correlation-table-card.table-card,
+    #correlation-table-wrap {
+        overflow-x: hidden;
+    }
+
+    #correlation-table-wrap {
+        max-height: none;
+    }
+
+    #correlation-table,
+    #correlation-table > tbody {
+        display: block;
+        width: 100%;
+    }
+
+    #correlation-table > thead {
+        display: none;
+    }
+
+    #correlation-table tbody tr {
+        display: block;
+        width: 100%;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--card-border, var(--input-border));
+    }
+
     #correlation-table tbody td {
-        padding: 8px 12px;
-        font-size: 0.8em;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-tint, rgba(255,255,255,0.08));
+        font-size: 0.82em;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    #correlation-table tbody td:last-child {
+        border-bottom: none;
+    }
+
+    #correlation-table tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 min(38%, 120px);
+        color: var(--text-secondary, var(--text-muted));
+        font-weight: 600;
+        text-align: left;
+    }
+
+    #correlation-table .correlation-cell-message,
+    #correlation-table .correlation-cell-details {
+        min-width: 0;
     }
 }
 

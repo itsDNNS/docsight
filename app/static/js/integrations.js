@@ -43,14 +43,14 @@ function loadBnetzData() {
                     'title="' + (T.bnetz_generate_complaint || 'Generate complaint') + '">' +
                     '<i data-lucide="file-pen"></i></a>';
             }
-            tr.innerHTML = '<td>' + (hasMeasurements ? '<button class="bnetz-expand-btn" id="bnetz-arrow-' + idx + '"><i data-lucide="chevron-right"></i></button> ' : '') + escapeHtml(m.date || '') + '</td>' +
-                '<td>' + escapeHtml(m.provider || '-') + '</td>' +
-                '<td>' + (m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-') + '</td>' +
-                '<td>' + Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : '') + '</td>' +
-                '<td>' + (m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-') + '</td>' +
-                '<td>' + Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : '') + '</td>' +
-                '<td class="bnetz-verdict ' + verdictClass + '" title="' + verdictText + '">' + verdictIcon + '</td>' +
-                '<td class="bnetz-actions-cell" onclick="event.stopPropagation();">' +
+            tr.innerHTML = '<td data-label="' + escapeHtml(T.bnetz_date || 'Date') + '">' + (hasMeasurements ? '<button class="bnetz-expand-btn" id="bnetz-arrow-' + idx + '" aria-label="' + escapeHtml(T.expand || 'Expand') + '"><i data-lucide="chevron-right"></i></button> ' : '') + escapeHtml(m.date || '') + '</td>' +
+                '<td data-label="' + escapeHtml(T.bnetz_provider || 'Provider') + '">' + escapeHtml(m.provider || '-') + '</td>' +
+                '<td data-label="' + escapeHtml(T.bnetz_download_target || 'Download target') + '">' + (m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-') + '</td>' +
+                '<td data-label="' + escapeHtml(T.bnetz_download_actual || 'Download measured') + '">' + Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : '') + '</td>' +
+                '<td data-label="' + escapeHtml(T.bnetz_upload_target || 'Upload target') + '">' + (m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-') + '</td>' +
+                '<td data-label="' + escapeHtml(T.bnetz_upload_actual || 'Upload measured') + '">' + Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : '') + '</td>' +
+                '<td data-label="' + escapeHtml(T.bnetz_verdict || 'Verdict') + '" class="bnetz-verdict ' + verdictClass + '" title="' + verdictText + '">' + verdictIcon + '<span class="bnetz-verdict-text">' + escapeHtml(verdictText) + '</span></td>' +
+                '<td data-label="' + escapeHtml(T.actions || 'Actions') + '" class="bnetz-actions-cell" onclick="event.stopPropagation();">' +
                     complaintBtn +
                     (m.source !== 'csv_import' ? '<a href="/api/bnetz/pdf/' + m.id + '" class="bnetz-action-btn" title="PDF"><i data-lucide="file-down"></i></a>' : '') +
                     '<a href="javascript:void(0)" class="bnetz-action-btn bnetz-action-delete" onclick="deleteBnetzFromView(' + m.id + ')" title="' + (T.delete_incident || 'Delete') + '"><i data-lucide="trash-2"></i></a>' +

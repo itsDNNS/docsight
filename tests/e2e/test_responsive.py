@@ -93,3 +93,58 @@ class TestMobileLayout:
             mobile_page.wait_for_timeout(200)
             items = analysis.locator(".nav-section-items .nav-item")
             assert items.count() >= 1
+
+    def test_bnetz_measurements_are_readable_and_actionable_on_mobile(self, mobile_page):
+        """BNetzA evidence rows should not hide values or actions off-screen."""
+        mobile_page.evaluate("switchView('bnetz')")
+        mobile_page.wait_for_selector("#bnetz-table-card", state="visible")
+        mobile_page.wait_for_selector("#bnetz-tbody tr[data-bnetz-idx]")
+
+        overflow = mobile_page.locator("#bnetz-table-card").evaluate(
+            "el => el.scrollWidth - el.clientWidth"
+        )
+        assert overflow <= 1
+
+        action_rects = mobile_page.locator("#bnetz-tbody tr[data-bnetz-idx] .bnetz-action-btn").evaluate_all(
+            """
+            buttons => buttons.map((btn) => {
+                const rect = btn.getBoundingClientRect();
+                return {left: rect.left, right: rect.right, width: rect.width, visible: rect.width > 0 && rect.height > 0};
+            })
+            """
+        )
+        assert action_rects, "expected BNetzA row actions to be rendered"
+        viewport_width = mobile_page.evaluate("window.innerWidth")
+        assert all(rect["visible"] for rect in action_rects)
+        assert all(rect["left"] >= 0 and rect["right"] <= viewport_width for rect in action_rects)
+
+    def test_correlation_timeline_wraps_mobile_evidence_rows(self, mobile_page):
+        """Correlation timeline rows should expose details without hidden horizontal scrolling."""
+        mobile_page.evaluate("switchView('correlation')")
+        mobile_page.wait_for_selector("#correlation-table-card", state="visible")
+        mobile_page.wait_for_selector("#correlation-tbody tr[data-ts]")
+
+        overflow = mobile_page.locator("#correlation-table-wrap").evaluate(
+            "el => el.scrollWidth - el.clientWidth"
+        )
+        assert overflow <= 1
+
+        row_geometry = mobile_page.locator("#correlation-tbody tr[data-ts]").first.evaluate(
+            """
+            (row) => {
+                const rowRect = row.getBoundingClientRect();
+                const details = row.querySelector('td:last-child').getBoundingClientRect();
+                return {
+                    rowLeft: rowRect.left,
+                    rowRight: rowRect.right,
+                    detailsLeft: details.left,
+                    detailsRight: details.right,
+                    viewportWidth: window.innerWidth,
+                };
+            }
+            """
+        )
+        assert row_geometry["rowLeft"] >= 0
+        assert row_geometry["rowRight"] <= row_geometry["viewportWidth"]
+        assert row_geometry["detailsLeft"] >= 0
+        assert row_geometry["detailsRight"] <= row_geometry["viewportWidth"]
