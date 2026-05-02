@@ -6,29 +6,124 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
-/* ── Export for LLM ── */
-function exportForLLM() {
+/* ── Export for AI Analysis ── */
+var exportRawText = '';
+var exportLoadId = 0;
+var exportObserverAttached = false;
+function isExportModalOpen() {
     var modal = document.getElementById('export-modal');
+    return !!(modal && (modal.classList.contains('open') || modal.getAttribute('data-modal-open') === 'true'));
+}
+function resetExportState() {
+    exportLoadId += 1;
+    exportRawText = '';
+    var textarea = document.getElementById('export-text');
+    if (textarea) textarea.value = '';
+    updateExportSize();
+    setExportStatus('');
+}
+function ensureExportModalObserver() {
+    if (exportObserverAttached || typeof MutationObserver === 'undefined') return;
+    var modal = document.getElementById('export-modal');
+    if (!modal) return;
+    exportObserverAttached = true;
+    new MutationObserver(function() {
+        if (!isExportModalOpen()) resetExportState();
+    }).observe(modal, { attributes: true, attributeFilter: ['class', 'data-modal-open', 'style'] });
+}
+function exportForLLM() {
+    ensureExportModalObserver();
     var textarea = document.getElementById('export-text');
     var modeEl = document.querySelector('input[name="export-mode"]:checked');
     var mode = modeEl ? modeEl.value : 'full';
+    var loadId = ++exportLoadId;
+    exportRawText = '';
     textarea.value = T.export_no_data;
-    modal.classList.add('open');
-    fetch('/api/export?mode=' + mode)
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.text) {
-                textarea.value = data.text;
-            } else if (data.error) {
-                textarea.value = data.error;
-            }
+    setExportStatus(T.export_loading || 'Loading export preview...', 'progress');
+    updateExportSize();
+    if (window.DOCSightModal) {
+        window.DOCSightModal.open('export-modal');
+    } else {
+        document.getElementById('export-modal').classList.add('open');
+    }
+    fetch('/api/export?mode=' + encodeURIComponent(mode))
+        .then(function(r) {
+            return r.json().then(function(data) {
+                if (!r.ok || data.error) {
+                    throw new Error(data.error || (T.export_error || 'Error loading export data.'));
+                }
+                return data;
+            });
         })
-        .catch(function() {
-            textarea.value = T.export_error || 'Error loading export data.';
+        .then(function(data) {
+            if (loadId !== exportLoadId || !isExportModalOpen()) return;
+            exportRawText = data.text || '';
+            refreshExportPreview();
+            setExportStatus(T.export_ready || 'Review the export before copying or downloading.', 'success');
+        })
+        .catch(function(e) {
+            if (loadId !== exportLoadId || !isExportModalOpen()) return;
+            var message = e && e.message ? e.message : (T.export_error || 'Error loading export data.');
+            textarea.value = message;
+            updateExportSize();
+            setExportStatus(message, 'error');
         });
 }
 function closeExportModal() {
-    document.getElementById('export-modal').classList.remove('open');
+    exportLoadId += 1;
+    if (window.DOCSightModal) {
+        window.DOCSightModal.close('export-modal');
+    } else {
+        document.getElementById('export-modal').classList.remove('open');
+    }
+}
+function setExportStatus(message, type) {
+    var status = document.getElementById('export-status');
+    if (!status) return;
+    status.textContent = message || '';
+    status.classList.remove('is-progress', 'is-success', 'is-error');
+    if (type) status.classList.add('is-' + type);
+}
+function getExportPreviewText() {
+    var text = exportRawText || '';
+    var redactIps = document.getElementById('export-redact-ips');
+    var redactHostnames = document.getElementById('export-redact-hostnames');
+    var redactCustomers = document.getElementById('export-redact-customers');
+    if (redactIps && redactIps.checked) {
+        text = text.replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[redacted-ip]');
+        text = text.replace(/\b[0-9a-fA-F]{1,4}:[0-9a-fA-F:]*:[0-9a-fA-F]{0,4}\b/g, function(match) {
+            var colonCount = (match.match(/:/g) || []).length;
+            if (match.indexOf('::') === -1 && colonCount < 3) return match;
+            return '[redacted-ip]';
+        });
+    }
+    if (redactHostnames && redactHostnames.checked) {
+        text = text.replace(/\b[a-zA-Z0-9][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9][a-zA-Z0-9-]*)+\b/g, function(match) {
+            if (match === '[redacted-ip]') return match;
+            if (/^\d+(?:\.\d+)+$/.test(match)) return match;
+            return '[redacted-hostname]';
+        });
+    }
+    if (redactCustomers && redactCustomers.checked) {
+        text = text.replace(/\b(?:customer|account|contract|subscriber|kunden(?:nummer)?|kundennr\.?|client|ref(?:erence)?)\s*(?:id|number|no\.?|ref|nr\.?)?\s*[:#-]?\s*[A-Z0-9][A-Z0-9._/ -]{2,}\b/gi, '[redacted-customer]');
+        text = text.replace(/\bK-\d{3,}\b/g, '[redacted-customer]');
+        text = text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-customer]');
+    }
+    return text;
+}
+function refreshExportPreview() {
+    var textarea = document.getElementById('export-text');
+    if (!textarea) return;
+    textarea.value = getExportPreviewText();
+    updateExportSize();
+}
+function updateExportSize() {
+    var indicator = document.getElementById('export-size-indicator');
+    var textarea = document.getElementById('export-text');
+    if (!indicator || !textarea) return;
+    var chars = textarea.value.length;
+    var approxTokens = Math.max(1, Math.ceil(chars / 4));
+    indicator.textContent = chars.toLocaleString() + ' ' + (T.export_size_characters || 'characters') + ' · ~' + approxTokens.toLocaleString() + ' ' + (T.export_size_tokens || 'tokens');
 }
 function openBqmSetupModal() {
     document.getElementById('bqm-setup-modal').classList.add('open');
@@ -199,12 +294,12 @@ function downloadReport() {
 function copyExport() {
     var textarea = document.getElementById('export-text');
     var btn = document.getElementById('export-copy-btn');
-    textarea.select();
-    textarea.setSelectionRange(0, textarea.value.length);
+    var text = textarea.value;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(textarea.value).then(function() {
-            btn.textContent = T.copied;
-            setTimeout(function() { btn.textContent = T.copy_clipboard; }, 2000);
+        navigator.clipboard.writeText(text).then(function() {
+            btn.textContent = T.copied || 'Copied!';
+            setExportStatus(T.export_copied || 'Export copied. Review the destination before pasting sensitive diagnostics.', 'success');
+            setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 2000);
         }).catch(function() {
             fallbackCopy(textarea, btn, T);
         });
@@ -214,13 +309,30 @@ function copyExport() {
 }
 function fallbackCopy(textarea, btn, T) {
     try {
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
         document.execCommand('copy');
-        btn.textContent = T.copied;
-        setTimeout(function() { btn.textContent = T.copy_clipboard; }, 2000);
+        btn.textContent = T.copied || 'Copied!';
+        setExportStatus(T.export_copied || 'Export copied. Review the destination before pasting sensitive diagnostics.', 'success');
+        setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 2000);
     } catch(e) {
         btn.textContent = T.copy_fallback || 'Select All + Ctrl+C';
-        setTimeout(function() { btn.textContent = T.copy_clipboard; }, 3000);
+        setExportStatus(T.export_copy_error || 'Could not copy automatically. Select the text and copy it manually.', 'error');
+        setTimeout(function() { btn.textContent = T.export_copy || 'Copy export'; }, 3000);
     }
+}
+function downloadExportMarkdown() {
+    var text = document.getElementById('export-text').value || '';
+    var blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'docsight-ai-export.md';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setExportStatus(T.export_download_ready || 'Download ready. Review the file before sharing it.', 'success');
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
 function toggleCard(el) {
     el.classList.toggle('open');

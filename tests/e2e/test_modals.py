@@ -273,3 +273,119 @@ def test_report_modal_preserves_bnetz_source_and_ignores_stale_generation(demo_p
     assert any("bnetz_id=measurement-42" in url for url in request_urls)
 
     demo_page.evaluate("window.fetch = window.__originalReportFetch")
+
+
+def test_ai_export_modal_previews_privacy_scope_and_size(demo_page):
+    """AI export modal explains local scope, included/excluded data, and output size before copying."""
+    demo_page.route(
+        "**/api/export?**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"text":"# DOCSight Export\\nISP: Vodafone\\nPublic IP: 203.0.113.45\\nRouter hostname: fritzbox.local\\nCustomer ref: K-123456\\nDOCSIS health: warning"}',
+        ),
+    )
+
+    demo_page.locator("#export-link").click()
+    modal = demo_page.locator("#export-modal")
+
+    expect(modal).to_be_visible()
+    expect(modal.get_by_role("heading", name="Export for AI Analysis")).to_be_visible()
+    expect(modal).to_contain_text("Generated locally")
+    expect(modal).to_contain_text("You decide where to paste or upload it")
+    expect(modal).to_contain_text("Included in this export")
+    expect(modal).to_contain_text("Excluded by default")
+    expect(modal).to_contain_text("DOCSIS signal summary")
+    expect(modal).to_contain_text("Remote upload to AI services")
+    expect(modal.locator("#export-size-indicator")).to_contain_text("characters")
+    expect(modal.get_by_role("button", name="Download Markdown")).to_be_visible()
+
+
+def test_ai_export_redaction_copy_and_download_states(demo_page):
+    """AI export redaction controls update the preview and expose copy/download status states."""
+    demo_page.route(
+        "**/api/export?**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"text":"# DOCSight Export\\nPublic IP: 203.0.113.45\\nIPv6 prefix: 2001:db8::42\\nRouter hostname: fritzbox.local\\nCustomer ref: K-123456\\nContact: dennis@example.net\\nDOCSIS health: warning"}',
+        ),
+    )
+    demo_page.evaluate("""
+        window.__copiedExportText = '';
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: {
+                writeText: async function(text) {
+                    window.__copiedExportText = text;
+                }
+            }
+        });
+    """)
+
+    demo_page.locator("#export-link").click()
+    modal = demo_page.locator("#export-modal")
+    expect(modal).to_be_visible()
+
+    preview = modal.locator("#export-text")
+    expect(preview).to_have_value("# DOCSight Export\nPublic IP: 203.0.113.45\nIPv6 prefix: 2001:db8::42\nRouter hostname: fritzbox.local\nCustomer ref: K-123456\nContact: dennis@example.net\nDOCSIS health: warning")
+
+    modal.get_by_label("Redact IP addresses").check()
+    modal.get_by_label("Redact hostnames").check()
+    modal.get_by_label("Redact account or customer details").check()
+
+    redacted_text = preview.input_value()
+    assert "203.0.113.45" not in redacted_text
+    assert "2001:db8::42" not in redacted_text
+    assert "fritzbox.local" not in redacted_text
+    assert "K-123456" not in redacted_text
+    assert "dennis@example.net" not in redacted_text
+    assert "[redacted-ip]" in redacted_text
+    assert "[redacted-hostname]" in redacted_text
+    assert "[redacted-customer]" in redacted_text
+
+    modal.get_by_role("button", name="Copy export").click()
+    expect(modal.locator("#export-status")).to_contain_text("Export copied")
+    copied = demo_page.evaluate("window.__copiedExportText")
+    assert "203.0.113.45" not in copied
+    assert "2001:db8::42" not in copied
+    assert "[redacted-ip]" in copied
+
+    with demo_page.expect_download() as download_info:
+        modal.get_by_role("button", name="Download Markdown").click()
+    download = download_info.value
+    assert download.suggested_filename == "docsight-ai-export.md"
+    expect(modal.locator("#export-status")).to_contain_text("Download ready")
+
+
+def test_ai_export_ignores_pending_response_after_keyboard_dismissal(demo_page):
+    """Dismissed export modals must not keep sensitive pending export text in hidden DOM."""
+    demo_page.evaluate("""
+        window.__resolveExportResponse = null;
+        window.__originalExportFetch = window.fetch;
+        window.fetch = function(url, options) {
+            if (String(url || '').includes('/api/export')) {
+                return new Promise(function(resolve) {
+                    window.__resolveExportResponse = function() {
+                        resolve(new Response(JSON.stringify({
+                            text: '# DOCSight Export\\nPublic IP: 203.0.113.45\\nRouter hostname: fritzbox.local'
+                        }), {status: 200, headers: {'Content-Type': 'application/json'}}));
+                    };
+                });
+            }
+            return window.__originalExportFetch(url, options);
+        };
+    """)
+
+    demo_page.locator("#export-link").click()
+    modal = demo_page.locator("#export-modal")
+    expect(modal).to_be_visible()
+    demo_page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+
+    demo_page.evaluate("window.__resolveExportResponse()")
+    demo_page.wait_for_timeout(100)
+
+    expect(modal.locator("#export-text")).to_have_value("")
+    expect(modal.locator("#export-status")).to_have_text("")
+    demo_page.evaluate("window.fetch = window.__originalExportFetch")
