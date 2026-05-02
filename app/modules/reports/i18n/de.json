@@ -151,5 +151,21 @@
     "us_modulation_marginal": "Upstream-Modulation herabgesetzt",
     "uncorr_errors_high": "Hohe Anzahl unkorrigierbarer Fehler",
     "uncorr_errors_critical": "Unkorrigierbare Fehlerrate kritisch"
-  }
+  },
+  "report_builder_title": "ISP-fertiges Nachweispaket",
+  "report_builder_intro": "Erstelle ein lokales Nachweispaket für ISP-Support oder Beschwerde-Eskalation.",
+  "report_builder_preview_title": "Was DOCSight einschließt",
+  "report_builder_section_signal": "Signalzusammenfassung",
+  "report_builder_section_incidents": "Vorfall-Timeline und Journalnotizen",
+  "report_builder_section_measurements": "BQM-, SmokePing- und Speedtest-Nachweise, sofern vorhanden",
+  "report_builder_section_letter": "Bearbeitbarer Beschwerdetext plus PDF-Paket",
+  "report_builder_privacy_title": "Lokal erstellt",
+  "report_builder_privacy_note": "DOCSight erstellt den Report aus lokalen Monitoringdaten und sendet ihn nicht automatisch an deinen ISP.",
+  "report_build_package": "Nachweispaket erstellen",
+  "report_copy_letter_text": "Brieftext kopieren",
+  "report_download_package": "PDF-Paket herunterladen",
+  "report_builder_building": "Nachweispaket wird erstellt...",
+  "report_builder_ready": "Nachweispaket bereit. Prüfe den Brieftext und kopiere ihn oder lade das PDF-Paket herunter.",
+  "report_builder_error": "Report-Erstellung fehlgeschlagen. Wähle einen anderen Zeitraum oder prüfe, ob Monitoringdaten vorhanden sind.",
+  "report_builder_copied": "Brieftext kopiert. Hänge das PDF-Paket an, wenn du deinen ISP kontaktierst."
 }

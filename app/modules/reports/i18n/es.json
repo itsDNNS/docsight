@@ -151,5 +151,21 @@
     "us_modulation_marginal": "Modulación ascendente degradada",
     "uncorr_errors_high": "Alto número de errores no corregibles",
     "uncorr_errors_critical": "Tasa de errores no corregibles crítica"
-  }
+  },
+  "report_builder_title": "Paquete de pruebas listo para el ISP",
+  "report_builder_intro": "Crea un paquete local de pruebas para soporte del ISP o escalada de reclamaciones.",
+  "report_builder_preview_title": "Qué incluirá DOCSight",
+  "report_builder_section_signal": "Resumen de señal",
+  "report_builder_section_incidents": "Cronología de incidentes y notas del diario",
+  "report_builder_section_measurements": "Pruebas de BQM, SmokePing y Speedtest cuando estén disponibles",
+  "report_builder_section_letter": "Texto editable de reclamación más un paquete PDF",
+  "report_builder_privacy_title": "Generado localmente",
+  "report_builder_privacy_note": "DOCSight crea el informe a partir de datos locales de monitorización y no lo envía automáticamente a tu ISP.",
+  "report_build_package": "Crear paquete de pruebas",
+  "report_copy_letter_text": "Copiar texto de la carta",
+  "report_download_package": "Descargar paquete PDF",
+  "report_builder_building": "Creando paquete de pruebas...",
+  "report_builder_ready": "Paquete de pruebas listo. Revisa el texto de la carta y cópialo o descarga el paquete PDF.",
+  "report_builder_error": "No se pudo generar el informe. Prueba otro período o verifica que existan datos de monitorización.",
+  "report_builder_copied": "Texto de la carta copiado. Adjunta el paquete PDF cuando contactes con tu ISP."
 }

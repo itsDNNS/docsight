@@ -151,5 +151,21 @@
     "us_modulation_marginal": "Modulation montante dégradée",
     "uncorr_errors_high": "Nombre élevé d'erreurs non corrigeables",
     "uncorr_errors_critical": "Taux d'erreurs non corrigeables critique"
-  }
+  },
+  "report_builder_title": "Dossier de preuves prêt pour le FAI",
+  "report_builder_intro": "Créez un dossier de preuves local pour le support FAI ou une réclamation.",
+  "report_builder_preview_title": "Ce que DOCSight inclura",
+  "report_builder_section_signal": "Résumé du signal",
+  "report_builder_section_incidents": "Chronologie des incidents et notes du journal",
+  "report_builder_section_measurements": "Preuves BQM, SmokePing et Speedtest si disponibles",
+  "report_builder_section_letter": "Texte de réclamation modifiable plus un dossier PDF",
+  "report_builder_privacy_title": "Généré localement",
+  "report_builder_privacy_note": "DOCSight crée le rapport à partir des données de surveillance locales et ne l’envoie pas automatiquement à votre FAI.",
+  "report_build_package": "Créer le dossier de preuves",
+  "report_copy_letter_text": "Copier le texte de la lettre",
+  "report_download_package": "Télécharger le dossier PDF",
+  "report_builder_building": "Création du dossier de preuves...",
+  "report_builder_ready": "Dossier de preuves prêt. Relisez le texte de la lettre, puis copiez-le ou téléchargez le dossier PDF.",
+  "report_builder_error": "La génération du rapport a échoué. Essayez une autre période ou vérifiez que des données de surveillance existent.",
+  "report_builder_copied": "Texte de la lettre copié. Joignez le dossier PDF lorsque vous contactez votre FAI."
 }

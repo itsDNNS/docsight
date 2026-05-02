@@ -36,8 +36,14 @@ function openBqmSetupModal() {
 function closeBqmSetupModal() {
     document.getElementById('bqm-setup-modal').classList.remove('open');
 }
+var reportGenerationId = 0;
 function openReportModal() {
-    document.getElementById('report-modal').classList.add('open');
+    resetReportModalState();
+    if (window.DOCSightModal) {
+        window.DOCSightModal.open('report-modal');
+    } else {
+        document.getElementById('report-modal').classList.add('open');
+    }
     syncComparisonReportState();
     // Close sidebar on mobile
     var sb = document.getElementById('sidebar');
@@ -48,16 +54,38 @@ function openReportModal() {
     }
 }
 function closeReportModal() {
-    document.getElementById('report-modal').classList.remove('open');
-    // Reset to step 1
+    if (window.DOCSightModal) {
+        window.DOCSightModal.close('report-modal');
+    } else {
+        document.getElementById('report-modal').classList.remove('open');
+    }
+    resetReportModalState();
+}
+function resetReportModalState() {
+    reportGenerationId += 1;
     document.getElementById('report-step1').style.display = '';
     document.getElementById('report-step2').style.display = 'none';
-    document.getElementById('report-generate-btn').style.display = '';
+    var generateBtn = document.getElementById('report-generate-btn');
+    generateBtn.style.display = '';
+    generateBtn.disabled = false;
+    generateBtn.textContent = '\u270E ' + (T.report_build_package || 'Build evidence package');
     document.getElementById('report-copy-btn').style.display = 'none';
     document.getElementById('report-pdf-btn').style.display = 'none';
     // Reset BNetzA complaint source
     var bnetzIdField = document.getElementById('report-bnetz-id');
     if (bnetzIdField) bnetzIdField.value = '';
+    var complaintText = document.getElementById('report-complaint-text');
+    if (complaintText) complaintText.value = '';
+    setReportBuilderStatus('');
+}
+function setReportBuilderStatus(message, type) {
+    var status = document.getElementById('report-builder-status');
+    if (!status) return;
+    status.textContent = message || '';
+    status.classList.remove('is-success', 'is-error', 'is-progress');
+    if (type) {
+        status.classList.add('is-' + type);
+    }
 }
 function syncComparisonReportState() {
     var toggle = document.getElementById('report-include-comparison');
@@ -83,7 +111,7 @@ function generateComplaint() {
     var comparisonParam = '';
     var bnetzIdField = document.getElementById('report-bnetz-id');
     if (bnetzIdField && bnetzIdField.value) {
-        bnetzParam = '&bnetz_id=' + bnetzIdField.value;
+        bnetzParam = '&bnetz_id=' + encodeURIComponent(bnetzIdField.value);
     }
     var includeComparison = document.getElementById('report-include-comparison');
     if (includeComparison && includeComparison.checked && window.__docsightComparisonResult) {
@@ -97,25 +125,45 @@ function generateComplaint() {
     var btn = document.getElementById('report-generate-btn');
     btn.disabled = true;
     btn.textContent = '...';
+    setReportBuilderStatus(T.report_builder_building || 'Building evidence package...', 'progress');
+    var generationId = reportGenerationId;
     fetch('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address + bnetzParam + comparisonParam)
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            return r.json().then(function(data) {
+                if (!r.ok || data.error) {
+                    throw new Error(data.error || (T.report_builder_error || 'Report generation failed.'));
+                }
+                return data;
+            });
+        })
         .then(function(data) {
+            if (generationId !== reportGenerationId) return;
             document.getElementById('report-complaint-text').value = data.text;
             document.getElementById('report-step1').style.display = 'none';
             document.getElementById('report-step2').style.display = 'block';
             document.getElementById('report-generate-btn').style.display = 'none';
             document.getElementById('report-copy-btn').style.display = '';
             document.getElementById('report-pdf-btn').style.display = '';
+            setReportBuilderStatus(T.report_builder_ready || 'Evidence package ready. Review the letter text, then copy it or download the PDF package.', 'success');
         })
-        .catch(function(e) { showToast('Error: ' + e, 'error'); })
-        .finally(function() { btn.disabled = false; btn.textContent = '\u270E ' + (T.generate_letter || 'Generate Letter'); });
+        .catch(function(e) {
+            if (generationId !== reportGenerationId) return;
+            var message = e && e.message ? e.message : (T.report_builder_error || 'Report generation failed. Try a different report period or verify that monitoring data exists.');
+            setReportBuilderStatus(message, 'error');
+            showToast(message, 'error');
+        })
+        .finally(function() {
+            if (generationId !== reportGenerationId) return;
+            btn.disabled = false;
+            btn.textContent = '\u270E ' + (T.report_build_package || 'Build evidence package');
+        });
 }
 function generateBnetzComplaint(bnetzId) {
+    openReportModal();
     var bnetzIdField = document.getElementById('report-bnetz-id');
     if (bnetzIdField) bnetzIdField.value = bnetzId;
     var checkbox = document.getElementById('report-include-bnetz');
     if (checkbox) checkbox.checked = true;
-    openReportModal();
 }
 function copyComplaint() {
     var textarea = document.getElementById('report-complaint-text');
@@ -126,6 +174,7 @@ function copyComplaint() {
         navigator.clipboard.writeText(textarea.value).then(function() {
             var orig = btn.innerHTML;
             btn.innerHTML = '&#10003; ' + (T.copied || 'Copied!');
+            setReportBuilderStatus(T.report_builder_copied || 'Letter text copied. Attach the PDF package when you contact your ISP.', 'success');
             setTimeout(function() { btn.innerHTML = orig; }, 2000);
         });
     } else {
