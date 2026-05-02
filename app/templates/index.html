@@ -2002,95 +2002,85 @@
 </div><!-- /app-layout -->
 
 <!-- Speedtest Setup Modal -->
-<div class="modal-overlay" id="speedtest-setup-modal" role="dialog" aria-modal="true" aria-labelledby="speedtest-setup-modal-title" onclick="if(event.target===this)closeSpeedtestSetupModal()">
-    <div class="modal">
+<div class="modal-overlay" id="speedtest-setup-modal" role="dialog" aria-modal="true" aria-labelledby="speedtest-setup-modal-title">
+    <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
-            <h2 id="speedtest-setup-modal-title">&#9889; {{ t.speedtest_setup_title }}</h2>
-            <button class="modal-close" onclick="closeSpeedtestSetupModal()">&times;</button>
+            <h2 id="speedtest-setup-modal-title">⚡ {{ t.get('speedtest_setup_guided_title', 'Speedtest Tracker setup') }}</h2>
+            <button class="modal-close" onclick="closeSpeedtestSetupModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
-        <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
-            <p style="margin-bottom:12px;">{{ t.speedtest_setup_intro }}</p>
-            <div style="background:var(--bg); border-radius:8px; padding:14px; margin-bottom:14px;">
-                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.speedtest_setup_benefits_title }}</p>
-                <ul style="list-style:none; padding:0;">
-                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_1 }}</li>
-                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_2 }}</li>
-                    <li style="margin-bottom:6px;">&#10003; {{ t.speedtest_setup_benefit_3 }}</li>
+        <p class="modal-hint">{{ t.get('speedtest_setup_guided_intro', 'Connect your existing Speedtest Tracker instance so DOCSight can correlate real throughput with modem signal health.') }}</p>
+        <div class="modal-body setup-guide-body">
+            <section class="setup-guide-card">
+                <h3>{{ t.get('setup_why_title', 'Why connect it') }}</h3>
+                <ul>
+                    <li>{{ t.get('speedtest_setup_benefit_1', 'Correlate speed tests with DOCSIS signal levels') }}</li>
+                    <li>{{ t.get('speedtest_setup_benefit_2', 'Spot peak-hour performance drops') }}</li>
+                    <li>{{ t.get('speedtest_setup_benefit_3', 'Add throughput evidence to reports') }}</li>
                 </ul>
-            </div>
-            <div style="background:var(--bg); border-radius:8px; padding:14px;">
-                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.speedtest_setup_howto_title }}</p>
-                <ol style="padding-left:20px;">
-                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_1|safe_html }}</li>
-                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_2|safe_html }}</li>
-                    <li style="margin-bottom:6px;">{{ t.speedtest_setup_step_3|safe_html }}</li>
-                </ol>
-            </div>
+            </section>
+            <section class="setup-guide-card">
+                <h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3>
+                <ul>
+                    <li>{{ t.get('speedtest_setup_requirement_url', 'A reachable Speedtest Tracker URL') }}</li>
+                    <li>{{ t.get('speedtest_setup_requirement_api', 'API access enabled in Speedtest Tracker') }}</li>
+                </ul>
+            </section>
+            <section class="setup-guide-card setup-guide-command">
+                <h3>{{ t.get('setup_configure_title', 'Configure') }}</h3>
+                <p>{{ t.get('speedtest_setup_configure_text', 'Paste the Speedtest Tracker base URL in Settings, then save the integration.') }}</p>
+                <code id="speedtest-setup-command">docker run --name speedtest-tracker -p 8080:80 lscr.io/linuxserver/speedtest-tracker:latest</code>
+                <button class="btn btn-secondary" onclick="copySetupSnippet('speedtest-setup-command', 'speedtest-setup-status')">{{ t.get('speedtest_setup_copy_command', 'Copy Docker command') }}</button>
+            </section>
+            <section class="setup-guide-card">
+                <h3>{{ t.get('setup_validate_title', 'Validate') }}</h3>
+                <p>{{ t.get('speedtest_setup_validate_text', 'Use Settings to save the URL, then confirm DOCSight can read recent speed test results.') }}</p>
+                <button class="btn btn-muted" onclick="validateSetupGuidance('speedtest-setup-status', 'speedtest')">{{ t.get('speedtest_setup_test_guidance', 'Review validation path') }}</button>
+            </section>
         </div>
+        <div id="speedtest-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
         <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeSpeedtestSetupModal()">{{ t.close }}</button>
-            <a class="btn btn-accent" href="/settings" style="text-decoration:none;">&#9881; {{ t.settings }}</a>
+            <a class="btn btn-accent" href="/settings#mod-docsight_speedtest">⚙ {{ t.get('speedtest_setup_open_settings', 'Open Speedtest settings') }}</a>
         </div>
     </div>
 </div>
 
 <!-- BQM Setup Modal -->
-<div class="modal-overlay" id="bqm-setup-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-setup-modal-title" onclick="if(event.target===this)closeBqmSetupModal()">
-    <div class="modal">
+<div class="modal-overlay" id="bqm-setup-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-setup-modal-title">
+    <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
-            <h2 id="bqm-setup-modal-title">&#128200; {{ t.bqm_setup_title }}</h2>
-            <button class="modal-close" onclick="closeBqmSetupModal()">&times;</button>
+            <h2 id="bqm-setup-modal-title">📈 {{ t.get('bqm_setup_guided_title', 'ThinkBroadband BQM setup') }}</h2>
+            <button class="modal-close" onclick="closeBqmSetupModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
-        <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
-            <p style="margin-bottom:12px;">{{ t.bqm_setup_intro }}</p>
-            <div style="background:var(--bg); border-radius:8px; padding:14px; margin-bottom:14px;">
-                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.bqm_setup_benefits_title }}</p>
-                <ul style="list-style:none; padding:0;">
-                    <li style="margin-bottom:6px;">✅ {{ t.bqm_setup_benefit_1 }}</li>
-                    <li style="margin-bottom:6px;">✅ {{ t.bqm_setup_benefit_2 }}</li>
-                    <li style="margin-bottom:6px;">✅ {{ t.bqm_setup_benefit_3 }}</li>
-                </ul>
-            </div>
-            <div style="background:var(--bg); border-radius:8px; padding:14px;">
-                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.bqm_setup_howto_title }}</p>
-                <ol style="padding-left:20px;">
-                    <li style="margin-bottom:6px;">{{ t.bqm_setup_step_1|safe_html }}</li>
-                    <li style="margin-bottom:6px;">{{ t.bqm_setup_step_2|safe_html }}</li>
-                    <li style="margin-bottom:6px;">{{ t.bqm_setup_step_3|safe_html }}</li>
-                    <li style="margin-bottom:6px;">{{ t.bqm_setup_step_4|safe_html }}</li>
-                </ol>
-            </div>
+        <p class="modal-hint">{{ t.get('bqm_setup_guided_intro', 'Link an existing ThinkBroadband Broadband Quality Monitor so DOCSight can show latency and packet loss beside modem evidence.') }}</p>
+        <div class="modal-body setup-guide-body">
+            <section class="setup-guide-card"><h3>{{ t.get('setup_why_title', 'Why connect it') }}</h3><ul><li>{{ t.get('bqm_setup_benefit_1', 'Track latency, packet loss, and outages') }}</li><li>{{ t.get('bqm_setup_benefit_2', 'Compare external reachability with modem signal state') }}</li><li>{{ t.get('bqm_setup_benefit_3', 'Attach graphs to ISP evidence packages') }}</li></ul></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3><ul><li>{{ t.get('bqm_setup_requirement_monitor', 'A public or shareable BQM monitor URL') }}</li><li>{{ t.get('bqm_setup_requirement_static_ip', 'A stable public IP or DDNS target monitored by BQM') }}</li></ul></section>
+            <section class="setup-guide-card setup-guide-command"><h3>{{ t.get('setup_configure_title', 'Configure') }}</h3><p>{{ t.get('bqm_setup_configure_text', 'Create or open your BQM monitor, then save the graph URL in Settings.') }}</p><code id="bqm-setup-url">https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456789012345678901234567890abcd-2-y.csv</code><button class="btn btn-secondary" onclick="copySetupSnippet('bqm-setup-url', 'bqm-setup-status')">{{ t.get('bqm_setup_copy_url', 'Copy share URL format') }}</button></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('bqm_setup_validate_text', 'After saving the URL, validate that DOCSight can load the current graph image.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('bqm-setup-status', 'bqm')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-muted" onclick="closeBqmSetupModal()">{{ t.close }}</button>
-            <a class="btn btn-accent" href="/settings" style="text-decoration:none;">&#9881; {{ t.settings }}</a>
-        </div>
+        <div id="bqm-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
+        <div class="modal-footer"><button class="btn btn-muted" onclick="closeBqmSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="/settings#mod-docsight_bqm">⚙ {{ t.get('bqm_setup_open_settings', 'Open BQM settings') }}</a></div>
     </div>
 </div>
 
 <!-- Smokeping Setup Modal -->
 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
-<div class="modal-overlay" id="smokeping-setup-modal" role="dialog" aria-modal="true" aria-labelledby="smokeping-setup-modal-title" onclick="if(event.target===this)closeSmokepingSetupModal()">
-    <div class="modal">
+<div class="modal-overlay" id="smokeping-setup-modal" role="dialog" aria-modal="true" aria-labelledby="smokeping-setup-modal-title">
+    <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
-            <h2 id="smokeping-setup-modal-title">&#128225; {{ t.smokeping_setup_title }}</h2>
-            <button class="modal-close" onclick="closeSmokepingSetupModal()">&times;</button>
+            <h2 id="smokeping-setup-modal-title">📡 {{ t.get('smokeping_setup_guided_title', 'SmokePing setup') }}</h2>
+            <button class="modal-close" onclick="closeSmokepingSetupModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
-        <div class="modal-body" style="padding: 10px 0; font-size: 0.9em; line-height: 1.6;">
-            <p style="margin-bottom:12px;">{{ t.smokeping_setup_intro }}</p>
-            <div style="background:var(--bg); border-radius:8px; padding:14px;">
-                <p style="font-weight:bold; margin-bottom:8px; color:var(--accent);">{{ t.bqm_setup_howto_title }}</p>
-                <ol style="padding-left:20px;">
-                    <li style="margin-bottom:6px;">{{ t.smokeping_setup_step_1|safe_html }}</li>
-                    <li style="margin-bottom:6px;">{{ t.smokeping_setup_step_2|safe_html }}</li>
-                    <li style="margin-bottom:6px;">{{ t.smokeping_setup_step_3|safe_html }}</li>
-                </ol>
-            </div>
+        <p class="modal-hint">{{ t.get('smokeping_setup_guided_intro', 'Connect an existing SmokePing target to compare latency history with DOCSIS signal and outage evidence.') }}</p>
+        <div class="modal-body setup-guide-body">
+            <section class="setup-guide-card"><h3>{{ t.get('setup_why_title', 'Why connect it') }}</h3><ul><li>{{ t.get('smokeping_setup_benefit_1', 'See long-term latency and packet loss trends') }}</li><li>{{ t.get('smokeping_setup_benefit_2', 'Correlate external symptoms with modem health') }}</li><li>{{ t.get('smokeping_setup_benefit_3', 'Use graphs as supporting ISP evidence') }}</li></ul></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3><ul><li>{{ t.get('smokeping_setup_requirement_url', 'A reachable SmokePing web endpoint') }}</li><li>{{ t.get('smokeping_setup_requirement_target', 'At least one configured target graph') }}</li></ul></section>
+            <section class="setup-guide-card setup-guide-command"><h3>{{ t.get('setup_configure_title', 'Configure') }}</h3><p>{{ t.get('smokeping_setup_configure_text', 'Save the SmokePing base URL and target name in Settings.') }}</p><code id="smokeping-setup-target">https://smokeping.example.net/smokeping?target=Home.Router</code><button class="btn btn-secondary" onclick="copySetupSnippet('smokeping-setup-target', 'smokeping-setup-status')">{{ t.get('smokeping_setup_copy_target', 'Copy SmokePing target') }}</button></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('smokeping_setup_validate_text', 'After saving the endpoint, validate that DOCSight can discover target graphs.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('smokeping-setup-status', 'smokeping')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-muted" onclick="closeSmokepingSetupModal()">{{ t.close }}</button>
-            <a class="btn btn-accent" href="/settings#integrations" style="text-decoration:none;">&#9881; {{ t.settings }}</a>
-        </div>
+        <div id="smokeping-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
+        <div class="modal-footer"><button class="btn btn-muted" onclick="closeSmokepingSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="/settings#mod-docsight_smokeping">⚙ {{ t.get('smokeping_setup_open_settings', 'Open SmokePing settings') }}</a></div>
     </div>
 </div>
 {% endif %}

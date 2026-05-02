@@ -275,6 +275,56 @@ def test_report_modal_preserves_bnetz_source_and_ignores_stale_generation(demo_p
     demo_page.evaluate("window.fetch = window.__originalReportFetch")
 
 
+def test_integration_setup_modals_are_guided_and_actionable(demo_page):
+    """Integration setup modals should use scannable steps, settings links, copy actions, and validation states."""
+    cases = [
+        ("openSpeedtestSetupModal()", "#speedtest-setup-modal", "Speedtest Tracker setup", "Open Speedtest settings", "/settings#mod-docsight_speedtest", "Copy Docker command", "Review validation path", "Speedtest can be tested"),
+        ("openBqmSetupModal()", "#bqm-setup-modal", "ThinkBroadband BQM setup", "Open BQM settings", "/settings#mod-docsight_bqm", "Copy share URL format", "Review validation path", "BQM can be validated"),
+        ("openSmokepingSetupModal()", "#smokeping-setup-modal", "SmokePing setup", "Open SmokePing settings", "/settings#mod-docsight_smokeping", "Copy SmokePing target", "Review validation path", "SmokePing validation depends"),
+    ]
+    for opener, selector, title, settings_label, settings_href, copy_label, validate_label, status_text in cases:
+        demo_page.evaluate(opener)
+        modal = demo_page.locator(selector)
+        expect(modal).to_be_visible()
+        expect(modal.get_by_role("heading", name=title)).to_be_visible()
+        expect(modal).to_contain_text("Why connect it")
+        expect(modal).to_contain_text("Requirements")
+        expect(modal).to_contain_text("Configure")
+        expect(modal).to_contain_text("Validate")
+        expect(modal.get_by_role("link", name=settings_label)).to_have_attribute("href", settings_href)
+        expect(modal.get_by_role("button", name=copy_label)).to_be_visible()
+        modal.get_by_role("button", name=validate_label).click()
+        expect(modal.locator(".setup-validation-status")).to_contain_text(status_text)
+        demo_page.keyboard.press("Escape")
+        expect(modal).not_to_be_visible()
+
+
+def test_integration_setup_copy_actions_provide_feedback(demo_page):
+    """Copy actions in guided setup modals provide accessible feedback without native dialogs."""
+    demo_page.evaluate("""
+        window.__copiedSetupText = '';
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: {
+                writeText: async function(text) {
+                    window.__copiedSetupText = text;
+                }
+            }
+        });
+    """)
+
+    demo_page.evaluate("openSpeedtestSetupModal()")
+    modal = demo_page.locator("#speedtest-setup-modal")
+    expect(modal).to_be_visible()
+    modal.get_by_role("button", name="Copy Docker command").click()
+    expect(modal.locator(".setup-validation-status")).to_contain_text("Copied")
+    copied = demo_page.evaluate("window.__copiedSetupText")
+    assert "speedtest" in copied.lower()
+
+    demo_page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+
+
 def test_ai_export_modal_previews_privacy_scope_and_size(demo_page):
     """AI export modal explains local scope, included/excluded data, and output size before copying."""
     demo_page.route(

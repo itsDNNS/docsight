@@ -360,3 +360,60 @@
     outline: 2px solid var(--amethyst);
     outline-offset: 2px;
 }
+
+/* ── Guided integration setup modals ── */
+.setup-guide-modal {
+    max-width: 920px;
+}
+.setup-guide-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0;
+}
+.setup-guide-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    padding: var(--space-md);
+}
+.setup-guide-card h3 {
+    margin: 0 0 var(--space-xs);
+    color: var(--text);
+    font-size: 0.95em;
+}
+.setup-guide-card p,
+.setup-guide-card li {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    line-height: 1.55;
+}
+.setup-guide-card ul {
+    margin: 0;
+    padding-left: 1.15rem;
+}
+.setup-guide-command code {
+    display: block;
+    overflow-x: auto;
+    margin: var(--space-sm) 0;
+    padding: var(--space-sm);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--void);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    white-space: nowrap;
+}
+.setup-validation-status {
+    min-height: 1.4em;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+.setup-validation-status.is-success { color: var(--success, #43d18a); }
+.setup-validation-status.is-error { color: var(--danger, #ff6b6b); }
+.setup-validation-status.is-progress { color: var(--accent); }
+@media (max-width: 720px) {
+    .setup-guide-body { grid-template-columns: 1fr; }
+    .setup-guide-command code { white-space: pre-wrap; }
+}

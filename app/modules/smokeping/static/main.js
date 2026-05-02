@@ -60,10 +60,18 @@ window.loadSmokepingGraphs = loadSmokepingGraphs;
 
 /* ── Smokeping Setup Modal ── */
 function openSmokepingSetupModal() {
-    document.getElementById('smokeping-setup-modal').classList.add('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.open('smokeping-setup-modal');
+    } else {
+        document.getElementById('smokeping-setup-modal').classList.add('open');
+    }
 }
 function closeSmokepingSetupModal() {
-    document.getElementById('smokeping-setup-modal').classList.remove('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.close('smokeping-setup-modal');
+    } else {
+        document.getElementById('smokeping-setup-modal').classList.remove('open');
+    }
 }
 window.openSmokepingSetupModal = openSmokepingSetupModal;
 window.closeSmokepingSetupModal = closeSmokepingSetupModal;

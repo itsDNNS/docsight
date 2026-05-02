@@ -126,10 +126,18 @@ function updateExportSize() {
     indicator.textContent = chars.toLocaleString() + ' ' + (T.export_size_characters || 'characters') + ' · ~' + approxTokens.toLocaleString() + ' ' + (T.export_size_tokens || 'tokens');
 }
 function openBqmSetupModal() {
-    document.getElementById('bqm-setup-modal').classList.add('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.open('bqm-setup-modal');
+    } else {
+        document.getElementById('bqm-setup-modal').classList.add('open');
+    }
 }
 function closeBqmSetupModal() {
-    document.getElementById('bqm-setup-modal').classList.remove('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.close('bqm-setup-modal');
+    } else {
+        document.getElementById('bqm-setup-modal').classList.remove('open');
+    }
 }
 var reportGenerationId = 0;
 function openReportModal() {
@@ -338,8 +346,46 @@ function toggleCard(el) {
     el.classList.toggle('open');
 }
 function openSpeedtestSetupModal() {
-    document.getElementById('speedtest-setup-modal').classList.add('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.open('speedtest-setup-modal');
+    } else {
+        document.getElementById('speedtest-setup-modal').classList.add('open');
+    }
 }
 function closeSpeedtestSetupModal() {
-    document.getElementById('speedtest-setup-modal').classList.remove('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.close('speedtest-setup-modal');
+    } else {
+        document.getElementById('speedtest-setup-modal').classList.remove('open');
+    }
+}
+function setSetupStatus(statusId, message, type) {
+    var status = document.getElementById(statusId);
+    if (!status) return;
+    status.textContent = message || '';
+    status.classList.remove('is-success', 'is-error', 'is-progress');
+    if (type) status.classList.add('is-' + type);
+}
+function copySetupSnippet(sourceId, statusId) {
+    var source = document.getElementById(sourceId);
+    var text = source ? source.textContent.trim() : '';
+    var copied = (T.setup_copied || 'Copied. Paste it into your setup notes or terminal when ready.');
+    var copyError = (T.setup_copy_error || 'Could not copy automatically. Select the snippet and copy it manually.');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            setSetupStatus(statusId, copied, 'success');
+        }).catch(function() {
+            setSetupStatus(statusId, copyError, 'error');
+        });
+    } else {
+        setSetupStatus(statusId, copyError, 'error');
+    }
+}
+function validateSetupGuidance(statusId, integration) {
+    var messages = {
+        speedtest: T.speedtest_setup_validation_path || 'Speedtest can be tested in Speedtest settings after the base URL and API token are saved. DOCSight uses the saved credentials for the live connection test.',
+        bqm: T.bqm_setup_validation_path || 'BQM can be validated in BQM settings after the share URL is saved. DOCSight checks the saved share URL before importing graphs.',
+        smokeping: T.smokeping_setup_validation_path || 'SmokePing validation depends on the saved base URL and target in SmokePing settings. Save those values first, then refresh this view to confirm live data.'
+    };
+    setSetupStatus(statusId, messages[integration] || (T.setup_guidance_ready || 'Open Settings, save the integration details, then use the settings test or refresh this view to confirm live data.'), 'progress');
 }
