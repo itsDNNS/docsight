@@ -151,5 +151,21 @@
     "us_modulation_marginal": "",
     "uncorr_errors_high": "",
     "uncorr_errors_critical": ""
-  }
+  },
+  "report_builder_title": "",
+  "report_builder_intro": "",
+  "report_builder_preview_title": "",
+  "report_builder_section_signal": "",
+  "report_builder_section_incidents": "",
+  "report_builder_section_measurements": "",
+  "report_builder_section_letter": "",
+  "report_builder_privacy_title": "",
+  "report_builder_privacy_note": "",
+  "report_build_package": "",
+  "report_copy_letter_text": "",
+  "report_download_package": "",
+  "report_builder_building": "",
+  "report_builder_ready": "",
+  "report_builder_error": "",
+  "report_builder_copied": ""
 }

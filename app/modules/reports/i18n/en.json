@@ -151,5 +151,21 @@
     "us_modulation_marginal": "Upstream modulation degraded",
     "uncorr_errors_high": "High uncorrectable errors",
     "uncorr_errors_critical": "Uncorrectable error rate critical"
-  }
+  },
+  "report_builder_title": "ISP-ready evidence package",
+  "report_builder_intro": "Build a local evidence package for ISP support or complaint escalation.",
+  "report_builder_preview_title": "What DOCSight will include",
+  "report_builder_section_signal": "Signal summary",
+  "report_builder_section_incidents": "Incident timeline and journal notes",
+  "report_builder_section_measurements": "BQM, SmokePing, and Speedtest evidence when available",
+  "report_builder_section_letter": "Editable complaint letter text plus a PDF package",
+  "report_builder_privacy_title": "Generated locally",
+  "report_builder_privacy_note": "DOCSight builds the report from local monitoring data and does not send it to your ISP automatically.",
+  "report_build_package": "Build evidence package",
+  "report_copy_letter_text": "Copy letter text",
+  "report_download_package": "Download PDF package",
+  "report_builder_building": "Building evidence package...",
+  "report_builder_ready": "Evidence package ready. Review the letter text, then copy it or download the PDF package.",
+  "report_builder_error": "Report generation failed. Try a different report period or verify that monitoring data exists.",
+  "report_builder_copied": "Letter text copied. Attach the PDF package when you contact your ISP."
 }

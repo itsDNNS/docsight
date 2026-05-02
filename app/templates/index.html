@@ -2099,13 +2099,29 @@
 <div class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" onclick="if(event.target===this)closeReportModal()">
     <div class="modal" style="max-width:800px;">
         <div class="modal-header">
-            <h2 id="report-modal-title">{{ t.incident_report }}</h2>
+            <h2 id="report-modal-title">{{ t.get('report_builder_title', 'ISP-ready evidence package') }}</h2>
             <button class="modal-close" onclick="closeReportModal()">&times;</button>
         </div>
-        <p class="modal-hint">{{ t.report_description }}</p>
+        <p class="modal-hint">{{ t.get('report_builder_intro', 'Build a local evidence package for ISP support or complaint escalation.') }}</p>
+        <div id="report-builder-status" class="report-builder-status" role="status" aria-live="polite"></div>
         <div class="modal-body" style="padding: 10px 0;">
             <!-- Step 1: Settings & Customer Info -->
             <div id="report-step1">
+                <div class="report-builder-preview" aria-labelledby="report-builder-preview-title">
+                    <div>
+                        <h3 id="report-builder-preview-title">{{ t.get('report_builder_preview_title', 'What DOCSight will include') }}</h3>
+                        <ul class="report-builder-list">
+                            <li>{{ t.get('report_builder_section_signal', 'Signal summary') }}</li>
+                            <li>{{ t.get('report_builder_section_incidents', 'Incident timeline and journal notes') }}</li>
+                            <li>{{ t.get('report_builder_section_measurements', 'BQM, SmokePing, and Speedtest evidence when available') }}</li>
+                            <li>{{ t.get('report_builder_section_letter', 'Editable complaint letter text plus a PDF package') }}</li>
+                        </ul>
+                    </div>
+                    <div class="report-builder-privacy">
+                        <strong>{{ t.get('report_builder_privacy_title', 'Generated locally') }}</strong>
+                        <span>{{ t.get('report_builder_privacy_note', 'DOCSight builds the report from local monitoring data and does not send it to your ISP automatically.') }}</span>
+                    </div>
+                </div>
                 <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
                     <div>
                         <label style="font-size:13px; color:var(--muted);">{{ t.report_days }}</label><br>
@@ -2159,9 +2175,9 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeReportModal()">{{ t.close }}</button>
-            <button class="btn btn-accent" id="report-generate-btn" onclick="generateComplaint()">&#9998; {{ t.report_generate_letter }}</button>
-            <button class="btn btn-accent" id="report-copy-btn" style="display:none;" onclick="copyComplaint()">&#128203; {{ t.report_copy_letter }}</button>
-            <button class="btn btn-accent" id="report-pdf-btn" style="display:none;" onclick="downloadReport()">&#128196; {{ t.report_download_pdf }}</button>
+            <button class="btn btn-accent" id="report-generate-btn" onclick="generateComplaint()">&#9998; {{ t.get('report_build_package', 'Build evidence package') }}</button>
+            <button class="btn btn-accent" id="report-copy-btn" style="display:none;" onclick="copyComplaint()">&#128203; {{ t.get('report_copy_letter_text', 'Copy letter text') }}</button>
+            <button class="btn btn-accent" id="report-pdf-btn" style="display:none;" onclick="downloadReport()">&#128196; {{ t.get('report_download_package', 'Download PDF package') }}</button>
         </div>
     </div>
 </div>

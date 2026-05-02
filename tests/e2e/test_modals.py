@@ -42,7 +42,7 @@ def test_modal_focus_trap_escape_and_return_focus(demo_page):
 
     demo_page.keyboard.press("Escape")
     expect(modal).not_to_be_visible()
-    assert opener.evaluate("el => el === document.activeElement")
+    expect(opener).to_be_focused()
 
 
 def test_settings_backup_browser_uses_accessible_modal_contract(settings_page):
@@ -165,3 +165,111 @@ def test_incident_modal_and_summary_offer_report_path(demo_page):
     expect(summary).to_contain_text("3 Entries")
     expect(summary).to_contain_text("Linked evidence")
     expect(summary.get_by_role("button", name="Build report")).to_be_visible()
+
+
+def test_report_modal_frames_isp_ready_evidence_builder(demo_page):
+    """The report modal previews evidence contents, privacy expectations, and output actions before generation."""
+    demo_page.locator("#report-link").click()
+
+    modal = demo_page.locator("#report-modal")
+    expect(modal).to_be_visible()
+    expect(modal.get_by_role("heading", name="ISP-ready evidence package")).to_be_visible()
+    expect(modal).to_contain_text("Build a local evidence package for ISP support or complaint escalation.")
+    expect(modal).to_contain_text("Signal summary")
+    expect(modal).to_contain_text("Incident timeline and journal notes")
+    expect(modal).to_contain_text("BQM, SmokePing, and Speedtest evidence when available")
+    expect(modal).to_contain_text("Generated locally")
+    expect(modal.get_by_role("button", name="Build evidence package")).to_be_visible()
+
+
+def test_report_modal_shows_generation_success_and_error_states(demo_page):
+    """Report generation exposes progress, success, and actionable error states in the modal."""
+    request_urls = []
+    demo_page.route(
+        "**/api/complaint?**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"text":"Subject: DOCSIS Signal Quality Issues\\n\\nEvidence summary ready."}',
+        ),
+    )
+    demo_page.locator("#report-link").click()
+    modal = demo_page.locator("#report-modal")
+    modal.get_by_role("button", name="Build evidence package").click()
+
+    expect(modal.locator("#report-builder-status")).to_contain_text("Evidence package ready")
+    expect(modal.locator("#report-complaint-text")).to_have_value("Subject: DOCSIS Signal Quality Issues\n\nEvidence summary ready.")
+    expect(modal.get_by_role("button", name="Copy letter text")).to_be_visible()
+    expect(modal.get_by_role("button", name="Download PDF package")).to_be_visible()
+
+    demo_page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+    demo_page.locator("#report-link").click()
+    expect(modal.locator("#report-step1")).to_be_visible()
+    expect(modal.locator("#report-step2")).not_to_be_visible()
+    expect(modal.locator("#report-builder-status")).to_have_text("")
+    expect(modal.locator("#report-complaint-text")).to_have_value("")
+    expect(modal.get_by_role("button", name="Build evidence package")).to_be_visible()
+    expect(modal.get_by_role("button", name="Copy letter text")).not_to_be_visible()
+    modal.locator(".modal-footer").get_by_role("button", name="Close").click()
+
+    demo_page.unroute("**/api/complaint?**")
+    demo_page.route(
+        "**/api/complaint?**",
+        lambda route: route.fulfill(
+            status=500,
+            content_type="application/json",
+            body='{"error":"No report data is available for this period."}',
+        ),
+    )
+    demo_page.locator("#report-link").click()
+    modal.get_by_role("button", name="Build evidence package").click()
+
+    expect(modal.locator("#report-builder-status")).to_contain_text("No report data is available for this period")
+    expect(modal.locator("#report-step1")).to_be_visible()
+
+
+
+def test_report_modal_preserves_bnetz_source_and_ignores_stale_generation(demo_page):
+    """Report modal keeps selected BNetzA source and ignores stale async results after dismissal."""
+    demo_page.evaluate("""
+        window.__reportTestRequests = [];
+        window.__resolveReportTestFetch = null;
+        window.__originalReportFetch = window.fetch;
+        window.fetch = function(url, options) {
+            if (String(url).startsWith('/api/complaint?')) {
+                window.__reportTestRequests.push(String(url));
+                return new Promise(function(resolve) {
+                    window.__resolveReportTestFetch = function() {
+                        resolve(new Response(JSON.stringify({ text: 'Stale evidence package should not reopen.' }), {
+                            status: 200,
+                            headers: { 'Content-Type': 'application/json' }
+                        }));
+                    };
+                });
+            }
+            return window.__originalReportFetch(url, options);
+        };
+    """)
+    demo_page.evaluate("generateBnetzComplaint('measurement-42')")
+    modal = demo_page.locator("#report-modal")
+    expect(modal).to_be_visible()
+    expect(modal.locator("#report-bnetz-id")).to_have_value("measurement-42")
+    modal.get_by_role("button", name="Build evidence package").click()
+    expect(modal.locator("#report-builder-status")).to_contain_text("Building evidence package")
+    demo_page.keyboard.press("Escape")
+    expect(modal).not_to_be_visible()
+
+    demo_page.locator("#report-link").click()
+    expect(modal.locator("#report-step1")).to_be_visible()
+    expect(modal.locator("#report-step2")).not_to_be_visible()
+    expect(modal.locator("#report-builder-status")).to_have_text("")
+    demo_page.evaluate("window.__resolveReportTestFetch()")
+    demo_page.wait_for_timeout(250)
+    expect(modal.locator("#report-step1")).to_be_visible()
+    expect(modal.locator("#report-step2")).not_to_be_visible()
+    expect(modal.locator("#report-complaint-text")).to_have_value("")
+    request_urls = demo_page.evaluate("window.__reportTestRequests")
+    assert any("bnetz_id=measurement-42" in url for url in request_urls)
+
+    demo_page.evaluate("window.fetch = window.__originalReportFetch")
