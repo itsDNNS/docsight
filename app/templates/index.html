@@ -1086,8 +1086,10 @@
                 </svg>
                 <p>{{ t.bqm_import_drop }}</p>
                 <p style="font-size:0.8em;color:var(--muted);">{{ t.bqm_import_formats }}</p>
+                <button type="button" class="btn btn-muted import-browse-btn" onclick="event.stopPropagation(); document.getElementById('bqm-import-file-input').click();">{{ t.get('bqm_import_browse', 'Browse BQM images') }}</button>
                 <input type="file" id="bqm-import-file-input" style="display:none;" accept="image/png,image/jpeg,.png,.jpg,.jpeg" multiple>
             </div>
+            <div id="bqm-import-validation-state" class="import-validation-state" role="status" aria-live="polite"></div>
             <!-- Options: overwrite + date offset -->
             <div id="bqm-import-options" style="display:none; margin:10px 0;">
                 <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
@@ -1725,8 +1727,10 @@
                 </svg>
                 <p>{{ t.import_upload_hint }}</p>
                 <p style="font-size:0.8em;color:var(--muted);">{{ t.import_file_types }}</p>
+                <button type="button" class="btn btn-muted import-browse-btn" onclick="event.stopPropagation(); document.getElementById('import-file-input').click();">{{ t.get('import_browse_file', 'Browse CSV or Excel file') }}</button>
                 <input type="file" id="import-file-input" style="display:none;" accept=".xlsx,.csv" onchange="handleImportFile(this)">
             </div>
+            <div id="import-validation-state" class="import-validation-state" role="status" aria-live="polite"></div>
             <!-- Loading -->
             <div id="import-loading" style="display:none;text-align:center;padding:20px;">
                 <div class="spinner"></div>

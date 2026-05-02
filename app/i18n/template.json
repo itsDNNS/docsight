@@ -804,5 +804,10 @@
   "export_copy_error": "",
   "export_download_markdown": "",
   "export_download_ready": "",
-  "export_preview_label": "Export preview"
+  "export_preview_label": "Export preview",
+  "bqm_import_browse": "",
+  "bqm_import_validation_choose": "",
+  "bqm_import_validation_unsupported": "",
+  "bqm_import_validation_ready": "",
+  "bqm_import_validation_dates": ""
 }

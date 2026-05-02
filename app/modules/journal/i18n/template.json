@@ -93,5 +93,16 @@
   "timeline_source_modem": "",
   "timeline_source_speedtest": "",
   "timeline_source_event": "",
-  "timeline_no_data": ""
+  "timeline_no_data": "",
+  "import_browse_file": "",
+  "import_validation_choose": "",
+  "import_validation_unsupported": "",
+  "import_validation_parsing": "",
+  "import_validation_none": "",
+  "import_validation_ready": "",
+  "import_validation_duplicates": "",
+  "import_validation_dates": "",
+  "import_selected_one": "",
+  "import_selected_count": "",
+  "import_validation_no_valid": ""
 }

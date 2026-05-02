@@ -951,5 +951,10 @@
   "export_copy_error": "Copie automatique impossible. Sélectionnez le texte et copiez-le manuellement.",
   "export_download_markdown": "Télécharger Markdown",
   "export_download_ready": "Téléchargement prêt. Vérifiez le fichier avant de le partager.",
-  "export_preview_label": "Aperçu de l’export"
+  "export_preview_label": "Aperçu de l’export",
+  "bqm_import_browse": "Choisir des images BQM",
+  "bqm_import_validation_choose": "Selectionnez des images BQM PNG ou JPEG. DOCSight affiche les dates avant import.",
+  "bqm_import_validation_unsupported": "Type de fichier non pris en charge. Seules les images PNG et JPEG sont acceptees.",
+  "bqm_import_validation_ready": "{0} pretes",
+  "bqm_import_validation_dates": "{0} necessite une date"
 }

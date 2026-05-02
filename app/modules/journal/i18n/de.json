@@ -108,5 +108,16 @@
   "incident_build_report": "Bericht bauen",
   "incident_create_action": "Vorfall erstellen",
   "incident_update_action": "Vorfall aktualisieren",
-  "entry_save_before_upload": "Erstelle zuerst den Eintrag und hänge danach Nachweisdateien an."
+  "entry_save_before_upload": "Erstelle zuerst den Eintrag und hänge danach Nachweisdateien an.",
+  "import_browse_file": "CSV- oder Excel-Datei auswählen",
+  "import_validation_choose": "Wähle eine CSV- oder Excel-Datei. DOCSight zeigt die Zeilen vor dem Import als Vorschau.",
+  "import_validation_unsupported": "Nicht unterstützter Dateityp. Verwende CSV- oder Excel-Dateien.",
+  "import_validation_parsing": "Datei wird gelesen und Zeilen werden geprüft...",
+  "import_validation_none": "Keine Zeilen ausgewählt. Wähle mindestens eine gültige Zeile für den Import.",
+  "import_validation_ready": "{0} bereit",
+  "import_validation_duplicates": "{0} Duplikat",
+  "import_validation_dates": "{0} benötigt ein Datum",
+  "import_selected_one": "1 ausgewählten Eintrag importieren",
+  "import_selected_count": "{0} ausgewählte Einträge importieren",
+  "import_validation_no_valid": "Keine gültigen Zeilen ausgewählt. Wähle mindestens eine importbereite Zeile."
 }

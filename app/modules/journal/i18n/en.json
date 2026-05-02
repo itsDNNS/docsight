@@ -108,5 +108,16 @@
   "incident_build_report": "Build report",
   "incident_create_action": "Create incident",
   "incident_update_action": "Update incident",
-  "entry_save_before_upload": "Create the entry first, then attach evidence files."
+  "entry_save_before_upload": "Create the entry first, then attach evidence files.",
+  "import_browse_file": "Browse CSV or Excel file",
+  "import_validation_choose": "Choose a CSV or Excel file. DOCSight will preview rows before importing.",
+  "import_validation_unsupported": "Unsupported file type. Use CSV or Excel files.",
+  "import_validation_parsing": "Parsing file and checking rows...",
+  "import_validation_none": "No rows selected. Select at least one valid row to import.",
+  "import_validation_ready": "{0} ready",
+  "import_validation_duplicates": "{0} duplicate",
+  "import_validation_dates": "{0} needs a date",
+  "import_selected_one": "Import 1 selected entry",
+  "import_selected_count": "Import {0} selected entries",
+  "import_validation_no_valid": "No valid rows selected. Select at least one ready row to import."
 }

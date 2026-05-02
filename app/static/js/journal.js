@@ -545,12 +545,77 @@ function openImportModal() {
     document.getElementById('import-preview').style.display = 'none';
     document.getElementById('import-footer').style.display = 'none';
     document.getElementById('import-file-input').value = '';
+    setImportValidationState(T.import_validation_choose || 'Choose a CSV or Excel file. DOCSight will preview rows before importing.', 'info');
     _importPreviewData = null;
-    modal.classList.add('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.open('import-modal');
+    } else {
+        modal.classList.add('open');
+    }
 }
 
 function closeImportModal() {
-    document.getElementById('import-modal').classList.remove('open');
+    if (window.DOCSightModal) {
+        window.DOCSightModal.close('import-modal');
+    } else {
+        document.getElementById('import-modal').classList.remove('open');
+    }
+}
+
+function setImportValidationState(message, tone) {
+    var el = document.getElementById('import-validation-state');
+    if (!el) return;
+    el.textContent = message || '';
+    el.className = 'import-validation-state' + (tone ? ' is-' + tone : '');
+}
+
+function updateImportSelectionState() {
+    if (!_importPreviewData) return;
+    var cbs = document.querySelectorAll('.import-row-cb');
+    var selected = 0;
+    var selectedImportable = 0;
+    for (var i = 0; i < cbs.length; i++) {
+        if (!cbs[i].checked) continue;
+        selected++;
+        var idx = parseInt(cbs[i].getAttribute('data-idx'));
+        var row = _importPreviewData.rows[idx];
+        if (row && row.date) selectedImportable++;
+    }
+    var btn = document.getElementById('import-confirm-btn');
+    if (btn) {
+        btn.disabled = selectedImportable === 0;
+        btn.textContent = selectedImportable === 1 ? (T.import_selected_one || 'Import 1 selected entry') : (T.import_selected_count || 'Import {0} selected entries').replace('{0}', selectedImportable);
+    }
+    if (selectedImportable === 0) {
+        var noneMessage = selected > 0
+            ? (T.import_validation_no_valid || 'No valid rows selected. Add dates or select rows that are ready to import.')
+            : (T.import_validation_no_valid || 'No valid rows selected. Select at least one ready row to import.');
+        setImportValidationState(noneMessage, 'error');
+    } else {
+        updateImportValidationSummary();
+    }
+}
+
+function updateImportValidationSummary() {
+    if (!_importPreviewData) return;
+    var rows = _importPreviewData.rows || [];
+    var ready = 0;
+    var duplicates = 0;
+    var needsDate = 0;
+    rows.forEach(function(row) {
+        if (row.skipped || !row.date) {
+            needsDate++;
+        } else if (row.duplicate) {
+            duplicates++;
+        } else {
+            ready++;
+        }
+    });
+    var parts = [];
+    parts.push((T.import_validation_ready || '{0} ready').replace('{0}', ready));
+    if (duplicates) parts.push((T.import_validation_duplicates || '{0} duplicate').replace('{0}', duplicates));
+    if (needsDate) parts.push((T.import_validation_dates || '{0} needs a date').replace('{0}', needsDate));
+    setImportValidationState(parts.join(', '), needsDate ? 'warning' : 'success');
 }
 
 // Drag & drop support
@@ -584,16 +649,17 @@ function handleImportFile(input) {
     var file = input.files[0];
     var lower = file.name.toLowerCase();
     if (!lower.endsWith('.xlsx') && !lower.endsWith('.csv')) {
-        showToast(T.import_file_unsupported, 'error');
+        setImportValidationState(T.import_validation_unsupported || 'Unsupported file type. Use CSV or Excel files.', 'error');
         return;
     }
     if (file.size > 5 * 1024 * 1024) {
-        showToast(T.import_file_too_large, 'error');
+        setImportValidationState(T.import_file_too_large || 'File is too large. Maximum size is 5 MB.', 'error');
         return;
     }
 
     document.getElementById('import-upload-zone').style.display = 'none';
     document.getElementById('import-loading').style.display = '';
+    setImportValidationState(T.import_validation_parsing || 'Parsing file and checking rows...', 'progress');
 
     var formData = new FormData();
     formData.append('file', file);
@@ -603,7 +669,7 @@ function handleImportFile(input) {
         .then(function(res) {
             document.getElementById('import-loading').style.display = 'none';
             if (res.status >= 400) {
-                showToast(res.data.error || T.error_prefix, 'error');
+                setImportValidationState(res.data.error || T.error_prefix, 'error');
                 document.getElementById('import-upload-zone').style.display = '';
                 return;
             }
@@ -613,11 +679,12 @@ function handleImportFile(input) {
         .catch(function() {
             document.getElementById('import-loading').style.display = 'none';
             document.getElementById('import-upload-zone').style.display = '';
-            showToast(T.network_error || 'Error', 'error');
+            setImportValidationState(T.network_error || 'Error', 'error');
         });
 }
 
 function renderImportPreview(data) {
+    _importPreviewData = data;
     var tbody = document.getElementById('import-tbody');
     tbody.innerHTML = '';
 
@@ -651,7 +718,7 @@ function renderImportPreview(data) {
             dateCell = escapeHtml(row.date);
         }
         tr.innerHTML =
-            '<td><input type="checkbox" class="import-row-cb" data-idx="' + i + '" ' + checked + '></td>' +
+            '<td><input type="checkbox" class="import-row-cb" data-idx="' + i + '" ' + checked + ' onchange="updateImportSelectionState()"></td>' +
             '<td style="text-align:center;">' + iconHtml + '</td>' +
             '<td>' + dateCell + '</td>' +
             '<td>' + escapeHtml(row.title) + dupeBadge + '</td>' +
@@ -662,6 +729,7 @@ function renderImportPreview(data) {
     document.getElementById('import-select-all').checked = true;
     document.getElementById('import-preview').style.display = '';
     document.getElementById('import-footer').style.display = '';
+    updateImportSelectionState();
 }
 
 function fixImportDate(input, idx) {
@@ -678,6 +746,7 @@ function fixImportDate(input, idx) {
         }
         var badge = tr.querySelector('.import-skipped-badge');
         if (badge) badge.style.display = 'none';
+        updateImportSelectionState();
     }
 }
 
@@ -686,6 +755,7 @@ function toggleImportAll(checked) {
     for (var i = 0; i < cbs.length; i++) {
         cbs[i].checked = checked;
     }
+    updateImportSelectionState();
 }
 
 function confirmImport() {

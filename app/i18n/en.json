@@ -959,5 +959,10 @@
   "export_copy_error": "Could not copy automatically. Select the text and copy it manually.",
   "export_download_markdown": "Download Markdown",
   "export_download_ready": "Download ready. Review the file before sharing it.",
-  "export_preview_label": "Export preview"
+  "export_preview_label": "Export preview",
+  "bqm_import_browse": "Browse BQM images",
+  "bqm_import_validation_choose": "Choose PNG or JPEG BQM graph images. DOCSight will preview dates before importing.",
+  "bqm_import_validation_unsupported": "Unsupported file type. Only PNG and JPEG images are supported.",
+  "bqm_import_validation_ready": "{0} ready",
+  "bqm_import_validation_dates": "{0} needs a date"
 }

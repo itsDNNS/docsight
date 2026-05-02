@@ -93,5 +93,16 @@
   "timeline_source_modem": "Modem",
   "timeline_source_speedtest": "Speedtest",
   "timeline_source_event": "Evento",
-  "timeline_no_data": "Sin datos de senal para este periodo"
+  "timeline_no_data": "Sin datos de senal para este periodo",
+  "import_browse_file": "Seleccionar archivo CSV o Excel",
+  "import_validation_choose": "Seleccione un archivo CSV o Excel. DOCSight mostrara una vista previa antes de importar.",
+  "import_validation_unsupported": "Tipo de archivo no compatible. Use archivos CSV o Excel.",
+  "import_validation_parsing": "Analizando archivo y comprobando filas...",
+  "import_validation_none": "No hay filas seleccionadas. Seleccione al menos una fila valida.",
+  "import_validation_ready": "{0} listas",
+  "import_validation_duplicates": "{0} duplicado",
+  "import_validation_dates": "{0} necesita fecha",
+  "import_selected_one": "Importar 1 entrada seleccionada",
+  "import_selected_count": "Importar {0} entradas seleccionadas",
+  "import_validation_no_valid": "No hay filas validas seleccionadas. Seleccione al menos una fila lista para importar."
 }
