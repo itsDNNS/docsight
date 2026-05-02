@@ -400,6 +400,13 @@
 .setup-guide-modal {
     max-width: 920px;
 }
+.setup-guide-modal .modal-body {
+    padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+}
+.setup-guide-modal .modal-footer {
+    flex-wrap: wrap;
+    align-items: stretch;
+}
 .setup-guide-body {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -451,4 +458,13 @@
 @media (max-width: 720px) {
     .setup-guide-body { grid-template-columns: 1fr; }
     .setup-guide-command code { white-space: pre-wrap; }
+    .setup-guide-modal .modal-footer {
+        justify-content: stretch;
+    }
+    .setup-guide-modal .modal-footer .btn {
+        flex: 1 1 100%;
+        min-width: 0;
+        white-space: normal;
+        text-align: center;
+    }
 }
