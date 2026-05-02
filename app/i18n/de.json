@@ -918,5 +918,21 @@
   "reboot_reason_tooltip": "Grund für den letzten Neustart",
   "channel_count_tooltip": "Anzahl der Downstream/Upstream DOCSIS-Kanäle",
   "wan_ipv4_tooltip": "WAN IPv4-Adresse",
-  "wan_ipv6_tooltip": "WAN IPv6-Adresse"
+  "wan_ipv6_tooltip": "WAN IPv6-Adresse",
+  "about_project": "Über das Projekt",
+  "about_project_subtitle": "Version, Projekthinweise und Datenschutzmodell",
+  "project_version": "Version",
+  "notice_delivery": "Hinweisbereitstellung",
+  "notice_delivery_local": "Mit dieser Version gebündelt",
+  "maintainer_notices": "Maintainer-Hinweise",
+  "maintainer_notice": "Maintainer-Hinweis",
+  "maintainer_notices_subtitle": "Gebündelte Projektupdates vom DOCSight-Maintainer",
+  "notice_dismiss": "Ausblenden",
+  "notice_dismiss_error": "Hinweis konnte nicht ausgeblendet werden",
+  "notice_privacy_title": "Datenschutzmodell",
+  "notice_privacy_body": "Maintainer-Hinweise sind mit DOCSight gebündelt und werden lokal ausgewertet. DOCSight ruft keinen entfernten Hinweis-Feed ab, rendert kein entferntes HTML und sendet beim Anzeigen oder Ausblenden von Hinweisen keine Telemetrie.",
+  "notice_severity_info": "Info",
+  "notice_severity_warning": "Warnung",
+  "notice_severity_critical": "Kritisch",
+  "no_active_notices": "Keine aktiven Maintainer-Hinweise."
 }

@@ -50,6 +50,10 @@ DOCSight is designed to run **100% locally** on your network:
 - No telemetry or analytics
 - No cloud dependencies
 
+### Maintainer notices and privacy
+
+DOCSight maintainer notices are bundled with the installed release and evaluated locally. DOCSight does not fetch a remote notices feed, render remote HTML, or send telemetry when showing or dismissing notices. Dismissals are stored locally in your DOCSight configuration by stable notice ID. If a remote notice feed is ever added, it should be explicitly opt-in and documented separately.
+
 ## Security Features
 
 ### Authentication

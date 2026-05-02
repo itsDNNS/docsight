@@ -259,6 +259,29 @@
 <div id="view-dashboard" class="view active">
 
 
+{% if dashboard_notices %}
+<div class="notice-stack dashboard-notice-stack">
+    {% for notice in dashboard_notices %}
+    <article class="maintainer-notice notice-{{ notice.severity }}" data-notice-id="{{ notice.id }}">
+        <div class="notice-icon"><i data-lucide="{{ 'alert-triangle' if notice.severity == 'warning' else ('shield-alert' if notice.severity == 'critical' else 'info') }}"></i></div>
+        <div class="notice-content">
+            <div class="notice-title-row">
+                <h2>{{ notice.title }}</h2>
+                <span class="badge badge-{{ 'crit' if notice.severity == 'critical' else ('warn' if notice.severity == 'warning' else 'info') }}">{{ t.get('notice_severity_' ~ notice.severity, notice.severity|capitalize) }}</span>
+            </div>
+            <p>{{ notice.body }}</p>
+            {% if notice.link_url and notice.link_label %}
+            <a class="notice-link" href="{{ notice.link_url }}" target="_blank" rel="noopener noreferrer">{{ notice.link_label }}</a>
+            {% endif %}
+        </div>
+        <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ notice.id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+            <i data-lucide="x"></i>
+        </button>
+    </article>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% if error %}
 <div class="error-box">{{ t.error_label }}: {{ error }}</div>
 {% endif %}
@@ -2720,6 +2743,7 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 <script src="/static/js/integrations.js"></script>
 <script src="/static/js/events.js"></script>
 <script src="/static/js/utils.js"></script>
+<script src="/static/js/notices.js"></script>
 <script src="/static/js/speedtest.js"></script>
 <script src="/static/js/correlation.js"></script>
 <script src="/static/js/segment-utilization.js"></script>

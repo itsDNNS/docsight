@@ -913,5 +913,21 @@
   "reboot_reason_tooltip": "motivo del ultimo reinicio",
   "channel_count_tooltip": "numero de canales DOCSIS de bajada/subida",
   "wan_ipv4_tooltip": "direccion IPv4 WAN",
-  "wan_ipv6_tooltip": "direccion IPv6 WAN"
+  "wan_ipv6_tooltip": "direccion IPv6 WAN",
+  "about_project": "Acerca del proyecto",
+  "about_project_subtitle": "Versión, avisos del proyecto y modelo de privacidad",
+  "project_version": "Versión",
+  "notice_delivery": "Entrega de avisos",
+  "notice_delivery_local": "Incluido con esta versión",
+  "maintainer_notices": "Avisos del mantenedor",
+  "maintainer_notice": "Aviso del mantenedor",
+  "maintainer_notices_subtitle": "Actualizaciones del proyecto incluidas por el mantenedor de DOCSight",
+  "notice_dismiss": "Descartar",
+  "notice_dismiss_error": "No se pudo descartar el aviso",
+  "notice_privacy_title": "Modelo de privacidad",
+  "notice_privacy_body": "Los avisos del mantenedor se incluyen con DOCSight y se evalúan localmente. DOCSight no obtiene un feed remoto de avisos, no renderiza HTML remoto ni envía telemetría al mostrar o descartar avisos.",
+  "notice_severity_info": "Info",
+  "notice_severity_warning": "Advertencia",
+  "notice_severity_critical": "Crítico",
+  "no_active_notices": "No hay avisos activos del mantenedor."
 }

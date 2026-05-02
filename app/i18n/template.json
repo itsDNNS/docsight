@@ -1,4 +1,4 @@
-﻿{
+{
   "_meta": {
     "language_name": "",
     "flag": ""
@@ -763,5 +763,21 @@
   "font_family": "",
   "font_family_desc": "",
   "use_system_font": "",
-  "use_system_font_hint": ""
+  "use_system_font_hint": "",
+  "about_project": "",
+  "about_project_subtitle": "",
+  "project_version": "",
+  "notice_delivery": "",
+  "notice_delivery_local": "",
+  "maintainer_notices": "",
+  "maintainer_notice": "",
+  "maintainer_notices_subtitle": "",
+  "notice_dismiss": "",
+  "notice_dismiss_error": "",
+  "notice_privacy_title": "",
+  "notice_privacy_body": "",
+  "notice_severity_info": "",
+  "notice_severity_warning": "",
+  "notice_severity_critical": "",
+  "no_active_notices": ""
 }

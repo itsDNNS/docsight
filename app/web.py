@@ -22,6 +22,7 @@ from zoneinfo import available_timezones
 from .config import POLL_MIN, POLL_MAX
 from .gaming_index import compute_gaming_index
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
+from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
 
 _IANA_REGIONS = {"Africa", "America", "Antarctica", "Arctic", "Asia",
                  "Atlantic", "Australia", "Europe", "Indian", "Pacific"}
@@ -475,6 +476,13 @@ def get_module_loader():
     return _module_loader
 
 
+def _get_dismissed_notice_ids():
+    """Return locally persisted maintainer notice dismissals."""
+    if not _config_manager:
+        return []
+    return coerce_dismissed_notice_ids(_config_manager.get("dismissed_notice_ids", []))
+
+
 def get_on_config_changed():
     """Get the config changed callback."""
     return _on_config_changed
@@ -840,6 +848,11 @@ def index():
         bnetz_latest=bnetz_latest,
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",
+        dashboard_notices=get_active_notices(
+            APP_VERSION,
+            dismissed_ids=_get_dismissed_notice_ids(),
+            location="dashboard",
+        ),
     )
 
 
@@ -921,7 +934,33 @@ def settings():
             "manage_label": t.get("step_modem", "Modem"),
         },
     ]
-    return render_template("settings.html", config=config, theme=theme, poll_min=POLL_MIN, poll_max=POLL_MAX, t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS, server_tz=tz_name, server_tz_offset=tz_offset, modem_types=modem_types, driver_hints=driver_hints, demo_mode=demo_mode, timezones=_get_iana_timezones(), iana_tz=iana_tz, tz_is_posix=tz_is_posix, all_modules=all_modules, built_in_features=built_in_features)
+    return render_template(
+        "settings.html",
+        config=config,
+        theme=theme,
+        poll_min=POLL_MIN,
+        poll_max=POLL_MAX,
+        t=t,
+        lang=lang,
+        languages=LANGUAGES,
+        lang_flags=LANG_FLAGS,
+        server_tz=tz_name,
+        server_tz_offset=tz_offset,
+        modem_types=modem_types,
+        driver_hints=driver_hints,
+        demo_mode=demo_mode,
+        timezones=_get_iana_timezones(),
+        iana_tz=iana_tz,
+        tz_is_posix=tz_is_posix,
+        all_modules=all_modules,
+        built_in_features=built_in_features,
+        app_version=APP_VERSION,
+        settings_notices=get_active_notices(
+            APP_VERSION,
+            dismissed_ids=_get_dismissed_notice_ids(),
+            location="settings",
+        ),
+    )
 
 
 @app.after_request

@@ -81,6 +81,10 @@
                 <i data-lucide="package" class="nav-icon"></i>
                 {{ t.get('settings_extensions', 'Extensions') }}
             </button>
+            <button class="nav-item" data-section="about" onclick="switchSection('about')">
+                <i data-lucide="info" class="nav-icon"></i>
+                {{ t.get('about_project', 'About Project') }}
+            </button>
             {% set settings_modules = [] %}
             {% for mod in modules if mod.template_paths.get('settings') %}
                 {% if settings_modules.append(mod) %}{% endif %}
@@ -149,6 +153,7 @@
             {% include 'settings/appearance.html' %}
             {% include 'settings/security.html' %}
             {% include 'settings/extensions.html' %}
+            {% include 'settings/about.html' %}
             {% include 'settings/support.html' %}
 
             {# ── Module Settings Panels ── #}
@@ -181,6 +186,7 @@ var SECTION_TITLES = {
     appearance: T.appearance || 'Appearance',
     security: T.get ? (T.get('security') || 'Security') : 'Security',
     extensions: T.get ? (T.get('settings_extensions') || 'Extensions') : 'Extensions',
+    about: T.about_project || 'About Project',
     support: T.support_title || 'Support DOCSight'
 };
 {% for mod in modules if mod.template_paths.get('settings') %}
@@ -194,6 +200,7 @@ try { var savedCooldowns = JSON.parse({{ config.notify_cooldowns|default("{}")|t
 var DRIVER_HINTS = {{ driver_hints | tojson }};
 </script>
 <script src="/static/js/utils.js"></script>
+<script src="/static/js/notices.js"></script>
 <script src="/static/js/settings.js"></script>
 {% for mod in modules if mod.has_js %}
 <script src="/modules/{{ mod.id }}/static/main.js"></script>

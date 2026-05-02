@@ -918,5 +918,21 @@
   "reboot_reason_tooltip": "Reason for the last reboot",
   "channel_count_tooltip": "Number of downstream/upstream DOCSIS channels",
   "wan_ipv4_tooltip": "WAN IPv4 address",
-  "wan_ipv6_tooltip": "WAN IPv6 address"
+  "wan_ipv6_tooltip": "WAN IPv6 address",
+  "about_project": "About Project",
+  "about_project_subtitle": "Version, project notices, and privacy model",
+  "project_version": "Version",
+  "notice_delivery": "Notice delivery",
+  "notice_delivery_local": "Bundled with this release",
+  "maintainer_notices": "Maintainer notices",
+  "maintainer_notice": "Maintainer notice",
+  "maintainer_notices_subtitle": "Bundled project updates from the DOCSight maintainer",
+  "notice_dismiss": "Dismiss",
+  "notice_dismiss_error": "Could not dismiss notice",
+  "notice_privacy_title": "Privacy model",
+  "notice_privacy_body": "Maintainer notices are bundled with DOCSight and evaluated locally. DOCSight does not fetch a remote notices feed, render remote HTML, or send telemetry when showing or dismissing notices.",
+  "notice_severity_info": "Info",
+  "notice_severity_warning": "Warning",
+  "notice_severity_critical": "Critical",
+  "no_active_notices": "No active maintainer notices."
 }

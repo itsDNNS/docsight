@@ -910,5 +910,21 @@
   "reboot_reason_tooltip": "raison du dernier redémarrage",
   "channel_count_tooltip": "nombre de canaux DOCSIS descendants/montants",
   "wan_ipv4_tooltip": "adresse IPv4 WAN",
-  "wan_ipv6_tooltip": "adresse IPv6 WAN"
+  "wan_ipv6_tooltip": "adresse IPv6 WAN",
+  "about_project": "À propos du projet",
+  "about_project_subtitle": "Version, avis du projet et modèle de confidentialité",
+  "project_version": "Version",
+  "notice_delivery": "Diffusion des avis",
+  "notice_delivery_local": "Intégré à cette version",
+  "maintainer_notices": "Avis du mainteneur",
+  "maintainer_notice": "Avis du mainteneur",
+  "maintainer_notices_subtitle": "Mises à jour du projet intégrées par le mainteneur DOCSight",
+  "notice_dismiss": "Masquer",
+  "notice_dismiss_error": "Impossible de masquer l'avis",
+  "notice_privacy_title": "Modèle de confidentialité",
+  "notice_privacy_body": "Les avis du mainteneur sont intégrés à DOCSight et évalués localement. DOCSight ne récupère pas de flux d'avis distant, n'affiche pas de HTML distant et n'envoie aucune télémétrie lors de l'affichage ou du masquage des avis.",
+  "notice_severity_info": "Info",
+  "notice_severity_warning": "Avertissement",
+  "notice_severity_critical": "Critique",
+  "no_active_notices": "Aucun avis du mainteneur actif."
 }
