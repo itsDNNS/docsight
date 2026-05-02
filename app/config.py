@@ -37,6 +37,7 @@ DEFAULTS = {
     "temperature_unit": "celsius",
     "isp_name": "",
     "admin_password": "",
+    "dismissed_notice_ids": [],
     "demo_mode": False,
     "gaming_quality_enabled": True,
     "segment_utilization_enabled": True,

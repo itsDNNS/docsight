@@ -1822,3 +1822,43 @@ html, body {
   animation: confirmPulse 0.3s var(--ease-out-expo);
 }
 @keyframes confirmPulse { 0% { transform: scale(0.95); } 100% { transform: scale(1); } }
+
+
+/* ─── About Project / Maintainer Notices ─── */
+.about-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-sm);
+}
+.about-meta-item {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-md);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.035);
+}
+.about-meta-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.settings-notice-stack {
+  margin-top: var(--space-sm);
+}
+.privacy-card .card-subtitle {
+  max-width: 760px;
+}
+.empty-state.compact {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  color: var(--text-secondary);
+}
+.empty-state.compact svg {
+  color: var(--good);
+  width: 18px;
+  height: 18px;
+}

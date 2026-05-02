@@ -1,0 +1,82 @@
+<section class="settings-panel" id="panel-about">
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="info"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('about_project', 'About Project') }}</div>
+                    <div class="card-subtitle">{{ t.get('about_project_subtitle', 'Version, project notices, and privacy model') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="about-meta-grid">
+            <div class="about-meta-item">
+                <span class="about-meta-label">{{ t.get('project_version', 'Version') }}</span>
+                <strong>{{ app_version }}</strong>
+            </div>
+            <div class="about-meta-item">
+                <span class="about-meta-label">{{ t.get('notice_delivery', 'Notice delivery') }}</span>
+                <strong>{{ t.get('notice_delivery_local', 'Bundled with this release') }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="megaphone"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('maintainer_notices', 'Maintainer notices') }}</div>
+                    <div class="card-subtitle">{{ t.get('maintainer_notices_subtitle', 'Bundled project updates from the DOCSight maintainer') }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if settings_notices %}
+        <div class="notice-stack settings-notice-stack">
+            {% for notice in settings_notices %}
+            <article class="maintainer-notice notice-{{ notice.severity }}" data-notice-id="{{ notice.id }}">
+                <div class="notice-icon"><i data-lucide="{{ 'alert-triangle' if notice.severity == 'warning' else ('shield-alert' if notice.severity == 'critical' else 'info') }}"></i></div>
+                <div class="notice-content">
+                    <div class="notice-title-row">
+                        <h3>{{ notice.title }}</h3>
+                        <span class="badge badge-{{ 'crit' if notice.severity == 'critical' else ('warn' if notice.severity == 'warning' else 'info') }}">{{ t.get('notice_severity_' ~ notice.severity, notice.severity|capitalize) }}</span>
+                    </div>
+                    <p>{{ notice.body }}</p>
+                    {% if notice.link_url and notice.link_label %}
+                    <a class="notice-link" href="{{ notice.link_url }}" target="_blank" rel="noopener noreferrer">{{ notice.link_label }}</a>
+                    {% endif %}
+                </div>
+                <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ notice.id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+                    <i data-lucide="x"></i>
+                </button>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state compact">
+            <i data-lucide="check-circle"></i>
+            <p>{{ t.get('no_active_notices', 'No active maintainer notices.') }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="settings-card glass privacy-card">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon green">
+                    <i data-lucide="lock"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('notice_privacy_title', 'Privacy model') }}</div>
+                    <div class="card-subtitle">{{ t.get('notice_privacy_body', 'Maintainer notices are bundled with DOCSight and evaluated locally. DOCSight does not fetch a remote notices feed, render remote HTML, or send telemetry when showing or dismissing notices.') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
