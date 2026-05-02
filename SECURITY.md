@@ -183,9 +183,11 @@ Maintainers use this checklist when reviewing changes that touch integration or 
 - **Modem/router response parsing** — driver code parses untrusted modem firmware output and must tolerate missing, malformed, or unexpected fields without crashing the poller.
   - `tests/test_vodafone_station_tg.py`
   - `tests/test_driver_registry.py`
-- **Import/export paths** — backup, history import, and report export flows handle user-supplied files and produce shareable output.
+- **Import/export paths** — backup, history import, AI/LLM export, journal import, BQM image import, and report output handle user-supplied files or produce shareable evidence.
   - `tests/test_import_parser.py`
   - `tests/test_report.py`
+  - `tests/web/test_health_export.py`
+  - `tests/e2e/test_modals.py`
 - **Local authentication/session handling** — login, session cookies, the `require_auth` decorator, and Bearer token verification.
   - `tests/test_auth.py`
   - `tests/test_security_hardening.py`

@@ -177,19 +177,19 @@ DOCSight is built around an evidence-first workflow, then extended with deeper a
 | **[Signal Trends](https://github.com/itsDNNS/docsight/wiki/Features-Signal-Trends)** | Turn intermittent instability into visible long-term patterns |
 | **[Connection Monitor](https://github.com/itsDNNS/docsight/wiki/Features-Connection-Monitor)** | Track latency, packet loss, outages, and traceroute evidence continuously |
 | **[Event Log](https://github.com/itsDNNS/docsight/wiki/Features-Event-Log)** | Automatically record anomalies like modulation drops and modem restarts |
-| **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Add your own notes, imports, attachments, and incident groupings |
+| **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Add notes, attachments, reviewed imports, and incident groupings |
 | **[Before/After Comparison](https://github.com/itsDNNS/docsight/wiki/Features-Before-After-Comparison)** | Show whether a technician visit or ISP change actually improved anything |
 | **[Correlation Analysis](https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis)** | Combine signal, speed, and event history in one timeline |
-| **[Complaint Generator](https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint)** | Turn your evidence trail into ISP-ready letters and technical PDFs |
+| **[Complaint Generator](https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint)** | Build ISP-ready evidence packages with letter text, checklist, and PDF output |
 
 ### Analysis, Integrations, and Power Features
 
 | Category | Includes |
 |---|---|
 | **Network analysis** | [Gaming Quality Index](https://github.com/itsDNNS/docsight/wiki/Features-Gaming-Quality), [Modulation Performance](https://github.com/itsDNNS/docsight/wiki/Features-Modulation-Performance), [Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline), [Cable Segment Utilization](https://github.com/itsDNNS/docsight/wiki/Features-Segment-Utilization) |
-| **External data sources** | [Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest), [Smart Capture](https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture), [BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA), [BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM), [Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping) |
+| **External data sources** | Guided setup for [Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest), [BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM), and [Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping), plus [Smart Capture](https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture) and [BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA) |
 | **Platform features** | [Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant), [Backup & Restore](https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore), notifications, setup wizard, optional authentication, API tokens |
-| **Usability and extensibility** | [Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode), [Theme Engine](https://github.com/itsDNNS/docsight/wiki/Themes), [Community Modules](https://github.com/itsDNNS/docsight-modules), [In-App Glossary](https://github.com/itsDNNS/docsight/wiki/Features-Glossary), [LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export) |
+| **Usability and extensibility** | [Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode), [Theme Engine](https://github.com/itsDNNS/docsight/wiki/Themes), [Community Modules](https://github.com/itsDNNS/docsight-modules), [In-App Glossary](https://github.com/itsDNNS/docsight/wiki/Features-Glossary), [AI/LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export) with local redaction controls |
 
 Also includes 4 languages (EN/DE/FR/ES), light/dark mode, PWA/offline support, and a system font toggle.
 

@@ -631,15 +631,15 @@ CREATE TABLE bnetz_measurements (
 | `/api/journal` | GET/POST | Journal entries (list, create) |
 | `/api/journal/<id>` | GET/PUT/DELETE | Single journal entry CRUD |
 | `/api/journal/<id>/attachments` | POST | Upload entry attachments |
-| `/api/journal/import/*` | POST | Excel/CSV import (preview + confirm) |
+| `/api/journal/import/*` | POST | Excel/CSV import preview + confirm; UI keeps invalid or skipped rows visible before import |
 | `/api/incidents` | GET/POST | Incident containers (list, create) |
 | `/api/incidents/<id>` | GET/PUT/DELETE | Single incident container CRUD |
 | `/api/incidents/<id>/assign` | POST | Assign entries to incident |
 | `/api/journal/export` | GET | Export journal entries (CSV, JSON, or Markdown) |
 | `/api/tokens` | GET/POST | List or create API tokens (POST requires session auth) |
 | `/api/tokens/<id>` | DELETE | Revoke an API token (requires session auth) |
-| `/api/export` | GET | LLM-optimized report |
-| `/api/report` | GET | PDF incident report |
+| `/api/export` | GET | AI/LLM-oriented markdown export; browser UI applies local preview, scope, and redaction controls |
+| `/api/report` | GET | PDF evidence package for complaint/report workflows |
 | `/api/bnetz/upload` | POST | Upload BNetzA measurement (PDF or CSV) |
 | `/api/bnetz/measurements` | GET | List BNetzA measurements |
 | `/api/bnetz/pdf/<id>` | GET | Download original measurement PDF |
