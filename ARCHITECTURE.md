@@ -415,6 +415,12 @@ class ModemDriver(ABC):
 
 Drivers are loaded by name via `load_driver(modem_type, url, user, password)`. The registry maps type strings to fully qualified class paths for lazy importing.
 
+### Extension module state
+
+Installed non-theme modules are discovered by `ModuleLoader` and persisted through the comma-separated `disabled_modules` config key. The Settings Extensions panel treats installed module toggles as pending form state: users can change multiple modules and save them once through `POST /api/modules/batch`. Theme modules remain on the dedicated theme APIs because preview and active-theme handling are separate flows.
+
+Threshold-profile modules are mutually exclusive. The UI renders threshold modules as a single radio group, and the batch API validates the invariant server-side so exactly one threshold profile remains active after save.
+
 ### Vodafone Station Auto-Detection
 
 The Vodafone Station driver supports two hardware variants with different auth flows:

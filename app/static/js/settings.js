@@ -622,10 +622,10 @@ function _serializeSettingsForm(form) {
     var fields = [];
     Array.prototype.forEach.call(form.elements, function(el) {
         if (!el.name || el.type === 'submit' || el.type === 'button' || el.type === 'file') return;
-        fields.push({ name: el.name, type: el.type || el.tagName, value: _normalizedFormValue(el) });
+        fields.push({ name: el.name, id: el.getAttribute('data-module-id') || '', type: el.type || el.tagName, value: _normalizedFormValue(el) });
     });
     fields.sort(function(a, b) {
-        return (a.name + ':' + a.type).localeCompare(b.name + ':' + b.type);
+        return (a.name + ':' + a.id + ':' + a.type).localeCompare(b.name + ':' + b.id + ':' + b.type);
     });
     return JSON.stringify(fields);
 }
@@ -697,14 +697,63 @@ function clearDirty() {
     _syncSaveFooter();
 }
 
-/**
- * Save the settings form via /api/config.
- * Uses the same error display and lang/tz reload logic as the normal submit.
- * Returns a Promise that resolves to true on success, false on failure.
- */
-function _saveForm() {
-    var errEl = document.getElementById('global-error');
-    if (errEl) errEl.style.display = 'none';
+function _getPendingModuleStates() {
+    var states = [];
+    document.querySelectorAll('.module-toggle-input').forEach(function(toggle) {
+        var moduleId = toggle.getAttribute('data-module-id');
+        if (!moduleId) return;
+        var initial = toggle.getAttribute('data-initial-enabled') === 'true';
+        if (toggle.checked !== initial) {
+            states.push({ id: moduleId, enabled: toggle.checked });
+        }
+    });
+    return states;
+}
+
+function _markModuleStatesSaved() {
+    document.querySelectorAll('.module-toggle-input').forEach(function(toggle) {
+        toggle.setAttribute('data-initial-enabled', toggle.checked ? 'true' : 'false');
+    });
+}
+
+function _saveModuleStatesIfNeeded() {
+    var states = _getPendingModuleStates();
+    if (states.length === 0) return Promise.resolve({ success: true, restart_required: false });
+    return fetch('/api/modules/batch', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ modules: states })
+    })
+    .then(function(r) {
+        return r.json().then(function(data) { return { ok: r.ok, data: data }; });
+    })
+    .then(function(res) {
+        if (!res.ok || !res.data.success) {
+            throw new Error(res.data.error || T.save_failed || 'Save failed');
+        }
+        _markModuleStatesSaved();
+        if (res.data.restart_required) {
+            var banner = document.getElementById('module-restart-banner');
+            if (banner) {
+                banner.style.display = 'flex';
+                if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]});
+            }
+        }
+        return res.data;
+    });
+}
+
+function _finishSettingsSave() {
+    clearDirty();
+    showToast(T.settings_saved || 'Settings saved', true);
+    var newLang = document.getElementById('language').value;
+    var newTz = document.getElementById('timezone').value;
+    if (newLang !== currentLang || newTz !== currentTz) {
+        setTimeout(function() { location.reload(); }, 800);
+    }
+}
+
+function _saveAllSettings() {
     var data = getFormData();
     return fetch('/api/config', {
         method: 'POST',
@@ -713,25 +762,29 @@ function _saveForm() {
     })
     .then(function(r) { return r.json(); })
     .then(function(res) {
-        if (res.success) {
-            clearDirty();
-            showToast(T.settings_saved || 'Settings saved', true);
-            var newLang = document.getElementById('language').value;
-            var newTz = document.getElementById('timezone').value;
-            if (newLang !== currentLang || newTz !== currentTz) {
-                setTimeout(function() { location.reload(); }, 800);
-            }
-            return true;
+        if (!res.success) {
+            throw new Error(res.error || T.save_failed || 'Save failed');
         }
-        if (errEl) {
-            errEl.textContent = res.error || T.save_failed;
-            errEl.style.display = 'block';
-        }
-        return false;
+        return _saveModuleStatesIfNeeded();
     })
-    .catch(function() {
+    .then(function() {
+        _finishSettingsSave();
+        return true;
+    });
+}
+
+/**
+ * Save the settings form via /api/config and pending module state.
+ * Uses the same error display and lang/tz reload logic as the normal submit.
+ * Returns a Promise that resolves to true on success, false on failure.
+ */
+function _saveForm() {
+    var errEl = document.getElementById('global-error');
+    if (errEl) errEl.style.display = 'none';
+    return _saveAllSettings()
+    .catch(function(err) {
         if (errEl) {
-            errEl.textContent = T.network_error;
+            errEl.textContent = err.message || T.network_error;
             errEl.style.display = 'block';
         }
         return false;
@@ -764,30 +817,9 @@ function initFormSubmit() {
         e.preventDefault();
         var errEl = document.getElementById('global-error');
         errEl.style.display = 'none';
-        var saveBtn = e.target.querySelector('button[type="submit"]');
-        var data = getFormData();
-        fetch('/api/config', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-            if (res.success) {
-                clearDirty();
-                showToast(T.settings_saved || 'Settings saved', true);
-                var newLang = document.getElementById('language').value;
-                var newTz = document.getElementById('timezone').value;
-                if (newLang !== currentLang || newTz !== currentTz) {
-                    setTimeout(function() { location.reload(); }, 800);
-                }
-            } else {
-                errEl.textContent = res.error || T.save_failed;
-                errEl.style.display = 'block';
-            }
-        })
-        .catch(function() {
-            errEl.textContent = T.network_error;
+        _saveAllSettings()
+        .catch(function(err) {
+            errEl.textContent = err.message || T.network_error;
             errEl.style.display = 'block';
         });
     });
@@ -1239,44 +1271,13 @@ document.addEventListener('DOMContentLoaded', function() {
 function initModuleToggles() {
     document.querySelectorAll('.module-toggle-input').forEach(function(toggle) {
         toggle.addEventListener('change', function() {
-            var moduleId = this.getAttribute('data-module-id');
-            var action = this.checked ? 'enable' : 'disable';
             var toggleEl = this;
-
-            if (_formDirty) {
-                toggleEl.checked = !toggleEl.checked;
-                _syncSaveFooter();
-                return;
-            }
-
-            _guardUnsaved().then(function(proceed) {
-                if (!proceed) {
-                    toggleEl.checked = !toggleEl.checked;
-                    return;
-                }
-                fetch('/api/modules/' + moduleId + '/' + action, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(res) {
-                    if (res.success) {
-                        showToast(T.settings_saved || 'Saved');
-                        var banner = document.getElementById('module-restart-banner');
-                        if (banner) {
-                            banner.style.display = 'flex';
-                            lucide.createIcons({nodes: [banner]});
-                        }
-                    } else {
-                        toggleEl.checked = !toggleEl.checked;
-                        showToast(res.error || 'Error', true);
-                    }
-                })
-                .catch(function() {
-                    toggleEl.checked = !toggleEl.checked;
-                    showToast(T.network_error || 'Network error', true);
+            if (toggleEl.getAttribute('data-is-threshold') === 'true' && toggleEl.checked) {
+                document.querySelectorAll('.module-toggle-input[data-is-threshold="true"]').forEach(function(other) {
+                    if (other !== toggleEl) other.checked = false;
                 });
-            });
+            }
+            _updateDirtyState();
         });
     });
 }

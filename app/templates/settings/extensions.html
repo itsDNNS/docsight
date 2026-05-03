@@ -30,7 +30,7 @@
         {% set modules_list = [] %}
         {% if all_modules %}
         {% for mod in all_modules|selectattr('type', 'ne', 'theme')|list %}
-        {% if modules_list.append({'name': mod.name, 'desc': mod.description, 'mod_id': mod.id, 'checked': mod.enabled, 'disabled': false, 'error': mod.error}) %}{% endif %}
+        {% if modules_list.append({'name': mod.name, 'desc': mod.description, 'mod_id': mod.id, 'checked': mod.enabled, 'disabled': false, 'error': mod.error, 'is_threshold': 'thresholds' in mod.contributes}) %}{% endif %}
         {% endfor %}
         {% endif %}
 
@@ -52,24 +52,33 @@
 
         {# ── Modules ── #}
         {% if modules_list %}
-        <div class="toggle-section-divider">{{ t.get('ext_modules', 'Modules') }}</div>
+        <div class="toggle-section-divider" id="extensions-modules-heading">{{ t.get('ext_modules', 'Modules') }}</div>
+        <div role="group" aria-labelledby="extensions-modules-heading">
         {% for ext in modules_list|sort(attribute='name') %}
+        {% set module_label_id = 'module-title-' ~ loop.index %}
+        {% set module_desc_id = 'module-desc-' ~ loop.index %}
         <div class="toggle-row{% if ext.disabled %} toggle-row-disabled{% endif %}" data-module-id="{{ ext.mod_id }}">
             <div class="toggle-info">
-                <span class="toggle-title">
+                <span class="toggle-title" id="{{ module_label_id }}">
                     {{ ext.name }}
                     {% if ext.error is defined and ext.error %}<span class="module-badge badge-error">{{ t.modules_error }}</span>{% endif %}
                 </span>
-                <span class="toggle-desc">{{ ext.desc }}</span>
+                <span class="toggle-desc" id="{{ module_desc_id }}">{{ ext.desc }}</span>
             </div>
             <label class="toggle module-toggle">
-                <input type="checkbox" class="module-toggle-input"
+                <input type="{{ 'radio' if ext.is_threshold else 'checkbox' }}" class="module-toggle-input"
                        data-module-id="{{ ext.mod_id }}"
+                       data-initial-enabled="{{ 'true' if ext.checked else 'false' }}"
+                       data-is-threshold="{{ 'true' if ext.is_threshold else 'false' }}"
+                       aria-labelledby="{{ module_label_id }}"
+                       aria-describedby="{{ module_desc_id }}"
+                       {% if ext.is_threshold %}name="threshold_profile_module" value="{{ ext.mod_id }}"{% else %}name="module_state_{{ ext.mod_id }}" value="true"{% endif %}
                        {% if ext.checked %}checked{% endif %}>
                 <span class="toggle-slider"></span>
             </label>
         </div>
         {% endfor %}
+        </div>
         {% endif %}
     </div>
 
