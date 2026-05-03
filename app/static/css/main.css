@@ -1,5 +1,30 @@
 /* main.css — DOCSight Dashboard Layout (Mobile-First) */
 
+/* ── PWA offline status ── */
+.offline-status-banner {
+  position: sticky;
+  top: 0;
+  z-index: 300;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  padding: calc(var(--space-xs) + var(--safe-top)) var(--space-md) var(--space-xs);
+  border-bottom: 1px solid color-mix(in srgb, var(--warn) 36%, var(--glass-border));
+  background: color-mix(in srgb, var(--warn) 18%, var(--void-deep));
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+.offline-status-banner[hidden] { display: none !important; }
+.offline-status-banner strong {
+  color: var(--warn);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+}
+.offline-last-known { color: var(--text-muted); }
+.is-offline #refresh-btn { opacity: 0.5; cursor: not-allowed; }
+
 /* ── App Layout ── */
 .app-layout {
   display: flex;

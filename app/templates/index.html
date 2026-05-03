@@ -42,6 +42,11 @@
     <script src="/static/vendor/lucide.min.js"></script>
 </head>
 <body>
+<div id="offline-status-banner" class="offline-status-banner" role="status" aria-live="polite" hidden>
+    <strong>Offline</strong>
+    <span>Showing last-known dashboard shell in read-only mode. Live modem data and manual refresh are unavailable until DOCSight reconnects.</span>
+    <span id="offline-last-known" class="offline-last-known"></span>
+</div>
 <div class="app-layout">
 
 <!-- Mobile Header -->
@@ -2345,6 +2350,51 @@ var T = {{ t|tojson }};
 var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 
 (function() {
+    var LAST_KNOWN_STORAGE_KEY = 'docsight:last-known-dashboard-shell';
+
+    function formatLastKnown(value) {
+        if (!value) return '';
+        try {
+            return new Date(value).toLocaleString();
+        } catch (err) {
+            return value;
+        }
+    }
+
+    function rememberOnlineShell() {
+        if (!navigator.onLine) return;
+        try {
+            localStorage.setItem(LAST_KNOWN_STORAGE_KEY, new Date().toISOString());
+        } catch (err) {
+            /* Storage can be unavailable in hardened/private browser contexts. */
+        }
+    }
+
+    function updateOfflineStatus() {
+        var offline = !navigator.onLine || window.__DOCSIGHT_OFFLINE_SHELL__ === true;
+        var banner = document.getElementById('offline-status-banner');
+        var lastKnown = document.getElementById('offline-last-known');
+        var refreshButton = document.getElementById('refresh-btn');
+        document.documentElement.classList.toggle('is-offline', offline);
+        document.body.classList.toggle('is-offline', offline);
+        if (banner) banner.hidden = !offline;
+        if (refreshButton) refreshButton.disabled = offline;
+        if (lastKnown) {
+            var stored = '';
+            try { stored = localStorage.getItem(LAST_KNOWN_STORAGE_KEY) || ''; } catch (err) {}
+            lastKnown.textContent = stored ? 'Last-known shell: ' + formatLastKnown(stored) : 'Last-known shell timestamp unavailable';
+        }
+        if (!offline) rememberOnlineShell();
+    }
+
+    window.updateOfflineStatus = updateOfflineStatus;
+    window.addEventListener('online', updateOfflineStatus);
+    window.addEventListener('offline', updateOfflineStatus);
+    document.addEventListener('DOMContentLoaded', updateOfflineStatus);
+    updateOfflineStatus();
+})();
+
+(function() {
     'use strict';
 
     /* ── Theme ── */
@@ -2692,7 +2742,14 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 
     function refreshData() {
         fetch(window.location.href)
-            .then(function(r) { return r.text(); })
+            .then(function(r) {
+                if (r.headers && r.headers.get('X-DOCSight-Offline-Shell') === 'true') {
+                    window.__DOCSIGHT_OFFLINE_SHELL__ = true;
+                    if (typeof window.updateOfflineStatus === 'function') window.updateOfflineStatus();
+                    throw new Error('Offline shell fallback');
+                }
+                return r.text();
+            })
             .then(function(html) {
                 var doc = new DOMParser().parseFromString(html, 'text/html');
 
@@ -2813,7 +2870,9 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
                 .catch(function() { showToast(T.network_error || 'Error', 'error'); })
                 .finally(function() {
                     refreshBtn.classList.remove('spinning');
-                    setTimeout(function() { refreshBtn.disabled = false; }, 10000);
+                    setTimeout(function() {
+                        if (navigator.onLine && window.__DOCSIGHT_OFFLINE_SHELL__ !== true) refreshBtn.disabled = false;
+                    }, 10000);
                 });
         });
     }
@@ -2920,7 +2979,8 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 <script>
 if ('serviceWorker' in navigator) {
     var isLocalDevHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocalDevHost) {
+    var enableServiceWorkerTestMode = new URLSearchParams(window.location.search).has('enable-sw-test');
+    if (isLocalDevHost && !enableServiceWorkerTestMode) {
         navigator.serviceWorker.getRegistrations()
             .then(function(registrations) {
                 return Promise.all(registrations.map(function(registration) {
