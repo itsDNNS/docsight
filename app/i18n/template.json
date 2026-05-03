@@ -820,5 +820,8 @@
   "bqm_setup_configure_text": "",
   "bqm_setup_validate_text": "",
   "bqm_setup_copy_url": "",
-  "bqm_setup_open_settings": ""
+  "bqm_setup_open_settings": "",
+  "previous_month": "",
+  "next_month": "",
+  "bqm_csv_import": ""
 }

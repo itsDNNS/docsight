@@ -975,5 +975,8 @@
   "bqm_setup_configure_text": "Create or open your BQM monitor, copy the CSV Yesterday share URL, then save it in Settings. CSV Live is for spot checks only.",
   "bqm_setup_validate_text": "After saving a CSV Yesterday URL, DOCSight performs one initial fetch. Use CSV bulk import for up to 12 months of history or longer gaps.",
   "bqm_setup_copy_url": "Copy example URL format",
-  "bqm_setup_open_settings": "Open BQM settings"
+  "bqm_setup_open_settings": "Open BQM settings",
+  "previous_month": "Previous month",
+  "next_month": "Next month",
+  "bqm_csv_import": "BQM CSV import"
 }

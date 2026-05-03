@@ -293,6 +293,45 @@ class TestBQMCollector:
         assert result.data == {"skipped": True, "reason": "already_collected", "date": "2099-01-01"}
         mock_fetch.assert_not_called()
 
+    @patch("app.modules.bqm.collector.fetch_graph")
+    def test_png_collection_records_yesterday_target_for_restart_skip(self, mock_fetch, tmp_path, sample_png):
+        db_path = str(tmp_path / "collector-png.db")
+        storage = SnapshotStorage(db_path, max_days=7)
+        mgr = ConfigManager(str(tmp_path / "data"))
+        mgr.save({
+            "modem_password": "test",
+            "modem_type": "fritzbox",
+            "bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+            "bqm_collect_time": "14:00",
+        })
+        mock_fetch.return_value = sample_png
+
+        class FixedDate(date):
+            @classmethod
+            def today(cls):
+                return cls(2099, 1, 2)
+
+        def fake_strftime(fmt, *args):
+            if fmt == "%Y-%m-%d":
+                return "2099-01-02"
+            if fmt == "%H:%M":
+                return "14:05"
+            if fmt == "%Y-%m-%dT%H:%M:%SZ":
+                return "2099-01-02T14:05:00Z"
+            raise AssertionError(f"unexpected strftime format: {fmt}")
+
+        with patch("app.modules.bqm.collector.date", FixedDate), patch(
+            "app.modules.bqm.collector.time.strftime",
+            side_effect=fake_strftime,
+        ):
+            result = BQMCollector(mgr, storage).collect()
+
+        assert result.success is True
+        assert result.data == {"date": "2099-01-01", "mode": "png"}
+        meta = BqmStorage(db_path).get_collection_metadata()
+        assert meta["last_success_target_date"] == "2099-01-01"
+        assert meta["last_success_mode"] == "png"
+
 
 # ── API Tests ──
 

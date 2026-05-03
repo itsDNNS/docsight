@@ -967,5 +967,8 @@
   "bqm_setup_configure_text": "Créez ou ouvrez votre moniteur BQM, copiez l’URL de partage CSV Yesterday, puis enregistrez-la dans les paramètres. CSV Live sert uniquement aux contrôles ponctuels.",
   "bqm_setup_validate_text": "Après l’enregistrement d’une URL CSV Yesterday, DOCSight effectue une récupération initiale. Utilisez l’import CSV en masse pour jusqu’à 12 mois d’historique ou les lacunes plus longues.",
   "bqm_setup_copy_url": "Copier le format d’URL d’exemple",
-  "bqm_setup_open_settings": "Ouvrir les paramètres BQM"
+  "bqm_setup_open_settings": "Ouvrir les paramètres BQM",
+  "previous_month": "Mois précédent",
+  "next_month": "Mois suivant",
+  "bqm_csv_import": "Import CSV BQM"
 }

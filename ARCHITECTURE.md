@@ -298,6 +298,7 @@ Users can switch from demo to live mode via Settings UI or `POST /api/demo/migra
 **Collection behavior:**
 - Settings save with a new ThinkBroadband CSV share URL triggers an immediate authenticated initial fetch through `POST /api/bqm/fetch-now` / `run_bqm_initial_fetch()`.
 - Daily polling uses the CSV Yesterday share link and records collection metadata in `bqm_meta` (`last_success_target_date`, mode, rows, timestamp).
+- Legacy PNG collection also stores the previous day as the target date so restart skip logic stays consistent with daily BQM evidence.
 - A fresh collector instance checks persisted metadata before fetching so restarts after a successful collection do not duplicate the same target date.
 - DOCSight does not silently invent multi-day backfill from the daily collector. Longer gaps should be filled with the BQM CSV bulk import.
 - The UI labels cached PNG fallback separately from live refresh so cached evidence is not presented as live freshness.
