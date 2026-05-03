@@ -16,7 +16,7 @@
             </div>
             <div class="form-row full">
                 <label for="speedtest_tracker_token">{{ t.speedtest_token }}</label>
-                <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}">
+                <input type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}"{% if config.speedtest_tracker_token %} data-saved-secret="true"{% endif %}>
                 <span class="hint">{{ t.speedtest_token_hint }}</span>
             </div>
             <div class="form-row">

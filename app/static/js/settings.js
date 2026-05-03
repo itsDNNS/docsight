@@ -29,14 +29,7 @@ function switchSection(id) {
     if (mobileTitle) mobileTitle.textContent = SECTION_TITLES[id] || id;
 
     /* Save footer: hide on support/modules, otherwise respect dirty state */
-    var saveFooter = document.getElementById('save-footer');
-    if (saveFooter) {
-        if (_saveHiddenSections[id]) {
-            saveFooter.classList.remove('visible');
-        } else if (_formDirty) {
-            saveFooter.classList.add('visible');
-        }
-    }
+    _syncSaveFooter();
 
     /* Auto-load data for certain panels */
     if (id === 'security') loadApiTokens();
@@ -292,7 +285,11 @@ function getFormData() {
         }
         if (inp.type === 'hidden' && data[inp.name] !== undefined) return;
         if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
-            data[inp.name] = inp.value || MASK;
+            if (_isSavedSecretField(inp) && !inp.dataset.userEditedSecret) {
+                data[inp.name] = MASK;
+            } else {
+                data[inp.name] = inp.value || MASK;
+            }
         } else {
             data[inp.name] = inp.value;
         }
@@ -592,17 +589,83 @@ function runDemoMigration() {
 
 /* ── Unsaved Changes ── */
 var _formDirty = false;
+var _formBaseline = null;
+
+function _isSavedSecretField(el) {
+    return !!(
+        el &&
+        el.name &&
+        el.tagName === 'INPUT' &&
+        el.type === 'password' &&
+        (
+            el.dataset.savedSecret === 'true' ||
+            (el.getAttribute('placeholder') || '').toLowerCase() === 'saved'
+        )
+    );
+}
+
+function _normalizedFormValue(el) {
+    if (_isSavedSecretField(el)) {
+        return el.dataset.userEditedSecret ? '__edited_secret__' : '';
+    }
+    if (el.type === 'checkbox' || el.type === 'radio') {
+        return el.checked ? '1' : '0';
+    }
+    if (el.tagName === 'SELECT' && el.multiple) {
+        return Array.prototype.map.call(el.selectedOptions, function(opt) { return opt.value; }).sort().join('\u0000');
+    }
+    return el.value || '';
+}
+
+function _serializeSettingsForm(form) {
+    if (!form) return '[]';
+    var fields = [];
+    Array.prototype.forEach.call(form.elements, function(el) {
+        if (!el.name || el.type === 'submit' || el.type === 'button' || el.type === 'file') return;
+        fields.push({ name: el.name, type: el.type || el.tagName, value: _normalizedFormValue(el) });
+    });
+    fields.sort(function(a, b) {
+        return (a.name + ':' + a.type).localeCompare(b.name + ':' + b.type);
+    });
+    return JSON.stringify(fields);
+}
+
+function _captureFormBaseline() {
+    var form = document.getElementById('settings-form');
+    _formBaseline = _serializeSettingsForm(form);
+}
+
+function _syncSaveFooter() {
+    var footer = document.getElementById('save-footer');
+    if (!footer) return;
+    if (_formDirty && !_saveHiddenSections[_currentSection]) {
+        footer.classList.add('visible');
+        footer.removeAttribute('aria-hidden');
+        footer.removeAttribute('inert');
+    } else {
+        footer.classList.remove('visible');
+        footer.setAttribute('aria-hidden', 'true');
+        footer.setAttribute('inert', '');
+    }
+}
+
+function _updateDirtyState() {
+    var form = document.getElementById('settings-form');
+    if (!form) return;
+    if (_formBaseline === null) _captureFormBaseline();
+    _formDirty = _serializeSettingsForm(form) !== _formBaseline;
+    _syncSaveFooter();
+}
 
 function initUnsavedDetection() {
     var form = document.getElementById('settings-form');
     if (!form) return;
-    function markDirty() {
-        if (_formDirty) return;
-        _formDirty = true;
-        var footer = document.getElementById('save-footer');
-        if (footer && !_saveHiddenSections[_currentSection]) {
-            footer.classList.add('visible');
+    _captureFormBaseline();
+    function markDirty(e) {
+        if (e && _isSavedSecretField(e.target) && e.isTrusted) {
+            e.target.dataset.userEditedSecret = 'true';
         }
+        _updateDirtyState();
     }
     form.addEventListener('input', markDirty);
     form.addEventListener('change', markDirty);
@@ -616,10 +679,22 @@ function initUnsavedDetection() {
     });
 }
 
+function _resetEditedSavedSecrets() {
+    var form = document.getElementById('settings-form');
+    if (!form) return;
+    Array.prototype.forEach.call(form.elements, function(el) {
+        if (!_isSavedSecretField(el) || !el.dataset.userEditedSecret) return;
+        el.value = '';
+        el.dataset.savedSecret = 'true';
+        delete el.dataset.userEditedSecret;
+    });
+}
+
 function clearDirty() {
+    _resetEditedSavedSecrets();
+    _captureFormBaseline();
     _formDirty = false;
-    var footer = document.getElementById('save-footer');
-    if (footer) footer.classList.remove('visible');
+    _syncSaveFooter();
 }
 
 /**
@@ -1148,6 +1223,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     } catch(e) {}
 
+    _captureFormBaseline();
+    _formDirty = false;
+
     /* Restore section from URL hash, default to connection */
     var hash = location.hash.replace('#', '');
     if (hash && document.getElementById('panel-' + hash)) {
@@ -1164,6 +1242,12 @@ function initModuleToggles() {
             var moduleId = this.getAttribute('data-module-id');
             var action = this.checked ? 'enable' : 'disable';
             var toggleEl = this;
+
+            if (_formDirty) {
+                toggleEl.checked = !toggleEl.checked;
+                _syncSaveFooter();
+                return;
+            }
 
             _guardUnsaved().then(function(proceed) {
                 if (!proceed) {

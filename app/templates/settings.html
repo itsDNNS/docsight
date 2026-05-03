@@ -163,8 +163,8 @@
             {% endfor %}
 
             <!-- ═══ Save Footer ═══ -->
-            <div class="save-footer" id="save-footer">
-                <div class="unsaved-hint">
+            <div class="save-footer" id="save-footer" aria-hidden="true" inert>
+                <div class="unsaved-hint" role="status" aria-live="polite">
                     <span class="unsaved-dot"></span>
                     {{ t.unsaved_changes }}
                 </div>

@@ -21,7 +21,7 @@
             </div>
             <div class="form-field" style="grid-column: 1 / -1">
                 <label class="form-label" for="notify_webhook_token">{{ t.notify_webhook_token }}</label>
-                <input class="form-input" type="password" id="notify_webhook_token" name="notify_webhook_token" value="" placeholder="{% if config.notify_webhook_token %}{{ t.saved_ph }}{% endif %}">
+                <input class="form-input" type="password" id="notify_webhook_token" name="notify_webhook_token" value="" placeholder="{% if config.notify_webhook_token %}{{ t.saved_ph }}{% endif %}"{% if config.notify_webhook_token %} data-saved-secret="true"{% endif %}>
                 <span class="form-hint">{{ t.notify_webhook_token_hint }}</span>
             </div>
             <div class="form-field">
