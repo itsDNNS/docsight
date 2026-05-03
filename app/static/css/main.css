@@ -59,10 +59,10 @@
   top: 0; left: 0; bottom: 0;
   width: 260px;
   max-width: calc(100vw - 56px);
-  background:
+  background-color: var(--void-deep);
+  background-image:
     radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
-    radial-gradient(ellipse at 80% 100%, color-mix(in srgb, var(--info) 6%, transparent), transparent 60%),
-    color-mix(in srgb, var(--void-deep) 85%, transparent);
+    radial-gradient(ellipse at 80% 100%, color-mix(in srgb, var(--info) 6%, transparent), transparent 60%);
   border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
@@ -77,7 +77,8 @@
 .sidebar.open { transform: translateX(0); }
 
 .sidebar-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-sm) var(--space-md);
@@ -96,8 +97,23 @@
   flex-shrink: 0;
 }
 .sidebar-logo img { width: 32px; height: 32px; }
+.sidebar-brand-text { min-width: 0; }
 .sidebar-title { font-size: 0.92rem; font-weight: 700; letter-spacing: -0.02em; }
 .sidebar-subtitle { font-size: 0.7rem; color: var(--text-muted); }
+.sidebar-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.sidebar-close svg { width: 18px; height: 18px; }
+.sidebar-close:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 
 .sidebar-content {
   flex: 1;
@@ -834,6 +850,24 @@ body.is-offline .offline-banner { display: flex; }
 /* ══════════════════════════════════════════════════════════════════
    RESPONSIVE -- TABLET & DESKTOP
    ══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1023px) {
+  .sidebar {
+    background-color: var(--void-deep);
+  }
+  .sidebar-close {
+    display: inline-flex;
+  }
+  .sidebar-content {
+    padding-bottom: calc(var(--space-xl) + var(--safe-bottom));
+  }
+  .nav-item {
+    min-height: 44px;
+    white-space: normal;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+}
 
 /* Tablet: 2 columns */
 @media (min-width: 640px) {

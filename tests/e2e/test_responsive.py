@@ -73,6 +73,46 @@ class TestMobileLayout:
         assert mobile_page.locator("#sidebar").get_attribute("aria-hidden") == "true"
         assert mobile_page.evaluate("document.activeElement && document.activeElement.id") == "hamburger"
 
+    def test_mobile_sidebar_close_control_and_labels_are_touch_friendly(self, mobile_page):
+        """Mobile drawer should have an obvious close control and contained labels."""
+        hamburger = mobile_page.locator("#hamburger")
+        hamburger.focus()
+        hamburger.click()
+        mobile_page.wait_for_timeout(300)
+
+        close_button = mobile_page.get_by_role("button", name="Close menu")
+        assert close_button.is_visible()
+        close_box = close_button.bounding_box()
+        assert close_box is not None
+        assert close_box["width"] >= 44
+        assert close_box["height"] >= 44
+
+        sidebar_geometry = mobile_page.locator("#sidebar").evaluate(
+            """
+            (sidebar) => {
+                const sidebarRect = sidebar.getBoundingClientRect();
+                const items = Array.from(sidebar.querySelectorAll('.nav-item'));
+                const overflowingItems = items.filter((item) => item.scrollWidth - item.clientWidth > 1).map((item) => item.textContent.trim());
+                return {
+                    background: getComputedStyle(sidebar).backgroundColor,
+                    overflowingItems,
+                    outsideItems: items.filter((item) => {
+                        const rect = item.getBoundingClientRect();
+                        return rect.left < sidebarRect.left - 1 || rect.right > sidebarRect.right + 1;
+                    }).map((item) => item.textContent.trim()),
+                };
+            }
+            """
+        )
+        assert sidebar_geometry["overflowingItems"] == []
+        assert sidebar_geometry["outsideItems"] == []
+        assert "rgba" not in sidebar_geometry["background"]
+
+        close_button.click()
+        mobile_page.wait_for_timeout(300)
+        assert mobile_page.locator("#sidebar").get_attribute("aria-hidden") == "true"
+        assert mobile_page.evaluate("document.activeElement && document.activeElement.id") == "hamburger"
+
     def test_primary_nav_items_in_sidebar(self, mobile_page):
         mobile_page.locator("#hamburger").click()
         mobile_page.wait_for_timeout(300)
