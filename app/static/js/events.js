@@ -27,7 +27,6 @@ var _sevLabels = {
 var _currentSeverityFilter = '';
 var _deviceOnlyFilter = false;
 var _hideOperational = true;
-var _eventsViewMode = 'feed';
 var _OPERATIONAL_EVENT_TYPES = { monitoring_started: true, monitoring_stopped: true };
 
 function _eventTypeLabel(eventType) {
@@ -64,28 +63,15 @@ function _eventAckMarkup(ev, compact) {
     return '<button class="btn-ack" type="button" aria-label="' + label + '" onclick="acknowledgeEvent(' + ev.id + ', event)">' + visible + '</button>';
 }
 
-function applyEventsViewMode() {
-    var feed = document.getElementById('events-feed');
-    var table = document.getElementById('events-table');
-    var feedBtn = document.getElementById('events-view-mode-feed');
-    var tableBtn = document.getElementById('events-view-mode-table');
-    var isTable = _eventsViewMode === 'table';
-
-    if (feed) feed.style.display = isTable ? 'none' : '';
-    if (table) table.style.display = isTable ? '' : 'none';
-    if (feedBtn) {
-        feedBtn.classList.toggle('active', !isTable);
-        feedBtn.setAttribute('aria-pressed', String(!isTable));
-    }
-    if (tableBtn) {
-        tableBtn.classList.toggle('active', isTable);
-        tableBtn.setAttribute('aria-pressed', String(isTable));
-    }
-}
-
-function setEventsViewMode(mode) {
-    _eventsViewMode = mode === 'table' ? 'table' : 'feed';
-    applyEventsViewMode();
+function updateEventsExportLink() {
+    var exportLink = document.getElementById('events-export-csv');
+    if (!exportLink) return;
+    var params = new URLSearchParams();
+    if (_currentSeverityFilter) params.set('severity', _currentSeverityFilter);
+    if (_hideOperational) params.set('exclude_operational', 'true');
+    if (_deviceOnlyFilter) params.set('event_prefix', 'device_');
+    var qs = params.toString();
+    exportLink.href = '/api/events/export.csv' + (qs ? '?' + qs : '');
 }
 
 /* ── Rich event message formatter ── */
@@ -253,7 +239,7 @@ function filterEventsByDevice() {
 
 function loadEvents(append) {
     if (!append) _eventsOffset = 0;
-    var tableRequestId = ++_eventsRequestCount;
+    var feedRequestId = ++_eventsRequestCount;
     var badgeRequestId = ++_badgeRequestCount;
     var severity = _currentSeverityFilter;
     var params = '?limit=' + _eventsPageSize + '&offset=' + _eventsOffset;
@@ -261,10 +247,10 @@ function loadEvents(append) {
     if (_hideOperational) params += '&exclude_operational=true';
     if (_deviceOnlyFilter) params += '&event_prefix=device_';
 
-    var tbody = document.getElementById('events-tbody');
+    updateEventsExportLink();
+
     var feed = document.getElementById('events-feed');
-    var tableCard = document.getElementById('events-table-card');
-    var table = document.getElementById('events-table');
+    var feedCard = document.getElementById('events-feed-card');
     var empty = document.getElementById('events-empty');
     var loading = document.getElementById('events-loading');
     var moreBtn = document.getElementById('events-show-more');
@@ -272,9 +258,8 @@ function loadEvents(append) {
 
     if (!append) {
         loading.style.display = '';
-        tbody.innerHTML = '';
         feed.innerHTML = '';
-        tableCard.style.display = 'none';
+        feedCard.style.display = 'none';
         empty.style.display = 'none';
         moreBtn.style.display = 'none';
     }
@@ -286,34 +271,23 @@ function loadEvents(append) {
             var events = data.events || [];
             var unack = data.unacknowledged_count || 0;
 
-            // Events and unack count are now natively filtered by the backend!
-            // Events and unack count are now natively filtered by the backend!
+            // Events and unack count are natively filtered by the backend.
             var eventsViewEl = document.getElementById('view-events');
             if (badgeRequestId === _badgeRequestCount && eventsViewEl && eventsViewEl.classList.contains('active')) {
                 updateEventBadge(unack);
                 ackAllBtn.style.display = unack > 0 ? '' : 'none';
             }
 
-            if (tableRequestId === _eventsRequestCount) {
+            if (feedRequestId === _eventsRequestCount) {
                 if (events.length === 0 && !append) {
+                    feedCard.style.display = '';
                     empty.textContent = T.event_no_events || 'No events detected yet.';
                     empty.style.display = '';
                     return;
                 }
                 events.forEach(function(ev) {
-                    var tr = document.createElement('tr');
-                    if (ev.acknowledged) tr.className = 'event-acked';
-                    tr.setAttribute('data-event-id', ev.id);
                     var sevMeta = _eventSeverityMeta(ev);
                     var typeLabel = _eventTypeLabel(ev.event_type);
-                    tr.innerHTML =
-                        '<td style="white-space:nowrap;">' + _eventTimestampLabel(ev.timestamp) + '</td>' +
-                        '<td>' + _eventSeverityBadge(sevMeta) + '</td>' +
-                        '<td>' + escapeHtml(typeLabel) + '</td>' +
-                        '<td class="event-msg">' + formatEventMessage(ev) + '</td>' +
-                        '<td class="event-actions">' + _eventAckMarkup(ev, true) + '</td>';
-                    tbody.appendChild(tr);
-
                     var card = document.createElement('article');
                     card.className = 'event-feed-item' + (ev.acknowledged ? ' event-acked' : '');
                     card.setAttribute('role', 'listitem');
@@ -334,8 +308,8 @@ function loadEvents(append) {
                         '<div class="event-feed-action">' + _eventAckMarkup(ev, false) + '</div>';
                     feed.appendChild(card);
                 });
-                tableCard.style.display = '';
-                applyEventsViewMode();
+                feedCard.style.display = '';
+                updateEventsExportLink();
                 moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             }

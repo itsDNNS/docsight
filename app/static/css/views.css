@@ -328,43 +328,6 @@
     flex-shrink: 0;
 }
 
-/* Phase 4.3: Events table styling */
-#events-table {
-    width: 100%;
-    margin: 0;
-}
-#events-table thead tr {
-    background: var(--surface-2, rgba(0,0,0,0.15));
-}
-#events-table thead th {
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 0.85em;
-    color: var(--text);
-    border-bottom: 1px solid var(--card-border, var(--input-border));
-}
-#events-table tbody tr {
-    transition: background 0.15s;
-    border-bottom: 1px solid var(--border-tint);
-}
-#events-table tbody tr:hover {
-    background: color-mix(in srgb, var(--amethyst) 8%, transparent);
-}
-#events-table tbody tr.event-acked {
-    opacity: 0.5;
-}
-#events-table tbody td {
-    padding: 12px 16px;
-    font-size: 0.85em;
-}
-#events-table td.event-msg {
-    word-break: break-word;
-}
-#events-table td.event-actions {
-    white-space: nowrap;
-}
-
 /* Event message formatting */
 .ev-val { font-family: var(--font-mono, monospace); font-weight: 600; white-space: nowrap; display: inline-block; }
 .ev-arrow-icon { display: inline-block; width: 14px; height: 14px; margin: 0 4px; vertical-align: middle; color: var(--muted); }
@@ -493,36 +456,29 @@
     gap: var(--space-sm, 12px);
     flex-wrap: wrap;
 }
-.events-view-toggle {
+.btn-export-events {
+    min-height: 36px;
     display: inline-flex;
-    gap: 4px;
-    padding: 4px;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 14px;
     border: 1px solid var(--card-border, var(--input-border));
     border-radius: 999px;
     background: var(--surface-2, rgba(0,0,0,0.18));
-}
-.events-view-mode-btn {
-    min-height: 36px;
-    padding: 7px 14px;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
     color: var(--text-secondary, var(--muted));
     cursor: pointer;
     font-family: inherit;
     font-size: 0.85em;
     font-weight: 600;
+    text-decoration: none;
     transition: all 0.2s var(--ease-out-expo);
 }
-.events-view-mode-btn:hover {
-    color: var(--text);
-    background: var(--amethyst-muted);
-}
-.events-view-mode-btn.active {
+.btn-export-events:hover {
     color: var(--text-on-accent);
     background: var(--accent-purple, var(--accent));
+    border-color: var(--accent-purple, var(--accent));
 }
-.events-view-mode-btn:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
+.btn-export-events:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
 
 .events-feed {
     display: grid;
@@ -618,14 +574,13 @@
         align-items: flex-start;
     }
     .events-card-actions,
-    .events-view-toggle {
+    .btn-export-events {
         width: 100%;
     }
     .events-card-actions {
         justify-content: stretch;
     }
-    .events-view-mode-btn {
-        flex: 1;
+    .btn-export-events {
         min-height: 44px;
     }
     .events-feed {
@@ -643,25 +598,6 @@
     .event-feed-action .btn-ack {
         width: 100%;
         justify-content: center;
-    }
-    #events-table thead th,
-    #events-table tbody td {
-        padding: 8px 12px;
-        font-size: 0.8em;
-    }
-    /* Hide Type column on mobile — severity badge + message give enough context */
-    #events-table thead th:nth-child(3),
-    #events-table tbody td:nth-child(3) {
-        display: none;
-    }
-    /* Allow timestamp to wrap on mobile (date on one line, time below) */
-    #events-table tbody td:first-child {
-        white-space: normal !important;
-        min-width: 70px;
-        max-width: 90px;
-    }
-    #events-table td.event-msg {
-        max-width: 45vw;
     }
     /* Show severity icons instead of text on mobile */
     .sev-text { display: none; }

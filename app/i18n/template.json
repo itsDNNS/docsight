@@ -300,9 +300,6 @@
   "event_type_device_reboot": "",
   "event_type_device_ip_change": "",
   "event_acknowledged": "",
-  "event_view_mode": "",
-  "event_view_feed": "",
-  "event_view_table": "",
   "event_all_severities": "",
   "event_all_types": "",
   "sidebar_monitoring": "",
@@ -812,5 +809,6 @@
   "bqm_import_validation_choose": "",
   "bqm_import_validation_unsupported": "",
   "bqm_import_validation_ready": "",
-  "bqm_import_validation_dates": ""
+  "bqm_import_validation_dates": "",
+  "event_export_csv": ""
 }
