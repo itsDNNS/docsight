@@ -35,9 +35,14 @@ class BQMCollector(Collector):
         return self._config_mgr.is_bqm_configured()
 
     def should_poll(self) -> bool:
-        """True if configured time + spread offset has passed today."""
+        """True if configured time + spread offset has passed and target date is missing."""
         today = time.strftime("%Y-%m-%d")
         if today == self._last_date:
+            return False
+        target_date = (date.today() - timedelta(days=1)).isoformat()
+        meta = self._storage.get_collection_metadata()
+        if meta.get("last_success_target_date") == target_date:
+            self._last_date = today
             return False
         target = self._config_mgr.get("bqm_collect_time") or "02:00"
         h, m = map(int, target.split(":"))
@@ -53,8 +58,16 @@ class BQMCollector(Collector):
 
     def collect(self) -> CollectorResult:
         today = time.strftime("%Y-%m-%d")
+        target_date = (date.today() - timedelta(days=1)).isoformat()
         if today == self._last_date:
             return CollectorResult(source=self.name, data={"skipped": True})
+        meta = self._storage.get_collection_metadata()
+        if meta.get("last_success_target_date") == target_date:
+            self._last_date = today
+            return CollectorResult.ok(
+                self.name,
+                {"skipped": True, "reason": "already_collected", "date": target_date},
+            )
 
         bqm_url = self._config_mgr.get("bqm_url") or ""
         if not is_csv_url(bqm_url):
@@ -64,7 +77,7 @@ class BQMCollector(Collector):
         if not share_id:
             return CollectorResult(source=self.name, data={"skipped": True, "reason": "no_csv"})
 
-        graph_date = (date.today() - timedelta(days=1)).isoformat()
+        graph_date = target_date
 
         try:
             content = fetch_share_csv(share_id, variant="y")
@@ -74,6 +87,14 @@ class BQMCollector(Collector):
             if not rows:
                 return CollectorResult.failure(self.name, "BQM CSV contained no valid rows")
             self._storage.store_csv_data(rows)
+            dates = sorted({row["date"] for row in rows})
+            graph_date = dates[-1]
+            self._storage.record_collection_success(
+                collection_date=today,
+                target_date=graph_date,
+                mode="csv",
+                rows=len(rows),
+            )
             self._last_date = today
             return CollectorResult.ok(self.name, {"rows": len(rows), "date": graph_date})
         except ThinkBroadbandBatchAbort as exc:
@@ -92,6 +113,12 @@ class BQMCollector(Collector):
             else:
                 graph_date = date.today().isoformat()
             self._storage.save_bqm_graph(image, graph_date=graph_date)
+            self._storage.record_collection_success(
+                collection_date=today,
+                target_date=graph_date,
+                mode="png",
+                rows=1,
+            )
             self._last_date = today
             return CollectorResult.ok(self.name, {"date": graph_date, "mode": "png"})
         return CollectorResult.failure(self.name, "Failed to fetch BQM graph")

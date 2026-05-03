@@ -49,6 +49,12 @@ class BqmStorage:
                 "CREATE INDEX IF NOT EXISTS idx_bqm_data_date "
                 "ON bqm_data(date)"
             )
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS bqm_meta ("
+                "  key TEXT PRIMARY KEY,"
+                "  value TEXT NOT NULL"
+                ")"
+            )
             # Migration: add is_demo column if missing
             try:
                 cols = [r[1] for r in conn.execute("PRAGMA table_info(bqm_graphs)").fetchall()]
@@ -201,3 +207,34 @@ class BqmStorage:
                 "SELECT image_blob FROM bqm_graphs WHERE date = ?", (date,)
             ).fetchone()
         return bytes(row[0]) if row else None
+
+    def set_meta(self, key, value):
+        """Persist a module metadata key."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT INTO bqm_meta (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, str(value)),
+            )
+
+    def get_collection_metadata(self):
+        """Return persisted BQM collection metadata."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute("SELECT key, value FROM bqm_meta").fetchall()
+        return {key: value for key, value in rows}
+
+    def record_collection_success(self, collection_date, target_date, mode, rows=0):
+        """Persist the last successful BQM collection."""
+        values = {
+            "last_success_at": utc_now(),
+            "last_success_collection_date": collection_date,
+            "last_success_target_date": target_date,
+            "last_success_mode": mode,
+            "last_success_rows": rows,
+        }
+        with sqlite3.connect(self.db_path) as conn:
+            conn.executemany(
+                "INSERT INTO bqm_meta (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                [(key, str(value)) for key, value in values.items()],
+            )

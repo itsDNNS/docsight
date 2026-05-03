@@ -279,7 +279,7 @@ def test_integration_setup_modals_are_guided_and_actionable(demo_page):
     """Integration setup modals should use scannable steps, settings links, copy actions, and validation states."""
     cases = [
         ("openSpeedtestSetupModal()", "#speedtest-setup-modal", "Speedtest Tracker setup", "Open Speedtest settings", "/settings#mod-docsight_speedtest", "Copy Docker command", "Review validation path", "Speedtest can be tested"),
-        ("openBqmSetupModal()", "#bqm-setup-modal", "ThinkBroadband BQM setup", "Open BQM settings", "/settings#mod-docsight_bqm", "Copy share URL format", "Review validation path", "BQM can be validated"),
+        ("openBqmSetupModal()", "#bqm-setup-modal", "ThinkBroadband BQM setup", "Open BQM settings", "/settings#mod-docsight_bqm", "Copy example URL format", "Review validation path", "BQM can be validated"),
         ("openSmokepingSetupModal()", "#smokeping-setup-modal", "SmokePing setup", "Open SmokePing settings", "/settings#mod-docsight_smokeping", "Copy SmokePing target", "Review validation path", "SmokePing validation depends"),
     ]
     for opener, selector, title, settings_label, settings_href, copy_label, validate_label, status_text in cases:

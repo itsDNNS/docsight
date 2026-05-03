@@ -288,11 +288,19 @@ Users can switch from demo to live mode via Settings UI or `POST /api/demo/migra
 
 ### BQMCollector (`app/collectors/bqm.py`)
 
-**Purpose:** Download broadband quality graphs
-**Poll Interval:** 86400s (24 hours)
+**Purpose:** Download and store ThinkBroadband BQM evidence for the BQM view
+**Poll Interval:** 86400s (24 hours), gated by `bqm_collect_time` plus spread offset
 **Data Source:** ThinkBroadband BQM service
 
-**Output:** PNG graph image saved to storage
+**Primary Output:** CSV Yesterday data parsed into `bqm_data` for interactive uPlot charts
+**Legacy Output:** PNG graph image saved to `bqm_graphs` when a PNG share URL is configured
+
+**Collection behavior:**
+- Settings save with a new ThinkBroadband CSV share URL triggers an immediate authenticated initial fetch through `POST /api/bqm/fetch-now` / `run_bqm_initial_fetch()`.
+- Daily polling uses the CSV Yesterday share link and records collection metadata in `bqm_meta` (`last_success_target_date`, mode, rows, timestamp).
+- A fresh collector instance checks persisted metadata before fetching so restarts after a successful collection do not duplicate the same target date.
+- DOCSight does not silently invent multi-day backfill from the daily collector. Longer gaps should be filled with the BQM CSV bulk import.
+- The UI labels cached PNG fallback separately from live refresh so cached evidence is not presented as live freshness.
 
 ### BnetzWatcherCollector (`app/collectors/bnetz_watcher.py`)
 

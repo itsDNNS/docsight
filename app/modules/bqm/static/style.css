@@ -81,12 +81,19 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
     border-radius: var(--radius-sm);
     font-size: 0.85em;
     position: relative;
     color: var(--text-muted);
     user-select: none;
     transition: all 0.15s var(--ease-out-expo);
+}
+.bqm-day:disabled {
+    cursor: default;
 }
 .bqm-day.has-data {
     color: var(--text);
