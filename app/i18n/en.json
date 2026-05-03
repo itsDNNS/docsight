@@ -321,9 +321,6 @@
   "event_type_modem_restart_detected": "Modem restart detected",
   "event_type_error_spike": "Error Spike",
   "event_acknowledged": "Acknowledged",
-  "event_view_mode": "Event view mode",
-  "event_view_feed": "Feed",
-  "event_view_table": "Table",
   "event_all_severities": "All Severities",
   "event_all_types": "All Types",
   "sidebar_monitoring": "Monitoring",
@@ -967,5 +964,6 @@
   "bqm_import_validation_choose": "Choose PNG or JPEG BQM graph images. DOCSight will preview dates before importing.",
   "bqm_import_validation_unsupported": "Unsupported file type. Only PNG and JPEG images are supported.",
   "bqm_import_validation_ready": "{0} ready",
-  "bqm_import_validation_dates": "{0} needs a date"
+  "bqm_import_validation_dates": "{0} needs a date",
+  "event_export_csv": "Export CSV"
 }

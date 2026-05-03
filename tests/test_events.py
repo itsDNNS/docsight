@@ -1,5 +1,7 @@
 """Tests for event detection, storage, and API endpoints."""
 
+import csv
+import io
 import json
 import shutil
 import subprocess
@@ -20,6 +22,17 @@ from app.config import ConfigManager
 def storage(tmp_path):
     db_path = str(tmp_path / "test.db")
     return SnapshotStorage(db_path, max_days=7)
+
+
+@pytest.fixture
+def events_client(tmp_path, storage):
+    config_mgr = ConfigManager(str(tmp_path / "config"))
+    config_mgr.save({"modem_password": "test", "modem_type": "fritzbox"})
+    init_config(config_mgr)
+    init_storage(storage)
+    app.config["TESTING"] = True
+    with app.test_client() as client:
+        yield client
 
 
 @pytest.fixture
@@ -173,6 +186,115 @@ class TestEventStorage:
         """Only considers error_spike events."""
         storage.save_event("2026-02-28T12:00:00Z", "warning", "power_change", "Power shifted")
         assert storage.get_latest_spike_timestamp() is None
+
+
+class TestEventExportApi:
+    def test_events_export_csv_respects_filters_and_serializes_details(self, events_client, storage):
+        storage.save_event(
+            "2026-04-29T22:23:26Z",
+            "warning",
+            "power_change",
+            "DS power changed",
+            {"direction": "downstream", "prev": 1.0, "current": 4.5},
+        )
+        storage.save_event(
+            "2026-04-29T22:24:26Z",
+            "info",
+            "device_reboot",
+            "Modem rebooted",
+            {"reason": "manual"},
+        )
+        storage.save_event(
+            "2026-04-29T22:25:26Z",
+            "warning",
+            "monitoring_started",
+            "Monitoring started",
+        )
+
+        resp = events_client.get("/api/events/export.csv?severity=warning&exclude_operational=true")
+
+        assert resp.status_code == 200
+        assert resp.content_type.startswith("text/csv")
+        assert "attachment" in resp.headers["Content-Disposition"]
+        assert "docsight-events" in resp.headers["Content-Disposition"]
+        assert resp.headers["X-DOCSight-Export-Limit"] == "10000"
+        assert resp.headers["X-DOCSight-Export-Truncated"] == "false"
+        rows = list(csv.DictReader(io.StringIO(resp.get_data(as_text=True))))
+        assert [row["message"] for row in rows] == ["DS power changed"]
+        assert rows[0]["timestamp"] == "2026-04-29T22:23:26Z"
+        assert rows[0]["severity"] == "warning"
+        assert rows[0]["event_type"] == "power_change"
+        assert rows[0]["acknowledged"] == "false"
+        assert json.loads(rows[0]["details"])["current"] == 4.5
+
+    def test_events_export_csv_respects_device_filter(self, events_client, storage):
+        storage.save_event("2026-04-29T22:23:26Z", "info", "device_ip_change", "IP changed")
+        storage.save_event("2026-04-29T22:24:26Z", "info", "channel_change", "Channels changed")
+
+        resp = events_client.get("/api/events/export.csv?event_prefix=device_")
+
+        assert resp.status_code == 200
+        rows = list(csv.DictReader(io.StringIO(resp.get_data(as_text=True))))
+        assert [row["event_type"] for row in rows] == ["device_ip_change"]
+
+    def test_events_export_csv_respects_acknowledged_filter(self, events_client, storage):
+        unacked_id = storage.save_event("2026-04-29T22:23:26Z", "warning", "power_change", "Unacked")
+        acked_id = storage.save_event("2026-04-29T22:24:26Z", "warning", "power_change", "Acked")
+        storage.acknowledge_event(acked_id)
+        assert unacked_id != acked_id
+
+        resp = events_client.get("/api/events/export.csv?acknowledged=0")
+
+        assert resp.status_code == 200
+        rows = list(csv.DictReader(io.StringIO(resp.get_data(as_text=True))))
+        assert [row["message"] for row in rows] == ["Unacked"]
+        assert rows[0]["acknowledged"] == "false"
+
+    @pytest.mark.parametrize("prefix", ["=", "+", "-", "@", "\t", "\r"])
+    def test_events_export_csv_neutralizes_spreadsheet_formulas(self, events_client, storage, prefix):
+        storage.save_event("2026-04-29T22:23:26Z", "warning", "power_change", f"{prefix}payload")
+
+        resp = events_client.get("/api/events/export.csv")
+
+        assert resp.status_code == 200
+        rows = list(csv.DictReader(io.StringIO(resp.get_data(as_text=True))))
+        assert rows[0]["message"].startswith(f"'{prefix}")
+
+    def test_events_export_csv_rejects_invalid_acknowledged_filter(self, events_client):
+        resp = events_client.get("/api/events/export.csv?acknowledged=maybe")
+
+        assert resp.status_code == 400
+        assert resp.get_json() == {"error": "acknowledged must be 0 or 1"}
+
+    def test_events_list_rejects_invalid_acknowledged_filter(self, events_client):
+        resp = events_client.get("/api/events?acknowledged=2")
+
+        assert resp.status_code == 400
+        assert resp.get_json() == {"error": "acknowledged must be 0 or 1"}
+
+    def test_events_export_csv_respects_auth_boundary(self, tmp_path, storage):
+        config_mgr = ConfigManager(str(tmp_path / "auth-config"))
+        config_mgr.save({"modem_password": "test", "modem_type": "fritzbox", "admin_password": "admin-secret"})
+        init_config(config_mgr)
+        init_storage(storage)
+        app.config["TESTING"] = True
+        with app.test_client() as client:
+            resp = client.get("/api/events/export.csv")
+
+        assert resp.status_code == 401
+        assert resp.get_json() == {"error": "Authentication required"}
+
+    def test_events_export_csv_sets_truncation_header_when_limited(self, events_client, storage):
+        for index in range(10001):
+            storage.save_event(f"2026-04-29T22:{index % 60:02d}:26Z", "info", "channel_change", f"Event {index}")
+
+        resp = events_client.get("/api/events/export.csv")
+
+        assert resp.status_code == 200
+        assert resp.headers["X-DOCSight-Export-Limit"] == "10000"
+        assert resp.headers["X-DOCSight-Export-Truncated"] == "true"
+        rows = list(csv.DictReader(io.StringIO(resp.get_data(as_text=True))))
+        assert len(rows) == 10000
 
 
 # ── EventDetector Tests ──

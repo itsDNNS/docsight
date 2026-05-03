@@ -316,9 +316,6 @@
   "event_type_device_reboot": "Reinicio",
   "event_type_device_ip_change": "Cambio de IP",
   "event_acknowledged": "Confirmado",
-  "event_view_mode": "Modo de vista de eventos",
-  "event_view_feed": "Feed",
-  "event_view_table": "Tabla",
   "event_all_severities": "Todas las severidades",
   "event_all_types": "Todos los tipos",
   "sidebar_monitoring": "Monitoreo",
@@ -962,5 +959,6 @@
   "bqm_import_validation_choose": "Seleccione imagenes BQM PNG o JPEG. DOCSight previsualizara las fechas antes de importar.",
   "bqm_import_validation_unsupported": "Tipo de archivo no compatible. Solo se admiten imagenes PNG y JPEG.",
   "bqm_import_validation_ready": "{0} listas",
-  "bqm_import_validation_dates": "{0} necesita fecha"
+  "bqm_import_validation_dates": "{0} necesita fecha",
+  "event_export_csv": "Exportar CSV"
 }

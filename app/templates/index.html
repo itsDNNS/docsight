@@ -1401,8 +1401,8 @@
     </div>
     <div id="events-empty" class="events-empty" style="display:none;"></div>
 
-    <!-- Phase 4.3: Card wrapper for events table -->
-    <div id="events-table-card" class="table-card" style="display:none;">
+    <!-- Phase 4.4: Card wrapper for events feed -->
+    <div id="events-feed-card" class="table-card" style="display:none;">
         <div class="table-card-header events-card-header">
             <div class="table-card-title">
                 <svg class="table-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1411,24 +1411,11 @@
                 <span>{{ t.event_log }}</span>
             </div>
             <div class="events-card-actions">
-                <div class="events-view-toggle" role="group" aria-label="{{ t.event_view_mode }}">
-                    <button id="events-view-mode-feed" class="events-view-mode-btn active" type="button" onclick="setEventsViewMode('feed')" aria-pressed="true">{{ t.event_view_feed }}</button>
-                    <button id="events-view-mode-table" class="events-view-mode-btn" type="button" onclick="setEventsViewMode('table')" aria-pressed="false">{{ t.event_view_table }}</button>
-                </div>
+                <a class="btn-export-events" id="events-export-csv" href="/api/events/export.csv?exclude_operational=true" download>{{ t.event_export_csv }}</a>
                 <button class="btn-ack-all" id="btn-ack-all" onclick="acknowledgeAllEvents()" style="display:none;">&#10003; {{ t.event_acknowledge_all }}</button>
             </div>
         </div>
         <div id="events-feed" class="events-feed" role="list"></div>
-        <table id="events-table" class="events-table-mode">
-            <thead><tr>
-                <th scope="col">{{ t.timestamp }}</th>
-                <th scope="col">{{ t.event_severity }}</th>
-                <th scope="col">{{ t.event_type }}</th>
-                <th scope="col">{{ t.event_message }}</th>
-                <th scope="col"></th>
-            </tr></thead>
-            <tbody id="events-tbody"></tbody>
-        </table>
     </div>
 
     <div id="events-show-more" style="text-align:center; padding:16px; display:none;">
