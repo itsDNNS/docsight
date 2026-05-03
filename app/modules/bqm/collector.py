@@ -103,15 +103,11 @@ class BQMCollector(Collector):
             return CollectorResult.failure(self.name, f"Invalid BQM CSV: {exc}")
 
     def _collect_png(self, url):
-        """Legacy PNG collection: fetch graph image and store it."""
+        """Legacy PNG collection: fetch graph image and store it for the daily target."""
         today = time.strftime("%Y-%m-%d")
+        graph_date = (date.today() - timedelta(days=1)).isoformat()
         image = fetch_graph(url)
         if image:
-            collect_time = self._config_mgr.get("bqm_collect_time") or "02:00"
-            if collect_time < "12:00":
-                graph_date = (date.today() - timedelta(days=1)).isoformat()
-            else:
-                graph_date = date.today().isoformat()
             self._storage.save_bqm_graph(image, graph_date=graph_date)
             self._storage.record_collection_success(
                 collection_date=today,
