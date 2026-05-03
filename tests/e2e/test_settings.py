@@ -1,5 +1,7 @@
 """E2E tests for the settings page."""
 
+import re
+
 import pytest
 from playwright.sync_api import expect
 
@@ -58,6 +60,100 @@ class TestSettingsFormElements:
     def test_back_to_dashboard_link(self, settings_page):
         link = settings_page.locator('a[href="/"]')
         assert link.count() > 0
+
+
+class TestSettingsDirtyState:
+    """Unsaved-change prompts only appear for deliberate settings edits."""
+
+    def test_modem_password_autofill_does_not_show_unsaved_footer(self, settings_page):
+        footer = settings_page.locator("#save-footer")
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        settings_page.evaluate(
+            """
+            () => {
+              const input = document.querySelector('#modem_password');
+              input.dataset.savedSecret = 'true';
+              input.setAttribute('placeholder', 'Gespeichert');
+              input.value = 'autofilled-password';
+              input.dispatchEvent(new Event('input', {bubbles: true}));
+              input.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+            """
+        )
+
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(footer).to_have_attribute("aria-hidden", "true")
+        expect(footer).to_have_attribute("inert", "")
+        settings_page.locator('button[data-section="extensions"]').click()
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+    def test_autofilled_saved_secret_is_masked_when_unrelated_setting_is_saved(self, settings_page):
+        payloads = []
+
+        def capture_config(route):
+            payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.evaluate(
+            """
+            () => {
+              const input = document.querySelector('#modem_password');
+              input.dataset.savedSecret = 'true';
+              input.setAttribute('placeholder', 'Gespeichert');
+              input.value = 'autofilled-password';
+              input.dispatchEvent(new Event('input', {bubbles: true}));
+              input.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+            """
+        )
+        settings_page.locator('#modem_url').fill('http://192.168.100.1')
+
+        settings_page.locator('#save-footer button[type="submit"]').click()
+        expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        assert payloads[-1]["modem_password"] == "••••••••"
+
+    def test_user_edited_saved_secret_is_submitted_and_cleared_after_save(self, settings_page):
+        payloads = []
+
+        def capture_config(route):
+            payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.evaluate(
+            """
+            () => {
+              const input = document.querySelector('#modem_password');
+              input.dataset.savedSecret = 'true';
+              input.setAttribute('placeholder', 'Gespeichert');
+            }
+            """
+        )
+
+        settings_page.locator('#modem_password').fill('new-secret-value')
+        settings_page.locator('#save-footer button[type="submit"]').click()
+        expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        assert payloads[-1]["modem_password"] == "new-secret-value"
+        assert settings_page.locator('#modem_password').input_value() == ""
+
+    def test_real_settings_edit_shows_only_footer_when_module_toggle_is_clicked(self, settings_page):
+        footer = settings_page.locator("#save-footer")
+        settings_page.locator('#modem_url').fill('http://192.168.100.1')
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(footer).not_to_have_attribute("aria-hidden", "true")
+        expect(footer).not_to_have_attribute("inert", "")
+
+        settings_page.locator('button[data-section="extensions"]').click()
+        toggle = settings_page.locator('.module-toggle-input').first
+        assert toggle.count() == 1
+        settings_page.locator('.module-toggle .toggle-slider').first.click()
+
+        expect(settings_page.locator('#docsight-confirm-modal')).to_have_count(0)
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
 
 
 class TestSpeedtestModule:

@@ -36,7 +36,7 @@
             </div>
             <div class="form-field">
                 <label class="form-label" for="modem_password">{{ t.password }}</label>
-                <input class="form-input" type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}">
+                <input class="form-input" type="password" id="modem_password" name="modem_password" value="" placeholder="{% if config.modem_password %}{{ t.saved_ph }}{% endif %}"{% if config.modem_password %} data-saved-secret="true"{% endif %}>
             </div>
         </div>
         <div style="margin-top: var(--space-lg);">
