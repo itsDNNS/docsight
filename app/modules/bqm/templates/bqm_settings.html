@@ -16,12 +16,13 @@
             <div class="form-field">
                 <label class="form-label" for="bqm_url">{{ t['docsight.bqm.bqm_share_url'] or 'Share URL' }}</label>
                 <input class="form-input" type="url" id="bqm_url" name="bqm_url" value="{{ config.bqm_url }}" placeholder="https://www.thinkbroadband.com/broadband/monitoring/quality/share/...csv">
-                <span class="form-hint">{{ t['docsight.bqm.bqm_url_hint'] or 'Paste your ThinkBroadband share link. Use a CSV link for interactive charts, or PNG for legacy image mode.' }}</span>
+                <span class="form-hint">{{ t['docsight.bqm.bqm_url_hint'] or 'Paste the ThinkBroadband CSV Yesterday share link for daily collection. CSV Live is for live spot checks only. DOCSight fetches once immediately after setup, then daily at the configured time. PNG links are supported only for legacy image mode.' }}</span>
+                <span class="form-hint">{{ t['docsight.bqm.bqm_bulk_import_hint'] or 'For history, use the CSV bulk import to load up to 12 months of history before relying on daily collection.' }}</span>
             </div>
             <div class="form-field">
                 <label class="form-label" for="bqm_collect_time">{{ t['docsight.bqm.bqm_collect_time'] or 'Daily collection time' }}</label>
                 <input class="form-input" type="time" id="bqm_collect_time" name="bqm_collect_time" value="{{ config.bqm_collect_time }}">
-                <span class="form-hint">{{ t['docsight.bqm.bqm_collect_time_hint'] or 'Time of day to fetch the BQM data (container timezone)' }}</span>
+                <span class="form-hint">{{ t['docsight.bqm.bqm_collect_time_hint'] or 'Time of day to fetch CSV Yesterday data (configured timezone). Missed days are not backfilled automatically; import historical CSV files when a longer gap exists.' }}</span>
             </div>
         </div>
     </div>

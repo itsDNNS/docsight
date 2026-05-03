@@ -1,9 +1,12 @@
 """Tests for ThinkBroadband BQM graph fetching, storage, and API."""
 
 import sqlite3
-import pytest
+from datetime import date
 from unittest.mock import patch, MagicMock
 
+import pytest
+
+from app.modules.bqm.collector import BQMCollector
 from app.modules.bqm.thinkbroadband import fetch_graph
 from app.modules.bqm.storage import BqmStorage
 from app.storage import SnapshotStorage
@@ -213,6 +216,83 @@ class TestBQMStorage:
         with pytest.raises(sqlite3.OperationalError, match="database is locked"):
             bqm_storage.store_csv_data(sample_csv_rows)
 
+    def test_last_success_metadata_roundtrip(self, bqm_storage):
+        bqm_storage.record_collection_success(
+            collection_date="2026-03-16",
+            target_date="2026-03-15",
+            mode="csv",
+            rows=1440,
+        )
+
+        meta = bqm_storage.get_collection_metadata()
+        assert meta["last_success_collection_date"] == "2026-03-16"
+        assert meta["last_success_target_date"] == "2026-03-15"
+        assert meta["last_success_mode"] == "csv"
+        assert meta["last_success_rows"] == "1440"
+
+
+# ── Collector Tests ──
+
+
+def _sample_bqm_csv(date="2026-03-15"):
+    return (
+        'Timestamp,Sent Polls,Lost Polls,Min Latency (ns),Ave Latency (ns),Max Latency (ns),Score\n'
+        f'{date}T00:00:00+00:00,100,0,30430000,33850000,52690000,1\n'
+    )
+
+
+class TestBQMCollector:
+    @patch("app.modules.bqm.collector.fetch_share_csv")
+    def test_collect_records_persistent_success_metadata(self, mock_fetch, tmp_path):
+        db_path = str(tmp_path / "collector.db")
+        storage = SnapshotStorage(db_path, max_days=7)
+        mgr = ConfigManager(str(tmp_path / "data"))
+        mgr.save({
+            "modem_password": "test",
+            "modem_type": "fritzbox",
+            "bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2-y.csv",
+        })
+        mock_fetch.return_value = _sample_bqm_csv()
+
+        collector = BQMCollector(mgr, storage)
+        result = collector.collect()
+
+        assert result.success is True
+        meta = BqmStorage(db_path).get_collection_metadata()
+        assert meta["last_success_mode"] == "csv"
+        assert meta["last_success_target_date"] == "2026-03-15"
+        assert meta["last_success_rows"] == "1"
+
+    @patch("app.modules.bqm.collector.fetch_share_csv")
+    def test_new_collector_skips_when_target_date_already_collected(self, mock_fetch, tmp_path):
+        db_path = str(tmp_path / "collector-skip.db")
+        storage = SnapshotStorage(db_path, max_days=7)
+        mgr = ConfigManager(str(tmp_path / "data"))
+        mgr.save({
+            "modem_password": "test",
+            "modem_type": "fritzbox",
+            "bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-2-y.csv",
+        })
+        bs = BqmStorage(db_path)
+        bs.record_collection_success(
+            collection_date="2099-01-02",
+            target_date="2099-01-01",
+            mode="csv",
+            rows=1440,
+        )
+
+        class FixedDate(date):
+            @classmethod
+            def today(cls):
+                return cls(2099, 1, 2)
+
+        with patch("app.modules.bqm.collector.date", FixedDate):
+            result = BQMCollector(mgr, storage).collect()
+
+        assert result.success is True
+        assert result.data == {"skipped": True, "reason": "already_collected", "date": "2099-01-01"}
+        mock_fetch.assert_not_called()
+
 
 # ── API Tests ──
 
@@ -355,6 +435,72 @@ class TestBQMAPI:
         resp = client.post("/api/bqm/validate-monitor", json={})
         assert resp.status_code == 400
 
+    @patch("app.modules.bqm.routes.fetch_share_csv")
+    def test_fetch_now_downloads_and_stores_csv(self, mock_fetch, bqm_client):
+        client, _ = bqm_client
+        mock_fetch.return_value = _sample_bqm_csv("2026-03-15")
+        client.post("/api/config", json={
+            "bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2-y.csv",
+        })
+
+        resp = client.post("/api/bqm/fetch-now")
+
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        assert data["mode"] == "csv"
+        assert data["rows"] == 1
+        assert data["date"] == "2026-03-15"
+
+    @patch("app.modules.bqm.routes.fetch_graph")
+    def test_fetch_now_rejects_arbitrary_png_url(self, mock_fetch, bqm_client):
+        client, _ = bqm_client
+        client.post("/api/config", json={"bqm_url": "http://192.168.1.1/router.png"})
+
+        resp = client.post("/api/bqm/fetch-now")
+
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data["success"] is False
+        assert "ThinkBroadband CSV Yesterday share URL" in data["error"]
+        mock_fetch.assert_not_called()
+
+    @patch("app.blueprints.config_bp.run_bqm_initial_fetch")
+    def test_config_save_triggers_initial_bqm_fetch_when_url_changes(self, mock_fetch, bqm_client):
+        client, _ = bqm_client
+        mock_fetch.return_value = {"success": True, "mode": "csv", "rows": 1, "date": "2026-03-15"}
+
+        resp = client.post("/api/config", json={"bqm_url": "https://www.thinkbroadband.com/broadband/monitoring/quality/share/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2-y.csv"})
+
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        assert data["bqm_initial_fetch"] == {"success": True, "mode": "csv", "rows": 1, "date": "2026-03-15"}
+        mock_fetch.assert_called_once()
+
+    @patch("app.blueprints.config_bp.run_bqm_initial_fetch")
+    def test_config_save_does_not_fetch_arbitrary_bqm_url(self, mock_fetch, bqm_client):
+        client, _ = bqm_client
+
+        resp = client.post("/api/config", json={"bqm_url": "http://192.168.1.1"})
+
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data == {"success": True}
+        mock_fetch.assert_not_called()
+
+    @patch("app.blueprints.config_bp.run_bqm_initial_fetch")
+    def test_config_save_rejects_embedded_thinkbroadband_url_for_initial_fetch(self, mock_fetch, bqm_client):
+        client, _ = bqm_client
+
+        resp = client.post("/api/config", json={
+            "bqm_url": "https://evil.example/redirect?next=https://www.thinkbroadband.com/broadband/monitoring/quality/share/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2-y.csv",
+        })
+
+        assert resp.status_code == 200
+        assert resp.get_json() == {"success": True}
+        mock_fetch.assert_not_called()
+
 
 class TestBQMLive:
     """Tests for the /api/bqm/live endpoint."""
@@ -441,6 +587,36 @@ class TestBqmUiRender:
         assert 'id="bqm_url"' in html
         assert 'id="bqm_collect_time"' in html
 
+    def test_settings_explains_csv_yesterday_and_bulk_import(self, bqm_client):
+        with open("app/modules/bqm/templates/bqm_settings.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        assert "CSV Yesterday" in html
+        assert "CSV Live" in html
+        assert "12 months" in html
+        assert "bulk import" in html.lower()
+
+    def test_bqm_setup_modal_points_to_csv_yesterday_and_bulk_import(self, bqm_client):
+        with open("app/templates/index.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        assert "CSV Yesterday share URL" in html
+        assert "CSV Live is for spot checks only" in html
+        assert "one initial fetch" in html
+        assert "CSV bulk import" in html
+        assert "ends in .png" not in html
+        assert "A public or shareable BQM monitor URL" not in html
+
+    def test_bqm_calendar_buttons_are_accessible(self):
+        with open("app/templates/index.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        with open("app/static/js/bqm.js", "r", encoding="utf-8") as f:
+            js = f.read()
+        assert 'aria-label="{{ t.bqm_import_title }}"' in html
+        assert 'aria-label="{{ t.get(\'bqm_csv_import\', \'Import CSV\') }}"' in html
+        assert 'aria-label="{{ t.bqm_delete }}"' in html
+        assert "document.createElement('button')" in js
+        assert "CSV data available" in js
+        assert "cached PNG available" in js
+
 
 class TestBqmChartConfig:
     """Verify bqm-chart.js has correct scale and toggle config."""
@@ -460,6 +636,14 @@ class TestBqmChartConfig:
         assert "bqm-toggle-uplot" in js
         assert "bqm-toggle-png" in js
         assert "updateBqmViewToggle" in js
+
+    def test_live_badge_labels_cached_png_without_claiming_live(self):
+        """Cached fallback status must not be labelled as live freshness."""
+        with open("app/static/js/bqm.js", "r") as f:
+            js = f.read()
+        assert "T.bqm_cached_png" in js
+        assert "T.bqm_cached_png_loaded" in js
+        assert "source === 'live' ? 'inline' : 'none'" not in js
 
     def test_no_slideshow_in_bqm_js(self):
         """bqm.js must not contain any slideshow references."""

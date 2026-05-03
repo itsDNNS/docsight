@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from urllib.parse import urlparse
 
 from flask import Blueprint, request, jsonify, make_response
 
@@ -11,7 +12,7 @@ from app.web import (
 )
 from app.tz import local_today, utc_now
 
-from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort
+from .auth import extract_share_id, validate_share_id, ThinkBroadbandBatchAbort, fetch_share_csv, is_csv_url
 from .csv_parser import parse_bqm_csv
 from .storage import BqmStorage
 from .thinkbroadband import fetch_graph
@@ -20,6 +21,9 @@ audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web.bqm")
 
 bp = Blueprint("bqm_module", __name__)
+
+_TBB_SHARE_PATH = "/broadband/monitoring/quality/share/"
+_TBB_HOSTS = {"thinkbroadband.com", "www.thinkbroadband.com"}
 
 # Lazy-initialized module-local storage
 _storage = None
@@ -43,6 +47,99 @@ def _rows_to_columns(rows):
         "lost_polls": [row["lost_polls"] for row in rows],
         "sent_polls": [row["sent_polls"] for row in rows],
     }
+
+
+def _is_thinkbroadband_share_url(url):
+    """Return True for direct ThinkBroadband share URLs only."""
+    try:
+        parsed = urlparse((url or "").strip())
+    except Exception:
+        return False
+    return (
+        parsed.scheme == "https"
+        and (parsed.hostname or "").lower() in _TBB_HOSTS
+        and (parsed.path or "").startswith(_TBB_SHARE_PATH)
+    )
+
+
+def run_bqm_initial_fetch(config_manager=None, storage=None):
+    """Fetch and store BQM data immediately after setup or manual request."""
+    config_manager = config_manager or get_config_manager()
+    core_storage = storage or get_storage()
+    if not config_manager or not core_storage:
+        return {"success": False, "error": "BQM storage is not ready"}
+
+    bqm_url = (config_manager.get("bqm_url") or "").strip()
+    if not bqm_url:
+        return {"success": False, "error": "BQM URL is not configured"}
+
+    if not _is_thinkbroadband_share_url(bqm_url):
+        return {"success": False, "error": "Use a ThinkBroadband CSV Yesterday share URL for fetch now"}
+
+    bs = BqmStorage(core_storage.db_path)
+    collection_date = local_today(_get_tz_name())
+
+    if is_csv_url(bqm_url):
+        share_id = extract_share_id(bqm_url)
+        if not share_id:
+            return {"success": False, "error": "BQM share URL is invalid"}
+        try:
+            content = fetch_share_csv(share_id, variant="y")
+            if not content:
+                return {"success": False, "error": "BQM CSV download failed"}
+            rows = parse_bqm_csv(content)
+            if not rows:
+                return {"success": False, "error": "BQM CSV contained no valid rows"}
+            bs.store_csv_data(rows)
+        except ThinkBroadbandBatchAbort:
+            return {"success": False, "error": "ThinkBroadband temporarily rejected the BQM request"}
+        except ValueError:
+            return {"success": False, "error": "BQM CSV is invalid"}
+        except Exception:
+            log.exception("BQM initial CSV fetch failed")
+            return {"success": False, "error": "BQM initial fetch failed"}
+
+        dates = sorted({row["date"] for row in rows})
+        target_date = dates[-1]
+        bs.record_collection_success(
+            collection_date=collection_date,
+            target_date=target_date,
+            mode="csv",
+            rows=len(rows),
+        )
+        return {
+            "success": True,
+            "mode": "csv",
+            "rows": len(rows),
+            "date": target_date,
+            "date_range": {"start": dates[0], "end": dates[-1]},
+        }
+
+    share_id = extract_share_id(bqm_url)
+    if not share_id:
+        return {"success": False, "error": "Use a ThinkBroadband CSV Yesterday share URL for fetch now"}
+    image_url = f"https://www.thinkbroadband.com/broadband/monitoring/quality/share/{share_id}.png"
+    image = fetch_graph(image_url)
+    if not image:
+        return {"success": False, "error": "BQM graph download failed"}
+    target_date = collection_date
+    bs.save_bqm_graph(image, graph_date=target_date)
+    bs.record_collection_success(
+        collection_date=collection_date,
+        target_date=target_date,
+        mode="png",
+        rows=1,
+    )
+    return {"success": True, "mode": "png", "date": target_date}
+
+
+@bp.route("/api/bqm/fetch-now", methods=["POST"])
+@require_auth
+def api_bqm_fetch_now():
+    """Fetch configured BQM data immediately."""
+    result = run_bqm_initial_fetch()
+    status = 200 if result.get("success") else 400
+    return jsonify(result), status
 
 
 @bp.route("/api/bqm/dates")

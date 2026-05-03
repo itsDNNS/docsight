@@ -1022,21 +1022,21 @@
         <button class="trend-tab bqm-quick" id="bqm-7d-btn">{{ t.bqm_range_7d or '7d' }}</button>
         <button class="trend-tab bqm-quick" id="bqm-30d-btn">{{ t.bqm_range_30d or '30d' }}</button>
         <div class="bqm-month-nav">
-            <button id="bqm-month-prev" class="bqm-nav-btn">&#8249;</button>
+            <button id="bqm-month-prev" class="bqm-nav-btn" aria-label="{{ t.get('previous_month', 'Previous month') }}">&#8249;</button>
             <span id="bqm-month-label" class="bqm-month-label"></span>
-            <button id="bqm-month-next" class="bqm-nav-btn">&#8250;</button>
+            <button id="bqm-month-next" class="bqm-nav-btn" aria-label="{{ t.get('next_month', 'Next month') }}">&#8250;</button>
         </div>
-        <button class="bqm-nav-btn bqm-import-btn" onclick="openBqmImportModal()" title="{{ t.bqm_import_title }}">
+        <button class="bqm-nav-btn bqm-import-btn" onclick="openBqmImportModal()" title="{{ t.bqm_import_title }}" aria-label="{{ t.bqm_import_title }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
         </button>
-        <button class="bqm-nav-btn bqm-import-btn" onclick="var s=document.getElementById('bqm-csv-import-section');s.style.display=s.style.display==='none'?'':'none'" title="{{ t.get('bqm_csv_import', 'Import CSV') }}">
+        <button class="bqm-nav-btn bqm-import-btn" onclick="var s=document.getElementById('bqm-csv-import-section');s.style.display=s.style.display==='none'?'':'none'" title="{{ t.get('bqm_csv_import', 'Import CSV') }}" aria-label="{{ t.get('bqm_csv_import', 'Import CSV') }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
             </svg>
         </button>
-        <button class="bqm-nav-btn bqm-import-btn bqm-delete-btn" onclick="deleteBqmImages()" title="{{ t.bqm_delete }}">
+        <button class="bqm-nav-btn bqm-import-btn bqm-delete-btn" onclick="deleteBqmImages()" title="{{ t.bqm_delete }}" aria-label="{{ t.bqm_delete }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="display:block;">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
             </svg>
@@ -2061,9 +2061,9 @@
         <p class="modal-hint">{{ t.get('bqm_setup_guided_intro', 'Link an existing ThinkBroadband Broadband Quality Monitor so DOCSight can show latency and packet loss beside modem evidence.') }}</p>
         <div class="modal-body setup-guide-body">
             <section class="setup-guide-card"><h3>{{ t.get('setup_why_title', 'Why connect it') }}</h3><ul><li>{{ t.get('bqm_setup_benefit_1', 'Track latency, packet loss, and outages') }}</li><li>{{ t.get('bqm_setup_benefit_2', 'Compare external reachability with modem signal state') }}</li><li>{{ t.get('bqm_setup_benefit_3', 'Attach graphs to ISP evidence packages') }}</li></ul></section>
-            <section class="setup-guide-card"><h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3><ul><li>{{ t.get('bqm_setup_requirement_monitor', 'A public or shareable BQM monitor URL') }}</li><li>{{ t.get('bqm_setup_requirement_static_ip', 'A stable public IP or DDNS target monitored by BQM') }}</li></ul></section>
-            <section class="setup-guide-card setup-guide-command"><h3>{{ t.get('setup_configure_title', 'Configure') }}</h3><p>{{ t.get('bqm_setup_configure_text', 'Create or open your BQM monitor, then save the graph URL in Settings.') }}</p><code id="bqm-setup-url">https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456789012345678901234567890abcd-2-y.csv</code><button class="btn btn-secondary" onclick="copySetupSnippet('bqm-setup-url', 'bqm-setup-status')">{{ t.get('bqm_setup_copy_url', 'Copy share URL format') }}</button></section>
-            <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('bqm_setup_validate_text', 'After saving the URL, validate that DOCSight can load the current graph image.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('bqm-setup-status', 'bqm')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_requirements_title', 'Requirements') }}</h3><ul><li>{{ t.get('bqm_setup_requirement_monitor', 'A ThinkBroadband CSV Yesterday share URL') }}</li><li>{{ t.get('bqm_setup_requirement_static_ip', 'A stable public IP or DDNS target monitored by BQM') }}</li></ul></section>
+            <section class="setup-guide-card setup-guide-command"><h3>{{ t.get('setup_configure_title', 'Configure') }}</h3><p>{{ t.get('bqm_setup_configure_text', 'Create or open your BQM monitor, copy the CSV Yesterday share URL, then save it in Settings. CSV Live is for spot checks only.') }}</p><code id="bqm-setup-url">https://www.thinkbroadband.com/broadband/monitoring/quality/share/abc123def456789012345678901234567890abcd-2-y.csv</code><button class="btn btn-secondary" onclick="copySetupSnippet('bqm-setup-url', 'bqm-setup-status')">{{ t.get('bqm_setup_copy_url', 'Copy example URL format') }}</button></section>
+            <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('bqm_setup_validate_text', 'After saving a CSV Yesterday URL, DOCSight performs one initial fetch. Use CSV bulk import for up to 12 months of history or longer gaps.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('bqm-setup-status', 'bqm')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
         </div>
         <div id="bqm-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
         <div class="modal-footer"><button class="btn btn-muted" onclick="closeBqmSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="/settings#mod-docsight_bqm">⚙ {{ t.get('bqm_setup_open_settings', 'Open BQM settings') }}</a></div>

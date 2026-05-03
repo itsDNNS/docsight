@@ -475,7 +475,9 @@
   "bqm_today": "",
   "bqm_yesterday": "",
   "bqm_live": "",
+  "bqm_cached_png": "",
   "bqm_last_updated": "",
+  "bqm_cached_png_loaded": "",
   "bqm_no_data_range": "",
   "channel_compare": "",
   "add_channel": "",
@@ -810,5 +812,13 @@
   "bqm_import_validation_unsupported": "",
   "bqm_import_validation_ready": "",
   "bqm_import_validation_dates": "",
-  "event_export_csv": ""
+  "event_export_csv": "",
+  "bqm_setup_guided_title": "",
+  "bqm_setup_guided_intro": "",
+  "bqm_setup_requirement_monitor": "",
+  "bqm_setup_requirement_static_ip": "",
+  "bqm_setup_configure_text": "",
+  "bqm_setup_validate_text": "",
+  "bqm_setup_copy_url": "",
+  "bqm_setup_open_settings": ""
 }

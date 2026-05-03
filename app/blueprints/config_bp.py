@@ -2,6 +2,7 @@
 
 import logging
 import os
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, request, jsonify
@@ -17,6 +18,29 @@ audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web")
 
 config_bp = Blueprint("config_bp", __name__)
+
+
+def _should_run_bqm_initial_fetch(url):
+    """Return True only for ThinkBroadband share URLs safe for immediate setup fetch."""
+    try:
+        parsed = urlparse((url or "").strip())
+    except Exception:
+        return False
+    host = (parsed.hostname or "").lower()
+    path = parsed.path or ""
+    return (
+        parsed.scheme == "https"
+        and host in {"thinkbroadband.com", "www.thinkbroadband.com"}
+        and path.startswith("/broadband/monitoring/quality/share/")
+        and path.endswith(".csv")
+    )
+
+
+def run_bqm_initial_fetch(config_manager=None, storage=None):
+    """Lazy wrapper to avoid importing optional BQM routes during blueprint setup."""
+    from app.modules.bqm.routes import run_bqm_initial_fetch as _run_bqm_initial_fetch
+
+    return _run_bqm_initial_fetch(config_manager, storage)
 
 
 @config_bp.route("/api/config", methods=["POST"])
@@ -45,6 +69,13 @@ def api_config():
                 pass
         changed_keys = [k for k in data if k not in SECRET_KEYS and k not in HASH_KEYS]
         secret_changed = [k for k in data if k in SECRET_KEYS or k in HASH_KEYS]
+        previous_bqm_url = (_config_manager.get("bqm_url") or "").strip()
+        requested_bqm_url = (data.get("bqm_url") or "").strip() if "bqm_url" in data else previous_bqm_url
+        should_fetch_bqm = (
+            bool(requested_bqm_url)
+            and requested_bqm_url != previous_bqm_url
+            and _should_run_bqm_initial_fetch(requested_bqm_url)
+        )
         _config_manager.save(data)
         audit_log.info(
             "Config changed: ip=%s keys=%s secrets_changed=%s",
@@ -53,7 +84,10 @@ def api_config():
         _on_config_changed = get_on_config_changed()
         if _on_config_changed:
             _on_config_changed()
-        return jsonify({"success": True})
+        response = {"success": True}
+        if should_fetch_bqm:
+            response["bqm_initial_fetch"] = run_bqm_initial_fetch(_config_manager, get_storage())
+        return jsonify(response)
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
     except Exception as e:

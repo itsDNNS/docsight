@@ -3,6 +3,7 @@
   "bqm_optional": "",
   "bqm_share_url": "",
   "bqm_url_hint": "",
+  "bqm_bulk_import_hint": "",
   "bqm_no_data": "",
   "bqm_setup_title": "",
   "bqm_setup_intro": "",
@@ -38,5 +39,13 @@
   "bqm_delete_confirm": "",
   "bqm_delete_success": "",
   "bqm_collect_time": "",
-  "bqm_collect_time_hint": ""
+  "bqm_collect_time_hint": "",
+  "bqm_setup_guided_title": "",
+  "bqm_setup_guided_intro": "",
+  "bqm_setup_requirement_monitor": "",
+  "bqm_setup_requirement_static_ip": "",
+  "bqm_setup_configure_text": "",
+  "bqm_setup_validate_text": "",
+  "bqm_setup_copy_url": "",
+  "bqm_setup_open_settings": ""
 }

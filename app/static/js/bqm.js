@@ -64,17 +64,29 @@ function renderBqmCalendar(year, month) {
     }
     for (var d = 1; d <= daysInMonth; d++) {
         var dateStr = year + '-' + pad(month + 1) + '-' + pad(d);
-        var cell = document.createElement('div');
+        var cell = document.createElement('button');
+        cell.type = 'button';
         cell.className = 'bqm-day';
         cell.textContent = d;
         cell.setAttribute('data-date', dateStr);
+        cell.setAttribute('aria-label', dateStr);
         if (_bqmAvailableDates.has(dateStr)) {
             cell.classList.add('has-data');
-            if (_bqmCsvDates.has(dateStr)) cell.classList.add('has-csv');
-            else if (_bqmPngDates.has(dateStr)) cell.classList.add('has-png');
+            if (_bqmCsvDates.has(dateStr)) {
+                cell.classList.add('has-csv');
+                cell.setAttribute('aria-label', dateStr + ' — CSV data available');
+            } else if (_bqmPngDates.has(dateStr)) {
+                cell.classList.add('has-png');
+                cell.setAttribute('aria-label', dateStr + ' — cached PNG available');
+            }
+        } else {
+            cell.disabled = true;
         }
         if (dateStr === today) cell.classList.add('today');
-        if (dateStr === bqmDate) cell.classList.add('selected');
+        if (dateStr === bqmDate) {
+            cell.classList.add('selected');
+            cell.setAttribute('aria-current', 'date');
+        }
         // Range highlighting
         if (_bqmRangeStart && _bqmRangeEnd) {
             if (dateStr === _bqmRangeStart) cell.classList.add('range-start');
@@ -315,10 +327,15 @@ function loadBqmLive() {
 function showBqmLiveBadge(source, timestamp) {
     var badge = document.getElementById('bqm-live-badge');
     var updated = document.getElementById('bqm-last-updated');
-    if (badge) badge.style.display = source === 'live' ? 'inline' : 'none';
+    var isLive = source === 'live';
+    if (badge) {
+        badge.textContent = isLive ? (T.bqm_live || 'Live') : (T.bqm_cached_png || 'Cached PNG');
+        badge.style.display = 'inline';
+    }
     if (updated && timestamp) {
         var d = new Date(timestamp);
-        updated.textContent = (T.bqm_last_updated || 'Last updated') + ': ' + d.toLocaleTimeString();
+        var label = isLive ? (T.bqm_last_updated || 'Last updated') : (T.bqm_cached_png_loaded || 'Cached PNG loaded');
+        updated.textContent = label + ': ' + d.toLocaleTimeString();
         updated.style.display = 'inline';
     }
 }
