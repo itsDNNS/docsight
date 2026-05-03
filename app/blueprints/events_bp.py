@@ -94,8 +94,8 @@ def api_events_list():
     offset = request.args.get("offset", 0, type=int)
     try:
         filters = _event_filters_from_request()
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid acknowledged filter"}), 400
 
     events = _storage.get_events(
         limit=limit, offset=offset, severity=filters["severity"],
@@ -121,8 +121,8 @@ def api_events_export_csv():
         return _events_csv_response([])
     try:
         filters = _event_filters_from_request()
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid acknowledged filter"}), 400
     events = _storage.get_events(
         limit=_EVENTS_EXPORT_LIMIT + 1,
         offset=0,

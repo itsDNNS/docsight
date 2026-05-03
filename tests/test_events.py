@@ -264,13 +264,13 @@ class TestEventExportApi:
         resp = events_client.get("/api/events/export.csv?acknowledged=maybe")
 
         assert resp.status_code == 400
-        assert resp.get_json() == {"error": "acknowledged must be 0 or 1"}
+        assert resp.get_json() == {"error": "Invalid acknowledged filter"}
 
     def test_events_list_rejects_invalid_acknowledged_filter(self, events_client):
         resp = events_client.get("/api/events?acknowledged=2")
 
         assert resp.status_code == 400
-        assert resp.get_json() == {"error": "acknowledged must be 0 or 1"}
+        assert resp.get_json() == {"error": "Invalid acknowledged filter"}
 
     def test_events_export_csv_respects_auth_boundary(self, tmp_path, storage):
         config_mgr = ConfigManager(str(tmp_path / "auth-config"))
