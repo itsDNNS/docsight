@@ -1,13 +1,17 @@
 {
+  "id": "/",
   "name": "DOCSight — Cable Diagnostics",
   "short_name": "DOCSight",
-  "description": "Cable Internet Monitoring & Diagnostics",
+  "description": "Cable Internet monitoring and diagnostics for local DOCSIS connections.",
+  "lang": "en",
+  "dir": "ltr",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#06080f",
   "theme_color": "#7c3aed",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
+  "categories": ["network-monitoring", "utilities", "productivity"],
   "icons": [
     {
       "src": "/static/icon.png",
@@ -18,7 +22,47 @@
     {
       "src": "/static/logo.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live dashboard",
+      "short_name": "Live",
+      "description": "Open the current cable diagnostics dashboard.",
+      "url": "/?source=pwa#live",
+      "icons": [{"src": "/static/icon.png", "sizes": "512x512", "type": "image/png"}]
+    },
+    {
+      "name": "Event log",
+      "short_name": "Events",
+      "description": "Review connection events and incidents.",
+      "url": "/?source=pwa#events",
+      "icons": [{"src": "/static/icon.png", "sizes": "512x512", "type": "image/png"}]
+    },
+    {
+      "name": "Channels",
+      "short_name": "Channels",
+      "description": "Inspect DOCSIS channel levels and modulation.",
+      "url": "/?source=pwa#channels",
+      "icons": [{"src": "/static/icon.png", "sizes": "512x512", "type": "image/png"}]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/screenshots/dashboard-narrow.png",
+      "sizes": "393x852",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "DOCSight mobile dashboard"
+    },
+    {
+      "src": "/static/screenshots/dashboard-wide.png",
+      "sizes": "1440x1000",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "DOCSight desktop dashboard"
     }
   ]
 }
