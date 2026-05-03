@@ -74,6 +74,7 @@
     flex-direction: column;
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-lg);
+    box-sizing: border-box;
 }
 
 .modal-header {
@@ -174,6 +175,18 @@
 }
 .report-builder-privacy strong { color: var(--text); }
 @media (max-width: 720px) {
+    .modal {
+        width: calc(100% - 24px);
+        max-height: calc(100vh - 24px);
+        padding: var(--space-md);
+    }
+    .modal-footer {
+        flex-wrap: wrap;
+    }
+    .modal-footer .btn {
+        min-width: 0;
+        white-space: normal;
+    }
     .report-builder-preview { grid-template-columns: 1fr; }
 }
 .modal-body textarea {

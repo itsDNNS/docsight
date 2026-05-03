@@ -327,6 +327,20 @@ For the full routing guide, see [SUPPORT.md](SUPPORT.md).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). **Please open an issue or start an Ideas discussion before working on new features.**
 
+### Mobile viewport quality gate
+
+DOCSight includes a focused Playwright gate for mobile regressions across the main blades and high-value modals. It uses an iPhone-sized `393x852` viewport and checks for horizontal overflow, off-screen controls, modal/footer overlap, console errors, and representative 44 px touch targets.
+
+To run the same gate locally:
+
+```bash
+python -m pip install pytest-playwright==0.7.2 playwright==1.58.0
+python -m playwright install chromium
+TZ=UTC python -m pytest -q tests/e2e/test_mobile_quality_gate.py --tb=short
+```
+
+The test does not commit screenshot artifacts by default. Use the broader E2E suite when changing shared modal, navigation, chart, or journal behavior.
+
 ## Roadmap
 
 See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in the wiki for long-term goals and modem support plans.
