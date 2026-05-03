@@ -156,6 +156,58 @@ class TestSettingsDirtyState:
         expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
 
 
+class TestSettingsExtensionsBatchSave:
+    """Installed module changes are saved with the Settings save flow."""
+
+    def test_module_toggles_batch_save_once_without_immediate_api_calls(self, settings_page):
+        config_payloads = []
+        batch_payloads = []
+        immediate_calls = []
+
+        def capture_config(route):
+            config_payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        def capture_batch(route):
+            batch_payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True, "restart_required": True})
+
+        def capture_immediate(route):
+            immediate_calls.append(route.request.url)
+            route.fulfill(status=500, json={"success": False})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.route("**/api/modules/batch", capture_batch)
+        settings_page.route(re.compile(r".*/api/modules/.+/(enable|disable)$"), capture_immediate)
+
+        settings_page.locator('button[data-section="extensions"]').click()
+        toggles = settings_page.locator('.module-toggle-input[data-is-threshold="false"]')
+        assert toggles.count() >= 2
+        settings_page.locator('.module-toggle-input[data-is-threshold="false"] + .toggle-slider').nth(0).click()
+        settings_page.locator('.module-toggle-input[data-is-threshold="false"] + .toggle-slider').nth(1).click()
+
+        footer = settings_page.locator("#save-footer")
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        settings_page.locator('#save-footer button[type="submit"]').click()
+
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(settings_page.locator("#module-restart-banner")).to_be_visible()
+        assert len(config_payloads) == 1
+        assert len(batch_payloads) == 1
+        assert len(batch_payloads[0]["modules"]) == 2
+        assert immediate_calls == []
+
+    def test_threshold_profile_toggles_are_exclusive_radios(self, settings_page):
+        settings_page.locator('button[data-section="extensions"]').click()
+        threshold_toggles = settings_page.locator('.module-toggle-input[data-is-threshold="true"]')
+        assert threshold_toggles.count() >= 1
+        assert threshold_toggles.first.get_attribute("type") == "radio"
+        assert threshold_toggles.first.get_attribute("name") == "threshold_profile_module"
+        assert threshold_toggles.first.get_attribute("aria-labelledby")
+        assert threshold_toggles.first.get_attribute("aria-describedby")
+        expect(settings_page.locator('[role="group"][aria-labelledby="extensions-modules-heading"]')).to_be_visible()
+
+
 class TestSpeedtestModule:
     """Speedtest module settings interactions."""
 

@@ -153,6 +153,101 @@ class TestEnableDisable:
             assert resp.status_code == 200
 
 
+class TestBatchModuleSettings:
+    """POST /api/modules/batch applies module settings in one save."""
+
+    @pytest.fixture(autouse=True)
+    def setup_app(self, tmp_path):
+        import json
+        from app.config import ConfigManager
+
+        threshold_data = {
+            "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]}},
+            "upstream_power": {"_default": "sc_qam", "sc_qam": {"good": [41, 47], "warning": [37, 51], "critical": [35, 53]}},
+            "snr": {"_default": "256QAM", "256QAM": {"good_min": 33, "warning_min": 31, "critical_min": 30}},
+        }
+        for dirname, module_id, contributes in [
+            ("regular", "test.integration", {}),
+            ("vfkd", "test.thresholds_vfkd", {"thresholds": "thresholds.json"}),
+            ("forum", "test.thresholds_forum", {"thresholds": "thresholds.json"}),
+        ]:
+            mod_dir = tmp_path / dirname
+            mod_dir.mkdir()
+            (mod_dir / "manifest.json").write_text(json.dumps({
+                "id": module_id,
+                "name": module_id,
+                "description": "d",
+                "version": "1.0.0",
+                "author": "a",
+                "minAppVersion": "2026.2",
+                "type": "driver",
+                "contributes": contributes,
+            }))
+            if contributes:
+                (mod_dir / "thresholds.json").write_text(json.dumps(threshold_data))
+
+        self.app = Flask(__name__)
+        self.app.config["TESTING"] = True
+        self.config_mgr = ConfigManager(str(tmp_path / "config"))
+        self.config_mgr.save({"disabled_modules": "test.thresholds_forum"})
+        self.loader = ModuleLoader(self.app, search_paths=[str(tmp_path)])
+        from app import analyzer
+        self._orig_thresholds = analyzer._thresholds.copy()
+        self.loader.load_all()
+
+        from app import web
+        self._orig_module_loader = web._module_loader
+        self._orig_config_manager = web._config_manager
+        web.init_modules(self.loader)
+        web.init_config(self.config_mgr)
+
+        from app.blueprints.modules_bp import modules_bp
+        self.app.register_blueprint(modules_bp)
+
+        yield
+
+        web._module_loader = self._orig_module_loader
+        web._config_manager = self._orig_config_manager
+        analyzer._thresholds = self._orig_thresholds
+
+    def test_batch_applies_multiple_modules_and_threshold_exclusivity(self):
+        with self.app.test_client() as c:
+            resp = c.post("/api/modules/batch", json={"modules": [
+                {"id": "test.integration", "enabled": False},
+                {"id": "test.thresholds_vfkd", "enabled": False},
+                {"id": "test.thresholds_forum", "enabled": True},
+            ]})
+
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["success"] is True
+        assert data["restart_required"] is True
+        disabled = set(self.config_mgr.get("disabled_modules", "").split(","))
+        assert "test.integration" in disabled
+        assert "test.thresholds_vfkd" in disabled
+        assert "test.thresholds_forum" not in disabled
+
+    def test_batch_rejects_no_active_threshold_profile(self):
+        with self.app.test_client() as c:
+            resp = c.post("/api/modules/batch", json={"modules": [
+                {"id": "test.thresholds_vfkd", "enabled": False},
+                {"id": "test.thresholds_forum", "enabled": False},
+            ]})
+
+        assert resp.status_code == 409
+        assert resp.get_json()["success"] is False
+
+    def test_batch_rejects_multiple_active_threshold_profiles(self):
+        with self.app.test_client() as c:
+            resp = c.post("/api/modules/batch", json={"modules": [
+                {"id": "test.thresholds_vfkd", "enabled": True},
+                {"id": "test.thresholds_forum", "enabled": True},
+            ]})
+
+        assert resp.status_code == 409
+        assert resp.get_json()["success"] is False
+
+
 class TestThemeMutualExclusion:
     """Enabling a theme auto-disables others; cannot disable last theme."""
 

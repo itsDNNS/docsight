@@ -143,6 +143,60 @@ def api_module_disable(module_id):
     return jsonify({"success": True, "restart_required": True})
 
 
+@modules_bp.route("/api/modules/batch", methods=["POST"])
+@require_auth
+def api_modules_batch():
+    """Apply multiple non-theme module enable/disable states in one save."""
+    loader = get_module_loader()
+    if not loader:
+        return jsonify({"success": False, "error": "Module system not initialized"}), 500
+
+    config_mgr = get_config_manager()
+    if not config_mgr:
+        return jsonify({"success": False, "error": "Config not initialized"}), 500
+
+    data = request.get_json(silent=True) or {}
+    requested = data.get("modules")
+    if not isinstance(requested, list):
+        return jsonify({"success": False, "error": "Missing modules list"}), 400
+
+    modules = {m.id: m for m in loader.get_modules()}
+    desired = {}
+    for item in requested:
+        if not isinstance(item, dict):
+            return jsonify({"success": False, "error": "Invalid module entry"}), 400
+        module_id = item.get("id")
+        enabled = item.get("enabled")
+        if not isinstance(module_id, str) or module_id not in modules:
+            return jsonify({"success": False, "error": f"Module '{module_id}' not found"}), 404
+        if not isinstance(enabled, bool):
+            return jsonify({"success": False, "error": "Module enabled state must be boolean"}), 400
+        if modules[module_id].type == "theme":
+            return jsonify({"success": False, "error": "Theme modules must be changed through theme settings"}), 400
+        desired[module_id] = enabled
+
+    disabled_raw = config_mgr.get("disabled_modules", "")
+    disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
+    for module_id, enabled in desired.items():
+        if enabled:
+            disabled_set.discard(module_id)
+        else:
+            disabled_set.add(module_id)
+
+    threshold_ids = [m.id for m in loader.get_threshold_modules()]
+    if threshold_ids:
+        active_thresholds = [module_id for module_id in threshold_ids if module_id not in disabled_set]
+        if len(active_thresholds) != 1:
+            return jsonify({
+                "success": False,
+                "error": "Exactly one threshold profile must be active.",
+            }), 409
+
+    config_mgr.save({"disabled_modules": ",".join(sorted(disabled_set))})
+    log.info("Applied %d module state changes (restart required)", len(desired))
+    return jsonify({"success": True, "restart_required": bool(desired)})
+
+
 @modules_bp.route("/api/themes")
 @require_auth
 def api_themes_list():
