@@ -432,12 +432,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-sm);
     padding: var(--space-sm) 0;
+    min-width: 0;
+    max-width: 100%;
 }
 .setup-guide-card {
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--surface);
     padding: var(--space-md);
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 .setup-guide-card h3 {
     margin: 0 0 var(--space-xs);
@@ -466,6 +470,7 @@
     font-family: var(--font-mono);
     font-size: 0.82em;
     white-space: nowrap;
+    max-width: 100%;
 }
 .setup-validation-status {
     min-height: 1.4em;
@@ -476,8 +481,12 @@
 .setup-validation-status.is-error { color: var(--danger, #ff6b6b); }
 .setup-validation-status.is-progress { color: var(--accent); }
 @media (max-width: 720px) {
-    .setup-guide-body { grid-template-columns: 1fr; }
-    .setup-guide-command code { white-space: pre-wrap; }
+    .setup-guide-body { grid-template-columns: minmax(0, 1fr); }
+    .setup-guide-command code {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
     .setup-guide-modal .modal-footer {
         justify-content: stretch;
     }

@@ -323,19 +323,32 @@ def test_guided_setup_modal_footers_do_not_cover_mobile_content(demo_page):
                 const bodyRect = body.getBoundingClientRect();
                 const lastRect = lastCard.getBoundingClientRect();
                 const footerStyle = getComputedStyle(footer);
+                const overflowingCards = Array.from(body.querySelectorAll('.setup-guide-card')).filter((card) => {
+                    const rect = card.getBoundingClientRect();
+                    return rect.left < -1 || rect.right > window.innerWidth + 1;
+                }).map((card) => card.querySelector('h3')?.textContent?.trim() || card.textContent.trim().slice(0, 40));
                 return {
                     lastCardBottom: lastRect.bottom,
                     footerTop: footerRect.top,
                     bodyBottom: bodyRect.bottom,
+                    bodyHeight: bodyRect.height,
+                    bodyOverflow: body.scrollWidth - body.clientWidth,
+                    overflowingCards,
+                    footerBottom: footerRect.bottom,
                     footerWraps: footerRect.height >= 44,
                     footerFlexWrap: footerStyle.flexWrap,
+                    viewportHeight: window.innerHeight,
                 };
             }
             """
         )
 
+        assert geometry["bodyHeight"] >= 96
+        assert geometry["bodyOverflow"] <= 1
+        assert geometry["overflowingCards"] == []
         assert geometry["lastCardBottom"] <= geometry["footerTop"] - 8
         assert geometry["bodyBottom"] <= geometry["footerTop"] - 8
+        assert geometry["footerBottom"] <= geometry["viewportHeight"]
         assert geometry["footerWraps"] is True
         assert geometry["footerFlexWrap"] == "wrap"
 
