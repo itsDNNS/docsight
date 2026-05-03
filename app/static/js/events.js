@@ -27,6 +27,7 @@ var _sevLabels = {
 var _currentSeverityFilter = '';
 var _deviceOnlyFilter = false;
 var _hideOperational = true;
+var _eventsViewMode = 'feed';
 var _OPERATIONAL_EVENT_TYPES = { monitoring_started: true, monitoring_stopped: true };
 
 function _eventTypeLabel(eventType) {
@@ -34,6 +35,57 @@ function _eventTypeLabel(eventType) {
     if (explicit) return explicit;
     var i18nKey = 'event_type_' + eventType;
     return T[i18nKey] || eventType;
+}
+
+function _eventTimestampLabel(timestamp) {
+    return escapeHtml(String(timestamp || '').replace('T', ' '));
+}
+
+function _eventSeverityMeta(ev) {
+    var severity = String(ev.severity || 'info').replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'info';
+    var sevClass = 'sev-badge-' + severity;
+    var sevLabel = _sevLabels[severity] || severity;
+    var sevIcons = { info: 'info', warning: 'triangle-alert', critical: 'octagon-alert' };
+    var sevIcon = sevIcons[severity] || 'info';
+    return { className: sevClass, label: sevLabel, icon: sevIcon };
+}
+
+function _eventSeverityBadge(meta) {
+    return '<span class="' + meta.className + '"><span class="sev-text">' + escapeHtml(meta.label) + '</span><i data-lucide="' + meta.icon + '" class="sev-icon"></i></span>';
+}
+
+function _eventAckMarkup(ev, compact) {
+    if (ev.acknowledged) {
+        var acknowledged = escapeHtml(T.event_acknowledged || 'Acknowledged');
+        return compact ? '<span class="ev-ack-mark">&#10003;</span>' : '<span class="ev-ack-mark">&#10003; ' + acknowledged + '</span>';
+    }
+    var label = escapeHtml(T.event_acknowledge || 'Acknowledge');
+    var visible = compact ? '&#10003;' : '&#10003; ' + label;
+    return '<button class="btn-ack" type="button" aria-label="' + label + '" onclick="acknowledgeEvent(' + ev.id + ', event)">' + visible + '</button>';
+}
+
+function applyEventsViewMode() {
+    var feed = document.getElementById('events-feed');
+    var table = document.getElementById('events-table');
+    var feedBtn = document.getElementById('events-view-mode-feed');
+    var tableBtn = document.getElementById('events-view-mode-table');
+    var isTable = _eventsViewMode === 'table';
+
+    if (feed) feed.style.display = isTable ? 'none' : '';
+    if (table) table.style.display = isTable ? '' : 'none';
+    if (feedBtn) {
+        feedBtn.classList.toggle('active', !isTable);
+        feedBtn.setAttribute('aria-pressed', String(!isTable));
+    }
+    if (tableBtn) {
+        tableBtn.classList.toggle('active', isTable);
+        tableBtn.setAttribute('aria-pressed', String(isTable));
+    }
+}
+
+function setEventsViewMode(mode) {
+    _eventsViewMode = mode === 'table' ? 'table' : 'feed';
+    applyEventsViewMode();
 }
 
 /* ── Rich event message formatter ── */
@@ -210,6 +262,7 @@ function loadEvents(append) {
     if (_deviceOnlyFilter) params += '&event_prefix=device_';
 
     var tbody = document.getElementById('events-tbody');
+    var feed = document.getElementById('events-feed');
     var tableCard = document.getElementById('events-table-card');
     var table = document.getElementById('events-table');
     var empty = document.getElementById('events-empty');
@@ -220,6 +273,7 @@ function loadEvents(append) {
     if (!append) {
         loading.style.display = '';
         tbody.innerHTML = '';
+        feed.innerHTML = '';
         tableCard.style.display = 'none';
         empty.style.display = 'none';
         moreBtn.style.display = 'none';
@@ -250,23 +304,38 @@ function loadEvents(append) {
                     var tr = document.createElement('tr');
                     if (ev.acknowledged) tr.className = 'event-acked';
                     tr.setAttribute('data-event-id', ev.id);
-                    var sevClass = 'sev-badge-' + ev.severity;
-                    var sevLabel = _sevLabels[ev.severity] || ev.severity;
-                    var sevIcons = { info: 'info', warning: 'triangle-alert', critical: 'octagon-alert' };
-                    var sevIcon = sevIcons[ev.severity] || 'info';
+                    var sevMeta = _eventSeverityMeta(ev);
                     var typeLabel = _eventTypeLabel(ev.event_type);
-                    var ackBtn = ev.acknowledged
-                        ? '<span class="ev-ack-mark">&#10003;</span>'
-                        : '<button class="btn-ack" onclick="acknowledgeEvent(' + ev.id + ', event)">&#10003;</button>';
                     tr.innerHTML =
-                        '<td style="white-space:nowrap;">' + escapeHtml(ev.timestamp.replace('T', ' ')) + '</td>' +
-                        '<td><span class="' + sevClass + '"><span class="sev-text">' + sevLabel + '</span><i data-lucide="' + sevIcon + '" class="sev-icon"></i></span></td>' +
+                        '<td style="white-space:nowrap;">' + _eventTimestampLabel(ev.timestamp) + '</td>' +
+                        '<td>' + _eventSeverityBadge(sevMeta) + '</td>' +
                         '<td>' + escapeHtml(typeLabel) + '</td>' +
                         '<td class="event-msg">' + formatEventMessage(ev) + '</td>' +
-                        '<td class="event-actions">' + ackBtn + '</td>';
+                        '<td class="event-actions">' + _eventAckMarkup(ev, true) + '</td>';
                     tbody.appendChild(tr);
+
+                    var card = document.createElement('article');
+                    card.className = 'event-feed-item' + (ev.acknowledged ? ' event-acked' : '');
+                    card.setAttribute('role', 'listitem');
+                    card.setAttribute('data-event-id', ev.id);
+                    card.innerHTML =
+                        '<div class="event-feed-main">' +
+                            '<div class="event-feed-topline">' +
+                                _eventSeverityBadge(sevMeta) +
+                                '<span class="event-feed-time">' + _eventTimestampLabel(ev.timestamp) + '</span>' +
+                            '</div>' +
+                            '<div class="event-feed-title">' + escapeHtml(typeLabel) + '</div>' +
+                            '<div class="event-feed-message">' + formatEventMessage(ev) + '</div>' +
+                            '<div class="event-feed-meta">' +
+                                '<span>' + escapeHtml(sevMeta.label) + '</span>' +
+                                '<span>' + escapeHtml(typeLabel) + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="event-feed-action">' + _eventAckMarkup(ev, false) + '</div>';
+                    feed.appendChild(card);
                 });
                 tableCard.style.display = '';
+                applyEventsViewMode();
                 moreBtn.style.display = events.length >= _eventsPageSize ? '' : 'none';
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             }
