@@ -65,6 +65,32 @@ class TestSettingsFormElements:
 class TestSettingsDirtyState:
     """Unsaved-change prompts only appear for deliberate settings edits."""
 
+    def test_saved_secret_user_edit_guard_requires_active_field(self, settings_page):
+        result = settings_page.evaluate(
+            """
+            () => {
+              const input = document.querySelector('#modem_password');
+              input.dataset.savedSecret = 'true';
+              const inactive = window._shouldTreatSavedSecretEventAsUserEdit({
+                target: input,
+                isTrusted: true,
+              });
+              input.focus();
+              const active = window._shouldTreatSavedSecretEventAsUserEdit({
+                target: input,
+                isTrusted: true,
+              });
+              const untrusted = window._shouldTreatSavedSecretEventAsUserEdit({
+                target: input,
+                isTrusted: false,
+              });
+              return {inactive, active, untrusted};
+            }
+            """
+        )
+
+        assert result == {"inactive": False, "active": True, "untrusted": False}
+
     def test_modem_password_autofill_does_not_show_unsaved_footer(self, settings_page):
         footer = settings_page.locator("#save-footer")
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))

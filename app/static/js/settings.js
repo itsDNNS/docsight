@@ -604,6 +604,16 @@ function _isSavedSecretField(el) {
     );
 }
 
+function _shouldTreatSavedSecretEventAsUserEdit(e) {
+    var target = e && e.target;
+    return !!(
+        e &&
+        e.isTrusted &&
+        _isSavedSecretField(target) &&
+        document.activeElement === target
+    );
+}
+
 function _normalizedFormValue(el) {
     if (_isSavedSecretField(el)) {
         return el.dataset.userEditedSecret ? '__edited_secret__' : '';
@@ -662,7 +672,7 @@ function initUnsavedDetection() {
     if (!form) return;
     _captureFormBaseline();
     function markDirty(e) {
-        if (e && _isSavedSecretField(e.target) && e.isTrusted) {
+        if (_shouldTreatSavedSecretEventAsUserEdit(e)) {
             e.target.dataset.userEditedSecret = 'true';
         }
         _updateDirtyState();
