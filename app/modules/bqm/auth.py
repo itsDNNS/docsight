@@ -77,7 +77,7 @@ def fetch_share_csv(share_id: str, variant: str = "y") -> str:
         content_type = (response.headers.get("Content-Type") or "").lower()
         if "csv" in content_type or response.text.startswith('"Timestamp"'):
             return response.text
-        log.warning("ThinkBroadband response is not CSV (content-type: %s)", content_type)
+        log.warning("ThinkBroadband response is not CSV")
         return ""
     except ThinkBroadbandBatchAbort:
         raise
