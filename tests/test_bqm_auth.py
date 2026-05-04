@@ -88,6 +88,18 @@ class TestFetchShareCsv:
         mock_get.return_value = _response(200, "<html>not csv</html>", "text/html")
         assert fetch_share_csv("abc123-2", "y") == ""
 
+    @patch("app.modules.bqm.auth.requests.get")
+    def test_non_csv_content_type_is_not_logged(self, mock_get, caplog):
+        sensitive_content_type = "text/html; password=secret123"
+        mock_get.return_value = _response(200, "<html>not csv</html>", sensitive_content_type)
+
+        with caplog.at_level("WARNING", logger="docsis.bqm.auth"):
+            assert fetch_share_csv("abc123-2", "y") == ""
+
+        assert "ThinkBroadband response is not CSV" in caplog.text
+        assert sensitive_content_type not in caplog.text
+        assert "secret123" not in caplog.text
+
 
 class TestValidateShareId:
     @patch("app.modules.bqm.auth.fetch_share_csv")
