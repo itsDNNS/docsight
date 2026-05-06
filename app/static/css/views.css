@@ -818,7 +818,7 @@
     margin: 0;
 }
 #correlation-table thead tr {
-    background: var(--surface-2, rgba(0,0,0,0.15));
+    background: var(--card-bg, var(--card, var(--surface)));
 }
 #correlation-table thead th {
     padding: 12px 16px;
@@ -829,8 +829,9 @@
     border-bottom: 1px solid var(--card-border, var(--input-border));
     position: sticky;
     top: 0;
-    z-index: 2;
-    background: var(--surface-2, rgba(0,0,0,0.15));
+    z-index: 3;
+    background: var(--card-bg, var(--card, var(--surface)));
+    box-shadow: 0 1px 0 var(--card-border, var(--input-border));
 }
 #correlation-table tbody tr {
     transition: background 0.15s;
