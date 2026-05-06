@@ -360,7 +360,29 @@ function renderGroupDistChart(pg, idx) {
             return mod + ': ' + raw.toFixed(1) + '%';
         })]
     }, uData, container);
+    attachModulationDayClick(chart, container, days);
     _modCharts.push(chart);
+}
+
+function attachModulationDayClick(chart, container, days) {
+    if (!chart || !container || !days || !days.length) return;
+    container.classList.add('modulation-clickable-chart');
+    container.setAttribute(
+        'title',
+        T['docsight.modulation.click_day_hint'] || 'Click a day bar to view per-channel details'
+    );
+    container.addEventListener('click', function(evt) {
+        var rect = chart.over.getBoundingClientRect();
+        var left = evt.clientX - rect.left;
+        if (left < 0 || left > rect.width) return;
+        var xVal = chart.posToVal(left, 'x');
+        var idx = Math.round(xVal);
+        if (idx < 0 || idx >= days.length) return;
+        var day = days[idx];
+        if (day && day.date) {
+            modDrillIntoDay(day.date);
+        }
+    });
 }
 
 function renderGroupTrendChart(pg, idx) {
@@ -384,7 +406,7 @@ function renderGroupTrendChart(pg, idx) {
         scales: {
             x: { time: false, range: function() { return [-0.5, n - 0.5]; } },
             health: { range: [0, 100] },
-            lowqam: {}
+            lowqam: { range: [0, 100] }
         },
         axes: [
             {

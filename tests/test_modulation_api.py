@@ -128,6 +128,30 @@ class TestDistributionEndpoint:
         assert "sample_density" in data
         assert "disclaimer" in data
 
+
+    def test_aggregate_low_qam_pct_weighted_across_protocol_sample_counts(self, client_with_storage):
+        client, storage = client_with_storage
+        day = _ts_days_ago(1)[:10]
+        _store_snapshot(
+            storage,
+            f"{day}T08:00:00Z",
+            us_channels=[{"modulation": "16QAM", "channel_id": 1, "docsis_version": "3.0"}],
+        )
+        for idx in range(100):
+            _store_snapshot(
+                storage,
+                f"{day}T09:{idx % 60:02d}:00Z",
+                us_channels=[
+                    {"modulation": "1024QAM", "channel_id": 10, "docsis_version": "3.1"},
+                ],
+            )
+
+        resp = client.get("/api/modulation/distribution?days=7&direction=us")
+        data = resp.get_json()
+
+        assert data["aggregate"]["low_qam_pct"] == 1.0
+        assert data["aggregate"]["low_qam_pct"] != 50.0
+
     def test_protocol_group_structure(self, client_with_storage):
         client, storage = client_with_storage
         _store_snapshot(storage, _ts_days_ago(1),
@@ -240,6 +264,35 @@ class TestTrendEndpoint:
         assert "low_qam_pct" in entry
         assert "dominant_modulation" in entry
         assert "sample_count" in entry
+
+    def test_weighted_low_qam_pct_preserved_for_partial_exposure(self, client_with_storage):
+        client, storage = client_with_storage
+        day = _ts_days_ago(1)[:10]
+        for hour in range(10, 14):
+            _store_snapshot(
+                storage,
+                f"{day}T{hour:02d}:00:00Z",
+                us_channels=[
+                    {"modulation": "64QAM", "channel_id": 1, "docsis_version": "3.0"},
+                    {"modulation": "64QAM", "channel_id": 2, "docsis_version": "3.0"},
+                ],
+            )
+        _store_snapshot(
+            storage,
+            f"{day}T14:00:00Z",
+            us_channels=[
+                {"modulation": "16QAM", "channel_id": 1, "docsis_version": "3.0"},
+                {"modulation": "64QAM", "channel_id": 2, "docsis_version": "3.0"},
+            ],
+        )
+
+        resp = client.get("/api/modulation/trend?days=7&direction=us")
+        data = resp.get_json()
+
+        assert len(data) == 1
+        assert data[0]["low_qam_pct"] == 10.0
+        assert data[0]["low_qam_pct"] != 100.0
+
 
 
 # ── JSON response format ──

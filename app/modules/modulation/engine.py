@@ -152,13 +152,21 @@ def _distribution_pct(observations):
     return {label: round(count / total * 100, 1) for label, count in sorted(counts.items())}
 
 
-def _low_qam_pct(observations, threshold):
-    """Compute % of numeric-QAM observations where qam_order <= threshold."""
+def _low_qam_counts(observations, threshold):
+    """Return (low_count, numeric_count) for numeric-QAM observations."""
     numeric = [(label, qam) for label, qam in observations if qam is not None]
     if not numeric:
-        return 0
+        return 0, 0
     low_count = sum(1 for _, qam in numeric if qam <= threshold)
-    return round(low_count / len(numeric) * 100, 1)
+    return low_count, len(numeric)
+
+
+def _low_qam_pct(observations, threshold):
+    """Compute % of numeric-QAM observations where qam_order <= threshold."""
+    low_count, numeric_count = _low_qam_counts(observations, threshold)
+    if numeric_count == 0:
+        return 0
+    return round(low_count / numeric_count * 100, 1)
 
 
 def _group_channels_by_protocol(channels):
@@ -250,7 +258,6 @@ def compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold=16)
     # Build per-protocol-group results
     protocol_groups = []
     all_health_indices = []
-    all_low_qam_pcts = []
     total_sample_count = 0
 
     for version in sorted(all_versions):
@@ -260,7 +267,6 @@ def compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold=16)
         protocol_groups.append(group)
         if group["health_index"] is not None:
             all_health_indices.append((group["health_index"], group["channel_count"]))
-        all_low_qam_pcts.append((group["low_qam_pct"], group["channel_count"]))
 
     # Total samples = number of snapshots (each snapshot is one poll)
     total_sample_count = sum(len(groups) for groups in by_date.values())
@@ -283,7 +289,13 @@ def compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold=16)
 
     # Weighted aggregate across groups
     agg_hi = _weighted_avg(all_health_indices)
-    agg_lq = _weighted_avg(all_low_qam_pcts)
+    total_low_qam_samples = sum(
+        group.get("low_qam_sample_count", 0) or 0 for group in protocol_groups
+    )
+    total_numeric_samples = sum(
+        group.get("numeric_sample_count", 0) or 0 for group in protocol_groups
+    )
+    agg_lq = _weighted_pct_from_counts(total_low_qam_samples, total_numeric_samples)
 
     return {
         "direction": direction,
@@ -343,7 +355,8 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
             hi = _health_index_for_channel_baselines(day_health_observations, channel_baselines)
         else:
             hi = _health_index_for_group(day_observations, direction, version)
-        lq = _low_qam_pct(day_observations, effective_threshold)
+        low_qam_count, numeric_sample_count = _low_qam_counts(day_observations, effective_threshold)
+        lq = round(low_qam_count / numeric_sample_count * 100, 1) if numeric_sample_count else 0
 
         # Count degraded channels for this day
         degraded = _count_degraded_channels_day(
@@ -359,6 +372,9 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
             "low_qam_pct": lq,
             "distribution": _distribution_pct(day_observations),
             "degraded_channel_count": degraded,
+            "sample_count": len(day_observations),
+            "numeric_sample_count": numeric_sample_count,
+            "low_qam_sample_count": low_qam_count,
         })
 
     max_qam = MAX_QAM.get((direction, version), 4096)
@@ -367,7 +383,13 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
         overall_hi = _health_index_for_channel_baselines(all_health_observations, channel_baselines)
     else:
         overall_hi = _health_index_for_group(all_observations, direction, version)
-    overall_lq = _low_qam_pct(all_observations, effective_threshold)
+    overall_low_qam_count, overall_numeric_sample_count = _low_qam_counts(
+        all_observations, effective_threshold
+    )
+    overall_lq = (
+        round(overall_low_qam_count / overall_numeric_sample_count * 100, 1)
+        if overall_numeric_sample_count else 0
+    )
     overall_dist = _distribution_pct(all_observations)
     dominant = max(overall_dist, key=overall_dist.get) if overall_dist else None
 
@@ -390,6 +412,9 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
         "dominant_modulation": dominant,
         "degraded_channel_count": degraded_overall,
         "distribution": overall_dist,
+        "sample_count": len(all_observations),
+        "numeric_sample_count": overall_numeric_sample_count,
+        "low_qam_sample_count": overall_low_qam_count,
         "days": days,
     }
 
@@ -674,44 +699,78 @@ def _health_index(observations):
     return round(max(0, min(100, index)), 1)
 
 
+def _weighted_pct_from_counts(low_count, total_count):
+    """Return a rounded percentage from weighted sample counts."""
+    if total_count <= 0:
+        return 0
+    return round(low_count / total_count * 100, 1)
+
+
 def compute_distribution(snapshots, direction, tz_name, low_qam_threshold=16):
-    """Legacy v1 distribution — delegates to v2 and reshapes for backwards compat."""
+    """Legacy v1 distribution — delegates to v2 and reshapes for backwards compat.
+
+    Keep weighted daily exposure intact. Older code reconstructed observations from
+    percentage bucket labels, which could turn a day with one small Low-QAM slice
+    into 100% Low-QAM exposure when only one low bucket existed.
+    """
     v2 = compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold)
 
-    # Flatten protocol_groups days into unified days list
-    all_dates = set()
+    by_date = {}
     for pg in v2.get("protocol_groups", []):
         for day in pg.get("days", []):
-            all_dates.add(day["date"])
+            date_str = day["date"]
+            entry = by_date.setdefault(date_str, {
+                "date": date_str,
+                "sample_count": 0,
+                "numeric_sample_count": 0,
+                "low_qam_sample_count": 0,
+                "health_values": [],
+                "distribution_counts": defaultdict(float),
+            })
+            sample_count = day.get("sample_count", 0) or 0
+            numeric_count = day.get("numeric_sample_count", sample_count) or 0
+            low_count = day.get("low_qam_sample_count")
+            if low_count is None:
+                low_count = (day.get("low_qam_pct", 0) or 0) / 100 * numeric_count
 
-    # Merge per-day across groups
+            entry["sample_count"] += sample_count
+            entry["numeric_sample_count"] += numeric_count
+            entry["low_qam_sample_count"] += low_count
+            if day.get("health_index") is not None and sample_count > 0:
+                entry["health_values"].append((day["health_index"], sample_count))
+            for label, pct in (day.get("distribution") or {}).items():
+                entry["distribution_counts"][label] += pct / 100 * sample_count
+
     days = []
-    for date_str in sorted(all_dates):
-        day_obs = []
-        sample_count = 0
-        for pg in v2.get("protocol_groups", []):
-            for day in pg.get("days", []):
-                if day["date"] == date_str:
-                    # Reconstruct observations from distribution
-                    for label, pct in day.get("distribution", {}).items():
-                        qam = _parse_qam_order(label)
-                        day_obs.append((label, qam))
-                    sample_count = max(sample_count, 1)
+    for date_str in sorted(by_date):
+        entry = by_date[date_str]
+        sample_count = entry["sample_count"]
+        distribution = {
+            label: round(count / sample_count * 100, 1)
+            for label, count in sorted(entry["distribution_counts"].items())
+        } if sample_count else {}
         days.append({
             "date": date_str,
             "sample_count": sample_count,
-            "distribution": _distribution_pct(day_obs),
-            "health_index": _health_index(day_obs),
-            "low_qam_pct": _low_qam_pct(day_obs, low_qam_threshold),
+            "distribution": distribution,
+            "health_index": _weighted_avg(entry["health_values"]),
+            "low_qam_pct": _weighted_pct_from_counts(
+                entry["low_qam_sample_count"], entry["numeric_sample_count"]
+            ),
         })
 
-    # Aggregate
-    all_obs = []
-    for pg in v2.get("protocol_groups", []):
-        dist = pg.get("distribution", {})
-        for label, pct in dist.items():
-            qam = _parse_qam_order(label)
-            all_obs.append((label, qam))
+    aggregate_distribution = v2.get("aggregate", {}).get("distribution")
+    if aggregate_distribution is None:
+        total_samples = sum(pg.get("sample_count", 0) or 0 for pg in v2.get("protocol_groups", []))
+        aggregate_counts = defaultdict(float)
+        for pg in v2.get("protocol_groups", []):
+            pg_samples = pg.get("sample_count", 0) or 0
+            for label, pct in (pg.get("distribution") or {}).items():
+                aggregate_counts[label] += pct / 100 * pg_samples
+        aggregate_distribution = {
+            label: round(count / total_samples * 100, 1)
+            for label, count in sorted(aggregate_counts.items())
+        } if total_samples else {}
 
     return {
         "direction": direction,
@@ -725,9 +784,9 @@ def compute_distribution(snapshots, direction, tz_name, low_qam_threshold=16):
         "low_qam_threshold": low_qam_threshold,
         "days": days,
         "aggregate": {
-            "distribution": _distribution_pct(all_obs),
-            "health_index": _health_index(all_obs),
-            "low_qam_pct": _low_qam_pct(all_obs, low_qam_threshold),
+            "distribution": aggregate_distribution,
+            "health_index": v2.get("aggregate", {}).get("health_index"),
+            "low_qam_pct": v2.get("aggregate", {}).get("low_qam_pct", 0),
         },
     }
 
@@ -746,7 +805,7 @@ def compute_trend(snapshots, direction, tz_name, low_qam_threshold=16):
             dominant = max(day["distribution"], key=day["distribution"].get)
         trend.append({
             "date": day["date"],
-            "health_index": day["health_index"],
+            "health_index": round(day["health_index"], 1) if day["health_index"] is not None else None,
             "low_qam_pct": day["low_qam_pct"],
             "dominant_modulation": dominant,
             "sample_count": day["sample_count"],
