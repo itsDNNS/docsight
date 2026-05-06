@@ -35,8 +35,8 @@ class AnalysisMixin:
                     "ds_snr_min": s.get("ds_snr_min"),
                     "ds_snr_avg": s.get("ds_snr_avg"),
                     "us_power_avg": s.get("us_power_avg"),
-                    "ds_correctable_errors": s.get("ds_correctable_errors", 0),
-                    "ds_uncorrectable_errors": s.get("ds_uncorrectable_errors", 0),
+                    "ds_correctable_errors": s.get("ds_correctable_errors"),
+                    "ds_uncorrectable_errors": s.get("ds_uncorrectable_errors"),
                 })
 
         if "speedtest" in sources:

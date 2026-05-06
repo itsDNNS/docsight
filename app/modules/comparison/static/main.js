@@ -143,6 +143,23 @@ function _cmpMapToLabels(normalized, hourLabels) {
 }
 
 /* ── Chart Rendering ── */
+function _cmpPeriodSupportsDocsisErrors(period) {
+    if (!period) return false;
+    if (period.uncorr_errors_supported === true) return true;
+    return period.total && period.total.uncorr_errors != null || !!(period.timeseries && period.timeseries.some(function(pt) {
+        return pt && pt.uncorr_errors != null;
+    }));
+}
+
+function _cmpSetErrorsChartVisible(visible) {
+    var card = document.getElementById('comparison-errors-card');
+    if (card) card.style.display = visible ? '' : 'none';
+    if (!visible && charts['cmp-chart-errors']) {
+        charts['cmp-chart-errors'].destroy();
+        delete charts['cmp-chart-errors'];
+    }
+}
+
 function _cmpRenderCharts(data) {
     var pa = data.period_a;
     var pb = data.period_b;
@@ -186,10 +203,14 @@ function _cmpRenderCharts(data) {
         {label: labelB, data: extract(mappedB, 'us_power_avg'), color: '#ff9800', spanGaps: true}
     ], null, US_POWER_THRESHOLDS);
 
-    renderChart('cmp-chart-errors', xLabels, [
-        {label: labelA, data: extract(mappedA, 'uncorr_errors'), color: '#2196f3'},
-        {label: labelB, data: extract(mappedB, 'uncorr_errors'), color: '#ff9800'}
-    ], 'bar');
+    var showErrors = _cmpPeriodSupportsDocsisErrors(pa) || _cmpPeriodSupportsDocsisErrors(pb);
+    _cmpSetErrorsChartVisible(showErrors);
+    if (showErrors) {
+        renderChart('cmp-chart-errors', xLabels, [
+            {label: labelA, data: extract(mappedA, 'uncorr_errors'), color: '#2196f3'},
+            {label: labelB, data: extract(mappedB, 'uncorr_errors'), color: '#ff9800'}
+        ], 'bar');
+    }
 }
 
 /* ── Delta Table ── */

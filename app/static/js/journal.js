@@ -1429,6 +1429,9 @@ function _renderTimelineTable(data) {
             details = '<span class="st-health-badge health-' + (e.health || 'unknown') + '">' + hLabel + '</span>';
             details += ' SNR ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : '-');
             details += ' | Power ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '-');
+            if (e.ds_uncorrectable_errors != null) {
+                details += ' | ' + (T.correlation_tt_errors || 'Errors') + ' ' + e.ds_uncorrectable_errors;
+            }
         } else if (e.source === 'speedtest') {
             srcBadge = '<span class="timeline-source-badge timeline-source-badge-speedtest">' + (T.timeline_source_speedtest || 'Speedtest') + '</span>';
             details = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');
