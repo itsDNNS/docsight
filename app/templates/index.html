@@ -608,7 +608,7 @@
         </div>
 
         {# Card 4: Errors #}
-        {% if s.errors_supported is not defined or s.errors_supported %}
+        {% if (s.errors_supported is not defined or s.errors_supported) and s.ds_uncorr_pct is not none %}
         <div class="metric-card glass" id="metric-errors-card">
             <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
             <div class="metric-header">
@@ -621,7 +621,11 @@
             </div>
             <div class="metric-sub">
                 <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
-                <span class="range">{{ s.ds_correctable_errors|fmt_k }} {{ t.corr }} / {{ s.ds_uncorrectable_errors|fmt_k }} {{ t.uncorr }}</span>
+                <span class="range">
+                    {% if s.ds_correctable_errors is not none %}{{ s.ds_correctable_errors|fmt_k }} {{ t.corr }}{% endif %}
+                    {% if s.ds_correctable_errors is not none and s.ds_uncorrectable_errors is not none %} / {% endif %}
+                    {% if s.ds_uncorrectable_errors is not none %}{{ s.ds_uncorrectable_errors|fmt_k }} {{ t.uncorr }}{% endif %}
+                </span>
             </div>
         </div>
         {% endif %}

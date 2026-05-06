@@ -49,6 +49,49 @@ class TestSnapshotStorage:
         assert len(intraday) >= 1
         assert "health" in intraday[0]
 
+    def test_trend_data_normalizes_unsupported_zero_error_counters(self, storage, sample_analysis):
+        sample_analysis["summary"].update({
+            "errors_supported": False,
+            "ds_correctable_errors": 0,
+            "ds_uncorrectable_errors": 0,
+        })
+        storage.save_snapshot(sample_analysis)
+        ts = storage.get_snapshot_list()[0]
+        date = ts[:10]
+
+        intraday = storage.get_intraday_data(date)
+        summary_range = storage.get_summary_range(date, date)
+
+        snapshot = storage.get_snapshot(ts)
+        range_data = storage.get_range_data(ts, ts)
+        closest = storage.get_closest_snapshot(ts)
+
+        assert intraday[0]["ds_correctable_errors"] is None
+        assert intraday[0]["ds_uncorrectable_errors"] is None
+        assert summary_range[0]["ds_correctable_errors"] is None
+        assert summary_range[0]["ds_uncorrectable_errors"] is None
+        assert snapshot["summary"]["ds_correctable_errors"] is None
+        assert snapshot["summary"]["ds_uncorrectable_errors"] is None
+        assert range_data[0]["summary"]["ds_correctable_errors"] is None
+        assert range_data[0]["summary"]["ds_uncorrectable_errors"] is None
+        assert closest["summary"]["ds_correctable_errors"] is None
+        assert closest["summary"]["ds_uncorrectable_errors"] is None
+
+    def test_trend_data_preserves_supported_zero_error_counters(self, storage, sample_analysis):
+        sample_analysis["summary"].update({
+            "errors_supported": True,
+            "ds_correctable_errors": 0,
+            "ds_uncorrectable_errors": 0,
+        })
+        storage.save_snapshot(sample_analysis)
+        ts = storage.get_snapshot_list()[0]
+        date = ts[:10]
+
+        intraday = storage.get_intraday_data(date)
+
+        assert intraday[0]["ds_correctable_errors"] == 0
+        assert intraday[0]["ds_uncorrectable_errors"] == 0
+
     def test_empty_storage(self, storage):
         assert storage.get_snapshot_list() == []
 

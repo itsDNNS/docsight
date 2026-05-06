@@ -202,15 +202,23 @@ function _renderSignalDetail(data, container) {
     var healthClass = 'health-' + (data.health || 'unknown');
     var healthLabels = {good: T.health_good || 'Good', tolerated: T.health_tolerated || 'Tolerated', marginal: T.health_marginal || 'Marginal', critical: T.health_critical || 'Critical'};
     var healthLabel = healthLabels[data.health] || data.health;
+    var errorParts = [];
+    if (data.ds_correctable_errors != null) {
+        errorParts.push(Number(data.ds_correctable_errors).toLocaleString() + ' ' + (T.signal_corr || 'corr.'));
+    }
+    if (data.ds_uncorrectable_errors != null) {
+        errorParts.push(Number(data.ds_uncorrectable_errors).toLocaleString() + ' ' + (T.signal_uncorr || 'uncorr.'));
+    }
     var items = [
         {label: T.signal_health || 'Health', value: healthLabel, badge: healthClass},
         {label: T.signal_ds_power || 'DS Power', value: data.ds_power_min + ' / ' + data.ds_power_avg + ' / ' + data.ds_power_max + ' dBmV'},
         {label: T.signal_ds_snr || 'DS SNR', value: data.ds_snr_min + ' / ' + data.ds_snr_avg + ' dB'},
         {label: T.signal_us_power || 'US Power', value: data.us_power_min + ' / ' + data.us_power_avg + ' / ' + data.us_power_max + ' dBmV'},
-        {label: T.signal_errors || 'Errors', value: (data.ds_correctable_errors || 0).toLocaleString() + ' ' + (T.signal_corr || 'corr.') + ' / ' + (data.ds_uncorrectable_errors || 0).toLocaleString() + ' ' + (T.signal_uncorr || 'uncorr.')},
+        {label: T.signal_errors || 'Errors', value: errorParts.length ? errorParts.join(' / ') : null},
         {label: (T.signal_ds_channels || 'DS') + ' / ' + (T.signal_us_channels || 'US'), value: (data.ds_total || 0) + ' / ' + (data.us_total || 0)}
     ];
     items.forEach(function(item) {
+        if (item.value == null) return;
         var div = document.createElement('div');
         div.className = 'st-sig-item';
         var lbl = document.createElement('span');

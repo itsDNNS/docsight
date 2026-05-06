@@ -16,7 +16,7 @@ def _aggregate_period(snapshots):
         return {
             "snapshots": 0,
             "avg": {"ds_power": None, "ds_snr": None, "us_power": None},
-            "total": {"corr_errors": 0, "uncorr_errors": 0},
+            "total": {"corr_errors": None, "uncorr_errors": None},
             "errors_supported": False,
             "corr_errors_supported": False,
             "uncorr_errors_supported": False,
@@ -42,8 +42,9 @@ def _aggregate_period(snapshots):
             ds_snr.append(s["ds_snr_avg"])
         if s.get("us_power_avg") is not None:
             us_power.append(s["us_power_avg"])
-        corr_errors = s.get("ds_correctable_errors")
-        uncorr_errors = s.get("ds_uncorrectable_errors")
+        errors_supported = s.get("errors_supported", True)
+        corr_errors = s.get("ds_correctable_errors") if errors_supported else None
+        uncorr_errors = s.get("ds_uncorrectable_errors") if errors_supported else None
         if corr_errors is not None:
             corr_errors_supported = True
             corr_total += corr_errors
@@ -100,8 +101,6 @@ def _compute_delta(period_a, period_b):
     us_power_d = diff("us_power")
     if period_a["total"].get("uncorr_errors") is not None and period_b["total"].get("uncorr_errors") is not None:
         uncorr_d = period_b["total"]["uncorr_errors"] - period_a["total"]["uncorr_errors"]
-    elif period_a.get("snapshots", 0) == 0 and period_b.get("snapshots", 0) == 0:
-        uncorr_d = 0
     else:
         uncorr_d = None
 

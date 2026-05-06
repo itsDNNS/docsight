@@ -385,8 +385,12 @@ class EventDetector:
             })
 
     def _check_errors(self, events, ts, cur, prev):
+        if cur.get("errors_supported") is False or prev.get("errors_supported") is False:
+            return
         uncorr_cur = cur.get("ds_uncorrectable_errors", 0)
         uncorr_prev = prev.get("ds_uncorrectable_errors", 0)
+        if uncorr_cur is None or uncorr_prev is None:
+            return
         delta = uncorr_cur - uncorr_prev
 
         if delta > UNCORR_SPIKE_THRESHOLD:

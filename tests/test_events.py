@@ -1155,6 +1155,17 @@ class TestRestartDetection:
         restart_events = [e for e in events if e["event_type"] == "modem_restart_detected"]
         assert len(restart_events) == 0
 
+    def test_error_spike_ignores_unsupported_summary_counter(self, detector):
+        """Unsupported summary counters must not crash or create fake spikes."""
+        prev = _make_analysis(ds_uncorrectable_errors=0)
+        cur = _make_analysis(ds_uncorrectable_errors=99999)
+        prev["summary"]["errors_supported"] = False
+
+        detector.check(prev)
+        events = detector.check(cur)
+
+        assert [e for e in events if e["event_type"] == "error_spike"] == []
+
     def test_restart_with_some_channel_change(self, detector):
         """12/16 overlap and declining — detected despite channel churn."""
         prev_channels = [

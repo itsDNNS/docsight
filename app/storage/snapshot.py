@@ -12,6 +12,15 @@ from ..tz import local_date_to_utc_range, utc_now
 log = logging.getLogger("docsis.storage")
 
 
+def _normalize_summary_errors(summary):
+    """Return summary with unsupported DOCSIS error counters normalized to null."""
+    if summary.get("errors_supported") is False:
+        summary = dict(summary)
+        summary["ds_correctable_errors"] = None
+        summary["ds_uncorrectable_errors"] = None
+    return summary
+
+
 class SnapshotMixin:
 
     def save_snapshot(self, analysis: AnalysisResult) -> None:
@@ -52,7 +61,7 @@ class SnapshotMixin:
         if not row:
             return None
         return {
-            "summary": json.loads(row[0]),
+            "summary": _normalize_summary_errors(json.loads(row[0])),
             "ds_channels": json.loads(row[1]),
             "us_channels": json.loads(row[2]),
         }
@@ -69,7 +78,7 @@ class SnapshotMixin:
         for row in rows:
             entry = {
                 "timestamp": row[0],
-                "summary": json.loads(row[1]),
+                "summary": _normalize_summary_errors(json.loads(row[1])),
                 "ds_channels": json.loads(row[2]),
                 "us_channels": json.loads(row[3]),
             }
@@ -91,7 +100,7 @@ class SnapshotMixin:
         results = []
         for row in rows:
             entry = {"timestamp": row[0]}
-            entry.update(json.loads(row[1]))
+            entry.update(_normalize_summary_errors(json.loads(row[1])))
             results.append(entry)
         return results
 
@@ -112,7 +121,7 @@ class SnapshotMixin:
         results = []
         for row in rows:
             entry = {"timestamp": row[0]}
-            entry.update(json.loads(row[1]))
+            entry.update(_normalize_summary_errors(json.loads(row[1])))
             results.append(entry)
         return results
 
@@ -136,7 +145,7 @@ class SnapshotMixin:
             return None
         return {
             "timestamp": row[0],
-            "summary": json.loads(row[1]),
+            "summary": _normalize_summary_errors(json.loads(row[1])),
             "ds_channels": json.loads(row[2]),
             "us_channels": json.loads(row[3]),
         }

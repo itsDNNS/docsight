@@ -810,7 +810,7 @@ def index():
         """Compute log-scale percentage for uncorrectable errors gauge."""
         if not analysis:
             return 0
-        uncorr = analysis.get("summary", {}).get("ds_uncorrectable_errors", 0)
+        uncorr = analysis.get("summary", {}).get("ds_uncorrectable_errors") or 0
         return min(100, math.log10(max(1, uncorr)) / 5 * 100)
 
     def _has_us_ofdma(analysis):

@@ -134,11 +134,11 @@ class AnalysisSummary(TypedDict):
     ds_snr_min: float
     ds_snr_max: float
     ds_snr_avg: float
-    ds_correctable_errors: int
-    ds_uncorrectable_errors: int
+    ds_correctable_errors: int | None
+    ds_uncorrectable_errors: int | None
     errors_supported: bool
     us_capacity_mbps: float | None
-    ds_uncorr_pct: float
+    ds_uncorr_pct: float | None
     health: str
     health_issues: list[str]
     # Set by apply_spike_suppression() when active

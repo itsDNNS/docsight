@@ -216,7 +216,7 @@ class TestPercentErrors:
                 "label": "zero codewords",
                 "corr": 0,
                 "uncorr": 0,
-                "expected_pct": None,
+                "expected_pct": 0.0,
             },
             {
                 "label": "below minimum codewords",

@@ -206,6 +206,24 @@ class TestCorrelationTimeline:
         assert timeline[0]["ds_correctable_errors"] is None
         assert timeline[0]["ds_uncorrectable_errors"] is None
 
+    def test_modem_errors_supported_false_zero_counters_remain_none(self, storage, sample_analysis):
+        """Legacy unsupported snapshots with zero counters must not display fake zeroes."""
+        unsupported = dict(sample_analysis["summary"])
+        unsupported["errors_supported"] = False
+        unsupported["ds_correctable_errors"] = 0
+        unsupported["ds_uncorrectable_errors"] = 0
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(
+                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
+                (ts, json.dumps(unsupported), "[]", "[]"),
+            )
+
+        timeline = storage.get_correlation_timeline(ts, ts, sources={"modem"})
+
+        assert timeline[0]["ds_correctable_errors"] is None
+        assert timeline[0]["ds_uncorrectable_errors"] is None
+
     def test_speedtest_fields_present(self, storage, speedtest_storage, sample_analysis):
         """Speedtest entries must contain download, upload, ping."""
         now = self._seed_data(storage, speedtest_storage, sample_analysis)

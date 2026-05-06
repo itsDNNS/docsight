@@ -206,6 +206,36 @@ class TestSpeedtestTableEscaping:
             text = cells.nth(i).inner_html()
             assert "<script" not in text.lower(), f"Script tag found in speedtest cell {i}"
 
+    def test_speedtest_signal_detail_hides_unsupported_error_counters(self, demo_page):
+        """Unsupported signal counters must not be rendered as fake zeroes."""
+        detail_text = demo_page.evaluate("""
+            () => {
+                const div = document.createElement('div');
+                _renderSignalDetail({
+                    found: true,
+                    health: 'good',
+                    ds_power_min: 1.0,
+                    ds_power_avg: 1.5,
+                    ds_power_max: 2.0,
+                    ds_snr_min: 37.0,
+                    ds_snr_avg: 38.0,
+                    us_power_min: 41.0,
+                    us_power_avg: 42.0,
+                    us_power_max: 43.0,
+                    ds_correctable_errors: null,
+                    ds_uncorrectable_errors: null,
+                    ds_total: 32,
+                    us_total: 4,
+                    snapshot_timestamp: '2026-05-01T12:00:00Z'
+                }, div);
+                return div.textContent;
+            }
+        """)
+
+        assert "0 corr" not in detail_text
+        assert "0 uncorr" not in detail_text
+        assert "Errors" not in detail_text
+
 
 class TestCorrelationTooltipEscaping:
     """Correlation chart tooltip should escape event messages."""

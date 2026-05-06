@@ -308,6 +308,68 @@ class TestSpeedtestAPI:
         assert data["success"] is False
         assert "ConnectionError" in data["error"]
 
+    def test_signal_api_treats_legacy_unsupported_zero_error_counters_as_unavailable(self, speedtest_client, monkeypatch):
+        import app.modules.speedtest.routes as speedtest_routes
+
+        class SpeedtestStorage:
+            def get_speedtest_by_id(self, result_id):
+                return {"id": result_id, "timestamp": "2025-01-15T10:30:00Z"}
+
+        class CoreStorage:
+            def get_closest_snapshot(self, timestamp):
+                return {
+                    "timestamp": timestamp,
+                    "summary": {
+                        "errors_supported": False,
+                        "health": "good",
+                        "ds_correctable_errors": 0,
+                        "ds_uncorrectable_errors": 0,
+                    },
+                    "us_channels": [],
+                }
+
+        monkeypatch.setattr(speedtest_routes, "_get_speedtest_storage", lambda: SpeedtestStorage())
+        monkeypatch.setattr(speedtest_routes, "get_storage", lambda: CoreStorage())
+
+        resp = speedtest_client.get("/api/speedtest/1/signal")
+
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["found"] is True
+        assert data["ds_correctable_errors"] is None
+        assert data["ds_uncorrectable_errors"] is None
+
+    def test_signal_api_preserves_supported_zero_error_counters(self, speedtest_client, monkeypatch):
+        import app.modules.speedtest.routes as speedtest_routes
+
+        class SpeedtestStorage:
+            def get_speedtest_by_id(self, result_id):
+                return {"id": result_id, "timestamp": "2025-01-15T10:30:00Z"}
+
+        class CoreStorage:
+            def get_closest_snapshot(self, timestamp):
+                return {
+                    "timestamp": timestamp,
+                    "summary": {
+                        "errors_supported": True,
+                        "health": "good",
+                        "ds_correctable_errors": 0,
+                        "ds_uncorrectable_errors": 0,
+                    },
+                    "us_channels": [],
+                }
+
+        monkeypatch.setattr(speedtest_routes, "_get_speedtest_storage", lambda: SpeedtestStorage())
+        monkeypatch.setattr(speedtest_routes, "get_storage", lambda: CoreStorage())
+
+        resp = speedtest_client.get("/api/speedtest/1/signal")
+
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["found"] is True
+        assert data["ds_correctable_errors"] == 0
+        assert data["ds_uncorrectable_errors"] == 0
+
     def test_api_speedtest_not_configured(self, tmp_path):
         data_dir = str(tmp_path / "data2")
         mgr = ConfigManager(data_dir)

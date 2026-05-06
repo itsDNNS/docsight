@@ -212,7 +212,9 @@ class TestAggregatePeriod:
         result = _aggregate_period([])
         assert result["snapshots"] == 0
         assert result["avg"]["ds_power"] is None
-        assert result["total"]["uncorr_errors"] == 0
+        assert result["errors_supported"] is False
+        assert result["total"]["corr_errors"] is None
+        assert result["total"]["uncorr_errors"] is None
 
     def test_single_snapshot(self):
         from app.modules.comparison.routes import _aggregate_period
@@ -237,6 +239,27 @@ class TestAggregatePeriod:
         from app.modules.comparison.routes import _aggregate_period
 
         result = _aggregate_period([UNSUPPORTED_ERRORS_SNAPSHOT])
+
+        assert result["errors_supported"] is False
+        assert result["corr_errors_supported"] is False
+        assert result["uncorr_errors_supported"] is False
+        assert result["total"]["corr_errors"] is None
+        assert result["total"]["uncorr_errors"] is None
+        assert result["timeseries"][0]["uncorr_errors"] is None
+
+    def test_errors_supported_false_zero_counters_remain_unsupported(self):
+        from app.modules.comparison.routes import _aggregate_period
+
+        legacy_zero_snapshot = {
+            **UNSUPPORTED_ERRORS_SNAPSHOT,
+            "summary": {
+                **UNSUPPORTED_ERRORS_SNAPSHOT["summary"],
+                "errors_supported": False,
+                "ds_correctable_errors": 0,
+                "ds_uncorrectable_errors": 0,
+            },
+        }
+        result = _aggregate_period([legacy_zero_snapshot])
 
         assert result["errors_supported"] is False
         assert result["corr_errors_supported"] is False
@@ -326,7 +349,7 @@ class TestComputeDelta:
         pb = _aggregate_period([])
         delta = _compute_delta(pa, pb)
         assert delta["ds_power"] is None
-        assert delta["uncorr_errors"] == 0
+        assert delta["uncorr_errors"] is None
         assert delta["verdict"] == "unchanged"
 
     def test_delta_ignores_unsupported_error_counters(self):

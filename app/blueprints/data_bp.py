@@ -37,6 +37,18 @@ def _translate_issue(key: str) -> str:
     return _ISSUE_LABELS.get(key, key.replace("_", " ").title())
 
 
+def _summary_error_count(summary, key):
+    """Return a DOCSIS error counter only when the summary supports it."""
+    if summary.get("errors_supported") is False:
+        return None
+    return summary.get(key)
+
+
+def _format_error_count(value) -> str:
+    """Format DOCSIS error counters while preserving unsupported/null as N/A."""
+    return f"{value:,}" if value is not None else "N/A"
+
+
 data_bp = Blueprint("data_bp", __name__)
 
 
@@ -121,8 +133,8 @@ def api_export():
         f"| Downstream Channels | {s.get('ds_total', 0)} |",
         f"| DS Power (Min/Avg/Max) | {s.get('ds_power_min')} / {s.get('ds_power_avg')} / {s.get('ds_power_max')} dBmV |",
         f"| DS SNR (Min/Avg) | {s.get('ds_snr_min')} / {s.get('ds_snr_avg')} dB |",
-        f"| DS Correctable Errors | {s.get('ds_correctable_errors', 0):,} |",
-        f"| DS Uncorrectable Errors | {s.get('ds_uncorrectable_errors', 0):,} |",
+        f"| DS Correctable Errors | {_format_error_count(_summary_error_count(s, 'ds_correctable_errors'))} |",
+        f"| DS Uncorrectable Errors | {_format_error_count(_summary_error_count(s, 'ds_uncorrectable_errors'))} |",
         f"| Upstream Channels | {s.get('us_total', 0)} |",
         f"| US Power (Min/Avg/Max) | {s.get('us_power_min')} / {s.get('us_power_avg')} / {s.get('us_power_max')} dBmV |",
         "",
@@ -221,7 +233,7 @@ def api_export():
                         f"| {st['timestamp'][:16]} | {st.get('download_human', '')} "
                         f"| {ss.get('health', '')} | {ss.get('ds_snr_min', '')} dB "
                         f"| {ss.get('ds_power_avg', '')} dBmV "
-                        f"| {ss.get('ds_uncorrectable_errors', 0):,} |"
+                        f"| {_format_error_count(_summary_error_count(ss, 'ds_uncorrectable_errors'))} |"
                     )
             if corr_lines:
                 lines += [
