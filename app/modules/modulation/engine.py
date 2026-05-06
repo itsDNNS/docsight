@@ -21,7 +21,7 @@ MAX_QAM = {
 }
 
 DEGRADED_QAM_THRESHOLDS = {
-    ("us", "3.1"): 256,
+    ("us", "3.1"): 64,
 }
 
 DISCLAIMER = (
@@ -183,11 +183,11 @@ def _group_channels_by_protocol(channels):
 
 
 def _degraded_qam_threshold(direction, docsis_version, default_threshold):
-    """Return the modulation threshold that counts as degraded.
+    """Return the DOCSight Low-QAM Exposure threshold for a protocol group.
 
-    Most protocol groups keep the legacy threshold. US DOCSIS 3.1 is stricter
-    because 128QAM already represents a substantial drop from the normal
-    1024QAM operating point.
+    Low-QAM Exposure is a product heuristic, not a DOCSIS standard metric.
+    Most groups keep the legacy <=16QAM threshold. US DOCSIS 3.1 counts 64QAM
+    as Low-QAM but excludes 128QAM; 128QAM is reflected through Health Index.
     """
     return DEGRADED_QAM_THRESHOLDS.get((direction, docsis_version), default_threshold)
 

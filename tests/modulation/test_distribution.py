@@ -60,7 +60,7 @@ class TestComputeDistributionV2:
         assert "3.0" in versions
         assert "3.1" in versions
 
-    def test_us31_128qam_counts_as_degraded(self):
+    def test_us31_128qam_does_not_count_as_low_qam(self):
         us_channels = [
             {"channel_id": 41, "modulation": "128QAM", "docsis_version": "3.1"},
         ]
@@ -68,8 +68,8 @@ class TestComputeDistributionV2:
         result = compute_distribution_v2(snaps, "us", "UTC")
         pg = result["protocol_groups"][0]
         assert pg["docsis_version"] == "3.1"
-        assert pg["degraded_channel_count"] == 1
-        assert pg["low_qam_pct"] == 100.0
+        assert pg["degraded_channel_count"] == 0
+        assert pg["low_qam_pct"] == 0.0
 
     def test_us31_512qam_not_counted_as_degraded(self):
         us_channels = [
@@ -81,14 +81,14 @@ class TestComputeDistributionV2:
         assert pg["docsis_version"] == "3.1"
         assert pg["degraded_channel_count"] == 0
 
-    def test_us31_low_qam_pct_tracks_protocol_threshold(self):
+    def test_us31_low_qam_pct_counts_64qam_but_excludes_128qam(self):
         snaps = [
             _make_snapshot("2026-03-01T10:00:00Z",
                            us_channels=[{"channel_id": 41, "modulation": "1024QAM", "docsis_version": "3.1"}]),
             _make_snapshot("2026-03-01T14:00:00Z",
                            us_channels=[{"channel_id": 41, "modulation": "128QAM", "docsis_version": "3.1"}]),
             _make_snapshot("2026-03-01T18:00:00Z",
-                           us_channels=[{"channel_id": 41, "modulation": "512QAM", "docsis_version": "3.1"}]),
+                           us_channels=[{"channel_id": 41, "modulation": "64QAM", "docsis_version": "3.1"}]),
         ]
         result = compute_distribution_v2(snaps, "us", "UTC")
         pg = result["protocol_groups"][0]
@@ -111,7 +111,8 @@ class TestComputeDistributionV2:
         pg = result["protocol_groups"][0]
         assert pg["docsis_version"] == "3.1"
         assert pg["dominant_modulation"] == "128QAM"
-        assert pg["degraded_channel_count"] == 1
+        assert pg["degraded_channel_count"] == 0
+        assert pg["low_qam_pct"] == 0.0
         assert pg["distribution"]["128QAM"] == 100.0
 
     def test_per_day_data(self):
@@ -318,7 +319,7 @@ class TestComputeIntraday:
         result = compute_intraday(snaps, "us", "UTC", "2026-03-01")
         assert len(result["protocol_groups"]) == 2
 
-    def test_us31_channel_summary_shows_128qam_degradation(self):
+    def test_us31_channel_summary_does_not_treat_128qam_as_low_qam(self):
         snaps = [
             _make_snapshot("2026-03-01T10:00:00Z",
                            us_channels=[{"channel_id": 41, "modulation": "1024QAM",
@@ -333,13 +334,11 @@ class TestComputeIntraday:
         result = compute_intraday(snaps, "us", "UTC", "2026-03-01")
         pg = next(pg for pg in result["protocol_groups"] if pg["docsis_version"] == "3.1")
         ch = pg["channels"][0]
-        assert ch["degraded"] is True
-        assert "128QAM" in ch["summary"]
-        assert ch["worst_modulation"] == "128QAM"
-        assert ch["degraded_sample_pct"] == 33
-        assert len(ch["degraded_events"]) == 1
-        assert ch["degraded_events"][0]["label"] == "128QAM"
-        assert ch["degraded_events"][0]["duration_minutes"] == 0
+        assert ch["degraded"] is False
+        assert ch["summary"] == ""
+        assert ch["worst_modulation"] == ""
+        assert ch["degraded_sample_pct"] == 0
+        assert ch["degraded_events"] == []
 
     def test_intraday_prefers_profile_modulation_for_ofdma(self):
         snaps = [
@@ -356,8 +355,9 @@ class TestComputeIntraday:
         result = compute_intraday(snaps, "us", "UTC", "2026-03-01")
         pg = next(pg for pg in result["protocol_groups"] if pg["docsis_version"] == "3.1")
         ch = pg["channels"][0]
-        assert ch["degraded"] is True
-        assert ch["worst_modulation"] == "128QAM"
+        assert ch["degraded"] is False
+        assert ch["worst_modulation"] == ""
+        assert ch["degraded_events"] == []
         assert ch["timeline"] == [
             {"time": "10:00", "modulation": "1024QAM"},
             {"time": "14:00", "modulation": "128QAM"},
