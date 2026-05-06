@@ -12,9 +12,6 @@ contact_links:
   - name: 📚 Docs and installation guides
     url: https://github.com/itsDNNS/docsight/wiki
     about: Read the wiki, install guides, and architecture docs first
-  - name: 🛡️ Security vulnerability reporting
-    url: https://github.com/itsDNNS/docsight/security/advisories/new
-    about: Report vulnerabilities privately instead of opening a public issue
   - name: ☕ Support the project on Ko-fi
     url: https://ko-fi.com/itsdnns
     about: Support DOCSight development on Ko-fi
