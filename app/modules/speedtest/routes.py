@@ -192,6 +192,9 @@ def api_speedtest_signal(result_id):
             "message": t.get("signal_no_snapshot", "No signal snapshot found within 2 hours of this speedtest."),
         })
     s = snap["summary"]
+    errors_supported = s.get("errors_supported", True)
+    corr_errors = s.get("ds_correctable_errors") if errors_supported else None
+    uncorr_errors = s.get("ds_uncorrectable_errors") if errors_supported else None
     us_channels = []
     for ch in snap.get("us_channels", []):
         us_channels.append({
@@ -211,8 +214,8 @@ def api_speedtest_signal(result_id):
         "us_power_avg": s.get("us_power_avg"),
         "us_power_min": s.get("us_power_min"),
         "us_power_max": s.get("us_power_max"),
-        "ds_uncorrectable_errors": s.get("ds_uncorrectable_errors", 0),
-        "ds_correctable_errors": s.get("ds_correctable_errors", 0),
+        "ds_uncorrectable_errors": uncorr_errors,
+        "ds_correctable_errors": corr_errors,
         "ds_total": s.get("ds_total", 0),
         "us_total": s.get("us_total", 0),
         "us_channels": us_channels,

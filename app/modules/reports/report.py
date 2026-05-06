@@ -354,6 +354,11 @@ class IncidentReport(FPDF):
         self.ln()
 
 
+def _format_optional_count(value):
+    """Format a counter value while preserving unsupported/null as N/A."""
+    return f"{value:,}" if value is not None else "N/A"
+
+
 def _compute_worst_values(snapshots):
     """Compute worst values across all snapshots in the range."""
     worst = {
@@ -361,8 +366,8 @@ def _compute_worst_values(snapshots):
         "ds_power_min": 0,
         "us_power_max": 0,
         "ds_snr_min": 999,
-        "ds_uncorrectable_max": 0,
-        "ds_correctable_max": 0,
+        "ds_uncorrectable_max": None,
+        "ds_correctable_max": None,
         "health_critical_count": 0,
         "health_marginal_count": 0,
         "health_tolerated_count": 0,
@@ -378,10 +383,17 @@ def _compute_worst_values(snapshots):
             worst["us_power_max"] = s.get("us_power_max", 0)
         if s.get("ds_snr_min", 999) < worst["ds_snr_min"]:
             worst["ds_snr_min"] = s.get("ds_snr_min", 999)
-        if s.get("ds_uncorrectable_errors", 0) > worst["ds_uncorrectable_max"]:
-            worst["ds_uncorrectable_max"] = s.get("ds_uncorrectable_errors", 0)
-        if s.get("ds_correctable_errors", 0) > worst["ds_correctable_max"]:
-            worst["ds_correctable_max"] = s.get("ds_correctable_errors", 0)
+        errors_supported = s.get("errors_supported", True)
+        uncorr_errors = s.get("ds_uncorrectable_errors") if errors_supported else None
+        corr_errors = s.get("ds_correctable_errors") if errors_supported else None
+        if uncorr_errors is not None and (
+            worst["ds_uncorrectable_max"] is None or uncorr_errors > worst["ds_uncorrectable_max"]
+        ):
+            worst["ds_uncorrectable_max"] = uncorr_errors
+        if corr_errors is not None and (
+            worst["ds_correctable_max"] is None or corr_errors > worst["ds_correctable_max"]
+        ):
+            worst["ds_correctable_max"] = corr_errors
         health = s.get("health", "good")
         if health == "critical":
             worst["health_critical_count"] += 1
@@ -549,8 +561,8 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
                 f"{ch.get('power') or 0:.1f}",
                 f"{ch.get('snr') or 0:.1f}" if ch.get("snr") else "—",
                 str(ch.get("modulation") or "")[:10],
-                f"{ch.get('correctable_errors') or 0:,}",
-                f"{ch.get('uncorrectable_errors') or 0:,}",
+                _format_optional_count(ch.get('correctable_errors')),
+                _format_optional_count(ch.get('uncorrectable_errors')),
                 ch.get("health", ""),
             ], widths, health=ch.get("health"))
 
@@ -640,8 +652,8 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
         pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {warn['ds_power']})")
         pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {warn['us_power']})")
         pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {warn['snr']})")
-        pdf._key_value(s["uncorr_err_max"], f"{worst['ds_uncorrectable_max']:,}")
-        pdf._key_value(s["corr_err_max"], f"{worst['ds_correctable_max']:,}")
+        pdf._key_value(s["uncorr_err_max"], _format_optional_count(worst["ds_uncorrectable_max"]))
+        pdf._key_value(s["corr_err_max"], _format_optional_count(worst["ds_correctable_max"]))
         pdf.ln(3)
 
         # Worst channels
@@ -699,7 +711,7 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
             f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=warn['ds_power'])}\n"
             f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=warn['us_power'])}\n"
             f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=warn['snr'])}\n"
-            f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
+            f"- {s['complaint_uncorr'].format(val=_format_optional_count(worst['ds_uncorrectable_max']))}\n\n"
             f"{diag_complaint}"
             f"{s['complaint_exceed']}\n\n"
             f"{s['complaint_request']}\n"
@@ -818,8 +830,8 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
         pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {warn['ds_power']})")
         pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {warn['us_power']})")
         pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {warn['snr']})")
-        pdf._key_value(s["uncorr_err_max"], f"{worst['ds_uncorrectable_max']:,}")
-        pdf._key_value(s["corr_err_max"], f"{worst['ds_correctable_max']:,}")
+        pdf._key_value(s["uncorr_err_max"], _format_optional_count(worst["ds_uncorrectable_max"]))
+        pdf._key_value(s["corr_err_max"], _format_optional_count(worst["ds_correctable_max"]))
         pdf.ln(3)
 
         # Worst channels
@@ -988,7 +1000,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
             f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=warn['ds_power'])}\n"
             f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=warn['us_power'])}\n"
             f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=warn['snr'])}\n"
-            f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
+            f"- {s['complaint_uncorr'].format(val=_format_optional_count(worst['ds_uncorrectable_max']))}\n\n"
             f"{s['complaint_exceed']}\n\n"
             f"{s['complaint_request']}\n"
             f"1. {s['complaint_req1']}\n"
@@ -1129,7 +1141,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
             f"- {s['complaint_ds_power'].format(val=worst['ds_power_max'], thresh=warn['ds_power'])}\n"
             f"- {s['complaint_us_power'].format(val=worst['us_power_max'], thresh=warn['us_power'])}\n"
             f"- {s['complaint_snr'].format(val=worst['ds_snr_min'], thresh=warn['snr'])}\n"
-            f"- {s['complaint_uncorr'].format(val='{:,}'.format(worst['ds_uncorrectable_max']))}\n\n"
+            f"- {s['complaint_uncorr'].format(val=_format_optional_count(worst['ds_uncorrectable_max']))}\n\n"
             f"{diag_complaint}"
             f"{comparison_section}"
             f"{bnetz_section}"

@@ -160,6 +160,21 @@ class TestSpikeSuppression:
         apply_spike_suppression(analysis, "2026-02-27T14:00:00Z")
         assert analysis["summary"]["ds_uncorr_pct"] == 0.0
         assert analysis["summary"]["spike_suppression"]["active"] is True
+    @patch("app.analyzer.utc_now")
+    def test_expired_spike_preserves_uncomputable_uncorr_pct(self, mock_now):
+        """Spike expiry must not turn partial/unsupported error rates into fake 0%."""
+        from app.analyzer import apply_spike_suppression
+        mock_now.return_value = "2026-03-01T15:00:00Z"
+        analysis = self._make_analysis_with_uncorr(uncorr_pct=None)
+        analysis["summary"]["ds_correctable_errors"] = None
+        analysis["summary"]["ds_uncorrectable_errors"] = 1000000
+        analysis["summary"]["errors_supported"] = True
+
+        apply_spike_suppression(analysis, "2026-02-27T14:00:00Z")
+
+        assert analysis["summary"]["ds_uncorr_pct"] is None
+        assert "uncorr_errors_critical" not in analysis["summary"]["health_issues"]
+        assert analysis["summary"]["spike_suppression"]["active"] is True
 
 
 # -- Per-metric health extraction --

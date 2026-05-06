@@ -264,6 +264,21 @@ class TestHealthCritical:
         assert "uncorr_errors_high" in result["summary"]["health_issues"]
         assert result["summary"]["health"] in ("tolerated", "marginal", "critical")
 
+    def test_uncorrectable_percent_requires_both_error_counter_types(self):
+        """Partial counter support must not be scored as 100% uncorrectable."""
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35", corr=None, uncorr=1000)],
+            us30=[_make_us30(1, power=42.0)],
+        )
+
+        result = analyze(data)
+
+        assert result["summary"]["ds_correctable_errors"] is None
+        assert result["summary"]["ds_uncorrectable_errors"] == 1000
+        assert result["summary"]["ds_uncorr_pct"] is None
+        assert "uncorr_errors_critical" not in result["summary"]["health_issues"]
+        assert "uncorr_errors_high" not in result["summary"]["health_issues"]
+
     def test_multiple_issues(self):
         """Multiple issues can coexist."""
         data = _make_data(

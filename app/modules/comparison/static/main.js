@@ -229,8 +229,10 @@ function _cmpRenderDeltaTable(data) {
         pa.avg.ds_snr, pb.avg.ds_snr, 'dB', delta.ds_snr, true, false);
     _cmpAppendDeltaRow(tbody, T['docsight.comparison.us_power'] || 'US Power',
         pa.avg.us_power, pb.avg.us_power, 'dBmV', delta.us_power, false, false);
-    _cmpAppendDeltaRow(tbody, T['docsight.comparison.uncorr_errors'] || 'Uncorr. Errors',
-        pa.total.uncorr_errors, pb.total.uncorr_errors, '', delta.uncorr_errors, false, true);
+    if (_cmpPeriodSupportsDocsisErrors(pa) || _cmpPeriodSupportsDocsisErrors(pb)) {
+        _cmpAppendDeltaRow(tbody, T['docsight.comparison.uncorr_errors'] || 'Uncorr. Errors',
+            pa.total.uncorr_errors, pb.total.uncorr_errors, '', delta.uncorr_errors, false, true);
+    }
 
     /* Health verdict row */
     var healthA = _cmpTopHealth(pa.health_distribution);

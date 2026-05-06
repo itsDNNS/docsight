@@ -171,7 +171,8 @@ def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None)
         return  # Still in observation period
 
     summary = analysis["summary"]
-    summary["ds_uncorr_pct"] = 0.0
+    if summary.get("ds_uncorr_pct") is not None:
+        summary["ds_uncorr_pct"] = 0.0
     summary["health_issues"] = [i for i in summary["health_issues"] if "uncorr" not in i]
     summary["spike_suppression"] = {
         "active": True,
@@ -486,12 +487,19 @@ def analyze(data: DocsisData) -> AnalysisResult:
     us_powers = [c["power"] for c in us_channels if c["power"] is not None]
     ds_snrs = [c["snr"] for c in ds_channels if c["snr"] is not None]
 
-    has_error_data = any(
-        c["correctable_errors"] is not None or c["uncorrectable_errors"] is not None
-        for c in ds_channels
+    has_corr_data = any(c["correctable_errors"] is not None for c in ds_channels)
+    has_uncorr_data = any(c["uncorrectable_errors"] is not None for c in ds_channels)
+    has_error_data = has_corr_data or has_uncorr_data
+    total_corr = (
+        sum(c["correctable_errors"] for c in ds_channels if c["correctable_errors"] is not None)
+        if has_corr_data
+        else None
     )
-    total_corr = sum(c["correctable_errors"] for c in ds_channels if c["correctable_errors"] is not None)
-    total_uncorr = sum(c["uncorrectable_errors"] for c in ds_channels if c["uncorrectable_errors"] is not None)
+    total_uncorr = (
+        sum(c["uncorrectable_errors"] for c in ds_channels if c["uncorrectable_errors"] is not None)
+        if has_uncorr_data
+        else None
+    )
 
     us_bitrates = [c["theoretical_bitrate"] for c in us_channels if c["theoretical_bitrate"] is not None]
     us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None
@@ -559,16 +567,19 @@ def analyze(data: DocsisData) -> AnalysisResult:
     elif any("snr tolerated" in c["health_detail"] for c in ds_channels):
         issues.append("snr_tolerated")
 
-    total_codewords = total_corr + total_uncorr
+    total_codewords = (total_corr or 0) + (total_uncorr or 0)
     et = _get_uncorr_thresholds()
-    if total_codewords >= et["min_codewords"]:
-        uncorr_pct = round((total_uncorr / total_codewords) * 100, 2)
-        if uncorr_pct >= et["critical"]:
-            issues.append("uncorr_errors_critical")
-        elif uncorr_pct >= et["warning"]:
-            issues.append("uncorr_errors_high")
+    if has_corr_data and has_uncorr_data:
+        if total_codewords >= et["min_codewords"]:
+            uncorr_pct = round(((total_uncorr or 0) / total_codewords) * 100, 2)
+            if uncorr_pct >= et["critical"]:
+                issues.append("uncorr_errors_critical")
+            elif uncorr_pct >= et["warning"]:
+                issues.append("uncorr_errors_high")
+        else:
+            uncorr_pct = 0.0
     else:
-        uncorr_pct = 0.0
+        uncorr_pct = None
     summary["ds_uncorr_pct"] = uncorr_pct
 
     if not issues:

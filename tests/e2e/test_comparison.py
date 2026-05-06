@@ -91,6 +91,18 @@ class TestComparisonView:
         expect(demo_page.locator("#comparison-errors-card")).to_be_hidden()
         assert demo_page.locator("#cmp-chart-errors .uplot").count() == 0
 
+    def test_hides_uncorrectable_delta_row_when_docsis_errors_are_unsupported(self, demo_page):
+        demo_page.route(
+            "**/api/comparison**",
+            lambda route: route.fulfill(json=_comparison_payload(False, None)),
+        )
+        navigate_to_comparison(demo_page)
+
+        demo_page.locator("#comparison-run-btn").click()
+
+        expect(demo_page.locator("#comparison-delta")).to_be_visible()
+        expect(demo_page.locator("#comparison-delta")).not_to_contain_text("Uncorr. Errors")
+
     def test_hides_uncorrectable_chart_when_only_correctable_errors_are_supported(self, demo_page):
         payload = _comparison_payload(False, None)
         for period_key in ("period_a", "period_b"):

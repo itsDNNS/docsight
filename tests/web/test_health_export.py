@@ -55,3 +55,35 @@ class TestExportEndpoint:
         assert "DOCSight" in data["text"]
         assert "DOCSIS" in data["text"]
         assert "Vodafone" in data["text"]
+
+    def test_export_handles_unsupported_error_counters(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "errors_supported": False,
+            "ds_correctable_errors": None,
+            "ds_uncorrectable_errors": None,
+        })
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/api/export")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert "| DS Correctable Errors | N/A |" in data["text"]
+        assert "| DS Uncorrectable Errors | N/A |" in data["text"]
+        assert "DOCSight" in data["text"]
+        assert "DOCSIS" in data["text"]
+        assert "Vodafone" in data["text"]
+
+
+class TestExportUnsupportedLegacyCounters:
+    def test_export_treats_legacy_unsupported_zero_error_counters_as_unavailable(self):
+        from app.blueprints.data_bp import _format_error_count, _summary_error_count
+
+        summary = {
+            "errors_supported": False,
+            "ds_correctable_errors": 0,
+            "ds_uncorrectable_errors": 0,
+        }
+
+        assert _format_error_count(_summary_error_count(summary, "ds_correctable_errors")) == "N/A"
+        assert _format_error_count(_summary_error_count(summary, "ds_uncorrectable_errors")) == "N/A"
