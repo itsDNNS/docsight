@@ -76,6 +76,10 @@
     height: 100%;
 }
 
+.modulation-clickable-chart {
+    cursor: pointer;
+}
+
 /* ── Protocol group sections ── */
 .mod-protocol-group {
     margin-bottom: var(--space-xl, 28px);
