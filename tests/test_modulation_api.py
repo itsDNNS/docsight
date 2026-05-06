@@ -152,6 +152,38 @@ class TestDistributionEndpoint:
         assert data["aggregate"]["low_qam_pct"] == 1.0
         assert data["aggregate"]["low_qam_pct"] != 50.0
 
+
+    def test_us_docsis31_128qam_does_not_count_as_low_qam_in_distribution_trend(self, client_with_storage):
+        client, storage = client_with_storage
+        day = _ts_days_ago(1)[:10]
+        for minute in range(4):
+            _store_snapshot(
+                storage,
+                f"{day}T10:{minute:02d}:00Z",
+                us_channels=[
+                    {"modulation": "64QAM", "channel_id": 1, "docsis_version": "3.1"},
+                ],
+            )
+        for minute in range(4, 10):
+            _store_snapshot(
+                storage,
+                f"{day}T10:{minute:02d}:00Z",
+                us_channels=[
+                    {"modulation": "128QAM", "channel_id": 1, "docsis_version": "3.1"},
+                ],
+            )
+
+        resp = client.get("/api/modulation/distribution?days=7&direction=us")
+        data = resp.get_json()
+        pg = data["protocol_groups"][0]
+
+        assert pg["docsis_version"] == "3.1"
+        assert pg["distribution"] == {"128QAM": 60.0, "64QAM": 40.0}
+        assert pg["days"][0]["low_qam_pct"] == 40.0
+        assert pg["low_qam_pct"] == 40.0
+        assert data["aggregate"]["low_qam_pct"] == 40.0
+        assert pg["low_qam_pct"] != 100.0
+
     def test_protocol_group_structure(self, client_with_storage):
         client, storage = client_with_storage
         _store_snapshot(storage, _ts_days_ago(1),
@@ -292,6 +324,36 @@ class TestTrendEndpoint:
         assert len(data) == 1
         assert data[0]["low_qam_pct"] == 10.0
         assert data[0]["low_qam_pct"] != 100.0
+
+
+    def test_trend_us_docsis31_128qam_does_not_count_as_low_qam(self, client_with_storage):
+        client, storage = client_with_storage
+        day = _ts_days_ago(1)[:10]
+        for minute in range(4):
+            _store_snapshot(
+                storage,
+                f"{day}T10:{minute:02d}:00Z",
+                us_channels=[
+                    {"modulation": "64QAM", "channel_id": 1, "docsis_version": "3.1"},
+                ],
+            )
+        for minute in range(4, 10):
+            _store_snapshot(
+                storage,
+                f"{day}T10:{minute:02d}:00Z",
+                us_channels=[
+                    {"modulation": "128QAM", "channel_id": 1, "docsis_version": "3.1"},
+                ],
+            )
+
+        resp = client.get("/api/modulation/trend?days=7&direction=us")
+        data = resp.get_json()
+
+        assert len(data) == 1
+        assert data[0]["low_qam_pct"] == 40.0
+        assert data[0]["low_qam_pct"] != 100.0
+        assert data[0]["health_index"] < 100.0
+
 
 
 

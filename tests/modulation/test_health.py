@@ -249,8 +249,8 @@ class TestDegradedThresholds:
         assert _degraded_qam_threshold("us", "3.0", 16) == 16
         assert _degraded_qam_threshold("ds", "3.0", 16) == 16
 
-    def test_us31_uses_higher_threshold(self):
-        assert _degraded_qam_threshold("us", "3.1", 16) == 256
+    def test_us31_uses_64qam_threshold(self):
+        assert _degraded_qam_threshold("us", "3.1", 16) == 64
 
 
 # ── _low_qam_pct ──
@@ -274,6 +274,11 @@ class TestLowQamPct:
     def test_threshold_boundary(self):
         obs = [("16QAM", 16)] * 5 + [("64QAM", 64)] * 5
         assert _low_qam_pct(obs, 16) == 50.0
+
+
+    def test_threshold_64_excludes_128qam(self):
+        obs = [("64QAM", 64)] * 4 + [("128QAM", 128)] * 6
+        assert _low_qam_pct(obs, 64) == 40.0
 
     def test_ignores_ofdm(self):
         obs = [("4QAM", 4)] * 1 + [("64QAM", 64)] * 1 + [("OFDM", None)] * 8

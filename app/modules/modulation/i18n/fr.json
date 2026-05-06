@@ -33,6 +33,6 @@
     "channel_summary": "Résumé des canaux",
     "protocol_group_label": "Groupe de protocole",
     "glossary_health_index": "Indice de santé : score global (0-100) reflétant la qualité de modulation sur tous les canaux. Plus élevé signifie moins de dégradation.",
-    "glossary_low_qam": "Exposition Low-QAM : pourcentage de temps où les canaux passent en modulation basse (QPSK, 16QAM). Une exposition élevée indique des problèmes de signal persistants.",
+    "glossary_low_qam": "Exposition Low-QAM : heuristique DOCSight pour le pourcentage d’échantillons à de faibles niveaux de modulation. Pour l’US DOCSIS 3.1, 64QAM et moins sont comptés ; 128QAM est reflété par l’indice de santé, mais n’est pas compté comme Low-QAM. Une exposition élevée indique des problèmes de signal persistants.",
     "glossary_sample_density": "Densité d'échantillons : nombre de mesures collectées pour la période sélectionnée. Plus de mesures signifie des statistiques plus précises."
 }
