@@ -1292,10 +1292,15 @@ function renderCorrelationTable(data) {
             var badge = '<span class="st-health-badge health-' + h + '">' + (healthLabels[h] || h) + '</span>';
             src = '<span style="color:var(--accent);">Modem</span>';
             msg = badge;
-            details = (T.correlation_tt_snr || 'SNR') + ' ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : '') +
-                      ' | ' + (T.event_power || 'Power') + ' ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : '') +
-                      ' | TX ' + (e.us_power_avg != null ? e.us_power_avg + ' dBmV' : '') +
-                      ' | ' + (T.correlation_tt_errors || 'Errors') + ' ' + (e.ds_uncorrectable_errors || 0);
+            var modemDetails = [
+                (T.correlation_tt_snr || 'SNR') + ' ' + (e.ds_snr_min != null ? e.ds_snr_min + ' dB' : ''),
+                (T.event_power || 'Power') + ' ' + (e.ds_power_avg != null ? e.ds_power_avg + ' dBmV' : ''),
+                'TX ' + (e.us_power_avg != null ? e.us_power_avg + ' dBmV' : '')
+            ];
+            if (e.ds_uncorrectable_errors != null) {
+                modemDetails.push((T.correlation_tt_errors || 'Errors') + ' ' + e.ds_uncorrectable_errors);
+            }
+            details = modemDetails.join(' | ');
         } else if (src === 'speedtest') {
             src = '<span style="color:var(--good);">Speedtest</span>';
             msg = (e.download_mbps ? e.download_mbps.toFixed(1) + ' / ' + (e.upload_mbps || 0).toFixed(1) + ' Mbps' : '');

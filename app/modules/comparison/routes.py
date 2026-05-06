@@ -17,6 +17,9 @@ def _aggregate_period(snapshots):
             "snapshots": 0,
             "avg": {"ds_power": None, "ds_snr": None, "us_power": None},
             "total": {"corr_errors": 0, "uncorr_errors": 0},
+            "errors_supported": False,
+            "corr_errors_supported": False,
+            "uncorr_errors_supported": False,
             "health_distribution": {},
             "timeseries": [],
         }
@@ -26,6 +29,8 @@ def _aggregate_period(snapshots):
     us_power = []
     corr_total = 0
     uncorr_total = 0
+    corr_errors_supported = False
+    uncorr_errors_supported = False
     health_counts = {}
     timeseries = []
 
@@ -37,8 +42,14 @@ def _aggregate_period(snapshots):
             ds_snr.append(s["ds_snr_avg"])
         if s.get("us_power_avg") is not None:
             us_power.append(s["us_power_avg"])
-        corr_total += s.get("ds_correctable_errors", 0) or 0
-        uncorr_total += s.get("ds_uncorrectable_errors", 0) or 0
+        corr_errors = s.get("ds_correctable_errors")
+        uncorr_errors = s.get("ds_uncorrectable_errors")
+        if corr_errors is not None:
+            corr_errors_supported = True
+            corr_total += corr_errors
+        if uncorr_errors is not None:
+            uncorr_errors_supported = True
+            uncorr_total += uncorr_errors
         h = s.get("health", "unknown")
         health_counts[h] = health_counts.get(h, 0) + 1
         timeseries.append({
@@ -46,7 +57,7 @@ def _aggregate_period(snapshots):
             "ds_power_avg": s.get("ds_power_avg"),
             "ds_snr_avg": s.get("ds_snr_avg"),
             "us_power_avg": s.get("us_power_avg"),
-            "uncorr_errors": s.get("ds_uncorrectable_errors", 0),
+            "uncorr_errors": uncorr_errors,
             "health": h,
         })
 
@@ -60,7 +71,13 @@ def _aggregate_period(snapshots):
             "ds_snr": avg(ds_snr),
             "us_power": avg(us_power),
         },
-        "total": {"corr_errors": corr_total, "uncorr_errors": uncorr_total},
+        "total": {
+            "corr_errors": corr_total if corr_errors_supported else None,
+            "uncorr_errors": uncorr_total if uncorr_errors_supported else None,
+        },
+        "errors_supported": corr_errors_supported or uncorr_errors_supported,
+        "corr_errors_supported": corr_errors_supported,
+        "uncorr_errors_supported": uncorr_errors_supported,
         "health_distribution": health_counts,
         "timeseries": timeseries,
     }
@@ -81,7 +98,12 @@ def _compute_delta(period_a, period_b):
     ds_power_d = diff("ds_power")
     ds_snr_d = diff("ds_snr")
     us_power_d = diff("us_power")
-    uncorr_d = period_b["total"]["uncorr_errors"] - period_a["total"]["uncorr_errors"]
+    if period_a["total"].get("uncorr_errors") is not None and period_b["total"].get("uncorr_errors") is not None:
+        uncorr_d = period_b["total"]["uncorr_errors"] - period_a["total"]["uncorr_errors"]
+    elif period_a.get("snapshots", 0) == 0 and period_b.get("snapshots", 0) == 0:
+        uncorr_d = 0
+    else:
+        uncorr_d = None
 
     # Verdict: improved if SNR went up and errors went down (or stayed)
     # degraded if SNR went down or errors went up significantly
@@ -91,10 +113,11 @@ def _compute_delta(period_a, period_b):
             score += 1
         elif ds_snr_d < -1:
             score -= 1
-    if uncorr_d > 10:
-        score -= 1
-    elif uncorr_d < 0:
-        score += 1
+    if uncorr_d is not None:
+        if uncorr_d > 10:
+            score -= 1
+        elif uncorr_d < 0:
+            score += 1
 
     if score > 0:
         verdict = "improved"

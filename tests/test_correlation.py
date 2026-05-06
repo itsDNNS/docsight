@@ -184,6 +184,28 @@ class TestCorrelationTimeline:
         assert "ds_snr_min" in m
         assert "ds_power_avg" in m
 
+    @pytest.mark.parametrize("remove_keys", [False, True])
+    def test_modem_unsupported_error_counters_remain_none(self, storage, sample_analysis, remove_keys):
+        """Unsupported DOCSIS counters must not be normalized to zero in the timeline."""
+        unsupported = dict(sample_analysis["summary"])
+        if remove_keys:
+            unsupported.pop("ds_correctable_errors")
+            unsupported.pop("ds_uncorrectable_errors")
+        else:
+            unsupported["ds_correctable_errors"] = None
+            unsupported["ds_uncorrectable_errors"] = None
+        ts = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(
+                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
+                (ts, json.dumps(unsupported), "[]", "[]"),
+            )
+
+        timeline = storage.get_correlation_timeline(ts, ts, sources={"modem"})
+
+        assert timeline[0]["ds_correctable_errors"] is None
+        assert timeline[0]["ds_uncorrectable_errors"] is None
+
     def test_speedtest_fields_present(self, storage, speedtest_storage, sample_analysis):
         """Speedtest entries must contain download, upload, ping."""
         now = self._seed_data(storage, speedtest_storage, sample_analysis)
