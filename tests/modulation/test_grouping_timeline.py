@@ -13,7 +13,7 @@ from app.modules.modulation.engine import (
     _degraded_qam_threshold,
     _health_index,
     _health_index_for_group,
-    _low_qam_pct,
+    _numeric_low_qam_pct,
     _group_channels_by_protocol,
     _modulation_periods,
     _simplify_timeline,

@@ -144,7 +144,10 @@ function updateOverviewKPIs(data) {
         lqEl.className = 'mod-kpi-item-value ' + lowQamClass(lq);
     }
     var lqHint = document.getElementById('mod-kpi-lowqam-hint');
-    if (lqHint) lqHint.textContent = '\u2264 16QAM';
+    if (lqHint) {
+        lqHint.textContent = T['docsight.modulation.low_qam_denominator_hint'] ||
+            'Unknown samples stay in the total';
+    }
 
     var dEl = document.getElementById('mod-kpi-density');
     if (dEl) {

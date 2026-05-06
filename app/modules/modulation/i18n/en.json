@@ -15,7 +15,7 @@
     "back_to_overview": "Back to Overview",
     "intraday_title": "Channel Detail",
     "channel_label": "Channel",
-  "channels_label": "Channels",
+    "channels_label": "Channels",
     "dominant_modulation": "Dominant",
     "degraded_channels": "degraded",
     "disclaimer": "Health indices and modulation statistics are estimates based on periodic polling samples.",
@@ -34,5 +34,6 @@
     "protocol_group_label": "Protocol Group",
     "glossary_health_index": "Health Index: an aggregate score (0-100) reflecting overall modulation quality across all channels. Higher means less signal degradation.",
     "glossary_low_qam": "Low-QAM Exposure: DOCSight heuristic for the percentage of samples at low modulation levels. For US DOCSIS 3.1 this counts 64QAM and below; 128QAM is reflected by Health Index but not counted as Low-QAM. High exposure indicates persistent signal problems.",
-    "glossary_sample_density": "Sample Density: number of polling samples collected for the selected period. More samples mean more accurate statistics."
+    "glossary_sample_density": "Sample Density: number of polling samples collected for the selected period. More samples mean more accurate statistics.",
+    "low_qam_denominator_hint": "Unknown samples stay in the total"
 }

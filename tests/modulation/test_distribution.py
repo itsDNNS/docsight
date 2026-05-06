@@ -95,6 +95,100 @@ class TestComputeDistributionV2:
         assert pg["low_qam_pct"] == 33.3
         assert pg["days"][0]["low_qam_pct"] == 33.3
 
+    def test_us31_low_qam_pct_keeps_unknown_in_visible_denominator(self):
+        snaps = [
+            _make_snapshot(
+                f"2026-05-01T{hour:02d}:00:00Z",
+                us_channels=[{
+                    "channel_id": 41,
+                    "modulation": "Unknown",
+                    "docsis_version": "3.1",
+                }],
+            )
+            for hour in range(19)
+        ]
+        snaps.append(_make_snapshot(
+            "2026-05-01T20:00:00Z",
+            us_channels=[{
+                "channel_id": 41,
+                "modulation": "64QAM",
+                "docsis_version": "3.1",
+            }],
+        ))
+
+        result = compute_distribution_v2(snaps, "us", "UTC")
+        pg = result["protocol_groups"][0]
+        day = pg["days"][0]
+
+        assert day["distribution"] == {"64QAM": 5.0, "Unknown": 95.0}
+        assert day["sample_count"] == 20
+        assert day["numeric_sample_count"] == 1
+        assert day["low_qam_sample_count"] == 1
+        assert day["low_qam_pct"] == 5.0
+        assert pg["low_qam_pct"] == 5.0
+        assert result["aggregate"]["low_qam_pct"] == 5.0
+
+    def test_us31_low_qam_pct_counts_64qam_excludes_128qam_and_keeps_unknown_denominator(self):
+        snaps = []
+        for hour in range(10):
+            snaps.append(_make_snapshot(
+                f"2026-05-06T{hour:02d}:00:00Z",
+                us_channels=[{"channel_id": 41, "modulation": "Unknown", "docsis_version": "3.1"}],
+            ))
+        for hour in range(10, 15):
+            snaps.append(_make_snapshot(
+                f"2026-05-06T{hour:02d}:00:00Z",
+                us_channels=[{"channel_id": 41, "modulation": "128QAM", "docsis_version": "3.1"}],
+            ))
+        for hour in range(15, 20):
+            snaps.append(_make_snapshot(
+                f"2026-05-06T{hour:02d}:00:00Z",
+                us_channels=[{"channel_id": 41, "modulation": "64QAM", "docsis_version": "3.1"}],
+            ))
+
+        result = compute_distribution_v2(snaps, "us", "UTC")
+        pg = result["protocol_groups"][0]
+        day = pg["days"][0]
+
+        assert day["distribution"] == {"128QAM": 25.0, "64QAM": 25.0, "Unknown": 50.0}
+        assert day["low_qam_pct"] == 25.0
+        assert pg["low_qam_pct"] == 25.0
+        assert result["aggregate"]["low_qam_pct"] == 25.0
+
+    def test_low_qam_pct_unknown_denominator_weighted_across_days_and_protocols(self):
+        snaps = []
+        # Day 1 / DOCSIS 3.1: 1 low sample, 19 Unknown => 5% for that day/group.
+        for hour in range(19):
+            snaps.append(_make_snapshot(
+                f"2026-05-01T{hour:02d}:00:00Z",
+                us_channels=[{"channel_id": 41, "modulation": "Unknown", "docsis_version": "3.1"}],
+            ))
+        snaps.append(_make_snapshot(
+            "2026-05-01T20:00:00Z",
+            us_channels=[{"channel_id": 41, "modulation": "64QAM", "docsis_version": "3.1"}],
+        ))
+        # Day 2 / DOCSIS 3.0: 1 low sample, 99 non-low samples. This guards the
+        # global aggregate against protocol averaging and numeric-only denominators.
+        snaps.append(_make_snapshot(
+            "2026-05-02T00:00:00Z",
+            us_channels=[{"channel_id": 1, "modulation": "16QAM", "docsis_version": "3.0"}],
+        ))
+        for minute in range(99):
+            snaps.append(_make_snapshot(
+                f"2026-05-02T01:{minute % 60:02d}:00Z",
+                us_channels=[{"channel_id": 1, "modulation": "64QAM", "docsis_version": "3.0"}],
+            ))
+
+        result = compute_distribution_v2(snaps, "us", "UTC")
+        groups = {pg["docsis_version"]: pg for pg in result["protocol_groups"]}
+
+        assert groups["3.1"]["low_qam_pct"] == 5.0
+        assert groups["3.0"]["low_qam_pct"] == 1.0
+        assert result["aggregate"]["low_qam_pct"] == 1.7
+        assert result["aggregate"]["low_qam_pct"] != 3.0
+        assert result["aggregate"]["low_qam_pct"] != 100.0
+
+
     def test_prefers_profile_modulation_for_ofdma_distribution(self):
         snaps = [
             _make_snapshot(
@@ -318,6 +412,29 @@ class TestComputeIntraday:
         snaps = [_make_snapshot("2026-03-01T10:00:00Z", us_channels=us_channels)]
         result = compute_intraday(snaps, "us", "UTC", "2026-03-01")
         assert len(result["protocol_groups"]) == 2
+
+    def test_us31_intraday_treats_64qam_as_degraded_event(self):
+        snaps = [
+            _make_snapshot("2026-03-01T10:00:00Z",
+                           us_channels=[{"channel_id": 41, "modulation": "1024QAM",
+                                         "docsis_version": "3.1", "frequency": "29.775 - 64.775"}]),
+            _make_snapshot("2026-03-01T14:00:00Z",
+                           us_channels=[{"channel_id": 41, "modulation": "64QAM",
+                                         "docsis_version": "3.1", "frequency": "29.775 - 64.775"}]),
+            _make_snapshot("2026-03-01T18:00:00Z",
+                           us_channels=[{"channel_id": 41, "modulation": "1024QAM",
+                                         "docsis_version": "3.1", "frequency": "29.775 - 64.775"}]),
+        ]
+
+        result = compute_intraday(snaps, "us", "UTC", "2026-03-01")
+        pg = next(pg for pg in result["protocol_groups"] if pg["docsis_version"] == "3.1")
+        ch = pg["channels"][0]
+
+        assert ch["degraded"] is True
+        assert ch["worst_modulation"] == "64QAM"
+        assert ch["degraded_sample_pct"] == 33
+        assert ch["degraded_events"][0]["label"] == "64QAM"
+        assert "64QAM" in ch["summary"]
 
     def test_us31_channel_summary_does_not_treat_128qam_as_low_qam(self):
         snaps = [
