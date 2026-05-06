@@ -460,3 +460,51 @@ class TestMobileLayout:
         assert all(rect["opacity"] > 0 for rect in trends_targets["glossary"])
         assert all(rect["visibility"] == "visible" for rect in trends_targets["glossary"])
         assert all(rect["pointerEvents"] != "none" for rect in trends_targets["glossary"])
+
+class TestDesktopCorrelationLayout:
+    """Desktop correlation timeline layout behavior."""
+
+    def test_correlation_timeline_sticky_header_uses_opaque_backdrop(self, page, live_server):
+        """Sticky Unified Timeline headers should mask rows while scrolling."""
+        page.set_viewport_size({"width": 1366, "height": 768})
+        page.goto(live_server)
+        page.wait_for_load_state("networkidle")
+        page.evaluate("switchView('correlation')")
+        page.wait_for_selector("#correlation-table-card", state="visible")
+        page.wait_for_selector("#correlation-tbody tr[data-ts]")
+        page.locator("#correlation-table-wrap").evaluate("wrap => { wrap.style.maxHeight = '96px'; }")
+
+        header_state = page.locator("#correlation-table thead th").first.evaluate(
+            r"""
+            (th) => {
+                const wrap = document.querySelector('#correlation-table-wrap');
+                const canScroll = wrap.scrollHeight > wrap.clientHeight;
+                wrap.scrollTop = 80;
+                const style = getComputedStyle(th);
+                const bg = style.backgroundColor;
+                const match = bg.match(/rgba?\(([^)]+)\)/);
+                let alpha = 1;
+                if (match) {
+                    const parts = match[1].split(',').map((part) => part.trim());
+                    if (parts.length === 4) alpha = Number(parts[3]);
+                }
+                const rect = th.getBoundingClientRect();
+                const topElement = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                return {
+                    backgroundColor: bg,
+                    alpha,
+                    canScroll,
+                    position: style.position,
+                    scrollTop: wrap.scrollTop,
+                    zIndex: Number(style.zIndex) || 0,
+                    topElementTag: topElement ? topElement.tagName : null,
+                };
+            }
+            """
+        )
+
+        assert header_state["canScroll"] is True
+        assert header_state["scrollTop"] > 0
+        assert header_state["position"] == "sticky"
+        assert header_state["topElementTag"] == "TH"
+        assert header_state["alpha"] >= 0.98, header_state["backgroundColor"]
