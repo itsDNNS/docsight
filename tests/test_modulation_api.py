@@ -326,6 +326,33 @@ class TestTrendEndpoint:
         assert data[0]["low_qam_pct"] != 100.0
 
 
+    def test_trend_keeps_unknown_in_visible_low_qam_denominator(self, client_with_storage):
+        client, storage = client_with_storage
+        day = _ts_days_ago(1)[:10]
+        for hour in range(19):
+            _store_snapshot(
+                storage,
+                f"{day}T{hour:02d}:00:00Z",
+                us_channels=[
+                    {"modulation": "Unknown", "channel_id": 1, "docsis_version": "3.1"},
+                ],
+            )
+        _store_snapshot(
+            storage,
+            f"{day}T20:00:00Z",
+            us_channels=[
+                {"modulation": "64QAM", "channel_id": 1, "docsis_version": "3.1"},
+            ],
+        )
+
+        resp = client.get("/api/modulation/trend?days=7&direction=us")
+        data = resp.get_json()
+
+        assert len(data) == 1
+        assert data[0]["low_qam_pct"] == 5.0
+        assert data[0]["low_qam_pct"] != 100.0
+        assert data[0]["dominant_modulation"] == "Unknown"
+
     def test_trend_us_docsis31_128qam_does_not_count_as_low_qam(self, client_with_storage):
         client, storage = client_with_storage
         day = _ts_days_ago(1)[:10]

@@ -13,7 +13,7 @@ from app.modules.modulation.engine import (
     _degraded_qam_threshold,
     _health_index,
     _health_index_for_group,
-    _low_qam_pct,
+    _numeric_low_qam_pct,
     _group_channels_by_protocol,
     _modulation_periods,
     _simplify_timeline,
@@ -253,44 +253,44 @@ class TestDegradedThresholds:
         assert _degraded_qam_threshold("us", "3.1", 16) == 64
 
 
-# ── _low_qam_pct ──
+# ── _numeric_low_qam_pct ──
 
-class TestLowQamPct:
+class TestNumericLowQamPct:
     def test_no_observations(self):
-        assert _low_qam_pct([], 16) == 0
+        assert _numeric_low_qam_pct([], 16) == 0
 
     def test_all_low(self):
         obs = [("4QAM", 4)] * 10
-        assert _low_qam_pct(obs, 16) == 100.0
+        assert _numeric_low_qam_pct(obs, 16) == 100.0
 
     def test_none_low(self):
         obs = [("256QAM", 256)] * 10
-        assert _low_qam_pct(obs, 16) == 0.0
+        assert _numeric_low_qam_pct(obs, 16) == 0.0
 
     def test_mixed(self):
         obs = [("4QAM", 4)] * 2 + [("256QAM", 256)] * 8
-        assert _low_qam_pct(obs, 16) == 20.0
+        assert _numeric_low_qam_pct(obs, 16) == 20.0
 
     def test_threshold_boundary(self):
         obs = [("16QAM", 16)] * 5 + [("64QAM", 64)] * 5
-        assert _low_qam_pct(obs, 16) == 50.0
+        assert _numeric_low_qam_pct(obs, 16) == 50.0
 
 
     def test_threshold_64_excludes_128qam(self):
         obs = [("64QAM", 64)] * 4 + [("128QAM", 128)] * 6
-        assert _low_qam_pct(obs, 64) == 40.0
+        assert _numeric_low_qam_pct(obs, 64) == 40.0
 
     def test_ignores_ofdm(self):
         obs = [("4QAM", 4)] * 1 + [("64QAM", 64)] * 1 + [("OFDM", None)] * 8
-        assert _low_qam_pct(obs, 16) == 50.0
+        assert _numeric_low_qam_pct(obs, 16) == 50.0
 
     def test_custom_threshold_64(self):
         obs = [("16QAM", 16)] * 3 + [("64QAM", 64)] * 2 + [("256QAM", 256)] * 5
-        assert _low_qam_pct(obs, 64) == 50.0
+        assert _numeric_low_qam_pct(obs, 64) == 50.0
 
     def test_ofdm_only_returns_zero(self):
         obs = [("OFDM", None)] * 10
-        assert _low_qam_pct(obs, 16) == 0
+        assert _numeric_low_qam_pct(obs, 16) == 0
 
 
 # ── _group_channels_by_protocol ──

@@ -161,12 +161,15 @@ def _low_qam_counts(observations, threshold):
     return low_count, len(numeric)
 
 
-def _low_qam_pct(observations, threshold):
-    """Compute % of numeric-QAM observations where qam_order <= threshold."""
+def _numeric_low_qam_pct(observations, threshold):
+    """Compute % of numeric-QAM observations where qam_order <= threshold.
+
+    This helper is intentionally numeric-only for health-facing internals. Visible
+    Low-QAM exposure uses raw low-QAM counts over total sample counts so Unknown
+    samples stay in the same denominator as the distribution chart.
+    """
     low_count, numeric_count = _low_qam_counts(observations, threshold)
-    if numeric_count == 0:
-        return 0
-    return round(low_count / numeric_count * 100, 1)
+    return round(low_count / numeric_count * 100, 1) if numeric_count else 0
 
 
 def _group_channels_by_protocol(channels):
@@ -292,10 +295,10 @@ def compute_distribution_v2(snapshots, direction, tz_name, low_qam_threshold=16)
     total_low_qam_samples = sum(
         group.get("low_qam_sample_count", 0) or 0 for group in protocol_groups
     )
-    total_numeric_samples = sum(
-        group.get("numeric_sample_count", 0) or 0 for group in protocol_groups
+    total_sample_exposure = sum(
+        group.get("sample_count", 0) or 0 for group in protocol_groups
     )
-    agg_lq = _weighted_pct_from_counts(total_low_qam_samples, total_numeric_samples)
+    agg_lq = _weighted_pct_from_counts(total_low_qam_samples, total_sample_exposure)
 
     return {
         "direction": direction,
@@ -356,7 +359,10 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
         else:
             hi = _health_index_for_group(day_observations, direction, version)
         low_qam_count, numeric_sample_count = _low_qam_counts(day_observations, effective_threshold)
-        lq = round(low_qam_count / numeric_sample_count * 100, 1) if numeric_sample_count else 0
+        # Keep the Low-QAM percentage on the same visible denominator as the
+        # distribution chart. Unknown/non-numeric samples remain in the total
+        # instead of turning one low numeric sample into 100% exposure.
+        lq = _weighted_pct_from_counts(low_qam_count, len(day_observations))
 
         # Count degraded channels for this day
         degraded = _count_degraded_channels_day(
@@ -386,10 +392,7 @@ def _build_protocol_group(version, direction, by_date, sorted_dates, threshold):
     overall_low_qam_count, overall_numeric_sample_count = _low_qam_counts(
         all_observations, effective_threshold
     )
-    overall_lq = (
-        round(overall_low_qam_count / overall_numeric_sample_count * 100, 1)
-        if overall_numeric_sample_count else 0
-    )
+    overall_lq = _weighted_pct_from_counts(overall_low_qam_count, len(all_observations))
     overall_dist = _distribution_pct(all_observations)
     dominant = max(overall_dist, key=overall_dist.get) if overall_dist else None
 
@@ -755,7 +758,7 @@ def compute_distribution(snapshots, direction, tz_name, low_qam_threshold=16):
             "distribution": distribution,
             "health_index": _weighted_avg(entry["health_values"]),
             "low_qam_pct": _weighted_pct_from_counts(
-                entry["low_qam_sample_count"], entry["numeric_sample_count"]
+                entry["low_qam_sample_count"], entry["sample_count"]
             ),
         })
 
