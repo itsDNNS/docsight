@@ -269,6 +269,32 @@ class TestProtocolGroups:
         disclaimer = self.page.locator("#mod-disclaimer")
         expect(disclaimer).to_be_visible()
 
+    def test_us_docsis31_low_qam_legend_hint_visible_when_group_exists(self, live_server):
+        resp = self.page.request.get(f"{live_server}/api/modulation/distribution?direction=us&days=7")
+        groups = resp.json().get("protocol_groups", [])
+        has_us_docsis31 = any(str(group.get("docsis_version")) == "3.1" for group in groups)
+        if not has_us_docsis31:
+            pytest.skip("Demo data has no US DOCSIS 3.1 protocol group")
+
+        us_d31_group = self.page.locator(
+            '.mod-protocol-group[data-direction="us"][data-docsis-version="3.1"]'
+        ).first
+        expect(
+            us_d31_group.locator(".modulation-custom-legend-hint").filter(
+                has_text="US DOCSIS 3.1 upstream"
+            )
+        ).to_be_visible()
+
+        us_d30_groups = self.page.locator(
+            '.mod-protocol-group[data-direction="us"][data-docsis-version="3.0"]'
+        )
+        if us_d30_groups.count() > 0:
+            expect(us_d30_groups.first.locator(".modulation-custom-legend-hint")).to_have_count(0)
+
+        self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]').click()
+        self.page.wait_for_timeout(1500)
+        expect(self.page.locator(".modulation-custom-legend-hint")).to_have_count(0)
+
 
 # ── No Console Errors ──
 
