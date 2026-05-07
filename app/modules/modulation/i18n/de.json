@@ -35,5 +35,6 @@
     "glossary_health_index": "Gesundheitsindex: ein Gesamtwert (0-100), der die Modulationsqualität aller Kanäle widerspiegelt. Höher bedeutet weniger Signaldegradation.",
     "glossary_low_qam": "Low-QAM-Anteil: DOCSight-Heuristik für den Anteil der Samples auf niedrigen Modulationsstufen. Bei US DOCSIS 3.1 zählt 64QAM und darunter; 128QAM fließt in den Gesundheitsindex ein, zählt aber nicht als Low-QAM. Hoher Anteil deutet auf anhaltende Signalprobleme hin.",
     "glossary_sample_density": "Messabdeckung: Anzahl der gesammelten Polling-Messungen im gewählten Zeitraum. Mehr Messungen bedeuten genauere Statistiken.",
-    "low_qam_denominator_hint": "Unknown-Samples bleiben im Gesamtwert"
+    "low_qam_denominator_hint": "Unknown-Samples bleiben im Gesamtwert",
+    "low_qam_legend_hint_d31_us": "US DOCSIS 3.1 Upstream: 64QAM und darunter zählen als Low-QAM (rot). 128QAM ist grenzwertig (orange). 256QAM und höher gelten als gesund."
 }

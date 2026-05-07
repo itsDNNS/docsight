@@ -372,6 +372,15 @@
     flex-shrink: 0;
 }
 
+.modulation-custom-legend-hint {
+    flex-basis: 100%;
+    margin-top: 4px;
+    font-size: 0.72em;
+    line-height: 1.35;
+    color: var(--text-secondary, var(--muted));
+    opacity: 0.85;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .mod-controls {

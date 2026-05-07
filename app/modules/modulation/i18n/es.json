@@ -35,5 +35,6 @@
     "glossary_health_index": "Índice de salud: puntuación global (0-100) que refleja la calidad de modulación en todos los canales. Mayor significa menos degradación.",
     "glossary_low_qam": "Exposición Low-QAM: heurística de DOCSight para el porcentaje de muestras en niveles bajos de modulación. Para US DOCSIS 3.1 cuenta 64QAM e inferiores; 128QAM se refleja en el índice de salud, pero no cuenta como Low-QAM. Una exposición alta indica problemas de señal persistentes.",
     "glossary_sample_density": "Densidad de muestras: número de mediciones recopiladas para el período seleccionado. Más muestras significan estadísticas más precisas.",
-    "low_qam_denominator_hint": "Las muestras Unknown permanecen en el total"
+    "low_qam_denominator_hint": "Las muestras Unknown permanecen en el total",
+    "low_qam_legend_hint_d31_us": "US DOCSIS 3.1 upstream: 64QAM y por debajo cuentan como Low-QAM (rojo). 128QAM es limítrofe (ámbar). 256QAM y superiores se muestran como saludables."
 }

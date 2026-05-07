@@ -22,6 +22,52 @@ var QAM_COLORS = {
     'Unknown': '#6b7280'
 };
 
+/* US DOCSIS 3.1 upstream context coloring.
+   In a max 1024QAM upstream group, 64QAM and below are Low-QAM (red family),
+   128QAM is not Low-QAM but is not unambiguously healthy (amber/warning),
+   256QAM and above read as healthy (green family).
+   Other contexts keep the global QAM_COLORS palette unchanged. */
+var QAM_COLORS_US_DOCSIS_31 = {
+    'QPSK':    '#b91c1c',
+    '4QAM':    '#b91c1c',
+    '8QAM':    '#dc2626',
+    '16QAM':   '#ef4444',
+    '32QAM':   '#f87171',
+    '64QAM':   '#fb7185',
+    '128QAM':  '#f59e0b',
+    '256QAM':  '#86efac',
+    '512QAM':  '#22c55e',
+    '1024QAM': '#16a34a',
+    '4096QAM': '#15803d',
+    'OFDM':    '#22c55e',
+    'OFDMA':   '#22c55e',
+    'Unknown': '#6b7280'
+};
+
+function isUsDocsis31Upstream(pg) {
+    if (!pg) return false;
+    var direction = pg._direction || pg.direction || '';
+    return direction === 'us' && String(pg.docsis_version || '') === '3.1';
+}
+
+function qamColorForContext(mod, pg) {
+    if (isUsDocsis31Upstream(pg)) {
+        if (Object.prototype.hasOwnProperty.call(QAM_COLORS_US_DOCSIS_31, mod)) {
+            return QAM_COLORS_US_DOCSIS_31[mod];
+        }
+    }
+    return QAM_COLORS[mod] || '#6b7280';
+}
+
+function lowQamLegendHintForContext(pg) {
+    if (isUsDocsis31Upstream(pg)) {
+        return T['docsight.modulation.low_qam_legend_hint_d31_us'] ||
+            T['low_qam_legend_hint_d31_us'] ||
+            'US DOCSIS 3.1: 64QAM and below count as Low-QAM; 128QAM is borderline.';
+    }
+    return '';
+}
+
 var MODULATION_LEVELS = [
     '4QAM',
     '8QAM',
@@ -168,8 +214,12 @@ function renderProtocolGroups(data) {
     container.textContent = '';
 
     var groups = data.protocol_groups || [];
+    var renderDirection = data.direction || _modDirection;
     groups.forEach(function(pg, idx) {
+        pg._direction = renderDirection;
         var section = _el('div', 'mod-protocol-group');
+        section.setAttribute('data-direction', renderDirection);
+        section.setAttribute('data-docsis-version', String(pg.docsis_version || ''));
 
         // Header
         var header = _el('div', 'mod-protocol-group-header');
@@ -310,11 +360,12 @@ function renderGroupDistChart(pg, idx) {
     var uSeries = [{ label: 'X', value: function(u, v) { return labels[v] || ''; } }];
     for (var li = layerData.length - 1; li >= 0; li--) {
         var layer = layerData[li];
+        var layerColor = qamColorForContext(layer.mod, pg);
         uData.push(layer.data);
         uSeries.push({
             label: layer.mod,
-            stroke: QAM_COLORS[layer.mod] || '#6b7280',
-            fill: QAM_COLORS[layer.mod] || '#6b7280',
+            stroke: layerColor,
+            fill: layerColor,
             width: 0,
             paths: barPaths,
             points: { show: false }
@@ -322,7 +373,7 @@ function renderGroupDistChart(pg, idx) {
     }
 
     if (legendContainer) {
-        renderDistributionLegend(legendContainer, modKeys);
+        renderDistributionLegend(legendContainer, modKeys, pg);
     }
 
     var w = container.offsetWidth || 400;
@@ -793,15 +844,21 @@ function modSortOrder(mod) {
     return order[mod] !== undefined ? order[mod] : (MODULATION_LEVELS.length - 1);
 }
 
-function renderDistributionLegend(container, modKeys) {
+function renderDistributionLegend(container, modKeys, pg) {
     modKeys.forEach(function(mod) {
         var item = _el('div', 'modulation-custom-legend-item');
         var swatch = _el('span', 'modulation-custom-legend-swatch');
-        swatch.style.background = QAM_COLORS[mod] || '#6b7280';
+        swatch.style.background = qamColorForContext(mod, pg);
         item.appendChild(swatch);
         item.appendChild(_el('span', 'modulation-custom-legend-label', mod));
         container.appendChild(item);
     });
+
+    var hintText = lowQamLegendHintForContext(pg);
+    if (hintText) {
+        var hint = _el('div', 'modulation-custom-legend-hint', hintText);
+        container.appendChild(hint);
+    }
 }
 
 function destroyCharts() {
