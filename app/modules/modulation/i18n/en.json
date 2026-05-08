@@ -36,5 +36,6 @@
     "glossary_low_qam": "Low-QAM Exposure: DOCSight heuristic for the percentage of samples at low modulation levels. For US DOCSIS 3.1 this counts 64QAM and below; 128QAM is reflected by Health Index but not counted as Low-QAM. High exposure indicates persistent signal problems.",
     "glossary_sample_density": "Sample Density: number of polling samples collected for the selected period. More samples mean more accurate statistics.",
     "low_qam_denominator_hint": "Unknown samples stay in the total",
-    "low_qam_legend_hint_d31_us": "US DOCSIS 3.1 upstream: 64QAM and below are Low-QAM (red). 128QAM is borderline (amber). 256QAM and above read as healthy."
+    "low_qam_legend_hint_d31_us": "US DOCSIS 3.1 upstream: 64QAM and below are Low-QAM (red). 128QAM is borderline (amber). 256QAM and above read as healthy.",
+    "low_qam_legend_hint_d30_us": "US DOCSIS 3.0 upstream: 64QAM is the healthy maximum (green). 32QAM is reduced (amber); 16QAM and below are low (red)."
 }

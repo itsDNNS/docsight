@@ -32,7 +32,7 @@ var QAM_COLORS_US_DOCSIS_31 = {
     '4QAM':    '#b91c1c',
     '8QAM':    '#dc2626',
     '16QAM':   '#ef4444',
-    '32QAM':   '#f87171',
+    '32QAM':   '#dc2626',
     '64QAM':   '#fb7185',
     '128QAM':  '#f59e0b',
     '256QAM':  '#86efac',
@@ -44,16 +44,48 @@ var QAM_COLORS_US_DOCSIS_31 = {
     'Unknown': '#6b7280'
 };
 
+/* US DOCSIS 3.0 upstream context coloring.
+   In DOCSIS 3.0 upstream charts, 64QAM is the expected healthy maximum,
+   32QAM is reduced/warning, and 16QAM and below are degraded.
+   Downstream and non-DOCSIS 3.0 contexts keep the global palette unchanged. */
+var QAM_COLORS_US_DOCSIS_30 = {
+    'QPSK':    '#b91c1c',
+    '4QAM':    '#b91c1c',
+    '8QAM':    '#dc2626',
+    '16QAM':   '#ef4444',
+    '32QAM':   '#f59e0b',
+    '64QAM':   '#22c55e',
+    '128QAM':  '#84cc16',
+    '256QAM':  '#22c55e',
+    '512QAM':  '#14b8a6',
+    '1024QAM': '#06b6d4',
+    '4096QAM': '#3b82f6',
+    'OFDM':    '#8b5cf6',
+    'OFDMA':   '#8b5cf6',
+    'Unknown': '#6b7280'
+};
+
 function isUsDocsis31Upstream(pg) {
     if (!pg) return false;
     var direction = pg._direction || pg.direction || '';
     return direction === 'us' && String(pg.docsis_version || '') === '3.1';
 }
 
+function isUsDocsis30Upstream(pg) {
+    if (!pg) return false;
+    var direction = pg._direction || pg.direction || '';
+    return direction === 'us' && String(pg.docsis_version || '') === '3.0';
+}
+
 function qamColorForContext(mod, pg) {
     if (isUsDocsis31Upstream(pg)) {
         if (Object.prototype.hasOwnProperty.call(QAM_COLORS_US_DOCSIS_31, mod)) {
             return QAM_COLORS_US_DOCSIS_31[mod];
+        }
+    }
+    if (isUsDocsis30Upstream(pg)) {
+        if (Object.prototype.hasOwnProperty.call(QAM_COLORS_US_DOCSIS_30, mod)) {
+            return QAM_COLORS_US_DOCSIS_30[mod];
         }
     }
     return QAM_COLORS[mod] || '#6b7280';
@@ -64,6 +96,11 @@ function lowQamLegendHintForContext(pg) {
         return T['docsight.modulation.low_qam_legend_hint_d31_us'] ||
             T['low_qam_legend_hint_d31_us'] ||
             'US DOCSIS 3.1: 64QAM and below count as Low-QAM; 128QAM is borderline.';
+    }
+    if (isUsDocsis30Upstream(pg)) {
+        return T['docsight.modulation.low_qam_legend_hint_d30_us'] ||
+            T['low_qam_legend_hint_d30_us'] ||
+            'US DOCSIS 3.0 upstream: 64QAM is the healthy maximum; 32QAM is reduced.';
     }
     return '';
 }
