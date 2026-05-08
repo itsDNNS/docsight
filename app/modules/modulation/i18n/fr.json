@@ -36,5 +36,6 @@
     "glossary_low_qam": "Exposition Low-QAM : heuristique DOCSight pour le pourcentage d’échantillons à de faibles niveaux de modulation. Pour l’US DOCSIS 3.1, 64QAM et moins sont comptés ; 128QAM est reflété par l’indice de santé, mais n’est pas compté comme Low-QAM. Une exposition élevée indique des problèmes de signal persistants.",
     "glossary_sample_density": "Densité d'échantillons : nombre de mesures collectées pour la période sélectionnée. Plus de mesures signifie des statistiques plus précises.",
     "low_qam_denominator_hint": "Les échantillons Unknown restent dans le total",
-    "low_qam_legend_hint_d31_us": "US DOCSIS 3.1 amont : 64QAM et moins comptent comme Low-QAM (rouge). 128QAM est limite (ambre). 256QAM et plus apparaissent comme sains."
+    "low_qam_legend_hint_d31_us": "US DOCSIS 3.1 amont : 64QAM et moins comptent comme Low-QAM (rouge). 128QAM est limite (ambre). 256QAM et plus apparaissent comme sains.",
+    "low_qam_legend_hint_d30_us": "US DOCSIS 3.0 amont : 64QAM est le maximum sain (vert). 32QAM est réduit (ambre) ; 16QAM et moins sont bas (rouge)."
 }

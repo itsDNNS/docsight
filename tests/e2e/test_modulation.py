@@ -269,27 +269,33 @@ class TestProtocolGroups:
         disclaimer = self.page.locator("#mod-disclaimer")
         expect(disclaimer).to_be_visible()
 
-    def test_us_docsis31_low_qam_legend_hint_visible_when_group_exists(self, live_server):
+    def test_upstream_protocol_groups_have_context_specific_legend_hints(self, live_server):
         resp = self.page.request.get(f"{live_server}/api/modulation/distribution?direction=us&days=7")
         groups = resp.json().get("protocol_groups", [])
         has_us_docsis31 = any(str(group.get("docsis_version")) == "3.1" for group in groups)
-        if not has_us_docsis31:
-            pytest.skip("Demo data has no US DOCSIS 3.1 protocol group")
+        has_us_docsis30 = any(str(group.get("docsis_version")) == "3.0" for group in groups)
+        if not (has_us_docsis31 or has_us_docsis30):
+            pytest.skip("Demo data has no US DOCSIS 3.0 or 3.1 protocol group")
 
-        us_d31_group = self.page.locator(
-            '.mod-protocol-group[data-direction="us"][data-docsis-version="3.1"]'
-        ).first
-        expect(
-            us_d31_group.locator(".modulation-custom-legend-hint").filter(
-                has_text="US DOCSIS 3.1 upstream"
-            )
-        ).to_be_visible()
+        if has_us_docsis31:
+            us_d31_group = self.page.locator(
+                '.mod-protocol-group[data-direction="us"][data-docsis-version="3.1"]'
+            ).first
+            expect(
+                us_d31_group.locator(".modulation-custom-legend-hint").filter(
+                    has_text="US DOCSIS 3.1 upstream"
+                )
+            ).to_be_visible()
 
-        us_d30_groups = self.page.locator(
-            '.mod-protocol-group[data-direction="us"][data-docsis-version="3.0"]'
-        )
-        if us_d30_groups.count() > 0:
-            expect(us_d30_groups.first.locator(".modulation-custom-legend-hint")).to_have_count(0)
+        if has_us_docsis30:
+            us_d30_group = self.page.locator(
+                '.mod-protocol-group[data-direction="us"][data-docsis-version="3.0"]'
+            ).first
+            expect(
+                us_d30_group.locator(".modulation-custom-legend-hint").filter(
+                    has_text="US DOCSIS 3.0 upstream"
+                )
+            ).to_be_visible()
 
         self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]').click()
         self.page.wait_for_timeout(1500)

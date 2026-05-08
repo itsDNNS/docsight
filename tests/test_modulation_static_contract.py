@@ -106,9 +106,87 @@ def test_us_docsis_31_64qam_is_critical_and_128qam_is_warning():
     )
 
 
+def test_us_docsis_31_low_qam_colors_are_easy_to_distinguish():
+    """Adjacent low-QAM levels need enough palette separation for screenshots.
+    Issue #447."""
+    js = MODULATION_JS.read_text(encoding="utf-8")
+    map_match = re.search(
+        r"QAM_COLORS_US_DOCSIS_31\s*=\s*\{([^}]+)\}",
+        js,
+    )
+    assert map_match, "Expected US DOCSIS 3.1 context color map"
+    ctx_map = map_match.group(1)
+
+    def color_for(level):
+        m = re.search(r"'" + re.escape(level) + r"'\s*:\s*'(#[0-9a-fA-F]{6})'", ctx_map)
+        assert m, f"US DOCSIS 3.1 context map missing entry for {level}"
+        return m.group(1).lower()
+
+    assert color_for("32QAM") in {"#dc2626", "#b91c1c"}, (
+        "US DOCSIS 3.1 context: 32QAM should use a darker red than 64QAM"
+    )
+    assert color_for("64QAM") in {"#fb7185", "#f87171", "#ef4444"}, (
+        "US DOCSIS 3.1 context: 64QAM should remain red-family but distinct from 32QAM"
+    )
+    assert color_for("32QAM") != color_for("64QAM"), (
+        "US DOCSIS 3.1 context: 32QAM and 64QAM must not share a color"
+    )
+
+
+def test_us_docsis_30_upstream_uses_own_healthy_64qam_palette():
+    """US DOCSIS 3.0 upstream has a different visual semantic: 64QAM is
+    the healthy maximum, 32QAM is reduced/warning, and 16QAM and below are low.
+    Issue #447."""
+    js = MODULATION_JS.read_text(encoding="utf-8")
+
+    assert "function isUsDocsis30Upstream" in js, (
+        "Expected explicit US DOCSIS 3.0 upstream context helper"
+    )
+    map_match = re.search(
+        r"QAM_COLORS_US_DOCSIS_30\s*=\s*\{([^}]+)\}",
+        js,
+    )
+    assert map_match, "Expected US DOCSIS 3.0 upstream context color map"
+    ctx_map = map_match.group(1)
+
+    def color_for(level):
+        m = re.search(r"'" + re.escape(level) + r"'\s*:\s*'(#[0-9a-fA-F]{6})'", ctx_map)
+        assert m, f"US DOCSIS 3.0 context map missing entry for {level}"
+        return m.group(1).lower()
+
+    assert color_for("64QAM") in {"#22c55e", "#16a34a", "#15803d", "#86efac"}, (
+        "US DOCSIS 3.0 upstream: 64QAM must read as healthy/green"
+    )
+    assert color_for("32QAM") in {"#f59e0b", "#f97316", "#d97706", "#fbbf24"}, (
+        "US DOCSIS 3.0 upstream: 32QAM must read as warning/reduced modulation"
+    )
+    assert color_for("16QAM") in {"#ef4444", "#dc2626", "#b91c1c", "#f87171"}, (
+        "US DOCSIS 3.0 upstream: 16QAM and below must read as low/degraded"
+    )
+
+
+def test_us_docsis_30_upstream_context_does_not_match_downstream():
+    """The DOCSIS 3.0 upstream palette must stay scoped to upstream groups.
+    Downstream DOCSIS 3.0 keeps the default/global chart colors. Issue #447."""
+    js = MODULATION_JS.read_text(encoding="utf-8")
+    helper_match = re.search(
+        r"function isUsDocsis30Upstream\([^)]*\)\s*\{(.*?)\n\}",
+        js,
+        re.DOTALL,
+    )
+    assert helper_match, "isUsDocsis30Upstream must be defined"
+    helper_body = helper_match.group(1)
+    assert "direction === 'us'" in helper_body, (
+        "DOCSIS 3.0 context coloring must be scoped to upstream only"
+    )
+    assert "String(pg.docsis_version || '') === '3.0'" in helper_body, (
+        "DOCSIS 3.0 context coloring must require the 3.0 protocol group"
+    )
+
+
 def test_global_us_docsis_30_64qam_color_is_unchanged():
     """The global QAM_COLORS map must keep 64QAM at its existing yellow value
-    so US DOCSIS 3.0 upstream is not painted red by default. Issue #444."""
+    so non-contextual/default charts are unchanged. Issue #444/#447."""
     js = MODULATION_JS.read_text(encoding="utf-8")
 
     qam_colors_match = re.search(
@@ -153,3 +231,11 @@ def test_low_qam_legend_hint_key_is_localized_for_all_modulation_languages():
     for path in I18N_DIR.glob("*.json"):
         text = path.read_text(encoding="utf-8")
         assert "low_qam_legend_hint_d31_us" in text, path.name
+
+
+def test_docsis_30_upstream_legend_hint_key_is_localized_for_all_modulation_languages():
+    """Every modulation locale must define the DOCSIS 3.0 upstream legend hint.
+    Issue #447."""
+    for path in I18N_DIR.glob("*.json"):
+        text = path.read_text(encoding="utf-8")
+        assert "low_qam_legend_hint_d30_us" in text, path.name
