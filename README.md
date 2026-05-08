@@ -33,7 +33,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/readme-hero-evidence.png" alt="DOCSight dashboard" width="100%" />
+  <img src="docs/screenshots/readme-hero-evidence.png" alt="DOCSight cross-source correlation timeline" width="100%" />
 </p>
 
 <p align="center">
