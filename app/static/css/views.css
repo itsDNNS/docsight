@@ -509,22 +509,15 @@
     flex-direction: column;
     gap: 8px;
 }
-.event-feed-topline,
-.event-feed-meta {
+.event-feed-topline {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
 }
-.event-feed-time,
-.event-feed-meta {
+.event-feed-time {
     color: var(--text-secondary, var(--muted));
     font-size: 0.82em;
-}
-.event-feed-meta span + span::before {
-    content: "•";
-    margin-right: 8px;
-    color: var(--text-muted, var(--muted));
 }
 .event-feed-title {
     color: var(--text);

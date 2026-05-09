@@ -391,6 +391,7 @@ class TestEventDetector:
             "channel": 11,
             "frequency": "794 MHz",
             "docsis_version": "3.0",
+            "channel_type": "SC-QAM",
             "modulation": "256QAM",
             "prev": 36.2,
             "current": 31.0,
@@ -713,6 +714,26 @@ class TestEventDetector:
         assert "dropped" in mod_events[0]["message"]
         assert mod_events[0]["details"]["direction"] == "downgrade"
         assert mod_events[0]["details"]["changes"][0]["rank_drop"] == 2
+
+    def test_modulation_change_includes_channel_docsis_metadata(self, detector):
+        """DOCSIS channel events carry enough metadata for useful Event Log labels."""
+        us1 = [{"channel_id": 5, "modulation": "qam_64", "power": 42.0,
+                "multiplex": "SC-QAM", "docsis_version": "3.0",
+                "health": "good", "health_detail": "", "frequency": "37 MHz"}]
+        us2 = [{"channel_id": 5, "modulation": "qam_8", "power": 42.0,
+                "multiplex": "SC-QAM", "docsis_version": "3.0",
+                "health": "good", "health_detail": "", "frequency": "37 MHz"}]
+
+        detector.check(_make_analysis(us_total=1, us_channels=us1))
+        events = detector.check(_make_analysis(us_total=1, us_channels=us2))
+
+        mod_event = next(e for e in events if e["event_type"] == "modulation_change")
+        change = mod_event["details"]["changes"][0]
+        assert change["channel"] == 5
+        assert change["direction"] == "US"
+        assert change["docsis_version"] == "3.0"
+        assert change["channel_type"] == "SC-QAM"
+        assert change["frequency"] == "37 MHz"
 
     def test_modulation_upgrade_qam_underscore_format(self, detector):
         """qam_64 → qam_256 = upgrade (Vodafone Station format)"""
@@ -1287,22 +1308,9 @@ class TestEventsJsRendering:
         if shutil.which("node") is None:
             pytest.skip("node runtime not available")
 
-    def _run_format(self, affected_channels):
+    def _run_format_event(self, ev):
         repo_root = Path(__file__).resolve().parent.parent
         events_js = repo_root / "app" / "static" / "js" / "events.js"
-        ev = {
-            "id": 1,
-            "timestamp": "2026-01-01T00:00:00",
-            "severity": "warning",
-            "event_type": "snr_change",
-            "message": "snr drop",
-            "details": {
-                "threshold": "warning",
-                "prev": 36.0,
-                "current": 31.0,
-                "affected_channels": affected_channels,
-            },
-        }
         harness = textwrap.dedent(
             """
             const fs = require('fs');
@@ -1339,6 +1347,53 @@ class TestEventsJsRendering:
             timeout=15,
         )
         return result
+
+    def _run_format(self, affected_channels):
+        return self._run_format_event({
+            "id": 1,
+            "timestamp": "2026-01-01T00:00:00",
+            "severity": "warning",
+            "event_type": "snr_change",
+            "message": "snr drop",
+            "details": {
+                "threshold": "warning",
+                "prev": 36.0,
+                "current": 31.0,
+                "affected_channels": affected_channels,
+            },
+        })
+
+    def test_modulation_render_includes_docsis_channel_type(self):
+        result = self._run_format_event({
+            "id": 1,
+            "timestamp": "2026-01-01T00:00:00",
+            "severity": "critical",
+            "event_type": "modulation_change",
+            "message": "Modulation dropped on 1 channel(s)",
+            "details": {
+                "direction": "downgrade",
+                "changes": [{
+                    "channel": 5,
+                    "direction": "US",
+                    "prev": "qam_64",
+                    "current": "qam_8",
+                    "rank_drop": 3,
+                    "docsis_version": "3.0",
+                    "channel_type": "SC-QAM",
+                    "frequency": "37 MHz",
+                }],
+            },
+        })
+
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.startswith("OK::"), result.stdout
+        html = result.stdout[len("OK::"):]
+        assert "US Ch 5" in html
+        assert "SC-QAM" in html
+        assert "DOCSIS 3.0" in html
+        assert "37 MHz" in html
+        assert "qam_64" in html
+        assert "qam_8" in html
 
     def test_snr_render_handles_malformed_affected_entries(self):
         """null/undefined/non-object entries must not break rendering."""
