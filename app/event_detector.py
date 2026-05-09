@@ -68,6 +68,33 @@ def _coerce_float(value):
     return f
 
 
+def _channel_type_label(direction: str, channel: dict, fallback: dict | None = None) -> str:
+    """Return a concise DOCSIS channel type label for event details."""
+    fallback = fallback or {}
+    raw_values = [
+        channel.get("channel_type"),
+        channel.get("multiplex"),
+        channel.get("modulation"),
+        fallback.get("channel_type"),
+        fallback.get("multiplex"),
+        fallback.get("modulation"),
+    ]
+    raw = " ".join(str(v) for v in raw_values if v).upper()
+    if "OFDMA" in raw:
+        return "OFDMA"
+    if "OFDM" in raw:
+        return "OFDM" if direction == "DS" else "OFDMA"
+    if "SC-QAM" in raw or "ATDMA" in raw or "TDMA" in raw:
+        return "SC-QAM"
+
+    docsis_version = str(channel.get("docsis_version") or fallback.get("docsis_version") or "").strip()
+    if docsis_version in {"3.1", "4.0"}:
+        return "OFDM" if direction == "DS" else "OFDMA"
+    if docsis_version == "3.0":
+        return "SC-QAM"
+    return ""
+
+
 class EventDetector:
     """Compare consecutive analyses and emit event dicts."""
 
@@ -299,6 +326,7 @@ class EventDetector:
                 "channel": ch_id,
                 "frequency": cur_ch.get("frequency") or prev_ch.get("frequency") or "",
                 "docsis_version": cur_ch.get("docsis_version") or prev_ch.get("docsis_version") or "",
+                "channel_type": _channel_type_label("DS", cur_ch, prev_ch),
                 "modulation": cur_ch.get("modulation") or prev_ch.get("modulation") or "",
                 "prev": prev_snr,
                 "current": cur_snr,
@@ -333,34 +361,58 @@ class EventDetector:
             })
 
     def _check_modulation(self, events, ts, cur_analysis, prev_analysis):
-        cur_ds = {ch["channel_id"]: ch.get("modulation", "") for ch in cur_analysis.get("ds_channels", [])}
-        prev_ds = {ch["channel_id"]: ch.get("modulation", "") for ch in prev_analysis.get("ds_channels", [])}
-        cur_us = {ch["channel_id"]: ch.get("modulation", "") for ch in cur_analysis.get("us_channels", [])}
-        prev_us = {ch["channel_id"]: ch.get("modulation", "") for ch in prev_analysis.get("us_channels", [])}
+        def channel_map(analysis, direction):
+            source = "ds_channels" if direction == "DS" else "us_channels"
+            mapped = {}
+            for ch in analysis.get(source, []):
+                key = _normalize_channel_id(ch.get("channel_id"))
+                if key is not None:
+                    mapped[key] = ch
+            return mapped
+
+        def change_entry(direction, cur_ch, prev_ch):
+            cur_mod = cur_ch.get("modulation", "")
+            prev_mod = prev_ch.get("modulation", "")
+            cur_rank = _qam_rank(cur_mod)
+            prev_rank = _qam_rank(prev_mod)
+            docsis_version = cur_ch.get("docsis_version") or prev_ch.get("docsis_version") or ""
+            entry = {
+                "channel": cur_ch.get("channel_id", prev_ch.get("channel_id")),
+                "direction": direction,
+                "prev": prev_mod,
+                "current": cur_mod,
+                "prev_rank": prev_rank,
+                "current_rank": cur_rank,
+                "rank_drop": prev_rank - cur_rank,
+            }
+            if docsis_version:
+                entry["docsis_version"] = docsis_version
+            channel_type = _channel_type_label(direction, cur_ch, prev_ch)
+            if channel_type:
+                entry["channel_type"] = channel_type
+            frequency = cur_ch.get("frequency") or prev_ch.get("frequency") or ""
+            if frequency:
+                entry["frequency"] = frequency
+            return entry
+
+        cur_ds = channel_map(cur_analysis, "DS")
+        prev_ds = channel_map(prev_analysis, "DS")
+        cur_us = channel_map(cur_analysis, "US")
+        prev_us = channel_map(prev_analysis, "US")
 
         downgrades = []
         upgrades = []
-        for ch_id in set(cur_ds) & set(prev_ds):
-            if cur_ds[ch_id] != prev_ds[ch_id]:
-                entry = {"channel": ch_id, "direction": "DS", "prev": prev_ds[ch_id], "current": cur_ds[ch_id]}
-                cur_rank = _qam_rank(cur_ds[ch_id])
-                prev_rank = _qam_rank(prev_ds[ch_id])
-                entry["prev_rank"] = prev_rank
-                entry["current_rank"] = cur_rank
-                entry["rank_drop"] = prev_rank - cur_rank
-                if cur_rank < prev_rank:
+        for key in set(cur_ds) & set(prev_ds):
+            if cur_ds[key].get("modulation", "") != prev_ds[key].get("modulation", ""):
+                entry = change_entry("DS", cur_ds[key], prev_ds[key])
+                if entry["current_rank"] < entry["prev_rank"]:
                     downgrades.append(entry)
                 else:
                     upgrades.append(entry)
-        for ch_id in set(cur_us) & set(prev_us):
-            if cur_us[ch_id] != prev_us[ch_id]:
-                entry = {"channel": ch_id, "direction": "US", "prev": prev_us[ch_id], "current": cur_us[ch_id]}
-                cur_rank = _qam_rank(cur_us[ch_id])
-                prev_rank = _qam_rank(prev_us[ch_id])
-                entry["prev_rank"] = prev_rank
-                entry["current_rank"] = cur_rank
-                entry["rank_drop"] = prev_rank - cur_rank
-                if cur_rank < prev_rank:
+        for key in set(cur_us) & set(prev_us):
+            if cur_us[key].get("modulation", "") != prev_us[key].get("modulation", ""):
+                entry = change_entry("US", cur_us[key], prev_us[key])
+                if entry["current_rank"] < entry["prev_rank"]:
                     downgrades.append(entry)
                 else:
                     upgrades.append(entry)

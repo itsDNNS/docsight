@@ -86,6 +86,15 @@ function _healthDot(h) {
     return '<span class="health-dot ' + cls + '"></span>' + escapeHtml(labels[h] || h);
 }
 
+function _eventChannelMeta(c) {
+    var meta = [];
+    if (c.frequency) meta.push(escapeHtml(String(c.frequency)));
+    if (c.channel_type) meta.push(escapeHtml(String(c.channel_type)));
+    if (c.docsis_version) meta.push('DOCSIS ' + escapeHtml(String(c.docsis_version)));
+    if (c.modulation) meta.push(escapeHtml(String(c.modulation)));
+    return meta;
+}
+
 function formatEventMessage(ev) {
     var d = ev.details;
     if (!d) return escapeHtml(ev.message);
@@ -121,9 +130,7 @@ function formatEventMessage(ev) {
                 var delta = typeof c.delta === 'number' ? c.delta : (c.current - c.prev);
                 var sign = delta >= 0 ? '+' : '';
                 var channelLabel = (T.event_ds || 'DS') + ' Ch ' + escapeHtml(String(c.channel));
-                var meta = [];
-                if (c.frequency) meta.push(escapeHtml(String(c.frequency)));
-                if (c.modulation) meta.push(escapeHtml(String(c.modulation)));
+                var meta = _eventChannelMeta(c);
                 html += '<span class="ev-sub">' + channelLabel +
                     (meta.length ? ' · ' + meta.join(' · ') : '') + ': ' +
                     '<span class="ev-val">' + _fmtNum(c.prev) + '</span>' +
@@ -158,8 +165,10 @@ function formatEventMessage(ev) {
                 var arrow = isDown ? '\u25BC' : '\u25B2';
                 var cls = isDown ? 'ev-down' : 'ev-up';
                 var ranks = Math.abs(c.rank_drop || 0);
+                var channelMeta = _eventChannelMeta(c);
                 html += '<span class="ev-sub">' +
-                    escapeHtml(c.direction) + ' Ch ' + escapeHtml(String(c.channel)) + ': ' +
+                    escapeHtml(c.direction) + ' Ch ' + escapeHtml(String(c.channel)) +
+                    (channelMeta.length ? ' · ' + channelMeta.join(' · ') : '') + ': ' +
                     '<span class="ev-val">' + escapeHtml(c.prev) + '</span>' +
                     '<i data-lucide="arrow-right" class="ev-arrow-icon"></i>' +
                     '<span class="ev-val">' + escapeHtml(c.current) + '</span> ' +
@@ -300,10 +309,6 @@ function loadEvents(append) {
                             '</div>' +
                             '<div class="event-feed-title">' + escapeHtml(typeLabel) + '</div>' +
                             '<div class="event-feed-message">' + formatEventMessage(ev) + '</div>' +
-                            '<div class="event-feed-meta">' +
-                                '<span>' + escapeHtml(sevMeta.label) + '</span>' +
-                                '<span>' + escapeHtml(typeLabel) + '</span>' +
-                            '</div>' +
                         '</div>' +
                         '<div class="event-feed-action">' + _eventAckMarkup(ev, false) + '</div>';
                     feed.appendChild(card);

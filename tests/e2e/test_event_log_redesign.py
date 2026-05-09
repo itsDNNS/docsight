@@ -60,7 +60,7 @@ def test_mobile_event_log_uses_feed_cards_without_table_mode(demo_page):
     expect(page.locator("#events-view-mode-feed")).to_have_count(0)
     expect(page.locator("#events-export-csv")).to_be_visible()
     expect(feed_items.first.locator(".event-feed-title")).to_be_visible()
-    expect(feed_items.first.locator(".event-feed-meta")).to_be_visible()
+    expect(feed_items.first.locator(".event-feed-meta")).to_have_count(0)
     expect(feed_items.first.locator(".event-feed-message")).to_be_visible()
 
     ack_button = feed_items.first.locator(".event-feed-action .btn-ack")
@@ -95,7 +95,7 @@ def test_desktop_event_log_is_feed_only_with_export_and_acknowledge(demo_page):
 
     first_card = page.locator("#events-feed .event-feed-item").first
     expect(first_card.locator(".event-feed-title")).to_be_visible()
-    expect(first_card.locator(".event-feed-meta")).to_be_visible()
+    expect(first_card.locator(".event-feed-meta")).to_have_count(0)
     expect(first_card.locator(".event-feed-message")).to_be_visible()
 
     ack_button = first_card.locator(".event-feed-action .btn-ack")
