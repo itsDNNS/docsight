@@ -4,9 +4,9 @@
 :root {
     --corr-color-download: #0ea5e9;
     --corr-color-upload: #06b6d4;
-    --corr-color-snr: #a855f7;
+    --corr-color-snr: #3b82f6;
     --corr-color-tx-power: #f59e0b;
-    --corr-color-ds-power: #ec4899;
+    --corr-color-ds-power: #a855f7;
     --corr-color-errors: rgba(239,68,68,0.6);
     --corr-color-temperature: #f97316;
     --corr-color-seg-ds: #0ea5e9;
@@ -809,6 +809,7 @@
 #correlation-table {
     width: 100%;
     margin: 0;
+    table-layout: fixed;
 }
 #correlation-table thead tr {
     background: var(--card-bg, var(--card, var(--surface)));
@@ -825,6 +826,15 @@
     z-index: 3;
     background: var(--card-bg, var(--card, var(--surface)));
     box-shadow: 0 1px 0 var(--card-border, var(--input-border));
+}
+#correlation-table thead th:nth-child(1) {
+    width: 180px;
+}
+#correlation-table thead th:nth-child(2) {
+    width: 110px;
+}
+#correlation-table thead th:nth-child(3) {
+    width: 24%;
 }
 #correlation-table tbody tr {
     transition: background 0.15s;
@@ -855,6 +865,26 @@
 #correlation-table tbody td {
     padding: 12px 16px;
     font-size: 0.85em;
+    vertical-align: top;
+}
+#correlation-table .correlation-cell-timestamp {
+    width: 180px;
+    white-space: nowrap;
+}
+#correlation-table .correlation-cell-source {
+    width: 110px;
+    white-space: nowrap;
+}
+#correlation-table .correlation-cell-message {
+    width: 24%;
+}
+#correlation-table .correlation-cell-details {
+    width: auto;
+}
+#correlation-table .correlation-cell-message,
+#correlation-table .correlation-cell-details {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 #correlation-table .source-badge {
     display: inline-block;
@@ -926,6 +956,7 @@
     #correlation-table tbody tr {
         display: block;
         width: 100%;
+        box-sizing: border-box;
         padding: 10px 12px;
         border-bottom: 1px solid var(--card-border, var(--input-border));
     }
@@ -956,8 +987,11 @@
         text-align: left;
     }
 
+    #correlation-table .correlation-cell-timestamp,
+    #correlation-table .correlation-cell-source,
     #correlation-table .correlation-cell-message,
     #correlation-table .correlation-cell-details {
+        width: 100%;
         min-width: 0;
     }
 }

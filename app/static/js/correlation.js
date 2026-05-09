@@ -11,12 +11,15 @@ var _corrZoom = null; // { tMin, tMax } when zoomed in
 // Event type sub-filter: operational events hidden by default
 var _corrEventFilter = {};
 var _OPERATIONAL_EVENTS = { monitoring_started: true, monitoring_stopped: true };
+function _corrEventTypeAllowed(e) {
+    var t = e.event_type || 'unknown';
+    if (!(t in _corrEventFilter)) _corrEventFilter[t] = !_OPERATIONAL_EVENTS[t];
+    return _corrEventFilter[t];
+}
 function _corrFilteredEvents(events) {
     if (!_corrVisible.events) return [];
     return events.filter(function(e) {
-        var t = e.event_type || 'unknown';
-        if (!(t in _corrEventFilter)) _corrEventFilter[t] = !_OPERATIONAL_EVENTS[t];
-        return _corrEventFilter[t];
+        return _corrEventTypeAllowed(e);
     });
 }
 
@@ -187,9 +190,9 @@ function renderCorrelationChart(data) {
 
     var downloadColor = _cssColor('--corr-color-download', '#0ea5e9');
     var uploadColor = _cssColor('--corr-color-upload', '#06b6d4');
-    var snrColor = _cssColor('--corr-color-snr', 'rgba(168,85,247,1)');
+    var snrColor = _cssColor('--corr-color-snr', '#3b82f6');
     var txColor = _cssColor('--corr-color-tx-power', '#f59e0b');
-    var dsPowerColor = _cssColor('--corr-color-ds-power', '#ec4899');
+    var dsPowerColor = _cssColor('--corr-color-ds-power', '#a855f7');
     var errorColor = _cssColor('--corr-color-errors', 'rgba(239,68,68,0.6)');
     var tempColor = _cssColor('--corr-color-temperature', '#f97316');
 
@@ -244,22 +247,6 @@ function renderCorrelationChart(data) {
             label = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
         }
         ctx.fillText(label, xScale(t), H - pad.bottom + 18);
-    }
-
-    // Left axis labels (SNR) — only if SNR visible
-    if (_corrVisible.snr && modem.length > 0) {
-        ctx.textAlign = 'right';
-        ctx.fillStyle = accentColor;
-        for (var s = Math.ceil(snrMin); s <= snrMax; s += 5) {
-            ctx.fillText(s + ' dB', pad.left - 6, ySnr(s) + 3);
-        }
-        ctx.save();
-        ctx.translate(12, pad.top + plotH / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.textAlign = 'center';
-        ctx.font = '11px system-ui, sans-serif';
-        ctx.fillText(T.chart_snr_axis || 'SNR (dB)', 0, 0);
-        ctx.restore();
     }
 
     // Right axis labels (Speed) — only if download or upload visible
@@ -544,13 +531,13 @@ function renderCorrelationChart(data) {
     var legend = document.getElementById('correlation-legend');
     var legendItems = [];
     if (modem.length > 0) {
-        legendItems.push({ metric: 'snr', color: snrColor, label: '&#9644; ' + (T.chart_snr || 'SNR (dB)') });
-        if (txValues.length > 0) {
-            legendItems.push({ metric: 'txPower', color: txColor, label: '&#9476; ' + (T.correlation_tx_power || 'TX Power (dBmV)') });
-        }
         if (dsPowerValues.length > 0) {
-            legendItems.push({ metric: 'dsPower', color: dsPowerColor, label: '&#183;&#183; ' + (T.correlation_ds_power || 'DS Power (dBmV)') });
+            legendItems.push({ metric: 'dsPower', color: dsPowerColor, label: '&#183;&#183; ' + (T.chart_ds_power || 'DS Power (dBmV)') });
         }
+        if (txValues.length > 0) {
+            legendItems.push({ metric: 'txPower', color: txColor, label: '&#9476; ' + (T.chart_us_power || 'US Power (dBmV)') });
+        }
+        legendItems.push({ metric: 'snr', color: snrColor, label: '&#9644; ' + (T.chart_snr || 'SNR (dB)') });
         if (errorMax > 0) {
             legendItems.push({ metric: 'errors', color: 'rgba(239,68,68,0.8)', label: '&#9612; ' + (T.correlation_errors || 'Errors') });
         }
@@ -626,6 +613,7 @@ function renderCorrelationChart(data) {
                 cb.addEventListener('change', function() {
                     _corrEventFilter[this.getAttribute('data-event-type')] = this.checked;
                     renderCorrelationChart(data);
+                    renderCorrelationTable(data);
                 });
             });
             // Close on outside click
@@ -1276,6 +1264,8 @@ function renderCorrelationTable(data) {
 
         // Skip modem entries that are not health transitions
         if (e.source === 'modem' && !modemTransitionTs[e.timestamp]) continue;
+        // Keep table rows aligned with the event type filter used by chart markers.
+        if (e.source === 'event' && !_corrEventTypeAllowed(e)) continue;
 
         var tr = document.createElement('tr');
         tr.setAttribute('data-ts', e.timestamp);
