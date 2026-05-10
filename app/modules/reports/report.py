@@ -309,7 +309,7 @@ class IncidentReport(FPDF):
         self.set_y(-15)
         self.set_font("dejavu", "I", 8)
         self.set_text_color(128, 128, 128)
-        self.cell(0, 10, f"{s['footer']} — {s['page']} {self.page_no()}/{{nb}}", align="C")
+        self.cell(0, 10, f"{s['footer']} - {s['page']} {self.page_no()}/{{nb}}", align="C")
 
     def _section_title(self, title):
         self.set_font("dejavu", "B", 13)
@@ -559,7 +559,7 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
                 ch.get("channel_id", ""),
                 (ch.get("frequency") or "")[:10],
                 f"{ch.get('power') or 0:.1f}",
-                f"{ch.get('snr') or 0:.1f}" if ch.get("snr") else "—",
+                f"{ch.get('snr') or 0:.1f}" if ch.get("snr") else "-",
                 str(ch.get("modulation") or "")[:10],
                 _format_optional_count(ch.get('correctable_errors')),
                 _format_optional_count(ch.get('uncorrectable_errors')),

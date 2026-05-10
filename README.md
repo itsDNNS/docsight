@@ -111,25 +111,58 @@ Turns raw diagnostics into reports and complaint-ready exports you can send to y
 
 ---
 
-## Best Fit For
+## What DOCSight Is, and Is Not
 
-### People who keep getting dismissed by their ISP
+DOCSight is not a generic uptime monitor and not just a speedtest dashboard. It is the missing evidence layer for cable problems: DOCSIS signal history, modem events, speed and latency data, incident notes, before/after comparisons, and ISP-ready exports in one local timeline.
 
-DOCSight is a strong fit if your connection drops out, slows down, or behaves inconsistently and you need more than a one-time screenshot.
+### Best fit
 
-- prove recurring problems over days and weeks instead of a single bad moment
-- keep an incident history with your own notes and attachments
-- compare before and after a technician visit, modem swap, or ISP claim
-- turn raw monitoring into exports and complaint-ready documentation
+DOCSight is a strong fit if:
 
-### Self-hosters who want proof, not just pretty charts
+- your cable internet drops, slows down, or becomes unstable at random times
+- your ISP says the line looks normal when you call
+- speedtest screenshots are not enough
+- you want modem signal values, speed tests, latency, events, and notes in one place
+- you want local data and exportable evidence instead of another cloud dashboard
 
-DOCSight is also a strong fit if you want something that:
+### Probably not the right tool if
 
-- runs locally on your own hardware with no cloud dependency
-- supports real DOCSIS cable signal monitoring instead of generic uptime checks only
-- integrates with Home Assistant, MQTT, and external measurement sources
-- is documented deeply enough that you can inspect, extend, and actually trust it
+- you only need a public status page
+- you only need HTTP uptime alerts
+- you do not have cable internet and do not care about local signal diagnostics
+- you want a managed cloud service
+
+Generic Router mode still works for fiber, DSL, satellite, and other routers, but DOCSight is strongest when it can see DOCSIS cable signal data.
+
+---
+
+## How DOCSight Compares
+
+DOCSight works well alongside existing monitoring tools. The difference is the evidence workflow.
+
+| Tool type | Good at | Where DOCSight adds value |
+|---|---|---|
+| Uptime monitors like Uptime Kuma | Reachability, status pages, alerts | Cable signal history, modem events, incident notes, and report output |
+| Speedtest history tools | Download and upload trend tracking | Explaining whether speed dips line up with signal, latency, packet loss, or events |
+| SmokePing and BQM | Latency and packet-loss visibility | Adding the local DOCSIS view and turning the timeline into an evidence package |
+| Prometheus or Grafana scrapers | Custom metrics for existing monitoring stacks | A ready-made workflow for people who do not want to build dashboards before calling the ISP |
+| Modem screenshots | One moment in time | A searchable timeline with before/after comparison and exports |
+
+Short version: **a speedtest shows the symptom. DOCSight helps build the case.**
+
+---
+
+## Public Proof Pack
+
+Use the demo-safe proof pack to understand the workflow before connecting real hardware.
+
+![DOCSight bad evening evidence timeline](docs/screenshots/bad-day-evidence.png)
+
+- [Germany-flavored demo complaint report PDF](docs/samples/demo-complaint-report.pdf)
+- [Public proof-pack notes](docs/proof-pack.md)
+- [Community proof templates](docs/community-proof-templates.md)
+
+The screenshot and sample report use synthetic data only. They show a bad evening case without exposing a real ISP, customer, IP address, MAC address, serial number, or ticket.
 
 ---
 
@@ -370,6 +403,8 @@ See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 | Document | Scope |
 |---|---|
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
+| [Proof pack](docs/proof-pack.md) | Demo-safe public screenshots, sample report, and claim-proof notes |
+| [Community proof templates](docs/community-proof-templates.md) | Public-safe templates for setup stories, modem reports, and ISP evidence outcomes |
 | [GitHub Releases](https://github.com/itsDNNS/docsight/releases) | Versioned builds and release notes |
 | [SUPPORT.md](SUPPORT.md) | Support routing, community channels, and issue guidance |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and extension guide |
