@@ -39,7 +39,7 @@ DOCSight helps cable internet users document intermittent problems that are hard
 
 Use only assets that pass the proof-pack safety checklist:
 
-- `docs/screenshots/readme-hero-evidence.png`
+- `docs/screenshots/social-preview.png`
 - `docs/screenshots/bad-day-evidence.png`
 - `docs/screenshots/dashboard-dark.png`
 - `docs/screenshots/complaint-workflow.png`

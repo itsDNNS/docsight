@@ -83,8 +83,15 @@ def test_landing_page_has_required_social_metadata_and_ctas() -> None:
     assert parser.meta[("property", "og:image")].endswith("/screenshots/social-preview.png")
     assert parser.meta[("name", "twitter:card")] == "summary_large_image"
     assert "Your ISP says everything is fine" in parser.h1
+    assert "DOCSight shows the timeline" in parser.h1
     assert "https://github.com/itsDNNS/docsight#option-1-try-the-demo" in parser.links
+    assert "#proof" in parser.links
     assert "https://github.com/itsDNNS/docsight/wiki/Installation" in parser.links
+
+
+def test_landing_page_links_to_proof_pack_notes() -> None:
+    parser = parse_landing()
+
     assert "https://github.com/itsDNNS/docsight/blob/main/docs/proof-pack.md" in parser.links
 
 
@@ -128,7 +135,8 @@ def test_readme_points_to_product_page_without_displacing_wiki() -> None:
 
     assert '<a href="https://itsdnns.github.io/docsight/">Product page</a>' in readme
     assert '<a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>' in readme
-    assert "docs/screenshots/readme-hero-evidence.png" in readme
+    assert "docs/screenshots/bad-day-evidence.png" in readme
+    assert "docs/screenshots/dashboard-dark.png" in readme
 
 
 def test_public_surface_docs_and_social_asset_exist() -> None:
@@ -148,6 +156,18 @@ def test_public_surface_docs_and_social_asset_exist() -> None:
     width, height = png_size(DOCS / "screenshots" / "social-preview.png")
     assert width >= 1200
     assert height >= 630
+
+
+def test_proof_pack_uses_current_public_assets_and_claims() -> None:
+    text = (DOCS / "proof-pack.md").read_text(encoding="utf-8")
+    directory = (DOCS / "self-hosted-directory-submission.md").read_text(encoding="utf-8")
+
+    assert "DOCSight shows the timeline" in text
+    assert "docs/screenshots/social-preview.png" in text
+    assert "docs/screenshots/social-preview.png" in directory
+    assert "DOCSight gives you proof" not in text
+    assert "readme-hero-evidence.png" not in text
+    assert "readme-hero-evidence.png" not in directory
 
 
 def test_feature_matrix_has_shipped_planned_and_out_of_scope_sections() -> None:
@@ -173,5 +193,12 @@ def test_directory_submission_copy_keeps_privacy_and_claim_boundaries() -> None:
 def test_no_private_or_localhost_values_in_public_surface() -> None:
     paths = [INDEX, DOCS / "feature-matrix.md", DOCS / "self-hosted-directory-submission.md"]
     pattern = re.compile(r"(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|Vodafone Kabel)", re.I)
+    for path in paths:
+        assert not pattern.search(path.read_text(encoding="utf-8")), path
+
+
+def test_public_surface_avoids_real_provider_names_outside_setup_docs() -> None:
+    paths = [README, INDEX, DOCS / "proof-pack.md", DOCS / "self-hosted-directory-submission.md"]
+    pattern = re.compile(r"\b(Vodafone|Unitymedia|Telekom|Comcast|Xfinity|Spectrum|Virgin Media|Rogers|Bell)\b", re.I)
     for path in paths:
         assert not pattern.search(path.read_text(encoding="utf-8")), path

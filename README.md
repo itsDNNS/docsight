@@ -22,23 +22,23 @@
 </p>
 
 <p align="center">
-  <strong>Your ISP says everything is fine. DOCSight gives you proof.</strong>
+  <strong>Your ISP says everything is fine. DOCSight shows the timeline.</strong>
 </p>
 
 <p align="center">
-  Track signal issues, slowdowns, and outages so you have proof when your ISP says the line looks normal.
+  Track signal issues, slowdowns, packet loss, and modem events locally so bad evenings do not disappear into "looks fine from here".
 </p>
 
 <p align="center">
-  <strong>Self-hosted</strong> • <strong>Demo</strong> • <strong>Exports</strong> • <strong>16 modem families</strong> • <strong>HA + MQTT</strong> • <strong>4 languages</strong> • <strong>MIT</strong>
+  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>Demo</strong> • <strong>Reports</strong> • <strong>16 modem families</strong> • <strong>MIT</strong>
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/readme-hero-evidence.png" alt="DOCSight cross-source correlation timeline" width="100%" />
+  <img src="docs/screenshots/bad-day-evidence.png" alt="DOCSight bad evening evidence timeline" width="100%" />
 </p>
 
 <p align="center">
-  <em>See the patterns your ISP dismisses as random.</em>
+  <em>Synthetic demo data, real workflow: signal values, packet loss, events, notes, and a report path on one timeline.</em>
 </p>
 
 ---
@@ -49,7 +49,7 @@ Start with the fastest path for your setup.
 
 ### Option 1: Try the demo
 
-No router required. Demo mode generates 9 months of realistic DOCSIS data so you can explore the full workflow immediately.
+No router required. Demo mode generates 9 months of realistic DOCSIS data so you can explore the workflow immediately.
 
 ```bash
 docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:latest
@@ -67,95 +67,35 @@ Open `http://localhost:8765`, then choose Demo Mode, a supported DOCSIS modem, o
 
 ---
 
-## From Suspicion to Evidence
+## Why DOCSight exists
 
-Most connection problems are intermittent. That makes them easy to feel and hard to prove when your ISP only looks at a single snapshot.
+The line looks normal when support checks.
 
-DOCSight runs in the background and builds your case over time:
+The bad evenings happen later. A speedtest screenshot shows the symptom, and a modem screenshot shows one moment. DOCSight keeps the timeline: signal history, speed tests, latency, modem events, incident notes, and report output in one local evidence trail.
 
-- **Hour 1:** See current signal health, current performance, and active issues
-- **Week 1:** Trend charts reveal patterns your ISP cannot dismiss as a one-off
-- **Month 1:** Incident history, event logs, and before/after comparisons make the pattern hard to ignore
-- **When you call your ISP:** DOCSight turns weeks of evidence into reports, exports, and complaint-ready documentation
-
-The longer DOCSight runs, the stronger your evidence gets.
+DOCSight is for the support loop where you know something is wrong, but the problem disappears before anyone else looks.
 
 ---
 
-## How DOCSight Helps
+## Evidence journey
 
-<table>
-<tr>
-<td width="33%" valign="top">
+A few key views from the workflow:
 
-**Monitor**
+| See what is happening now | Find the pattern |
+|---|---|
+| ![DOCSight dashboard with current signal health, speed, and active issue cards](docs/screenshots/dashboard-dark.png) | ![DOCSight signal trends showing long-term signal patterns](docs/screenshots/trends.png) |
+| Current signal health, speed, latency, and active issues sit in one view. | Bad evenings stop looking random when the history is visible. |
 
-Continuously captures signal health, latency, outages, and speed so transient problems don't disappear before you can prove them.
-
-</td>
-<td width="33%" valign="top">
-
-**Document**
-
-Builds a timestamped evidence trail with trend charts, anomaly history, incident logs, and before/after comparisons.
-
-</td>
-<td width="33%" valign="top">
-
-**Act**
-
-Turns raw diagnostics into reports and complaint-ready exports you can send to your ISP.
-
-</td>
-</tr>
-</table>
+| Connect the signals | Bring something useful to support |
+|---|---|
+| ![DOCSight correlation view lining up signal, speed, and event history](docs/screenshots/correlation.png) | ![DOCSight evidence package workflow for local report generation](docs/screenshots/complaint-workflow.png) |
+| Signal drops, packet loss, speed dips, modem events, and notes line up in one timeline. | Turn the timeline into a report, checklist, and support-ready evidence package. |
 
 ---
 
-## What DOCSight Is, and Is Not
+## Public proof pack
 
-DOCSight is not a generic uptime monitor and not just a speedtest dashboard. It is the missing evidence layer for cable problems: DOCSIS signal history, modem events, speed and latency data, incident notes, before/after comparisons, and ISP-ready exports in one local timeline.
-
-### Best fit
-
-DOCSight is a strong fit if:
-
-- your cable internet drops, slows down, or becomes unstable at random times
-- your ISP says the line looks normal when you call
-- speedtest screenshots are not enough
-- you want modem signal values, speed tests, latency, events, and notes in one place
-- you want local data and exportable evidence instead of another cloud dashboard
-
-### Probably not the right tool if
-
-- you only need a public status page
-- you only need HTTP uptime alerts
-- you do not have cable internet and do not care about local signal diagnostics
-- you want a managed cloud service
-
-Generic Router mode still works for fiber, DSL, satellite, and other routers, but DOCSight is strongest when it can see DOCSIS cable signal data.
-
----
-
-## How DOCSight Compares
-
-DOCSight works well alongside existing monitoring tools. The difference is the evidence workflow.
-
-| Tool type | Good at | Where DOCSight adds value |
-|---|---|---|
-| Uptime monitors like Uptime Kuma | Reachability, status pages, alerts | Cable signal history, modem events, incident notes, and report output |
-| Speedtest history tools | Download and upload trend tracking | Explaining whether speed dips line up with signal, latency, packet loss, or events |
-| SmokePing and BQM | Latency and packet-loss visibility | Adding the local DOCSIS view and turning the timeline into an evidence package |
-| Prometheus or Grafana scrapers | Custom metrics for existing monitoring stacks | A ready-made workflow for people who do not want to build dashboards before calling the ISP |
-| Modem screenshots | One moment in time | A searchable timeline with before/after comparison and exports |
-
-Short version: **a speedtest shows the symptom. DOCSight helps build the case.**
-
----
-
-## Public Proof Pack
-
-Use the demo-safe proof pack to understand the workflow before connecting real hardware.
+Use the demo-safe proof pack to understand the output before connecting real hardware.
 
 ![DOCSight bad evening evidence timeline](docs/screenshots/bad-day-evidence.png)
 
@@ -167,7 +107,62 @@ The screenshot and sample report use synthetic data only. They show a bad evenin
 
 ---
 
-## Start in the Way That Fits You
+## What DOCSight connects
+
+The value is not another chart. The value is putting the pieces of the cable problem in the same place.
+
+- **DOCSIS signal:** power, SNR, channels, and modulation
+- **Speed tests:** download, upload, ping, and jitter history
+- **Latency:** packet loss, outages, and route checks
+- **Modem events:** restarts, drops, and signal anomalies
+- **Incident notes:** what you saw, when it happened, and what changed
+- **Before/after:** compare technician visits or ISP changes
+- **Reports:** PDF output and complaint-ready text
+- **Local storage:** evidence stays on your own hardware
+
+---
+
+## How DOCSight compares
+
+DOCSight works well alongside existing monitoring tools. The difference is the evidence workflow.
+
+| Tool type | Good at | Where DOCSight adds value |
+|---|---|---|
+| Uptime monitors like Uptime Kuma | Reachability, status pages, alerts | Cable signal history, modem events, incident notes, and report output |
+| Speedtest history tools | Download and upload trend tracking | Showing whether speed dips line up with signal, latency, packet loss, or events |
+| SmokePing and BQM | Latency and packet-loss visibility | Adding the local DOCSIS view and turning the timeline into an evidence package |
+| Prometheus or Grafana scrapers | Custom metrics for existing monitoring stacks | A ready-made workflow for people who do not want to build dashboards before calling the ISP |
+| Modem screenshots | One moment in time | A searchable timeline with before/after comparison and exports |
+
+Short version: **a speedtest shows the symptom. DOCSight helps build the case.**
+
+---
+
+## Fit and boundaries
+
+DOCSight is not a generic uptime monitor and not just a speedtest dashboard. It is the missing evidence layer for cable problems: DOCSIS signal history, modem events, speed and latency data, incident notes, before/after comparisons, and ISP-ready exports in one local timeline.
+
+DOCSight is a strong fit if:
+
+- your cable internet drops, slows down, or becomes unstable at random times
+- your ISP says the line looks normal when you call
+- speedtest screenshots are not enough
+- you want modem signal values, speed tests, latency, events, and notes in one place
+- you want local data and exportable evidence instead of another cloud dashboard
+
+It is probably not the right tool if:
+
+- you only need a public status page
+- you only need HTTP uptime alerts
+- you do not have cable internet and do not care about local signal diagnostics
+- you want a managed cloud service
+- you need a promised legal or ISP outcome
+
+Generic Router mode still works for fiber, DSL, satellite, and other routers, but DOCSight is strongest when it can see DOCSIS cable signal data.
+
+---
+
+## Start in the way that fits you
 
 - **Want to see the product first?** Start with the [demo](#option-1-try-the-demo) and explore 9 months of realistic DOCSIS data instantly.
 - **Want it running fast on your own hardware?** Use [Get Started](#get-started) and then follow the [full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation).
@@ -229,9 +224,9 @@ Also includes 4 languages (EN/DE/FR/ES), light/dark mode, PWA/offline support, a
 
 ---
 
-## Product Tour
+## Extended screenshot gallery
 
-A few key views from the evidence workflow:
+More views from the product:
 
 | Dashboard | Signal Trends |
 |---|---|
@@ -274,10 +269,10 @@ DOCSight supports **16 modem families** out of the box and also offers **Generic
 
 ### Common setups
 
-- **Vodafone Station** (CGA4233, TG3442DE): bridge mode compatible
+- **CGA4233 / TG3442DE cable gateways:** bridge mode compatible
 - **AVM FRITZ!Box Cable** (6490, 6590, 6591, 6660, 6690)
-- **Vodafone Ultra Hub 7** (Sercomm)
-- **Unitymedia Connect Box** (CH7465)
+- **Sercomm Ultra Hub 7 class gateways**
+- **CH7465 Connect Box family**
 - **Sagemcom F@st 3896:** JSON-RPC API
 - **Technicolor TC4400**
 - **Arris SURFboard** (S33, S34, SB8200): HNAP1 API

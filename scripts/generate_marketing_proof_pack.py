@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT))
 import app.modules.reports.report as report_module
 
 SCREENSHOT_PATH = ROOT / "docs" / "screenshots" / "bad-day-evidence.png"
+SOCIAL_PREVIEW_PATH = ROOT / "docs" / "screenshots" / "social-preview.png"
 SAMPLE_REPORT_PATH = ROOT / "docs" / "samples" / "demo-complaint-report.pdf"
 
 
@@ -367,8 +368,61 @@ def generate_bad_day_screenshot() -> None:
     img.save(SCREENSHOT_PATH, optimize=True)
 
 
+def generate_social_preview(*, refresh_source: bool = True) -> None:
+    """Generate a demo-safe social preview image for GitHub Pages metadata."""
+    SOCIAL_PREVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if refresh_source or not SCREENSHOT_PATH.exists():
+        generate_bad_day_screenshot()
+
+    img = Image.new("RGB", (1200, 630), BG)
+    draw = ImageDraw.Draw(img)
+
+    # Background accents
+    draw.ellipse((-180, -180, 420, 420), fill=(38, 20, 72))
+    draw.ellipse((860, 360, 1360, 860), fill=(16, 72, 92))
+    rounded_rect(draw, (36, 36, 1164, 594), 34, (14, 22, 38), BORDER)
+
+    # Left copy block
+    draw_text(draw, (78, 78), "DOCSight", 38, TEXT, bold=True)
+    draw_text(draw, (80, 128), "Self-hosted broadband evidence", 22, CYAN, bold=True)
+
+    headline_lines = [
+        "Your ISP says",
+        "everything is fine.",
+        "DOCSight shows",
+        "the timeline.",
+    ]
+    y = 182
+    for line in headline_lines:
+        draw_text(draw, (78, y), line, 43, TEXT, bold=True)
+        y += 52
+
+    draw_text(draw, (80, 424), "Signal history, packet loss, modem events, notes", 20, MUTED)
+    draw_text(draw, (80, 454), "and reports stay local until you export them.", 20, MUTED)
+
+    chips = ["Local data", "Demo mode", "Reports", "MIT"]
+    chip_x = 80
+    for chip in chips:
+        chip_w = int(draw.textlength(chip, font=font(19, bold=True))) + 32
+        rounded_rect(draw, (chip_x, 530, chip_x + chip_w, 568), 19, PANEL_2, BORDER)
+        draw_text(draw, (chip_x + 16, 537), chip, 19, TEXT, bold=True)
+        chip_x += chip_w + 10
+
+    # Right product card from the generated demo-safe evidence screenshot.
+    shot = Image.open(SCREENSHOT_PATH).convert("RGB")
+    crop = shot.crop((300, 40, 1600, 860)).resize((450, 295), Image.Resampling.LANCZOS)
+    rounded_rect(draw, (640, 86, 1132, 500), 28, PANEL, BORDER)
+    img.paste(crop, (662, 112))
+    draw.rounded_rectangle((662, 112, 1112, 407), radius=18, outline=BORDER, width=1)
+    draw_text(draw, (662, 530), "Synthetic demo data. No real ISP or customer data.", 18, MUTED)
+
+    img.save(SOCIAL_PREVIEW_PATH, optimize=True)
+
+
 if __name__ == "__main__":
     generate_sample_report()
     generate_bad_day_screenshot()
+    generate_social_preview(refresh_source=False)
     print(f"wrote {SAMPLE_REPORT_PATH.relative_to(ROOT)}")
     print(f"wrote {SCREENSHOT_PATH.relative_to(ROOT)}")
+    print(f"wrote {SOCIAL_PREVIEW_PATH.relative_to(ROOT)}")
