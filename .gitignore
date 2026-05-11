@@ -10,9 +10,14 @@ deploy.sh
 .config_key
 config.json
 
-# Docs (local only, not for public repo)
+# Docs (local drafts stay ignored unless explicitly public)
 docs/*.md
 docs/**/*.md
+!docs/community-proof-templates.md
+!docs/proof-pack.md
+!docs/feature-matrix.md
+!docs/self-hosted-directory-submission.md
+!docs/public-launch-follow-up-issues.md
 docs/superpowers/
 
 # Internal development docs (belong in workspace, not repo)
