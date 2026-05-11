@@ -21,6 +21,8 @@ sys.path.insert(0, str(ROOT))
 import app.modules.reports.report as report_module
 
 SCREENSHOT_PATH = ROOT / "docs" / "screenshots" / "bad-day-evidence.png"
+DASHBOARD_SOURCE_PATH = ROOT / "docs" / "screenshots" / "dashboard-dark.png"
+DASHBOARD_HERO_PATH = ROOT / "docs" / "screenshots" / "dashboard-hero.png"
 SOCIAL_PREVIEW_PATH = ROOT / "docs" / "screenshots" / "social-preview.png"
 SAMPLE_REPORT_PATH = ROOT / "docs" / "samples" / "demo-complaint-report.pdf"
 
@@ -257,6 +259,65 @@ def draw_card(draw: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int, title: 
     draw_text(draw, (x + 22, y + 105), note, 20, MUTED)
 
 
+def vertical_gradient(size: tuple[int, int], top: Color = BG, bottom: Color = (5, 9, 20)) -> Image.Image:
+    width, height = size
+    img = Image.new("RGB", size, top)
+    draw = ImageDraw.Draw(img)
+    for y in range(height):
+        ratio = y / max(height - 1, 1)
+        color = tuple(int(top[idx] * (1 - ratio) + bottom[idx] * ratio) for idx in range(3))
+        draw.line((0, y, width, y), fill=color)
+    return img
+
+
+def resize_contain(img: Image.Image, max_size: tuple[int, int]) -> Image.Image:
+    max_w, max_h = max_size
+    ratio = min(max_w / img.width, max_h / img.height)
+    size = (max(1, int(img.width * ratio)), max(1, int(img.height * ratio)))
+    return img.resize(size, Image.Resampling.LANCZOS)
+
+
+def paste_rounded(base: Image.Image, source: Image.Image, xy: tuple[int, int], radius: int) -> None:
+    mask = Image.new("L", source.size, 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.rounded_rectangle((0, 0, source.width, source.height), radius=radius, fill=255)
+    base.paste(source, xy, mask)
+
+
+def dashboard_product_crop() -> Image.Image:
+    """Return the strongest demo-safe area from the real dashboard screenshot."""
+    shot = Image.open(DASHBOARD_SOURCE_PATH).convert("RGB")
+    # The source is an actual DOCSight dashboard capture. Crop away the partial
+    # fourth column so the public hero reads as an intentional product shot.
+    left = 48
+    top = 48
+    right = min(1298, shot.width)
+    bottom = min(872, shot.height)
+    if right - left < 900 or bottom - top < 520:
+        return shot
+    return shot.crop((left, top, right, bottom))
+
+
+def generate_dashboard_hero() -> None:
+    """Frame the real demo dashboard as the README and landing-page hero."""
+    DASHBOARD_HERO_PATH.parent.mkdir(parents=True, exist_ok=True)
+    img = vertical_gradient((1600, 900))
+    draw = ImageDraw.Draw(img)
+    draw.ellipse((-260, -260, 520, 520), fill=(30, 24, 72))
+    draw.ellipse((1140, 520, 1840, 1160), fill=(15, 86, 104))
+
+    rounded_rect(draw, (72, 56, 1528, 844), 38, (13, 22, 39), BORDER)
+    draw.rounded_rectangle((104, 92, 1496, 812), radius=28, fill=(9, 17, 31), outline=BORDER, width=1)
+
+    product = resize_contain(dashboard_product_crop(), (1340, 680))
+    x = 130 + (1340 - product.width) // 2
+    y = 112 + (680 - product.height) // 2
+    paste_rounded(img, product, (x, y), 22)
+    draw.rounded_rectangle((x, y, x + product.width, y + product.height), radius=22, outline=(67, 88, 123), width=2)
+
+    img.save(DASHBOARD_HERO_PATH, optimize=True)
+
+
 def draw_line_chart(
     draw: ImageDraw.ImageDraw,
     box: tuple[int, int, int, int],
@@ -373,8 +434,10 @@ def generate_social_preview(*, refresh_source: bool = True) -> None:
     SOCIAL_PREVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
     if refresh_source or not SCREENSHOT_PATH.exists():
         generate_bad_day_screenshot()
+    if refresh_source or not DASHBOARD_HERO_PATH.exists():
+        generate_dashboard_hero()
 
-    img = Image.new("RGB", (1200, 630), BG)
+    img = vertical_gradient((1200, 630))
     draw = ImageDraw.Draw(img)
 
     # Background accents
@@ -408,13 +471,12 @@ def generate_social_preview(*, refresh_source: bool = True) -> None:
         draw_text(draw, (chip_x + 16, 537), chip, 19, TEXT, bold=True)
         chip_x += chip_w + 10
 
-    # Right product card from the generated demo-safe evidence screenshot.
-    shot = Image.open(SCREENSHOT_PATH).convert("RGB")
-    crop = shot.crop((300, 40, 1600, 860)).resize((450, 295), Image.Resampling.LANCZOS)
-    rounded_rect(draw, (640, 86, 1132, 500), 28, PANEL, BORDER)
-    img.paste(crop, (662, 112))
-    draw.rounded_rectangle((662, 112, 1112, 407), radius=18, outline=BORDER, width=1)
-    draw_text(draw, (662, 530), "Synthetic demo data. No real ISP or customer data.", 18, MUTED)
+    # Right product card from the real demo dashboard screenshot.
+    shot = resize_contain(dashboard_product_crop(), (500, 365))
+    rounded_rect(draw, (624, 82, 1138, 508), 28, PANEL, BORDER)
+    paste_rounded(img, shot, (636 + (490 - shot.width) // 2, 112 + (340 - shot.height) // 2), 18)
+    draw.rounded_rectangle((636, 112, 1126, 452), radius=18, outline=BORDER, width=1)
+    draw_text(draw, (636, 530), "Real product dashboard. Demo-safe data.", 18, MUTED)
 
     img.save(SOCIAL_PREVIEW_PATH, optimize=True)
 
@@ -422,7 +484,9 @@ def generate_social_preview(*, refresh_source: bool = True) -> None:
 if __name__ == "__main__":
     generate_sample_report()
     generate_bad_day_screenshot()
+    generate_dashboard_hero()
     generate_social_preview(refresh_source=False)
     print(f"wrote {SAMPLE_REPORT_PATH.relative_to(ROOT)}")
     print(f"wrote {SCREENSHOT_PATH.relative_to(ROOT)}")
+    print(f"wrote {DASHBOARD_HERO_PATH.relative_to(ROOT)}")
     print(f"wrote {SOCIAL_PREVIEW_PATH.relative_to(ROOT)}")

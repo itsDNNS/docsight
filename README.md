@@ -34,11 +34,11 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/bad-day-evidence.png" alt="DOCSight bad evening evidence timeline" width="100%" />
+  <img src="docs/screenshots/dashboard-hero.png" alt="DOCSight product dashboard with signal health, speed, latency and connection cards" width="100%" />
 </p>
 
 <p align="center">
-  <em>Synthetic demo data, real workflow: signal values, packet loss, events, notes, and a report path on one timeline.</em>
+  <em>Synthetic demo data in the real product UI: signal health, speed, latency, and connection context in one dashboard.</em>
 </p>
 
 ---

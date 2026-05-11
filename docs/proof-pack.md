@@ -147,6 +147,8 @@ uv run --with fpdf2 --with pillow --with flask --with cryptography --with reques
 Generated files:
 
 - `docs/screenshots/bad-day-evidence.png`
+- `docs/screenshots/dashboard-hero.png`
+- `docs/screenshots/social-preview.png`
 - `docs/samples/demo-complaint-report.pdf`
 
 The generator uses synthetic data only and should stay that way.

@@ -135,7 +135,7 @@ def test_readme_points_to_product_page_without_displacing_wiki() -> None:
 
     assert '<a href="https://itsdnns.github.io/docsight/">Product page</a>' in readme
     assert '<a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>' in readme
-    assert "docs/screenshots/bad-day-evidence.png" in readme
+    assert "docs/screenshots/dashboard-hero.png" in readme
     assert "docs/screenshots/dashboard-dark.png" in readme
 
 
@@ -147,6 +147,7 @@ def test_public_surface_docs_and_social_asset_exist() -> None:
         DOCS / "public-launch-follow-up-issues.md",
         DOCS / "proof-pack.md",
         DOCS / "samples" / "demo-complaint-report.pdf",
+        DOCS / "screenshots" / "dashboard-hero.png",
         DOCS / "screenshots" / "social-preview.png",
     ]
     for path in expected:
@@ -156,6 +157,9 @@ def test_public_surface_docs_and_social_asset_exist() -> None:
     width, height = png_size(DOCS / "screenshots" / "social-preview.png")
     assert width >= 1200
     assert height >= 630
+    width, height = png_size(DOCS / "screenshots" / "dashboard-hero.png")
+    assert width >= 1600
+    assert height >= 900
 
 
 def test_proof_pack_uses_current_public_assets_and_claims() -> None:
