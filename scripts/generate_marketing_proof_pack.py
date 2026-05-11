@@ -287,12 +287,14 @@ def paste_rounded(base: Image.Image, source: Image.Image, xy: tuple[int, int], r
 def dashboard_product_crop() -> Image.Image:
     """Return the strongest demo-safe area from the real dashboard screenshot."""
     shot = Image.open(DASHBOARD_SOURCE_PATH).convert("RGB")
-    # The source is an actual DOCSight dashboard capture. Crop away the partial
-    # fourth column so the public hero reads as an intentional product shot.
-    left = 48
-    top = 48
-    right = min(1298, shot.width)
-    bottom = min(872, shot.height)
+    # Keep the real product chrome intact. Earlier crops worked for a wider
+    # source capture but clipped the sidebar labels on the 1280px dashboard shot
+    # used for the public hero. Use a dashboard-first crop that preserves the
+    # top hero chart and the full left navigation while trimming the lower fold.
+    left = 0
+    top = 0
+    right = shot.width
+    bottom = min(900, shot.height)
     if right - left < 900 or bottom - top < 520:
         return shot
     return shot.crop((left, top, right, bottom))
