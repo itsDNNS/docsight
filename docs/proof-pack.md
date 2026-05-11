@@ -43,13 +43,13 @@ What it proves:
 
 ## Claim to proof mapping
 
-### Your ISP says everything is fine. DOCSight gives you proof.
+### Your ISP says everything is fine. DOCSight shows the timeline.
 
 Proof assets:
 
 - `docs/screenshots/bad-day-evidence.png`
 - `docs/samples/demo-complaint-report.pdf`
-- `docs/screenshots/readme-hero-evidence.png`
+- `docs/screenshots/social-preview.png`
 - `docs/screenshots/complaint-workflow.png`
 
 Use when:
@@ -64,7 +64,7 @@ Proof assets:
 
 - `docs/screenshots/bad-day-evidence.png`
 - `docs/screenshots/speedtest.png`
-- `docs/screenshots/readme-hero-evidence.png`
+- `docs/screenshots/social-preview.png`
 
 Use when:
 
