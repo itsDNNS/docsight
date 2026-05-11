@@ -29,7 +29,7 @@ Best placements:
 - Show HN or self-hosted community posts
 - replies where someone asks how DOCSight differs from a speedtest dashboard
 
-### Germany-flavored demo complaint report
+### Germany-oriented demo complaint report
 
 [Download the demo complaint report](samples/demo-complaint-report.pdf)
 

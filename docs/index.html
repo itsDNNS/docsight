@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DOCSight | Self-hosted evidence for cable internet problems</title>
+  <meta name="description" content="DOCSight turns DOCSIS signal history, latency, speed, events and incident notes into a local evidence trail for cable internet problems.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://itsdnns.github.io/docsight/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="DOCSight">
+  <meta property="og:title" content="DOCSight | Your ISP says everything is fine. DOCSight gives you proof.">
+  <meta property="og:description" content="Self-hosted DOCSIS evidence for intermittent cable problems, bad evenings and complaint-ready reports.">
+  <meta property="og:image" content="https://itsdnns.github.io/docsight/screenshots/social-preview.png">
+  <meta property="og:url" content="https://itsdnns.github.io/docsight/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DOCSight | Self-hosted evidence for cable internet problems">
+  <meta name="twitter:description" content="Build a local evidence trail from modem signal data, speed, latency, events and incident notes.">
+  <meta name="twitter:image" content="https://itsdnns.github.io/docsight/screenshots/social-preview.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --bg-2: #0d1930;
+      --card: rgba(15, 28, 51, 0.78);
+      --card-strong: rgba(19, 34, 62, 0.95);
+      --line: rgba(167, 190, 255, 0.18);
+      --text: #f5f7fb;
+      --muted: #b9c5d8;
+      --soft: #8fa2c4;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+      --good: #5eead4;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(125, 211, 252, 0.22), transparent 34rem),
+        radial-gradient(circle at 85% 8%, rgba(167, 139, 250, 0.18), transparent 30rem),
+        linear-gradient(180deg, var(--bg), #050914 64%, #05070d);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { color: inherit; }
+    img { max-width: 100%; height: auto; display: block; }
+    .wrap { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(8, 17, 31, 0.82);
+      backdrop-filter: blur(16px);
+    }
+    .nav-inner {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -0.03em; text-decoration: none; }
+    .brand img { width: 38px; height: 38px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: flex-end; color: var(--muted); font-size: 0.94rem; }
+    .nav-links a { text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+    .mobile-menu { display: none; position: relative; }
+    .mobile-menu summary { cursor: pointer; list-style: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; color: var(--text); font-weight: 750; background: rgba(255,255,255,0.06); }
+    .mobile-menu summary::-webkit-details-marker { display: none; }
+    .mobile-menu-panel { position: absolute; right: 0; top: calc(100% + 10px); width: min(240px, calc(100vw - 22px)); display: grid; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 18px; background: rgba(8,17,31,0.98); box-shadow: var(--shadow); }
+    .mobile-menu-panel a { padding: 10px 12px; border-radius: 12px; text-decoration: none; color: var(--muted); }
+    .mobile-menu-panel a:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .hero { padding: 86px 0 58px; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 0.88fr) minmax(320px, 1.12fr); gap: 44px; align-items: center; }
+    .eyebrow { color: var(--accent); font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.78rem; }
+    h1 { margin: 16px 0 18px; font-size: clamp(2.45rem, 5vw, 4.9rem); line-height: 1; letter-spacing: -0.07em; }
+    .lead { margin: 0; color: #d8e2f4; font-size: clamp(1.08rem, 2vw, 1.32rem); max-width: 670px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 30px 0 24px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      text-decoration: none;
+      font-weight: 750;
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+    }
+    .btn.primary { border: 0; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #06111f; }
+    .btn:hover { transform: translateY(-1px); }
+    .trust { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.92rem; }
+    .trust li { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.04); }
+    .hero-shot { position: relative; overflow: clip; border-radius: 34px; }
+    .hero-shot::before {
+      content: "";
+      position: absolute;
+      inset: 10% -5% -6% 8%;
+      border-radius: 40px;
+      background: linear-gradient(135deg, rgba(125,211,252,0.35), rgba(167,139,250,0.16));
+      filter: blur(30px);
+      opacity: 0.9;
+    }
+    .screenshot-card { position: relative; border: 1px solid var(--line); border-radius: 28px; overflow: hidden; box-shadow: var(--shadow); background: var(--card-strong); }
+    .screenshot-card img { width: 100%; }
+    .caption { color: #c5d1e4; font-size: 1rem; margin-top: 12px; }
+    section { padding: 70px 0; border-top: 1px solid rgba(167,190,255,0.12); }
+    .section-head { max-width: 760px; margin-bottom: 28px; }
+    h2 { margin: 0 0 12px; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.02; letter-spacing: -0.055em; }
+    .section-head p, .card p, .proof-copy p { color: var(--muted); margin: 0; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .card { padding: 22px; border: 1px solid var(--line); border-radius: 24px; background: var(--card); box-shadow: 0 18px 50px rgba(0,0,0,0.18); }
+    .card strong { display: block; margin-bottom: 8px; font-size: 1.08rem; }
+    .metric { font-size: 2rem; line-height: 1; letter-spacing: -0.04em; color: var(--accent); font-weight: 850; margin-bottom: 8px; }
+    .workflow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; counter-reset: step; }
+    .step { position: relative; padding: 20px; border-radius: 22px; border: 1px solid var(--line); background: rgba(255,255,255,0.045); }
+    .step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: rgba(125,211,252,0.14); color: var(--accent); font-weight: 850; margin-bottom: 14px; }
+    .step h3 { margin: 0 0 8px; }
+    .step p { margin: 0; color: var(--muted); }
+    .proof { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr); gap: 24px; align-items: center; }
+    .proof-copy { padding: 8px 0; }
+    .proof-list { margin: 22px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+    .proof-list li { display: flex; gap: 10px; color: var(--muted); }
+    .proof-list li::before { content: "✓"; color: var(--good); font-weight: 900; }
+    .compare { display: grid; gap: 10px; }
+    .compare-row { display: grid; grid-template-columns: 0.8fr 1fr 1.15fr; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,0.04); }
+    .compare-row span { color: var(--muted); }
+    .fit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .good { border-color: rgba(94,234,212,0.32); }
+    .bad { border-color: rgba(251,113,133,0.28); }
+    .cta { text-align: center; padding: 76px 20px; border: 1px solid var(--line); border-radius: 34px; background: linear-gradient(135deg, rgba(125,211,252,0.16), rgba(167,139,250,0.12)); }
+    .cta p { color: var(--muted); max-width: 680px; margin: 0 auto 26px; }
+    footer { color: var(--soft); padding: 44px 0; }
+    footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; align-items: center; border-top: 1px solid rgba(167,190,255,0.12); padding-top: 24px; }
+    footer a { color: var(--muted); text-decoration: none; margin-left: 14px; }
+    @media (max-width: 920px) {
+      .hero-grid, .proof { grid-template-columns: 1fr; }
+      .cards, .workflow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .compare-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .wrap { width: min(100% - 22px, 1120px); }
+      .nav-inner { min-height: 64px; }
+      .nav-links { display: none; }
+      .mobile-menu { display: block; }
+      .hero { padding-top: 52px; }
+      .cards, .workflow, .fit-grid { grid-template-columns: 1fr; }
+      section { padding: 54px 0; }
+      .hero-actions .btn { width: 100%; }
+      footer .wrap { display: block; }
+      footer a { display: inline-block; margin: 10px 14px 0 0; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Main navigation">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top" aria-label="DOCSight home">
+        <img src="docsight-logo-v2.svg" alt="" aria-hidden="true">
+        <span>DOCSight</span>
+      </a>
+      <div class="nav-links">
+        <a href="#workflow">Workflow</a>
+        <a href="#proof">Proof pack</a>
+        <a href="#compare">Compare</a>
+        <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>
+        <a href="https://github.com/itsDNNS/docsight">GitHub</a>
+      </div>
+      <details class="mobile-menu">
+        <summary>Menu</summary>
+        <div class="mobile-menu-panel">
+          <a href="#workflow">Workflow</a>
+          <a href="#proof">Proof pack</a>
+          <a href="#compare">Compare</a>
+          <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>
+          <a href="https://github.com/itsDNNS/docsight">GitHub</a>
+        </div>
+      </details>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">Self-hosted broadband evidence</div>
+          <h1>Your ISP says everything is fine. DOCSight gives you proof.</h1>
+          <p class="lead">DOCSight turns DOCSIS signal history, speed tests, latency, modem events and incident notes into one local evidence trail for intermittent cable problems.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="https://github.com/itsDNNS/docsight#option-1-try-the-demo">Try the demo</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/wiki/Installation">Install DOCSight</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/blob/main/docs/proof-pack.md">See proof assets</a>
+          </div>
+          <ul class="trust" aria-label="Project highlights">
+            <li>Self-hosted</li>
+            <li>Demo mode</li>
+            <li>Exports</li>
+            <li>16 modem families</li>
+            <li>HA + MQTT</li>
+            <li>MIT licensed</li>
+          </ul>
+        </div>
+        <div class="hero-shot">
+          <div class="screenshot-card">
+            <picture>
+              <source media="(max-width: 640px)" srcset="screenshots/bad-day-evidence.png">
+              <img src="screenshots/readme-hero-evidence.png" alt="DOCSight cross-source correlation timeline with signal, event and evidence context">
+            </picture>
+          </div>
+          <p class="caption">A local timeline makes the pattern visible before the next support call.</p>
+        </div>
+      </div>
+    </header>
+
+    <section aria-labelledby="why-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="why-title">A modem screenshot is a moment. DOCSight is the timeline.</h2>
+          <p>Intermittent cable issues are hard to prove because they disappear before support looks. DOCSight keeps the signal, performance and incident context together so the story survives the bad evening.</p>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="metric">9 mo</div><strong>Realistic demo history</strong><p>Explore the workflow without connecting a modem first.</p></div>
+          <div class="card"><div class="metric">16</div><strong>Modem families</strong><p>DOCSIS-focused support with Generic Router mode for broader setups.</p></div>
+          <div class="card"><div class="metric">Local</div><strong>Your data stays with you</strong><p>Runs on your own hardware. Export evidence only when you choose to.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow" aria-labelledby="workflow-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="workflow-title">From bad evening to evidence package</h2>
+          <p>DOCSight is built around the workflow people actually need when the connection looks fine only after the problem is over.</p>
+        </div>
+        <div class="workflow">
+          <div class="step"><h3>Monitor</h3><p>Capture DOCSIS signal health, latency, speed and outages continuously.</p></div>
+          <div class="step"><h3>Correlate</h3><p>Line up signal drops, packet loss, speed dips, modem events and notes.</p></div>
+          <div class="step"><h3>Document</h3><p>Keep incidents, journal entries and before/after checks in one place.</p></div>
+          <div class="step"><h3>Act</h3><p>Export complaint-ready reports and shareable evidence with support.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="proof" aria-labelledby="proof-title">
+      <div class="wrap proof">
+        <div class="screenshot-card">
+          <img src="screenshots/bad-day-evidence.png" alt="Demo bad evening evidence timeline with degraded signal and event context">
+        </div>
+        <div class="proof-copy">
+          <div class="eyebrow">Demo-safe proof pack</div>
+          <h2 id="proof-title">Show the problem without exposing a real connection.</h2>
+          <p>The public proof pack uses synthetic data with a demo provider and demo gateway. It is safe for README, community replies and launch posts.</p>
+          <ul class="proof-list">
+            <li>Bad evening screenshot with signal, speed, events and notes</li>
+            <li>Germany-oriented sample complaint report PDF</li>
+            <li>Community templates for redacted setup and evidence stories</li>
+          </ul>
+          <div class="hero-actions">
+            <a class="btn primary" href="samples/demo-complaint-report.pdf">Open sample PDF</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/blob/main/docs/proof-pack.md">Read proof-pack notes</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="compare" aria-labelledby="compare-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="compare-title">Not another generic uptime dashboard</h2>
+          <p>DOCSight works alongside monitoring tools. Its job is the missing evidence layer for cable-line problems.</p>
+        </div>
+        <div class="compare" role="list">
+          <div class="compare-row" role="listitem"><strong>Uptime monitors</strong><span>Show reachability and status pages.</span><span>DOCSight adds cable signal history, modem events and incident context.</span></div>
+          <div class="compare-row" role="listitem"><strong>Speedtest history</strong><span>Shows speed symptoms.</span><span>DOCSight explains whether dips line up with signal, latency, packet loss or events.</span></div>
+          <div class="compare-row" role="listitem"><strong>SmokePing and BQM</strong><span>Show latency and packet loss from the outside.</span><span>DOCSight adds the local DOCSIS view and report workflow.</span></div>
+          <div class="compare-row" role="listitem"><strong>Raw DOCSIS scrapers</strong><span>Collect modem values.</span><span>DOCSight gives non-specialists a complete workflow from history to export.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="fit-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="fit-title">Strong fit, clear boundaries</h2>
+          <p>DOCSight is most useful when it can see cable signal data, but it is honest about what it is not.</p>
+        </div>
+        <div class="fit-grid">
+          <div class="card good"><strong>Use DOCSight if</strong><p>You have recurring cable drops, bad evenings, unstable video calls, gaming jitter, suspicious signal values, or an ISP support loop that needs better evidence.</p></div>
+          <div class="card bad"><strong>Skip it if</strong><p>You only need HTTP uptime alerts, a public status page, a managed cloud service, or a legal guarantee. DOCSight documents evidence, it does not promise an outcome.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="start-title">
+      <div class="wrap">
+        <div class="cta">
+          <h2 id="start-title">Start with the demo, then connect your own modem.</h2>
+          <p>No router is required for the first look. Demo mode gives you realistic history so you can decide whether DOCSight fits your evidence workflow.</p>
+          <div class="hero-actions" style="justify-content:center">
+            <a class="btn primary" href="https://github.com/itsDNNS/docsight#option-1-try-the-demo">Try the demo</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/wiki/Supported-Modems">Check supported modems</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/discussions">Ask in Discussions</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>DOCSight is open source and self-hosted.</span>
+      <span>
+        <a href="https://github.com/itsDNNS/docsight">GitHub</a>
+        <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>
+        <a href="https://github.com/itsDNNS/docsight/releases">Releases</a>
+        <a href="https://github.com/sponsors/itsDNNS">Sponsor</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>

@@ -5,6 +5,7 @@
 <h1 align="center">DOCSight</h1>
 
 <p align="center">
+  <a href="https://itsdnns.github.io/docsight/">Product page</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="#get-started">Get Started</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="#supported-hardware">Supported Hardware</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
@@ -158,7 +159,7 @@ Use the demo-safe proof pack to understand the workflow before connecting real h
 
 ![DOCSight bad evening evidence timeline](docs/screenshots/bad-day-evidence.png)
 
-- [Germany-flavored demo complaint report PDF](docs/samples/demo-complaint-report.pdf)
+- [Germany-oriented demo complaint report PDF](docs/samples/demo-complaint-report.pdf)
 - [Public proof-pack notes](docs/proof-pack.md)
 - [Community proof templates](docs/community-proof-templates.md)
 
