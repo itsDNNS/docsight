@@ -634,9 +634,9 @@ pytest==9.0.3 \
     --hash=sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9 \
     --hash=sha256:b86ada508af81d19edeb213c681b1d48246c1a91d304c6c81a427674c17eb91c
     # via -r requirements-test.in
-requests==2.33.1 \
-    --hash=sha256:18817f8c57c6263968bc123d237e3b8b08ac046f5456bd1e307ee8f4250d3517 \
-    --hash=sha256:4e6d1ef462f3626a1f0a0a9c42dd93c63bad33f9f1c1937509b8c5c8718ab56a
+requests==2.34.1 \
+    --hash=sha256:0fc5669f2b69704449fe1552360bd2a73a54512dfd03e65529157f1513322beb \
+    --hash=sha256:bf38a3ff993960d3dd819c08862c40b3c703306eb7c744fcd9f4ddbb95b548f0
     # via -r requirements.in
 soupsieve==2.8.3 \
     --hash=sha256:3267f1eeea4251fb42728b6dfb746edc9acaffc4a45b27e19450b676586e8349 \
