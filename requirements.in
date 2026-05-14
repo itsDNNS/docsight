@@ -1,4 +1,4 @@
-requests>=2.32
+requests>=2.34.1
 paho-mqtt>=2.1
 flask>=3.1
 waitress>=3.0.2

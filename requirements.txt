@@ -614,9 +614,9 @@ pypdf==6.10.2 \
     --hash=sha256:7d09ce108eff6bf67465d461b6ef352dcb8d84f7a91befc02f904455c6eea11d \
     --hash=sha256:aa53be9826655b51c96741e5d7983ca224d898ac0a77896e64636810517624aa
     # via -r requirements.in
-requests==2.33.1 \
-    --hash=sha256:18817f8c57c6263968bc123d237e3b8b08ac046f5456bd1e307ee8f4250d3517 \
-    --hash=sha256:4e6d1ef462f3626a1f0a0a9c42dd93c63bad33f9f1c1937509b8c5c8718ab56a
+requests==2.34.1 \
+    --hash=sha256:0fc5669f2b69704449fe1552360bd2a73a54512dfd03e65529157f1513322beb \
+    --hash=sha256:bf38a3ff993960d3dd819c08862c40b3c703306eb7c744fcd9f4ddbb95b548f0
     # via -r requirements.in
 soupsieve==2.8.3 \
     --hash=sha256:3267f1eeea4251fb42728b6dfb746edc9acaffc4a45b27e19450b676586e8349 \
