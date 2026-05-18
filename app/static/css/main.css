@@ -1055,6 +1055,15 @@ body:has(#view-dashboard.active) .app-main {
   white-space: nowrap;
 }
 
+.dashboard-view .insights-meta #desktop-countdown {
+  flex: 0 0 4.5ch;
+  width: 4.5ch;
+  min-width: 4.5ch;
+  max-width: 4.5ch;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .dashboard-view .insights-meta .hero-meta-item:last-child {
   margin-right: 0;
   padding-right: 0;
