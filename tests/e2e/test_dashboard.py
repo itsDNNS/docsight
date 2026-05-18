@@ -61,12 +61,30 @@ class TestDashboardSections:
         assert hero.first.is_visible()
 
     def test_downstream_section(self, demo_page):
-        ds = demo_page.locator(".ring-title", has_text="Downstream")
+        ds = demo_page.locator(".dashboard-channel-panel .channel-title", has_text="Downstream")
         assert ds.is_visible()
 
     def test_upstream_section(self, demo_page):
-        us = demo_page.locator(".ring-title", has_text="Upstream")
+        us = demo_page.locator(".dashboard-channel-panel .channel-title", has_text="Upstream")
         assert us.is_visible()
+
+    def test_dashboard_refresh_control_is_keyboard_focusable(self, demo_page):
+        refresh = demo_page.locator(".hero-refresh-button")
+        assert refresh.first.is_visible()
+        assert refresh.first.evaluate("el => el.tagName.toLowerCase() === 'button'")
+
+    def test_connection_monitor_card_is_keyboard_accessible(self, demo_page):
+        card = demo_page.locator("#connection-monitor-card")
+        assert card.count() == 1
+        assert card.get_attribute("role") == "button"
+        assert card.get_attribute("tabindex") == "0"
+
+    def test_docsis_groups_expose_expanded_state(self, demo_page):
+        header = demo_page.locator(".docsis-group-header").first
+        assert header.get_attribute("aria-expanded") == "false"
+        assert header.get_attribute("aria-controls")
+        header.press("Enter")
+        assert header.get_attribute("aria-expanded") == "true"
 
     def test_settings_link_exists(self, demo_page):
         # Settings accessible via nav or bottom bar

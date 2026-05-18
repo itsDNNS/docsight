@@ -115,30 +115,51 @@
         bar.style.display = 'flex';
 
         days.forEach(function(day) {
-            var chip = document.createElement('button');
-            chip.className = 'cm-chip-btn';
+            var chip = document.createElement('span');
+            chip.className = 'cm-pinned-chip';
+
+            var viewBtn = document.createElement('button');
+            viewBtn.type = 'button';
+            viewBtn.className = 'cm-chip-btn';
+            viewBtn.setAttribute('aria-pressed', pinnedDayView && pinnedDayView.date === day.date ? 'true' : 'false');
             if (pinnedDayView && pinnedDayView.date === day.date) {
-                chip.classList.add('active');
+                viewBtn.classList.add('active');
             }
 
             var label = day.label ? day.date + ' (' + day.label + ')' : day.date;
             var textSpan = document.createElement('span');
             textSpan.textContent = label;
-            textSpan.onclick = function(e) {
-                e.stopPropagation();
+            viewBtn.appendChild(textSpan);
+            viewBtn.onclick = function() {
                 viewPinnedDay(day.date, day.utc_start, day.utc_end);
             };
 
-            var removeBtn = document.createElement('span');
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
             removeBtn.textContent = '\u00d7';
             removeBtn.className = 'cm-chip-remove';
+            var removeLabelRoot = document.getElementById('cm-detail-view');
+            var removeLabel = removeLabelRoot ? (removeLabelRoot.dataset.lRemove || 'Remove') : 'Remove';
+            removeBtn.setAttribute('aria-label', removeLabel + ' ' + label);
             removeBtn.onclick = function(e) {
                 e.stopPropagation();
+                var removedActiveDay = pinnedDayView && pinnedDayView.date === day.date;
                 fetch('/api/connection-monitor/pinned-days/' + day.date, { method: 'DELETE' })
-                    .then(function() { loadPinnedDays(); });
+                    .then(function() {
+                        if (removedActiveDay) {
+                            pinnedDayView = null;
+                            document.querySelectorAll('[data-cm-range]').forEach(function(b) {
+                                b.classList.toggle('active', Number(b.dataset.cmRange) === currentRange);
+                            });
+                            updatePinButton();
+                            loadData();
+                            updateRefreshInterval();
+                        }
+                        loadPinnedDays();
+                    });
             };
 
-            chip.appendChild(textSpan);
+            chip.appendChild(viewBtn);
             chip.appendChild(removeBtn);
             container.appendChild(chip);
         });
@@ -424,15 +445,34 @@
     function showNoData() {
         var noData = document.getElementById('cm-no-data');
         var chartsEl = document.getElementById('cm-charts-section');
+        var statsEl = document.getElementById('cm-stats-cards');
+        var perTargetEl = document.getElementById('cm-per-target-stats');
+        var availabilityEl = document.getElementById('cm-availability');
+        var outagePanel = document.getElementById('cm-outage-panel');
+        var outageBody = document.getElementById('cm-outage-tbody');
+        var exportLinks = document.getElementById('cm-export-links');
+        var resolutionEl = document.getElementById('cm-resolution-indicator');
         if (noData) noData.style.display = 'flex';
         if (chartsEl) chartsEl.style.display = 'none';
+        if (outagePanel) outagePanel.style.display = 'none';
+        [statsEl, perTargetEl, outageBody, exportLinks, resolutionEl].forEach(function(el) {
+            if (el) el.textContent = '';
+        });
+        if (availabilityEl) {
+            availabilityEl.textContent = '';
+            availabilityEl.removeAttribute('role');
+            availabilityEl.removeAttribute('aria-label');
+        }
+        if (resolutionEl) resolutionEl.style.display = 'none';
     }
 
     function hideNoData() {
         var noData = document.getElementById('cm-no-data');
         var chartsEl = document.getElementById('cm-charts-section');
+        var outagePanel = document.getElementById('cm-outage-panel');
         if (noData) noData.style.display = 'none';
         if (chartsEl) chartsEl.style.display = '';
+        if (outagePanel) outagePanel.style.display = '';
     }
 
     // --- Traceroute ---
@@ -498,10 +538,17 @@
         traces.forEach(function(trace) {
             var tr = document.createElement('tr');
             tr.className = 'cm-trace-row';
-            tr.onclick = function() { toggleTraceDetail(tr, trace.id); };
 
+            var detailId = 'cm-trace-detail-' + String(trace.id).replace(/[^a-zA-Z0-9_-]/g, '-');
             var tdTarget = document.createElement('td');
-            tdTarget.textContent = targetLabel;
+            var toggleBtn = document.createElement('button');
+            toggleBtn.type = 'button';
+            toggleBtn.className = 'cm-trace-toggle';
+            toggleBtn.textContent = targetLabel;
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            toggleBtn.setAttribute('aria-controls', detailId);
+            toggleBtn.onclick = function() { toggleTraceDetail(tr, trace.id, toggleBtn, detailId); };
+            tdTarget.appendChild(toggleBtn);
 
             var tdTime = document.createElement('td');
             tdTime.textContent = new Date(trace.timestamp).toLocaleString();
@@ -537,18 +584,24 @@
         });
     }
 
-    function toggleTraceDetail(row, traceId) {
+    function toggleTraceDetail(row, traceId, toggleButton, detailId) {
+        var control = toggleButton || row.querySelector('.cm-trace-toggle');
         // If already expanded, collapse
         var existing = row.nextElementSibling;
         if (existing && existing.classList.contains('trace-detail-row')) {
             existing.remove();
+            if (control) control.setAttribute('aria-expanded', 'false');
             return;
         }
         // Remove any other expanded detail row
         var table = row.closest('table');
         if (table) {
             table.querySelectorAll('.trace-detail-row').forEach(function(r) { r.remove(); });
+            table.querySelectorAll('.cm-trace-toggle[aria-expanded="true"]').forEach(function(btn) {
+                btn.setAttribute('aria-expanded', 'false');
+            });
         }
+        if (control) control.setAttribute('aria-expanded', 'true');
 
         // Fetch detail
         fetch('/api/connection-monitor/trace/' + traceId)
@@ -556,6 +609,7 @@
             .then(function(data) {
                 var detailRow = document.createElement('tr');
                 detailRow.className = 'trace-detail-row';
+                if (detailId) detailRow.id = detailId;
                 var td = document.createElement('td');
                 td.colSpan = 6;
 
