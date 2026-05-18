@@ -1,4 +1,5 @@
-<div class="view-content cm-monitor" id="cm-detail-view">
+<div class="view-content cm-monitor" id="cm-detail-view"
+     data-l-remove="{{ t.get('docsight.connection_monitor.cm_remove', 'Remove') }}">
     <div class="cm-console-head">
         <div class="cm-title-block">
             <div class="cm-title-row">
@@ -83,7 +84,12 @@
                         <h3>{{ t.get('docsight.connection_monitor.cm_availability_chart', 'Availability') }}</h3>
                     </div>
                 </div>
-                <div id="cm-availability" class="cm-availability-band"></div>
+                <div id="cm-availability" class="cm-availability-band"
+                     data-l-availability="{{ t.get('docsight.connection_monitor.cm_availability_chart', 'Availability') }}"
+                     data-l-ok="{{ t.get('docsight.connection_monitor.cm_status_ok', 'OK') }}"
+                     data-l-degraded="{{ t.get('docsight.connection_monitor.cm_status_degraded', 'Degraded') }}"
+                     data-l-down="{{ t.get('docsight.connection_monitor.cm_status_down', 'Down') }}"
+                ></div>
                 <div class="cm-availability-legend">
                     <span><i class="ok"></i>{{ t.get('docsight.connection_monitor.cm_status_ok', 'OK') }}</span>
                     <span><i class="degraded"></i>{{ t.get('docsight.connection_monitor.cm_status_degraded', 'Degraded') }}</span>
@@ -94,7 +100,7 @@
     </div>
 
     <div class="cm-log-grid">
-        <section class="glass cm-panel">
+        <section id="cm-outage-panel" class="glass cm-panel">
             <div class="cm-panel-header">
                 <div class="cm-panel-title">
                     <i data-lucide="history"></i>

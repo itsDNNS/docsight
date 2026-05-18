@@ -281,6 +281,8 @@ var CMCharts = (function() {
 
         if (!allTargetData || allTargetData.length === 0) {
             container.textContent = '';
+            container.removeAttribute('role');
+            container.removeAttribute('aria-label');
             return;
         }
 
@@ -314,6 +316,19 @@ var CMCharts = (function() {
 
         container.textContent = '';
         var total = timestamps.length;
+        var stateCounts = { ok: 0, degraded: 0, down: 0 };
+        segments.forEach(function(seg) {
+            stateCounts[seg.state] += seg.end - seg.start;
+        });
+        var availabilityLabel = container.dataset.lAvailability || 'Availability';
+        var okLabel = container.dataset.lOk || 'OK';
+        var degradedLabel = container.dataset.lDegraded || 'degraded';
+        var downLabel = container.dataset.lDown || 'down';
+        container.setAttribute('role', 'img');
+        container.setAttribute('aria-label', availabilityLabel + ': ' +
+            ((stateCounts.ok / total * 100).toFixed(0)) + '% ' + okLabel + ', ' +
+            ((stateCounts.degraded / total * 100).toFixed(0)) + '% ' + degradedLabel + ', ' +
+            ((stateCounts.down / total * 100).toFixed(0)) + '% ' + downLabel);
         segments.forEach(function(seg) {
             var pct = ((seg.end - seg.start) / total * 100).toFixed(2);
             var div = document.createElement('div');

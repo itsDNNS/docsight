@@ -471,10 +471,10 @@
                         </span>
                         {% endif %}
                         <span class="hero-meta-item desktop-only" id="desktop-countdown"></span>
-                        <span class="hero-meta-item desktop-only" style="cursor:pointer;" title="{{ t.refresh }}"
+                        <button type="button" class="hero-meta-item desktop-only hero-refresh-button" title="{{ t.refresh }}"
                             onclick="var rb=document.getElementById('refresh-btn');if(rb)rb.click();">
                             <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> {{ t.refresh }}
-                        </span>
+                        </button>
                 </div>
             </div>
     {% endset %}
@@ -569,7 +569,7 @@
                     <span>{{ t.get('dashboard_signal_trend', '24h signal trend') }}</span>
                     <span>{{ t.get('dashboard_signal_scope', 'DS power / US power / SNR') }}</span>
                 </div>
-                <canvas id="hero-trend-chart"></canvas>
+                <canvas id="hero-trend-chart" role="img" aria-label="{{ t.get('dashboard_signal_trend', '24h signal trend') }}"></canvas>
             </div>
             <aside class="hero-channel-health" aria-label="{{ t.get('dashboard_channel_health', 'Channel health') }}">
                 <div class="hero-channel-health-head">
@@ -690,7 +690,7 @@
             </div>
             <div class="metric-value-row">
                 <div class="metric-value" style="color:var(--{{ ds_pwr_health }});">{{ s.ds_power_avg }}<span class="unit">dBmV</span></div>
-                <canvas class="metric-spark" id="spark-ds-power" width="144" height="56"></canvas>
+                <canvas class="metric-spark" id="spark-ds-power" width="144" height="56" aria-hidden="true"></canvas>
             </div>
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
@@ -710,7 +710,7 @@
             </div>
             <div class="metric-value-row">
                 <div class="metric-value" style="color:var(--{{ us_health }});">{{ s.us_power_avg }}<span class="unit">dBmV</span></div>
-                <canvas class="metric-spark" id="spark-us-power" width="144" height="56"></canvas>
+                <canvas class="metric-spark" id="spark-us-power" width="144" height="56" aria-hidden="true"></canvas>
             </div>
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
@@ -730,7 +730,7 @@
             </div>
             <div class="metric-value-row">
                 <div class="metric-value" style="color:var(--{{ snr_health }});">{{ s.ds_snr_avg }}<span class="unit">dB</span></div>
-                <canvas class="metric-spark" id="spark-snr" width="144" height="56"></canvas>
+                <canvas class="metric-spark" id="spark-snr" width="144" height="56" aria-hidden="true"></canvas>
             </div>
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
@@ -751,7 +751,7 @@
             </div>
             <div class="metric-value-row">
                 <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorr_pct }}<span class="unit">%</span></div>
-                <canvas class="metric-spark" id="spark-errors" width="144" height="56"></canvas>
+                <canvas class="metric-spark" id="spark-errors" width="144" height="56" aria-hidden="true"></canvas>
             </div>
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
@@ -807,7 +807,7 @@
 
         {# ── Connection Monitor card (inline with other metric cards) ── #}
         {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-        <div class="metric-card glass" id="connection-monitor-card" style="cursor:pointer;" onclick="switchView('connection-monitor')">
+        <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" style="cursor:pointer;" onclick="switchView('connection-monitor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('connection-monitor')}">
             <div class="metric-header">
                 <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
                 <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>
@@ -857,11 +857,11 @@
 
         {% for group in ds|groupby('docsis_version')|reverse %}
         <div class="docsis-group">
-            <div class="docsis-group-header" role="button" tabindex="0" onclick="if(!event.target.closest('.glossary-hint'))this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="ds-docsis-group-{{ loop.index }}" onclick="if(!event.target.closest('.glossary-hint')){var open=this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded', open ? 'true' : 'false')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 <i data-lucide="chevron-right"></i>
                 DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
             </div>
-            <div class="table-scroll-wrapper">
+            <div class="table-scroll-wrapper" id="ds-docsis-group-{{ loop.index }}">
                 <div class="table-scroll">
                     <table class="channel-table">
                         <thead><tr>
@@ -915,11 +915,11 @@
 
         {% for group in us|groupby('docsis_version')|reverse %}
         <div class="docsis-group">
-            <div class="docsis-group-header" role="button" tabindex="0" onclick="if(!event.target.closest('.glossary-hint'))this.parentElement.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="us-docsis-group-{{ loop.index }}" onclick="if(!event.target.closest('.glossary-hint')){var open=this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded', open ? 'true' : 'false')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 <i data-lucide="chevron-right"></i>
                 DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
             </div>
-            <div class="table-scroll-wrapper">
+            <div class="table-scroll-wrapper" id="us-docsis-group-{{ loop.index }}">
                 <div class="table-scroll">
                     <table class="channel-table">
                         <thead><tr>

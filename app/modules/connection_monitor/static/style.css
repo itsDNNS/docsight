@@ -189,14 +189,35 @@
     background: var(--accent);
 }
 
-.cm-chip-remove {
-    cursor: pointer;
-    font-size: 0.9rem;
-    line-height: 1;
-    opacity: 0.68;
+.cm-pinned-chip {
+    display: inline-flex;
+    align-items: stretch;
+    min-width: 0;
 }
 
-.cm-chip-remove:hover {
+.cm-pinned-chip .cm-chip-btn {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.cm-chip-remove {
+    min-height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--cm-panel-border);
+    border-left: 0;
+    border-radius: 0 8px 8px 0;
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    color: var(--text-muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1;
+    opacity: 0.78;
+}
+
+.cm-chip-remove:hover,
+.cm-chip-remove:focus-visible {
+    color: var(--crit);
     opacity: 1;
 }
 
@@ -517,8 +538,25 @@
     min-width: 0;
 }
 
+.cm-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
 #cm-per-target-stats .cm-target-table thead {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
 }
 
 #cm-per-target-stats .cm-target-table tr {
@@ -632,7 +670,24 @@
 }
 
 .cm-trace-row {
+    cursor: default;
+}
+
+.cm-trace-toggle {
+    border: 0;
+    background: transparent;
+    color: inherit;
     cursor: pointer;
+    font: inherit;
+    padding: 0;
+    text-align: left;
+}
+
+.cm-trace-toggle:hover,
+.cm-trace-toggle:focus-visible {
+    color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
 }
 
 .cm-fingerprint,
@@ -690,6 +745,15 @@
     color: var(--text-muted);
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .cm-kpi-card,
+    .cm-chip-btn,
+    .cm-pin-action {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
 @media (max-width: 1180px) {
     .cm-stats-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -709,7 +773,6 @@
     .cm-console-head,
     .cm-control-strip,
     .cm-range-group,
-    .cm-pinned-bar,
     .cm-side-stack {
         display: flex;
         flex-direction: column;

@@ -1,11 +1,18 @@
 """Static UI/CSS contract tests."""
 
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VIEWS_CSS = ROOT / "app" / "static" / "css" / "views.css"
 CORRELATION_JS = ROOT / "app" / "static" / "js" / "correlation.js"
 SW_JS = ROOT / "app" / "static" / "sw.js"
+MAIN_CSS = ROOT / "app" / "static" / "css" / "main.css"
+INDEX_HTML = ROOT / "app" / "templates" / "index.html"
+APP_I18N_DIR = ROOT / "app" / "i18n"
+CM_CSS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "style.css"
+CM_DETAIL_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-detail.js"
+CM_CHARTS_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-charts.js"
 
 
 def test_correlation_timeline_sticky_header_uses_opaque_surface():
@@ -62,7 +69,86 @@ def test_correlation_event_type_filter_applies_to_table_and_chart():
     assert "renderCorrelationTable(data)" in popover_block
 
 
-def test_static_cache_version_was_bumped_for_correlation_assets():
+def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v9';" in sw_js
+    assert "var CACHE_VERSION = 'v10';" in sw_js
+    assert "/static/css/main.css" in sw_js
+    assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
+    assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
+
+
+def test_dashboard_i18n_keys_exist_in_all_language_files():
+    required_keys = {
+        "dashboard_signal_trend",
+        "dashboard_signal_scope",
+        "dashboard_channel_health",
+        "dashboard_section_channels",
+        "dashboard_section_overview",
+        "dashboard_key_metrics",
+        "dashboard_key_metrics_hint",
+        "dashboard_channel_details",
+        "dashboard_channel_details_hint",
+    }
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    missing_from_template = [key for key in required_keys if key not in template]
+    assert missing_from_template == []
+
+    offenders = []
+    for path in sorted(APP_I18N_DIR.glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        missing = sorted(required_keys - data.keys())
+        if missing:
+            offenders.append(f"{path.name}: {', '.join(missing)}")
+
+    assert offenders == []
+
+
+def test_dashboard_insight_layout_uses_safe_responsive_columns():
+    css = MAIN_CSS.read_text(encoding="utf-8")
+
+    assert "grid-template-columns: 42px minmax(0, 1fr);" in css
+    assert "grid-column: 2;" in css
+    assert "minmax(280px, 1fr) minmax(230px" not in css
+
+
+def test_connection_monitor_mobile_pinned_bar_stays_hidden_by_default():
+    css = CM_CSS.read_text(encoding="utf-8")
+    mobile_block = css[css.index("@media (max-width: 760px)") :]
+
+    assert ".cm-pinned-bar," not in mobile_block
+    assert ".cm-pinned-bar {\n        display: flex;" not in mobile_block
+
+
+def test_connection_monitor_no_data_clears_range_bound_panels():
+    js = CM_DETAIL_JS.read_text(encoding="utf-8")
+    show_block = js[js.index("function showNoData") : js.index("function hideNoData")]
+
+    assert "cm-stats-cards" in show_block
+    assert "cm-outage-panel" in show_block
+    assert "textContent = ''" in show_block
+
+
+def test_connection_monitor_interactions_expose_keyboard_and_state():
+    js = CM_DETAIL_JS.read_text(encoding="utf-8")
+
+    assert "setAttribute('aria-pressed'" in js
+    assert "cm-pinned-chip" in js
+    assert "removeBtn = document.createElement('button')" in js
+    assert "removedActiveDay" in js
+    assert "var toggleBtn = document.createElement('button')" in js
+    assert "toggleBtn.setAttribute('aria-expanded'" in js
+    assert "tr.tabIndex = 0" not in js
+    assert "tr.setAttribute('role', 'button')" not in js
+
+
+def test_connection_monitor_availability_and_table_semantics_are_accessible():
+    js = CM_CHARTS_JS.read_text(encoding="utf-8")
+    css = CM_CSS.read_text(encoding="utf-8")
+
+    assert "container.setAttribute('role', 'img')" in js
+    assert "container.setAttribute('aria-label'" in js
+    assert "dataset.lAvailability" in js
+    assert "removeAttribute('aria-label')" in CM_DETAIL_JS.read_text(encoding="utf-8")
+    assert "cm-visually-hidden" in css
+    assert "#cm-per-target-stats .cm-target-table thead {\n    display: none;" not in css

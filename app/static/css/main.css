@@ -417,6 +417,19 @@ body.is-offline .offline-banner { display: flex; }
 .hero-meta-item svg { width: 13px; height: 13px; opacity: 0.6; }
 #desktop-countdown, #topbar-countdown { min-width: 3ch; font-variant-numeric: tabular-nums; }
 
+.hero-refresh-button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+.hero-refresh-button:focus-visible,
+.metric-card[role="button"]:focus-visible,
+.docsis-group-header:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 3px;
+}
+
 .hero-actions {
   display: flex;
   align-items: center;
@@ -1811,10 +1824,12 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 .dashboard-view .insight-action {
+  grid-column: 2;
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  max-width: 100%;
   padding-top: 12px;
   border-top: 1px solid var(--dash-muted-border);
   font-size: clamp(0.82rem, 0.78rem + 0.12vw, 0.92rem);
@@ -1855,6 +1870,17 @@ body:has(#view-dashboard.active) .app-main {
   color: var(--crit);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-view .hero-card,
+  .dashboard-view .insights-panel,
+  .dashboard-view .insight-card,
+  .dashboard-view .metric-card,
+  .dashboard-view .health-ring-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 @media (min-width: 1101px) {
   .dashboard-view .insights-panel {
     grid-template-columns: var(--hero-side-col) minmax(0, 1fr);
@@ -1880,20 +1906,14 @@ body:has(#view-dashboard.active) .app-main {
     grid-row: 1;
   }
 
-  .dashboard-view .insight-card {
-    grid-template-columns: 42px minmax(280px, 1fr) minmax(230px, 0.42fr);
-    align-items: stretch;
-  }
-
+  .dashboard-view .insight-card,
   .dashboard-view .insight-card:not(:has(.insight-action)) {
     grid-template-columns: 42px minmax(0, 1fr);
+    align-items: start;
   }
 
   .dashboard-view .insight-action {
-    align-self: stretch;
-    padding: 0 0 0 clamp(18px, 1.5vw, 28px);
-    border-top: 0;
-    border-left: 1px solid var(--dash-muted-border);
+    align-self: start;
   }
 
   .dashboard-view .metrics-grid {
