@@ -72,11 +72,9 @@
 
         var btn = document.createElement('button');
         btn.id = 'cm-pin-day-btn';
-        btn.className = 'trend-tab';
-        btn.style.cssText = 'font-size:0.75rem;padding:4px 10px;margin-left:4px;display:inline-flex;align-items:center;gap:4px;';
+        btn.className = 'cm-pin-action';
         var pinIcon = document.createElement('i');
         pinIcon.setAttribute('data-lucide', 'pin');
-        pinIcon.style.cssText = 'width:12px;height:12px;';
         btn.appendChild(pinIcon);
         btn.appendChild(document.createTextNode('Pin this day'));
         btn.onclick = function() {
@@ -114,12 +112,11 @@
             bar.style.display = 'none';
             return;
         }
-        bar.style.display = '';
+        bar.style.display = 'flex';
 
         days.forEach(function(day) {
             var chip = document.createElement('button');
-            chip.className = 'trend-tab';
-            chip.style.cssText = 'font-size:0.72rem;padding:3px 8px;display:inline-flex;align-items:center;gap:4px;';
+            chip.className = 'cm-chip-btn';
             if (pinnedDayView && pinnedDayView.date === day.date) {
                 chip.classList.add('active');
             }
@@ -127,7 +124,6 @@
             var label = day.label ? day.date + ' (' + day.label + ')' : day.date;
             var textSpan = document.createElement('span');
             textSpan.textContent = label;
-            textSpan.style.cursor = 'pointer';
             textSpan.onclick = function(e) {
                 e.stopPropagation();
                 viewPinnedDay(day.date, day.utc_start, day.utc_end);
@@ -135,7 +131,7 @@
 
             var removeBtn = document.createElement('span');
             removeBtn.textContent = '\u00d7';
-            removeBtn.style.cssText = 'cursor:pointer;font-size:0.85rem;line-height:1;opacity:0.6;';
+            removeBtn.className = 'cm-chip-remove';
             removeBtn.onclick = function(e) {
                 e.stopPropagation();
                 fetch('/api/connection-monitor/pinned-days/' + day.date, { method: 'DELETE' })
@@ -181,8 +177,7 @@
 
                 // Badge
                 var badge = document.createElement('span');
-                badge.style.cssText = 'padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;' +
-                    (isTcp ? 'background:rgba(234,179,8,0.15);color:#eab308;' : 'background:rgba(34,197,94,0.15);color:#22c55e;');
+                badge.className = 'cm-mode-badge ' + (isTcp ? 'tcp' : 'icmp');
                 badge.textContent = label + ' mode';
                 el.appendChild(badge);
 
@@ -297,8 +292,7 @@
         container.textContent = '';
         targets.forEach(function(t) {
             var btn = document.createElement('button');
-            btn.className = 'trend-tab';
-            btn.style.cssText = 'font-size:0.75rem;padding:4px 10px;';
+            btn.className = 'cm-chip-btn';
             btn.textContent = t.label;
             btn.onclick = function() { window.cmExportCsv(t.id); };
             container.appendChild(btn);
@@ -414,7 +408,7 @@
         };
         if (pinnedDayView) {
             el.textContent = 'Pinned: ' + pinnedDayView.date + ' (full resolution)';
-            el.style.display = '';
+            el.style.display = 'block';
             return;
         }
         if (meta.mixed && Array.isArray(meta.tiers_used) && meta.tiers_used.length > 0) {
@@ -424,13 +418,13 @@
         } else {
             el.textContent = labels[meta.resolution] || meta.resolution;
         }
-        el.style.display = '';
+        el.style.display = 'block';
     }
 
     function showNoData() {
         var noData = document.getElementById('cm-no-data');
         var chartsEl = document.getElementById('cm-charts-section');
-        if (noData) noData.style.display = '';
+        if (noData) noData.style.display = 'flex';
         if (chartsEl) chartsEl.style.display = 'none';
     }
 
@@ -452,12 +446,11 @@
 
         targets.forEach(function(t, i) {
             var btn = document.createElement('button');
-            btn.className = 'trend-tab' + (i === 0 ? ' active' : '');
-            btn.style.cssText = 'font-size:0.75rem;padding:4px 10px;';
+            btn.className = 'cm-chip-btn' + (i === 0 ? ' active' : '');
             btn.textContent = t.label;
             btn.dataset.targetId = t.id;
             btn.onclick = function() {
-                container.querySelectorAll('.trend-tab').forEach(function(b) { b.classList.remove('active'); });
+                container.querySelectorAll('.cm-chip-btn').forEach(function(b) { b.classList.remove('active'); });
                 btn.classList.add('active');
                 trSelectedTargetId = t.id;
                 loadTraceHistory();
@@ -489,7 +482,7 @@
 
         if (!traces || traces.length === 0) {
             table.style.display = 'none';
-            if (noTraces) noTraces.style.display = '';
+            if (noTraces) noTraces.style.display = 'block';
             return;
         }
 
@@ -504,7 +497,7 @@
 
         traces.forEach(function(trace) {
             var tr = document.createElement('tr');
-            tr.style.cursor = 'pointer';
+            tr.className = 'cm-trace-row';
             tr.onclick = function() { toggleTraceDetail(tr, trace.id); };
 
             var tdTarget = document.createElement('td');
@@ -517,23 +510,21 @@
             tdHops.textContent = trace.hop_count;
 
             var tdFp = document.createElement('td');
-            tdFp.style.cssText = 'font-family:monospace;font-size:0.8rem;';
+            tdFp.className = 'cm-fingerprint';
             tdFp.textContent = trace.route_fingerprint ? trace.route_fingerprint.substring(0, 12) : '\u2014';
 
             var tdReached = document.createElement('td');
             var reachedSpan = document.createElement('span');
-            reachedSpan.style.cssText = 'font-size:0.8rem;padding:2px 6px;border-radius:4px;';
             if (trace.reached_target) {
-                reachedSpan.style.cssText += 'background:rgba(34,197,94,0.15);color:#22c55e;';
+                reachedSpan.className = 'cm-reached-badge yes';
                 reachedSpan.textContent = '\u2713';
             } else {
-                reachedSpan.style.cssText += 'background:rgba(239,68,68,0.15);color:#ef4444;';
+                reachedSpan.className = 'cm-reached-badge no';
                 reachedSpan.textContent = '\u2717';
             }
             tdReached.appendChild(reachedSpan);
 
             var tdTrigger = document.createElement('td');
-            tdTrigger.style.fontSize = '0.8rem';
             tdTrigger.textContent = trace.trigger_reason || '\u2014';
 
             tr.appendChild(tdTarget);
@@ -567,19 +558,17 @@
                 detailRow.className = 'trace-detail-row';
                 var td = document.createElement('td');
                 td.colSpan = 6;
-                td.style.cssText = 'padding:8px 16px;background:rgba(255,255,255,0.03);';
 
                 var hops = data.hops || [];
                 if (hops.length === 0) {
                     td.textContent = '\u2014';
                 } else {
                     var hopTable = document.createElement('table');
-                    hopTable.style.cssText = 'width:100%;font-size:0.8rem;';
+                    hopTable.className = 'cm-hop-table';
                     var thead = document.createElement('thead');
                     var headRow = document.createElement('tr');
                     ['#', 'IP', 'Hostname', 'Latency', 'Probes'].forEach(function(label) {
                         var th = document.createElement('th');
-                        th.style.cssText = 'padding:4px 8px;font-weight:600;text-align:left;';
                         th.textContent = label;
                         headRow.appendChild(th);
                     });
@@ -590,28 +579,24 @@
                     hops.forEach(function(hop) {
                         var htr = document.createElement('tr');
                         var tdIdx = document.createElement('td');
-                        tdIdx.style.padding = '3px 8px';
                         tdIdx.textContent = hop.hop_index;
 
                         var tdIp = document.createElement('td');
-                        tdIp.style.cssText = 'padding:3px 8px;font-family:monospace;';
+                        tdIp.className = 'cm-hop-ip';
                         tdIp.textContent = hop.hop_ip || '*';
 
                         var tdHost = document.createElement('td');
-                        tdHost.style.padding = '3px 8px';
                         tdHost.textContent = hop.hop_host || '\u2014';
 
                         var tdLat = document.createElement('td');
-                        tdLat.style.padding = '3px 8px';
                         if (hop.latency_ms !== null && hop.latency_ms !== undefined) {
                             tdLat.textContent = hop.latency_ms.toFixed(2) + ' ms';
                         } else {
                             tdLat.textContent = '*';
-                            tdLat.style.color = 'var(--text-muted)';
+                            tdLat.className = 'cm-muted';
                         }
 
                         var tdProbes = document.createElement('td');
-                        tdProbes.style.padding = '3px 8px';
                         tdProbes.textContent = hop.probes_responded !== undefined ? hop.probes_responded + '/3' : '\u2014';
 
                         htr.appendChild(tdIdx);
@@ -637,25 +622,22 @@
         resultDiv.textContent = '';
 
         if (data.error) {
-            resultDiv.style.display = '';
+            resultDiv.style.display = 'block';
             var errBox = document.createElement('div');
-            errBox.style.cssText = 'padding:8px 12px;border-radius:6px;background:rgba(239,68,68,0.1);color:#ef4444;font-size:0.85rem;';
+            errBox.className = 'cm-traceroute-alert error';
             errBox.textContent = data.error;
             resultDiv.appendChild(errBox);
             return;
         }
 
-        resultDiv.style.display = '';
+        resultDiv.style.display = 'block';
         var reached = data.reached_target;
-        var color = reached ? '#22c55e' : '#ef4444';
-        var bg = reached ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
         var statusText = reached ? 'Target reached' : 'Target not reached';
 
         var box = document.createElement('div');
-        box.style.cssText = 'padding:8px 12px;border-radius:6px;background:' + bg + ';font-size:0.85rem;';
+        box.className = 'cm-traceroute-alert ' + (reached ? 'ok' : 'error');
 
         var statusSpan = document.createElement('span');
-        statusSpan.style.cssText = 'color:' + color + ';font-weight:600;';
         statusSpan.textContent = statusText;
         box.appendChild(statusSpan);
 
@@ -666,7 +648,7 @@
             var fpText = document.createTextNode(', fingerprint: ');
             box.appendChild(fpText);
             var fpCode = document.createElement('code');
-            fpCode.style.fontSize = '0.8rem';
+            fpCode.className = 'cm-fingerprint';
             fpCode.textContent = data.route_fingerprint.substring(0, 12);
             box.appendChild(fpCode);
         }
@@ -681,15 +663,20 @@
         var btn = document.getElementById('cm-traceroute-btn');
         if (!btn) return;
 
-        var origText = btn.textContent;
+        var label = btn.querySelector('span');
+        var origText = label ? label.textContent : btn.textContent;
         btn.disabled = true;
-        btn.textContent = 'Running traceroute...';
+        btn.classList.add('is-running');
+        if (label) label.textContent = btn.dataset.running || 'Running traceroute...';
+        else btn.textContent = btn.dataset.running || 'Running traceroute...';
 
         fetch('/api/connection-monitor/traceroute/' + trSelectedTargetId, { method: 'POST' })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 btn.disabled = false;
-                btn.textContent = origText;
+                btn.classList.remove('is-running');
+                if (label) label.textContent = origText;
+                else btn.textContent = origText;
                 renderTracerouteResult(data);
                 if (!data.error) {
                     loadTraceHistory();
@@ -697,7 +684,9 @@
             })
             .catch(function() {
                 btn.disabled = false;
-                btn.textContent = origText;
+                btn.classList.remove('is-running');
+                if (label) label.textContent = origText;
+                else btn.textContent = origText;
             });
     };
 

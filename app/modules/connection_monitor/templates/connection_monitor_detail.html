@@ -1,8 +1,12 @@
-<div class="view-content" id="cm-detail-view">
-    <!-- Header -->
-    <div class="cm-header">
-        <h2>{{ t.get('docsight.connection_monitor.cm_detail_title', 'Connection Monitor') }}</h2>
-        <div class="cm-header-spacer"></div>
+<div class="view-content cm-monitor" id="cm-detail-view">
+    <div class="cm-console-head">
+        <div class="cm-title-block">
+            <div class="cm-title-row">
+                <span class="cm-title-icon"><i data-lucide="activity"></i></span>
+                <h2>{{ t.get('docsight.connection_monitor.cm_detail_title', 'Connection Monitor') }}</h2>
+            </div>
+            <p>{{ t.get('docsight.connection_monitor.connection_monitor_desc', 'Always-on latency monitoring for cable troubleshooting') }}</p>
+        </div>
         <div id="cm-capability-info" class="cm-capability"
              data-method-icmp="{{ t.get('docsight.connection_monitor.cm_method_icmp', 'ICMP') }}"
              data-method-tcp="{{ t.get('docsight.connection_monitor.cm_method_tcp', 'TCP') }}"
@@ -10,118 +14,147 @@
         ></div>
     </div>
 
-    <!-- Time range picker -->
-    <div class="cm-range-picker">
-        <button class="trend-tab active" data-cm-range="3600" onclick="cmSetRange(this, 3600)">1h</button>
-        <button class="trend-tab" data-cm-range="21600" onclick="cmSetRange(this, 21600)">6h</button>
-        <button class="trend-tab" data-cm-range="86400" onclick="cmSetRange(this, 86400)">24h</button>
-        <button class="trend-tab" data-cm-range="604800" onclick="cmSetRange(this, 604800)">7d</button>
-        <button class="trend-tab" data-cm-range="2592000" onclick="cmSetRange(this, 2592000)">30d</button>
-        <button class="trend-tab" data-cm-range="7776000" onclick="cmSetRange(this, 7776000)">90d</button>
-    </div>
+    <div class="cm-control-strip">
+        <div class="cm-range-group">
+            <span class="cm-control-label">{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}</span>
+            <div class="cm-range-picker" role="group" aria-label="{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}">
+                <button class="trend-tab active" data-cm-range="3600" onclick="cmSetRange(this, 3600)">1h</button>
+                <button class="trend-tab" data-cm-range="21600" onclick="cmSetRange(this, 21600)">6h</button>
+                <button class="trend-tab" data-cm-range="86400" onclick="cmSetRange(this, 86400)">24h</button>
+                <button class="trend-tab" data-cm-range="604800" onclick="cmSetRange(this, 604800)">7d</button>
+                <button class="trend-tab" data-cm-range="2592000" onclick="cmSetRange(this, 2592000)">30d</button>
+                <button class="trend-tab" data-cm-range="7776000" onclick="cmSetRange(this, 7776000)">90d</button>
+            </div>
+        </div>
 
-    <!-- Pinned days bar -->
-    <div id="cm-pinned-days-bar" class="cm-pinned-bar">
-        <div class="cm-pinned-row">
-            <span class="cm-pinned-label">Pinned:</span>
+        <div id="cm-pinned-days-bar" class="cm-pinned-bar">
+            <span class="cm-pinned-label">Pinned</span>
             <div id="cm-pinned-days" class="cm-pinned-days"></div>
         </div>
     </div>
 
-    <!-- No data message -->
     <div id="cm-no-data" class="cm-no-data">
-        {{ t.get('docsight.connection_monitor.cm_no_data', 'No data yet. Enable the Connection Monitor in settings to start collecting.') }}
+        <i data-lucide="radar"></i>
+        <span>{{ t.get('docsight.connection_monitor.cm_no_data', 'No data yet. Enable the Connection Monitor in settings to start collecting.') }}</span>
     </div>
 
-    <!-- Stats cards -->
     <div id="cm-stats-cards" class="cm-stats-grid"></div>
 
-    <!-- Per-target stats comparison -->
-    <div class="glass cm-section">
-        <h3>{{ t.get('docsight.connection_monitor.cm_per_target_title', 'Per-Target Statistics') }}</h3>
-        <div id="cm-per-target-stats"
-             data-l-target="{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}"
-             data-l-avg="{{ t.get('docsight.connection_monitor.cm_avg_latency', 'Avg') }}"
-             data-l-p95="P95"
-             data-l-loss="{{ t.get('docsight.connection_monitor.cm_packet_loss', 'Packet Loss') }}"
-             data-l-samples="{{ t.get('docsight.connection_monitor.cm_per_target_samples', 'Samples') }}"
-             data-diag-external="{{ t.get('docsight.connection_monitor.cm_diag_external', 'External issue - gateway OK but external targets show packet loss') }}"
-             data-diag-internal="{{ t.get('docsight.connection_monitor.cm_diag_internal', 'Internal/ISP issue - gateway also affected') }}"
-        ></div>
+    <div id="cm-charts-section" class="cm-workspace">
+        <section class="glass cm-panel cm-chart-panel">
+            <div class="cm-panel-header">
+                <div class="cm-panel-title">
+                    <i data-lucide="line-chart"></i>
+                    <h3>{{ t.get('docsight.connection_monitor.cm_latency_chart', 'Latency') }}</h3>
+                </div>
+                <div id="cm-resolution-indicator" class="cm-resolution"
+                     data-label-raw="{{ t.get('docsight.connection_monitor.cm_resolution_raw', 'Raw samples') }}"
+                     data-label-1min="{{ t.get('docsight.connection_monitor.cm_resolution_1min', '1-min averages') }}"
+                     data-label-5min="{{ t.get('docsight.connection_monitor.cm_resolution_5min', '5-min averages') }}"
+                     data-label-1hr="{{ t.get('docsight.connection_monitor.cm_resolution_1hr', '1-hour averages') }}"
+                ></div>
+            </div>
+            <div id="cm-combined-chart" class="cm-chart-mount"></div>
+        </section>
+
+        <aside class="cm-side-stack">
+            <section class="glass cm-panel">
+                <div class="cm-panel-header">
+                    <div class="cm-panel-title">
+                        <i data-lucide="list-tree"></i>
+                        <h3>{{ t.get('docsight.connection_monitor.cm_per_target_title', 'Per-Target Statistics') }}</h3>
+                    </div>
+                </div>
+                <div id="cm-per-target-stats"
+                     data-l-target="{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}"
+                     data-l-avg="{{ t.get('docsight.connection_monitor.cm_avg_latency', 'Avg') }}"
+                     data-l-p95="P95"
+                     data-l-loss="{{ t.get('docsight.connection_monitor.cm_packet_loss', 'Packet Loss') }}"
+                     data-l-samples="{{ t.get('docsight.connection_monitor.cm_per_target_samples', 'Samples') }}"
+                     data-diag-external="{{ t.get('docsight.connection_monitor.cm_diag_external', 'External issue - gateway OK but external targets show packet loss') }}"
+                     data-diag-internal="{{ t.get('docsight.connection_monitor.cm_diag_internal', 'Internal/ISP issue - gateway also affected') }}"
+                ></div>
+            </section>
+
+            <section class="glass cm-panel cm-availability-panel">
+                <div class="cm-panel-header">
+                    <div class="cm-panel-title">
+                        <i data-lucide="signal"></i>
+                        <h3>{{ t.get('docsight.connection_monitor.cm_availability_chart', 'Availability') }}</h3>
+                    </div>
+                </div>
+                <div id="cm-availability" class="cm-availability-band"></div>
+                <div class="cm-availability-legend">
+                    <span><i class="ok"></i>{{ t.get('docsight.connection_monitor.cm_status_ok', 'OK') }}</span>
+                    <span><i class="degraded"></i>{{ t.get('docsight.connection_monitor.cm_status_degraded', 'Degraded') }}</span>
+                    <span><i class="down"></i>{{ t.get('docsight.connection_monitor.cm_status_down', 'Down') }}</span>
+                </div>
+            </section>
+        </aside>
     </div>
 
-    <!-- Charts section -->
-    <div id="cm-charts-section">
-        <!-- Combined latency + loss chart (PingPlotter-style) -->
-        <div class="glass cm-section">
-            <div id="cm-combined-chart"></div>
-            <div id="cm-resolution-indicator" class="cm-resolution"
-                 data-label-raw="{{ t.get('docsight.connection_monitor.cm_resolution_raw', 'Raw samples') }}"
-                 data-label-1min="{{ t.get('docsight.connection_monitor.cm_resolution_1min', '1-min averages') }}"
-                 data-label-5min="{{ t.get('docsight.connection_monitor.cm_resolution_5min', '5-min averages') }}"
-                 data-label-1hr="{{ t.get('docsight.connection_monitor.cm_resolution_1hr', '1-hour averages') }}"
-            ></div>
-        </div>
+    <div class="cm-log-grid">
+        <section class="glass cm-panel">
+            <div class="cm-panel-header">
+                <div class="cm-panel-title">
+                    <i data-lucide="history"></i>
+                    <h3>{{ t.get('docsight.connection_monitor.cm_outage_log', 'Outage Log') }}</h3>
+                </div>
+                <div class="cm-export-group">
+                    <span>{{ t.get('docsight.connection_monitor.cm_export_csv', 'Export CSV') }}</span>
+                    <div id="cm-export-links" class="cm-export-links"></div>
+                </div>
+            </div>
+            <div class="cm-table-wrap">
+                <table class="data-table cm-data-table">
+                    <thead>
+                        <tr>
+                            <th>{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}</th>
+                            <th>{{ t.get('docsight.connection_monitor.cm_outage_start', 'Start') }}</th>
+                            <th>{{ t.get('docsight.connection_monitor.cm_outage_end', 'End') }}</th>
+                            <th class="text-right">{{ t.get('docsight.connection_monitor.cm_outage_duration', 'Duration') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cm-outage-tbody"></tbody>
+                </table>
+            </div>
+        </section>
 
-        <!-- Availability band -->
-        <div class="glass cm-section">
-            <h3>{{ t.get('docsight.connection_monitor.cm_availability_chart', 'Availability') }}</h3>
-            <div id="cm-availability" class="cm-availability-band"></div>
-        </div>
-    </div>
-
-    <!-- Outage log -->
-    <div class="glass cm-section">
-        <div class="cm-section-header">
-            <h3>{{ t.get('docsight.connection_monitor.cm_outage_log', 'Outage Log') }}</h3>
-            <div class="cm-section-spacer"></div>
-            <span class="cm-section-meta">{{ t.get('docsight.connection_monitor.cm_export_csv', 'Export CSV') }}:</span>
-            <div id="cm-export-links" class="cm-export-links"></div>
-        </div>
-        <div class="cm-table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}</th>
-                        <th>{{ t.get('docsight.connection_monitor.cm_outage_start', 'Start') }}</th>
-                        <th>{{ t.get('docsight.connection_monitor.cm_outage_end', 'End') }}</th>
-                        <th class="text-right">{{ t.get('docsight.connection_monitor.cm_outage_duration', 'Duration') }}</th>
-                    </tr>
-                </thead>
-                <tbody id="cm-outage-tbody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Traceroute -->
-    <div class="glass cm-section">
-        <div class="cm-section-header">
-            <h3>{{ t.get('docsight.connection_monitor.traceroute.history', 'Traceroute History') }}</h3>
-            <div class="cm-section-spacer"></div>
-            <div id="cm-traceroute-target-select" class="cm-traceroute-targets"></div>
-            <button id="cm-traceroute-btn" class="btn btn-secondary cm-traceroute-btn" onclick="cmRunTraceroute()">
-                {{ t.get('docsight.connection_monitor.traceroute.run_button', 'Run Traceroute') }}
-            </button>
-        </div>
-        <div id="cm-traceroute-result" class="cm-traceroute-result"></div>
-        <div id="cm-traceroute-no-traces" class="cm-traceroute-empty">
-            {{ t.get('docsight.connection_monitor.traceroute.no_traces', 'No traceroutes recorded yet.') }}
-        </div>
-        <div id="cm-traceroute-history" class="cm-table-wrap">
-            <table class="data-table" id="cm-traceroute-table" style="display:none;">
-                <thead>
-                    <tr>
-                        <th>{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}</th>
-                        <th>{{ t.get('docsight.connection_monitor.cm_outage_start', 'Start') }}</th>
-                        <th>{{ t.get('docsight.connection_monitor.traceroute.hops', 'Hops') }}</th>
-                        <th>Fingerprint</th>
-                        <th>{{ t.get('docsight.connection_monitor.traceroute.reached', 'Target reached') }}</th>
-                        <th>Trigger</th>
-                    </tr>
-                </thead>
-                <tbody id="cm-traceroute-tbody"></tbody>
-            </table>
-        </div>
+        <section class="glass cm-panel">
+            <div class="cm-panel-header">
+                <div class="cm-panel-title">
+                    <i data-lucide="route"></i>
+                    <h3>{{ t.get('docsight.connection_monitor.traceroute.history', 'Traceroute History') }}</h3>
+                </div>
+                <div class="cm-traceroute-actions">
+                    <div id="cm-traceroute-target-select" class="cm-traceroute-targets"></div>
+                    <button id="cm-traceroute-btn" class="btn btn-secondary cm-traceroute-btn" onclick="cmRunTraceroute()"
+                            data-running="{{ t.get('docsight.connection_monitor.traceroute.running', 'Running traceroute...') }}">
+                        <i data-lucide="play"></i>
+                        <span>{{ t.get('docsight.connection_monitor.traceroute.run_button', 'Run Traceroute') }}</span>
+                    </button>
+                </div>
+            </div>
+            <div id="cm-traceroute-result" class="cm-traceroute-result"></div>
+            <div id="cm-traceroute-no-traces" class="cm-traceroute-empty">
+                {{ t.get('docsight.connection_monitor.traceroute.no_traces', 'No traceroutes recorded yet.') }}
+            </div>
+            <div id="cm-traceroute-history" class="cm-table-wrap">
+                <table class="data-table cm-data-table" id="cm-traceroute-table" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>{{ t.get('docsight.connection_monitor.cm_outage_target', 'Target') }}</th>
+                            <th>{{ t.get('docsight.connection_monitor.cm_outage_start', 'Start') }}</th>
+                            <th>{{ t.get('docsight.connection_monitor.traceroute.hops', 'Hops') }}</th>
+                            <th>Fingerprint</th>
+                            <th>{{ t.get('docsight.connection_monitor.traceroute.reached', 'Target reached') }}</th>
+                            <th>Trigger</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cm-traceroute-tbody"></tbody>
+                </table>
+            </div>
+        </section>
     </div>
 </div>
 

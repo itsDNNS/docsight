@@ -259,6 +259,9 @@ var CMCharts = (function() {
         renderChart(containerId, labels, datasets, 'line', zones, {
             yMin: 0,
             zoomable: true,
+            minHeight: 260,
+            maxHeight: 440,
+            heightRatio: 0.42,
             tooltipLabelCallback: function(ctx) {
                 var val = ctx.parsed.y;
                 if (val == null) return '';
@@ -314,8 +317,8 @@ var CMCharts = (function() {
         segments.forEach(function(seg) {
             var pct = ((seg.end - seg.start) / total * 100).toFixed(2);
             var div = document.createElement('div');
-            var bg = seg.state === 'down' ? 'var(--crit)' : seg.state === 'degraded' ? 'var(--warn, orange)' : 'var(--good)';
-            div.style.cssText = 'width:' + pct + '%;background:' + bg + ';height:100%;';
+            div.className = 'cm-availability-segment ' + seg.state;
+            div.style.width = pct + '%';
             div.title = seg.state + ' (' + pct + '%)';
             container.appendChild(div);
         });
@@ -427,13 +430,13 @@ var CMCharts = (function() {
 
         cards.forEach(function(c) {
             var card = document.createElement('div');
-            card.className = 'glass';
-            card.style.cssText = 'padding:12px 16px; text-align:center;';
+            card.className = 'cm-kpi-card';
             var val = document.createElement('div');
-            val.style.cssText = 'font-size:1.3rem; font-weight:700; color:' + c.color + ';';
+            val.className = 'cm-kpi-value';
+            val.style.setProperty('--cm-kpi-color', c.color);
             val.textContent = c.value;
             var lbl = document.createElement('div');
-            lbl.style.cssText = 'font-size:0.75rem; color:var(--text-muted); margin-top:2px;';
+            lbl.className = 'cm-kpi-label';
             lbl.textContent = c.label;
             card.appendChild(val);
             card.appendChild(lbl);
@@ -516,15 +519,14 @@ var CMCharts = (function() {
 
         // Build table
         var table = document.createElement('table');
-        table.className = 'data-table';
-        table.style.cssText = 'width:100%;';
+        table.className = 'data-table cm-target-table';
 
         var thead = document.createElement('thead');
         var headerRow = document.createElement('tr');
         [lTarget, lAvg, lP95, lLoss, lSamples].forEach(function(text, i) {
             var th = document.createElement('th');
             th.textContent = text;
-            if (i >= 3) th.style.textAlign = 'right';
+            if (i >= 3) th.className = 'text-right';
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
@@ -537,32 +539,37 @@ var CMCharts = (function() {
             // Target with color dot
             var tdTarget = document.createElement('td');
             var dot = document.createElement('span');
-            dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;background:' + s.color;
+            dot.className = 'cm-target-dot';
+            dot.style.background = s.color;
             tdTarget.appendChild(dot);
             var nameSpan = document.createElement('span');
             nameSpan.textContent = s.label;
             tdTarget.appendChild(nameSpan);
             if (s.host) {
                 var hostSpan = document.createElement('span');
-                hostSpan.style.cssText = 'color:var(--text-muted);font-size:0.8em;margin-left:4px;';
+                hostSpan.className = 'cm-target-host';
                 hostSpan.textContent = '(' + s.host + ')';
                 tdTarget.appendChild(hostSpan);
             }
 
             var tdAvg = document.createElement('td');
+            tdAvg.dataset.label = lAvg;
             tdAvg.textContent = s.avg != null ? s.avg.toFixed(1) + ' ms' : '-';
 
             var tdP95 = document.createElement('td');
+            tdP95.dataset.label = lP95;
             tdP95.textContent = s.p95 != null ? s.p95.toFixed(1) + ' ms' : '-';
 
             // Packet Loss with color
             var tdLoss = document.createElement('td');
-            tdLoss.style.cssText = 'text-align:right;font-weight:600;';
+            tdLoss.className = 'cm-loss-cell';
+            tdLoss.dataset.label = lLoss;
             tdLoss.style.color = s.loss > 2 ? 'var(--crit)' : s.loss > 0 ? 'var(--warn, orange)' : 'var(--good)';
             tdLoss.textContent = s.loss.toFixed(2) + '%';
 
             var tdSamples = document.createElement('td');
-            tdSamples.style.cssText = 'text-align:right;color:var(--text-muted);';
+            tdSamples.className = 'cm-samples-cell';
+            tdSamples.dataset.label = lSamples;
             tdSamples.textContent = s.samples.toLocaleString();
 
             tr.appendChild(tdTarget);
@@ -573,7 +580,10 @@ var CMCharts = (function() {
             tbody.appendChild(tr);
         });
         table.appendChild(tbody);
-        container.appendChild(table);
+        var tableWrap = document.createElement('div');
+        tableWrap.className = 'cm-table-wrap cm-target-table-wrap';
+        tableWrap.appendChild(table);
+        container.appendChild(tableWrap);
 
         // Fault diagnosis: compare local vs external targets
         var localStats = stats.filter(function(s) { return s.isLocal; });
@@ -584,10 +594,9 @@ var CMCharts = (function() {
 
         if (hasExternalLoss && !hasLocalLoss && localStats.length > 0) {
             var diag = document.createElement('div');
-            diag.style.cssText = 'margin-top:8px;padding:8px 12px;border-radius:6px;font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;background:rgba(239,68,68,0.12);color:var(--crit);';
+            diag.className = 'cm-diagnosis external';
             var icon = document.createElement('i');
             icon.setAttribute('data-lucide', 'alert-triangle');
-            icon.style.cssText = 'width:16px;height:16px;';
             diag.appendChild(icon);
             var txt = document.createElement('span');
             txt.textContent = lDiagExt;
@@ -596,10 +605,9 @@ var CMCharts = (function() {
             if (window.lucide) lucide.createIcons();
         } else if (hasLocalLoss && hasExternalLoss) {
             var diag = document.createElement('div');
-            diag.style.cssText = 'margin-top:8px;padding:8px 12px;border-radius:6px;font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;background:rgba(234,179,8,0.12);color:var(--warn, orange);';
+            diag.className = 'cm-diagnosis internal';
             var icon = document.createElement('i');
             icon.setAttribute('data-lucide', 'wifi-off');
-            icon.style.cssText = 'width:16px;height:16px;';
             diag.appendChild(icon);
             var txt = document.createElement('span');
             txt.textContent = lDiagInt;
