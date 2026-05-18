@@ -644,6 +644,32 @@
     {# ── SNR health ── #}
     {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_marginal' in s.health_issues else ('tolerated' if 'snr_tolerated' in s.health_issues else 'good')) %}
 
+    {% macro metric_range_viz(range_data, health, good_label, context_label='', context_value='') -%}
+    {% if range_data %}
+    <div class="metric-range-viz"
+         style="--metric-marker: {{ range_data.marker }}%; --metric-span-start: {{ range_data.span_start }}%; --metric-span-width: {{ range_data.span_width }}%; --metric-range-accent: var(--{{ health }});">
+        {% if context_label or context_value %}
+        <div class="metric-range-caption">
+            <span>{{ context_label }}</span>
+            <strong>{{ context_value }}</strong>
+        </div>
+        {% endif %}
+        <div class="metric-range-track" aria-hidden="true">
+            {% for band in range_data.bands %}
+            <span class="metric-range-band {{ band.kind }}" style="left:{{ band.left }}%;width:{{ band.width }}%;"></span>
+            {% endfor %}
+            <span class="metric-range-window"></span>
+            <span class="metric-range-marker"></span>
+        </div>
+        <div class="metric-range-labels">
+            <span>{{ range_data.low_label }}</span>
+            <span class="metric-range-good">{{ good_label }} {{ range_data.good_label }}</span>
+            <span>{{ range_data.high_label }}</span>
+        </div>
+    </div>
+    {% endif %}
+    {%- endmacro %}
+
     {# ══════════════════════════════════════════════════════════════════════════
        METRICS GRID — Compact signal + error + speed cards
        ══════════════════════════════════════════════════════════════════════════ #}
@@ -666,10 +692,13 @@
                 <div class="metric-value" style="color:var(--{{ ds_pwr_health }});">{{ s.ds_power_avg }}<span class="unit">dBmV</span></div>
                 <canvas class="metric-spark" id="spark-ds-power" width="144" height="56"></canvas>
             </div>
-            <div class="metric-sub">
-                <span class="badge badge-{{ ds_pwr_health }}">{{ health_labels[ds_pwr_health] }}</span>
-                <span class="range">{{ s.ds_power_min }} — {{ s.ds_power_max }}</span>
+            <div class="metric-sub metric-status-row">
+                <span class="metric-context">
+                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="badge badge-{{ ds_pwr_health }}">{{ health_labels[ds_pwr_health] }}</span>
+                </span>
             </div>
+            {{ metric_range_viz(metric_ranges.ds_power, ds_pwr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.ds_power_min ~ ' — ' ~ s.ds_power_max) }}
         </div>
 
         {# Card 2: US Power #}
@@ -683,10 +712,13 @@
                 <div class="metric-value" style="color:var(--{{ us_health }});">{{ s.us_power_avg }}<span class="unit">dBmV</span></div>
                 <canvas class="metric-spark" id="spark-us-power" width="144" height="56"></canvas>
             </div>
-            <div class="metric-sub">
-                <span class="badge badge-{{ us_health }}">{{ health_labels[us_health] }}</span>
-                <span class="range">{{ s.us_power_min }} — {{ s.us_power_max }}</span>
+            <div class="metric-sub metric-status-row">
+                <span class="metric-context">
+                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="badge badge-{{ us_health }}">{{ health_labels[us_health] }}</span>
+                </span>
             </div>
+            {{ metric_range_viz(metric_ranges.us_power, us_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.us_power_min ~ ' — ' ~ s.us_power_max) }}
         </div>
 
         {# Card 3: SNR #}
@@ -700,10 +732,13 @@
                 <div class="metric-value" style="color:var(--{{ snr_health }});">{{ s.ds_snr_avg }}<span class="unit">dB</span></div>
                 <canvas class="metric-spark" id="spark-snr" width="144" height="56"></canvas>
             </div>
-            <div class="metric-sub">
-                <span class="badge badge-{{ snr_health }}">{{ health_labels[snr_health] }}</span>
-                <span class="range">{{ s.ds_snr_min }} — {{ s.ds_snr_max }}</span>
+            <div class="metric-sub metric-status-row">
+                <span class="metric-context">
+                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="badge badge-{{ snr_health }}">{{ health_labels[snr_health] }}</span>
+                </span>
             </div>
+            {{ metric_range_viz(metric_ranges.snr, snr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.ds_snr_min ~ ' — ' ~ s.ds_snr_max) }}
         </div>
 
         {# Card 4: Errors #}
@@ -718,14 +753,18 @@
                 <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorr_pct }}<span class="unit">%</span></div>
                 <canvas class="metric-spark" id="spark-errors" width="144" height="56"></canvas>
             </div>
-            <div class="metric-sub">
-                <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
-                <span class="range">
+            <div class="metric-sub metric-status-row">
+                <span class="metric-context">
+                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
+                </span>
+            </div>
+            {% set error_count_caption %}
                     {% if s.ds_correctable_errors is not none %}{{ s.ds_correctable_errors|fmt_k }} {{ t.corr }}{% endif %}
                     {% if s.ds_correctable_errors is not none and s.ds_uncorrectable_errors is not none %} / {% endif %}
                     {% if s.ds_uncorrectable_errors is not none %}{{ s.ds_uncorrectable_errors|fmt_k }} {{ t.uncorr }}{% endif %}
-                </span>
-            </div>
+            {% endset %}
+            {{ metric_range_viz(metric_ranges.errors, error_health, health_labels.good, t.get('metric_error_count', 'Error count'), error_count_caption|trim) }}
         </div>
         {% endif %}
 
