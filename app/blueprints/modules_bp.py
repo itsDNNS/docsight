@@ -9,7 +9,7 @@ from flask import Blueprint, jsonify, request
 
 from app.module_download import download_github_directory, fetch_registry as fetch_module_registry
 from app.module_loader import ID_PATTERN, validate_manifest
-from app.path_safety import safe_child_file, safe_child_path
+from app.path_safety import safe_child_path
 from app.theme_registry import download_theme, fetch_registry as fetch_theme_registry
 from app.web import get_config_manager, get_module_loader, require_auth
 

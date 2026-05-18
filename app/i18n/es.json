@@ -85,6 +85,8 @@
   "insights_title": "Insights",
   "insights_all_healthy": "Todos los canales dentro de los rangos saludables — no se requiere acción.",
   "insights_tolerated": "Se han detectado pequeñas desviaciones, pero dentro de la tolerancia.",
+  "insight_action_good": "No se requiere acción. Mantén activa la supervisión normal",
+  "insight_action_tolerated": "No se requiere acción inmediata. Observa si el estado tolerado persiste",
   "insight_action_ds_power_critical": "Revisa las conexiones del cable coaxial y contacta a tu proveedor para una revisión de señal",
   "insight_action_ds_power_marginal": "Monitorea con el tiempo. Si persiste o empeora, contacta a tu proveedor",
   "insight_action_us_power_critical": "Revisa las conexiones del cable coaxial y solicita una revisión de señal a tu proveedor",

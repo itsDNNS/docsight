@@ -313,7 +313,7 @@ def api_export():
         "3. Error rate analysis and whether it indicates a problem",
         "4. Specific recommendations to improve connection quality",
     ]
-    return jsonify({"text": "\n".join(l for l in lines if l is not None)})
+    return jsonify({"text": "\n".join(line for line in lines if line is not None)})
 
 
 @data_bp.route("/api/snapshots")

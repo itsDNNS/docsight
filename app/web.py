@@ -23,6 +23,7 @@ from .config import POLL_MIN, POLL_MAX
 from .gaming_index import compute_gaming_index
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
+from .tz import guess_iana_timezone as _guess_iana_timezone, to_local as _to_local
 
 _IANA_REGIONS = {"Africa", "America", "Antarctica", "Arctic", "Asia",
                  "Atlantic", "Australia", "Europe", "Indian", "Pacific"}
@@ -33,9 +34,6 @@ def _get_iana_timezones():
         tz for tz in available_timezones()
         if tz.split("/")[0] in _IANA_REGIONS
     )
-
-from .tz import guess_iana_timezone as _guess_iana_timezone, to_local as _to_local
-
 def _server_tz_info():
     """Return server timezone name and UTC offset in minutes."""
     now = datetime.now().astimezone()
@@ -982,5 +980,5 @@ def add_security_headers(response):
 
 
 # ── Blueprint Registration ──
-from .blueprints import register_blueprints
+from .blueprints import register_blueprints  # noqa: E402
 register_blueprints(app)

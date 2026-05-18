@@ -264,7 +264,7 @@
 
 <!-- ═══ View: Dashboard ═══ -->
 <div class="main-content">
-<div id="view-dashboard" class="view active">
+<div id="view-dashboard" class="view active dashboard-view">
 
 
 {% if dashboard_notices %}
@@ -336,7 +336,6 @@
 
     {% if has_docsis %}
     {% set health_map = {"good": t.health_good, "tolerated": t.health_tolerated, "marginal": t.health_marginal, "critical": t.health_critical} %}
-    {% set health_label = health_map.get(s.health, s.health) %}
     {% set health_msgs = {"good": t.health_good_msg, "tolerated": t.health_tolerated_msg, "marginal": t.health_marginal_msg, "critical": t.health_critical_msg} %}
     {% set issue_labels = {
         "ds_power_critical": t.issue_ds_power_critical,
@@ -374,28 +373,32 @@
         "uncorr_errors_high": t.issue_uncorr_errors_high_desc,
         "uncorr_errors_critical": t.issue_uncorr_errors_critical_desc,
     } %}
+    {% set health_labels = {'good': t.health_good, 'tolerated': t.health_tolerated, 'warn': t.health_marginal, 'crit': t.health_critical} %}
+    {% set ds_good = ds|selectattr('health', 'equalto', 'good')|list|length %}
+    {% set ds_tolerated = ds|selectattr('health', 'equalto', 'tolerated')|list|length %}
+    {% set ds_warn = ds|selectattr('health', 'equalto', 'warning')|list|length %}
+    {% set ds_crit = ds|selectattr('health', 'equalto', 'critical')|list|length %}
+    {% set ds_total = ds|length %}
+    {% set ds_pct = (((ds_good + ds_tolerated) / ds_total * 100)|round(0)|int) if ds_total > 0 else 0 %}
+    {% set us_good_c = us|selectattr('health', 'equalto', 'good')|list|length %}
+    {% set us_tolerated_c = us|selectattr('health', 'equalto', 'tolerated')|list|length %}
+    {% set us_warn_c = us|selectattr('health', 'equalto', 'warning')|list|length %}
+    {% set us_crit_c = us|selectattr('health', 'equalto', 'critical')|list|length %}
+    {% set us_total = us|length %}
+    {% set us_pct = (((us_good_c + us_tolerated_c) / us_total * 100)|round(0)|int) if us_total > 0 else 0 %}
 
     {# ══════════════════════════════════════════════════════════════════════════
-       HERO CARD — Health status + meta info + trend chart
+       HERO CARD — Status context + channel health + signal trend
        ══════════════════════════════════════════════════════════════════════════ #}
     {% set hero_health = 'good' if s.health == 'good' else ('tolerated' if s.health == 'tolerated' else ('crit' if s.health == 'critical' else 'warn')) %}
-    <div class="hero-card glass">
-        <div class="hero-header">
-            <div class="hero-status">
-                <div class="hero-icon-wrap {{ hero_health }}">
-                    <i data-lucide="activity"></i>
-                </div>
-                <div>
-                    <h1 class="hero-title">
-                        <span class="status-dot {{ hero_health }}"></span>
-                        {{ health_label }}
-                        {% if demo_mode %}<span class="badge badge-muted" style="font-size:0.68rem;">{{ t.demo_mode }}</span>{% endif %}
-                    </h1>
-                    <p class="hero-subtitle">{{ health_msgs.get(s.health, '') }}</p>
-                </div>
-            </div>
-            <div class="hero-right">
+    {% set dashboard_meta_row %}
+            <div class="insights-meta">
                 <div class="hero-meta">
+                        {% if demo_mode %}
+                        <span class="hero-meta-item">
+                            <i data-lucide="flask-conical"></i> <span class="badge badge-muted">{{ t.demo_mode }}</span>
+                        </span>
+                        {% endif %}
                         {% if isp_name %}
                         <span class="hero-meta-item" style="cursor:help;"
                             title="{{ t.isp_name_tooltip }}">
@@ -474,13 +477,7 @@
                         </span>
                 </div>
             </div>
-        </div>
-        <div class="hero-chart-wrap">
-            <canvas id="hero-trend-chart"></canvas>
-        </div>
-    </div>
-
-    {# ── Insights Panel — actionable guidance from health issues (#219) ── #}
+    {% endset %}
     {% set active_issues = [] %}
     {% for issue in s.health_issues %}{% if 'tolerated' not in issue %}{% if active_issues.append(issue) %}{% endif %}{% endif %}{% endfor %}
     {% set issue_actions = {
@@ -497,43 +494,141 @@
         "uncorr_errors_high": t.get("insight_action_uncorr_errors", ""),
         "uncorr_errors_critical": t.get("insight_action_uncorr_errors", ""),
     } %}
-    {% if active_issues %}
-    <div class="insights-panel glass">
-        <div class="insights-header">
-            <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
-            <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
-        </div>
-        <div class="insights-list">
-            {% for issue in active_issues %}
-            {% set sev = 'crit' if 'critical' in issue else 'warn' %}
-            {% set sev_label = t.health_critical if 'critical' in issue else t.health_marginal %}
-            <div class="insight-card">
-                <div class="insight-icon {{ sev }}"><i data-lucide="alert-circle"></i></div>
-                <div class="insight-content">
-                    <div class="insight-condition">
-                        {{ issue_labels.get(issue, issue) }}
-                        <span class="badge badge-{{ sev }}">{{ sev_label }}</span>
+    <section class="hero-card glass dashboard-hero health-{{ hero_health }}">
+        {{ dashboard_meta_row|safe }}
+        {# ── Insights Panel — actionable guidance from health issues (#219) ── #}
+        {% if active_issues %}
+        <div class="insights-panel insights-panel-{{ s.health }}">
+            <div class="insights-header">
+                <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
+                <div class="insights-heading">
+                    <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
+                    <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
+                </div>
+            </div>
+            <div class="insights-list">
+                {% for issue in active_issues %}
+                {% set sev = 'crit' if 'critical' in issue else 'warn' %}
+                <div class="insight-card insight-{{ sev }}">
+                    <div class="insight-rail {{ sev }}"><i data-lucide="alert-circle"></i></div>
+                    <div class="insight-content">
+                        <div class="insight-condition">{{ issue_labels.get(issue, issue) }}</div>
+                        <div class="insight-explanation">{{ issue_descs.get(issue, '') }}</div>
                     </div>
-                    <div class="insight-explanation">{{ issue_descs.get(issue, '') }}</div>
                     {% if issue_actions.get(issue) %}
                     <div class="insight-action"><i data-lucide="arrow-right" style="width:12px;height:12px;"></i> {{ issue_actions[issue] }}</div>
                     {% endif %}
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
-    </div>
-    {% elif s.health == 'tolerated' %}
-    <div class="insights-tolerated glass">
-        <div class="insights-tolerated-icon"><i data-lucide="info" style="width:14px;height:14px;"></i></div>
-        <span class="insights-healthy-text">{{ t.get("insights_tolerated", "Minor deviations detected, but within tolerance.") }}</span>
-    </div>
-    {% elif s.health == 'good' %}
-    <div class="insights-healthy glass">
-        <div class="insights-healthy-icon"><i data-lucide="check-circle" style="width:14px;height:14px;"></i></div>
-        <span class="insights-healthy-text">{{ t.get("insights_all_healthy", "All channels within healthy ranges — no action needed.") }}</span>
-    </div>
-    {% endif %}
+        {% elif s.health == 'tolerated' %}
+        <div class="insights-panel insights-panel-tolerated">
+            <div class="insights-header">
+                <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
+                <div class="insights-heading">
+                    <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
+                    <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
+                </div>
+            </div>
+            <div class="insights-list">
+                <div class="insight-card insight-tolerated">
+                    <div class="insight-rail tolerated"><i data-lucide="info"></i></div>
+                    <div class="insight-content">
+                        <div class="insight-condition">{{ t.get("insights_tolerated", "Minor deviations detected, but within tolerance.") }}</div>
+                        <div class="insight-explanation">{{ health_msgs.get(s.health, '') }}</div>
+                    </div>
+                    <div class="insight-action"><i data-lucide="check-circle"></i> {{ t.get("insight_action_tolerated", "No immediate action needed. Watch whether the tolerated state persists") }}</div>
+                </div>
+            </div>
+        </div>
+        {% elif s.health == 'good' %}
+        <div class="insights-panel insights-panel-good">
+            <div class="insights-header">
+                <div class="insights-icon"><i data-lucide="lightbulb"></i></div>
+                <div class="insights-heading">
+                    <span class="insights-title">{{ t.get("insights_title", "Insights") }}</span>
+                    <span class="insights-context"><span class="status-dot {{ hero_health }}"></span>{{ health_map.get(s.health, s.health) }}</span>
+                </div>
+            </div>
+            <div class="insights-list">
+                <div class="insight-card insight-good">
+                    <div class="insight-rail good"><i data-lucide="check-circle"></i></div>
+                    <div class="insight-content">
+                        <div class="insight-condition">{{ t.get("insights_all_healthy", "All channels within healthy ranges — no action needed.") }}</div>
+                        <div class="insight-explanation">{{ health_msgs.get(s.health, '') }}</div>
+                    </div>
+                    <div class="insight-action"><i data-lucide="check-circle"></i> {{ t.get("insight_action_good", "No action needed. Keep normal monitoring active") }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="hero-visual-row">
+            <div class="hero-chart-wrap">
+                <div class="hero-chart-head">
+                    <span>{{ t.get('dashboard_signal_trend', '24h signal trend') }}</span>
+                    <span>{{ t.get('dashboard_signal_scope', 'DS power / US power / SNR') }}</span>
+                </div>
+                <canvas id="hero-trend-chart"></canvas>
+            </div>
+            <aside class="hero-channel-health" aria-label="{{ t.get('dashboard_channel_health', 'Channel health') }}">
+                <div class="hero-channel-health-head">
+                    <span>{{ t.get('dashboard_section_channels', 'Channels') }}</span>
+                    <strong>{{ t.get('dashboard_channel_health', 'Channel health') }}</strong>
+                </div>
+                <div class="hero-channel-health-list">
+                    <div class="hero-health-card">
+                        <div class="hero-health-topline">
+                            <div>
+                                <div class="hero-health-name">{{ t.downstream }}</div>
+                                <div class="hero-health-subtitle">{{ ds_total }} {{ t.channels }}</div>
+                            </div>
+                            <div class="hero-health-score">
+                                <strong>{{ ds_pct }}%</strong>
+                                <span>{{ t.healthy }}</span>
+                            </div>
+                        </div>
+                        <div class="hero-health-bar" aria-hidden="true">
+                            <span class="good" style="flex: {{ ds_good }};"></span>
+                            <span class="tolerated" style="flex: {{ ds_tolerated }};"></span>
+                            <span class="warn" style="flex: {{ ds_warn }};"></span>
+                            <span class="crit" style="flex: {{ ds_crit }};"></span>
+                        </div>
+                        <div class="hero-health-stats">
+                            <span class="hero-health-stat good"><i></i>{{ health_labels.good }} <strong>{{ ds_good }}</strong></span>
+                            <span class="hero-health-stat tolerated"><i></i>{{ health_labels.tolerated }} <strong>{{ ds_tolerated }}</strong></span>
+                            <span class="hero-health-stat warn"><i></i>{{ health_labels.warn }} <strong>{{ ds_warn }}</strong></span>
+                            <span class="hero-health-stat crit"><i></i>{{ health_labels.crit }} <strong>{{ ds_crit }}</strong></span>
+                        </div>
+                    </div>
+                    <div class="hero-health-card">
+                        <div class="hero-health-topline">
+                            <div>
+                                <div class="hero-health-name">{{ t.upstream }}</div>
+                                <div class="hero-health-subtitle">{{ us_total }} {{ t.channels }}</div>
+                            </div>
+                            <div class="hero-health-score">
+                                <strong>{{ us_pct }}%</strong>
+                                <span>{{ t.healthy }}</span>
+                            </div>
+                        </div>
+                        <div class="hero-health-bar" aria-hidden="true">
+                            <span class="good" style="flex: {{ us_good_c }};"></span>
+                            <span class="tolerated" style="flex: {{ us_tolerated_c }};"></span>
+                            <span class="warn" style="flex: {{ us_warn_c }};"></span>
+                            <span class="crit" style="flex: {{ us_crit_c }};"></span>
+                        </div>
+                        <div class="hero-health-stats">
+                            <span class="hero-health-stat good"><i></i>{{ health_labels.good }} <strong>{{ us_good_c }}</strong></span>
+                            <span class="hero-health-stat tolerated"><i></i>{{ health_labels.tolerated }} <strong>{{ us_tolerated_c }}</strong></span>
+                            <span class="hero-health-stat warn"><i></i>{{ health_labels.warn }} <strong>{{ us_warn_c }}</strong></span>
+                            <span class="hero-health-stat crit"><i></i>{{ health_labels.crit }} <strong>{{ us_crit_c }}</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </section>
 
     {# ── Per-card health ── #}
     {% set signal_health = 'crit' if 'ds_power_critical' in s.health_issues or 'snr_critical' in s.health_issues
@@ -549,12 +644,16 @@
     {# ── SNR health ── #}
     {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_marginal' in s.health_issues else ('tolerated' if 'snr_tolerated' in s.health_issues else 'good')) %}
 
-    {# ── Health label mapping ── #}
-    {% set health_labels = {'good': t.health_good, 'tolerated': t.health_tolerated, 'warn': t.health_marginal, 'crit': t.health_critical} %}
-
     {# ══════════════════════════════════════════════════════════════════════════
        METRICS GRID — Compact signal + error + speed cards
        ══════════════════════════════════════════════════════════════════════════ #}
+    <div class="dashboard-section-header">
+        <div>
+            <span class="dashboard-section-kicker">{{ t.get('dashboard_section_overview', 'Overview') }}</span>
+            <h2>{{ t.get('dashboard_key_metrics', 'Key metrics') }}</h2>
+        </div>
+        <span>{{ t.get('dashboard_key_metrics_hint', 'Live modem, throughput and monitoring signals') }}</span>
+    </div>
     <div class="metrics-grid">
         {# Card 1: DS Power #}
         <div class="metric-card glass">
@@ -684,63 +783,14 @@
     {% endif %}
 
     {# ══════════════════════════════════════════════════════════════════════════
-       CHANNEL HEALTH OVERVIEW — Ring gauges for DS/US health distribution
+       CHANNELS — Detailed channel tables with health chips
        ══════════════════════════════════════════════════════════════════════════ #}
-    {% set ds_good = ds|selectattr('health', 'equalto', 'good')|list|length %}
-    {% set ds_tolerated = ds|selectattr('health', 'equalto', 'tolerated')|list|length %}
-    {% set ds_warn = ds|selectattr('health', 'equalto', 'warning')|list|length %}
-    {% set ds_crit = ds|selectattr('health', 'equalto', 'critical')|list|length %}
-    {% set ds_total = ds|length %}
-    {% set ds_pct = (((ds_good + ds_tolerated) / ds_total * 100)|round(0)|int) if ds_total > 0 else 0 %}
-    {% set us_good_c = us|selectattr('health', 'equalto', 'good')|list|length %}
-    {% set us_tolerated_c = us|selectattr('health', 'equalto', 'tolerated')|list|length %}
-    {% set us_warn_c = us|selectattr('health', 'equalto', 'warning')|list|length %}
-    {% set us_crit_c = us|selectattr('health', 'equalto', 'critical')|list|length %}
-    {% set us_total = us|length %}
-    {% set us_pct = (((us_good_c + us_tolerated_c) / us_total * 100)|round(0)|int) if us_total > 0 else 0 %}
-    <div class="health-overview">
-        <div class="health-ring-card glass">
-            <div class="ring-wrap"
-                 data-good="{{ ds_good }}" data-tolerated="{{ ds_tolerated }}" data-warn="{{ ds_warn }}" data-crit="{{ ds_crit }}"
-                 ontouchstart="this.classList.add('touched')" ontouchend="setTimeout(()=>this.classList.remove('touched'),2000)">
-                <canvas id="ds-health-donut" width="100" height="100"></canvas>
-                <div class="ring-center">
-                    <span class="ring-pct" style="color:var(--{{ 'good' if ds_pct >= 80 else ('warn' if ds_pct >= 50 else 'crit') }});">{{ ds_pct }}%</span>
-                    <span class="ring-label-small">{{ t.healthy }}</span>
-                </div>
-            </div>
-            <div class="ring-details">
-                <div class="ring-title">{{ t.downstream }}</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:var(--space-xs);">{{ ds_total }} {{ t.channels }}</div>
-                <div class="ring-legend">
-                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--good);"></span> {{ health_labels.good }} <span class="ring-legend-count" style="color:{{ 'var(--good)' if ds_good > 0 else 'var(--text-muted)' }};">{{ ds_good }}</span></div>
-                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--tolerated);"></span> {{ health_labels.tolerated }} <span class="ring-legend-count" style="color:{{ 'var(--tolerated)' if ds_tolerated > 0 else 'var(--text-muted)' }};">{{ ds_tolerated }}</span></div>
-                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--warn);"></span> {{ health_labels.warn }} <span class="ring-legend-count" style="color:{{ 'var(--warn)' if ds_warn > 0 else 'var(--text-muted)' }};">{{ ds_warn }}</span></div>
-                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--crit);"></span> {{ health_labels.crit }} <span class="ring-legend-count" style="color:{{ 'var(--crit)' if ds_crit > 0 else 'var(--text-muted)' }};">{{ ds_crit }}</span></div>
-                </div>
-            </div>
+    <div class="dashboard-section-header">
+        <div>
+            <span class="dashboard-section-kicker">{{ t.get('dashboard_section_channels', 'Channels') }}</span>
+            <h2>{{ t.get('dashboard_channel_details', 'Channel details') }}</h2>
         </div>
-        <div class="health-ring-card glass">
-            <div class="ring-wrap"
-                 data-good="{{ us_good_c }}" data-tolerated="{{ us_tolerated_c }}" data-warn="{{ us_warn_c }}" data-crit="{{ us_crit_c }}"
-                 ontouchstart="this.classList.add('touched')" ontouchend="setTimeout(()=>this.classList.remove('touched'),2000)">
-                <canvas id="us-health-donut" width="100" height="100"></canvas>
-                <div class="ring-center">
-                    <span class="ring-pct" style="color:var(--{{ 'good' if us_pct >= 80 else ('warn' if us_pct >= 50 else 'crit') }});">{{ us_pct }}%</span>
-                    <span class="ring-label-small">{{ t.healthy }}</span>
-                </div>
-            </div>
-            <div class="ring-details">
-                <div class="ring-title">{{ t.upstream }}</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:var(--space-xs);">{{ us_total }} {{ t.channels }}</div>
-                <div class="ring-legend">
-                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--good);"></span> {{ health_labels.good }} <span class="ring-legend-count" style="color:{{ 'var(--good)' if us_good_c > 0 else 'var(--text-muted)' }};">{{ us_good_c }}</span></div>
-                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--tolerated);"></span> {{ health_labels.tolerated }} <span class="ring-legend-count" style="color:{{ 'var(--tolerated)' if us_tolerated_c > 0 else 'var(--text-muted)' }};">{{ us_tolerated_c }}</span></div>
-                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--warn);"></span> {{ health_labels.warn }} <span class="ring-legend-count" style="color:{{ 'var(--warn)' if us_warn_c > 0 else 'var(--text-muted)' }};">{{ us_warn_c }}</span></div>
-                    <div class="ring-legend-item"><span class="ring-legend-dot" style="background:var(--crit);"></span> {{ health_labels.crit }} <span class="ring-legend-count" style="color:{{ 'var(--crit)' if us_crit_c > 0 else 'var(--text-muted)' }};">{{ us_crit_c }}</span></div>
-                </div>
-            </div>
-        </div>
+        <span>{{ t.get('dashboard_channel_details_hint', 'Per-channel downstream and upstream signal values') }}</span>
     </div>
 
     {# ── Module Cards (mixed with core, sorted by order) ── #}
@@ -752,7 +802,7 @@
        DOWNSTREAM CHANNELS — Channel detail tables with collapsible groups
        ══════════════════════════════════════════════════════════════════════════ #}
     {% set ds_versions = ds|map(attribute='docsis_version')|unique|sort|list %}
-    <div class="channels-section glass">
+    <section class="channels-section glass dashboard-channel-panel">
         <div class="channel-header">
             <div>
                 <div class="channel-title">{{ t.downstream }} {{ t.channels }}</div>
@@ -804,13 +854,13 @@
             </div>
         </div>
         {% endfor %}
-    </div>
+    </section>
 
     {# ══════════════════════════════════════════════════════════════════════════
        UPSTREAM CHANNELS — Channel detail tables with collapsible groups
        ══════════════════════════════════════════════════════════════════════════ #}
     {% set us_versions = us|map(attribute='docsis_version')|unique|sort|list %}
-    <div class="channels-section glass">
+    <section class="channels-section glass dashboard-channel-panel">
         <div class="channel-header">
             <div>
                 <div class="channel-title">{{ t.upstream }} {{ t.channels }}</div>
@@ -862,7 +912,7 @@
             </div>
         </div>
         {% endfor %}
-    </div>
+    </section>
 
     {% if not has_us_ofdma %}
     <div class="card-notice card-notice-warn" style="margin-top:8px;">
@@ -2759,8 +2809,8 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 
                 // Save expanded channel groups by label text
                 var openGroupLabels = [];
-                document.querySelectorAll('details.channel-group[open]').forEach(function(el) {
-                    var s = el.querySelector('summary');
+                document.querySelectorAll('details.channel-group[open], .docsis-group.open').forEach(function(el) {
+                    var s = el.querySelector('summary, .docsis-group-header');
                     if (s) openGroupLabels.push(s.textContent.trim());
                 });
 
@@ -2789,10 +2839,11 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
                 });
 
                 // Restore expanded channel groups
-                document.querySelectorAll('details.channel-group').forEach(function(el) {
-                    var s = el.querySelector('summary');
+                document.querySelectorAll('details.channel-group, .docsis-group').forEach(function(el) {
+                    var s = el.querySelector('summary, .docsis-group-header');
                     if (s && openGroupLabels.indexOf(s.textContent.trim()) !== -1) {
-                        el.setAttribute('open', '');
+                        if (el.matches('details.channel-group')) el.setAttribute('open', '');
+                        else el.classList.add('open');
                     }
                 });
 

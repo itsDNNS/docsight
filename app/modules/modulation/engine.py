@@ -516,12 +516,12 @@ def compute_intraday(snapshots, direction, tz_name, date_str, low_qam_threshold=
             if direction == "ds":
                 channel_baseline = max((q for _, _, q in timeline if q is not None), default=None)
                 hi = _health_index_for_channel_baselines(
-                    [(cid, l, q) for _, l, q in timeline],
+                    [(cid, label, q) for _, label, q in timeline],
                     {cid: channel_baseline} if channel_baseline is not None else {},
                 )
             else:
                 hi = _health_index_for_group(
-                    [(l, q) for _, l, q in timeline], direction, version
+                    [(label, q) for _, label, q in timeline], direction, version
                 )
             degraded_threshold = _degraded_qam_threshold(direction, version, low_qam_threshold)
             degraded_events = _build_degraded_events(periods, degraded_threshold)
@@ -545,7 +545,7 @@ def compute_intraday(snapshots, direction, tz_name, date_str, low_qam_threshold=
                 "degraded_events": degraded_events,
                 "degraded_sample_pct": degraded_sample_pct,
                 "worst_modulation": worst_event["label"] if worst_event else "",
-                "timeline": [{"time": t, "modulation": l} for t, l in simplified],
+                "timeline": [{"time": t, "modulation": label} for t, label in simplified],
             })
 
         protocol_groups.append({

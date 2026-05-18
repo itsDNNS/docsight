@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from .base import Collector, CollectorResult
 from ..analyzer import apply_spike_suppression
 from ..gaming_index import compute_gaming_index
-from ..types import AnalysisResult, ConnectionInfo, DeviceInfo
+from ..types import ConnectionInfo, DeviceInfo
 
 log = logging.getLogger("docsis.collector.modem")
 

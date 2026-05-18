@@ -47,14 +47,14 @@ class MQTTPublisher:
         self.client.on_disconnect = self._on_disconnect
         self._connected = False
 
-    def _on_connect(self, client, userdata, flags, rc, properties=None):
+    def _on_connect(self, client, _userdata, _flags, rc, _properties=None):
         if rc == 0:
             log.info("MQTT connected to %s:%d", self.host, self.port)
             self._connected = True
         else:
             log.error("MQTT connect failed: rc=%s", rc)
 
-    def _on_disconnect(self, client, userdata, flags, rc, properties=None):
+    def _on_disconnect(self, client, _userdata, _flags, rc, _properties=None):
         log.warning("MQTT disconnected (rc=%s)", rc)
         self._connected = False
 

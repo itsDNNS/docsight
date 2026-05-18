@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import app.modules.reports.report as report_module
+import app.modules.reports.report as report_module  # noqa: E402
 
 SCREENSHOT_PATH = ROOT / "docs" / "screenshots" / "bad-day-evidence.png"
 DASHBOARD_SOURCE_PATH = ROOT / "docs" / "screenshots" / "dashboard-dark.png"

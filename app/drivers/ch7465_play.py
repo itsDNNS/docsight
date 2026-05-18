@@ -13,6 +13,8 @@ import logging
 
 from .ch7465 import CH7465Driver, Action, Query
 
+__all__ = ["Action", "CH7465PlayDriver", "Query"]
+
 log = logging.getLogger("docsis.driver.ch7465_play")
 
 

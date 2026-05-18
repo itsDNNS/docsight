@@ -77,6 +77,8 @@
   "insights_title": "",
   "insights_all_healthy": "",
   "insights_tolerated": "",
+  "insight_action_good": "",
+  "insight_action_tolerated": "",
   "insight_action_ds_power_critical": "",
   "insight_action_ds_power_marginal": "",
   "insight_action_us_power_critical": "",

@@ -6,6 +6,9 @@ import logging
 import math
 import threading
 
+from app.analyzer import _get_snr_thresholds as _snr_thresholds
+
+from .docsis_utils import qam_rank as _qam_rank
 from .types import AnalysisResult, EventDict
 from .tz import utc_now
 
@@ -19,10 +22,6 @@ UNCORR_SPIKE_THRESHOLD = 1000
 RESTART_CHANNEL_THRESHOLD = 0.8    # 80% of valid channels must be declining
 RESTART_MIN_OVERLAP = 4            # Minimum overlapping channels for fair comparison
 RESTART_MIN_CONTINUITY = 0.5       # Minimum overlap ratio (vs either snapshot)
-
-from app.analyzer import _get_snr_thresholds as _snr_thresholds
-
-from .docsis_utils import qam_rank as _qam_rank
 
 # A drop of this many levels or more counts as critical (e.g. 256QAM → 16QAM = 4 levels)
 QAM_CRITICAL_DROP = 3
