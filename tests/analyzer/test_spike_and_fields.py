@@ -1,9 +1,11 @@
 """Tests for spike handling and metric health fields."""
 
 import pytest
+from typing import cast
 from unittest.mock import patch
 from app import analyzer
 from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps, _metric_healths
+from app.types import AnalysisResult
 
 
 # -- Helper to build FritzBox-style channel data --
@@ -175,6 +177,232 @@ class TestSpikeSuppression:
         assert analysis["summary"]["ds_uncorr_pct"] is None
         assert "uncorr_errors_critical" not in analysis["summary"]["health_issues"]
         assert analysis["summary"]["spike_suppression"]["active"] is True
+
+    @patch("app.analyzer.utc_now")
+    def test_expired_spike_does_not_hide_new_baseline_growth(self, mock_now):
+        """Expired old spikes must not suppress new DOCSight-observed growth."""
+        from app.analyzer import apply_cumulative_error_baseline, apply_spike_suppression
+        mock_now.return_value = "2026-03-01T15:00:00Z"
+        previous = {
+            "summary": {
+                "health": "good",
+                "health_issues": [],
+                "ds_uncorr_pct": 0.0,
+                "ds_correctable_errors": 155000,
+                "ds_uncorrectable_errors": 1000500,
+                "errors_supported": True,
+                "error_baseline": {
+                    "active": True,
+                    "basis": "docsight_baseline_delta",
+                    "counter_reset": False,
+                    "ds_correctable_baseline": 155000,
+                    "ds_uncorrectable_baseline": 1000000,
+                    "ds_correctable_recent_delta": 0,
+                    "ds_uncorrectable_recent_delta": 500,
+                    "ds_correctable_delta": 0,
+                    "ds_uncorrectable_delta": 500,
+                },
+            },
+            "ds_channels": [],
+            "us_channels": [],
+        }
+        analysis = {
+            "summary": {
+                "health": "critical",
+                "health_issues": ["uncorr_errors_critical"],
+                "ds_uncorr_pct": 86.6,
+                "ds_correctable_errors": 155000,
+                "ds_uncorrectable_errors": 1001000,
+                "errors_supported": True,
+            },
+            "ds_channels": [],
+            "us_channels": [],
+        }
+
+        apply_cumulative_error_baseline(cast(AnalysisResult, analysis), cast(AnalysisResult, previous), recent_spike_active=False)
+        apply_spike_suppression(cast(AnalysisResult, analysis), "2026-02-27T14:00:00Z")
+
+        assert analysis["summary"]["ds_uncorr_pct"] == 100.0
+        assert "uncorr_errors_critical" in analysis["summary"]["health_issues"]
+        assert "spike_suppression" not in analysis["summary"]
+
+    @patch("app.analyzer.utc_now")
+    def test_expired_spike_still_suppresses_old_baseline_delta(self, mock_now):
+        """An expired observed spike is suppressed when no newer errors grew."""
+        from app.analyzer import apply_cumulative_error_baseline, apply_spike_suppression
+        mock_now.return_value = "2026-03-01T15:00:00Z"
+        previous = cast(AnalysisResult, {
+            "summary": {
+                "health": "critical",
+                "health_issues": ["uncorr_errors_critical"],
+                "ds_uncorr_pct": 100.0,
+                "ds_correctable_errors": 155000,
+                "ds_uncorrectable_errors": 1001000,
+                "errors_supported": True,
+                "error_baseline": {
+                    "active": True,
+                    "basis": "docsight_baseline_delta",
+                    "counter_reset": False,
+                    "ds_correctable_baseline": 155000,
+                    "ds_uncorrectable_baseline": 1000000,
+                    "ds_correctable_recent_delta": 0,
+                    "ds_uncorrectable_recent_delta": 1000,
+                    "ds_correctable_delta": 0,
+                    "ds_uncorrectable_delta": 1000,
+                },
+            },
+            "ds_channels": [],
+            "us_channels": [],
+        })
+        analysis = cast(AnalysisResult, {
+            "summary": {
+                "health": "critical",
+                "health_issues": ["uncorr_errors_critical"],
+                "ds_uncorr_pct": 86.6,
+                "ds_correctable_errors": 155000,
+                "ds_uncorrectable_errors": 1001000,
+                "errors_supported": True,
+            },
+            "ds_channels": [],
+            "us_channels": [],
+        })
+
+        apply_cumulative_error_baseline(analysis, previous, recent_spike_active=False)
+        apply_spike_suppression(analysis, "2026-02-27T14:00:00Z")
+
+        assert analysis["summary"]["ds_uncorr_pct"] == 0.0
+        assert "uncorr_errors_critical" not in analysis["summary"]["health_issues"]
+        assert "spike_suppression" in analysis["summary"]
+        assert analysis["summary"].get("spike_suppression", {})["active"] is True
+
+
+class TestCumulativeErrorBaseline:
+    """Tests for health scoring against observed cumulative counter growth."""
+
+    def _analysis(self, corr, uncorr, health="critical", issues=None, baseline=None):
+        summary = {
+            "health": health,
+            "health_issues": issues if issues is not None else ["uncorr_errors_critical"],
+            "ds_uncorr_pct": round((uncorr / (corr + uncorr)) * 100, 2) if corr + uncorr else 0.0,
+            "ds_correctable_errors": corr,
+            "ds_uncorrectable_errors": uncorr,
+            "errors_supported": True,
+        }
+        if baseline is not None:
+            base_corr, base_uncorr = baseline
+            summary["error_baseline"] = {
+                "active": True,
+                "basis": "docsight_baseline_delta",
+                "counter_reset": False,
+                "ds_correctable_baseline": base_corr,
+                "ds_uncorrectable_baseline": base_uncorr,
+                "ds_correctable_recent_delta": 0,
+                "ds_uncorrectable_recent_delta": 0,
+                "ds_correctable_delta": corr - base_corr,
+                "ds_uncorrectable_delta": uncorr - base_uncorr,
+            }
+        return {
+            "summary": summary,
+            "ds_channels": [],
+            "us_channels": [],
+        }
+
+    def test_high_first_observed_counters_recover_when_followup_is_flat(self):
+        from app.analyzer import apply_cumulative_error_baseline
+        previous = self._analysis(corr=155000, uncorr=1000000)
+        current = self._analysis(corr=155000, uncorr=1000000)
+
+        apply_cumulative_error_baseline(current, previous, recent_spike_active=False)
+
+        summary = current["summary"]
+        assert summary["ds_correctable_errors"] == 155000
+        assert summary["ds_uncorrectable_errors"] == 1000000
+        assert summary["ds_uncorr_pct"] == 0.0
+        assert "uncorr_errors_critical" not in summary["health_issues"]
+        assert summary["health"] == "good"
+        assert summary["error_baseline"]["active"] is True
+        assert summary["error_baseline"]["ds_correctable_baseline"] == 155000
+        assert summary["error_baseline"]["ds_uncorrectable_baseline"] == 1000000
+        assert summary["error_baseline"]["ds_correctable_delta"] == 0
+        assert summary["error_baseline"]["ds_uncorrectable_delta"] == 0
+
+    def test_growth_after_baseline_still_affects_health(self):
+        from app.analyzer import apply_cumulative_error_baseline
+        previous = self._analysis(corr=155000, uncorr=1000000)
+        current = self._analysis(corr=155000, uncorr=1002000)
+
+        apply_cumulative_error_baseline(current, previous, recent_spike_active=False)
+
+        summary = current["summary"]
+        assert summary["ds_uncorr_pct"] == 100.0
+        assert "uncorr_errors_critical" in summary["health_issues"]
+        assert summary["health"] == "critical"
+        assert summary["error_baseline"]["ds_uncorrectable_delta"] == 2000
+
+    def test_gradual_growth_accumulates_since_docsight_baseline(self):
+        from app.analyzer import apply_cumulative_error_baseline
+        previous = self._analysis(
+            corr=155000,
+            uncorr=1000500,
+            health="good",
+            issues=[],
+            baseline=(155000, 1000000),
+        )
+        current = self._analysis(corr=155000, uncorr=1001000)
+
+        apply_cumulative_error_baseline(current, previous, recent_spike_active=False)
+
+        summary = current["summary"]
+        assert summary["ds_uncorr_pct"] == 100.0
+        assert "uncorr_errors_critical" in summary["health_issues"]
+        assert summary["health"] == "critical"
+        assert summary["error_baseline"]["ds_uncorrectable_baseline"] == 1000000
+        assert summary["error_baseline"]["ds_uncorrectable_delta"] == 1000
+
+    def test_mixed_growth_scores_from_docsight_baseline(self):
+        from app.analyzer import apply_cumulative_error_baseline
+        previous = self._analysis(
+            corr=155400,
+            uncorr=1000600,
+            health="good",
+            issues=[],
+            baseline=(155000, 1000000),
+        )
+        current = self._analysis(corr=156000, uncorr=1001000)
+
+        apply_cumulative_error_baseline(current, previous, recent_spike_active=False)
+
+        summary = current["summary"]
+        assert summary["ds_uncorr_pct"] == 50.0
+        assert "uncorr_errors_critical" in summary["health_issues"]
+        assert summary["error_baseline"]["ds_correctable_delta"] == 1000
+        assert summary["error_baseline"]["ds_uncorrectable_delta"] == 1000
+
+    def test_counter_reset_establishes_fresh_baseline_without_negative_deltas(self):
+        from app.analyzer import apply_cumulative_error_baseline
+        previous = self._analysis(corr=155000, uncorr=1000000)
+        current = self._analysis(corr=50, uncorr=0, health="good", issues=[])
+
+        apply_cumulative_error_baseline(current, previous, recent_spike_active=False)
+
+        summary = current["summary"]
+        assert summary["ds_uncorr_pct"] == 0.0
+        assert summary["health"] == "good"
+        assert summary["error_baseline"]["counter_reset"] is True
+        assert summary["error_baseline"]["ds_correctable_delta"] == 0
+        assert summary["error_baseline"]["ds_uncorrectable_delta"] == 0
+
+    def test_recent_observed_spike_keeps_existing_spike_expiry_path(self):
+        from app.analyzer import apply_cumulative_error_baseline
+        previous = self._analysis(corr=155000, uncorr=1000000)
+        current = self._analysis(corr=155000, uncorr=1000000)
+
+        apply_cumulative_error_baseline(current, previous, recent_spike_active=True)
+
+        summary = current["summary"]
+        assert summary["ds_uncorr_pct"] == 86.58
+        assert "uncorr_errors_critical" in summary["health_issues"]
+        assert "error_baseline" not in summary
 
 
 # -- Per-metric health extraction --

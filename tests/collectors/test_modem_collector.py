@@ -257,6 +257,8 @@ class TestModemCollectorSpikeSuppression:
         mock_driver.get_connection_info.return_value = None
 
         mock_storage = MagicMock()
+        previous_analysis = {"summary": {"ds_correctable_errors": 1, "ds_uncorrectable_errors": 1}, "ds_channels": [], "us_channels": []}
+        mock_storage.get_latest_snapshot.return_value = previous_analysis
         mock_storage.get_latest_spike_timestamp.return_value = None
         mock_storage.get_device_state.return_value = {}
         mock_web = MagicMock()
@@ -279,8 +281,10 @@ class TestModemCollectorSpikeSuppression:
             poll_interval=60,
         )
 
-        with patch("app.collectors.modem.apply_spike_suppression") as mock_suppress:
+        with patch("app.collectors.modem.apply_cumulative_error_baseline") as mock_baseline, \
+             patch("app.collectors.modem.apply_spike_suppression") as mock_suppress:
             collector.collect()
+            mock_baseline.assert_called_once_with(fake_analysis, previous_analysis, recent_spike_active=False)
             mock_suppress.assert_called_once_with(fake_analysis, None)
 
 

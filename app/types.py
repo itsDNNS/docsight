@@ -117,6 +117,20 @@ class SpikeSuppression(TypedDict):
     expiry_hours: int
 
 
+class ErrorBaseline(TypedDict):
+    """Observed cumulative counter baseline metadata."""
+
+    active: bool
+    basis: str
+    counter_reset: bool
+    ds_correctable_baseline: int
+    ds_uncorrectable_baseline: int
+    ds_correctable_recent_delta: int
+    ds_uncorrectable_recent_delta: int
+    ds_correctable_delta: int
+    ds_uncorrectable_delta: int
+
+
 # ── Analysis Summary ─────────────────────────────────────────────
 
 
@@ -143,6 +157,8 @@ class AnalysisSummary(TypedDict):
     health_issues: list[str]
     # Set by apply_spike_suppression() when active
     spike_suppression: NotRequired[SpikeSuppression]
+    # Set by apply_cumulative_error_baseline() when a previous snapshot exists
+    error_baseline: NotRequired[ErrorBaseline]
 
 
 # ── Full Analysis Result ─────────────────────────────────────────

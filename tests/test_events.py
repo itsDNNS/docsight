@@ -187,6 +187,18 @@ class TestEventStorage:
         storage.save_event("2026-02-28T12:00:00Z", "warning", "power_change", "Power shifted")
         assert storage.get_latest_spike_timestamp() is None
 
+    def test_get_latest_snapshot_returns_newest_analysis_for_error_baseline(self, storage):
+        older = _make_analysis(ds_uncorrectable_errors=100)
+        newer = _make_analysis(ds_uncorrectable_errors=200)
+        storage.save_snapshot(older)
+        storage.save_snapshot(newer)
+
+        latest = storage.get_latest_snapshot()
+
+        assert latest is not None
+        assert latest["summary"]["ds_uncorrectable_errors"] == 200
+        assert latest["summary"]["ds_correctable_errors"] == 1000
+
 
 class TestEventExportApi:
     def test_events_export_csv_respects_filters_and_serializes_details(self, events_client, storage):

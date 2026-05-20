@@ -147,6 +147,143 @@ def _get_spike_expiry_hours():
     return errors.get("spike_expiry_hours", 48)
 
 
+def _uncorr_issue(issue: str) -> bool:
+    return "uncorr" in issue
+
+
+def _recalculate_summary_health(summary) -> None:
+    """Recalculate aggregate health from summary health_issues."""
+    issues = summary["health_issues"]
+    if not issues:
+        summary["health"] = "good"
+    elif any("critical" in i for i in issues):
+        summary["health"] = "critical"
+    elif any("marginal" in i for i in issues):
+        summary["health"] = "marginal"
+    else:
+        summary["health"] = "tolerated"
+
+
+def _recent_spike_active(last_spike_ts: str | None) -> bool:
+    """Return True while an observed error spike is still inside its expiry window."""
+    if not last_spike_ts:
+        return False
+    try:
+        now = _parse_utc(utc_now())
+        spike_dt = _parse_utc(last_spike_ts)
+    except Exception:
+        return False
+    return (now - spike_dt).total_seconds() / 3600 < _get_spike_expiry_hours()
+
+
+def _coerce_counter(value) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def apply_cumulative_error_baseline(
+    analysis: AnalysisResult,
+    previous_analysis: AnalysisResult | None,
+    *,
+    recent_spike_active: bool = False,
+) -> None:
+    """Score uncorrectable errors against observed cumulative counter growth.
+
+    Modems often expose correctable/uncorrectable counters as totals since the
+    last modem reboot. The analyzer keeps those raw totals in the summary and
+    channel data, but health should not treat pre-existing counters from the
+    first DOCSight observation as active trouble forever. Once a previous
+    snapshot exists, keep carrying the first comparable DOCSight totals as the
+    health baseline and score the uncorrectable percentage from cumulative
+    growth since that baseline. If counters decrease, treat it as a modem
+    reset/reboot and establish a fresh baseline.
+
+    A recent observed error_spike deliberately bypasses this baseline path so
+    the existing spike-expiry window continues to hold the penalty until it
+    expires.
+    """
+    if recent_spike_active or not isinstance(previous_analysis, dict):
+        return
+
+    summary = analysis.get("summary", {})
+    previous_summary = previous_analysis.get("summary", {})
+    if summary.get("errors_supported") is False or previous_summary.get("errors_supported") is False:
+        return
+
+    current_corr = _coerce_counter(summary.get("ds_correctable_errors"))
+    current_uncorr = _coerce_counter(summary.get("ds_uncorrectable_errors"))
+    previous_corr = _coerce_counter(previous_summary.get("ds_correctable_errors"))
+    previous_uncorr = _coerce_counter(previous_summary.get("ds_uncorrectable_errors"))
+    if any(v is None for v in (current_corr, current_uncorr, previous_corr, previous_uncorr)):
+        return
+    assert current_corr is not None
+    assert current_uncorr is not None
+    assert previous_corr is not None
+    assert previous_uncorr is not None
+
+    previous_baseline = previous_summary.get("error_baseline")
+    if isinstance(previous_baseline, dict):
+        baseline_corr = _coerce_counter(previous_baseline.get("ds_correctable_baseline"))
+        baseline_uncorr = _coerce_counter(previous_baseline.get("ds_uncorrectable_baseline"))
+    else:
+        baseline_corr = None
+        baseline_uncorr = None
+    if baseline_corr is None or baseline_uncorr is None:
+        baseline_corr = previous_corr
+        baseline_uncorr = previous_uncorr
+
+    counter_reset = (
+        current_corr < previous_corr
+        or current_uncorr < previous_uncorr
+        or current_corr < baseline_corr
+        or current_uncorr < baseline_uncorr
+    )
+    if counter_reset:
+        baseline_corr = current_corr
+        baseline_uncorr = current_uncorr
+        corr_recent_delta = 0
+        uncorr_recent_delta = 0
+        corr_delta = 0
+        uncorr_delta = 0
+    else:
+        corr_recent_delta = current_corr - previous_corr
+        uncorr_recent_delta = current_uncorr - previous_uncorr
+        corr_delta = current_corr - baseline_corr
+        uncorr_delta = current_uncorr - baseline_uncorr
+
+    et = _get_uncorr_thresholds()
+    delta_codewords = corr_delta + uncorr_delta
+    uncorr_pct = 0.0
+    uncorr_issue = None
+    if delta_codewords >= et["min_codewords"]:
+        uncorr_pct = round((uncorr_delta / delta_codewords) * 100, 2)
+        if uncorr_pct >= et["critical"]:
+            uncorr_issue = "uncorr_errors_critical"
+        elif uncorr_pct >= et["warning"]:
+            uncorr_issue = "uncorr_errors_high"
+
+    summary["ds_uncorr_pct"] = uncorr_pct
+    summary["health_issues"] = [i for i in summary["health_issues"] if not _uncorr_issue(i)]
+    if uncorr_issue:
+        summary["health_issues"].append(uncorr_issue)
+    summary["error_baseline"] = {
+        "active": True,
+        "basis": "docsight_baseline_delta",
+        "counter_reset": counter_reset,
+        "ds_correctable_baseline": baseline_corr,
+        "ds_uncorrectable_baseline": baseline_uncorr,
+        "ds_correctable_recent_delta": corr_recent_delta,
+        "ds_uncorrectable_recent_delta": uncorr_recent_delta,
+        "ds_correctable_delta": corr_delta,
+        "ds_uncorrectable_delta": uncorr_delta,
+    }
+    _recalculate_summary_health(summary)
+
+
 def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None) -> None:
     """Suppress uncorrectable error penalization if a past spike has expired.
 
@@ -171,9 +308,16 @@ def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None)
         return  # Still in observation period
 
     summary = analysis["summary"]
+    baseline = summary.get("error_baseline")
+    baseline_uncorr_recent_delta = None
+    if isinstance(baseline, dict):
+        baseline_uncorr_recent_delta = _coerce_counter(baseline.get("ds_uncorrectable_recent_delta"))
+    if baseline_uncorr_recent_delta and any(_uncorr_issue(i) for i in summary.get("health_issues", [])):
+        return  # Preserve new DOCSight-observed growth after the old spike window.
+
     if summary.get("ds_uncorr_pct") is not None:
         summary["ds_uncorr_pct"] = 0.0
-    summary["health_issues"] = [i for i in summary["health_issues"] if "uncorr" not in i]
+    summary["health_issues"] = [i for i in summary["health_issues"] if not _uncorr_issue(i)]
     summary["spike_suppression"] = {
         "active": True,
         "last_spike": last_spike_ts,
@@ -181,16 +325,7 @@ def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None)
         "expiry_hours": expiry_hours,
     }
 
-    # Recalculate health from remaining issues
-    issues = summary["health_issues"]
-    if not issues:
-        summary["health"] = "good"
-    elif any("critical" in i for i in issues):
-        summary["health"] = "critical"
-    elif any("marginal" in i for i in issues):
-        summary["health"] = "marginal"
-    else:
-        summary["health"] = "tolerated"
+    _recalculate_summary_health(summary)
 
 
 def _parse_qam_order(modulation_str):

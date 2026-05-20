@@ -7,7 +7,11 @@ import time
 from datetime import datetime, timezone
 
 from .base import Collector, CollectorResult
-from ..analyzer import apply_spike_suppression
+from ..analyzer import (
+    _recent_spike_active,
+    apply_cumulative_error_baseline,
+    apply_spike_suppression,
+)
 from ..gaming_index import compute_gaming_index
 from ..types import ConnectionInfo, DeviceInfo
 
@@ -176,8 +180,15 @@ class ModemCollector(Collector):
                 self._web.update_state(connection_info=self._connection_info)
 
         data = self._driver.get_docsis_data()
+        previous_analysis = self._storage.get_latest_snapshot()
+        last_spike_ts = self._storage.get_latest_spike_timestamp()
         analysis = self._analyzer(data)  # Call injected analyzer function
-        apply_spike_suppression(analysis, self._storage.get_latest_spike_timestamp())
+        apply_cumulative_error_baseline(
+            analysis,
+            previous_analysis,
+            recent_spike_active=_recent_spike_active(last_spike_ts),
+        )
+        apply_spike_suppression(analysis, last_spike_ts)
 
         # MQTT publishing
         if self._mqtt_pub:

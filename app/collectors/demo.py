@@ -17,6 +17,8 @@ from ..analyzer import (
     _assess_us_channel,
     _channel_bitrate_mbps,
     _metric_healths,
+    _recent_spike_active,
+    apply_cumulative_error_baseline,
     apply_spike_suppression,
 )
 from ..gaming_index import compute_gaming_index
@@ -161,8 +163,15 @@ class DemoCollector(Collector):
             self._seed_demo_data()
 
         data = self._generate_data()
+        previous_analysis = self._storage.get_latest_snapshot()
+        last_spike_ts = self._storage.get_latest_spike_timestamp()
         analysis = self._analyzer(data)
-        apply_spike_suppression(analysis, self._storage.get_latest_spike_timestamp())
+        apply_cumulative_error_baseline(
+            analysis,
+            previous_analysis,
+            recent_spike_active=_recent_spike_active(last_spike_ts),
+        )
+        apply_spike_suppression(analysis, last_spike_ts)
 
         # MQTT publishing
         if self._mqtt_pub:

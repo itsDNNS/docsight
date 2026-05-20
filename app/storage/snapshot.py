@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from typing import cast
 
 from ..types import AnalysisResult
 from ..tz import local_date_to_utc_range, utc_now
@@ -51,6 +52,20 @@ class SnapshotMixin:
             ).fetchall()
         return [r[0] for r in rows]
 
+    def get_latest_snapshot(self) -> AnalysisResult | None:
+        """Load the latest stored snapshot, or None when no baseline exists."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT summary_json, ds_channels_json, us_channels_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
+            ).fetchone()
+        if not row:
+            return None
+        return cast(AnalysisResult, {
+            "summary": _normalize_summary_errors(json.loads(row[0])),
+            "ds_channels": json.loads(row[1]),
+            "us_channels": json.loads(row[2]),
+        })
+
     def get_snapshot(self, timestamp: str) -> AnalysisResult | None:
         """Load a single snapshot by timestamp. Returns analysis dict or None."""
         with sqlite3.connect(self.db_path) as conn:
@@ -60,11 +75,11 @@ class SnapshotMixin:
             ).fetchone()
         if not row:
             return None
-        return {
+        return cast(AnalysisResult, {
             "summary": _normalize_summary_errors(json.loads(row[0])),
             "ds_channels": json.loads(row[1]),
             "us_channels": json.loads(row[2]),
-        }
+        })
 
     def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:
         """Get all snapshots between two ISO timestamps (inclusive)."""
