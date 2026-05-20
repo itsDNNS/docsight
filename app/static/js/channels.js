@@ -406,6 +406,8 @@ function loadChannelTimeline() {
                     tooltipLabelCallback: function(ctx) { return (T.modulation || 'Modulation') + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw); },
                     yMin: -0.5,
                     yMax: qamSteps.length - 0.5,
+                    yAxisSize: 72,
+                    zoomYAxisSize: 80,
                     yAfterBuildTicks: function(axis) {
                         axis.ticks = tickValues.map(function(v) { return {value: v}; });
                     }
@@ -799,6 +801,8 @@ function loadCompareCharts() {
                     tooltipLabelCallback: function(ctx) { return ctx.dataset.label + ': ' + (qamLabel[ctx.raw] || ctx.raw); },
                     yMin: -0.5,
                     yMax: qamNames.length - 0.5,
+                    yAxisSize: 72,
+                    zoomYAxisSize: 80,
                     yAfterBuildTicks: function(axis) {
                         axis.ticks = tickValues.map(function(v) { return {value: v}; });
                     }

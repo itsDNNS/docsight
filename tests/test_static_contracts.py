@@ -6,6 +6,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VIEWS_CSS = ROOT / "app" / "static" / "css" / "views.css"
 CORRELATION_JS = ROOT / "app" / "static" / "js" / "correlation.js"
+CHART_ENGINE_JS = ROOT / "app" / "static" / "js" / "chart-engine.js"
+CHANNELS_JS = ROOT / "app" / "static" / "js" / "channels.js"
 SW_JS = ROOT / "app" / "static" / "sw.js"
 MAIN_CSS = ROOT / "app" / "static" / "css" / "main.css"
 INDEX_HTML = ROOT / "app" / "templates" / "index.html"
@@ -72,10 +74,39 @@ def test_correlation_event_type_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v10';" in sw_js
+    assert "var CACHE_VERSION = 'v11';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
+
+
+def test_chart_engine_has_configurable_axis_padding_for_long_qam_labels():
+    js = CHART_ENGINE_JS.read_text(encoding="utf-8")
+    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
+
+    assert "DEFAULT_Y_AXIS_SIZE" in js
+    assert "DEFAULT_ZOOM_Y_AXIS_SIZE" in js
+    assert "DEFAULT_X_EDGE_PADDING" in js
+    assert "function calculateXEdgePadding" in js
+    assert "function calculateMaxXTicks" in js
+    assert "opts.yAxisSize" in js
+    assert "params.opts.zoomYAxisSize" in js
+    assert "xData[0] - xEdgePadding" in js
+    assert "xData[xData.length - 1] + xEdgePadding" in js
+    assert "calculateMaxXTicks(labels, width, yAxisSize" in js
+    assert "yAxisSize: 72" in channels_js
+    assert "zoomYAxisSize: 80" in channels_js
+
+
+def test_chart_zoom_uses_bounded_index_ticks_instead_of_all_samples():
+    js = CHART_ENGINE_JS.read_text(encoding="utf-8")
+    zoom_block = js[js.index("function openChartZoom") :]
+
+    assert "function buildEvenIndexTicks" in js
+    assert "calculateMaxXTicks(params.labels, w, zoomYAxisSize, 10)" in zoom_block
+    assert "var zoomXSplits = buildEvenIndexTicks(n, zoomMaxTicks);" in zoom_block
+    assert "for (var i = 0; i < n; i++) o.push(i); return o;" not in zoom_block
+    assert "filter: xTickValues" not in zoom_block
 
 
 def test_dashboard_i18n_keys_exist_in_all_language_files():

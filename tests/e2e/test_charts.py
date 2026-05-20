@@ -213,6 +213,85 @@ class TestChartZoom:
 class TestChannelCharts:
     """Charts in the Channels > Timeline view."""
 
+    def test_channel_modulation_layout_preserves_long_labels_and_bounded_zoom_ticks(self, demo_page):
+        """Long QAM labels and dense 7-day timestamps should get enough axis space."""
+        history = []
+        for idx in range(60):
+            day = 1 + (idx // 10)
+            hour = idx % 10
+            history.append({
+                "timestamp": f"2026-05-{day:02d}T{hour:02d}:30:00",
+                "power": 1.2,
+                "snr": 39.1,
+                "modulation": "1024QAM" if idx % 2 else "4096QAM",
+                "correctable_errors": None,
+                "uncorrectable_errors": None,
+            })
+
+        demo_page.route(
+            "**/api/channels",
+            lambda route: route.fulfill(json={
+                "ds_channels": [{
+                    "channel_id": 1,
+                    "frequency": "690 MHz",
+                    "docsis_version": "3.1",
+                    "power": 1.2,
+                    "snr": 39.1,
+                    "health": "good",
+                }],
+                "us_channels": [],
+            }),
+        )
+        demo_page.route("**/api/channel-history**", lambda route: route.fulfill(json=history))
+
+        navigate_to_channels(demo_page)
+        demo_page.set_viewport_size({"width": 640, "height": 760})
+        demo_page.locator("#channel-select").select_option("ds-1")
+        wait_for_uplot(demo_page, "chart-ch-modulation")
+
+        layout = demo_page.evaluate(
+            """
+            () => {
+                const chart = window.charts['chart-ch-modulation'];
+                const xData = chart.data[0];
+                const xSplits = chart.axes[0].splits();
+                return {
+                    yAxisSize: chart._docsightParams.opts && chart._docsightParams.opts.yAxisSize,
+                    xMin: chart.scales.x.min,
+                    xMax: chart.scales.x.max,
+                    firstX: xData[0],
+                    lastX: xData[xData.length - 1],
+                    splitCount: xSplits.length,
+                    samples: xData.length,
+                };
+            }
+            """
+        )
+        assert layout["yAxisSize"] >= 72
+        assert layout["firstX"] - layout["xMin"] >= 4
+        assert layout["xMax"] - layout["lastX"] >= 4
+        assert layout["splitCount"] <= 4
+        assert layout["splitCount"] < layout["samples"]
+
+        demo_page.locator('.chart-expand-btn[data-chart="chart-ch-modulation"]').click()
+        demo_page.wait_for_selector("#chart-zoom-canvas .uplot", timeout=5000)
+        zoom_layout = demo_page.evaluate(
+            """
+            () => {
+                const chart = window.zoomChart;
+                const splits = chart.axes[0].splits();
+                return {
+                    yAxisSize: chart.bbox.left,
+                    splitCount: splits.length,
+                    samples: chart.data[0].length,
+                };
+            }
+            """
+        )
+        assert zoom_layout["yAxisSize"] >= 80
+        assert zoom_layout["splitCount"] <= 10
+        assert zoom_layout["splitCount"] < zoom_layout["samples"]
+
     def test_channel_selection_renders_charts(self, demo_page):
         """Selecting a channel should render Power and Errors charts."""
         navigate_to_channels(demo_page)

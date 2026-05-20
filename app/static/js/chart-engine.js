@@ -5,6 +5,9 @@
 var charts = {};
 var _tempOverlayVisible = true;
 var currentView = 'live';
+var DEFAULT_Y_AXIS_SIZE = 58;
+var DEFAULT_ZOOM_Y_AXIS_SIZE = 64;
+var DEFAULT_X_EDGE_PADDING = 1.5;
 
 /* ── Shared Helpers ── */
 // TEMPERATURE_UNIT is set by index.html; default to celsius if not present
@@ -44,8 +47,72 @@ function formatDateDE(str) {
 
 function chartXRange(u) {
     var xData = u && u.data && u.data[0] ? u.data[0] : [];
+    var edgePadding = u && u._docsightXEdgePadding ? u._docsightXEdgePadding : DEFAULT_X_EDGE_PADDING;
     if (!xData.length) return { min: 0, max: 0 };
-    return { min: xData[0], max: xData[xData.length - 1] };
+    if (xData.length === 1) return { min: xData[0] - edgePadding, max: xData[0] + edgePadding };
+    return { min: xData[0] - edgePadding, max: xData[xData.length - 1] + edgePadding };
+}
+
+function buildEvenIndexTicks(count, maxTicks) {
+    if (count <= 0) return [];
+    if (!maxTicks || maxTicks < 2) maxTicks = 2;
+    if (count <= maxTicks) {
+        var all = [];
+        for (var ai = 0; ai < count; ai++) all.push(ai);
+        return all;
+    }
+    var ticks = [];
+    var seen = {};
+    var gap = (count - 1) / (maxTicks - 1);
+    for (var ti = 0; ti < maxTicks; ti++) {
+        var idx = Math.round(ti * gap);
+        if (idx < 0) idx = 0;
+        if (idx >= count) idx = count - 1;
+        if (!seen[idx]) {
+            ticks.push(idx);
+            seen[idx] = true;
+        }
+    }
+    if (!seen[count - 1]) ticks.push(count - 1);
+    return ticks;
+}
+
+function estimateLongestLabelWidth(labels, minWidth) {
+    var longest = '';
+    labels.forEach(function(label) {
+        var text = label === null || label === undefined ? '' : String(label);
+        if (text.length > longest.length) longest = text;
+    });
+    return Math.max(longest.length * 7, minWidth || 40);
+}
+
+function calculateXEdgePadding(labels, xValues, chartWidth, yAxisSize, explicitPadding) {
+    if (explicitPadding !== undefined && explicitPadding !== null) return explicitPadding;
+    if (!labels || labels.length <= 1) return DEFAULT_X_EDGE_PADDING;
+    var labelWidth = estimateLongestLabelWidth(labels, 40);
+    var plotWidth = Math.max((chartWidth || 400) - (yAxisSize || DEFAULT_Y_AXIS_SIZE) - 24, 1);
+    var span = labels.length - 1;
+    if (xValues && xValues.length > 1) {
+        var first = Number(xValues[0]);
+        var last = Number(xValues[xValues.length - 1]);
+        if (isFinite(first) && isFinite(last) && Math.abs(last - first) > 0) {
+            span = Math.abs(last - first);
+        }
+    }
+    var labelHalfWidthWithBreathingRoom = (labelWidth / 2) + 10;
+    var padding = (labelHalfWidthWithBreathingRoom / plotWidth) * span;
+    return Math.max(DEFAULT_X_EDGE_PADDING, Math.ceil(padding * 10) / 10);
+}
+
+function calculateMaxXTicks(labels, chartWidth, yAxisSize, hardMax) {
+    var labelWidth = estimateLongestLabelWidth(labels, 40) + 18;
+    var plotWidth = Math.max((chartWidth || 400) - (yAxisSize || DEFAULT_Y_AXIS_SIZE) - 24, 1);
+    var byWidth = Math.floor(plotWidth / labelWidth);
+    var cap = hardMax || 6;
+    if (cap < 2) cap = 2;
+    if (byWidth < 2) byWidth = 2;
+    if (byWidth > cap) byWidth = cap;
+    return byWidth;
 }
 
 /* ── Shared uPlot Plugins ── */
@@ -310,12 +377,15 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     var textColor = isDark ? '#888' : '#666';
     var isBar = type === 'bar';
     var n = labels.length;
+    var yAxisSize = opts && opts.yAxisSize ? opts.yAxisSize : DEFAULT_Y_AXIS_SIZE;
+    var width = container.offsetWidth || 400;
 
     /* Build columnar data: [xIndices, series1, series2, ...] */
     var xData = opts && opts.xData ? opts.xData.slice() : [];
     if (!xData.length) {
         for (var xi = 0; xi < n; xi++) xData.push(xi);
     }
+    var xEdgePadding = calculateXEdgePadding(labels, xData, width, yAxisSize, opts && opts.xEdgePadding);
     var uData = [xData];
     var allDatasets = datasets.slice();
 
@@ -412,8 +482,8 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
         };
     } else {
         scales.x.range = function() {
-            if (xData.length <= 1) return [-0.5, 0.5];
-            return [xData[0], xData[xData.length - 1]];
+            if (xData.length <= 1) return [-xEdgePadding, xEdgePadding];
+            return [xData[0] - xEdgePadding, xData[xData.length - 1] + xEdgePadding];
         };
     }
     if (yRange[0] !== null && yRange[1] !== null) {
@@ -436,7 +506,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
 
     /* Axes — pick evenly spaced label positions */
     var xSplits = [];
-    var wantTicks = 6;
+    var wantTicks = calculateMaxXTicks(labels, width, yAxisSize, opts && opts.maxXTicks ? opts.maxXTicks : 6);
     if (n <= wantTicks) {
         for (var li = 0; li < n; li++) xSplits.push(xData[li]);
     } else {
@@ -469,7 +539,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             grid: { stroke: gridColor, width: 1 },
             ticks: { stroke: gridColor, width: 1 },
             font: '10px system-ui',
-            size: 50,
+            size: yAxisSize,
             gap: 4
         }
     ];
@@ -544,7 +614,6 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
     if (opts && opts.plugins) { opts.plugins.forEach(function(p) { plugins.push(p); }); }
 
     /* Build options */
-    var width = container.offsetWidth || 400;
     var heightRatio = opts && opts.heightRatio ? opts.heightRatio : 0.55;
     var minHeight = opts && opts.minHeight ? opts.minHeight : 180;
     var maxHeight = opts && opts.maxHeight ? opts.maxHeight : 350;
@@ -565,6 +634,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
 
     var chart = new uPlot(uOpts, uData, container);
     charts[canvasId] = chart;
+    chart._docsightXEdgePadding = xEdgePadding;
     chart._docsightParams = {labels: labels, datasets: datasets, type: type, zones: zones, opts: opts};
 
     /* Restore zoom state from previous chart instance (survives destroy/recreate) */
@@ -631,10 +701,15 @@ function openChartZoom(canvasId) {
         var isBar = params.type === 'bar';
         var n = params.labels.length;
         var isMulti = params.datasets.length > 1;
+        var zoomYAxisSize = params.opts && params.opts.zoomYAxisSize ? params.opts.zoomYAxisSize : DEFAULT_ZOOM_Y_AXIS_SIZE;
+        var w = zoomContainer.offsetWidth || 800;
+        var h = zoomContainer.offsetHeight || 500;
+        if (h < 300) h = 300;
 
         /* Build data */
         var xData = [];
         for (var xi = 0; xi < n; xi++) xData.push(xi);
+        var zoomXEdgePadding = calculateXEdgePadding(params.labels, xData, w, zoomYAxisSize, params.opts && params.opts.zoomXEdgePadding);
         var uData = [xData];
         params.datasets.forEach(function(ds) { uData.push(ds.data); });
 
@@ -697,7 +772,7 @@ function openChartZoom(canvasId) {
         if (params.opts && params.opts.yMax !== undefined) yRange[1] = params.opts.yMax;
 
         var scales = {
-            x: { time: false, range: function() { return [-0.5, n - 0.5]; } },
+            x: { time: false, range: function() { return [-zoomXEdgePadding, n - 1 + zoomXEdgePadding]; } },
             y: {}
         };
         if (yRange[0] !== null && yRange[1] !== null) {
@@ -712,24 +787,15 @@ function openChartZoom(canvasId) {
         if (zoomHasTemp) { scales.temp = {}; }
 
         /* Axes */
-        var zLongest = '';
-        for (var zi = 0; zi < params.labels.length; zi++) {
-            if (params.labels[zi] && params.labels[zi].length > zLongest.length) zLongest = params.labels[zi];
-        }
-        var zLabelWidth = Math.max(zLongest.length * 7, 60);
+        var zLabelWidth = estimateLongestLabelWidth(params.labels, 60);
 
-        var xTickValues = function(u, splits) {
-            var maxTicks = Math.floor(zoomContainer.offsetWidth / zLabelWidth);
-            if (maxTicks < 2) maxTicks = 2;
-            var step = Math.ceil(n / maxTicks);
-            return splits.filter(function(v) { return v >= 0 && v < n && v % step === 0; });
-        };
+        var zoomMaxTicks = calculateMaxXTicks(params.labels, w, zoomYAxisSize, 10);
+        var zoomXSplits = buildEvenIndexTicks(n, zoomMaxTicks);
         var axes = [
             {
                 scale: 'x',
                 space: zLabelWidth,
-                splits: function() { var o = []; for (var i = 0; i < n; i++) o.push(i); return o; },
-                filter: xTickValues,
+                splits: function() { return zoomXSplits; },
                 values: function(u, vals) { return vals.map(function(v) { return params.labels[v] || ''; }); },
                 stroke: textColor,
                 grid: { stroke: gridColor, width: 1 },
@@ -743,7 +809,7 @@ function openChartZoom(canvasId) {
                 grid: { stroke: gridColor, width: 1 },
                 ticks: { stroke: gridColor, width: 1 },
                 font: '11px system-ui',
-                size: 55,
+                size: zoomYAxisSize,
                 gap: 4
             }
         ];
@@ -774,10 +840,6 @@ function openChartZoom(canvasId) {
         /* Plugins */
         var plugins = [tooltipPlugin(params.labels, zoomTooltipCb)];
         if (params.zones) plugins.push(zonesPlugin(params.zones));
-
-        var w = zoomContainer.offsetWidth || 800;
-        var h = zoomContainer.offsetHeight || 500;
-        if (h < 300) h = 300;
 
         var uOpts = {
             width: w,
