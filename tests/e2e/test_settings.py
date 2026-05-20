@@ -166,7 +166,21 @@ class TestSettingsDirtyState:
         assert payloads[-1]["modem_password"] == "new-secret-value"
         assert settings_page.locator('#modem_password').input_value() == ""
 
-    def test_real_settings_edit_shows_only_footer_when_module_toggle_is_clicked(self, settings_page):
+    def test_real_settings_edit_is_saved_when_module_toggle_is_clicked(self, settings_page):
+        config_payloads = []
+        batch_payloads = []
+
+        def capture_config(route):
+            config_payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        def capture_batch(route):
+            batch_payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True, "restart_required": False})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.route("**/api/modules/batch", capture_batch)
+
         footer = settings_page.locator("#save-footer")
         settings_page.locator('#modem_url').fill('http://192.168.100.1')
         expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
@@ -176,16 +190,20 @@ class TestSettingsDirtyState:
         settings_page.locator('button[data-section="extensions"]').click()
         toggle = settings_page.locator('.module-toggle-input').first
         assert toggle.count() == 1
-        settings_page.locator('.module-toggle .toggle-slider').first.click()
+        with settings_page.expect_request("**/api/config"):
+            with settings_page.expect_request("**/api/modules/batch"):
+                settings_page.locator('.module-toggle .toggle-slider').first.click()
 
         expect(settings_page.locator('#docsight-confirm-modal')).to_have_count(0)
-        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        assert config_payloads[-1]["modem_url"] == "http://192.168.100.1"
+        assert len(batch_payloads[-1]["modules"]) == 1
 
 
-class TestSettingsExtensionsBatchSave:
-    """Installed module changes are saved with the Settings save flow."""
+class TestSettingsInstantToggleSave:
+    """Settings toggles persist immediately without the global save footer."""
 
-    def test_module_toggles_batch_save_once_without_immediate_api_calls(self, settings_page):
+    def test_module_toggle_saves_immediately_without_direct_enable_disable_calls(self, settings_page):
         config_payloads = []
         batch_payloads = []
         immediate_calls = []
@@ -207,21 +225,149 @@ class TestSettingsExtensionsBatchSave:
         settings_page.route(re.compile(r".*/api/modules/.+/(enable|disable)$"), capture_immediate)
 
         settings_page.locator('button[data-section="extensions"]').click()
-        toggles = settings_page.locator('.module-toggle-input[data-is-threshold="false"]')
-        assert toggles.count() >= 2
-        settings_page.locator('.module-toggle-input[data-is-threshold="false"] + .toggle-slider').nth(0).click()
-        settings_page.locator('.module-toggle-input[data-is-threshold="false"] + .toggle-slider').nth(1).click()
+        toggle_slider = settings_page.locator('.module-toggle-input[data-is-threshold="false"] + .toggle-slider').first
+        assert toggle_slider.count() == 1
+        with settings_page.expect_request("**/api/config"):
+            with settings_page.expect_request("**/api/modules/batch"):
+                toggle_slider.click()
 
         footer = settings_page.locator("#save-footer")
-        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
-        settings_page.locator('#save-footer button[type="submit"]').click()
-
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
         expect(settings_page.locator("#module-restart-banner")).to_be_visible()
         assert len(config_payloads) == 1
         assert len(batch_payloads) == 1
-        assert len(batch_payloads[0]["modules"]) == 2
+        assert len(batch_payloads[0]["modules"]) == 1
         assert immediate_calls == []
+
+    def test_notification_event_toggle_saves_cooldowns_immediately(self, settings_page):
+        config_payloads = []
+
+        def capture_config(route):
+            config_payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.locator('button[data-section="notifications"]').click()
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('.notify-event-row[data-event="health_change"] .toggle-slider').click()
+
+        footer = settings_page.locator("#save-footer")
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        assert len(config_payloads) == 1
+        cooldowns = config_payloads[0]["notify_cooldowns"]
+        assert '"health_change":0' in cooldowns.replace(" ", "")
+
+    def test_notification_cooldown_value_saves_immediately(self, settings_page):
+        config_payloads = []
+
+        def capture_config(route):
+            config_payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.locator('button[data-section="notifications"]').click()
+        settings_page.locator('.notify-event-row[data-event="power_change"] .notify-cooldown-input').fill('42')
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('.notify-event-row[data-event="power_change"] .notify-cooldown-input').blur()
+
+        footer = settings_page.locator("#save-footer")
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        assert len(config_payloads) == 1
+        cooldowns = config_payloads[0]["notify_cooldowns"]
+        assert '"power_change":42' in cooldowns.replace(" ", "")
+
+    def test_notification_event_toggle_stays_dirty_when_instant_save_fails(self, settings_page):
+        def fail_config(route):
+            route.fulfill(status=500, json={"success": False, "error": "Save failed"})
+
+        settings_page.route("**/api/config", fail_config)
+        settings_page.locator('button[data-section="notifications"]').click()
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('.notify-event-row[data-event="health_change"] .toggle-slider').click()
+
+        footer = settings_page.locator("#save-footer")
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(settings_page.locator('#global-error')).to_be_visible()
+
+    def test_edit_made_during_instant_save_remains_dirty(self, settings_page):
+        config_payloads = []
+
+        def capture_config(route):
+            config_payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.locator('button[data-section="notifications"]').click()
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('.notify-event-row[data-event="health_change"] .toggle-slider').click()
+        settings_page.locator('button[data-section="connection"]').click()
+        settings_page.locator('#modem_url').fill('http://192.168.100.1')
+
+        footer = settings_page.locator("#save-footer")
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        assert config_payloads[0]["modem_url"] != "http://192.168.100.1"
+
+    def test_saved_secret_clears_when_concurrent_edit_remains_dirty(self, settings_page):
+        settings_page.evaluate(
+            """
+            () => {
+              const input = document.querySelector('#modem_password');
+              input.dataset.savedSecret = 'true';
+              input.setAttribute('placeholder', 'Saved');
+            }
+            """
+        )
+        settings_page.locator('#modem_password').fill('new-secret-value')
+        saved_baseline = settings_page.evaluate(
+            "() => _serializeSettingsForm(document.getElementById('settings-form'))"
+        )
+        settings_page.locator('#modem_url').fill('http://192.168.100.1')
+
+        settings_page.evaluate("baseline => _finishSettingsSave(baseline)", saved_baseline)
+
+        assert settings_page.locator('#modem_password').input_value() == ""
+        expect(settings_page.locator("#save-footer")).to_have_class(re.compile(r".*\bvisible\b.*"))
+
+    def test_saved_secret_edited_after_save_snapshot_is_not_cleared(self, settings_page):
+        settings_page.evaluate(
+            """
+            () => {
+              const input = document.querySelector('#modem_password');
+              input.dataset.savedSecret = 'true';
+              input.setAttribute('placeholder', 'Saved');
+            }
+            """
+        )
+        saved_baseline = settings_page.evaluate(
+            "() => _serializeSettingsForm(document.getElementById('settings-form'))"
+        )
+        settings_page.locator('#modem_password').fill('new-secret-value')
+
+        settings_page.evaluate("baseline => _finishSettingsSave(baseline)", saved_baseline)
+
+        assert settings_page.locator('#modem_password').input_value() == "new-secret-value"
+        expect(settings_page.locator("#save-footer")).to_have_class(re.compile(r".*\bvisible\b.*"))
+
+    def test_saved_secret_reedited_after_save_snapshot_is_not_cleared(self, settings_page):
+        settings_page.evaluate(
+            """
+            () => {
+              const input = document.querySelector('#modem_password');
+              input.dataset.savedSecret = 'true';
+              input.setAttribute('placeholder', 'Saved');
+            }
+            """
+        )
+        settings_page.locator('#modem_password').fill('first-secret-value')
+        saved_baseline = settings_page.evaluate(
+            "() => _serializeSettingsForm(document.getElementById('settings-form'))"
+        )
+        settings_page.locator('#modem_password').fill('second-secret-value')
+
+        settings_page.evaluate("baseline => _finishSettingsSave(baseline)", saved_baseline)
+
+        assert settings_page.locator('#modem_password').input_value() == "second-secret-value"
+        expect(settings_page.locator("#save-footer")).to_have_class(re.compile(r".*\bvisible\b.*"))
 
     def test_threshold_profile_toggles_are_exclusive_radios(self, settings_page):
         settings_page.locator('button[data-section="extensions"]').click()

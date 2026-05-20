@@ -590,6 +590,7 @@ function runDemoMigration() {
 /* ── Unsaved Changes ── */
 var _formDirty = false;
 var _formBaseline = null;
+var _secretEditVersionCounter = 0;
 
 function _isSavedSecretField(el) {
     return !!(
@@ -632,7 +633,23 @@ function _serializeSettingsForm(form) {
     var fields = [];
     Array.prototype.forEach.call(form.elements, function(el) {
         if (!el.name || el.type === 'submit' || el.type === 'button' || el.type === 'file') return;
-        fields.push({ name: el.name, id: el.getAttribute('data-module-id') || '', type: el.type || el.tagName, value: _normalizedFormValue(el) });
+        var field = { name: el.name, id: el.getAttribute('data-module-id') || '', type: el.type || el.tagName, value: _normalizedFormValue(el) };
+        if (_isSavedSecretField(el) && el.dataset.userEditedSecret) {
+            field.secretEditVersion = el.dataset.secretEditVersion || '';
+        }
+        fields.push(field);
+    });
+    document.querySelectorAll('.notify-event-row').forEach(function(row) {
+        var key = row.getAttribute('data-event');
+        var toggle = row.querySelector('.notify-toggle');
+        var inp = row.querySelector('.notify-cooldown-input');
+        if (!key || !toggle || !inp) return;
+        fields.push({
+            name: 'notify_cooldown:' + key,
+            id: key,
+            type: 'notification-cooldown',
+            value: toggle.checked ? (inp.value || '') : '0'
+        });
     });
     fields.sort(function(a, b) {
         return (a.name + ':' + a.id + ':' + a.type).localeCompare(b.name + ':' + b.id + ':' + b.type);
@@ -674,6 +691,7 @@ function initUnsavedDetection() {
     function markDirty(e) {
         if (_shouldTreatSavedSecretEventAsUserEdit(e)) {
             e.target.dataset.userEditedSecret = 'true';
+            e.target.dataset.secretEditVersion = String(++_secretEditVersionCounter);
         }
         _updateDirtyState();
     }
@@ -689,14 +707,16 @@ function initUnsavedDetection() {
     });
 }
 
-function _resetEditedSavedSecrets() {
+function _resetEditedSavedSecrets(savedSecretVersions) {
     var form = document.getElementById('settings-form');
     if (!form) return;
     Array.prototype.forEach.call(form.elements, function(el) {
         if (!_isSavedSecretField(el) || !el.dataset.userEditedSecret) return;
+        if (savedSecretVersions && savedSecretVersions[el.name] !== el.dataset.secretEditVersion) return;
         el.value = '';
         el.dataset.savedSecret = 'true';
         delete el.dataset.userEditedSecret;
+        delete el.dataset.secretEditVersion;
     });
 }
 
@@ -720,14 +740,24 @@ function _getPendingModuleStates() {
     return states;
 }
 
-function _markModuleStatesSaved() {
+function _markModuleStatesSaved(states) {
+    var savedById = null;
+    if (states) {
+        savedById = {};
+        states.forEach(function(state) {
+            savedById[state.id] = state.enabled;
+        });
+    }
     document.querySelectorAll('.module-toggle-input').forEach(function(toggle) {
-        toggle.setAttribute('data-initial-enabled', toggle.checked ? 'true' : 'false');
+        var moduleId = toggle.getAttribute('data-module-id');
+        if (savedById && savedById[moduleId] === undefined) return;
+        var savedEnabled = savedById ? savedById[moduleId] : toggle.checked;
+        toggle.setAttribute('data-initial-enabled', savedEnabled ? 'true' : 'false');
     });
 }
 
-function _saveModuleStatesIfNeeded() {
-    var states = _getPendingModuleStates();
+function _saveModuleStatesIfNeeded(states) {
+    states = states || _getPendingModuleStates();
     if (states.length === 0) return Promise.resolve({ success: true, restart_required: false });
     return fetch('/api/modules/batch', {
         method: 'POST',
@@ -741,7 +771,7 @@ function _saveModuleStatesIfNeeded() {
         if (!res.ok || !res.data.success) {
             throw new Error(res.data.error || T.save_failed || 'Save failed');
         }
-        _markModuleStatesSaved();
+        _markModuleStatesSaved(states);
         if (res.data.restart_required) {
             var banner = document.getElementById('module-restart-banner');
             if (banner) {
@@ -753,8 +783,51 @@ function _saveModuleStatesIfNeeded() {
     });
 }
 
-function _finishSettingsSave() {
-    clearDirty();
+function _savedBaselineAfterSecretReset(serializedBaseline) {
+    try {
+        var fields = JSON.parse(serializedBaseline || '[]');
+        fields.forEach(function(field) {
+            if (field && field.value === '__edited_secret__') {
+                field.value = '';
+                delete field.secretEditVersion;
+            }
+        });
+        return JSON.stringify(fields);
+    } catch(e) {
+        return serializedBaseline;
+    }
+}
+
+function _savedSecretVersionsFromBaseline(serializedBaseline) {
+    var versions = {};
+    try {
+        var fields = JSON.parse(serializedBaseline || '[]');
+        fields.forEach(function(field) {
+            if (field && field.value === '__edited_secret__') {
+                versions[field.name] = field.secretEditVersion || '';
+            }
+        });
+    } catch(e) {}
+    return versions;
+}
+
+function _finishSettingsSave(savedFormBaseline) {
+    var form = document.getElementById('settings-form');
+    if (!savedFormBaseline || !form) {
+        clearDirty();
+    } else {
+        var savedBaseline = _savedBaselineAfterSecretReset(savedFormBaseline);
+        var savedSecretVersions = _savedSecretVersionsFromBaseline(savedFormBaseline);
+        _resetEditedSavedSecrets(savedSecretVersions);
+        if (_serializeSettingsForm(form) === savedBaseline) {
+            _formBaseline = savedBaseline;
+            _formDirty = false;
+            _syncSaveFooter();
+        } else {
+            _formBaseline = savedBaseline;
+            _updateDirtyState();
+        }
+    }
     showToast(T.settings_saved || 'Settings saved', true);
     var newLang = document.getElementById('language').value;
     var newTz = document.getElementById('timezone').value;
@@ -764,7 +837,10 @@ function _finishSettingsSave() {
 }
 
 function _saveAllSettings() {
+    var form = document.getElementById('settings-form');
     var data = getFormData();
+    var savedFormBaseline = _serializeSettingsForm(form);
+    var moduleStates = _getPendingModuleStates();
     return fetch('/api/config', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -775,10 +851,10 @@ function _saveAllSettings() {
         if (!res.success) {
             throw new Error(res.error || T.save_failed || 'Save failed');
         }
-        return _saveModuleStatesIfNeeded();
+        return _saveModuleStatesIfNeeded(moduleStates);
     })
     .then(function() {
-        _finishSettingsSave();
+        _finishSettingsSave(savedFormBaseline);
         return true;
     });
 }
@@ -791,12 +867,34 @@ function _saveAllSettings() {
 function _saveForm() {
     var errEl = document.getElementById('global-error');
     if (errEl) errEl.style.display = 'none';
-    return _saveAllSettings()
+    return _enqueueSettingsSave()
     .catch(function(err) {
         if (errEl) {
             errEl.textContent = err.message || T.network_error;
             errEl.style.display = 'block';
         }
+        return false;
+    });
+}
+
+var _settingsSaveQueue = Promise.resolve();
+
+function _enqueueSettingsSave() {
+    _settingsSaveQueue = _settingsSaveQueue.catch(function() { return true; }).then(function() {
+        return _saveAllSettings();
+    });
+    return _settingsSaveQueue;
+}
+
+function _saveSettingsInstantly() {
+    var errEl = document.getElementById('global-error');
+    if (errEl) errEl.style.display = 'none';
+    return _enqueueSettingsSave().catch(function(err) {
+        if (errEl) {
+            errEl.textContent = err.message || T.network_error;
+            errEl.style.display = 'block';
+        }
+        _updateDirtyState();
         return false;
     });
 }
@@ -827,7 +925,7 @@ function initFormSubmit() {
         e.preventDefault();
         var errEl = document.getElementById('global-error');
         errEl.style.display = 'none';
-        _saveAllSettings()
+        _enqueueSettingsSave()
         .catch(function(err) {
             errEl.textContent = err.message || T.network_error;
             errEl.style.display = 'block';
@@ -1210,6 +1308,52 @@ function toggleUsernameField() {
     }
 }
 
+function initInstantSettingsToggles() {
+    var form = document.getElementById('settings-form');
+    if (!form) return;
+    var selector = [
+        'label.toggle input[type="checkbox"]:not(#theme-toggle-appearance):not(.module-toggle-input):not(.notify-toggle)',
+        'label.switch input[type="checkbox"]'
+    ].join(',');
+    form.querySelectorAll(selector).forEach(function(toggle) {
+        toggle.addEventListener('change', function() {
+            if (toggle.id === 'font-toggle') {
+                applyFontToggle(toggle.checked);
+            }
+            _saveSettingsInstantly();
+        });
+    });
+}
+
+function initNotificationCooldownControls() {
+    try {
+        var saved = typeof savedCooldowns !== 'undefined' ? savedCooldowns : {};
+        document.querySelectorAll('.notify-event-row').forEach(function(row) {
+            var key = row.getAttribute('data-event');
+            var toggle = row.querySelector('.notify-toggle');
+            var inp = row.querySelector('.notify-cooldown-input');
+            if (!toggle || !inp) return;
+            if (saved[key] !== undefined) {
+                if (saved[key] === 0) {
+                    toggle.checked = false;
+                    inp.disabled = true;
+                    inp.style.opacity = '0.4';
+                } else {
+                    inp.value = saved[key];
+                }
+            }
+            toggle.addEventListener('change', function() {
+                inp.disabled = !toggle.checked;
+                inp.style.opacity = toggle.checked ? '1' : '0.4';
+                _saveSettingsInstantly();
+            });
+            inp.addEventListener('change', function() {
+                _saveSettingsInstantly();
+            });
+        });
+    } catch(e) {}
+}
+
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1217,6 +1361,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initThemeToggle();
     initFormSubmit();
     initUnsavedDetection();
+    initInstantSettingsToggles();
+    initNotificationCooldownControls();
     initTimezoneHint();
     onIspChange();
     toggleUsernameField();
@@ -1242,29 +1388,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    /* Populate per-event notification toggles + cooldown inputs */
-    try {
-        var saved = typeof savedCooldowns !== 'undefined' ? savedCooldowns : {};
-        document.querySelectorAll('.notify-event-row').forEach(function(row) {
-            var key = row.getAttribute('data-event');
-            var toggle = row.querySelector('.notify-toggle');
-            var inp = row.querySelector('.notify-cooldown-input');
-            if (saved[key] !== undefined) {
-                if (saved[key] === 0) {
-                    toggle.checked = false;
-                    inp.disabled = true;
-                    inp.style.opacity = '0.4';
-                } else {
-                    inp.value = saved[key];
-                }
-            }
-            toggle.addEventListener('change', function() {
-                inp.disabled = !toggle.checked;
-                inp.style.opacity = toggle.checked ? '1' : '0.4';
-            });
-        });
-    } catch(e) {}
-
     _captureFormBaseline();
     _formDirty = false;
 
@@ -1287,7 +1410,7 @@ function initModuleToggles() {
                     if (other !== toggleEl) other.checked = false;
                 });
             }
-            _updateDirtyState();
+            _saveSettingsInstantly();
         });
     });
 }
