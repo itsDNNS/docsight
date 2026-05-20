@@ -406,9 +406,11 @@
                         </span>
                         {% endif %}
                         {% if device_info and device_info.model %}
-                        <span class="hero-meta-item" style="cursor:help;"
-                            title="{{ t.device_model_tooltip }}">
-                            <i data-lucide="router"></i> {{ device_info.model }}
+                        <span class="hero-meta-item hero-meta-truncate glossary-hint" style="cursor:help;"
+                            title="{{ device_info.model }}">
+                            <i data-lucide="router"></i>
+                            <span class="hero-meta-label">{{ device_info.model }}</span>
+                            <span class="glossary-popover">{{ device_info.model }}</span>
                         </span>
                         {% endif %}
                         {% if device_info and device_info.hw_version %}
@@ -418,9 +420,11 @@
                         </span>
                         {% endif %}
                         {% if device_info and device_info.sw_version %}
-                        <span class="hero-meta-item" style="cursor:help;"
-                            title="{{ t.sw_version_tooltip }}">
-                            <i data-lucide="package"></i> {{ device_info.sw_version }}
+                        <span class="hero-meta-item hero-meta-truncate glossary-hint" style="cursor:help;"
+                            title="{{ device_info.sw_version }}">
+                            <i data-lucide="package"></i>
+                            <span class="hero-meta-label">{{ device_info.sw_version }}</span>
+                            <span class="glossary-popover">{{ device_info.sw_version }}</span>
                         </span>
                         {% endif %}
                         {% if device_info and device_info.get('uptime_seconds') is not none %}

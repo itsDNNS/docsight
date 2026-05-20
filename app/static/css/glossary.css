@@ -111,6 +111,12 @@ body > .glossary-popover.above::before {
     margin-left: 0;
     border-radius: var(--radius-sm, 6px);
   }
+  .dashboard-view .insights-meta .hero-meta-item.glossary-hint {
+    width: auto;
+    height: auto;
+    justify-content: flex-start;
+  }
+
   .metric-card .glossary-hint {
     top: 4px;
     left: 4px;

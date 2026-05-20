@@ -68,6 +68,77 @@ class TestDashboardSections:
         us = demo_page.locator(".dashboard-channel-panel .channel-title", has_text="Upstream")
         assert us.is_visible()
 
+    def test_long_device_meta_values_keep_icons_visible_when_truncated(self, demo_page):
+        demo_page.set_viewport_size({"width": 768, "height": 900})
+        cases = [
+            ("lucide-router", "Vodafone Station (TG6442VF/TG3442DE) with intentionally long vendor model label"),
+            ("lucide-package", "AR01.04.046.25_072922_7244.PC20.10-X1-GA-RDKB-INT intentionally long firmware label"),
+        ]
+
+        for viewport_width in (768, 390):
+            demo_page.set_viewport_size({"width": viewport_width, "height": 900})
+            for icon_class, long_value in cases:
+                metrics = demo_page.evaluate(
+                    """({ iconClass, longValue }) => {
+                        const item = Array.from(document.querySelectorAll('.dashboard-view .insights-meta .hero-meta-item'))
+                            .find((el) => el.querySelector('svg.' + iconClass));
+                        if (!item) throw new Error(iconClass + ' meta item not found');
+
+                        const icon = item.querySelector('svg.' + iconClass);
+                        const label = item.querySelector('.hero-meta-label');
+                        if (!label) throw new Error(iconClass + ' label not found');
+                        label.textContent = longValue;
+                        const popover = item.querySelector('.glossary-popover');
+                        if (popover) popover.textContent = longValue;
+                        item.setAttribute('title', longValue);
+                        item.setAttribute('aria-label', longValue);
+
+                        const itemRect = item.getBoundingClientRect();
+                        const iconRect = icon.getBoundingClientRect();
+                        return {
+                            itemLeft: itemRect.left,
+                            itemRight: itemRect.right,
+                            itemWidth: itemRect.width,
+                            textScrollWidth: label.scrollWidth,
+                            textClientWidth: label.clientWidth,
+                            iconLeft: iconRect.left,
+                            iconRight: iconRect.right,
+                            iconWidth: iconRect.width,
+                        };
+                    }""",
+                    {"iconClass": icon_class, "longValue": long_value},
+                )
+
+                assert metrics["itemWidth"] > 44
+                assert metrics["textScrollWidth"] > metrics["textClientWidth"]
+                assert metrics["iconWidth"] > 0
+                assert metrics["iconLeft"] >= metrics["itemLeft"]
+                assert metrics["iconRight"] <= metrics["itemRight"]
+
+    def test_device_meta_value_reveals_full_value_on_focus_and_click(self, demo_page):
+        item = demo_page.locator(".dashboard-view .insights-meta .hero-meta-item", has=demo_page.locator("svg.lucide-router")).first
+        assert item.is_visible()
+        assert item.get_attribute("role") == "button"
+        assert item.get_attribute("tabindex") == "0"
+        assert item.get_attribute("aria-expanded") == "false"
+        assert item.locator(".hero-meta-label").text_content().strip() == "Demo Router"
+        assert "Demo Router" in item.locator(".glossary-popover").text_content()
+
+        item.focus()
+        overlay = demo_page.locator("body > #glossary-popover-overlay")
+        assert overlay.is_visible()
+        assert item.get_attribute("aria-expanded") == "true"
+        assert "Demo Router" in overlay.text_content()
+
+        demo_page.keyboard.press("Escape")
+        assert not overlay.is_visible()
+        assert item.get_attribute("aria-expanded") == "false"
+
+        item.click()
+        assert overlay.is_visible()
+        assert item.get_attribute("aria-expanded") == "true"
+        assert "Demo Router" in overlay.text_content()
+
     def test_dashboard_refresh_control_is_keyboard_focusable(self, demo_page):
         refresh = demo_page.locator(".hero-refresh-button")
         assert refresh.first.is_visible()

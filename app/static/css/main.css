@@ -1050,7 +1050,7 @@ body:has(#view-dashboard.active) .app-main {
 .dashboard-view .insights-meta .hero-meta-item {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex: 0 1 auto;
   gap: 6px;
   min-width: 0;
@@ -1063,6 +1063,17 @@ body:has(#view-dashboard.active) .app-main {
   border-radius: 0;
   background: transparent;
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-view .insights-meta .hero-meta-item.glossary-hint {
+  margin-left: 0;
+}
+
+.dashboard-view .insights-meta .hero-meta-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1083,7 +1094,8 @@ body:has(#view-dashboard.active) .app-main {
   border-right: 0;
 }
 
-.dashboard-view .insights-meta .hero-meta-item i {
+.dashboard-view .insights-meta .hero-meta-item i,
+.dashboard-view .insights-meta .hero-meta-item svg {
   flex: 0 0 auto;
 }
 

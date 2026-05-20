@@ -11,13 +11,16 @@
   document.body.appendChild(overlay);
 
   var activeHint = null;
+  var activeOpenedByFocus = false;
 
   function closeAll() {
     overlay.style.display = 'none';
     overlay.classList.remove('above');
+    activeOpenedByFocus = false;
     if (activeHint) {
       activeHint.classList.remove('open');
       activeHint.removeAttribute('aria-describedby');
+      activeHint.setAttribute('aria-expanded', 'false');
       activeHint = null;
     }
   }
@@ -29,6 +32,7 @@
     overlay.style.display = 'block';
     overlay.classList.remove('above');
     hint.setAttribute('aria-describedby', 'glossary-popover-overlay');
+    hint.setAttribute('aria-expanded', 'true');
 
     var r = hint.getBoundingClientRect();
     var top = r.bottom + 8;
@@ -62,7 +66,8 @@
         hint.removeAttribute('role');
         return;
       }
-      hint.setAttribute('aria-label', label.substring(0, 60));
+      hint.setAttribute('aria-label', label);
+      hint.setAttribute('aria-expanded', 'false');
     });
   }
   initHints();
@@ -91,6 +96,10 @@
       e.preventDefault();
       e.stopPropagation();
       var wasOpen = hint === activeHint;
+      if (wasOpen && activeOpenedByFocus) {
+        activeOpenedByFocus = false;
+        return;
+      }
       closeAll();
       if (!wasOpen) {
         activeHint = hint;
@@ -100,6 +109,23 @@
       return;
     }
     closeAll();
+  });
+
+  document.addEventListener('focusin', function (e) {
+    var hint = e.target.closest('.glossary-hint');
+    if (!hint) return;
+    var source = hint.querySelector('.glossary-popover');
+    if (!source || !source.textContent.trim()) return;
+    closeAll();
+    activeHint = hint;
+    activeOpenedByFocus = true;
+    hint.classList.add('open');
+    showPopover(hint);
+  });
+
+  document.addEventListener('focusout', function (e) {
+    var hint = e.target.closest('.glossary-hint');
+    if (hint && hint === activeHint) closeAll();
   });
 
   document.addEventListener('keydown', function (e) {
