@@ -812,6 +812,39 @@ def _channel_threshold_candidates(channels, *, snr=False):
     return candidates
 
 
+def _power_metric_health(value, threshold):
+    if value is None:
+        return "good"
+    good = threshold.get("good") or [-4.0, 13.0]
+    warning = threshold.get("warning") or good
+    critical = threshold.get("critical") or [warning[0] - 2.0, warning[1] + 2.0]
+    crit_min, crit_max = float(critical[0]), float(critical[1])
+    warn_min, warn_max = float(warning[0]), float(warning[1])
+    good_min, good_max = float(good[0]), float(good[1])
+    if value < crit_min or value > crit_max:
+        return "crit"
+    if value < warn_min or value > warn_max:
+        return "warn"
+    if value < good_min or value > good_max:
+        return "tolerated"
+    return "good"
+
+
+def _snr_metric_health(value, threshold):
+    if value is None:
+        return "good"
+    crit_min = float(threshold.get("critical_min", 29.0))
+    warn_min = float(threshold.get("warning_min", threshold.get("good_min", 33.0)))
+    good_min = float(threshold.get("good_min", 33.0))
+    if value < crit_min:
+        return "crit"
+    if value < warn_min:
+        return "warn"
+    if value < good_min:
+        return "tolerated"
+    return "good"
+
+
 def _power_metric_range(value, observed_min, observed_max, threshold, unit):
     good = threshold.get("good") or [-4.0, 13.0]
     warning = threshold.get("warning") or good
@@ -833,6 +866,7 @@ def _power_metric_range(value, observed_min, observed_max, threshold, unit):
     ]
     span_start, span_width = _range_span(observed_min, observed_max, minimum, maximum)
     return {
+        "health": _power_metric_health(value, threshold),
         "marker": _range_pct(value, minimum, maximum),
         "span_start": span_start,
         "span_width": span_width,
@@ -862,6 +896,7 @@ def _snr_metric_range(value, observed_min, observed_max, threshold):
     ]
     span_start, span_width = _range_span(observed_min, observed_max, minimum, maximum)
     return {
+        "health": _snr_metric_health(value, threshold),
         "marker": _range_pct(value, minimum, maximum),
         "span_start": span_start,
         "span_width": span_width,

@@ -638,15 +638,18 @@
     {% set signal_health = 'crit' if 'ds_power_critical' in s.health_issues or 'snr_critical' in s.health_issues
        else ('warn' if 'ds_power_marginal' in s.health_issues or 'snr_marginal' in s.health_issues
        else ('tolerated' if 'ds_power_tolerated' in s.health_issues or 'snr_tolerated' in s.health_issues else 'good')) %}
-    {% set us_health = 'crit' if 'us_power_critical_low' in s.health_issues or 'us_power_critical_high' in s.health_issues
+    {% set us_health_fallback = 'crit' if 'us_power_critical_low' in s.health_issues or 'us_power_critical_high' in s.health_issues
        else ('warn' if 'us_power_marginal_low' in s.health_issues or 'us_power_marginal_high' in s.health_issues
        else ('tolerated' if 'us_power_tolerated_low' in s.health_issues or 'us_power_tolerated_high' in s.health_issues else 'good')) %}
+    {% set us_health = metric_ranges.us_power.health if metric_ranges.us_power is defined and metric_ranges.us_power.health is defined else us_health_fallback %}
     {% set error_health = 'crit' if 'uncorr_errors_critical' in s.health_issues else ('warn' if 'uncorr_errors_high' in s.health_issues else 'good') %}
 
     {# ── DS Power health ── #}
-    {% set ds_pwr_health = 'crit' if 'ds_power_critical' in s.health_issues else ('warn' if 'ds_power_marginal' in s.health_issues else ('tolerated' if 'ds_power_tolerated' in s.health_issues else 'good')) %}
+    {% set ds_pwr_health_fallback = 'crit' if 'ds_power_critical' in s.health_issues else ('warn' if 'ds_power_marginal' in s.health_issues else ('tolerated' if 'ds_power_tolerated' in s.health_issues else 'good')) %}
+    {% set ds_pwr_health = metric_ranges.ds_power.health if metric_ranges.ds_power is defined and metric_ranges.ds_power.health is defined else ds_pwr_health_fallback %}
     {# ── SNR health ── #}
-    {% set snr_health = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_marginal' in s.health_issues else ('tolerated' if 'snr_tolerated' in s.health_issues else 'good')) %}
+    {% set snr_health_fallback = 'crit' if 'snr_critical' in s.health_issues else ('warn' if 'snr_marginal' in s.health_issues else ('tolerated' if 'snr_tolerated' in s.health_issues else 'good')) %}
+    {% set snr_health = metric_ranges.snr.health if metric_ranges.snr is defined and metric_ranges.snr.health is defined else snr_health_fallback %}
 
     {% macro metric_range_viz(range_data, health, good_label, context_label='', context_value='') -%}
     {% if range_data %}
