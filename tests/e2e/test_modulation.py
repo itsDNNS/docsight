@@ -57,6 +57,73 @@ class TestModulationNavigation:
 
         expect(demo_page.locator("#view-modulation")).to_be_visible()
 
+    def test_home_modulation_context_sits_between_health_and_graph(self, page, live_server):
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.goto(live_server)
+        page.wait_for_load_state("networkidle")
+
+        visual = page.locator(".hero-visual-row")
+        health = page.locator(".hero-channel-health")
+        context = page.locator(".hero-modulation-context")
+        chart = page.locator(".hero-chart-wrap")
+        expect(visual).to_be_visible()
+        expect(health).to_be_visible()
+        expect(context).to_be_visible()
+        expect(chart).to_be_visible()
+
+        layout = page.evaluate(
+            """
+            () => {
+                const rect = (selector) => {
+                    const r = document.querySelector(selector).getBoundingClientRect();
+                    return {left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height};
+                };
+                return {
+                    visual: rect('.hero-visual-row'),
+                    health: rect('.hero-channel-health'),
+                    context: rect('.hero-modulation-context'),
+                    chart: rect('.hero-chart-wrap'),
+                    gridColumns: getComputedStyle(document.querySelector('.hero-visual-row')).gridTemplateColumns,
+                };
+            }
+            """
+        )
+
+        assert layout["gridColumns"].count("px") >= 3
+        assert layout["health"]["right"] <= layout["context"]["left"] + 1
+        assert layout["context"]["right"] <= layout["chart"]["left"] + 1
+        assert abs(layout["health"]["top"] - layout["context"]["top"]) <= 16
+        assert layout["visual"]["height"] <= 360
+
+    def test_home_modulation_context_stacks_without_narrow_overflow(self, page, live_server):
+        for width in (393, 760, 1100):
+            page.set_viewport_size({"width": width, "height": 900})
+            page.goto(live_server)
+            page.wait_for_load_state("networkidle")
+
+            layout = page.evaluate(
+                """
+                () => {
+                    const rect = (selector) => {
+                        const r = document.querySelector(selector).getBoundingClientRect();
+                        return {left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height};
+                    };
+                    return {
+                        overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                        health: rect('.hero-channel-health'),
+                        context: rect('.hero-modulation-context'),
+                        chart: rect('.hero-chart-wrap'),
+                        gridColumns: getComputedStyle(document.querySelector('.hero-visual-row')).gridTemplateColumns,
+                    };
+                }
+                """
+            )
+
+            assert layout["overflowX"] <= 1
+            assert layout["gridColumns"].count("px") == 1
+            assert layout["chart"]["bottom"] <= layout["health"]["top"] + 1
+            assert layout["health"]["bottom"] <= layout["context"]["top"] + 1
+
 
 # ── Tab Structure ──
 

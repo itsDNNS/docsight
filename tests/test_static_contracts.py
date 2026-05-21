@@ -74,7 +74,7 @@ def test_correlation_event_type_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v14';" in sw_js
+    assert "var CACHE_VERSION = 'v15';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
@@ -148,6 +148,20 @@ def test_dashboard_insight_layout_uses_safe_responsive_columns():
     assert "grid-template-columns: 42px minmax(0, 1fr);" in css
     assert "grid-column: 2;" in css
     assert "minmax(280px, 1fr) minmax(230px" not in css
+
+
+def test_dashboard_modulation_layout_is_sidecar_not_below_channel_health():
+    css = MAIN_CSS.read_text(encoding="utf-8")
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    visual_block = css[css.index(".dashboard-hero .hero-visual-row {") : css.index(".dashboard-hero .hero-chart-wrap {")]
+    health_block = css[css.index(".dashboard-hero .hero-channel-health {") : css.index(".dashboard-hero .hero-channel-health-head")]
+
+    assert "grid-template-columns: var(--hero-side-col) minmax(150px, 180px) minmax(0, 1fr);" in visual_block
+    assert "align-items: start;" in visual_block
+    assert "grid-column: 2;" in css[css.index(".dashboard-hero .hero-modulation-context {") : css.index(".dashboard-hero .hero-modulation-head {")]
+    assert "<aside class=\"hero-channel-health" in template
+    assert template.index('class="hero-channel-health"') < template.index('class="hero-modulation-context"') < template.index('class="hero-chart-wrap"')
+    assert "grid-template-rows: auto minmax(0, 1fr);" not in health_block
 
 
 def test_connection_monitor_mobile_pinned_bar_stays_hidden_by_default():

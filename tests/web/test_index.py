@@ -182,7 +182,9 @@ class TestIndexRoute:
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
         assert 'class="hero-modulation-context"' in html
-        modulation_context = html[html.index('class="hero-modulation-context"'):html.index("</aside>")]
+        modulation_context = html[
+            html.index('class="hero-modulation-context"'):html.index('class="hero-chart-wrap"')
+        ]
         assert "Modulation data unavailable" in modulation_context
         assert "None" not in modulation_context
         assert 'class="hero-modulation-card hero-modulation-warn"' not in modulation_context
