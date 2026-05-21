@@ -4,6 +4,8 @@
   "speedtest_url_hint": "URL de base de votre instance Speedtest Tracker",
   "speedtest_token": "Jeton API",
   "speedtest_token_hint": "Jeton Bearer depuis les paramètres de Speedtest Tracker",
+  "speedtest_tls_insecure": "TLS non sécurisé",
+  "speedtest_tls_insecure_hint": "Ignorer la vérification du certificat TLS pour les certificats HTTPS auto-signés",
   "booked_download": "Debit descendant souscrit (Mbps)",
   "booked_download_hint": "Debit descendant contractuel en Mbps pour le calcul de sante",
   "booked_upload": "Debit montant souscrit (Mbps)",

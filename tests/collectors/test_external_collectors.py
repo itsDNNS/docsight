@@ -52,7 +52,26 @@ class TestSpeedtestCollector:
 
         c, *_ = self._make_collector()
         c.collect()
-        mock_cls.assert_called_once_with("http://speed:8999", "tok")
+        mock_cls.assert_called_once_with("http://speed:8999", "tok", tls_insecure=False)
+
+    @patch("app.modules.speedtest.collector.SpeedtestClient")
+    def test_collect_reinitializes_client_when_tls_setting_changes(self, mock_cls):
+        mock_client = MagicMock()
+        mock_client.get_latest_with_error.return_value = ([{"id": 1, "download_mbps": 100}], None)
+        mock_client.get_results.return_value = []
+        mock_cls.return_value = mock_client
+
+        c, config_mgr, *_ = self._make_collector()
+        c.collect()
+        config_mgr.get.side_effect = lambda k, *a: {
+            "speedtest_tracker_url": "http://speed:8999",
+            "speedtest_tracker_token": "[REDACTED]",
+            "speedtest_tls_insecure": True,
+        }.get(k, a[0] if a else None)
+        c.collect()
+
+        assert mock_cls.call_args_list[-1].kwargs["tls_insecure"] is True
+        assert mock_cls.call_count == 2
 
     @patch("app.modules.speedtest.collector.SpeedtestClient")
     def test_collect_updates_web_state(self, mock_cls):

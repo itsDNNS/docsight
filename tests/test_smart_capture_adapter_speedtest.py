@@ -49,6 +49,7 @@ class TestCollectorOnImport:
         mock_client.get_latest_with_error.return_value = (new_results[:1], None)
         collector._client = mock_client
         collector._last_url = "http://stt:8999"  # prevent _ensure_client from overwriting
+        collector._last_tls_insecure = False
         collector.collect()
 
         callback.assert_called_once()
@@ -94,6 +95,7 @@ class TestCollectorOnImport:
         mock_client.get_latest_with_error.return_value = ([], None)
         collector._client = mock_client
         collector._last_url = "http://stt:8999"
+        collector._last_tls_insecure = False
         collector.collect()
 
         callback.assert_not_called()
@@ -128,9 +130,54 @@ class TestSpeedtestAdapterExecute:
             success, error = adapter.execute(eid, {"event_type": "modulation_change"})
         assert success is True
         assert error is None
+        assert mock_session.post.call_args.kwargs["verify"] is True
         row = storage.get_execution(eid)
         assert row["status"] == "fired"
         assert row["fired_at"] is not None
+
+    def test_insecure_tls_disables_certificate_verification(self, storage):
+        config = _make_config(speedtest_tls_insecure="true")
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.PENDING,
+        )
+        with patch("app.smart_capture.adapters.speedtest.requests.Session") as MockSession:
+            mock_session = MagicMock()
+            mock_session.post.return_value = MagicMock(status_code=201)
+            MockSession.return_value = mock_session
+            from app.smart_capture.adapters.speedtest import SpeedtestAdapter
+            adapter = SpeedtestAdapter(storage, config)
+            success, error = adapter.execute(eid, {
+                "timestamp": "2026-03-15T10:00:00Z",
+                "severity": "warning",
+                "event_type": "modulation_change",
+                "message": "modulation changed",
+            })
+        assert success is True
+        assert error is None
+        assert mock_session.post.call_args.kwargs["verify"] is False
+
+    def test_string_false_keeps_certificate_verification_enabled(self, storage):
+        config = _make_config(speedtest_tls_insecure="false")
+        eid = storage.save_execution(
+            trigger_type="modulation_change", action_type="capture",
+            status=ExecutionStatus.PENDING,
+        )
+        with patch("app.smart_capture.adapters.speedtest.requests.Session") as MockSession:
+            mock_session = MagicMock()
+            mock_session.post.return_value = MagicMock(status_code=201)
+            MockSession.return_value = mock_session
+            from app.smart_capture.adapters.speedtest import SpeedtestAdapter
+            adapter = SpeedtestAdapter(storage, config)
+            success, error = adapter.execute(eid, {
+                "timestamp": "2026-03-15T10:00:00Z",
+                "severity": "warning",
+                "event_type": "modulation_change",
+                "message": "modulation changed",
+            })
+        assert success is True
+        assert error is None
+        assert mock_session.post.call_args.kwargs["verify"] is True
 
     def test_failed_trigger_sets_expired(self, storage):
         config = _make_config()

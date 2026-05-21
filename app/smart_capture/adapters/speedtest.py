@@ -18,6 +18,15 @@ log = logging.getLogger("docsis.smart_capture.adapters.speedtest")
 MATCH_WINDOW_SECONDS = 300  # 5 minutes
 
 
+def _as_bool(value: Any) -> bool:
+    """Parse booleans from config values."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 class SpeedtestAdapter(ActionAdapter):
     """Triggers a Speedtest Tracker run and matches imported results."""
 
@@ -27,7 +36,9 @@ class SpeedtestAdapter(ActionAdapter):
         self._config = config_mgr
         url = config_mgr.get("speedtest_tracker_url", "").rstrip("/")
         token = config_mgr.get("speedtest_tracker_token", "")
+        tls_insecure = _as_bool(config_mgr.get("speedtest_tls_insecure", False))
         self._run_url = f"{url}/api/v1/speedtests/run"
+        self._verify_tls = not tls_insecure
         self._session = requests.Session()
         self._session.headers.update({
             "Authorization": f"Bearer {token}",
@@ -37,7 +48,7 @@ class SpeedtestAdapter(ActionAdapter):
     def execute(self, execution_id: int, event: EventDict) -> tuple[bool, str | None]:
         """POST to STT run endpoint. Updates execution to FIRED or EXPIRED."""
         try:
-            resp = self._session.post(self._run_url, timeout=15)
+            resp = self._session.post(self._run_url, timeout=15, verify=self._verify_tls)
             if resp.status_code == 201:
                 ts = utc_now()
                 self._storage.update_execution(

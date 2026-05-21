@@ -3,7 +3,7 @@
 import logging
 
 from app.collectors.base import Collector, CollectorResult
-from .client import SpeedtestClient
+from .client import SpeedtestClient, _as_bool
 from .storage import SpeedtestStorage
 
 log = logging.getLogger("docsis.collector.speedtest")
@@ -21,6 +21,7 @@ class SpeedtestCollector(Collector):
         self._web = web
         self._client = None
         self._last_url = None
+        self._last_tls_insecure = None
         self.on_import = None  # Optional callback for Smart Capture
 
     def is_enabled(self) -> bool:
@@ -29,10 +30,12 @@ class SpeedtestCollector(Collector):
     def _ensure_client(self):
         """Re-initialize client if the configured URL changed."""
         url = self._config_mgr.get("speedtest_tracker_url")
-        if url != self._last_url:
+        tls_insecure = _as_bool(self._config_mgr.get("speedtest_tls_insecure", False))
+        if url != self._last_url or tls_insecure != self._last_tls_insecure:
             token = self._config_mgr.get("speedtest_tracker_token")
-            self._client = SpeedtestClient(url, token)
+            self._client = SpeedtestClient(url, token, tls_insecure=tls_insecure)
             self._last_url = url
+            self._last_tls_insecure = tls_insecure
             # Detect server switch and clear stale cache
             self._storage.check_source_url(url)
             log.info("Speedtest Tracker: %s", url)

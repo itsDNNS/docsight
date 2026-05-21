@@ -418,7 +418,11 @@ function testSpeedtest() {
     fetch('/api/test-speedtest', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({speedtest_tracker_url: data.speedtest_tracker_url, speedtest_tracker_token: data.speedtest_tracker_token})
+        body: JSON.stringify({
+            speedtest_tracker_url: data.speedtest_tracker_url,
+            speedtest_tracker_token: data.speedtest_tracker_token,
+            speedtest_tls_insecure: data.speedtest_tls_insecure
+        })
     })
     .then(function(r) { return r.json(); })
     .then(function(res) {

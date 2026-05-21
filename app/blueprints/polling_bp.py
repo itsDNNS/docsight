@@ -19,6 +19,15 @@ log = logging.getLogger("docsis.web")
 polling_bp = Blueprint("polling_bp", __name__)
 
 
+def _as_bool(value):
+    """Parse booleans from JSON/form payloads."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 @polling_bp.route("/api/test-modem", methods=["POST"])
 @polling_bp.route("/api/test-fritz", methods=["POST"])  # deprecated alias
 @require_auth
@@ -96,13 +105,14 @@ def api_test_speedtest():
         data = request.get_json()
         url = data.get("speedtest_tracker_url", "")
         token = data.get("speedtest_tracker_token", "")
+        tls_insecure = _as_bool(data.get("speedtest_tls_insecure", False))
         # Resolve masked token to real value
         if token == PASSWORD_MASK and _config_manager:
             token = _config_manager.get("speedtest_tracker_token", "")
         if not url or not token:
             return jsonify({"success": False, "error": "URL and token are required"})
         from app.modules.speedtest.client import SpeedtestClient
-        client = SpeedtestClient(url, token)
+        client = SpeedtestClient(url, token, tls_insecure=tls_insecure)
         results, error = client.get_latest_with_error(1)
         if error:
             return jsonify({"success": False, "error": error})

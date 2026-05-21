@@ -24,6 +24,15 @@ _last_trigger_ts = 0
 _TRIGGER_COOLDOWN = 60  # seconds
 
 
+def _as_bool(value):
+    """Parse booleans from config/form payloads."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _get_speedtest_storage():
     global _storage
     if _storage is None:
@@ -111,9 +120,11 @@ def api_speedtest():
     if ss:
         try:
             stt_url = _config_manager.get("speedtest_tracker_url")
+            tls_insecure = _as_bool(_config_manager.get("speedtest_tls_insecure", False))
             client = SpeedtestClient(
                 stt_url,
                 _config_manager.get("speedtest_tracker_token"),
+                tls_insecure=tls_insecure,
             )
             # Detect server switch and clear stale cache
             ss.check_source_url(stt_url)
@@ -149,9 +160,11 @@ def api_speedtest():
         _annotate_smart_capture(enriched, ss.db_path)
         return jsonify(enriched)
     # Fallback: no storage, fetch directly
+    tls_insecure = _as_bool(_config_manager.get("speedtest_tls_insecure", False))
     client = SpeedtestClient(
         _config_manager.get("speedtest_tracker_url"),
         _config_manager.get("speedtest_tracker_token"),
+        tls_insecure=tls_insecure,
     )
     results = client.get_results(per_page=count)
     return jsonify([_enrich_speedtest(r) for r in results])
@@ -241,11 +254,13 @@ def api_speedtest_run():
 
     url = _config_manager.get("speedtest_tracker_url", "").rstrip("/")
     token = _config_manager.get("speedtest_tracker_token", "")
+    tls_insecure = _as_bool(_config_manager.get("speedtest_tls_insecure", False))
     try:
         resp = requests.post(
             f"{url}/api/v1/speedtests/run",
             headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
             timeout=90,
+            verify=not tls_insecure,
         )
         if resp.status_code == 201:
             _last_trigger_ts = now
