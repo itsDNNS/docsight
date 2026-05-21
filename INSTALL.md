@@ -4,6 +4,8 @@
 
 Covers Docker Run, Docker Compose, Portainer, Synology NAS, Unraid, updating, and troubleshooting.
 
+Optional alert fan-out through an Apprise sidecar is covered in [docs/notifications-apprise.md](docs/notifications-apprise.md).
+
 ## Quick Start
 
 ```bash

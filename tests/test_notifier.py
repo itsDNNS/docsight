@@ -8,6 +8,7 @@ import requests
 
 from app.notifier import (
     DISCORD_SEVERITY_COLORS,
+    AppriseChannel,
     DiscordWebhookChannel,
     NotificationDispatcher,
     WebhookChannel,
@@ -261,15 +262,105 @@ class TestDiscordWebhookSend:
 
 
 # ---------------------------------------------------------------------------
+# AppriseChannel
+# ---------------------------------------------------------------------------
+
+class TestAppriseChannel:
+    def test_format_payload_maps_severity_to_apprise_type(self):
+        payload = {
+            "severity": "critical",
+            "event_type": "snr_change",
+            "message": "SNR dropped",
+            "details": {"previous_snr": 38.0, "current_snr": 30.0},
+        }
+        formatted = AppriseChannel._format_payload(payload)
+
+        assert formatted["title"] == "DOCSight: Snr Change"
+        assert formatted["type"] == "failure"
+        assert formatted["format"] == "text"
+        assert "SNR dropped" in formatted["body"]
+        assert "previous snr: 38.0" in formatted["body"]
+        assert "current snr: 30.0" in formatted["body"]
+
+    def test_format_payload_serializes_nested_details(self):
+        formatted = AppriseChannel._format_payload({
+            "severity": "warning",
+            "event_type": "test_event",
+            "message": "Nested",
+            "details": {"nested": {"a": 1}},
+        })
+
+        assert formatted["type"] == "warning"
+        assert 'nested: {"a": 1}' in formatted["body"]
+
+    @patch("app.notifier.requests.post")
+    def test_send_posts_to_stateless_endpoint(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.raise_for_status = MagicMock()
+        channel = AppriseChannel("http://apprise:8000")
+
+        assert channel.send({"severity": "info", "event_type": "test", "message": "Hello", "details": {}}) is True
+
+        assert mock_post.call_args.args[0] == "http://apprise:8000/notify"
+        sent_json = mock_post.call_args.kwargs["json"]
+        assert sent_json["body"] == "Hello"
+        assert "Authorization" not in mock_post.call_args.kwargs["headers"]
+
+    @patch("app.notifier.requests.post")
+    def test_send_posts_to_config_key_with_tag_and_token(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.raise_for_status = MagicMock()
+        channel = AppriseChannel(
+            "http://apprise:8000/",
+            config_key="default key",
+            tag="ops,admin",
+            token="tok",
+        )
+
+        assert channel.send({"severity": "info", "event_type": "test", "message": "Hello", "details": {}}) is True
+
+        assert mock_post.call_args.args[0] == "http://apprise:8000/notify/default%20key"
+        assert mock_post.call_args.kwargs["json"]["tag"] == "ops,admin"
+        assert mock_post.call_args.kwargs["headers"]["Authorization"] == "Bearer tok"
+
+    @patch("app.notifier.requests.post")
+    def test_http_error_log_does_not_leak_secret_context(self, mock_post, caplog):
+        import logging
+        resp = MagicMock(status_code=401)
+        resp.raise_for_status.side_effect = requests.HTTPError(response=resp)
+        mock_post.return_value = resp
+        key_marker = "REDACTED-CONFIG-KEY"
+        token_marker = "TOKMARK"
+        channel = AppriseChannel(
+            "http://apprise:8000",
+            config_key=key_marker,
+            tag="ops",
+            token=token_marker,
+        )
+
+        with caplog.at_level(logging.WARNING, logger="docsis.notifier"):
+            channel.send({"severity": "info", "event_type": "test", "message": "x", "details": {}})
+
+        assert key_marker not in caplog.text
+        assert token_marker not in caplog.text
+        assert "401" in caplog.text
+
+
+# ---------------------------------------------------------------------------
 # NotificationDispatcher._setup_channels — auto-detection
 # ---------------------------------------------------------------------------
 
 class TestDispatcherChannelSetup:
-    def _make_config(self, url, token=None):
+    def _make_config(self, url, token=None, apprise_enabled=False, apprise_url="", apprise_key="", apprise_tag="", apprise_token=""):
         cfg = MagicMock()
         cfg.get.side_effect = lambda key, default=None: {
             "notify_webhook_url": url,
             "notify_webhook_token": token,
+            "notify_apprise_enabled": apprise_enabled,
+            "notify_apprise_url": apprise_url,
+            "notify_apprise_key": apprise_key,
+            "notify_apprise_tag": apprise_tag,
+            "notify_apprise_token": apprise_token,
             "notify_cooldown": "3600",
             "notify_cooldowns": "{}",
             "notify_min_severity": "info",
@@ -304,4 +395,34 @@ class TestDispatcherChannelSetup:
 
     def test_no_url_creates_no_channels(self):
         dispatcher = NotificationDispatcher(self._make_config(None))
+        assert len(dispatcher._get_channels()) == 0
+
+    def test_apprise_enabled_creates_apprise_channel(self):
+        dispatcher = NotificationDispatcher(
+            self._make_config(
+                None,
+                apprise_enabled=True,
+                apprise_url="http://apprise:8000",
+                apprise_key="default",
+                apprise_tag="ops",
+                apprise_token="token",
+            ),
+        )
+        channels = dispatcher._get_channels()
+        assert len(channels) == 1
+        assert isinstance(channels[0], AppriseChannel)
+
+    def test_webhook_and_apprise_can_run_together(self):
+        dispatcher = NotificationDispatcher(
+            self._make_config(
+                "https://ntfy.sh/docsight",
+                apprise_enabled=True,
+                apprise_url="http://apprise:8000",
+            ),
+        )
+        channels = dispatcher._get_channels()
+        assert [type(channel) for channel in channels] == [WebhookChannel, AppriseChannel]
+
+    def test_apprise_enabled_without_url_is_ignored(self):
+        dispatcher = NotificationDispatcher(self._make_config(None, apprise_enabled=True))
         assert len(dispatcher._get_channels()) == 0

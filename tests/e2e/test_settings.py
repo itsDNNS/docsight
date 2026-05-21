@@ -61,6 +61,14 @@ class TestSettingsFormElements:
         link = settings_page.locator('a[href="/"]')
         assert link.count() > 0
 
+    def test_notifications_panel_has_apprise_fields(self, settings_page):
+        settings_page.locator('button[data-section="notifications"]').click()
+        expect(settings_page.locator('#notify_apprise_enabled')).to_have_count(1)
+        expect(settings_page.locator('#notify_apprise_url')).to_have_count(1)
+        expect(settings_page.locator('#notify_apprise_key')).to_have_count(1)
+        expect(settings_page.locator('#notify_apprise_token')).to_have_count(1)
+        expect(settings_page.locator('#notify_apprise_tag')).to_have_count(1)
+
 
 class TestSettingsDirtyState:
     """Unsaved-change prompts only appear for deliberate settings edits."""
@@ -140,6 +148,38 @@ class TestSettingsDirtyState:
         expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
         assert payloads[-1]["modem_password"] == "••••••••"
+
+    def test_saved_apprise_secret_is_masked_when_unrelated_setting_is_saved(self, settings_page):
+        payloads = []
+
+        def capture_config(route):
+            payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.evaluate(
+            """
+            () => {
+              const key = document.querySelector('#notify_apprise_key');
+              const token = document.querySelector('#notify_apprise_token');
+              for (const input of [key, token]) {
+                input.dataset.savedSecret = 'true';
+                input.setAttribute('placeholder', 'Saved');
+                input.value = 'password-manager-fill';
+                input.dispatchEvent(new Event('input', {bubbles: true}));
+                input.dispatchEvent(new Event('change', {bubbles: true}));
+              }
+            }
+            """
+        )
+        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('#poll_interval').fill('901')
+
+        settings_page.locator('#save-footer button[type="submit"]').click()
+        expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*visible.*"))
+
+        assert payloads[-1]["notify_apprise_key"] == "••••••••"
+        assert payloads[-1]["notify_apprise_token"] == "••••••••"
 
     def test_user_edited_saved_secret_is_submitted_and_cleared_after_save(self, settings_page):
         payloads = []

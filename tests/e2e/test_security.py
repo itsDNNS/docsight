@@ -16,6 +16,7 @@ class TestSSRFUrlValidation:
         "bqm_url",
         "speedtest_tracker_url",
         "notify_webhook_url",
+        "notify_apprise_url",
     ])
     @pytest.mark.parametrize("url,expected_status", [
         ("http://192.168.1.1", 200),

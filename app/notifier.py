@@ -7,6 +7,7 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from urllib.parse import quote
 import requests
 
 from .types import EventDict, NotificationPayload, NotificationTestResult
@@ -64,6 +65,81 @@ class WebhookChannel(NotificationChannel):
             return True
         except Exception as e:
             log.warning("Webhook POST failed (%s): %s", self._url, e)
+            return False
+
+
+class AppriseChannel(NotificationChannel):
+    """Apprise API channel using /notify or /notify/{config_key}."""
+
+    _TYPE_BY_SEVERITY = {
+        "info": "info",
+        "warning": "warning",
+        "critical": "failure",
+    }
+
+    def __init__(self, base_url, config_key="", tag="", token=""):
+        self._base_url = (base_url or "").rstrip("/")
+        self._config_key = (config_key or "").strip()
+        self._tag = (tag or "").strip()
+        self._token = (token or "").strip()
+        self._log_label = "Apprise API"
+
+    @staticmethod
+    def _format_body(payload: NotificationPayload) -> str:
+        message = str(payload.get("message", ""))
+        details = payload.get("details") or {}
+        if not details:
+            return message
+
+        lines = []
+        for key, value in details.items():
+            if isinstance(value, (dict, list)):
+                value = json.dumps(value, default=str)
+            lines.append(f"{str(key).replace('_', ' ')}: {value}")
+        return f"{message}\n\nDetails:\n" + "\n".join(lines)
+
+    @classmethod
+    def _format_payload(cls, payload: NotificationPayload) -> dict[str, object]:
+        event_type = str(payload.get("event_type", "unknown"))
+        severity = str(payload.get("severity", "info"))
+        apprise_payload: dict[str, object] = {
+            "title": f"DOCSight: {event_type.replace('_', ' ').title()}",
+            "body": cls._format_body(payload),
+            "type": cls._TYPE_BY_SEVERITY.get(severity, "info"),
+            "format": "text",
+        }
+        return apprise_payload
+
+    def _notify_url(self) -> str:
+        if self._config_key:
+            return f"{self._base_url}/notify/{quote(self._config_key, safe='')}"
+        return f"{self._base_url}/notify"
+
+    def send(self, payload: NotificationPayload) -> bool:
+        try:
+            apprise_payload = self._format_payload(payload)
+            if self._tag:
+                apprise_payload["tag"] = self._tag
+            headers = {"Content-Type": "application/json"}
+            if self._token:
+                headers["Authorization"] = f"Bearer {self._token}"
+            r = requests.post(
+                self._notify_url(),
+                json=apprise_payload,
+                headers=headers,
+                timeout=10,
+            )
+            r.raise_for_status()
+            return True
+        except requests.HTTPError as e:
+            log.warning(
+                "Apprise POST failed (%s): HTTP %s",
+                self._log_label,
+                e.response.status_code if e.response is not None else "unknown",
+            )
+            return False
+        except Exception as e:
+            log.warning("Apprise POST failed (%s): %s", self._log_label, type(e).__name__)
             return False
 
 
@@ -168,6 +244,16 @@ class NotificationDispatcher:
                 if token:
                     headers["Authorization"] = f"Bearer {token}"
                 channels.append(WebhookChannel(url, headers))
+
+        if self._config_mgr.get("notify_apprise_enabled"):
+            apprise_url = self._config_mgr.get("notify_apprise_url")
+            if apprise_url:
+                channels.append(AppriseChannel(
+                    apprise_url,
+                    config_key=self._config_mgr.get("notify_apprise_key") or "",
+                    tag=self._config_mgr.get("notify_apprise_tag") or "",
+                    token=self._config_mgr.get("notify_apprise_token") or "",
+                ))
         return channels
 
     def dispatch(self, events: list[EventDict]) -> None:

@@ -97,6 +97,16 @@ class TestConfigSecrets:
         assert config2.get("modem_password") == "original"
         assert config2.get("modem_user") == "updated"
 
+    @pytest.mark.parametrize("key", ["notify_apprise_key", "notify_apprise_token"])
+    def test_apprise_secret_mask_not_saved(self, tmp_data_dir, key):
+        config = ConfigManager(tmp_data_dir)
+        config.save({key: "original"})
+        config.save({key: PASSWORD_MASK, "modem_user": "updated"})
+
+        config2 = ConfigManager(tmp_data_dir)
+        assert config2.get(key) == "original"
+        assert config2.get("modem_user") == "updated"
+
     def test_get_all_masks_secrets(self, config):
         config.save({"modem_password": "secret"})
         all_config = config.get_all(mask_secrets=True)
@@ -138,6 +148,22 @@ class TestConfigSecrets:
         assert raw["speedtest_tracker_token"] != "secret123"
         assert config.get("speedtest_tracker_token") == "secret123"
 
+    @pytest.mark.parametrize("key", ["notify_apprise_key", "notify_apprise_token"])
+    def test_apprise_secrets_encrypted_at_rest(self, config, tmp_data_dir, key):
+        config.save({key: "secret123"})
+        with open(os.path.join(tmp_data_dir, "config.json")) as f:
+            raw = json.load(f)
+        assert raw[key] != "secret123"
+        assert config.get(key) == "secret123"
+
+    def test_apprise_configured_when_enabled_with_url(self, config):
+        config.save({"notify_apprise_enabled": "true", "notify_apprise_url": "http://apprise:8000"})
+        assert config.is_notify_configured() is True
+
+    def test_apprise_not_configured_without_url(self, config):
+        config.save({"notify_apprise_enabled": "true", "notify_apprise_url": ""})
+        assert config.is_notify_configured() is False
+
 
 class TestConfigEnvOverride:
     def test_env_overrides_file(self, tmp_data_dir, monkeypatch):
@@ -151,6 +177,19 @@ class TestConfigEnvOverride:
         monkeypatch.setenv("POLL_INTERVAL", "600")
         config = ConfigManager(tmp_data_dir)
         assert config.get("poll_interval") == 600
+
+    def test_apprise_env_overrides(self, tmp_data_dir, monkeypatch):
+        monkeypatch.setenv("NOTIFY_APPRISE_ENABLED", "true")
+        monkeypatch.setenv("NOTIFY_APPRISE_URL", "http://apprise:8000")
+        monkeypatch.setenv("NOTIFY_APPRISE_KEY", "default")
+        monkeypatch.setenv("NOTIFY_APPRISE_TOKEN", "api-token")
+        monkeypatch.setenv("NOTIFY_APPRISE_TAG", "ops")
+        config = ConfigManager(tmp_data_dir)
+        assert config.get("notify_apprise_enabled") is True
+        assert config.get("notify_apprise_url") == "http://apprise:8000"
+        assert config.get("notify_apprise_key") == "default"
+        assert config.get("notify_apprise_token") == "api-token"
+        assert config.get("notify_apprise_tag") == "ops"
 
     def test_empty_env_ignored(self, tmp_data_dir, monkeypatch):
         monkeypatch.setenv("MODEM_USER", "")

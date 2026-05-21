@@ -40,6 +40,8 @@ def test_frontend_secret_fields_cover_saved_secret_inputs():
         "mqtt_password",
         "speedtest_tracker_token",
         "notify_webhook_token",
+        "notify_apprise_key",
+        "notify_apprise_token",
     }
 
     assert expected <= secret_fields
@@ -62,6 +64,8 @@ def test_config_save_preserves_masked_saved_secrets(tmp_path):
         "mqtt_password": "mqtt-secret",
         "speedtest_tracker_token": "speedtest-secret",
         "notify_webhook_token": "notify-secret",
+        "notify_apprise_key": "apprise-key",
+        "notify_apprise_token": "apprise-token",
     }
     mgr.save(original.copy())
 

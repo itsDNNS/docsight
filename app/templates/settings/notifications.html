@@ -41,6 +41,52 @@
         </div>
     </div>
 
+    <!-- Apprise Config Card -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon green">
+                    <i data-lucide="radio-tower"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.notify_apprise_title }}</div>
+                    <div class="card-subtitle">{{ t.notify_apprise_desc }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-grid cols-2">
+            <div class="form-field" style="grid-column: 1 / -1">
+                <div class="toggle-row">
+                    <span>
+                        <label class="form-label" for="notify_apprise_enabled">{{ t.notify_apprise_enabled }}</label>
+                        <span class="form-hint">{{ t.notify_apprise_enabled_hint }}</span>
+                    </span>
+                    <label class="toggle"><input type="checkbox" id="notify_apprise_enabled" name="notify_apprise_enabled" value="true" {% if config.notify_apprise_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
+                </div>
+            </div>
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="notify_apprise_url">{{ t.notify_apprise_url }}</label>
+                <input class="form-input" type="url" id="notify_apprise_url" name="notify_apprise_url" value="{{ config.notify_apprise_url }}" placeholder="http://apprise:8000">
+                <span class="form-hint">{{ t.notify_apprise_url_hint }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="notify_apprise_key">{{ t.notify_apprise_key }}</label>
+                <input class="form-input" type="password" id="notify_apprise_key" name="notify_apprise_key" value="" placeholder="{% if config.notify_apprise_key %}{{ t.saved_ph }}{% endif %}"{% if config.notify_apprise_key %} data-saved-secret="true"{% endif %}>
+                <span class="form-hint">{{ t.notify_apprise_key_hint }}</span>
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="notify_apprise_token">{{ t.notify_apprise_token }}</label>
+                <input class="form-input" type="password" id="notify_apprise_token" name="notify_apprise_token" value="" placeholder="{% if config.notify_apprise_token %}{{ t.saved_ph }}{% endif %}"{% if config.notify_apprise_token %} data-saved-secret="true"{% endif %}>
+                <span class="form-hint">{{ t.notify_apprise_token_hint }}</span>
+            </div>
+            <div class="form-field" style="grid-column: 1 / -1">
+                <label class="form-label" for="notify_apprise_tag">{{ t.notify_apprise_tag }}</label>
+                <input class="form-input" type="text" id="notify_apprise_tag" name="notify_apprise_tag" value="{{ config.notify_apprise_tag }}" placeholder="ops,admin">
+                <span class="form-hint">{{ t.notify_apprise_tag_hint }}</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Health Hysteresis Card -->
     <div class="settings-card glass">
         <div class="card-header">

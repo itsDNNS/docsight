@@ -14,10 +14,18 @@ log = logging.getLogger("docsis.config")
 POLL_MIN = 60
 POLL_MAX = 14400
 
-SECRET_KEYS = {"modem_password", "mqtt_password", "speedtest_tracker_token", "notify_webhook_token"}
+SECRET_KEYS = {
+    "modem_password",
+    "mqtt_password",
+    "speedtest_tracker_token",
+    "notify_webhook_token",
+    "notify_apprise_key",
+    "notify_apprise_token",
+}
 DEMO_HIDE_KEYS = {"bqm_url", "speedtest_tracker_url",
-                  "notify_webhook_url", "mqtt_host", "mqtt_user", "mqtt_topic_prefix",
-                  "mqtt_discovery_prefix"}
+                  "notify_webhook_url", "notify_apprise_url", "notify_apprise_key",
+                  "notify_apprise_token", "notify_apprise_tag", "mqtt_host", "mqtt_user",
+                  "mqtt_topic_prefix", "mqtt_discovery_prefix"}
 HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
 
@@ -43,6 +51,11 @@ DEFAULTS = {
     "segment_utilization_enabled": True,
     "notify_webhook_url": "",
     "notify_webhook_token": "",
+    "notify_apprise_enabled": False,
+    "notify_apprise_url": "",
+    "notify_apprise_key": "",
+    "notify_apprise_token": "",
+    "notify_apprise_tag": "",
     "notify_min_severity": "warning",
     "notify_cooldown": 3600,
     "notify_cooldowns": "{}",
@@ -99,6 +112,11 @@ ENV_MAP = {
     "bnetz_enabled": "BNETZ_ENABLED",
     "notify_webhook_url": "NOTIFY_WEBHOOK_URL",
     "notify_webhook_token": "NOTIFY_WEBHOOK_TOKEN",
+    "notify_apprise_enabled": "NOTIFY_APPRISE_ENABLED",
+    "notify_apprise_url": "NOTIFY_APPRISE_URL",
+    "notify_apprise_key": "NOTIFY_APPRISE_KEY",
+    "notify_apprise_token": "NOTIFY_APPRISE_TOKEN",
+    "notify_apprise_tag": "NOTIFY_APPRISE_TAG",
     "notify_min_severity": "NOTIFY_MIN_SEVERITY",
     "notify_cooldown": "NOTIFY_COOLDOWN",
     "notify_cooldowns": "NOTIFY_COOLDOWNS",
@@ -145,11 +163,11 @@ INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown", "hea
             "sc_global_cooldown", "sc_trigger_cooldown", "sc_max_actions_per_hour",
             "sc_flapping_window", "sc_flapping_threshold",
             "sc_trigger_error_spike_min_delta"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled", "sc_enabled",
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled", "notify_apprise_enabled", "sc_enabled",
              "sc_trigger_modulation", "sc_trigger_snr", "sc_trigger_error_spike", "sc_trigger_health",
              "sc_trigger_packet_loss"}
 
-URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url"}
+URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url", "notify_apprise_url"}
 _ALLOWED_URL_SCHEMES = {"http", "https"}
 
 # Keys where an empty string should fall back to the DEFAULTS value
@@ -408,8 +426,10 @@ class ConfigManager:
         return self._get_bool("bnetz_watch_enabled") and self.is_bnetz_enabled()
 
     def is_notify_configured(self):
-        """True if a notification webhook URL is set."""
-        return bool(self.get("notify_webhook_url"))
+        """True if any notification channel is configured."""
+        return bool(self.get("notify_webhook_url")) or (
+            self._get_bool("notify_apprise_enabled") and bool(self.get("notify_apprise_url"))
+        )
 
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set, or demo mode is active."""
