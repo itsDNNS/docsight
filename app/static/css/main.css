@@ -1323,6 +1323,7 @@ body:has(#view-dashboard.active) .app-main {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  min-height: 42px;
 }
 
 .dashboard-hero .hero-modulation-head span {
@@ -1354,7 +1355,7 @@ body:has(#view-dashboard.active) .app-main {
 .dashboard-hero .hero-modulation-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 9px;
+  gap: 39px;
   min-width: 0;
 }
 

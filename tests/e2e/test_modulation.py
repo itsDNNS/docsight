@@ -95,6 +95,31 @@ class TestModulationNavigation:
         assert abs(layout["health"]["top"] - layout["context"]["top"]) <= 16
         assert layout["visual"]["height"] <= 360
 
+    def test_home_modulation_rows_align_with_channel_health_rows(self, page, live_server):
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.goto(live_server)
+        page.wait_for_load_state("networkidle")
+
+        layout = page.evaluate(
+            """
+            () => {
+                const rect = (selector) => {
+                    const r = document.querySelector(selector).getBoundingClientRect();
+                    return {top: r.top, bottom: r.bottom, height: r.height};
+                };
+                return {
+                    dsHealth: rect('.hero-health-card:nth-child(1) .hero-health-name'),
+                    usHealth: rect('.hero-health-card:nth-child(2) .hero-health-name'),
+                    dsMod: rect('.hero-modulation-card[data-modulation-dir="ds"] .hero-modulation-card-top span'),
+                    usMod: rect('.hero-modulation-card[data-modulation-dir="us"] .hero-modulation-card-top span'),
+                };
+            }
+            """
+        )
+
+        assert abs(layout["dsHealth"]["top"] - layout["dsMod"]["top"]) <= 4
+        assert abs(layout["usHealth"]["top"] - layout["usMod"]["top"]) <= 4
+
     def test_home_modulation_context_stacks_without_narrow_overflow(self, page, live_server):
         for width in (393, 760, 1100):
             page.set_viewport_size({"width": width, "height": 900})
