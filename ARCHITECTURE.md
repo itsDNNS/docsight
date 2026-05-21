@@ -717,6 +717,7 @@ GET /api/collectors/status
   "history_days": 7,
   "mqtt_host": "localhost",
   "speedtest_tracker_url": "http://...",
+  "speedtest_tls_insecure": false,
   ...
 }
 ```
