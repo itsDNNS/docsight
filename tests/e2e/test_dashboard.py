@@ -139,6 +139,41 @@ class TestDashboardSections:
         assert item.get_attribute("aria-expanded") == "true"
         assert "Demo Router" in overlay.text_content()
 
+    def test_device_meta_value_popover_stays_near_tapped_mobile_item(self, demo_page):
+        demo_page.set_viewport_size({"width": 390, "height": 900})
+        item = demo_page.locator(".dashboard-view .insights-meta .hero-meta-item", has=demo_page.locator("svg.lucide-router")).first
+        item.click()
+
+        overlay = demo_page.locator("body > #glossary-popover-overlay")
+        assert overlay.is_visible()
+
+        metrics = demo_page.evaluate(
+            """() => {
+                const item = Array.from(document.querySelectorAll('.dashboard-view .insights-meta .hero-meta-item'))
+                    .find((el) => el.querySelector('svg.lucide-router'));
+                const overlay = document.querySelector('body > #glossary-popover-overlay');
+                if (!item || !overlay) throw new Error('meta item or overlay missing');
+                const itemRect = item.getBoundingClientRect();
+                const overlayRect = overlay.getBoundingClientRect();
+                const viewportWidth = document.documentElement.clientWidth;
+                return {
+                    itemTop: itemRect.top,
+                    itemBottom: itemRect.bottom,
+                    overlayTop: overlayRect.top,
+                    overlayBottom: overlayRect.bottom,
+                    overlayLeft: overlayRect.left,
+                    overlayRight: overlayRect.right,
+                    viewportWidth,
+                };
+            }"""
+        )
+
+        below_gap = abs(metrics["overlayTop"] - metrics["itemBottom"])
+        above_gap = abs(metrics["itemTop"] - metrics["overlayBottom"])
+        assert min(below_gap, above_gap) <= 24
+        assert metrics["overlayLeft"] >= 8
+        assert metrics["overlayRight"] <= metrics["viewportWidth"] - 8
+
     def test_dashboard_refresh_control_is_keyboard_focusable(self, demo_page):
         refresh = demo_page.locator(".hero-refresh-button")
         assert refresh.first.is_visible()
