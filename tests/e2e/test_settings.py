@@ -429,6 +429,29 @@ class TestSpeedtestModule:
         button = settings_page.get_by_role("button", name="Test Connection")
         assert button.is_visible()
 
+    def test_speedtest_test_connection_sends_insecure_tls_flag(self, settings_page):
+        captured = []
+
+        def capture_request(route):
+            captured.append(route.request.post_data_json)
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body='{"success": true, "results": 0}',
+            )
+
+        settings_page.route("**/api/test-speedtest", capture_request)
+        settings_page.locator('button[data-section="mod-docsight_speedtest"]').click()
+        settings_page.locator("#speedtest_tracker_url").fill("https://speedtest.local:8443")
+        settings_page.locator("#speedtest_tracker_token").fill("[REDACTED]")
+        settings_page.locator("#panel-mod-docsight_speedtest label.toggle").click()
+        expect(settings_page.locator("#speedtest_tls_insecure")).to_be_checked()
+        settings_page.get_by_role("button", name="Test Connection").click()
+
+        expect(settings_page.locator("#speedtest-test")).to_contain_text("Connected")
+        assert captured
+        assert captured[0]["speedtest_tls_insecure"] == "true"
+
     def test_speedtest_test_connection_success(self, settings_page):
         settings_page.route(
             "**/api/test-speedtest",

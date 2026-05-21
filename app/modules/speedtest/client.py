@@ -8,17 +8,30 @@ import requests
 log = logging.getLogger("docsis.speedtest")
 
 
+def _as_bool(value):
+    """Parse booleans from config/form values."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 class SpeedtestClient:
     """Client for the Speedtest Tracker API (github.com/alexjustesen/speedtest-tracker)."""
 
-    def __init__(self, url, token):
+    def __init__(self, url, token, tls_insecure: bool | str = False):
+        tls_insecure = _as_bool(tls_insecure)
         self.base_url = url.rstrip("/")
         self.token = token
+        self.verify_tls = not tls_insecure
         self.session = requests.Session()
         self.session.headers.update({
             "Authorization": "Bearer " + token,
             "Accept": "application/json",
         })
+        if tls_insecure:
+            log.warning("Speedtest Tracker TLS certificate verification disabled")
 
     @staticmethod
     def _normalize_ts(ts):
@@ -97,6 +110,7 @@ class SpeedtestClient:
                 self.base_url + "/api/v1/results",
                 params={"page[size]": count, "sort": "-created_at"},
                 timeout=15,
+                verify=self.verify_tls,
             )
             resp.raise_for_status()
             results = resp.json().get("data", [])
@@ -132,6 +146,7 @@ class SpeedtestClient:
                         "sort": "-created_at",
                     },
                     timeout=30,
+                    verify=self.verify_tls,
                 )
                 resp.raise_for_status()
                 body = resp.json()
@@ -164,6 +179,7 @@ class SpeedtestClient:
                         "sort": "-created_at",
                     },
                     timeout=30,
+                    verify=self.verify_tls,
                 )
                 resp.raise_for_status()
                 body = resp.json()

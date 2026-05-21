@@ -137,6 +137,33 @@ class TestSpeedtestClient:
         assert client.session.headers["Authorization"] == "Bearer test-token"
         assert client.session.headers["Accept"] == "application/json"
 
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_insecure_tls_disables_certificate_verification(self, mock_get):
+        """Self-hosted HTTPS instances with self-signed certs can opt out of cert verification."""
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        client = SpeedtestClient("https://speedtest.local:8443", "[REDACTED]", tls_insecure=True)
+        results = client.get_latest(1)
+
+        assert len(results) == 1
+        assert mock_get.call_args.kwargs["verify"] is False
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_string_false_keeps_certificate_verification_enabled(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        client = SpeedtestClient("https://speedtest.local:8443", "[REDACTED]", tls_insecure="false")
+        results = client.get_latest(1)
+
+        assert len(results) == 1
+        assert mock_get.call_args.kwargs["verify"] is True
+
     def test_url_trailing_slash(self):
         client = SpeedtestClient("http://example.com:8999/", "tok")
         assert client.base_url == "http://example.com:8999"
@@ -226,6 +253,11 @@ class TestSpeedtestConfig:
         # But get() returns decrypted
         assert mgr.get("speedtest_tracker_token") == "my-secret-token"
 
+    def test_speedtest_tls_insecure_is_boolean_config(self, tmp_path):
+        mgr = ConfigManager(str(tmp_path / "data"))
+        mgr.save({"speedtest_tls_insecure": "true"})
+        assert mgr.get("speedtest_tls_insecure") is True
+
 
 # ── API Tests ──
 
@@ -279,13 +311,31 @@ class TestSpeedtestAPI:
 
         resp = speedtest_client.post("/api/test-speedtest", json={
             "speedtest_tracker_url": "http://speedtest.local:8999",
-            "speedtest_tracker_token": "test-token",
+            "speedtest_tracker_token": "[REDACTED]",
         })
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["success"] is True
         assert data["results"] == 1
         assert "download" in data["latest"]
+        assert mock_get.call_args.kwargs["verify"] is True
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_api_test_speedtest_passes_insecure_tls_flag(self, mock_get, speedtest_client):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        resp = speedtest_client.post("/api/test-speedtest", json={
+            "speedtest_tracker_url": "https://speedtest.local:8443",
+            "speedtest_tracker_token": "[REDACTED]",
+            "speedtest_tls_insecure": "true",
+        })
+
+        assert resp.status_code == 200
+        assert resp.get_json()["success"] is True
+        assert mock_get.call_args.kwargs["verify"] is False
 
     def test_api_test_speedtest_missing_fields(self, speedtest_client):
         resp = speedtest_client.post("/api/test-speedtest", json={})
@@ -301,7 +351,7 @@ class TestSpeedtestAPI:
 
         resp = speedtest_client.post("/api/test-speedtest", json={
             "speedtest_tracker_url": "http://speedtest.local:8999",
-            "speedtest_tracker_token": "test-token",
+            "speedtest_tracker_token": "[REDACTED]",
         })
         assert resp.status_code == 200
         data = resp.get_json()
@@ -403,6 +453,22 @@ class TestSpeedtestRun:
         data = resp.get_json()
         assert data["success"] is True
         mock_post.assert_called_once()
+        assert mock_post.call_args.kwargs["verify"] is True
+
+    @patch("app.modules.speedtest.routes.requests.post")
+    def test_run_uses_insecure_tls_config(self, mock_post, speedtest_client):
+        self._reset_rate_limit()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 201
+        mock_post.return_value = mock_resp
+        from app.web import get_config_manager
+
+        get_config_manager().save({"speedtest_tls_insecure": True})
+
+        resp = speedtest_client.post("/api/speedtest/run")
+
+        assert resp.status_code == 200
+        assert mock_post.call_args.kwargs["verify"] is False
 
     @patch("app.modules.speedtest.routes.requests.post")
     def test_run_rate_limited(self, mock_post, speedtest_client):
@@ -460,7 +526,7 @@ class TestSpeedtestRun:
             "modem_type": "fritzbox",
             "demo_mode": True,
             "speedtest_tracker_url": "http://speedtest.local:8999",
-            "speedtest_tracker_token": "test-token",
+            "speedtest_tracker_token": "[REDACTED]",
         })
         init_config(mgr)
         init_storage(None)

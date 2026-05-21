@@ -23,6 +23,17 @@
                 <input class="form-input" type="password" id="speedtest_tracker_token" name="speedtest_tracker_token" value="" placeholder="{% if config.speedtest_tracker_token %}{{ t.saved_ph }}{% endif %}"{% if config.speedtest_tracker_token %} data-saved-secret="true"{% endif %}>
                 <span class="form-hint">{{ t['docsight.speedtest.speedtest_token_hint'] or 'Bearer token from Speedtest Tracker settings' }}</span>
             </div>
+            <div class="toggle-row" style="grid-column: 1 / -1">
+                <div class="toggle-info">
+                    <span class="toggle-title">{{ t['docsight.speedtest.speedtest_tls_insecure'] or 'Insecure TLS' }}</span>
+                    <span class="toggle-desc">{{ t['docsight.speedtest.speedtest_tls_insecure_hint'] or 'Skip TLS certificate verification for self-signed HTTPS certificates' }}</span>
+                </div>
+                <input type="hidden" name="speedtest_tls_insecure" value="false">
+                <label class="toggle" for="speedtest_tls_insecure">
+                    <input type="checkbox" id="speedtest_tls_insecure" name="speedtest_tls_insecure" value="true" {% if config.speedtest_tls_insecure %}checked{% endif %}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
             <div class="form-field" style="grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
                 <button type="button" class="btn btn-secondary" onclick="testSpeedtest()">
                     <i data-lucide="plug-zap"></i>

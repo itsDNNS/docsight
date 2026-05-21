@@ -49,6 +49,7 @@ DEFAULTS = {
     "demo_mode": False,
     "gaming_quality_enabled": True,
     "segment_utilization_enabled": True,
+    "speedtest_tls_insecure": False,
     "notify_webhook_url": "",
     "notify_webhook_token": "",
     "notify_apprise_enabled": False,
@@ -104,6 +105,7 @@ ENV_MAP = {
     "bqm_url": "BQM_URL",
     "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
+    "speedtest_tls_insecure": "SPEEDTEST_TLS_INSECURE",
     "booked_download": "BOOKED_DOWNLOAD",
     "booked_upload": "BOOKED_UPLOAD",
     "demo_mode": "DEMO_MODE",
@@ -163,9 +165,9 @@ INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown", "hea
             "sc_global_cooldown", "sc_trigger_cooldown", "sc_max_actions_per_hour",
             "sc_flapping_window", "sc_flapping_threshold",
             "sc_trigger_error_spike_min_delta"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled", "notify_apprise_enabled", "sc_enabled",
-             "sc_trigger_modulation", "sc_trigger_snr", "sc_trigger_error_spike", "sc_trigger_health",
-             "sc_trigger_packet_loss"}
+BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled", "notify_apprise_enabled",
+             "speedtest_tls_insecure", "sc_enabled", "sc_trigger_modulation", "sc_trigger_snr",
+             "sc_trigger_error_spike", "sc_trigger_health", "sc_trigger_packet_loss"}
 
 URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url", "notify_apprise_url"}
 _ALLOWED_URL_SCHEMES = {"http", "https"}

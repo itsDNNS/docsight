@@ -4,6 +4,8 @@
   "speedtest_url_hint": "URL base de tu instancia de Speedtest Tracker",
   "speedtest_token": "Token API",
   "speedtest_token_hint": "Token Bearer de la configuración de Speedtest Tracker",
+  "speedtest_tls_insecure": "TLS inseguro",
+  "speedtest_tls_insecure_hint": "Omitir la verificación del certificado TLS para certificados HTTPS autofirmados",
   "booked_download": "Descarga contratada (Mbps)",
   "booked_download_hint": "Velocidad de descarga contratada en Mbps para el calculo de estado",
   "booked_upload": "Subida contratada (Mbps)",
