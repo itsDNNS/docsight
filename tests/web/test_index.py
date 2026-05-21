@@ -111,6 +111,124 @@ class TestIndexRoute:
         assert "--metric-range-accent: var(--tolerated);" in snr_card
         assert "Critical" in html
 
+    def test_snr_card_labels_sc_qam_only_average_basis(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "ds_total": 2,
+            "ds_snr_min": 35.0,
+            "ds_snr_avg": 36.0,
+            "ds_snr_max": 37.0,
+        })
+        sample_analysis["ds_channels"] = [
+            {
+                "channel_id": 1,
+                "frequency": "602 MHz",
+                "power": 3.0,
+                "snr": 35.0,
+                "modulation": "256QAM",
+                "docsis_version": "3.1",
+                "correctable_errors": 0,
+                "uncorrectable_errors": 0,
+                "health": "good",
+                "health_detail": "",
+            },
+            {
+                "channel_id": 2,
+                "frequency": "610 MHz",
+                "power": 3.1,
+                "snr": 37.0,
+                "modulation": "256QAM",
+                "docsis_version": "3.1",
+                "correctable_errors": 0,
+                "uncorrectable_errors": 0,
+                "health": "good",
+                "health_detail": "",
+            },
+        ]
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        snr_card = _metric_card(resp.get_data(as_text=True), "SNR")
+        assert "Avg across all DS channels" in snr_card
+        assert "SC-QAM only" in snr_card
+        assert "OFDM/MER only" not in snr_card
+
+    def test_snr_card_labels_ofdm_only_average_basis(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "ds_total": 1,
+            "ds_snr_min": 41.0,
+            "ds_snr_avg": 41.0,
+            "ds_snr_max": 41.0,
+        })
+        sample_analysis["ds_channels"] = [
+            {
+                "channel_id": 33,
+                "frequency": "774 MHz",
+                "power": 1.0,
+                "snr": 41.0,
+                "modulation": "OFDM",
+                "docsis_version": "3.1",
+                "correctable_errors": 0,
+                "uncorrectable_errors": 0,
+                "health": "good",
+                "health_detail": "",
+            },
+        ]
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        snr_card = _metric_card(resp.get_data(as_text=True), "SNR")
+        assert "Avg across all DS channels" in snr_card
+        assert "OFDM/MER only" in snr_card
+        assert "SC-QAM only" not in snr_card
+
+    def test_snr_card_labels_mixed_sc_qam_and_ofdm_average_basis(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "ds_total": 2,
+            "ds_snr_min": 36.0,
+            "ds_snr_avg": 38.5,
+            "ds_snr_max": 41.0,
+        })
+        sample_analysis["ds_channels"] = [
+            {
+                "channel_id": 1,
+                "frequency": "602 MHz",
+                "power": 3.0,
+                "snr": 36.0,
+                "modulation": "256QAM",
+                "docsis_version": "3.1",
+                "correctable_errors": 0,
+                "uncorrectable_errors": 0,
+                "health": "good",
+                "health_detail": "",
+            },
+            {
+                "channel_id": 33,
+                "frequency": "774 MHz",
+                "power": 1.0,
+                "snr": 41.0,
+                "modulation": "OFDM",
+                "docsis_version": "3.1",
+                "correctable_errors": 0,
+                "uncorrectable_errors": 0,
+                "health": "good",
+                "health_detail": "",
+            },
+        ]
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        snr_card = _metric_card(resp.get_data(as_text=True), "SNR")
+        assert "Avg across all DS channels" in snr_card
+        assert "SC-QAM + OFDM/MER" in snr_card
+        assert "SC-QAM only" not in snr_card
+        assert "OFDM/MER only" not in snr_card
+
     def test_home_surfaces_normal_modulation_context(self, client, sample_analysis):
         update_state(analysis=sample_analysis)
 

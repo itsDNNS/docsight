@@ -979,6 +979,67 @@ def _build_metric_ranges(analysis):
     }
 
 
+def _snr_channel_family(channel):
+    """Infer the SNR/MER channel family without letting DOCSIS version override explicit QAM labels."""
+    explicit_text = " ".join(
+        str(channel.get(key, ""))
+        for key in ("modulation", "type")
+        if channel.get(key) is not None
+    ).upper()
+    if "OFDM" in explicit_text:
+        return "ofdm"
+    if "QAM" in explicit_text:
+        return "sc_qam"
+
+    profile_text = str(channel.get("profile_modulation", "") or "").upper()
+    if "OFDM" in profile_text:
+        return "ofdm"
+
+    docsis_version = str(channel.get("docsis_version", "") or "").upper()
+    if "3.1" in docsis_version or "4.0" in docsis_version:
+        return "ofdm"
+    if "3.0" in docsis_version:
+        return "sc_qam"
+    return None
+
+
+def _is_snr_ofdm_channel(channel):
+    return _snr_channel_family(channel) == "ofdm"
+
+
+def _is_snr_sc_qam_channel(channel):
+    return _snr_channel_family(channel) == "sc_qam"
+
+
+def _build_home_snr_basis_context(analysis):
+    """Describe which downstream channel families feed the Home SNR average."""
+    channels = []
+    for channel in (analysis or {}).get("ds_channels", []):
+        if _to_float(channel.get("snr")) is not None:
+            channels.append(channel)
+    if not channels:
+        return {"kind": "unavailable", "total": 0, "sc_qam": 0, "ofdm": 0, "unknown": 0}
+
+    sc_qam = sum(1 for channel in channels if _is_snr_sc_qam_channel(channel))
+    ofdm = sum(1 for channel in channels if _is_snr_ofdm_channel(channel))
+    unknown = max(0, len(channels) - sc_qam - ofdm)
+    if sc_qam and ofdm:
+        kind = "mixed"
+    elif ofdm:
+        kind = "ofdm"
+    elif sc_qam:
+        kind = "sc_qam"
+    else:
+        kind = "fallback"
+    return {
+        "kind": kind,
+        "total": len(channels),
+        "sc_qam": sc_qam,
+        "ofdm": ofdm,
+        "unknown": unknown,
+    }
+
+
 def _build_home_modulation_context(analysis):
     """Build concise Home dashboard modulation context for DS/US channels."""
     summary = analysis.get("summary", {}) if analysis else {}
@@ -1124,6 +1185,7 @@ def index():
         bnetz_enabled=bnetz_enabled,
         bnetz_latest=bnetz_latest,
         metric_ranges=_build_metric_ranges(analysis),
+        home_snr_basis=_build_home_snr_basis_context(analysis),
         home_modulation_context=_build_home_modulation_context(analysis),
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",

@@ -639,6 +639,20 @@ body.is-offline .offline-banner { display: flex; }
   font-size: 0.7rem;
   color: var(--text-muted);
 }
+.metric-basis-row {
+  align-items: flex-start;
+  line-height: 1.25;
+}
+.metric-sub-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.66rem;
+  flex-shrink: 0;
+}
+.metric-basis-copy {
+  color: var(--text-secondary);
+}
 
 /* ── Channel Health Overview (Ring Gauges) ── */
 .health-overview {

@@ -771,6 +771,21 @@
                 <div class="metric-value" style="color:var(--{{ snr_health }});">{{ s.ds_snr_avg }}<span class="unit">dB</span></div>
                 <canvas class="metric-spark" id="spark-snr" width="144" height="56" aria-hidden="true"></canvas>
             </div>
+            {% if home_snr_basis and home_snr_basis.kind != 'unavailable' %}
+                {% if home_snr_basis.kind == 'mixed' %}
+                    {% set snr_basis_label = t.get('metric_snr_basis_mixed', 'SC-QAM + OFDM/MER') %}
+                {% elif home_snr_basis.kind == 'ofdm' %}
+                    {% set snr_basis_label = t.get('metric_snr_basis_ofdm', 'OFDM/MER only') %}
+                {% elif home_snr_basis.kind == 'sc_qam' %}
+                    {% set snr_basis_label = t.get('metric_snr_basis_sc_qam', 'SC-QAM only') %}
+                {% else %}
+                    {% set snr_basis_label = t.get('metric_snr_basis_fallback', 'available DS SNR/MER channels') %}
+                {% endif %}
+            <div class="metric-sub metric-basis-row" title="{{ t.get('metric_snr_basis_tooltip', 'The SNR value is the average of every downstream channel with available SNR/MER data. Per-channel health still uses modulation-aware thresholds.') }}">
+                <span class="metric-sub-label">{{ t.get('metric_basis_label', 'Basis') }}</span>
+                <span class="metric-basis-copy">{{ t.get('metric_snr_avg_all_ds', 'Avg across all DS channels') }} · {{ snr_basis_label }}</span>
+            </div>
+            {% endif %}
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
                     <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
