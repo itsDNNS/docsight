@@ -6,6 +6,15 @@ from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
 
+
+def _metric_card(html, label):
+    label_markup = f'<span class="metric-label">{label}</span>'
+    label_idx = html.index(label_markup)
+    start = html.rfind('<div class="metric-card', 0, label_idx)
+    end = html.find('<div class="metric-card', label_idx)
+    return html[start:end if end != -1 else len(html)]
+
+
 class TestIndexRoute:
     def test_redirect_to_setup_when_unconfigured(self, tmp_path):
         mgr = ConfigManager(str(tmp_path / "data2"))
@@ -65,6 +74,42 @@ class TestIndexRoute:
         assert b'id="metric-errors-card"' not in resp.data
         assert b">None<" not in resp.data
         assert b"None Corr" not in resp.data
+
+    def test_average_kpi_cards_do_not_use_worst_channel_status(self, client, sample_analysis):
+        """Average Home KPI cards keep value, marker, color, and badge aligned."""
+        summary = sample_analysis["summary"]
+        summary.update({
+            "ds_power_min": -6.9,
+            "ds_power_max": 9.3,
+            "ds_power_avg": 0.9,
+            "ds_snr_min": 34.0,
+            "ds_snr_max": 42.0,
+            "ds_snr_avg": 37.1,
+            "health": "critical",
+            "health_issues": ["ds_power_critical", "snr_critical"],
+        })
+        sample_analysis["ds_channels"][0].update({
+            "power": -6.9,
+            "snr": 34.0,
+            "modulation": "1024QAM",
+            "health": "critical",
+            "health_detail": "power critical; snr critical",
+        })
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        ds_card = _metric_card(html, "DS Power")
+        snr_card = _metric_card(html, "SNR")
+        assert "0.9<span class=\"unit\">dBmV</span>" in ds_card
+        assert "badge badge-good" in ds_card
+        assert "--metric-range-accent: var(--good);" in ds_card
+        assert "37.1<span class=\"unit\">dB</span>" in snr_card
+        assert "badge badge-tolerated" in snr_card
+        assert "--metric-range-accent: var(--tolerated);" in snr_card
+        assert "Critical" in html
 
     def test_index_with_incomplete_bnetz(self, tmp_path, sample_analysis):
         """Dashboard hides BNetzA card when entry has NULL fields (#148)."""
