@@ -134,66 +134,37 @@
                 </tr>
             </thead>
             <tbody>
-                <tr class="notify-event-row" data-event="health_change">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="health_change" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_health_change }}</span></td>
-                    <td><span class="badge badge-danger">{{ t.severity_critical }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="health_change" min="1" step="1" placeholder="default"></td>
+                {% macro cooldown_row(event_key, event_label, severity, severity_label, badge_class) -%}
+                <tr class="notify-event-row" data-event="{{ event_key }}" data-severity="{{ severity }}">
+                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="{{ event_key }}" data-severity="{{ severity }}" checked><span class="toggle-slider"></span></label></td>
+                    <td><span class="event-name">{{ event_label }}</span></td>
+                    <td><span class="badge {{ badge_class }}">{{ severity_label }}</span></td>
+                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="{{ event_key }}" data-severity="{{ severity }}" min="1" step="1" placeholder="default"></td>
                 </tr>
-                <tr class="notify-event-row" data-event="power_change">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="power_change" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_power_change }}</span></td>
-                    <td><span class="badge badge-warning">{{ t.severity_warning }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="power_change" min="1" step="1" placeholder="default"></td>
-                </tr>
-                <tr class="notify-event-row" data-event="snr_change">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="snr_change" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_snr_change }}</span></td>
-                    <td><span class="badge badge-warning">{{ t.severity_warning }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="snr_change" min="1" step="1" placeholder="default"></td>
-                </tr>
-                <tr class="notify-event-row" data-event="channel_change">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="channel_change" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_channel_change }}</span></td>
-                    <td><span class="badge badge-muted">{{ t.severity_info }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="channel_change" min="1" step="1" placeholder="default"></td>
-                </tr>
-                <tr class="notify-event-row" data-event="modulation_change">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="modulation_change" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_modulation_change }}</span></td>
-                    <td><span class="badge badge-muted">{{ t.severity_info }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="modulation_change" min="1" step="1" placeholder="default"></td>
-                </tr>
-                <tr class="notify-event-row" data-event="device_reboot">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="device_reboot" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_device_reboot }}</span></td>
-                    <td><span class="badge badge-warning">{{ t.severity_warning }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="device_reboot" min="1" step="1" placeholder="default"></td>
-                </tr>
-                <tr class="notify-event-row" data-event="device_sw_update">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="device_sw_update" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_device_sw_update }}</span></td>
-                    <td><span class="badge badge-muted">{{ t.severity_info }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="device_sw_update" min="1" step="1" placeholder="default"></td>
-                </tr>
-                <tr class="notify-event-row" data-event="device_ip_change">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="device_ip_change" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_device_ip_change }}</span></td>
-                    <td><span class="badge badge-muted">{{ t.severity_info }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="device_ip_change" min="1" step="1" placeholder="default"></td>
-                </tr>
-                <tr class="notify-event-row" data-event="error_spike">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="error_spike" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_error_spike }}</span></td>
-                    <td><span class="badge badge-danger">{{ t.severity_critical }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="error_spike" min="1" step="1" placeholder="default"></td>
-                </tr>
-                <tr class="notify-event-row" data-event="monitoring_started">
-                    <td><label class="toggle"><input type="checkbox" class="notify-toggle" data-event="monitoring_started" checked><span class="toggle-slider"></span></label></td>
-                    <td><span class="event-name">{{ t.notify_event_monitoring_started }}</span></td>
-                    <td><span class="badge badge-success">{{ t.severity_success }}</span></td>
-                    <td><input type="number" class="form-input cooldown-input notify-cooldown-input" data-event="monitoring_started" min="1" step="1" placeholder="default"></td>
-                </tr>
+                {%- endmacro %}
+
+                {% set severity_rows = [
+                    ('info', t.severity_info, 'badge-muted'),
+                    ('warning', t.severity_warning, 'badge-warning'),
+                    ('critical', t.severity_critical, 'badge-danger'),
+                ] %}
+                {% for event_key, event_label in [
+                    ('health_change', t.notify_event_health_change),
+                    ('power_change', t.notify_event_power_change),
+                    ('snr_change', t.notify_event_snr_change),
+                    ('modulation_change', t.notify_event_modulation_change),
+                ] %}
+                    {% for severity, severity_label, badge_class in severity_rows %}
+                        {{ cooldown_row(event_key, event_label, severity, severity_label, badge_class) }}
+                    {% endfor %}
+                {% endfor %}
+                {{ cooldown_row('channel_change', t.notify_event_channel_change, 'info', t.severity_info, 'badge-muted') }}
+                {{ cooldown_row('device_reboot', t.notify_event_device_reboot, 'warning', t.severity_warning, 'badge-warning') }}
+                {{ cooldown_row('device_sw_update', t.notify_event_device_sw_update, 'info', t.severity_info, 'badge-muted') }}
+                {{ cooldown_row('device_ip_change', t.notify_event_device_ip_change, 'info', t.severity_info, 'badge-muted') }}
+                {{ cooldown_row('cm_packet_loss_warning', t.event_type_cm_packet_loss_warning, 'warning', t.severity_warning, 'badge-warning') }}
+                {{ cooldown_row('error_spike', t.notify_event_error_spike, 'warning', t.severity_warning, 'badge-warning') }}
+                {{ cooldown_row('monitoring_started', t.notify_event_monitoring_started, 'info', t.severity_info, 'badge-success') }}
             </tbody>
         </table>
         <span class="form-hint" style="display:block;margin-top:var(--space-md);">{{ t.notify_disabled_hint }}</span>

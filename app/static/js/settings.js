@@ -303,7 +303,9 @@ function getFormData() {
     data.theme = document.documentElement.getAttribute('data-theme') || 'dark';
     var cooldowns = {};
     document.querySelectorAll('.notify-event-row').forEach(function(row) {
-        var key = row.getAttribute('data-event');
+        var eventKey = row.getAttribute('data-event');
+        var severity = row.getAttribute('data-severity') || '';
+        var key = severity ? eventKey + ':' + severity : eventKey;
         var toggle = row.querySelector('.notify-toggle');
         var inp = row.querySelector('.notify-cooldown-input');
         if (!toggle.checked) {
@@ -644,10 +646,12 @@ function _serializeSettingsForm(form) {
         fields.push(field);
     });
     document.querySelectorAll('.notify-event-row').forEach(function(row) {
-        var key = row.getAttribute('data-event');
+        var eventKey = row.getAttribute('data-event');
+        var severity = row.getAttribute('data-severity') || '';
+        var key = severity ? eventKey + ':' + severity : eventKey;
         var toggle = row.querySelector('.notify-toggle');
         var inp = row.querySelector('.notify-cooldown-input');
-        if (!key || !toggle || !inp) return;
+        if (!eventKey || !toggle || !inp) return;
         fields.push({
             name: 'notify_cooldown:' + key,
             id: key,
@@ -1333,17 +1337,23 @@ function initNotificationCooldownControls() {
     try {
         var saved = typeof savedCooldowns !== 'undefined' ? savedCooldowns : {};
         document.querySelectorAll('.notify-event-row').forEach(function(row) {
-            var key = row.getAttribute('data-event');
+            var eventKey = row.getAttribute('data-event');
+            var severity = row.getAttribute('data-severity') || '';
+            var key = severity ? eventKey + ':' + severity : eventKey;
             var toggle = row.querySelector('.notify-toggle');
             var inp = row.querySelector('.notify-cooldown-input');
             if (!toggle || !inp) return;
-            if (saved[key] !== undefined) {
-                if (saved[key] === 0) {
+            var savedValue = saved[key];
+            if (savedValue === undefined && severity) {
+                savedValue = saved[eventKey];
+            }
+            if (savedValue !== undefined) {
+                if (savedValue === 0) {
                     toggle.checked = false;
                     inp.disabled = true;
                     inp.style.opacity = '0.4';
                 } else {
-                    inp.value = saved[key];
+                    inp.value = savedValue;
                 }
             }
             toggle.addEventListener('change', function() {

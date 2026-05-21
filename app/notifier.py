@@ -229,13 +229,25 @@ class NotificationDispatcher:
 
     def __init__(self, config_mgr):
         self._config_mgr = config_mgr
-        self._cooldown_tracker = {}  # event_type -> last_sent_timestamp
+        # key -> last_sent_timestamp, where key is either event_type or
+        # event_type:severity when a severity-specific cooldown is configured.
+        self._cooldown_tracker = {}
 
     def _get_cooldown_overrides(self) -> dict[str, int]:
         try:
-            return json.loads(self._config_mgr.get("notify_cooldowns", "{}"))
+            data = json.loads(self._config_mgr.get("notify_cooldowns", "{}"))
         except (json.JSONDecodeError, TypeError):
             return {}
+        if not isinstance(data, dict):
+            return {}
+        return data
+
+    @staticmethod
+    def _coerce_cooldown(value, default: int) -> int:
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return default
 
     def _get_channels(self) -> list[NotificationChannel]:
         channels = []
@@ -288,30 +300,34 @@ class NotificationDispatcher:
         if event_level < min_level:
             return False
 
-        # Cooldown per event_type
+        # Cooldown per event_type and severity. Exact event_type:severity
+        # overrides take precedence. Legacy event-only overrides still provide
+        # the cooldown value for every severity of that event, but non-disabled
+        # cooldown tracking remains severity-specific.
         now = time.time()
-        key = event.get("event_type", "unknown")
-        
-        try:
-            default_cooldown = int(self._config_mgr.get("notify_cooldown", 3600))
-        except (ValueError, TypeError):
-            default_cooldown = 3600
-            
+        event_type = str(event.get("event_type", "unknown") or "unknown")
+        severity = str(event.get("severity", "info") or "info").lower()
+
+        default_cooldown = self._coerce_cooldown(
+            self._config_mgr.get("notify_cooldown", 3600),
+            3600,
+        )
+
         overrides = self._get_cooldown_overrides()
-        cooldown = overrides.get(key, default_cooldown)
-        
-        if isinstance(cooldown, str):
-            try:
-                cooldown = int(cooldown)
-            except ValueError:
-                cooldown = default_cooldown
-        
-        if cooldown == 0:  # 0 = disabled, never send this type
+        severity_key = f"{event_type}:{severity}"
+        if severity_key in overrides:
+            cooldown = overrides[severity_key]
+        else:
+            cooldown = overrides.get(event_type, default_cooldown)
+
+        cooldown = self._coerce_cooldown(cooldown, default_cooldown)
+
+        if cooldown == 0:  # 0 = disabled, never send this type/severity
             return False
-        if key in self._cooldown_tracker:
-            if (now - self._cooldown_tracker[key]) < cooldown:
+        if severity_key in self._cooldown_tracker:
+            if (now - self._cooldown_tracker[severity_key]) < cooldown:
                 return False
-        self._cooldown_tracker[key] = now
+        self._cooldown_tracker[severity_key] = now
         return True
 
     @staticmethod

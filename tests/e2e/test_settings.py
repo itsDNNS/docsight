@@ -69,6 +69,33 @@ class TestSettingsFormElements:
         expect(settings_page.locator('#notify_apprise_token')).to_have_count(1)
         expect(settings_page.locator('#notify_apprise_tag')).to_have_count(1)
 
+    def test_notifications_panel_has_per_severity_cooldown_rows(self, settings_page):
+        settings_page.locator('button[data-section="notifications"]').click()
+
+        for event_type in [
+            "health_change",
+            "power_change",
+            "snr_change",
+            "modulation_change",
+        ]:
+            for severity in ["info", "warning", "critical"]:
+                expect(
+                    settings_page.locator(
+                        f'.notify-event-row[data-event="{event_type}"][data-severity="{severity}"]'
+                    )
+                ).to_have_count(1)
+
+        expect(
+            settings_page.locator(
+                '.notify-event-row[data-event="cm_packet_loss_warning"][data-severity="warning"]'
+            )
+        ).to_have_count(1)
+        expect(
+            settings_page.locator(
+                '.notify-event-row[data-event="error_spike"][data-severity="warning"]'
+            )
+        ).to_have_count(1)
+
 
 class TestSettingsDirtyState:
     """Unsaved-change prompts only appear for deliberate settings edits."""
@@ -289,13 +316,13 @@ class TestSettingsInstantToggleSave:
         settings_page.route("**/api/config", capture_config)
         settings_page.locator('button[data-section="notifications"]').click()
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.notify-event-row[data-event="health_change"] .toggle-slider').click()
+            settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
 
         footer = settings_page.locator("#save-footer")
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
         assert len(config_payloads) == 1
         cooldowns = config_payloads[0]["notify_cooldowns"]
-        assert '"health_change":0' in cooldowns.replace(" ", "")
+        assert '"health_change:critical":0' in cooldowns.replace(" ", "")
 
     def test_notification_cooldown_value_saves_immediately(self, settings_page):
         config_payloads = []
@@ -306,15 +333,15 @@ class TestSettingsInstantToggleSave:
 
         settings_page.route("**/api/config", capture_config)
         settings_page.locator('button[data-section="notifications"]').click()
-        settings_page.locator('.notify-event-row[data-event="power_change"] .notify-cooldown-input').fill('42')
+        settings_page.locator('.notify-event-row[data-event="power_change"][data-severity="warning"] .notify-cooldown-input').fill('42')
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.notify-event-row[data-event="power_change"] .notify-cooldown-input').blur()
+            settings_page.locator('.notify-event-row[data-event="power_change"][data-severity="warning"] .notify-cooldown-input').blur()
 
         footer = settings_page.locator("#save-footer")
         expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
         assert len(config_payloads) == 1
         cooldowns = config_payloads[0]["notify_cooldowns"]
-        assert '"power_change":42' in cooldowns.replace(" ", "")
+        assert '"power_change:warning":42' in cooldowns.replace(" ", "")
 
     def test_notification_event_toggle_stays_dirty_when_instant_save_fails(self, settings_page):
         def fail_config(route):
@@ -323,7 +350,7 @@ class TestSettingsInstantToggleSave:
         settings_page.route("**/api/config", fail_config)
         settings_page.locator('button[data-section="notifications"]').click()
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.notify-event-row[data-event="health_change"] .toggle-slider').click()
+            settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
 
         footer = settings_page.locator("#save-footer")
         expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
@@ -339,7 +366,7 @@ class TestSettingsInstantToggleSave:
         settings_page.route("**/api/config", capture_config)
         settings_page.locator('button[data-section="notifications"]').click()
         with settings_page.expect_request("**/api/config"):
-            settings_page.locator('.notify-event-row[data-event="health_change"] .toggle-slider').click()
+            settings_page.locator('.notify-event-row[data-event="health_change"][data-severity="critical"] .toggle-slider').click()
         settings_page.locator('button[data-section="connection"]').click()
         settings_page.locator('#modem_url').fill('http://192.168.100.1')
 

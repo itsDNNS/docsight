@@ -487,3 +487,50 @@ class TestDispatcherChannelSetup:
         assert result == {"success": False, "error": "AppriseChannel: HTTP 401"}
         assert key_marker not in result.get("error", "")
         assert apprise_token_marker not in result.get("error", "")
+
+
+class TestDispatcherSeverityCooldowns:
+    def _make_config(self, cooldowns, default_cooldown="3600"):
+        cfg = MagicMock()
+        cfg.get.side_effect = lambda key, default=None: {
+            "notify_min_severity": "info",
+            "notify_cooldown": default_cooldown,
+            "notify_cooldowns": json.dumps(cooldowns),
+        }.get(key, default)
+        return cfg
+
+    def test_default_cooldown_is_tracked_independently_by_severity(self):
+        dispatcher = NotificationDispatcher(self._make_config({}))
+
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "info"}) is True
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "critical"}) is True
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "info"}) is False
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "critical"}) is False
+
+    def test_severity_specific_cooldowns_are_tracked_independently(self):
+        dispatcher = NotificationDispatcher(self._make_config({
+            "modulation_change:info": 3600,
+            "modulation_change:critical": 3600,
+        }))
+
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "info"}) is True
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "critical"}) is True
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "info"}) is False
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "critical"}) is False
+
+    def test_legacy_event_cooldown_value_is_tracked_independently_by_severity(self):
+        dispatcher = NotificationDispatcher(self._make_config({"modulation_change": 3600}))
+
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "info"}) is True
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "critical"}) is True
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "info"}) is False
+        assert dispatcher._should_send({"event_type": "modulation_change", "severity": "critical"}) is False
+
+    def test_severity_specific_disable_does_not_disable_other_severities(self):
+        dispatcher = NotificationDispatcher(self._make_config({
+            "health_change:info": 0,
+            "health_change:critical": 3600,
+        }))
+
+        assert dispatcher._should_send({"event_type": "health_change", "severity": "info"}) is False
+        assert dispatcher._should_send({"event_type": "health_change", "severity": "critical"}) is True
