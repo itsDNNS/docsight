@@ -74,7 +74,7 @@ def test_correlation_event_type_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v13';" in sw_js
+    assert "var CACHE_VERSION = 'v14';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
@@ -120,6 +120,13 @@ def test_dashboard_i18n_keys_exist_in_all_language_files():
         "dashboard_key_metrics_hint",
         "dashboard_channel_details",
         "dashboard_channel_details_hint",
+        "dashboard_modulation_context",
+        "dashboard_modulation_open_detail",
+        "dashboard_modulation_unavailable",
+        "dashboard_modulation_missing_hint",
+        "dashboard_modulation_normal",
+        "dashboard_modulation_us_cause",
+        "dashboard_modulation_ds_detail_hint",
     }
     template = INDEX_HTML.read_text(encoding="utf-8")
     missing_from_template = [key for key in required_keys if key not in template]

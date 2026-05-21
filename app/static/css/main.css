@@ -1306,6 +1306,121 @@ body:has(#view-dashboard.active) .app-main {
   line-height: 1.2;
 }
 
+.dashboard-hero .hero-modulation-context {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding-top: clamp(14px, 1.5vw, 20px);
+  border-top: 1px solid var(--dash-muted-border);
+}
+
+.dashboard-hero .hero-modulation-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dashboard-hero .hero-modulation-head span {
+  color: color-mix(in srgb, var(--info) 86%, var(--text-secondary));
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.dashboard-hero .hero-modulation-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dashboard-hero .hero-modulation-link:hover,
+.dashboard-hero .hero-modulation-link:focus-visible {
+  color: var(--info);
+}
+
+.dashboard-hero .hero-modulation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-hero .hero-modulation-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--dash-muted-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-2) 62%, transparent);
+}
+
+.dashboard-hero .hero-modulation-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-hero .hero-modulation-card-top span {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dashboard-hero .hero-modulation-card-top strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.dashboard-hero .hero-modulation-status,
+.dashboard-hero .hero-modulation-cause {
+  color: var(--text-secondary);
+  font-size: 0.66rem;
+  line-height: 1.25;
+}
+
+.dashboard-hero .hero-modulation-cause {
+  color: color-mix(in srgb, var(--warn) 78%, var(--text-secondary));
+  font-weight: 750;
+}
+
+.dashboard-hero .hero-modulation-cause.muted {
+  color: var(--text-muted);
+  font-weight: 650;
+}
+
+.dashboard-hero .hero-modulation-warn {
+  border-color: color-mix(in srgb, var(--warn) 42%, var(--dash-muted-border));
+  background: color-mix(in srgb, var(--warn-muted) 58%, transparent);
+}
+
+.dashboard-hero .hero-modulation-crit {
+  border-color: color-mix(in srgb, var(--crit) 46%, var(--dash-muted-border));
+  background: color-mix(in srgb, var(--crit-muted) 58%, transparent);
+}
+
+.dashboard-hero .hero-modulation-missing {
+  opacity: 0.82;
+}
+
 .hero-chart-head {
   display: flex;
   align-items: center;
