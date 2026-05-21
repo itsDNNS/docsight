@@ -24,7 +24,7 @@ services:
     container_name: docsight-apprise
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - apprise_config:/config
 
@@ -33,10 +33,10 @@ volumes:
   apprise_config:
 ```
 
-Open the Apprise API UI at `http://HOST:8000`, create a persistent configuration, and add one or more notification targets. Then open DOCSight Settings → Notifications and configure:
+Open the Apprise API UI at `http://localhost:8000` on the Docker host, create a persistent configuration, and add one or more notification targets. If you publish the Apprise port beyond a trusted host, bind it to localhost behind a reverse proxy or protect it with an API token. Then open DOCSight Settings → Notifications and configure:
 
 - Enable Apprise: on
-- Apprise API URL: `http://apprise:8000` when both services share the Compose network, or `http://HOST:8000` from another host
+- Apprise API URL: `http://apprise:8000` when both services share the Compose network. If DOCSight runs outside that Compose network, publish Apprise deliberately, protect the endpoint, and use that protected host URL.
 - Config key: the Apprise persistent configuration key, if you created one
 - API token: optional Bearer token if your Apprise API deployment requires one
 - Tags: optional comma-separated Apprise tags for route selection
