@@ -15,7 +15,8 @@
 
   function closeAll() {
     overlay.style.display = 'none';
-    overlay.classList.remove('above');
+    overlay.classList.remove('above', 'dashboard-meta-popover');
+    overlay.style.removeProperty('--glossary-arrow-left');
     activeOpenedByFocus = false;
     if (activeHint) {
       activeHint.classList.remove('open');
@@ -28,25 +29,44 @@
   function showPopover(hint) {
     var source = hint.querySelector('.glossary-popover');
     if (!source) return;
+    var isDashboardMeta = hint.matches('.dashboard-view .insights-meta .hero-meta-item');
     overlay.textContent = source.textContent;
     overlay.style.display = 'block';
     overlay.classList.remove('above');
+    overlay.classList.toggle('dashboard-meta-popover', isDashboardMeta);
+    overlay.style.removeProperty('--glossary-arrow-left');
     hint.setAttribute('aria-describedby', 'glossary-popover-overlay');
     hint.setAttribute('aria-expanded', 'true');
 
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
     var r = hint.getBoundingClientRect();
-    var top = r.bottom + 8;
-    var left = r.left + r.width / 2;
+    var viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+    var viewportHeight = window.innerHeight;
+    var margin = 12;
+    var gap = 8;
+    var top = r.bottom + gap;
+    var center = r.left + r.width / 2;
+    var popRect = overlay.getBoundingClientRect();
+    var maxLeft = Math.max(margin, viewportWidth - popRect.width - margin);
+    var left = clamp(center - popRect.width / 2, margin, maxLeft);
     overlay.style.left = left + 'px';
     overlay.style.top = top + 'px';
-    overlay.style.transform = 'translateX(-50%)';
+    overlay.style.removeProperty('right');
+    overlay.style.removeProperty('bottom');
+    overlay.style.transform = 'none';
+    overlay.style.setProperty(
+      '--glossary-arrow-left',
+      clamp(center - left, 16, Math.max(16, popRect.width - 16)) + 'px'
+    );
 
     // Flip above if near bottom
-    var popRect = overlay.getBoundingClientRect();
-    if (popRect.bottom > window.innerHeight - 20) {
+    popRect = overlay.getBoundingClientRect();
+    if (popRect.bottom > viewportHeight - 20) {
       overlay.classList.add('above');
-      overlay.style.top = (r.top - 8) + 'px';
-      overlay.style.transform = 'translateX(-50%) translateY(-100%)';
+      overlay.style.top = Math.max(margin, r.top - gap - popRect.height) + 'px';
     }
   }
 

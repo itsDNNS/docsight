@@ -60,7 +60,7 @@ body > .glossary-popover {
   display: none;
   position: fixed;
   width: max-content;
-  max-width: 320px;
+  max-width: min(320px, calc(100vw - 24px));
   padding: 12px 16px;
   background: var(--surface);
   border: 1px solid var(--glass-border);
@@ -82,7 +82,7 @@ body > .glossary-popover {
 body > .glossary-popover::before {
   content: '';
   position: absolute;
-  left: 50%;
+  left: var(--glossary-arrow-left, 50%);
   top: -5px;
   transform: translateX(-50%) rotate(45deg);
   width: 8px;
@@ -125,7 +125,7 @@ body > .glossary-popover.above::before {
   .mod-kpi-item .glossary-hint {
     flex: 0 0 44px;
   }
-  body > .glossary-popover {
+  body > .glossary-popover:not(.dashboard-meta-popover) {
     left: 16px !important;
     right: 16px;
     top: auto !important;
@@ -133,7 +133,7 @@ body > .glossary-popover.above::before {
     width: auto;
     max-width: none;
   }
-  body > .glossary-popover::before {
+  body > .glossary-popover:not(.dashboard-meta-popover)::before {
     display: none;
   }
 }
