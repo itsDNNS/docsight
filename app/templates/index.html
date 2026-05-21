@@ -568,13 +568,6 @@
         </div>
         {% endif %}
         <div class="hero-visual-row">
-            <div class="hero-chart-wrap">
-                <div class="hero-chart-head">
-                    <span>{{ t.get('dashboard_signal_trend', '24h signal trend') }}</span>
-                    <span>{{ t.get('dashboard_signal_scope', 'DS power / US power / SNR') }}</span>
-                </div>
-                <canvas id="hero-trend-chart" role="img" aria-label="{{ t.get('dashboard_signal_trend', '24h signal trend') }}"></canvas>
-            </div>
             <aside class="hero-channel-health" aria-label="{{ t.get('dashboard_channel_health', 'Channel health') }}">
                 <div class="hero-channel-health-head">
                     <span>{{ t.get('dashboard_section_channels', 'Channels') }}</span>
@@ -630,39 +623,46 @@
                         </div>
                     </div>
                 </div>
-                <div class="hero-modulation-context" aria-label="{{ t.get('dashboard_modulation_context', 'Modulation context') }}">
-                    <div class="hero-modulation-head">
-                        <span>{{ t.get('dashboard_modulation_context', 'Modulation context') }}</span>
-                        <a class="hero-modulation-link" href="#modulation">
-                            {{ t.get('dashboard_modulation_open_detail', t.get('docsight.modulation.title', 'Modulation Performance')) }}
-                            <i data-lucide="arrow-right" style="width:12px;height:12px;"></i>
-                        </a>
-                    </div>
-                    <div class="hero-modulation-grid">
-                    {% for mod in home_modulation_context %}
-                        {% set mod_label = t.downstream if mod.dir == 'ds' else t.upstream %}
-                        {% set mod_issue_label = issue_labels.get(mod.issue, '') if mod.issue else '' %}
-                        <div class="hero-modulation-card hero-modulation-{{ mod.health }}" data-modulation-dir="{{ mod.dir }}">
-                            <div class="hero-modulation-card-top">
-                                <span>{{ mod_label }}</span>
-                                <strong>{{ mod.primary if mod.primary else t.get('dashboard_modulation_unavailable', 'Modulation data unavailable') }}</strong>
-                            </div>
-                            {% if mod.issue %}
-                            <div class="hero-modulation-status">{{ mod_issue_label }}</div>
-                            <div class="hero-modulation-cause">{{ t.get('dashboard_modulation_us_cause', 'Reduced modulation contributes to this state') }}</div>
-                            {% elif mod.health == 'missing' %}
-                            <div class="hero-modulation-status">{{ t.get('dashboard_modulation_missing_hint', 'No current QAM value reported by the modem') }}</div>
-                            {% else %}
-                            <div class="hero-modulation-status">{{ t.get('dashboard_modulation_normal', 'No modulation degradation detected') }}</div>
-                            {% if mod.dir == 'ds' %}
-                            <div class="hero-modulation-cause muted">{{ t.get('dashboard_modulation_ds_detail_hint', 'Downstream detail remains in the Modulation Performance view') }}</div>
-                            {% endif %}
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                    </div>
-                </div>
             </aside>
+            <div class="hero-modulation-context" aria-label="{{ t.get('dashboard_modulation_context', 'Modulation context') }}">
+                <div class="hero-modulation-head">
+                    <span>{{ t.get('dashboard_modulation_context', 'Modulation context') }}</span>
+                    <a class="hero-modulation-link" href="#modulation">
+                        {{ t.get('dashboard_modulation_open_detail', t.get('docsight.modulation.title', 'Modulation Performance')) }}
+                        <i data-lucide="arrow-right" style="width:12px;height:12px;"></i>
+                    </a>
+                </div>
+                <div class="hero-modulation-grid">
+                {% for mod in home_modulation_context %}
+                    {% set mod_label = t.downstream if mod.dir == 'ds' else t.upstream %}
+                    {% set mod_issue_label = issue_labels.get(mod.issue, '') if mod.issue else '' %}
+                    <div class="hero-modulation-card hero-modulation-{{ mod.health }}" data-modulation-dir="{{ mod.dir }}">
+                        <div class="hero-modulation-card-top">
+                            <span>{{ mod_label }}</span>
+                            <strong>{{ mod.primary if mod.primary else t.get('dashboard_modulation_unavailable', 'Modulation data unavailable') }}</strong>
+                        </div>
+                        {% if mod.issue %}
+                        <div class="hero-modulation-status">{{ mod_issue_label }}</div>
+                        <div class="hero-modulation-cause">{{ t.get('dashboard_modulation_us_cause', 'Reduced modulation contributes to this state') }}</div>
+                        {% elif mod.health == 'missing' %}
+                        <div class="hero-modulation-status">{{ t.get('dashboard_modulation_missing_hint', 'No current QAM value reported by the modem') }}</div>
+                        {% else %}
+                        <div class="hero-modulation-status">{{ t.get('dashboard_modulation_normal', 'No modulation degradation detected') }}</div>
+                        {% if mod.dir == 'ds' %}
+                        <div class="hero-modulation-cause muted">{{ t.get('dashboard_modulation_ds_detail_hint', 'Downstream detail remains in the Modulation Performance view') }}</div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+            <div class="hero-chart-wrap">
+                <div class="hero-chart-head">
+                    <span>{{ t.get('dashboard_signal_trend', '24h signal trend') }}</span>
+                    <span>{{ t.get('dashboard_signal_scope', 'DS power / US power / SNR') }}</span>
+                </div>
+                <canvas id="hero-trend-chart" role="img" aria-label="{{ t.get('dashboard_signal_trend', '24h signal trend') }}"></canvas>
+            </div>
         </div>
     </section>
 

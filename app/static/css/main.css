@@ -1108,19 +1108,19 @@ body:has(#view-dashboard.active) .app-main {
   grid-column: 1;
   grid-row: 3;
   display: grid;
-  grid-template-columns: var(--hero-side-col) minmax(0, 1fr);
+  grid-template-columns: var(--hero-side-col) minmax(150px, 180px) minmax(0, 1fr);
   gap: var(--hero-col-gap);
   min-width: 0;
-  align-items: stretch;
+  align-items: start;
   padding: var(--hero-side-pad);
   border-top: 1px solid var(--dash-muted-border);
 }
 
 .dashboard-hero .hero-chart-wrap {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
   min-width: 0;
-  height: clamp(250px, 22vw, 320px);
+  height: clamp(220px, 18vw, 280px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-sm);
@@ -1134,7 +1134,6 @@ body:has(#view-dashboard.active) .app-main {
   padding-right: clamp(18px, 1.8vw, 26px);
   border-right: 1px solid var(--dash-muted-border);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-md);
 }
 
@@ -1307,18 +1306,22 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 .dashboard-hero .hero-modulation-context {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
   display: grid;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
-  padding-top: clamp(14px, 1.5vw, 20px);
-  border-top: 1px solid var(--dash-muted-border);
+  padding: 0 clamp(14px, 1.4vw, 18px);
+  border-left: 1px solid var(--dash-muted-border);
+  border-right: 1px solid var(--dash-muted-border);
 }
 
 .dashboard-hero .hero-modulation-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -1340,7 +1343,7 @@ body:has(#view-dashboard.active) .app-main {
   font-weight: 700;
   line-height: 1.2;
   text-decoration: none;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .dashboard-hero .hero-modulation-link:hover,
@@ -1350,19 +1353,25 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-hero .hero-modulation-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
   min-width: 0;
 }
 
 .dashboard-hero .hero-modulation-card {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
-  padding: 9px 10px;
-  border: 1px solid var(--dash-muted-border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface-2) 62%, transparent);
+  padding: 0 0 10px;
+  border: 0;
+  border-bottom: 1px solid var(--dash-muted-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.dashboard-hero .hero-modulation-card:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .dashboard-hero .hero-modulation-card-top {
@@ -1408,13 +1417,13 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 .dashboard-hero .hero-modulation-warn {
-  border-color: color-mix(in srgb, var(--warn) 42%, var(--dash-muted-border));
-  background: color-mix(in srgb, var(--warn-muted) 58%, transparent);
+  padding-left: 8px;
+  border-left: 2px solid color-mix(in srgb, var(--warn) 70%, var(--dash-muted-border));
 }
 
 .dashboard-hero .hero-modulation-crit {
-  border-color: color-mix(in srgb, var(--crit) 46%, var(--dash-muted-border));
-  background: color-mix(in srgb, var(--crit-muted) 58%, transparent);
+  padding-left: 8px;
+  border-left: 2px solid color-mix(in srgb, var(--crit) 76%, var(--dash-muted-border));
 }
 
 .dashboard-hero .hero-modulation-missing {
@@ -2161,6 +2170,19 @@ body:has(#view-dashboard.active) .app-main {
     border-top: 1px solid var(--dash-muted-border);
   }
 
+  .dashboard-hero .hero-modulation-context {
+    grid-column: 1;
+    grid-row: 3;
+    padding: var(--space-md) 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid var(--dash-muted-border);
+  }
+
+  .dashboard-hero .hero-modulation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-hero .hero-channel-health-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: stretch;
@@ -2232,6 +2254,10 @@ body:has(#view-dashboard.active) .app-main {
   }
 
   .dashboard-hero .hero-channel-health-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-hero .hero-modulation-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
