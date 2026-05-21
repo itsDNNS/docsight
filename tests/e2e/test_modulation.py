@@ -45,6 +45,18 @@ class TestModulationNavigation:
         view = page.locator("#view-modulation")
         expect(view).to_be_visible()
 
+    def test_home_modulation_context_links_to_detail(self, demo_page):
+        context = demo_page.locator(".hero-modulation-context")
+        expect(context).to_be_visible()
+        expect(context.locator('[data-modulation-dir="ds"]')).to_be_visible()
+        expect(context.locator('[data-modulation-dir="us"]')).to_be_visible()
+        link = context.locator('a[href="#modulation"]')
+        expect(link).to_be_visible()
+
+        link.click()
+
+        expect(demo_page.locator("#view-modulation")).to_be_visible()
+
 
 # ── Tab Structure ──
 

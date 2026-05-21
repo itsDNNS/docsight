@@ -111,6 +111,83 @@ class TestIndexRoute:
         assert "--metric-range-accent: var(--tolerated);" in snr_card
         assert "Critical" in html
 
+    def test_home_surfaces_normal_modulation_context(self, client, sample_analysis):
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert 'class="hero-modulation-context"' in html
+        assert 'data-modulation-dir="ds"' in html
+        assert 'data-modulation-dir="us"' in html
+        assert "256QAM" in html
+        assert "64QAM" in html
+        assert 'href="#modulation"' in html
+        assert "Modulation Performance" in html
+
+    def test_home_marks_reduced_upstream_modulation_as_explicit_cause(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "health": "warning",
+            "health_issues": ["us_modulation_marginal"],
+        })
+        sample_analysis["us_channels"][0].update({
+            "modulation": "32QAM",
+            "health": "warning",
+            "health_detail": "modulation marginal",
+        })
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert 'data-modulation-dir="us"' in html
+        assert "32QAM" in html
+        assert "Upstream modulation degraded" in html
+        assert "Reduced modulation contributes to this state" in html
+        assert 'class="hero-modulation-card hero-modulation-warn"' in html
+        assert 'href="#modulation"' in html
+
+    def test_home_marks_critical_upstream_modulation(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "health": "critical",
+            "health_issues": ["us_modulation_critical"],
+        })
+        sample_analysis["us_channels"][0].update({
+            "modulation": "8QAM",
+            "health": "critical",
+            "health_detail": "modulation critical",
+        })
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert "8QAM" in html
+        assert "Upstream modulation critically degraded" in html
+        assert 'class="hero-modulation-card hero-modulation-crit"' in html
+
+    def test_home_modulation_context_handles_missing_modulation_without_false_alarm(self, client, sample_analysis):
+        for channel in sample_analysis["ds_channels"] + sample_analysis["us_channels"]:
+            channel["modulation"] = None
+            channel["health"] = "good"
+            channel["health_detail"] = ""
+        sample_analysis["summary"].update({"health": "good", "health_issues": []})
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert 'class="hero-modulation-context"' in html
+        modulation_context = html[html.index('class="hero-modulation-context"'):html.index("</aside>")]
+        assert "Modulation data unavailable" in modulation_context
+        assert "None" not in modulation_context
+        assert 'class="hero-modulation-card hero-modulation-warn"' not in modulation_context
+        assert 'class="hero-modulation-card hero-modulation-crit"' not in modulation_context
+
     def test_index_with_incomplete_bnetz(self, tmp_path, sample_analysis):
         """Dashboard hides BNetzA card when entry has NULL fields (#148)."""
         mgr = ConfigManager(str(tmp_path / "data_bnetz"))

@@ -21,6 +21,7 @@ from zoneinfo import available_timezones
 
 from .config import POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
+from .docsis_utils import qam_rank
 from .gaming_index import compute_gaming_index
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
@@ -978,6 +979,56 @@ def _build_metric_ranges(analysis):
     }
 
 
+def _build_home_modulation_context(analysis):
+    """Build concise Home dashboard modulation context for DS/US channels."""
+    summary = analysis.get("summary", {}) if analysis else {}
+    issues = set(summary.get("health_issues") or [])
+
+    def _direction_context(direction, channels):
+        values = []
+        for channel in channels or []:
+            raw_mod = channel.get("modulation")
+            rank = qam_rank(raw_mod)
+            if raw_mod and rank > 0:
+                values.append({"value": str(raw_mod), "rank": rank})
+        if not values:
+            return {
+                "dir": direction,
+                "health": "missing",
+                "primary": None,
+                "secondary": None,
+                "issue": None,
+            }
+
+        values.sort(key=lambda item: item["rank"])
+        lowest = values[0]
+        highest = values[-1]
+        distinct = sorted({item["value"] for item in values}, key=lambda value: qam_rank(value))
+        health = "good"
+        issue = None
+        if direction == "us":
+            if "us_modulation_critical" in issues:
+                health = "crit"
+                issue = "us_modulation_critical"
+            elif "us_modulation_marginal" in issues or "us_modulation_warn" in issues:
+                health = "warn"
+                issue = "us_modulation_marginal"
+        return {
+            "dir": direction,
+            "health": health,
+            "primary": lowest["value"],
+            "secondary": highest["value"] if highest["value"] != lowest["value"] else None,
+            "count": len(values),
+            "distinct": distinct,
+            "issue": issue,
+        }
+
+    return [
+        _direction_context("ds", analysis.get("ds_channels", []) if analysis else []),
+        _direction_context("us", analysis.get("us_channels", []) if analysis else []),
+    ]
+
+
 @app.route("/sw.js")
 def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
@@ -1073,6 +1124,7 @@ def index():
         bnetz_enabled=bnetz_enabled,
         bnetz_latest=bnetz_latest,
         metric_ranges=_build_metric_ranges(analysis),
+        home_modulation_context=_build_home_modulation_context(analysis),
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",
         dashboard_notices=get_active_notices(
