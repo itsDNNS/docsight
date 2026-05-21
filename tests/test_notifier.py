@@ -426,3 +426,64 @@ class TestDispatcherChannelSetup:
     def test_apprise_enabled_without_url_is_ignored(self):
         dispatcher = NotificationDispatcher(self._make_config(None, apprise_enabled=True))
         assert len(dispatcher._get_channels()) == 0
+
+    @patch("app.notifier.requests.post")
+    def test_apprise_dispatch_keeps_severity_and_cooldown_controls(self, mock_post):
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.raise_for_status = MagicMock()
+        config = self._make_config(
+            None,
+            apprise_enabled=True,
+            apprise_url="http://apprise:8000",
+        )
+        config.get.side_effect = lambda key, default=None: {
+            "notify_webhook_url": None,
+            "notify_apprise_enabled": True,
+            "notify_apprise_url": "http://apprise:8000",
+            "notify_apprise_key": "",
+            "notify_apprise_tag": "",
+            "notify_apprise_token": "",
+            "notify_cooldown": "3600",
+            "notify_cooldowns": json.dumps({"disabled_event": 0}),
+            "notify_min_severity": "warning",
+        }.get(key, default)
+        dispatcher = NotificationDispatcher(config)
+
+        dispatcher.dispatch([
+            {"timestamp": "2026-04-10T10:00:00Z", "severity": "info", "event_type": "low_info", "message": "Below threshold", "details": {}},
+            {"timestamp": "2026-04-10T10:00:01Z", "severity": "warning", "event_type": "disabled_event", "message": "Disabled", "details": {}},
+            {"timestamp": "2026-04-10T10:00:02Z", "severity": "warning", "event_type": "signal_warning", "message": "Sent", "details": {"snr": 30}},
+        ])
+        dispatcher.dispatch([
+            {"timestamp": "2026-04-10T10:00:03Z", "severity": "warning", "event_type": "signal_warning", "message": "Suppressed by cooldown", "details": {}},
+        ])
+
+        assert mock_post.call_count == 1
+        assert mock_post.call_args.args[0] == "http://apprise:8000/notify"
+        sent_json = mock_post.call_args.kwargs["json"]
+        assert sent_json["title"] == "DOCSight: Signal Warning"
+        assert sent_json["type"] == "warning"
+        assert "Sent" in sent_json["body"]
+        assert "snr: 30" in sent_json["body"]
+
+    @patch("app.notifier.requests.post")
+    def test_apprise_test_notification_returns_sanitized_http_error(self, mock_post):
+        resp = MagicMock(status_code=401)
+        resp.raise_for_status.side_effect = requests.HTTPError(response=resp)
+        mock_post.return_value = resp
+        key_marker = "REDACTED-CONFIG-KEY"
+        apprise_token_marker = "REDACTED-TOKEN"
+        config = self._make_config(
+            None,
+            apprise_enabled=True,
+            apprise_url="http://apprise:8000",
+            apprise_key=key_marker,
+            apprise_token=apprise_token_marker,
+        )
+        dispatcher = NotificationDispatcher(config)
+
+        result = dispatcher.test()
+
+        assert result == {"success": False, "error": "AppriseChannel: HTTP 401"}
+        assert key_marker not in result.get("error", "")
+        assert apprise_token_marker not in result.get("error", "")

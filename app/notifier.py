@@ -83,6 +83,7 @@ class AppriseChannel(NotificationChannel):
         self._tag = (tag or "").strip()
         self._token = (token or "").strip()
         self._log_label = "Apprise API"
+        self._last_error = ""
 
     @staticmethod
     def _format_body(payload: NotificationPayload) -> str:
@@ -130,15 +131,19 @@ class AppriseChannel(NotificationChannel):
                 timeout=10,
             )
             r.raise_for_status()
+            self._last_error = ""
             return True
         except requests.HTTPError as e:
+            status = e.response.status_code if e.response is not None else "unknown"
+            self._last_error = f"HTTP {status}"
             log.warning(
                 "Apprise POST failed (%s): HTTP %s",
                 self._log_label,
-                e.response.status_code if e.response is not None else "unknown",
+                status,
             )
             return False
         except Exception as e:
+            self._last_error = type(e).__name__
             log.warning("Apprise POST failed (%s): %s", self._log_label, type(e).__name__)
             return False
 
@@ -337,7 +342,10 @@ class NotificationDispatcher:
         for channel in channels:
             try:
                 if not channel.send(payload):
-                    errors.append(f"{type(channel).__name__}: send returned false")
+                    detail = getattr(channel, "_last_error", "")
+                    errors.append(
+                        f"{type(channel).__name__}: {detail or 'send returned false'}",
+                    )
             except Exception as e:
                 errors.append(f"{type(channel).__name__}: {e}")
         if errors:

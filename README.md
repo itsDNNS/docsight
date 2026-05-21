@@ -115,6 +115,7 @@ The value is not another chart. The value is putting the pieces of the cable pro
 - **Speed tests:** download, upload, ping, and jitter history
 - **Latency:** packet loss, outages, and route checks
 - **Modem events:** restarts, drops, and signal anomalies
+- **Alerts:** severity-filtered notifications through direct webhooks, Discord, or an optional Apprise sidecar
 - **Incident notes:** what you saw, when it happened, and what changed
 - **Before/after:** compare technician visits or ISP changes
 - **Reports:** PDF output and complaint-ready text
@@ -217,7 +218,7 @@ DOCSight is built around an evidence-first workflow, then extended with deeper a
 |---|---|
 | **Network analysis** | [Gaming Quality Index](https://github.com/itsDNNS/docsight/wiki/Features-Gaming-Quality), [Modulation Performance](https://github.com/itsDNNS/docsight/wiki/Features-Modulation-Performance), [Channel Timeline](https://github.com/itsDNNS/docsight/wiki/Features-Channel-Timeline), [Cable Segment Utilization](https://github.com/itsDNNS/docsight/wiki/Features-Segment-Utilization) |
 | **External data sources** | Guided setup for [Speedtest Integration](https://github.com/itsDNNS/docsight/wiki/Features-Speedtest), [BQM Integration](https://github.com/itsDNNS/docsight/wiki/Features-BQM), and [Smokeping Integration](https://github.com/itsDNNS/docsight/wiki/Features-Smokeping), plus [Smart Capture](https://github.com/itsDNNS/docsight/wiki/Features-Smart-Capture) and [BNetzA Measurements](https://github.com/itsDNNS/docsight/wiki/Features-BNetzA) |
-| **Platform features** | [Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant), [Backup & Restore](https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore), notifications, setup wizard, optional authentication, API tokens |
+| **Platform features** | [Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant), [Notifications](https://github.com/itsDNNS/docsight/wiki/Notifications), [Backup & Restore](https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore), setup wizard, optional authentication, API tokens |
 | **Usability and extensibility** | [Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode), [Theme Engine](https://github.com/itsDNNS/docsight/wiki/Themes), [Community Modules](https://github.com/itsDNNS/docsight-modules), [In-App Glossary](https://github.com/itsDNNS/docsight/wiki/Features-Glossary), [AI/LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export) with local redaction controls |
 
 Also includes 4 languages (EN/DE/FR/ES), light/dark mode, PWA/offline support, and a system font toggle.
@@ -400,6 +401,7 @@ See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 |---|---|
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
 | [Proof pack](docs/proof-pack.md) | Demo-safe public screenshots, sample report, and claim-proof notes |
+| [Apprise notification sidecar](docs/notifications-apprise.md) | Optional alert fan-out through an Apprise API sidecar |
 | [Community proof templates](docs/community-proof-templates.md) | Public-safe templates for setup stories, modem reports, and ISP evidence outcomes |
 | [GitHub Releases](https://github.com/itsDNNS/docsight/releases) | Versioned builds and release notes |
 | [SUPPORT.md](SUPPORT.md) | Support routing, community channels, and issue guidance |
