@@ -97,8 +97,8 @@ class TestConfigSecrets:
         assert config2.get("modem_password") == "original"
         assert config2.get("modem_user") == "updated"
 
-    @pytest.mark.parametrize("key", ["notify_apprise_key", "notify_apprise_token"])
-    def test_apprise_secret_mask_not_saved(self, tmp_data_dir, key):
+    @pytest.mark.parametrize("key", ["notify_apprise_key", "notify_apprise_token", "notify_pwa_push_vapid_private_key"])
+    def test_notification_secret_mask_not_saved(self, tmp_data_dir, key):
         config = ConfigManager(tmp_data_dir)
         config.save({key: "original"})
         config.save({key: PASSWORD_MASK, "modem_user": "updated"})
@@ -148,8 +148,8 @@ class TestConfigSecrets:
         assert raw["speedtest_tracker_token"] != "secret123"
         assert config.get("speedtest_tracker_token") == "secret123"
 
-    @pytest.mark.parametrize("key", ["notify_apprise_key", "notify_apprise_token"])
-    def test_apprise_secrets_encrypted_at_rest(self, config, tmp_data_dir, key):
+    @pytest.mark.parametrize("key", ["notify_apprise_key", "notify_apprise_token", "notify_pwa_push_vapid_private_key"])
+    def test_notification_secrets_encrypted_at_rest(self, config, tmp_data_dir, key):
         config.save({key: "secret123"})
         with open(os.path.join(tmp_data_dir, "config.json")) as f:
             raw = json.load(f)
@@ -162,6 +162,22 @@ class TestConfigSecrets:
 
     def test_apprise_not_configured_without_url(self, config):
         config.save({"notify_apprise_enabled": "true", "notify_apprise_url": ""})
+        assert config.is_notify_configured() is False
+
+    def test_pwa_push_configured_when_enabled_with_vapid_keys(self, config):
+        config.save({
+            "notify_pwa_push_enabled": "true",
+            "notify_pwa_push_vapid_public_key": "public-key",
+            "notify_pwa_push_vapid_private_key": "private-key",
+        })
+        assert config.is_notify_configured() is True
+
+    def test_pwa_push_not_configured_without_private_key(self, config):
+        config.save({
+            "notify_pwa_push_enabled": "true",
+            "notify_pwa_push_vapid_public_key": "public-key",
+            "notify_pwa_push_vapid_private_key": "",
+        })
         assert config.is_notify_configured() is False
 
 
@@ -190,6 +206,17 @@ class TestConfigEnvOverride:
         assert config.get("notify_apprise_key") == "default"
         assert config.get("notify_apprise_token") == "api-token"
         assert config.get("notify_apprise_tag") == "ops"
+
+    def test_pwa_push_env_overrides(self, tmp_data_dir, monkeypatch):
+        monkeypatch.setenv("NOTIFY_PWA_PUSH_ENABLED", "true")
+        monkeypatch.setenv("NOTIFY_PWA_PUSH_VAPID_PUBLIC_KEY", "public-key")
+        monkeypatch.setenv("NOTIFY_PWA_PUSH_VAPID_PRIVATE_KEY", "private-key")
+        monkeypatch.setenv("NOTIFY_PWA_PUSH_VAPID_SUBJECT", "mailto:ops@example.test")
+        config = ConfigManager(tmp_data_dir)
+        assert config.get("notify_pwa_push_enabled") is True
+        assert config.get("notify_pwa_push_vapid_public_key") == "public-key"
+        assert config.get("notify_pwa_push_vapid_private_key") == "private-key"
+        assert config.get("notify_pwa_push_vapid_subject") == "mailto:ops@example.test"
 
     def test_empty_env_ignored(self, tmp_data_dir, monkeypatch):
         monkeypatch.setenv("MODEM_USER", "")

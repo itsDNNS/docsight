@@ -21,10 +21,12 @@ SECRET_KEYS = {
     "notify_webhook_token",
     "notify_apprise_key",
     "notify_apprise_token",
+    "notify_pwa_push_vapid_private_key",
 }
 DEMO_HIDE_KEYS = {"bqm_url", "speedtest_tracker_url",
                   "notify_webhook_url", "notify_apprise_url", "notify_apprise_key",
-                  "notify_apprise_token", "notify_apprise_tag", "mqtt_host", "mqtt_user",
+                  "notify_apprise_token", "notify_apprise_tag", "notify_pwa_push_vapid_private_key",
+                  "mqtt_host", "mqtt_user",
                   "mqtt_topic_prefix", "mqtt_discovery_prefix"}
 HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
@@ -57,6 +59,10 @@ DEFAULTS = {
     "notify_apprise_key": "",
     "notify_apprise_token": "",
     "notify_apprise_tag": "",
+    "notify_pwa_push_enabled": False,
+    "notify_pwa_push_vapid_public_key": "",
+    "notify_pwa_push_vapid_private_key": "",
+    "notify_pwa_push_vapid_subject": "mailto:admin@example.com",
     "notify_min_severity": "warning",
     "notify_cooldown": 3600,
     "notify_cooldowns": "{}",
@@ -119,6 +125,10 @@ ENV_MAP = {
     "notify_apprise_key": "NOTIFY_APPRISE_KEY",
     "notify_apprise_token": "NOTIFY_APPRISE_TOKEN",
     "notify_apprise_tag": "NOTIFY_APPRISE_TAG",
+    "notify_pwa_push_enabled": "NOTIFY_PWA_PUSH_ENABLED",
+    "notify_pwa_push_vapid_public_key": "NOTIFY_PWA_PUSH_VAPID_PUBLIC_KEY",
+    "notify_pwa_push_vapid_private_key": "NOTIFY_PWA_PUSH_VAPID_PRIVATE_KEY",
+    "notify_pwa_push_vapid_subject": "NOTIFY_PWA_PUSH_VAPID_SUBJECT",
     "notify_min_severity": "NOTIFY_MIN_SEVERITY",
     "notify_cooldown": "NOTIFY_COOLDOWN",
     "notify_cooldowns": "NOTIFY_COOLDOWNS",
@@ -166,6 +176,7 @@ INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown", "hea
             "sc_flapping_window", "sc_flapping_threshold",
             "sc_trigger_error_spike_min_delta"}
 BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled", "notify_apprise_enabled",
+             "notify_pwa_push_enabled",
              "speedtest_tls_insecure", "sc_enabled", "sc_trigger_modulation", "sc_trigger_snr",
              "sc_trigger_error_spike", "sc_trigger_health", "sc_trigger_packet_loss"}
 
@@ -429,9 +440,14 @@ class ConfigManager:
 
     def is_notify_configured(self):
         """True if any notification channel is configured."""
+        pwa_push_configured = (
+            self._get_bool("notify_pwa_push_enabled")
+            and bool(self.get("notify_pwa_push_vapid_public_key"))
+            and bool(self.get("notify_pwa_push_vapid_private_key"))
+        )
         return bool(self.get("notify_webhook_url")) or (
             self._get_bool("notify_apprise_enabled") and bool(self.get("notify_apprise_url"))
-        )
+        ) or pwa_push_configured
 
     def is_speedtest_configured(self):
         """True if speedtest_tracker_url and token are set, or demo mode is active."""

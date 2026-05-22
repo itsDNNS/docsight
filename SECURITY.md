@@ -125,7 +125,7 @@ If you run DOCSight behind a reverse proxy, the proxy does **not** need to dupli
 
 Modem credentials and other secrets are encrypted at rest using **Fernet** (AES-128-CBC + HMAC-SHA256):
 
-- Encrypted fields: `modem_password`, `mqtt_password`, `speedtest_tracker_token`, `notify_webhook_token`, `notify_apprise_key`, `notify_apprise_token`
+- Encrypted fields: `modem_password`, `mqtt_password`, `speedtest_tracker_token`, `notify_webhook_token`, `notify_apprise_key`, `notify_apprise_token`, `notify_pwa_push_vapid_private_key`
 - Encryption key stored in `data/.config_key` (auto-generated on first run, file permissions set to `600`)
 - The admin password is **hashed** (not encrypted) via Werkzeug and stored separately
 
@@ -191,9 +191,10 @@ Maintainers use this checklist when reviewing changes that touch integration or 
 - **Local authentication/session handling** — login, session cookies, the `require_auth` decorator, and Bearer token verification.
   - `tests/test_auth.py`
   - `tests/test_security_hardening.py`
-- **Token and credential storage** — Fernet-at-rest storage for modem, webhook, and Apprise sidecar secrets, hash-only persistence for the admin password and API tokens, and config redaction.
+- **Token and credential storage** — Fernet-at-rest storage for modem, webhook, Apprise sidecar, and PWA Web Push VAPID private-key secrets, hash-only persistence for the admin password and API tokens, and config redaction.
   - `tests/test_security_hardening.py`
   - `tests/test_config.py`
+  - `tests/test_pwa_web_push.py`
 - **MQTT/Home Assistant integration payloads** — outbound notifier payload shaping, severity mapping, length limits, and log redaction for webhook URLs.
   - `tests/test_notifier.py`
 - **Module/plugin manifest loading** — manifest validation and the install/list API surface.

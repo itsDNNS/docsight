@@ -365,14 +365,14 @@ create_backup_to_file(data_dir, dest_dir)
 
 **Purpose:** Route event notifications to external channels
 **Trigger:** Called by EventDetector when anomalies are detected
-**Channels:** Direct webhook (ntfy, Discord, Gotify, custom endpoints) and optional Apprise API sidecar
+**Channels:** Direct webhook (ntfy, Discord, Gotify, custom endpoints), optional Apprise API sidecar, and optional PWA Web Push for subscribed browsers/apps
 
 **Features:**
 - Severity filtering (minimum severity threshold)
 - Cooldown period to prevent notification spam
 - Template-based message formatting
-- Configurable via Settings UI (webhook URL, Apprise API URL/key/token/tags, headers, severity)
-- DOCSight decides when to notify; Apprise handles fan-out to provider-specific targets
+- Configurable via Settings UI (webhook URL, Apprise API URL/key/token/tags, PWA Web Push VAPID keys/subject, headers, severity)
+- DOCSight decides when to notify; Apprise handles fan-out to provider-specific targets, while PWA Web Push delivers to locally subscribed browser endpoints
 
 ---
 

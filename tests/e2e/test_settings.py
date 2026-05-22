@@ -69,6 +69,15 @@ class TestSettingsFormElements:
         expect(settings_page.locator('#notify_apprise_token')).to_have_count(1)
         expect(settings_page.locator('#notify_apprise_tag')).to_have_count(1)
 
+    def test_notifications_panel_has_pwa_push_fields(self, settings_page):
+        settings_page.locator('button[data-section="notifications"]').click()
+        expect(settings_page.locator('#pwa-push-card')).to_have_count(1)
+        expect(settings_page.locator('#notify_pwa_push_enabled')).to_have_count(1)
+        expect(settings_page.locator('#notify_pwa_push_vapid_public_key')).to_have_count(1)
+        expect(settings_page.locator('#notify_pwa_push_vapid_private_key')).to_have_count(1)
+        expect(settings_page.locator('#notify_pwa_push_vapid_subject')).to_have_count(1)
+        expect(settings_page.locator('#pwa-push-status')).to_have_count(1)
+
     def test_notifications_panel_has_per_severity_cooldown_rows(self, settings_page):
         settings_page.locator('button[data-section="notifications"]').click()
 
@@ -203,10 +212,38 @@ class TestSettingsDirtyState:
         settings_page.locator('#poll_interval').fill('901')
 
         settings_page.locator('#save-footer button[type="submit"]').click()
-        expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*visible.*"))
+        expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
         assert payloads[-1]["notify_apprise_key"] == "••••••••"
         assert payloads[-1]["notify_apprise_token"] == "••••••••"
+
+    def test_saved_pwa_push_private_key_is_masked_when_unrelated_setting_is_saved(self, settings_page):
+        payloads = []
+
+        def capture_config(route):
+            payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        settings_page.route("**/api/config", capture_config)
+        settings_page.evaluate(
+            """
+            () => {
+              const input = document.querySelector('#notify_pwa_push_vapid_private_key');
+              input.dataset.savedSecret = 'true';
+              input.setAttribute('placeholder', 'Saved');
+              input.value = 'password-manager-fill';
+              input.dispatchEvent(new Event('input', {bubbles: true}));
+              input.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+            """
+        )
+        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('#poll_interval').fill('902')
+
+        settings_page.locator('#save-footer button[type="submit"]').click()
+        expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        assert payloads[-1]["notify_pwa_push_vapid_private_key"] == "••••••••"
 
     def test_user_edited_saved_secret_is_submitted_and_cleared_after_save(self, settings_page):
         payloads = []

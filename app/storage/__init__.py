@@ -8,6 +8,7 @@ from .tokens import TokenMixin
 from .smart_capture import SmartCaptureMixin
 from .cleanup import CleanupMixin
 from .device import DeviceStorageMixin
+from .pwa_push import PwaPushMixin
 
 __all__ = [
     "SnapshotStorage",
@@ -25,6 +26,7 @@ class SnapshotStorage(
     SmartCaptureMixin,
     CleanupMixin,
     DeviceStorageMixin,
+    PwaPushMixin,
     StorageBase,
 ):
     """Persist DOCSIS analysis snapshots to SQLite."""

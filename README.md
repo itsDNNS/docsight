@@ -115,7 +115,7 @@ The value is not another chart. The value is putting the pieces of the cable pro
 - **Speed tests:** download, upload, ping, and jitter history
 - **Latency:** packet loss, outages, and route checks
 - **Modem events:** restarts, drops, and signal anomalies
-- **Alerts:** severity-filtered notifications through direct webhooks, Discord, or an optional Apprise sidecar
+- **Alerts:** severity-filtered notifications through direct webhooks, Discord, optional PWA Web Push, or an optional Apprise sidecar
 - **Incident notes:** what you saw, when it happened, and what changed
 - **Before/after:** compare technician visits or ISP changes
 - **Reports:** PDF output and complaint-ready text
@@ -402,6 +402,7 @@ See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
 | [Proof pack](docs/proof-pack.md) | Demo-safe public screenshots, sample report, and claim-proof notes |
 | [Apprise notification sidecar](docs/notifications-apprise.md) | Optional alert fan-out through an Apprise API sidecar |
+| [PWA Web Push notifications](docs/notifications-pwa-web-push.md) | Optional browser/app push alerts through the installed PWA |
 | [Community proof templates](docs/community-proof-templates.md) | Public-safe templates for setup stories, modem reports, and ISP evidence outcomes |
 | [GitHub Releases](https://github.com/itsDNNS/docsight/releases) | Versioned builds and release notes |
 | [SUPPORT.md](SUPPORT.md) | Support routing, community channels, and issue guidance |

@@ -155,6 +155,22 @@ class StorageBase:
                 )
             """)
 
+            # ── Browser PWA Web Push subscriptions ──
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS pwa_push_subscriptions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    endpoint TEXT NOT NULL UNIQUE,
+                    subscription_json TEXT NOT NULL,
+                    user_agent TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_pwa_push_subscriptions_updated
+                ON pwa_push_subscriptions(updated_at)
+            """)
+
             # ── Schema metadata (UTC migration tracking etc.) ──
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS _docsight_meta (

@@ -1,4 +1,4 @@
-var CACHE_VERSION = 'v20';
+var CACHE_VERSION = 'v21';
 var SHELL_CACHE = 'docsight-shell-' + CACHE_VERSION;
 var STATIC_CACHE = 'docsight-static-' + CACHE_VERSION;
 var OFFLINE_SHELL_HEADERS = {
@@ -184,4 +184,64 @@ self.addEventListener('fetch', function(e) {
   if (isShellRequest(request, url)) {
     e.respondWith(handleShellRequest(request, url));
   }
+});
+
+self.addEventListener('push', function(event) {
+  var fallback = {
+    title: 'DOCSight notification',
+    body: 'Open DOCSight for the latest signal status.',
+    url: '/?source=pwa#events',
+    severity: 'info'
+  };
+  var payload = fallback;
+  try {
+    if (event.data) {
+      payload = Object.assign({}, fallback, event.data.json());
+    }
+  } catch (err) {
+    try {
+      payload = Object.assign({}, fallback, { body: event.data ? event.data.text() : fallback.body });
+    } catch (ignore) {
+      payload = fallback;
+    }
+  }
+  event.waitUntil(self.registration.showNotification(payload.title || fallback.title, {
+    body: payload.body || fallback.body,
+    icon: '/static/icon.png',
+    badge: '/static/icon.png',
+    tag: 'docsight-' + (payload.event_type || payload.severity || 'notification'),
+    data: { url: payload.url || fallback.url }
+  }));
+});
+
+function safeNotificationUrl(targetUrl) {
+  try {
+    var url = new URL(targetUrl, self.location.origin);
+    if (url.origin === self.location.origin) {
+      return url.pathname + url.search + url.hash;
+    }
+  } catch (err) {}
+  return '/?source=pwa#events';
+}
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var targetUrl = safeNotificationUrl((event.notification.data && event.notification.data.url) || '/?source=pwa#events');
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+    for (var i = 0; i < clientList.length; i += 1) {
+      var client = clientList[i];
+      if (client.url.indexOf(self.location.origin) === 0 && 'focus' in client) {
+        return client.focus().then(function(focusedClient) {
+          if ('navigate' in focusedClient) {
+            return focusedClient.navigate(targetUrl);
+          }
+          return focusedClient;
+        });
+      }
+    }
+    if (clients.openWindow) {
+      return clients.openWindow(targetUrl);
+    }
+    return undefined;
+  }));
 });

@@ -110,8 +110,8 @@ def polling_loop(config_mgr, storage, stop_event):
     notifier = None
     if config_mgr.is_notify_configured():
         from .notifier import NotificationDispatcher
-        notifier = NotificationDispatcher(config_mgr)
-        log.info("Notifications: webhook configured")
+        notifier = NotificationDispatcher(config_mgr, storage=storage)
+        log.info("Notifications: configured")
 
     # Smart Capture (always instantiated — _is_enabled() gates at runtime)
     from .smart_capture import SmartCaptureEngine, Trigger

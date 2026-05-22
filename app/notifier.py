@@ -10,6 +10,12 @@ from abc import ABC, abstractmethod
 from urllib.parse import quote
 import requests
 
+try:
+    from pywebpush import WebPushException, webpush
+except Exception:  # pragma: no cover - dependency availability is exercised by runtime config
+    WebPushException = Exception
+    webpush = None
+
 from .types import EventDict, NotificationPayload, NotificationTestResult
 from .tz import utc_now
 
@@ -148,6 +154,96 @@ class AppriseChannel(NotificationChannel):
             return False
 
 
+class WebPushChannel(NotificationChannel):
+    """Browser Web Push channel backed by persisted PWA subscriptions."""
+
+    def __init__(self, storage, vapid_private_key: str, vapid_subject: str):
+        self._storage = storage
+        self._vapid_private_key = (vapid_private_key or "").strip()
+        self._vapid_subject = (vapid_subject or "mailto:admin@example.com").strip()
+        self._last_error = ""
+        self._log_label = "PWA Web Push"
+
+    @staticmethod
+    def _notification_url(event_type: str) -> str:
+        if event_type == "test":
+            return "/?source=pwa#live"
+        return "/?source=pwa#events"
+
+    @classmethod
+    def _format_payload(cls, payload: NotificationPayload) -> dict[str, object]:
+        severity = str(payload.get("severity", "info") or "info")
+        event_type = str(payload.get("event_type", "unknown") or "unknown")
+        title = f"DOCSight {severity}: {event_type.replace('_', ' ').title()}"
+        body = str(payload.get("message", "") or "DOCSight notification")
+        return {
+            "title": title[:100],
+            "body": body[:240],
+            "severity": severity,
+            "event_type": event_type,
+            "timestamp": payload.get("timestamp", utc_now()),
+            "url": cls._notification_url(event_type),
+        }
+
+    @staticmethod
+    def _response_status(exc) -> int | None:
+        response = getattr(exc, "response", None)
+        status = getattr(response, "status_code", None)
+        try:
+            return int(status) if status is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def send(self, payload: NotificationPayload) -> bool:
+        if webpush is None:
+            self._last_error = "Web Push dependency unavailable"
+            log.warning("Web Push unavailable: pywebpush is not installed")
+            return False
+        if not self._storage or not self._vapid_private_key:
+            self._last_error = "Web Push is not configured"
+            return False
+
+        subscriptions = self._storage.list_pwa_push_subscriptions()
+        if not subscriptions:
+            self._last_error = "No browser subscriptions"
+            return False
+
+        data = json.dumps(self._format_payload(payload), separators=(",", ":"))
+        errors = []
+        for record in subscriptions:
+            subscription = record.get("subscription") or {}
+            endpoint = subscription.get("endpoint") or record.get("endpoint") or ""
+            try:
+                webpush(
+                    subscription_info=subscription,
+                    data=data,
+                    vapid_private_key=self._vapid_private_key,
+                    vapid_claims={"sub": self._vapid_subject},
+                )
+            except WebPushException as exc:
+                status = self._response_status(exc)
+                if status in (404, 410) and endpoint:
+                    self._storage.delete_pwa_push_subscription(endpoint)
+                    errors.append(f"expired:{status}")
+                    continue
+                errors.append(f"HTTP {status or 'unknown'}")
+                log.warning("Web Push POST failed (%s): HTTP %s", self._log_label, status or "unknown")
+            except Exception as exc:
+                status = self._response_status(exc)
+                if status in (404, 410) and endpoint:
+                    self._storage.delete_pwa_push_subscription(endpoint)
+                    errors.append(f"expired:{status}")
+                    continue
+                errors.append(type(exc).__name__)
+                log.warning("Web Push POST failed (%s): %s", self._log_label, type(exc).__name__)
+
+        if errors:
+            self._last_error = "; ".join(errors)
+            return False
+        self._last_error = ""
+        return True
+
+
 class DiscordWebhookChannel(NotificationChannel):
     """Discord-native webhook channel with rich embed formatting."""
 
@@ -227,8 +323,9 @@ def is_discord_webhook_url(url: str) -> bool:
 class NotificationDispatcher:
     """Routes events through severity filter and cooldown to notification channels."""
 
-    def __init__(self, config_mgr):
+    def __init__(self, config_mgr, storage=None):
         self._config_mgr = config_mgr
+        self._storage = storage
         # key -> last_sent_timestamp, where key is either event_type or
         # event_type:severity when a severity-specific cooldown is configured.
         self._cooldown_tracker = {}
@@ -270,6 +367,15 @@ class NotificationDispatcher:
                     config_key=self._config_mgr.get("notify_apprise_key") or "",
                     tag=self._config_mgr.get("notify_apprise_tag") or "",
                     token=self._config_mgr.get("notify_apprise_token") or "",
+                ))
+        if self._config_mgr.get("notify_pwa_push_enabled") and self._storage:
+            vapid_public_key = self._config_mgr.get("notify_pwa_push_vapid_public_key") or ""
+            vapid_private_key = self._config_mgr.get("notify_pwa_push_vapid_private_key") or ""
+            if vapid_public_key and vapid_private_key:
+                channels.append(WebPushChannel(
+                    self._storage,
+                    vapid_private_key=vapid_private_key,
+                    vapid_subject=self._config_mgr.get("notify_pwa_push_vapid_subject") or "mailto:admin@example.com",
                 ))
         return channels
 

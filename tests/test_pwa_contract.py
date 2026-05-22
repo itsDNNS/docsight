@@ -51,6 +51,20 @@ def test_service_worker_has_explicit_shell_and_static_asset_strategies():
     assert "__DOCSIGHT_OFFLINE_SHELL__" in source
 
 
+def test_service_worker_handles_web_push_and_notification_clicks():
+    """Installed DOCSight PWAs should display push payloads and deep-link clicks."""
+    source = SERVICE_WORKER.read_text(encoding="utf-8")
+
+    assert "addEventListener('push'" in source or 'addEventListener("push"' in source
+    assert "self.registration.showNotification" in source
+    assert "addEventListener('notificationclick'" in source or 'addEventListener("notificationclick"' in source
+    assert "event.notification.close()" in source
+    assert "clients.openWindow" in source
+    assert "client.focus()" in source
+    assert "safeNotificationUrl" in source
+    assert "new URL(targetUrl, self.location.origin)" in source
+
+
 def test_service_worker_precaches_module_static_shell_assets():
     """The first installed offline shell should include module CSS/JS referenced by the dashboard."""
     source = SERVICE_WORKER.read_text(encoding="utf-8")
