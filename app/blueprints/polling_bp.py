@@ -149,8 +149,8 @@ def api_pwa_push_subscribe():
             subscription,
             user_agent=request.headers.get("User-Agent", "")[:500],
         )
-    except ValueError as exc:
-        return jsonify({"success": False, "error": str(exc)}), 400
+    except ValueError:
+        return jsonify({"success": False, "error": "Invalid Web Push subscription"}), 400
     return jsonify({"success": True, "subscription_count": storage.count_pwa_push_subscriptions(), "id": record["id"]})
 
 

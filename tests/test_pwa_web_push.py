@@ -99,7 +99,8 @@ def test_pwa_push_subscribe_and_unsubscribe_api_validates_subscription(tmp_path)
     insecure_subscription = {**VALID_SUBSCRIPTION, "endpoint": "http://push.example.test/send/abc123"}
     insecure = client.post("/api/notifications/pwa/subscribe", json={"subscription": insecure_subscription})
     assert insecure.status_code == 400
-    assert "HTTPS" in insecure.get_json()["error"]
+    assert insecure.get_json()["error"] == "Invalid Web Push subscription"
+    assert "HTTPS" not in json.dumps(insecure.get_json())
 
     subscribed = client.post("/api/notifications/pwa/subscribe", json={"subscription": VALID_SUBSCRIPTION})
     assert subscribed.status_code == 200
