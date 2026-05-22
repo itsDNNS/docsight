@@ -185,6 +185,13 @@ class TestDashboardSections:
         assert card.get_attribute("role") == "button"
         assert card.get_attribute("tabindex") == "0"
 
+    def test_disabled_connection_monitor_card_shows_no_data_state(self, demo_page):
+        status = demo_page.locator("#cm-card-status")
+        details = demo_page.locator("#cm-card-details")
+        status.wait_for(state="visible")
+        demo_page.wait_for_function("document.querySelector('#cm-card-status').textContent.trim() === '—'")
+        assert details.text_content().strip() == ""
+
     def test_docsis_groups_expose_expanded_state(self, demo_page):
         header = demo_page.locator(".docsis-group-header").first
         assert header.get_attribute("aria-expanded") == "false"

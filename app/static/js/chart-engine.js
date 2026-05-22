@@ -53,6 +53,13 @@ function chartXRange(u) {
     return { min: xData[0] - edgePadding, max: xData[xData.length - 1] + edgePadding };
 }
 
+function fillToScaleMin(u, seriesIdx) {
+    var series = u && u.series ? u.series[seriesIdx] : null;
+    var scaleKey = series && series.scale ? series.scale : 'y';
+    var scale = u && u.scales ? (u.scales[scaleKey] || u.scales.y) : null;
+    return scale && scale.min != null ? scale.min : 0;
+}
+
 function buildEvenIndexTicks(count, maxTicks) {
     if (count <= 0) return [];
     if (!maxTicks || maxTicks < 2) maxTicks = 2;
@@ -414,6 +421,7 @@ function renderChart(canvasId, labels, datasets, type, zones, opts) {
             spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false,
             show: ds.show !== undefined ? ds.show : true,
         };
+        if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;
         if (ds.scale) s.scale = ds.scale;
         if (isBar) {
             s.paths = barPaths;
@@ -725,10 +733,11 @@ function openChartZoom(canvasId) {
                 label: ds.label,
                 stroke: ds.color || 'rgba(168,85,247,0.9)',
                 width: isBar ? 0 : 2,
-                fill: isBar ? (ds.color || '#a855f7') + 'cc' : (!isMulti && !isBar ? 'rgba(168,85,247,0.15)' : undefined),
+                fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || (!isMulti && !isBar ? 'rgba(168,85,247,0.15)' : undefined)),
                 points: { show: n <= 30 && !isBar, size: isBar ? 0 : (n > 30 ? 4 : 8) },
                 spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false
             };
+            if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;
             if (isBar) { s.paths = barPaths; s.points = { show: false }; }
             if (ds.stepped) { s.paths = uPlot.paths.stepped({ align: -1 }); s.width = 2; }
             if (ds.dashed) { s.dash = [5, 5]; }

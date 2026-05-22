@@ -545,6 +545,24 @@ class TestSummaryAPI:
         resp = c.get("/api/connection-monitor/summary")
         assert resp.status_code == 200
 
+    def test_summary_is_empty_when_connection_monitor_is_disabled(self, client):
+        c, storage = client
+        tid = storage.create_target("Test", "1.1.1.1", enabled=True)
+        now = time.time()
+        storage.save_samples([
+            {"target_id": tid, "timestamp": now - 5, "latency_ms": 10.0, "timeout": False, "probe_method": "tcp"},
+        ])
+
+        mock_cfg = MagicMock()
+        mock_cfg.get.side_effect = lambda key, default=None: (
+            False if key == "connection_monitor_enabled" else default
+        )
+        with patch("app.modules.connection_monitor.routes.get_config_manager", return_value=mock_cfg):
+            resp = c.get("/api/connection-monitor/summary")
+
+        assert resp.status_code == 200
+        assert resp.get_json() == {}
+
     def test_get_range_stats(self, client):
         c, storage = client
         tid = storage.create_target("Test", "1.1.1.1")

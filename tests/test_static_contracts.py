@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VIEWS_CSS = ROOT / "app" / "static" / "css" / "views.css"
 CORRELATION_JS = ROOT / "app" / "static" / "js" / "correlation.js"
 CHART_ENGINE_JS = ROOT / "app" / "static" / "js" / "chart-engine.js"
+TRENDS_JS = ROOT / "app" / "static" / "js" / "trends.js"
 CHANNELS_JS = ROOT / "app" / "static" / "js" / "channels.js"
 MODULATION_MAIN_JS = ROOT / "app" / "modules" / "modulation" / "static" / "main.js"
 SW_JS = ROOT / "app" / "static" / "sw.js"
@@ -16,6 +17,7 @@ APP_I18N_DIR = ROOT / "app" / "i18n"
 CM_CSS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "style.css"
 CM_DETAIL_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-detail.js"
 CM_CHARTS_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-charts.js"
+CM_CARD_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-card.js"
 
 
 def test_correlation_timeline_sticky_header_uses_opaque_surface():
@@ -75,7 +77,7 @@ def test_correlation_event_type_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v22';" in sw_js
+    assert "var CACHE_VERSION = 'v23';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
@@ -109,6 +111,26 @@ def test_chart_zoom_uses_bounded_index_ticks_instead_of_all_samples():
     assert "var zoomXSplits = buildEvenIndexTicks(n, zoomMaxTicks);" in zoom_block
     assert "for (var i = 0; i < n; i++) o.push(i); return o;" not in zoom_block
     assert "filter: xTickValues" not in zoom_block
+
+
+def test_trend_power_charts_fill_to_visible_axis_floor():
+    chart_engine = CHART_ENGINE_JS.read_text(encoding="utf-8")
+    trends = TRENDS_JS.read_text(encoding="utf-8")
+
+    assert "function fillToScaleMin" in chart_engine
+    assert "if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;" in chart_engine
+    assert "fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined)" in chart_engine
+    assert "var POWER_TREND_FILL" in trends
+    assert "fillTo: fillToScaleMin" in trends
+    assert trends.count("fill: POWER_TREND_FILL") >= 2
+
+
+def test_connection_monitor_card_treats_no_enabled_targets_as_no_data():
+    js = CM_CARD_JS.read_text(encoding="utf-8")
+    no_enabled_block = js[js.index("if (enabled.length === 0)") : js.index("var ok = enabled.filter")]
+
+    assert "statusEl.textContent = '—';" in no_enabled_block
+    assert "detailsEl.textContent = '';" in no_enabled_block
 
 
 def test_modulation_overview_charts_bound_daily_x_axis_ticks():

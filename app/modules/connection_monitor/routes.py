@@ -455,6 +455,10 @@ def api_get_range_stats():
 @bp.route("/api/connection-monitor/summary")
 @require_auth
 def api_get_summary():
+    cfg = get_config_manager()
+    if cfg is not None and not cfg.get("connection_monitor_enabled", False):
+        return jsonify({})
+
     storage = _get_cm_storage()
     targets = storage.get_targets()
     summaries = {}

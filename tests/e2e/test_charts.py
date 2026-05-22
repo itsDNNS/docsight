@@ -111,6 +111,42 @@ class TestTrendCharts:
         assert box["width"] > 100
         assert box["height"] > 50
 
+    def test_power_trend_charts_fill_to_visible_axis_floor(self, demo_page):
+        """DS/US Power charts should render filled areas to the visible y-axis floor."""
+        navigate_to_trends(demo_page)
+        for chart_id in ["chart-ds-power", "chart-us-power"]:
+            wait_for_uplot(demo_page, chart_id)
+
+        fills = demo_page.evaluate(
+            """
+            () => ['chart-ds-power', 'chart-us-power'].map((chartId) => {
+                const chart = window.charts[chartId];
+                const dataset = chart._docsightParams.datasets[0];
+                return {
+                    chartId,
+                    configuredFill: dataset.fill,
+                    fillToValue: chart.series[1].fillTo(chart, 1),
+                    yMin: chart.scales.y.min,
+                };
+            })
+            """
+        )
+
+        assert fills == [
+            {
+                "chartId": "chart-ds-power",
+                "configuredFill": "rgba(168,85,247,0.15)",
+                "fillToValue": -18,
+                "yMin": -18,
+            },
+            {
+                "chartId": "chart-us-power",
+                "configuredFill": "rgba(168,85,247,0.15)",
+                "fillToValue": 17,
+                "yMin": 17,
+            },
+        ]
+
     def test_errors_bar_chart(self, demo_page):
         """Errors chart should render as bar chart with 2 series."""
         navigate_to_trends(demo_page)

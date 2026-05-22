@@ -7,6 +7,7 @@ var _trendRange = 'day';
 var _lastTrendData = null;
 var _lastTrendWeather = null;
 var _lastTrendRange = 'day';
+var POWER_TREND_FILL = 'rgba(168,85,247,0.15)';
 
 /* ── Trend Tabs ── */
 function updateTrendTabs() {
@@ -105,13 +106,13 @@ function _renderTrendCharts() {
     });
     var tempOpts = (_lastTrendWeather && _lastTrendWeather.length > 0) ? { tempData: _lastTrendWeather } : null;
     renderChart('chart-ds-power', xLabels,
-        [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7'}],
+        [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],
         null, DS_POWER_THRESHOLDS, tempOpts);
     renderChart('chart-ds-snr', xLabels,
         [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7'}],
         null, DS_SNR_THRESHOLDS, tempOpts);
     renderChart('chart-us-power', xLabels,
-        [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7'}],
+        [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],
         null, US_POWER_THRESHOLDS, tempOpts);
     var showErrors = _hasTrendDocsisErrorSeries(data);
     _setTrendErrorsVisible(showErrors);

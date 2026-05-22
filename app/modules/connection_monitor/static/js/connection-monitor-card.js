@@ -27,6 +27,12 @@
                 }
 
                 var enabled = targets.filter(function(t) { return t.enabled; });
+                if (enabled.length === 0) {
+                    statusEl.textContent = '—';
+                    detailsEl.textContent = '';
+                    return;
+                }
+
                 var ok = enabled.filter(function(t) { return (t.packet_loss_pct || 0) === 0; });
                 var degraded = enabled.filter(function(t) {
                     var loss = t.packet_loss_pct || 0;
