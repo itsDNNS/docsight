@@ -1,0 +1,9 @@
+{
+  "weather_title": "Időjárás",
+  "weather_optional": "opcionális — a jelminőséget korrelálja a külső hőmérséklettel",
+  "weather_enable": "Az időjárási adatok gyűjtésének engedélyezése",
+  "weather_enable_hint": "Lekéri az óránkénti külső hőmérsékletet az Open-Meteo-tól (ingyenes, API kulcs nélkül). A korábbi adatok automatikusan kitöltésre kerülnek.",
+  "weather_latitude": "Latitude",
+  "weather_longitude": "Hosszúság",
+  "weather_coord_hint": "Az Ön helyének koordinátái (pl. 52,52 / 13,41 Berlin esetében). Keresse meg a sajátját a latlong.net oldalon"
+}

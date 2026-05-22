@@ -1,0 +1,15 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "valikuline",
+  "smokeping_url_label": "Smokeping URL",
+  "smokeping_url_hint": "Teie Smokepingi eksemplari baas URL (ilma /vahemälu/)",
+  "smokeping_targets_label": "Sihtmärgid",
+  "smokeping_targets_hint": "Komaga eraldatud suitsetamise hierarhiateed (nt InternetSites.Google). Kontrollige täpsete nimede jaoks oma Smokeping Targetsi konfiguratsiooni.",
+  "smokeping_no_data": "Could not load Smokeping graphs.",
+  "smokeping_setup": "Smokeping Setup",
+  "smokeping_setup_title": "Smokeping Latency Monitoring",
+  "smokeping_setup_intro": "Smokeping mõõdab võrgu latentsust, saates pingid konfigureeritud sihtmärkidele. DOCSight suudab neid graafikuid kuvada koos teie modemiandmetega.",
+  "smokeping_setup_step_1": "Installige ja konfigureerige <b>Smokeping</b> oma võrku",
+  "smokeping_setup_step_2": "Pange tähele oma Smokepingi veebiliidese <b>base URL</b>",
+  "smokeping_setup_step_3": "Sisestage URL ja <b> sihtmärgi nimed</b> menüüsse DOCSight"
+}

@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Разширени: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT Брокер",
+  "mqtt_desc": "За Home Assistant интеграция чрез MQTT Auto-Discovery. Без MQTT работи само уеб интерфейсът.",
+  "mqtt_optional_ha": "по избор - за Home Assistant",
+  "mqtt_tls_insecure": "Несигурен TLS",
+  "username_opt": "Потребителско име (по избор)",
+  "password_opt": "Парола (по избор)",
+  "topic_prefix": "Префикс на тема",
+  "discovery_prefix": "Префикс за откриване",
+  "discovery_prefix_hint": "По подразбиране: домашен асистент. Променете само ако сте го персонализирали в HA."
+}

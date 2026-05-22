@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Avansat: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT Broker",
+  "mqtt_desc": "Pentru integrarea Home Assistant prin Auto-Descoperire MQTT. Fără MQTT rulează numai interfața de utilizare web.",
+  "mqtt_optional_ha": "opțional - pentru Home Assistant",
+  "mqtt_tls_insecure": "Nesigur TLS",
+  "username_opt": "Nume de utilizator (opțional)",
+  "password_opt": "Parolă (opțional)",
+  "topic_prefix": "Prefix de subiect",
+  "discovery_prefix": "Prefix de descoperire",
+  "discovery_prefix_hint": "Implicit: asistent acasă. Schimbați-l doar dacă l-ați personalizat în HA."
+}

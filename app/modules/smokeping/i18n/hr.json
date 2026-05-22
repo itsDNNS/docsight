@@ -1,0 +1,15 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "izborno",
+  "smokeping_url_label": "Smokeping URL",
+  "smokeping_url_hint": "Baza URL vaše Smokeping instance (bez /cache/)",
+  "smokeping_targets_label": "Mete",
+  "smokeping_targets_hint": "Putovi hijerarhije Smokepinga odvojeni zarezima (npr. InternetSites.Google). Provjerite konfiguraciju Smokeping Targets za točna imena.",
+  "smokeping_no_data": "Could not load Smokeping graphs.",
+  "smokeping_setup": "Smokeping Setup",
+  "smokeping_setup_title": "Smokeping Latency Monitoring",
+  "smokeping_setup_intro": "Smokeping mjeri kašnjenje mreže slanjem pingova konfiguriranim ciljevima. DOCSight može prikazati ove grafikone uz podatke vašeg modema.",
+  "smokeping_setup_step_1": "Instalirajte i konfigurirajte <b>Smokeping</b> na vašoj mreži",
+  "smokeping_setup_step_2": "Obratite pažnju na <b>base URL</b> vašeg Smokeping web sučelja",
+  "smokeping_setup_step_3": "Unesite URL i <b>nazive ciljeva</b> u postavke DOCSight"
+}

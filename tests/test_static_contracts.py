@@ -1,6 +1,8 @@
 """Static UI/CSS contract tests."""
 
 import json
+import re
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +16,17 @@ SW_JS = ROOT / "app" / "static" / "sw.js"
 MAIN_CSS = ROOT / "app" / "static" / "css" / "main.css"
 INDEX_HTML = ROOT / "app" / "templates" / "index.html"
 APP_I18N_DIR = ROOT / "app" / "i18n"
+EUROPEAN_LANGUAGE_PACK = {
+    "bg", "cs", "da", "de", "el", "en", "es", "et", "fi", "fr",
+    "ga", "hr", "hu", "it", "lt", "lv", "nb", "nl", "pl", "pt",
+    "ro", "sk", "sl", "sv",
+}
+I18N_PLACEHOLDER_RE = re.compile(
+    r"(</?[A-Za-z][^>]*>|&[a-zA-Z0-9#]+;|\{\{[^}]+\}\}|\{[^}]+\}|%\([^)]+\)[sd]|%[sd])"
+)
+I18N_PROTECTED_LITERALS = {"Apprise", "DOCSight", "dBmV", "Smokeping"}
+I18N_EMPTY_TAG_RE = re.compile(r"<([A-Za-z][^>]*)>\s*</\1>")
+I18N_LEADING_SENTINEL_RE = re.compile(r"^\s*@")
 CM_CSS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "style.css"
 CM_DETAIL_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-detail.js"
 CM_CHARTS_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-charts.js"
@@ -178,6 +191,89 @@ def test_dashboard_i18n_keys_exist_in_all_language_files():
         missing = sorted(required_keys - data.keys())
         if missing:
             offenders.append(f"{path.name}: {', '.join(missing)}")
+
+    assert offenders == []
+
+
+def test_european_language_pack_files_cover_core_and_modules():
+    """Every built-in i18n catalog participates in the European language pack."""
+    i18n_dirs = [APP_I18N_DIR] + sorted((ROOT / "app" / "modules").glob("*/i18n"))
+    offenders = []
+    for i18n_dir in i18n_dirs:
+        if not (i18n_dir / "en.json").exists():
+            continue
+        present = {path.stem for path in i18n_dir.glob("*.json") if path.stem != "template"}
+        missing = sorted(EUROPEAN_LANGUAGE_PACK - present)
+        if missing:
+            offenders.append(f"{i18n_dir.relative_to(ROOT)} missing {', '.join(missing)}")
+
+    assert offenders == []
+
+
+def test_european_language_pack_metadata_and_key_parity():
+    """Core locale files are selectable and structurally complete."""
+    en = json.loads((APP_I18N_DIR / "en.json").read_text(encoding="utf-8-sig"))
+    expected_keys = set(en.keys())
+    offenders = []
+    for code in sorted(EUROPEAN_LANGUAGE_PACK):
+        path = APP_I18N_DIR / f"{code}.json"
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+        meta = data.get("_meta", {})
+        if not meta.get("language_name") or meta.get("language_name") == code:
+            offenders.append(f"{code}: missing native language_name")
+        if not meta.get("flag"):
+            offenders.append(f"{code}: missing flag")
+        missing = sorted(expected_keys - set(data.keys()))
+        extra = sorted(set(data.keys()) - expected_keys)
+        if missing or extra:
+            offenders.append(f"{code}: missing={missing[:5]} extra={extra[:5]}")
+
+    assert offenders == []
+
+
+def test_european_language_pack_preserves_catalog_contracts():
+    """Every catalog keeps key, list, and placeholder contracts intact."""
+    offenders = []
+
+    def walk(path_label, source, target):
+        if isinstance(source, dict) and isinstance(target, dict):
+            missing = sorted(set(source) - set(target))
+            extra = sorted(set(target) - set(source))
+            if missing or extra:
+                offenders.append(f"{path_label}: missing={missing[:5]} extra={extra[:5]}")
+            for key in source:
+                if key in target:
+                    walk(f"{path_label}.{key}", source[key], target[key])
+        elif isinstance(source, list) and isinstance(target, list):
+            if len(source) != len(target) and not path_label.endswith(".isp_options"):
+                offenders.append(f"{path_label}: list length {len(target)} != {len(source)}")
+            for idx, (source_item, target_item) in enumerate(zip(source, target)):
+                walk(f"{path_label}[{idx}]", source_item, target_item)
+        elif isinstance(source, str) and isinstance(target, str):
+            if "ZXQ" in target or "@@@" in target:
+                offenders.append(f"{path_label}: leaked translation sentinel")
+            if I18N_LEADING_SENTINEL_RE.search(target):
+                offenders.append(f"{path_label}: leaked leading translation sentinel")
+            if I18N_EMPTY_TAG_RE.search(target):
+                offenders.append(f"{path_label}: empty HTML tag")
+            for literal in I18N_PROTECTED_LITERALS:
+                if literal in source and literal not in target:
+                    offenders.append(f"{path_label}: missing protected literal {literal}")
+            source_placeholders = Counter(I18N_PLACEHOLDER_RE.findall(source))
+            target_placeholders = Counter(I18N_PLACEHOLDER_RE.findall(target))
+            if source_placeholders != target_placeholders:
+                offenders.append(f"{path_label}: placeholder mismatch")
+
+    i18n_dirs = [APP_I18N_DIR] + sorted((ROOT / "app" / "modules").glob("*/i18n"))
+    for i18n_dir in i18n_dirs:
+        source_path = i18n_dir / "en.json"
+        if not source_path.exists():
+            continue
+        source = json.loads(source_path.read_text(encoding="utf-8-sig"))
+        for code in sorted(EUROPEAN_LANGUAGE_PACK):
+            path = i18n_dir / f"{code}.json"
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            walk(f"{path.relative_to(ROOT)}", source, data)
 
     assert offenders == []
 

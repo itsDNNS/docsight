@@ -1,0 +1,15 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "nepovinné",
+  "smokeping_url_label": "Smokeping URL",
+  "smokeping_url_hint": "Základní URL vaší instance Smokeping (bez /cache/)",
+  "smokeping_targets_label": "Cíle",
+  "smokeping_targets_hint": "Smokeping hierarchické cesty oddělené čárkami (např. InternetSites.Google). Přesná jména najdete v konfiguraci Smokeping Targets.",
+  "smokeping_no_data": "Could not load Smokeping graphs.",
+  "smokeping_setup": "Smokeping Setup",
+  "smokeping_setup_title": "Smokeping Latency Monitoring",
+  "smokeping_setup_intro": "Smokeping měří latenci sítě odesíláním pingů na nakonfigurované cíle. DOCSight dokáže zobrazit tyto grafy spolu s daty vašeho modemu.",
+  "smokeping_setup_step_1": "Nainstalujte a nakonfigurujte <b>Smokeping</b> ve vaší síti",
+  "smokeping_setup_step_2": "Všimněte si <b>base URL</b> vašeho webového rozhraní Smokeping",
+  "smokeping_setup_step_3": "Zadejte URL a <b>názvy cílů</b> v nastavení DOCSight"
+}

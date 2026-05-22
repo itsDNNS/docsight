@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Haladó: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT bróker",
+  "mqtt_desc": "Home Assistant integrációhoz a MQTT automatikus felfedezésen keresztül. A MQTT nélkül csak a webes felhasználói felület fut.",
+  "mqtt_optional_ha": "opcionális - Home Assistant esetén",
+  "mqtt_tls_insecure": "Nem biztonságos TLS",
+  "username_opt": "Felhasználónév (opcionális)",
+  "password_opt": "Jelszó (nem kötelező)",
+  "topic_prefix": "Témaelőtag",
+  "discovery_prefix": "Felfedezési előtag",
+  "discovery_prefix_hint": "Alapértelmezett: háziasszisztens. Csak akkor módosítsa, ha testreszabta a HA-ban."
+}

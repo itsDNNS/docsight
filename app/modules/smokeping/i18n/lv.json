@@ -1,0 +1,15 @@
+{
+  "smokeping_title": "Smokeping",
+  "smokeping_optional": "nav obligāti",
+  "smokeping_url_label": "Smokeping URL",
+  "smokeping_url_hint": "Jūsu Smokeping instances bāze URL (bez /kešatmiņas/)",
+  "smokeping_targets_label": "Mērķi",
+  "smokeping_targets_hint": "Ar komatu atdalīti smēķētāju hierarhijas ceļi (piem., InternetSites.Google). Pārbaudiet precīzus nosaukumus savā Smokeping Targets konfigurācijā.",
+  "smokeping_no_data": "Could not load Smokeping graphs.",
+  "smokeping_setup": "Smokeping Setup",
+  "smokeping_setup_title": "Smokeping Latency Monitoring",
+  "smokeping_setup_intro": "Smokeping mēra tīkla latentumu, nosūtot ping uz konfigurētiem mērķiem. DOCSight var attēlot šos grafikus kopā ar jūsu modema datiem.",
+  "smokeping_setup_step_1": "Instalējiet un konfigurējiet <b>Smokeping</b> savā tīklā",
+  "smokeping_setup_step_2": "Ņemiet vērā jūsu Smokeping tīmekļa saskarnes <b>base URL</b>",
+  "smokeping_setup_step_3": "DOCSight iestatījumos ievadiet URL un <b>mērķa nosaukumus</b>"
+}

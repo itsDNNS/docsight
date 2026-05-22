@@ -1,0 +1,9 @@
+{
+  "weather_title": "Vrijeme",
+  "weather_optional": "izborno — usporedite kvalitetu signala s vanjskom temperaturom",
+  "weather_enable": "Omogući prikupljanje vremenskih podataka",
+  "weather_enable_hint": "Dohvaća vanjsku temperaturu po satu iz Open-Meteo (besplatno, bez ključa API). Povijesni podaci popunjavaju se automatski.",
+  "weather_latitude": "Zemljopisna širina",
+  "weather_longitude": "Zemljopisna dužina",
+  "weather_coord_hint": "Vaše koordinate lokacije (npr. 52.52 / 13.41 za Berlin). Pronađite svoju na latlong.net"
+}

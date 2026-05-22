@@ -1,0 +1,9 @@
+{
+  "weather_title": "Tempo",
+  "weather_optional": "opcional — correlacionar a qualidade do sinal com a temperatura externa",
+  "weather_enable": "Habilitar coleta de dados meteorológicos",
+  "weather_enable_hint": "Obtém a temperatura externa por hora no Open-Meteo (gratuito, sem chave API). Os dados históricos são preenchidos automaticamente.",
+  "weather_latitude": "Latitude",
+  "weather_longitude": "Longitude",
+  "weather_coord_hint": "Suas coordenadas de localização (por exemplo, 52.52 / 13.41 para Berlim). Encontre o seu em latlong.net"
+}

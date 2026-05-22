@@ -1,0 +1,9 @@
+{
+  "weather_title": "Vreme",
+  "weather_optional": "neobvezno — povezava kakovosti signala z zunanjo temperaturo",
+  "weather_enable": "Omogoči zbiranje vremenskih podatkov",
+  "weather_enable_hint": "Pridobi urno zunanjo temperaturo iz Open-Meteo (brezplačno, brez ključa API). Zgodovinski podatki se samodejno zapolnijo.",
+  "weather_latitude": "Zemljepisna širina",
+  "weather_longitude": "Dolžina",
+  "weather_coord_hint": "Vaše koordinate lokacije (npr. 52.52 / 13.41 za Berlin). Poiščite svojega na latlong.net"
+}

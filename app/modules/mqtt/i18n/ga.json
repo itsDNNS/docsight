@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Casta: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT Bróicéir",
+  "mqtt_desc": "Le haghaidh comhtháthú Home Assistant trí Auto-Fionnachtain MQTT. Gan MQTT ní ritheann ach an Chomhéadain Gréasáin.",
+  "mqtt_optional_ha": "roghnach - le haghaidh Home Assistant",
+  "mqtt_tls_insecure": "neamhdhaingean TLS",
+  "username_opt": "Ainm úsáideora (roghnach)",
+  "password_opt": "Pasfhocal (roghnach)",
+  "topic_prefix": "Réimír na dTopaicí",
+  "discovery_prefix": "Discovery Réimír",
+  "discovery_prefix_hint": "Réamhshocrú: cúntóir tí. Ná athraigh ach amháin má shaincheap tú é in HA."
+}

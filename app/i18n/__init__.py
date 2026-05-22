@@ -9,7 +9,7 @@ LANGUAGES = {}
 LANG_FLAGS = {}
 
 for _fname in sorted(os.listdir(_DIR)):
-    if not _fname.endswith(".json"):
+    if not _fname.endswith(".json") or _fname == "template.json":
         continue
     _code = _fname[:-5]  # "en.json" -> "en"
     with open(os.path.join(_DIR, _fname), "r", encoding="utf-8-sig") as _f:

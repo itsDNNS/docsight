@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Avançado: MQTT / Home Assistant",
+  "mqtt_broker": "Corretor MQTT",
+  "mqtt_desc": "Para integração Home Assistant via descoberta automática MQTT. Sem MQTT, apenas a UI da web é executada.",
+  "mqtt_optional_ha": "opcional - para Home Assistant",
+  "mqtt_tls_insecure": "TLS inseguro",
+  "username_opt": "Nome de usuário (opcional)",
+  "password_opt": "Senha (opcional)",
+  "topic_prefix": "Prefixo do tópico",
+  "discovery_prefix": "Prefixo de descoberta",
+  "discovery_prefix_hint": "Padrão: assistente doméstico. Altere apenas se você personalizou no HA."
+}

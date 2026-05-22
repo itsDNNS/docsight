@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Geavanceerd: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT Makelaar",
+  "mqtt_desc": "Voor Home Assistant-integratie via MQTT Auto-Discovery. Zonder MQTT werkt alleen de webinterface.",
+  "mqtt_optional_ha": "optioneel - voor Home Assistant",
+  "mqtt_tls_insecure": "Onzeker TLS",
+  "username_opt": "Gebruikersnaam (optioneel)",
+  "password_opt": "Wachtwoord (optioneel)",
+  "topic_prefix": "Onderwerpvoorvoegsel",
+  "discovery_prefix": "Ontdekkingsvoorvoegsel",
+  "discovery_prefix_hint": "Standaard: thuisassistent. Verander alleen als je het in HA hebt aangepast."
+}

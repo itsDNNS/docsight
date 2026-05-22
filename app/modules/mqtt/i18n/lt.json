@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Išplėstinė: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT tarpininkas",
+  "mqtt_desc": "Skirta Home Assistant integravimui per MQTT automatinį aptikimą. Be MQTT veikia tik žiniatinklio vartotojo sąsaja.",
+  "mqtt_optional_ha": "pasirinktinai – Home Assistant",
+  "mqtt_tls_insecure": "Nesaugus TLS",
+  "username_opt": "Vartotojo vardas (neprivaloma)",
+  "password_opt": "Slaptažodis (neprivaloma)",
+  "topic_prefix": "Temos priešdėlis",
+  "discovery_prefix": "Atradimo priešdėlis",
+  "discovery_prefix_hint": "Numatytoji: namų asistentas. Keiskite tik tuo atveju, jei jį pritaikėte HA."
+}

@@ -1,0 +1,9 @@
+{
+  "weather_title": "Vær",
+  "weather_optional": "valgfritt — korreler signalkvalitet med utetemperatur",
+  "weather_enable": "Aktiver innsamling av værdata",
+  "weather_enable_hint": "Henter utetemperatur per time fra Open-Meteo (gratis, ingen API-nøkkel). Historiske data fylles automatisk ut.",
+  "weather_latitude": "Latitude",
+  "weather_longitude": "Lengdegrad",
+  "weather_coord_hint": "Posisjonskoordinatene dine (f.eks. 52.52 / 13.41 for Berlin). Finn din på latlong.net"
+}

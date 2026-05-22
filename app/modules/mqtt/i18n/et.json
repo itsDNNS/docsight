@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Täpsem: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT maakler",
+  "mqtt_desc": "Home Assistant integreerimiseks MQTT automaattuvastuse kaudu. Ilma MQTTta töötab ainult veebi kasutajaliides.",
+  "mqtt_optional_ha": "valikuline – Home Assistant jaoks",
+  "mqtt_tls_insecure": "Ebakindel TLS",
+  "username_opt": "Kasutajanimi (valikuline)",
+  "password_opt": "Parool (valikuline)",
+  "topic_prefix": "Teema eesliide",
+  "discovery_prefix": "Discovery Prefiks",
+  "discovery_prefix_hint": "Vaikimisi: koduabi. Muutke ainult siis, kui kohandasite seda HA-s."
+}

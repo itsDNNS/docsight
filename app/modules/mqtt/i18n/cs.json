@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Pokročilé: MQTT / Home Assistant",
+  "mqtt_broker": "MQTT Broker",
+  "mqtt_desc": "Pro integraci Home Assistant přes MQTT Auto-Discovery. Bez MQTT běží pouze webové uživatelské rozhraní.",
+  "mqtt_optional_ha": "volitelný - pro Home Assistant",
+  "mqtt_tls_insecure": "Nezabezpečené TLS",
+  "username_opt": "Uživatelské jméno (volitelné)",
+  "password_opt": "Heslo (volitelné)",
+  "topic_prefix": "Předpona tématu",
+  "discovery_prefix": "Předpona Discovery",
+  "discovery_prefix_hint": "Výchozí: domácí asistent. Změňte pouze, pokud jste si to přizpůsobili v HA."
+}

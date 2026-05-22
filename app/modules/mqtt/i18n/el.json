@@ -1,0 +1,12 @@
+{
+  "advanced_mqtt": "Για προχωρημένους: MQTT / Home Assistant",
+  "mqtt_broker": "Μεσίτης MQTT",
+  "mqtt_desc": "Για ενσωμάτωση Home Assistant μέσω MQTT Auto-Discovery. Χωρίς MQTT εκτελείται μόνο η διεπαφή ιστού.",
+  "mqtt_optional_ha": "προαιρετικό - για Home Assistant",
+  "mqtt_tls_insecure": "Ανασφαλές TLS",
+  "username_opt": "Όνομα χρήστη (προαιρετικό)",
+  "password_opt": "Κωδικός πρόσβασης (προαιρετικό)",
+  "topic_prefix": "Πρόθεμα θέματος",
+  "discovery_prefix": "Πρόθεμα Discovery",
+  "discovery_prefix_hint": "Προεπιλογή: homeassistant. Αλλάξτε μόνο εάν το προσαρμόσατε σε HA."
+}
