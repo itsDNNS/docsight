@@ -343,6 +343,105 @@ class TestSettingsInstantToggleSave:
         assert len(batch_payloads[0]["modules"]) == 1
         assert immediate_calls == []
 
+    def test_normal_instant_toggle_does_not_flash_manual_save_footer_while_save_is_pending(self, settings_page):
+        pending_routes = []
+
+        def hold_config(route):
+            pending_routes.append(route)
+
+        settings_page.route("**/api/config", hold_config)
+        settings_page.locator('button[data-section="notifications"]').click()
+        footer = settings_page.locator("#save-footer")
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
+
+        assert settings_page.evaluate("() => window._formDirty") is True
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        expect(footer).to_have_attribute("aria-hidden", "true")
+        expect(footer).to_have_attribute("inert", "")
+        assert len(pending_routes) == 1
+        pending_routes[0].fulfill(json={"success": True})
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+    def test_normal_instant_toggle_success_does_not_show_settings_saved_toast(self, settings_page):
+        settings_page.route("**/api/config", lambda route: route.fulfill(json={"success": True}))
+        settings_page.locator('button[data-section="notifications"]').click()
+
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
+
+        toast = settings_page.locator("#toast")
+        expect(toast).not_to_be_visible()
+        expect(toast).not_to_have_text(re.compile(r"Settings saved", re.I))
+
+    def test_queued_instant_toggles_keep_manual_save_footer_hidden_between_saves(self, settings_page):
+        pending_routes = []
+
+        def hold_config(route):
+            pending_routes.append(route)
+
+        settings_page.route("**/api/config", hold_config)
+        settings_page.locator('button[data-section="notifications"]').click()
+        footer = settings_page.locator("#save-footer")
+
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
+        settings_page.evaluate(
+            """
+            () => {
+              const toggle = document.querySelector('#notify_pwa_push_enabled');
+              toggle.checked = !toggle.checked;
+              window._saveSettingsInstantly();
+            }
+            """
+        )
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        with settings_page.expect_request("**/api/config"):
+            pending_routes[0].fulfill(json={"success": True})
+        settings_page.wait_for_timeout(50)
+
+        assert len(pending_routes) == 2
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        pending_routes[1].fulfill(json={"success": True})
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+    def test_notification_cooldown_edit_keeps_dirty_protection_until_change_save_succeeds(self, settings_page):
+        settings_page.route("**/api/config", lambda route: route.fulfill(json={"success": True}))
+        settings_page.locator('button[data-section="notifications"]').click()
+        input_el = settings_page.locator('.notify-event-row[data-event="power_change"][data-severity="warning"] .notify-cooldown-input')
+        footer = settings_page.locator("#save-footer")
+
+        input_el.fill('42')
+        assert settings_page.evaluate("() => window._formDirty") is True
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        with settings_page.expect_request("**/api/config"):
+            input_el.blur()
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+        assert settings_page.evaluate("() => window._formDirty") is False
+
+    def test_hidden_companion_instant_toggle_does_not_poison_manual_dirty_baseline(self, settings_page):
+        settings_page.route("**/api/config", lambda route: route.fulfill(json={"success": True}))
+        settings_page.locator('button[data-section="extensions"]').click()
+        footer = settings_page.locator("#save-footer")
+        instant_toggle = settings_page.locator('#panel-extensions label.toggle input[type="checkbox"]:not(.module-toggle-input)').first
+        expect(instant_toggle).to_have_count(1)
+
+        with settings_page.expect_request("**/api/config"):
+            instant_toggle.evaluate("el => { el.checked = !el.checked; el.dispatchEvent(new Event('change', {bubbles: true})); }")
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        settings_page.locator('button[data-section="general"]').click()
+        manual_field = settings_page.locator('#poll_interval')
+        original_value = manual_field.input_value()
+        edited_value = "901" if original_value != "901" else "902"
+        manual_field.fill(edited_value)
+        expect(footer).to_have_class(re.compile(r".*\bvisible\b.*"))
+        manual_field.fill(original_value)
+        expect(footer).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
     def test_notification_event_toggle_saves_cooldowns_immediately(self, settings_page):
         config_payloads = []
 
