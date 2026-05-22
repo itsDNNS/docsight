@@ -469,7 +469,12 @@ class NotificationDispatcher:
                         f"{type(channel).__name__}: {detail or 'send returned false'}",
                     )
             except Exception as e:
-                errors.append(f"{type(channel).__name__}: {e}")
+                log.warning(
+                    "Notification test failed for channel %s: %s",
+                    type(channel).__name__,
+                    type(e).__name__,
+                )
+                errors.append(f"{type(channel).__name__}: test failed; check server logs")
         if errors:
             return {"success": False, "error": "; ".join(errors)}
         return {"success": True}

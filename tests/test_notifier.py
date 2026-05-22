@@ -488,6 +488,23 @@ class TestDispatcherChannelSetup:
         assert key_marker not in result.get("error", "")
         assert apprise_token_marker not in result.get("error", "")
 
+    def test_test_notification_returns_generic_error_for_unexpected_channel_exception(self, monkeypatch):
+        class BrokenChannel:
+            def send(self, payload):
+                raise RuntimeError("secret-token-123 / internal/path")
+
+        dispatcher = NotificationDispatcher(self._make_config(None))
+        monkeypatch.setattr(dispatcher, "_get_channels", lambda: [BrokenChannel()])
+
+        result = dispatcher.test()
+
+        assert result == {
+            "success": False,
+            "error": "BrokenChannel: test failed; check server logs",
+        }
+        assert "secret-token-123" not in result.get("error", "")
+        assert "internal/path" not in result.get("error", "")
+
 
 class TestDispatcherSeverityCooldowns:
     def _make_config(self, cooldowns, default_cooldown="3600"):
