@@ -714,7 +714,10 @@ function runDemoMigration() {
 
 /* ── Unsaved Changes ── */
 var _formDirty = false;
+var _manualDirty = false;
 var _formBaseline = null;
+var _manualFormBaseline = null;
+var _instantSaveFailedDirty = false;
 var _secretEditVersionCounter = 0;
 
 function _isSavedSecretField(el) {
@@ -753,18 +756,21 @@ function _normalizedFormValue(el) {
     return el.value || '';
 }
 
-function _serializeSettingsForm(form) {
+function _serializeSettingsForm(form, options) {
     if (!form) return '[]';
+    options = options || {};
+    var ignoreInstantSaveControls = options.ignoreInstantSaveControls === true;
     var fields = [];
     Array.prototype.forEach.call(form.elements, function(el) {
         if (!el.name || el.type === 'submit' || el.type === 'button' || el.type === 'file') return;
+        if (ignoreInstantSaveControls && _isInstantSaveControl(el)) return;
         var field = { name: el.name, id: el.getAttribute('data-module-id') || '', type: el.type || el.tagName, value: _normalizedFormValue(el) };
         if (_isSavedSecretField(el) && el.dataset.userEditedSecret) {
             field.secretEditVersion = el.dataset.secretEditVersion || '';
         }
         fields.push(field);
     });
-    document.querySelectorAll('.notify-event-row').forEach(function(row) {
+    if (!ignoreInstantSaveControls) document.querySelectorAll('.notify-event-row').forEach(function(row) {
         var eventKey = row.getAttribute('data-event');
         var severity = row.getAttribute('data-severity') || '';
         var key = severity ? eventKey + ':' + severity : eventKey;
@@ -784,15 +790,53 @@ function _serializeSettingsForm(form) {
     return JSON.stringify(fields);
 }
 
+function _serializeManualSettingsForm(form) {
+    return _serializeSettingsForm(form, { ignoreInstantSaveControls: true });
+}
+
+function _isInstantSaveFieldRecord(field, form) {
+    if (!field || !form) return false;
+    if (field.type === 'notification-cooldown') return true;
+    return Array.prototype.some.call(form.elements, function(el) {
+        if (!el || el.name !== field.name || !_isInstantSaveControl(el)) return false;
+        var moduleId = el.getAttribute('data-module-id') || '';
+        return (field.id || '') === moduleId && (el.type || el.tagName) === field.type;
+    });
+}
+
+function _manualBaselineFromSerialized(serializedBaseline, form) {
+    if (!form) return '[]';
+    try {
+        var fields = JSON.parse(serializedBaseline || '[]').filter(function(field) {
+            return !_isInstantSaveFieldRecord(field, form);
+        });
+        fields.sort(function(a, b) {
+            return (a.name + ':' + a.id + ':' + a.type).localeCompare(b.name + ':' + b.id + ':' + b.type);
+        });
+        return JSON.stringify(fields);
+    } catch(e) {
+        return _serializeManualSettingsForm(form);
+    }
+}
+
 function _captureFormBaseline() {
     var form = document.getElementById('settings-form');
     _formBaseline = _serializeSettingsForm(form);
+    _manualFormBaseline = _serializeManualSettingsForm(form);
+}
+
+function _hasManualDirtyChanges() {
+    var form = document.getElementById('settings-form');
+    if (!form) return false;
+    if (_manualFormBaseline === null) _captureFormBaseline();
+    return _serializeManualSettingsForm(form) !== _manualFormBaseline;
 }
 
 function _syncSaveFooter() {
     var footer = document.getElementById('save-footer');
     if (!footer) return;
-    if (_formDirty && !_saveHiddenSections[_currentSection]) {
+    var shouldShowFooter = _formDirty && !_saveHiddenSections[_currentSection] && (_instantSaveFailedDirty || _manualDirty);
+    if (shouldShowFooter) {
         footer.classList.add('visible');
         footer.removeAttribute('aria-hidden');
         footer.removeAttribute('inert');
@@ -803,12 +847,32 @@ function _syncSaveFooter() {
     }
 }
 
-function _updateDirtyState() {
+function _updateDirtyState(options) {
+    options = options || {};
     var form = document.getElementById('settings-form');
     if (!form) return;
     if (_formBaseline === null) _captureFormBaseline();
     _formDirty = _serializeSettingsForm(form) !== _formBaseline;
+    if (options.updateManualDirty !== false) {
+        _manualDirty = _hasManualDirtyChanges();
+    }
     _syncSaveFooter();
+}
+
+function _isInstantSaveControl(el) {
+    if (!el || !el.matches) return false;
+    if (el.id === 'theme-toggle-appearance') return false;
+    return el.matches([
+        'label.toggle input[type="checkbox"]',
+        'label.switch input[type="checkbox"]',
+        '.module-toggle-input',
+        '.notify-toggle',
+        '.notify-cooldown-input'
+    ].join(','));
+}
+
+function _isInstantSaveDirtyEvent(e) {
+    return _isInstantSaveControl(e && e.target);
 }
 
 function initUnsavedDetection() {
@@ -819,6 +883,10 @@ function initUnsavedDetection() {
         if (_shouldTreatSavedSecretEventAsUserEdit(e)) {
             e.target.dataset.userEditedSecret = 'true';
             e.target.dataset.secretEditVersion = String(++_secretEditVersionCounter);
+        }
+        if (_isInstantSaveDirtyEvent(e)) {
+            _updateDirtyState({ updateManualDirty: false });
+            return;
         }
         _updateDirtyState();
     }
@@ -851,6 +919,8 @@ function clearDirty() {
     _resetEditedSavedSecrets();
     _captureFormBaseline();
     _formDirty = false;
+    _manualDirty = false;
+    _instantSaveFailedDirty = false;
     _syncSaveFooter();
 }
 
@@ -938,7 +1008,9 @@ function _savedSecretVersionsFromBaseline(serializedBaseline) {
     return versions;
 }
 
-function _finishSettingsSave(savedFormBaseline) {
+function _finishSettingsSave(savedFormBaseline, options) {
+    options = options || {};
+    var showSuccessToast = options.showSuccessToast !== false;
     var form = document.getElementById('settings-form');
     if (!savedFormBaseline || !form) {
         clearDirty();
@@ -948,14 +1020,19 @@ function _finishSettingsSave(savedFormBaseline) {
         _resetEditedSavedSecrets(savedSecretVersions);
         if (_serializeSettingsForm(form) === savedBaseline) {
             _formBaseline = savedBaseline;
+            _manualFormBaseline = _manualBaselineFromSerialized(savedBaseline, form);
+            _instantSaveFailedDirty = false;
+            _manualDirty = false;
             _formDirty = false;
             _syncSaveFooter();
         } else {
             _formBaseline = savedBaseline;
-            _updateDirtyState();
+            _manualFormBaseline = _manualBaselineFromSerialized(savedBaseline, form);
+            _instantSaveFailedDirty = false;
+            _updateDirtyState({ updateManualDirty: false });
         }
     }
-    showToast(T.settings_saved || 'Settings saved', true);
+    if (showSuccessToast) showToast(T.settings_saved || 'Settings saved', true);
     var newLang = document.getElementById('language').value;
     var newTz = document.getElementById('timezone').value;
     if (newLang !== currentLang || newTz !== currentTz) {
@@ -963,7 +1040,7 @@ function _finishSettingsSave(savedFormBaseline) {
     }
 }
 
-function _saveAllSettings() {
+function _saveAllSettings(options) {
     var form = document.getElementById('settings-form');
     var data = getFormData();
     var savedFormBaseline = _serializeSettingsForm(form);
@@ -981,7 +1058,7 @@ function _saveAllSettings() {
         return _saveModuleStatesIfNeeded(moduleStates);
     })
     .then(function() {
-        _finishSettingsSave(savedFormBaseline);
+        _finishSettingsSave(savedFormBaseline, options);
         return true;
     });
 }
@@ -1006,9 +1083,9 @@ function _saveForm() {
 
 var _settingsSaveQueue = Promise.resolve();
 
-function _enqueueSettingsSave() {
+function _enqueueSettingsSave(options) {
     _settingsSaveQueue = _settingsSaveQueue.catch(function() { return true; }).then(function() {
-        return _saveAllSettings();
+        return _saveAllSettings(options);
     });
     return _settingsSaveQueue;
 }
@@ -1016,12 +1093,13 @@ function _enqueueSettingsSave() {
 function _saveSettingsInstantly() {
     var errEl = document.getElementById('global-error');
     if (errEl) errEl.style.display = 'none';
-    return _enqueueSettingsSave().catch(function(err) {
+    return _enqueueSettingsSave({ showSuccessToast: false }).catch(function(err) {
         if (errEl) {
             errEl.textContent = err.message || T.network_error;
             errEl.style.display = 'block';
         }
-        _updateDirtyState();
+        _instantSaveFailedDirty = true;
+        _updateDirtyState({ updateManualDirty: false });
         return false;
     });
 }
@@ -1524,6 +1602,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     _captureFormBaseline();
     _formDirty = false;
+    _manualDirty = false;
 
     /* Restore section from URL hash, default to connection */
     var hash = location.hash.replace('#', '');
