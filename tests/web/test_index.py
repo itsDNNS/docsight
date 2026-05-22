@@ -303,7 +303,9 @@ class TestIndexRoute:
         modulation_context = html[
             html.index('class="hero-modulation-context"'):html.index('class="hero-chart-wrap"')
         ]
-        assert "Modulation data unavailable" in modulation_context
+        assert ">N/A<" in modulation_context
+        assert "Modulation data unavailable" not in modulation_context
+        assert "No current QAM value reported by the modem" in modulation_context
         assert "None" not in modulation_context
         assert 'class="hero-modulation-card hero-modulation-warn"' not in modulation_context
         assert 'class="hero-modulation-card hero-modulation-crit"' not in modulation_context

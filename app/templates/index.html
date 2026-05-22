@@ -639,7 +639,7 @@
                     <div class="hero-modulation-card hero-modulation-{{ mod.health }}" data-modulation-dir="{{ mod.dir }}">
                         <div class="hero-modulation-card-top">
                             <span>{{ mod_label }}</span>
-                            <strong>{{ mod.primary if mod.primary else t.get('dashboard_modulation_unavailable', 'Modulation data unavailable') }}</strong>
+                            <strong>{{ mod.primary if mod.primary else t.get('dashboard_modulation_unavailable', 'N/A') }}</strong>
                         </div>
                         {% if mod.issue %}
                         <div class="hero-modulation-status">{{ mod_issue_label }}</div>

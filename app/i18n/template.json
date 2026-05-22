@@ -92,7 +92,7 @@
   "dashboard_channel_health": "Channel health",
   "dashboard_modulation_context": "Modulation context",
   "dashboard_modulation_open_detail": "Modulation Performance",
-  "dashboard_modulation_unavailable": "Modulation data unavailable",
+  "dashboard_modulation_unavailable": "N/A",
   "dashboard_modulation_missing_hint": "No current QAM value reported by the modem",
   "dashboard_modulation_normal": "No modulation degradation detected",
   "dashboard_modulation_us_cause": "Reduced modulation contributes to this state",

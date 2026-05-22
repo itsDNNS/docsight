@@ -100,7 +100,7 @@
   "dashboard_channel_health": "Estado de los canales",
   "dashboard_modulation_context": "Contexto de modulación",
   "dashboard_modulation_open_detail": "Rendimiento de modulación",
-  "dashboard_modulation_unavailable": "Datos de modulación no disponibles",
+  "dashboard_modulation_unavailable": "N/A",
   "dashboard_modulation_missing_hint": "El módem no informa un valor QAM actual",
   "dashboard_modulation_normal": "No se detectó degradación de modulación",
   "dashboard_modulation_us_cause": "La modulación reducida contribuye a este estado",
