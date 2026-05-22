@@ -105,6 +105,27 @@ function lowQamLegendHintForContext(pg) {
     return '';
 }
 
+function buildModulationXAxisTicks(labels, width) {
+    var count = labels ? labels.length : 0;
+    if (count <= 0) return [];
+    var maxTicks = 6;
+    if (typeof calculateMaxXTicks === 'function') {
+        maxTicks = calculateMaxXTicks(labels, width, 40, 8);
+    }
+    if (typeof buildEvenIndexTicks === 'function') {
+        return buildEvenIndexTicks(labels.length, maxTicks);
+    }
+    if (count <= maxTicks) {
+        var all = [];
+        for (var ai = 0; ai < count; ai++) all.push(ai);
+        return all;
+    }
+    var ticks = [];
+    var gap = (count - 1) / (maxTicks - 1);
+    for (var ti = 0; ti < maxTicks; ti++) ticks.push(Math.round(ti * gap));
+    return ticks;
+}
+
 var MODULATION_LEVELS = [
     '4QAM',
     '8QAM',
@@ -415,6 +436,7 @@ function renderGroupDistChart(pg, idx) {
 
     var w = container.offsetWidth || 400;
     var h = container.offsetHeight || 300;
+    var xSplits = buildModulationXAxisTicks(labels, w);
     var chart = new uPlot({
         width: w,
         height: h,
@@ -425,7 +447,7 @@ function renderGroupDistChart(pg, idx) {
         axes: [
             {
                 scale: 'x',
-                splits: function() { return xData; },
+                splits: function() { return xSplits; },
                 values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
                 stroke: textColor,
                 grid: { show: false },
@@ -491,6 +513,7 @@ function renderGroupTrendChart(pg, idx) {
 
     var w = container.offsetWidth || 400;
     var h = container.offsetHeight || 300;
+    var xSplits = buildModulationXAxisTicks(labels, w);
     var chart = new uPlot({
         width: w,
         height: h,
@@ -502,7 +525,7 @@ function renderGroupTrendChart(pg, idx) {
         axes: [
             {
                 scale: 'x',
-                splits: function() { return xData; },
+                splits: function() { return xSplits; },
                 values: function(u, vals) { return vals.map(function(v) { return labels[v] || ''; }); },
                 stroke: textColor,
                 grid: { show: false },

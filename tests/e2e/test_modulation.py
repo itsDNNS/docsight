@@ -230,6 +230,28 @@ class TestModulationControls:
         self.page.wait_for_timeout(300)
         assert "active" in d30.get_attribute("class")
 
+    def test_30_day_charts_bound_x_axis_labels(self):
+        d30 = self.page.locator('#modulation-range-tabs .trend-tab[data-days="30"]')
+        d30.click()
+        self.page.wait_for_timeout(1000)
+
+        chart_tick_counts = self.page.evaluate(
+            """
+            () => (window._modCharts || []).map((chart) => {
+                const samples = chart.data && chart.data[0] ? chart.data[0].length : 0;
+                const axis = chart.axes && chart.axes[0];
+                const ticks = axis && axis.splits ? axis.splits(chart).length : 0;
+                return {samples, ticks};
+            })
+            """
+        )
+
+        dense_charts = [item for item in chart_tick_counts if item["samples"] >= 30]
+        assert dense_charts, f"Expected 30-day charts, got {chart_tick_counts}"
+        for item in dense_charts:
+            assert item["ticks"] < item["samples"], item
+            assert item["ticks"] <= 8, item
+
     def test_switch_direction_then_back(self):
         ds = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]')
         us = self.page.locator('#modulation-direction-tabs .trend-tab[data-dir="us"]')

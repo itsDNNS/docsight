@@ -8,6 +8,7 @@ VIEWS_CSS = ROOT / "app" / "static" / "css" / "views.css"
 CORRELATION_JS = ROOT / "app" / "static" / "js" / "correlation.js"
 CHART_ENGINE_JS = ROOT / "app" / "static" / "js" / "chart-engine.js"
 CHANNELS_JS = ROOT / "app" / "static" / "js" / "channels.js"
+MODULATION_MAIN_JS = ROOT / "app" / "modules" / "modulation" / "static" / "main.js"
 SW_JS = ROOT / "app" / "static" / "sw.js"
 MAIN_CSS = ROOT / "app" / "static" / "css" / "main.css"
 INDEX_HTML = ROOT / "app" / "templates" / "index.html"
@@ -74,10 +75,11 @@ def test_correlation_event_type_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v19';" in sw_js
+    assert "var CACHE_VERSION = 'v20';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
+    assert "/modules/docsight.modulation/static/main.js" in sw_js
 
 
 def test_chart_engine_has_configurable_axis_padding_for_long_qam_labels():
@@ -107,6 +109,22 @@ def test_chart_zoom_uses_bounded_index_ticks_instead_of_all_samples():
     assert "var zoomXSplits = buildEvenIndexTicks(n, zoomMaxTicks);" in zoom_block
     assert "for (var i = 0; i < n; i++) o.push(i); return o;" not in zoom_block
     assert "filter: xTickValues" not in zoom_block
+
+
+def test_modulation_overview_charts_bound_daily_x_axis_ticks():
+    js = MODULATION_MAIN_JS.read_text(encoding="utf-8")
+    dist_block = js[js.index("function renderGroupDistChart") : js.index("function attachModulationDayClick")]
+    trend_block = js[js.index("function renderGroupTrendChart") : js.index("/* ── Intraday")]
+
+    assert "function buildModulationXAxisTicks" in js
+    assert "calculateMaxXTicks(labels, width" in js
+    assert "buildEvenIndexTicks(labels.length" in js
+    assert "var xSplits = buildModulationXAxisTicks(labels, w);" in dist_block
+    assert "var xSplits = buildModulationXAxisTicks(labels, w);" in trend_block
+    assert "splits: function() { return xSplits; }" in dist_block
+    assert "splits: function() { return xSplits; }" in trend_block
+    assert "splits: function() { return xData; }" not in dist_block
+    assert "splits: function() { return xData; }" not in trend_block
 
 
 def test_dashboard_i18n_keys_exist_in_all_language_files():
