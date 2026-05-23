@@ -932,7 +932,7 @@
                             <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
                             <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
                             <td data-health="{{ ch.snr_health or 'good' }}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
-                            <td>{{ ch.modulation }}</td>
+                            <td data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
                             <td>
                                 {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
                                 {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip_parts|join(', ') }}">{{ health_labels.crit }}</span>

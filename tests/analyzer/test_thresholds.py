@@ -168,6 +168,101 @@ class TestOFDMAUpstream:
         assert channel["profile_modulation"] == "128QAM"
         assert channel["power_health"] == "tolerated"
 
+    def test_ofdma_profile_modulation_sets_channel_and_summary_health(self):
+        data = _make_data(
+            us31=[{
+                "channelID": 5,
+                "frequency": "18.000 - 44.000",
+                "powerLevel": "45.0",
+                "modulation": "OFDMA",
+                "profile_modulation": "64QAM",
+                "type": "OFDMA",
+                "multiplex": "OFDMA",
+            }]
+        )
+
+        result = analyze(data)
+        channel = result["us_channels"][0]
+        assert channel.get("power_health", "good") == "good"
+        assert channel["modulation_health"] == "warning"
+        assert channel["health"] == "warning"
+        assert "modulation warning" in channel["health_detail"]
+        assert result["summary"]["health"] == "marginal"
+        assert "us_modulation_marginal" in result["summary"]["health_issues"]
+
+    @pytest.mark.parametrize(
+        ("profile_modulation", "expected_health"),
+        [
+            ("32QAM", "critical"),
+            ("64QAM", "warning"),
+            ("128QAM", "tolerated"),
+            ("256QAM", "good"),
+        ],
+    )
+    def test_ofdma_profile_modulation_health_bands(self, profile_modulation, expected_health):
+        ch = {
+            "powerLevel": "45.0",
+            "modulation": "OFDMA",
+            "profile_modulation": profile_modulation,
+            "type": "OFDMA",
+            "multiplex": "OFDMA",
+        }
+
+        health, detail = analyzer._assess_us_channel(ch, "3.1")
+
+        assert health == expected_health
+        if expected_health == "good":
+            assert "modulation" not in detail
+        else:
+            assert f"modulation {expected_health}" in detail
+
+
+class TestDownstreamModulationHealth:
+    """Test downstream modulation health classification."""
+
+    def setup_method(self):
+        self._orig = analyzer._thresholds.copy()
+        analyzer.set_thresholds(_TEST_THRESHOLDS)
+
+    def teardown_method(self):
+        analyzer._thresholds = self._orig
+
+    @pytest.mark.parametrize(
+        ("modulation", "expected_health"),
+        [
+            ("1024QAM", "good"),
+            ("512QAM", "tolerated"),
+            ("256QAM", "warning"),
+            ("64QAM", "critical"),
+        ],
+    )
+    def test_docsis31_ofdm_downstream_modulation_health_bands(self, modulation, expected_health):
+        data = _make_data(ds31=[{**_make_ds31(100, power=5.0, mer="40.0"), "modulation": modulation}])
+
+        result = analyze(data)
+        channel = result["ds_channels"][0]
+
+        assert channel["modulation_health"] == expected_health
+        assert channel["health"] == expected_health
+
+    @pytest.mark.parametrize(
+        ("modulation", "expected_health"),
+        [
+            ("256QAM", "good"),
+            ("128QAM", "tolerated"),
+            ("64QAM", "warning"),
+            ("32QAM", "critical"),
+        ],
+    )
+    def test_docsis30_sc_qam_downstream_modulation_health_bands(self, modulation, expected_health):
+        data = _make_data(ds30=[{**_make_ds30(1, power=3.0, mse="-40.0"), "modulation": modulation}])
+
+        result = analyze(data)
+        channel = result["ds_channels"][0]
+
+        assert channel["modulation_health"] == expected_health
+        assert channel["health"] == expected_health
+
 
 class TestPercentErrors:
     """Test percent-based error thresholds."""

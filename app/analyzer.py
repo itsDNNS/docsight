@@ -130,6 +130,66 @@ def _get_us_modulation_thresholds():
     }
 
 
+def _modulation_issue(health: str | None) -> str | None:
+    if health in {"critical", "warning", "tolerated"}:
+        return f"modulation {health}"
+    return None
+
+
+def _assess_ds_modulation(modulation: str, docsis_ver: str) -> str:
+    """Return downstream modulation health for display and channel scoring."""
+    mod = (modulation or "").upper().replace("-", "").strip()
+    if mod == "OFDM":
+        return "good"
+    qam_order = _parse_qam_order(mod)
+    if qam_order is None:
+        return "good"
+
+    if docsis_ver == "3.1":
+        if qam_order >= 1024:
+            return "good"
+        if qam_order >= 512:
+            return "tolerated"
+        if qam_order >= 256:
+            return "warning"
+        return "critical"
+
+    if qam_order >= 256:
+        return "good"
+    if qam_order >= 128:
+        return "tolerated"
+    if qam_order >= 64:
+        return "warning"
+    return "critical"
+
+
+def _assess_us_modulation(ch, docsis_ver: str) -> str:
+    """Return upstream modulation health, including OFDMA profile QAM."""
+    modulation = ch.get("modulation") or ch.get("type") or ""
+    channel_type = (ch.get("type") or ch.get("multiplex") or modulation).upper().replace("-", "").strip()
+    profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
+    assessment_modulation = profile_modulation if channel_type == "OFDMA" and profile_modulation else modulation
+    qam_order = _parse_qam_order(assessment_modulation)
+    if qam_order is None:
+        return "good"
+
+    if docsis_ver == "3.1" and channel_type == "OFDMA":
+        if qam_order <= 32:
+            return "critical"
+        if qam_order <= 64:
+            return "warning"
+        if qam_order <= 128:
+            return "tolerated"
+        return "good"
+
+    mt = _get_us_modulation_thresholds()
+    if qam_order <= mt["critical_max_qam"]:
+        return "critical"
+    if qam_order <= mt["warning_max_qam"]:
+        return "warning"
+    return "good"
+
+
 def _get_uncorr_thresholds():
     """Get uncorrectable error thresholds (percent-based)."""
     errors = _t().get("errors", {})
@@ -457,6 +517,10 @@ def _assess_ds_channel(ch, docsis_ver):
         elif snr_val < st["good_min"]:
             issues.append("snr tolerated")
 
+    mod_issue = _modulation_issue(_assess_ds_modulation(modulation, docsis_ver))
+    if mod_issue:
+        issues.append(mod_issue)
+
     return _channel_health(issues), _health_detail(issues)
 
 
@@ -483,13 +547,10 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
             issues.append("power tolerated low")
         elif power > pt["good_max"]:
             issues.append("power tolerated high")
-    qam_order = _parse_qam_order(modulation)
-    if qam_order is not None:
-        mt = _get_us_modulation_thresholds()
-        if qam_order <= mt["critical_max_qam"]:
-            issues.append("modulation critical")
-        elif qam_order <= mt["warning_max_qam"]:
-            issues.append("modulation warning")
+    mod_health = _assess_us_modulation(ch, docsis_ver)
+    mod_issue = _modulation_issue(mod_health)
+    if mod_issue:
+        issues.append(mod_issue)
 
     return _channel_health(issues), _health_detail(issues)
 
@@ -530,6 +591,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
         snr = abs(_parse_float(ch.get("mse"))) if ch.get("mse") else None
         health, health_detail = _assess_ds_channel(ch, "3.0")
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
+        metric_h["modulation_health"] = _assess_ds_modulation(ch.get("modulation") or ch.get("type", ""), "3.0")
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
@@ -552,6 +614,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
         snr = _parse_float(ch.get("mer")) if ch.get("mer") else None
         health, health_detail = _assess_ds_channel(ch, "3.1")
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
+        metric_h["modulation_health"] = _assess_ds_modulation(ch.get("modulation") or ch.get("type", ""), "3.1")
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
@@ -576,6 +639,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
     for ch in us30:
         health, health_detail = _assess_us_channel(ch, "3.0")
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
+        metric_h["modulation_health"] = _assess_us_modulation(ch, "3.0")
         mod = ch.get("modulation") or ch.get("type", "")
         bitrate = _channel_bitrate_mbps(mod, ch.get("symbolRate"))
         channel = {
@@ -596,6 +660,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
     for ch in us31:
         health, health_detail = _assess_us_channel(ch, "3.1")
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
+        metric_h["modulation_health"] = _assess_us_modulation(ch, "3.1")
         mod = ch.get("modulation") or ch.get("type", "")
         bitrate = _channel_bitrate_mbps(mod, ch.get("symbolRate"))
         raw_power = ch.get("powerLevel")
@@ -667,6 +732,14 @@ def analyze(data: DocsisData) -> AnalysisResult:
         issues.append("ds_power_marginal")
     elif any("power tolerated" in c["health_detail"] for c in ds_channels):
         issues.append("ds_power_tolerated")
+
+    # DS modulation: aggregate from individual channel health_detail
+    if any("modulation critical" in c["health_detail"] for c in ds_channels):
+        issues.append("ds_modulation_critical")
+    elif any("modulation warning" in c["health_detail"] for c in ds_channels):
+        issues.append("ds_modulation_marginal")
+    elif any("modulation tolerated" in c["health_detail"] for c in ds_channels):
+        issues.append("ds_modulation_tolerated")
 
     # US power: aggregate from individual channel health_detail (directional)
     us_crit_low = any("power critical low" in c["health_detail"] for c in us_channels)

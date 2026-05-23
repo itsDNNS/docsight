@@ -655,6 +655,7 @@ class TestEventDetector:
         ch_events = [e for e in events if e["event_type"] == "channel_change"]
         assert len(ch_events) == 1
         assert "DS" in ch_events[0]["message"]
+        assert ch_events[0]["severity"] == "warning"
 
     def test_us_channel_count_change(self, detector):
         detector.check(_make_analysis(ds_total=33, us_total=4))
@@ -662,6 +663,42 @@ class TestEventDetector:
         ch_events = [e for e in events if e["event_type"] == "channel_change"]
         assert len(ch_events) == 1
         assert "US" in ch_events[0]["message"]
+        assert ch_events[0]["severity"] == "warning"
+
+    def test_channel_gain_remains_info(self, detector):
+        detector.check(_make_analysis(ds_total=30, us_total=3))
+
+        events = detector.check(_make_analysis(ds_total=33, us_total=4))
+        ch_events = [e for e in events if e["event_type"] == "channel_change"]
+
+        assert [e["severity"] for e in ch_events] == ["info", "info"]
+
+    def test_channel_loss_warning_includes_lost_channel_details(self, detector):
+        prev_ds = [
+            {"channel_id": 1, "power": 3.0, "modulation": "4096QAM", "snr": 40.0,
+             "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.1", "health": "good", "health_detail": "", "frequency": "159 MHz"},
+            {"channel_id": 100, "power": 3.0, "modulation": "OFDM", "snr": 40.0,
+             "correctable_errors": 10, "uncorrectable_errors": 5,
+             "docsis_version": "3.1", "health": "good", "health_detail": "", "frequency": "602 MHz"},
+        ]
+        cur_ds = [prev_ds[0]]
+        detector.check(_make_analysis(ds_total=2, us_total=4, ds_channels=prev_ds))
+
+        events = detector.check(_make_analysis(ds_total=1, us_total=4, ds_channels=cur_ds))
+        channel_event = next(e for e in events if e["event_type"] == "channel_change")
+
+        assert channel_event["severity"] == "warning"
+        assert channel_event["details"]["change"] == "loss"
+        assert channel_event["details"]["lost_channels"] == [
+            {
+                "channel": 100,
+                "frequency": "602 MHz",
+                "docsis_version": "3.1",
+                "channel_type": "OFDM",
+                "modulation": "OFDM",
+            },
+        ]
 
     def test_modulation_downgrade_warning(self, detector):
         """256QAM → 64QAM = 2-level drop = warning"""
