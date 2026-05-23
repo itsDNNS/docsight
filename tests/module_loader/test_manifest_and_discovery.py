@@ -54,14 +54,52 @@ class TestValidateManifest:
                 "i18n": "i18n/",
                 "static": "static/",
             },
-            "config": {"weather_enabled": False},
+            "config": {"weather_enabled": False, "weather_api_token": ""},
+            "config_secrets": ["weather_api_token"],
             "menu": {"label_key": "weather.name", "icon": "thermometer", "order": 50},
         }
         info = validate_manifest(raw, "/modules/weather")
         assert info.id == "docsight.weather"
         assert info.contributes["collector"] == "collector.py:WeatherCollector"
-        assert info.config == {"weather_enabled": False}
+        assert info.config == {"weather_enabled": False, "weather_api_token": ""}
+        assert info.config_secrets == {"weather_api_token"}
         assert info.menu["icon"] == "thermometer"
+
+    def test_config_secrets_must_be_a_list_of_strings(self):
+        """config_secrets must be an explicit list of config key names."""
+        raw = {
+            "id": "docsight.weather",
+            "name": "Weather",
+            "description": "Weather overlay",
+            "version": "1.0.0",
+            "author": "DOCSight Team",
+            "minAppVersion": "2026.2",
+            "type": "integration",
+            "contributes": {},
+            "config": {"weather_api_token": ""},
+            "config_secrets": "weather_api_token",
+        }
+
+        with pytest.raises(ManifestError, match="config_secrets"):
+            validate_manifest(raw, "/modules/weather")
+
+    def test_config_secrets_must_reference_config_keys(self):
+        """Secret declarations must be owned by the module config block."""
+        raw = {
+            "id": "docsight.weather",
+            "name": "Weather",
+            "description": "Weather overlay",
+            "version": "1.0.0",
+            "author": "DOCSight Team",
+            "minAppVersion": "2026.2",
+            "type": "integration",
+            "contributes": {},
+            "config": {"weather_enabled": False},
+            "config_secrets": ["weather_api_token"],
+        }
+
+        with pytest.raises(ManifestError, match="weather_api_token"):
+            validate_manifest(raw, "/modules/weather")
 
     def test_missing_required_field_raises(self):
         """Missing 'id' should raise ManifestError."""

@@ -275,6 +275,19 @@ function escHtml(s) {
     return d.innerHTML;
 }
 
+function _isConfigSecretField(inp) {
+    return !!(
+        inp &&
+        inp.name &&
+        inp.tagName === 'INPUT' &&
+        (
+            SECRET_FIELDS.indexOf(inp.name) !== -1 ||
+            inp.dataset.configSecret === 'true' ||
+            _isSavedSecretField(inp)
+        )
+    );
+}
+
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
@@ -284,7 +297,7 @@ function getFormData() {
             return;
         }
         if (inp.type === 'hidden' && data[inp.name] !== undefined) return;
-        if (SECRET_FIELDS.indexOf(inp.name) !== -1) {
+        if (_isConfigSecretField(inp)) {
             if (_isSavedSecretField(inp) && !inp.dataset.userEditedSecret) {
                 data[inp.name] = MASK;
             } else {

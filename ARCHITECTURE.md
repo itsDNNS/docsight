@@ -420,6 +420,8 @@ Drivers are loaded by name via `load_driver(modem_type, url, user, password)`. T
 
 Installed non-theme modules are discovered by `ModuleLoader` and persisted through the comma-separated `disabled_modules` config key. The Settings Extensions panel treats installed module toggles as pending form state: users can change multiple modules and save them once through `POST /api/modules/batch`. Theme modules remain on the dedicated theme APIs because preview and active-theme handling are separate flows.
 
+Module manifests can declare module-owned secret settings with a top-level `config_secrets` list. Every listed key must also appear in the module's `config` defaults. The loader registers those keys with the core `ConfigManager` secret path so they are encrypted at rest, masked in Settings, and preserved when the UI submits the saved-secret placeholder. Community collectors still receive a restricted config proxy: they can read only their own declared secret keys and cannot opt into core secrets such as `modem_password` by adding a colliding config default.
+
 Threshold-profile modules are mutually exclusive. The UI renders threshold modules as a single radio group, and the batch API validates the invariant server-side so exactly one threshold profile remains active after save.
 
 ### Vodafone Station Auto-Detection

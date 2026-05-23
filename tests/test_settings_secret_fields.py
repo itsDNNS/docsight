@@ -29,7 +29,7 @@ def test_saved_secret_inputs_use_stable_marker():
 
 
 def test_frontend_secret_fields_cover_saved_secret_inputs():
-    """Every saved-secret input must be covered by the frontend masking list."""
+    """Every core saved-secret input must be covered by the frontend masking list."""
     js = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
     match = re.search(r"SECRET_FIELDS\s*=\s*\[(?P<fields>[^\]]+)\]", js)
     assert match is not None
@@ -46,6 +46,15 @@ def test_frontend_secret_fields_cover_saved_secret_inputs():
     }
 
     assert expected <= secret_fields
+
+
+def test_frontend_masks_saved_secret_inputs_without_hardcoded_names():
+    """Community module secret fields should use the saved marker, not JS edits."""
+    js = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
+
+    assert "function _isConfigSecretField" in js
+    assert "_isSavedSecretField(inp)" in js
+    assert "if (_isConfigSecretField(inp))" in js
 
 
 def test_saved_secret_dirty_detection_requires_active_field_before_user_edit():

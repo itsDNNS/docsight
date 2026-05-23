@@ -6,10 +6,11 @@ import json
 import os
 import tempfile
 import textwrap
+from types import SimpleNamespace
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, load_module_driver, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, reserve_module_config_secrets, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, load_module_driver, setup_module_static, setup_module_templates, ModuleLoader
 
 class TestRegisterModuleConfig:
     """Test module config defaults registration."""
@@ -56,6 +57,505 @@ class TestRegisterModuleConfig:
         from app import config as cfg
         register_module_config({"poll_interval": 999})
         assert cfg.DEFAULTS["poll_interval"] != 999  # unchanged
+
+    def test_register_config_secrets_encrypts_masks_and_preserves_masks(self, tmp_path):
+        """Module-owned config_secrets join the global secret storage path."""
+        from app import config as cfg
+        from app.config import ConfigManager, PASSWORD_MASK
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            register_module_config(
+                {"community_api_token": "", "community_enabled": False},
+                config_secrets={"community_api_token"},
+                module_id="community.weather",
+            )
+            assert "community_api_token" in cfg.DEFAULTS
+            assert "community_api_token" in cfg.SECRET_KEYS
+            assert cfg.MODULE_SECRET_OWNERS["community_api_token"] == "community.weather"
+
+            mgr = ConfigManager(str(tmp_path / "data"))
+            mgr.save({"community_api_token": "token-secret"})
+            raw = json.loads((tmp_path / "data" / "config.json").read_text())
+
+            assert raw["community_api_token"] != "token-secret"
+            assert mgr.get("community_api_token") == "token-secret"
+            assert mgr.get_all(mask_secrets=True)["community_api_token"] == PASSWORD_MASK
+
+            mgr.save({"community_api_token": PASSWORD_MASK})
+            assert mgr.get("community_api_token") == "token-secret"
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    def test_community_collector_proxy_only_allows_declared_module_secrets(self, tmp_path):
+        """Community collectors may read their own secrets but not core secrets."""
+        from app import config as cfg
+        from app.collectors import discover_collectors
+        from app.config import ConfigManager
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            register_module_config(
+                {"community_api_token": "", "modem_password": ""},
+                config_secrets={"community_api_token"},
+                module_id="community.test",
+            )
+            mgr = ConfigManager(str(tmp_path / "data"))
+            mgr.save({
+                "modem_password": "core-secret",
+                "community_api_token": "module-secret",
+            })
+            captured = {}
+
+            class CommunityCollector:
+                name = "community"
+
+                def __init__(self, config_mgr, storage, web):
+                    captured["config_mgr"] = config_mgr
+
+            mod = ModuleInfo(
+                id="community.test",
+                name="Community Test",
+                description="Test module",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={"collector": "collector.py:CommunityCollector"},
+                path="/modules/community-test",
+                builtin=False,
+                config={"community_api_token": "", "modem_password": ""},
+                config_secrets={"community_api_token"},
+                collector_class=CommunityCollector,
+            )
+            web = SimpleNamespace(
+                get_module_loader=lambda: SimpleNamespace(get_enabled_modules=lambda: [mod])
+            )
+
+            discover_collectors(mgr, None, None, None, web, None)
+
+            proxy = captured["config_mgr"]
+            assert proxy.get("community_api_token") == "module-secret"
+            assert proxy.get("modem_password", "blocked") == "blocked"
+            assert "modem_password" not in proxy.get_all()
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    def test_same_module_secret_reload_preserves_ownership(self):
+        """Reloading the same module may reuse its already-owned secret key."""
+        from app import config as cfg
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            first = register_module_config(
+                {"community_reload_token": ""},
+                config_secrets={"community_reload_token"},
+                module_id="community.reload",
+            )
+            second = register_module_config(
+                {"community_reload_token": ""},
+                config_secrets={"community_reload_token"},
+                module_id="community.reload",
+            )
+
+            assert first == {"community_reload_token"}
+            assert second == {"community_reload_token"}
+            assert cfg.MODULE_SECRET_OWNERS["community_reload_token"] == "community.reload"
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    def test_other_module_cannot_claim_existing_module_secret(self, tmp_path):
+        """A community module cannot read another module's colliding secret key."""
+        from app import config as cfg
+        from app.collectors import discover_collectors
+        from app.config import ConfigManager
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            first = register_module_config(
+                {"community_shared_token": ""},
+                config_secrets={"community_shared_token"},
+                module_id="community.first",
+            )
+            second = register_module_config(
+                {"community_shared_token": ""},
+                config_secrets={"community_shared_token"},
+                module_id="community.second",
+            )
+            assert first == {"community_shared_token"}
+            assert second == set()
+            assert cfg.MODULE_SECRET_OWNERS["community_shared_token"] == "community.first"
+
+            mgr = ConfigManager(str(tmp_path / "data"))
+            mgr.save({"community_shared_token": "first-module-secret"})
+            captured = {}
+
+            class SecondCommunityCollector:
+                name = "community-second"
+
+                def __init__(self, config_mgr, storage, web):
+                    captured["config_mgr"] = config_mgr
+
+            mod = ModuleInfo(
+                id="community.second",
+                name="Community Second",
+                description="Test module",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={"collector": "collector.py:SecondCommunityCollector"},
+                path="/modules/community-second",
+                builtin=False,
+                config={"community_shared_token": ""},
+                config_secrets=second,
+                collector_class=SecondCommunityCollector,
+            )
+            web = SimpleNamespace(
+                get_module_loader=lambda: SimpleNamespace(get_enabled_modules=lambda: [mod])
+            )
+
+            discover_collectors(mgr, None, None, None, web, None)
+
+            proxy = captured["config_mgr"]
+            assert proxy.get("community_shared_token", "blocked") == "blocked"
+            assert "community_shared_token" not in proxy.get_all()
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    def test_declared_secret_duplicate_is_reserved_fail_closed_before_load(self, tmp_path):
+        """Duplicate config_secrets cannot be won by whichever module loads first."""
+        from app import config as cfg
+        from app.collectors import discover_collectors
+        from app.config import ConfigManager
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            shared_key = "community_duplicate_token"
+            victim = ModuleInfo(
+                id="community.victim",
+                name="Community Victim",
+                description="Victim module",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={},
+                path="/modules/community-victim",
+                builtin=False,
+                enabled=False,
+                config={shared_key: ""},
+                config_secrets={shared_key},
+            )
+            claimant = ModuleInfo(
+                id="community.claimant",
+                name="Community Claimant",
+                description="Claimant module",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={"collector": "collector.py:ClaimantCollector"},
+                path="/modules/community-claimant",
+                builtin=False,
+                config={shared_key: ""},
+                config_secrets={shared_key},
+            )
+            reserve_module_config_secrets([victim, claimant])
+
+            claimant.config_secrets = register_module_config(
+                claimant.config,
+                config_secrets=claimant.config_secrets,
+                module_id=claimant.id,
+            )
+            victim_registered = register_module_config(
+                victim.config,
+                config_secrets=victim.config_secrets,
+                module_id=victim.id,
+            )
+
+            assert claimant.config_secrets == set()
+            assert victim_registered == set()
+            assert shared_key in cfg.SECRET_KEYS
+            assert shared_key in cfg.MODULE_SECRET_KEYS
+
+            mgr = ConfigManager(str(tmp_path / "data"))
+            mgr.save({shared_key: "victim-secret"})
+            captured = {}
+
+            class ClaimantCollector:
+                name = "community-claimant"
+
+                def __init__(self, config_mgr, storage, web):
+                    captured["config_mgr"] = config_mgr
+
+            claimant.collector_class = ClaimantCollector
+            web = SimpleNamespace(
+                get_module_loader=lambda: SimpleNamespace(get_enabled_modules=lambda: [claimant])
+            )
+
+            discover_collectors(mgr, None, None, None, web, None)
+
+            proxy = captured["config_mgr"]
+            assert proxy.get(shared_key, "blocked") == "blocked"
+            assert shared_key not in proxy.get_all()
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    def test_config_secret_skip_logs_do_not_echo_secret_key_names(self, caplog):
+        """Secret ownership warnings avoid logging key names as clear text."""
+        from app import config as cfg
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            duplicate_key = "community_sensitive_secret_marker"
+            first = ModuleInfo(
+                id="community.first",
+                name="Community First",
+                description="First module",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={},
+                path="/modules/community-first",
+                builtin=False,
+                config={duplicate_key: ""},
+                config_secrets={duplicate_key},
+            )
+            second = ModuleInfo(
+                id="community.second",
+                name="Community Second",
+                description="Second module",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={},
+                path="/modules/community-second",
+                builtin=False,
+                config={duplicate_key: ""},
+                config_secrets={duplicate_key},
+            )
+            core_secret_claimant = ModuleInfo(
+                id="community.core-claimant",
+                name="Core Secret Claimant",
+                description="Attempts to claim a core secret",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={},
+                path="/modules/community-core-claimant",
+                builtin=False,
+                config={"admin_password": ""},
+                config_secrets={"admin_password"},
+            )
+
+            with caplog.at_level("DEBUG", logger="docsis.modules"):
+                reserve_module_config_secrets([core_secret_claimant])
+                reserve_module_config_secrets([first, second])
+                register_module_config(
+                    {"admin_password": ""},
+                    config_secrets={"admin_password"},
+                    module_id="community.claimant",
+                )
+                register_module_config(
+                    {duplicate_key: ""},
+                    config_secrets={duplicate_key},
+                    module_id="community.second",
+                )
+
+            assert duplicate_key not in caplog.text
+            assert "admin_password" not in caplog.text
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    def test_builtin_can_register_reserved_core_secret_default(self):
+        """Built-in modules may still provide defaults for static core secrets."""
+        from app import config as cfg
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            cfg.DEFAULTS.pop("mqtt_password", None)
+
+            registered = register_module_config(
+                {"mqtt_password": ""},
+                module_id="docsight.mqtt",
+                builtin=True,
+            )
+
+            assert registered == set()
+            assert "mqtt_password" in cfg.DEFAULTS
+            assert "mqtt_password" in cfg.SECRET_KEYS
+            assert "mqtt_password" not in cfg.MODULE_SECRET_KEYS
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    def test_core_hash_key_without_registered_default_is_not_module_owned(self):
+        """Modules cannot claim reserved hash-backed credentials either."""
+        from app import config as cfg
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            cfg.DEFAULTS.pop("admin_password", None)
+            assert "admin_password" in cfg.HASH_KEYS
+            assert "admin_password" not in cfg.MODULE_SECRET_KEYS
+
+            registered = register_module_config(
+                {"admin_password": ""},
+                config_secrets={"admin_password"},
+                module_id="community.claimant",
+            )
+
+            assert registered == set()
+            assert "admin_password" in cfg.HASH_KEYS
+            assert "admin_password" not in cfg.MODULE_SECRET_KEYS
+            assert "admin_password" not in cfg.MODULE_SECRET_OWNERS
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    @pytest.mark.parametrize("reserved_key", ["mqtt_password", "speedtest_tracker_token"])
+    def test_core_secret_without_registered_default_is_not_module_owned(self, reserved_key):
+        """Modules cannot claim reserved core secrets before their defaults are loaded."""
+        from app import config as cfg
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            cfg.DEFAULTS.pop(reserved_key, None)
+            assert reserved_key in cfg.SECRET_KEYS
+            assert reserved_key not in cfg.MODULE_SECRET_KEYS
+
+            registered = register_module_config(
+                {reserved_key: ""},
+                config_secrets={reserved_key},
+                module_id="community.claimant",
+            )
+
+            assert registered == set()
+            assert reserved_key in cfg.SECRET_KEYS
+            assert reserved_key not in cfg.MODULE_SECRET_KEYS
+            assert reserved_key not in cfg.MODULE_SECRET_OWNERS
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
+    def test_core_secret_collision_is_not_registered_as_module_owned(self):
+        """Modules cannot claim existing core secret keys as module-owned secrets."""
+        from app import config as cfg
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            registered = register_module_config(
+                {"modem_password": ""},
+                config_secrets={"modem_password"},
+                module_id="community.claimant",
+            )
+
+            assert registered == set()
+            assert "modem_password" in cfg.SECRET_KEYS
+            assert "modem_password" not in cfg.MODULE_SECRET_KEYS
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
 
 
 class TestMergeModuleI18n:
