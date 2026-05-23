@@ -1,6 +1,9 @@
 """Tests for index/dashboard rendering paths."""
 
 import json
+
+import pytest
+
 from app.web import app, update_state, init_config, init_storage
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
@@ -266,6 +269,36 @@ class TestIndexRoute:
         assert "Reduced modulation contributes to this state" in html
         assert 'class="hero-modulation-card hero-modulation-warn"' in html
         assert 'href="#modulation"' in html
+
+    @pytest.mark.parametrize(
+        ("issue", "detail", "expected_label"),
+        [
+            ("ds_modulation_critical", "modulation critical", "Modulation kritisch degradiert"),
+            ("ds_modulation_marginal", "modulation warning", "Modulation degradiert"),
+            ("ds_modulation_tolerated", "modulation tolerated", "Modulation degradiert"),
+        ],
+    )
+    def test_home_translates_downstream_modulation_issues_in_german_dashboard(
+        self, client, sample_analysis, issue, detail, expected_label
+    ):
+        sample_analysis["summary"].update({
+            "health": "critical" if issue == "ds_modulation_critical" else "marginal",
+            "health_issues": [issue],
+        })
+        sample_analysis["ds_channels"][0].update({
+            "modulation": "64QAM",
+            "health": "critical" if issue == "ds_modulation_critical" else "warning",
+            "health_detail": detail,
+        })
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=de")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert issue not in html
+        assert expected_label in html
+        assert "Downstream-Details bleiben in der Modulationsansicht" in html
 
     def test_home_marks_critical_upstream_modulation(self, client, sample_analysis):
         sample_analysis["summary"].update({
