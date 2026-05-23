@@ -138,7 +138,7 @@ class EventDetector:
         # SNR change
         self._check_snr(events, ts, analysis, prev)
         # Channel count change
-        self._check_channels(events, ts, cur_s, prev_s)
+        self._check_channels(events, ts, analysis, prev)
         # Modulation change
         self._check_modulation(events, ts, analysis, prev)
         # Restart detection (before errors — restart causes negative delta)
@@ -336,27 +336,70 @@ class EventDetector:
         affected.sort(key=lambda ch: (ch["current"], str(ch["channel"])))
         return affected
 
-    def _check_channels(self, events, ts, cur, prev):
+    def _check_channels(self, events, ts, cur_analysis, prev_analysis):
+        cur = cur_analysis.get("summary", {})
+        prev = prev_analysis.get("summary", {})
         ds_cur = cur.get("ds_total", 0)
         ds_prev = prev.get("ds_total", 0)
         us_cur = cur.get("us_total", 0)
         us_prev = prev.get("us_total", 0)
 
+        def channel_map(analysis, source):
+            mapped = {}
+            for ch in analysis.get(source, []):
+                key = _normalize_channel_id(ch.get("channel_id"))
+                if key is not None:
+                    mapped[key] = ch
+            return mapped
+
+        def channel_detail(ch, direction):
+            detail = {
+                "channel": ch.get("channel_id"),
+                "frequency": ch.get("frequency") or "",
+                "docsis_version": ch.get("docsis_version") or "",
+                "channel_type": _channel_type_label(direction, ch),
+                "modulation": ch.get("modulation") or "",
+            }
+            return {k: v for k, v in detail.items() if v not in (None, "")}
+
+        def changed_channels(direction, source):
+            cur_map = channel_map(cur_analysis, source)
+            prev_map = channel_map(prev_analysis, source)
+            lost = [channel_detail(prev_map[key], direction) for key in set(prev_map) - set(cur_map)]
+            added = [channel_detail(cur_map[key], direction) for key in set(cur_map) - set(prev_map)]
+            lost.sort(key=lambda ch: str(ch.get("channel", "")))
+            added.sort(key=lambda ch: str(ch.get("channel", "")))
+            return lost, added
+
         if ds_cur != ds_prev:
+            lost, added = changed_channels("DS", "ds_channels")
+            is_loss = ds_cur < ds_prev
+            details = {"direction": "downstream", "prev": ds_prev, "current": ds_cur, "change": "loss" if is_loss else "gain"}
+            if lost:
+                details["lost_channels"] = lost
+            if added:
+                details["added_channels"] = added
             events.append({
                 "timestamp": ts,
-                "severity": "info",
+                "severity": "warning" if is_loss else "info",
                 "event_type": "channel_change",
                 "message": f"DS channel count changed from {ds_prev} to {ds_cur}",
-                "details": {"direction": "downstream", "prev": ds_prev, "current": ds_cur},
+                "details": details,
             })
         if us_cur != us_prev:
+            lost, added = changed_channels("US", "us_channels")
+            is_loss = us_cur < us_prev
+            details = {"direction": "upstream", "prev": us_prev, "current": us_cur, "change": "loss" if is_loss else "gain"}
+            if lost:
+                details["lost_channels"] = lost
+            if added:
+                details["added_channels"] = added
             events.append({
                 "timestamp": ts,
-                "severity": "info",
+                "severity": "warning" if is_loss else "info",
                 "event_type": "channel_change",
                 "message": f"US channel count changed from {us_prev} to {us_cur}",
-                "details": {"direction": "upstream", "prev": us_prev, "current": us_cur},
+                "details": details,
             })
 
     def _check_modulation(self, events, ts, cur_analysis, prev_analysis):

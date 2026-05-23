@@ -214,6 +214,7 @@
                     {% endfor %}
                 {% endfor %}
                 {{ cooldown_row('channel_change', t.notify_event_channel_change, 'info', t.severity_info, 'badge-muted') }}
+                {{ cooldown_row('channel_change', t.notify_event_channel_change, 'warning', t.severity_warning, 'badge-warning') }}
                 {{ cooldown_row('device_reboot', t.notify_event_device_reboot, 'warning', t.severity_warning, 'badge-warning') }}
                 {{ cooldown_row('device_sw_update', t.notify_event_device_sw_update, 'info', t.severity_info, 'badge-muted') }}
                 {{ cooldown_row('device_ip_change', t.notify_event_device_ip_change, 'info', t.severity_info, 'badge-muted') }}

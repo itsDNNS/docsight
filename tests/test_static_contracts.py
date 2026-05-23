@@ -15,6 +15,7 @@ MODULATION_MAIN_JS = ROOT / "app" / "modules" / "modulation" / "static" / "main.
 SW_JS = ROOT / "app" / "static" / "sw.js"
 MAIN_CSS = ROOT / "app" / "static" / "css" / "main.css"
 INDEX_HTML = ROOT / "app" / "templates" / "index.html"
+NOTIFICATIONS_HTML = ROOT / "app" / "templates" / "settings" / "notifications.html"
 APP_I18N_DIR = ROOT / "app" / "i18n"
 EUROPEAN_LANGUAGE_PACK = {
     "bg", "cs", "da", "de", "el", "en", "es", "et", "fi", "fr",
@@ -160,6 +161,20 @@ def test_modulation_overview_charts_bound_daily_x_axis_ticks():
     assert "splits: function() { return xSplits; }" in trend_block
     assert "splits: function() { return xData; }" not in dist_block
     assert "splits: function() { return xData; }" not in trend_block
+
+
+def test_downstream_channel_modulation_column_exposes_health_classification():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    ds_table_block = template[template.index("DOWNSTREAM CHANNELS") : template.index("UPSTREAM CHANNELS")]
+
+    assert '<td data-health="{{ ch.modulation_health or \'good\' }}">{{ ch.modulation }}</td>' in ds_table_block
+
+
+def test_notification_settings_expose_channel_change_warning_cooldown():
+    template = NOTIFICATIONS_HTML.read_text(encoding="utf-8")
+
+    assert "cooldown_row('channel_change', t.notify_event_channel_change, 'info'" in template
+    assert "cooldown_row('channel_change', t.notify_event_channel_change, 'warning'" in template
 
 
 def test_dashboard_i18n_keys_exist_in_all_language_files():
