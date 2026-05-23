@@ -154,12 +154,10 @@ def _assess_ds_modulation(modulation: str, docsis_ver: str) -> str:
             return "warning"
         return "critical"
 
-    if qam_order >= 256:
-        return "good"
-    if qam_order >= 128:
-        return "tolerated"
+    # DOCSIS 3.0 downstream commonly uses 64QAM or 256QAM. A 64QAM
+    # downstream channel is valid and must not be treated as marginal.
     if qam_order >= 64:
-        return "warning"
+        return "good"
     return "critical"
 
 

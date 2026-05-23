@@ -249,8 +249,8 @@ class TestDownstreamModulationHealth:
         ("modulation", "expected_health"),
         [
             ("256QAM", "good"),
-            ("128QAM", "tolerated"),
-            ("64QAM", "warning"),
+            ("128QAM", "good"),
+            ("64QAM", "good"),
             ("32QAM", "critical"),
         ],
     )
