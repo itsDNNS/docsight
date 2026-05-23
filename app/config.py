@@ -23,6 +23,8 @@ SECRET_KEYS = {
     "notify_apprise_token",
     "notify_pwa_push_vapid_private_key",
 }
+MODULE_SECRET_KEYS = set()
+MODULE_SECRET_OWNERS = {}
 DEMO_HIDE_KEYS = {"bqm_url", "speedtest_tracker_url",
                   "notify_webhook_url", "notify_apprise_url", "notify_apprise_key",
                   "notify_apprise_token", "notify_apprise_tag", "notify_pwa_push_vapid_private_key",

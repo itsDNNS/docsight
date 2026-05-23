@@ -20,7 +20,7 @@ class _ModuleConfigProxy:
     Builtin modules receive the real ConfigManager.  Community modules
     get this proxy which blocks access to modem_password, admin_password,
     mqtt_password, and other secret/hash keys unless they are specifically
-    declared in the module's own config defaults.
+    declared as module-owned config_secrets and registered for that module.
     """
 
     def __init__(self, config_mgr, allowed_secret_keys=frozenset()):
@@ -135,7 +135,7 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
                     else:
                         mod_cfg = _ModuleConfigProxy(
                             config_mgr,
-                            allowed_secret_keys=set(mod.config.keys()) & SECRET_KEYS,
+                            allowed_secret_keys=mod.config_secrets,
                         )
                     c = mod.collector_class(
                         config_mgr=mod_cfg,
