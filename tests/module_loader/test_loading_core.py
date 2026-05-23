@@ -352,6 +352,85 @@ class TestRegisterModuleConfig:
             cfg.MODULE_SECRET_OWNERS.clear()
             cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
 
+    def test_config_secret_skip_logs_do_not_echo_secret_key_names(self, caplog):
+        """Secret ownership warnings avoid logging key names as clear text."""
+        from app import config as cfg
+
+        original_defaults = dict(cfg.DEFAULTS)
+        original_secrets = set(cfg.SECRET_KEYS)
+        original_module_secrets = set(cfg.MODULE_SECRET_KEYS)
+        original_module_secret_owners = dict(cfg.MODULE_SECRET_OWNERS)
+        try:
+            duplicate_key = "community_sensitive_secret_marker"
+            first = ModuleInfo(
+                id="community.first",
+                name="Community First",
+                description="First module",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={},
+                path="/modules/community-first",
+                builtin=False,
+                config={duplicate_key: ""},
+                config_secrets={duplicate_key},
+            )
+            second = ModuleInfo(
+                id="community.second",
+                name="Community Second",
+                description="Second module",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={},
+                path="/modules/community-second",
+                builtin=False,
+                config={duplicate_key: ""},
+                config_secrets={duplicate_key},
+            )
+            core_secret_claimant = ModuleInfo(
+                id="community.core-claimant",
+                name="Core Secret Claimant",
+                description="Attempts to claim a core secret",
+                version="1.0.0",
+                author="Test",
+                min_app_version="2026.2",
+                type="integration",
+                contributes={},
+                path="/modules/community-core-claimant",
+                builtin=False,
+                config={"admin_password": ""},
+                config_secrets={"admin_password"},
+            )
+
+            with caplog.at_level("DEBUG", logger="docsis.modules"):
+                reserve_module_config_secrets([core_secret_claimant])
+                reserve_module_config_secrets([first, second])
+                register_module_config(
+                    {"admin_password": ""},
+                    config_secrets={"admin_password"},
+                    module_id="community.claimant",
+                )
+                register_module_config(
+                    {duplicate_key: ""},
+                    config_secrets={duplicate_key},
+                    module_id="community.second",
+                )
+
+            assert duplicate_key not in caplog.text
+            assert "admin_password" not in caplog.text
+        finally:
+            cfg.DEFAULTS.clear()
+            cfg.DEFAULTS.update(original_defaults)
+            cfg.SECRET_KEYS.clear()
+            cfg.SECRET_KEYS.update(original_secrets)
+            cfg.MODULE_SECRET_KEYS.clear()
+            cfg.MODULE_SECRET_KEYS.update(original_module_secrets)
+            cfg.MODULE_SECRET_OWNERS.clear()
+            cfg.MODULE_SECRET_OWNERS.update(original_module_secret_owners)
+
     def test_builtin_can_register_reserved_core_secret_default(self):
         """Built-in modules may still provide defaults for static core secrets."""
         from app import config as cfg

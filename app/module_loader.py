@@ -229,9 +229,8 @@ def reserve_module_config_secrets(modules: list[ModuleInfo]) -> None:
         for key in mod.config_secrets:
             if key in (_cfg.SECRET_KEYS | _cfg.HASH_KEYS) and key not in _cfg.MODULE_SECRET_KEYS:
                 log.warning(
-                    "Module '%s' cannot reserve core secret config key '%s'",
+                    "Module '%s' cannot reserve a core secret config key",
                     mod.id,
-                    key,
                 )
                 continue
             declarations.setdefault(key, set()).add(mod.id)
@@ -242,8 +241,7 @@ def reserve_module_config_secrets(modules: list[ModuleInfo]) -> None:
         else:
             owner = _CONFLICTING_MODULE_SECRET_OWNER
             log.warning(
-                "Config secret key '%s' is declared by multiple modules: %s",
-                key,
+                "A config secret key is declared by multiple modules: %s",
                 ", ".join(sorted(owners)),
             )
         _cfg.SECRET_KEYS.add(key)
@@ -279,18 +277,15 @@ def register_module_config(
     for key, value in config_defaults.items():
         existing_owner = _cfg.MODULE_SECRET_OWNERS.get(key)
         if existing_owner and existing_owner != owner:
-            log.warning(
-                "Skipping config key '%s' reserved for another module",
-                key,
-            )
+            log.warning("Skipping a config key reserved for another module")
             continue
         if key in _cfg.DEFAULTS:
             if key in requested_secrets and existing_owner == owner:
                 reused_module_secrets.add(key)
-            log.debug("Config key '%s' already exists in core, skipping", key)
+            log.debug("Config key already exists in core, skipping")
             continue
         if not builtin and key in (_cfg.SECRET_KEYS | _cfg.HASH_KEYS) and key not in _cfg.MODULE_SECRET_KEYS:
-            log.warning("Skipping reserved core secret config key '%s'", key)
+            log.warning("Skipping a reserved core secret config key")
             continue
         _cfg.DEFAULTS[key] = value
         registered_keys.add(key)
@@ -303,8 +298,8 @@ def register_module_config(
     skipped_secrets = requested_secrets - registered_secrets
     if skipped_secrets:
         log.warning(
-            "Skipping config_secret declarations for non-owned keys: %s",
-            ", ".join(sorted(skipped_secrets)),
+            "Skipping %d config_secret declaration(s) for non-owned keys",
+            len(skipped_secrets),
         )
     _cfg.SECRET_KEYS.update(registered_secrets)
     _cfg.MODULE_SECRET_KEYS.update(registered_secrets)
