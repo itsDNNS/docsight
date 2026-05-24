@@ -766,39 +766,29 @@
             {{ metric_range_viz(metric_ranges.us_power, us_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.us_power_min ~ ' — ' ~ s.us_power_max) }}
         </div>
 
-        {# Card 3: SNR #}
+        {# Card 3: SNR/MER #}
+        {% set snr_display = home_snr_display if home_snr_display is defined else {} %}
+        {% set snr_label = t.get(snr_display.label_key, 'SNR') if snr_display.label_key is defined else 'SNR' %}
+        {% set snr_value = snr_display.value if snr_display.value is defined and snr_display.value is not none else s.ds_snr_avg %}
+        {% set snr_min = snr_display.min if snr_display.min is defined and snr_display.min is not none else s.ds_snr_min %}
+        {% set snr_max = snr_display.max if snr_display.max is defined and snr_display.max is not none else s.ds_snr_max %}
         <div class="metric-card glass">
             <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_snr }}</div></span>
             <div class="metric-header">
-                <span class="metric-label">SNR</span>
+                <span class="metric-label">{{ snr_label }}</span>
                 <div class="metric-icon green"><i data-lucide="signal"></i></div>
             </div>
             <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--{{ snr_health }});">{{ s.ds_snr_avg }}<span class="unit">dB</span></div>
+                <div class="metric-value" style="color:var(--{{ snr_health }});">{{ snr_value }}<span class="unit">dB</span></div>
                 <canvas class="metric-spark" id="spark-snr" width="144" height="56" aria-hidden="true"></canvas>
             </div>
-            {% if home_snr_basis and home_snr_basis.kind != 'unavailable' %}
-                {% if home_snr_basis.kind == 'mixed' %}
-                    {% set snr_basis_label = t.get('metric_snr_basis_mixed', 'SC-QAM + OFDM/MER') %}
-                {% elif home_snr_basis.kind == 'ofdm' %}
-                    {% set snr_basis_label = t.get('metric_snr_basis_ofdm', 'OFDM/MER only') %}
-                {% elif home_snr_basis.kind == 'sc_qam' %}
-                    {% set snr_basis_label = t.get('metric_snr_basis_sc_qam', 'SC-QAM only') %}
-                {% else %}
-                    {% set snr_basis_label = t.get('metric_snr_basis_fallback', 'available DS SNR/MER channels') %}
-                {% endif %}
-            <div class="metric-sub metric-basis-row" title="{{ t.get('metric_snr_basis_tooltip', 'The SNR value is the average of every downstream channel with available SNR/MER data. Per-channel health still uses modulation-aware thresholds.') }}">
-                <span class="metric-sub-label">{{ t.get('metric_basis_label', 'Basis') }}</span>
-                <span class="metric-basis-copy">{{ t.get('metric_snr_avg_all_ds', 'Avg across all DS channels') }} · {{ snr_basis_label }}</span>
-            </div>
-            {% endif %}
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
                     <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
                     <span class="badge badge-{{ snr_health }}">{{ health_labels[snr_health] }}</span>
                 </span>
             </div>
-            {{ metric_range_viz(metric_ranges.snr, snr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.ds_snr_min ~ ' — ' ~ s.ds_snr_max) }}
+            {{ metric_range_viz(metric_ranges.snr, snr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), snr_min ~ ' — ' ~ snr_max) }}
         </div>
 
         {# Card 4: Errors #}
