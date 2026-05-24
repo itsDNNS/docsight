@@ -420,6 +420,311 @@ class TestCompareCharts:
                 assert chips.count() >= 1
 
 
+class TestChannelTemperatureOverlay:
+    """Weather temperature overlays in Channels timeline and compare charts."""
+
+    def test_channel_timeline_fetches_weather_and_toggles_temperature_overlay(self, demo_page):
+        history = [
+            {
+                "timestamp": "2026-05-01T12:00:00",
+                "power": 1.2,
+                "snr": 38.5,
+                "modulation": "256QAM",
+                "correctable_errors": 1,
+                "uncorrectable_errors": 0,
+            },
+            {
+                "timestamp": "2026-05-01T13:00:00",
+                "power": 1.4,
+                "snr": 38.7,
+                "modulation": "256QAM",
+                "correctable_errors": 2,
+                "uncorrectable_errors": 0,
+            },
+        ]
+        weather_requests = []
+
+        demo_page.route(
+            "**/api/channels",
+            lambda route: route.fulfill(json={
+                "ds_channels": [{
+                    "channel_id": 1,
+                    "frequency": "690 MHz",
+                    "docsis_version": "3.0",
+                    "power": 1.2,
+                    "snr": 38.5,
+                    "health": "good",
+                }],
+                "us_channels": [],
+            }),
+        )
+        demo_page.route("**/api/channel-history**", lambda route: route.fulfill(json=history))
+
+        def weather_route(route):
+            weather_requests.append(route.request.url)
+            route.fulfill(json=[
+                {"timestamp": "2026-05-01T12:05:00", "temperature": 12.5},
+                {"timestamp": "2026-05-01T13:05:00", "temperature": 13.5},
+            ])
+
+        demo_page.route("**/api/weather/range**", weather_route)
+
+        navigate_to_channels(demo_page)
+        demo_page.locator("#channel-select").select_option("ds-1")
+        wait_for_uplot(demo_page, "chart-ch-power")
+
+        toggle = demo_page.locator("#channel-temp-toggle-btn")
+        assert toggle.count() == 1
+        assert toggle.is_visible()
+        assert weather_requests, "channel timeline should fetch weather for the displayed timestamps"
+
+        overlay = demo_page.evaluate(
+            """
+            () => {
+                const chart = window.charts['chart-ch-power'];
+                return {
+                    labels: chart.series.map((s) => s.label),
+                    tempScale: !!chart.scales.temp,
+                    tempData: chart.data[chart.data.length - 1],
+                };
+            }
+            """
+        )
+        assert "Temperature" in overlay["labels"]
+        assert overlay["tempScale"] is True
+        assert overlay["tempData"] == [12.5, 13.5]
+
+        toggle.click()
+        demo_page.wait_for_timeout(300)
+        labels_after_toggle = demo_page.evaluate(
+            "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
+        )
+        assert "Temperature" not in labels_after_toggle
+
+    def test_channel_timeline_hides_temperature_toggle_without_weather_data(self, demo_page):
+        history = [
+            {
+                "timestamp": "2026-05-01T12:00:00",
+                "power": 1.2,
+                "snr": 38.5,
+                "modulation": "256QAM",
+                "correctable_errors": 1,
+                "uncorrectable_errors": 0,
+            }
+        ]
+
+        demo_page.route(
+            "**/api/channels",
+            lambda route: route.fulfill(json={
+                "ds_channels": [{
+                    "channel_id": 1,
+                    "frequency": "690 MHz",
+                    "docsis_version": "3.0",
+                    "power": 1.2,
+                    "snr": 38.5,
+                    "health": "good",
+                }],
+                "us_channels": [],
+            }),
+        )
+        demo_page.route("**/api/channel-history**", lambda route: route.fulfill(json=history))
+        demo_page.route("**/api/weather/range**", lambda route: route.fulfill(json=[]))
+
+        navigate_to_channels(demo_page)
+        demo_page.locator("#channel-select").select_option("ds-1")
+        wait_for_uplot(demo_page, "chart-ch-power")
+
+        assert demo_page.locator("#channel-temp-toggle-btn").is_hidden()
+        labels = demo_page.evaluate("() => window.charts['chart-ch-power'].series.map((s) => s.label)")
+        assert "Temperature" not in labels
+
+    def test_channel_compare_uses_one_common_temperature_series(self, demo_page):
+        compare_payload = {
+            "1": [
+                {
+                    "timestamp": "2026-05-01T12:00:00",
+                    "power": 1.2,
+                    "snr": 38.5,
+                    "modulation": "256QAM",
+                    "correctable_errors": 1,
+                    "uncorrectable_errors": 0,
+                },
+                {
+                    "timestamp": "2026-05-01T13:00:00",
+                    "power": 1.4,
+                    "snr": 38.7,
+                    "modulation": "256QAM",
+                    "correctable_errors": 2,
+                    "uncorrectable_errors": 0,
+                },
+            ],
+            "2": [
+                {
+                    "timestamp": "2026-05-01T12:00:00",
+                    "power": 2.2,
+                    "snr": 37.5,
+                    "modulation": "256QAM",
+                    "correctable_errors": 0,
+                    "uncorrectable_errors": 0,
+                },
+                {
+                    "timestamp": "2026-05-01T13:00:00",
+                    "power": 2.4,
+                    "snr": 37.7,
+                    "modulation": "256QAM",
+                    "correctable_errors": 1,
+                    "uncorrectable_errors": 0,
+                },
+            ],
+        }
+        weather_requests = []
+
+        demo_page.route(
+            "**/api/channels",
+            lambda route: route.fulfill(json={
+                "ds_channels": [
+                    {"channel_id": 1, "frequency": "690 MHz", "docsis_version": "3.0"},
+                    {"channel_id": 2, "frequency": "698 MHz", "docsis_version": "3.0"},
+                ],
+                "us_channels": [],
+            }),
+        )
+        demo_page.route("**/api/channel-compare**", lambda route: route.fulfill(json=compare_payload))
+
+        def weather_route(route):
+            weather_requests.append(route.request.url)
+            route.fulfill(json=[
+                {"timestamp": "2026-05-01T12:10:00", "temperature": 17.0},
+                {"timestamp": "2026-05-01T13:10:00", "temperature": 18.0},
+            ])
+
+        demo_page.route("**/api/weather/range**", weather_route)
+
+        navigate_to_channels(demo_page)
+        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        demo_page.locator("#compare-add-all-btn").click()
+        wait_for_uplot(demo_page, "chart-cmp-power")
+
+        toggle = demo_page.locator("#compare-temp-toggle-btn")
+        assert toggle.count() == 1
+        assert toggle.is_visible()
+        assert len(weather_requests) == 1
+
+        overlay = demo_page.evaluate(
+            """
+            () => {
+                const chart = window.charts['chart-cmp-power'];
+                return {
+                    labels: chart.series.map((s) => s.label),
+                    tempScale: !!chart.scales.temp,
+                    tempData: chart.data[chart.data.length - 1],
+                    tempSeriesCount: chart.series.filter((s) => s.label === 'Temperature').length,
+                };
+            }
+            """
+        )
+        assert overlay["tempScale"] is True
+        assert overlay["tempData"] == [17.0, 18.0]
+        assert overlay["tempSeriesCount"] == 1
+
+    def test_channel_compare_hides_temperature_toggle_without_weather_data(self, demo_page):
+        compare_payload = {
+            "1": [
+                {
+                    "timestamp": "2026-05-01T12:00:00",
+                    "power": 1.2,
+                    "snr": 38.5,
+                    "modulation": "256QAM",
+                    "correctable_errors": 1,
+                    "uncorrectable_errors": 0,
+                }
+            ]
+        }
+
+        demo_page.route(
+            "**/api/channels",
+            lambda route: route.fulfill(json={
+                "ds_channels": [{"channel_id": 1, "frequency": "690 MHz", "docsis_version": "3.0"}],
+                "us_channels": [],
+            }),
+        )
+        demo_page.route("**/api/channel-compare**", lambda route: route.fulfill(json=compare_payload))
+        demo_page.route("**/api/weather/range**", lambda route: route.fulfill(json=[]))
+
+        navigate_to_channels(demo_page)
+        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        demo_page.locator("#compare-add-all-btn").click()
+        wait_for_uplot(demo_page, "chart-cmp-power")
+
+        assert demo_page.locator("#compare-temp-toggle-btn").is_hidden()
+        labels = demo_page.evaluate("() => window.charts['chart-cmp-power'].series.map((s) => s.label)")
+        assert "Temperature" not in labels
+
+    def test_channel_temperature_toggle_state_stays_in_sync_across_modes(self, demo_page):
+        rows = [
+            {
+                "timestamp": "2026-05-01T12:00:00",
+                "power": 1.2,
+                "snr": 38.5,
+                "modulation": "256QAM",
+                "correctable_errors": 1,
+                "uncorrectable_errors": 0,
+            },
+            {
+                "timestamp": "2026-05-01T13:00:00",
+                "power": 1.4,
+                "snr": 38.7,
+                "modulation": "256QAM",
+                "correctable_errors": 2,
+                "uncorrectable_errors": 0,
+            },
+        ]
+
+        demo_page.route(
+            "**/api/channels",
+            lambda route: route.fulfill(json={
+                "ds_channels": [{"channel_id": 1, "frequency": "690 MHz", "docsis_version": "3.0"}],
+                "us_channels": [],
+            }),
+        )
+        demo_page.route("**/api/channel-history**", lambda route: route.fulfill(json=rows))
+        demo_page.route("**/api/channel-compare**", lambda route: route.fulfill(json={"1": rows}))
+        demo_page.route(
+            "**/api/weather/range**",
+            lambda route: route.fulfill(json=[
+                {"timestamp": "2026-05-01T12:00:00", "temperature": 12.0},
+                {"timestamp": "2026-05-01T13:00:00", "temperature": 13.0},
+            ]),
+        )
+
+        navigate_to_channels(demo_page)
+        demo_page.locator("#channel-select").select_option("ds-1")
+        wait_for_uplot(demo_page, "chart-ch-power")
+        assert "Temperature" in demo_page.evaluate(
+            "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
+        )
+
+        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        demo_page.locator("#compare-add-all-btn").click()
+        wait_for_uplot(demo_page, "chart-cmp-power")
+        assert "Temperature" in demo_page.evaluate(
+            "() => window.charts['chart-cmp-power'].series.map((s) => s.label)"
+        )
+
+        demo_page.locator('.trend-tab[data-value="timeline"]').click()
+        demo_page.locator("#channel-temp-toggle-btn").click()
+        demo_page.wait_for_timeout(300)
+        assert "Temperature" not in demo_page.evaluate(
+            "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
+        )
+
+        demo_page.locator('.trend-tab[data-value="compare"]').click()
+        assert demo_page.locator("#compare-temp-toggle-btn").get_attribute("aria-pressed") == "false"
+        assert "Temperature" not in demo_page.evaluate(
+            "() => window.charts['chart-cmp-power'].series.map((s) => s.label)"
+        )
+
+
 class TestUnsupportedDocsisErrorCharts:
     """Unsupported DOCSIS error counters should remove misleading error charts."""
 

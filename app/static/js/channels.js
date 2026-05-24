@@ -268,6 +268,117 @@ function _setChartCardVisible(cardId, chartId, visible) {
     }
 }
 
+
+function _channelWeatherHasData(tempData) {
+    return !!(tempData && tempData.some(function(v) { return v !== null; }));
+}
+
+function _formatChannelWeatherTime(ms) {
+    return new Date(ms).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, 'Z');
+}
+
+function _getChannelWeatherRange(timestamps) {
+    var times = (timestamps || []).map(function(ts) {
+        var ms = new Date(ts).getTime();
+        return isFinite(ms) ? ms : null;
+    }).filter(function(ms) { return ms !== null; }).sort(function(a, b) { return a - b; });
+    if (!times.length) return null;
+    var margin = 90 * 60 * 1000;
+    return {
+        start: _formatChannelWeatherTime(times[0] - margin),
+        end: _formatChannelWeatherTime(times[times.length - 1] + margin)
+    };
+}
+
+function _fetchChannelWeatherForTimestamps(timestamps) {
+    var wr = _getChannelWeatherRange(timestamps);
+    if (!wr) return Promise.resolve([]);
+    var url = '/api/weather/range?start=' + encodeURIComponent(wr.start) + '&end=' + encodeURIComponent(wr.end);
+    return fetch(url).then(function(r) { return r.json(); }).catch(function() { return []; });
+}
+
+function _alignWeatherToChannelTimestamps(timestamps, weatherData, days) {
+    if (!weatherData || !weatherData.length) return null;
+    var weather = weatherData.map(function(row) {
+        var ms = row && row.timestamp ? new Date(row.timestamp).getTime() : NaN;
+        var temp = row ? row.temperature : null;
+        if (!isFinite(ms) || temp == null || !isFinite(Number(temp))) return null;
+        return { ts: ms, temp: Number(temp), day: row.timestamp.substring(0, 10) };
+    }).filter(function(row) { return row !== null; });
+    if (!weather.length) return null;
+
+    if (parseInt(days) >= 30) {
+        var dailyTemps = {};
+        weather.forEach(function(row) {
+            if (!dailyTemps[row.day]) dailyTemps[row.day] = [];
+            dailyTemps[row.day].push(row.temp);
+        });
+        var dailyAvg = {};
+        Object.keys(dailyTemps).forEach(function(day) {
+            var vals = dailyTemps[day];
+            var sum = 0;
+            vals.forEach(function(v) { sum += v; });
+            dailyAvg[day] = Math.round(sum / vals.length * 10) / 10;
+        });
+        return (timestamps || []).map(function(ts) {
+            var day = ts ? String(ts).substring(0, 10) : '';
+            return dailyAvg[day] !== undefined ? dailyAvg[day] : null;
+        });
+    }
+
+    return (timestamps || []).map(function(ts) {
+        if (!ts) return null;
+        var target = new Date(ts).getTime();
+        if (!isFinite(target)) return null;
+        var best = null;
+        var bestDist = Infinity;
+        weather.forEach(function(row) {
+            var dist = Math.abs(row.ts - target);
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = row.temp;
+            }
+        });
+        return bestDist <= 90 * 60 * 1000 ? best : null;
+    });
+}
+
+function _updateTempToggleButton(btnId, tempData) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    var hasWeather = _channelWeatherHasData(tempData);
+    btn.style.display = hasWeather ? '' : 'none';
+    btn.classList.toggle('active', _tempOverlayVisible && hasWeather);
+    btn.setAttribute('aria-pressed', (_tempOverlayVisible && hasWeather) ? 'true' : 'false');
+    btn.title = _tempOverlayVisible ? (T.temp_overlay_hide || 'Hide temperature overlay') : (T.temp_overlay_show || 'Show temperature overlay');
+}
+
+function _updateChannelTempToggle() {
+    _updateTempToggleButton('channel-temp-toggle-btn', _lastChannelWeather);
+}
+
+function _updateCompareTempToggle() {
+    _updateTempToggleButton('compare-temp-toggle-btn', _lastCompareWeather);
+}
+
+function toggleChannelTempOverlay() {
+    _tempOverlayVisible = !_tempOverlayVisible;
+    _updateChannelTempToggle();
+    _updateCompareTempToggle();
+    _renderChannelTimelineCharts();
+    _renderCompareCharts();
+}
+window.toggleChannelTempOverlay = toggleChannelTempOverlay;
+
+function toggleCompareTempOverlay() {
+    _tempOverlayVisible = !_tempOverlayVisible;
+    _updateChannelTempToggle();
+    _updateCompareTempToggle();
+    _renderChannelTimelineCharts();
+    _renderCompareCharts();
+}
+window.toggleCompareTempOverlay = toggleCompareTempOverlay;
+
 function _updateChannelInfoBar(direction, channelId) {
     var bar = document.getElementById('channel-info-bar');
     if (!bar) return;
@@ -304,6 +415,88 @@ function _updateChannelInfoBar(direction, channelId) {
 }
 
 var _cachedChannelData = null;
+var _lastChannelTimelineData = null;
+var _lastChannelTimelineContext = null;
+var _lastChannelWeather = null;
+var _channelTimelineRequestSeq = 0;
+
+function _renderChannelTimelineCharts() {
+    var data = _lastChannelTimelineData;
+    var ctx = _lastChannelTimelineContext || {};
+    if (!data || data.length === 0) return;
+    var direction = ctx.direction || 'ds';
+    var docsisVersion = ctx.docsisVersion || '3.0';
+    var days = ctx.days || '7';
+
+    var xLabels = data.map(function(d) {
+        if (!d.timestamp) return '';
+        if (parseInt(days) <= 1) return d.timestamp.substring(11, 16);
+        if (parseInt(days) >= 30) return d.timestamp.substring(5, 10);
+        return d.timestamp.substring(5, 16).replace('T', ' ');
+    });
+    var tempOpts = _channelWeatherHasData(_lastChannelWeather) ? { tempData: _lastChannelWeather } : null;
+    var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0'}];
+    var powerThresholds = direction === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
+    var powerCard = document.querySelector('#channel-charts .chart-card:first-child');
+    var powerLabel = powerCard ? powerCard.querySelector('.chart-label') : null;
+    if (direction === 'ds') {
+        powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
+        powerThresholds = null; /* DS combines Power + SNR, thresholds don't apply */
+        if (powerLabel) powerLabel.textContent = (T.power_dbmv || 'Power') + ' & ' + (T.snr_db || 'SNR');
+        var showErrors = _hasChannelDocsisErrorSeries(data);
+        _setChartCardVisible('channel-errors-card', 'chart-ch-errors', showErrors);
+        if (showErrors) {
+            renderChart('chart-ch-errors', xLabels, [
+                {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
+                {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
+            ], 'bar');
+        }
+    } else {
+        if (powerLabel) powerLabel.textContent = T.power_dbmv || 'Power (dBmV)';
+        _setChartCardVisible('channel-errors-card', 'chart-ch-errors', false);
+    }
+    renderChart('chart-ch-power', xLabels, powerDatasets, null, powerThresholds, tempOpts);
+
+    // Modulation timeline (stepped line chart)
+    var modCard = document.getElementById('channel-modulation-card');
+    var mods = data.filter(function(d) { return d.modulation; });
+    if (mods.length === 0) {
+        modCard.style.display = 'none';
+    } else {
+        modCard.style.display = '';
+        // Fixed QAM scales per channel direction and DOCSIS version
+        var is31 = docsisVersion === '3.1' || docsisVersion === '4.0';
+        var usQam30 = [4, 8, 16, 32, 64, 128];
+        var usQam31 = [4, 8, 16, 32, 64, 128, 256, 512, 1024];
+        var dsQam30 = [64, 256];
+        var dsQam31 = [16, 64, 256, 1024, 2048, 4096];
+        var qamSteps;
+        if (direction === 'us') { qamSteps = is31 ? usQam31 : usQam30; }
+        else { qamSteps = is31 ? dsQam31 : dsQam30; }
+        var qamLabel = {}; qamSteps.forEach(function(v) { qamLabel[v] = v + 'QAM'; });
+        var qamMap = {}; qamSteps.forEach(function(v, i) { qamMap[v + 'QAM'] = i; });
+        var modLabels = mods.map(function(d) {
+            if (parseInt(days) >= 30) return d.timestamp.substring(5, 10);
+            return d.timestamp.substring(5, 16).replace('T', ' ');
+        });
+        var modValues = mods.map(function(d) { return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : -1; });
+        var tickValues = [];
+        for (var qi = 0; qi < qamSteps.length; qi++) tickValues.push(qi);
+        renderChart('chart-ch-modulation', modLabels, [
+            {label: T.modulation || 'Modulation', data: modValues, color: '#ffab40', stepped: true}
+        ], null, null, {
+            yTickCallback: function(value) { return qamLabel[qamSteps[value]] || ''; },
+            tooltipLabelCallback: function(ctx) { return (T.modulation || 'Modulation') + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw); },
+            yMin: -0.5,
+            yMax: qamSteps.length - 0.5,
+            yAxisSize: 72,
+            zoomYAxisSize: 80,
+            yAfterBuildTicks: function(axis) {
+                axis.ticks = tickValues.map(function(v) { return {value: v}; });
+            }
+        });
+    }
+}
 
 function loadChannelTimeline() {
     var sel = document.getElementById('channel-select');
@@ -318,6 +511,11 @@ function loadChannelTimeline() {
         noDataEl.style.display = 'none';
         loadingEl.style.display = 'none';
         if (infoBar) infoBar.style.display = 'none';
+        _channelTimelineRequestSeq++;
+        _lastChannelTimelineData = null;
+        _lastChannelWeather = null;
+        _lastChannelTimelineContext = null;
+        _updateChannelTempToggle();
         emptyEl.style.display = '';
         writeChannelHash();
         return;
@@ -329,6 +527,7 @@ function loadChannelTimeline() {
     var docsisVersion = selectedOpt ? selectedOpt.dataset.docsis || '3.0' : '3.0';
     var days = getPillValue('channel-time-tabs');
     writeChannelHash();
+    var requestId = ++_channelTimelineRequestSeq;
 
     loadingEl.style.display = '';
     chartsEl.style.display = 'none';
@@ -339,82 +538,36 @@ function loadChannelTimeline() {
     fetch('/api/channel-history?channel_id=' + channelId + '&direction=' + direction + '&days=' + days)
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            if (requestId !== _channelTimelineRequestSeq) return;
             loadingEl.style.display = 'none';
             if (!data || data.length === 0) {
+                _lastChannelTimelineData = null;
+                _lastChannelWeather = null;
+                _lastChannelTimelineContext = null;
+                _updateChannelTempToggle();
                 noDataEl.textContent = T.no_channel_data || 'No data available for this channel.';
                 noDataEl.style.display = '';
                 return;
             }
             chartsEl.style.display = '';
-            var xLabels = data.map(function(d) {
-                if (!d.timestamp) return '';
-                if (parseInt(days) <= 1) return d.timestamp.substring(11, 16);
-                if (parseInt(days) >= 30) return d.timestamp.substring(5, 10);
-                return d.timestamp.substring(5, 16).replace('T', ' ');
+            _lastChannelTimelineData = data;
+            _lastChannelTimelineContext = {
+                direction: direction,
+                docsisVersion: docsisVersion,
+                days: days
+            };
+            _lastChannelWeather = null;
+            _updateChannelTempToggle();
+            var timestamps = data.map(function(d) { return d.timestamp; }).filter(function(ts) { return !!ts; });
+            return _fetchChannelWeatherForTimestamps(timestamps).then(function(weatherData) {
+                if (requestId !== _channelTimelineRequestSeq) return;
+                _lastChannelWeather = _alignWeatherToChannelTimestamps(timestamps, weatherData, days);
+                _updateChannelTempToggle();
+                _renderChannelTimelineCharts();
             });
-            var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0'}];
-            var powerThresholds = direction === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
-            var powerCard = document.querySelector('#channel-charts .chart-card:first-child');
-            var powerLabel = powerCard ? powerCard.querySelector('.chart-label') : null;
-            if (direction === 'ds') {
-                powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
-                powerThresholds = null; /* DS combines Power + SNR, thresholds don't apply */
-                if (powerLabel) powerLabel.textContent = (T.power_dbmv || 'Power') + ' & ' + (T.snr_db || 'SNR');
-                var showErrors = _hasChannelDocsisErrorSeries(data);
-                _setChartCardVisible('channel-errors-card', 'chart-ch-errors', showErrors);
-                if (showErrors) {
-                    renderChart('chart-ch-errors', xLabels, [
-                        {label: T.correctable || 'Correctable', data: data.map(function(d){ return d.correctable_errors; }), color: '#2196f3'},
-                        {label: T.uncorrectable || 'Uncorrectable', data: data.map(function(d){ return d.uncorrectable_errors; }), color: '#f44336'}
-                    ], 'bar');
-                }
-            } else {
-                if (powerLabel) powerLabel.textContent = T.power_dbmv || 'Power (dBmV)';
-                _setChartCardVisible('channel-errors-card', 'chart-ch-errors', false);
-            }
-            renderChart('chart-ch-power', xLabels, powerDatasets, null, powerThresholds);
-
-            // Modulation timeline (stepped line chart)
-            var modCard = document.getElementById('channel-modulation-card');
-            var mods = data.filter(function(d) { return d.modulation; });
-            if (mods.length === 0) {
-                modCard.style.display = 'none';
-            } else {
-                modCard.style.display = '';
-                // Fixed QAM scales per channel direction and DOCSIS version
-                var is31 = docsisVersion === '3.1' || docsisVersion === '4.0';
-                var usQam30 = [4, 8, 16, 32, 64, 128];
-                var usQam31 = [4, 8, 16, 32, 64, 128, 256, 512, 1024];
-                var dsQam30 = [64, 256];
-                var dsQam31 = [16, 64, 256, 1024, 2048, 4096];
-                var qamSteps;
-                if (direction === 'us') { qamSteps = is31 ? usQam31 : usQam30; }
-                else { qamSteps = is31 ? dsQam31 : dsQam30; }
-                var qamLabel = {}; qamSteps.forEach(function(v) { qamLabel[v] = v + 'QAM'; });
-                var qamMap = {}; qamSteps.forEach(function(v, i) { qamMap[v + 'QAM'] = i; });
-                var modLabels = mods.map(function(d) {
-                    if (parseInt(days) >= 30) return d.timestamp.substring(5, 10);
-                    return d.timestamp.substring(5, 16).replace('T', ' ');
-                });
-                var modValues = mods.map(function(d) { return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : -1; });
-                var tickValues = [];
-                for (var qi = 0; qi < qamSteps.length; qi++) tickValues.push(qi);
-                renderChart('chart-ch-modulation', modLabels, [
-                    {label: T.modulation || 'Modulation', data: modValues, color: '#ffab40', stepped: true}
-                ], null, null, {
-                    yTickCallback: function(value) { return qamLabel[qamSteps[value]] || ''; },
-                    tooltipLabelCallback: function(ctx) { return (T.modulation || 'Modulation') + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw); },
-                    yMin: -0.5,
-                    yMax: qamSteps.length - 0.5,
-                    yAxisSize: 72,
-                    zoomYAxisSize: 80,
-                    yAfterBuildTicks: function(axis) {
-                        axis.ticks = tickValues.map(function(v) { return {value: v}; });
-                    }
-                });
-            }
         })
         .catch(function() {
+            if (requestId !== _channelTimelineRequestSeq) return;
             loadingEl.style.display = 'none';
             noDataEl.textContent = T.trend_error || 'Error loading data.';
             noDataEl.style.display = '';
@@ -429,6 +582,9 @@ var _compareChannelData = null;
 var _comparePreset = null;
 var _compareState = { ds: { channels: [], preset: null }, us: { channels: [], preset: null } };
 var _lastCompareDir = 'ds';
+var _lastCompareWeather = null;
+var _lastCompareRenderContext = null;
+var _compareRequestSeq = 0;
 
 function compareColor(index) {
     if (index < _compareColors.length) return _compareColors[index];
@@ -472,6 +628,10 @@ function showCompareError(message, error) {
 }
 
 function clearCompareCharts() {
+    _compareRequestSeq++;
+    _lastCompareWeather = null;
+    _lastCompareRenderContext = null;
+    _updateCompareTempToggle();
     document.getElementById('compare-charts').style.display = 'none';
     document.getElementById('compare-loading').style.display = 'none';
     ['chart-cmp-power', 'chart-cmp-snr', 'chart-cmp-errors', 'chart-cmp-modulation'].forEach(function(id) {
@@ -642,11 +802,152 @@ function renderCompareChips() {
     });
 }
 
+function _renderCompareCharts() {
+    var ctx = _lastCompareRenderContext;
+    if (!ctx || !ctx.data || !ctx.timestamps || ctx.timestamps.length === 0) return;
+    var data = ctx.data;
+    var timestamps = ctx.timestamps;
+    var days = ctx.days || '7';
+    var dir = ctx.dir || getCompareDirection();
+    var xLabels = timestamps.map(function(ts) {
+        if (parseInt(days) <= 1) return ts.substring(11, 16);
+        if (parseInt(days) >= 30) return ts.substring(5, 10);
+        return ts.substring(5, 16).replace('T', ' ');
+    });
+    var showPoints = _compareChannels.length <= 6;
+    var tempOpts = _channelWeatherHasData(_lastCompareWeather) ? { tempData: _lastCompareWeather } : null;
+
+    // Build lookup maps per channel: timestamp -> data point
+    var lookups = {};
+    _compareChannels.forEach(function(ch) {
+        var map = {};
+        (data[String(ch.id)] || []).forEach(function(d) { map[d.timestamp] = d; });
+        lookups[ch.id] = map;
+    });
+
+    // Power Chart
+    var powerDatasets = _compareChannels.map(function(ch) {
+        return {
+            label: 'CH ' + ch.id,
+            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.power : null; }),
+            color: ch.color,
+            showPoints: showPoints
+        };
+    });
+    var powerThresholds = dir === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
+    renderChart('chart-cmp-power', xLabels, powerDatasets, null, powerThresholds, tempOpts);
+
+    // SNR Chart (DS only)
+    var snrCard = document.getElementById('compare-snr-card');
+    if (dir === 'ds') {
+        snrCard.style.display = '';
+        var snrDatasets = _compareChannels.map(function(ch) {
+            return {
+                label: 'CH ' + ch.id,
+                data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.snr : null; }),
+                color: ch.color,
+                showPoints: showPoints
+            };
+        });
+        renderChart('chart-cmp-snr', xLabels, snrDatasets, null, DS_SNR_THRESHOLDS, tempOpts);
+    } else {
+        snrCard.style.display = 'none';
+    }
+
+    // Errors Chart (DS only, lines not bars)
+    if (dir === 'ds') {
+        var compareHasErrors = _compareChannels.some(function(ch) {
+            return _hasChannelDocsisErrorSeries(data[String(ch.id)] || []);
+        });
+        _setChartCardVisible('compare-errors-card', 'chart-cmp-errors', compareHasErrors);
+        if (compareHasErrors) {
+            var errorDatasets = [];
+            _compareChannels.forEach(function(ch) {
+                errorDatasets.push({
+                    label: 'CH ' + ch.id + ' ' + (T.uncorrectable || 'Uncorr.'),
+                    data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.uncorrectable_errors != null ? d.uncorrectable_errors : null; }),
+                    color: ch.color,
+                    showPoints: showPoints
+                });
+                errorDatasets.push({
+                    label: 'CH ' + ch.id + ' ' + (T.correctable || 'Corr.'),
+                    data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.correctable_errors != null ? d.correctable_errors : null; }),
+                    color: ch.color,
+                    dashed: true,
+                    showPoints: showPoints
+                });
+            });
+            renderChart('chart-cmp-errors', xLabels, errorDatasets, null, null, tempOpts);
+        }
+    } else {
+        _setChartCardVisible('compare-errors-card', 'chart-cmp-errors', false);
+    }
+
+    // Modulation Chart
+    var modCard = document.getElementById('compare-modulation-card');
+    var hasMod = false;
+    _compareChannels.forEach(function(ch) {
+        var chData = data[String(ch.id)] || [];
+        if (chData.some(function(d) { return d.modulation; })) hasMod = true;
+    });
+    if (!hasMod) {
+        modCard.style.display = 'none';
+    } else {
+        modCard.style.display = '';
+        // Collect all unique QAM values
+        var allQam = {};
+        _compareChannels.forEach(function(ch) {
+            (data[String(ch.id)] || []).forEach(function(d) {
+                if (d.modulation) allQam[d.modulation] = true;
+            });
+        });
+        var qamNames = Object.keys(allQam).sort(function(a, b) {
+            var na = parseInt(a) || 0, nb = parseInt(b) || 0;
+            return na - nb;
+        });
+        var qamMap = {};
+        qamNames.forEach(function(name, idx) { qamMap[name] = idx; });
+        var qamLabel = {};
+        qamNames.forEach(function(name, idx) { qamLabel[idx] = name; });
+
+        var modDatasets = _compareChannels.map(function(ch) {
+            return {
+                label: 'CH ' + ch.id,
+                data: timestamps.map(function(ts) {
+                    var d = lookups[ch.id][ts];
+                    if (!d || !d.modulation) return null;
+                    return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : null;
+                }),
+                color: ch.color,
+                stepped: true,
+                showPoints: false
+            };
+        });
+        var tickValues = [];
+        for (var qi = 0; qi < qamNames.length; qi++) tickValues.push(qi);
+        renderChart('chart-cmp-modulation', xLabels, modDatasets, null, null, {
+            yTickCallback: function(value) { return qamLabel[value] || ''; },
+            tooltipLabelCallback: function(ctx) { return ctx.dataset.label + ': ' + (qamLabel[ctx.raw] || ctx.raw); },
+            yMin: -0.5,
+            yMax: qamNames.length - 0.5,
+            yAxisSize: 72,
+            zoomYAxisSize: 80,
+            yAfterBuildTicks: function(axis) {
+                axis.ticks = tickValues.map(function(v) { return {value: v}; });
+            }
+        });
+    }
+}
+
 function loadCompareCharts() {
     var chartsEl = document.getElementById('compare-charts');
     var emptyEl = document.getElementById('compare-empty');
     var loadingEl = document.getElementById('compare-loading');
     if (_compareChannels.length === 0) {
+        _compareRequestSeq++;
+        _lastCompareWeather = null;
+        _lastCompareRenderContext = null;
+        _updateCompareTempToggle();
         chartsEl.style.display = 'none';
         emptyEl.textContent = T.no_channels_selected || 'Select channels to compare';
         emptyEl.style.display = '';
@@ -656,6 +957,7 @@ function loadCompareCharts() {
     var days = getPillValue('compare-time-tabs') || '7';
     var ids = _compareChannels.map(function(c) { return c.id; }).join(',');
     writeChannelHash();
+    var requestId = ++_compareRequestSeq;
 
     loadingEl.style.display = '';
     chartsEl.style.display = 'none';
@@ -664,6 +966,7 @@ function loadCompareCharts() {
     fetch('/api/channel-compare?channels=' + ids + '&direction=' + dir + '&days=' + days)
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            if (requestId !== _compareRequestSeq) return;
             loadingEl.style.display = 'none';
             _compareChannelData = data;
 
@@ -675,141 +978,32 @@ function loadCompareCharts() {
             });
             var timestamps = Object.keys(tsSet).sort();
             if (timestamps.length === 0) {
+                _compareRequestSeq++;
+                _lastCompareWeather = null;
+                _lastCompareRenderContext = null;
+                _updateCompareTempToggle();
                 emptyEl.textContent = T.compare_no_data_range || 'No data for the selected channels in this time range.';
                 emptyEl.style.display = '';
                 return;
             }
             chartsEl.style.display = '';
-
-            var xLabels = timestamps.map(function(ts) {
-                if (parseInt(days) <= 1) return ts.substring(11, 16);
-                if (parseInt(days) >= 30) return ts.substring(5, 10);
-                return ts.substring(5, 16).replace('T', ' ');
+            _lastCompareRenderContext = {
+                data: data,
+                timestamps: timestamps,
+                days: days,
+                dir: dir
+            };
+            _lastCompareWeather = null;
+            _updateCompareTempToggle();
+            return _fetchChannelWeatherForTimestamps(timestamps).then(function(weatherData) {
+                if (requestId !== _compareRequestSeq) return;
+                _lastCompareWeather = _alignWeatherToChannelTimestamps(timestamps, weatherData, days);
+                _updateCompareTempToggle();
+                _renderCompareCharts();
             });
-            var showPoints = _compareChannels.length <= 6;
-
-            // Build lookup maps per channel: timestamp -> data point
-            var lookups = {};
-            _compareChannels.forEach(function(ch) {
-                var map = {};
-                (data[String(ch.id)] || []).forEach(function(d) { map[d.timestamp] = d; });
-                lookups[ch.id] = map;
-            });
-
-            // Power Chart
-            var powerDatasets = _compareChannels.map(function(ch) {
-                return {
-                    label: 'CH ' + ch.id,
-                    data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.power : null; }),
-                    color: ch.color,
-                    showPoints: showPoints
-                };
-            });
-            var powerThresholds = dir === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
-            renderChart('chart-cmp-power', xLabels, powerDatasets, null, powerThresholds);
-
-            // SNR Chart (DS only)
-            var snrCard = document.getElementById('compare-snr-card');
-            if (dir === 'ds') {
-                snrCard.style.display = '';
-                var snrDatasets = _compareChannels.map(function(ch) {
-                    return {
-                        label: 'CH ' + ch.id,
-                        data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.snr : null; }),
-                        color: ch.color,
-                        showPoints: showPoints
-                    };
-                });
-                renderChart('chart-cmp-snr', xLabels, snrDatasets, null, DS_SNR_THRESHOLDS);
-            } else {
-                snrCard.style.display = 'none';
-            }
-
-            // Errors Chart (DS only, lines not bars)
-            if (dir === 'ds') {
-                var compareHasErrors = _compareChannels.some(function(ch) {
-                    return _hasChannelDocsisErrorSeries(data[String(ch.id)] || []);
-                });
-                _setChartCardVisible('compare-errors-card', 'chart-cmp-errors', compareHasErrors);
-                if (compareHasErrors) {
-                    var errorDatasets = [];
-                    _compareChannels.forEach(function(ch) {
-                        errorDatasets.push({
-                            label: 'CH ' + ch.id + ' ' + (T.uncorrectable || 'Uncorr.'),
-                            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.uncorrectable_errors != null ? d.uncorrectable_errors : null; }),
-                            color: ch.color,
-                            showPoints: showPoints
-                        });
-                        errorDatasets.push({
-                            label: 'CH ' + ch.id + ' ' + (T.correctable || 'Corr.'),
-                            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.correctable_errors != null ? d.correctable_errors : null; }),
-                            color: ch.color,
-                            dashed: true,
-                            showPoints: showPoints
-                        });
-                    });
-                    renderChart('chart-cmp-errors', xLabels, errorDatasets);
-                }
-            } else {
-                _setChartCardVisible('compare-errors-card', 'chart-cmp-errors', false);
-            }
-
-            // Modulation Chart
-            var modCard = document.getElementById('compare-modulation-card');
-            var hasMod = false;
-            _compareChannels.forEach(function(ch) {
-                var chData = data[String(ch.id)] || [];
-                if (chData.some(function(d) { return d.modulation; })) hasMod = true;
-            });
-            if (!hasMod) {
-                modCard.style.display = 'none';
-            } else {
-                modCard.style.display = '';
-                // Collect all unique QAM values
-                var allQam = {};
-                _compareChannels.forEach(function(ch) {
-                    (data[String(ch.id)] || []).forEach(function(d) {
-                        if (d.modulation) allQam[d.modulation] = true;
-                    });
-                });
-                var qamNames = Object.keys(allQam).sort(function(a, b) {
-                    var na = parseInt(a) || 0, nb = parseInt(b) || 0;
-                    return na - nb;
-                });
-                var qamMap = {};
-                qamNames.forEach(function(name, idx) { qamMap[name] = idx; });
-                var qamLabel = {};
-                qamNames.forEach(function(name, idx) { qamLabel[idx] = name; });
-
-                var modDatasets = _compareChannels.map(function(ch) {
-                    return {
-                        label: 'CH ' + ch.id,
-                        data: timestamps.map(function(ts) {
-                            var d = lookups[ch.id][ts];
-                            if (!d || !d.modulation) return null;
-                            return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : null;
-                        }),
-                        color: ch.color,
-                        stepped: true,
-                        showPoints: false
-                    };
-                });
-                var tickValues = [];
-                for (var qi = 0; qi < qamNames.length; qi++) tickValues.push(qi);
-                renderChart('chart-cmp-modulation', xLabels, modDatasets, null, null, {
-                    yTickCallback: function(value) { return qamLabel[value] || ''; },
-                    tooltipLabelCallback: function(ctx) { return ctx.dataset.label + ': ' + (qamLabel[ctx.raw] || ctx.raw); },
-                    yMin: -0.5,
-                    yMax: qamNames.length - 0.5,
-                    yAxisSize: 72,
-                    zoomYAxisSize: 80,
-                    yAfterBuildTicks: function(axis) {
-                        axis.ticks = tickValues.map(function(v) { return {value: v}; });
-                    }
-                });
-            }
         })
         .catch(function() {
+            if (requestId !== _compareRequestSeq) return;
             loadingEl.style.display = 'none';
             emptyEl.textContent = T.trend_error || 'Error loading data.';
             emptyEl.style.display = '';

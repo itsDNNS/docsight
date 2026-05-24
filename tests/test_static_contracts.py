@@ -107,11 +107,29 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v25';" in sw_js
+    assert "var CACHE_VERSION = 'v26';" in sw_js
     assert "/static/css/main.css" in sw_js
+    assert "/static/js/channels.js" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
     assert "/modules/docsight.modulation/static/main.js" in sw_js
+
+
+def test_channels_weather_overlay_contract_is_wired():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
+
+    assert 'id="channel-temp-toggle-btn"' in template
+    assert 'id="compare-temp-toggle-btn"' in template
+    assert "function _getChannelWeatherRange" in channels_js
+    assert "function _alignWeatherToChannelTimestamps" in channels_js
+    assert "function _fetchChannelWeatherForTimestamps" in channels_js
+    assert "function _updateChannelTempToggle" in channels_js
+    assert "function _updateCompareTempToggle" in channels_js
+    assert "_renderChannelTimelineCharts()" in channels_js
+    assert "_renderCompareCharts()" in channels_js
+    assert "tempData: _lastChannelWeather" in channels_js
+    assert "tempData: _lastCompareWeather" in channels_js
 
 
 def test_chart_engine_has_configurable_axis_padding_for_long_qam_labels():
