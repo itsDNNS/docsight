@@ -8,18 +8,43 @@ var _corrWeatherData = [];
 var _corrSegmentData = [];
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 var _corrZoom = null; // { tMin, tMax } when zoomed in
-// Event type sub-filter: operational events hidden by default
+// Event type/severity sub-filter: operational events hidden by default
 var _corrEventFilter = {};
+var _corrEventSeverityFilter = {};
 var _OPERATIONAL_EVENTS = { monitoring_started: true, monitoring_stopped: true };
+var _CORR_SEVERITIES = ['info', 'warning', 'critical'];
+function _corrEscapeAttr(value) {
+    return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function _corrNormalizeSeverity(e) {
+    var severity = String((e && e.severity) || 'info').toLowerCase();
+    return _CORR_SEVERITIES.indexOf(severity) !== -1 ? severity : 'info';
+}
+function _corrEnsureEventSeverityFilter(eventType) {
+    if (!(eventType in _corrEventSeverityFilter)) {
+        _corrEventSeverityFilter[eventType] = { info: true, warning: true, critical: true };
+    }
+    return _corrEventSeverityFilter[eventType];
+}
 function _corrEventTypeAllowed(e) {
     var t = e.event_type || 'unknown';
     if (!(t in _corrEventFilter)) _corrEventFilter[t] = !_OPERATIONAL_EVENTS[t];
     return _corrEventFilter[t];
 }
+function _corrEventSeverityAllowed(e) {
+    var t = e.event_type || 'unknown';
+    var severity = _corrNormalizeSeverity(e);
+    var severityFilter = _corrEnsureEventSeverityFilter(t);
+    if (!(severity in severityFilter)) severityFilter[severity] = true;
+    return severityFilter[severity] !== false;
+}
+function _corrEventAllowed(e) {
+    return _corrEventTypeAllowed(e) && _corrEventSeverityAllowed(e);
+}
 function _corrFilteredEvents(events) {
     if (!_corrVisible.events) return [];
     return events.filter(function(e) {
-        return _corrEventTypeAllowed(e);
+        return _corrEventAllowed(e);
     });
 }
 
@@ -449,7 +474,7 @@ function renderCorrelationChart(data) {
     if (_corrVisible.events && filteredEvents.length > 0) {
         for (var i = 0; i < filteredEvents.length; i++) {
             var x = xScale(new Date(filteredEvents[i].timestamp).getTime());
-            var sev = filteredEvents[i].severity;
+            var sev = _corrNormalizeSeverity(filteredEvents[i]);
             ctx.strokeStyle = sev === 'critical' ? critColor : sev === 'warning' ? warnColor : textColor;
             ctx.lineWidth = 1;
             ctx.setLineDash([3, 3]);
@@ -547,14 +572,21 @@ function renderCorrelationChart(data) {
         legendItems.push({ metric: 'upload', color: uploadColor, label: '&#9644; ' + (T.correlation_upload || 'Upload (Mbps)') });
     }
     if (events.length > 0) {
-        // Populate _corrEventFilter for all event types in current data
+        // Populate filters for all event types/severities in current data
         var eventTypes = {};
+        var eventSeverityCounts = {};
+        var visibleEventCount = 0;
         for (var i = 0; i < events.length; i++) {
             var et = events[i].event_type || 'unknown';
+            var sev = _corrNormalizeSeverity(events[i]);
             eventTypes[et] = (eventTypes[et] || 0) + 1;
+            if (!(et in eventSeverityCounts)) eventSeverityCounts[et] = {};
+            eventSeverityCounts[et][sev] = (eventSeverityCounts[et][sev] || 0) + 1;
             if (!(et in _corrEventFilter)) _corrEventFilter[et] = !_OPERATIONAL_EVENTS[et];
+            _corrEnsureEventSeverityFilter(et);
+            if (_corrEventAllowed(events[i])) visibleEventCount++;
         }
-        legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; ' + (T.correlation_events || 'Events'), eventTypes: eventTypes });
+        legendItems.push({ metric: 'events', color: warnColor, label: '&#9650; ' + (T.correlation_events || 'Events'), eventTypes: eventTypes, eventSeverityCounts: eventSeverityCounts, visibleEventCount: visibleEventCount, totalEventCount: events.length });
     }
     if (weather.length > 0) {
         legendItems.push({ metric: 'temperature', color: tempColor, label: '- - ' + (T.temperature || 'Temperature') + ' (' + (typeof TEMPERATURE_UNIT !== 'undefined' && TEMPERATURE_UNIT === 'fahrenheit' ? '°F' : '°C') + ')' });
@@ -566,9 +598,7 @@ function renderCorrelationChart(data) {
     legend.innerHTML = legendItems.map(function(item) {
         var cls = _corrVisible[item.metric] ? '' : ' disabled';
         if (item.metric === 'events') {
-            var filterCount = 0, totalTypes = 0;
-            for (var et in item.eventTypes) { totalTypes++; if (_corrEventFilter[et]) filterCount++; }
-            var filterBadge = filterCount < totalTypes ? ' <span style="font-size:0.7em;opacity:0.7;">(' + filterCount + '/' + totalTypes + ')</span>' : '';
+            var filterBadge = item.visibleEventCount < item.totalEventCount ? ' <span style="font-size:0.7em;opacity:0.7;">(' + item.visibleEventCount + '/' + item.totalEventCount + ')</span>' : '';
             return '<span data-metric="events" tabindex="0" role="button" class="' + cls + ' corr-legend-events" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + filterBadge +
                 ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '">&#9881;</span></span>';
         }
@@ -595,23 +625,49 @@ function renderCorrelationChart(data) {
                 monitoring_started: T.event_type_monitoring_started || 'Monitoring Started',
                 monitoring_stopped: T.event_type_monitoring_stopped || 'Monitoring Stopped'
             };
+            var severityLabel = {
+                info: T.event_severity_info || 'Info',
+                warning: T.event_severity_warning || 'Warning',
+                critical: T.event_severity_critical || 'Critical'
+            };
             var html = '<div style="font-weight:600; margin-bottom:6px; color:var(--text,#f0f0f0);">' + (T.event_filter_title || 'Event Types') + '</div>';
             var sortedTypes = Object.keys(eventTypes).sort();
             for (var si = 0; si < sortedTypes.length; si++) {
                 var et = sortedTypes[si];
                 var checked = _corrEventFilter[et] ? ' checked' : '';
                 var label = typeLabel[et] || et.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-                html += '<label style="display:flex; align-items:center; gap:6px; padding:3px 0; cursor:pointer; color:var(--text-secondary,#9ca3af);">' +
-                    '<input type="checkbox" data-event-type="' + escapeHtml(et) + '"' + checked + ' style="accent-color:' + warnColor + ';"> ' +
-                    escapeHtml(label) + ' <span style="opacity:0.5; font-size:0.85em;">(' + eventTypes[et] + ')</span></label>';
+                var severityFilter = _corrEnsureEventSeverityFilter(et);
+                html += '<div class="corr-event-filter-group" style="padding:5px 0 7px; border-top:1px solid rgba(148,163,184,0.14);">' +
+                    '<label style="display:flex; align-items:center; gap:6px; padding:3px 0; cursor:pointer; color:var(--text-secondary,#9ca3af);">' +
+                    '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '"' + checked + ' style="accent-color:' + warnColor + ';"> ' +
+                    '<span style="font-weight:600; color:var(--text,#f0f0f0);">' + escapeHtml(label) + '</span> <span style="opacity:0.5; font-size:0.85em;">(' + eventTypes[et] + ')</span></label>' +
+                    '<div style="display:flex; flex-wrap:wrap; gap:6px; padding-left:22px; margin-top:2px;">';
+                for (var sj = 0; sj < _CORR_SEVERITIES.length; sj++) {
+                    var sv = _CORR_SEVERITIES[sj];
+                    var svChecked = severityFilter[sv] !== false ? ' checked' : '';
+                    var svCount = (eventSeverityCounts[et] && eventSeverityCounts[et][sv]) || 0;
+                    html += '<label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; color:var(--text-secondary,#9ca3af); font-size:0.85em;">' +
+                        '<input type="checkbox" data-event-type="' + _corrEscapeAttr(et) + '" data-event-severity="' + _corrEscapeAttr(sv) + '"' + svChecked + ' style="accent-color:' + warnColor + ';"> ' +
+                        escapeHtml(severityLabel[sv] || sv) + ' <span style="opacity:0.5;">(' + svCount + ')</span></label>';
+                }
+                html += '</div></div>';
             }
             pop.innerHTML = html;
             this.parentElement.appendChild(pop);
             // Prevent clicks inside popover from bubbling to legend toggle
             pop.addEventListener('click', function(e) { e.stopPropagation(); });
-            pop.querySelectorAll('input[data-event-type]').forEach(function(cb) {
+            pop.querySelectorAll('input[data-event-type]:not([data-event-severity])').forEach(function(cb) {
                 cb.addEventListener('change', function() {
                     _corrEventFilter[this.getAttribute('data-event-type')] = this.checked;
+                    renderCorrelationChart(data);
+                    renderCorrelationTable(data);
+                });
+            });
+            pop.querySelectorAll('input[data-event-severity]').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    var eventType = this.getAttribute('data-event-type') || 'unknown';
+                    var severity = this.getAttribute('data-event-severity') || 'info';
+                    _corrEnsureEventSeverityFilter(eventType)[severity] = this.checked;
                     renderCorrelationChart(data);
                     renderCorrelationTable(data);
                 });
@@ -1264,8 +1320,8 @@ function renderCorrelationTable(data) {
 
         // Skip modem entries that are not health transitions
         if (e.source === 'modem' && !modemTransitionTs[e.timestamp]) continue;
-        // Keep table rows aligned with the event type filter used by chart markers.
-        if (e.source === 'event' && !_corrEventTypeAllowed(e)) continue;
+        // Keep table rows aligned with the event filters used by chart markers.
+        if (e.source === 'event' && !_corrEventAllowed(e)) continue;
 
         var tr = document.createElement('tr');
         tr.setAttribute('data-ts', e.timestamp);
@@ -1318,10 +1374,11 @@ function renderCorrelationTable(data) {
                 details = escapeHtml(e.last_error || '');
             }
         } else if (src === 'event') {
-            var sevColor = e.severity === 'critical' ? 'var(--crit)' : e.severity === 'warning' ? 'var(--warn)' : 'var(--muted)';
-            src = '<span style="color:' + sevColor + ';">' + (sevLabels[e.severity] || e.severity) + '</span>';
+            var eventSeverity = _corrNormalizeSeverity(e);
+            var sevColor = eventSeverity === 'critical' ? 'var(--crit)' : eventSeverity === 'warning' ? 'var(--warn)' : 'var(--muted)';
+            src = '<span style="color:' + sevColor + ';">' + escapeHtml(sevLabels[eventSeverity] || eventSeverity) + '</span>';
             msg = escapeHtml(e.message || '');
-            details = typeLabels[e.event_type] || e.event_type || '';
+            details = escapeHtml(typeLabels[e.event_type] || e.event_type || '');
         }
 
         tr.innerHTML = '<td data-label="' + escapeHtml(T.timestamp || 'Timestamp') + '" class="correlation-cell-timestamp">' + ts + '</td>'

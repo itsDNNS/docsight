@@ -51,10 +51,86 @@ def _sample_correlation_data():
     ]
 
 
-def _route_sample_correlation(page):
-    page.route("**/api/correlation?**", lambda route: route.fulfill(json=_sample_correlation_data()))
+def _sample_correlation_severity_data():
+    base = datetime.now(timezone.utc).replace(microsecond=0)
+
+    def ts(minutes_ago):
+        return (base - timedelta(minutes=minutes_ago)).isoformat().replace("+00:00", "Z")
+
+    return [
+        {
+            "source": "modem",
+            "timestamp": ts(60),
+            "health": "good",
+            "ds_snr_min": 38.5,
+            "ds_power_avg": 1.1,
+            "us_power_avg": 41.8,
+            "ds_uncorrectable_errors": 0,
+        },
+        {
+            "source": "event",
+            "timestamp": ts(45),
+            "event_type": "health_change",
+            "severity": "warning",
+            "message": "Health warning",
+        },
+        {
+            "source": "event",
+            "timestamp": ts(35),
+            "event_type": "health_change",
+            "severity": "critical",
+            "message": "Health critical",
+        },
+        {
+            "source": "event",
+            "timestamp": ts(25),
+            "event_type": "snr_change",
+            "severity": "info",
+            "message": "Informational SNR movement",
+        },
+    ]
+
+
+def _sample_correlation_severity_edge_data():
+    base = datetime.now(timezone.utc).replace(microsecond=0)
+
+    def ts(minutes_ago):
+        return (base - timedelta(minutes=minutes_ago)).isoformat().replace("+00:00", "Z")
+
+    return [
+        {
+            "source": "modem",
+            "timestamp": ts(60),
+            "health": "good",
+            "ds_snr_min": 38.5,
+            "ds_power_avg": 1.1,
+            "us_power_avg": 41.8,
+            "ds_uncorrectable_errors": 0,
+        },
+        {
+            "source": "event",
+            "timestamp": ts(40),
+            "event_type": 'custom" data-owned="1',
+            "message": "Missing severity stays filterable",
+        },
+        {
+            "source": "event",
+            "timestamp": ts(30),
+            "event_type": "snr_change",
+            "severity": "debug",
+            "message": "Unknown severity falls back to info",
+        },
+    ]
+
+
+def _route_correlation(page, payload=None):
+    page.route("**/api/correlation?**", lambda route: route.fulfill(json=payload or _sample_correlation_data()))
     page.route("**/api/weather/range?**", lambda route: route.fulfill(json=[]))
     page.route("**/api/fritzbox/segment-utilization/range?**", lambda route: route.fulfill(json=[]))
+
+
+def _route_sample_correlation(page):
+    _route_correlation(page)
 
 
 def _open_correlation(page):
@@ -136,7 +212,7 @@ def test_correlation_event_type_filter_updates_table_in_browser(demo_page):
     expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(1/2)")
 
     page.locator("#correlation-legend .corr-event-filter-btn").click()
-    page.locator('#corr-event-popover input[data-event-type="health_change"]').evaluate(
+    page.locator('#corr-event-popover input[data-event-type="health_change"]:not([data-event-severity])').evaluate(
         """
         (checkbox) => {
             checkbox.checked = false;
@@ -147,6 +223,74 @@ def test_correlation_event_type_filter_updates_table_in_browser(demo_page):
 
     expect(event_rows).to_have_count(0)
     expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(0/2)")
+
+
+def test_correlation_event_severity_filter_updates_chart_and_table_in_browser(demo_page):
+    page = demo_page
+    _route_correlation(page, _sample_correlation_severity_data())
+    _open_correlation(page)
+
+    event_rows = page.locator('#correlation-tbody tr[data-src="event"]')
+    expect(event_rows).to_have_count(3)
+    expect(event_rows).to_contain_text(["Informational SNR movement", "Health critical", "Health warning"])
+
+    page.locator("#correlation-legend .corr-event-filter-btn").click()
+    expect(page.locator('#corr-event-popover input[data-event-severity="info"]')).to_have_count(2)
+    page.locator('#corr-event-popover input[data-event-type="snr_change"][data-event-severity="info"]').evaluate(
+        """
+        (checkbox) => {
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        """
+    )
+
+    expect(event_rows).to_have_count(2)
+    row_text = "\n".join(event_rows.all_text_contents())
+    assert "Informational SNR movement" not in row_text
+    assert "Health critical" in row_text
+    assert "Health warning" in row_text
+    visible_markers = page.locator("#correlation-legend .corr-legend-events").evaluate("(node) => node.textContent")
+    assert "2/3" in visible_markers
+
+
+def test_correlation_event_severity_normalizes_edge_cases_and_escapes_filter_attributes(demo_page):
+    page = demo_page
+    malicious_type = 'custom" data-owned="1'
+    _route_correlation(page, _sample_correlation_severity_edge_data())
+    _open_correlation(page)
+
+    event_rows = page.locator('#correlation-tbody tr[data-src="event"]')
+    expect(event_rows).to_have_count(2)
+    row_text = "\n".join(event_rows.all_text_contents())
+    assert "Info" in row_text
+    assert "undefined" not in row_text
+    assert "debug" not in row_text
+
+    page.locator("#correlation-legend .corr-event-filter-btn").click()
+    expect(page.locator("#corr-event-popover input[data-owned]")).to_have_count(0)
+    popover_event_types = page.locator("#corr-event-popover input[data-event-type]").evaluate_all(
+        "(inputs) => inputs.map((input) => input.dataset.eventType)"
+    )
+    assert malicious_type in popover_event_types
+
+    page.evaluate(
+        """
+        (eventType) => {
+            const checkbox = [...document.querySelectorAll('#corr-event-popover input[data-event-severity="info"]')]
+                .find((input) => input.dataset.eventType === eventType);
+            if (!checkbox) throw new Error('Expected malicious event type info checkbox');
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        """,
+        malicious_type,
+    )
+
+    expect(event_rows).to_have_count(1)
+    remaining_text = "\n".join(event_rows.all_text_contents())
+    assert "Missing severity stays filterable" not in remaining_text
+    assert "Unknown severity falls back to info" in remaining_text
 
 
 def test_correlation_table_uses_card_layout_without_mobile_overflow(demo_page):

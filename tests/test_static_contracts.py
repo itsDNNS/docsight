@@ -81,17 +81,33 @@ def test_correlation_event_type_filter_applies_to_table_and_chart():
     assert "function _corrEventTypeAllowed" in js
     assert "_corrFilteredEvents(events)" in js
     table_block = js[js.index("function renderCorrelationTable") :]
-    assert "_corrEventTypeAllowed(e)" in table_block
+    assert "_corrEventAllowed(e)" in table_block
 
     popover_block = js[js.index("cb.addEventListener('change'") : js.index("// Close on outside click")]
     assert "renderCorrelationChart(data)" in popover_block
     assert "renderCorrelationTable(data)" in popover_block
 
 
+def test_correlation_event_severity_filter_applies_to_table_and_chart():
+    js = CORRELATION_JS.read_text(encoding="utf-8")
+
+    assert "var _corrEventSeverityFilter = {};" in js
+    assert "function _corrEventSeverityAllowed" in js
+    assert "function _corrEventAllowed" in js
+    assert "function _corrEscapeAttr" in js
+    assert "_CORR_SEVERITIES.indexOf(severity) !== -1 ? severity : 'info'" in js
+    assert "_corrFilteredEvents(events)" in js
+    filtered_block = js[js.index("function _corrFilteredEvents") : js.index("// Re-render chart")]
+    assert "_corrEventAllowed(e)" in filtered_block
+    table_block = js[js.index("function renderCorrelationTable") :]
+    assert "_corrEventAllowed(e)" in table_block
+    assert "data-event-severity" in js
+
+
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v24';" in sw_js
+    assert "var CACHE_VERSION = 'v25';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
