@@ -107,7 +107,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v26';" in sw_js
+    assert "var CACHE_VERSION = 'v27';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
@@ -161,16 +161,18 @@ def test_chart_zoom_uses_bounded_index_ticks_instead_of_all_samples():
     assert "filter: xTickValues" not in zoom_block
 
 
-def test_trend_power_charts_fill_to_visible_axis_floor():
+def test_trend_single_metric_charts_fill_to_visible_axis_floor():
     chart_engine = CHART_ENGINE_JS.read_text(encoding="utf-8")
     trends = TRENDS_JS.read_text(encoding="utf-8")
+    snr_block = trends[trends.index("renderChart('chart-ds-snr'") : trends.index("renderChart('chart-us-power'")]
 
     assert "function fillToScaleMin" in chart_engine
     assert "if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;" in chart_engine
     assert "fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined)" in chart_engine
     assert "var POWER_TREND_FILL" in trends
-    assert "fillTo: fillToScaleMin" in trends
-    assert trends.count("fill: POWER_TREND_FILL") >= 2
+    assert "fill: POWER_TREND_FILL" in snr_block
+    assert "fillTo: fillToScaleMin" in snr_block
+    assert trends.count("fill: POWER_TREND_FILL") >= 3
 
 
 def test_connection_monitor_card_treats_no_enabled_targets_as_no_data():

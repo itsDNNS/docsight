@@ -111,15 +111,15 @@ class TestTrendCharts:
         assert box["width"] > 100
         assert box["height"] > 50
 
-    def test_power_trend_charts_fill_to_visible_axis_floor(self, demo_page):
-        """DS/US Power charts should render filled areas to the visible y-axis floor."""
+    def test_trend_single_metric_charts_fill_to_visible_axis_floor(self, demo_page):
+        """DS Power, DS SNR, and US Power charts should fill to the visible y-axis floor."""
         navigate_to_trends(demo_page)
-        for chart_id in ["chart-ds-power", "chart-us-power"]:
+        for chart_id in ["chart-ds-power", "chart-ds-snr", "chart-us-power"]:
             wait_for_uplot(demo_page, chart_id)
 
         fills = demo_page.evaluate(
             """
-            () => ['chart-ds-power', 'chart-us-power'].map((chartId) => {
+            () => ['chart-ds-power', 'chart-ds-snr', 'chart-us-power'].map((chartId) => {
                 const chart = window.charts[chartId];
                 const dataset = chart._docsightParams.datasets[0];
                 return {
@@ -138,6 +138,12 @@ class TestTrendCharts:
                 "configuredFill": "rgba(168,85,247,0.15)",
                 "fillToValue": -18,
                 "yMin": -18,
+            },
+            {
+                "chartId": "chart-ds-snr",
+                "configuredFill": "rgba(168,85,247,0.15)",
+                "fillToValue": 20,
+                "yMin": 20,
             },
             {
                 "chartId": "chart-us-power",

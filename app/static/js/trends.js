@@ -109,7 +109,7 @@ function _renderTrendCharts() {
         [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],
         null, DS_POWER_THRESHOLDS, tempOpts);
     renderChart('chart-ds-snr', xLabels,
-        [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7'}],
+        [{label: 'DS SNR Avg', data: data.map(function(d){ return d.ds_snr_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],
         null, DS_SNR_THRESHOLDS, tempOpts);
     renderChart('chart-us-power', xLabels,
         [{label: 'US Power Avg', data: data.map(function(d){ return d.us_power_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],
