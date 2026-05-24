@@ -805,7 +805,7 @@ def _channel_threshold_candidates(channels, *, snr=False):
             for key in ("modulation", "type", "docsis_version")
             if channel.get(key) is not None
         ).upper()
-        if snr and ("OFDM" in text or "3.1" in text or "4.0" in text):
+        if snr and _snr_channel_family(channel) == "ofdm":
             candidates.append("ofdm")
         for qam in ("4096QAM", "1024QAM", "256QAM", "64QAM"):
             if qam in text:
@@ -947,10 +947,15 @@ def _build_metric_ranges(analysis):
         (["ofdma"] if any(str(ch.get("docsis_version", "")) in ("3.1", "4.0") for ch in us_channels) else [])
         + ["sc_qam", "ofdma"],
     )
-    snr_threshold = _choose_threshold(
-        thresholds.get("snr", {}),
-        _channel_threshold_candidates(ds_channels, snr=True) + ["256QAM", "ofdm", "4096QAM", "1024QAM", "64QAM"],
-    )
+    snr_display = _build_home_snr_display_context(analysis)
+    snr_channels = snr_display.get("channels") or ds_channels
+    if snr_display.get("kind") == "ofdm":
+        snr_candidates = ["ofdm"] + _channel_threshold_candidates(snr_channels, snr=True)
+    elif snr_display.get("kind") == "sc_qam":
+        snr_candidates = _channel_threshold_candidates(snr_channels, snr=True) + ["256QAM", "1024QAM", "64QAM"]
+    else:
+        snr_candidates = _channel_threshold_candidates(ds_channels, snr=True) + ["256QAM", "ofdm", "4096QAM", "1024QAM", "64QAM"]
+    snr_threshold = _choose_threshold(thresholds.get("snr", {}), snr_candidates)
     return {
         "ds_power": _power_metric_range(
             _to_float(summary.get("ds_power_avg")),
@@ -967,9 +972,9 @@ def _build_metric_ranges(analysis):
             "dBmV",
         ),
         "snr": _snr_metric_range(
-            _to_float(summary.get("ds_snr_avg")),
-            _to_float(summary.get("ds_snr_min")),
-            _to_float(summary.get("ds_snr_max")),
+            _to_float(snr_display.get("value")),
+            _to_float(snr_display.get("min")),
+            _to_float(snr_display.get("max")),
             snr_threshold,
         ),
         "errors": _error_metric_range(
@@ -980,22 +985,38 @@ def _build_metric_ranges(analysis):
 
 
 def _snr_channel_family(channel):
-    """Infer the SNR/MER channel family without letting DOCSIS version override explicit QAM labels."""
-    explicit_text = " ".join(
-        str(channel.get(key, ""))
-        for key in ("modulation", "type")
-        if channel.get(key) is not None
-    ).upper()
-    if "OFDM" in explicit_text:
+    """Infer the SNR/MER channel family from explicit channel data first."""
+    type_text = str(channel.get("type", "") or "").upper()
+    modulation_text = str(channel.get("modulation", "") or "").upper()
+    docsis_version = str(channel.get("docsis_version", "") or "").upper()
+
+    if "OFDM" in type_text or "OFDMA" in type_text:
         return "ofdm"
-    if "QAM" in explicit_text:
+    if "SC-QAM" in type_text or type_text in {"QAM", "SCQAM"}:
+        return "sc_qam"
+    type_rank = qam_rank(type_text)
+    if type_rank:
+        if type_rank >= qam_rank("1024QAM") and ("3.1" in docsis_version or "4.0" in docsis_version):
+            return "ofdm"
+        return "sc_qam"
+    if "OFDM" in modulation_text or "OFDMA" in modulation_text:
+        return "ofdm"
+
+    modulation_rank = qam_rank(modulation_text)
+    if modulation_rank:
+        if modulation_rank >= qam_rank("1024QAM") and ("3.1" in docsis_version or "4.0" in docsis_version):
+            return "ofdm"
         return "sc_qam"
 
     profile_text = str(channel.get("profile_modulation", "") or "").upper()
-    if "OFDM" in profile_text:
+    if "OFDM" in profile_text or "OFDMA" in profile_text:
         return "ofdm"
+    profile_rank = qam_rank(profile_text)
+    if profile_rank:
+        if profile_rank >= qam_rank("1024QAM") and ("3.1" in docsis_version or "4.0" in docsis_version):
+            return "ofdm"
+        return "sc_qam"
 
-    docsis_version = str(channel.get("docsis_version", "") or "").upper()
     if "3.1" in docsis_version or "4.0" in docsis_version:
         return "ofdm"
     if "3.0" in docsis_version:
@@ -1003,40 +1024,75 @@ def _snr_channel_family(channel):
     return None
 
 
-def _is_snr_ofdm_channel(channel):
-    return _snr_channel_family(channel) == "ofdm"
-
-
-def _is_snr_sc_qam_channel(channel):
-    return _snr_channel_family(channel) == "sc_qam"
-
-
-def _build_home_snr_basis_context(analysis):
-    """Describe which downstream channel families feed the Home SNR average."""
-    channels = []
+def _snr_channel_items(analysis):
+    items = []
     for channel in (analysis or {}).get("ds_channels", []):
-        if _to_float(channel.get("snr")) is not None:
-            channels.append(channel)
-    if not channels:
-        return {"kind": "unavailable", "total": 0, "sc_qam": 0, "ofdm": 0, "unknown": 0}
+        snr = _to_float(channel.get("snr"))
+        if snr is None:
+            continue
+        items.append({"channel": channel, "family": _snr_channel_family(channel), "snr": snr})
+    return items
 
-    sc_qam = sum(1 for channel in channels if _is_snr_sc_qam_channel(channel))
-    ofdm = sum(1 for channel in channels if _is_snr_ofdm_channel(channel))
-    unknown = max(0, len(channels) - sc_qam - ofdm)
-    if sc_qam and ofdm:
-        kind = "mixed"
-    elif ofdm:
-        kind = "ofdm"
-    elif sc_qam:
+
+def _snr_display_stats(items):
+    values = [item["snr"] for item in items]
+    if not values:
+        return {"value": None, "min": None, "max": None}
+    return {
+        "value": round(sum(values) / len(values), 1),
+        "min": round(min(values), 1),
+        "max": round(max(values), 1),
+    }
+
+
+def _build_home_snr_display_context(analysis):
+    """Choose the single channel-family basis used by the compact Home SNR/MER card."""
+    items = _snr_channel_items(analysis)
+    if not items:
+        return {
+            "kind": "unavailable",
+            "label_key": "metric_snr_label_fallback",
+            "channels": [],
+            "value": None,
+            "min": None,
+            "max": None,
+            "total": 0,
+            "selected": 0,
+            "sc_qam": 0,
+            "ofdm": 0,
+            "unknown": 0,
+        }
+
+    sc_qam_items = [item for item in items if item["family"] == "sc_qam"]
+    ofdm_items = [item for item in items if item["family"] == "ofdm"]
+    unknown_items = [item for item in items if item["family"] not in {"sc_qam", "ofdm"}]
+
+    if sc_qam_items:
         kind = "sc_qam"
+        selected_items = sc_qam_items
+        label_key = "metric_snr_label_sc_qam"
+    elif ofdm_items:
+        kind = "ofdm"
+        selected_items = ofdm_items
+        label_key = "metric_snr_label_ofdm"
     else:
         kind = "fallback"
+        selected_items = unknown_items
+        label_key = "metric_snr_label_fallback"
+
+    stats = _snr_display_stats(selected_items)
     return {
         "kind": kind,
-        "total": len(channels),
-        "sc_qam": sc_qam,
-        "ofdm": ofdm,
-        "unknown": unknown,
+        "label_key": label_key,
+        "channels": [item["channel"] for item in selected_items],
+        "value": stats["value"],
+        "min": stats["min"],
+        "max": stats["max"],
+        "total": len(items),
+        "selected": len(selected_items),
+        "sc_qam": len(sc_qam_items),
+        "ofdm": len(ofdm_items),
+        "unknown": len(unknown_items),
     }
 
 
@@ -1185,7 +1241,7 @@ def index():
         bnetz_enabled=bnetz_enabled,
         bnetz_latest=bnetz_latest,
         metric_ranges=_build_metric_ranges(analysis),
-        home_snr_basis=_build_home_snr_basis_context(analysis),
+        home_snr_display=_build_home_snr_display_context(analysis),
         home_modulation_context=_build_home_modulation_context(analysis),
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",
