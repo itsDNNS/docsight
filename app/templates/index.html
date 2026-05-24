@@ -1593,6 +1593,7 @@
                 <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadChannelTimeline)">7d</button>
                 <button class="trend-tab" data-value="30" onclick="selectPill(this, loadChannelTimeline)">30d</button>
             </div>
+            <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleChannelTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}">{{ t.temperature }}</button>
         </span>
         <span id="channel-compare-controls" style="display:none;">
             <div class="trend-tabs" id="compare-dir-tabs">
@@ -1609,6 +1610,7 @@
                 <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadCompareCharts)">7d</button>
                 <button class="trend-tab" data-value="30" onclick="selectPill(this, loadCompareCharts)">30d</button>
             </div>
+            <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleCompareTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}">{{ t.temperature }}</button>
         </span>
     </div>
 
