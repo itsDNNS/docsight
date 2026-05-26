@@ -668,6 +668,24 @@ class TestBqmChartConfig:
         assert "return [sentMax, 0]" in js
         assert "return [0, sentMax]" not in js
 
+    def test_loss_poll_overlay_has_no_zero_baseline(self):
+        """Lost-poll events should draw as plugin bars only, not a red zero-value line."""
+        with open("app/modules/bqm/static/js/bqm-chart.js", "r", encoding="utf-8") as f:
+            js = f.read()
+        with open("app/static/js/chart-engine.js", "r", encoding="utf-8") as f:
+            chart_engine = f.read()
+
+        loss_dataset = js[js.index("label: (T && T.bqm_chart_lost_polls)") : js.index("], 'line', null")]
+        assert "lineWidth: 0" in loss_dataset
+        assert "width: ds.lineWidth" in chart_engine
+
+    def test_loss_poll_toggle_controls_plugin_overlay(self):
+        """Hiding Lost Polls in the legend should hide the real loss markers too."""
+        with open("app/modules/bqm/static/js/bqm-chart.js", "r", encoding="utf-8") as f:
+            js = f.read()
+        plugin_body = js[js.index("function bqmLossPlugin") : js.index("function render(container")]
+        assert "u.series[seriesIdx].show === false" in plugin_body
+
     def test_toggle_logic_in_bqm_js(self):
         """bqm.js must contain toggle handler wiring."""
         with open("app/static/js/bqm.js", "r") as f:

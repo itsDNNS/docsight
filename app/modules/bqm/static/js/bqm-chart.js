@@ -21,6 +21,7 @@ var BQMChart = (function() {
         return {
             hooks: {
                 draw: [function(u) {
+                    if (!u.series[seriesIdx] || u.series[seriesIdx].show === false) return;
                     var data = u.data[seriesIdx];
                     if (!data) return;
                     var ctx = u.ctx;
@@ -94,6 +95,7 @@ var BQMChart = (function() {
                 color: 'rgba(239,68,68,0.9)',
                 spanGaps: false,
                 scale: 'loss',
+                lineWidth: 0,
                 showPoints: false,
             },
         ], 'line', null, {
