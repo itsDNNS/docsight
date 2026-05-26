@@ -1040,5 +1040,14 @@
   "bqm_setup_open_settings": "Atveriet BQM iestatījumus",
   "previous_month": "Iepriekšējais mēnesis",
   "next_month": "Nākamajā mēnesī",
-  "bqm_csv_import": "BQM CSV imports"
+  "bqm_csv_import": "BQM CSV imports",
+  "signal_family_ds_sc_qam": "DS SC-QAM",
+  "signal_family_ds_ofdm": "DS OFDM",
+  "signal_family_us_sc_qam": "US SC-QAM",
+  "signal_family_us_ofdma": "US OFDMA",
+  "signal_family_metric_power": "Power",
+  "signal_family_metric_snr": "SNR",
+  "signal_family_metric_mer": "MER",
+  "signal_family_modulation_label": "Modulation",
+  "signal_family_unavailable": "Unavailable"
 }

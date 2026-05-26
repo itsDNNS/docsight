@@ -484,7 +484,191 @@ def _metric_healths(issues):
     return result
 
 
-def _assess_ds_channel(ch, docsis_ver):
+_HEALTH_RANK = {"missing": -1, "good": 0, "tolerated": 1, "warning": 2, "critical": 3}
+
+
+def _worst_health(values):
+    """Return the worst health value, ignoring missing/unavailable metrics."""
+    ranked = [value for value in values if value and value != "missing"]
+    if not ranked:
+        return "missing"
+    return max(ranked, key=lambda value: _HEALTH_RANK.get(value, 0))
+
+
+def _stats(values):
+    """Return rounded min/avg/max stats without turning unavailable into zero."""
+    filtered = [value for value in values if value is not None]
+    if not filtered:
+        return {"available": False, "min": None, "avg": None, "max": None}
+    return {
+        "available": True,
+        "min": round(min(filtered), 1),
+        "avg": round(sum(filtered) / len(filtered), 1),
+        "max": round(max(filtered), 1),
+    }
+
+
+def _distinct_modulations(channels, *, prefer_profile=False):
+    values = []
+    for channel in channels:
+        if prefer_profile:
+            value = channel.get("profile_modulation") or channel.get("modulation")
+        else:
+            value = channel.get("modulation") or channel.get("profile_modulation")
+        if value:
+            values.append(str(value))
+    return sorted(set(values), key=lambda value: (_parse_qam_order(value) or 0, value))
+
+
+def _channel_text(channel, *keys):
+    return " ".join(str(channel.get(key, "") or "") for key in keys).upper().replace("-", "")
+
+
+def _classify_ds_family(channel):
+    """Classify downstream channels into SC-QAM, OFDM, or unknown families."""
+    docsis_version = str(channel.get("docsis_version", "") or "")
+    is_docsis31_plus = "3.1" in docsis_version or "4.0" in docsis_version
+    type_text = _channel_text(channel, "type")
+    modulation_text = _channel_text(channel, "modulation")
+    profile_text = _channel_text(channel, "profile_modulation")
+
+    if "OFDM" in type_text or "OFDMA" in type_text:
+        return "ofdm"
+    if "SCQAM" in type_text or type_text == "QAM":
+        return "sc_qam"
+    if "OFDM" in modulation_text or "OFDMA" in modulation_text:
+        return "ofdm"
+
+    modulation_rank = _parse_qam_order(modulation_text)
+    if modulation_rank:
+        if modulation_rank >= 1024 and is_docsis31_plus:
+            return "ofdm"
+        return "sc_qam"
+
+    # Profile modulation is an OFDM profile signal, not an SC-QAM channel type.
+    # A degraded DOCSIS 3.1 OFDM profile can be 256QAM/512QAM and must still
+    # remain on the OFDM/MER Home lane when explicit modulation/type is absent.
+    if profile_text and is_docsis31_plus:
+        return "ofdm"
+    if _parse_qam_order(profile_text):
+        return "sc_qam"
+
+    if is_docsis31_plus:
+        return "ofdm"
+    if "3.0" in docsis_version:
+        return "sc_qam"
+    return "unknown"
+
+
+def _classify_us_family(channel):
+    """Classify upstream channels into SC-QAM, OFDMA, or unknown families."""
+    docsis_version = str(channel.get("docsis_version", "") or "")
+    is_docsis31_plus = "3.1" in docsis_version or "4.0" in docsis_version
+    type_text = _channel_text(channel, "type", "multiplex")
+    modulation_text = _channel_text(channel, "modulation")
+    profile_text = _channel_text(channel, "profile_modulation")
+
+    if "OFDMA" in type_text:
+        return "ofdma"
+    if any(token in type_text for token in ("ATDMA", "SCQAM", "TDMA")):
+        return "sc_qam"
+    if "OFDMA" in modulation_text:
+        return "ofdma"
+    if _parse_qam_order(modulation_text):
+        return "sc_qam"
+
+    # OFDMA profile modulation can be reduced to low QAM values; keep those
+    # profile-only DOCSIS 3.1 channels in the OFDMA lane instead of treating the
+    # profile QAM value as an SC-QAM channel modulation.
+    if profile_text and is_docsis31_plus:
+        return "ofdma"
+    if is_docsis31_plus:
+        return "ofdma"
+    if "3.0" in docsis_version:
+        return "sc_qam"
+    return "unknown"
+
+
+def _family_summary(family, channels, *, direction):
+    # The analyzer normalizes downstream OFDM MER into the per-channel `snr` slot;
+    # expose it as `mer` at the family-summary boundary so Home labels stay honest.
+    quality_key = "mer" if direction == "downstream" and family == "ofdm" else "snr"
+    prefer_profile = family in {"ofdm", "ofdma"}
+    power = _stats([channel.get("power") for channel in channels])
+    quality = _stats([channel.get("snr") for channel in channels]) if direction == "downstream" else None
+    modulation_values = _distinct_modulations(channels, prefer_profile=prefer_profile)
+    power_health = _worst_health(
+        channel.get("power_health", "good") for channel in channels if channel.get("power") is not None
+    )
+    quality_health = (
+        _worst_health(channel.get("snr_health", "good") for channel in channels if channel.get("snr") is not None)
+        if direction == "downstream"
+        else "missing"
+    )
+    modulation_health = _worst_health(
+        channel.get("modulation_health", "good")
+        for channel in channels
+        if channel.get("modulation") or channel.get("profile_modulation")
+    )
+
+    metrics = [power_health, modulation_health]
+    if direction == "downstream":
+        metrics.append(quality_health)
+
+    result = {
+        "family": family,
+        "count": len(channels),
+        "health": _worst_health(metrics),
+        "power": {**power, "health": power_health},
+        "modulation": {
+            "available": bool(modulation_values),
+            "value": modulation_values[0] if modulation_values else None,
+            "secondary": modulation_values[-1] if len(modulation_values) > 1 else None,
+            "distinct": modulation_values,
+            "health": modulation_health,
+        },
+    }
+    if direction == "downstream":
+        assert quality is not None
+        result[quality_key] = {**quality, "health": quality_health}
+    return result
+
+
+def _build_signal_family_summary(ds_channels, us_channels):
+    """Build family-level signal summaries for Home without changing legacy globals."""
+    ds_groups = {"sc_qam": [], "ofdm": [], "unknown": []}
+    for channel in ds_channels:
+        family = channel.get("channel_family") or _classify_ds_family(channel)
+        ds_groups.setdefault(family, []).append(channel)
+
+    us_groups = {"sc_qam": [], "ofdma": [], "unknown": []}
+    for channel in us_channels:
+        family = channel.get("channel_family") or _classify_us_family(channel)
+        us_groups.setdefault(family, []).append(channel)
+
+    downstream = {
+        key: _family_summary(key, channels, direction="downstream")
+        for key, channels in ds_groups.items()
+        if channels
+    }
+    upstream = {
+        key: _family_summary(key, channels, direction="upstream")
+        for key, channels in us_groups.items()
+        if channels
+    }
+    return {
+        "downstream": {
+            "health": _worst_health(family["health"] for family in downstream.values()),
+            "families": downstream,
+        },
+        "upstream": {
+            "health": _worst_health(family["health"] for family in upstream.values()),
+            "families": upstream,
+        },
+    }
+
+
+def _assess_ds_channel(ch, docsis_ver, *, modulation_docsis_ver: str | None = None):
     """Assess a single downstream channel. Returns (health, health_detail)."""
     issues = []
     raw_power = ch.get("powerLevel")
@@ -515,7 +699,7 @@ def _assess_ds_channel(ch, docsis_ver):
         elif snr_val < st["good_min"]:
             issues.append("snr tolerated")
 
-    mod_issue = _modulation_issue(_assess_ds_modulation(modulation, docsis_ver))
+    mod_issue = _modulation_issue(_assess_ds_modulation(modulation, modulation_docsis_ver or docsis_ver))
     if mod_issue:
         issues.append(mod_issue)
 
@@ -590,6 +774,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
         health, health_detail = _assess_ds_channel(ch, "3.0")
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
         metric_h["modulation_health"] = _assess_ds_modulation(ch.get("modulation") or ch.get("type", ""), "3.0")
+        profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
@@ -599,35 +784,50 @@ def analyze(data: DocsisData) -> AnalysisResult:
             "correctable_errors": ch.get("corrErrors"),
             "uncorrectable_errors": ch.get("nonCorrErrors"),
             "docsis_version": "3.0",
+            "channel_family": "sc_qam",
             "health": health,
             "health_detail": health_detail,
             **metric_h,
         }
-        if ch.get("profile_modulation"):
-            channel["profile_modulation"] = ch["profile_modulation"]
+        if profile_modulation:
+            channel["profile_modulation"] = profile_modulation
         ds_channels.append(channel)
     for ch in ds31:
         raw_power = ch.get("powerLevel")
         power = _parse_float(raw_power) if raw_power is not None else None
         snr = _parse_float(ch.get("mer")) if ch.get("mer") else None
-        health, health_detail = _assess_ds_channel(ch, "3.1")
+        ds_modulation = ch.get("modulation") or ch.get("type", "")
+        profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
+        channel_family = _classify_ds_family({
+            "type": ch.get("type", ""),
+            "modulation": ds_modulation,
+            "profile_modulation": profile_modulation,
+            "docsis_version": "3.1",
+        })
+        modulation_docsis_ver = "3.0" if channel_family == "sc_qam" else "3.1"
+        health, health_detail = _assess_ds_channel(
+            ch,
+            "3.1",
+            modulation_docsis_ver=modulation_docsis_ver,
+        )
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
-        metric_h["modulation_health"] = _assess_ds_modulation(ch.get("modulation") or ch.get("type", ""), "3.1")
+        metric_h["modulation_health"] = _assess_ds_modulation(ds_modulation, modulation_docsis_ver)
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
             "power": power,
-            "modulation": ch.get("modulation") or ch.get("type", ""),
+            "modulation": ds_modulation,
             "snr": snr,
             "correctable_errors": ch.get("corrErrors"),
             "uncorrectable_errors": ch.get("nonCorrErrors"),
             "docsis_version": "3.1",
+            "channel_family": channel_family,
             "health": health,
             "health_detail": health_detail,
             **metric_h,
         }
-        if ch.get("profile_modulation"):
-            channel["profile_modulation"] = ch["profile_modulation"]
+        if profile_modulation:
+            channel["profile_modulation"] = profile_modulation
         ds_channels.append(channel)
 
     ds_channels.sort(key=lambda c: c["channel_id"])
@@ -647,6 +847,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
             "modulation": mod,
             "multiplex": ch.get("multiplex", ""),
             "docsis_version": "3.0",
+            "channel_family": "sc_qam",
             "health": health,
             "health_detail": health_detail,
             "theoretical_bitrate": bitrate,
@@ -662,6 +863,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
         mod = ch.get("modulation") or ch.get("type", "")
         bitrate = _channel_bitrate_mbps(mod, ch.get("symbolRate"))
         raw_power = ch.get("powerLevel")
+        profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
@@ -669,13 +871,20 @@ def analyze(data: DocsisData) -> AnalysisResult:
             "modulation": mod,
             "multiplex": ch.get("multiplex", ""),
             "docsis_version": "3.1",
+            "channel_family": _classify_us_family({
+                "type": ch.get("type", ""),
+                "multiplex": ch.get("multiplex", ""),
+                "modulation": mod,
+                "profile_modulation": profile_modulation,
+                "docsis_version": "3.1",
+            }),
             "health": health,
             "health_detail": health_detail,
             "theoretical_bitrate": bitrate,
             **metric_h,
         }
-        if ch.get("profile_modulation"):
-            channel["profile_modulation"] = ch["profile_modulation"]
+        if profile_modulation:
+            channel["profile_modulation"] = profile_modulation
         us_channels.append(channel)
 
     us_channels.sort(key=lambda c: c["channel_id"])
@@ -702,6 +911,10 @@ def analyze(data: DocsisData) -> AnalysisResult:
     us_bitrates = [c["theoretical_bitrate"] for c in us_channels if c["theoretical_bitrate"] is not None]
     us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None
 
+    signal_families = _build_signal_family_summary(ds_channels, us_channels)
+    ds_family_summaries = signal_families["downstream"]["families"]
+    us_family_summaries = signal_families["upstream"]["families"]
+
     summary = {
         "ds_total": len(ds_channels),
         "us_total": len(us_channels),
@@ -718,6 +931,13 @@ def analyze(data: DocsisData) -> AnalysisResult:
         "ds_uncorrectable_errors": total_uncorr,
         "errors_supported": has_error_data,
         "us_capacity_mbps": us_capacity,
+        "signal_families": signal_families,
+        "ds_scqam_power_avg": ds_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
+        "ds_scqam_snr_avg": ds_family_summaries.get("sc_qam", {}).get("snr", {}).get("avg"),
+        "ds_ofdm_power_avg": ds_family_summaries.get("ofdm", {}).get("power", {}).get("avg"),
+        "ds_ofdm_mer_avg": ds_family_summaries.get("ofdm", {}).get("mer", {}).get("avg"),
+        "us_scqam_power_avg": us_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
+        "us_ofdma_power_avg": us_family_summaries.get("ofdma", {}).get("power", {}).get("avg"),
     }
 
     # --- Overall health (aggregate from per-channel assessments) ---
