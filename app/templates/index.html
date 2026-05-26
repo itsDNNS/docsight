@@ -1583,7 +1583,11 @@
                 <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadChannelTimeline)">7d</button>
                 <button class="trend-tab" data-value="30" onclick="selectPill(this, loadChannelTimeline)">30d</button>
             </div>
-            <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleChannelTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}">{{ t.temperature }}</button>
+            <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleChannelTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;" aria-hidden="true">
+                    <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                </svg>
+            </button>
         </span>
         <span id="channel-compare-controls" style="display:none;">
             <div class="trend-tabs" id="compare-dir-tabs">
@@ -1600,7 +1604,11 @@
                 <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadCompareCharts)">7d</button>
                 <button class="trend-tab" data-value="30" onclick="selectPill(this, loadCompareCharts)">30d</button>
             </div>
-            <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleCompareTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}">{{ t.temperature }}</button>
+            <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleCompareTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;" aria-hidden="true">
+                    <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                </svg>
+            </button>
         </span>
     </div>
 
@@ -1677,7 +1685,7 @@
                         <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                         </svg>
-                        <div class="chart-label">{{ t.power_history }}</div>
+                        <div class="chart-label">{{ t.power_dbmv }}</div>
                     </div>
                     <button class="chart-expand-btn" data-chart="chart-cmp-power" title="{{ t.expand }}">&#x26F6;</button>
                 </div>
@@ -1689,7 +1697,7 @@
                         <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                         </svg>
-                        <div class="chart-label">{{ t.snr_history }}</div>
+                        <div class="chart-label">{{ t.snr_db }}</div>
                     </div>
                     <button class="chart-expand-btn" data-chart="chart-cmp-snr" title="{{ t.expand }}">&#x26F6;</button>
                 </div>

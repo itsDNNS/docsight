@@ -305,6 +305,8 @@ class TestChannelCharts:
                     lastX: xData[xData.length - 1],
                     splitCount: xSplits.length,
                     samples: xData.length,
+                    fill: chart.series[1].fill || null,
+                    pointsVisible: chart.series[1].points.show === true,
                 };
             }
             """
@@ -314,6 +316,8 @@ class TestChannelCharts:
         assert layout["xMax"] - layout["lastX"] >= 4
         assert layout["splitCount"] <= 4
         assert layout["splitCount"] < layout["samples"]
+        assert layout["fill"] is None
+        assert layout["pointsVisible"] is False
 
         demo_page.locator('.chart-expand-btn[data-chart="chart-ch-modulation"]').click()
         demo_page.wait_for_selector("#chart-zoom-canvas .uplot", timeout=5000)
@@ -326,6 +330,8 @@ class TestChannelCharts:
                     yAxisSize: chart.bbox.left,
                     splitCount: splits.length,
                     samples: chart.data[0].length,
+                    fill: chart.series[1].fill || null,
+                    pointsVisible: chart.series[1].points.show === true,
                 };
             }
             """
@@ -333,6 +339,8 @@ class TestChannelCharts:
         assert zoom_layout["yAxisSize"] >= 80
         assert zoom_layout["splitCount"] <= 10
         assert zoom_layout["splitCount"] < zoom_layout["samples"]
+        assert zoom_layout["fill"] is None
+        assert zoom_layout["pointsVisible"] is False
 
     def test_channel_selection_renders_charts(self, demo_page):
         """Selecting a channel should render Power and Errors charts."""
@@ -478,6 +486,7 @@ class TestChannelTemperatureOverlay:
         navigate_to_channels(demo_page)
         demo_page.locator("#channel-select").select_option("ds-1")
         wait_for_uplot(demo_page, "chart-ch-power")
+        wait_for_uplot(demo_page, "chart-ch-modulation")
 
         toggle = demo_page.locator("#channel-temp-toggle-btn")
         assert toggle.count() == 1
@@ -487,7 +496,32 @@ class TestChannelTemperatureOverlay:
         overlay = demo_page.evaluate(
             """
             () => {
-                const chart = window.charts['chart-ch-power'];
+                const powerChart = window.charts['chart-ch-power'];
+                const modulationChart = window.charts['chart-ch-modulation'];
+                return {
+                    labels: powerChart.series.map((s) => s.label),
+                    tempScale: !!powerChart.scales.temp,
+                    tempData: powerChart.data[powerChart.data.length - 1],
+                    modulationLabels: modulationChart.series.map((s) => s.label),
+                    modulationTempScale: !!modulationChart.scales.temp,
+                    modulationTempData: modulationChart.data[modulationChart.data.length - 1],
+                };
+            }
+            """
+        )
+        assert "Temperature" in overlay["labels"]
+        assert overlay["tempScale"] is True
+        assert overlay["tempData"] == [12.5, 13.5]
+        assert "Temperature" in overlay["modulationLabels"]
+        assert overlay["modulationTempScale"] is True
+        assert overlay["modulationTempData"] == [12.5, 13.5]
+
+        demo_page.locator('.chart-expand-btn[data-chart="chart-ch-modulation"]').click()
+        demo_page.wait_for_selector("#chart-zoom-canvas .uplot", timeout=5000)
+        zoom_overlay = demo_page.evaluate(
+            """
+            () => {
+                const chart = window.zoomChart;
                 return {
                     labels: chart.series.map((s) => s.label),
                     tempScale: !!chart.scales.temp,
@@ -496,16 +530,23 @@ class TestChannelTemperatureOverlay:
             }
             """
         )
-        assert "Temperature" in overlay["labels"]
-        assert overlay["tempScale"] is True
-        assert overlay["tempData"] == [12.5, 13.5]
+        assert "Temperature" in zoom_overlay["labels"]
+        assert zoom_overlay["tempScale"] is True
+        assert zoom_overlay["tempData"] == [12.5, 13.5]
+        demo_page.locator("#chart-zoom-overlay .modal-close").click()
 
         toggle.click()
         demo_page.wait_for_timeout(300)
         labels_after_toggle = demo_page.evaluate(
-            "() => window.charts['chart-ch-power'].series.map((s) => s.label)"
+            """
+            () => ({
+                power: window.charts['chart-ch-power'].series.map((s) => s.label),
+                modulation: window.charts['chart-ch-modulation'].series.map((s) => s.label),
+            })
+            """
         )
-        assert "Temperature" not in labels_after_toggle
+        assert "Temperature" not in labels_after_toggle["power"]
+        assert "Temperature" not in labels_after_toggle["modulation"]
 
     def test_channel_timeline_hides_temperature_toggle_without_weather_data(self, demo_page):
         history = [
@@ -610,6 +651,7 @@ class TestChannelTemperatureOverlay:
         demo_page.locator('.trend-tab[data-value="compare"]').click()
         demo_page.locator("#compare-add-all-btn").click()
         wait_for_uplot(demo_page, "chart-cmp-power")
+        wait_for_uplot(demo_page, "chart-cmp-modulation")
 
         toggle = demo_page.locator("#compare-temp-toggle-btn")
         assert toggle.count() == 1
@@ -619,12 +661,17 @@ class TestChannelTemperatureOverlay:
         overlay = demo_page.evaluate(
             """
             () => {
-                const chart = window.charts['chart-cmp-power'];
+                const powerChart = window.charts['chart-cmp-power'];
+                const modulationChart = window.charts['chart-cmp-modulation'];
                 return {
-                    labels: chart.series.map((s) => s.label),
-                    tempScale: !!chart.scales.temp,
-                    tempData: chart.data[chart.data.length - 1],
-                    tempSeriesCount: chart.series.filter((s) => s.label === 'Temperature').length,
+                    labels: powerChart.series.map((s) => s.label),
+                    tempScale: !!powerChart.scales.temp,
+                    tempData: powerChart.data[powerChart.data.length - 1],
+                    tempSeriesCount: powerChart.series.filter((s) => s.label === 'Temperature').length,
+                    modulationLabels: modulationChart.series.map((s) => s.label),
+                    modulationTempScale: !!modulationChart.scales.temp,
+                    modulationTempData: modulationChart.data[modulationChart.data.length - 1],
+                    modulationTempSeriesCount: modulationChart.series.filter((s) => s.label === 'Temperature').length,
                 };
             }
             """
@@ -632,6 +679,9 @@ class TestChannelTemperatureOverlay:
         assert overlay["tempScale"] is True
         assert overlay["tempData"] == [17.0, 18.0]
         assert overlay["tempSeriesCount"] == 1
+        assert overlay["modulationTempScale"] is True
+        assert overlay["modulationTempData"] == [17.0, 18.0]
+        assert overlay["modulationTempSeriesCount"] == 1
 
     def test_channel_compare_hides_temperature_toggle_without_weather_data(self, demo_page):
         compare_payload = {

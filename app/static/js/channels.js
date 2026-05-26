@@ -435,12 +435,17 @@ function _renderChannelTimelineCharts() {
         return d.timestamp.substring(5, 16).replace('T', ' ');
     });
     var tempOpts = _channelWeatherHasData(_lastChannelWeather) ? { tempData: _lastChannelWeather } : null;
-    var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0'}];
+    var tempByTimestamp = null;
+    if (tempOpts) {
+        tempByTimestamp = {};
+        data.forEach(function(d, idx) { tempByTimestamp[d.timestamp] = _lastChannelWeather[idx]; });
+    }
+    var powerDatasets = [{label: T.power_dbmv || 'Power (dBmV)', data: data.map(function(d){ return d.power; }), color: '#00e5f0', showPoints: false}];
     var powerThresholds = direction === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
     var powerCard = document.querySelector('#channel-charts .chart-card:first-child');
     var powerLabel = powerCard ? powerCard.querySelector('.chart-label') : null;
     if (direction === 'ds') {
-        powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77'});
+        powerDatasets.push({label: T.snr_db || 'SNR (dB)', data: data.map(function(d){ return d.snr; }), color: '#66ff77', showPoints: false});
         powerThresholds = null; /* DS combines Power + SNR, thresholds don't apply */
         if (powerLabel) powerLabel.textContent = (T.power_dbmv || 'Power') + ' & ' + (T.snr_db || 'SNR');
         var showErrors = _hasChannelDocsisErrorSeries(data);
@@ -483,10 +488,14 @@ function _renderChannelTimelineCharts() {
         var tickValues = [];
         for (var qi = 0; qi < qamSteps.length; qi++) tickValues.push(qi);
         renderChart('chart-ch-modulation', modLabels, [
-            {label: T.modulation || 'Modulation', data: modValues, color: '#ffab40', stepped: true}
+            {label: T.modulation || 'Modulation', data: modValues, color: '#ffab40', stepped: true, showPoints: false}
         ], null, null, {
+            tempData: tempOpts ? mods.map(function(d) { return tempByTimestamp[d.timestamp]; }) : null,
             yTickCallback: function(value) { return qamLabel[qamSteps[value]] || ''; },
-            tooltipLabelCallback: function(ctx) { return (T.modulation || 'Modulation') + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw); },
+            tooltipLabelCallback: function(ctx) {
+                if (ctx.dataset.yAxisID === 'y-temp') return ctx.dataset.label + ': ' + fmtTemp(ctx.raw);
+                return (T.modulation || 'Modulation') + ': ' + (qamLabel[qamSteps[ctx.raw]] || ctx.raw);
+            },
             yMin: -0.5,
             yMax: qamSteps.length - 0.5,
             yAxisSize: 72,
@@ -814,7 +823,6 @@ function _renderCompareCharts() {
         if (parseInt(days) >= 30) return ts.substring(5, 10);
         return ts.substring(5, 16).replace('T', ' ');
     });
-    var showPoints = _compareChannels.length <= 6;
     var tempOpts = _channelWeatherHasData(_lastCompareWeather) ? { tempData: _lastCompareWeather } : null;
 
     // Build lookup maps per channel: timestamp -> data point
@@ -831,7 +839,7 @@ function _renderCompareCharts() {
             label: 'CH ' + ch.id,
             data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.power : null; }),
             color: ch.color,
-            showPoints: showPoints
+            showPoints: false
         };
     });
     var powerThresholds = dir === 'ds' ? DS_POWER_THRESHOLDS : US_POWER_THRESHOLDS;
@@ -846,7 +854,7 @@ function _renderCompareCharts() {
                 label: 'CH ' + ch.id,
                 data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.snr : null; }),
                 color: ch.color,
-                showPoints: showPoints
+                showPoints: false
             };
         });
         renderChart('chart-cmp-snr', xLabels, snrDatasets, null, DS_SNR_THRESHOLDS, tempOpts);
@@ -867,14 +875,14 @@ function _renderCompareCharts() {
                     label: 'CH ' + ch.id + ' ' + (T.uncorrectable || 'Uncorr.'),
                     data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.uncorrectable_errors != null ? d.uncorrectable_errors : null; }),
                     color: ch.color,
-                    showPoints: showPoints
+                    showPoints: false
                 });
                 errorDatasets.push({
                     label: 'CH ' + ch.id + ' ' + (T.correctable || 'Corr.'),
                     data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.correctable_errors != null ? d.correctable_errors : null; }),
                     color: ch.color,
                     dashed: true,
-                    showPoints: showPoints
+                    showPoints: false
                 });
             });
             renderChart('chart-cmp-errors', xLabels, errorDatasets, null, null, tempOpts);
@@ -926,8 +934,12 @@ function _renderCompareCharts() {
         var tickValues = [];
         for (var qi = 0; qi < qamNames.length; qi++) tickValues.push(qi);
         renderChart('chart-cmp-modulation', xLabels, modDatasets, null, null, {
+            tempData: _channelWeatherHasData(_lastCompareWeather) ? _lastCompareWeather : null,
             yTickCallback: function(value) { return qamLabel[value] || ''; },
-            tooltipLabelCallback: function(ctx) { return ctx.dataset.label + ': ' + (qamLabel[ctx.raw] || ctx.raw); },
+            tooltipLabelCallback: function(ctx) {
+                if (ctx.dataset.yAxisID === 'y-temp') return ctx.dataset.label + ': ' + fmtTemp(ctx.raw);
+                return ctx.dataset.label + ': ' + (qamLabel[ctx.raw] || ctx.raw);
+            },
             yMin: -0.5,
             yMax: qamNames.length - 0.5,
             yAxisSize: 72,

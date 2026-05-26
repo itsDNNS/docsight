@@ -708,7 +708,6 @@ function openChartZoom(canvasId) {
         var textColor = isDark ? '#888' : '#666';
         var isBar = params.type === 'bar';
         var n = params.labels.length;
-        var isMulti = params.datasets.length > 1;
         var zoomYAxisSize = params.opts && params.opts.zoomYAxisSize ? params.opts.zoomYAxisSize : DEFAULT_ZOOM_Y_AXIS_SIZE;
         var w = zoomContainer.offsetWidth || 800;
         var h = zoomContainer.offsetHeight || 500;
@@ -729,12 +728,14 @@ function openChartZoom(canvasId) {
         var barPaths = isBar ? uPlot.paths.bars({size: [0.7, 50], gap: 1}) : null;
         var uSeries = [{ label: 'X', value: function(u, v) { return params.labels[v] || ''; } }];
         params.datasets.forEach(function(ds) {
+            var zoomShowPoints = ds.showPoints;
+            if (zoomShowPoints === undefined) zoomShowPoints = n <= 30 && !isBar;
             var s = {
                 label: ds.label,
                 stroke: ds.color || 'rgba(168,85,247,0.9)',
                 width: isBar ? 0 : 2,
-                fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || (!isMulti && !isBar ? 'rgba(168,85,247,0.15)' : undefined)),
-                points: { show: n <= 30 && !isBar, size: isBar ? 0 : (n > 30 ? 4 : 8) },
+                fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined),
+                points: { show: zoomShowPoints, size: isBar ? 0 : (ds.pointSize || (n > 30 ? 4 : 8)) },
                 spanGaps: ds.spanGaps !== undefined ? ds.spanGaps : false
             };
             if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;
