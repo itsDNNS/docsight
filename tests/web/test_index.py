@@ -411,6 +411,42 @@ class TestIndexRoute:
         assert "37.0<span class=\"unit\">dB MER</span>" in ofdm_card
         assert "4096QAM" in ofdm_card
         assert "38.5<span class=\"unit\">dB</span>" not in scqam_card + ofdm_card
+        assert '<span class="metric-label">DS SNR (SC-QAM)</span>' not in html
+
+    def test_home_signal_family_cards_show_metric_health_bars(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        for element_id, caption in [
+            ("metric-ds-sc-qam-card", "Channel min-max"),
+            ("metric-ds-ofdm-card", "Channel min-max"),
+            ("metric-us-sc-qam-card", "Channel min-max"),
+        ]:
+            card = _element_by_id(html, element_id)
+            assert 'class="metric-range-viz"' in card
+            assert caption in card
+        ofdma_card = _element_by_id(html, "metric-us-ofdma-card")
+        assert 'class="metric-range-viz"' not in ofdma_card
+
+    def test_home_signal_family_health_bar_falls_back_to_value_for_missing_min_max(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        family_metric = sample_analysis["summary"]["signal_families"]["downstream"]["families"]["sc_qam"]["snr"]
+        family_metric.pop("min")
+        family_metric.pop("max")
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        card = _element_by_id(resp.get_data(as_text=True), "metric-ds-sc-qam-card")
+        assert 'class="metric-range-viz"' in card
+        assert "Channel min-max" in card
+        assert "36.0 — 36.0" in card
+        assert "None — None" not in card
 
     def test_home_renders_upstream_signal_family_cards_separately(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)

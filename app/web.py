@@ -813,6 +813,22 @@ def _channel_threshold_candidates(channels, *, snr=False):
     return candidates
 
 
+def _family_modulation_threshold_candidates(family):
+    modulation = (family or {}).get("modulation") or {}
+    raw_values = []
+    for key in ("value", "secondary"):
+        if modulation.get(key):
+            raw_values.append(modulation.get(key))
+    raw_values.extend(modulation.get("distinct") or [])
+
+    candidates = []
+    text = " ".join(str(value) for value in raw_values if value is not None).upper()
+    for qam in ("4096QAM", "1024QAM", "256QAM", "64QAM"):
+        if qam in text:
+            candidates.append(qam)
+    return candidates
+
+
 def _power_metric_health(value, threshold):
     if value is None:
         return "good"
@@ -956,7 +972,8 @@ def _build_metric_ranges(analysis):
     else:
         snr_candidates = _channel_threshold_candidates(ds_channels, snr=True) + ["256QAM", "ofdm", "4096QAM", "1024QAM", "64QAM"]
     snr_threshold = _choose_threshold(thresholds.get("snr", {}), snr_candidates)
-    return {
+
+    ranges = {
         "ds_power": _power_metric_range(
             _to_float(summary.get("ds_power_avg")),
             _to_float(summary.get("ds_power_min")),
@@ -982,6 +999,43 @@ def _build_metric_ranges(analysis):
             thresholds.get("errors", {}),
         ),
     }
+
+    signal_families = summary.get("signal_families") or {}
+    ds_families = (signal_families.get("downstream") or {}).get("families") or {}
+    us_families = (signal_families.get("upstream") or {}).get("families") or {}
+
+    def _family_metric_values(family, metric_name):
+        metric = (family or {}).get(metric_name) or {}
+        if metric.get("available") is False:
+            return None
+        value = _to_float(metric.get("avg"))
+        if value is None:
+            return None
+        minimum = _to_float(metric.get("min"))
+        maximum = _to_float(metric.get("max"))
+        return value, minimum if minimum is not None else value, maximum if maximum is not None else value
+
+    def _add_family_snr_range(range_key, family, metric_name, candidates):
+        values = _family_metric_values(family, metric_name)
+        if not values:
+            return
+        threshold = _choose_threshold(thresholds.get("snr", {}), candidates)
+        ranges[range_key] = _snr_metric_range(values[0], values[1], values[2], threshold)
+
+    def _add_family_power_range(range_key, family, candidates):
+        values = _family_metric_values(family, "power")
+        if not values:
+            return
+        threshold = _choose_threshold(thresholds.get("upstream_power", {}), candidates)
+        ranges[range_key] = _power_metric_range(values[0], values[1], values[2], threshold, "dBmV")
+
+    sc_qam_candidates = _family_modulation_threshold_candidates(ds_families.get("sc_qam")) + ["256QAM", "64QAM"]
+    ofdm_candidates = ["ofdm"] + _family_modulation_threshold_candidates(ds_families.get("ofdm")) + ["4096QAM", "1024QAM"]
+    _add_family_snr_range("ds_sc_qam_snr", ds_families.get("sc_qam"), "snr", sc_qam_candidates)
+    _add_family_snr_range("ds_ofdm_mer", ds_families.get("ofdm"), "mer", ofdm_candidates)
+    _add_family_power_range("us_sc_qam_power", us_families.get("sc_qam"), ["sc_qam"])
+    _add_family_power_range("us_ofdma_power", us_families.get("ofdma"), ["ofdma"])
+    return ranges
 
 
 def _snr_channel_family(channel):

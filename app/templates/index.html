@@ -715,13 +715,14 @@
     {% endif %}
     {%- endmacro %}
 
-    {% macro signal_family_card(card_id, label, family, metric_key, metric_unit, metric_label, spark_key, icon_class, icon_name) -%}
+    {% macro signal_family_card(card_id, label, family, metric_key, metric_unit, metric_label, spark_key, icon_class, icon_name, range_data=None, glossary_text=None) -%}
         {% set metric = family.get(metric_key, {}) %}
         {% set modulation = family.get('modulation', {}) %}
         {% set raw_health = family.get('health', 'missing') %}
         {% set health_class = 'crit' if raw_health == 'critical' else ('warn' if raw_health == 'warning' else ('muted' if raw_health == 'missing' else raw_health)) %}
         {% set metric_value = metric.get('avg') %}
         <div class="metric-card glass" id="{{ card_id }}">
+            {% if glossary_text %}<span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ glossary_text }}</div></span>{% endif %}
             <div class="metric-header">
                 <span class="metric-label">{{ label }}</span>
                 <div class="metric-icon {{ icon_class }}"><i data-lucide="{{ icon_name }}"></i></div>
@@ -737,11 +738,17 @@
                 </span>
                 {% if modulation.get('value') %}<span class="range">{{ t.get('signal_family_modulation_label', 'Modulation') }}: {{ modulation.get('value') }}{% if modulation.get('secondary') %} — {{ modulation.get('secondary') }}{% endif %}</span>{% endif %}
             </div>
+            {% if metric_value is not none and range_data %}
+            {% set metric_min = metric.get('min') if metric.get('min') is not none else metric_value %}
+            {% set metric_max = metric.get('max') if metric.get('max') is not none else metric_value %}
+            {{ metric_range_viz(range_data, range_data.health if range_data.health is defined else health_class, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), metric_min ~ ' — ' ~ metric_max) }}
+            {% endif %}
         </div>
     {%- endmacro %}
     {% set signal_families = s.get('signal_families', {}) %}
     {% set ds_signal_families = signal_families.get('downstream', {}).get('families', {}) if signal_families else {} %}
     {% set us_signal_families = signal_families.get('upstream', {}).get('families', {}) if signal_families else {} %}
+    {% set has_downstream_family_cards = ds_signal_families.get('sc_qam') or ds_signal_families.get('ofdm') %}
 
     {# ══════════════════════════════════════════════════════════════════════════
        METRICS GRID — Compact signal + error + speed cards
@@ -794,7 +801,8 @@
             {{ metric_range_viz(metric_ranges.us_power, us_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), s.us_power_min ~ ' — ' ~ s.us_power_max) }}
         </div>
 
-        {# Card 3: SNR/MER #}
+        {# Card 3: SNR/MER (legacy compact fallback when no explicit downstream family cards are available) #}
+        {% if not has_downstream_family_cards %}
         {% set snr_display = home_snr_display if home_snr_display is defined else {} %}
         {% set snr_label = t.get(snr_display.label_key, 'SNR') if snr_display.label_key is defined else 'SNR' %}
         {% set snr_value = snr_display.value if snr_display.value is defined and snr_display.value is not none else s.ds_snr_avg %}
@@ -818,19 +826,20 @@
             </div>
             {{ metric_range_viz(metric_ranges.snr, snr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), snr_min ~ ' — ' ~ snr_max) }}
         </div>
+        {% endif %}
 
         {# Family-aware signal cards: keep SC-QAM SNR, OFDM MER, SC-QAM upstream and OFDMA upstream separate. #}
         {% if ds_signal_families.get('sc_qam') %}
-        {{ signal_family_card('metric-ds-sc-qam-card', t.get('signal_family_ds_sc_qam', 'DS SC-QAM'), ds_signal_families.get('sc_qam'), 'snr', 'dB', t.get('signal_family_metric_snr', 'SNR'), 'ds_scqam_snr_avg', 'green', 'signal') }}
+        {{ signal_family_card('metric-ds-sc-qam-card', t.get('signal_family_ds_sc_qam', 'DS SC-QAM'), ds_signal_families.get('sc_qam'), 'snr', 'dB', t.get('signal_family_metric_snr', 'SNR'), 'ds_scqam_snr_avg', 'green', 'signal', metric_ranges.get('ds_sc_qam_snr'), t.glossary_snr) }}
         {% endif %}
         {% if ds_signal_families.get('ofdm') %}
-        {{ signal_family_card('metric-ds-ofdm-card', t.get('signal_family_ds_ofdm', 'DS OFDM'), ds_signal_families.get('ofdm'), 'mer', 'dB', t.get('signal_family_metric_mer', 'MER'), 'ds_ofdm_mer_avg', 'green', 'radio-tower') }}
+        {{ signal_family_card('metric-ds-ofdm-card', t.get('signal_family_ds_ofdm', 'DS OFDM'), ds_signal_families.get('ofdm'), 'mer', 'dB', t.get('signal_family_metric_mer', 'MER'), 'ds_ofdm_mer_avg', 'green', 'radio-tower', metric_ranges.get('ds_ofdm_mer'), t.glossary_snr) }}
         {% endif %}
         {% if us_signal_families.get('sc_qam') %}
-        {{ signal_family_card('metric-us-sc-qam-card', t.get('signal_family_us_sc_qam', 'US SC-QAM'), us_signal_families.get('sc_qam'), 'power', 'dBmV', t.get('signal_family_metric_power', 'Power'), 'us_scqam_power_avg', 'blue', 'arrow-up') }}
+        {{ signal_family_card('metric-us-sc-qam-card', t.get('signal_family_us_sc_qam', 'US SC-QAM'), us_signal_families.get('sc_qam'), 'power', 'dBmV', t.get('signal_family_metric_power', 'Power'), 'us_scqam_power_avg', 'blue', 'arrow-up', metric_ranges.get('us_sc_qam_power'), t.glossary_us_power) }}
         {% endif %}
         {% if us_signal_families.get('ofdma') %}
-        {{ signal_family_card('metric-us-ofdma-card', t.get('signal_family_us_ofdma', 'US OFDMA'), us_signal_families.get('ofdma'), 'power', 'dBmV', t.get('signal_family_metric_power', 'Power'), 'us_ofdma_power_avg', 'blue', 'radio-tower') }}
+        {{ signal_family_card('metric-us-ofdma-card', t.get('signal_family_us_ofdma', 'US OFDMA'), us_signal_families.get('ofdma'), 'power', 'dBmV', t.get('signal_family_metric_power', 'Power'), 'us_ofdma_power_avg', 'blue', 'radio-tower', metric_ranges.get('us_ofdma_power'), t.glossary_us_power) }}
         {% endif %}
 
         {# Card 4: Errors #}
