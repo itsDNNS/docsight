@@ -225,6 +225,50 @@ def test_correlation_event_type_filter_updates_table_in_browser(demo_page):
     expect(page.locator("#correlation-legend .corr-legend-events")).to_contain_text("(0/2)")
 
 
+def test_correlation_event_filter_popover_stays_above_unified_timeline(demo_page):
+    page = demo_page
+    _route_sample_correlation(page)
+    _open_correlation(page)
+
+    page.locator("#correlation-legend .corr-event-filter-btn").click()
+    popover = page.locator("#corr-event-popover")
+    expect(popover).to_be_visible()
+
+    layering = popover.evaluate(
+        """
+        (node) => {
+            const rect = node.getBoundingClientRect();
+            const samples = [
+                [rect.left + Math.min(rect.width - 2, Math.max(2, rect.width * 0.5)), rect.bottom - 2],
+                [rect.left + Math.min(rect.width - 2, Math.max(2, rect.width * 0.2)), rect.bottom - 10],
+                [rect.left + Math.min(rect.width - 2, Math.max(2, rect.width * 0.8)), rect.bottom - 10],
+            ];
+            const blockers = samples
+                .map(([x, y]) => document.elementFromPoint(x, y))
+                .filter((el) => el && !node.contains(el));
+            const tableCard = document.querySelector('#correlation-table-card');
+            const tableRect = tableCard.getBoundingClientRect();
+            return {
+                blockers: blockers.map((el) => ({
+                    id: el.id,
+                    tag: el.tagName,
+                    className: typeof el.className === 'string' ? el.className : '',
+                    text: (el.textContent || '').trim().slice(0, 60),
+                })),
+                overlapsTable: rect.bottom > tableRect.top,
+                popoverBottom: rect.bottom,
+                tableTop: tableRect.top,
+                popoverParentTag: node.parentElement && node.parentElement.tagName,
+            };
+        }
+        """
+    )
+
+    assert layering["overlapsTable"]
+    assert layering["popoverParentTag"] == "BODY"
+    assert layering["blockers"] == []
+
+
 def test_correlation_event_severity_filter_updates_chart_and_table_in_browser(demo_page):
     page = demo_page
     _route_correlation(page, _sample_correlation_severity_data())

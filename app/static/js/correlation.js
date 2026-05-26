@@ -13,6 +13,35 @@ var _corrEventFilter = {};
 var _corrEventSeverityFilter = {};
 var _OPERATIONAL_EVENTS = { monitoring_started: true, monitoring_stopped: true };
 var _CORR_SEVERITIES = ['info', 'warning', 'critical'];
+function _corrCloseEventPopover() {
+    var pop = document.getElementById('corr-event-popover');
+    if (!pop) return;
+    if (pop._corrCleanup) pop._corrCleanup();
+    pop.remove();
+}
+function _corrPositionEventPopover(pop, anchor) {
+    if (!pop || !anchor) return;
+    var margin = 8;
+    var anchorRect = anchor.getBoundingClientRect();
+    pop.style.maxHeight = Math.max(160, window.innerHeight - (margin * 2)) + 'px';
+
+    // Measure after attaching to the body so positioning is based on the real viewport.
+    var popRect = pop.getBoundingClientRect();
+    var left = anchorRect.left;
+    if (left + popRect.width > window.innerWidth - margin) {
+        left = window.innerWidth - margin - popRect.width;
+    }
+    left = Math.max(margin, left);
+
+    var top = anchorRect.bottom + margin;
+    if (top + popRect.height > window.innerHeight - margin) {
+        top = anchorRect.top - popRect.height - margin;
+    }
+    top = Math.max(margin, top);
+
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+}
 function _corrEscapeAttr(value) {
     return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
@@ -113,6 +142,7 @@ function loadCorrelationData() {
 }
 
 function renderCorrelationChart(data) {
+    _corrCloseEventPopover();
     // Clear pin state when chart is redrawn (legend toggle, zoom, resize)
     if (_corrPinnedRow) _corrUnpinRow();
     var canvas = document.getElementById('correlation-chart');
@@ -611,7 +641,7 @@ function renderCorrelationChart(data) {
         filterBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             var existing = document.getElementById('corr-event-popover');
-            if (existing) { existing.remove(); return; }
+            if (existing) { _corrCloseEventPopover(); return; }
             var pop = document.createElement('div');
             pop.id = 'corr-event-popover';
             pop.className = 'corr-event-popover';
@@ -653,7 +683,17 @@ function renderCorrelationChart(data) {
                 html += '</div></div>';
             }
             pop.innerHTML = html;
-            this.parentElement.appendChild(pop);
+            document.body.appendChild(pop);
+            _corrPositionEventPopover(pop, filterBtn);
+            var positionPopover = function() { _corrPositionEventPopover(pop, filterBtn); };
+            var closePopover = null;
+            window.addEventListener('resize', positionPopover);
+            window.addEventListener('scroll', positionPopover, true);
+            pop._corrCleanup = function() {
+                window.removeEventListener('resize', positionPopover);
+                window.removeEventListener('scroll', positionPopover, true);
+                if (closePopover) document.removeEventListener('click', closePopover);
+            };
             // Prevent clicks inside popover from bubbling to legend toggle
             pop.addEventListener('click', function(e) { e.stopPropagation(); });
             pop.querySelectorAll('input[data-event-type]:not([data-event-severity])').forEach(function(cb) {
@@ -674,12 +714,12 @@ function renderCorrelationChart(data) {
             });
             // Close on outside click
             setTimeout(function() {
-                document.addEventListener('click', function closePopover(ev) {
+                closePopover = function(ev) {
                     if (!pop.contains(ev.target) && ev.target !== filterBtn) {
-                        pop.remove();
-                        document.removeEventListener('click', closePopover);
+                        _corrCloseEventPopover();
                     }
-                });
+                };
+                document.addEventListener('click', closePopover);
             }, 0);
         });
     }

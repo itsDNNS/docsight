@@ -787,13 +787,16 @@
 }
 
 .corr-event-popover {
-    position: absolute;
-    z-index: 100;
+    position: fixed;
+    z-index: 10000;
     background: var(--bg);
     border: 1px solid var(--card-border);
     border-radius: var(--radius-sm);
     padding: var(--space-sm) var(--space-sm);
     min-width: 180px;
+    max-width: calc(100vw - 16px);
+    box-sizing: border-box;
+    overflow: auto;
     box-shadow: var(--shadow-lg);
     font-size: 0.85em;
 }
