@@ -34,6 +34,7 @@ class RawChannel(TypedDict, total=False):
     symbolRate: int | None
     multiplex: str
     profile_modulation: str
+    profileModulation: str
 
 
 class _DocsisVersionChannels(TypedDict, total=False):
@@ -78,6 +79,8 @@ class DownstreamChannel(TypedDict):
     docsis_version: str
     health: str
     health_detail: str
+    # Optional channel family for Home signal-family summaries
+    channel_family: NotRequired[str]
     # Optional per-metric health keys (present when health_detail is non-empty)
     power_health: NotRequired[str]
     snr_health: NotRequired[str]
@@ -98,6 +101,8 @@ class UpstreamChannel(TypedDict):
     health: str
     health_detail: str
     theoretical_bitrate: float | None
+    # Optional channel family for Home signal-family summaries
+    channel_family: NotRequired[str]
     # Optional per-metric health keys
     power_health: NotRequired[str]
     modulation_health: NotRequired[str]
@@ -134,6 +139,52 @@ class ErrorBaseline(TypedDict):
 # ── Analysis Summary ─────────────────────────────────────────────
 
 
+class SignalFamilyMetric(TypedDict):
+    """Aggregated min/avg/max metric for a DOCSIS signal family."""
+
+    available: bool
+    min: float | None
+    avg: float | None
+    max: float | None
+    health: str
+
+
+class SignalFamilyModulation(TypedDict):
+    """Aggregated modulation/profile values for a DOCSIS signal family."""
+
+    available: bool
+    value: str | None
+    secondary: str | None
+    distinct: list[str]
+    health: str
+
+
+class SignalFamilySummary(TypedDict, total=False):
+    """Summary for one DOCSIS signal family on the Home dashboard."""
+
+    family: str
+    count: int
+    health: str
+    power: SignalFamilyMetric
+    snr: SignalFamilyMetric
+    mer: SignalFamilyMetric
+    modulation: SignalFamilyModulation
+
+
+class SignalDirectionSummary(TypedDict):
+    """Signal-family summaries for one traffic direction."""
+
+    health: str
+    families: dict[str, SignalFamilySummary]
+
+
+class SignalFamiliesSummary(TypedDict):
+    """Family-level downstream/upstream signal summaries."""
+
+    downstream: SignalDirectionSummary
+    upstream: SignalDirectionSummary
+
+
 class AnalysisSummary(TypedDict):
     """Summary metrics from analyzer.analyze()."""
 
@@ -152,6 +203,13 @@ class AnalysisSummary(TypedDict):
     ds_uncorrectable_errors: int | None
     errors_supported: bool
     us_capacity_mbps: float | None
+    signal_families: NotRequired[SignalFamiliesSummary]
+    ds_scqam_power_avg: NotRequired[float | None]
+    ds_scqam_snr_avg: NotRequired[float | None]
+    ds_ofdm_power_avg: NotRequired[float | None]
+    ds_ofdm_mer_avg: NotRequired[float | None]
+    us_scqam_power_avg: NotRequired[float | None]
+    us_ofdma_power_avg: NotRequired[float | None]
     ds_uncorr_pct: float | None
     health: str
     health_issues: list[str]

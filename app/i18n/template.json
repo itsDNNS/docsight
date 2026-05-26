@@ -885,5 +885,14 @@
   "bqm_setup_open_settings": "",
   "previous_month": "",
   "next_month": "",
-  "bqm_csv_import": ""
+  "bqm_csv_import": "",
+  "signal_family_ds_sc_qam": "",
+  "signal_family_ds_ofdm": "",
+  "signal_family_us_sc_qam": "",
+  "signal_family_us_ofdma": "",
+  "signal_family_metric_power": "",
+  "signal_family_metric_snr": "",
+  "signal_family_metric_mer": "",
+  "signal_family_modulation_label": "",
+  "signal_family_unavailable": ""
 }

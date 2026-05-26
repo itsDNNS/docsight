@@ -18,6 +18,88 @@ def _metric_card(html, label):
     return html[start:end if end != -1 else len(html)]
 
 
+def _element_by_id(html, element_id):
+    marker = f'id="{element_id}"'
+    marker_idx = html.index(marker)
+    start = html.rfind('<div class="metric-card', 0, marker_idx)
+    end = html.find('<div class="metric-card', marker_idx + len(marker))
+    return html[start:end if end != -1 else len(html)]
+
+
+def _family_metric(health, avg, minimum=None, maximum=None, available=True):
+    return {
+        "available": available,
+        "avg": avg,
+        "min": minimum if minimum is not None else avg,
+        "max": maximum if maximum is not None else avg,
+        "health": health,
+    }
+
+
+def _family_modulation(value, health="good"):
+    return {
+        "available": value is not None,
+        "value": value,
+        "secondary": None,
+        "distinct": [value] if value is not None else [],
+        "health": health,
+    }
+
+
+def _add_mixed_signal_families(analysis):
+    analysis["summary"].update({
+        "ds_scqam_power_avg": 1.0,
+        "ds_scqam_snr_avg": 36.0,
+        "ds_ofdm_power_avg": 0.5,
+        "ds_ofdm_mer_avg": 37.0,
+        "us_scqam_power_avg": 43.0,
+        "us_ofdma_power_avg": None,
+        "signal_families": {
+            "downstream": {
+                "health": "warning",
+                "families": {
+                    "sc_qam": {
+                        "family": "sc_qam",
+                        "count": 1,
+                        "health": "good",
+                        "power": _family_metric("good", 1.0),
+                        "snr": _family_metric("good", 36.0),
+                        "modulation": _family_modulation("256QAM"),
+                    },
+                    "ofdm": {
+                        "family": "ofdm",
+                        "count": 1,
+                        "health": "warning",
+                        "power": _family_metric("good", 0.5),
+                        "mer": _family_metric("warning", 37.0),
+                        "modulation": _family_modulation("4096QAM"),
+                    },
+                },
+            },
+            "upstream": {
+                "health": "warning",
+                "families": {
+                    "sc_qam": {
+                        "family": "sc_qam",
+                        "count": 1,
+                        "health": "good",
+                        "power": _family_metric("good", 43.0),
+                        "modulation": _family_modulation("64QAM"),
+                    },
+                    "ofdma": {
+                        "family": "ofdma",
+                        "count": 1,
+                        "health": "warning",
+                        "power": _family_metric("missing", None, available=False),
+                        "modulation": _family_modulation("64QAM", "warning"),
+                    },
+                },
+            },
+        },
+    })
+    return analysis
+
+
 class TestIndexRoute:
     @pytest.mark.parametrize(
         ("channel", "family"),
@@ -310,6 +392,55 @@ class TestIndexRoute:
         snr_card = _metric_card(resp.get_data(as_text=True), "SNR/MER")
         assert "39.0<span class=\"unit\">dB</span>" in snr_card
         assert "Avg across all DS channels" not in snr_card
+
+    def test_home_renders_downstream_signal_family_cards_without_mixed_average(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        sample_analysis["summary"].update({"ds_snr_avg": 38.5})
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        scqam_card = _element_by_id(html, "metric-ds-sc-qam-card")
+        ofdm_card = _element_by_id(html, "metric-ds-ofdm-card")
+        assert "DS SC-QAM" in scqam_card
+        assert "36.0<span class=\"unit\">dB SNR</span>" in scqam_card
+        assert "256QAM" in scqam_card
+        assert "DS OFDM" in ofdm_card
+        assert "37.0<span class=\"unit\">dB MER</span>" in ofdm_card
+        assert "4096QAM" in ofdm_card
+        assert "38.5<span class=\"unit\">dB</span>" not in scqam_card + ofdm_card
+
+    def test_home_renders_upstream_signal_family_cards_separately(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        scqam_card = _element_by_id(html, "metric-us-sc-qam-card")
+        ofdma_card = _element_by_id(html, "metric-us-ofdma-card")
+        assert "US SC-QAM" in scqam_card
+        assert "43.0<span class=\"unit\">dBmV Power</span>" in scqam_card
+        assert "64QAM" in scqam_card
+        assert "US OFDMA" in ofdma_card
+        assert "Unavailable<span class=\"unit\">Power</span>" in ofdma_card
+        assert "badge badge-warning" in ofdma_card
+
+    def test_home_family_cards_expose_family_sparkline_keys(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert 'data-spark-key="ds_scqam_snr_avg"' in _element_by_id(html, "metric-ds-sc-qam-card")
+        assert 'data-spark-key="ds_ofdm_mer_avg"' in _element_by_id(html, "metric-ds-ofdm-card")
+        assert 'data-spark-key="us_scqam_power_avg"' in _element_by_id(html, "metric-us-sc-qam-card")
+        assert 'data-spark-key="us_ofdma_power_avg"' in _element_by_id(html, "metric-us-ofdma-card")
 
     def test_home_surfaces_normal_modulation_context(self, client, sample_analysis):
         update_state(analysis=sample_analysis)

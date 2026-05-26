@@ -379,7 +379,7 @@
         "uncorr_errors_high": t.issue_uncorr_errors_high_desc,
         "uncorr_errors_critical": t.issue_uncorr_errors_critical_desc,
     } %}
-    {% set health_labels = {'good': t.health_good, 'tolerated': t.health_tolerated, 'warn': t.health_marginal, 'crit': t.health_critical} %}
+    {% set health_labels = {'good': t.health_good, 'tolerated': t.health_tolerated, 'warn': t.health_marginal, 'warning': t.health_marginal, 'crit': t.health_critical, 'critical': t.health_critical, 'missing': t.get('signal_family_unavailable', 'Unavailable')} %}
     {% set ds_good = ds|selectattr('health', 'equalto', 'good')|list|length %}
     {% set ds_tolerated = ds|selectattr('health', 'equalto', 'tolerated')|list|length %}
     {% set ds_warn = ds|selectattr('health', 'equalto', 'warning')|list|length %}
@@ -715,6 +715,34 @@
     {% endif %}
     {%- endmacro %}
 
+    {% macro signal_family_card(card_id, label, family, metric_key, metric_unit, metric_label, spark_key, icon_class, icon_name) -%}
+        {% set metric = family.get(metric_key, {}) %}
+        {% set modulation = family.get('modulation', {}) %}
+        {% set raw_health = family.get('health', 'missing') %}
+        {% set health_class = 'crit' if raw_health == 'critical' else ('warn' if raw_health == 'warning' else ('muted' if raw_health == 'missing' else raw_health)) %}
+        {% set metric_value = metric.get('avg') %}
+        <div class="metric-card glass" id="{{ card_id }}">
+            <div class="metric-header">
+                <span class="metric-label">{{ label }}</span>
+                <div class="metric-icon {{ icon_class }}"><i data-lucide="{{ icon_name }}"></i></div>
+            </div>
+            <div class="metric-value-row">
+                <div class="metric-value" style="color:var(--{{ health_class }});">{% if metric_value is not none %}{{ metric_value }}<span class="unit">{{ metric_unit }} {{ metric_label }}</span>{% else %}{{ t.get('signal_family_unavailable', 'Unavailable') }}<span class="unit">{{ metric_label }}</span>{% endif %}</div>
+                <canvas class="metric-spark" id="spark-{{ card_id|replace('metric-', '') }}" data-spark-key="{{ spark_key }}" width="144" height="56" aria-hidden="true"></canvas>
+            </div>
+            <div class="metric-sub metric-status-row">
+                <span class="metric-context">
+                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="badge badge-{{ raw_health }} badge-{{ health_class }}">{{ health_labels.get(raw_health, health_labels.get(health_class, raw_health|title)) }}</span>
+                </span>
+                {% if modulation.get('value') %}<span class="range">{{ t.get('signal_family_modulation_label', 'Modulation') }}: {{ modulation.get('value') }}{% if modulation.get('secondary') %} — {{ modulation.get('secondary') }}{% endif %}</span>{% endif %}
+            </div>
+        </div>
+    {%- endmacro %}
+    {% set signal_families = s.get('signal_families', {}) %}
+    {% set ds_signal_families = signal_families.get('downstream', {}).get('families', {}) if signal_families else {} %}
+    {% set us_signal_families = signal_families.get('upstream', {}).get('families', {}) if signal_families else {} %}
+
     {# ══════════════════════════════════════════════════════════════════════════
        METRICS GRID — Compact signal + error + speed cards
        ══════════════════════════════════════════════════════════════════════════ #}
@@ -790,6 +818,20 @@
             </div>
             {{ metric_range_viz(metric_ranges.snr, snr_health, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), snr_min ~ ' — ' ~ snr_max) }}
         </div>
+
+        {# Family-aware signal cards: keep SC-QAM SNR, OFDM MER, SC-QAM upstream and OFDMA upstream separate. #}
+        {% if ds_signal_families.get('sc_qam') %}
+        {{ signal_family_card('metric-ds-sc-qam-card', t.get('signal_family_ds_sc_qam', 'DS SC-QAM'), ds_signal_families.get('sc_qam'), 'snr', 'dB', t.get('signal_family_metric_snr', 'SNR'), 'ds_scqam_snr_avg', 'green', 'signal') }}
+        {% endif %}
+        {% if ds_signal_families.get('ofdm') %}
+        {{ signal_family_card('metric-ds-ofdm-card', t.get('signal_family_ds_ofdm', 'DS OFDM'), ds_signal_families.get('ofdm'), 'mer', 'dB', t.get('signal_family_metric_mer', 'MER'), 'ds_ofdm_mer_avg', 'green', 'radio-tower') }}
+        {% endif %}
+        {% if us_signal_families.get('sc_qam') %}
+        {{ signal_family_card('metric-us-sc-qam-card', t.get('signal_family_us_sc_qam', 'US SC-QAM'), us_signal_families.get('sc_qam'), 'power', 'dBmV', t.get('signal_family_metric_power', 'Power'), 'us_scqam_power_avg', 'blue', 'arrow-up') }}
+        {% endif %}
+        {% if us_signal_families.get('ofdma') %}
+        {{ signal_family_card('metric-us-ofdma-card', t.get('signal_family_us_ofdma', 'US OFDMA'), us_signal_families.get('ofdma'), 'power', 'dBmV', t.get('signal_family_metric_power', 'Power'), 'us_ofdma_power_avg', 'blue', 'radio-tower') }}
+        {% endif %}
 
         {# Card 4: Errors #}
         {% if (s.errors_supported is not defined or s.errors_supported) and s.ds_uncorr_pct is not none %}

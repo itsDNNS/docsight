@@ -7,12 +7,28 @@
 (function() {
     'use strict';
 
-    var SPARKS = [
+    var DEFAULT_SPARKS = [
         { id: 'spark-ds-power',  key: 'ds_power_avg',           color: '#a78bfa' },
         { id: 'spark-us-power',  key: 'us_power_avg',           color: '#06b6d4' },
         { id: 'spark-snr',       key: 'ds_snr_avg',             color: '#10b981' },
         { id: 'spark-errors',    key: 'ds_uncorrectable_errors', color: '#f59e0b' }
     ];
+
+    function collectSparks() {
+        var sparks = DEFAULT_SPARKS.slice();
+        var seen = {};
+        sparks.forEach(function(s) { seen[s.id] = true; });
+        document.querySelectorAll('canvas.metric-spark[data-spark-key]').forEach(function(canvas) {
+            if (!canvas.id || seen[canvas.id]) return;
+            sparks.push({
+                id: canvas.id,
+                key: canvas.dataset.sparkKey,
+                color: canvas.dataset.sparkColor || '#10b981'
+            });
+            seen[canvas.id] = true;
+        });
+        return sparks;
+    }
 
     function drawSparkline(canvas, values, color) {
         if (!canvas || values.length < 2) return;
@@ -85,7 +101,7 @@
                 });
                 if (filtered.length < 2) return;
 
-                SPARKS.forEach(function(s) {
+                collectSparks().forEach(function(s) {
                     var canvas = document.getElementById(s.id);
                     if (!canvas) return;
                     var vals = filtered.map(function(d) { return d[s.key]; }).filter(function(v) { return v != null; });

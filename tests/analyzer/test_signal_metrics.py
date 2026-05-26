@@ -262,6 +262,176 @@ class TestOFDMThresholds:
         assert "snr tolerated" in ch["health_detail"]
 
 
+# -- Family-level signal summaries --
+
+class TestSignalFamilySummaries:
+    def test_sc_qam_only_downstream_summary_uses_sc_qam_snr(self):
+        data = _make_data(
+            ds30=[_make_ds30(1, power=1.0, mse="-35"), _make_ds30(2, power=3.0, mse="-37")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+
+        families = result["summary"]["signal_families"]["downstream"]["families"]
+        assert set(families) == {"sc_qam"}
+        assert families["sc_qam"]["power"]["avg"] == 2.0
+        assert families["sc_qam"]["snr"]["avg"] == 36.0
+        assert families["sc_qam"]["modulation"]["value"] == "256QAM"
+        assert result["ds_channels"][0]["channel_family"] == "sc_qam"
+
+    def test_mixed_downstream_keeps_sc_qam_snr_and_ofdm_mer_separate(self):
+        data = _make_data(
+            ds30=[_make_ds30(1, power=1.0, mse="-36")],
+            ds31=[_make_ds31(33, power=0.5, mer="37.0")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+
+        downstream = result["summary"]["signal_families"]["downstream"]
+        families = downstream["families"]
+        assert set(families) == {"sc_qam", "ofdm"}
+        assert families["sc_qam"]["snr"]["avg"] == 36.0
+        assert families["ofdm"]["mer"]["avg"] == 37.0
+        assert families["ofdm"]["mer"]["health"] == "warning"
+        assert downstream["health"] == "warning"
+
+    def test_docsis31_high_qam_profile_is_ofdm_not_sc_qam(self):
+        data = _make_data(
+            ds31=[_make_ds31(33, power=1.0, mer="41.0")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+
+        families = result["summary"]["signal_families"]["downstream"]["families"]
+        assert set(families) == {"ofdm"}
+        assert result["ds_channels"][0]["channel_family"] == "ofdm"
+        assert families["ofdm"]["mer"]["avg"] == 41.0
+
+    def test_docsis31_explicit_low_qam_modulation_stays_sc_qam(self):
+        data = _make_data(
+            ds31=[{
+                "channelID": 33,
+                "frequency": "159 MHz",
+                "powerLevel": "1.0",
+                "modulation": "256QAM",
+                "mer": "34.0",
+            }],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+
+        families = result["summary"]["signal_families"]["downstream"]["families"]
+        assert set(families) == {"sc_qam"}
+        assert result["ds_channels"][0]["channel_family"] == "sc_qam"
+        assert result["ds_channels"][0]["modulation_health"] == "good"
+        assert result["ds_channels"][0]["health"] == "good"
+        assert families["sc_qam"]["modulation"]["health"] == "good"
+        assert families["sc_qam"]["modulation"]["value"] == "256QAM"
+
+    def test_docsis31_profile_only_low_qam_stays_ofdm_not_sc_qam(self):
+        data = _make_data(
+            ds31=[{
+                "channelID": 33,
+                "frequency": "159 MHz",
+                "powerLevel": "1.0",
+                "profile_modulation": "256QAM",
+                "mer": "34.0",
+            }],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+
+        families = result["summary"]["signal_families"]["downstream"]["families"]
+        assert set(families) == {"ofdm"}
+        assert result["ds_channels"][0]["channel_family"] == "ofdm"
+        assert families["ofdm"]["mer"]["avg"] == 34.0
+        assert families["ofdm"]["modulation"]["value"] == "256QAM"
+
+    def test_docsis31_upstream_profile_only_low_qam_stays_ofdma_not_sc_qam(self):
+        us_ofdma = {
+            "channelID": 5,
+            "frequency": "30-65 MHz",
+            "profile_modulation": "64QAM",
+        }
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[us_ofdma],
+        )
+        result = analyze(data)
+
+        upstream = result["summary"]["signal_families"]["upstream"]["families"]
+        assert set(upstream) == {"ofdma"}
+        assert result["us_channels"][0]["channel_family"] == "ofdma"
+        assert upstream["ofdma"]["modulation"]["value"] == "64QAM"
+
+    def test_docsis31_upstream_profile_only_camel_case_profile_key_stays_ofdma(self):
+        us_ofdma = {
+            "channelID": 5,
+            "frequency": "30-65 MHz",
+            "profileModulation": "64QAM",
+        }
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[us_ofdma],
+        )
+        result = analyze(data)
+
+        upstream = result["summary"]["signal_families"]["upstream"]["families"]
+        assert set(upstream) == {"ofdma"}
+        assert result["us_channels"][0]["channel_family"] == "ofdma"
+        assert upstream["ofdma"]["modulation"]["value"] == "64QAM"
+
+    def test_docsis31_profile_only_camel_case_profile_key_stays_ofdm(self):
+        data = _make_data(
+            ds31=[{
+                "channelID": 33,
+                "frequency": "159 MHz",
+                "powerLevel": "1.0",
+                "profileModulation": "256QAM",
+                "mer": "34.0",
+            }],
+            us30=[_make_us30(1, power=42.0)],
+        )
+        result = analyze(data)
+
+        families = result["summary"]["signal_families"]["downstream"]["families"]
+        assert set(families) == {"ofdm"}
+        assert result["ds_channels"][0]["channel_family"] == "ofdm"
+        assert families["ofdm"]["modulation"]["value"] == "256QAM"
+
+    def test_missing_ofdm_mer_stays_unavailable_not_zero(self):
+        ds_ofdm = _make_ds31(33, power=1.0, mer="38.0")
+        ds_ofdm.pop("mer")
+        data = _make_data(ds31=[ds_ofdm], us30=[_make_us30(1, power=42.0)])
+        result = analyze(data)
+
+        ofdm = result["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        assert ofdm["mer"]["available"] is False
+        assert ofdm["mer"]["avg"] is None
+        assert ofdm["mer"]["health"] == "missing"
+
+    def test_upstream_ofdma_missing_power_and_low_profile_modulation_are_visible(self):
+        us_ofdma = {
+            "channelID": 5,
+            "frequency": "30-65 MHz",
+            "type": "OFDMA",
+            "profile_modulation": "64QAM",
+        }
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=43.0, modulation="64QAM")],
+            us31=[us_ofdma],
+        )
+        result = analyze(data)
+
+        upstream = result["summary"]["signal_families"]["upstream"]["families"]
+        assert set(upstream) == {"sc_qam", "ofdma"}
+        assert upstream["ofdma"]["power"]["available"] is False
+        assert upstream["ofdma"]["power"]["avg"] is None
+        assert upstream["ofdma"]["modulation"]["value"] == "64QAM"
+        assert upstream["ofdma"]["modulation"]["health"] == "warning"
+
+
 # -- Upstream bitrate calculation --
 
 class TestChannelBitrate:

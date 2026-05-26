@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from .base import Collector, CollectorResult
 from ..analyzer import (
     _assess_us_channel,
+    _build_signal_family_summary,
     _channel_bitrate_mbps,
     _metric_healths,
     _recent_spike_active,
@@ -425,6 +426,10 @@ class DemoCollector(Collector):
         us_bitrates = [ch["theoretical_bitrate"] for ch in us_channels if ch.get("theoretical_bitrate")]
         us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None
 
+        signal_families = _build_signal_family_summary(ds_channels, us_channels)
+        ds_family_summaries = signal_families["downstream"]["families"]
+        us_family_summaries = signal_families["upstream"]["families"]
+
         return {
             "summary": {
                 "ds_total": ds_count,
@@ -440,6 +445,13 @@ class DemoCollector(Collector):
                 "ds_correctable_errors": total_corr,
                 "ds_uncorrectable_errors": total_uncorr,
                 "us_capacity_mbps": us_capacity,
+                "signal_families": signal_families,
+                "ds_scqam_power_avg": ds_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
+                "ds_scqam_snr_avg": ds_family_summaries.get("sc_qam", {}).get("snr", {}).get("avg"),
+                "ds_ofdm_power_avg": ds_family_summaries.get("ofdm", {}).get("power", {}).get("avg"),
+                "ds_ofdm_mer_avg": ds_family_summaries.get("ofdm", {}).get("mer", {}).get("avg"),
+                "us_scqam_power_avg": us_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
+                "us_ofdma_power_avg": us_family_summaries.get("ofdma", {}).get("power", {}).get("avg"),
                 "health": health,
                 "health_issues": [],
             },

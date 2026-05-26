@@ -237,7 +237,7 @@ class TestDownstreamModulationHealth:
         ],
     )
     def test_docsis31_ofdm_downstream_modulation_health_bands(self, modulation, expected_health):
-        data = _make_data(ds31=[{**_make_ds31(100, power=5.0, mer="40.0"), "modulation": modulation}])
+        data = _make_data(ds31=[{**_make_ds31(100, power=5.0, mer="40.0"), "type": "OFDM", "modulation": modulation}])
 
         result = analyze(data)
         channel = result["ds_channels"][0]

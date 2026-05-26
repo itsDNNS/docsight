@@ -107,12 +107,21 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v29';" in sw_js
+    assert "var CACHE_VERSION = 'v30';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
     assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
     assert "/modules/docsight.modulation/static/main.js" in sw_js
+
+
+def test_home_signal_family_sparklines_use_data_keys():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    sparklines_js = (ROOT / "app" / "static" / "js" / "sparklines.js").read_text(encoding="utf-8")
+
+    assert "data-spark-key=\"{{ spark_key }}\"" in template
+    assert "querySelectorAll('canvas.metric-spark[data-spark-key]')" in sparklines_js
+    assert "canvas.dataset.sparkKey" in sparklines_js
 
 
 def test_channels_weather_overlay_contract_is_wired():
