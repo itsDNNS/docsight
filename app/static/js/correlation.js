@@ -13,6 +13,14 @@ var _corrEventFilter = {};
 var _corrEventSeverityFilter = {};
 var _OPERATIONAL_EVENTS = { monitoring_started: true, monitoring_stopped: true };
 var _CORR_SEVERITIES = ['info', 'warning', 'critical'];
+function _corrRangeHours(range) {
+    var raw = String(range || '1d');
+    if (/^\d+$/.test(raw)) return parseInt(raw, 10);
+    var match = raw.match(/^(\d+)(h|d)$/);
+    if (!match) return 24;
+    var value = parseInt(match[1], 10);
+    return match[2] === 'h' ? value : value * 24;
+}
 function _corrCloseEventPopover() {
     var pop = document.getElementById('corr-event-popover');
     if (!pop) return;
@@ -95,7 +103,7 @@ function _corrFilteredEvents(events) {
 })();
 
 function loadCorrelationData() {
-    var hours = getPillValue('correlation-tabs');
+    var hours = _corrRangeHours(getPillValue('correlation-tabs'));
 
     var loading = document.getElementById('correlation-loading');
     var noData = document.getElementById('correlation-no-data');

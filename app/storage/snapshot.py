@@ -8,7 +8,7 @@ import sqlite3
 from typing import cast
 
 from ..types import AnalysisResult
-from ..tz import local_date_to_utc_range, utc_now
+from ..tz import local_date_to_utc_range, utc_cutoff, utc_now
 
 log = logging.getLogger("docsis.storage")
 
@@ -119,6 +119,25 @@ class SnapshotMixin:
             results.append(entry)
         return results
 
+    def _summary_rows_to_entries(self, rows):
+        results = []
+        for row in rows:
+            entry = {"timestamp": row[0]}
+            entry.update(_normalize_summary_errors(json.loads(row[1])))
+            results.append(entry)
+        return results
+
+    def get_summary_since(self, hours):
+        """Get summary snapshots from the last N hours."""
+        cutoff = utc_cutoff(hours=hours)
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT timestamp, summary_json FROM snapshots "
+                "WHERE timestamp >= ? ORDER BY timestamp",
+                (cutoff,),
+            ).fetchall()
+        return self._summary_rows_to_entries(rows)
+
     def get_summary_range(self, start_date, end_date):
         """Get all snapshots (summary only) between two dates. Like get_intraday_data but multi-day.
 
@@ -133,12 +152,7 @@ class SnapshotMixin:
                 "ORDER BY timestamp",
                 (range_start, range_end),
             ).fetchall()
-        results = []
-        for row in rows:
-            entry = {"timestamp": row[0]}
-            entry.update(_normalize_summary_errors(json.loads(row[1])))
-            results.append(entry)
-        return results
+        return self._summary_rows_to_entries(rows)
 
     def get_closest_snapshot(self, timestamp: str) -> dict | None:
         """Find the snapshot closest to a given ISO timestamp (within 2 hours).

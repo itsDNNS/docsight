@@ -326,11 +326,55 @@ class TestCorrelationAPI:
         assert speedtest_entries[0].get("modem_health") == "good"
 
     def test_correlation_hours_clamped(self, client_with_storage):
-        """Hours parameter is clamped to 1-168."""
-        resp = client_with_storage.get("/api/correlation?hours=999")
+        """Hours parameter is clamped to 1-2160 (90d)."""
+        resp = client_with_storage.get("/api/correlation?hours=9999")
         assert resp.status_code == 200
         resp = client_with_storage.get("/api/correlation?hours=0")
         assert resp.status_code == 200
+
+    def test_correlation_supports_ninety_day_range(self, client_with_storage, storage, sample_analysis):
+        """Correlation API must honor 90d UI range instead of old 7d clamp."""
+        old_ts = utc_cutoff(days=80)
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(
+                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
+                (
+                    old_ts,
+                    json.dumps(sample_analysis["summary"]),
+                    json.dumps(sample_analysis["ds_channels"]),
+                    json.dumps(sample_analysis["us_channels"]),
+                ),
+            )
+
+        resp = client_with_storage.get("/api/correlation?hours=2160&sources=modem")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        old_date = old_ts[:10]
+        assert any(entry["source"] == "modem" and entry["timestamp"].startswith(old_date) for entry in data)
+
+    def test_correlation_clamps_above_ninety_days(self, client_with_storage, storage, sample_analysis):
+        inside_ts = utc_cutoff(days=80)
+        outside_ts = utc_cutoff(days=100)
+        with sqlite3.connect(storage.db_path) as conn:
+            for ts in (inside_ts, outside_ts):
+                conn.execute(
+                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?,?,?,?)",
+                    (
+                        ts,
+                        json.dumps(sample_analysis["summary"]),
+                        json.dumps(sample_analysis["ds_channels"]),
+                        json.dumps(sample_analysis["us_channels"]),
+                    ),
+                )
+
+        resp = client_with_storage.get("/api/correlation?hours=9999&sources=modem")
+
+        assert resp.status_code == 200
+        timestamps = {entry["timestamp"] for entry in json.loads(resp.data)}
+        timestamp_dates = {ts[:10] for ts in timestamps}
+        assert inside_ts[:10] in timestamp_dates
+        assert outside_ts[:10] not in timestamp_dates
 
     def test_correlation_segment_source_filter(self, client_with_storage, storage):
         """Segment source can be explicitly selected via API sources param."""

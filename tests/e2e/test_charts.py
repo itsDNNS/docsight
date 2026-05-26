@@ -161,14 +161,13 @@ class TestTrendCharts:
         assert legend.is_visible()
 
     def test_trend_tabs_switch_range(self, demo_page):
-        """Clicking Week/Month tabs should reload charts."""
+        """Clicking normalized 7d tab should reload charts."""
         navigate_to_trends(demo_page)
         wait_for_uplot(demo_page, "chart-ds-power")
 
-        # Click Week tab
-        week_tab = demo_page.locator('.trend-tab[data-range="week"]')
-        if week_tab.count() > 0:
-            week_tab.click()
+        range_tab = demo_page.locator('.trend-tab[data-range="7d"]')
+        if range_tab.count() > 0:
+            range_tab.click()
             demo_page.wait_for_timeout(1500)
             canvases = count_uplot_canvases(demo_page, "chart-ds-power")
             assert canvases >= 1, "Chart should still render after range switch"

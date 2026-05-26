@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, request, jsonify
 
+from app.time_ranges import parse_time_range_hours
 from app.web import (
     require_auth,
     get_storage, get_config_manager, get_state,
@@ -55,35 +56,42 @@ data_bp = Blueprint("data_bp", __name__)
 @data_bp.route("/api/trends")
 @require_auth
 def api_trends():
-    """Return trend data for a date range.
-    ?range=day|week|month&date=YYYY-MM-DD (date defaults to today)."""
+    """Return trend data for a normalized time range.
+
+    Supports the normalized UI ranges (1h, 6h, 1d, 2d, 3d, 7d, 30d, 90d)
+    plus the legacy day/week/month names for backwards compatibility.
+    The date query parameter anchors only legacy day/week/month requests;
+    normalized ranges are rolling windows ending at the current snapshot time.
+    """
     _storage = get_storage()
     if not _storage:
         return jsonify([])
-    range_type = request.args.get("range", "day")
+    range_type = (request.args.get("range", "1d") or "1d").strip().lower()
     date_str = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
 
-    try:
-        ref_date = datetime.strptime(date_str, "%Y-%m-%d")
-    except ValueError:
-        return jsonify({"error": "Invalid date format"}), 400
+    hours = parse_time_range_hours(range_type, default="1d", allow_legacy=True)
+    if hours is None:
+        return jsonify({"error": "Invalid range (use 1h, 6h, 1d, 2d, 3d, 7d, 30d, 90d)"}), 400
+
+    ref_date = datetime.now()
+    if range_type in ("day", "week", "month"):
+        try:
+            ref_date = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            return jsonify({"error": "Invalid date format"}), 400
 
     if range_type == "day":
         data = _storage.get_intraday_data(date_str)
-        _localize_timestamps(data)
-        return jsonify(data)
     elif range_type == "week":
         start = (ref_date - timedelta(days=6)).strftime("%Y-%m-%d")
         data = _storage.get_summary_range(start, date_str)
-        _localize_timestamps(data)
-        return jsonify(data)
     elif range_type == "month":
         start = (ref_date - timedelta(days=29)).strftime("%Y-%m-%d")
         data = _storage.get_summary_range(start, date_str)
-        _localize_timestamps(data)
-        return jsonify(data)
     else:
-        return jsonify({"error": "Invalid range (use day, week, month)"}), 400
+        data = _storage.get_summary_since(hours)
+    _localize_timestamps(data)
+    return jsonify(data)
 
 
 @data_bp.route("/api/export")
