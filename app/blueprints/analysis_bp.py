@@ -6,6 +6,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from app.analyzer import get_thresholds
+from app.time_ranges import parse_time_range_hours
 from app.tz import utc_now, utc_cutoff
 from app.web import (
     require_auth,
@@ -129,23 +130,38 @@ def api_gaming_score():
     })
 
 
+def _channel_history_window_args():
+    range_value = request.args.get("range")
+    if range_value is not None:
+        hours = parse_time_range_hours(range_value, default="1d")
+        if hours is None:
+            return None, (jsonify({"error": "range must be one of 1h, 6h, 1d, 2d, 3d, 7d, 30d, 90d"}), 400)
+        return {"hours": hours}, None
+    days = request.args.get("days", 7, type=int)
+    days = max(1, min(days, 90))
+    return {"days": days}, None
+
+
 @analysis_bp.route("/api/channel-history")
 @require_auth
 def api_channel_history():
     """Return per-channel time series data.
-    ?channel_id=X&direction=ds|us&days=7"""
+    ?channel_id=X&direction=ds|us&range=1h|6h|1d|2d|3d|7d|30d|90d
+    Legacy ?days=N remains supported."""
     _storage = get_storage()
     if not _storage:
         return jsonify([])
     channel_id = request.args.get("channel_id", type=int)
     direction = request.args.get("direction", "ds")
-    days = request.args.get("days", 7, type=int)
+    window_args, range_error = _channel_history_window_args()
+    if range_error:
+        return range_error
+    assert window_args is not None
     if channel_id is None:
         return jsonify({"error": "channel_id is required"}), 400
     if direction not in ("ds", "us"):
         return jsonify({"error": "direction must be 'ds' or 'us'"}), 400
-    days = max(1, min(days, 90))
-    data = _storage.get_channel_history(channel_id, direction, days)
+    data = _storage.get_channel_history(channel_id, direction, **window_args)
     _localize_timestamps(data)
     return jsonify(data)
 
@@ -154,18 +170,21 @@ def api_channel_history():
 @require_auth
 def api_channel_compare():
     """Return per-channel time series for multiple channels.
-    ?channels=1,2,3&direction=ds|us&days=7"""
+    ?channels=1,2,3&direction=ds|us&range=1h|6h|1d|2d|3d|7d|30d|90d
+    Legacy ?days=N remains supported."""
     _storage = get_storage()
     if not _storage:
         return jsonify({})
     channels_param = request.args.get("channels", "")
     direction = request.args.get("direction", "ds")
-    days = request.args.get("days", 7, type=int)
+    window_args, range_error = _channel_history_window_args()
+    if range_error:
+        return range_error
+    assert window_args is not None
     if not channels_param:
         return jsonify({"error": "channels parameter is required"}), 400
     if direction not in ("ds", "us"):
         return jsonify({"error": "direction must be 'ds' or 'us'"}), 400
-    days = max(1, min(days, 90))
     try:
         channel_ids = [int(c.strip()) for c in channels_param.split(",") if c.strip()]
     except ValueError:
@@ -174,7 +193,7 @@ def api_channel_compare():
         return jsonify({"error": "maximum 64 channels"}), 400
     if not channel_ids:
         return jsonify({"error": "at least one channel required"}), 400
-    result = _storage.get_multi_channel_history(channel_ids, direction, days)
+    result = _storage.get_multi_channel_history(channel_ids, direction, **window_args)
     # Convert int keys to strings for JSON
     return jsonify({str(k): v for k, v in result.items()})
 
@@ -186,14 +205,14 @@ def api_channel_compare():
 def api_correlation():
     """Return unified timeline with data from all sources for cross-source correlation.
     Query params:
-      hours: int (default 24, max 168)
+      hours: int (default 24, max 2160 / 90d)
       sources: comma-separated list of modem,speedtest,events,bnetz,capture,segment (default all)
     """
     _storage = get_storage()
     if not _storage:
         return jsonify([])
     hours = request.args.get("hours", 24, type=int)
-    hours = max(1, min(hours, 168))
+    hours = max(1, min(hours, 2160))
     end_ts = utc_now()
     start_ts = utc_cutoff(hours=hours)
 

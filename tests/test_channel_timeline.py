@@ -1,9 +1,10 @@
 """Tests for per-channel timeline: storage, /api/channels, /api/channel-history."""
 
 import json
+import sqlite3
 import time
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.storage import SnapshotStorage
 from app.web import app, init_config, init_storage
@@ -11,6 +12,23 @@ from app.config import ConfigManager
 
 
 # ── Fixtures ──
+
+def _utc_ts(delta: timedelta) -> str:
+    return (datetime.now(timezone.utc) - delta).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _insert_snapshot(storage, analysis, timestamp):
+    with sqlite3.connect(storage.db_path) as conn:
+        conn.execute(
+            "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
+            (
+                timestamp,
+                json.dumps(analysis["summary"]),
+                json.dumps(analysis["ds_channels"]),
+                json.dumps(analysis["us_channels"]),
+            ),
+        )
+
 
 def _make_analysis(ds_channels=None, us_channels=None):
     if ds_channels is None:
@@ -100,16 +118,9 @@ class TestGetChannelHistory:
 
     def test_respects_days_param(self, storage):
         # Save snapshot with a timestamp in the past
-        import sqlite3
         old_ts = (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%dT%H:%M:%S")
         analysis = _make_analysis()
-        with sqlite3.connect(storage.db_path) as conn:
-            conn.execute(
-                "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
-                (old_ts, json.dumps(analysis["summary"]),
-                 json.dumps(analysis["ds_channels"]),
-                 json.dumps(analysis["us_channels"])),
-            )
+        _insert_snapshot(storage, analysis, old_ts)
         # Recent snapshot
         storage.save_snapshot(_make_analysis())
         # 7-day window should only get the recent one
@@ -118,6 +129,26 @@ class TestGetChannelHistory:
         # 30-day window should get both
         result_30 = storage.get_channel_history(1, "ds", days=30)
         assert len(result_30) == 2
+
+    def test_respects_hours_param_for_subday_ranges(self, storage):
+        analysis = _make_analysis()
+        _insert_snapshot(storage, analysis, _utc_ts(timedelta(hours=2)))
+        _insert_snapshot(storage, analysis, _utc_ts(timedelta(minutes=20)))
+
+        result = storage.get_channel_history(1, "ds", hours=1)
+
+        assert len(result) == 1
+        assert result[0]["timestamp"] >= _utc_ts(timedelta(hours=1))
+
+    def test_multi_channel_respects_hours_param_for_subday_ranges(self, storage):
+        analysis = _make_analysis()
+        _insert_snapshot(storage, analysis, _utc_ts(timedelta(hours=2)))
+        _insert_snapshot(storage, analysis, _utc_ts(timedelta(minutes=20)))
+
+        result = storage.get_multi_channel_history([1, 2], "ds", hours=1)
+
+        assert len(result[1]) == 1
+        assert len(result[2]) == 1
 
     def test_preserves_unsupported_error_values(self, storage):
         ds = [
@@ -305,6 +336,26 @@ class TestChannelHistoryEndpoint:
         resp2 = c.get("/api/channel-history?channel_id=1&direction=ds&days=200")
         assert resp2.status_code == 200
 
+    def test_range_param_supports_one_hour_window(self, client):
+        c, s = client
+        analysis = _make_analysis()
+        _insert_snapshot(s, analysis, _utc_ts(timedelta(hours=2)))
+        _insert_snapshot(s, analysis, _utc_ts(timedelta(minutes=20)))
+
+        resp = c.get("/api/channel-history?channel_id=1&direction=ds&range=1h")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert len(data) == 1
+
+    def test_invalid_range_param_is_rejected(self, client):
+        c, s = client
+        s.save_snapshot(_make_analysis())
+
+        resp = c.get("/api/channel-history?channel_id=1&direction=ds&range=4h")
+
+        assert resp.status_code == 400
+
 
 class TestChannelCompareEndpoint:
     def test_returns_multiple_channels(self, client):
@@ -329,6 +380,19 @@ class TestChannelCompareEndpoint:
         data = json.loads(resp.data)
         assert set(data.keys()) == {"1", "2", "3", "4", "5", "6", "7", "8"}
         assert data["8"][0]["power"] == 13.0
+
+    def test_range_param_supports_one_hour_window(self, client):
+        c, s = client
+        analysis = _make_analysis()
+        _insert_snapshot(s, analysis, _utc_ts(timedelta(hours=2)))
+        _insert_snapshot(s, analysis, _utc_ts(timedelta(minutes=20)))
+
+        resp = c.get("/api/channel-compare?channels=1,2&direction=ds&range=1h")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert len(data["1"]) == 1
+        assert len(data["2"]) == 1
 
     def test_rejects_more_than_64_channels(self, client):
         c, s = client

@@ -1137,16 +1137,21 @@
     <div class="trend-header">
         <span class="trend-title" id="trend-title"></span>
         <div style="display:flex; align-items:center; gap:8px;">
+            <div class="trend-tabs" id="trend-tabs">
+                <button class="trend-tab" data-range="1h">1h</button>
+                <button class="trend-tab" data-range="6h">6h</button>
+                <button class="trend-tab active" data-range="1d">1d</button>
+                <button class="trend-tab" data-range="2d">2d</button>
+                <button class="trend-tab" data-range="3d">3d</button>
+                <button class="trend-tab" data-range="7d">7d</button>
+                <button class="trend-tab" data-range="30d">30d</button>
+                <button class="trend-tab" data-range="90d">90d</button>
+            </div>
             <button class="trend-tab temp-toggle" id="temp-toggle-btn" style="display:none;" title="{{ t.temp_overlay_show }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;">
                     <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                 </svg>
             </button>
-            <div class="trend-tabs" id="trend-tabs">
-                <button class="trend-tab active" data-range="day">{{ t.day }}</button>
-                <button class="trend-tab" data-range="week">{{ t.week }}</button>
-                <button class="trend-tab" data-range="month">{{ t.month }}</button>
-            </div>
         </div>
     </div>
     <div id="trend-no-data" class="no-data-msg" style="display:none"></div>
@@ -1376,9 +1381,14 @@
             <span class="correlation-view-subtitle">{{ t.get('correlation_subtitle', 'Build evidence for ISP complaints') }}</span>
         </div>
         <div class="trend-tabs" id="correlation-tabs">
-            <button class="trend-tab active" data-value="24" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_24 }}</button>
-            <button class="trend-tab" data-value="48" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_48 }}</button>
-            <button class="trend-tab" data-value="168" onclick="selectPill(this, loadCorrelationData)">{{ t.correlation_hours_168 }}</button>
+            <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadCorrelationData)">1h</button>
+            <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadCorrelationData)">6h</button>
+            <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadCorrelationData)">1d</button>
+            <button class="trend-tab" data-value="2d" onclick="selectPill(this, loadCorrelationData)">2d</button>
+            <button class="trend-tab" data-value="3d" onclick="selectPill(this, loadCorrelationData)">3d</button>
+            <button class="trend-tab" data-value="7d" onclick="selectPill(this, loadCorrelationData)">7d</button>
+            <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadCorrelationData)">30d</button>
+            <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadCorrelationData)">90d</button>
         </div>
     </div>
 
@@ -1637,10 +1647,14 @@
                 <option value="">{{ t.select_channel }}</option>
             </select>
             <div class="trend-tabs" id="channel-time-tabs">
-                <button class="trend-tab" data-value="1" onclick="selectPill(this, loadChannelTimeline)">1d</button>
-                <button class="trend-tab" data-value="3" onclick="selectPill(this, loadChannelTimeline)">3d</button>
-                <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadChannelTimeline)">7d</button>
-                <button class="trend-tab" data-value="30" onclick="selectPill(this, loadChannelTimeline)">30d</button>
+                <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadChannelTimeline)">1h</button>
+                <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadChannelTimeline)">6h</button>
+                <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadChannelTimeline)">1d</button>
+                <button class="trend-tab" data-value="2d" onclick="selectPill(this, loadChannelTimeline)">2d</button>
+                <button class="trend-tab" data-value="3d" onclick="selectPill(this, loadChannelTimeline)">3d</button>
+                <button class="trend-tab" data-value="7d" onclick="selectPill(this, loadChannelTimeline)">7d</button>
+                <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadChannelTimeline)">30d</button>
+                <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadChannelTimeline)">90d</button>
             </div>
             <button id="channel-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleChannelTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;" aria-hidden="true">
@@ -1658,10 +1672,14 @@
             <button id="compare-add-all-btn" class="compare-add-btn" onclick="addAllCompareChannels()">{{ t.all_downstream }}</button>
             <button id="compare-clear-btn" class="compare-add-btn" onclick="clearCompareChannels()">{{ t.clear_selection }}</button>
             <div class="trend-tabs" id="compare-time-tabs">
-                <button class="trend-tab" data-value="1" onclick="selectPill(this, loadCompareCharts)">1d</button>
-                <button class="trend-tab" data-value="3" onclick="selectPill(this, loadCompareCharts)">3d</button>
-                <button class="trend-tab active" data-value="7" onclick="selectPill(this, loadCompareCharts)">7d</button>
-                <button class="trend-tab" data-value="30" onclick="selectPill(this, loadCompareCharts)">30d</button>
+                <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadCompareCharts)">1h</button>
+                <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadCompareCharts)">6h</button>
+                <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadCompareCharts)">1d</button>
+                <button class="trend-tab" data-value="2d" onclick="selectPill(this, loadCompareCharts)">2d</button>
+                <button class="trend-tab" data-value="3d" onclick="selectPill(this, loadCompareCharts)">3d</button>
+                <button class="trend-tab" data-value="7d" onclick="selectPill(this, loadCompareCharts)">7d</button>
+                <button class="trend-tab" data-value="30d" onclick="selectPill(this, loadCompareCharts)">30d</button>
+                <button class="trend-tab" data-value="90d" onclick="selectPill(this, loadCompareCharts)">90d</button>
             </div>
             <button id="compare-temp-toggle-btn" class="trend-tab temp-toggle active" onclick="toggleCompareTempOverlay()" style="display:none;" aria-pressed="true" title="{{ t.temp_overlay_hide }}" aria-label="{{ t.temperature }}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;" aria-hidden="true">

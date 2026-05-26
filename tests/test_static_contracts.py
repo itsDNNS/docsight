@@ -107,7 +107,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v32';" in sw_js
+    assert "var CACHE_VERSION = 'v33';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
@@ -183,6 +183,77 @@ def test_channels_controls_and_compare_titles_are_standardized():
     assert "{{ t.snr_db }}" in compare_charts
     assert "{{ t.power_history }}" not in compare_charts
     assert "{{ t.snr_history }}" not in compare_charts
+
+
+def test_chart_time_range_controls_use_normalized_existing_ranges():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    cm_template = (ROOT / "app" / "modules" / "connection_monitor" / "templates" / "connection_monitor_detail.html").read_text(encoding="utf-8")
+    expected_labels = ["1h", "6h", "1d", "2d", "3d", "7d", "30d", "90d"]
+    expected_values = ["1h", "6h", "1d", "2d", "3d", "7d", "30d", "90d"]
+    expected_seconds = ["3600", "21600", "86400", "172800", "259200", "604800", "2592000", "7776000"]
+
+    def block(source, start, end):
+        start_idx = source.index(start)
+        return source[start_idx : source.index(end, start_idx)]
+
+    def button_texts(html):
+        return re.findall(r"<button[^>]*>([^<{]+)</button>", html)
+
+    def data_values(html):
+        return re.findall(r"data-(?:range|value)=\"([^\"]+)\"", html)
+
+    controls = {
+        "trend": block(template, 'id="trend-tabs"', '</div>'),
+        "correlation": block(template, 'id="correlation-tabs"', '</div>'),
+        "channel": block(template, 'id="channel-time-tabs"', '</div>'),
+        "compare": block(template, 'id="compare-time-tabs"', '</div>'),
+    }
+    for name, html in controls.items():
+        assert button_texts(html) == expected_labels, name
+        assert data_values(html) == expected_values, name
+
+    cm_picker = block(cm_template, 'class="cm-range-picker', '</div>')
+    assert "trend-tabs" in cm_picker
+    assert button_texts(cm_picker) == expected_labels
+    assert re.findall(r"data-cm-range=\"([^\"]+)\"", cm_picker) == expected_seconds
+
+
+def test_channels_legacy_days_hashes_normalize_to_range_tabs():
+    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
+
+    assert "function _normalizeChannelRangeValue" in channels_js
+    assert "if (/^\\d+$/.test(raw)) raw = raw + 'd';" in channels_js
+    assert "var allowed = ['1h', '6h', '1d', '2d', '3d', '7d', '30d', '90d'];" in channels_js
+    assert "return allowed.indexOf(raw) !== -1 ? raw : '1d';" in channels_js
+    assert "_normalizeChannelRangeValue(params.range || params.days || '1d')" in channels_js
+
+
+def test_trend_title_uses_rolling_range_without_stale_date_suffix():
+    trends_js = TRENDS_JS.read_text(encoding="utf-8")
+
+    assert "title.textContent = (T.signal_trends || 'Signal Trends') + ' (' + label + ')'" in trends_js
+    assert "formatDateDE(date)" not in trends_js
+    assert "&date=" not in trends_js
+
+
+def test_hero_chart_fetches_normalized_one_day_range():
+    hero_chart_js = (ROOT / "app" / "static" / "js" / "hero-chart.js").read_text(encoding="utf-8")
+
+    assert "fetch('/api/trends?range=1d')" in hero_chart_js
+    assert "fetch('/api/trends?range=week')" not in hero_chart_js
+
+
+def test_temperature_controls_are_consistently_after_time_range_controls_without_new_selectors():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    trend_header = template[template.index('id="view-trends"') : template.index('id="trend-no-data"')]
+    channel_controls = template[template.index('id="channel-timeline-controls"') : template.index('id="channel-compare-controls"')]
+    compare_controls = template[template.index('id="channel-compare-controls"') : template.index('id="channel-no-data"')]
+    correlation_header = template[template.index('id="view-correlation"') : template.index('id="correlation-loading"')]
+
+    assert trend_header.index('id="trend-tabs"') < trend_header.index('id="temp-toggle-btn"')
+    assert channel_controls.index('id="channel-time-tabs"') < channel_controls.index('id="channel-temp-toggle-btn"')
+    assert compare_controls.index('id="compare-time-tabs"') < compare_controls.index('id="compare-temp-toggle-btn"')
+    assert 'correlation-temp-toggle' not in correlation_header
 
 
 def test_chart_engine_has_configurable_axis_padding_for_long_qam_labels():

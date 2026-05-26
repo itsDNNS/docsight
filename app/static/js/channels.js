@@ -3,9 +3,29 @@
    DS_POWER_THRESHOLDS, DS_SNR_THRESHOLDS, US_POWER_THRESHOLDS */
 
 /* ── Channel State URL Persistence ── */
-/* Hash format: #channels?mode=timeline&dir=ds&channel=42&days=7
-   Compare:     #channels?mode=compare&dir=us&days=30&channels=1,2,3
-   Preset:      #channels?mode=compare&dir=ds&days=7&preset=all */
+/* Hash format: #channels?mode=timeline&dir=ds&channel=42&range=1d
+   Compare:     #channels?mode=compare&dir=us&range=30d&channels=1,2,3
+   Preset:      #channels?mode=compare&dir=ds&range=7d&preset=all */
+
+function _channelRangeHours(range) {
+    var raw = String(range || '1d');
+    if (/^\d+$/.test(raw)) return parseInt(raw, 10) * 24;
+    var match = raw.match(/^(\d+)(h|d)$/);
+    if (!match) return 24;
+    var value = parseInt(match[1], 10);
+    return match[2] === 'h' ? value : value * 24;
+}
+
+function _channelRangeDays(range) {
+    return _channelRangeHours(range) / 24;
+}
+
+function _normalizeChannelRangeValue(value) {
+    var raw = String(value || '1d');
+    if (/^\d+$/.test(raw)) raw = raw + 'd';
+    var allowed = ['1h', '6h', '1d', '2d', '3d', '7d', '30d', '90d'];
+    return allowed.indexOf(raw) !== -1 ? raw : '1d';
+}
 
 function parseChannelHash() {
     var hash = location.hash.replace('#', '');
@@ -31,10 +51,10 @@ function writeChannelHash() {
             params.push('dir=' + parts[0]);
             params.push('channel=' + parts[1]);
         }
-        params.push('days=' + (getPillValue('channel-time-tabs') || '7'));
+        params.push('range=' + encodeURIComponent(getPillValue('channel-time-tabs') || '1d'));
     } else {
         params.push('dir=' + getCompareDirection());
-        params.push('days=' + (getPillValue('compare-time-tabs') || '7'));
+        params.push('range=' + encodeURIComponent(getPillValue('compare-time-tabs') || '1d'));
         if (_comparePreset === 'all') {
             params.push('preset=all');
         } else if (_compareChannels.length > 0) {
@@ -59,9 +79,9 @@ function initChannelView() {
     var params = parseChannelHash();
     loadChannelList(function() {
         if (!params.mode) {
-            // No hash params → reset to defaults (timeline, no selection, 7d)
+            // No hash params → reset to defaults (timeline, no selection, 1d)
             setPillByValue('channel-mode-tabs', 'timeline');
-            setPillByValue('channel-time-tabs', '7');
+            setPillByValue('channel-time-tabs', '1d');
             var sel = document.getElementById('channel-select');
             if (sel) sel.value = '';
             _compareChannels = [];
@@ -78,7 +98,7 @@ function initChannelView() {
         switchChannelMode();
 
         if (params.mode === 'timeline') {
-            setPillByValue('channel-time-tabs', params.days || '7');
+            setPillByValue('channel-time-tabs', _normalizeChannelRangeValue(params.range || params.days || '1d'));
             var sel = document.getElementById('channel-select');
             if (params.dir && params.channel) {
                 sel.value = params.dir + '-' + params.channel;
@@ -94,7 +114,7 @@ function initChannelView() {
         } else if (params.mode === 'compare') {
             setPillByValue('compare-dir-tabs', params.dir || 'ds');
             _lastCompareDir = params.dir || 'ds';
-            setPillByValue('compare-time-tabs', params.days || '7');
+            setPillByValue('compare-time-tabs', _normalizeChannelRangeValue(params.range || params.days || '1d'));
             _compareChannels = [];
             _comparePreset = null;
             _compareState.ds = { channels: [], preset: null };
@@ -307,7 +327,7 @@ function _alignWeatherToChannelTimestamps(timestamps, weatherData, days) {
     }).filter(function(row) { return row !== null; });
     if (!weather.length) return null;
 
-    if (parseInt(days) >= 30) {
+    if (_channelRangeDays(days) >= 30) {
         var dailyTemps = {};
         weather.forEach(function(row) {
             if (!dailyTemps[row.day]) dailyTemps[row.day] = [];
@@ -426,12 +446,12 @@ function _renderChannelTimelineCharts() {
     if (!data || data.length === 0) return;
     var direction = ctx.direction || 'ds';
     var docsisVersion = ctx.docsisVersion || '3.0';
-    var days = ctx.days || '7';
+    var days = ctx.days || '1d';
 
     var xLabels = data.map(function(d) {
         if (!d.timestamp) return '';
-        if (parseInt(days) <= 1) return d.timestamp.substring(11, 16);
-        if (parseInt(days) >= 30) return d.timestamp.substring(5, 10);
+        if (_channelRangeHours(days) <= 24) return d.timestamp.substring(11, 16);
+        if (_channelRangeDays(days) >= 30) return d.timestamp.substring(5, 10);
         return d.timestamp.substring(5, 16).replace('T', ' ');
     });
     var tempOpts = _channelWeatherHasData(_lastChannelWeather) ? { tempData: _lastChannelWeather } : null;
@@ -481,7 +501,7 @@ function _renderChannelTimelineCharts() {
         var qamLabel = {}; qamSteps.forEach(function(v) { qamLabel[v] = v + 'QAM'; });
         var qamMap = {}; qamSteps.forEach(function(v, i) { qamMap[v + 'QAM'] = i; });
         var modLabels = mods.map(function(d) {
-            if (parseInt(days) >= 30) return d.timestamp.substring(5, 10);
+            if (_channelRangeDays(days) >= 30) return d.timestamp.substring(5, 10);
             return d.timestamp.substring(5, 16).replace('T', ' ');
         });
         var modValues = mods.map(function(d) { return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : -1; });
@@ -534,7 +554,7 @@ function loadChannelTimeline() {
     var channelId = parts[1];
     var selectedOpt = sel.options[sel.selectedIndex];
     var docsisVersion = selectedOpt ? selectedOpt.dataset.docsis || '3.0' : '3.0';
-    var days = getPillValue('channel-time-tabs');
+    var days = getPillValue('channel-time-tabs') || '1d';
     writeChannelHash();
     var requestId = ++_channelTimelineRequestSeq;
 
@@ -544,7 +564,7 @@ function loadChannelTimeline() {
     noDataEl.style.display = 'none';
     _updateChannelInfoBar(direction, channelId);
 
-    fetch('/api/channel-history?channel_id=' + channelId + '&direction=' + direction + '&days=' + days)
+    fetch('/api/channel-history?channel_id=' + channelId + '&direction=' + direction + '&range=' + encodeURIComponent(days))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (requestId !== _channelTimelineRequestSeq) return;
@@ -816,11 +836,11 @@ function _renderCompareCharts() {
     if (!ctx || !ctx.data || !ctx.timestamps || ctx.timestamps.length === 0) return;
     var data = ctx.data;
     var timestamps = ctx.timestamps;
-    var days = ctx.days || '7';
+    var days = ctx.days || '1d';
     var dir = ctx.dir || getCompareDirection();
     var xLabels = timestamps.map(function(ts) {
-        if (parseInt(days) <= 1) return ts.substring(11, 16);
-        if (parseInt(days) >= 30) return ts.substring(5, 10);
+        if (_channelRangeHours(days) <= 24) return ts.substring(11, 16);
+        if (_channelRangeDays(days) >= 30) return ts.substring(5, 10);
         return ts.substring(5, 16).replace('T', ' ');
     });
     var tempOpts = _channelWeatherHasData(_lastCompareWeather) ? { tempData: _lastCompareWeather } : null;
@@ -966,7 +986,7 @@ function loadCompareCharts() {
         return;
     }
     var dir = getCompareDirection();
-    var days = getPillValue('compare-time-tabs') || '7';
+    var days = getPillValue('compare-time-tabs') || '1d';
     var ids = _compareChannels.map(function(c) { return c.id; }).join(',');
     writeChannelHash();
     var requestId = ++_compareRequestSeq;
@@ -975,7 +995,7 @@ function loadCompareCharts() {
     chartsEl.style.display = 'none';
     emptyEl.style.display = 'none';
 
-    fetch('/api/channel-compare?channels=' + ids + '&direction=' + dir + '&days=' + days)
+    fetch('/api/channel-compare?channels=' + ids + '&direction=' + dir + '&range=' + encodeURIComponent(days))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (requestId !== _compareRequestSeq) return;

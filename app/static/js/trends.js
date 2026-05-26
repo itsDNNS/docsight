@@ -3,11 +3,20 @@
    todayStr, formatDateDE, DS_POWER_THRESHOLDS, DS_SNR_THRESHOLDS,
    US_POWER_THRESHOLDS, _tempOverlayVisible (chart-engine.js) */
 
-var _trendRange = 'day';
+var _trendRange = '1d';
 var _lastTrendData = null;
 var _lastTrendWeather = null;
-var _lastTrendRange = 'day';
+var _lastTrendRange = '1d';
 var POWER_TREND_FILL = 'rgba(168,85,247,0.15)';
+
+function _trendRangeHours(range) {
+    var map = { day: 24, week: 168, month: 720 };
+    if (map[range]) return map[range];
+    var match = String(range || '1d').match(/^(\d+)(h|d)$/);
+    if (!match) return 24;
+    var value = parseInt(match[1], 10);
+    return match[2] === 'h' ? value : value * 24;
+}
 
 /* ── Trend Tabs ── */
 function updateTrendTabs() {
@@ -23,26 +32,18 @@ document.querySelectorAll('#trend-tabs .trend-tab').forEach(function(btn) {
     });
 });
 
-function _getWeatherRange(range, date) {
-    var d = new Date(date + 'T00:00:00');
-    var end = date + ' 23:59:59Z';
-    var start;
-    if (range === 'day') {
-        start = date + ' 00:00:00Z';
-    } else if (range === 'week') {
-        var s = new Date(d.getTime() - 6 * 86400000);
-        start = s.toISOString().substring(0, 10) + ' 00:00:00Z';
-    } else {
-        var s = new Date(d.getTime() - 29 * 86400000);
-        start = s.toISOString().substring(0, 10) + ' 00:00:00Z';
-    }
+function _getWeatherRange(range) {
+    var endDt = new Date();
+    var startDt = new Date(endDt.getTime() - _trendRangeHours(range) * 3600000);
+    var end = endDt.toISOString().substring(0, 19) + 'Z';
+    var start = startDt.toISOString().substring(0, 19) + 'Z';
     return { start: start, end: end };
 }
 
 function _alignWeatherToTrends(trendData, weatherData, range) {
     if (!weatherData || weatherData.length === 0) return null;
     var temps = [];
-    if (range === 'day') {
+    if (_trendRangeHours(range) <= 24) {
         for (var i = 0; i < trendData.length; i++) {
             if (!trendData[i].timestamp) { temps.push(null); continue; }
             var tTs = new Date(trendData[i].timestamp).getTime();
@@ -100,8 +101,8 @@ function _renderTrendCharts() {
     if (!data || data.length === 0) return;
     var xLabels = data.map(function(d) {
         if (!d.timestamp) return '';
-        if (range === 'day') return d.timestamp.substring(11, 16);
-        if (range === 'week') return d.timestamp.substring(5, 16).replace('T', ' ');
+        if (_trendRangeHours(range) <= 24) return d.timestamp.substring(11, 16);
+        if (_trendRangeHours(range) < 24 * 30) return d.timestamp.substring(5, 16).replace('T', ' ');
         return d.date ? formatDateDE(d.date) : formatDateDE(d.timestamp.substring(0, 10));
     });
     var tempOpts = (_lastTrendWeather && _lastTrendWeather.length > 0) ? { tempData: _lastTrendWeather } : null;
@@ -125,16 +126,15 @@ function _renderTrendCharts() {
 }
 
 function loadTrends(range) {
-    var date = todayStr();
     var title = document.getElementById('trend-title');
     var noData = document.getElementById('trend-no-data');
     var grid = document.getElementById('charts-grid');
-    var labels = {day: T.day_trend, week: T.week_trend, month: T.month_trend};
-    title.textContent = (labels[range] || 'Trend') + ' - ' + formatDateDE(date);
+    var label = String(range || '1d');
+    title.textContent = (T.signal_trends || 'Signal Trends') + ' (' + label + ')';
     _lastTrendRange = range;
 
-    var wr = _getWeatherRange(range, date);
-    var trendsUrl = '/api/trends?range=' + range + '&date=' + date;
+    var wr = _getWeatherRange(range);
+    var trendsUrl = '/api/trends?range=' + encodeURIComponent(range || '1d');
     var weatherUrl = '/api/weather/range?start=' + encodeURIComponent(wr.start) + '&end=' + encodeURIComponent(wr.end);
 
     Promise.all([

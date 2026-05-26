@@ -162,13 +162,13 @@ class AnalysisMixin:
         timeline.sort(key=lambda x: x["timestamp"])
         return timeline
 
-    def get_channel_history(self, channel_id, direction, days=7):
-        """Return time series for a single channel over the last N days.
+    def get_channel_history(self, channel_id, direction, days=7, hours=None):
+        """Return time series for a single channel over the selected window.
         direction: 'ds' or 'us'. Returns list of dicts with timestamp + channel fields."""
         _COL_MAP = {"ds": "ds_channels_json", "us": "us_channels_json"}
         channel_id = int(channel_id)
         _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
-        cutoff = utc_cutoff(days=days)
+        cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
         with sqlite3.connect(self.db_path) as conn:
             if direction == "ds":
                 rows = conn.execute(
@@ -201,12 +201,12 @@ class AnalysisMixin:
                     break
         return results
 
-    def get_multi_channel_history(self, channel_ids, direction, days=7):
-        """Return time series for multiple channels over the last N days.
+    def get_multi_channel_history(self, channel_ids, direction, days=7, hours=None):
+        """Return time series for multiple channels over the selected window.
         direction: 'ds' or 'us'. Returns dict {channel_id: [{timestamp, power, snr, ...}, ...]}"""
         channel_ids = [int(c) for c in channel_ids]
         channel_set = set(channel_ids)
-        cutoff = utc_cutoff(days=days)
+        cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
         col = "ds_channels_json" if direction == "ds" else "us_channels_json"
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
