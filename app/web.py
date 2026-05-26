@@ -1022,15 +1022,17 @@ def _build_metric_ranges(analysis):
         threshold = _choose_threshold(thresholds.get("snr", {}), candidates)
         ranges[range_key] = _snr_metric_range(values[0], values[1], values[2], threshold)
 
-    def _add_family_power_range(range_key, family, candidates):
+    def _add_family_power_range(range_key, family, candidates, threshold_group="upstream_power"):
         values = _family_metric_values(family, "power")
         if not values:
             return
-        threshold = _choose_threshold(thresholds.get("upstream_power", {}), candidates)
+        threshold = _choose_threshold(thresholds.get(threshold_group, {}), candidates)
         ranges[range_key] = _power_metric_range(values[0], values[1], values[2], threshold, "dBmV")
 
     sc_qam_candidates = _family_modulation_threshold_candidates(ds_families.get("sc_qam")) + ["256QAM", "64QAM"]
     ofdm_candidates = ["ofdm"] + _family_modulation_threshold_candidates(ds_families.get("ofdm")) + ["4096QAM", "1024QAM"]
+    _add_family_power_range("ds_sc_qam_power", ds_families.get("sc_qam"), sc_qam_candidates, "downstream_power")
+    _add_family_power_range("ds_ofdm_power", ds_families.get("ofdm"), ofdm_candidates, "downstream_power")
     _add_family_snr_range("ds_sc_qam_snr", ds_families.get("sc_qam"), "snr", sc_qam_candidates)
     _add_family_snr_range("ds_ofdm_mer", ds_families.get("ofdm"), "mer", ofdm_candidates)
     _add_family_power_range("us_sc_qam_power", us_families.get("sc_qam"), ["sc_qam"])

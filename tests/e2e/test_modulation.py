@@ -45,31 +45,43 @@ class TestModulationNavigation:
         view = page.locator("#view-modulation")
         expect(view).to_be_visible()
 
-    def test_home_modulation_context_links_to_detail(self, demo_page):
-        context = demo_page.locator(".hero-modulation-context")
-        expect(context).to_be_visible()
-        expect(context.locator('[data-modulation-dir="ds"]')).to_be_visible()
-        expect(context.locator('[data-modulation-dir="us"]')).to_be_visible()
-        link = context.locator('a[href="#modulation"]')
-        expect(link).to_be_visible()
+    def test_home_hides_modulation_context_when_family_kpis_render(self, demo_page):
+        expect(demo_page.locator(".hero-modulation-context")).to_have_count(0)
+        expect(demo_page.locator("#metric-ds-sc-qam-power-card")).to_be_visible()
+        expect(demo_page.locator("#metric-ds-ofdm-power-card")).to_be_visible()
+        expect(demo_page.locator("#metric-us-sc-qam-card")).to_be_visible()
+        expect(demo_page.locator("#metric-us-ofdma-card")).to_be_visible()
 
-        link.click()
+        demo_page.locator('.nav-item[data-view="modulation"]').click()
 
         expect(demo_page.locator("#view-modulation")).to_be_visible()
 
-    def test_home_modulation_context_sits_between_health_and_graph(self, page, live_server):
+    def test_home_family_kpis_include_modulation_context_inline(self, demo_page):
+        for card_id, label in [
+            ("metric-ds-sc-qam-power-card", "DS POWER (SC-QAM)"),
+            ("metric-ds-ofdm-power-card", "DS POWER (OFDM)"),
+            ("metric-ds-sc-qam-snr-card", "DS SNR (SC-QAM)"),
+            ("metric-ds-ofdm-mer-card", "DS MER (OFDM)"),
+            ("metric-us-sc-qam-card", "US POWER (SC-QAM)"),
+            ("metric-us-ofdma-card", "US POWER (OFDMA)"),
+        ]:
+            card = demo_page.locator(f"#{card_id}")
+            expect(card).to_be_visible()
+            expect(card).to_contain_text(label)
+            expect(card).to_contain_text("Modulation:")
+
+    def test_home_family_kpis_share_hero_without_modulation_card(self, page, live_server):
         page.set_viewport_size({"width": 1280, "height": 900})
         page.goto(live_server)
         page.wait_for_load_state("networkidle")
 
         visual = page.locator(".hero-visual-row")
         health = page.locator(".hero-channel-health")
-        context = page.locator(".hero-modulation-context")
         chart = page.locator(".hero-chart-wrap")
         expect(visual).to_be_visible()
         expect(health).to_be_visible()
-        expect(context).to_be_visible()
         expect(chart).to_be_visible()
+        expect(page.locator(".hero-modulation-context")).to_have_count(0)
 
         layout = page.evaluate(
             """
@@ -81,7 +93,6 @@ class TestModulationNavigation:
                 return {
                     visual: rect('.hero-visual-row'),
                     health: rect('.hero-channel-health'),
-                    context: rect('.hero-modulation-context'),
                     chart: rect('.hero-chart-wrap'),
                     gridColumns: getComputedStyle(document.querySelector('.hero-visual-row')).gridTemplateColumns,
                 };
@@ -89,38 +100,12 @@ class TestModulationNavigation:
             """
         )
 
-        assert layout["gridColumns"].count("px") >= 3
-        assert layout["health"]["right"] <= layout["context"]["left"] + 1
-        assert layout["context"]["right"] <= layout["chart"]["left"] + 1
-        assert abs(layout["health"]["top"] - layout["context"]["top"]) <= 16
+        assert layout["gridColumns"].count("px") >= 2
+        assert layout["health"]["right"] <= layout["chart"]["left"] + 1
+        assert abs(layout["health"]["top"] - layout["chart"]["top"]) <= 16
         assert layout["visual"]["height"] <= 360
 
-    def test_home_modulation_rows_align_with_channel_health_rows(self, page, live_server):
-        page.set_viewport_size({"width": 1280, "height": 900})
-        page.goto(live_server)
-        page.wait_for_load_state("networkidle")
-
-        layout = page.evaluate(
-            """
-            () => {
-                const rect = (selector) => {
-                    const r = document.querySelector(selector).getBoundingClientRect();
-                    return {top: r.top, bottom: r.bottom, height: r.height};
-                };
-                return {
-                    dsHealth: rect('.hero-health-card:nth-child(1) .hero-health-name'),
-                    usHealth: rect('.hero-health-card:nth-child(2) .hero-health-name'),
-                    dsMod: rect('.hero-modulation-card[data-modulation-dir="ds"] .hero-modulation-card-top span'),
-                    usMod: rect('.hero-modulation-card[data-modulation-dir="us"] .hero-modulation-card-top span'),
-                };
-            }
-            """
-        )
-
-        assert abs(layout["dsHealth"]["top"] - layout["dsMod"]["top"]) <= 4
-        assert abs(layout["usHealth"]["top"] - layout["usMod"]["top"]) <= 4
-
-    def test_home_modulation_context_stacks_without_narrow_overflow(self, page, live_server):
+    def test_home_hero_stacks_without_modulation_card_overflow(self, page, live_server):
         for width in (393, 760, 1100):
             page.set_viewport_size({"width": width, "height": 900})
             page.goto(live_server)
@@ -136,8 +121,8 @@ class TestModulationNavigation:
                     return {
                         overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
                         health: rect('.hero-channel-health'),
-                        context: rect('.hero-modulation-context'),
                         chart: rect('.hero-chart-wrap'),
+                        contextCount: document.querySelectorAll('.hero-modulation-context').length,
                         gridColumns: getComputedStyle(document.querySelector('.hero-visual-row')).gridTemplateColumns,
                     };
                 }
@@ -145,9 +130,9 @@ class TestModulationNavigation:
             )
 
             assert layout["overflowX"] <= 1
+            assert layout["contextCount"] == 0
             assert layout["gridColumns"].count("px") == 1
             assert layout["chart"]["bottom"] <= layout["health"]["top"] + 1
-            assert layout["health"]["bottom"] <= layout["context"]["top"] + 1
 
 
 # ── Tab Structure ──

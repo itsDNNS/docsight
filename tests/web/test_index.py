@@ -402,16 +402,41 @@ class TestIndexRoute:
 
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        scqam_card = _element_by_id(html, "metric-ds-sc-qam-card")
-        ofdm_card = _element_by_id(html, "metric-ds-ofdm-card")
-        assert "DS SC-QAM" in scqam_card
-        assert "36.0<span class=\"unit\">dB SNR</span>" in scqam_card
-        assert "256QAM" in scqam_card
-        assert "DS OFDM" in ofdm_card
-        assert "37.0<span class=\"unit\">dB MER</span>" in ofdm_card
-        assert "4096QAM" in ofdm_card
-        assert "38.5<span class=\"unit\">dB</span>" not in scqam_card + ofdm_card
-        assert '<span class="metric-label">DS SNR (SC-QAM)</span>' not in html
+        scqam_power_card = _element_by_id(html, "metric-ds-sc-qam-power-card")
+        ofdm_power_card = _element_by_id(html, "metric-ds-ofdm-power-card")
+        scqam_snr_card = _element_by_id(html, "metric-ds-sc-qam-snr-card")
+        ofdm_mer_card = _element_by_id(html, "metric-ds-ofdm-mer-card")
+        assert "DS POWER (SC-QAM)" in scqam_power_card
+        assert "1.0<span class=\"unit\">dBmV</span>" in scqam_power_card
+        assert "256QAM" in scqam_power_card
+        assert "DS POWER (OFDM)" in ofdm_power_card
+        assert "0.5<span class=\"unit\">dBmV</span>" in ofdm_power_card
+        assert "4096QAM" in ofdm_power_card
+        assert "DS SNR (SC-QAM)" in scqam_snr_card
+        assert "36.0<span class=\"unit\">dB</span>" in scqam_snr_card
+        assert "DS MER (OFDM)" in ofdm_mer_card
+        assert "37.0<span class=\"unit\">dB</span>" in ofdm_mer_card
+        assert "38.5<span class=\"unit\">dB</span>" not in scqam_snr_card + ofdm_mer_card
+        assert '<span class="metric-label">DS SC-QAM</span>' not in html
+
+    def test_home_signal_family_cards_follow_ds_us_order(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        labels = [
+            "DS POWER (SC-QAM)",
+            "DS POWER (OFDM)",
+            "DS SNR (SC-QAM)",
+            "DS MER (OFDM)",
+            "US POWER (SC-QAM)",
+            "US POWER (OFDMA)",
+        ]
+        positions = [html.index(f'<span class="metric-label">{label}</span>') for label in labels]
+        assert positions == sorted(positions)
 
     def test_home_signal_family_cards_show_metric_health_bars(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
@@ -422,8 +447,10 @@ class TestIndexRoute:
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
         for element_id, caption in [
-            ("metric-ds-sc-qam-card", "Channel min-max"),
-            ("metric-ds-ofdm-card", "Channel min-max"),
+            ("metric-ds-sc-qam-power-card", "Channel min-max"),
+            ("metric-ds-ofdm-power-card", "Channel min-max"),
+            ("metric-ds-sc-qam-snr-card", "Channel min-max"),
+            ("metric-ds-ofdm-mer-card", "Channel min-max"),
             ("metric-us-sc-qam-card", "Channel min-max"),
         ]:
             card = _element_by_id(html, element_id)
@@ -442,7 +469,7 @@ class TestIndexRoute:
         resp = client.get("/?lang=en")
 
         assert resp.status_code == 200
-        card = _element_by_id(resp.get_data(as_text=True), "metric-ds-sc-qam-card")
+        card = _element_by_id(resp.get_data(as_text=True), "metric-ds-sc-qam-snr-card")
         assert 'class="metric-range-viz"' in card
         assert "Channel min-max" in card
         assert "36.0 — 36.0" in card
@@ -458,12 +485,12 @@ class TestIndexRoute:
         html = resp.get_data(as_text=True)
         scqam_card = _element_by_id(html, "metric-us-sc-qam-card")
         ofdma_card = _element_by_id(html, "metric-us-ofdma-card")
-        assert "US SC-QAM" in scqam_card
-        assert "43.0<span class=\"unit\">dBmV Power</span>" in scqam_card
+        assert "US POWER (SC-QAM)" in scqam_card
+        assert "43.0<span class=\"unit\">dBmV</span>" in scqam_card
         assert "64QAM" in scqam_card
-        assert "US OFDMA" in ofdma_card
-        assert "Unavailable<span class=\"unit\">Power</span>" in ofdma_card
-        assert "badge badge-warning" in ofdma_card
+        assert "US POWER (OFDMA)" in ofdma_card
+        assert "Unavailable<span class=\"unit\">dBmV</span>" in ofdma_card
+        assert "badge badge-missing" in ofdma_card
 
     def test_home_family_cards_expose_family_sparkline_keys(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
@@ -473,10 +500,44 @@ class TestIndexRoute:
 
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        assert 'data-spark-key="ds_scqam_snr_avg"' in _element_by_id(html, "metric-ds-sc-qam-card")
-        assert 'data-spark-key="ds_ofdm_mer_avg"' in _element_by_id(html, "metric-ds-ofdm-card")
+        assert 'data-spark-key="ds_scqam_power_avg"' in _element_by_id(html, "metric-ds-sc-qam-power-card")
+        assert 'data-spark-key="ds_ofdm_power_avg"' in _element_by_id(html, "metric-ds-ofdm-power-card")
+        assert 'data-spark-key="ds_scqam_snr_avg"' in _element_by_id(html, "metric-ds-sc-qam-snr-card")
+        assert 'data-spark-key="ds_ofdm_mer_avg"' in _element_by_id(html, "metric-ds-ofdm-mer-card")
         assert 'data-spark-key="us_scqam_power_avg"' in _element_by_id(html, "metric-us-sc-qam-card")
         assert 'data-spark-key="us_ofdma_power_avg"' in _element_by_id(html, "metric-us-ofdma-card")
+
+    def test_home_family_cards_use_direction_icons_and_spark_colors(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        for element_id in [
+            "metric-ds-sc-qam-power-card",
+            "metric-ds-ofdm-power-card",
+            "metric-ds-sc-qam-snr-card",
+            "metric-ds-ofdm-mer-card",
+        ]:
+            card = _element_by_id(html, element_id)
+            assert 'metric-icon ds-signal"><i data-lucide="arrow-down"' in card
+            assert 'data-spark-color="#8b5cf6"' in card
+        for element_id in ["metric-us-sc-qam-card", "metric-us-ofdma-card"]:
+            card = _element_by_id(html, element_id)
+            assert 'metric-icon us-signal"><i data-lucide="arrow-up"' in card
+            assert 'data-spark-color="#38bdf8"' in card
+
+    def test_home_removes_modulation_context_when_family_cards_include_ranges(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert 'class="hero-modulation-context"' not in html
 
     def test_home_surfaces_normal_modulation_context(self, client, sample_analysis):
         update_state(analysis=sample_analysis)
