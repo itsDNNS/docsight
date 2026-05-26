@@ -107,7 +107,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v28';" in sw_js
+    assert "var CACHE_VERSION = 'v29';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
@@ -130,6 +130,50 @@ def test_channels_weather_overlay_contract_is_wired():
     assert "_renderCompareCharts()" in channels_js
     assert "tempData: _lastChannelWeather" in channels_js
     assert "tempData: _lastCompareWeather" in channels_js
+
+
+def test_channels_modulation_charts_receive_temperature_overlay_options():
+    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
+    timeline_block = channels_js[
+        channels_js.index("renderChart('chart-ch-modulation'") : channels_js.index("function loadChannelTimeline")
+    ]
+    compare_block = channels_js[
+        channels_js.index("renderChart('chart-cmp-modulation'") : channels_js.index("function loadCompareCharts")
+    ]
+
+    assert "tempData:" in timeline_block
+    assert "tempByTimestamp" in timeline_block
+    assert "tempByTimestamp[d.timestamp] = _lastChannelWeather[idx]" in channels_js
+    assert "tempData:" in compare_block
+    assert "_lastCompareWeather" in compare_block
+
+
+def test_channels_chart_contracts_disable_implicit_points_and_zoom_fill():
+    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
+    chart_engine = CHART_ENGINE_JS.read_text(encoding="utf-8")
+    zoom_block = chart_engine[chart_engine.index("function openChartZoom") :]
+
+    assert "showPoints: false" in channels_js[channels_js.index("var powerDatasets") : channels_js.index("renderChart('chart-ch-power'")]
+    assert "showPoints: false" in channels_js[channels_js.index("var powerDatasets = _compareChannels.map") : channels_js.index("renderChart('chart-cmp-power'")]
+    assert "var zoomShowPoints = ds.showPoints;" in zoom_block
+    assert "if (zoomShowPoints === undefined) zoomShowPoints = n <= 30 && !isBar;" in zoom_block
+    assert "points: { show: zoomShowPoints" in zoom_block
+    assert "fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || (!isMulti && !isBar ? 'rgba(168,85,247,0.15)' : undefined))" not in zoom_block
+    assert "fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined)" in zoom_block
+
+
+def test_channels_controls_and_compare_titles_are_standardized():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    channel_toggle = template[template.index('id="channel-temp-toggle-btn"') : template.index('id="channel-compare-controls"')]
+    compare_toggle = template[template.index('id="compare-temp-toggle-btn"') : template.index('id="channel-no-data"')]
+    compare_charts = template[template.index('id="compare-charts"') : template.index('id="compare-errors-card"')]
+
+    assert "<svg" in channel_toggle
+    assert "<svg" in compare_toggle
+    assert "{{ t.power_dbmv }}" in compare_charts
+    assert "{{ t.snr_db }}" in compare_charts
+    assert "{{ t.power_history }}" not in compare_charts
+    assert "{{ t.snr_history }}" not in compare_charts
 
 
 def test_chart_engine_has_configurable_axis_padding_for_long_qam_labels():
