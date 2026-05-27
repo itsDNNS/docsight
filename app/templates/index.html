@@ -724,7 +724,7 @@
     {% macro signal_family_card(card_id, label, family, metric_key, metric_unit, metric_label, spark_key, icon_class, icon_name, range_data=None, glossary_text=None, spark_color=None) -%}
         {% set metric = family.get(metric_key, {}) %}
         {% set modulation = family.get('modulation', {}) %}
-        {% set raw_health = metric.get('health', family.get('health', 'missing')) %}
+        {% set raw_health = range_data.health if range_data and range_data.health is defined else metric.get('health', family.get('health', 'missing')) %}
         {% set health_class = 'crit' if raw_health == 'critical' else ('warn' if raw_health == 'warning' else ('muted' if raw_health == 'missing' else raw_health)) %}
         {% set metric_value = metric.get('avg') %}
         <div class="metric-card glass" id="{{ card_id }}">

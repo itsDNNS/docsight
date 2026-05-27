@@ -164,14 +164,20 @@ def _assess_ds_modulation(modulation: str, docsis_ver: str) -> str:
 def _assess_us_modulation(ch, docsis_ver: str) -> str:
     """Return upstream modulation health, including OFDMA profile QAM."""
     modulation = ch.get("modulation") or ch.get("type") or ""
-    channel_type = (ch.get("type") or ch.get("multiplex") or modulation).upper().replace("-", "").strip()
     profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
-    assessment_modulation = profile_modulation if channel_type == "OFDMA" and profile_modulation else modulation
+    family = _classify_us_family({
+        "type": ch.get("type", ""),
+        "multiplex": ch.get("multiplex", ""),
+        "modulation": modulation,
+        "profile_modulation": profile_modulation,
+        "docsis_version": docsis_ver,
+    })
+    assessment_modulation = profile_modulation if family == "ofdma" and profile_modulation else modulation
     qam_order = _parse_qam_order(assessment_modulation)
     if qam_order is None:
         return "good"
 
-    if docsis_ver == "3.1" and channel_type == "OFDMA":
+    if docsis_ver == "3.1" and family == "ofdma":
         if qam_order <= 32:
             return "critical"
         if qam_order <= 64:
@@ -574,16 +580,13 @@ def _classify_us_family(channel):
         return "sc_qam"
     if "OFDMA" in modulation_text:
         return "ofdma"
-    if _parse_qam_order(modulation_text):
-        return "sc_qam"
-
-    # OFDMA profile modulation can be reduced to low QAM values; keep those
-    # profile-only DOCSIS 3.1 channels in the OFDMA lane instead of treating the
-    # profile QAM value as an SC-QAM channel modulation.
     if profile_text and is_docsis31_plus:
         return "ofdma"
     if is_docsis31_plus:
         return "ofdma"
+    if _parse_qam_order(modulation_text):
+        return "sc_qam"
+
     if "3.0" in docsis_version:
         return "sc_qam"
     return "unknown"
@@ -712,7 +715,18 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
     raw_power = ch.get("powerLevel")
 
     modulation = ch.get("modulation") or ch.get("type") or ""
-    channel_type = (ch.get("type") or modulation).upper().replace("-", "").strip()
+    profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
+    channel_family = _classify_us_family({
+        "type": ch.get("type", ""),
+        "multiplex": ch.get("multiplex", ""),
+        "modulation": modulation,
+        "profile_modulation": profile_modulation,
+        "docsis_version": docsis_ver,
+    })
+    if channel_family == "ofdma":
+        channel_type = "OFDMA"
+    else:
+        channel_type = (ch.get("type") or ch.get("multiplex") or modulation).upper().replace("-", "").strip()
 
     if raw_power is not None:
         power = _parse_float(raw_power)

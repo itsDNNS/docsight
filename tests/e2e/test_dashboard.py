@@ -68,6 +68,33 @@ class TestDashboardSections:
         us = demo_page.locator(".dashboard-channel-panel .channel-title", has_text="Upstream")
         assert us.is_visible()
 
+    def test_signal_family_cards_show_ofdma_and_stack_modulation_below_status(self, demo_page):
+        ofdma_card = demo_page.locator("#metric-us-ofdma-card")
+        assert ofdma_card.is_visible()
+        assert "US POWER (OFDMA)" in ofdma_card.text_content()
+
+        geometry = demo_page.evaluate(
+            """
+            () => {
+                const card = document.querySelector('#metric-ds-sc-qam-power-card');
+                if (!card) throw new Error('DS SC-QAM power card not found');
+                const status = card.querySelector('.metric-status-row');
+                const modulation = card.querySelector('.metric-modulation-row');
+                if (!status || !modulation) throw new Error('status or modulation row not found');
+                const statusRect = status.getBoundingClientRect();
+                const modulationRect = modulation.getBoundingClientRect();
+                return {
+                    statusBottom: statusRect.bottom,
+                    modulationTop: modulationRect.top,
+                    modulationWidth: modulationRect.width,
+                    cardWidth: card.getBoundingClientRect().width,
+                };
+            }
+            """
+        )
+        assert geometry["modulationTop"] >= geometry["statusBottom"] - 1
+        assert geometry["modulationWidth"] >= geometry["cardWidth"] * 0.8
+
     def test_long_device_meta_values_keep_icons_visible_when_truncated(self, demo_page):
         demo_page.set_viewport_size({"width": 768, "height": 900})
         cases = [

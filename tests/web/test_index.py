@@ -443,6 +443,22 @@ class TestIndexRoute:
         positions = [html.index(f'<span class="metric-label">{label}</span>') for label in labels]
         assert positions == sorted(positions)
 
+    def test_home_signal_family_card_status_uses_displayed_average_health(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        ofdm_power = sample_analysis["summary"]["signal_families"]["downstream"]["families"]["ofdm"]["power"]
+        ofdm_power.update({"avg": 0.6, "min": -7.8, "max": 9.0, "health": "critical"})
+        sample_analysis["summary"]["ds_ofdm_power_avg"] = 0.6
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        card = _element_by_id(resp.get_data(as_text=True), "metric-ds-ofdm-power-card")
+        assert "0.6<span class=\"unit\">dBmV</span>" in card
+        assert "badge badge-good" in card
+        assert "badge badge-critical" not in card
+        assert "--metric-range-accent: var(--good);" in card
+
     def test_home_signal_family_cards_show_metric_health_bars(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
         update_state(analysis=sample_analysis)

@@ -381,6 +381,58 @@ class TestSignalFamilySummaries:
         assert result["us_channels"][0]["channel_family"] == "ofdma"
         assert upstream["ofdma"]["modulation"]["value"] == "64QAM"
 
+    def test_docsis31_upstream_qam_modulation_without_type_stays_ofdma(self):
+        """Some modems expose an OFDMA profile QAM value only as `modulation`."""
+        us_ofdma = {
+            "channelID": 41,
+            "frequency": "46.500 MHz",
+            "powerLevel": "50.5",
+            "modulation": "128QAM",
+        }
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[
+                _make_us30(channel_id, power=power, modulation="64QAM")
+                for channel_id, power in [(1, 40.5), (2, 41.8), (3, 42.5), (4, 43.0)]
+            ],
+            us31=[us_ofdma],
+        )
+
+        result = analyze(data)
+
+        upstream = result["summary"]["signal_families"]["upstream"]["families"]
+        assert set(upstream) == {"sc_qam", "ofdma"}
+        assert result["us_channels"][-1]["channel_family"] == "ofdma"
+        assert result["us_channels"][-1]["power_health"] == "critical"
+        assert result["us_channels"][-1]["modulation_health"] == "tolerated"
+        assert upstream["sc_qam"]["count"] == 4
+        assert upstream["sc_qam"]["power"]["avg"] == 42.0
+        assert upstream["ofdma"]["count"] == 1
+        assert upstream["ofdma"]["power"]["avg"] == 50.5
+        assert result["summary"]["us_scqam_power_avg"] == 42.0
+        assert result["summary"]["us_ofdma_power_avg"] == 50.5
+
+    def test_docsis31_upstream_explicit_atdma_type_stays_sc_qam(self):
+        us_sc_qam = {
+            "channelID": 42,
+            "frequency": "46.500 MHz",
+            "powerLevel": "42.5",
+            "type": "ATDMA",
+            "modulation": "128QAM",
+        }
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[us_sc_qam],
+        )
+
+        result = analyze(data)
+
+        upstream = result["summary"]["signal_families"]["upstream"]["families"]
+        assert set(upstream) == {"sc_qam"}
+        assert result["us_channels"][0]["channel_family"] == "sc_qam"
+        assert result["summary"]["us_scqam_power_avg"] == 42.5
+        assert result["summary"].get("us_ofdma_power_avg") is None
+
     def test_docsis31_profile_only_camel_case_profile_key_stays_ofdm(self):
         data = _make_data(
             ds31=[{

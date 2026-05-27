@@ -107,7 +107,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v33';" in sw_js
+    assert "var CACHE_VERSION = 'v34';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
@@ -122,6 +122,16 @@ def test_home_signal_family_sparklines_use_data_keys():
     assert "data-spark-key=\"{{ spark_key }}\"" in template
     assert "querySelectorAll('canvas.metric-spark[data-spark-key]')" in sparklines_js
     assert "canvas.dataset.sparkKey" in sparklines_js
+
+
+def test_home_signal_family_modulation_rows_stack_below_status():
+    css = MAIN_CSS.read_text(encoding="utf-8")
+    start = css.index(".dashboard-view .metrics-grid .metric-modulation-row")
+    block = css[start : css.index(".dashboard-view .metrics-grid .metric-context", start)]
+
+    assert "display: block" in block
+    assert "clear: both" in block
+    assert "width: 100%" in block
 
 
 def test_channels_weather_overlay_contract_is_wired():
