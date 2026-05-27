@@ -95,6 +95,43 @@ class TestDashboardSections:
         assert geometry["modulationTop"] >= geometry["statusBottom"] - 1
         assert geometry["modulationWidth"] >= geometry["cardWidth"] * 0.8
 
+    def test_metric_range_bars_align_on_wide_home_dashboard(self, demo_page):
+        demo_page.set_viewport_size({"width": 1280, "height": 720})
+        errors_card = demo_page.locator("#metric-errors-card")
+        us_scqam_card = demo_page.locator("#metric-us-sc-qam-card")
+        assert errors_card.is_visible()
+        assert us_scqam_card.is_visible()
+
+        geometry = demo_page.evaluate(
+            """
+            () => {
+                const errorsTrack = document.querySelector('#metric-errors-card .metric-range-track');
+                const usTrack = document.querySelector('#metric-us-sc-qam-card .metric-range-track');
+                if (!errorsTrack || !usTrack) throw new Error('range tracks not found');
+                const errorsRect = errorsTrack.getBoundingClientRect();
+                const usRect = usTrack.getBoundingClientRect();
+                return { errorsTop: errorsRect.top, usTop: usRect.top };
+            }
+            """
+        )
+        assert abs(geometry["errorsTop"] - geometry["usTop"]) <= 2
+
+    def test_signal_family_average_hint_uses_single_line_on_wide_dashboard(self, demo_page):
+        demo_page.set_viewport_size({"width": 1280, "height": 720})
+        hint = demo_page.locator(".dashboard-section-context > span")
+        assert hint.is_visible()
+
+        geometry = hint.evaluate(
+            """
+            el => {
+                const rect = el.getBoundingClientRect();
+                const lineHeight = Number.parseFloat(window.getComputedStyle(el).lineHeight);
+                return { height: rect.height, lineHeight };
+            }
+            """
+        )
+        assert geometry["height"] <= geometry["lineHeight"] * 1.5
+
     def test_long_device_meta_values_keep_icons_visible_when_truncated(self, demo_page):
         demo_page.set_viewport_size({"width": 768, "height": 900})
         cases = [
