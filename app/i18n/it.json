@@ -1055,5 +1055,10 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
-  "signal_family_unavailable": "Unavailable"
+  "signal_family_unavailable": "Unavailable",
+  "metric_average_label": "Media",
+  "metric_active_channel_singular": "canale attivo",
+  "metric_active_channel_plural": "canali attivi",
+  "signal_family_average_section_title": "Medie per famiglia di segnale",
+  "signal_family_average_section_hint": "I valori sono mediati sui canali attivi in ogni famiglia di segnale DOCSIS."
 }

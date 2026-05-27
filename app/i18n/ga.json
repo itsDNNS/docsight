@@ -1055,5 +1055,10 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
-  "signal_family_unavailable": "Unavailable"
+  "signal_family_unavailable": "Unavailable",
+  "metric_average_label": "Meán",
+  "metric_active_channel_singular": "cainéal gníomhach",
+  "metric_active_channel_plural": "cainéil ghníomhacha",
+  "signal_family_average_section_title": "Meáin de réir teaghlaigh comhartha",
+  "signal_family_average_section_hint": "Ríomhtar na luachanna mar mheán thar chainéil ghníomhacha i ngach teaghlach comhartha DOCSIS."
 }

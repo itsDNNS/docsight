@@ -1055,5 +1055,10 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
-  "signal_family_unavailable": "Unavailable"
+  "signal_family_unavailable": "Unavailable",
+  "metric_average_label": "Vid.",
+  "metric_active_channel_singular": "aktīvs kanāls",
+  "metric_active_channel_plural": "aktīvi kanāli",
+  "signal_family_average_section_title": "Signālu saimju vidējās vērtības",
+  "signal_family_average_section_hint": "Vērtības ir vidējotas pa aktīvajiem kanāliem katrā DOCSIS signālu saimē."
 }

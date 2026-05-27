@@ -900,5 +900,10 @@
   "signal_family_metric_snr": "",
   "signal_family_metric_mer": "",
   "signal_family_modulation_label": "",
-  "signal_family_unavailable": ""
+  "signal_family_unavailable": "",
+  "metric_average_label": "",
+  "metric_active_channel_singular": "",
+  "metric_active_channel_plural": "",
+  "signal_family_average_section_title": "",
+  "signal_family_average_section_hint": ""
 }
