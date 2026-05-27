@@ -1055,5 +1055,10 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
-  "signal_family_unavailable": "Unavailable"
+  "signal_family_unavailable": "Unavailable",
+  "metric_average_label": "Povp.",
+  "metric_active_channel_singular": "aktiven kanal",
+  "metric_active_channel_plural": "aktivni kanali",
+  "signal_family_average_section_title": "Povprečja družin signalov",
+  "signal_family_average_section_hint": "Vrednosti so povprečene po aktivnih kanalih v vsaki družini signalov DOCSIS."
 }

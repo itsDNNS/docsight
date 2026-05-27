@@ -1055,5 +1055,10 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
-  "signal_family_unavailable": "Nicht verfügbar"
+  "signal_family_unavailable": "Nicht verfügbar",
+  "metric_average_label": "Ø",
+  "metric_active_channel_singular": "aktiver Kanal",
+  "metric_active_channel_plural": "aktive Kanäle",
+  "signal_family_average_section_title": "Signalgruppen-Durchschnitte",
+  "signal_family_average_section_hint": "Werte werden über aktive Kanäle in jeder DOCSIS-Signalgruppe gemittelt."
 }

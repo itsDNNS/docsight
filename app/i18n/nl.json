@@ -1055,5 +1055,10 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
-  "signal_family_unavailable": "Unavailable"
+  "signal_family_unavailable": "Unavailable",
+  "metric_average_label": "Gem.",
+  "metric_active_channel_singular": "actief kanaal",
+  "metric_active_channel_plural": "actieve kanalen",
+  "signal_family_average_section_title": "Gemiddelden per signaalfamilie",
+  "signal_family_average_section_hint": "Waarden zijn gemiddeld over actieve kanalen in elke DOCSIS-signaalfamilie."
 }

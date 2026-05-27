@@ -443,6 +443,24 @@ class TestIndexRoute:
         positions = [html.index(f'<span class="metric-label">{label}</span>') for label in labels]
         assert positions == sorted(positions)
 
+    def test_home_signal_family_cards_explain_average_context_without_title_spam(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        sample_analysis["summary"]["signal_families"]["downstream"]["families"]["sc_qam"]["count"] = 2
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert "Signal family averages" in html
+        assert "Values are averaged across active channels in each DOCSIS signal family." in html
+        scqam_power_card = _element_by_id(html, "metric-ds-sc-qam-power-card")
+        ofdm_power_card = _element_by_id(html, "metric-ds-ofdm-power-card")
+        assert "Avg · 2 active channels" in scqam_power_card
+        assert "Avg · 1 active channel" in ofdm_power_card
+        assert "DS POWER AVG" not in html
+        assert "US POWER AVG" not in html
+
     def test_home_signal_family_card_status_uses_displayed_average_health(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
         ofdm_power = sample_analysis["summary"]["signal_families"]["downstream"]["families"]["ofdm"]["power"]

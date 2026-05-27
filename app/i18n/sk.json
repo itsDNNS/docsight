@@ -1055,5 +1055,10 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
-  "signal_family_unavailable": "Unavailable"
+  "signal_family_unavailable": "Unavailable",
+  "metric_average_label": "Priem.",
+  "metric_active_channel_singular": "aktívny kanál",
+  "metric_active_channel_plural": "aktívne kanály",
+  "signal_family_average_section_title": "Priemery rodín signálu",
+  "signal_family_average_section_hint": "Hodnoty sú priemerované cez aktívne kanály v každej DOCSIS rodine signálu."
 }

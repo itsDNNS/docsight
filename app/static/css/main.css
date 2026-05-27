@@ -1507,6 +1507,23 @@ body:has(#view-dashboard.active) .app-main {
   text-align: right;
 }
 
+.dashboard-section-context {
+  display: grid;
+  gap: 2px;
+}
+
+.dashboard-section-context strong {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.dashboard-section-context span {
+  color: var(--text-muted);
+}
+
 .dashboard-section-kicker {
   display: block;
   margin-bottom: 2px;
@@ -1604,6 +1621,17 @@ body:has(#view-dashboard.active) .app-main {
 
 .dashboard-view .metrics-grid .metric-status-row {
   min-height: 22px;
+}
+
+.dashboard-view .metrics-grid .metric-average-row {
+  margin-top: 6px;
+  min-height: 18px;
+}
+
+.dashboard-view .metrics-grid .metric-average-copy {
+  color: var(--text-secondary);
+  font-size: 0.66rem;
+  letter-spacing: 0.01em;
 }
 
 .dashboard-view .metrics-grid .metric-modulation-row {

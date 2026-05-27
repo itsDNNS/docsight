@@ -727,6 +727,7 @@
         {% set raw_health = range_data.health if range_data and range_data.health is defined else metric.get('health', family.get('health', 'missing')) %}
         {% set health_class = 'crit' if raw_health == 'critical' else ('warn' if raw_health == 'warning' else ('muted' if raw_health == 'missing' else raw_health)) %}
         {% set metric_value = metric.get('avg') %}
+        {% set family_count = family.get('count', 0) %}
         <div class="metric-card glass" id="{{ card_id }}">
             {% if glossary_text %}<span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ glossary_text }}</div></span>{% endif %}
             <div class="metric-header">
@@ -737,6 +738,11 @@
                 <div class="metric-value" style="color:var(--{{ health_class }});">{% if metric_value is not none %}{{ metric_value }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% else %}{{ t.get('signal_family_unavailable', 'Unavailable') }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% endif %}</div>
                 <canvas class="metric-spark" id="spark-{{ card_id|replace('metric-', '') }}" data-spark-key="{{ spark_key }}"{% if spark_color %} data-spark-color="{{ spark_color }}"{% endif %} width="144" height="56" aria-hidden="true"></canvas>
             </div>
+            {% if metric_value is not none and family_count %}
+            <div class="metric-sub metric-average-row">
+                <span class="range metric-average-copy">{{ t.get('metric_average_label', 'Avg') }} · {{ family_count }} {{ t.get('metric_active_channel_singular', 'active channel') if family_count == 1 else t.get('metric_active_channel_plural', 'active channels') }}</span>
+            </div>
+            {% endif %}
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
                     <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
@@ -764,7 +770,14 @@
             <span class="dashboard-section-kicker">{{ t.get('dashboard_section_overview', 'Overview') }}</span>
             <h2>{{ t.get('dashboard_key_metrics', 'Key metrics') }}</h2>
         </div>
-        <span>{{ t.get('dashboard_key_metrics_hint', 'Live modem, throughput and monitoring signals') }}</span>
+        <span class="dashboard-section-context">
+            {% if has_signal_family_metric_cards %}
+            <strong>{{ t.get('signal_family_average_section_title', 'Signal family averages') }}</strong>
+            <span>{{ t.get('signal_family_average_section_hint', 'Values are averaged across active channels in each DOCSIS signal family.') }}</span>
+            {% else %}
+            {{ t.get('dashboard_key_metrics_hint', 'Live modem, throughput and monitoring signals') }}
+            {% endif %}
+        </span>
     </div>
     <div class="metrics-grid">
         {% if not has_signal_family_metric_cards %}
