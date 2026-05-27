@@ -1501,10 +1501,12 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 .dashboard-section-header > span {
-  max-width: 38ch;
+  max-width: min(72ch, calc(100vw - 24rem));
+  min-width: 0;
   color: var(--text-muted);
   font-size: 0.78rem;
   text-align: right;
+  text-wrap: pretty;
 }
 
 .dashboard-section-context {
@@ -1542,6 +1544,8 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 .dashboard-view .metrics-grid .metric-card.glass {
+  display: flex;
+  flex-direction: column;
   position: relative;
   min-width: 0;
   min-height: 128px;
@@ -1665,7 +1669,8 @@ body:has(#view-dashboard.active) .app-main {
   display: grid;
   gap: 6px;
   min-width: 0;
-  margin-top: 8px;
+  margin-top: auto;
+  padding-top: 8px;
 }
 
 .dashboard-view .metrics-grid .metric-range-caption {

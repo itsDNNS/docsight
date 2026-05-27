@@ -107,7 +107,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v35';" in sw_js
+    assert "var CACHE_VERSION = 'v36';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
@@ -132,6 +132,35 @@ def test_home_signal_family_modulation_rows_stack_below_status():
     assert "display: block" in block
     assert "clear: both" in block
     assert "width: 100%" in block
+
+
+def test_home_metric_range_bars_are_bottom_aligned_across_cards():
+    css = MAIN_CSS.read_text(encoding="utf-8")
+    card_block = css[
+        css.index(".dashboard-view .metrics-grid .metric-card.glass {") :
+        css.index(".dashboard-view .metrics-grid .metric-card.glass:hover")
+    ]
+    range_block = css[
+        css.index(".dashboard-view .metrics-grid .metric-range-viz {") :
+        css.index(".dashboard-view .metrics-grid .metric-range-caption", css.index(".dashboard-view .metrics-grid .metric-range-viz {"))
+    ]
+
+    assert "display: flex" in card_block
+    assert "flex-direction: column" in card_block
+    assert "margin-top: auto" in range_block
+    assert "padding-top: 8px" in range_block
+
+
+def test_home_signal_family_hint_uses_available_desktop_width():
+    css = MAIN_CSS.read_text(encoding="utf-8")
+    header_block = css[
+        css.index(".dashboard-section-header > span {") :
+        css.index(".dashboard-section-context", css.index(".dashboard-section-header > span {"))
+    ]
+
+    assert "max-width: min(72ch, calc(100vw - 24rem))" in header_block
+    assert "text-wrap: pretty" in header_block
+    assert "max-width: 38ch" not in header_block
 
 
 def test_channels_weather_overlay_contract_is_wired():
