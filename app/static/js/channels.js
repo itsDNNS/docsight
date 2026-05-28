@@ -198,6 +198,7 @@ function switchChannelMode() {
             _updateChannelInfoBar(cparts[0], cparts[1]);
         }
     }
+    _updateChannelSelectionControls();
     writeChannelHash();
 }
 window.switchChannelMode = switchChannelMode;
@@ -381,6 +382,19 @@ function _updateCompareTempToggle() {
     _updateTempToggleButton('compare-temp-toggle-btn', _lastCompareWeather);
 }
 
+function _updateChannelSelectionControls() {
+    var channelTimeTabs = document.getElementById('channel-time-tabs');
+    var channelSelect = document.getElementById('channel-select');
+    var hasTimelineSelection = !!(channelSelect && channelSelect.value);
+    if (channelTimeTabs) channelTimeTabs.style.display = hasTimelineSelection ? '' : 'none';
+
+    var hasCompareSelection = _compareChannels.length > 0;
+    var compareTimeTabs = document.getElementById('compare-time-tabs');
+    var compareClearBtn = document.getElementById('compare-clear-btn');
+    if (compareTimeTabs) compareTimeTabs.style.display = hasCompareSelection ? '' : 'none';
+    if (compareClearBtn) compareClearBtn.style.display = hasCompareSelection ? '' : 'none';
+}
+
 function toggleChannelTempOverlay() {
     _tempOverlayVisible = !_tempOverlayVisible;
     _updateChannelTempToggle();
@@ -540,6 +554,7 @@ function loadChannelTimeline() {
         noDataEl.style.display = 'none';
         loadingEl.style.display = 'none';
         if (infoBar) infoBar.style.display = 'none';
+        _updateChannelSelectionControls();
         _channelTimelineRequestSeq++;
         _lastChannelTimelineData = null;
         _lastChannelWeather = null;
@@ -550,6 +565,7 @@ function loadChannelTimeline() {
         return;
     }
     var parts = val.split('-');
+    _updateChannelSelectionControls();
     var direction = parts[0];
     var channelId = parts[1];
     var selectedOpt = sel.options[sel.selectedIndex];
@@ -813,6 +829,7 @@ window.removeCompareChannel = removeCompareChannel;
 function renderCompareChips() {
     var container = document.getElementById('compare-chips');
     container.innerHTML = '';
+    _updateChannelSelectionControls();
     if (_comparePreset === 'all' && _compareChannels.length > 0) {
         var presetChip = document.createElement('span');
         presetChip.className = 'compare-chip';
