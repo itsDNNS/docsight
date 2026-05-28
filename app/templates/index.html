@@ -1663,7 +1663,7 @@
             <select id="channel-select" class="channel-select-styled" onchange="loadChannelTimeline()">
                 <option value="">{{ t.select_channel }}</option>
             </select>
-            <div class="trend-tabs" id="channel-time-tabs">
+            <div class="trend-tabs" id="channel-time-tabs" style="display:none;">
                 <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadChannelTimeline)">1h</button>
                 <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadChannelTimeline)">6h</button>
                 <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadChannelTimeline)">1d</button>
@@ -1687,8 +1687,8 @@
             <select id="compare-channel-select" class="channel-select-styled"><option value="">{{ t.select_channel }}</option></select>
             <button id="compare-add-btn" class="compare-add-btn" onclick="addCompareChannel()">+ {{ t.add_channel }}</button>
             <button id="compare-add-all-btn" class="compare-add-btn" onclick="addAllCompareChannels()">{{ t.all_downstream }}</button>
-            <button id="compare-clear-btn" class="compare-add-btn" onclick="clearCompareChannels()">{{ t.clear_selection }}</button>
-            <div class="trend-tabs" id="compare-time-tabs">
+            <button id="compare-clear-btn" class="compare-add-btn" onclick="clearCompareChannels()" style="display:none;">{{ t.clear_selection }}</button>
+            <div class="trend-tabs" id="compare-time-tabs" style="display:none;">
                 <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadCompareCharts)">1h</button>
                 <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadCompareCharts)">6h</button>
                 <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadCompareCharts)">1d</button>

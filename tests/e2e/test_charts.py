@@ -6,6 +6,7 @@ zoom modal, theme switching, responsive sizing, and crosshair sync.
 """
 
 import pytest
+from playwright.sync_api import expect
 
 
 # ── Helpers ──
@@ -253,6 +254,30 @@ class TestChartZoom:
 
 class TestChannelCharts:
     """Charts in the Channels > Timeline view."""
+
+    def test_channel_unused_controls_follow_selection_state(self, demo_page):
+        """Range and clear controls should only show after a usable channel selection."""
+        navigate_to_channels(demo_page)
+
+        expect(demo_page.locator("#channel-time-tabs")).not_to_be_visible()
+
+        demo_page.locator("#channel-select").select_option("ds-1")
+        expect(demo_page.locator("#channel-time-tabs")).to_be_visible()
+
+        demo_page.locator("#channel-select").select_option("")
+        expect(demo_page.locator("#channel-time-tabs")).not_to_be_visible()
+
+        demo_page.locator('#channel-mode-tabs .trend-tab[data-value="compare"]').click()
+        expect(demo_page.locator("#compare-time-tabs")).not_to_be_visible()
+        expect(demo_page.locator("#compare-clear-btn")).not_to_be_visible()
+
+        demo_page.locator("#compare-add-all-btn").click()
+        expect(demo_page.locator("#compare-time-tabs")).to_be_visible()
+        expect(demo_page.locator("#compare-clear-btn")).to_be_visible()
+
+        demo_page.locator("#compare-clear-btn").click()
+        expect(demo_page.locator("#compare-time-tabs")).not_to_be_visible()
+        expect(demo_page.locator("#compare-clear-btn")).not_to_be_visible()
 
     def test_channel_modulation_layout_preserves_long_labels_and_bounded_zoom_ticks(self, demo_page):
         """Long QAM labels and dense 7-day timestamps should get enough axis space."""
