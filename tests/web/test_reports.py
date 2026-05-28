@@ -1,6 +1,6 @@
 """Tests for report/comparison helpers exposed through web routes."""
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from app.web import app
 
 
@@ -71,6 +71,38 @@ class TestReportHelpers:
 
 
 class TestComplaintRoutes:
+    def test_api_report_passes_customer_details_to_pdf_generator(self):
+        from app.modules.reports import routes
+
+        storage = Mock()
+        storage.get_range_data.return_value = [{"timestamp": "2026-05-01T00:00:00Z", "summary": {}}]
+        config_manager = Mock()
+        config_manager.get.side_effect = lambda key, default="": {
+            "isp_name": "Example ISP",
+            "modem_type": "Example Modem",
+        }.get(key, default)
+        analysis = {"summary": {"health": "critical"}, "ds_channels": [], "us_channels": []}
+        pdf_bytes = b"%PDF-1.4\ncustomer-data\n"
+
+        with app.test_request_context(
+            "/api/report?days=7&lang=de"
+            "&name=Max%20Mustermann"
+            "&number=KD-123456"
+            "&address=Musterstra%C3%9Fe%201%0A12345%20Musterstadt"
+        ):
+            with patch.object(routes, "get_storage", return_value=storage), \
+                 patch.object(routes, "get_config_manager", return_value=config_manager), \
+                 patch.object(routes, "get_state", return_value={"analysis": analysis, "connection_info": {}}), \
+                 patch.object(routes, "generate_report", return_value=pdf_bytes) as generate_report:
+                response = getattr(routes.api_report, "__wrapped__")()
+
+        assert response.status_code == 200
+        assert response.data == pdf_bytes
+        generate_report.assert_called_once()
+        assert generate_report.call_args.kwargs["customer_name"] == "Max Mustermann"
+        assert generate_report.call_args.kwargs["customer_number"] == "KD-123456"
+        assert generate_report.call_args.kwargs["customer_address"] == "Musterstraße 1\n12345 Musterstadt"
+
     def test_get_comparison_data_helper(self):
         from app.modules.reports.routes import _get_comparison_data
 

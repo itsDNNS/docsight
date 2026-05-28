@@ -493,7 +493,35 @@ def _format_comparison_evidence(comparison_data, s):
     return "\n".join(lines)
 
 
-def generate_report(snapshots, current_analysis, config=None, connection_info=None, lang="en", comparison_data=None):
+def _localized_closing_placeholder(s, line_index, fallback):
+    closing = s.get("complaint_closing", "")
+    lines = closing.splitlines() if isinstance(closing, str) else []
+    if len(lines) > line_index and lines[line_index].strip():
+        return lines[line_index].strip()
+    return fallback
+
+
+def _format_customer_closing(s, customer_name="", customer_number="", customer_address=""):
+    """Build a localized complaint closing with provided customer details."""
+    label = s.get("complaint_closing_label") or _localized_closing_placeholder(s, 0, "Sincerely,")
+    name = (customer_name or "").strip() or _localized_closing_placeholder(s, 1, "[Your Name]")
+    number = (customer_number or "").strip() or _localized_closing_placeholder(s, 2, "[Customer Number]")
+    address = (customer_address or "").strip()
+    address_lines = address.splitlines() if address else [_localized_closing_placeholder(s, 3, "[Address]")]
+    return "\n".join([label, name, number, *address_lines])
+
+
+def generate_report(
+    snapshots,
+    current_analysis,
+    config=None,
+    connection_info=None,
+    lang="en",
+    comparison_data=None,
+    customer_name="",
+    customer_number="",
+    customer_address="",
+):
     """Generate a PDF incident report.
 
     Args:
@@ -503,6 +531,9 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
         connection_info: Connection info dict (speeds, etc.)
         lang: Language code
         comparison_data: Optional before/after comparison payload
+        customer_name: Customer name for the embedded complaint letter
+        customer_number: Customer/contract number for the embedded complaint letter
+        customer_address: Customer address for the embedded complaint letter
 
     Returns:
         bytes: PDF file content
@@ -695,6 +726,7 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
             _build_diagnostic_notes(current_analysis), s
         )
     comparison_section = _format_comparison_evidence(comparison_data, s)
+    complaint_closing = _format_customer_closing(s, customer_name, customer_number, customer_address)
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
@@ -719,14 +751,14 @@ def generate_report(snapshots, current_analysis, config=None, connection_info=No
             f"2. {s['complaint_req2']}\n"
             f"3. {s['complaint_req3']}\n\n"
             f"{s['complaint_escalation']}\n\n"
-            f"{s['complaint_closing']}"
+            f"{complaint_closing}"
         )
     else:
         complaint = (
             f"{s['complaint_short_subject']}\n\n"
             f"{s['complaint_short_greeting']}\n\n"
             f"{s['complaint_short_body']}\n\n"
-            f"{s['complaint_short_closing']}"
+            f"{complaint_closing}"
         )
 
     pdf.multi_cell(0, 4, complaint)

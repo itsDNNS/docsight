@@ -64,8 +64,21 @@ def api_report():
     conn_info = state.get("connection_info") or {}
     lang = request.args.get("lang", _get_lang())
     comparison_data = _get_comparison_data(_storage)
+    customer_name = request.args.get("name", "")
+    customer_number = request.args.get("number", "")
+    customer_address = request.args.get("address", "")
 
-    pdf_bytes = generate_report(snapshots, analysis, config, conn_info, lang, comparison_data=comparison_data)
+    pdf_bytes = generate_report(
+        snapshots,
+        analysis,
+        config,
+        conn_info,
+        lang,
+        comparison_data=comparison_data,
+        customer_name=customer_name,
+        customer_number=customer_number,
+        customer_address=customer_address,
+    )
 
     response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"

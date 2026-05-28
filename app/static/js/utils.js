@@ -285,19 +285,21 @@ function copyComplaint() {
     }
 }
 function downloadReport() {
-    var days = document.getElementById('report-days').value;
-    var lang = document.getElementById('report-lang').value;
-    var comparisonParam = '';
+    var params = new URLSearchParams();
+    params.set('days', document.getElementById('report-days').value);
+    params.set('lang', document.getElementById('report-lang').value);
+    params.set('name', document.getElementById('report-name').value);
+    params.set('number', document.getElementById('report-number').value);
+    params.set('address', document.getElementById('report-address').value);
     var includeComparison = document.getElementById('report-include-comparison');
     if (includeComparison && includeComparison.checked && window.__docsightComparisonResult) {
         var cmp = window.__docsightComparisonResult;
-        comparisonParam =
-            '&comparison_from_a=' + encodeURIComponent(cmp.period_a.from) +
-            '&comparison_to_a=' + encodeURIComponent(cmp.period_a.to) +
-            '&comparison_from_b=' + encodeURIComponent(cmp.period_b.from) +
-            '&comparison_to_b=' + encodeURIComponent(cmp.period_b.to);
+        params.set('comparison_from_a', cmp.period_a.from);
+        params.set('comparison_to_a', cmp.period_a.to);
+        params.set('comparison_from_b', cmp.period_b.from);
+        params.set('comparison_to_b', cmp.period_b.to);
     }
-    window.location.href = '/api/report?days=' + days + '&lang=' + lang + comparisonParam;
+    window.location.href = '/api/report?' + params.toString();
 }
 function copyExport() {
     var textarea = document.getElementById('export-text');
