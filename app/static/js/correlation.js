@@ -301,14 +301,8 @@ function renderCorrelationChart(data) {
     var labelCount = Math.min(8, Math.floor(plotW / 80));
     for (var i = 0; i <= labelCount; i++) {
         var t = tMin + (tMax - tMin) * i / labelCount;
-        var d = new Date(t);
-        var hours = getPillValue('correlation-tabs');
-        var label;
-        if (parseInt(hours) > 48) {
-            label = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-        } else {
-            label = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-        }
+        var range = getPillValue('correlation-tabs') || '1d';
+        var label = docsightFormatXAxisLabel(t, range);
         ctx.fillText(label, xScale(t), H - pad.bottom + 18);
     }
 

@@ -45,6 +45,50 @@ function formatDateDE(str) {
     return p[2] + '.' + p[1] + '.' + p[0];
 }
 
+function docsightRangeHours(range) {
+    if (range === null || range === undefined) return 24;
+    if (typeof range === 'number' && isFinite(range)) return range;
+    var raw = String(range || '1d').toLowerCase();
+    if (raw === 'bqm') return 24;
+    if (raw === 'all') return 24 * 90;
+    var secondsMatch = raw.match(/^(\d+)s$/);
+    if (secondsMatch) return parseInt(secondsMatch[1], 10) / 3600;
+    if (/^\d+$/.test(raw)) {
+        var numeric = parseInt(raw, 10);
+        return numeric;
+    }
+    var match = raw.match(/^(\d+)(h|d)$/);
+    if (!match) return 24;
+    var value = parseInt(match[1], 10);
+    return match[2] === 'h' ? value : value * 24;
+}
+
+function docsightTimestampDate(ts) {
+    if (ts instanceof Date) return ts;
+    if (typeof ts === 'number') {
+        return new Date(Math.abs(ts) < 100000000000 ? ts * 1000 : ts);
+    }
+    return new Date(ts);
+}
+
+function docsightFormatXAxisLabel(ts, range) {
+    var d = docsightTimestampDate(ts);
+    if (isNaN(d.getTime())) return '';
+    var hhmm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    if (String(range || '').toLowerCase() === 'bqm') return hhmm;
+    var mmdd = pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    var hours = docsightRangeHours(range);
+    if (hours <= 24) return hhmm;
+    if (hours < 24 * 30) return mmdd + ' ' + hhmm;
+    return mmdd;
+}
+
+function docsightFormatXAxisLabels(timestamps, range) {
+    return (timestamps || []).map(function(ts) {
+        return ts !== null && ts !== undefined ? docsightFormatXAxisLabel(ts, range) : '';
+    });
+}
+
 function chartXRange(u) {
     var xData = u && u.data && u.data[0] ? u.data[0] : [];
     var edgePadding = u && u._docsightXEdgePadding ? u._docsightXEdgePadding : DEFAULT_X_EDGE_PADDING;

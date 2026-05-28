@@ -1,6 +1,7 @@
 /* ── Channel Timeline + Compare ── */
 /* Extracted from IIFE – depends on: T, charts, renderChart, getPillValue,
-   DS_POWER_THRESHOLDS, DS_SNR_THRESHOLDS, US_POWER_THRESHOLDS */
+   docsightFormatXAxisLabels, DS_POWER_THRESHOLDS, DS_SNR_THRESHOLDS,
+   US_POWER_THRESHOLDS */
 
 /* ── Channel State URL Persistence ── */
 /* Hash format: #channels?mode=timeline&dir=ds&channel=42&range=1d
@@ -462,12 +463,7 @@ function _renderChannelTimelineCharts() {
     var docsisVersion = ctx.docsisVersion || '3.0';
     var days = ctx.days || '1d';
 
-    var xLabels = data.map(function(d) {
-        if (!d.timestamp) return '';
-        if (_channelRangeHours(days) <= 24) return d.timestamp.substring(11, 16);
-        if (_channelRangeDays(days) >= 30) return d.timestamp.substring(5, 10);
-        return d.timestamp.substring(5, 16).replace('T', ' ');
-    });
+    var xLabels = docsightFormatXAxisLabels(data.map(function(d) { return d.timestamp || ''; }), days);
     var tempOpts = _channelWeatherHasData(_lastChannelWeather) ? { tempData: _lastChannelWeather } : null;
     var tempByTimestamp = null;
     if (tempOpts) {
@@ -514,10 +510,7 @@ function _renderChannelTimelineCharts() {
         else { qamSteps = is31 ? dsQam31 : dsQam30; }
         var qamLabel = {}; qamSteps.forEach(function(v) { qamLabel[v] = v + 'QAM'; });
         var qamMap = {}; qamSteps.forEach(function(v, i) { qamMap[v + 'QAM'] = i; });
-        var modLabels = mods.map(function(d) {
-            if (_channelRangeDays(days) >= 30) return d.timestamp.substring(5, 10);
-            return d.timestamp.substring(5, 16).replace('T', ' ');
-        });
+        var modLabels = docsightFormatXAxisLabels(mods.map(function(d) { return d.timestamp; }), days);
         var modValues = mods.map(function(d) { return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : -1; });
         var tickValues = [];
         for (var qi = 0; qi < qamSteps.length; qi++) tickValues.push(qi);
@@ -534,6 +527,7 @@ function _renderChannelTimelineCharts() {
             yMax: qamSteps.length - 0.5,
             yAxisSize: 72,
             zoomYAxisSize: 80,
+            maxXTicks: 4,
             yAfterBuildTicks: function(axis) {
                 axis.ticks = tickValues.map(function(v) { return {value: v}; });
             }
@@ -855,11 +849,7 @@ function _renderCompareCharts() {
     var timestamps = ctx.timestamps;
     var days = ctx.days || '1d';
     var dir = ctx.dir || getCompareDirection();
-    var xLabels = timestamps.map(function(ts) {
-        if (_channelRangeHours(days) <= 24) return ts.substring(11, 16);
-        if (_channelRangeDays(days) >= 30) return ts.substring(5, 10);
-        return ts.substring(5, 16).replace('T', ' ');
-    });
+    var xLabels = docsightFormatXAxisLabels(timestamps, days);
     var tempOpts = _channelWeatherHasData(_lastCompareWeather) ? { tempData: _lastCompareWeather } : null;
 
     // Build lookup maps per channel: timestamp -> data point

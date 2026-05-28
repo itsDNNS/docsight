@@ -144,8 +144,6 @@ var CMCharts = (function() {
         };
     }
 
-    function p2(n) { return n < 10 ? '0' + n : '' + n; }
-
     function sampleCountOf(sample) {
         return sample && sample.sample_count ? sample.sample_count : 1;
     }
@@ -162,8 +160,9 @@ var CMCharts = (function() {
      * Render combined PingPlotter-style chart with all targets overlaid.
      * @param {string} containerId - DOM element ID
      * @param {Array} allTargetData - [{target: {id, label, host}, samples: [...]}]
+     * @param {number|string} range - Selected range in seconds or a normalized range key.
      */
-    function renderCombinedChart(containerId, allTargetData) {
+    function renderCombinedChart(containerId, allTargetData, range) {
         if (!allTargetData || allTargetData.length === 0) return;
 
         // Build unified timeline from all targets' samples
@@ -178,15 +177,14 @@ var CMCharts = (function() {
         var tsIndex = {};
         for (var i = 0; i < timestamps.length; i++) tsIndex[timestamps[i]] = i;
 
-        // Format time labels - show date for ranges > 24h
         var rangeSeconds = timestamps[timestamps.length - 1] - timestamps[0];
-        var showDate = rangeSeconds > 86400;
-        var labels = timestamps.map(function(ts) {
-            var d = new Date(ts * 1000);
-            var time = p2(d.getHours()) + ':' + p2(d.getMinutes());
-            if (showDate) return p2(d.getDate()) + '.' + p2(d.getMonth() + 1) + ' ' + time;
-            return time;
-        });
+        var axisRange;
+        if (range !== undefined && range !== null) {
+            axisRange = /^\d+$/.test(String(range)) ? String(range) + 's' : range;
+        } else {
+            axisRange = String(Math.max(Math.round(rangeSeconds), 0)) + 's';
+        }
+        var labels = docsightFormatXAxisLabels(timestamps, axisRange);
 
         // Build datasets (one per target) and collect loss indices
         var datasets = [];

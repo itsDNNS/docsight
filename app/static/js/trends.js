@@ -1,6 +1,6 @@
 /* ── Trend Charts ── */
 /* Extracted from IIFE – depends on: T, charts, renderChart, currentView,
-   todayStr, formatDateDE, DS_POWER_THRESHOLDS, DS_SNR_THRESHOLDS,
+   todayStr, docsightFormatXAxisLabels, DS_POWER_THRESHOLDS, DS_SNR_THRESHOLDS,
    US_POWER_THRESHOLDS, _tempOverlayVisible (chart-engine.js) */
 
 var _trendRange = '1d';
@@ -99,12 +99,8 @@ function _renderTrendCharts() {
     var data = _lastTrendData;
     var range = _lastTrendRange;
     if (!data || data.length === 0) return;
-    var xLabels = data.map(function(d) {
-        if (!d.timestamp) return '';
-        if (_trendRangeHours(range) <= 24) return d.timestamp.substring(11, 16);
-        if (_trendRangeHours(range) < 24 * 30) return d.timestamp.substring(5, 16).replace('T', ' ');
-        return d.date ? formatDateDE(d.date) : formatDateDE(d.timestamp.substring(0, 10));
-    });
+    var timestamps = data.map(function(d) { return d.timestamp || ''; });
+    var xLabels = docsightFormatXAxisLabels(timestamps, range);
     var tempOpts = (_lastTrendWeather && _lastTrendWeather.length > 0) ? { tempData: _lastTrendWeather } : null;
     renderChart('chart-ds-power', xLabels,
         [{label: 'DS Power Avg', data: data.map(function(d){ return d.ds_power_avg; }), color: '#a855f7', fill: POWER_TREND_FILL, fillTo: fillToScaleMin}],

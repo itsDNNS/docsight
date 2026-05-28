@@ -1,7 +1,9 @@
 """Static UI/CSS contract tests."""
 
 import json
+import os
 import re
+import subprocess
 from collections import Counter
 from pathlib import Path
 
@@ -33,6 +35,9 @@ CM_CSS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "style.css
 CM_DETAIL_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-detail.js"
 CM_CHARTS_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-charts.js"
 CM_CARD_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-card.js"
+SEGMENT_UTILIZATION_JS = ROOT / "app" / "static" / "js" / "segment-utilization.js"
+BQM_CHART_JS = ROOT / "app" / "modules" / "bqm" / "static" / "js" / "bqm-chart.js"
+COMPARISON_MAIN_JS = ROOT / "app" / "modules" / "comparison" / "static" / "main.js"
 
 
 def test_correlation_timeline_sticky_header_uses_opaque_surface():
@@ -108,7 +113,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v37';" in sw_js
+    assert "var CACHE_VERSION = 'v38';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
@@ -258,6 +263,88 @@ def test_chart_time_range_controls_use_normalized_existing_ranges():
     assert re.findall(r"data-cm-range=\"([^\"]+)\"", cm_picker) == expected_seconds
 
 
+def test_chart_axis_label_formatter_contract_is_range_normalized():
+    script = f"""
+const fs = require('fs');
+const vm = require('vm');
+const code = fs.readFileSync({str(CHART_ENGINE_JS)!r}, 'utf8');
+const context = {{ console: console, window: {{ devicePixelRatio: 1 }} }};
+vm.createContext(context);
+vm.runInContext(code, context);
+const fmt = context.docsightFormatXAxisLabel;
+if (typeof fmt !== 'function') {{
+  throw new Error('docsightFormatXAxisLabel is not defined');
+}}
+const tsMs = Date.UTC(2026, 0, 2, 3, 4, 0);
+const tsSec = Math.floor(tsMs / 1000);
+const cases = [
+  [tsMs, '1h', '03:04'],
+  [tsMs, '6h', '03:04'],
+  [tsMs, '1d', '03:04'],
+  [tsMs, '2d', '01-02 03:04'],
+  [tsMs, '3d', '01-02 03:04'],
+  [tsMs, '7d', '01-02 03:04'],
+  [tsMs, '30d', '01-02'],
+  [tsMs, '90d', '01-02'],
+  [tsMs, 'bqm', '03:04'],
+  [tsSec, 24, '03:04'],
+  [tsSec, 168, '01-02 03:04'],
+  [tsSec, 720, '01-02'],
+  [tsSec, '168', '01-02 03:04'],
+  [tsSec, '720', '01-02'],
+  [tsSec, '86400s', '03:04'],
+  [tsSec, '604800s', '01-02 03:04'],
+  [tsSec, '2592000s', '01-02'],
+  [tsSec, 2160, '01-02'],
+];
+for (const [ts, range, expected] of cases) {{
+  const actual = fmt(ts, range);
+  if (actual !== expected) {{
+    throw new Error(`${{range}} expected ${{expected}} but got ${{actual}}`);
+  }}
+}}
+"""
+    env = os.environ.copy()
+    env["TZ"] = "UTC"
+    result = subprocess.run(["node", "-e", script], cwd=ROOT, env=env, text=True, capture_output=True, check=False)
+
+    assert result.returncode == 0, result.stderr + result.stdout
+
+
+def test_chart_axis_labels_use_shared_formatter_across_graphs():
+    chart_engine = CHART_ENGINE_JS.read_text(encoding="utf-8")
+    graph_sources = {
+        "trends": TRENDS_JS,
+        "channels": CHANNELS_JS,
+        "correlation": CORRELATION_JS,
+        "connection_monitor": CM_CHARTS_JS,
+        "segment_utilization": SEGMENT_UTILIZATION_JS,
+        "bqm": BQM_CHART_JS,
+        "comparison": COMPARISON_MAIN_JS,
+    }
+
+    assert "function docsightFormatXAxisLabel" in chart_engine
+    assert "function docsightFormatXAxisLabels" in chart_engine
+    for name, path in graph_sources.items():
+        js = path.read_text(encoding="utf-8")
+        assert "docsightFormatXAxisLabel" in js or "docsightFormatXAxisLabels" in js, name
+
+    legacy_patterns = {
+        "DD.MM axis labels": r"return dd \+ '\\.' \+ mo|return day \+ '\\.' \+ month|p2\(d\.getDate\(\)\) \+ '\\.'",
+        "slash date axis labels": r"getMonth\(\) \+ 1\) \+ '/' \+ d\.getDate",
+        "manual ISO axis labels": r"substring\(5, 16\)\.replace\('T', ' '\)|substring\(11, 16\)|formatDateDE\(d\.date\)",
+        "relative comparison hour labels": r"hourLabels\.map\(function\(h\) \{ return h \+ hrsLabel; \}\)",
+    }
+    offenders = []
+    for name, path in graph_sources.items():
+        js = path.read_text(encoding="utf-8")
+        for label, pattern in legacy_patterns.items():
+            if re.search(pattern, js):
+                offenders.append(f"{name}: {label}")
+
+    assert offenders == []
+
+
 def test_modulation_range_control_uses_normalized_labels_while_preserving_today():
     template = MODULATION_TEMPLATE.read_text(encoding="utf-8")
     range_tabs = template[template.index('id="modulation-range-tabs"') : template.index('</div>', template.index('id="modulation-range-tabs"'))]
@@ -326,6 +413,7 @@ def test_chart_engine_has_configurable_axis_padding_for_long_qam_labels():
     assert "calculateMaxXTicks(labels, width, yAxisSize" in js
     assert "yAxisSize: 72" in channels_js
     assert "zoomYAxisSize: 80" in channels_js
+    assert "maxXTicks: 4" in channels_js
 
 
 def test_chart_zoom_uses_bounded_index_ticks_instead_of_all_samples():

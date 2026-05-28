@@ -300,15 +300,7 @@ function _fritzCableRenderChart(containerId, samples, totalKey, ownKey) {
     var container = document.getElementById(containerId);
     if (!container || typeof renderChart === 'undefined') return;
 
-    var labels = samples.map(function(s) {
-        var d = new Date(s.timestamp);
-        var hh = (d.getHours() < 10 ? '0' : '') + d.getHours();
-        var mm = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
-        if (_fritzCableRange === '24h') return hh + ':' + mm;
-        var dd = (d.getDate() < 10 ? '0' : '') + d.getDate();
-        var mo = ((d.getMonth() + 1) < 10 ? '0' : '') + (d.getMonth() + 1);
-        return dd + '.' + mo + ' ' + hh + ':' + mm;
-    });
+    var labels = docsightFormatXAxisLabels(samples.map(function(s) { return s.timestamp; }), _fritzCableRange);
 
     var datasets = [
         {

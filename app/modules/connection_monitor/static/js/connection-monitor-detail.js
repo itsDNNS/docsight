@@ -298,7 +298,8 @@
                 hideNoData();
                 CMCharts.renderStatsCards('cm-stats-cards', allTargetData);
                 CMCharts.renderPerTargetStats('cm-per-target-stats', allTargetData);
-                CMCharts.renderCombinedChart('cm-combined-chart', allTargetData);
+                var chartRange = pinnedDayView ? 86400 : currentRange;
+                CMCharts.renderCombinedChart('cm-combined-chart', allTargetData, chartRange);
                 CMCharts.renderAvailabilityBand('cm-availability', allTargetData);
                 renderOutages(allOutageData);
                 renderExportLinks();

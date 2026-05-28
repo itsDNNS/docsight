@@ -142,6 +142,17 @@ function _cmpMapToLabels(normalized, hourLabels) {
     return hourLabels.map(function(h) { return map[h] || null; });
 }
 
+function _cmpBuildTimeLabels(hourLabels, period) {
+    var periodStartMs = new Date(period.from).getTime();
+    var periodEndMs = new Date(period.to).getTime();
+    var rangeSeconds = Math.max(Math.round((periodEndMs - periodStartMs) / 1000), 0);
+    // Before/after charts align both periods by relative offset. Axis text uses
+    // Period B's timeline as the visible time anchor so labels stay absolute.
+    return hourLabels.map(function(h) {
+        return docsightFormatXAxisLabel(periodStartMs + (h * 3600000), String(rangeSeconds) + 's');
+    });
+}
+
 /* ── Chart Rendering ── */
 function _cmpPeriodSupportsDocsisErrors(period) {
     if (!period) return false;
@@ -172,8 +183,7 @@ function _cmpRenderCharts(data) {
     var mappedA = _cmpMapToLabels(normA, hourLabels);
     var mappedB = _cmpMapToLabels(normB, hourLabels);
 
-    var hrsLabel = 'h';
-    var xLabels = hourLabels.map(function(h) { return h + hrsLabel; });
+    var xLabels = _cmpBuildTimeLabels(hourLabels, pb);
 
     if (pa.timeseries.length === 0 && pb.timeseries.length === 0) {
         var placeholder = document.getElementById('comparison-placeholder');

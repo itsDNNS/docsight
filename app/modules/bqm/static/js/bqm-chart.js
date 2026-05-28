@@ -3,12 +3,7 @@ var BQMChart = (function() {
     'use strict';
 
     function formatTick(ts) {
-        var d = new Date(ts * 1000);
-        var day = String(d.getDate()).padStart(2, '0');
-        var month = String(d.getMonth() + 1).padStart(2, '0');
-        var hours = String(d.getHours()).padStart(2, '0');
-        var minutes = String(d.getMinutes()).padStart(2, '0');
-        return day + '.' + month + ' ' + hours + ':' + minutes;
+        return docsightFormatXAxisLabel(ts, 'bqm');
     }
 
     function toUnixSeries(timestamps) {
