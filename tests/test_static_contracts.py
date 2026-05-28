@@ -12,6 +12,7 @@ CHART_ENGINE_JS = ROOT / "app" / "static" / "js" / "chart-engine.js"
 TRENDS_JS = ROOT / "app" / "static" / "js" / "trends.js"
 CHANNELS_JS = ROOT / "app" / "static" / "js" / "channels.js"
 MODULATION_MAIN_JS = ROOT / "app" / "modules" / "modulation" / "static" / "main.js"
+MODULATION_TEMPLATE = ROOT / "app" / "modules" / "modulation" / "templates" / "modulation_tab.html"
 SW_JS = ROOT / "app" / "static" / "sw.js"
 MAIN_CSS = ROOT / "app" / "static" / "css" / "main.css"
 INDEX_HTML = ROOT / "app" / "templates" / "index.html"
@@ -255,6 +256,20 @@ def test_chart_time_range_controls_use_normalized_existing_ranges():
     assert "trend-tabs" in cm_picker
     assert button_texts(cm_picker) == expected_labels
     assert re.findall(r"data-cm-range=\"([^\"]+)\"", cm_picker) == expected_seconds
+
+
+def test_modulation_range_control_uses_normalized_labels_while_preserving_today():
+    template = MODULATION_TEMPLATE.read_text(encoding="utf-8")
+    range_tabs = template[template.index('id="modulation-range-tabs"') : template.index('</div>', template.index('id="modulation-range-tabs"'))]
+    labels_by_days = {
+        days: re.sub(r"\s+", " ", label).strip()
+        for days, label in re.findall(r'<button class="trend-tab(?: active)?" data-days="(\d+)">(.*?)</button>', range_tabs, re.S)
+    }
+
+    assert set(labels_by_days) == {"1", "7", "30"}
+    assert labels_by_days["1"] == "{{ t.get('docsight.modulation.today', 'Today') }}"
+    assert labels_by_days["7"] == "7d"
+    assert labels_by_days["30"] == "30d"
 
 
 def test_channels_legacy_days_hashes_normalize_to_range_tabs():
