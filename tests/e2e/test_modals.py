@@ -1,5 +1,7 @@
 """E2E coverage for DOCSight modal behavior."""
 
+from urllib.parse import parse_qs, urlparse
+
 from playwright.sync_api import expect
 
 
@@ -180,6 +182,42 @@ def test_report_modal_frames_isp_ready_evidence_builder(demo_page):
     expect(modal).to_contain_text("BQM, SmokePing, and Speedtest evidence when available")
     expect(modal).to_contain_text("Generated locally")
     expect(modal.get_by_role("button", name="Build evidence package")).to_be_visible()
+
+
+def test_report_pdf_download_preserves_customer_details_e2e(demo_page):
+    """PDF download keeps the customer fields entered in the report builder."""
+    demo_page.route(
+        "**/api/complaint?**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"text":"Subject: DOCSIS Signal Quality Issues\\n\\nEvidence summary ready."}',
+        ),
+    )
+    demo_page.route(
+        "**/api/report?**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/pdf",
+            body="%PDF-1.4\n%%EOF",
+        ),
+    )
+
+    demo_page.locator("#report-link").click()
+    modal = demo_page.locator("#report-modal")
+    modal.locator("#report-name").fill("Max Mustermann")
+    modal.locator("#report-number").fill("KD-123456")
+    modal.locator("#report-address").fill("Musterstraße 1, 12345 Musterstadt")
+    modal.get_by_role("button", name="Build evidence package").click()
+    expect(modal.get_by_role("button", name="Download PDF package")).to_be_visible()
+
+    with demo_page.expect_request("**/api/report?**") as report_request:
+        modal.get_by_role("button", name="Download PDF package").click()
+
+    params = parse_qs(urlparse(report_request.value.url).query)
+    assert params["name"] == ["Max Mustermann"]
+    assert params["number"] == ["KD-123456"]
+    assert params["address"] == ["Musterstraße 1, 12345 Musterstadt"]
 
 
 def test_report_modal_shows_generation_success_and_error_states(demo_page):

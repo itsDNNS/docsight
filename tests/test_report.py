@@ -1,7 +1,10 @@
 """Tests for incident report generation."""
 
+import io
 import sys
 import os
+
+from pypdf import PdfReader
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -245,3 +248,25 @@ def test_generate_report_accepts_comparison_evidence():
 
     assert pdf[:5] == b"%PDF-"
     assert len(pdf) > 1000
+
+def test_generate_report_embeds_customer_details_in_complaint_closing():
+    pdf = generate_report(
+        MOCK_SNAPSHOTS,
+        MOCK_ANALYSIS,
+        lang="de",
+        customer_name="Max Mustermann",
+        customer_number="KD-123456",
+        customer_address="Musterstraße 1\n12345 Musterstadt",
+    )
+    text = "\n".join(
+        page.extract_text() or ""
+        for page in PdfReader(io.BytesIO(pdf)).pages
+    )
+
+    assert "Max Mustermann" in text
+    assert "KD-123456" in text
+    assert "Musterstraße 1" in text
+    assert "12345 Musterstadt" in text
+    assert "[Ihr Name]" not in text
+    assert "[Kundennummer]" not in text
+    assert "[Adresse]" not in text
