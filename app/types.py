@@ -149,6 +149,13 @@ class SignalFamilyMetric(TypedDict):
     health: str
 
 
+class SignalFamilyModulationValue(TypedDict):
+    """One distinct modulation/profile value with its own health."""
+
+    value: str
+    health: str
+
+
 class SignalFamilyModulation(TypedDict):
     """Aggregated modulation/profile values for a DOCSIS signal family."""
 
@@ -156,6 +163,7 @@ class SignalFamilyModulation(TypedDict):
     value: str | None
     secondary: str | None
     distinct: list[str]
+    values: list[SignalFamilyModulationValue]
     health: str
 
 

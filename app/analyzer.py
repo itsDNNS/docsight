@@ -515,16 +515,31 @@ def _stats(values):
     }
 
 
-def _distinct_modulations(channels, *, prefer_profile=False):
-    values = []
+def _channel_modulation_value(channel, *, prefer_profile=False):
+    if prefer_profile:
+        return channel.get("profile_modulation") or channel.get("modulation")
+    return channel.get("modulation") or channel.get("profile_modulation")
+
+
+def _modulation_sort_key(value):
+    return _parse_qam_order(value) or 0, value
+
+
+def _distinct_modulation_healths(channels, *, prefer_profile=False):
+    health_by_value = {}
     for channel in channels:
-        if prefer_profile:
-            value = channel.get("profile_modulation") or channel.get("modulation")
-        else:
-            value = channel.get("modulation") or channel.get("profile_modulation")
-        if value:
-            values.append(str(value))
-    return sorted(set(values), key=lambda value: (_parse_qam_order(value) or 0, value))
+        value = _channel_modulation_value(channel, prefer_profile=prefer_profile)
+        if not value:
+            continue
+        value = str(value)
+        health = channel.get("modulation_health", "good")
+        if value in health_by_value:
+            health = _worst_health([health_by_value[value], health])
+        health_by_value[value] = health
+    return [
+        {"value": value, "health": health_by_value[value]}
+        for value in sorted(health_by_value, key=_modulation_sort_key)
+    ]
 
 
 def _channel_text(channel, *keys):
@@ -600,7 +615,8 @@ def _family_summary(family, channels, *, direction):
     prefer_profile = family in {"ofdm", "ofdma"}
     power = _stats([channel.get("power") for channel in channels])
     quality = _stats([channel.get("snr") for channel in channels]) if direction == "downstream" else None
-    modulation_values = _distinct_modulations(channels, prefer_profile=prefer_profile)
+    modulation_value_healths = _distinct_modulation_healths(channels, prefer_profile=prefer_profile)
+    modulation_values = [entry["value"] for entry in modulation_value_healths]
     power_health = _worst_health(
         channel.get("power_health", "good") for channel in channels if channel.get("power") is not None
     )
@@ -609,11 +625,7 @@ def _family_summary(family, channels, *, direction):
         if direction == "downstream"
         else "missing"
     )
-    modulation_health = _worst_health(
-        channel.get("modulation_health", "good")
-        for channel in channels
-        if channel.get("modulation") or channel.get("profile_modulation")
-    )
+    modulation_health = _worst_health(entry["health"] for entry in modulation_value_healths)
 
     metrics = [power_health, modulation_health]
     if direction == "downstream":
@@ -643,6 +655,7 @@ def _family_summary(family, channels, *, direction):
             "value": modulation_values[0] if modulation_values else None,
             "secondary": modulation_values[-1] if len(modulation_values) > 1 else None,
             "distinct": modulation_values,
+            "values": modulation_value_healths,
             "health": modulation_health,
         },
     }

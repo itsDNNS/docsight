@@ -490,7 +490,16 @@ class TestIndexRoute:
         ofdma["health"] = "critical"
         ofdma["health_cause"] = "modulation"
         ofdma["power"].update({"available": True, "avg": 49.5, "min": 49.5, "max": 49.5, "health": "warning"})
-        ofdma["modulation"].update({"value": "32QAM", "secondary": "16QAM", "distinct": ["32QAM", "16QAM"], "health": "critical"})
+        ofdma["modulation"].update({
+            "value": "4QAM",
+            "secondary": "64QAM",
+            "distinct": ["4QAM", "64QAM"],
+            "values": [
+                {"value": "4QAM", "health": "critical"},
+                {"value": "64QAM", "health": "good"},
+            ],
+            "health": "critical",
+        })
         sample_analysis["summary"]["us_ofdma_power_avg"] = 49.5
         update_state(analysis=sample_analysis)
 
@@ -501,9 +510,35 @@ class TestIndexRoute:
         modulation_row = card[card.index('<div class="metric-sub metric-modulation-row">'):]
         modulation_row = modulation_row[:modulation_row.index("</div>")]
         assert '<span class="metric-sub-label">Modulation:</span>' in modulation_row
-        assert '<span class="range" style="color:var(--crit);">32QAM — 16QAM</span>' in modulation_row
-        assert '<span class="range" style="color:var(--crit);">Modulation:' not in modulation_row
+        assert '<span class="range metric-modulation-value" style="color:var(--crit);">4QAM</span>' in modulation_row
+        assert '<span class="metric-sub-label metric-modulation-separator">—</span>' in modulation_row
+        assert '<span class="range metric-modulation-value" style="color:var(--good);">64QAM</span>' in modulation_row
+        assert '<span class="range metric-modulation-value" style="color:var(--crit);">4QAM — 64QAM</span>' not in modulation_row
+        assert '<span class="range metric-modulation-value" style="color:var(--crit);">—</span>' not in modulation_row
+        assert '<span class="range metric-modulation-value" style="color:var(--crit);">Modulation:' not in modulation_row
         assert "badge badge-critical" not in modulation_row
+
+    def test_home_signal_family_modulation_row_renders_single_value_without_separator(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        sc_qam = sample_analysis["summary"]["signal_families"]["upstream"]["families"]["sc_qam"]
+        sc_qam["modulation"].update({
+            "value": "64QAM",
+            "secondary": None,
+            "distinct": ["64QAM"],
+            "values": [{"value": "64QAM", "health": "good"}],
+            "health": "good",
+        })
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        card = _element_by_id(resp.get_data(as_text=True), "metric-us-sc-qam-card")
+        modulation_row = card[card.index('<div class="metric-sub metric-modulation-row">'):]
+        modulation_row = modulation_row[:modulation_row.index("</div>")]
+        assert '<span class="metric-sub-label">Modulation:</span>' in modulation_row
+        assert '<span class="range metric-modulation-value" style="color:var(--good);">64QAM</span>' in modulation_row
+        assert "metric-modulation-separator" not in modulation_row
 
     def test_home_signal_family_card_omits_cause_when_status_matches_visible_metric(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
