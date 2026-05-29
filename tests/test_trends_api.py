@@ -15,17 +15,27 @@ def _utc_ts(delta: timedelta) -> str:
     return (datetime.now(timezone.utc) - delta).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _analysis(ds_power_avg: float):
+def _analysis(
+    ds_power_avg: float,
+    *,
+    ds_correctable_errors: int | None = None,
+    ds_uncorrectable_errors: int | None = None,
+):
+    summary = {
+        "ds_total": 1,
+        "us_total": 1,
+        "health": "good",
+        "health_issues": [],
+        "ds_power_avg": ds_power_avg,
+        "ds_snr_avg": 38.0,
+        "us_power_avg": 42.0,
+    }
+    if ds_correctable_errors is not None:
+        summary["ds_correctable_errors"] = ds_correctable_errors
+    if ds_uncorrectable_errors is not None:
+        summary["ds_uncorrectable_errors"] = ds_uncorrectable_errors
     return {
-        "summary": {
-            "ds_total": 1,
-            "us_total": 1,
-            "health": "good",
-            "health_issues": [],
-            "ds_power_avg": ds_power_avg,
-            "ds_snr_avg": 38.0,
-            "us_power_avg": 42.0,
-        },
+        "summary": summary,
         "ds_channels": [],
         "us_channels": [],
     }
@@ -114,3 +124,33 @@ class TestTrendsRangeEndpoint:
         resp = flask_client.get("/api/trends?range=4h")
 
         assert resp.status_code == 400
+
+    def test_trends_unwrap_32bit_error_counter_rollover(self, client):
+        flask_client, storage = client
+        _insert_snapshot(
+            storage,
+            _analysis(
+                1.0,
+                ds_correctable_errors=4_294_495_351,
+                ds_uncorrectable_errors=0,
+            ),
+            _utc_ts(timedelta(minutes=2)),
+        )
+        _insert_snapshot(
+            storage,
+            _analysis(
+                2.0,
+                ds_correctable_errors=692_254,
+                ds_uncorrectable_errors=0,
+            ),
+            _utc_ts(timedelta(minutes=1)),
+        )
+
+        resp = flask_client.get("/api/trends?range=1d")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert [row["ds_correctable_errors"] for row in data] == [
+            4_294_495_351,
+            4_295_659_550,
+        ]

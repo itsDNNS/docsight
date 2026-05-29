@@ -4,6 +4,10 @@ import json
 import sqlite3
 
 from ..tz import utc_cutoff
+from .error_counters import unwrap_uint32_counter_series
+
+
+_CHANNEL_ERROR_KEYS = ("correctable_errors", "uncorrectable_errors")
 
 
 class AnalysisMixin:
@@ -199,6 +203,7 @@ class AnalysisMixin:
                         "health": ch.get("health", ""),
                     })
                     break
+        unwrap_uint32_counter_series(results, _CHANNEL_ERROR_KEYS)
         return results
 
     def get_multi_channel_history(self, channel_ids, direction, days=7, hours=None):
@@ -231,4 +236,6 @@ class AnalysisMixin:
                         "modulation": ch.get("modulation", ""),
                         "frequency": ch.get("frequency", ""),
                     })
+        for rows_for_channel in results.values():
+            unwrap_uint32_counter_series(rows_for_channel, _CHANNEL_ERROR_KEYS)
         return results

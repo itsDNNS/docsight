@@ -204,6 +204,61 @@ class TestGetChannelHistory:
         assert result[1][0]["correctable_errors"] is None
         assert result[1][0]["uncorrectable_errors"] is None
 
+    def test_unwraps_32bit_downstream_error_counter_wrap(self, storage):
+        ds_near_wrap = [
+            {"channel_id": 1, "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "OFDM", "snr": 38.1, "correctable_errors": 4_294_495_351,
+             "uncorrectable_errors": 0, "docsis_version": "3.1",
+             "health": "good", "health_detail": ""},
+        ]
+        ds_after_wrap = [
+            {"channel_id": 1, "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "OFDM", "snr": 38.1, "correctable_errors": 692_254,
+             "uncorrectable_errors": 0, "docsis_version": "3.1",
+             "health": "good", "health_detail": ""},
+        ]
+        _insert_snapshot(storage, _make_analysis(ds_channels=ds_near_wrap), _utc_ts(timedelta(minutes=2)))
+        _insert_snapshot(storage, _make_analysis(ds_channels=ds_after_wrap), _utc_ts(timedelta(minutes=1)))
+
+        result = storage.get_channel_history(1, "ds", days=7)
+
+        assert [row["correctable_errors"] for row in result] == [
+            4_294_495_351,
+            4_295_659_550,
+        ]
+
+    def test_multi_channel_unwraps_error_counters_per_channel(self, storage):
+        first = [
+            {"channel_id": 1, "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "OFDM", "snr": 38.1, "correctable_errors": 4_294_495_351,
+             "uncorrectable_errors": 10, "docsis_version": "3.1",
+             "health": "good", "health_detail": ""},
+            {"channel_id": 2, "frequency": "130.0 MHz", "power": 4.8,
+             "modulation": "256QAM", "snr": 37.5, "correctable_errors": 20,
+             "uncorrectable_errors": 0, "docsis_version": "3.0",
+             "health": "good", "health_detail": ""},
+        ]
+        second = [
+            {"channel_id": 1, "frequency": "114.0 MHz", "power": 5.2,
+             "modulation": "OFDM", "snr": 38.1, "correctable_errors": 692_254,
+             "uncorrectable_errors": 11, "docsis_version": "3.1",
+             "health": "good", "health_detail": ""},
+            {"channel_id": 2, "frequency": "130.0 MHz", "power": 4.8,
+             "modulation": "256QAM", "snr": 37.5, "correctable_errors": 25,
+             "uncorrectable_errors": 0, "docsis_version": "3.0",
+             "health": "good", "health_detail": ""},
+        ]
+        _insert_snapshot(storage, _make_analysis(ds_channels=first), _utc_ts(timedelta(minutes=2)))
+        _insert_snapshot(storage, _make_analysis(ds_channels=second), _utc_ts(timedelta(minutes=1)))
+
+        result = storage.get_multi_channel_history([1, 2], "ds", days=7)
+
+        assert [row["correctable_errors"] for row in result[1]] == [
+            4_294_495_351,
+            4_295_659_550,
+        ]
+        assert [row["correctable_errors"] for row in result[2]] == [20, 25]
+
     def test_string_channel_id_matches(self, storage):
         """Drivers like Vodafone Station store channelID as string.
         Ensure channel history still matches when channel_id is stored as str."""
