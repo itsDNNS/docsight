@@ -9,7 +9,7 @@ and do not change any public API, config key, DB schema, or wire format.
 
 from __future__ import annotations
 
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 
 # ── Raw DOCSIS Channel (driver output, pre-analysis) ────────────
@@ -159,12 +159,16 @@ class SignalFamilyModulation(TypedDict):
     health: str
 
 
+SignalFamilyHealthCause = Literal["power", "snr", "mer", "modulation"]
+
+
 class SignalFamilySummary(TypedDict, total=False):
     """Summary for one DOCSIS signal family on the Home dashboard."""
 
     family: str
     count: int
     health: str
+    health_cause: SignalFamilyHealthCause | None
     power: SignalFamilyMetric
     snr: SignalFamilyMetric
     mer: SignalFamilyMetric

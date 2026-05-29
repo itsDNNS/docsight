@@ -125,7 +125,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v39';" in sw_js
+    assert "var CACHE_VERSION = 'v40';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -148,7 +148,9 @@ def test_home_signal_family_modulation_rows_stack_below_status():
     start = css.index(".dashboard-view .metrics-grid .metric-modulation-row")
     block = css[start : css.index(".dashboard-view .metrics-grid .metric-context", start)]
 
-    assert "display: block" in block
+    assert "display: flex" in block
+    assert "align-items: baseline" in block
+    assert "gap: 6px" in block
     assert "clear: both" in block
     assert "width: 100%" in block
 

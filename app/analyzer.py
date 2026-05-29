@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import Literal
 
-from .types import AnalysisResult, DocsisData
+from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
 from .tz import utc_now, _parse_utc
 
 log = logging.getLogger("docsis.analyzer")
@@ -595,7 +596,7 @@ def _classify_us_family(channel):
 def _family_summary(family, channels, *, direction):
     # The analyzer normalizes downstream OFDM MER into the per-channel `snr` slot;
     # expose it as `mer` at the family-summary boundary so Home labels stay honest.
-    quality_key = "mer" if direction == "downstream" and family == "ofdm" else "snr"
+    quality_key: Literal["snr", "mer"] = "mer" if direction == "downstream" and family == "ofdm" else "snr"
     prefer_profile = family in {"ofdm", "ofdma"}
     power = _stats([channel.get("power") for channel in channels])
     quality = _stats([channel.get("snr") for channel in channels]) if direction == "downstream" else None
@@ -618,10 +619,24 @@ def _family_summary(family, channels, *, direction):
     if direction == "downstream":
         metrics.append(quality_health)
 
+    family_health = _worst_health(metrics)
+    # Surface the most useful hidden cause first: modulation degradations are
+    # otherwise easy to miss on power/SNR/MER cards, followed by power, then
+    # downstream quality.
+    health_cause: SignalFamilyHealthCause | None = None
+    if family_health not in {"good", "missing"}:
+        if modulation_health == family_health:
+            health_cause = "modulation"
+        elif power_health == family_health:
+            health_cause = "power"
+        elif direction == "downstream" and quality_health == family_health:
+            health_cause = quality_key
+
     result = {
         "family": family,
         "count": len(channels),
-        "health": _worst_health(metrics),
+        "health": family_health,
+        "health_cause": health_cause,
         "power": {**power, "health": power_health},
         "modulation": {
             "available": bool(modulation_values),

@@ -461,21 +461,63 @@ class TestIndexRoute:
         assert "DS POWER AVG" not in html
         assert "US POWER AVG" not in html
 
-    def test_home_signal_family_card_status_uses_displayed_average_health(self, client, sample_analysis):
+    def test_home_signal_family_card_status_uses_composite_health_with_hidden_cause(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
-        ofdm_power = sample_analysis["summary"]["signal_families"]["downstream"]["families"]["ofdm"]["power"]
-        ofdm_power.update({"avg": 0.6, "min": -7.8, "max": 9.0, "health": "critical"})
-        sample_analysis["summary"]["ds_ofdm_power_avg"] = 0.6
+        ofdma = sample_analysis["summary"]["signal_families"]["upstream"]["families"]["ofdma"]
+        ofdma["health"] = "critical"
+        ofdma["health_cause"] = "modulation"
+        ofdma["power"].update({"available": True, "avg": 49.5, "min": 49.5, "max": 49.5, "health": "warning"})
+        ofdma["modulation"].update({"value": "32QAM", "distinct": ["32QAM"], "health": "critical"})
+        sample_analysis["summary"]["us_ofdma_power_avg"] = 49.5
         update_state(analysis=sample_analysis)
 
         resp = client.get("/?lang=en")
 
         assert resp.status_code == 200
-        card = _element_by_id(resp.get_data(as_text=True), "metric-ds-ofdm-power-card")
-        assert "0.6<span class=\"unit\">dBmV</span>" in card
-        assert "badge badge-good" in card
-        assert "badge badge-critical" not in card
-        assert "--metric-range-accent: var(--good);" in card
+        card = _element_by_id(resp.get_data(as_text=True), "metric-us-ofdma-card")
+        assert "49.5<span class=\"unit\">dBmV</span>" in card
+        assert "style=\"color:var(--warn);\"" in card
+        status_row = card[card.index('<div class="metric-sub metric-status-row">'):]
+        status_row = status_row[:status_row.index("</div>")]
+        assert "badge badge-critical" in status_row
+        assert "Modulation" in status_row
+        assert "--metric-range-accent: var(--warn);" in card
+
+    def test_home_signal_family_modulation_row_shows_own_health(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        ofdma = sample_analysis["summary"]["signal_families"]["upstream"]["families"]["ofdma"]
+        ofdma["health"] = "critical"
+        ofdma["health_cause"] = "modulation"
+        ofdma["power"].update({"available": True, "avg": 49.5, "min": 49.5, "max": 49.5, "health": "warning"})
+        ofdma["modulation"].update({"value": "32QAM", "distinct": ["32QAM"], "health": "critical"})
+        sample_analysis["summary"]["us_ofdma_power_avg"] = 49.5
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        card = _element_by_id(resp.get_data(as_text=True), "metric-us-ofdma-card")
+        modulation_row = card[card.index('<div class="metric-sub metric-modulation-row">'):]
+        modulation_row = modulation_row[:modulation_row.index("</div>")]
+        assert "Modulation: 32QAM" in modulation_row
+        assert "badge badge-critical" in modulation_row
+        assert "style=\"color:var(--crit);\"" in modulation_row
+
+    def test_home_signal_family_card_omits_cause_when_status_matches_visible_metric(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        ofdm = sample_analysis["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        ofdm["health"] = "warning"
+        ofdm["health_cause"] = "mer"
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        card = _element_by_id(resp.get_data(as_text=True), "metric-ds-ofdm-mer-card")
+        status_row = card[card.index('<div class="metric-sub metric-status-row">'):]
+        status_row = status_row[:status_row.index("</div>")]
+        assert "badge badge-warning" in status_row
+        assert "MER" not in status_row
 
     def test_home_signal_family_cards_show_metric_health_bars(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
@@ -529,7 +571,7 @@ class TestIndexRoute:
         assert "64QAM" in scqam_card
         assert "US POWER (OFDMA)" in ofdma_card
         assert "Unavailable<span class=\"unit\">dBmV</span>" in ofdma_card
-        assert "badge badge-missing" in ofdma_card
+        assert "badge badge-warning" in ofdma_card
 
     def test_home_family_cards_expose_family_sparkline_keys(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)

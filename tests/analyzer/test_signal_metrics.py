@@ -483,6 +483,69 @@ class TestSignalFamilySummaries:
         assert upstream["ofdma"]["modulation"]["value"] == "64QAM"
         assert upstream["ofdma"]["modulation"]["health"] == "warning"
 
+    def test_upstream_ofdma_family_health_surfaces_critical_modulation_cause(self):
+        us_ofdma = {
+            "channelID": 5,
+            "frequency": "30-65 MHz",
+            "type": "OFDMA",
+            "powerLevel": "49.5",
+            "profile_modulation": "32QAM",
+        }
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[us_ofdma],
+        )
+
+        result = analyze(data)
+
+        ofdma = result["summary"]["signal_families"]["upstream"]["families"]["ofdma"]
+        assert ofdma["power"]["health"] == "warning"
+        assert ofdma["modulation"]["health"] == "critical"
+        assert ofdma["health"] == "critical"
+        assert ofdma["health_cause"] == "modulation"
+
+    def test_downstream_family_health_cause_is_none_when_all_metrics_are_good(self):
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+
+        result = analyze(data)
+
+        sc_qam = result["summary"]["signal_families"]["downstream"]["families"]["sc_qam"]
+        assert sc_qam["health"] == "good"
+        assert sc_qam["health_cause"] is None
+
+    def test_downstream_sc_qam_family_health_surfaces_snr_cause(self):
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-25")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+
+        result = analyze(data)
+
+        sc_qam = result["summary"]["signal_families"]["downstream"]["families"]["sc_qam"]
+        assert sc_qam["power"]["health"] == "good"
+        assert sc_qam["snr"]["health"] == "critical"
+        assert sc_qam["modulation"]["health"] == "good"
+        assert sc_qam["health"] == "critical"
+        assert sc_qam["health_cause"] == "snr"
+
+    def test_downstream_ofdm_family_health_surfaces_mer_cause(self):
+        data = _make_data(
+            ds31=[_make_ds31(100, power=5.0, mer="35.0")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+
+        result = analyze(data)
+
+        ofdm = result["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        assert ofdm["power"]["health"] == "good"
+        assert ofdm["mer"]["health"] == "critical"
+        assert ofdm["modulation"]["health"] == "good"
+        assert ofdm["health"] == "critical"
+        assert ofdm["health_cause"] == "mer"
+
 
 # -- Upstream bitrate calculation --
 

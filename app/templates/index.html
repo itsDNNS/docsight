@@ -724,8 +724,23 @@
     {% macro signal_family_card(card_id, label, family, metric_key, metric_unit, metric_label, spark_key, icon_class, icon_name, range_data=None, glossary_text=None, spark_color=None) -%}
         {% set metric = family.get(metric_key, {}) %}
         {% set modulation = family.get('modulation', {}) %}
-        {% set raw_health = range_data.health if range_data and range_data.health is defined else metric.get('health', family.get('health', 'missing')) %}
+        {% set raw_health = family.get('health', metric.get('health', 'missing')) %}
         {% set health_class = 'crit' if raw_health == 'critical' else ('warn' if raw_health == 'warning' else ('muted' if raw_health == 'missing' else raw_health)) %}
+        {% set metric_raw_health = range_data.health if range_data and range_data.health is defined else metric.get('health', raw_health) %}
+        {% set metric_health_class = 'crit' if metric_raw_health == 'critical' else ('warn' if metric_raw_health == 'warning' else ('muted' if metric_raw_health == 'missing' else metric_raw_health)) %}
+        {% set modulation_raw_health = modulation.get('health', 'missing') %}
+        {% set modulation_health_class = 'crit' if modulation_raw_health == 'critical' else ('warn' if modulation_raw_health == 'warning' else ('muted' if modulation_raw_health == 'missing' else modulation_raw_health)) %}
+        {% set health_cause = family.get('health_cause') %}
+        {% set health_cause_label = none %}
+        {% if health_cause == 'modulation' and metric_key != 'modulation' %}
+            {% set health_cause_label = t.get('signal_family_modulation_label', 'Modulation') %}
+        {% elif health_cause == 'power' and metric_key != 'power' %}
+            {% set health_cause_label = t.get('signal_family_metric_power', 'Power') %}
+        {% elif health_cause == 'snr' and metric_key != 'snr' %}
+            {% set health_cause_label = t.get('signal_family_metric_snr', 'SNR') %}
+        {% elif health_cause == 'mer' and metric_key != 'mer' %}
+            {% set health_cause_label = t.get('signal_family_metric_mer', 'MER') %}
+        {% endif %}
         {% set metric_value = metric.get('avg') %}
         {% set family_count = family.get('count', 0) %}
         <div class="metric-card glass" id="{{ card_id }}">
@@ -735,7 +750,7 @@
                 <div class="metric-icon {{ icon_class }}"><i data-lucide="{{ icon_name }}"></i></div>
             </div>
             <div class="metric-value-row">
-                <div class="metric-value" style="color:var(--{{ health_class }});">{% if metric_value is not none %}{{ metric_value }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% else %}{{ t.get('signal_family_unavailable', 'Unavailable') }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% endif %}</div>
+                <div class="metric-value" style="color:var(--{{ metric_health_class }});">{% if metric_value is not none %}{{ metric_value }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% else %}{{ t.get('signal_family_unavailable', 'Unavailable') }}<span class="unit">{% if metric_unit %}{{ metric_unit }}{% endif %}{% if metric_label %} {{ metric_label }}{% endif %}</span>{% endif %}</div>
                 <canvas class="metric-spark" id="spark-{{ card_id|replace('metric-', '') }}" data-spark-key="{{ spark_key }}"{% if spark_color %} data-spark-color="{{ spark_color }}"{% endif %} width="144" height="56" aria-hidden="true"></canvas>
             </div>
             {% if metric_value is not none and family_count %}
@@ -747,17 +762,19 @@
                 <span class="metric-context">
                     <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
                     <span class="badge badge-{{ raw_health }} badge-{{ health_class }}">{{ health_labels.get(raw_health, health_labels.get(health_class, raw_health|title)) }}</span>
+                    {% if health_cause_label %}<span class="metric-status-cause">· {{ health_cause_label }}</span>{% endif %}
                 </span>
             </div>
             {% if modulation.get('value') %}
             <div class="metric-sub metric-modulation-row">
-                <span class="range">{{ t.get('signal_family_modulation_label', 'Modulation') }}: {{ modulation.get('value') }}{% if modulation.get('secondary') %} — {{ modulation.get('secondary') }}{% endif %}</span>
+                <span class="range" style="color:var(--{{ modulation_health_class }});">{{ t.get('signal_family_modulation_label', 'Modulation') }}: {{ modulation.get('value') }}{% if modulation.get('secondary') %} — {{ modulation.get('secondary') }}{% endif %}</span>
+                <span class="badge badge-{{ modulation_raw_health }} badge-{{ modulation_health_class }}">{{ health_labels.get(modulation_raw_health, health_labels.get(modulation_health_class, modulation_raw_health|title)) }}</span>
             </div>
             {% endif %}
             {% if metric_value is not none and range_data %}
             {% set metric_min = metric.get('min') if metric.get('min') is not none else metric_value %}
             {% set metric_max = metric.get('max') if metric.get('max') is not none else metric_value %}
-            {{ metric_range_viz(range_data, range_data.health if range_data.health is defined else health_class, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), metric_min ~ ' — ' ~ metric_max) }}
+            {{ metric_range_viz(range_data, range_data.health if range_data.health is defined else metric_health_class, health_labels.good, t.get('metric_channel_span', 'Channel min-max'), metric_min ~ ' — ' ~ metric_max) }}
             {% endif %}
         </div>
     {%- endmacro %}

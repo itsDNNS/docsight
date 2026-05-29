@@ -1627,6 +1627,13 @@ body:has(#view-dashboard.active) .app-main {
   min-height: 22px;
 }
 
+.dashboard-view .metrics-grid .metric-status-cause {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  line-height: 1;
+  margin-left: 4px;
+}
+
 .dashboard-view .metrics-grid .metric-average-row {
   margin-top: 6px;
   min-height: 18px;
@@ -1639,7 +1646,9 @@ body:has(#view-dashboard.active) .app-main {
 }
 
 .dashboard-view .metrics-grid .metric-modulation-row {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   clear: both;
   width: 100%;
   margin-top: 4px;
