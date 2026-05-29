@@ -9,6 +9,10 @@ from typing import cast
 
 from ..types import AnalysisResult
 from ..tz import local_date_to_utc_range, utc_cutoff, utc_now
+from .error_counters import unwrap_uint32_counter_series
+
+
+_SUMMARY_ERROR_KEYS = ("ds_correctable_errors", "ds_uncorrectable_errors")
 
 log = logging.getLogger("docsis.storage")
 
@@ -98,6 +102,10 @@ class SnapshotMixin:
                 "us_channels": json.loads(row[3]),
             }
             results.append(entry)
+        unwrap_uint32_counter_series(
+            (entry["summary"] for entry in results),
+            _SUMMARY_ERROR_KEYS,
+        )
         return results
 
     def get_intraday_data(self, date):
@@ -117,6 +125,7 @@ class SnapshotMixin:
             entry = {"timestamp": row[0]}
             entry.update(_normalize_summary_errors(json.loads(row[1])))
             results.append(entry)
+        unwrap_uint32_counter_series(results, _SUMMARY_ERROR_KEYS)
         return results
 
     def _summary_rows_to_entries(self, rows):
@@ -125,6 +134,7 @@ class SnapshotMixin:
             entry = {"timestamp": row[0]}
             entry.update(_normalize_summary_errors(json.loads(row[1])))
             results.append(entry)
+        unwrap_uint32_counter_series(results, _SUMMARY_ERROR_KEYS)
         return results
 
     def get_summary_since(self, hours):
