@@ -39,6 +39,7 @@ SEGMENT_UTILIZATION_JS = ROOT / "app" / "static" / "js" / "segment-utilization.j
 BQM_CHART_JS = ROOT / "app" / "modules" / "bqm" / "static" / "js" / "bqm-chart.js"
 COMPARISON_MAIN_JS = ROOT / "app" / "modules" / "comparison" / "static" / "main.js"
 UTILS_JS = ROOT / "app" / "static" / "js" / "utils.js"
+JOURNAL_JS = ROOT / "app" / "static" / "js" / "journal.js"
 
 
 def test_report_pdf_download_preserves_customer_detail_params():
@@ -50,6 +51,17 @@ def test_report_pdf_download_preserves_customer_detail_params():
     assert "params.set('address', document.getElementById('report-address').value)" in download_block
     assert "new URLSearchParams()" in download_block
     assert "params.toString()" in download_block
+
+
+def test_incident_pdf_download_preserves_customer_detail_params():
+    js = JOURNAL_JS.read_text(encoding="utf-8")
+    download_block = js[js.index("window.downloadIncidentPdf") : js.index("function renderIncidentTimeline")]
+
+    assert "new URLSearchParams()" in download_block
+    assert "params.set('name', nameInput.value)" in download_block
+    assert "params.set('number', numberInput.value)" in download_block
+    assert "params.set('address', addressInput.value)" in download_block
+    assert "'/api/incidents/' + incidentId + '/report?' + params.toString()" in download_block
 
 
 def test_correlation_timeline_sticky_header_uses_opaque_surface():
@@ -125,7 +137,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v40';" in sw_js
+    assert "var CACHE_VERSION = 'v41';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js

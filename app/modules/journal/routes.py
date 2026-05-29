@@ -655,10 +655,16 @@ def api_incident_report(incident_id):
 
     conn_info = get_state().get("connection_info") or {}
     lang = _get_lang()
+    customer_name = request.args.get("name", "")
+    customer_number = request.args.get("number", "")
+    customer_address = request.args.get("address", "")
 
     pdf_bytes = generate_incident_report(
         incident, entries, snapshots, speedtests, bnetz,
         config, conn_info, lang,
+        customer_name=customer_name,
+        customer_number=customer_number,
+        customer_address=customer_address,
         attachment_loader=_storage.get_attachment,
     )
 

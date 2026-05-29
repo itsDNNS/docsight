@@ -1010,8 +1010,17 @@ window.closeIncidentTimeline = function() {
 window.downloadIncidentPdf = function(incidentId, incidentName) {
     var btn = document.querySelector('.incident-timeline-pdf-btn');
     var origHtml = btn ? btn.innerHTML : '';
+    var params = new URLSearchParams();
+    var langInput = document.getElementById('report-lang');
+    var nameInput = document.getElementById('report-name');
+    var numberInput = document.getElementById('report-number');
+    var addressInput = document.getElementById('report-address');
+    if (langInput) params.set('lang', langInput.value);
+    if (nameInput) params.set('name', nameInput.value);
+    if (numberInput) params.set('number', numberInput.value);
+    if (addressInput) params.set('address', addressInput.value);
     if (btn) { btn.disabled = true; btn.textContent = '\u23F3'; }
-    fetch('/api/incidents/' + incidentId + '/report')
+    fetch('/api/incidents/' + incidentId + '/report?' + params.toString())
         .then(function(r) {
             if (!r.ok) throw new Error('Failed');
             return r.blob();

@@ -9,7 +9,7 @@ from pypdf import PdfReader
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.modules.reports.report import (
-    generate_report, generate_complaint_text,
+    generate_report, generate_incident_report, generate_complaint_text,
     _compute_worst_values, _find_worst_channels,
     _format_threshold_table, _default_warn_thresholds,
 )
@@ -253,6 +253,41 @@ def test_generate_report_embeds_customer_details_in_complaint_closing():
     pdf = generate_report(
         MOCK_SNAPSHOTS,
         MOCK_ANALYSIS,
+        lang="de",
+        customer_name="Max Mustermann",
+        customer_number="KD-123456",
+        customer_address="Musterstraße 1\n12345 Musterstadt",
+    )
+    text = "\n".join(
+        page.extract_text() or ""
+        for page in PdfReader(io.BytesIO(pdf)).pages
+    )
+
+    assert "Max Mustermann" in text
+    assert "KD-123456" in text
+    assert "Musterstraße 1" in text
+    assert "12345 Musterstadt" in text
+    assert "[Ihr Name]" not in text
+    assert "[Kundennummer]" not in text
+    assert "[Adresse]" not in text
+
+
+def test_generate_incident_report_embeds_customer_details_in_complaint_closing():
+    incident = {
+        "name": "Repeated outages",
+        "status": "open",
+        "description": "Recurring signal loss during the evening.",
+        "start_date": "2026-05-01",
+        "end_date": "2026-05-03",
+    }
+    pdf = generate_incident_report(
+        incident,
+        entries=[],
+        snapshots=MOCK_SNAPSHOTS,
+        speedtests=[],
+        bnetz_list=[],
+        config={"isp_name": "Vodafone", "modem_type": "FRITZ!Box 6690"},
+        connection_info={"max_downstream_kbps": 1000000, "max_upstream_kbps": 50000},
         lang="de",
         customer_name="Max Mustermann",
         customer_number="KD-123456",

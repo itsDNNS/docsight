@@ -169,6 +169,32 @@ def test_incident_modal_and_summary_offer_report_path(demo_page):
     expect(summary.get_by_role("button", name="Build report")).to_be_visible()
 
 
+def test_incident_report_pdf_download_preserves_customer_details_e2e(demo_page):
+    """Incident PDF download keeps customer fields entered in the report builder."""
+    demo_page.route(
+        "**/api/incidents/381/report?**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/pdf",
+            body="%PDF-1.4\n%%EOF",
+        ),
+    )
+
+    demo_page.locator("#report-link").click()
+    modal = demo_page.locator("#report-modal")
+    modal.locator("#report-name").fill("Max Mustermann")
+    modal.locator("#report-number").fill("KD-123456")
+    modal.locator("#report-address").fill("Musterstraße 1, 12345 Musterstadt")
+
+    with demo_page.expect_request("**/api/incidents/381/report?**") as report_request:
+        demo_page.evaluate("downloadIncidentPdf(381, 'Packet loss evening window')")
+
+    params = parse_qs(urlparse(report_request.value.url).query)
+    assert params["name"] == ["Max Mustermann"]
+    assert params["number"] == ["KD-123456"]
+    assert params["address"] == ["Musterstraße 1, 12345 Musterstadt"]
+
+
 def test_report_modal_frames_isp_ready_evidence_builder(demo_page):
     """The report modal previews evidence contents, privacy expectations, and output actions before generation."""
     demo_page.locator("#report-link").click()

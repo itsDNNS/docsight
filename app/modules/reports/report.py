@@ -771,6 +771,7 @@ def generate_report(
 
 def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_list,
                               config=None, connection_info=None, lang="en",
+                              customer_name="", customer_number="", customer_address="",
                               attachment_loader=None):
     """Generate PDF complaint report scoped to a specific incident.
 
@@ -783,6 +784,9 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
         config: Config dict (isp_name, modem_type)
         connection_info: Connection info dict
         lang: Language code
+        customer_name: Customer name for the embedded complaint letter
+        customer_number: Customer/contract number for the embedded complaint letter
+        customer_address: Customer address for the embedded complaint letter
         attachment_loader: Optional callable(attachment_id) -> dict with 'data', 'mime_type'
 
     Returns:
@@ -1075,7 +1079,8 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
         if has_dev:
             complaint += s.get("complaint_bnetz_legal", "") + "\n\n"
 
-    complaint += f"{s['complaint_escalation']}\n\n{s['complaint_closing']}"
+    complaint_closing = _format_customer_closing(s, customer_name, customer_number, customer_address)
+    complaint += f"{s['complaint_escalation']}\n\n{complaint_closing}"
 
     pdf.multi_cell(0, 4, complaint)
 
