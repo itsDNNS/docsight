@@ -730,6 +730,7 @@
         {% set metric_health_class = 'crit' if metric_raw_health == 'critical' else ('warn' if metric_raw_health == 'warning' else ('muted' if metric_raw_health == 'missing' else metric_raw_health)) %}
         {% set modulation_health = modulation.get('health', 'missing') %}
         {% set modulation_health_class = 'crit' if modulation_health == 'critical' else ('warn' if modulation_health == 'warning' else ('muted' if modulation_health == 'missing' else modulation_health)) %}
+        {% set modulation_values = modulation.get('values') %}
         {% set metric_value = metric.get('avg') %}
         {% set family_count = family.get('count', 0) %}
         <div class="metric-card glass" id="{{ card_id }}">
@@ -756,7 +757,18 @@
             {% if modulation.get('value') %}
             <div class="metric-sub metric-modulation-row">
                 <span class="metric-sub-label">{{ t.get('signal_family_modulation_label', 'Modulation') }}:</span>
-                <span class="range" style="color:var(--{{ modulation_health_class }});">{{ modulation.get('value') }}{% if modulation.get('secondary') %} — {{ modulation.get('secondary') }}{% endif %}</span>
+                {% if modulation_values %}
+                    {% for modulation_value in modulation_values %}
+                        {% set value_raw_health = modulation_value.get('health', modulation_health) %}
+                        {% set value_health_class = 'crit' if value_raw_health == 'critical' else ('warn' if value_raw_health == 'warning' else ('muted' if value_raw_health == 'missing' else value_raw_health)) %}
+                        {% if not loop.first %}<span class="metric-sub-label metric-modulation-separator">—</span>{% endif %}
+                        <span class="range metric-modulation-value" style="color:var(--{{ value_health_class }});">{{ modulation_value.get('value') }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="range metric-modulation-value" style="color:var(--{{ modulation_health_class }});">{{ modulation.get('value') }}</span>{% if modulation.get('secondary') %}
+                    <span class="metric-sub-label metric-modulation-separator">—</span>
+                    <span class="range metric-modulation-value" style="color:var(--{{ modulation_health_class }});">{{ modulation.get('secondary') }}</span>{% endif %}
+                {% endif %}
             </div>
             {% endif %}
             {% if metric_value is not none and range_data %}

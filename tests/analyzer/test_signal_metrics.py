@@ -504,6 +504,66 @@ class TestSignalFamilySummaries:
         assert ofdma["health"] == "critical"
         assert ofdma["health_cause"] == "modulation"
 
+    def test_upstream_sc_qam_family_keeps_health_per_distinct_modulation_value(self):
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[
+                _make_us30(1, power=42.0, modulation="4QAM"),
+                _make_us30(2, power=42.0, modulation="64QAM"),
+            ],
+        )
+
+        result = analyze(data)
+
+        sc_qam = result["summary"]["signal_families"]["upstream"]["families"]["sc_qam"]
+        assert sc_qam["modulation"]["value"] == "4QAM"
+        assert sc_qam["modulation"]["secondary"] == "64QAM"
+        assert sc_qam["modulation"]["health"] == "critical"
+        assert sc_qam["modulation"]["values"] == [
+            {"value": "4QAM", "health": "critical"},
+            {"value": "64QAM", "health": "good"},
+        ]
+
+    def test_modulation_value_healths_keep_worst_health_for_duplicate_values(self):
+        channels = [
+            {"modulation": "64QAM", "modulation_health": "good"},
+            {"modulation": "64QAM", "modulation_health": "warning"},
+        ]
+
+        values = analyzer._distinct_modulation_healths(channels)
+
+        assert values == [{"value": "64QAM", "health": "warning"}]
+
+    def test_upstream_ofdma_family_keeps_health_per_distinct_profile_modulation_value(self):
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us31=[
+                {
+                    "channelID": 5,
+                    "frequency": "30-65 MHz",
+                    "type": "OFDMA",
+                    "powerLevel": "49.5",
+                    "profile_modulation": "32QAM",
+                },
+                {
+                    "channelID": 6,
+                    "frequency": "65-85 MHz",
+                    "type": "OFDMA",
+                    "powerLevel": "49.0",
+                    "profile_modulation": "256QAM",
+                },
+            ],
+        )
+
+        result = analyze(data)
+
+        ofdma = result["summary"]["signal_families"]["upstream"]["families"]["ofdma"]
+        assert ofdma["modulation"]["health"] == "critical"
+        assert ofdma["modulation"]["values"] == [
+            {"value": "32QAM", "health": "critical"},
+            {"value": "256QAM", "health": "good"},
+        ]
+
     def test_downstream_family_health_cause_is_none_when_all_metrics_are_good(self):
         data = _make_data(
             ds30=[_make_ds30(1, power=2.0, mse="-35")],
