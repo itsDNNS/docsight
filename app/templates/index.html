@@ -728,19 +728,8 @@
         {% set health_class = 'crit' if raw_health == 'critical' else ('warn' if raw_health == 'warning' else ('muted' if raw_health == 'missing' else raw_health)) %}
         {% set metric_raw_health = range_data.health if range_data and range_data.health is defined else metric.get('health', raw_health) %}
         {% set metric_health_class = 'crit' if metric_raw_health == 'critical' else ('warn' if metric_raw_health == 'warning' else ('muted' if metric_raw_health == 'missing' else metric_raw_health)) %}
-        {% set modulation_raw_health = modulation.get('health', 'missing') %}
-        {% set modulation_health_class = 'crit' if modulation_raw_health == 'critical' else ('warn' if modulation_raw_health == 'warning' else ('muted' if modulation_raw_health == 'missing' else modulation_raw_health)) %}
-        {% set health_cause = family.get('health_cause') %}
-        {% set health_cause_label = none %}
-        {% if health_cause == 'modulation' and metric_key != 'modulation' %}
-            {% set health_cause_label = t.get('signal_family_modulation_label', 'Modulation') %}
-        {% elif health_cause == 'power' and metric_key != 'power' %}
-            {% set health_cause_label = t.get('signal_family_metric_power', 'Power') %}
-        {% elif health_cause == 'snr' and metric_key != 'snr' %}
-            {% set health_cause_label = t.get('signal_family_metric_snr', 'SNR') %}
-        {% elif health_cause == 'mer' and metric_key != 'mer' %}
-            {% set health_cause_label = t.get('signal_family_metric_mer', 'MER') %}
-        {% endif %}
+        {% set modulation_health = modulation.get('health', 'missing') %}
+        {% set modulation_health_class = 'crit' if modulation_health == 'critical' else ('warn' if modulation_health == 'warning' else ('muted' if modulation_health == 'missing' else modulation_health)) %}
         {% set metric_value = metric.get('avg') %}
         {% set family_count = family.get('count', 0) %}
         <div class="metric-card glass" id="{{ card_id }}">
@@ -762,13 +751,11 @@
                 <span class="metric-context">
                     <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
                     <span class="badge badge-{{ raw_health }} badge-{{ health_class }}">{{ health_labels.get(raw_health, health_labels.get(health_class, raw_health|title)) }}</span>
-                    {% if health_cause_label %}<span class="metric-status-cause">· {{ health_cause_label }}</span>{% endif %}
                 </span>
             </div>
             {% if modulation.get('value') %}
             <div class="metric-sub metric-modulation-row">
-                <span class="range" style="color:var(--{{ modulation_health_class }});">{{ t.get('signal_family_modulation_label', 'Modulation') }}: {{ modulation.get('value') }}{% if modulation.get('secondary') %} — {{ modulation.get('secondary') }}{% endif %}</span>
-                <span class="badge badge-{{ modulation_raw_health }} badge-{{ modulation_health_class }}">{{ health_labels.get(modulation_raw_health, health_labels.get(modulation_health_class, modulation_raw_health|title)) }}</span>
+                <span class="range" style="color:var(--{{ modulation_health_class }});">{{ modulation.get('value') }}{% if modulation.get('secondary') %} — {{ modulation.get('secondary') }}{% endif %}</span>
             </div>
             {% endif %}
             {% if metric_value is not none and range_data %}
