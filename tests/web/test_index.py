@@ -461,7 +461,7 @@ class TestIndexRoute:
         assert "DS POWER AVG" not in html
         assert "US POWER AVG" not in html
 
-    def test_home_signal_family_card_status_uses_composite_health_with_hidden_cause(self, client, sample_analysis):
+    def test_home_signal_family_card_status_uses_composite_health_without_cause_suffix(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
         ofdma = sample_analysis["summary"]["signal_families"]["upstream"]["families"]["ofdma"]
         ofdma["health"] = "critical"
@@ -480,16 +480,17 @@ class TestIndexRoute:
         status_row = card[card.index('<div class="metric-sub metric-status-row">'):]
         status_row = status_row[:status_row.index("</div>")]
         assert "badge badge-critical" in status_row
-        assert "Modulation" in status_row
+        assert "metric-status-cause" not in status_row
+        assert "Modulation" not in status_row
         assert "--metric-range-accent: var(--warn);" in card
 
-    def test_home_signal_family_modulation_row_shows_own_health(self, client, sample_analysis):
+    def test_home_signal_family_modulation_row_shows_values_without_label_or_second_status_pill(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
         ofdma = sample_analysis["summary"]["signal_families"]["upstream"]["families"]["ofdma"]
         ofdma["health"] = "critical"
         ofdma["health_cause"] = "modulation"
         ofdma["power"].update({"available": True, "avg": 49.5, "min": 49.5, "max": 49.5, "health": "warning"})
-        ofdma["modulation"].update({"value": "32QAM", "distinct": ["32QAM"], "health": "critical"})
+        ofdma["modulation"].update({"value": "32QAM", "secondary": "16QAM", "distinct": ["32QAM", "16QAM"], "health": "critical"})
         sample_analysis["summary"]["us_ofdma_power_avg"] = 49.5
         update_state(analysis=sample_analysis)
 
@@ -499,8 +500,9 @@ class TestIndexRoute:
         card = _element_by_id(resp.get_data(as_text=True), "metric-us-ofdma-card")
         modulation_row = card[card.index('<div class="metric-sub metric-modulation-row">'):]
         modulation_row = modulation_row[:modulation_row.index("</div>")]
-        assert "Modulation: 32QAM" in modulation_row
-        assert "badge badge-critical" in modulation_row
+        assert "32QAM — 16QAM" in modulation_row
+        assert "Modulation:" not in modulation_row
+        assert "badge badge-critical" not in modulation_row
         assert "style=\"color:var(--crit);\"" in modulation_row
 
     def test_home_signal_family_card_omits_cause_when_status_matches_visible_metric(self, client, sample_analysis):
