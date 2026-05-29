@@ -484,7 +484,7 @@ class TestIndexRoute:
         assert "Modulation" not in status_row
         assert "--metric-range-accent: var(--warn);" in card
 
-    def test_home_signal_family_modulation_row_shows_values_without_label_or_second_status_pill(self, client, sample_analysis):
+    def test_home_signal_family_modulation_row_shows_plain_label_and_colored_values_without_second_status_pill(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
         ofdma = sample_analysis["summary"]["signal_families"]["upstream"]["families"]["ofdma"]
         ofdma["health"] = "critical"
@@ -500,10 +500,10 @@ class TestIndexRoute:
         card = _element_by_id(resp.get_data(as_text=True), "metric-us-ofdma-card")
         modulation_row = card[card.index('<div class="metric-sub metric-modulation-row">'):]
         modulation_row = modulation_row[:modulation_row.index("</div>")]
-        assert "32QAM — 16QAM" in modulation_row
-        assert "Modulation:" not in modulation_row
+        assert '<span class="metric-sub-label">Modulation:</span>' in modulation_row
+        assert '<span class="range" style="color:var(--crit);">32QAM — 16QAM</span>' in modulation_row
+        assert '<span class="range" style="color:var(--crit);">Modulation:' not in modulation_row
         assert "badge badge-critical" not in modulation_row
-        assert "style=\"color:var(--crit);\"" in modulation_row
 
     def test_home_signal_family_card_omits_cause_when_status_matches_visible_metric(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)

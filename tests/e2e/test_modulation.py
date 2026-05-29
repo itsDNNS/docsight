@@ -71,7 +71,10 @@ class TestModulationNavigation:
             modulation_row = card.locator(".metric-modulation-row")
             expect(modulation_row).to_be_visible()
             expect(modulation_row.locator(".badge")).to_have_count(0)
-            expect(modulation_row).not_to_contain_text("Modulation:")
+            expect(modulation_row.locator(".metric-sub-label")).to_have_text("Modulation:")
+            value = modulation_row.locator(".range")
+            expect(value).to_contain_text("QAM")
+            expect(value).not_to_contain_text("Modulation:")
 
     def test_home_family_kpis_share_hero_without_modulation_card(self, page, live_server):
         page.set_viewport_size({"width": 1280, "height": 900})

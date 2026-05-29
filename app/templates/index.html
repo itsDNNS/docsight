@@ -755,6 +755,7 @@
             </div>
             {% if modulation.get('value') %}
             <div class="metric-sub metric-modulation-row">
+                <span class="metric-sub-label">{{ t.get('signal_family_modulation_label', 'Modulation') }}:</span>
                 <span class="range" style="color:var(--{{ modulation_health_class }});">{{ modulation.get('value') }}{% if modulation.get('secondary') %} — {{ modulation.get('secondary') }}{% endif %}</span>
             </div>
             {% endif %}
