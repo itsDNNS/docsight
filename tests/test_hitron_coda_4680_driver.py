@@ -4,6 +4,7 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from app.analyzer import analyze
 from app.drivers import driver_registry
@@ -142,6 +143,14 @@ def make_response(payload=None):
     return resp
 
 
+def make_http_error_response(status_code=403):
+    resp = MagicMock(status_code=status_code)
+    error = requests.HTTPError(f"{status_code} Client Error")
+    error.response = resp
+    resp.raise_for_status.side_effect = error
+    return resp
+
+
 @pytest.fixture
 def driver():
     return HitronCoda4680Driver("http://192.168.100.1", "username", "secret")
@@ -160,7 +169,14 @@ class TestLogin:
             "username": "username",
             "password": "secret",
         }
-        fetch.assert_called_once_with("/1/Device/CM/Version", raise_on_error=True)
+        fetch.assert_called_once_with("/1/Device/CM/Version", raise_on_error=True, allow_reauth=False)
+
+    def test_login_accepts_empty_object_body_after_version_check(self, driver):
+        with patch.object(driver._session, "post", return_value=make_response({})):
+            with patch.object(driver, "_fetch_payload", return_value=VERSION) as fetch:
+                driver.login()
+
+        fetch.assert_called_once_with("/1/Device/CM/Version", raise_on_error=True, allow_reauth=False)
 
     def test_login_fails_when_post_login_version_check_fails(self, driver):
         with patch.object(driver._session, "post", return_value=make_response(None)):
@@ -171,6 +187,11 @@ class TestLogin:
     def test_login_rejects_json_error_response(self, driver):
         with patch.object(driver._session, "post", return_value=make_response({"errCode": "101", "errMsg": "bad login"})):
             with pytest.raises(RuntimeError, match="bad login"):
+                driver.login()
+
+    def test_login_rejects_non_object_json_response(self, driver):
+        with patch.object(driver._session, "post", return_value=make_response(["not", "an", "object"])):
+            with pytest.raises(RuntimeError, match="login returned invalid JSON payload"):
                 driver.login()
 
 
@@ -235,6 +256,132 @@ class TestDocsisData:
         assert us_ofdma["frequency"] == ""
         assert us_ofdma["powerLevel"] == pytest.approx(52.6417)
         assert us_ofdma["multiplex"] == "OFDMA"
+
+    def test_ds_ofdm_unlocked_rows_are_ignored(self, driver):
+        rows = [
+            dict(DS_OFDM["OFDMs_List"][0], receive=0, plclock="NO"),
+            dict(DS_OFDM["OFDMs_List"][0], receive=1, plclock="YES"),
+        ]
+
+        channels = driver._parse_ds_ofdm(rows)
+
+        assert [channel["channelID"] for channel in channels] == [1]
+
+    def test_fetch_payload_returns_empty_for_non_object_json(self, driver):
+        with patch.object(driver._session, "get", return_value=make_response(["not", "an", "object"])):
+            assert driver._fetch_payload("/1/Device/CM/DsInfo") == {}
+
+    def test_fetch_payload_returns_empty_for_modem_error_code(self, driver):
+        with patch.object(
+            driver._session,
+            "get",
+            return_value=make_response({"errCode": "999", "errMsg": "temporary unavailable"}),
+        ):
+            assert driver._fetch_payload("/1/Device/CM/DsInfo") == {}
+
+    @pytest.mark.parametrize("err_code", ["401", "403"])
+    def test_fetch_payload_reauthenticates_once_after_auth_error_payload(self, driver, err_code):
+        with patch.object(
+            driver._session,
+            "get",
+            side_effect=[make_response({"errCode": err_code, "errMsg": "session expired"}), make_response(DS_INFO)],
+        ) as get:
+            with patch.object(driver, "login") as login:
+                payload = driver._fetch_payload("/1/Device/CM/DsInfo")
+
+        assert payload == DS_INFO
+        login.assert_called_once_with()
+        assert get.call_count == 2
+
+    def test_fetch_payload_does_not_loop_when_auth_error_payload_retry_also_expires(self, driver):
+        with patch.object(
+            driver._session,
+            "get",
+            side_effect=[
+                make_response({"errCode": "401", "errMsg": "session expired"}),
+                make_response({"errCode": "401", "errMsg": "session expired"}),
+            ],
+        ) as get:
+            with patch.object(driver, "login") as login:
+                payload = driver._fetch_payload("/1/Device/CM/DsInfo")
+
+        assert payload == {}
+        login.assert_called_once_with()
+        assert get.call_count == 2
+
+    def test_fetch_payload_strict_mode_raises_when_auth_error_payload_retry_also_expires(self, driver):
+        with patch.object(
+            driver._session,
+            "get",
+            side_effect=[
+                make_response({"errCode": "401", "errMsg": "session expired"}),
+                make_response({"errCode": "401", "errMsg": "session expired"}),
+            ],
+        ) as get:
+            with patch.object(driver, "login") as login:
+                with pytest.raises(RuntimeError, match="/1/Device/CM/Version failed: session expired"):
+                    driver._fetch_payload("/1/Device/CM/Version", raise_on_error=True)
+
+        login.assert_called_once_with()
+        assert get.call_count == 2
+
+    @pytest.mark.parametrize("status_code", [401, 403])
+    def test_fetch_payload_reauthenticates_once_after_session_expiry(self, driver, status_code):
+        with patch.object(
+            driver._session,
+            "get",
+            side_effect=[make_http_error_response(status_code), make_response(DS_INFO)],
+        ) as get:
+            with patch.object(driver, "login") as login:
+                payload = driver._fetch_payload("/1/Device/CM/DsInfo")
+
+        assert payload == DS_INFO
+        login.assert_called_once_with()
+        assert get.call_count == 2
+
+    def test_fetch_payload_does_not_loop_when_reauth_retry_also_expires(self, driver):
+        with patch.object(
+            driver._session,
+            "get",
+            side_effect=[make_http_error_response(403), make_http_error_response(403)],
+        ) as get:
+            with patch.object(driver, "login") as login:
+                payload = driver._fetch_payload("/1/Device/CM/DsInfo")
+
+        assert payload == {}
+        login.assert_called_once_with()
+        assert get.call_count == 2
+
+    def test_fetch_payload_strict_mode_raises_when_reauth_retry_also_expires(self, driver):
+        with patch.object(
+            driver._session,
+            "get",
+            side_effect=[make_http_error_response(403), make_http_error_response(403)],
+        ) as get:
+            with patch.object(driver, "login") as login:
+                with pytest.raises(RuntimeError, match="fetch /1/Device/CM/Version failed"):
+                    driver._fetch_payload("/1/Device/CM/Version", raise_on_error=True)
+
+        login.assert_called_once_with()
+        assert get.call_count == 2
+
+    def test_fetch_payload_returns_empty_when_reauth_login_fails(self, driver):
+        with patch.object(driver._session, "get", return_value=make_http_error_response(403)) as get:
+            with patch.object(driver, "login", side_effect=RuntimeError("bad credentials")) as login:
+                payload = driver._fetch_payload("/1/Device/CM/DsInfo")
+
+        assert payload == {}
+        login.assert_called_once_with()
+        get.assert_called_once()
+
+    def test_fetch_payload_strict_mode_raises_when_reauth_login_fails(self, driver):
+        with patch.object(driver._session, "get", return_value=make_http_error_response(403)) as get:
+            with patch.object(driver, "login", side_effect=RuntimeError("bad credentials")) as login:
+                with pytest.raises(RuntimeError, match="re-login before fetching /1/Device/CM/Version failed"):
+                    driver._fetch_payload("/1/Device/CM/Version", raise_on_error=True)
+
+        login.assert_called_once_with()
+        get.assert_called_once()
 
     def test_analyzer_accepts_coda_4680_null_counter_payload(self, driver):
         payloads = {

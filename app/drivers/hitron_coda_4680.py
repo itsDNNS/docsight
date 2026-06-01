@@ -56,13 +56,15 @@ class HitronCoda4680Driver(ModemDriver):
             raise RuntimeError(f"Hitron CODA-4680 login failed: {exc}") from exc
 
         body = self._json_body(resp)
-        if body:
+        if body is not None:
+            if not isinstance(body, dict):
+                raise RuntimeError("Hitron CODA-4680 login returned invalid JSON payload")
             self._ensure_ok(body, "login")
 
         # The login response can be an empty 200. Verify that the authenticated
         # session can read a protected endpoint before reporting success.
         self._device_info_cache = self._parse_device_info(
-            self._fetch_payload("/1/Device/CM/Version", raise_on_error=True)
+            self._fetch_payload("/1/Device/CM/Version", raise_on_error=True, allow_reauth=False)
         )
         log.info("Hitron CODA-4680 login OK")
 
@@ -108,7 +110,13 @@ class HitronCoda4680Driver(ModemDriver):
             "max_upstream_kbps": self._parse_rate_kbps(payload.get("UsDataRate")),
         }
 
-    def _fetch_payload(self, path: str, *, raise_on_error: bool = False) -> dict[str, Any]:
+    def _fetch_payload(
+        self,
+        path: str,
+        *,
+        raise_on_error: bool = False,
+        allow_reauth: bool = True,
+    ) -> dict[str, Any]:
         """Fetch and validate a JSON object endpoint."""
         try:
             resp = self._session.get(
@@ -117,6 +125,14 @@ class HitronCoda4680Driver(ModemDriver):
             )
             resp.raise_for_status()
             payload = self._json_body(resp)
+        except requests.HTTPError as exc:
+            if allow_reauth and self._is_auth_error(exc):
+                log.info("Hitron CODA-4680 session expired while fetching %s; retrying after login", path)
+                return self._retry_after_reauth(path, raise_on_error=raise_on_error)
+            if raise_on_error:
+                raise RuntimeError(f"Hitron CODA-4680 fetch {path} failed: {exc}") from exc
+            log.warning("Hitron CODA-4680 fetch %s failed: %s", path, exc)
+            return {}
         except requests.RequestException as exc:
             if raise_on_error:
                 raise RuntimeError(f"Hitron CODA-4680 fetch {path} failed: {exc}") from exc
@@ -128,9 +144,31 @@ class HitronCoda4680Driver(ModemDriver):
                 raise RuntimeError(f"Hitron CODA-4680 fetch {path} returned invalid JSON payload")
             log.warning("Hitron CODA-4680 fetch %s returned non-object payload", path)
             return {}
+        if allow_reauth and self._is_auth_payload(payload):
+            log.info("Hitron CODA-4680 endpoint %s returned an auth error; retrying after login", path)
+            return self._retry_after_reauth(path, raise_on_error=raise_on_error)
         if not self._ensure_ok(payload, path, raise_on_error=raise_on_error):
             return {}
         return payload
+
+    def _retry_after_reauth(self, path: str, *, raise_on_error: bool) -> dict[str, Any]:
+        try:
+            self.login()
+        except RuntimeError as exc:
+            if raise_on_error:
+                raise RuntimeError(f"Hitron CODA-4680 re-login before fetching {path} failed: {exc}") from exc
+            log.warning("Hitron CODA-4680 re-login before fetching %s failed: %s", path, exc)
+            return {}
+        return self._fetch_payload(path, raise_on_error=raise_on_error, allow_reauth=False)
+
+    @staticmethod
+    def _is_auth_error(exc: requests.HTTPError) -> bool:
+        response = getattr(exc, "response", None)
+        return getattr(response, "status_code", None) in {401, 403}
+
+    @staticmethod
+    def _is_auth_payload(payload: Any) -> bool:
+        return isinstance(payload, dict) and str(payload.get("errCode", "")) in {"401", "403"}
 
     @staticmethod
     def _json_body(resp: requests.Response) -> Any:
