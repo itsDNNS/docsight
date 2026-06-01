@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>Demo</strong> • <strong>Reports</strong> • <strong>16 modem families</strong> • <strong>MIT</strong>
+  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>Demo</strong> • <strong>Reports</strong> • <strong>17 modem families</strong> • <strong>MIT</strong>
 </p>
 
 <p align="center">
@@ -266,7 +266,7 @@ More views from the product:
 
 ## Supported Hardware
 
-DOCSight supports **16 modem families** out of the box and also offers **Generic Router mode** for fiber, DSL, and satellite connections.
+DOCSight supports **17 modem families** out of the box and also offers **Generic Router mode** for fiber, DSL, and satellite connections.
 
 ### Common setups
 
@@ -277,7 +277,7 @@ DOCSight supports **16 modem families** out of the box and also offers **Generic
 - **Sagemcom F@st 3896:** JSON-RPC API
 - **Technicolor TC4400**
 - **Arris SURFboard** (S33, S34, SB8200): HNAP1 API
-- **Hitron CODA-56**
+- **Hitron CODA-56 and CODA-4680**
 - **Netgear CM3000**
 - **Generic Router mode:** no DOCSIS signal pages, but still supports speed tracking, latency monitoring, incident logging, reports, and modules
 
