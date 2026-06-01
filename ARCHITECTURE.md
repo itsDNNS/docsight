@@ -410,6 +410,7 @@ class ModemDriver(ABC):
 | `cm3000` | `cm3000.py` | Netgear CM3000 | HTTP Basic Auth |
 | `surfboard` | `surfboard.py` | Arris SURFboard S33/S34/SB8200 | HNAP1 HMAC-SHA256 |
 | `cm8200` | `cm8200.py` | Arris Touchstone CM8200A | Base64 query string |
+| `hitron_coda_4680` | `hitron_coda_4680.py` | Hitron CODA-4680 | Form POST (`/1/Device/Users/Login`) |
 | `generic` | `generic.py` | Generic Router (no DOCSIS) | None |
 
 ### Driver Registry (`app/drivers/__init__.py`)
