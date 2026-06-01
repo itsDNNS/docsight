@@ -1,5 +1,8 @@
 """Tests for SQLite snapshot storage."""
 
+import json
+import sqlite3
+
 import pytest
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -91,6 +94,45 @@ class TestSnapshotStorage:
 
         assert intraday[0]["ds_correctable_errors"] == 0
         assert intraday[0]["ds_uncorrectable_errors"] == 0
+
+    def test_summary_trends_unwrap_aggregate_uint32_counter_wrap(self, storage):
+        summaries = [
+            ("2026-06-01T10:00:00Z", 4_626_495_351),
+            ("2026-06-01T10:01:00Z", 332_692_254),
+            ("2026-06-01T10:02:00Z", 333_958_096),
+        ]
+        with sqlite3.connect(storage.db_path) as conn:
+            for ts, correctable_errors in summaries:
+                conn.execute(
+                    "INSERT INTO snapshots "
+                    "(timestamp, summary_json, ds_channels_json, us_channels_json) "
+                    "VALUES (?, ?, ?, ?)",
+                    (
+                        ts,
+                        json.dumps({
+                            "errors_supported": True,
+                            "ds_correctable_errors": correctable_errors,
+                            "ds_uncorrectable_errors": 0,
+                        }),
+                        "[]",
+                        "[]",
+                    ),
+                )
+
+        intraday = storage.get_intraday_data("2026-06-01")
+        summary_range = storage.get_summary_range("2026-06-01", "2026-06-01")
+        range_data = storage.get_range_data(
+            "2026-06-01T10:00:00Z",
+            "2026-06-01T10:02:00Z",
+        )
+
+        expected = [4_626_495_351, 4_627_659_550, 4_628_925_392]
+        assert [row["ds_correctable_errors"] for row in intraday] == expected
+        assert [row["ds_uncorrectable_errors"] for row in intraday] == [0, 0, 0]
+        assert [row["ds_correctable_errors"] for row in summary_range] == expected
+        assert [row["ds_uncorrectable_errors"] for row in summary_range] == [0, 0, 0]
+        assert [row["summary"]["ds_correctable_errors"] for row in range_data] == expected
+        assert [row["summary"]["ds_uncorrectable_errors"] for row in range_data] == [0, 0, 0]
 
     def test_empty_storage(self, storage):
         assert storage.get_snapshot_list() == []

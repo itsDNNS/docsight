@@ -105,6 +105,7 @@ class SnapshotMixin:
         unwrap_uint32_counter_series(
             (entry["summary"] for entry in results),
             _SUMMARY_ERROR_KEYS,
+            allow_aggregate_wrap=True,
         )
         return results
 
@@ -125,7 +126,11 @@ class SnapshotMixin:
             entry = {"timestamp": row[0]}
             entry.update(_normalize_summary_errors(json.loads(row[1])))
             results.append(entry)
-        unwrap_uint32_counter_series(results, _SUMMARY_ERROR_KEYS)
+        unwrap_uint32_counter_series(
+            results,
+            _SUMMARY_ERROR_KEYS,
+            allow_aggregate_wrap=True,
+        )
         return results
 
     def _summary_rows_to_entries(self, rows):
@@ -134,7 +139,11 @@ class SnapshotMixin:
             entry = {"timestamp": row[0]}
             entry.update(_normalize_summary_errors(json.loads(row[1])))
             results.append(entry)
-        unwrap_uint32_counter_series(results, _SUMMARY_ERROR_KEYS)
+        unwrap_uint32_counter_series(
+            results,
+            _SUMMARY_ERROR_KEYS,
+            allow_aggregate_wrap=True,
+        )
         return results
 
     def get_summary_since(self, hours):
