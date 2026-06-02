@@ -26,6 +26,11 @@ log = logging.getLogger("docsis.driver.sercom_dm1000")
 
 _AUTH_STATUSES = {401, 403}
 _HTML_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+_BROWSER_ACCEPT_LANGUAGE = "en-GB,en-US;q=0.9,en;q=0.8"
+_BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+)
 
 
 class SercomDM1000Driver(ModemDriver):
@@ -36,8 +41,10 @@ class SercomDM1000Driver(ModemDriver):
         self._session = requests.Session()
         self._session.headers.update({
             "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Accept-Language": _BROWSER_ACCEPT_LANGUAGE,
             "X-Requested-With": "XMLHttpRequest",
             "Referer": f"{self._url}/status.html",
+            "User-Agent": _BROWSER_USER_AGENT,
         })
 
     def login(self) -> None:
@@ -64,21 +71,34 @@ class SercomDM1000Driver(ModemDriver):
                 data=payload,
                 headers={
                     "Accept": _HTML_ACCEPT,
+                    "Accept-Language": _BROWSER_ACCEPT_LANGUAGE,
                     "Origin": self._url,
                     "Referer": f"{self._url}/login.html",
+                    "Upgrade-Insecure-Requests": "1",
                     # Override the session-level XHR header for the form POST;
                     # requests omits headers set to None when preparing the call.
                     "X-Requested-With": None,
                 },
+                allow_redirects=False,
                 timeout=15,
             )
             resp.raise_for_status()
         except requests.RequestException as exc:
             raise RuntimeError(f"Sercom DM1000 login failed: {exc}") from exc
 
-        # The captured browser flow performs a normal page navigation after the
-        # form post before the RF JSON XHRs run. Some firmware builds only make
-        # the authenticated RF endpoints return JSON after this status page load.
+        if marker := self._login_redirect_marker(resp):
+            raise RuntimeError(f"Sercom DM1000 login was redirected to login ({marker})")
+
+        # The captured browser flow first primes the authenticated UI context
+        # from setup.cgi, then performs a normal status-page navigation before
+        # the RF JSON XHRs run. Some firmware builds redirect status.html back
+        # to login.html unless this post-login JSON probe has happened first.
+        self._fetch_payload(
+            "Pd_info",
+            raise_on_error=False,
+            allow_reauth=False,
+            referer=f"{self._url}/setup.cgi",
+        )
         self._load_status_page()
 
         # A Sercom login can return 200 + HTML even when authentication failed.
@@ -92,10 +112,12 @@ class SercomDM1000Driver(ModemDriver):
                 f"{self._url}/status.html",
                 headers={
                     "Accept": _HTML_ACCEPT,
+                    "Accept-Language": _BROWSER_ACCEPT_LANGUAGE,
                     # The HAR records status.html as a normal navigation from
                     # setup.cgi, not as an XHR. Preserve that shape before the
                     # first protected RF JSON probe.
                     "Referer": f"{self._url}/setup.cgi",
+                    "Upgrade-Insecure-Requests": "1",
                     "X-Requested-With": None,
                 },
                 timeout=15,
@@ -147,10 +169,18 @@ class SercomDM1000Driver(ModemDriver):
         *,
         raise_on_error: bool = False,
         allow_reauth: bool = True,
+        referer: str | None = None,
     ) -> dict[str, Any]:
         """Fetch a ``/setup.cgi?todo=...`` JSON object with one reauth retry."""
         try:
-            resp = self._session.get(f"{self._url}/setup.cgi", params={"todo": todo}, timeout=30)
+            headers = {"Referer": referer} if referer else None
+            resp = self._session.get(
+                f"{self._url}/setup.cgi",
+                params={"todo": todo},
+                headers=headers,
+                allow_redirects=False,
+                timeout=30,
+            )
             resp.raise_for_status()
         except requests.HTTPError as exc:
             if allow_reauth and self._is_auth_error(exc):
@@ -164,6 +194,16 @@ class SercomDM1000Driver(ModemDriver):
             if raise_on_error:
                 raise RuntimeError(f"Sercom DM1000 fetch {todo} failed: {exc}") from exc
             log.warning("Sercom DM1000 fetch %s failed: %s", todo, exc)
+            return {}
+
+        if marker := self._login_redirect_marker(resp):
+            message = f"Sercom DM1000 fetch {todo} redirected to login ({marker})"
+            if allow_reauth:
+                log.info("%s; retrying after login", message)
+                return self._retry_after_reauth(todo, raise_on_error=raise_on_error)
+            if raise_on_error:
+                raise RuntimeError(message)
+            log.warning(message)
             return {}
 
         if self._looks_like_html(resp):
@@ -214,6 +254,43 @@ class SercomDM1000Driver(ModemDriver):
         content_type = str(resp.headers.get("Content-Type", "")).lower()
         text = str(getattr(resp, "text", "") or "").lstrip().lower()
         return "text/html" in content_type or text.startswith(("<html", "<!doctype html"))
+
+    @staticmethod
+    def _login_redirect_marker(resp: requests.Response) -> str:
+        location = str(resp.headers.get("Location", "") or "")
+        if "login.html" in location.lower():
+            return f"Location: {location}"
+
+        text = str(getattr(resp, "text", "") or "")
+        if SercomDM1000Driver._contains_login_location_header_line(text):
+            return "body Location: login.html"
+
+        raw_text = SercomDM1000Driver._raw_unparsed_header_payload(resp)
+        if SercomDM1000Driver._contains_login_location_header_line(raw_text):
+            return "malformed header Location: login.html"
+
+        return ""
+
+    @staticmethod
+    def _contains_login_location_header_line(text: str) -> bool:
+        for line in text.splitlines():
+            key, separator, value = line.strip().partition(":")
+            if separator and key.lower() == "location" and "login.html" in value.lower():
+                return True
+        return False
+
+    @staticmethod
+    def _raw_unparsed_header_payload(resp: requests.Response) -> str:
+        # Best-effort fallback for Sercom's malformed header block. urllib3
+        # stores the unparsed remainder behind private attributes, which may be
+        # absent or change across versions, so failures here must stay harmless.
+        try:
+            original_response = getattr(resp.raw, "_original_response", None)
+            message = getattr(original_response, "msg", None)
+            payload = message.get_payload() if message is not None else ""
+        except Exception:
+            return ""
+        return str(payload or "")
 
     @staticmethod
     def _ensure_ok(payload: dict[str, Any], context: str, *, raise_on_error: bool = False) -> bool:
