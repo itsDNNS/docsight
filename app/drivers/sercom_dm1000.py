@@ -25,6 +25,7 @@ from .utils import hz_to_mhz, normalize_modulation
 log = logging.getLogger("docsis.driver.sercom_dm1000")
 
 _AUTH_STATUSES = {401, 403}
+_HTML_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 
 
 class SercomDM1000Driver(ModemDriver):
@@ -58,15 +59,50 @@ class SercomDM1000Driver(ModemDriver):
             "cur_passwd": "",
         }
         try:
-            resp = self._session.post(f"{self._url}/setup.cgi", data=payload, timeout=15)
+            resp = self._session.post(
+                f"{self._url}/setup.cgi",
+                data=payload,
+                headers={
+                    "Accept": _HTML_ACCEPT,
+                    "Origin": self._url,
+                    "Referer": f"{self._url}/login.html",
+                    # Override the session-level XHR header for the form POST;
+                    # requests omits headers set to None when preparing the call.
+                    "X-Requested-With": None,
+                },
+                timeout=15,
+            )
             resp.raise_for_status()
         except requests.RequestException as exc:
             raise RuntimeError(f"Sercom DM1000 login failed: {exc}") from exc
+
+        # The captured browser flow performs a normal page navigation after the
+        # form post before the RF JSON XHRs run. Some firmware builds only make
+        # the authenticated RF endpoints return JSON after this status page load.
+        self._load_status_page()
 
         # A Sercom login can return 200 + HTML even when authentication failed.
         # Probe a protected JSON endpoint before reporting success.
         self._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
         log.info("Sercom DM1000 login OK")
+
+    def _load_status_page(self) -> None:
+        try:
+            resp = self._session.get(
+                f"{self._url}/status.html",
+                headers={
+                    "Accept": _HTML_ACCEPT,
+                    # The HAR records status.html as a normal navigation from
+                    # setup.cgi, not as an XHR. Preserve that shape before the
+                    # first protected RF JSON probe.
+                    "Referer": f"{self._url}/setup.cgi",
+                    "X-Requested-With": None,
+                },
+                timeout=15,
+            )
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            raise RuntimeError(f"Sercom DM1000 status page load failed: {exc}") from exc
 
     def get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS channel data from the captured Sercom endpoints."""
