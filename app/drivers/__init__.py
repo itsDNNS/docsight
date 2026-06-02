@@ -42,6 +42,9 @@ driver_registry.register_builtin("hitron_coda_4680", "app.drivers.hitron_coda_46
 driver_registry.register_builtin("sagemcom", "app.drivers.sagemcom.SagemcomDriver",
                                  "Sagemcom F@st 3896",
                                  hints={"default_url": "http://192.168.100.1", "default_user": "admin"})
+driver_registry.register_builtin("sercom_dm1000", "app.drivers.sercom_dm1000.SercomDM1000Driver",
+                                 "Sercom DM1000",
+                                 hints={"default_url": "http://192.168.100.1", "default_user": "technician"})
 driver_registry.register_builtin("cgm4981", "app.drivers.cgm4981.CGM4981Driver",
                                  "Technicolor CGM4981COM (Cox Panoramic Gateway PM8 / XB8)",
                                  hints={"default_url": "http://192.168.0.1", "default_user": "admin"})
