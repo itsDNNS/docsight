@@ -134,6 +134,51 @@ class TestSnapshotStorage:
         assert [row["summary"]["ds_correctable_errors"] for row in range_data] == expected
         assert [row["summary"]["ds_uncorrectable_errors"] for row in range_data] == [0, 0, 0]
 
+    def test_range_data_uses_summary_only_for_unwrap_anchor_rows(self, storage):
+        """Historical anchor rows initialize unwrap without loading channel payloads."""
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(
+                "INSERT INTO snapshots "
+                "(timestamp, summary_json, ds_channels_json, us_channels_json) "
+                "VALUES (?, ?, ?, ?)",
+                (
+                    "2026-05-31T23:59:00Z",
+                    json.dumps({
+                        "errors_supported": True,
+                        "ds_correctable_errors": 4_200_000_000,
+                        "ds_uncorrectable_errors": 0,
+                    }),
+                    "not-json-anchor-ds",
+                    "not-json-anchor-us",
+                ),
+            )
+            conn.execute(
+                "INSERT INTO snapshots "
+                "(timestamp, summary_json, ds_channels_json, us_channels_json) "
+                "VALUES (?, ?, ?, ?)",
+                (
+                    "2026-06-01T00:00:00Z",
+                    json.dumps({
+                        "errors_supported": True,
+                        "ds_correctable_errors": 500_000_000,
+                        "ds_uncorrectable_errors": 0,
+                    }),
+                    json.dumps([{"channel_id": 1}]),
+                    json.dumps([{"channel_id": 2}]),
+                ),
+            )
+
+        range_data = storage.get_range_data(
+            "2026-06-01T00:00:00Z",
+            "2026-06-01T00:00:00Z",
+        )
+
+        assert len(range_data) == 1
+        assert range_data[0]["timestamp"] == "2026-06-01T00:00:00Z"
+        assert range_data[0]["summary"]["ds_correctable_errors"] == 4_794_967_296
+        assert range_data[0]["ds_channels"] == [{"channel_id": 1}]
+        assert range_data[0]["us_channels"] == [{"channel_id": 2}]
+
     def test_empty_storage(self, storage):
         assert storage.get_snapshot_list() == []
 

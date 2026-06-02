@@ -198,7 +198,10 @@ class TestModulationControls:
     @pytest.fixture(autouse=True)
     def navigate_to_modulation(self, demo_page):
         demo_page.locator('.nav-item[data-view="modulation"]').click()
-        demo_page.wait_for_timeout(500)
+        demo_page.wait_for_function(
+            "() => (window._modCharts || []).length > 0",
+            timeout=150_000,
+        )
         self.page = demo_page
 
     def test_switch_to_ds(self):
@@ -224,7 +227,15 @@ class TestModulationControls:
     def test_30_day_charts_bound_x_axis_labels(self):
         d30 = self.page.locator('#modulation-range-tabs .trend-tab[data-days="30"]')
         d30.click()
-        self.page.wait_for_timeout(1000)
+        self.page.wait_for_function(
+            """
+            () => (window._modCharts || []).some((chart) => {
+                const samples = chart.data && chart.data[0] ? chart.data[0].length : 0;
+                return samples >= 30;
+            })
+            """,
+            timeout=150_000,
+        )
 
         chart_tick_counts = self.page.evaluate(
             """
@@ -363,7 +374,10 @@ class TestProtocolGroups:
     @pytest.fixture(autouse=True)
     def navigate_to_modulation(self, demo_page):
         demo_page.locator('.nav-item[data-view="modulation"]').click()
-        demo_page.wait_for_timeout(1500)
+        demo_page.locator(".mod-protocol-group").first.wait_for(
+            state="visible",
+            timeout=150_000,
+        )
         self.page = demo_page
 
     def test_protocol_groups_rendered(self):
