@@ -137,11 +137,18 @@ def driver():
 class TestLogin:
     def test_login_posts_captured_sercom_form_and_verifies_protected_endpoint(self, driver):
         with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")) as post:
-            with patch.object(driver, "_fetch_payload", return_value=DS_INFO) as fetch:
-                driver.login()
+            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")):
+                with patch.object(driver, "_fetch_payload", return_value=DS_INFO) as fetch:
+                    driver.login()
 
         post.assert_called_once()
         assert post.call_args.args[0] == "http://192.168.100.1/setup.cgi"
+        assert post.call_args.kwargs["headers"] == {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Origin": "http://192.168.100.1",
+            "Referer": "http://192.168.100.1/login.html",
+            "X-Requested-With": None,
+        }
         payload = post.call_args.kwargs["data"]
         assert payload["login_user"] == "technician"
         assert payload["pws"] == "secret"
@@ -150,11 +157,37 @@ class TestLogin:
         assert payload["this_file"] == "login.html"
         fetch.assert_called_once_with("RF_DS_param", raise_on_error=True, allow_reauth=False)
 
+    def test_login_loads_status_page_before_probing_rf_json(self, driver):
+        with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")):
+            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")) as get:
+                with patch.object(driver, "_fetch_payload", return_value=DS_INFO):
+                    driver.login()
+
+        get.assert_called_once_with(
+            "http://192.168.100.1/status.html",
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Referer": "http://192.168.100.1/setup.cgi",
+                "X-Requested-With": None,
+            },
+            timeout=15,
+        )
+
+    def test_login_fails_when_status_page_navigation_fails(self, driver):
+        error = requests.HTTPError("500 Server Error")
+        status_response = make_response("boom", status_code=500, content_type="text/plain")
+        status_response.raise_for_status.side_effect = error
+        with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")):
+            with patch.object(driver._session, "get", return_value=status_response):
+                with pytest.raises(RuntimeError, match="status page load failed"):
+                    driver.login()
+
     def test_login_fails_when_post_login_probe_fails(self, driver):
         with patch.object(driver._session, "post", return_value=make_response("<html>login</html>", content_type="text/html")):
-            with patch.object(driver, "_fetch_payload", side_effect=RuntimeError("login page returned")):
-                with pytest.raises(RuntimeError, match="login page returned"):
-                    driver.login()
+            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")):
+                with patch.object(driver, "_fetch_payload", side_effect=RuntimeError("login page returned")):
+                    with pytest.raises(RuntimeError, match="login page returned"):
+                        driver.login()
 
 
 class TestFetchPayload:
