@@ -137,7 +137,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v41';" in sw_js
+    assert "var CACHE_VERSION = 'v42';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -402,6 +402,20 @@ def test_trend_title_uses_rolling_range_without_stale_date_suffix():
     assert "title.textContent = (T.signal_trends || 'Signal Trends') + ' (' + label + ')'" in trends_js
     assert "formatDateDE(date)" not in trends_js
     assert "&date=" not in trends_js
+
+
+def test_trend_errors_chart_labels_values_as_total_error_count():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    errors_card = template[template.index('id="trend-errors-card"') : template.index('id="chart-errors"')]
+
+    assert "{{ t.metric_error_count }}" in errors_card
+    assert "{{ t.errors }}" not in errors_card
+    offenders = []
+    for path in sorted(APP_I18N_DIR.glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+        if "metric_error_count" not in data:
+            offenders.append(path.name)
+    assert offenders == []
 
 
 def test_hero_chart_fetches_normalized_one_day_range():

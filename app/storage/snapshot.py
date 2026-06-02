@@ -5,14 +5,18 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from datetime import timedelta
 from typing import cast
 
 from ..types import AnalysisResult
-from ..tz import local_date_to_utc_range, utc_cutoff, utc_now
+from ..tz import _parse_utc, local_date_to_utc_range, utc_cutoff, utc_now
 from .error_counters import unwrap_uint32_counter_series
 
 
 _SUMMARY_ERROR_KEYS = ("ds_correctable_errors", "ds_uncorrectable_errors")
+_LONGEST_TREND_RANGE_DAYS = 90
+_UNWRAP_PRE_RANGE_ANCHOR_DAYS = 2
+_UNWRAP_ANCHOR_DAYS = _LONGEST_TREND_RANGE_DAYS + _UNWRAP_PRE_RANGE_ANCHOR_DAYS
 
 log = logging.getLogger("docsis.storage")
 
@@ -24,6 +28,34 @@ def _normalize_summary_errors(summary):
         summary["ds_correctable_errors"] = None
         summary["ds_uncorrectable_errors"] = None
     return summary
+
+
+def _timestamp_in_range(
+    timestamp: str,
+    start_ts: str | None = None,
+    end_ts: str | None = None,
+) -> bool:
+    """Return True when a canonical ISO UTC timestamp is inside the optional bounds."""
+    if start_ts is not None and timestamp < start_ts:
+        return False
+    if end_ts is not None and timestamp > end_ts:
+        return False
+    return True
+
+
+def _unwrap_anchor_start(timestamp: str) -> str:
+    """Return the shared bounded anchor for range-stable uint32 unwrapping.
+
+    Error trend ranges are presentation-level derived values. Anchor unwrapping
+    from the query end, not the visible start, so every exposed rolling range up
+    to 90 days uses the same unwrap history for the same endpoint while still
+    avoiding full-history scans on long-lived installs. Stored timestamps are
+    canonical UTC strings, so the result remains lexicographically sortable for
+    SQLite filters.
+    """
+    return (_parse_utc(timestamp) - timedelta(days=_UNWRAP_ANCHOR_DAYS)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
 
 
 class SnapshotMixin:
@@ -87,27 +119,38 @@ class SnapshotMixin:
 
     def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:
         """Get all snapshots between two ISO timestamps (inclusive)."""
+        anchor_start = _unwrap_anchor_start(end_ts)
         with sqlite3.connect(self.db_path) as conn:
-            rows = conn.execute(
+            anchor_rows = conn.execute(
+                "SELECT timestamp, summary_json FROM snapshots "
+                "WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp",
+                (anchor_start, start_ts),
+            ).fetchall()
+            visible_rows = conn.execute(
                 "SELECT timestamp, summary_json, ds_channels_json, us_channels_json "
                 "FROM snapshots WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
                 (start_ts, end_ts),
             ).fetchall()
-        results = []
-        for row in rows:
-            entry = {
+        anchor_entries = []
+        for row in anchor_rows:
+            anchor_entries.append({
+                "timestamp": row[0],
+                "summary": _normalize_summary_errors(json.loads(row[1])),
+            })
+        visible_entries = []
+        for row in visible_rows:
+            visible_entries.append({
                 "timestamp": row[0],
                 "summary": _normalize_summary_errors(json.loads(row[1])),
                 "ds_channels": json.loads(row[2]),
                 "us_channels": json.loads(row[3]),
-            }
-            results.append(entry)
+            })
         unwrap_uint32_counter_series(
-            (entry["summary"] for entry in results),
+            (entry["summary"] for entry in [*anchor_entries, *visible_entries]),
             _SUMMARY_ERROR_KEYS,
             allow_aggregate_wrap=True,
         )
-        return results
+        return visible_entries
 
     def get_intraday_data(self, date):
         """Get all snapshots for a single day (for day-detail trends).
@@ -115,11 +158,12 @@ class SnapshotMixin:
         date is a local calendar date — converted to UTC range for querying.
         """
         start_utc, end_utc = local_date_to_utc_range(date, self.tz_name)
+        anchor_start = _unwrap_anchor_start(end_utc)
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
-                (start_utc, end_utc),
+                (anchor_start, end_utc),
             ).fetchall()
         results = []
         for row in rows:
@@ -131,9 +175,17 @@ class SnapshotMixin:
             _SUMMARY_ERROR_KEYS,
             allow_aggregate_wrap=True,
         )
-        return results
+        return [
+            entry for entry in results
+            if _timestamp_in_range(entry["timestamp"], start_utc, end_utc)
+        ]
 
-    def _summary_rows_to_entries(self, rows):
+    def _summary_rows_to_entries(
+        self,
+        rows,
+        start_ts: str | None = None,
+        end_ts: str | None = None,
+    ):
         results = []
         for row in rows:
             entry = {"timestamp": row[0]}
@@ -144,18 +196,22 @@ class SnapshotMixin:
             _SUMMARY_ERROR_KEYS,
             allow_aggregate_wrap=True,
         )
-        return results
+        return [
+            entry for entry in results
+            if _timestamp_in_range(entry["timestamp"], start_ts, end_ts)
+        ]
 
     def get_summary_since(self, hours):
         """Get summary snapshots from the last N hours."""
         cutoff = utc_cutoff(hours=hours)
+        anchor_start = utc_cutoff(hours=_UNWRAP_ANCHOR_DAYS * 24)
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? ORDER BY timestamp",
-                (cutoff,),
+                (anchor_start,),
             ).fetchall()
-        return self._summary_rows_to_entries(rows)
+        return self._summary_rows_to_entries(rows, start_ts=cutoff)
 
     def get_summary_range(self, start_date, end_date):
         """Get all snapshots (summary only) between two dates. Like get_intraday_data but multi-day.
@@ -164,14 +220,19 @@ class SnapshotMixin:
         """
         range_start, _ = local_date_to_utc_range(start_date, self.tz_name)
         _, range_end = local_date_to_utc_range(end_date, self.tz_name)
+        anchor_start = _unwrap_anchor_start(range_end)
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? AND timestamp <= ? "
                 "ORDER BY timestamp",
-                (range_start, range_end),
+                (anchor_start, range_end),
             ).fetchall()
-        return self._summary_rows_to_entries(rows)
+        return self._summary_rows_to_entries(
+            rows,
+            start_ts=range_start,
+            end_ts=range_end,
+        )
 
     def get_closest_snapshot(self, timestamp: str) -> dict | None:
         """Find the snapshot closest to a given ISO timestamp (within 2 hours).

@@ -23,7 +23,10 @@ def ensure_screenshot_dir():
 def modulation_page(demo_page):
     """Navigate to modulation tab and wait for data to load."""
     demo_page.locator('.nav-item[data-view="modulation"]').click()
-    demo_page.wait_for_timeout(2000)  # Wait for API + Chart.js render
+    demo_page.locator(".mod-protocol-group").first.wait_for(
+        state="visible",
+        timeout=150_000,
+    )
     return demo_page
 
 

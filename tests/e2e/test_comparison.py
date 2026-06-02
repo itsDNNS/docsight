@@ -71,6 +71,10 @@ class TestComparisonView:
         assert nav.count() == 1
 
     def test_run_comparison_shows_health_distribution(self, demo_page):
+        demo_page.route(
+            "**/api/comparison**",
+            lambda route: route.fulfill(json=_comparison_payload(True, 0)),
+        )
         navigate_to_comparison(demo_page)
         demo_page.locator("#comparison-run-btn").click()
 
@@ -133,6 +137,10 @@ class TestComparisonView:
         expect(demo_page.locator("#comparison-errors-card")).to_be_visible()
 
     def test_comparison_can_open_report_modal_with_attached_evidence(self, demo_page):
+        demo_page.route(
+            "**/api/comparison**",
+            lambda route: route.fulfill(json=_comparison_payload(True, 0)),
+        )
         navigate_to_comparison(demo_page)
         demo_page.locator("#comparison-run-btn").click()
         expect(demo_page.locator("#comparison-health")).to_be_visible()

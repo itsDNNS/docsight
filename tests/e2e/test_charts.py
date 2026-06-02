@@ -76,7 +76,7 @@ class TestHeroChart:
             var toggle = document.getElementById('theme-toggle-sidebar');
             if (toggle) { toggle.checked = !toggle.checked; toggle.dispatchEvent(new Event('change')); }
         """)
-        demo_page.wait_for_timeout(500)
+        wait_for_uplot(demo_page, "hero-trend-chart")
         # Chart should still be present after theme toggle
         canvases = count_uplot_canvases(demo_page, "hero-trend-chart")
         assert canvases >= 1

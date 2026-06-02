@@ -154,3 +154,82 @@ class TestTrendsRangeEndpoint:
             4_294_495_351,
             4_295_659_550,
         ]
+
+    def test_trend_error_counter_unwrap_is_stable_across_ranges(self, client):
+        flask_client, storage = client
+        _insert_snapshot(
+            storage,
+            _analysis(
+                1.0,
+                ds_correctable_errors=4_200_000_000,
+                ds_uncorrectable_errors=4_100_000_000,
+            ),
+            _utc_ts(timedelta(days=91)),
+        )
+        _insert_snapshot(
+            storage,
+            _analysis(
+                2.0,
+                ds_correctable_errors=500_000_000,
+                ds_uncorrectable_errors=200_000_000,
+            ),
+            _utc_ts(timedelta(hours=5)),
+        )
+        _insert_snapshot(
+            storage,
+            _analysis(
+                3.0,
+                ds_correctable_errors=700_000_000,
+                ds_uncorrectable_errors=300_000_000,
+            ),
+            _utc_ts(timedelta(minutes=20)),
+        )
+
+        values_by_range = {}
+        middle_values_by_range = {}
+        raw_summaries_before_api = []
+        with sqlite3.connect(storage.db_path) as conn:
+            raw_summaries_before_api = [
+                row[0]
+                for row in conn.execute(
+                    "SELECT summary_json FROM snapshots ORDER BY timestamp"
+                ).fetchall()
+            ]
+        for range_name in ("1h", "6h", "1d", "30d", "90d"):
+            resp = flask_client.get(f"/api/trends?range={range_name}")
+            assert resp.status_code == 200, range_name
+            data = json.loads(resp.data)
+            latest = data[-1]
+            assert latest["ds_power_avg"] == 3.0
+            values_by_range[range_name] = (
+                latest["ds_correctable_errors"],
+                latest["ds_uncorrectable_errors"],
+            )
+            for row in data:
+                if row["ds_power_avg"] == 2.0:
+                    middle_values_by_range[range_name] = (
+                        row["ds_correctable_errors"],
+                        row["ds_uncorrectable_errors"],
+                    )
+
+        assert values_by_range == {
+            "1h": (4_994_967_296, 4_594_967_296),
+            "6h": (4_994_967_296, 4_594_967_296),
+            "1d": (4_994_967_296, 4_594_967_296),
+            "30d": (4_994_967_296, 4_594_967_296),
+            "90d": (4_994_967_296, 4_594_967_296),
+        }
+        assert middle_values_by_range == {
+            "6h": (4_794_967_296, 4_494_967_296),
+            "1d": (4_794_967_296, 4_494_967_296),
+            "30d": (4_794_967_296, 4_494_967_296),
+            "90d": (4_794_967_296, 4_494_967_296),
+        }
+        with sqlite3.connect(storage.db_path) as conn:
+            raw_summaries_after_api = [
+                row[0]
+                for row in conn.execute(
+                    "SELECT summary_json FROM snapshots ORDER BY timestamp"
+                ).fetchall()
+            ]
+        assert raw_summaries_after_api == raw_summaries_before_api
