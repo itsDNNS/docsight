@@ -105,10 +105,26 @@ US_OFDMA = {
 }
 
 
-def make_response(payload=None, *, status_code=200, content_type="applation/json"):
+def make_response(
+    payload=None,
+    *,
+    status_code=200,
+    content_type="applation/json",
+    headers=None,
+    unparsed_headers="",
+):
     resp = MagicMock(status_code=status_code)
     resp.headers = {"Content-Type": content_type}
+    if headers:
+        resp.headers.update(headers)
     resp.raise_for_status = MagicMock()
+    if unparsed_headers:
+        msg = MagicMock()
+        msg.get_payload.return_value = unparsed_headers
+        original_response = MagicMock()
+        original_response.msg = msg
+        resp.raw = MagicMock()
+        resp.raw._original_response = original_response
     if payload is None:
         resp.text = ""
         resp.json.side_effect = ValueError("empty body")
@@ -145,42 +161,87 @@ class TestLogin:
         assert post.call_args.args[0] == "http://192.168.100.1/setup.cgi"
         assert post.call_args.kwargs["headers"] == {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
             "Origin": "http://192.168.100.1",
             "Referer": "http://192.168.100.1/login.html",
+            "Upgrade-Insecure-Requests": "1",
             "X-Requested-With": None,
         }
+        assert post.call_args.kwargs["allow_redirects"] is False
         payload = post.call_args.kwargs["data"]
         assert payload["login_user"] == "technician"
         assert payload["pws"] == "secret"
         assert payload["passwd"] == "secret"
         assert payload["todo"] == "login"
         assert payload["this_file"] == "login.html"
-        fetch.assert_called_once_with("RF_DS_param", raise_on_error=True, allow_reauth=False)
+        assert fetch.call_args_list[0].args == ("Pd_info",)
+        assert fetch.call_args_list[0].kwargs == {
+            "raise_on_error": False,
+            "allow_reauth": False,
+            "referer": "http://192.168.100.1/setup.cgi",
+        }
+        assert fetch.call_args_list[1].args == ("RF_DS_param",)
+        assert fetch.call_args_list[1].kwargs == {"raise_on_error": True, "allow_reauth": False}
 
-    def test_login_loads_status_page_before_probing_rf_json(self, driver):
+    def test_login_primes_pd_info_before_loading_status_page_and_probing_rf_json(self, driver):
+        calls = []
+
+        def fetch(todo, **kwargs):
+            calls.append(("fetch", todo, kwargs))
+            return DS_INFO
+
+        def load_status():
+            calls.append(("status",))
+
         with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")):
-            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")) as get:
-                with patch.object(driver, "_fetch_payload", return_value=DS_INFO):
+            with patch.object(driver, "_fetch_payload", side_effect=fetch):
+                with patch.object(driver, "_load_status_page", side_effect=load_status):
                     driver.login()
+
+        assert calls == [
+            (
+                "fetch",
+                "Pd_info",
+                {
+                    "raise_on_error": False,
+                    "allow_reauth": False,
+                    "referer": "http://192.168.100.1/setup.cgi",
+                },
+            ),
+            ("status",),
+            ("fetch", "RF_DS_param", {"raise_on_error": True, "allow_reauth": False}),
+        ]
+
+    def test_load_status_page_uses_captured_browser_navigation_headers(self, driver):
+        with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")) as get:
+            driver._load_status_page()
 
         get.assert_called_once_with(
             "http://192.168.100.1/status.html",
             headers={
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
                 "Referer": "http://192.168.100.1/setup.cgi",
+                "Upgrade-Insecure-Requests": "1",
                 "X-Requested-With": None,
             },
             timeout=15,
         )
+
+    def test_session_uses_browser_like_headers_from_capture(self, driver):
+        headers = driver._session.headers
+        assert "Mozilla/5.0" in headers["User-Agent"]
+        assert headers["Accept-Language"] == "en-GB,en-US;q=0.9,en;q=0.8"
 
     def test_login_fails_when_status_page_navigation_fails(self, driver):
         error = requests.HTTPError("500 Server Error")
         status_response = make_response("boom", status_code=500, content_type="text/plain")
         status_response.raise_for_status.side_effect = error
         with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")):
-            with patch.object(driver._session, "get", return_value=status_response):
-                with pytest.raises(RuntimeError, match="status page load failed"):
-                    driver.login()
+            with patch.object(driver, "_fetch_payload", return_value=DS_INFO):
+                with patch.object(driver._session, "get", return_value=status_response):
+                    with pytest.raises(RuntimeError, match="status page load failed"):
+                        driver.login()
 
     def test_login_fails_when_post_login_probe_fails(self, driver):
         with patch.object(driver._session, "post", return_value=make_response("<html>login</html>", content_type="text/html")):
@@ -204,6 +265,39 @@ class TestFetchPayload:
         with patch.object(driver._session, "get", return_value=make_response("<html>login</html>", content_type="text/html")):
             with pytest.raises(RuntimeError, match="returned an HTML login page"):
                 driver._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
+
+    def test_fetch_payload_strict_mode_reports_sercom_login_redirect_from_headers(self, driver):
+        response = make_response(None, headers={"Location": "login.html"})
+        with patch.object(driver._session, "get", return_value=response):
+            with pytest.raises(RuntimeError, match="redirected to login"):
+                driver._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
+
+    def test_fetch_payload_strict_mode_reports_sercom_login_redirect_from_well_formed_redirect(self, driver):
+        response = make_response(None, status_code=302, headers={"Location": "/login.html"})
+        with patch.object(driver._session, "get", return_value=response):
+            with pytest.raises(RuntimeError, match="redirected to login"):
+                driver._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
+
+    def test_fetch_payload_strict_mode_reports_sercom_login_redirect_from_malformed_headers(self, driver):
+        response = make_response(
+            None,
+            unparsed_headers="pragma :no-cache\r\nX-Frame-Options: DENY\r\nLocation: login.html\r\n\r\n",
+        )
+        with patch.object(driver._session, "get", return_value=response):
+            with pytest.raises(RuntimeError, match="redirected to login"):
+                driver._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
+
+    def test_fetch_payload_accepts_referer_override_for_post_login_pd_info_prime(self, driver):
+        with patch.object(driver._session, "get", return_value=make_response(DS_INFO)) as get:
+            assert driver._fetch_payload("Pd_info", referer="http://192.168.100.1/setup.cgi") == DS_INFO
+
+        get.assert_called_once_with(
+            "http://192.168.100.1/setup.cgi",
+            params={"todo": "Pd_info"},
+            headers={"Referer": "http://192.168.100.1/setup.cgi"},
+            allow_redirects=False,
+            timeout=30,
+        )
 
     def test_fetch_payload_reauthenticates_once_after_session_expiry(self, driver):
         with patch.object(driver._session, "get", side_effect=[make_http_error_response(403), make_response(DS_INFO)]) as get:
