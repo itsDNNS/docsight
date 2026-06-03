@@ -112,6 +112,7 @@ def make_response(
     content_type="applation/json",
     headers=None,
     unparsed_headers="",
+    request_headers=None,
 ):
     resp = MagicMock(status_code=status_code)
     resp.headers = {"Content-Type": content_type}
@@ -134,6 +135,7 @@ def make_response(
             resp.json.side_effect = ValueError("not json")
         else:
             resp.json.return_value = payload
+    resp.request = MagicMock(headers=request_headers or {})
     return resp
 
 
@@ -151,6 +153,54 @@ def driver():
 
 
 class TestLogin:
+    def test_diagnostics_are_disabled_by_default(self, driver, caplog):
+        with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")):
+            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")):
+                with patch.object(driver, "_fetch_payload", return_value=DS_INFO):
+                    driver.login()
+
+        assert "Sercom DM1000 diagnostic" not in caplog.text
+
+    def test_login_diagnostics_redact_cookie_values_and_passwords(self, monkeypatch, caplog):
+        monkeypatch.setenv("DOCSIGHT_SERCOM_DM1000_DIAGNOSTICS", "1")
+        driver = SercomDM1000Driver("http://192.168.100.1", "technician", "secret-password")
+        driver._session.cookies.set("sid", "jar-secret")
+        login_response = make_response(
+            "<html>ok</html>",
+            content_type="text/html",
+            headers={"Set-Cookie": "session=parsed-secret; Path=/; HttpOnly"},
+            unparsed_headers=(
+                "Set-Cookie: rawsession=raw-secret; Path=/\r\n"
+                "X-CSRF-Token: token-secret\r\n"
+                "Location: http://user:pass@modem.local/status.html?sid=url-secret#frag\r\n"
+            ),
+            request_headers={"Cookie": "pre=pre-secret; other=other-secret"},
+        )
+
+        with patch.object(driver._session, "post", return_value=login_response):
+            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")):
+                with patch.object(driver, "_fetch_payload", return_value=DS_INFO):
+                    driver.login()
+
+        logs = caplog.text
+        assert "Sercom DM1000 diagnostic before_login_post" in logs
+        assert "Sercom DM1000 diagnostic login_post" in logs
+        assert "set_cookie_names=['session']" in logs
+        assert "session_cookie_names=['sid']" in logs
+        assert "request_cookie_names=['pre', 'other']" in logs
+        assert "Set-Cookie: [redacted]" in logs
+        assert "X-CSRF-Token: [redacted]" in logs
+        assert "Location: http://modem.local/status.html" in logs
+        assert "parsed-secret" not in logs
+        assert "raw-secret" not in logs
+        assert "token-secret" not in logs
+        assert "url-secret" not in logs
+        assert "user:pass" not in logs
+        assert "pre-secret" not in logs
+        assert "other-secret" not in logs
+        assert "jar-secret" not in logs
+        assert "secret-password" not in logs
+
     def test_login_posts_captured_sercom_form_and_verifies_protected_endpoint(self, driver):
         with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")) as post:
             with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")):
@@ -252,6 +302,56 @@ class TestLogin:
 
 
 class TestFetchPayload:
+    def test_fetch_payload_diagnostics_log_malformed_redirect_without_cookie_values(self, monkeypatch, caplog):
+        monkeypatch.setenv("DOCSIGHT_SERCOM_DM1000_DIAGNOSTICS", "yes")
+        driver = SercomDM1000Driver("http://192.168.100.1", "technician", "secret")
+        response = make_response(
+            None,
+            unparsed_headers=(
+                "pragma :no-cache\r\n"
+                "Set-Cookie: modem_session=do-not-log\r\n"
+                "Location: login.html\r\n\r\n"
+            ),
+            request_headers={"Cookie": "modem_session=also-secret"},
+        )
+
+        with patch.object(driver._session, "get", return_value=response):
+            with pytest.raises(RuntimeError, match="redirected to login"):
+                driver._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
+
+        logs = caplog.text
+        assert "Sercom DM1000 diagnostic fetch_RF_DS_param" in logs
+        assert "request_cookie_names=['modem_session']" in logs
+        assert "Set-Cookie: [redacted]" in logs
+        assert "Location: login.html" in logs
+        assert "do-not-log" not in logs
+        assert "also-secret" not in logs
+
+    def test_sanitize_location_header_handles_malformed_ports(self):
+        assert SercomDM1000Driver._sanitize_location_header("http://modem.local:abc/status.html") == "[redacted]"
+
+    def test_raw_unparsed_header_payload_preserves_legacy_non_string_stringification(self):
+        resp = MagicMock()
+        msg = MagicMock()
+        msg.get_payload.return_value = ["Location: login.html"]
+        original_response = MagicMock(msg=msg)
+        resp.raw = MagicMock(_original_response=original_response)
+
+        assert SercomDM1000Driver._raw_unparsed_header_payload(resp) == "['Location: login.html']"
+
+    def test_diagnostics_deduplicate_structural_duplicate_date_headers(self, monkeypatch, caplog):
+        monkeypatch.setenv("DOCSIGHT_SERCOM_DM1000_DIAGNOSTICS", "yes")
+        driver = SercomDM1000Driver("http://192.168.100.1", "technician", "secret")
+
+        first = make_response(None, unparsed_headers="Date: Tue, 02 Jun 2026 20:00:00 GMT\r\nLocation: login.html\r\n")
+        second = make_response(None, unparsed_headers="Date: Tue, 02 Jun 2026 20:00:01 GMT\r\nLocation: login.html\r\n")
+
+        driver._log_response_diagnostics("fetch_RF_DS_param", first)
+        driver._log_response_diagnostics("fetch_RF_DS_param", second)
+
+        assert caplog.text.count("Sercom DM1000 diagnostic fetch_RF_DS_param") == 1
+        assert "Tue, 02 Jun" not in caplog.text
+
     def test_fetch_payload_accepts_sercom_json_mime_typo(self, driver):
         with patch.object(driver._session, "get", return_value=make_response(DS_INFO, content_type="applation/json")):
             assert driver._fetch_payload("RF_DS_param") == DS_INFO

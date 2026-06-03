@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
@@ -31,6 +33,18 @@ _BROWSER_USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
 )
+_DIAGNOSTIC_ENV = "DOCSIGHT_SERCOM_DM1000_DIAGNOSTICS"
+_SAFE_DIAGNOSTIC_HEADER_VALUES = {
+    "connection",
+    "content-length",
+    "content-type",
+    "location",
+    "pragma",
+    "server",
+    "transfer-encoding",
+}
+_DIAGNOSTIC_HEADER_CAP = 512
+_DIAGNOSTIC_BODY_PEEK = 64
 
 
 class SercomDM1000Driver(ModemDriver):
@@ -46,6 +60,8 @@ class SercomDM1000Driver(ModemDriver):
             "Referer": f"{self._url}/status.html",
             "User-Agent": _BROWSER_USER_AGENT,
         })
+        self._diagnostics_enabled = self._env_flag_enabled(os.environ.get(_DIAGNOSTIC_ENV, ""))
+        self._diagnostic_signatures: set[tuple[Any, ...]] = set()
 
     def login(self) -> None:
         """Authenticate with the Sercom form and verify a protected endpoint."""
@@ -65,6 +81,7 @@ class SercomDM1000Driver(ModemDriver):
             "passwd": self._password,
             "cur_passwd": "",
         }
+        self._log_diagnostic_snapshot("before_login_post")
         try:
             resp = self._session.post(
                 f"{self._url}/setup.cgi",
@@ -82,8 +99,10 @@ class SercomDM1000Driver(ModemDriver):
                 allow_redirects=False,
                 timeout=15,
             )
+            self._log_response_diagnostics("login_post", resp)
             resp.raise_for_status()
         except requests.RequestException as exc:
+            self._log_failure_diagnostics("login_post", exc)
             raise RuntimeError(f"Sercom DM1000 login failed: {exc}") from exc
 
         if marker := self._login_redirect_marker(resp):
@@ -122,8 +141,10 @@ class SercomDM1000Driver(ModemDriver):
                 },
                 timeout=15,
             )
+            self._log_response_diagnostics("status_page", resp)
             resp.raise_for_status()
         except requests.RequestException as exc:
+            self._log_failure_diagnostics("status_page", exc)
             raise RuntimeError(f"Sercom DM1000 status page load failed: {exc}") from exc
 
     def get_docsis_data(self) -> DocsisData:
@@ -181,6 +202,7 @@ class SercomDM1000Driver(ModemDriver):
                 allow_redirects=False,
                 timeout=30,
             )
+            self._log_response_diagnostics(f"fetch_{todo}", resp)
             resp.raise_for_status()
         except requests.HTTPError as exc:
             if allow_reauth and self._is_auth_error(exc):
@@ -191,6 +213,7 @@ class SercomDM1000Driver(ModemDriver):
             log.warning("Sercom DM1000 fetch %s failed: %s", todo, exc)
             return {}
         except requests.RequestException as exc:
+            self._log_failure_diagnostics(f"fetch_{todo}", exc)
             if raise_on_error:
                 raise RuntimeError(f"Sercom DM1000 fetch {todo} failed: {exc}") from exc
             log.warning("Sercom DM1000 fetch %s failed: %s", todo, exc)
@@ -248,6 +271,145 @@ class SercomDM1000Driver(ModemDriver):
     def _is_auth_error(exc: requests.HTTPError) -> bool:
         response = getattr(exc, "response", None)
         return getattr(response, "status_code", None) in _AUTH_STATUSES
+
+    @staticmethod
+    def _env_flag_enabled(value: str) -> bool:
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+
+    def _log_diagnostic_snapshot(self, label: str) -> None:
+        if not self._diagnostics_enabled:
+            return
+        self._emit_diagnostic(
+            label,
+            {
+                "session_cookie_names": self._session_cookie_names(),
+            },
+        )
+
+    def _log_response_diagnostics(self, label: str, resp: requests.Response) -> None:
+        if not self._diagnostics_enabled:
+            return
+        headers = getattr(resp, "headers", {}) or {}
+        request = getattr(resp, "request", None)
+        request_headers = getattr(request, "headers", {}) or {}
+        raw_unparsed = self._raw_unparsed_header_payload(resp)
+        self._emit_diagnostic(
+            label,
+            {
+                "status_code": getattr(resp, "status_code", None),
+                "parsed_header_names": sorted(str(name) for name in headers.keys()),
+                "set_cookie_names": self._set_cookie_names(headers),
+                "session_cookie_names": self._session_cookie_names(),
+                "request_cookie_names": self._cookie_header_names(str(request_headers.get("Cookie", "") or "")),
+                "content_type": str(headers.get("Content-Type", "") or ""),
+                "text_len": len(str(getattr(resp, "text", "") or "")),
+                "body_shape": self._body_shape(resp),
+                "malformed_headers": self._redacted_header_block(raw_unparsed) if raw_unparsed else "",
+            },
+        )
+
+    def _log_failure_diagnostics(self, label: str, exc: requests.RequestException) -> None:
+        if not self._diagnostics_enabled:
+            return
+        self._emit_diagnostic(
+            label,
+            {
+                "exception_type": exc.__class__.__name__,
+                "session_cookie_names": self._session_cookie_names(),
+            },
+        )
+
+    def _emit_diagnostic(self, label: str, fields: dict[str, Any]) -> None:
+        if not self._diagnostics_enabled:
+            return
+        signature = (
+            label,
+            fields.get("status_code"),
+            tuple(fields.get("session_cookie_names") or []),
+            tuple(fields.get("request_cookie_names") or []),
+            fields.get("body_shape"),
+            fields.get("malformed_headers"),
+            fields.get("exception_type"),
+        )
+        if signature in self._diagnostic_signatures:
+            return
+        self._diagnostic_signatures.add(signature)
+        rendered = " ".join(f"{key}={value!r}" for key, value in fields.items() if value not in (None, "", []))
+        log.warning("Sercom DM1000 diagnostic %s: %s", label, rendered)
+
+    def _session_cookie_names(self) -> list[str]:
+        try:
+            return sorted(str(cookie.name) for cookie in self._session.cookies)
+        except Exception:
+            return []
+
+    @staticmethod
+    def _set_cookie_names(headers: Any) -> list[str]:
+        value = str(headers.get("Set-Cookie", "") or "")
+        names: list[str] = []
+        for segment in value.split(","):
+            first = segment.strip().split(";", 1)[0]
+            name, separator, _ = first.partition("=")
+            if separator and name.strip():
+                names.append(name.strip())
+        return names
+
+    @staticmethod
+    def _cookie_header_names(header_value: str) -> list[str]:
+        names: list[str] = []
+        for segment in header_value.split(";"):
+            name, separator, _ = segment.strip().partition("=")
+            if separator and name:
+                names.append(name)
+        return names
+
+    @staticmethod
+    def _body_shape(resp: requests.Response) -> str:
+        text = str(getattr(resp, "text", "") or "").lstrip()[:_DIAGNOSTIC_BODY_PEEK].lower()
+        if not text:
+            return "empty"
+        if text.startswith(("<html", "<!doctype html")):
+            return "html"
+        if text.startswith(("{", "[")):
+            return "jsonish"
+        return "other"
+
+    @staticmethod
+    def _redacted_header_block(block: str) -> str:
+        lines: list[str] = []
+        for raw_line in str(block or "").splitlines():
+            name, separator, value = raw_line.partition(":")
+            header_name = name.strip()
+            if not separator or not header_name:
+                lines.append("[redacted]")
+                continue
+            normalized = header_name.lower()
+            if normalized in _SAFE_DIAGNOSTIC_HEADER_VALUES:
+                rendered_value = value.strip()
+                if normalized == "location":
+                    rendered_value = SercomDM1000Driver._sanitize_location_header(rendered_value)
+                lines.append(f"{header_name}: {rendered_value}")
+            else:
+                lines.append(f"{header_name}: [redacted]")
+        redacted = " | ".join(lines)
+        if len(redacted) > _DIAGNOSTIC_HEADER_CAP:
+            return f"{redacted[:_DIAGNOSTIC_HEADER_CAP]}..."
+        return redacted
+
+    @staticmethod
+    def _sanitize_location_header(value: str) -> str:
+        try:
+            parts = urlsplit(value.strip())
+            netloc = parts.hostname or ""
+            if parts.port is not None:
+                netloc = f"{netloc}:{parts.port}"
+        except ValueError:
+            return "[redacted]"
+        if parts.scheme or parts.netloc:
+            return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
+        if parts.query or parts.fragment:
+            return urlunsplit(("", "", parts.path, "", ""))
+        return value.strip()
 
     @staticmethod
     def _looks_like_html(resp: requests.Response) -> bool:
