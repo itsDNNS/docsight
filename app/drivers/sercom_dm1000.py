@@ -68,14 +68,14 @@ class SercomDM1000Driver(ModemDriver):
     def login(self) -> None:
         """Authenticate with the Sercom form and verify a protected endpoint."""
         errors: list[RuntimeError] = []
-        for label, password_value in self._login_password_variants():
+        for _label, password_value in self._login_password_variants():
             try:
                 self._login_with_password_value(password_value)
             except RuntimeError as exc:
                 errors.append(exc)
                 if not self._is_login_rejection(exc):
                     raise
-                log.info("Sercom DM1000 %s login attempt was rejected; trying fallback", label)
+                log.info("Sercom DM1000 login attempt rejected; trying fallback")
                 self._session.cookies.clear()
                 continue
             log.info("Sercom DM1000 login OK")
