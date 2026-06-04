@@ -201,12 +201,23 @@ class TestLogin:
         assert "jar-secret" not in logs
         assert "secret-password" not in logs
 
-    def test_login_posts_captured_sercom_form_and_verifies_protected_endpoint(self, driver):
+    def test_login_fetches_login_page_posts_base64_form_and_verifies_protected_endpoint(self, driver):
         with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")) as post:
-            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")):
+            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")) as get:
                 with patch.object(driver, "_fetch_payload", return_value=DS_INFO) as fetch:
                     driver.login()
 
+        get.assert_any_call(
+            "http://192.168.100.1/login.html",
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
+                "Referer": "http://192.168.100.1/login.html",
+                "Upgrade-Insecure-Requests": "1",
+                "X-Requested-With": None,
+            },
+            timeout=15,
+        )
         post.assert_called_once()
         assert post.call_args.args[0] == "http://192.168.100.1/setup.cgi"
         assert post.call_args.kwargs["headers"] == {
@@ -220,8 +231,8 @@ class TestLogin:
         assert post.call_args.kwargs["allow_redirects"] is False
         payload = post.call_args.kwargs["data"]
         assert payload["login_user"] == "technician"
-        assert payload["pws"] == "secret"
-        assert payload["passwd"] == "secret"
+        assert payload["pws"] == "c2VjcmV0"
+        assert payload["passwd"] == "c2VjcmV0"
         assert payload["todo"] == "login"
         assert payload["this_file"] == "login.html"
         assert fetch.call_args_list[0].args == ("Pd_info",)
@@ -232,6 +243,34 @@ class TestLogin:
         }
         assert fetch.call_args_list[1].args == ("RF_DS_param",)
         assert fetch.call_args_list[1].kwargs == {"raise_on_error": True, "allow_reauth": False}
+
+    def test_login_retries_with_raw_password_when_base64_attempt_is_rejected(self, driver):
+        posts = []
+
+        def post(*args, **kwargs):
+            posts.append(kwargs["data"].copy())
+            return make_response("<html>login</html>", content_type="text/html")
+
+        fetch_results = [
+            {},
+            RuntimeError("Sercom DM1000 fetch RF_DS_param redirected to login (malformed header Location: login.html)"),
+            {},
+            DS_INFO,
+        ]
+
+        def fetch(*args, **kwargs):
+            result = fetch_results.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        with patch.object(driver._session, "post", side_effect=post):
+            with patch.object(driver._session, "get", return_value=make_response("<html>status</html>", content_type="text/html")):
+                with patch.object(driver, "_fetch_payload", side_effect=fetch):
+                    driver.login()
+
+        assert [payload["pws"] for payload in posts] == ["c2VjcmV0", "secret"]
+        assert [payload["passwd"] for payload in posts] == ["c2VjcmV0", "secret"]
 
     def test_login_primes_pd_info_before_loading_status_page_and_probing_rf_json(self, driver):
         calls = []
@@ -244,9 +283,10 @@ class TestLogin:
             calls.append(("status",))
 
         with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")):
-            with patch.object(driver, "_fetch_payload", side_effect=fetch):
-                with patch.object(driver, "_load_status_page", side_effect=load_status):
-                    driver.login()
+            with patch.object(driver, "_load_login_page"):
+                with patch.object(driver, "_fetch_payload", side_effect=fetch):
+                    with patch.object(driver, "_load_status_page", side_effect=load_status):
+                        driver.login()
 
         assert calls == [
             (
@@ -288,10 +328,11 @@ class TestLogin:
         status_response = make_response("boom", status_code=500, content_type="text/plain")
         status_response.raise_for_status.side_effect = error
         with patch.object(driver._session, "post", return_value=make_response("<html>ok</html>", content_type="text/html")):
-            with patch.object(driver, "_fetch_payload", return_value=DS_INFO):
-                with patch.object(driver._session, "get", return_value=status_response):
-                    with pytest.raises(RuntimeError, match="status page load failed"):
-                        driver.login()
+            with patch.object(driver, "_load_login_page"):
+                with patch.object(driver, "_fetch_payload", return_value=DS_INFO):
+                    with patch.object(driver._session, "get", return_value=status_response):
+                        with pytest.raises(RuntimeError, match="status page load failed"):
+                            driver.login()
 
     def test_login_fails_when_post_login_probe_fails(self, driver):
         with patch.object(driver._session, "post", return_value=make_response("<html>login</html>", content_type="text/html")):

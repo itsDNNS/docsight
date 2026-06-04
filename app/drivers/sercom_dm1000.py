@@ -12,6 +12,7 @@ are intentionally out of scope here, matching DOCSight's other modem drivers.
 
 from __future__ import annotations
 
+import base64
 import logging
 import math
 import os
@@ -45,6 +46,7 @@ _SAFE_DIAGNOSTIC_HEADER_VALUES = {
 }
 _DIAGNOSTIC_HEADER_CAP = 512
 _DIAGNOSTIC_BODY_PEEK = 64
+_LOGIN_REJECTION_PHRASES = ("redirected to login", "html login page", "login was redirected")
 
 
 class SercomDM1000Driver(ModemDriver):
@@ -65,22 +67,27 @@ class SercomDM1000Driver(ModemDriver):
 
     def login(self) -> None:
         """Authenticate with the Sercom form and verify a protected endpoint."""
-        payload = {
-            "login_user": self._user,
-            # The captured login form sends both names with the same password
-            # value; firmware variants may read either field. Keep both until
-            # a live modem confirms which field this firmware validates.
-            "pws": self._password,
-            "submit": "Apply",
-            "is_parent_window": "1",
-            "todo": "login",
-            "this_file": "login.html",
-            "next_file": "",
-            "language": "en",
-            "message": "",
-            "passwd": self._password,
-            "cur_passwd": "",
-        }
+        errors: list[RuntimeError] = []
+        for label, password_value in self._login_password_variants():
+            try:
+                self._login_with_password_value(password_value)
+            except RuntimeError as exc:
+                errors.append(exc)
+                if not self._is_login_rejection(exc):
+                    raise
+                log.info("Sercom DM1000 %s login attempt was rejected; trying fallback", label)
+                self._session.cookies.clear()
+                continue
+            log.info("Sercom DM1000 login OK")
+            return
+
+        if errors:
+            raise errors[-1]
+        raise RuntimeError("Sercom DM1000 login failed: no password payload variants available")
+
+    def _login_with_password_value(self, password_value: str) -> None:
+        payload = self._login_payload(password_value)
+        self._load_login_page()
         self._log_diagnostic_snapshot("before_login_post")
         try:
             resp = self._session.post(
@@ -123,7 +130,62 @@ class SercomDM1000Driver(ModemDriver):
         # A Sercom login can return 200 + HTML even when authentication failed.
         # Probe a protected JSON endpoint before reporting success.
         self._fetch_payload("RF_DS_param", raise_on_error=True, allow_reauth=False)
-        log.info("Sercom DM1000 login OK")
+
+    def _login_payload(self, password_value: str) -> dict[str, str]:
+        return {
+            "login_user": self._user,
+            # Sercom's login form populates both fields. The UI loads
+            # base64.js, so the primary attempt mirrors that browser-side
+            # encoded value while a raw fallback preserves older captures.
+            "pws": password_value,
+            "submit": "Apply",
+            "is_parent_window": "1",
+            "todo": "login",
+            "this_file": "login.html",
+            "next_file": "",
+            "language": "en",
+            "message": "",
+            "passwd": password_value,
+            "cur_passwd": "",
+        }
+
+    def _login_password_variants(self) -> list[tuple[str, str]]:
+        raw = self._password
+        encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        variants = [("base64", encoded), ("raw", raw)]
+        deduped: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for label, value in variants:
+            if value in seen:
+                continue
+            seen.add(value)
+            deduped.append((label, value))
+        return deduped
+
+    @staticmethod
+    def _is_login_rejection(exc: RuntimeError) -> bool:
+        message = str(exc).lower()
+        return any(phrase in message for phrase in _LOGIN_REJECTION_PHRASES)
+
+    def _load_login_page(self) -> None:
+        try:
+            resp = self._session.get(
+                f"{self._url}/login.html",
+                headers={
+                    "Accept": _HTML_ACCEPT,
+                    "Accept-Language": _BROWSER_ACCEPT_LANGUAGE,
+                    "Referer": f"{self._url}/login.html",
+                    "Upgrade-Insecure-Requests": "1",
+                    # Remove the session-level XHR marker for normal page navigation.
+                    "X-Requested-With": None,
+                },
+                timeout=15,
+            )
+            self._log_response_diagnostics("login_page", resp)
+            resp.raise_for_status()
+        except requests.RequestException as exc:
+            self._log_failure_diagnostics("login_page", exc)
+            raise RuntimeError(f"Sercom DM1000 login page load failed: {exc}") from exc
 
     def _load_status_page(self) -> None:
         try:
