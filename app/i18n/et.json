@@ -908,7 +908,7 @@
   "sc_history_empty": "Hukkamisi veel pole. Smart Capture logib siin tegevused, kui see on lubatud.",
   "sc_history_error": "Täitmisajaloo laadimine ebaõnnestus",
   "sc_history_loading": "Täitmisajaloo laadimine...",
-  "sc_guardrails_summary": "Maksimaalselt %max%/tunnis, minimaalselt % jahutus% vahega",
+  "sc_guardrails_summary": "Kuni %max%/tunnis, vähemalt %cooldown% vahega; Smart Capture Speedtestid: %speedtestMax%/päev, %speedtestInterval% vahega",
   "sc_status_pending": "Ootel",
   "sc_status_fired": "Vallandatud",
   "sc_status_completed": "Lõpetatud",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktiivne kanal",
   "metric_active_channel_plural": "aktiivsed kanalid",
   "signal_family_average_section_title": "Signaaliperekondade keskmised",
-  "signal_family_average_section_hint": "Väärtused on keskmistatud iga DOCSIS-signaaliperekonna aktiivsete kanalite lõikes."
+  "signal_family_average_section_hint": "Väärtused on keskmistatud iga DOCSIS-signaaliperekonna aktiivsete kanalite lõikes.",
+  "sc_speedtest_min_interval": "Speedtesti minimaalne intervall (sekundites)",
+  "sc_speedtest_min_interval_hint": "Blokeerib Smart Capture’i, kui Speedtest Tracker on hiljuti juba käivitunud, sh oma ajakava järgi.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture’i Speedtestid päevas",
+  "sc_speedtest_max_actions_per_day_hint": "Libisev 24 h piir DOCSighti käivitatud täiendavatele Speedtest Tracker mõõtmistele. 0 keelab selle piiri.",
+  "sc_speedtest_match_window": "Speedtesti tulemuse sidumise aken (sekundites)",
+  "sc_speedtest_match_window_hint": "Kui kaua DOCSight ootab käivitatud Speedtest Tracker tulemuse sidumist enne selle aegunuks märkimist."
 }

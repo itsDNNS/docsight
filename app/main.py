@@ -288,7 +288,12 @@ def polling_loop(config_mgr, storage, stop_event):
                 polling_loop._sc_expiry_counter += 1
                 if polling_loop._sc_expiry_counter >= 60:
                     polling_loop._sc_expiry_counter = 0
-                    cutoff = utc_cutoff(minutes=10)
+                    match_window = config_mgr.get("sc_speedtest_match_window", 900)
+                    try:
+                        expiry_minutes = max(10, int(match_window) // 60 + 5)
+                    except (TypeError, ValueError):
+                        expiry_minutes = 20
+                    cutoff = utc_cutoff(minutes=expiry_minutes)
                     for action_type in smart_capture.adapter_action_types:
                         expired = storage.expire_stale_fired(cutoff, action_type=action_type)
                         if expired:

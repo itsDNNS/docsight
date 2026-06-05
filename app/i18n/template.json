@@ -905,5 +905,12 @@
   "metric_active_channel_singular": "",
   "metric_active_channel_plural": "",
   "signal_family_average_section_title": "",
-  "signal_family_average_section_hint": ""
+  "signal_family_average_section_hint": "",
+  "sc_guardrails_summary": "At most %max%/hour, minimum %cooldown% apart; Smart Capture speedtests: %speedtestMax%/day, %speedtestInterval% apart",
+  "sc_speedtest_min_interval": "Speedtest min interval (seconds)",
+  "sc_speedtest_min_interval_hint": "Blocks Smart Capture if Speedtest Tracker already ran recently, including its own schedule.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture speedtests per day",
+  "sc_speedtest_max_actions_per_day_hint": "Rolling 24h cap for extra Speedtest Tracker runs triggered by DOCSight. 0 disables this cap.",
+  "sc_speedtest_match_window": "Speedtest result match window (seconds)",
+  "sc_speedtest_match_window_hint": "How long DOCSight waits to link a triggered Speedtest Tracker result before expiring it."
 }

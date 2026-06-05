@@ -908,7 +908,7 @@
   "sc_history_empty": "Nenhuma execução ainda. O Smart Capture registrará a atividade aqui, uma vez ativado.",
   "sc_history_error": "Falha ao carregar o histórico de execução",
   "sc_history_loading": "Carregando histórico de execução...",
-  "sc_guardrails_summary": "No máximo %max%/hora, intervalo mínimo de %cooldown%",
+  "sc_guardrails_summary": "No máximo %max%/hora, pelo menos %cooldown% de intervalo; Speedtests do Smart Capture: %speedtestMax%/dia, a cada %speedtestInterval%",
   "sc_status_pending": "Pendente",
   "sc_status_fired": "Demitido",
   "sc_status_completed": "Concluído",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "canal ativo",
   "metric_active_channel_plural": "canais ativos",
   "signal_family_average_section_title": "Médias por família de sinal",
-  "signal_family_average_section_hint": "Os valores são calculados como média dos canais ativos em cada família de sinal DOCSIS."
+  "signal_family_average_section_hint": "Os valores são calculados como média dos canais ativos em cada família de sinal DOCSIS.",
+  "sc_speedtest_min_interval": "Intervalo mínimo do Speedtest (segundos)",
+  "sc_speedtest_min_interval_hint": "Bloqueia o Smart Capture se o Speedtest Tracker já tiver executado recentemente, incluindo o próprio agendamento.",
+  "sc_speedtest_max_actions_per_day": "Speedtests do Smart Capture por dia",
+  "sc_speedtest_max_actions_per_day_hint": "Limite móvel de 24 h para execuções adicionais do Speedtest Tracker acionadas pelo DOCSight. 0 desativa este limite.",
+  "sc_speedtest_match_window": "Janela de correspondência do resultado Speedtest (segundos)",
+  "sc_speedtest_match_window_hint": "Por quanto tempo o DOCSight aguarda para vincular um resultado do Speedtest Tracker acionado antes de marcá-lo como expirado."
 }

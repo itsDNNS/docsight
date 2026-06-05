@@ -160,6 +160,10 @@ class TestSmartCaptureSettingsRender:
         assert 'name="sc_trigger_error_spike_min_delta"' in html
         assert 'name="sc_trigger_health_level"' in html
         assert 'name="sc_trigger_packet_loss_min_pct"' in html
+        assert 'name="sc_speedtest_min_interval"' in html
+        assert 'name="sc_speedtest_max_actions_per_day"' in html
+        assert 'name="sc_speedtest_match_window"' in html
+        assert 'Speedtest Tracker already ran recently' in html
 
     def test_settings_contains_qam_dropdown_options(self, client):
         resp = client.get("/settings")

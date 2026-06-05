@@ -908,7 +908,7 @@
   "sc_history_empty": "Δεν υπάρχουν ακόμη εκτελέσεις. Το Smart Capture θα καταγράφει τη δραστηριότητα εδώ μόλις ενεργοποιηθεί.",
   "sc_history_error": "Αποτυχία φόρτωσης του ιστορικού εκτέλεσης",
   "sc_history_loading": "Φόρτωση ιστορικού εκτέλεσης...",
-  "sc_guardrails_summary": "Το πολύ %max%/ώρα, ελάχιστο %cooldown% διαφορά",
+  "sc_guardrails_summary": "Έως %max%/ώρα, με ελάχιστη απόσταση %cooldown%; Speedtest από Smart Capture: %speedtestMax%/ημέρα, ανά %speedtestInterval%",
   "sc_status_pending": "Σε εκκρεμότητα",
   "sc_status_fired": "Απολύθηκε",
   "sc_status_completed": "Ολοκληρώθηκε",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "ενεργό κανάλι",
   "metric_active_channel_plural": "ενεργά κανάλια",
   "signal_family_average_section_title": "Μέσοι όροι οικογενειών σήματος",
-  "signal_family_average_section_hint": "Οι τιμές υπολογίζονται ως μέσος όρος των ενεργών καναλιών σε κάθε οικογένεια σήματος DOCSIS."
+  "signal_family_average_section_hint": "Οι τιμές υπολογίζονται ως μέσος όρος των ενεργών καναλιών σε κάθε οικογένεια σήματος DOCSIS.",
+  "sc_speedtest_min_interval": "Ελάχιστο διάστημα Speedtest (δευτερόλεπτα)",
+  "sc_speedtest_min_interval_hint": "Μπλοκάρει το Smart Capture αν το Speedtest Tracker εκτέλεσε πρόσφατα μέτρηση, συμπεριλαμβανομένου του δικού του προγράμματος.",
+  "sc_speedtest_max_actions_per_day": "Speedtest από Smart Capture ανά ημέρα",
+  "sc_speedtest_max_actions_per_day_hint": "Κυλιόμενο όριο 24 ωρών για πρόσθετες εκτελέσεις Speedtest Tracker που ενεργοποιεί το DOCSight. Το 0 απενεργοποιεί το όριο.",
+  "sc_speedtest_match_window": "Παράθυρο αντιστοίχισης αποτελέσματος Speedtest (δευτερόλεπτα)",
+  "sc_speedtest_match_window_hint": "Πόσο περιμένει το DOCSight για να συνδέσει ένα αποτέλεσμα Speedtest Tracker πριν το χαρακτηρίσει ληγμένο."
 }

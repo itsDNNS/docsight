@@ -908,7 +908,7 @@
   "sc_history_empty": "Pagaidām nav izpildīts neviens nāvessods. Viedā tveršana šeit reģistrēs darbības, kad tā būs iespējota.",
   "sc_history_error": "Neizdevās ielādēt izpildes vēsturi",
   "sc_history_loading": "Notiek izpildes vēstures ielāde...",
-  "sc_guardrails_summary": "Ne vairāk kā %max%/stundā, vismaz % atdzišanas% intervāls",
+  "sc_guardrails_summary": "Ne vairāk kā %max%/stundā, vismaz ar %cooldown% starplaiku; Smart Capture Speedtesti: %speedtestMax%/dienā, ik pēc %speedtestInterval%",
   "sc_status_pending": "Gaida",
   "sc_status_fired": "Atlaists",
   "sc_status_completed": "Pabeigts",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktīvs kanāls",
   "metric_active_channel_plural": "aktīvi kanāli",
   "signal_family_average_section_title": "Signālu saimju vidējās vērtības",
-  "signal_family_average_section_hint": "Vērtības ir vidējotas pa aktīvajiem kanāliem katrā DOCSIS signālu saimē."
+  "signal_family_average_section_hint": "Vērtības ir vidējotas pa aktīvajiem kanāliem katrā DOCSIS signālu saimē.",
+  "sc_speedtest_min_interval": "Minimālais Speedtest intervāls (sekundes)",
+  "sc_speedtest_min_interval_hint": "Bloķē Smart Capture, ja Speedtest Tracker nesen jau ir palaists, tostarp pēc sava grafika.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture Speedtesti dienā",
+  "sc_speedtest_max_actions_per_day_hint": "Slīdošs 24 h limits papildu Speedtest Tracker palaišanām, ko ierosina DOCSight. 0 atspējo šo limitu.",
+  "sc_speedtest_match_window": "Speedtest rezultāta sasaistes logs (sekundes)",
+  "sc_speedtest_match_window_hint": "Cik ilgi DOCSight gaida, lai sasaistītu ierosinātu Speedtest Tracker rezultātu, pirms to atzīmē kā beigušos."
 }

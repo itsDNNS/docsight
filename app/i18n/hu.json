@@ -908,7 +908,7 @@
   "sc_history_empty": "Még nincsenek kivégzések. Az Intelligens rögzítés itt naplózza a tevékenységet, ha engedélyezve van.",
   "sc_history_error": "Nem sikerült betölteni a végrehajtási előzményeket",
   "sc_history_loading": "Végrehajtási előzmények betöltése...",
-  "sc_guardrails_summary": "Legfeljebb %max%/óra, minimum %lehűlés% távolságra",
+  "sc_guardrails_summary": "Legfeljebb %max%/óra, legalább %cooldown% különbséggel; Smart Capture Speedtestek: %speedtestMax%/nap, %speedtestInterval% különbséggel",
   "sc_status_pending": "Függőben",
   "sc_status_fired": "Kirúgva",
   "sc_status_completed": "Befejezve",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktív csatorna",
   "metric_active_channel_plural": "aktív csatorna",
   "signal_family_average_section_title": "Jelcsalád-átlagok",
-  "signal_family_average_section_hint": "Az értékek az egyes DOCSIS jelcsaládok aktív csatornáinak átlagai."
+  "signal_family_average_section_hint": "Az értékek az egyes DOCSIS jelcsaládok aktív csatornáinak átlagai.",
+  "sc_speedtest_min_interval": "Speedtest minimális időköze (másodperc)",
+  "sc_speedtest_min_interval_hint": "Letiltja a Smart Capture-t, ha a Speedtest Tracker nemrég már futott, beleértve a saját ütemezését is.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture Speedtestek naponta",
+  "sc_speedtest_max_actions_per_day_hint": "Gördülő 24 órás korlát a DOCSight által indított további Speedtest Tracker futásokra. A 0 kikapcsolja ezt a korlátot.",
+  "sc_speedtest_match_window": "Speedtest-eredmény illesztési ablaka (másodperc)",
+  "sc_speedtest_match_window_hint": "Meddig vár a DOCSight egy indított Speedtest Tracker eredmény összekapcsolására, mielőtt lejártnak jelöli."
 }

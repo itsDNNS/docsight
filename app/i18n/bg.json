@@ -908,7 +908,7 @@
   "sc_history_empty": "Все още няма екзекуции. Smart Capture ще регистрира активност тук, след като бъде активирана.",
   "sc_history_error": "Неуспешно зареждане на хронологията на изпълнението",
   "sc_history_loading": "Зарежда се хронологията на изпълнението...",
-  "sc_guardrails_summary": "Най-много %max%/час, минимум %cooldown% разстояние",
+  "sc_guardrails_summary": "Най-много %max%/час, минимум %cooldown% пауза; Speedtest чрез Smart Capture: %speedtestMax%/ден, през %speedtestInterval%",
   "sc_status_pending": "Предстои",
   "sc_status_fired": "Уволнен",
   "sc_status_completed": "Завършено",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "активен канал",
   "metric_active_channel_plural": "активни канала",
   "signal_family_average_section_title": "Средни стойности по сигнални семейства",
-  "signal_family_average_section_hint": "Стойностите са осреднени за активните канали във всяко DOCSIS сигнално семейство."
+  "signal_family_average_section_hint": "Стойностите са осреднени за активните канали във всяко DOCSIS сигнално семейство.",
+  "sc_speedtest_min_interval": "Минимален интервал за Speedtest (секунди)",
+  "sc_speedtest_min_interval_hint": "Блокира Smart Capture, ако Speedtest Tracker вече е изпълнил скорошен тест, включително по собствения си график.",
+  "sc_speedtest_max_actions_per_day": "Speedtest тестове чрез Smart Capture на ден",
+  "sc_speedtest_max_actions_per_day_hint": "Плъзгащ се 24-часов лимит за допълнителни Speedtest Tracker тестове, задействани от DOCSight. 0 изключва този лимит.",
+  "sc_speedtest_match_window": "Прозорец за свързване на резултат от Speedtest (секунди)",
+  "sc_speedtest_match_window_hint": "Колко дълго DOCSight изчаква, за да свърже задействан резултат от Speedtest Tracker, преди да го отбележи като изтекъл."
 }

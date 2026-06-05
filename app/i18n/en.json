@@ -908,7 +908,7 @@
   "sc_history_empty": "No executions yet. Smart Capture will log activity here once enabled.",
   "sc_history_error": "Failed to load execution history",
   "sc_history_loading": "Loading execution history...",
-  "sc_guardrails_summary": "At most %max%/hour, minimum %cooldown% apart",
+  "sc_guardrails_summary": "At most %max%/hour, minimum %cooldown% apart; Smart Capture speedtests: %speedtestMax%/day, %speedtestInterval% apart",
   "sc_status_pending": "Pending",
   "sc_status_fired": "Fired",
   "sc_status_completed": "Completed",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "active channel",
   "metric_active_channel_plural": "active channels",
   "signal_family_average_section_title": "Signal family averages",
-  "signal_family_average_section_hint": "Values are averaged across active channels in each DOCSIS signal family."
+  "signal_family_average_section_hint": "Values are averaged across active channels in each DOCSIS signal family.",
+  "sc_speedtest_min_interval": "Speedtest min interval (seconds)",
+  "sc_speedtest_min_interval_hint": "Blocks Smart Capture if Speedtest Tracker already ran recently, including its own schedule.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture speedtests per day",
+  "sc_speedtest_max_actions_per_day_hint": "Rolling 24h cap for extra Speedtest Tracker runs triggered by DOCSight. 0 disables this cap.",
+  "sc_speedtest_match_window": "Speedtest result match window (seconds)",
+  "sc_speedtest_match_window_hint": "How long DOCSight waits to link a triggered Speedtest Tracker result before expiring it."
 }

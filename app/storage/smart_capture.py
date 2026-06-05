@@ -7,6 +7,7 @@ from ..tz import utc_now
 
 
 class SmartCaptureMixin:
+    db_path: str
 
     def save_execution(self, trigger_type, action_type, status,
                        trigger_event_id=None, trigger_timestamp=None,
@@ -50,7 +51,8 @@ class SmartCaptureMixin:
 
     def update_execution(self, execution_id, status=None, fired_at=None,
                          completed_at=None, linked_result_id=None,
-                         last_error=None, attempt_count=None):
+                         last_error=None, attempt_count=None,
+                         suppression_reason=None):
         """Update fields on an existing execution record."""
         updates = []
         params = []
@@ -72,6 +74,9 @@ class SmartCaptureMixin:
         if attempt_count is not None:
             updates.append("attempt_count = ?")
             params.append(attempt_count)
+        if suppression_reason is not None:
+            updates.append("suppression_reason = ?")
+            params.append(suppression_reason)
         if not updates:
             return
         params.append(execution_id)
@@ -102,6 +107,40 @@ class SmartCaptureMixin:
                     pass
             results.append(record)
         return results
+
+    def get_latest_smart_capture_fire(self, action_type):
+        """Return the latest fired_at timestamp for accepted Smart Capture actions."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT fired_at FROM smart_capture_executions "
+                "WHERE action_type = ? AND fired_at IS NOT NULL "
+                "ORDER BY fired_at DESC LIMIT 1",
+                (action_type,),
+            ).fetchone()
+        return row[0] if row else None
+
+    def count_smart_capture_fires_since(self, action_type, since_timestamp):
+        """Count accepted Smart Capture actions since a UTC timestamp."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM smart_capture_executions "
+                "WHERE action_type = ? AND fired_at IS NOT NULL AND fired_at >= ?",
+                (action_type, since_timestamp),
+            ).fetchone()
+        return int(row[0]) if row else 0
+
+    def get_latest_speedtest_result_timestamp(self):
+        """Return latest cached Speedtest Tracker result timestamp, if present."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                row = conn.execute(
+                    "SELECT timestamp FROM speedtest_results "
+                    "WHERE COALESCE(is_demo, 0) = 0 "
+                    "ORDER BY timestamp DESC, id DESC LIMIT 1"
+                ).fetchone()
+            return row[0] if row else None
+        except sqlite3.Error:
+            return None
 
     def expire_stale_fired(self, cutoff_timestamp, action_type=None):
         """Bulk-expire FIRED executions with fired_at before cutoff and no linked result.

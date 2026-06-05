@@ -194,6 +194,24 @@
                     <input type="number" id="sc_max_actions_per_hour" name="sc_max_actions_per_hour"
                            value="{{ config.get('sc_max_actions_per_hour', 4) }}" min="1" max="60">
                 </div>
+                <div class="form-group">
+                    <label for="sc_speedtest_min_interval">{{ t.get('sc_speedtest_min_interval', 'Speedtest min interval (seconds)') }}</label>
+                    <input type="number" id="sc_speedtest_min_interval" name="sc_speedtest_min_interval"
+                           value="{{ config.get('sc_speedtest_min_interval', 14400) }}" min="0" max="86400">
+                    <div class="form-hint">{{ t.get('sc_speedtest_min_interval_hint', 'Blocks Smart Capture if Speedtest Tracker already ran recently, including its own schedule.') }}</div>
+                </div>
+                <div class="form-group">
+                    <label for="sc_speedtest_max_actions_per_day">{{ t.get('sc_speedtest_max_actions_per_day', 'Smart Capture speedtests per day') }}</label>
+                    <input type="number" id="sc_speedtest_max_actions_per_day" name="sc_speedtest_max_actions_per_day"
+                           value="{{ config.get('sc_speedtest_max_actions_per_day', 4) }}" min="0" max="96">
+                    <div class="form-hint">{{ t.get('sc_speedtest_max_actions_per_day_hint', 'Rolling 24h cap for extra Speedtest Tracker runs triggered by DOCSight. 0 disables this cap.') }}</div>
+                </div>
+                <div class="form-group">
+                    <label for="sc_speedtest_match_window">{{ t.get('sc_speedtest_match_window', 'Speedtest result match window (seconds)') }}</label>
+                    <input type="number" id="sc_speedtest_match_window" name="sc_speedtest_match_window"
+                           value="{{ config.get('sc_speedtest_match_window', 900) }}" min="60" max="3600">
+                    <div class="form-hint">{{ t.get('sc_speedtest_match_window_hint', 'How long DOCSight waits to link a triggered Speedtest Tracker result before expiring it.') }}</div>
+                </div>
             </div>
             <div class="sc-guardrails-summary" id="sc-guardrails-summary"></div>
         </div>
