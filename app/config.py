@@ -78,6 +78,9 @@ DEFAULTS = {
     "sc_global_cooldown": 300,
     "sc_trigger_cooldown": 900,
     "sc_max_actions_per_hour": 4,
+    "sc_speedtest_min_interval": 14400,
+    "sc_speedtest_max_actions_per_day": 4,
+    "sc_speedtest_match_window": 900,
     "sc_flapping_window": 3600,
     "sc_flapping_threshold": 3,
     "sc_trigger_modulation": True,
@@ -145,6 +148,9 @@ ENV_MAP = {
     "sc_global_cooldown": "SC_GLOBAL_COOLDOWN",
     "sc_trigger_cooldown": "SC_TRIGGER_COOLDOWN",
     "sc_max_actions_per_hour": "SC_MAX_ACTIONS_PER_HOUR",
+    "sc_speedtest_min_interval": "SC_SPEEDTEST_MIN_INTERVAL",
+    "sc_speedtest_max_actions_per_day": "SC_SPEEDTEST_MAX_ACTIONS_PER_DAY",
+    "sc_speedtest_match_window": "SC_SPEEDTEST_MATCH_WINDOW",
     "sc_flapping_window": "SC_FLAPPING_WINDOW",
     "sc_flapping_threshold": "SC_FLAPPING_THRESHOLD",
     "sc_trigger_modulation": "SC_TRIGGER_MODULATION",
@@ -175,6 +181,7 @@ _LEGACY_KEY_MAP = {
 
 INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown", "health_hysteresis",
             "sc_global_cooldown", "sc_trigger_cooldown", "sc_max_actions_per_hour",
+            "sc_speedtest_min_interval", "sc_speedtest_max_actions_per_day", "sc_speedtest_match_window",
             "sc_flapping_window", "sc_flapping_threshold",
             "sc_trigger_error_spike_min_delta"}
 BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled", "notify_apprise_enabled",

@@ -908,7 +908,7 @@
   "sc_history_empty": "Ingen henrettelser ennå. Smart Capture vil logge aktivitet her når den er aktivert.",
   "sc_history_error": "Kunne ikke laste inn kjøringshistorikken",
   "sc_history_loading": "Laster utføringshistorikk...",
-  "sc_guardrails_summary": "Høyst %max%/time, minimum %cooldown% fra hverandre",
+  "sc_guardrails_summary": "Maks %max%/time, minst %cooldown% mellom; Speedtester fra Smart Capture: %speedtestMax%/dag, med %speedtestInterval% mellom",
   "sc_status_pending": "Venter",
   "sc_status_fired": "Avfyrt",
   "sc_status_completed": "Fullført",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktiv kanal",
   "metric_active_channel_plural": "aktive kanaler",
   "signal_family_average_section_title": "Gjennomsnitt per signalfamilie",
-  "signal_family_average_section_hint": "Verdiene er gjennomsnitt over aktive kanaler i hver DOCSIS-signalfamilie."
+  "signal_family_average_section_hint": "Verdiene er gjennomsnitt over aktive kanaler i hver DOCSIS-signalfamilie.",
+  "sc_speedtest_min_interval": "Minste intervall for Speedtest (sekunder)",
+  "sc_speedtest_min_interval_hint": "Blokkerer Smart Capture hvis Speedtest Tracker nylig allerede har kjørt, inkludert etter sin egen tidsplan.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture-speedtester per dag",
+  "sc_speedtest_max_actions_per_day_hint": "Rullerende 24-timers grense for ekstra Speedtest Tracker-kjøringer utløst av DOCSight. 0 deaktiverer grensen.",
+  "sc_speedtest_match_window": "Matchvindu for Speedtest-resultat (sekunder)",
+  "sc_speedtest_match_window_hint": "Hvor lenge DOCSight venter på å koble et utløst Speedtest Tracker-resultat før det utløper."
 }

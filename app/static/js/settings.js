@@ -1878,22 +1878,34 @@ function updateGuardrailsSummary() {
     var el = document.getElementById('sc-guardrails-summary');
     var cooldownEl = document.getElementById('sc_global_cooldown');
     var maxEl = document.getElementById('sc_max_actions_per_hour');
+    var speedtestIntervalEl = document.getElementById('sc_speedtest_min_interval');
+    var speedtestDailyEl = document.getElementById('sc_speedtest_max_actions_per_day');
     if (!el || !cooldownEl || !maxEl) return;
     var cooldown = parseInt(cooldownEl.value) || 0;
     var maxPerHour = parseInt(maxEl.value) || 1;
+    var speedtestInterval = speedtestIntervalEl ? (parseInt(speedtestIntervalEl.value) || 0) : 0;
+    var speedtestDaily = speedtestDailyEl ? (parseInt(speedtestDailyEl.value) || 0) : 0;
     var cooldownStr;
     if (cooldown >= 3600) cooldownStr = Math.round(cooldown / 3600) + 'h';
     else if (cooldown >= 60) cooldownStr = Math.round(cooldown / 60) + ' min';
     else cooldownStr = cooldown + 's';
-    var tpl = T.sc_guardrails_summary || 'At most %max%/hour, minimum %cooldown% apart';
-    el.textContent = tpl.replace('%max%', maxPerHour).replace('%cooldown%', cooldownStr);
+    var speedtestIntervalStr;
+    if (speedtestInterval >= 3600) speedtestIntervalStr = Math.round(speedtestInterval / 3600) + 'h';
+    else if (speedtestInterval >= 60) speedtestIntervalStr = Math.round(speedtestInterval / 60) + ' min';
+    else speedtestIntervalStr = speedtestInterval + 's';
+    var tpl = T.sc_guardrails_summary || 'At most %max%/hour, minimum %cooldown% apart; Smart Capture speedtests: %speedtestMax%/day, %speedtestInterval% apart';
+    el.textContent = tpl
+        .replace('%max%', maxPerHour)
+        .replace('%cooldown%', cooldownStr)
+        .replace('%speedtestMax%', speedtestDaily)
+        .replace('%speedtestInterval%', speedtestIntervalStr);
 }
 
 // Initialize guardrails summary on load and input
 (function() {
     function init() {
         updateGuardrailsSummary();
-        ['sc_global_cooldown', 'sc_max_actions_per_hour'].forEach(function(id) {
+        ['sc_global_cooldown', 'sc_max_actions_per_hour', 'sc_speedtest_min_interval', 'sc_speedtest_max_actions_per_day'].forEach(function(id) {
             var el = document.getElementById(id);
             if (el) el.addEventListener('input', updateGuardrailsSummary);
         });

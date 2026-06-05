@@ -908,7 +908,7 @@
   "sc_history_empty": "Egzekucijos dar nėra. „Smart Capture“ čia registruos veiklą, kai bus įjungta.",
   "sc_history_error": "Nepavyko įkelti vykdymo istorijos",
   "sc_history_loading": "Įkeliama vykdymo istorija...",
-  "sc_guardrails_summary": "Daugiausia %max%/val., mažiausiai % vėsinimo%.",
+  "sc_guardrails_summary": "Daugiausia %max%/val., bent %cooldown% tarpas; Smart Capture Speedtestai: %speedtestMax%/dieną, kas %speedtestInterval%",
   "sc_status_pending": "Laukiama",
   "sc_status_fired": "Atleista",
   "sc_status_completed": "Užbaigta",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktyvus kanalas",
   "metric_active_channel_plural": "aktyvūs kanalai",
   "signal_family_average_section_title": "Signalų šeimų vidurkiai",
-  "signal_family_average_section_hint": "Reikšmės apskaičiuojamos kaip aktyvių kanalų vidurkis kiekvienoje DOCSIS signalų šeimoje."
+  "signal_family_average_section_hint": "Reikšmės apskaičiuojamos kaip aktyvių kanalų vidurkis kiekvienoje DOCSIS signalų šeimoje.",
+  "sc_speedtest_min_interval": "Minimalus Speedtest intervalas (sekundės)",
+  "sc_speedtest_min_interval_hint": "Blokuoja Smart Capture, jei Speedtest Tracker neseniai jau veikė, įskaitant jo paties tvarkaraštį.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture Speedtestai per dieną",
+  "sc_speedtest_max_actions_per_day_hint": "Slenkantis 24 val. limitas papildomiems Speedtest Tracker paleidimams, kuriuos inicijuoja DOCSight. 0 išjungia šį limitą.",
+  "sc_speedtest_match_window": "Speedtest rezultato susiejimo langas (sekundės)",
+  "sc_speedtest_match_window_hint": "Kiek laiko DOCSight laukia, kad susietų inicijuotą Speedtest Tracker rezultatą, prieš pažymėdamas jį pasibaigusiu."
 }

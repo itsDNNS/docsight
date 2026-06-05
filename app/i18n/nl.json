@@ -908,7 +908,7 @@
   "sc_history_empty": "Nog geen executies. Smart Capture registreert hier de activiteit zodra deze is ingeschakeld.",
   "sc_history_error": "Kan de uitvoeringsgeschiedenis niet laden",
   "sc_history_loading": "Uitvoeringsgeschiedenis laden...",
-  "sc_guardrails_summary": "Maximaal %max%/uur, minimaal %cooldown% uit elkaar",
+  "sc_guardrails_summary": "Maximaal %max%/uur, minimaal %cooldown% ertussen; Smart Capture-speedtests: %speedtestMax%/dag, elke %speedtestInterval%",
   "sc_status_pending": "In behandeling",
   "sc_status_fired": "Ontslagen",
   "sc_status_completed": "Voltooid",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "actief kanaal",
   "metric_active_channel_plural": "actieve kanalen",
   "signal_family_average_section_title": "Gemiddelden per signaalfamilie",
-  "signal_family_average_section_hint": "Waarden zijn gemiddeld over actieve kanalen in elke DOCSIS-signaalfamilie."
+  "signal_family_average_section_hint": "Waarden zijn gemiddeld over actieve kanalen in elke DOCSIS-signaalfamilie.",
+  "sc_speedtest_min_interval": "Minimale Speedtest-interval (seconden)",
+  "sc_speedtest_min_interval_hint": "Blokkeert Smart Capture als Speedtest Tracker onlangs al heeft gedraaid, inclusief de eigen planning.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture-speedtests per dag",
+  "sc_speedtest_max_actions_per_day_hint": "Voortschrijdende 24-uurs limiet voor extra Speedtest Tracker-runs die DOCSight start. 0 schakelt deze limiet uit.",
+  "sc_speedtest_match_window": "Koppelvenster voor Speedtest-resultaat (seconden)",
+  "sc_speedtest_match_window_hint": "Hoe lang DOCSight wacht om een gestart Speedtest Tracker-resultaat te koppelen voordat het verloopt."
 }

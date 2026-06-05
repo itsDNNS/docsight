@@ -908,7 +908,7 @@
   "sc_history_empty": "Noch keine Ausführungen. Smart Capture protokolliert Aktivitäten hier sobald es aktiviert ist.",
   "sc_history_error": "Ausführungsverlauf konnte nicht geladen werden",
   "sc_history_loading": "Ausführungsverlauf wird geladen...",
-  "sc_guardrails_summary": "Maximal %max%/Stunde, mindestens %cooldown% Abstand",
+  "sc_guardrails_summary": "Höchstens %max%/Stunde, mindestens %cooldown% Abstand; Speedtests per Smart Capture: %speedtestMax%/Tag, %speedtestInterval% Abstand",
   "sc_status_pending": "Ausstehend",
   "sc_status_fired": "Ausgelöst",
   "sc_status_completed": "Abgeschlossen",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktiver Kanal",
   "metric_active_channel_plural": "aktive Kanäle",
   "signal_family_average_section_title": "Signalgruppen-Durchschnitte",
-  "signal_family_average_section_hint": "Werte werden über aktive Kanäle in jeder DOCSIS-Signalgruppe gemittelt."
+  "signal_family_average_section_hint": "Werte werden über aktive Kanäle in jeder DOCSIS-Signalgruppe gemittelt.",
+  "sc_speedtest_min_interval": "Speedtest-Mindestabstand (Sekunden)",
+  "sc_speedtest_min_interval_hint": "Blockiert Smart Capture, wenn Speedtest Tracker kürzlich bereits gelaufen ist, einschließlich seines eigenen Zeitplans.",
+  "sc_speedtest_max_actions_per_day": "Smart-Capture-Speedtests pro Tag",
+  "sc_speedtest_max_actions_per_day_hint": "Rollierendes 24-Stunden-Limit für zusätzliche Speedtest-Tracker-Läufe, die DOCSight auslöst. 0 deaktiviert dieses Limit.",
+  "sc_speedtest_match_window": "Zuordnungsfenster für Speedtest-Ergebnisse (Sekunden)",
+  "sc_speedtest_match_window_hint": "Wie lange DOCSight wartet, um ein ausgelöstes Speedtest-Tracker-Ergebnis zuzuordnen, bevor es abläuft."
 }

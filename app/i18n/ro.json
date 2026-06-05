@@ -908,7 +908,7 @@
   "sc_history_empty": "Nicio execuție încă. Smart Capture va înregistra activitatea aici odată ce este activată.",
   "sc_history_error": "Nu s-a încărcat istoricul execuțiilor",
   "sc_history_loading": "Se încarcă istoricul execuțiilor...",
-  "sc_guardrails_summary": "Cel mult %max%/oră, minim %cooldown% separat",
+  "sc_guardrails_summary": "Cel mult %max%/oră, la cel puțin %cooldown% distanță; Speedtesturi Smart Capture: %speedtestMax%/zi, la %speedtestInterval%",
   "sc_status_pending": "În așteptare",
   "sc_status_fired": "Demis",
   "sc_status_completed": "Finalizat",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "canal activ",
   "metric_active_channel_plural": "canale active",
   "signal_family_average_section_title": "Medii pe familii de semnal",
-  "signal_family_average_section_hint": "Valorile sunt mediate pe canalele active din fiecare familie de semnal DOCSIS."
+  "signal_family_average_section_hint": "Valorile sunt mediate pe canalele active din fiecare familie de semnal DOCSIS.",
+  "sc_speedtest_min_interval": "Interval minim Speedtest (secunde)",
+  "sc_speedtest_min_interval_hint": "Blochează Smart Capture dacă Speedtest Tracker a rulat deja recent, inclusiv după propriul program.",
+  "sc_speedtest_max_actions_per_day": "Speedtesturi Smart Capture pe zi",
+  "sc_speedtest_max_actions_per_day_hint": "Limită glisantă de 24 h pentru rulări suplimentare Speedtest Tracker declanșate de DOCSight. 0 dezactivează această limită.",
+  "sc_speedtest_match_window": "Fereastră de asociere rezultat Speedtest (secunde)",
+  "sc_speedtest_match_window_hint": "Cât timp așteaptă DOCSight pentru a asocia un rezultat Speedtest Tracker declanșat înainte de expirare."
 }

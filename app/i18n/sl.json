@@ -908,7 +908,7 @@
   "sc_history_empty": "Usmrtitev še ni. Smart Capture bo tukaj beležil dejavnost, ko bo omogočena.",
   "sc_history_error": "Nalaganje zgodovine izvajanja ni uspelo",
   "sc_history_loading": "Nalaganje zgodovine izvajanja ...",
-  "sc_guardrails_summary": "Največ %max%/uro, najmanj %cooldown% narazen",
+  "sc_guardrails_summary": "Največ %max%/uro, vsaj %cooldown% narazen; Speedtesti iz Smart Capture: %speedtestMax%/dan, vsakih %speedtestInterval%",
   "sc_status_pending": "V teku",
   "sc_status_fired": "Odpuščen",
   "sc_status_completed": "Dokončano",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktiven kanal",
   "metric_active_channel_plural": "aktivni kanali",
   "signal_family_average_section_title": "Povprečja družin signalov",
-  "signal_family_average_section_hint": "Vrednosti so povprečene po aktivnih kanalih v vsaki družini signalov DOCSIS."
+  "signal_family_average_section_hint": "Vrednosti so povprečene po aktivnih kanalih v vsaki družini signalov DOCSIS.",
+  "sc_speedtest_min_interval": "Najmanjši interval Speedtesta (sekunde)",
+  "sc_speedtest_min_interval_hint": "Blokira Smart Capture, če je Speedtest Tracker nedavno že tekel, vključno z lastnim urnikom.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture Speedtesti na dan",
+  "sc_speedtest_max_actions_per_day_hint": "Drseča 24-urna omejitev za dodatne zagone Speedtest Tracker, ki jih sproži DOCSight. 0 onemogoči to omejitev.",
+  "sc_speedtest_match_window": "Okno ujemanja rezultata Speedtesta (sekunde)",
+  "sc_speedtest_match_window_hint": "Kako dolgo DOCSight čaka, da poveže sprožen rezultat Speedtest Tracker, preden ga označi kot poteklega."
 }

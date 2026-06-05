@@ -908,7 +908,7 @@
   "sc_history_empty": "Zatiaľ žiadne popravy. Po aktivácii Smart Capture tu zaznamená aktivitu.",
   "sc_history_error": "Nepodarilo sa načítať históriu vykonávania",
   "sc_history_loading": "Načítava sa história vykonávania...",
-  "sc_guardrails_summary": "Najviac %max%/hodinu, minimálne %ochladzovanie% od seba",
+  "sc_guardrails_summary": "Najviac %max%/hod., minimálne %cooldown% odstup; Speedtesty zo Smart Capture: %speedtestMax%/deň, každých %speedtestInterval%",
   "sc_status_pending": "Čaká sa",
   "sc_status_fired": "Prepustený",
   "sc_status_completed": "Dokončené",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktívny kanál",
   "metric_active_channel_plural": "aktívne kanály",
   "signal_family_average_section_title": "Priemery rodín signálu",
-  "signal_family_average_section_hint": "Hodnoty sú priemerované cez aktívne kanály v každej DOCSIS rodine signálu."
+  "signal_family_average_section_hint": "Hodnoty sú priemerované cez aktívne kanály v každej DOCSIS rodine signálu.",
+  "sc_speedtest_min_interval": "Minimálny interval Speedtestu (sekundy)",
+  "sc_speedtest_min_interval_hint": "Zablokuje Smart Capture, ak Speedtest Tracker nedávno už bežal, vrátane vlastného plánu.",
+  "sc_speedtest_max_actions_per_day": "Speedtesty Smart Capture za deň",
+  "sc_speedtest_max_actions_per_day_hint": "Kĺzavý 24-hodinový limit pre dodatočné behy Speedtest Tracker spustené DOCSight. 0 tento limit vypne.",
+  "sc_speedtest_match_window": "Okno priradenia výsledku Speedtestu (sekundy)",
+  "sc_speedtest_match_window_hint": "Ako dlho DOCSight čaká na priradenie spusteného výsledku Speedtest Tracker, kým ho označí ako expirovaný."
 }

@@ -908,7 +908,7 @@
   "sc_history_empty": "Ei vielä teloituksia. Smart Capture kirjaa toiminnan tänne, kun se on otettu käyttöön.",
   "sc_history_error": "Suoritushistorian lataaminen epäonnistui",
   "sc_history_loading": "Ladataan suoritushistoriaa...",
-  "sc_guardrails_summary": "Enintään %max%/tunti, vähintään %jäähdytys% toisistaan",
+  "sc_guardrails_summary": "Enintään %max%/tunti, vähintään %cooldown% välein; Smart Capture -speedtestit: %speedtestMax%/päivä, %speedtestInterval% välein",
   "sc_status_pending": "Odottaa",
   "sc_status_fired": "Ammutettu",
   "sc_status_completed": "Valmis",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "aktiivinen kanava",
   "metric_active_channel_plural": "aktiivista kanavaa",
   "signal_family_average_section_title": "Signaaliperheiden keskiarvot",
-  "signal_family_average_section_hint": "Arvot ovat aktiivisten kanavien keskiarvoja kussakin DOCSIS-signaaliperheessä."
+  "signal_family_average_section_hint": "Arvot ovat aktiivisten kanavien keskiarvoja kussakin DOCSIS-signaaliperheessä.",
+  "sc_speedtest_min_interval": "Speedtestin vähimmäisväli (sekuntia)",
+  "sc_speedtest_min_interval_hint": "Estää Smart Capturen, jos Speedtest Tracker on ajanut testin hiljattain, myös oman aikataulunsa kautta.",
+  "sc_speedtest_max_actions_per_day": "Smart Capture -speedtestit päivässä",
+  "sc_speedtest_max_actions_per_day_hint": "Liukuva 24 tunnin raja DOCSightin käynnistämille lisäajoille Speedtest Trackerissa. 0 poistaa rajan käytöstä.",
+  "sc_speedtest_match_window": "Speedtest-tuloksen täsmäytysikkuna (sekuntia)",
+  "sc_speedtest_match_window_hint": "Kuinka kauan DOCSight odottaa käynnistetyn Speedtest Tracker -tuloksen linkittämistä ennen sen vanhentamista."
 }

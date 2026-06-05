@@ -240,7 +240,7 @@ class TestSpeedtestAdapterMatching:
             trigger_type="modulation_change", action_type="capture",
             status=ExecutionStatus.FIRED, fired_at="2026-03-15T10:00:05Z",
         )
-        adapter.on_results_imported([{"id": 99, "timestamp": "2026-03-15T10:12:00Z"}])
+        adapter.on_results_imported([{"id": 99, "timestamp": "2026-03-15T10:20:00Z"}])
         assert storage.get_execution(eid)["status"] == "fired"
 
     def test_ignores_result_before_fired_at(self, storage):

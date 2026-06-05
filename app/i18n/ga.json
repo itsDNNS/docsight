@@ -908,7 +908,7 @@
   "sc_history_empty": "Níl aon básuithe fós. Logálfaidh Smart Capture gníomhaíocht anseo nuair a bheidh sé cumasaithe.",
   "sc_history_error": "Theip ar an stair fhorghníomhaithe a lódáil",
   "sc_history_loading": "Stair forghníomhaithe á lódáil...",
-  "sc_guardrails_summary": "% max%/uair ar a mhéad, % fuarú% ar a laghad óna chéile",
+  "sc_guardrails_summary": "Uasmhéid %max%/uair, ar a laghad %cooldown% eatarthu; Speedtests Smart Capture: %speedtestMax%/lá, gach %speedtestInterval%",
   "sc_status_pending": "ar feitheamh",
   "sc_status_fired": "fired",
   "sc_status_completed": "Críochnaithe",
@@ -1060,5 +1060,11 @@
   "metric_active_channel_singular": "cainéal gníomhach",
   "metric_active_channel_plural": "cainéil ghníomhacha",
   "signal_family_average_section_title": "Meáin de réir teaghlaigh comhartha",
-  "signal_family_average_section_hint": "Ríomhtar na luachanna mar mheán thar chainéil ghníomhacha i ngach teaghlach comhartha DOCSIS."
+  "signal_family_average_section_hint": "Ríomhtar na luachanna mar mheán thar chainéil ghníomhacha i ngach teaghlach comhartha DOCSIS.",
+  "sc_speedtest_min_interval": "Eatramh íosta Speedtest (soicindí)",
+  "sc_speedtest_min_interval_hint": "Cuireann sé bac ar Smart Capture má rith Speedtest Tracker le déanaí cheana féin, lena sceideal féin san áireamh.",
+  "sc_speedtest_max_actions_per_day": "Speedtests Smart Capture in aghaidh an lae",
+  "sc_speedtest_max_actions_per_day_hint": "Teorainn rollach 24 uair do ritheanna breise Speedtest Tracker a spreagann DOCSight. Díchumasaíonn 0 an teorainn seo.",
+  "sc_speedtest_match_window": "Fuinneog mheaitseála torthaí Speedtest (soicindí)",
+  "sc_speedtest_match_window_hint": "Cá fhad a fhanann DOCSight chun toradh Speedtest Tracker spreagtha a nascadh sula rachaidh sé in éag."
 }
