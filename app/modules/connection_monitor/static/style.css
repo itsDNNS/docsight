@@ -431,6 +431,17 @@
     gap: var(--space-md);
 }
 
+.cm-raw-log-panel {
+    grid-column: 1 / -1;
+}
+
+.cm-panel-copy {
+    margin: 8px 0 0;
+    color: var(--cm-text-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
 .cm-export-group,
 .cm-traceroute-actions {
     display: flex;

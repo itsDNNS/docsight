@@ -40,22 +40,31 @@
         updateRefreshInterval();
     };
 
-    window.cmExportCsv = function(targetId) {
-        var start, end;
+    function getExportWindow() {
         if (pinnedDayView) {
-            start = pinnedDayView.start;
-            end = pinnedDayView.end;
-        } else {
-            var now = Date.now() / 1000;
-            start = now - currentRange;
-            end = now;
+            return { start: pinnedDayView.start, end: pinnedDayView.end };
         }
+        var now = Date.now() / 1000;
+        return { start: now - currentRange, end: now };
+    }
+
+    function triggerExport(url) {
         var a = document.createElement('a');
-        a.href = '/api/connection-monitor/export/' + targetId + '?start=' + start + '&end=' + end + '&resolution=' + lastResolution;
+        a.href = url;
         a.download = '';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+    }
+
+    window.cmExportCsv = function(targetId) {
+        var range = getExportWindow();
+        triggerExport('/api/connection-monitor/export/' + targetId + '?start=' + range.start + '&end=' + range.end + '&resolution=' + lastResolution);
+    };
+
+    window.cmExportRawLog = function(targetId) {
+        var range = getExportWindow();
+        triggerExport('/api/connection-monitor/export/' + targetId + '?start=' + range.start + '&end=' + range.end + '&resolution=raw&format=pinglog');
     };
 
     // --- Pin Button ---
@@ -303,6 +312,7 @@
                 CMCharts.renderAvailabilityBand('cm-availability', allTargetData);
                 renderOutages(allOutageData);
                 renderExportLinks();
+                renderRawLogLinks();
                 renderResolutionIndicator(meta);
             })
             .catch(function() {});
@@ -317,6 +327,22 @@
             btn.className = 'cm-chip-btn';
             btn.textContent = t.label;
             btn.onclick = function() { window.cmExportCsv(t.id); };
+            container.appendChild(btn);
+        });
+    }
+
+    function renderRawLogLinks() {
+        var container = document.getElementById('cm-raw-log-links');
+        if (!container) return;
+        var root = document.getElementById('cm-detail-view');
+        var downloadLabel = root ? (root.dataset.lRawLogDownload || 'Download raw log') : 'Download raw log';
+        container.textContent = '';
+        targets.forEach(function(t) {
+            var btn = document.createElement('button');
+            btn.className = 'cm-chip-btn';
+            btn.textContent = t.label;
+            btn.setAttribute('aria-label', downloadLabel + ': ' + t.label);
+            btn.onclick = function() { window.cmExportRawLog(t.id); };
             container.appendChild(btn);
         });
     }
@@ -452,11 +478,12 @@
         var outagePanel = document.getElementById('cm-outage-panel');
         var outageBody = document.getElementById('cm-outage-tbody');
         var exportLinks = document.getElementById('cm-export-links');
+        var rawLogLinks = document.getElementById('cm-raw-log-links');
         var resolutionEl = document.getElementById('cm-resolution-indicator');
         if (noData) noData.style.display = 'flex';
         if (chartsEl) chartsEl.style.display = 'none';
         if (outagePanel) outagePanel.style.display = 'none';
-        [statsEl, perTargetEl, outageBody, exportLinks, resolutionEl].forEach(function(el) {
+        [statsEl, perTargetEl, outageBody, exportLinks, rawLogLinks, resolutionEl].forEach(function(el) {
             if (el) el.textContent = '';
         });
         if (availabilityEl) {
