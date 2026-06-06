@@ -1,5 +1,6 @@
 <div class="view-content cm-monitor" id="cm-detail-view"
-     data-l-remove="{{ t.get('docsight.connection_monitor.cm_remove', 'Remove') }}">
+     data-l-remove="{{ t.get('docsight.connection_monitor.cm_remove', 'Remove') }}"
+     data-l-raw-log-download="{{ t.get('docsight.connection_monitor.cm_raw_log_download', 'Download raw log') }}">
     <div class="cm-console-head">
         <div class="cm-title-block">
             <div class="cm-title-row">
@@ -102,6 +103,20 @@
     </div>
 
     <div class="cm-log-grid">
+        <section id="cm-raw-log-panel" class="glass cm-panel cm-raw-log-panel">
+            <div class="cm-panel-header">
+                <div class="cm-panel-title">
+                    <i data-lucide="file-text"></i>
+                    <h3>{{ t.get('docsight.connection_monitor.cm_raw_log_title', 'Raw Ping Log') }}</h3>
+                </div>
+                <div class="cm-export-group">
+                    <span>{{ t.get('docsight.connection_monitor.cm_raw_log_download', 'Download raw log') }}</span>
+                    <div id="cm-raw-log-links" class="cm-export-links"></div>
+                </div>
+            </div>
+            <p class="cm-panel-copy">{{ t.get('docsight.connection_monitor.cm_raw_log_desc', 'Download per-ping raw samples for ISP evidence. Uses the current time range or selected pinned day.') }}</p>
+        </section>
+
         <section id="cm-outage-panel" class="glass cm-panel">
             <div class="cm-panel-header">
                 <div class="cm-panel-title">

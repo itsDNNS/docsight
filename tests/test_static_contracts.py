@@ -137,7 +137,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v43';" in sw_js
+    assert "var CACHE_VERSION = 'v44';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -255,6 +255,29 @@ def test_channels_controls_and_compare_titles_are_standardized():
     assert "{{ t.snr_db }}" in compare_charts
     assert "{{ t.power_history }}" not in compare_charts
     assert "{{ t.snr_history }}" not in compare_charts
+
+
+def test_connection_monitor_raw_ping_log_export_is_discoverable():
+    template = (ROOT / "app" / "modules" / "connection_monitor" / "templates" / "connection_monitor_detail.html").read_text(encoding="utf-8")
+    detail_js = CM_DETAIL_JS.read_text(encoding="utf-8")
+
+    assert "cm-raw-log-panel" in template
+    assert "cm_raw_log_title" in template
+    assert "cm_raw_log_desc" in template
+    assert "cmExportRawLog" in detail_js
+    assert "format=pinglog" in detail_js
+    assert "resolution=raw" in detail_js
+    assert "cm_raw_log_download" in template or "dataset.lRawLogDownload" in detail_js
+
+
+def test_connection_monitor_raw_log_links_clear_on_no_data():
+    detail_js = CM_DETAIL_JS.read_text(encoding="utf-8")
+    show_no_data = detail_js[
+        detail_js.index("function showNoData") : detail_js.index("function hideNoData")
+    ]
+
+    assert "cm-raw-log-links" in show_no_data
+    assert "rawLogLinks" in show_no_data
 
 
 def test_chart_time_range_controls_use_normalized_existing_ranges():

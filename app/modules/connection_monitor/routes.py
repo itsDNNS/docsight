@@ -8,6 +8,7 @@ import os
 import re
 import time
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request, Response
 
@@ -489,6 +490,88 @@ def api_get_outages(target_id):
 
 # --- Export ---
 
+
+def _csv_export_label(target: dict | None, target_id: int) -> str:
+    """Return the legacy CSV export label for backward-compatible filenames."""
+    return target["label"].replace(" ", "_") if target else str(target_id)
+
+
+def _safe_export_label(target: dict | None, target_id: int) -> str:
+    """Return a filesystem-friendly target label for new export filenames."""
+    raw_label = target["label"] if target else str(target_id)
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", raw_label).strip("_") or str(target_id)
+
+
+def _local_datetime_for_export(timestamp: float, tz_name: str) -> datetime:
+    """Convert a UTC epoch timestamp to the configured display timezone."""
+    utc_dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    if not tz_name:
+        return utc_dt
+    try:
+        return utc_dt.astimezone(ZoneInfo(tz_name))
+    except ZoneInfoNotFoundError:
+        return utc_dt
+
+
+def _format_pinglog_timestamp(timestamp: float, tz_name: str) -> tuple[str, str]:
+    """Format a raw sample timestamp with milliseconds and timezone abbreviation."""
+    local_dt = _local_datetime_for_export(timestamp, tz_name)
+    timestamp_text = local_dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    timezone_label = local_dt.tzname() or tz_name or "UTC"
+    return timestamp_text, timezone_label
+
+
+def _format_pinglog_line(sample: dict, target_host: str, tz_name: str) -> str:
+    """Render one raw sample as a human-readable ping log line."""
+    timestamp_text, timezone_label = _format_pinglog_timestamp(sample["timestamp"], tz_name)
+    status = "timeout" if sample.get("timeout") else "pong"
+    latency = sample.get("latency_ms")
+    if latency is None:
+        latency_text = "- -"
+    else:
+        latency_text = f"{float(latency):.3f} ms"
+    probe_method = sample.get("probe_method") or "unknown"
+    target_text = target_host or "-"
+    return f"{timestamp_text} {timezone_label} {target_text} {status} {latency_text} {probe_method}"
+
+
+def _export_pinglog(storage: ConnectionMonitorStorage, target_id: int, target: dict | None,
+                    start: float | None, end: float | None) -> Response:
+    """Export raw samples as an ISP-ready plain-text ping log."""
+    label = _safe_export_label(target, target_id)
+    target_label = target["label"] if target else str(target_id)
+    target_host = target.get("host", "") if target else ""
+    tz_name = _get_tz() or "UTC"
+    samples = storage.get_samples(target_id, start=start, end=end, limit=0)
+
+    lines = [
+        "# DOCSight raw ping log",
+        f"# Target: {target_label} ({target_host or '-'})",
+        f"# Timezone: {tz_name}",
+        "# Format: YYYY-MM-DD HH:MM:SS.mmm TZ target status latency unit method",
+    ]
+    if start is not None or end is not None:
+        if start is not None:
+            start_stamp, start_tz = _format_pinglog_timestamp(start, tz_name)
+            start_text = f"{start_stamp} {start_tz}"
+        else:
+            start_text = "open"
+        if end is not None:
+            end_stamp, end_tz = _format_pinglog_timestamp(end, tz_name)
+            end_text = f"{end_stamp} {end_tz}"
+        else:
+            end_text = "open"
+        lines.append(f"# Range: {start_text} to {end_text}")
+    lines.append("")
+    lines.extend(_format_pinglog_line(sample, target_host, tz_name) for sample in samples)
+
+    return Response(
+        "\n".join(lines) + "\n",
+        mimetype="text/plain",
+        headers={"Content-Disposition": f"attachment; filename=connection_monitor_{label}_raw_ping.log"},
+    )
+
+
 @bp.route("/api/connection-monitor/export/<int:target_id>")
 @require_auth
 def api_export_csv(target_id):
@@ -496,9 +579,15 @@ def api_export_csv(target_id):
     start = request.args.get("start", type=float)
     end = request.args.get("end", type=float)
     resolution = request.args.get("resolution", "raw")
+    export_format = request.args.get("format", "csv")
 
     target = storage.get_target(target_id)
-    label = target["label"].replace(" ", "_") if target else str(target_id)
+    label = _csv_export_label(target, target_id)
+
+    if export_format == "pinglog":
+        return _export_pinglog(storage, target_id, target, start, end)
+    if export_format != "csv":
+        return jsonify({"error": "unsupported_format"}), 400
 
     output = io.StringIO()
     writer = csv.writer(output)

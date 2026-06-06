@@ -3,6 +3,7 @@
 import csv
 import io
 import time
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 import pytest
 
@@ -636,6 +637,55 @@ class TestExportAPI:
         assert len(rows) == 2  # header + 1 data row
         assert "avg_latency_ms" in rows[0]
         assert "packet_loss_pct" in rows[0]
+
+    def test_pinglog_export_formats_raw_samples_for_isp_evidence(self, client):
+        c, storage = client
+        tid = storage.create_target("Cloudflare", "1.1.1.1")
+        base_ts = datetime(2026, 6, 5, 15, 3, 37, 457000, tzinfo=timezone.utc).timestamp()
+        storage.save_samples([
+            {"target_id": tid, "timestamp": base_ts, "latency_ms": 28.8, "timeout": False, "probe_method": "icmp"},
+            {"target_id": tid, "timestamp": base_ts + 0.989, "latency_ms": None, "timeout": True, "probe_method": "icmp"},
+        ])
+
+        resp = c.get(
+            f"/api/connection-monitor/export/{tid}"
+            f"?start={base_ts - 1}&end={base_ts + 2}&format=pinglog"
+        )
+
+        assert resp.status_code == 200
+        assert "text/plain" in resp.content_type
+        assert "connection_monitor_Cloudflare_raw_ping.log" in resp.headers["Content-Disposition"]
+        lines = resp.data.decode().splitlines()
+        assert lines[:4] == [
+            "# DOCSight raw ping log",
+            "# Target: Cloudflare (1.1.1.1)",
+            "# Timezone: UTC",
+            "# Format: YYYY-MM-DD HH:MM:SS.mmm TZ target status latency unit method",
+        ]
+        assert "# Range: 2026-06-05 15:03:36.457 UTC to 2026-06-05 15:03:39.457 UTC" in lines
+        assert [line for line in lines if line and not line.startswith("#")] == [
+            "2026-06-05 15:03:37.457 UTC 1.1.1.1 pong 28.800 ms icmp",
+            "2026-06-05 15:03:38.446 UTC 1.1.1.1 timeout - - icmp",
+        ]
+
+    def test_pinglog_export_keeps_legacy_csv_filename_semantics(self, client):
+        c, storage = client
+        tid = storage.create_target("Mein Zähler", "192.0.2.1")
+
+        csv_resp = c.get(f"/api/connection-monitor/export/{tid}")
+        pinglog_resp = c.get(f"/api/connection-monitor/export/{tid}?format=pinglog")
+
+        assert "connection_monitor_Mein_Zähler.csv" in csv_resp.headers["Content-Disposition"]
+        assert "connection_monitor_Mein_Z_hler_raw_ping.log" in pinglog_resp.headers["Content-Disposition"]
+
+    def test_export_rejects_unknown_format(self, client):
+        c, storage = client
+        tid = storage.create_target("Cloudflare", "1.1.1.1")
+
+        resp = c.get(f"/api/connection-monitor/export/{tid}?format=pinglg")
+
+        assert resp.status_code == 400
+        assert resp.get_json() == {"error": "unsupported_format"}
 
 
 class TestCapabilityAPI:
