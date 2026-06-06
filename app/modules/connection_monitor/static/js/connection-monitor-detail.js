@@ -479,10 +479,12 @@
         var outageBody = document.getElementById('cm-outage-tbody');
         var exportLinks = document.getElementById('cm-export-links');
         var rawLogLinks = document.getElementById('cm-raw-log-links');
+        var rawLogPanel = document.getElementById('cm-raw-log-panel');
         var resolutionEl = document.getElementById('cm-resolution-indicator');
         if (noData) noData.style.display = 'flex';
         if (chartsEl) chartsEl.style.display = 'none';
         if (outagePanel) outagePanel.style.display = 'none';
+        if (rawLogPanel) rawLogPanel.style.display = 'none';
         [statsEl, perTargetEl, outageBody, exportLinks, rawLogLinks, resolutionEl].forEach(function(el) {
             if (el) el.textContent = '';
         });
@@ -498,9 +500,11 @@
         var noData = document.getElementById('cm-no-data');
         var chartsEl = document.getElementById('cm-charts-section');
         var outagePanel = document.getElementById('cm-outage-panel');
+        var rawLogPanel = document.getElementById('cm-raw-log-panel');
         if (noData) noData.style.display = 'none';
         if (chartsEl) chartsEl.style.display = '';
         if (outagePanel) outagePanel.style.display = '';
+        if (rawLogPanel) rawLogPanel.style.display = '';
     }
 
     // --- Traceroute ---

@@ -137,7 +137,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v44';" in sw_js
+    assert "var CACHE_VERSION = 'v45';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -272,12 +272,12 @@ def test_connection_monitor_raw_ping_log_export_is_discoverable():
 
 def test_connection_monitor_raw_log_links_clear_on_no_data():
     detail_js = CM_DETAIL_JS.read_text(encoding="utf-8")
-    show_no_data = detail_js[
-        detail_js.index("function showNoData") : detail_js.index("function hideNoData")
-    ]
 
-    assert "cm-raw-log-links" in show_no_data
-    assert "rawLogLinks" in show_no_data
+    assert "cm-raw-log-links" in detail_js
+    assert "rawLogLinks" in detail_js
+    assert "cm-raw-log-panel" in detail_js
+    assert "rawLogPanel.style.display = 'none'" in detail_js
+    assert "rawLogPanel.style.display = ''" in detail_js
 
 
 def test_chart_time_range_controls_use_normalized_existing_ranges():
