@@ -368,6 +368,7 @@ class VodafoneStationDriver(ModemDriver):
                 channel_id = int(self._parse_number(ch.get("channelidup", "0")))
                 freq = self._parse_number(ch.get("CentralFrequency", "0"))
                 power = self._parse_number(ch.get("power", "0"))
+                modulation = self._normalize_modulation(ch.get("FFT", "")) or "OFDMA"
 
                 if freq > 1_000_000:
                     freq = freq / 1_000_000
@@ -377,6 +378,7 @@ class VodafoneStationDriver(ModemDriver):
                     "type": "OFDMA",
                     "frequency": f"{int(freq)} MHz" if freq else "",
                     "powerLevel": power,
+                    "modulation": modulation,
                     "multiplex": "",
                 })
             except (ValueError, TypeError) as e:
