@@ -62,7 +62,9 @@
                 }
                 var now = new Date();
                 var cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                var filtered = data.filter(function(d) { return new Date(d.timestamp) >= cutoff; });
+                var filtered = data.filter(function(d) {
+                    return isDocsisTrendRow(d) && new Date(d.timestamp) >= cutoff;
+                });
                 if (filtered.length === 0) {
                     renderEmptyChart(container);
                     return;
@@ -73,6 +75,14 @@
                 console.error('[HeroChart] Failed to load data:', err);
                 renderEmptyChart(container);
             });
+    }
+
+    function isDocsisTrendRow(row) {
+        return !!(row && (
+            row.ds_power_avg != null ||
+            row.us_power_avg != null ||
+            row.ds_snr_avg != null
+        ));
     }
 
     function heroTooltipPlugin(timestamps) {

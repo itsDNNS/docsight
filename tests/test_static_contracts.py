@@ -137,7 +137,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v45';" in sw_js
+    assert "var CACHE_VERSION = 'v46';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -278,6 +278,81 @@ def test_connection_monitor_raw_log_links_clear_on_no_data():
     assert "cm-raw-log-panel" in detail_js
     assert "rawLogPanel.style.display = 'none'" in detail_js
     assert "rawLogPanel.style.display = ''" in detail_js
+
+
+def test_connection_monitor_home_card_uses_kpi_card_anatomy():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    start = template.index('id="connection-monitor-card"')
+    card = template[start : template.index('{% endif %}', start)]
+
+    assert '<div class="metric-value-row">' in card
+    assert 'id="cm-card-latency"' in card
+    assert 'id="spark-connection-monitor"' in card
+    assert 'data-spark-key="connection_monitor_latency_ms"' in card
+    assert 'id="cm-card-avg"' in card
+    assert 'metric-sub metric-average-row' in card
+    assert 'id="cm-card-badge"' in card
+    assert 'metric-sub metric-status-row' in card
+    assert 'id="cm-card-mod-row"' in card
+    assert 'metric-sub metric-modulation-row' in card
+    assert 'id="cm-card-range"' in card
+    assert 'metric-range-viz' in card
+
+
+def test_connection_monitor_card_js_promotes_latency_to_primary_value():
+    script = f"""
+const fs = require('fs');
+const vm = require('vm');
+const code = fs.readFileSync({str(CM_CARD_JS)!r}, 'utf8');
+function makeEl(id) {{
+  return {{
+    id: id,
+    textContent: '',
+    className: '',
+    style: {{ props: {{}}, setProperty: function(k, v) {{ this.props[k] = v; }} }},
+    children: [],
+    appendChild: function(child) {{ this.children.push(child); this.textContent += child.textContent || ''; }},
+    setAttribute: function(k, v) {{ this[k] = v; }}
+  }};
+}}
+const elements = {{
+  'cm-card-latency': makeEl('cm-card-latency'),
+  'cm-card-avg': makeEl('cm-card-avg'),
+  'cm-card-badge': makeEl('cm-card-badge'),
+  'cm-card-mod-row': makeEl('cm-card-mod-row'),
+  'cm-card-range': makeEl('cm-card-range'),
+  'cm-card-range-context': makeEl('cm-card-range-context')
+}};
+const payload = {{
+  primary: {{ enabled: true, avg_latency_ms: 18.4, min_latency_ms: 15, max_latency_ms: 24, packet_loss_pct: 0 }},
+  backup: {{ enabled: true, avg_latency_ms: 21.6, min_latency_ms: 18, max_latency_ms: 26, packet_loss_pct: 0 }}
+}};
+const context = {{
+  console: console,
+  T: {{ health_good: 'Gut', health_marginal: 'Grenzwertig', health_critical: 'Kritisch', metric_average_label: 'Ø' }},
+  setInterval: function() {{}},
+  fetch: function() {{ return Promise.resolve({{ json: function() {{ return Promise.resolve(payload); }} }}); }},
+  document: {{
+    readyState: 'complete',
+    getElementById: function(id) {{ return elements[id] || null; }},
+    createElement: function() {{ return makeEl(null); }}
+  }}
+}};
+vm.createContext(context);
+vm.runInContext(code, context);
+setTimeout(function() {{
+  function assert(condition, message) {{ if (!condition) throw new Error(message); }}
+  assert(elements['cm-card-latency'].textContent === '20 ms ø', 'localized average label should be part of the primary value');
+  assert(elements['cm-card-avg'].textContent === '2/2 OK', 'target OK count should move to avg row');
+  assert(elements['cm-card-badge'].textContent === 'Gut', 'localized good status badge expected');
+  assert(elements['cm-card-badge'].className.indexOf('badge-good') !== -1, 'good badge class expected');
+  assert(elements['cm-card-mod-row'].textContent.indexOf('Packet Loss 0% · Jitter 8.5 ms') !== -1, 'packet loss and jitter metrics expected');
+  assert(elements['cm-card-range'].style.props['--metric-marker'] === '13.3%', 'latency marker should use 0-150 ms range');
+}}, 0);
+"""
+    result = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, capture_output=True, check=False)
+
+    assert result.returncode == 0, result.stderr + result.stdout
 
 
 def test_chart_time_range_controls_use_normalized_existing_ranges():
@@ -448,6 +523,16 @@ def test_hero_chart_fetches_normalized_one_day_range():
     assert "fetch('/api/trends?range=week')" not in hero_chart_js
 
 
+def test_signal_trend_consumers_ignore_ancillary_sparkline_rows():
+    hero_chart_js = (ROOT / "app" / "static" / "js" / "hero-chart.js").read_text(encoding="utf-8")
+    trends_js = TRENDS_JS.read_text(encoding="utf-8")
+
+    assert "function isDocsisTrendRow(row)" in hero_chart_js
+    assert "isDocsisTrendRow(d) && new Date(d.timestamp) >= cutoff" in hero_chart_js
+    assert "function _isDocsisTrendRow(row)" in trends_js
+    assert "(results[0] || []).filter(_isDocsisTrendRow)" in trends_js
+
+
 def test_temperature_controls_are_consistently_after_time_range_controls_without_new_selectors():
     template = INDEX_HTML.read_text(encoding="utf-8")
     trend_header = template[template.index('id="view-trends"') : template.index('id="trend-no-data"')]
@@ -509,8 +594,8 @@ def test_connection_monitor_card_treats_no_enabled_targets_as_no_data():
     js = CM_CARD_JS.read_text(encoding="utf-8")
     no_enabled_block = js[js.index("if (enabled.length === 0)") : js.index("var ok = enabled.filter")]
 
-    assert "statusEl.textContent = '—';" in no_enabled_block
-    assert "detailsEl.textContent = '';" in no_enabled_block
+    assert "setEmpty(elements);" in no_enabled_block
+    assert "return;" in no_enabled_block
 
 
 def test_modulation_overview_charts_bound_daily_x_axis_ticks():

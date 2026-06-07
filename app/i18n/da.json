@@ -310,6 +310,8 @@
   "packet_loss": "Pakketab",
   "via_speedtest_tracker": "via Speedtest Tracker",
   "speedtest_no_data": "Ingen tilgængelige hastighedstestresultater.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Hastighed",
   "refresh": "Opdater",
   "refreshing": "Forfriskende...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Smart Capture-speedtests pr. dag",
   "sc_speedtest_max_actions_per_day_hint": "Rullende 24-timers grænse for ekstra Speedtest Tracker-kørsler udløst af DOCSight. 0 deaktiverer grænsen.",
   "sc_speedtest_match_window": "Matchvindue for Speedtest-resultat (sekunder)",
-  "sc_speedtest_match_window_hint": "Hvor længe DOCSight venter på at knytte et udløst Speedtest Tracker-resultat, før det udløber."
+  "sc_speedtest_match_window_hint": "Hvor længe DOCSight venter på at knytte et udløst Speedtest Tracker-resultat, før det udløber.",
+  "cm_latency_range": "Forsinkelsesinterval",
+  "speed_contract_good_label": "≥ 80 % af kontrakten"
 }

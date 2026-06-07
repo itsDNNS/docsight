@@ -86,6 +86,16 @@ function _hasTrendDocsisErrorSeries(data) {
     return !!(data && data.some(_supportsTrendDocsisErrors));
 }
 
+function _isDocsisTrendRow(row) {
+    return !!(row && (
+        row.ds_power_avg != null ||
+        row.us_power_avg != null ||
+        row.ds_snr_avg != null ||
+        row.ds_correctable_errors != null ||
+        row.ds_uncorrectable_errors != null
+    ));
+}
+
 function _setTrendErrorsVisible(visible) {
     var card = document.getElementById('trend-errors-card');
     if (card) card.style.display = visible ? '' : 'none';
@@ -137,7 +147,7 @@ function loadTrends(range) {
         fetch(trendsUrl).then(function(r) { return r.json(); }),
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
     ]).then(function(results) {
-            var data = results[0];
+            var data = (results[0] || []).filter(_isDocsisTrendRow);
             var weatherData = results[1];
             if (!data || data.length === 0) {
                 noData.textContent = T.no_data;

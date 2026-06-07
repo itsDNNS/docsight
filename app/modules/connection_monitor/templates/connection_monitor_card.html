@@ -1,12 +1,42 @@
 {# ═══ Module Card: Connection Monitor ═══ #}
 <div class="metrics-grid">
-    <div class="metric-card glass" id="connection-monitor-card" style="cursor:pointer;" onclick="switchView('connection-monitor')">
+    <div class="metric-card glass" id="connection-monitor-card" role="button" tabindex="0" style="cursor:pointer;" onclick="switchView('connection-monitor')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('connection-monitor')}">
         <div class="metric-header">
             <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
             <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>
         </div>
-        <div class="metric-value" id="cm-card-status">—</div>
-        <div class="metric-sub" id="cm-card-details"></div>
+        <div class="metric-value-row">
+            <div class="metric-value" id="cm-card-latency">&ndash;</div>
+            <canvas class="metric-spark" id="spark-connection-monitor" data-spark-key="connection_monitor_latency_ms" data-spark-color="#38bdf8" width="144" height="56" aria-hidden="true"></canvas>
+        </div>
+        <div class="metric-sub metric-average-row">
+            <span class="range metric-average-copy" id="cm-card-avg">&ndash;</span>
+        </div>
+        <div class="metric-sub metric-status-row">
+            <span class="metric-context">
+                <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                <span class="badge badge-info" id="cm-card-badge">&ndash;</span>
+            </span>
+        </div>
+        <div class="metric-sub metric-modulation-row" id="cm-card-mod-row"></div>
+        <div class="metric-range-viz" id="cm-card-range" style="--metric-marker: 0%; --metric-span-start: 0%; --metric-span-width: 0%; --metric-range-accent: var(--muted);">
+            <div class="metric-range-caption">
+                <span>{{ t.get('cm_latency_range', 'Latency range') }}</span>
+                <strong id="cm-card-range-context">&ndash;</strong>
+            </div>
+            <div class="metric-range-track" aria-hidden="true">
+                <span class="metric-range-band good" style="left:0%;width:33.33%;"></span>
+                <span class="metric-range-band warn" style="left:33.33%;width:33.33%;"></span>
+                <span class="metric-range-band crit" style="left:66.67%;width:33.33%;"></span>
+                <span class="metric-range-window"></span>
+                <span class="metric-range-marker"></span>
+            </div>
+            <div class="metric-range-labels">
+                <span>0 ms</span>
+                <span class="metric-range-good">{{ t.health_good }} &lt; 50 ms</span>
+                <span>150 ms</span>
+            </div>
+        </div>
     </div>
 </div>
 

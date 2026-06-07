@@ -310,6 +310,8 @@
   "packet_loss": "Paketų praradimas",
   "via_speedtest_tracker": "per Speedtest Tracker",
   "speedtest_no_data": "Greičio testo rezultatų nėra.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Greitis",
   "refresh": "Atnaujinti",
   "refreshing": "Atnaujinama...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Smart Capture Speedtestai per dieną",
   "sc_speedtest_max_actions_per_day_hint": "Slenkantis 24 val. limitas papildomiems Speedtest Tracker paleidimams, kuriuos inicijuoja DOCSight. 0 išjungia šį limitą.",
   "sc_speedtest_match_window": "Speedtest rezultato susiejimo langas (sekundės)",
-  "sc_speedtest_match_window_hint": "Kiek laiko DOCSight laukia, kad susietų inicijuotą Speedtest Tracker rezultatą, prieš pažymėdamas jį pasibaigusiu."
+  "sc_speedtest_match_window_hint": "Kiek laiko DOCSight laukia, kad susietų inicijuotą Speedtest Tracker rezultatą, prieš pažymėdamas jį pasibaigusiu.",
+  "cm_latency_range": "Delsos intervalas",
+  "speed_contract_good_label": "≥ 80 % sutarties"
 }

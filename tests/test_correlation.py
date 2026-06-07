@@ -7,9 +7,15 @@ from datetime import datetime, timedelta, timezone
 
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
-from app.tz import utc_now, utc_cutoff
-from app.web import app, update_state, init_config, init_storage
+from app.tz import to_local, utc_now, utc_cutoff
+from app.web import app, update_state, init_config, init_storage, _get_tz_name
 from app.config import ConfigManager
+
+
+def _api_response_date(utc_ts: str) -> str:
+    """Return the date part expected from APIs that localize UTC timestamps."""
+    tz_name = _get_tz_name()
+    return (to_local(utc_ts, tz_name) if tz_name else utc_ts.rstrip("Z"))[:10]
 
 
 @pytest.fixture
@@ -350,7 +356,7 @@ class TestCorrelationAPI:
 
         assert resp.status_code == 200
         data = json.loads(resp.data)
-        old_date = old_ts[:10]
+        old_date = _api_response_date(old_ts)
         assert any(entry["source"] == "modem" and entry["timestamp"].startswith(old_date) for entry in data)
 
     def test_correlation_clamps_above_ninety_days(self, client_with_storage, storage, sample_analysis):
@@ -373,8 +379,8 @@ class TestCorrelationAPI:
         assert resp.status_code == 200
         timestamps = {entry["timestamp"] for entry in json.loads(resp.data)}
         timestamp_dates = {ts[:10] for ts in timestamps}
-        assert inside_ts[:10] in timestamp_dates
-        assert outside_ts[:10] not in timestamp_dates
+        assert _api_response_date(inside_ts) in timestamp_dates
+        assert _api_response_date(outside_ts) not in timestamp_dates
 
     def test_correlation_segment_source_filter(self, client_with_storage, storage):
         """Segment source can be explicitly selected via API sources param."""

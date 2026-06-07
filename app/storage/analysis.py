@@ -55,11 +55,13 @@ class AnalysisMixin:
             except (ImportError, Exception):
                 pass
             for st in speedtest_rows:
+                download_mbps = st.get("download_mbps")
                 timeline.append({
                     "timestamp": st["timestamp"],
                     "source": "speedtest",
                     "id": st["id"],
-                    "download_mbps": st.get("download_mbps"),
+                    "download_mbps": download_mbps,
+                    "speedtest_download": download_mbps,
                     "upload_mbps": st.get("upload_mbps"),
                     "ping_ms": st.get("ping_ms"),
                     "jitter_ms": st.get("jitter_ms"),

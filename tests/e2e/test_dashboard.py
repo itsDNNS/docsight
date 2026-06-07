@@ -53,7 +53,7 @@ class TestDashboardSections:
     """Dashboard content sections in demo mode."""
 
     def test_demo_badge_visible(self, demo_page):
-        badge = demo_page.locator(".badge-muted")
+        badge = demo_page.get_by_text("DEMO", exact=True)
         assert badge.is_visible()
 
     def test_health_status_shown(self, demo_page):
@@ -250,10 +250,10 @@ class TestDashboardSections:
         assert card.get_attribute("tabindex") == "0"
 
     def test_disabled_connection_monitor_card_shows_no_data_state(self, demo_page):
-        status = demo_page.locator("#cm-card-status")
-        details = demo_page.locator("#cm-card-details")
+        status = demo_page.locator("#cm-card-latency")
+        details = demo_page.locator("#cm-card-mod-row")
         status.wait_for(state="visible")
-        demo_page.wait_for_function("document.querySelector('#cm-card-status').textContent.trim() === '—'")
+        demo_page.wait_for_function("document.querySelector('#cm-card-latency').textContent.trim() === '–'")
         assert details.text_content().strip() == ""
 
     def test_docsis_groups_expose_expanded_state(self, demo_page):

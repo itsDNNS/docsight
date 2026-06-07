@@ -820,6 +820,8 @@ class TestIndexRoute:
             "modem_type": "generic",
             "speedtest_tracker_url": "http://speedtest.local",
             "speedtest_tracker_token": "testtoken123",
+            "booked_download": 250,
+            "booked_upload": 50,
         })
         init_config(mgr)
         init_storage(None)
@@ -858,7 +860,62 @@ class TestIndexRoute:
         # Speed card should appear in the non-DOCSIS section
         assert b"230" in html  # download speed value
         assert b"41" in html   # upload speed value
-        assert b"12 ms Ping" in html
+        assert b"Ping:" in html
+        assert b"12 ms" in html
+
+    def test_speedtest_card_uses_signal_family_card_anatomy(self, tmp_path):
+        """Speed card follows the same rows, badge, sparkline, and range anatomy as signal-family cards."""
+        mgr = ConfigManager(str(tmp_path / "data_speed_anatomy"))
+        mgr.save({
+            "modem_type": "generic",
+            "speedtest_tracker_url": "http://speedtest.local",
+            "speedtest_tracker_token": "testtoken123",
+            "booked_download": 250,
+            "booked_upload": 50,
+        })
+        init_config(mgr)
+        init_storage(None)
+        app.config["TESTING"] = True
+
+        analysis = {
+            "summary": {
+                "ds_total": 0, "us_total": 0,
+                "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0,
+                "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0,
+                "ds_snr_min": 0, "ds_snr_avg": 0, "ds_snr_max": 0,
+                "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0,
+                "ds_uncorr_pct": 0,
+                "health": "good", "health_issues": [],
+                "us_capacity_mbps": 0,
+            },
+            "ds_channels": [],
+            "us_channels": [],
+        }
+        update_state(
+            analysis=analysis,
+            speedtest_latest={
+                "download_mbps": 230.5,
+                "upload_mbps": 41.2,
+                "ping_ms": 12.0,
+                "jitter_ms": 1.5,
+                "packet_loss_pct": 0,
+            },
+        )
+
+        with app.test_client() as c:
+            resp = c.get("/")
+
+        assert resp.status_code == 200
+        card = _element_by_id(resp.get_data(as_text=True), "metric-speed-card")
+        assert '<div class="metric-value-row">' in card
+        assert 'id="spark-speed"' in card
+        assert 'data-spark-key="speedtest_download"' in card
+        assert 'data-spark-color="#10b981"' in card
+        assert '<div class="metric-sub metric-status-row">' in card
+        assert 'badge badge-good' in card
+        assert '<div class="metric-sub metric-modulation-row">' in card
+        assert "41" in card and "Ping:" in card and "12 ms" in card and "Jitter:" in card and "1.5 ms" in card
+        assert '<div class="metric-range-viz"' in card
 
 class TestIndexSegmentUtilizationVisibility:
     def test_index_hides_segment_tab_when_disabled(self, client, config_mgr, sample_analysis):

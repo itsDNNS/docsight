@@ -310,6 +310,8 @@
   "packet_loss": "Απώλεια πακέτων",
   "via_speedtest_tracker": "μέσω Speedtest Tracker",
   "speedtest_no_data": "Δεν υπάρχουν διαθέσιμα αποτελέσματα δοκιμών ταχύτητας.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Ταχύτητα",
   "refresh": "Ανανέωση",
   "refreshing": "Αναζωογονητικό...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Speedtest από Smart Capture ανά ημέρα",
   "sc_speedtest_max_actions_per_day_hint": "Κυλιόμενο όριο 24 ωρών για πρόσθετες εκτελέσεις Speedtest Tracker που ενεργοποιεί το DOCSight. Το 0 απενεργοποιεί το όριο.",
   "sc_speedtest_match_window": "Παράθυρο αντιστοίχισης αποτελέσματος Speedtest (δευτερόλεπτα)",
-  "sc_speedtest_match_window_hint": "Πόσο περιμένει το DOCSight για να συνδέσει ένα αποτέλεσμα Speedtest Tracker πριν το χαρακτηρίσει ληγμένο."
+  "sc_speedtest_match_window_hint": "Πόσο περιμένει το DOCSight για να συνδέσει ένα αποτέλεσμα Speedtest Tracker πριν το χαρακτηρίσει ληγμένο.",
+  "cm_latency_range": "Εύρος καθυστέρησης",
+  "speed_contract_good_label": "≥ 80% του συμβολαίου"
 }

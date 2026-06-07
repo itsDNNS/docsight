@@ -1,7 +1,8 @@
 """Data retrieval routes: trends, export, snapshots."""
-
 import logging
-from datetime import datetime, timedelta
+import os
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
 
@@ -53,6 +54,88 @@ def _format_error_count(value) -> str:
 data_bp = Blueprint("data_bp", __name__)
 
 
+def _append_connection_monitor_trends(data: list[dict], hours: int) -> None:
+    """Add Connection Monitor latency samples for home-card sparklines.
+
+    The dashboard sparkline renderer consumes /api/trends generically via
+    data-spark-key. DOCSIS snapshots and Speedtest rows already flow through
+    SnapshotStorage; Connection Monitor uses its own module database, so expose
+    a lightweight latency series here without coupling the card to a second
+    request path.
+    """
+    cfg = get_config_manager()
+    data_dir = getattr(cfg, "data_dir", None)
+    if not data_dir:
+        return
+
+    db_path = os.path.join(data_dir, "connection_monitor.db")
+    if not os.path.exists(db_path):
+        return
+
+    try:
+        from app.modules.connection_monitor.storage import ConnectionMonitorStorage
+
+        storage = ConnectionMonitorStorage(db_path)
+        enabled_targets = [t for t in storage.get_targets() if t.get("enabled")]
+        if not enabled_targets:
+            return
+
+        # Home-card sparklines only need the short rolling windows used by the
+        # dashboard. Longer trend views use the module's dedicated chart APIs.
+        if hours > 24:
+            return
+
+        start_ts = datetime.now(timezone.utc).timestamp() - hours * 3600
+        buckets: dict[int, list[float]] = defaultdict(list)
+        for target in enabled_targets:
+            samples = [
+                sample for sample in storage.get_samples(target["id"], start=start_ts, limit=0)
+                if not sample.get("timeout") and sample.get("latency_ms") is not None
+            ]
+            for sample in samples:
+                bucket = int(sample["timestamp"] // 60) * 60
+                buckets[bucket].append(float(sample["latency_ms"]))
+
+        aggregated = sorted(
+            (bucket, sum(values) / len(values))
+            for bucket, values in buckets.items()
+            if values
+        )
+        if len(aggregated) > 288:
+            step = max(1, (len(aggregated) + 287) // 288)
+            aggregated = aggregated[::step]
+        for bucket, latency_ms in aggregated:
+            data.append({
+                "timestamp": datetime.fromtimestamp(bucket, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "source": "connection_monitor",
+                "connection_monitor_latency_ms": latency_ms,
+            })
+    except Exception:
+        log.debug("Unable to append Connection Monitor trend data", exc_info=True)
+
+
+def _append_speedtest_trends(data: list[dict], db_path: str, hours: int) -> None:
+    """Add Speedtest download/upload rows for dashboard sparklines."""
+    try:
+        from app.modules.speedtest.storage import SpeedtestStorage
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(hours=hours)
+        storage = SpeedtestStorage(db_path)
+        for row in storage.get_speedtest_in_range(
+            start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        ):
+            data.append({
+                "timestamp": row["timestamp"],
+                "source": "speedtest",
+                "speedtest_download": row.get("download_mbps"),
+                "speedtest_upload": row.get("upload_mbps"),
+            })
+    except Exception:
+        log.debug("Unable to append Speedtest trend data", exc_info=True)
+
+
 @data_bp.route("/api/trends")
 @require_auth
 def api_trends():
@@ -90,6 +173,9 @@ def api_trends():
         data = _storage.get_summary_range(start, date_str)
     else:
         data = _storage.get_summary_since(hours)
+        _append_speedtest_trends(data, _storage.db_path, hours)
+        _append_connection_monitor_trends(data, hours)
+        data.sort(key=lambda row: row.get("timestamp") or "")
     _localize_timestamps(data)
     return jsonify(data)
 

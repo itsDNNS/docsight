@@ -310,6 +310,8 @@
   "packet_loss": "Pierdere pachet",
   "via_speedtest_tracker": "prin Speedtest Tracker",
   "speedtest_no_data": "Nu sunt disponibile rezultate ale testelor de viteză.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Viteză",
   "refresh": "Reîmprospătare",
   "refreshing": "Reîmprospătare...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Speedtesturi Smart Capture pe zi",
   "sc_speedtest_max_actions_per_day_hint": "Limită glisantă de 24 h pentru rulări suplimentare Speedtest Tracker declanșate de DOCSight. 0 dezactivează această limită.",
   "sc_speedtest_match_window": "Fereastră de asociere rezultat Speedtest (secunde)",
-  "sc_speedtest_match_window_hint": "Cât timp așteaptă DOCSight pentru a asocia un rezultat Speedtest Tracker declanșat înainte de expirare."
+  "sc_speedtest_match_window_hint": "Cât timp așteaptă DOCSight pentru a asocia un rezultat Speedtest Tracker declanșat înainte de expirare.",
+  "cm_latency_range": "Interval de latență",
+  "speed_contract_good_label": "≥ 80% din contract"
 }

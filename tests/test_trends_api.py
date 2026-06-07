@@ -3,12 +3,15 @@
 import json
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
 from app.config import ConfigManager
+from app.modules.connection_monitor.storage import ConnectionMonitorStorage
+from app.modules.speedtest.storage import SpeedtestStorage
 from app.storage import SnapshotStorage
-from app.web import app, init_config, init_storage
+from app.web import app, get_config_manager, init_config, init_storage
 
 
 def _utc_ts(delta: timedelta) -> str:
@@ -108,6 +111,92 @@ class TestTrendsRangeEndpoint:
         resp = flask_client.get("/api/trends?range=1d&date=not-a-date")
 
         assert resp.status_code == 200
+
+    def test_normalized_trends_include_speedtest_download_for_sparklines(self, client):
+        flask_client, storage = client
+        _insert_snapshot(storage, _analysis(2.0), _utc_ts(timedelta(minutes=20)))
+        speedtest_storage = SpeedtestStorage(storage.db_path)
+        speedtest_storage.save_speedtest_results([
+            {
+                "id": 101,
+                "timestamp": _utc_ts(timedelta(minutes=15)),
+                "download_mbps": 742.4,
+                "upload_mbps": 51.2,
+                "download_human": "742.4 Mbps",
+                "upload_human": "51.2 Mbps",
+                "ping_ms": 12.0,
+                "jitter_ms": 1.5,
+                "packet_loss_pct": 0.0,
+            },
+            {
+                "id": 102,
+                "timestamp": _utc_ts(timedelta(minutes=5)),
+                "download_mbps": 801.6,
+                "upload_mbps": 54.3,
+                "download_human": "801.6 Mbps",
+                "upload_human": "54.3 Mbps",
+                "ping_ms": 10.0,
+                "jitter_ms": 1.1,
+                "packet_loss_pct": 0.0,
+            },
+        ])
+
+        resp = flask_client.get("/api/trends?range=1h")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        speed_rows = [row for row in data if row.get("source") == "speedtest"]
+        assert [row["speedtest_download"] for row in speed_rows] == [742.4, 801.6]
+        assert [row["speedtest_upload"] for row in speed_rows] == [51.2, 54.3]
+
+    def test_normalized_trends_include_connection_monitor_latency_for_sparklines(self, client):
+        flask_client, storage = client
+        _insert_snapshot(storage, _analysis(2.0), _utc_ts(timedelta(minutes=20)))
+
+        manager = get_config_manager()
+        assert manager is not None
+        cm_storage = ConnectionMonitorStorage(str(Path(manager.data_dir) / "connection_monitor.db"))
+        target_id = cm_storage.create_target("Gateway", "192.0.2.1", enabled=True)
+        backup_target_id = cm_storage.create_target("Backup", "192.0.2.2", enabled=True)
+        first_ts = int((datetime.now(timezone.utc) - timedelta(minutes=10)).timestamp() // 60) * 60
+        second_ts = int((datetime.now(timezone.utc) - timedelta(minutes=5)).timestamp() // 60) * 60
+        cm_storage.save_samples([
+            {
+                "target_id": target_id,
+                "timestamp": first_ts,
+                "latency_ms": 18.5,
+                "timeout": False,
+                "probe_method": "icmp",
+            },
+            {
+                "target_id": target_id,
+                "timestamp": second_ts,
+                "latency_ms": 21.0,
+                "timeout": False,
+                "probe_method": "icmp",
+            },
+            {
+                "target_id": backup_target_id,
+                "timestamp": first_ts,
+                "latency_ms": 22.5,
+                "timeout": False,
+                "probe_method": "icmp",
+            },
+            {
+                "target_id": backup_target_id,
+                "timestamp": second_ts,
+                "latency_ms": 23.0,
+                "timeout": False,
+                "probe_method": "icmp",
+            },
+        ])
+
+        resp = flask_client.get("/api/trends?range=1h")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        cm_rows = [row for row in data if row.get("source") == "connection_monitor"]
+        assert [row["connection_monitor_latency_ms"] for row in cm_rows] == [20.5, 22.0]
 
     def test_legacy_ranges_still_validate_date_parameter(self, client):
         flask_client, storage = client
