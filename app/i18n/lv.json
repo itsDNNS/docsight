@@ -310,6 +310,8 @@
   "packet_loss": "Pakešu zudums",
   "via_speedtest_tracker": ", izmantojot Speedtest Tracker",
   "speedtest_no_data": "Ātruma testa rezultāti nav pieejami.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Ātrums",
   "refresh": "Atsvaidzināt",
   "refreshing": "Atsvaidzina...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Smart Capture Speedtesti dienā",
   "sc_speedtest_max_actions_per_day_hint": "Slīdošs 24 h limits papildu Speedtest Tracker palaišanām, ko ierosina DOCSight. 0 atspējo šo limitu.",
   "sc_speedtest_match_window": "Speedtest rezultāta sasaistes logs (sekundes)",
-  "sc_speedtest_match_window_hint": "Cik ilgi DOCSight gaida, lai sasaistītu ierosinātu Speedtest Tracker rezultātu, pirms to atzīmē kā beigušos."
+  "sc_speedtest_match_window_hint": "Cik ilgi DOCSight gaida, lai sasaistītu ierosinātu Speedtest Tracker rezultātu, pirms to atzīmē kā beigušos.",
+  "cm_latency_range": "Latences diapazons",
+  "speed_contract_good_label": "≥ 80% no līguma"
 }

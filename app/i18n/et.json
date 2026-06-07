@@ -310,6 +310,8 @@
   "packet_loss": "Paketi kadu",
   "via_speedtest_tracker": "Speedtest Tracker kaudu",
   "speedtest_no_data": "Kiirustesti tulemused pole saadaval.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Kiirus",
   "refresh": "Värskenda",
   "refreshing": "Värskendab...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Smart Capture’i Speedtestid päevas",
   "sc_speedtest_max_actions_per_day_hint": "Libisev 24 h piir DOCSighti käivitatud täiendavatele Speedtest Tracker mõõtmistele. 0 keelab selle piiri.",
   "sc_speedtest_match_window": "Speedtesti tulemuse sidumise aken (sekundites)",
-  "sc_speedtest_match_window_hint": "Kui kaua DOCSight ootab käivitatud Speedtest Tracker tulemuse sidumist enne selle aegunuks märkimist."
+  "sc_speedtest_match_window_hint": "Kui kaua DOCSight ootab käivitatud Speedtest Tracker tulemuse sidumist enne selle aegunuks märkimist.",
+  "cm_latency_range": "Latentsuse vahemik",
+  "speed_contract_good_label": "≥ 80% lepingust"
 }

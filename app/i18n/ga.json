@@ -310,6 +310,8 @@
   "packet_loss": "Caillteanas Paicéad",
   "via_speedtest_tracker": "via Speedtest Tracker",
   "speedtest_no_data": "Níl torthaí tástála luais ar fáil.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Luas",
   "refresh": "Athnuaigh",
   "refreshing": "Ag athnuachan...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Speedtests Smart Capture in aghaidh an lae",
   "sc_speedtest_max_actions_per_day_hint": "Teorainn rollach 24 uair do ritheanna breise Speedtest Tracker a spreagann DOCSight. Díchumasaíonn 0 an teorainn seo.",
   "sc_speedtest_match_window": "Fuinneog mheaitseála torthaí Speedtest (soicindí)",
-  "sc_speedtest_match_window_hint": "Cá fhad a fhanann DOCSight chun toradh Speedtest Tracker spreagtha a nascadh sula rachaidh sé in éag."
+  "sc_speedtest_match_window_hint": "Cá fhad a fhanann DOCSight chun toradh Speedtest Tracker spreagtha a nascadh sula rachaidh sé in éag.",
+  "cm_latency_range": "Raon moille",
+  "speed_contract_good_label": "≥ 80% den chonradh"
 }

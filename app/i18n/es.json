@@ -305,6 +305,8 @@
   "packet_loss": "Pérdida de paquetes",
   "via_speedtest_tracker": "vía Speedtest Tracker",
   "speedtest_no_data": "No hay resultados de speedtest disponibles.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Velocidad",
   "refresh": "Actualizar",
   "refreshing": "Actualizando...",
@@ -1061,5 +1063,7 @@
   "sc_speedtest_max_actions_per_day": "Speedtests de Smart Capture por día",
   "sc_speedtest_max_actions_per_day_hint": "Límite móvil de 24 h para ejecuciones adicionales de Speedtest Tracker iniciadas por DOCSight. 0 desactiva este límite.",
   "sc_speedtest_match_window": "Ventana para vincular resultados de Speedtest (segundos)",
-  "sc_speedtest_match_window_hint": "Cuánto tiempo espera DOCSight para vincular un resultado de Speedtest Tracker antes de marcarlo como expirado."
+  "sc_speedtest_match_window_hint": "Cuánto tiempo espera DOCSight para vincular un resultado de Speedtest Tracker antes de marcarlo como expirado.",
+  "cm_latency_range": "Rango de latencia",
+  "speed_contract_good_label": "≥ 80 % del contrato"
 }

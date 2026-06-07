@@ -310,6 +310,8 @@
   "packet_loss": "Strata paketov",
   "via_speedtest_tracker": "cez Speedtest Tracker",
   "speedtest_no_data": "Nie sú k dispozícii žiadne výsledky testu rýchlosti.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Rýchlosť",
   "refresh": "Obnoviť",
   "refreshing": "Obnovuje sa...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Speedtesty Smart Capture za deň",
   "sc_speedtest_max_actions_per_day_hint": "Kĺzavý 24-hodinový limit pre dodatočné behy Speedtest Tracker spustené DOCSight. 0 tento limit vypne.",
   "sc_speedtest_match_window": "Okno priradenia výsledku Speedtestu (sekundy)",
-  "sc_speedtest_match_window_hint": "Ako dlho DOCSight čaká na priradenie spusteného výsledku Speedtest Tracker, kým ho označí ako expirovaný."
+  "sc_speedtest_match_window_hint": "Ako dlho DOCSight čaká na priradenie spusteného výsledku Speedtest Tracker, kým ho označí ako expirovaný.",
+  "cm_latency_range": "Rozsah latencie",
+  "speed_contract_good_label": "≥ 80 % zmluvy"
 }

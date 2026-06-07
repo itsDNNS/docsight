@@ -332,7 +332,59 @@
         {% else %}
             {% set ul_val_class = 'val-good' %}
         {% endif %}
+        {% set speed_health_map = {'val-good': 'good', 'val-warn': 'warn', 'val-bad': 'crit', 'val-tolerated': 'tolerated'} %}
+        {% set speed_health_key = speed_health_map.get(dl_val_class, 'crit') %}
+        {% set speed_badge_label = {'good': t.health_good, 'tolerated': t.health_tolerated, 'warn': t.health_marginal, 'crit': t.health_critical}.get(speed_health_key, t.health_critical) %}
+        {% set upload_health_key = 'crit' if ul_val_class == 'val-bad' else (ul_val_class|replace('val-', '')) %}
+        {% set speed_download_pct = none %}
+        {% set speed_pct_caption = '' %}
+        {% set speed_range_data = none %}
+        {% if eff_booked_dl > 0 %}
+            {% set speed_download_pct = speedtest_latest.download_mbps / eff_booked_dl * 100 %}
+            {% set speed_pct_caption = (speed_download_pct|round(0)|int) ~ '%' %}
+            {% set speed_marker_raw = speed_download_pct / 120 * 100 %}
+            {% set speed_marker = 0 if speed_marker_raw < 0 else (100 if speed_marker_raw > 100 else speed_marker_raw) %}
+            {% set speed_range_data = {
+                'marker': speed_marker|round(1),
+                'span_start': speed_marker|round(1),
+                'span_width': 0,
+                'low_label': '0%',
+                'good_label': t.get('speed_contract_good_label', '≥ 80% of contract'),
+                'high_label': '120%',
+                'bands': [
+                    {'kind': 'crit', 'left': 0, 'width': 41.67},
+                    {'kind': 'warn', 'left': 41.67, 'width': 25},
+                    {'kind': 'good', 'left': 66.67, 'width': 33.33}
+                ]
+            } %}
+        {% endif %}
     {% endif %}
+
+    {% macro metric_range_viz(range_data, health, good_label, context_label='', context_value='') -%}
+    {% if range_data %}
+    <div class="metric-range-viz"
+         style="--metric-marker: {{ range_data.marker }}%; --metric-span-start: {{ range_data.span_start }}%; --metric-span-width: {{ range_data.span_width }}%; --metric-range-accent: var(--{{ health }});">
+        {% if context_label or context_value %}
+        <div class="metric-range-caption">
+            <span>{{ context_label }}</span>
+            <strong>{{ context_value }}</strong>
+        </div>
+        {% endif %}
+        <div class="metric-range-track" aria-hidden="true">
+            {% for band in range_data.bands %}
+            <span class="metric-range-band {{ band.kind }}" style="left:{{ band.left }}%;width:{{ band.width }}%;"></span>
+            {% endfor %}
+            <span class="metric-range-window"></span>
+            <span class="metric-range-marker"></span>
+        </div>
+        <div class="metric-range-labels">
+            <span>{{ range_data.low_label }}</span>
+            <span class="metric-range-good">{{ good_label }} {{ range_data.good_label }}</span>
+            <span>{{ range_data.high_label }}</span>
+        </div>
+    </div>
+    {% endif %}
+    {%- endmacro %}
 
     {% if has_docsis %}
     {% set health_map = {"good": t.health_good, "tolerated": t.health_tolerated, "marginal": t.health_marginal, "critical": t.health_critical} %}
@@ -913,17 +965,33 @@
 
         {# Card 4: Speed (conditional) #}
         {% if speedtest_configured and speedtest_latest %}
-        <div class="metric-card glass">
+        <div class="metric-card glass" id="metric-speed-card">
             <div class="metric-header">
                 <span class="metric-label">{{ t.speed }}</span>
                 <div class="metric-icon green"><i data-lucide="zap"></i></div>
             </div>
-            <div class="metric-value" style="color:var(--{{ dl_val_class|replace('val-','') }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
-            <div class="metric-sub">
-                <span class="range">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }} {{ t.upload }}</span>
-                <span class="range">{{ speedtest_latest.ping_ms|round(0)|int }} ms Ping</span>
-                <span class="range">{{ speedtest_latest.jitter_ms|round(1) }} ms Jitter</span>
+            <div class="metric-value-row">
+                <div class="metric-value" style="color:var(--{{ speed_health_key }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
+                <canvas class="metric-spark" id="spark-speed" data-spark-key="speedtest_download" data-spark-color="#10b981" width="144" height="56" aria-hidden="true"></canvas>
             </div>
+            <div class="metric-sub metric-average-row">
+                <span class="range metric-average-copy">{{ t.get('speedtest_latest_result', 'Latest speedtest result') }}</span>
+            </div>
+            <div class="metric-sub metric-status-row">
+                <span class="metric-context">
+                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="badge badge-{{ speed_health_key }}">{{ speed_badge_label }}</span>
+                </span>
+            </div>
+            <div class="metric-sub metric-modulation-row">
+                <span class="metric-sub-label">{{ t.upload }}:</span>
+                <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
+                <span class="metric-sub-label">{{ t.ping }}:</span>
+                <span class="range">{{ speedtest_latest.ping_ms|round(0)|int }} ms</span>
+                <span class="metric-sub-label">{{ t.jitter }}:</span>
+                <span class="range">{{ speedtest_latest.jitter_ms|round(1) }} ms</span>
+            </div>
+            {{ metric_range_viz(speed_range_data, speed_health_key, t.health_good, t.get('metric_download_contract', 'Download vs contract'), speed_pct_caption) }}
         </div>
         {% endif %}
 
@@ -955,8 +1023,38 @@
                 <span class="metric-label">{{ t.get('docsight.connection_monitor.connection_monitor', 'Connection Monitor') }}</span>
                 <div class="metric-icon blue"><i data-lucide="satellite-dish"></i></div>
             </div>
-            <div class="metric-value" id="cm-card-status">&mdash;</div>
-            <div class="metric-sub" id="cm-card-details"></div>
+            <div class="metric-value-row">
+                <div class="metric-value" id="cm-card-latency">&ndash;</div>
+                <canvas class="metric-spark" id="spark-connection-monitor" data-spark-key="connection_monitor_latency_ms" data-spark-color="#38bdf8" width="144" height="56" aria-hidden="true"></canvas>
+            </div>
+            <div class="metric-sub metric-average-row">
+                <span class="range metric-average-copy" id="cm-card-avg">&ndash;</span>
+            </div>
+            <div class="metric-sub metric-status-row">
+                <span class="metric-context">
+                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="badge badge-info" id="cm-card-badge">&ndash;</span>
+                </span>
+            </div>
+            <div class="metric-sub metric-modulation-row" id="cm-card-mod-row"></div>
+            <div class="metric-range-viz" id="cm-card-range" style="--metric-marker: 0%; --metric-span-start: 0%; --metric-span-width: 0%; --metric-range-accent: var(--muted);">
+                <div class="metric-range-caption">
+                    <span>{{ t.get('cm_latency_range', 'Latency range') }}</span>
+                    <strong id="cm-card-range-context">&ndash;</strong>
+                </div>
+                <div class="metric-range-track" aria-hidden="true">
+                    <span class="metric-range-band good" style="left:0%;width:33.33%;"></span>
+                    <span class="metric-range-band warn" style="left:33.33%;width:33.33%;"></span>
+                    <span class="metric-range-band crit" style="left:66.67%;width:33.33%;"></span>
+                    <span class="metric-range-window"></span>
+                    <span class="metric-range-marker"></span>
+                </div>
+                <div class="metric-range-labels">
+                    <span>0 ms</span>
+                    <span class="metric-range-good">{{ t.health_good }} &lt; 50 ms</span>
+                    <span>150 ms</span>
+                </div>
+            </div>
         </div>
         {% endif %}
     </div>
@@ -1115,17 +1213,33 @@
     {# ── Non-DOCSIS cards: speed, BNetzA, modules ── #}
     {% if speedtest_configured and speedtest_latest %}
     <div class="metrics-grid">
-        <div class="metric-card glass">
+        <div class="metric-card glass" id="metric-speed-card">
             <div class="metric-header">
                 <span class="metric-label">{{ t.speed }}</span>
                 <div class="metric-icon green"><i data-lucide="zap"></i></div>
             </div>
-            <div class="metric-value" style="color:var(--{{ dl_val_class|replace('val-','') }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
-            <div class="metric-sub">
-                <span class="range">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }} {{ t.upload }}</span>
-                <span class="range">{{ speedtest_latest.ping_ms|round(0)|int }} ms Ping</span>
-                <span class="range">{{ speedtest_latest.jitter_ms|round(1) }} ms Jitter</span>
+            <div class="metric-value-row">
+                <div class="metric-value" style="color:var(--{{ speed_health_key }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
+                <canvas class="metric-spark" id="spark-speed" data-spark-key="speedtest_download" data-spark-color="#10b981" width="144" height="56" aria-hidden="true"></canvas>
             </div>
+            <div class="metric-sub metric-average-row">
+                <span class="range metric-average-copy">{{ t.get('speedtest_latest_result', 'Latest speedtest result') }}</span>
+            </div>
+            <div class="metric-sub metric-status-row">
+                <span class="metric-context">
+                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="badge badge-{{ speed_health_key }}">{{ speed_badge_label }}</span>
+                </span>
+            </div>
+            <div class="metric-sub metric-modulation-row">
+                <span class="metric-sub-label">{{ t.upload }}:</span>
+                <span class="range" style="color:var(--{{ upload_health_key }});">{{ speedtest_latest.upload_mbps|fmt_speed_value }} {{ speedtest_latest.upload_mbps|fmt_speed_unit }}</span>
+                <span class="metric-sub-label">{{ t.ping }}:</span>
+                <span class="range">{{ speedtest_latest.ping_ms|round(0)|int }} ms</span>
+                <span class="metric-sub-label">{{ t.jitter }}:</span>
+                <span class="range">{{ speedtest_latest.jitter_ms|round(1) }} ms</span>
+            </div>
+            {{ metric_range_viz(speed_range_data, speed_health_key, t.health_good, t.get('metric_download_contract', 'Download vs contract'), speed_pct_caption) }}
         </div>
     </div>
     {% endif %}

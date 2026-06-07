@@ -310,6 +310,8 @@
   "packet_loss": "Csomagvesztés",
   "via_speedtest_tracker": "a Speedtest Tracker-n keresztül",
   "speedtest_no_data": "Nem állnak rendelkezésre sebességteszt eredményei.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Sebesség",
   "refresh": "Frissítés",
   "refreshing": "Frissítés...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Smart Capture Speedtestek naponta",
   "sc_speedtest_max_actions_per_day_hint": "Gördülő 24 órás korlát a DOCSight által indított további Speedtest Tracker futásokra. A 0 kikapcsolja ezt a korlátot.",
   "sc_speedtest_match_window": "Speedtest-eredmény illesztési ablaka (másodperc)",
-  "sc_speedtest_match_window_hint": "Meddig vár a DOCSight egy indított Speedtest Tracker eredmény összekapcsolására, mielőtt lejártnak jelöli."
+  "sc_speedtest_match_window_hint": "Meddig vár a DOCSight egy indított Speedtest Tracker eredmény összekapcsolására, mielőtt lejártnak jelöli.",
+  "cm_latency_range": "Késleltetési tartomány",
+  "speed_contract_good_label": "≥ 80% a szerződésből"
 }

@@ -310,6 +310,8 @@
   "packet_loss": "Izguba paketa",
   "via_speedtest_tracker": "prek Speedtest Tracker",
   "speedtest_no_data": "Na voljo ni rezultatov preizkusa hitrosti.",
+  "speedtest_latest_result": "Latest speedtest result",
+  "metric_download_contract": "Download vs contract",
   "speed": "Hitrost",
   "refresh": "Osveži",
   "refreshing": "Osvežitev ...",
@@ -1066,5 +1068,7 @@
   "sc_speedtest_max_actions_per_day": "Smart Capture Speedtesti na dan",
   "sc_speedtest_max_actions_per_day_hint": "Drseča 24-urna omejitev za dodatne zagone Speedtest Tracker, ki jih sproži DOCSight. 0 onemogoči to omejitev.",
   "sc_speedtest_match_window": "Okno ujemanja rezultata Speedtesta (sekunde)",
-  "sc_speedtest_match_window_hint": "Kako dolgo DOCSight čaka, da poveže sprožen rezultat Speedtest Tracker, preden ga označi kot poteklega."
+  "sc_speedtest_match_window_hint": "Kako dolgo DOCSight čaka, da poveže sprožen rezultat Speedtest Tracker, preden ga označi kot poteklega.",
+  "cm_latency_range": "Obseg zakasnitve",
+  "speed_contract_good_label": "≥ 80 % pogodbe"
 }
