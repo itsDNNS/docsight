@@ -26,6 +26,21 @@ def _element_by_id(html, element_id):
     return html[start:end if end != -1 else len(html)]
 
 
+def _speed_card_opening_tag(html):
+    marker = 'id="metric-speed-card"'
+    marker_idx = html.index(marker)
+    start = html.rfind("<div", 0, marker_idx)
+    end = html.index(">", marker_idx) + 1
+    return html[start:end]
+
+
+def _speed_card_header(html):
+    marker = 'id="metric-speed-card"'
+    start = html.rfind("<div", 0, html.index(marker))
+    end = html.index('<div class="metric-value-row">', start)
+    return html[start:end]
+
+
 def _family_metric(health, avg, minimum=None, maximum=None, available=True):
     return {
         "available": available,
@@ -100,6 +115,22 @@ def _add_mixed_signal_families(analysis):
     return analysis
 
 
+def _latest_speedtest():
+    return {
+        "download_mbps": 812.4,
+        "upload_mbps": 54.2,
+        "ping_ms": 12.0,
+        "jitter_ms": 1.4,
+    }
+
+
+def _configure_speedtest(config_mgr):
+    config_mgr.save({
+        "speedtest_tracker_url": "http://speedtest.local:8999",
+        "speedtest_tracker_token": "test-token",
+    })
+
+
 class TestIndexRoute:
     @pytest.mark.parametrize(
         ("channel", "family"),
@@ -132,6 +163,40 @@ class TestIndexRoute:
         update_state(analysis=sample_analysis)
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
+
+    def test_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, sample_analysis):
+        _configure_speedtest(config_mgr)
+        update_state(analysis=sample_analysis, speedtest_latest=_latest_speedtest())
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        opening_tag = _speed_card_opening_tag(html)
+        header = _speed_card_header(html)
+        assert 'role="button"' in opening_tag
+        assert 'tabindex="0"' in opening_tag
+        assert 'onclick="switchView(\'speedtest\')"' in opening_tag
+        assert "onkeydown=\"if(event.key==='Enter'||event.key===' ')" in opening_tag
+        assert 'data-lucide="rabbit"' in header
+        assert 'data-lucide="zap"' not in header
+
+    def test_no_docsis_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, no_docsis_analysis):
+        _configure_speedtest(config_mgr)
+        update_state(analysis=no_docsis_analysis, speedtest_latest=_latest_speedtest())
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        opening_tag = _speed_card_opening_tag(html)
+        header = _speed_card_header(html)
+        assert 'role="button"' in opening_tag
+        assert 'tabindex="0"' in opening_tag
+        assert 'onclick="switchView(\'speedtest\')"' in opening_tag
+        assert "onkeydown=\"if(event.key==='Enter'||event.key===' ')" in opening_tag
+        assert 'data-lucide="rabbit"' in header
+        assert 'data-lucide="zap"' not in header
 
     def test_index_hides_error_card_when_unsupported(self, client, sample_analysis):
         sample_analysis["summary"]["errors_supported"] = False

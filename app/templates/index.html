@@ -965,10 +965,10 @@
 
         {# Card 4: Speed (conditional) #}
         {% if speedtest_configured and speedtest_latest %}
-        <div class="metric-card glass" id="metric-speed-card">
+        <div class="metric-card glass" id="metric-speed-card" role="button" tabindex="0" style="cursor:pointer;" onclick="switchView('speedtest')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('speedtest')}">
             <div class="metric-header">
                 <span class="metric-label">{{ t.speed }}</span>
-                <div class="metric-icon green"><i data-lucide="zap"></i></div>
+                <div class="metric-icon green"><i data-lucide="rabbit"></i></div>
             </div>
             <div class="metric-value-row">
                 <div class="metric-value" style="color:var(--{{ speed_health_key }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>
@@ -1213,10 +1213,10 @@
     {# ── Non-DOCSIS cards: speed, BNetzA, modules ── #}
     {% if speedtest_configured and speedtest_latest %}
     <div class="metrics-grid">
-        <div class="metric-card glass" id="metric-speed-card">
+        <div class="metric-card glass" id="metric-speed-card" role="button" tabindex="0" style="cursor:pointer;" onclick="switchView('speedtest')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchView('speedtest')}">
             <div class="metric-header">
                 <span class="metric-label">{{ t.speed }}</span>
-                <div class="metric-icon green"><i data-lucide="zap"></i></div>
+                <div class="metric-icon green"><i data-lucide="rabbit"></i></div>
             </div>
             <div class="metric-value-row">
                 <div class="metric-value" style="color:var(--{{ speed_health_key }});">{{ speedtest_latest.download_mbps|fmt_speed_value }}<span class="unit">{{ speedtest_latest.download_mbps|fmt_speed_unit }} {{ t.download }}</span></div>

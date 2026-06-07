@@ -48,6 +48,18 @@ class TestNavigation:
         live_section = demo_page.locator("#view-dashboard")
         assert live_section.is_visible()
 
+    def test_speed_kpi_card_opens_speedtest_view_and_uses_rabbit_icon(self, demo_page):
+        speed_card = demo_page.locator("#metric-speed-card")
+        assert speed_card.is_visible()
+        assert speed_card.get_attribute("role") == "button"
+        assert speed_card.get_attribute("tabindex") == "0"
+        assert speed_card.locator('svg.lucide-rabbit').is_visible()
+
+        speed_card.click()
+
+        assert demo_page.locator("#view-speedtest").is_visible()
+        assert "active" in demo_page.locator('.nav-item[data-view="speedtest"]').get_attribute("class")
+
 
 class TestDashboardSections:
     """Dashboard content sections in demo mode."""
