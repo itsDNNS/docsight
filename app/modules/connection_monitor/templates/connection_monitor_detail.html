@@ -6,16 +6,7 @@
             <h2 class="view-page-title">{{ t.get('docsight.connection_monitor.cm_detail_title', 'Connection Monitor') }}</h2>
             <span class="view-page-subtitle">{{ t.get('docsight.connection_monitor.connection_monitor_desc', 'Always-on latency monitoring for cable troubleshooting') }}</span>
         </div>
-        <div id="cm-capability-info" class="view-page-actions cm-capability"
-             data-method-icmp="{{ t.get('docsight.connection_monitor.cm_method_icmp', 'ICMP') }}"
-             data-method-tcp="{{ t.get('docsight.connection_monitor.cm_method_tcp', 'TCP') }}"
-             data-hint-tcp="{{ t.get('docsight.connection_monitor.cm_method_hint_tcp', 'Using TCP probing. For more accurate ICMP probing, add cap_add: [NET_RAW] to your Docker Compose.') }}"
-        ></div>
-    </div>
-
-    <div class="cm-control-strip">
-        <div class="cm-range-group">
-            <span class="cm-control-label">{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}</span>
+        <div class="view-page-actions cm-header-actions">
             <div class="cm-range-picker trend-tabs" role="group" aria-label="{{ t.get('docsight.connection_monitor.cm_timerange', 'Time range') }}">
                 <button class="trend-tab active" data-cm-range="3600" onclick="cmSetRange(this, 3600)">1h</button>
                 <button class="trend-tab" data-cm-range="21600" onclick="cmSetRange(this, 21600)">6h</button>
@@ -26,12 +17,17 @@
                 <button class="trend-tab" data-cm-range="2592000" onclick="cmSetRange(this, 2592000)">30d</button>
                 <button class="trend-tab" data-cm-range="7776000" onclick="cmSetRange(this, 7776000)">90d</button>
             </div>
+            <div id="cm-capability-info" class="cm-capability"
+                 data-method-icmp="{{ t.get('docsight.connection_monitor.cm_method_icmp', 'ICMP') }}"
+                 data-method-tcp="{{ t.get('docsight.connection_monitor.cm_method_tcp', 'TCP') }}"
+                 data-hint-tcp="{{ t.get('docsight.connection_monitor.cm_method_hint_tcp', 'Using TCP probing. For more accurate ICMP probing, add cap_add: [NET_RAW] to your Docker Compose.') }}"
+            ></div>
         </div>
+    </div>
 
-        <div id="cm-pinned-days-bar" class="cm-pinned-bar">
-            <span class="cm-pinned-label">Pinned</span>
-            <div id="cm-pinned-days" class="cm-pinned-days"></div>
-        </div>
+    <div id="cm-pinned-days-bar" class="cm-pinned-bar">
+        <span class="cm-pinned-label">Pinned</span>
+        <div id="cm-pinned-days" class="cm-pinned-days"></div>
     </div>
 
     <section id="cm-raw-log-panel" class="glass cm-panel cm-raw-log-panel" style="display:none;">

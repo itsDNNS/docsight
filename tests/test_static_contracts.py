@@ -140,7 +140,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v47';" in sw_js
+    assert "var CACHE_VERSION = 'v48';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -601,6 +601,21 @@ def test_module_blades_use_shared_correlation_style_page_header():
             offenders.append(f"{name}: missing shared title class")
 
     assert offenders == []
+
+
+def test_connection_monitor_range_controls_live_in_shared_page_header_actions():
+    """Connection Monitor should not keep a separate boxed top control strip."""
+    template = CONNECTION_MONITOR_TEMPLATE.read_text(encoding="utf-8")
+    header_block = template[
+        template.index('<div class="view-page-header cm-page-header">') :
+        template.index('<div id="cm-pinned-days-bar"')
+    ]
+
+    assert 'class="view-page-actions' in header_block
+    assert 'class="cm-range-picker trend-tabs"' in header_block
+    assert 'id="cm-capability-info" class="cm-capability"' in header_block
+    assert 'data-cm-range="3600"' in header_block
+    assert 'class="cm-control-strip"' not in template
 
 
 def test_touched_header_templates_do_not_mix_span_and_h2_closing_tags():

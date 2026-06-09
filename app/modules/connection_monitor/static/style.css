@@ -82,10 +82,6 @@
 }
 
 
-.cm-page-header .cm-capability {
-    justify-content: flex-end;
-}
-
 .cm-capability {
     display: flex;
     align-items: center;
@@ -118,25 +114,6 @@
     border: 1px solid color-mix(in srgb, var(--warn) 28%, transparent);
 }
 
-.cm-control-strip {
-    display: flex;
-    align-items: stretch;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    padding: var(--space-sm);
-    border: 1px solid var(--cm-panel-border);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--surface) 70%, transparent);
-}
-
-.cm-range-group {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    min-width: 0;
-}
-
-.cm-control-label,
 .cm-pinned-label,
 .cm-export-group > span {
     color: var(--text-muted);
@@ -155,12 +132,6 @@
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
-}
-
-.cm-range-picker .trend-tab {
-    min-height: 34px;
-    padding: 6px 13px;
-    border-radius: 8px;
 }
 
 .cm-pin-action,
@@ -236,8 +207,10 @@
     align-items: center;
     gap: var(--space-sm);
     min-width: 0;
-    padding-left: var(--space-sm);
-    border-left: 1px solid var(--cm-panel-border);
+    padding: var(--space-sm);
+    border: 1px solid var(--cm-panel-border);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
 }
 
 .cm-no-data {
@@ -787,8 +760,6 @@
 
 @media (max-width: 760px) {
     .cm-console-head,
-    .cm-control-strip,
-    .cm-range-group,
     .cm-side-stack {
         display: flex;
         flex-direction: column;
@@ -808,10 +779,8 @@
     }
 
     .cm-pinned-bar {
-        padding-left: 0;
-        padding-top: var(--space-sm);
-        border-left: 0;
-        border-top: 1px solid var(--cm-panel-border);
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .cm-stats-grid {

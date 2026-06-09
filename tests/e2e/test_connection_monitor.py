@@ -3,6 +3,21 @@
 from playwright.sync_api import expect
 
 
+def test_connection_monitor_uses_shared_page_header_action_layout(demo_page):
+    """Connection Monitor range controls should live in the same top header pattern as other views."""
+    page = demo_page
+    page.evaluate("switchView('connection-monitor')")
+    page.wait_for_selector("#view-connection-monitor.active", state="visible")
+
+    header = page.locator("#view-connection-monitor .view-page-header")
+    expect(header).to_be_visible()
+    expect(header.locator(".view-page-title")).to_have_text("Connection Monitor")
+    expect(header.locator(".view-page-actions .cm-range-picker")).to_be_visible()
+    expect(header.locator(".view-page-actions [data-cm-range='3600']")).to_be_visible()
+    expect(header.locator(".view-page-actions #cm-capability-info")).to_be_visible()
+    expect(page.locator("#view-connection-monitor .cm-control-strip")).to_have_count(0)
+
+
 def test_connection_monitor_raw_ping_log_panel_is_discoverable(demo_page):
     """The Connection Monitor view should expose the ISP-ready raw ping log export panel."""
     page = demo_page
