@@ -5,7 +5,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    justify-content: center;
+    justify-content: flex-end;
     flex-wrap: wrap;
     margin-bottom: var(--space-sm);
 }

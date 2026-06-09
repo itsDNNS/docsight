@@ -1,10 +1,10 @@
 <div class="view-content fritz-cable-view">
-    <div class="fritz-cable-header">
-        <div>
-            <h2 class="fritz-cable-title">{{ t.get('seg_title', 'Segment Utilization') }}</h2>
-            <p class="fritz-cable-subtitle">{{ t.get('seg_subtitle', 'Cable segment utilization from FRITZ!Box monitoring.') }}</p>
+    <div class="view-page-header fritz-cable-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title fritz-cable-title">{{ t.get('seg_title', 'Segment Utilization') }}</h2>
+            <span class="view-page-subtitle fritz-cable-subtitle">{{ t.get('seg_subtitle', 'Cable segment utilization from FRITZ!Box monitoring.') }}</span>
         </div>
-        <div class="fritz-cable-range-tabs" id="fritz-cable-range-tabs">
+        <div class="view-page-actions fritz-cable-range-tabs" id="fritz-cable-range-tabs">
             <button class="trend-tab" data-range="24h">{{ t.get('seg_range_24h', '24h') }}</button>
             <button class="trend-tab" data-range="7d">{{ t.get('seg_range_7d', '7d') }}</button>
             <button class="trend-tab" data-range="30d">{{ t.get('seg_range_30d', '30d') }}</button>

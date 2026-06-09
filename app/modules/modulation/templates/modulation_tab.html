@@ -1,8 +1,10 @@
 <div class="view-content">
     <!-- Controls -->
-    <div class="mod-controls">
-        <h2 class="mod-view-title">{{ t.get('docsight.modulation.title', 'Modulation Performance') }}</h2>
-        <div class="mod-controls-tabs">
+    <div class="view-page-header mod-controls">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.get('docsight.modulation.title', 'Modulation Performance') }}</h2>
+        </div>
+        <div class="view-page-actions mod-controls-tabs">
             <div class="trend-tabs" id="modulation-direction-tabs">
                 <button class="trend-tab active" data-dir="us">{{ t.get('docsight.modulation.upstream', 'Upstream') }}</button>
                 <button class="trend-tab" data-dir="ds">{{ t.get('docsight.modulation.downstream', 'Downstream') }}</button>

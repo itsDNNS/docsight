@@ -5,25 +5,12 @@
     margin: 0 auto;
 }
 
-.fritz-cable-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
 .fritz-cable-title {
-    margin: 0 0 4px 0;
-    font-size: 1.4em;
-    font-weight: 600;
+    margin: 0;
 }
 
 .fritz-cable-subtitle {
     margin: 0;
-    color: var(--text-secondary, #888);
-    font-size: 0.9em;
 }
 
 .fritz-cable-range-tabs {

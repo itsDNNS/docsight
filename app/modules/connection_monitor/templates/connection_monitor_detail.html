@@ -1,15 +1,12 @@
 <div class="view-content cm-monitor" id="cm-detail-view"
      data-l-remove="{{ t.get('docsight.connection_monitor.cm_remove', 'Remove') }}"
      data-l-raw-log-download="{{ t.get('docsight.connection_monitor.cm_raw_log_download', 'Download raw log') }}">
-    <div class="cm-console-head">
-        <div class="cm-title-block">
-            <div class="cm-title-row">
-                <span class="cm-title-icon"><i data-lucide="activity"></i></span>
-                <h2>{{ t.get('docsight.connection_monitor.cm_detail_title', 'Connection Monitor') }}</h2>
-            </div>
-            <p>{{ t.get('docsight.connection_monitor.connection_monitor_desc', 'Always-on latency monitoring for cable troubleshooting') }}</p>
+    <div class="view-page-header cm-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.get('docsight.connection_monitor.cm_detail_title', 'Connection Monitor') }}</h2>
+            <span class="view-page-subtitle">{{ t.get('docsight.connection_monitor.connection_monitor_desc', 'Always-on latency monitoring for cable troubleshooting') }}</span>
         </div>
-        <div id="cm-capability-info" class="cm-capability"
+        <div id="cm-capability-info" class="view-page-actions cm-capability"
              data-method-icmp="{{ t.get('docsight.connection_monitor.cm_method_icmp', 'ICMP') }}"
              data-method-tcp="{{ t.get('docsight.connection_monitor.cm_method_tcp', 'TCP') }}"
              data-hint-tcp="{{ t.get('docsight.connection_monitor.cm_method_hint_tcp', 'Using TCP probing. For more accurate ICMP probing, add cap_add: [NET_RAW] to your Docker Compose.') }}"
