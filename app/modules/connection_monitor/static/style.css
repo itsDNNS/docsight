@@ -81,6 +81,11 @@
     font-size: 0.84rem;
 }
 
+
+.cm-page-header .cm-capability {
+    justify-content: flex-end;
+}
+
 .cm-capability {
     display: flex;
     align-items: center;

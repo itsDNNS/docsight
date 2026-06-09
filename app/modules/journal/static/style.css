@@ -2,17 +2,13 @@
 
 /* Header & Actions */
 .journal-header {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    margin-bottom: var(--space-lg);
-    gap: var(--space-sm);
 }
 .journal-header-actions {
     display: flex;
     gap: var(--space-sm);
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-end;
 }
 .btn-delete-all {
     font-size: 0.85em;
@@ -53,12 +49,6 @@
 .journal-export-dropdown button:active {
     filter: brightness(0.85);
 }
-.journal-header .trend-title {
-    font-size: 1.5em;
-    color: var(--accent-purple, var(--accent));
-    font-weight: bold;
-}
-
 /* Purple pill button (matching Acknowledge All style) */
 .btn-new-entry {
     display: inline-flex;
@@ -1187,9 +1177,6 @@ mark.search-highlight {
     }
     .journal-header {
         align-items: stretch;
-    }
-    .journal-header .trend-title {
-        text-align: center;
     }
     .journal-header-actions {
         width: 100%;

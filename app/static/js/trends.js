@@ -135,8 +135,7 @@ function loadTrends(range) {
     var title = document.getElementById('trend-title');
     var noData = document.getElementById('trend-no-data');
     var grid = document.getElementById('charts-grid');
-    var label = String(range || '1d');
-    title.textContent = (T.signal_trends || 'Signal Trends') + ' (' + label + ')';
+    if (title) title.textContent = T.signal_trends || 'Signal Trends';
     _lastTrendRange = range;
 
     var wr = _getWeatherRange(range);

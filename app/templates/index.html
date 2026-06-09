@@ -1282,9 +1282,11 @@
 
 <!-- ═══ View: Trends ═══ -->
 <div id="view-trends" class="view">
-    <div class="trend-header">
-        <span class="trend-title" id="trend-title"></span>
-        <div style="display:flex; align-items:center; gap:8px;">
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title" id="trend-title">{{ t.signal_trends }}</h2>
+        </div>
+        <div class="view-page-actions">
             <div class="trend-tabs" id="trend-tabs">
                 <button class="trend-tab" data-range="1h">1h</button>
                 <button class="trend-tab" data-range="6h">6h</button>
@@ -1367,11 +1369,12 @@
 <!-- ═══ View: BQM Graphs ═══ -->
 {% if bqm_configured %}
 <div id="view-bqm" class="view">
-    <div class="trend-header">
-        <span class="trend-title">{{ t.bqm_title }}</span>
-    </div>
-    <!-- BQM Toolbar: quick-jump + month nav -->
-    <div id="bqm-toolbar" class="bqm-toolbar">
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.bqm_title }}</h2>
+        </div>
+        <!-- BQM Toolbar: quick-jump + month nav -->
+        <div id="bqm-toolbar" class="view-page-actions bqm-toolbar">
         <button class="trend-tab bqm-quick" id="bqm-today-btn">{{ t.bqm_today }}</button>
         <button class="trend-tab bqm-quick" id="bqm-yesterday-btn">{{ t.bqm_yesterday }}</button>
         <button class="trend-tab bqm-quick" id="bqm-7d-btn">{{ t.bqm_range_7d or '7d' }}</button>
@@ -1396,6 +1399,7 @@
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
             </svg>
         </button>
+        </div>
     </div>
     <!-- Calendar grid -->
     <div id="bqm-calendar" class="bqm-calendar">
@@ -1505,9 +1509,11 @@
 <!-- ═══ View: Smokeping Graphs ═══ -->
 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list and smokeping_configured %}
 <div id="view-smokeping" class="view">
-    <div style="text-align:center; margin-bottom:24px;">
-        <span class="trend-title">{{ t.smokeping_title }}</span>
-        <div class="trend-tabs" id="smokeping-tabs" style="display:inline-flex; margin-top:12px;">
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.smokeping_title }}</h2>
+        </div>
+        <div class="view-page-actions trend-tabs" id="smokeping-tabs">
             <button class="trend-tab active" data-span="3h">3h</button>
             <button class="trend-tab" data-span="30h">30h</button>
             <button class="trend-tab" data-span="10d">10d</button>
@@ -1523,12 +1529,12 @@
 <!-- ═══ View: Correlation Analysis ═══ -->
 {% if speedtest_configured or bqm_configured %}
 <div id="view-correlation" class="view">
-    <div class="correlation-header">
-        <div class="correlation-header-left">
-            <span class="correlation-view-title">{{ t.correlation_title }}</span>
-            <span class="correlation-view-subtitle">{{ t.get('correlation_subtitle', 'Build evidence for ISP complaints') }}</span>
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.correlation_title }}</h2>
+            <span class="view-page-subtitle">{{ t.get('correlation_subtitle', 'Build evidence for ISP complaints') }}</span>
         </div>
-        <div class="trend-tabs" id="correlation-tabs">
+        <div class="view-page-actions trend-tabs" id="correlation-tabs">
             <button class="trend-tab" data-value="1h" onclick="selectPill(this, loadCorrelationData)">1h</button>
             <button class="trend-tab" data-value="6h" onclick="selectPill(this, loadCorrelationData)">6h</button>
             <button class="trend-tab active" data-value="1d" onclick="selectPill(this, loadCorrelationData)">1d</button>
@@ -1607,9 +1613,11 @@
 
 <!-- ═══ View: Incident Journal ═══ -->
 <div id="view-journal" class="view">
-    <div class="journal-header">
-        <span class="trend-title">{{ t.incident_journal }}</span>
-        <div class="journal-header-actions">
+    <div class="view-page-header journal-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.incident_journal }}</h2>
+        </div>
+        <div class="view-page-actions journal-header-actions">
             <button class="btn-new-entry" onclick="openEntryModal()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
                     <path d="M12 5v14m-7-7h14"/>
@@ -1735,8 +1743,10 @@
 
 <!-- ═══ View: Event Log ═══ -->
 <div id="view-events" class="view">
-    <div class="events-header">
-        <span class="trend-title">{{ t.event_log }}</span>
+    <div class="view-page-header events-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.event_log }}</h2>
+        </div>
     </div>
 
     <!-- Phase 4.3: Pill filter toggles for severity -->
@@ -1785,7 +1795,11 @@
 
 <!-- ═══ View: Channel Timeline ═══ -->
 <div id="view-channels" class="view">
-    <div class="ch-controls">
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.channels }}</h2>
+        </div>
+        <div class="view-page-actions ch-controls">
         <div class="trend-tabs" id="channel-mode-tabs">
             <button class="trend-tab active" data-value="timeline" onclick="selectPill(this, switchChannelMode)">{{ t.channel_timeline }}</button>
             <button class="trend-tab" data-value="compare" onclick="selectPill(this, switchChannelMode)">{{ t.channel_compare }}</button>
@@ -1835,6 +1849,7 @@
                 </svg>
             </button>
         </span>
+        </div>
     </div>
 
     <!-- Channel info bar (populated by JS after channel selection) -->
@@ -2152,9 +2167,11 @@
 <!-- ═══ View: Speedtest ═══ -->
 {% if speedtest_configured %}
 <div id="view-speedtest" class="view">
-    <div class="trend-header">
-        <span class="trend-title">{{ t.speedtest_tracker }}</span>
-        <div class="speedtest-controls">
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.speedtest_tracker }}</h2>
+        </div>
+        <div class="view-page-actions speedtest-controls">
             <div class="trend-tabs" id="speedtest-tabs">
                 <button class="trend-tab" data-value="1" onclick="selectPill(this, filterSpeedtestData)">1d</button>
                 <button class="trend-tab active" data-value="7" onclick="selectPill(this, filterSpeedtestData)">7d</button>
@@ -2225,10 +2242,15 @@
 
 {% if gaming_quality_enabled %}
 <div id="view-gaming" class="view">
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.gaming_quality_label }}</h2>
+        </div>
+    </div>
     {% if gaming_index %}
     {% set s = gaming_index.score %}
     {% set g = gaming_index.grade|lower %}
-    <!-- Gauge hero (no title - sidebar already names this view) -->
+    <!-- Gauge hero -->
     <div class="gaming-overview">
         <div class="gaming-gauge">
             <div class="gaming-gauge-band">
@@ -2327,9 +2349,11 @@
 <!-- ═══ View: Breitbandmessung (BNetzA) ═══ -->
 {% if bnetz_enabled %}
 <div id="view-bnetz" class="view">
-    <div class="trend-header">
-        <span class="trend-title">{{ t.bnetz_title }}</span>
-        <div style="display:flex;gap:8px;align-items:center;">
+    <div class="view-page-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.bnetz_title }}</h2>
+        </div>
+        <div class="view-page-actions">
             <label class="btn btn-muted" style="cursor:pointer;">
                 <i data-lucide="upload" style="width:14px;height:14px;vertical-align:-2px;"></i> {{ t.bnetz_upload }}
                 <input type="file" accept=".pdf,.csv" id="bnetz-file-input" style="display:none;" onchange="uploadBnetzFromView(this)">

@@ -15,6 +15,9 @@ TRENDS_JS = ROOT / "app" / "static" / "js" / "trends.js"
 CHANNELS_JS = ROOT / "app" / "static" / "js" / "channels.js"
 MODULATION_MAIN_JS = ROOT / "app" / "modules" / "modulation" / "static" / "main.js"
 MODULATION_TEMPLATE = ROOT / "app" / "modules" / "modulation" / "templates" / "modulation_tab.html"
+COMPARISON_TEMPLATE = ROOT / "app" / "modules" / "comparison" / "templates" / "comparison_tab.html"
+CONNECTION_MONITOR_TEMPLATE = ROOT / "app" / "modules" / "connection_monitor" / "templates" / "connection_monitor_detail.html"
+SEGMENT_UTILIZATION_TEMPLATE = ROOT / "app" / "templates" / "segment_utilization_tab.html"
 SW_JS = ROOT / "app" / "static" / "sw.js"
 MAIN_CSS = ROOT / "app" / "static" / "css" / "main.css"
 INDEX_HTML = ROOT / "app" / "templates" / "index.html"
@@ -137,7 +140,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v46';" in sw_js
+    assert "var CACHE_VERSION = 'v47';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -494,10 +497,11 @@ def test_channels_legacy_days_hashes_normalize_to_range_tabs():
     assert "_normalizeChannelRangeValue(params.range || params.days || '1d')" in channels_js
 
 
-def test_trend_title_uses_rolling_range_without_stale_date_suffix():
+def test_trend_title_uses_stable_page_title_without_range_or_stale_date_suffix():
     trends_js = TRENDS_JS.read_text(encoding="utf-8")
 
-    assert "title.textContent = (T.signal_trends || 'Signal Trends') + ' (' + label + ')'" in trends_js
+    assert "title.textContent = T.signal_trends || 'Signal Trends'" in trends_js
+    assert "Signal Trends') + ' ('" not in trends_js
     assert "formatDateDE(date)" not in trends_js
     assert "&date=" not in trends_js
 
@@ -544,6 +548,102 @@ def test_temperature_controls_are_consistently_after_time_range_controls_without
     assert channel_controls.index('id="channel-time-tabs"') < channel_controls.index('id="channel-temp-toggle-btn"')
     assert compare_controls.index('id="compare-time-tabs"') < compare_controls.index('id="compare-temp-toggle-btn"')
     assert 'correlation-temp-toggle' not in correlation_header
+
+
+def _view_block(template: str, view_id: str) -> str:
+    start = template.index(f'id="{view_id}"')
+    next_view = template.find('id="view-', start + 1)
+    return template[start: next_view if next_view != -1 else len(template)]
+
+
+def test_main_blades_use_shared_correlation_style_page_header():
+    """Primary app views should use one Correlation-style top section contract."""
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    expected_titles = {
+        "view-trends": "t.signal_trends",
+        "view-bqm": "t.bqm_title",
+        "view-smokeping": "t.smokeping_title",
+        "view-correlation": "t.correlation_title",
+        "view-journal": "t.incident_journal",
+        "view-events": "t.event_log",
+        "view-channels": "t.channels",
+        "view-speedtest": "t.speedtest_tracker",
+        "view-gaming": "t.gaming_quality_label",
+        "view-bnetz": "t.bnetz_title",
+    }
+
+    offenders = []
+    for view_id, title_expression in expected_titles.items():
+        block = _view_block(template, view_id)
+        if "view-page-header" not in block:
+            offenders.append(f"{view_id}: missing shared header")
+        if "view-page-title" not in block:
+            offenders.append(f"{view_id}: missing shared title class")
+        if title_expression not in block:
+            offenders.append(f"{view_id}: missing stable title expression {title_expression}")
+
+    assert offenders == []
+
+
+def test_module_blades_use_shared_correlation_style_page_header():
+    module_templates = {
+        "connection-monitor": CONNECTION_MONITOR_TEMPLATE.read_text(encoding="utf-8"),
+        "modulation": MODULATION_TEMPLATE.read_text(encoding="utf-8"),
+        "comparison": COMPARISON_TEMPLATE.read_text(encoding="utf-8"),
+        "segment-utilization": SEGMENT_UTILIZATION_TEMPLATE.read_text(encoding="utf-8"),
+    }
+
+    offenders = []
+    for name, template in module_templates.items():
+        if "view-page-header" not in template:
+            offenders.append(f"{name}: missing shared header")
+        if "view-page-title" not in template:
+            offenders.append(f"{name}: missing shared title class")
+
+    assert offenders == []
+
+
+def test_touched_header_templates_do_not_mix_span_and_h2_closing_tags():
+    templates = {
+        "index.html": INDEX_HTML.read_text(encoding="utf-8"),
+        "connection-monitor": CONNECTION_MONITOR_TEMPLATE.read_text(encoding="utf-8"),
+        "modulation": MODULATION_TEMPLATE.read_text(encoding="utf-8"),
+        "comparison": COMPARISON_TEMPLATE.read_text(encoding="utf-8"),
+        "segment-utilization": SEGMENT_UTILIZATION_TEMPLATE.read_text(encoding="utf-8"),
+    }
+    mismatched_tag = re.compile(r"<(span|h2)\b[^>]*>[^\n]*</(?!\1>)(span|h2)>")
+
+    offenders = []
+    for name, template in templates.items():
+        offenders.extend(f"{name}: {match.group(0)}" for match in mismatched_tag.finditer(template))
+
+    assert offenders == []
+
+
+def test_signal_trends_title_is_stable_and_does_not_embed_selected_range():
+    template = INDEX_HTML.read_text(encoding="utf-8")
+    trends_block = _view_block(template, "view-trends")
+    trends_js = TRENDS_JS.read_text(encoding="utf-8")
+
+    assert "{{ t.signal_trends }}" in trends_block
+    assert "Signal Trends') + ' ('" not in trends_js
+    assert "signal_trends || 'Signal Trends') + ' ('" not in trends_js
+
+
+def test_shared_view_page_header_css_matches_correlation_option_a_contract():
+    css = VIEWS_CSS.read_text(encoding="utf-8")
+    header_block = css[css.index(".view-page-header") : css.index(".view-page-actions")]
+    title_block = css[css.index(".view-page-title") : css.index(".view-page-subtitle")]
+    subtitle_block = css[css.index(".view-page-subtitle") : css.index("/* Correlation Chart Card")]
+
+    assert "display: flex" in header_block
+    assert "justify-content: space-between" in header_block
+    assert "flex-wrap: wrap" in header_block
+    assert "font-size: 1.15em" in title_block
+    assert "font-weight: 700" in title_block
+    assert "color: var(--text" in title_block
+    assert "font-size: 0.8em" in subtitle_block
+    assert "color: var(--text-muted" in subtitle_block
 
 
 def test_chart_engine_has_configurable_axis_padding_for_long_qam_labels():
