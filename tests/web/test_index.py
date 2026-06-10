@@ -164,6 +164,45 @@ class TestIndexRoute:
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
 
+    def test_downstream_docsis31_ofdm_channel_table_labels_quality_as_mer(self, client, sample_analysis):
+        sample_analysis["ds_channels"] = [
+            {
+                "channel_id": 1,
+                "frequency": "602 MHz",
+                "power": 3.0,
+                "snr": 35.0,
+                "modulation": "256QAM",
+                "docsis_version": "3.0",
+                "health": "good",
+                "health_detail": "",
+            },
+            {
+                "channel_id": 33,
+                "frequency": "742 MHz",
+                "power": 2.0,
+                "snr": 40.5,
+                "modulation": "4096QAM",
+                "docsis_version": "3.1",
+                "health": "good",
+                "health_detail": "",
+            },
+        ]
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        docsis31_start = html.index("DOCSIS 3.1 OFDM")
+        docsis31_head = html[docsis31_start:html.index("</thead>", docsis31_start)]
+        assert "<th>MER</th>" in docsis31_head
+        assert "<th>SNR</th>" not in docsis31_head
+
+        docsis30_start = html.index("DOCSIS 3.0 SC-QAM")
+        docsis30_head = html[docsis30_start:html.index("</thead>", docsis30_start)]
+        assert "<th>SNR</th>" in docsis30_head
+        assert "<th>MER</th>" not in docsis30_head
+
     def test_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, sample_analysis):
         _configure_speedtest(config_mgr)
         update_state(analysis=sample_analysis, speedtest_latest=_latest_speedtest())
