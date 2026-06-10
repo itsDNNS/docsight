@@ -81,7 +81,8 @@
 
         var btn = document.createElement('button');
         btn.id = 'cm-pin-day-btn';
-        btn.className = 'cm-pin-action';
+        btn.type = 'button';
+        btn.className = 'trend-tab cm-pin-day-btn';
         var pinIcon = document.createElement('i');
         pinIcon.setAttribute('data-lucide', 'pin');
         btn.appendChild(pinIcon);

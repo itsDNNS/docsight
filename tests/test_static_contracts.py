@@ -140,7 +140,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v49';" in sw_js
+    assert "var CACHE_VERSION = 'v50';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -606,16 +606,26 @@ def test_module_blades_use_shared_correlation_style_page_header():
 def test_connection_monitor_range_controls_live_in_shared_page_header_actions():
     """Connection Monitor should not keep a separate boxed top control strip."""
     template = CONNECTION_MONITOR_TEMPLATE.read_text(encoding="utf-8")
+    detail_js = CM_DETAIL_JS.read_text(encoding="utf-8")
+    cm_css = CM_CSS.read_text(encoding="utf-8")
     header_block = template[
         template.index('<div class="view-page-header cm-page-header">') :
         template.index('<div id="cm-pinned-days-bar"')
+    ]
+    pin_block = detail_js[
+        detail_js.index("function updatePinButton") :
+        detail_js.index("// --- Pinned Days Bar ---")
     ]
 
     assert 'class="view-page-actions' in header_block
     assert 'class="cm-range-picker trend-tabs"' in header_block
     assert 'id="cm-capability-info" class="cm-capability"' in header_block
+    assert header_block.index('id="cm-capability-info"') < header_block.index('class="cm-range-picker trend-tabs"')
     assert 'data-cm-range="3600"' in header_block
     assert 'class="cm-control-strip"' not in template
+    assert "btn.className = 'trend-tab cm-pin-day-btn';" in pin_block
+    assert "btn.className = 'cm-pin-action';" not in pin_block
+    assert ".cm-pin-action" not in cm_css
 
 
 def test_events_and_channels_controls_are_part_of_shared_header_actions():
