@@ -69,36 +69,30 @@
 
     // --- Pin Button ---
 
+    function pinCurrentDay() {
+        var ts = Math.floor(Date.now() / 1000);
+        fetch('/api/connection-monitor/pinned-days', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ timestamp: ts })
+        }).then(function() {
+            loadPinnedDays();
+        });
+    }
+
     function updatePinButton() {
-        var existing = document.getElementById('cm-pin-day-btn');
-        if (existing) existing.remove();
+        var btn = document.getElementById('cm-pin-day-btn');
+        var bar = document.getElementById('cm-pinned-days-bar');
+        var daysContainer = document.getElementById('cm-pinned-days');
+        var label = document.getElementById('cm-pinned-label');
+        if (!btn || !bar || !daysContainer) return;
 
-        if (currentRange !== 86400 || pinnedDayView) return;
+        var showPinAction = currentRange === 86400 && !pinnedDayView;
+        var hasPinnedDays = daysContainer.children.length > 0;
 
-        var container = document.querySelector('#cm-detail-view [data-cm-range]');
-        if (!container) return;
-        var parent = container.parentElement;
-
-        var btn = document.createElement('button');
-        btn.id = 'cm-pin-day-btn';
-        btn.type = 'button';
-        btn.className = 'trend-tab cm-pin-day-btn';
-        var pinIcon = document.createElement('i');
-        pinIcon.setAttribute('data-lucide', 'pin');
-        btn.appendChild(pinIcon);
-        btn.appendChild(document.createTextNode('Pin this day'));
-        btn.onclick = function() {
-            var ts = Math.floor(Date.now() / 1000);
-            fetch('/api/connection-monitor/pinned-days', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ timestamp: ts })
-            }).then(function() {
-                loadPinnedDays();
-            });
-        };
-        parent.appendChild(btn);
-        if (window.lucide) window.lucide.createIcons({nameAttr: 'data-lucide', root: btn});
+        btn.hidden = !showPinAction;
+        if (label) label.hidden = !hasPinnedDays;
+        bar.hidden = !(showPinAction || hasPinnedDays);
     }
 
     // --- Pinned Days Bar ---
@@ -119,10 +113,9 @@
 
         container.textContent = '';
         if (days.length === 0) {
-            bar.style.display = 'none';
+            updatePinButton();
             return;
         }
-        bar.style.display = 'flex';
 
         days.forEach(function(day) {
             var chip = document.createElement('span');
@@ -173,6 +166,7 @@
             chip.appendChild(removeBtn);
             container.appendChild(chip);
         });
+        updatePinButton();
     }
 
     function viewPinnedDay(dateStr, utcStart, utcEnd) {
@@ -186,8 +180,7 @@
         document.querySelectorAll('[data-cm-range]').forEach(function(b) {
             b.classList.remove('active');
         });
-        var pinBtn = document.getElementById('cm-pin-day-btn');
-        if (pinBtn) pinBtn.remove();
+        updatePinButton();
 
         if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
 
@@ -196,6 +189,11 @@
     }
 
     function init() {
+        var pinBtn = document.getElementById('cm-pin-day-btn');
+        if (pinBtn) {
+            pinBtn.onclick = pinCurrentDay;
+        }
+
         fetch('/api/connection-monitor/capability')
             .then(function(r) { return r.json(); })
             .then(function(data) {

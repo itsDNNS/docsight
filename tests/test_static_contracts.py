@@ -140,7 +140,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v50';" in sw_js
+    assert "var CACHE_VERSION = 'v51';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -616,6 +616,14 @@ def test_connection_monitor_range_controls_live_in_shared_page_header_actions():
         detail_js.index("function updatePinButton") :
         detail_js.index("// --- Pinned Days Bar ---")
     ]
+    pinned_bar = template[
+        template.index('<div id="cm-pinned-days-bar"') :
+        template.index('<section id="cm-raw-log-panel"')
+    ]
+    range_picker = header_block[
+        header_block.index('class="cm-range-picker trend-tabs"') :
+        header_block.index('</div>', header_block.index('class="cm-range-picker trend-tabs"'))
+    ]
 
     assert 'class="view-page-actions' in header_block
     assert 'class="cm-range-picker trend-tabs"' in header_block
@@ -623,7 +631,11 @@ def test_connection_monitor_range_controls_live_in_shared_page_header_actions():
     assert header_block.index('id="cm-capability-info"') < header_block.index('class="cm-range-picker trend-tabs"')
     assert 'data-cm-range="3600"' in header_block
     assert 'class="cm-control-strip"' not in template
-    assert "btn.className = 'trend-tab cm-pin-day-btn';" in pin_block
+    assert 'id="cm-pin-day-btn"' in pinned_bar
+    assert 'id="cm-pin-day-btn"' not in header_block
+    assert 'cm-pin-day-btn' not in range_picker
+    assert "document.createElement('button')" not in pin_block
+    assert "parent.appendChild(btn)" not in pin_block
     assert "btn.className = 'cm-pin-action';" not in pin_block
     assert ".cm-pin-action" not in cm_css
 

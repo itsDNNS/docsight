@@ -25,9 +25,14 @@
         </div>
     </div>
 
-    <div id="cm-pinned-days-bar" class="cm-pinned-bar">
-        <span class="cm-pinned-label">Pinned</span>
-        <div id="cm-pinned-days" class="cm-pinned-days"></div>
+    <div id="cm-pinned-days-bar" class="cm-pinned-bar" hidden>
+        <button id="cm-pin-day-btn" type="button" class="cm-pin-day-btn"
+                aria-label="{{ t.get('docsight.connection_monitor.cm_pin_this_day', 'Pin this day') }}" hidden>
+            <i data-lucide="pin" aria-hidden="true"></i>
+            <span>{{ t.get('docsight.connection_monitor.cm_pin_this_day', 'Pin this day') }}</span>
+        </button>
+        <span class="cm-pinned-label" id="cm-pinned-label" hidden>Pinned</span>
+        <div id="cm-pinned-days" class="cm-pinned-days" aria-live="polite"></div>
     </div>
 
     <section id="cm-raw-log-panel" class="glass cm-panel cm-raw-log-panel" style="display:none;">

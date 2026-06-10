@@ -18,6 +18,26 @@ def test_connection_monitor_uses_shared_page_header_action_layout(demo_page):
     expect(page.locator("#view-connection-monitor .cm-control-strip")).to_have_count(0)
 
 
+def test_connection_monitor_pin_day_action_does_not_shift_range_navigation(demo_page):
+    """Showing the 1d-only pin action must not move the time-range navigation."""
+    page = demo_page
+    page.evaluate("switchView('connection-monitor')")
+    page.wait_for_selector("#view-connection-monitor.active", state="visible")
+
+    range_picker = page.locator("#view-connection-monitor .view-page-actions .cm-range-picker")
+    expect(range_picker).to_be_visible()
+    before = range_picker.bounding_box()
+    assert before is not None
+
+    page.locator("#view-connection-monitor [data-cm-range='86400']").click()
+    expect(page.locator("#cm-pin-day-btn")).to_be_visible()
+
+    after = range_picker.bounding_box()
+    assert after is not None
+    assert abs(before["x"] - after["x"]) <= 1, "1d pin action should not shift the time-range controls horizontally"
+    expect(page.locator("#view-connection-monitor .cm-range-picker #cm-pin-day-btn")).to_have_count(0)
+
+
 def test_connection_monitor_raw_ping_log_panel_is_discoverable(demo_page):
     """The Connection Monitor view should expose the ISP-ready raw ping log export panel."""
     page = demo_page
