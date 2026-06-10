@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 INDEX = DOCS / "index.html"
 README = ROOT / "README.md"
+SECURITY = ROOT / "SECURITY.md"
+DATA_CONTRACT = ROOT / "DATA_CONTRACT.md"
 
 
 class LandingParser(HTMLParser):
@@ -139,8 +141,62 @@ def test_readme_points_to_product_page_without_displacing_wiki() -> None:
     assert "docs/screenshots/dashboard-dark.png" in readme
 
 
+def test_data_contract_is_linked_from_public_docs() -> None:
+    readme = README.read_text(encoding="utf-8")
+    security = SECURITY.read_text(encoding="utf-8")
+
+    assert "DATA_CONTRACT.md" in readme
+    assert "DATA_CONTRACT.md" in security
+    assert "Data contract" in readme
+    assert "data contract" in security.lower()
+
+
+def test_data_contract_documents_local_ownership_and_share_boundaries() -> None:
+    text = DATA_CONTRACT.read_text(encoding="utf-8")
+    required_phrases = [
+        "User-owned local data",
+        "System-owned files",
+        "Generated artifacts",
+        "configuration",
+        "secrets",
+        "SQLite",
+        "backups",
+        "incident journal",
+        "attachments",
+        "reports",
+        "AI/LLM export",
+        "diagnostic",
+        "redaction",
+        "DOCSight does not upload modem data, logs, credentials, tokens, reports, or installation identifiers automatically",
+        "explicit opt-in",
+        "disabled by default",
+        "must preserve local operation",
+    ]
+    for phrase in required_phrases:
+        assert phrase in text
+
+
+def test_data_contract_covers_optional_integration_boundaries() -> None:
+    text = DATA_CONTRACT.read_text(encoding="utf-8")
+    for phrase in [
+        "Speedtest",
+        "BQM",
+        "Smokeping",
+        "Home Assistant",
+        "MQTT",
+        "Apprise",
+        "PWA Web Push",
+        "module-owned config",
+        "module-owned secrets",
+        "Demo mode",
+        "real monitored data",
+    ]:
+        assert phrase in text
+
+
 def test_public_surface_docs_and_social_asset_exist() -> None:
     expected = [
+        DATA_CONTRACT,
         DOCS / "index.html",
         DOCS / "feature-matrix.md",
         DOCS / "self-hosted-directory-submission.md",
