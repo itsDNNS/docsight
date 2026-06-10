@@ -50,6 +50,8 @@ DOCSight is designed to run **100% locally** on your network:
 - No telemetry or analytics
 - No cloud dependencies
 
+The [data contract](DATA_CONTRACT.md) defines which files are local user data, which files are system-owned, which generated artifacts can contain private information, and which fields require redaction before sharing exports or diagnostics.
+
 ### Maintainer notices and privacy
 
 DOCSight can show maintainer notices for important project, upgrade, or safety information. These notices are designed for self-hosted environments and follow the same local-first privacy model as the rest of DOCSight.

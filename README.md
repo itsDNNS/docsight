@@ -9,6 +9,7 @@
   <a href="#get-started">Get Started</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="#supported-hardware">Supported Hardware</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
+  <a href="DATA_CONTRACT.md">Data contract</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="https://github.com/itsDNNS/docsight/releases">Releases</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="https://github.com/itsDNNS/docsight/wiki/Roadmap">Roadmap</a>
 </p>
@@ -189,9 +190,11 @@ Generic Router mode still works for fiber, DSL, satellite, and other routers, bu
 | | |
 |---|---|
 | 🏠 **Runs 100% locally** | Your monitoring stays on your own hardware |
-| 🔒 **Nothing leaves your network** | Signal history, incident timelines, and reports are never uploaded to a cloud service |
+| 🔒 **No silent uploads** | Signal history, incident timelines, reports, logs, credentials, tokens, and installation IDs are not uploaded automatically |
 | 📖 **Open source** | All code is public and verifiable |
 | 🔐 **Credentials encrypted** | Router login encrypted at rest (AES-128) |
+
+For the detailed ownership and sharing boundary, see the [Data contract](DATA_CONTRACT.md). It defines local data, system-owned files, generated artifacts, backups, exports, diagnostics, integration boundaries, and redaction expectations.
 
 ---
 
@@ -401,6 +404,7 @@ See [TRADEMARKS.md](TRADEMARKS.md) for the full brand and trademark policy.
 |---|---|
 | [Wiki](https://github.com/itsDNNS/docsight/wiki) | User guides, feature docs, setup instructions |
 | [Proof pack](docs/proof-pack.md) | Demo-safe public screenshots, sample report, and claim-proof notes |
+| [Data contract](DATA_CONTRACT.md) | Local data ownership, generated artifacts, export boundaries, diagnostics, backups, and redaction expectations |
 | [Apprise notification sidecar](docs/notifications-apprise.md) | Optional alert fan-out through an Apprise API sidecar |
 | [PWA Web Push notifications](docs/notifications-pwa-web-push.md) | Optional browser/app push alerts through the installed PWA |
 | [Community proof templates](docs/community-proof-templates.md) | Public-safe templates for setup stories, modem reports, and ISP evidence outcomes |
