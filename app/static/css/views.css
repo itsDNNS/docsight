@@ -248,10 +248,9 @@
     margin-bottom: var(--space-lg, 20px);
     flex-wrap: wrap;
 }
-.events-filter-label {
-    font-size: 0.9em;
-    font-weight: 600;
-    color: var(--text-secondary, var(--muted));
+.events-header .events-filter-section {
+    margin-bottom: 0;
+    margin-left: auto;
 }
 .events-severity-pills {
     display: flex;
@@ -632,7 +631,6 @@
 .view-page-actions .trend-tabs {
     flex-wrap: wrap;
 }
-.view-page-actions.ch-controls,
 .view-page-actions.bqm-toolbar {
     margin-bottom: 0;
 }
@@ -1450,15 +1448,6 @@
 }
 .btn-ghost:hover { color: var(--text); }
 
-
-/* ── Channel View Controls ── */
-.ch-controls {
-    display: flex;
-    gap: 12px;
-    margin-bottom: var(--space-lg, 20px);
-    flex-wrap: wrap;
-    align-items: center;
-}
 
 /* Channel info bar */
 .ch-info-bar {

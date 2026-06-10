@@ -1747,19 +1747,17 @@
         <div class="view-page-header-left">
             <h2 class="view-page-title">{{ t.event_log }}</h2>
         </div>
-    </div>
-
-    <!-- Phase 4.3: Pill filter toggles for severity -->
-    <div class="events-filter-section">
-        <div class="events-filter-label">{{ t.event_severity }}:</div>
-        <div class="events-severity-pills">
-            <button class="severity-pill active" data-severity="" onclick="filterEventsBySeverity('')" aria-pressed="true">{{ t.event_all_severities }}</button>
-            <button class="severity-pill" data-severity="info" onclick="filterEventsBySeverity('info')" aria-pressed="false">{{ t.event_severity_info }}</button>
-            <button class="severity-pill" data-severity="warning" onclick="filterEventsBySeverity('warning')" aria-pressed="false">{{ t.event_severity_warning }}</button>
-            <button class="severity-pill" data-severity="critical" onclick="filterEventsBySeverity('critical')" aria-pressed="false">{{ t.event_severity_critical }}</button>
-            <button class="severity-pill" id="device-filter-pill" onclick="filterEventsByDevice()" aria-pressed="false">{{ t.event_filter_device }}</button>
-            <span style="border-left:1px solid var(--card-border, rgba(255,255,255,0.08)); height:20px; margin:0 8px;"></span>
-            <button class="severity-pill active" id="hide-operational-btn" onclick="toggleHideOperational()" aria-pressed="true">{{ t.event_hide_operational }}</button>
+        <!-- Phase 4.3: Pill filter toggles for severity -->
+        <div class="view-page-actions events-filter-section">
+            <div class="events-severity-pills" role="group" aria-label="{{ t.event_severity }}">
+                <button class="severity-pill active" data-severity="" onclick="filterEventsBySeverity('')" aria-pressed="true">{{ t.event_all_severities }}</button>
+                <button class="severity-pill" data-severity="info" onclick="filterEventsBySeverity('info')" aria-pressed="false">{{ t.event_severity_info }}</button>
+                <button class="severity-pill" data-severity="warning" onclick="filterEventsBySeverity('warning')" aria-pressed="false">{{ t.event_severity_warning }}</button>
+                <button class="severity-pill" data-severity="critical" onclick="filterEventsBySeverity('critical')" aria-pressed="false">{{ t.event_severity_critical }}</button>
+                <button class="severity-pill" id="device-filter-pill" onclick="filterEventsByDevice()" aria-pressed="false">{{ t.event_filter_device }}</button>
+                <span style="border-left:1px solid var(--card-border, rgba(255,255,255,0.08)); height:20px; margin:0 8px;"></span>
+                <button class="severity-pill active" id="hide-operational-btn" onclick="toggleHideOperational()" aria-pressed="true">{{ t.event_hide_operational }}</button>
+            </div>
         </div>
     </div>
 
@@ -1799,7 +1797,7 @@
         <div class="view-page-header-left">
             <h2 class="view-page-title">{{ t.channels }}</h2>
         </div>
-        <div class="view-page-actions ch-controls">
+        <div class="view-page-actions">
         <div class="trend-tabs" id="channel-mode-tabs">
             <button class="trend-tab active" data-value="timeline" onclick="selectPill(this, switchChannelMode)">{{ t.channel_timeline }}</button>
             <button class="trend-tab" data-value="compare" onclick="selectPill(this, switchChannelMode)">{{ t.channel_compare }}</button>

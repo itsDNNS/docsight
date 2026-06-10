@@ -140,7 +140,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v48';" in sw_js
+    assert "var CACHE_VERSION = 'v49';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js
@@ -616,6 +616,28 @@ def test_connection_monitor_range_controls_live_in_shared_page_header_actions():
     assert 'id="cm-capability-info" class="cm-capability"' in header_block
     assert 'data-cm-range="3600"' in header_block
     assert 'class="cm-control-strip"' not in template
+
+
+def test_events_and_channels_controls_are_part_of_shared_header_actions():
+    """Events and Channels should not keep visually separate legacy header/control rows."""
+    template = INDEX_HTML.read_text(encoding="utf-8")
+
+    events_header = template[
+        template.index('<div class="view-page-header events-header">') :
+        template.index('<div id="events-loading"')
+    ]
+    channels_header = template[
+        template.index('<div id="view-channels"') :
+        template.index('<div id="channel-info-bar"')
+    ]
+
+    assert '<div class="view-page-actions events-filter-section">' in events_header
+    assert '<div class="events-severity-pills" role="group" aria-label="{{ t.event_severity }}">' in events_header
+    assert 'events-filter-label' not in events_header
+    assert '<div class="events-filter-section">' not in events_header
+    assert '<div class="view-page-actions ch-controls">' not in channels_header
+    assert '<div class="view-page-actions">' in channels_header
+    assert 'id="channel-mode-tabs"' in channels_header
 
 
 def test_touched_header_templates_do_not_mix_span_and_h2_closing_tags():
