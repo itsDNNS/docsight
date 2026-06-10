@@ -19,10 +19,20 @@ DOCSight has a few different channels on purpose. Using the right one keeps trou
 
 Please use a Q&A discussion first if you are still in the "not sure whether this is a bug or setup issue" stage.
 
+For self-hosted setup or Docker questions, run the local doctor command before collecting manual environment details:
+
+```bash
+docker exec docsight python -m app.doctor
+docker exec docsight python -m app.doctor --json > docsight-doctor.json
+```
+
+For a non-Docker install, run `python -m app.doctor` from the DOCSight environment. The default doctor command is passive and redacted: it reads local runtime, config, storage, database, and optional integration state, but it does not contact your modem, DNS, MQTT broker, webhook targets, Apprise sidecar, or other third-party services.
+
 When opening a bug, include:
 
 - DOCSight version
 - deployment method
+- relevant doctor output, preferably the redacted JSON output when setup or runtime health is involved
 - modem model or Generic Router mode
 - steps to reproduce
 - relevant logs or screenshots
