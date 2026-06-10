@@ -1107,7 +1107,7 @@
                     <table class="channel-table">
                         <thead><tr>
                             <th>{{ t.ch_abbr }}</th><th>{{ t.frequency }}</th><th>{{ t.th_power }}</th>
-                            <th>{{ t.snr_abbr }}</th><th>{{ t.mod_abbr }}</th><th>{{ t.signal_health }}</th>
+                            <th>{{ t.get('signal_family_metric_mer', 'MER') if group.grouper|string == '3.1' else t.snr_abbr }}</th><th>{{ t.mod_abbr }}</th><th>{{ t.signal_health }}</th>
                         </tr></thead>
                         <tbody>
                         {% for ch in group.list %}
