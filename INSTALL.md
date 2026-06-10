@@ -4,6 +4,15 @@
 
 Covers Docker Run, Docker Compose, Portainer, Synology NAS, Unraid, updating, and troubleshooting.
 
+If setup or collection does not behave as expected, run the passive local doctor inside the same container before collecting manual environment details:
+
+```bash
+docker exec docsight python -m app.doctor
+docker exec docsight python -m app.doctor --json > docsight-doctor.json
+```
+
+The default doctor checks local runtime, config, storage, database, secret-file presence, and optional integration configuration without contacting third-party services.
+
 Optional alert fan-out through an Apprise sidecar is covered in [docs/notifications-apprise.md](docs/notifications-apprise.md). Optional browser/app push alerts are covered in [docs/notifications-pwa-web-push.md](docs/notifications-pwa-web-push.md).
 
 ## Quick Start

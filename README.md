@@ -385,6 +385,17 @@ See the **[full roadmap](https://github.com/itsDNNS/docsight/wiki/Roadmap)** in 
 
 See [GitHub Releases](https://github.com/itsDNNS/docsight/releases).
 
+## Troubleshooting
+
+For self-hosted setup checks, run the local doctor command from the same environment that runs DOCSight:
+
+```bash
+docker exec docsight python -m app.doctor
+docker exec docsight python -m app.doctor --json > docsight-doctor.json
+```
+
+The command is passive by default. It checks runtime, config, storage, local secret-file state, database readability, and optional integration configuration without contacting the modem, DNS, MQTT, webhooks, Apprise, or other external services. Output is redacted by default for support threads.
+
 ## Support
 
 If DOCSight helped you prove an issue, understand your connection better, or save time with your ISP, consider supporting development:

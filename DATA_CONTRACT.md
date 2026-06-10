@@ -119,6 +119,15 @@ Before sharing an AI/LLM export, review and redact:
 
 Diagnostic output should be minimal, local, and redacted by default. Prefer structured facts over raw dumps.
 
+The local doctor command is the preferred first diagnostic entrypoint for self-hosted runtime checks:
+
+```bash
+python -m app.doctor
+python -m app.doctor --json
+```
+
+In Docker, run it inside the DOCSight container, for example `docker exec docsight python -m app.doctor --json`. The default command is passive: it reads local files, environment, and databases but does not actively probe modems, DNS, MQTT brokers, webhooks, Apprise, or other configured services.
+
 Safe support output can include:
 
 - DOCSight version
