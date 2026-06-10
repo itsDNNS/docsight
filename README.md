@@ -194,7 +194,10 @@ Generic Router mode still works for fiber, DSL, satellite, and other routers, bu
 | 📖 **Open source** | All code is public and verifiable |
 | 🔐 **Credentials encrypted** | Router login encrypted at rest (AES-128) |
 
-For the detailed ownership and sharing boundary, see the [Data contract](DATA_CONTRACT.md). It defines local data, system-owned files, generated artifacts, backups, exports, diagnostics, integration boundaries, and redaction expectations.
+For the detailed ownership and sharing boundary, see the [Data contract](DATA_CONTRACT.md). For supported versions, vulnerability reporting, and security boundaries, see the [Security policy](SECURITY.md).
+
+- **Optional integrations are user-configured:** Speedtest, BQM, Smokeping, Home Assistant, MQTT, Apprise, Web Push, webhooks, module registries, and similar integrations use the destinations or sources you configure. See the data contract for integration-specific boundaries.
+- **Exports and reports are generated locally and reviewed by you before sharing:** PDF reports, complaint text, AI/LLM exports, CSV/JSON downloads, screenshots, and backups are local artifacts first.
 
 ---
 

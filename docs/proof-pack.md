@@ -1,6 +1,6 @@
 # DOCSight public proof pack
 
-This page collects demo-safe assets for README, launch posts, community replies, and support docs. Everything here uses synthetic data. Do not replace these files with screenshots from a real connection unless all personal and network data is removed.
+This page collects demo-safe assets for README, launch posts, community replies, and support docs. Everything here uses synthetic data. Do not replace these files with screenshots from a real connection unless all personal and network data is removed. Real exports and reports should be reviewed by the user before sharing, and should remove personal, network, account, and ticket details first.
 
 ## Ready-to-use assets
 

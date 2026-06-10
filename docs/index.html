@@ -100,6 +100,12 @@
     .btn:hover { transform: translateY(-1px); }
     .trust { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.92rem; }
     .trust li { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.04); }
+    .trust-promise { margin-top: 18px; padding: 16px 18px; border: 1px solid rgba(125,211,252,0.24); border-radius: 22px; background: rgba(125,211,252,0.07); color: var(--muted); }
+    .trust-promise strong { display: block; color: var(--text); margin-bottom: 5px; }
+    .trust-promise p { margin: 0 0 8px; }
+    .trust-promise p:last-child { margin-bottom: 0; }
+    .trust-promise a { color: var(--accent); font-weight: 750; text-decoration: none; }
+    .trust-promise a:hover { text-decoration: underline; }
     .hero-shot { position: relative; overflow: clip; border-radius: 34px; }
     .hero-shot::before {
       content: "";
@@ -213,6 +219,12 @@
             <li>16 modem families</li>
             <li>MIT licensed</li>
           </ul>
+          <div class="trust-promise" aria-label="Local-first trust promise">
+            <strong>No silent uploads.</strong>
+            <p>DOCSight runs locally: modem data, logs, reports, credentials, tokens, or installation identifiers are not uploaded automatically.</p>
+            <p>Optional integrations are configured by you. Exports and reports are generated locally and reviewed by you before sharing.</p>
+            <p><a href="https://github.com/itsDNNS/docsight/blob/main/SECURITY.md">Security policy</a> · <a href="https://github.com/itsDNNS/docsight/blob/main/DATA_CONTRACT.md">Data contract</a></p>
+          </div>
         </div>
         <div class="hero-shot">
           <div class="screenshot-card">

@@ -194,6 +194,53 @@ def test_data_contract_covers_optional_integration_boundaries() -> None:
         assert phrase in text
 
 
+def test_readme_trust_promise_is_concise_and_boundaried() -> None:
+    text = README.read_text(encoding="utf-8")
+    trust_section = text.split("## Your Data Stays With You", 1)[1].split("## Features", 1)[0]
+
+    for phrase in [
+        "No silent uploads",
+        "reports, logs, credentials, tokens, and installation IDs are not uploaded automatically",
+        "Optional integrations are user-configured",
+        "Exports and reports are generated locally and reviewed by you before sharing",
+        "Security policy",
+        "Data contract",
+    ]:
+        assert phrase in trust_section
+    assert "DATA_CONTRACT.md" in trust_section
+    assert "SECURITY.md" in trust_section
+
+
+def test_landing_page_trust_promise_is_above_fold_and_links_boundaries() -> None:
+    text = INDEX.read_text(encoding="utf-8")
+    parser = parse_landing()
+    hero_text = text.split("</header>", 1)[0]
+    trust_block = hero_text.split('class="trust-promise"', 1)[1].split("</div>", 1)[0]
+
+    for phrase in [
+        "No silent uploads",
+        "modem data, logs, reports, credentials, tokens, or installation identifiers are not uploaded automatically",
+        "Optional integrations are configured by you",
+        "Exports and reports are generated locally and reviewed by you before sharing",
+    ]:
+        assert phrase in trust_block
+    assert "https://github.com/itsDNNS/docsight/blob/main/SECURITY.md" in trust_block
+    assert "https://github.com/itsDNNS/docsight/blob/main/DATA_CONTRACT.md" in trust_block
+    assert "https://github.com/itsDNNS/docsight/blob/main/SECURITY.md" in parser.links
+    assert "https://github.com/itsDNNS/docsight/blob/main/DATA_CONTRACT.md" in parser.links
+
+
+def test_proof_pack_warns_real_exports_need_user_review() -> None:
+    text = (DOCS / "proof-pack.md").read_text(encoding="utf-8")
+
+    for phrase in [
+        "synthetic data",
+        "Real exports and reports should be reviewed by the user before sharing",
+        "remove personal, network, account, and ticket details",
+    ]:
+        assert phrase in text
+
+
 def test_public_surface_docs_and_social_asset_exist() -> None:
     expected = [
         DATA_CONTRACT,
