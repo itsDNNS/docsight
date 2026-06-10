@@ -134,6 +134,7 @@
     flex-wrap: wrap;
 }
 
+.cm-pin-day-btn,
 .cm-chip-btn {
     min-height: 32px;
     display: inline-flex;
@@ -151,16 +152,20 @@
     transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
-.cm-chip-btn:hover {
+.cm-chip-btn:hover,
+.cm-pin-day-btn:hover {
     color: var(--text-primary);
     border-color: color-mix(in srgb, var(--info) 30%, var(--cm-panel-border));
     background: color-mix(in srgb, var(--info) 11%, var(--surface));
 }
 
 .cm-pin-day-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    flex-shrink: 0;
+}
+
+.cm-pin-day-btn[hidden],
+.cm-pinned-label[hidden] {
+    display: none;
 }
 
 .cm-chip-btn.active {
@@ -215,6 +220,10 @@
     border: 1px solid var(--cm-panel-border);
     border-radius: 8px;
     background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.cm-pinned-bar:not([hidden]) {
+    display: flex;
 }
 
 .cm-no-data {
