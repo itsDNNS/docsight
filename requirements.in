@@ -7,6 +7,6 @@ cryptography>=48.0.1
 pywebpush>=2.1.2
 pycryptodome>=3.23
 fpdf2>=2.8.4
-beautifulsoup4>=4.14
+beautifulsoup4>=4.15.0
 pypdf>=6.12.2
 openpyxl>=3.1.5
