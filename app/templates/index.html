@@ -95,13 +95,21 @@
                 </button>
             </div>
         </div>
+        {% if modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}
+        <div class="nav-section" data-nav-section="evidence" data-nav-label="{{ t.get('docsight.evidence.title', 'Evidence Journey') }}">
+            <div class="nav-section-items">
+                <button class="nav-item" data-view="evidence" data-nav-icon="clipboard-check" data-nav-title="{{ t.get('docsight.evidence.title', 'Evidence Journey') }}">
+                    <i data-lucide="clipboard-check"></i> {{ t.get('docsight.evidence.title', 'Evidence Journey') }}
+                </button>
+            </div>
+        </div>
+        {% endif %}
         <!-- Secondary analysis views (collapsible) -->
         {% set analysis_items = [] %}
         {% if speedtest_configured or bqm_configured %}{% if analysis_items.append('correlation') %}{% endif %}{% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}{% if analysis_items.append('connection_monitor') %}{% endif %}{% endif %}
         {% if is_fritzbox and segment_utilization_enabled %}{% if analysis_items.append('segment') %}{% endif %}{% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}{% if analysis_items.append('comparison') %}{% endif %}{% endif %}
-        {% if modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}{% if analysis_items.append('evidence') %}{% endif %}{% endif %}
         {% if gaming_quality_enabled %}{% if analysis_items.append('gaming') %}{% endif %}{% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}{% if analysis_items.append('modulation') %}{% endif %}{% endif %}
         {% if analysis_items %}
@@ -129,11 +137,6 @@
                 {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
                 <button class="nav-item" data-view="comparison" data-nav-icon="git-compare-arrows" data-nav-title="{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}">
                     <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
-                </button>
-                {% endif %}
-                {% if modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}
-                <button class="nav-item" data-view="evidence" data-nav-icon="clipboard-check" data-nav-title="{{ t.get('docsight.evidence.title', 'Evidence Journey') }}">
-                    <i data-lucide="clipboard-check"></i> {{ t.get('docsight.evidence.title', 'Evidence Journey') }}
                 </button>
                 {% endif %}
                 {% if gaming_quality_enabled %}

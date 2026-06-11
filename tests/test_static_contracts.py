@@ -61,8 +61,20 @@ def test_evidence_module_registers_guided_journey_assets():
     assert manifest["type"] == "analysis"
     assert manifest["contributes"]["tab"] == "templates/evidence_tab.html"
     assert "if modules|selectattr('id', 'equalto', 'docsight.evidence')|list" in index
-    assert "data-view=\"evidence\"" in index
+    assert index.count('data-view="evidence"') == 1
+    assert "mod-docsight-evidence" not in index
     assert "view-evidence" in index
+    monitoring_idx = index.index('data-nav-section="monitoring"')
+    evidence_idx = index.index('data-nav-section="evidence"')
+    analysis_idx = index.index('data-nav-section="analysis"')
+    assert monitoring_idx < evidence_idx < analysis_idx
+    evidence_nav_block = index[evidence_idx:analysis_idx]
+    assert 'data-view="evidence"' in evidence_nav_block
+    assert 'data-nav-icon="clipboard-check"' in evidence_nav_block
+    analysis_setup = index[index.index("{% set analysis_items = [] %}"):analysis_idx]
+    assert "analysis_items.append('evidence')" not in analysis_setup
+    analysis_nav_block = index[analysis_idx:index.index('data-nav-section="external"')]
+    assert 'data-view="evidence"' not in analysis_nav_block
     assert "if (typeof initEvidence === 'function') initEvidence();" in index
     assert "function initEvidence()" in js
     assert "'/api/evidence/checklist?incident_id='" in js
@@ -178,7 +190,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v53';" in sw_js
+    assert "var CACHE_VERSION = 'v54';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js

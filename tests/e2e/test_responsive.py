@@ -121,6 +121,34 @@ class TestMobileLayout:
         )
         assert nav_items.count() >= 4
 
+    def test_evidence_journey_is_standalone_between_monitoring_and_analysis(self, mobile_page):
+        mobile_page.locator("#hamburger").click()
+        mobile_page.wait_for_selector('#sidebar[aria-hidden="false"]')
+        order = mobile_page.locator("#sidebar").evaluate(
+            """
+            (sidebar) => Array.from(sidebar.querySelectorAll('.nav-section'))
+                .map((section) => ({
+                    key: section.dataset.navSection,
+                    hasEvidence: !!section.querySelector('[data-view="evidence"]'),
+                    collapsible: section.classList.contains('nav-section-collapsible')
+                }))
+            """
+        )
+        keys = [item["key"] for item in order]
+        assert keys.index("monitoring") < keys.index("evidence") < keys.index("analysis")
+        evidence_section = next(item for item in order if item["key"] == "evidence")
+        analysis_section = next(item for item in order if item["key"] == "analysis")
+        assert evidence_section["hasEvidence"] is True
+        assert evidence_section["collapsible"] is False
+        assert analysis_section["hasEvidence"] is False
+
+    def test_standalone_evidence_journey_nav_opens_the_evidence_view(self, mobile_page):
+        mobile_page.locator("#hamburger").click()
+        mobile_page.wait_for_selector('#sidebar[aria-hidden="false"]')
+        mobile_page.locator('.nav-section[data-nav-section="evidence"] [data-view="evidence"]').click()
+        mobile_page.wait_for_selector('#view-evidence.active')
+        assert mobile_page.locator('#evidence-placeholder').is_visible()
+
     def test_analysis_section_collapsible(self, mobile_page):
         mobile_page.locator("#hamburger").click()
         mobile_page.wait_for_timeout(300)
