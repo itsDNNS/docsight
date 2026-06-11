@@ -1,4 +1,4 @@
-var CACHE_VERSION = 'v51';
+var CACHE_VERSION = 'v52';
 var SHELL_CACHE = 'docsight-shell-' + CACHE_VERSION;
 var STATIC_CACHE = 'docsight-static-' + CACHE_VERSION;
 var OFFLINE_SHELL_HEADERS = {
@@ -52,6 +52,8 @@ var STATIC_URLS = [
   '/modules/docsight.bqm/static/style.css',
   '/modules/docsight.comparison/static/main.js',
   '/modules/docsight.comparison/static/style.css',
+  '/modules/docsight.evidence/static/main.js',
+  '/modules/docsight.evidence/static/style.css',
   '/modules/docsight.connection_monitor/static/js/connection-monitor-card.js',
   '/modules/docsight.connection_monitor/static/js/connection-monitor-charts.js',
   '/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js',

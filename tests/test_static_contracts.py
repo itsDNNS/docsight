@@ -41,8 +41,41 @@ CM_CARD_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" /
 SEGMENT_UTILIZATION_JS = ROOT / "app" / "static" / "js" / "segment-utilization.js"
 BQM_CHART_JS = ROOT / "app" / "modules" / "bqm" / "static" / "js" / "bqm-chart.js"
 COMPARISON_MAIN_JS = ROOT / "app" / "modules" / "comparison" / "static" / "main.js"
+EVIDENCE_MANIFEST = ROOT / "app" / "modules" / "evidence" / "manifest.json"
+EVIDENCE_TEMPLATE = ROOT / "app" / "modules" / "evidence" / "templates" / "evidence_tab.html"
+EVIDENCE_MAIN_JS = ROOT / "app" / "modules" / "evidence" / "static" / "main.js"
+EVIDENCE_CSS = ROOT / "app" / "modules" / "evidence" / "static" / "style.css"
 UTILS_JS = ROOT / "app" / "static" / "js" / "utils.js"
 JOURNAL_JS = ROOT / "app" / "static" / "js" / "journal.js"
+
+
+def test_evidence_module_registers_guided_journey_assets():
+    manifest = json.loads(EVIDENCE_MANIFEST.read_text(encoding="utf-8"))
+    template = EVIDENCE_TEMPLATE.read_text(encoding="utf-8")
+    index = INDEX_HTML.read_text(encoding="utf-8")
+    js = EVIDENCE_MAIN_JS.read_text(encoding="utf-8")
+    css = EVIDENCE_CSS.read_text(encoding="utf-8")
+    sw_js = SW_JS.read_text(encoding="utf-8")
+
+    assert manifest["id"] == "docsight.evidence"
+    assert manifest["type"] == "analysis"
+    assert manifest["contributes"]["tab"] == "templates/evidence_tab.html"
+    assert "if modules|selectattr('id', 'equalto', 'docsight.evidence')|list" in index
+    assert "data-view=\"evidence\"" in index
+    assert "view-evidence" in index
+    assert "if (typeof initEvidence === 'function') initEvidence();" in index
+    assert "function initEvidence()" in js
+    assert "'/api/evidence/checklist?incident_id='" in js
+    assert "URLSearchParams" not in js  # keep current query construction explicit and tiny
+    assert "data-lucide" in js
+    assert "data-icon" not in js
+    assert "toISOString()" not in js[js.index("function _evidenceDefaultWindow") : js.index("function _evidenceStatusLabel")]
+    assert "value + ':00Z'" not in js
+    assert "evidence-status-not_applicable" in css
+    assert "docsight.evidence.placeholder" in template
+    assert "item.label_key" in js
+    assert "/modules/docsight.evidence/static/main.js" in sw_js
+    assert "/modules/docsight.evidence/static/style.css" in sw_js
 
 
 def test_report_pdf_download_preserves_customer_detail_params():
@@ -140,7 +173,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v51';" in sw_js
+    assert "var CACHE_VERSION = 'v52';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js

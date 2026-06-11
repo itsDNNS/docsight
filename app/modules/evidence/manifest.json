@@ -1,0 +1,20 @@
+{
+  "id": "docsight.evidence",
+  "name": "Evidence Journey",
+  "description": "Guide users from an incident window to support-ready evidence",
+  "version": "1.0.0",
+  "author": "itsDNNS",
+  "minAppVersion": "2026.2",
+  "type": "analysis",
+  "contributes": {
+    "routes": "routes.py",
+    "tab": "templates/evidence_tab.html",
+    "static": "static/",
+    "i18n": "i18n/"
+  },
+  "menu": {
+    "label_key": "docsight.evidence.title",
+    "icon": "clipboard-check",
+    "order": 17
+  }
+}

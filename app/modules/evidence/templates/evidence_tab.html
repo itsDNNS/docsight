@@ -1,0 +1,59 @@
+<div class="view-content evidence-view">
+    <div class="view-page-header evidence-header">
+        <div class="view-page-header-left">
+            <h2 class="view-page-title">{{ t.get('docsight.evidence.title', 'Evidence Journey') }}</h2>
+            <p class="evidence-subtitle">{{ t.get('docsight.evidence.subtitle', 'Build a sober, support-ready case from the data DOCSight already has.') }}</p>
+        </div>
+    </div>
+
+    <div class="evidence-controls" aria-labelledby="evidence-window-title">
+        <div>
+            <h3 id="evidence-window-title">{{ t.get('docsight.evidence.window_title', 'Problem window') }}</h3>
+            <p>{{ t.get('docsight.evidence.window_help', 'Start with an incident when available, or pick the evening or range you want to explain.') }}</p>
+        </div>
+        <div class="evidence-control-grid">
+            <label class="evidence-field">
+                <span>{{ t.get('docsight.evidence.incident_id', 'Incident ID') }}</span>
+                <input id="evidence-incident-id" class="evidence-input" type="number" min="1" inputmode="numeric" placeholder="7">
+            </label>
+            <label class="evidence-field">
+                <span>{{ t.get('docsight.evidence.from', 'From') }}</span>
+                <input id="evidence-from" class="evidence-input" type="datetime-local">
+            </label>
+            <label class="evidence-field">
+                <span>{{ t.get('docsight.evidence.to', 'To') }}</span>
+                <input id="evidence-to" class="evidence-input" type="datetime-local">
+            </label>
+            <button id="evidence-run" class="btn btn-accent evidence-run" type="button">
+                {{ t.get('docsight.evidence.build_checklist', 'Build checklist') }}
+            </button>
+        </div>
+    </div>
+
+    <div id="evidence-demo-banner" class="evidence-banner" hidden>
+        {{ t.get('docsight.evidence.demo_banner', 'Demo mode: this checklist uses simulated sample data.') }}
+    </div>
+
+    <div id="evidence-placeholder" class="evidence-placeholder">
+        {{ t.get('docsight.evidence.placeholder', 'Choose an incident or time range to see which evidence is ready, missing, stale, optional, or not applicable.') }}
+    </div>
+
+    <div id="evidence-loading" class="evidence-loading" hidden>
+        <div class="spinner"></div>
+    </div>
+
+    <section id="evidence-results" class="evidence-results" hidden aria-live="polite">
+        <div class="evidence-summary-card">
+            <div>
+                <div class="evidence-kicker">{{ t.get('docsight.evidence.summary', 'Summary') }}</div>
+                <h3 id="evidence-window-label"></h3>
+                <p id="evidence-window-range" class="evidence-muted"></p>
+            </div>
+            <button id="evidence-copy" class="btn" type="button">
+                {{ t.get('docsight.evidence.copy_summary', 'Copy support summary') }}
+            </button>
+        </div>
+        <div id="evidence-status-counts" class="evidence-status-counts"></div>
+        <div id="evidence-items" class="evidence-items"></div>
+    </section>
+</div>

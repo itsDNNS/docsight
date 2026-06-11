@@ -1,0 +1,208 @@
+.evidence-view {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.evidence-subtitle,
+.evidence-controls p,
+.evidence-muted {
+    color: var(--text-muted, #9ca3af);
+}
+
+.evidence-controls,
+.evidence-summary-card,
+.evidence-item,
+.evidence-banner,
+.evidence-placeholder {
+    background: var(--card-bg, var(--card, rgba(255,255,255,0.04)));
+    border: 1px solid var(--border, rgba(255,255,255,0.12));
+    border-radius: 16px;
+    padding: 18px;
+}
+
+.evidence-control-grid {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.7fr) repeat(2, minmax(180px, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.evidence-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--text-muted, #9ca3af);
+}
+
+.evidence-input {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border, rgba(255,255,255,0.14));
+    background: var(--input-bg, rgba(0,0,0,0.18));
+    color: var(--text, #f8fafc);
+    padding: 8px 10px;
+}
+
+.evidence-run {
+    min-height: 40px;
+    white-space: nowrap;
+}
+
+.evidence-banner {
+    border-color: rgba(56, 189, 248, 0.45);
+    color: var(--info-text, #bae6fd);
+}
+
+.evidence-loading {
+    display: flex;
+    justify-content: center;
+    padding: 32px;
+}
+
+.evidence-results {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.evidence-summary-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.evidence-kicker {
+    color: var(--accent, #38bdf8);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.evidence-status-counts {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.evidence-count {
+    border-radius: 14px;
+    border: 1px solid var(--border, rgba(255,255,255,0.12));
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.035);
+}
+
+.evidence-count strong {
+    font-size: 1.25rem;
+}
+
+.evidence-items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.evidence-item {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 12px;
+}
+
+.evidence-item-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.08);
+    font-style: normal;
+}
+
+.evidence-item-title-row,
+.evidence-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.evidence-item h4 {
+    margin: 0;
+}
+
+.evidence-item p {
+    margin: 8px 0;
+    color: var(--text-muted, #9ca3af);
+}
+
+.evidence-badge,
+.evidence-count-pill {
+    border-radius: 999px;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    background: rgba(255,255,255,0.08);
+}
+
+.evidence-action {
+    border: 0;
+    background: transparent;
+    color: var(--accent, #38bdf8);
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+    text-decoration: none;
+}
+
+.evidence-action:hover,
+.evidence-action:focus-visible {
+    text-decoration: underline;
+}
+
+.evidence-status-present .evidence-badge,
+.evidence-status-present .evidence-item-icon {
+    color: #86efac;
+}
+
+.evidence-status-stale .evidence-badge,
+.evidence-status-stale .evidence-item-icon {
+    color: #fde68a;
+}
+
+.evidence-status-missing .evidence-badge,
+.evidence-status-missing .evidence-item-icon {
+    color: #fca5a5;
+}
+
+.evidence-status-optional .evidence-badge,
+.evidence-status-optional .evidence-item-icon {
+    color: #c4b5fd;
+}
+
+.evidence-status-not_applicable .evidence-badge,
+.evidence-status-not_applicable .evidence-item-icon {
+    color: var(--text-muted, #9ca3af);
+}
+
+@media (max-width: 900px) {
+    .evidence-control-grid,
+    .evidence-items,
+    .evidence-status-counts {
+        grid-template-columns: 1fr;
+    }
+
+    .evidence-summary-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .evidence-summary-card .btn,
+    .evidence-run {
+        width: 100%;
+    }
+}
