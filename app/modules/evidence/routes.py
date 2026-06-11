@@ -21,6 +21,7 @@ bp = Blueprint("evidence_module", __name__)
 log = logging.getLogger("docsight.evidence")
 
 _GENERIC_MODEM_TYPES = {"generic", "generic_router", "none"}
+_INCIDENT_ID_ERROR = "incident_id must be a positive integer"
 
 
 def _get_journal_storage():
@@ -243,9 +244,9 @@ def _parse_incident_id_arg(raw_value: str | None) -> int | None:
     try:
         incident_id = int(raw_value)
     except (TypeError, ValueError):
-        raise ValueError("incident_id must be a positive integer") from None
+        raise ValueError(_INCIDENT_ID_ERROR) from None
     if incident_id <= 0:
-        raise ValueError("incident_id must be a positive integer")
+        raise ValueError(_INCIDENT_ID_ERROR)
     return incident_id
 
 
@@ -255,8 +256,8 @@ def api_evidence_checklist():
     """Return a guided evidence checklist for an incident or explicit time window."""
     try:
         incident_id = _parse_incident_id_arg(request.args.get("incident_id"))
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+    except ValueError:
+        return jsonify({"error": _INCIDENT_ID_ERROR}), 400
     start_ts = request.args.get("from")
     end_ts = request.args.get("to")
 
