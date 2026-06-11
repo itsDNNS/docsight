@@ -25,7 +25,7 @@ from .docsis_utils import qam_rank
 from .gaming_index import compute_gaming_index
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
-from .tz import guess_iana_timezone as _guess_iana_timezone, to_local as _to_local
+from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name as _get_public_tz_name, to_local as _to_local
 
 _IANA_REGIONS = {"Africa", "America", "Antarctica", "Arctic", "Asia",
                  "Atlantic", "Australia", "Europe", "Indian", "Pacific"}
@@ -383,11 +383,7 @@ def _get_lang():
 
 def _get_tz_name():
     """Get configured IANA timezone name."""
-    if _config_manager:
-        tz = _config_manager.get("timezone")
-        if tz:
-            return tz
-    return _guess_iana_timezone()
+    return _get_public_tz_name(_config_manager)
 
 
 def _localize_timestamps(data, keys=("timestamp", "created_at", "updated_at", "last_used_at")):

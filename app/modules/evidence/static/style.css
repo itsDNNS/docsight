@@ -220,6 +220,12 @@
     color: var(--text-muted, #9ca3af);
 }
 
+.evidence-status-unavailable .evidence-badge,
+.evidence-status-unavailable .evidence-item-icon,
+.evidence-source-row.evidence-status-unavailable .evidence-source-status {
+    color: var(--warning, #fdba74);
+}
+
 @media (max-width: 900px) {
     .evidence-control-grid,
     .evidence-items,
