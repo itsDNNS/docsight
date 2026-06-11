@@ -136,8 +136,8 @@ def api_evidence_checklist():
             return jsonify({"error": "Not found"}), 404
         try:
             window = _window_from_incident(incident)
-        except ValueError as exc:
-            return jsonify({"error": str(exc)}), 400
+        except ValueError:
+            return jsonify({"error": "incident has no usable date range"}), 400
         journal_entries = journal.get_entries(limit=9999, incident_id=incident_id)
     else:
         window = _window_from_args(start_ts, end_ts)

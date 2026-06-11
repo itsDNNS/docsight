@@ -137,3 +137,18 @@ class TestEvidenceChecklistApi:
         assert payload["window"]["from"] == "2026-06-10T17:00:00Z"
         assert payload["window"]["to"] == "2026-06-10T21:00:00Z"
         assert core.requested_range == ("2026-06-10T17:00:00Z", "2026-06-10T21:00:00Z")
+
+    def test_incident_without_start_date_returns_generic_error(self):
+        from app.modules.evidence import routes
+
+        core = FakeCoreStorage()
+        journal = Mock()
+        journal.get_incident.return_value = {"id": 7, "name": "Bad evening"}
+
+        with app.test_request_context("/api/evidence/checklist?incident_id=7"):
+            with patch.object(routes, "get_storage", return_value=core), \
+                 patch.object(routes, "_get_journal_storage", return_value=journal):
+                response, status = getattr(routes.api_evidence_checklist, "__wrapped__")()
+
+        assert status == 400
+        assert response.get_json()["error"] == "incident has no usable date range"
