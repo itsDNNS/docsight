@@ -16,6 +16,7 @@ MAIN_BLADES = [
     ("Connection Monitor", "connection-monitor", "#view-connection-monitor"),
     ("Segment Utilization", "segment-utilization", "#view-segment-utilization"),
     ("Before/After Comparison", "comparison", "#view-comparison"),
+    ("Evidence Journey", "evidence", "#view-evidence"),
     ("Gaming Quality", "gaming", "#view-gaming"),
     ("Modulation Performance", "modulation", "#view-modulation"),
     ("Speedtest", "speedtest", "#view-speedtest"),

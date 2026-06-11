@@ -214,6 +214,7 @@ DOCSight is built around an evidence-first workflow, then extended with deeper a
 | **[Connection Monitor](https://github.com/itsDNNS/docsight/wiki/Features-Connection-Monitor)** | Track latency, packet loss, outages, traceroute evidence, and raw ping logs continuously |
 | **[Event Log](https://github.com/itsDNNS/docsight/wiki/Features-Event-Log)** | Automatically record anomalies like modulation drops and modem restarts |
 | **[Incident Journal](https://github.com/itsDNNS/docsight/wiki/Features-Incident-Journal)** | Add notes, attachments, reviewed imports, and incident groupings |
+| **Evidence Journey** | Check an incident or time window for available, stale, missing, optional, and not-applicable evidence before exporting |
 | **[Before/After Comparison](https://github.com/itsDNNS/docsight/wiki/Features-Before-After-Comparison)** | Show whether a technician visit or ISP change actually improved anything |
 | **[Correlation Analysis](https://github.com/itsDNNS/docsight/wiki/Features-Correlation-Analysis)** | Combine signal, speed, and event history in one timeline |
 | **[Complaint Generator](https://github.com/itsDNNS/docsight/wiki/Filing-a-Complaint)** | Build ISP-ready evidence packages with letter text, checklist, and PDF output |

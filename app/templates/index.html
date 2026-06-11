@@ -101,6 +101,7 @@
         {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}{% if analysis_items.append('connection_monitor') %}{% endif %}{% endif %}
         {% if is_fritzbox and segment_utilization_enabled %}{% if analysis_items.append('segment') %}{% endif %}{% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}{% if analysis_items.append('comparison') %}{% endif %}{% endif %}
+        {% if modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}{% if analysis_items.append('evidence') %}{% endif %}{% endif %}
         {% if gaming_quality_enabled %}{% if analysis_items.append('gaming') %}{% endif %}{% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.modulation')|list %}{% if analysis_items.append('modulation') %}{% endif %}{% endif %}
         {% if analysis_items %}
@@ -128,6 +129,11 @@
                 {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}
                 <button class="nav-item" data-view="comparison" data-nav-icon="git-compare-arrows" data-nav-title="{{ t.get('docsight.comparison.title', 'Before/After Comparison') }}">
                     <i data-lucide="git-compare-arrows"></i> {{ t.get('docsight.comparison.title', 'Before/After Comparison') }}
+                </button>
+                {% endif %}
+                {% if modules|selectattr('id', 'equalto', 'docsight.evidence')|list %}
+                <button class="nav-item" data-view="evidence" data-nav-icon="clipboard-check" data-nav-title="{{ t.get('docsight.evidence.title', 'Evidence Journey') }}">
+                    <i data-lucide="clipboard-check"></i> {{ t.get('docsight.evidence.title', 'Evidence Journey') }}
                 </button>
                 {% endif %}
                 {% if gaming_quality_enabled %}
@@ -205,7 +211,7 @@
             </div>
         </div>
         {% set tab_modules = [] %}
-        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in ('docsight.modulation', 'docsight.comparison', 'docsight.connection_monitor') %}
+        {% for mod in modules if mod.template_paths.get('tab') and mod.id not in ('docsight.modulation', 'docsight.comparison', 'docsight.connection_monitor', 'docsight.evidence') %}
             {% if tab_modules.append(mod) %}{% endif %}
         {% endfor %}
         {% if tab_modules %}
@@ -2398,7 +2404,7 @@
    MODULE VIEWS - Dynamically rendered from enabled modules with tab template
    ══════════════════════════════════════════════════════════════════════════ #}
 {% for mod in modules if mod.template_paths.get('tab') %}
-<div id="{% if mod.id == 'docsight.modulation' %}view-modulation{% elif mod.id == 'docsight.comparison' %}view-comparison{% elif mod.id == 'docsight.connection_monitor' %}view-connection-monitor{% else %}view-mod-{{ mod.id|replace('.', '-') }}{% endif %}" class="view">
+<div id="{% if mod.id == 'docsight.modulation' %}view-modulation{% elif mod.id == 'docsight.comparison' %}view-comparison{% elif mod.id == 'docsight.connection_monitor' %}view-connection-monitor{% elif mod.id == 'docsight.evidence' %}view-evidence{% else %}view-mod-{{ mod.id|replace('.', '-') }}{% endif %}" class="view">
     {% include mod.template_paths['tab'] %}
 </div>
 {% endfor %}
@@ -3062,6 +3068,8 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
             if (typeof initModulation === 'function') initModulation();
         } else if (view === 'comparison') {
             if (typeof initComparison === 'function') initComparison();
+        } else if (view === 'evidence') {
+            if (typeof initEvidence === 'function') initEvidence();
         } else if (view.indexOf('mod-') === 0) {
             /* Generic module init: mod-docsight-comparison → initComparison */
             var parts = view.replace('mod-docsight-', '').split('-');
