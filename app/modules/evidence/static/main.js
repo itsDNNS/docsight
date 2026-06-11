@@ -70,6 +70,25 @@ function _evidenceActionLabel(item) {
     return _evidenceT('docsight.evidence.action.' + (action || view || 'review'), 'Open related view');
 }
 
+function _evidenceSourceLabel(source) {
+    return _evidenceT('docsight.evidence.source.' + source.key, String(source.key || '').replace(/_/g, ' '));
+}
+
+function _evidenceRenderSourceBreakdown(item) {
+    if (!item.sources || !item.sources.length) return '';
+    return '<div class="evidence-source-list">' + item.sources.map(function(source) {
+        var status = _evidenceSafeStatus(source.status);
+        var count = typeof source.count === 'number' && source.count > 0
+            ? '<span class="evidence-source-count">' + _evidenceEscape(source.count) + '</span>'
+            : '';
+        return '<div class="evidence-source-row evidence-status-' + status + '">' +
+            '<span>' + _evidenceEscape(_evidenceSourceLabel(source)) + '</span>' +
+            '<span class="evidence-source-status">' + _evidenceEscape(_evidenceStatusLabel(status)) + '</span>' +
+            count +
+        '</div>';
+    }).join('') + '</div>';
+}
+
 function _evidenceRunAction(event) {
     var trigger = event.target.closest('[data-evidence-view], [data-evidence-action]');
     if (!trigger) return;
@@ -116,6 +135,7 @@ function _evidenceRenderItems(items) {
         var count = typeof item.count === 'number' && item.count > 0
             ? '<span class="evidence-count-pill">' + _evidenceEscape(item.count) + '</span>'
             : '';
+        var sources = _evidenceRenderSourceBreakdown(item);
         var last = item.last_ts ? '<span class="evidence-muted">' + _evidenceEscape(item.last_ts) + '</span>' : '';
         var action = '';
         if (item.action && item.action.view) {
@@ -130,7 +150,7 @@ function _evidenceRenderItems(items) {
                     '<h4>' + label + '</h4>' + count +
                     '<span class="evidence-badge">' + _evidenceEscape(_evidenceStatusLabel(status)) + '</span>' +
                 '</div>' +
-                '<p>' + hint + '</p>' +
+                '<p>' + hint + '</p>' + sources +
                 '<div class="evidence-item-meta">' + last + action + '</div>' +
             '</div>' +
         '</article>';

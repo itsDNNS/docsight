@@ -35,6 +35,61 @@ def test_build_checklist_marks_available_sources_present():
     assert items["review"]["status"] == "optional"
 
 
+def test_build_checklist_treats_connection_monitor_latency_as_evidence():
+    items = _by_key(build_checklist(
+        WINDOW,
+        timeline=[],
+        journal_entries=[],
+        bqm_rows=[],
+        connection_latency_rows=[{"timestamp": "2026-06-10T22:45:00Z", "avg_latency_ms": 18.4, "source": "connection_monitor"}],
+        capabilities={
+            "docsis_supported": True,
+            "speedtest_configured": True,
+            "bqm_configured": True,
+            "connection_monitor_configured": True,
+            "demo_mode": False,
+        },
+    ))
+
+    latency = items["latency"]
+    assert latency["status"] == "present"
+    assert latency["count"] == 1
+    assert latency["last_ts"] == "2026-06-10T22:45:00Z"
+    assert latency["action"] == {"view": "connection-monitor"}
+    assert latency["hint_key"] == "docsight.evidence.item.latency.present_cm_only"
+    assert latency["sources"] == [
+        {"key": "connection_monitor", "status": "present", "count": 1, "last_ts": "2026-06-10T22:45:00Z"},
+        {"key": "bqm", "status": "missing", "count": 0, "last_ts": None},
+    ]
+
+
+def test_build_checklist_reports_bqm_and_connection_monitor_latency_sources_independently():
+    items = _by_key(build_checklist(
+        WINDOW,
+        timeline=[],
+        journal_entries=[],
+        bqm_rows=[{"timestamp": "2026-06-10T21:55:00Z", "latency_avg_ms": 33}],
+        connection_latency_rows=[{"timestamp": "2026-06-10T22:50:00Z", "avg_latency_ms": 17.8}],
+        capabilities={
+            "docsis_supported": True,
+            "speedtest_configured": True,
+            "bqm_configured": True,
+            "connection_monitor_configured": True,
+            "demo_mode": False,
+        },
+    ))
+
+    latency = items["latency"]
+    assert latency["status"] == "present"
+    assert latency["count"] == 2
+    assert latency["last_ts"] == "2026-06-10T22:50:00Z"
+    assert latency["action"] == {"view": "connection-monitor"}
+    assert latency["hint_key"] == "docsight.evidence.item.latency.present_both"
+    assert latency["sources"][0]["status"] == "present"
+    assert latency["sources"][1]["status"] == "present"
+
+
+
 def test_build_checklist_distinguishes_missing_optional_and_not_applicable():
     items = _by_key(build_checklist(
         WINDOW,

@@ -39,10 +39,10 @@
   "item.speedtest.missing": "In diesem Zeitraum wurde kein Speedtest-Ergebnis gefunden.",
   "item.speedtest.optional": "Speedtest Tracker ist nicht konfiguriert; Speed-Evidenz ist optional.",
   "item.latency.label": "Latenz-Evidenz",
-  "item.latency.present": "Latenz-/BQM-Messungen sind für diesen Zeitraum verfügbar.",
+  "item.latency.present": "Latenzmessungen sind für diesen Zeitraum verfügbar.",
   "item.latency.stale": "Latenz-Evidenz ist vorhanden, deckt aber das Ende dieses Zeitraums möglicherweise nicht ab.",
-  "item.latency.missing": "In diesem Zeitraum wurde keine Latenz-/BQM-Messung gefunden.",
-  "item.latency.optional": "ThinkBroadband BQM ist nicht konfiguriert; Latenz-Evidenz ist optional.",
+  "item.latency.missing": "In diesem Zeitraum wurde keine Connection-Monitor- oder BQM-Latenzmessung gefunden.",
+  "item.latency.optional": "Connection Monitor und ThinkBroadband BQM sind nicht konfiguriert; Latenz-Evidenz ist optional.",
   "item.events.label": "DOCSight-Events",
   "item.events.present": "DOCSight hat in diesem Zeitraum Events erkannt.",
   "item.events.missing": "In diesem Zeitraum wurden keine DOCSight-Events erkannt.",
@@ -61,5 +61,11 @@
   "action.comparison": "Vorher/Nachher-Vergleich öffnen",
   "action.report": "Report erzeugen",
   "item.comparison.label": "Vorher/Nachher-Vergleich",
-  "item.comparison.optional": "Vergleiche diesen Zeitraum mit einer anderen Periode, wenn ein Technikertermin, eine Anbieteränderung oder ein wiederkehrendes Muster Kontext braucht."
+  "item.comparison.optional": "Vergleiche diesen Zeitraum mit einer anderen Periode, wenn ein Technikertermin, eine Anbieteränderung oder ein wiederkehrendes Muster Kontext braucht.",
+  "action.connection-monitor": "Connection Monitor öffnen",
+  "source.connection_monitor": "Connection Monitor",
+  "source.bqm": "ThinkBroadband BQM",
+  "item.latency.present_both": "Connection-Monitor- und ThinkBroadband-BQM-Latenzmessungen sind für diesen Zeitraum verfügbar.",
+  "item.latency.present_cm_only": "Connection-Monitor-Latenzmessungen sind verfügbar. Ergänze BQM, wenn du externe Validierung brauchst.",
+  "item.latency.present_bqm_only": "ThinkBroadband-BQM-Latenzmessungen sind verfügbar. Ergänze den Connection Monitor für lokale kontinuierliche Messungen."
 }

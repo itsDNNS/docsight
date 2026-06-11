@@ -39,10 +39,10 @@
   "item.speedtest.missing": "No speed test result was found in this window.",
   "item.speedtest.optional": "Speedtest Tracker is not configured; speed evidence is optional.",
   "item.latency.label": "Latency evidence",
-  "item.latency.present": "Latency/BQM samples are available for this window.",
+  "item.latency.present": "Latency samples are available for this window.",
   "item.latency.stale": "Latency evidence exists, but it may not cover the end of this window.",
-  "item.latency.missing": "No latency/BQM sample was found in this window.",
-  "item.latency.optional": "ThinkBroadband BQM is not configured; latency evidence is optional.",
+  "item.latency.missing": "No Connection Monitor or BQM latency sample was found in this window.",
+  "item.latency.optional": "Connection Monitor and ThinkBroadband BQM are not configured; latency evidence is optional.",
   "item.events.label": "DOCSight events",
   "item.events.present": "DOCSight detected events in this window.",
   "item.events.missing": "No DOCSight events were detected in this window.",
@@ -61,5 +61,11 @@
   "action.comparison": "Open before/after comparison",
   "action.report": "Generate report",
   "item.comparison.label": "Before/after comparison",
-  "item.comparison.optional": "Compare this window with another period when a technician visit, ISP change, or recurring pattern needs context."
+  "item.comparison.optional": "Compare this window with another period when a technician visit, ISP change, or recurring pattern needs context.",
+  "action.connection-monitor": "Open Connection Monitor",
+  "source.connection_monitor": "Connection Monitor",
+  "source.bqm": "ThinkBroadband BQM",
+  "item.latency.present_both": "Connection Monitor and ThinkBroadband BQM latency samples are available for this window.",
+  "item.latency.present_cm_only": "Connection Monitor latency samples are available. Add BQM when you need external validation.",
+  "item.latency.present_bqm_only": "ThinkBroadband BQM latency samples are available. Add Connection Monitor for local continuous samples."
 }

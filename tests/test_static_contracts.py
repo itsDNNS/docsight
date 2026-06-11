@@ -74,6 +74,11 @@ def test_evidence_module_registers_guided_journey_assets():
     assert "evidence-status-not_applicable" in css
     assert "docsight.evidence.placeholder" in template
     assert "item.label_key" in js
+    assert "function _evidenceRenderSourceBreakdown" in js
+    assert "docsight.evidence.source." in js
+    assert "evidence-source-row" in js
+    assert "evidence-source-list" in css
+    assert "evidence-source-row" in css
     assert "/modules/docsight.evidence/static/main.js" in sw_js
     assert "/modules/docsight.evidence/static/style.css" in sw_js
 
@@ -173,7 +178,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v52';" in sw_js
+    assert "var CACHE_VERSION = 'v53';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js

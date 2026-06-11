@@ -80,6 +80,7 @@ class TestEvidenceChecklistApi:
                  patch.object(routes, "get_config_manager", return_value=config), \
                  patch.object(routes, "_get_journal_storage", return_value=journal), \
                  patch.object(routes, "_get_bqm_rows", return_value=[]), \
+                 patch.object(routes, "_get_connection_latency_rows", return_value=[]), \
                  patch.object(routes, "_get_tz_name", return_value="UTC"):
                 response = getattr(routes.api_evidence_checklist, "__wrapped__")()
 
@@ -108,12 +109,67 @@ class TestEvidenceChecklistApi:
             with patch.object(routes, "get_storage", return_value=core), \
                  patch.object(routes, "get_config_manager", return_value=config), \
                  patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
-                 patch.object(routes, "_get_bqm_rows", return_value=[]):
+                 patch.object(routes, "_get_bqm_rows", return_value=[]), \
+                 patch.object(routes, "_get_connection_latency_rows", return_value=[]):
                 response = getattr(routes.api_evidence_checklist, "__wrapped__")()
 
         items = {item["key"]: item for item in response.get_json()["items"]}
         assert items["signal"]["status"] == "not_applicable"
         assert items["events"]["status"] == "not_applicable"
+
+    def test_manual_range_includes_connection_monitor_latency(self):
+        from app.modules.evidence import routes
+
+        core = FakeCoreStorage()
+        config = Mock()
+        config.get.side_effect = lambda key, default=None: {
+            "modem_type": "fritzbox",
+            "connection_monitor_enabled": True,
+        }.get(key, default)
+        config.is_speedtest_configured.return_value = False
+        config.is_bqm_configured.return_value = False
+        config.is_demo_mode.return_value = False
+
+        with app.test_request_context("/api/evidence/checklist?from=2026-06-10T18:00:00Z&to=2026-06-10T23:00:00Z"):
+            with patch.object(routes, "get_storage", return_value=core), \
+                 patch.object(routes, "get_config_manager", return_value=config), \
+                 patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
+                 patch.object(routes, "_get_bqm_rows", return_value=[]), \
+                 patch.object(routes, "_get_connection_latency_rows", return_value=[
+                     {"timestamp": "2026-06-10T22:40:00Z", "avg_latency_ms": 18.0}
+                 ]):
+                response = getattr(routes.api_evidence_checklist, "__wrapped__")()
+
+        items = {item["key"]: item for item in response.get_json()["items"]}
+        assert items["latency"]["status"] == "present"
+        assert items["latency"]["action"] == {"view": "connection-monitor"}
+        assert items["latency"]["sources"][0]["key"] == "connection_monitor"
+        assert items["latency"]["sources"][0]["status"] == "present"
+        assert items["latency"]["sources"][1]["key"] == "bqm"
+        assert items["latency"]["sources"][1]["status"] == "optional"
+
+    def test_connection_monitor_latency_rows_read_connection_monitor_database(self, tmp_path, monkeypatch):
+        from app.modules.connection_monitor.storage import ConnectionMonitorStorage
+        from app.modules.evidence import routes
+
+        monkeypatch.setenv("DATA_DIR", str(tmp_path))
+        storage = ConnectionMonitorStorage(str(tmp_path / "connection_monitor.db"))
+        target_id = storage.create_target("Router", "192.0.2.1")
+        storage.save_samples([
+            {"target_id": target_id, "timestamp": 1781114400.0, "latency_ms": 18.5, "timeout": False, "probe_method": "tcp"},
+            {"target_id": target_id, "timestamp": 1781118000.0, "latency_ms": 22.0, "timeout": False, "probe_method": "tcp"},
+        ])
+
+        rows = routes._get_connection_latency_rows("2026-06-10T18:00:00Z", "2026-06-10T20:00:00Z")
+
+        assert rows == [{
+            "timestamp": "2026-06-10T19:00:00Z",
+            "sample_count": 2,
+            "latency_count": 2,
+            "avg_latency_ms": 20.25,
+            "source": "connection_monitor",
+            "tier": "raw",
+        }]
 
     def test_manual_range_converts_datetime_local_with_configured_timezone(self):
         from app.modules.evidence import routes
@@ -130,6 +186,7 @@ class TestEvidenceChecklistApi:
                  patch.object(routes, "get_config_manager", return_value=config), \
                  patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
                  patch.object(routes, "_get_bqm_rows", return_value=[]), \
+                 patch.object(routes, "_get_connection_latency_rows", return_value=[]), \
                  patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"):
                 response = getattr(routes.api_evidence_checklist, "__wrapped__")()
 

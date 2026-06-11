@@ -39,10 +39,10 @@
   "item.speedtest.missing": "",
   "item.speedtest.optional": "",
   "item.latency.label": "",
-  "item.latency.present": "",
+  "item.latency.present": "Latency samples are available for this window.",
   "item.latency.stale": "",
-  "item.latency.missing": "",
-  "item.latency.optional": "",
+  "item.latency.missing": "No Connection Monitor or BQM latency sample was found in this window.",
+  "item.latency.optional": "Connection Monitor and ThinkBroadband BQM are not configured; latency evidence is optional.",
   "item.events.label": "",
   "item.events.present": "",
   "item.events.missing": "",
@@ -61,5 +61,11 @@
   "action.comparison": "",
   "action.report": "",
   "item.comparison.label": "",
-  "item.comparison.optional": ""
+  "item.comparison.optional": "",
+  "action.connection-monitor": "Open Connection Monitor",
+  "source.connection_monitor": "Connection Monitor",
+  "source.bqm": "ThinkBroadband BQM",
+  "item.latency.present_both": "Connection Monitor and ThinkBroadband BQM latency samples are available for this window.",
+  "item.latency.present_cm_only": "Connection Monitor latency samples are available. Add BQM when you need external validation.",
+  "item.latency.present_bqm_only": "ThinkBroadband BQM latency samples are available. Add Connection Monitor for local continuous samples."
 }

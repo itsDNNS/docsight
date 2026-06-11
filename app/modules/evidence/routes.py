@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-import sqlite3
 import logging
+import os
+import sqlite3
+from datetime import datetime, timezone
 from typing import Any
 
 from flask import Blueprint, jsonify, request
@@ -62,6 +64,84 @@ def _get_bqm_rows(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, An
         return []
 
 
+def _epoch_to_iso(value: float | int | None) -> str | None:
+    if value is None:
+        return None
+    return datetime.fromtimestamp(float(value), tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _utc_ts_to_epoch(value: str) -> float:
+    normalized = value.replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).timestamp()
+
+
+def _get_connection_monitor_db_path() -> str:
+    data_dir = os.environ.get("DATA_DIR", "/data")
+    return os.path.join(data_dir, "connection_monitor.db")
+
+
+def _get_connection_latency_rows(start_ts: str, end_ts: str) -> list[dict[str, Any]]:
+    """Return compact Connection Monitor latency evidence rows for a UTC window."""
+    db_path = _get_connection_monitor_db_path()
+    if not os.path.exists(db_path):
+        return []
+    start_epoch = _utc_ts_to_epoch(start_ts)
+    end_epoch = _utc_ts_to_epoch(end_ts)
+    rows: list[dict[str, Any]] = []
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            raw = conn.execute(
+                """
+                SELECT
+                    COUNT(*) AS sample_count,
+                    COUNT(CASE WHEN timeout = 0 AND latency_ms IS NOT NULL THEN 1 END) AS latency_count,
+                    AVG(CASE WHEN timeout = 0 THEN latency_ms END) AS avg_latency_ms,
+                    MAX(timestamp) AS latest_ts
+                FROM connection_samples
+                WHERE timestamp >= ? AND timestamp <= ?
+                """,
+                (start_epoch, end_epoch),
+            ).fetchone()
+            if raw and (raw["sample_count"] or 0) > 0:
+                rows.append({
+                    "timestamp": _epoch_to_iso(raw["latest_ts"]),
+                    "sample_count": raw["sample_count"],
+                    "latency_count": raw["latency_count"],
+                    "avg_latency_ms": raw["avg_latency_ms"],
+                    "source": "connection_monitor",
+                    "tier": "raw",
+                })
+            aggregated = conn.execute(
+                """
+                SELECT
+                    COALESCE(SUM(sample_count), 0) AS sample_count,
+                    COUNT(CASE WHEN avg_latency_ms IS NOT NULL THEN 1 END) AS latency_count,
+                    AVG(avg_latency_ms) AS avg_latency_ms,
+                    MAX(bucket_start) AS latest_ts
+                FROM connection_samples_aggregated
+                WHERE bucket_start >= ? AND bucket_start <= ?
+                """,
+                (start_epoch, end_epoch),
+            ).fetchone()
+            if aggregated and (aggregated["sample_count"] or 0) > 0:
+                rows.append({
+                    "timestamp": _epoch_to_iso(aggregated["latest_ts"]),
+                    "sample_count": aggregated["sample_count"],
+                    "latency_count": aggregated["latency_count"],
+                    "avg_latency_ms": aggregated["avg_latency_ms"],
+                    "source": "connection_monitor",
+                    "tier": "aggregated",
+                })
+    except sqlite3.Error:
+        log.warning("Evidence Connection Monitor rows unavailable")
+        return []
+    return rows
+
+
 def _capabilities(config_manager) -> dict[str, Any]:
     modem_type = ""
     if config_manager:
@@ -71,6 +151,7 @@ def _capabilities(config_manager) -> dict[str, Any]:
         "docsis_supported": docsis_supported,
         "speedtest_configured": bool(config_manager.is_speedtest_configured()) if config_manager else False,
         "bqm_configured": bool(config_manager.is_bqm_configured()) if config_manager else False,
+        "connection_monitor_configured": bool(config_manager.get("connection_monitor_enabled", False)) if config_manager else False,
         "demo_mode": bool(config_manager.is_demo_mode()) if config_manager else False,
     }
 
@@ -145,6 +226,7 @@ def api_evidence_checklist():
 
     timeline = core.get_correlation_timeline(window["from"], window["to"])
     bqm_rows = _get_bqm_rows(core.db_path, window["from"], window["to"])
+    connection_latency_rows = _get_connection_latency_rows(window["from"], window["to"])
     config_manager = get_config_manager()
     capabilities = _capabilities(config_manager)
     items = build_checklist(
@@ -152,6 +234,7 @@ def api_evidence_checklist():
         timeline=timeline,
         journal_entries=journal_entries,
         bqm_rows=bqm_rows,
+        connection_latency_rows=connection_latency_rows,
         capabilities=capabilities,
     )
     return jsonify({
