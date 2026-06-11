@@ -7,11 +7,12 @@ import os
 import sqlite3
 from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Blueprint, jsonify, request
 
-from app.tz import local_date_to_utc_range, local_to_utc, local_today
-from app.web import require_auth, get_config_manager, get_storage, _get_tz_name
+from app.tz import get_tz_name, local_date_to_utc_range, local_to_utc, local_today
+from app.web import require_auth, get_config_manager, get_storage
 from app.modules.journal.storage import JournalStorage
 
 from .checklist import build_checklist, summarize_checklist
@@ -29,21 +30,52 @@ def _get_journal_storage():
     return JournalStorage(core.db_path)
 
 
-def _date_from_ts(value: str) -> str:
-    return value[:10]
+def _get_tz_name() -> str:
+    """Return the configured timezone without depending on app.web privates."""
+    return get_tz_name(get_config_manager())
+
+
+def _utc_datetime(value: str) -> datetime:
+    normalized = value.replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _zoneinfo_or_utc(tz_name: str) -> ZoneInfo | timezone:
+    """Return configured timezone, falling back to UTC for invalid config."""
+    if not tz_name:
+        return timezone.utc
+    try:
+        return ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        log.warning("Evidence timezone unavailable; falling back to UTC")
+        return timezone.utc
+
+
+def _local_date_bounds_for_window(start_ts: str, end_ts: str, tz_name: str) -> tuple[str, str]:
+    """Return configured-local date bounds for a normalized UTC window."""
+    tz = _zoneinfo_or_utc(tz_name)
+    start_date = _utc_datetime(start_ts).astimezone(tz).strftime("%Y-%m-%d")
+    end_date = _utc_datetime(end_ts).astimezone(tz).strftime("%Y-%m-%d")
+    return start_date, end_date
 
 
 def _normalise_window_ts(value: str, tz_name: str) -> str:
-    """Return a UTC timestamp for either UTC ISO or datetime-local input."""
-    if value.endswith("Z"):
-        return value
-    local_value = value if len(value) > 16 else f"{value}:00"
-    return local_to_utc(local_value, tz_name)
+    """Return a UTC timestamp for UTC, offset-aware, or datetime-local input."""
+    if not value:
+        raise ValueError("timestamp required")
+    timestamp = value.strip()
+    timestamp = timestamp if len(timestamp) > 16 else f"{timestamp}:00"
+    parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    if parsed.tzinfo is not None:
+        return parsed.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return local_to_utc(timestamp, tz_name)
 
 
 def _get_journal_entries_for_window(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, Any]]:
-    start_date = _date_from_ts(start_ts)
-    end_date = _date_from_ts(end_ts)
+    start_date, end_date = _local_date_bounds_for_window(start_ts, end_ts, _get_tz_name())
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
@@ -54,14 +86,31 @@ def _get_journal_entries_for_window(db_path: str, start_ts: str, end_ts: str) ->
     return [dict(row) for row in rows]
 
 
-def _get_bqm_rows(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, Any]]:
+def _get_bqm_rows(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, Any]] | None:
     try:
         from app.modules.bqm.storage import BqmStorage
-        bqm = BqmStorage(db_path, _get_tz_name())
-        return bqm.get_data_for_range(_date_from_ts(start_ts), _date_from_ts(end_ts))
-    except Exception:
+        tz_name = _get_tz_name()
+        start_date, end_date = _local_date_bounds_for_window(start_ts, end_ts, tz_name)
+        start_epoch = _utc_ts_to_epoch(start_ts)
+        end_epoch = _utc_ts_to_epoch(end_ts)
+        bqm = BqmStorage(db_path, tz_name)
+        rows = bqm.get_data_for_range(start_date, end_date)
+    except (ImportError, sqlite3.Error, OSError, ValueError, KeyError, TypeError):
         log.warning("Evidence BQM rows unavailable")
-        return []
+        return None
+
+    filtered: list[dict[str, Any]] = []
+    for row in rows:
+        try:
+            timestamp = row.get("timestamp")
+            if not timestamp:
+                continue
+            row_epoch = _utc_ts_to_epoch(str(timestamp))
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if start_epoch <= row_epoch <= end_epoch:
+            filtered.append(row)
+    return filtered
 
 
 def _epoch_to_iso(value: float | int | None) -> str | None:
@@ -187,20 +236,36 @@ def _window_from_args(start_ts: str, end_ts: str) -> dict[str, Any]:
     }
 
 
+def _parse_incident_id_arg(raw_value: str | None) -> int | None:
+    """Parse optional incident_id, preserving malformed input as a 400."""
+    if raw_value is None:
+        return None
+    try:
+        incident_id = int(raw_value)
+    except (TypeError, ValueError):
+        raise ValueError("incident_id must be a positive integer") from None
+    if incident_id <= 0:
+        raise ValueError("incident_id must be a positive integer")
+    return incident_id
+
+
 @bp.route("/api/evidence/checklist")
 @require_auth
 def api_evidence_checklist():
     """Return a guided evidence checklist for an incident or explicit time window."""
-    incident_id = request.args.get("incident_id", type=int)
+    try:
+        incident_id = _parse_incident_id_arg(request.args.get("incident_id"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     start_ts = request.args.get("from")
     end_ts = request.args.get("to")
 
     has_range = bool(start_ts or end_ts)
-    if incident_id and has_range:
+    if incident_id is not None and has_range:
         return jsonify({"error": "choose incident_id or from/to, not both"}), 400
     if has_range and not (start_ts and end_ts):
         return jsonify({"error": "from and to required together"}), 400
-    if not incident_id and not has_range:
+    if incident_id is None and not has_range:
         return jsonify({"error": "incident_id or from/to required"}), 400
 
     core = get_storage()
@@ -221,8 +286,11 @@ def api_evidence_checklist():
             return jsonify({"error": "incident has no usable date range"}), 400
         journal_entries = journal.get_entries(limit=9999, incident_id=incident_id)
     else:
-        window = _window_from_args(start_ts, end_ts)
-        journal_entries = _get_journal_entries_for_window(core.db_path, start_ts, end_ts)
+        try:
+            window = _window_from_args(start_ts, end_ts)
+        except ValueError:
+            return jsonify({"error": "from/to must be valid ISO timestamps"}), 400
+        journal_entries = _get_journal_entries_for_window(core.db_path, window["from"], window["to"])
 
     timeline = core.get_correlation_timeline(window["from"], window["to"])
     bqm_rows = _get_bqm_rows(core.db_path, window["from"], window["to"])

@@ -89,6 +89,29 @@ def test_build_checklist_reports_bqm_and_connection_monitor_latency_sources_inde
     assert latency["sources"][1]["status"] == "present"
 
 
+def test_build_checklist_reports_configured_bqm_unavailable_without_marking_optional():
+    items = _by_key(build_checklist(
+        WINDOW,
+        timeline=[],
+        journal_entries=[],
+        bqm_rows=None,
+        connection_latency_rows=[],
+        capabilities={
+            "docsis_supported": True,
+            "speedtest_configured": True,
+            "bqm_configured": True,
+            "connection_monitor_configured": False,
+            "demo_mode": False,
+        },
+    ))
+
+    latency = items["latency"]
+    assert latency["status"] == "missing"
+    assert latency["sources"] == [
+        {"key": "connection_monitor", "status": "optional", "count": 0, "last_ts": None},
+        {"key": "bqm", "status": "unavailable", "count": 0, "last_ts": None},
+    ]
+
 
 def test_build_checklist_distinguishes_missing_optional_and_not_applicable():
     items = _by_key(build_checklist(

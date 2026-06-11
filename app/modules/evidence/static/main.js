@@ -2,6 +2,7 @@
 
 var _evidenceInitialized = false;
 var _evidenceLastPayload = null;
+var _evidenceCopyResetTimer = null;
 
 function _evidenceT(key, fallback) {
     return (window.T && window.T[key]) || fallback;
@@ -25,7 +26,8 @@ function _evidenceSafeStatus(status) {
         stale: 'stale',
         missing: 'missing',
         optional: 'optional',
-        not_applicable: 'not_applicable'
+        not_applicable: 'not_applicable',
+        unavailable: 'unavailable'
     }[status] || 'missing';
 }
 
@@ -60,7 +62,8 @@ function _evidenceStatusIcon(status) {
         stale: 'clock-3',
         missing: 'circle-alert',
         optional: 'circle-dot',
-        not_applicable: 'ban'
+        not_applicable: 'ban',
+        unavailable: 'circle-off'
     }[safeStatus] || 'circle-help';
 }
 
@@ -174,11 +177,36 @@ function _evidenceSupportSummary(payload) {
     return lines.join('\n');
 }
 
+function _evidenceSetCopyState(state) {
+    var copy = document.getElementById('evidence-copy');
+    if (!copy) return;
+    var defaultLabel = copy.getAttribute('data-default-label') || copy.textContent.trim();
+    copy.setAttribute('data-default-label', defaultLabel);
+    if (_evidenceCopyResetTimer) {
+        window.clearTimeout(_evidenceCopyResetTimer);
+        _evidenceCopyResetTimer = null;
+    }
+    copy.textContent = state === 'success'
+        ? _evidenceT('docsight.evidence.copy_success', 'Copied')
+        : state === 'failed'
+            ? _evidenceT('docsight.evidence.copy_failed', 'Copy failed')
+            : defaultLabel;
+    if (state) {
+        _evidenceCopyResetTimer = window.setTimeout(function() { _evidenceSetCopyState(''); }, 2000);
+    }
+}
+
 function _evidenceCopySummary() {
     var text = _evidenceSupportSummary(_evidenceLastPayload);
     if (!text) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(text).then(function() {
+            _evidenceSetCopyState('success');
+        }).catch(function() {
+            _evidenceSetCopyState('failed');
+        });
+    } else {
+        _evidenceSetCopyState('failed');
     }
 }
 

@@ -108,6 +108,19 @@ def local_date_to_utc_range(date_str, tz_name):
     return (start_utc, end_utc)
 
 
+def get_tz_name(config_manager=None):
+    """Return the configured IANA timezone name or a best-effort system guess.
+
+    Keeping this accessor in app.tz avoids importing private web helpers from
+    feature modules that only need timezone conversion semantics.
+    """
+    if config_manager:
+        tz = config_manager.get("timezone")
+        if tz:
+            return tz
+    return guess_iana_timezone()
+
+
 def guess_iana_timezone():
     """Best-effort guess of the current IANA timezone from the system.
 

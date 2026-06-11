@@ -1,3 +1,4 @@
+import builtins
 from unittest.mock import Mock, patch
 
 import app.web as web
@@ -194,6 +195,167 @@ class TestEvidenceChecklistApi:
         assert payload["window"]["from"] == "2026-06-10T17:00:00Z"
         assert payload["window"]["to"] == "2026-06-10T21:00:00Z"
         assert core.requested_range == ("2026-06-10T17:00:00Z", "2026-06-10T21:00:00Z")
+
+    def test_manual_range_accepts_explicit_offset_timestamps(self):
+        from app.modules.evidence import routes
+
+        core = FakeCoreStorage()
+        config = Mock()
+        config.get.side_effect = lambda key, default=None: {"modem_type": "fritzbox"}.get(key, default)
+        config.is_speedtest_configured.return_value = False
+        config.is_bqm_configured.return_value = False
+        config.is_demo_mode.return_value = False
+
+        with app.test_request_context("/api/evidence/checklist?from=2026-06-10T19:00:00%2B02:00&to=2026-06-10T23:00:00%2B02:00"):
+            with patch.object(routes, "get_storage", return_value=core), \
+                 patch.object(routes, "get_config_manager", return_value=config), \
+                 patch.object(routes, "_get_journal_entries_for_window", return_value=[]), \
+                 patch.object(routes, "_get_bqm_rows", return_value=[]), \
+                 patch.object(routes, "_get_connection_latency_rows", return_value=[]), \
+                 patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"):
+                response = getattr(routes.api_evidence_checklist, "__wrapped__")()
+
+        payload = response.get_json()
+        assert payload["window"]["from"] == "2026-06-10T17:00:00Z"
+        assert payload["window"]["to"] == "2026-06-10T21:00:00Z"
+        assert core.requested_range == ("2026-06-10T17:00:00Z", "2026-06-10T21:00:00Z")
+
+    def test_invalid_incident_id_returns_specific_client_error(self):
+        from app.modules.evidence import routes
+
+        for value in ("abc", "0", "-1"):
+            with app.test_request_context(f"/api/evidence/checklist?incident_id={value}"):
+                response, status = getattr(routes.api_evidence_checklist, "__wrapped__")()
+
+            assert status == 400
+            assert response.get_json()["error"] == "incident_id must be a positive integer"
+
+    def test_journal_window_uses_configured_local_dates_from_normalized_window(self, tmp_path):
+        from app.modules.journal.storage import JournalStorage
+        from app.modules.evidence import routes
+
+        db_path = str(tmp_path / "docsight.db")
+        journal = JournalStorage(db_path)
+        journal.save_entry("2026-06-10", "Previous local day", "outside")
+        journal.save_entry("2026-06-11", "Selected local day", "inside")
+
+        with patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"):
+            rows = routes._get_journal_entries_for_window(
+                db_path,
+                "2026-06-10T23:30:00Z",
+                "2026-06-11T00:30:00Z",
+            )
+
+        assert [row["title"] for row in rows] == ["Selected local day"]
+
+    def test_journal_window_falls_back_to_utc_when_configured_timezone_is_invalid(self, tmp_path):
+        from app.modules.journal.storage import JournalStorage
+        from app.modules.evidence import routes
+
+        db_path = str(tmp_path / "docsight.db")
+        journal = JournalStorage(db_path)
+        journal.save_entry("2026-06-10", "UTC day", "inside")
+
+        with patch.object(routes, "_get_tz_name", return_value="Invalid/Timezone"):
+            rows = routes._get_journal_entries_for_window(
+                db_path,
+                "2026-06-10T22:30:00Z",
+                "2026-06-10T23:00:00Z",
+            )
+
+        assert [row["title"] for row in rows] == ["UTC day"]
+
+    def test_bqm_rows_filter_to_exact_utc_window_after_local_date_fetch(self, tmp_path):
+        from app.modules.bqm.storage import BqmStorage
+        from app.modules.evidence import routes
+
+        db_path = str(tmp_path / "docsight.db")
+        storage = BqmStorage(db_path, "Europe/Berlin")
+        storage.store_csv_data([
+            {"timestamp": "2026-06-10T21:30:00Z", "date": "2026-06-10", "sent_polls": 10, "lost_polls": 0, "latency_min_ms": 10, "latency_avg_ms": 20, "latency_max_ms": 30, "score": 100},
+            {"timestamp": "2026-06-10T22:30:00Z", "date": "2026-06-11", "sent_polls": 10, "lost_polls": 0, "latency_min_ms": 11, "latency_avg_ms": 21, "latency_max_ms": 31, "score": 100},
+            {"timestamp": "2026-06-10T23:30:00Z", "date": "2026-06-11", "sent_polls": 10, "lost_polls": 0, "latency_min_ms": 12, "latency_avg_ms": 22, "latency_max_ms": 32, "score": 100},
+        ])
+
+        with patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"):
+            rows = routes._get_bqm_rows(
+                db_path,
+                "2026-06-10T22:00:00Z",
+                "2026-06-10T23:00:00Z",
+            )
+
+        assert [row["timestamp"] for row in rows] == ["2026-06-10T22:30:00Z"]
+
+    def test_bqm_rows_skip_malformed_timestamps_without_marking_source_unavailable(self, tmp_path):
+        from app.modules.bqm.storage import BqmStorage
+        from app.modules.evidence import routes
+
+        def fake_rows(self, start_date, end_date):
+            return [
+                {"timestamp": "not-a-timestamp", "sent_polls": 10},
+                {"timestamp": "2026-06-10T22:30:00Z", "sent_polls": 10},
+                {"timestamp": "2026-06-10T23:30:00Z", "sent_polls": 10},
+            ]
+
+        with patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"), \
+             patch.object(BqmStorage, "get_data_for_range", fake_rows):
+            rows = routes._get_bqm_rows(
+                str(tmp_path / "docsight.db"),
+                "2026-06-10T22:00:00Z",
+                "2026-06-10T23:00:00Z",
+            )
+
+        assert rows == [{"timestamp": "2026-06-10T22:30:00Z", "sent_polls": 10}]
+
+    def test_bqm_rows_return_unavailable_sentinel_on_storage_error(self, tmp_path):
+        from app.modules.evidence import routes
+
+        with patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"):
+            rows = routes._get_bqm_rows(
+                str(tmp_path / "missing" / "docsight.db"),
+                "2026-06-10T22:00:00Z",
+                "2026-06-10T23:00:00Z",
+            )
+
+        assert rows is None
+
+    def test_bqm_rows_return_unavailable_sentinel_when_bqm_module_is_missing(self, tmp_path):
+        from app.modules.evidence import routes
+
+        real_import = builtins.__import__
+
+        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "app.modules.bqm.storage":
+                raise ImportError("BQM module unavailable")
+            return real_import(name, globals, locals, fromlist, level)
+
+        with patch.object(builtins, "__import__", side_effect=guarded_import):
+            rows = routes._get_bqm_rows(
+                str(tmp_path / "docsight.db"),
+                "2026-06-10T22:00:00Z",
+                "2026-06-10T23:00:00Z",
+            )
+
+        assert rows is None
+
+    def test_manual_range_rejects_malformed_timestamp_with_specific_error(self):
+        from app.modules.evidence import routes
+
+        core = FakeCoreStorage()
+        config = Mock()
+        config.get.side_effect = lambda key, default=None: {"modem_type": "fritzbox"}.get(key, default)
+        config.is_speedtest_configured.return_value = False
+        config.is_bqm_configured.return_value = False
+        config.is_demo_mode.return_value = False
+
+        with app.test_request_context("/api/evidence/checklist?from=not-a-date&to=2026-06-10T23:00:00Z"):
+            with patch.object(routes, "get_storage", return_value=core), \
+                 patch.object(routes, "get_config_manager", return_value=config), \
+                 patch.object(routes, "_get_tz_name", return_value="Europe/Berlin"):
+                response, status = getattr(routes.api_evidence_checklist, "__wrapped__")()
+
+        assert status == 400
+        assert response.get_json()["error"] == "from/to must be valid ISO timestamps"
 
     def test_incident_without_start_date_returns_generic_error(self):
         from app.modules.evidence import routes

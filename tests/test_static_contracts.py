@@ -89,6 +89,12 @@ def test_evidence_module_registers_guided_journey_assets():
     assert "function _evidenceRenderSourceBreakdown" in js
     assert "docsight.evidence.source." in js
     assert "evidence-source-row" in js
+    assert "unavailable: 'unavailable'" in js
+    assert "docsight.evidence.copy_success" in js
+    assert "docsight.evidence.copy_failed" in js
+    assert "navigator.clipboard.writeText(text).then" in js
+    assert "aria-live=\"polite\"" in template
+    assert "evidence-status-unavailable" in css
     assert "evidence-source-list" in css
     assert "evidence-source-row" in css
     assert "/modules/docsight.evidence/static/main.js" in sw_js
@@ -190,7 +196,7 @@ def test_correlation_event_severity_filter_applies_to_table_and_chart():
 def test_static_cache_version_was_bumped_for_ui_followup_assets():
     sw_js = SW_JS.read_text(encoding="utf-8")
 
-    assert "var CACHE_VERSION = 'v54';" in sw_js
+    assert "var CACHE_VERSION = 'v55';" in sw_js
     assert "/static/css/main.css" in sw_js
     assert "/static/js/channels.js" in sw_js
     assert "/static/js/utils.js" in sw_js

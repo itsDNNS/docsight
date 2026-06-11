@@ -10,6 +10,7 @@ STALE = "stale"
 MISSING = "missing"
 OPTIONAL = "optional"
 NOT_APPLICABLE = "not_applicable"
+UNAVAILABLE = "unavailable"
 
 # Generous thresholds. The checklist is guidance, not an SLA monitor.
 _STALE_HOURS = {
@@ -116,7 +117,7 @@ def _evidence_status(
 
 def _latency_item(
     *,
-    bqm_rows: list[dict[str, Any]],
+    bqm_rows: list[dict[str, Any]] | None,
     connection_latency_rows: list[dict[str, Any]],
     bqm_configured: bool,
     connection_monitor_configured: bool,
@@ -131,25 +132,27 @@ def _latency_item(
         stale_key="latency",
     )
     bqm_status, bqm_last = _evidence_status(
-        bqm_rows,
+        bqm_rows or [],
         configured=bqm_configured,
         optional_when_unconfigured=True,
         window_end=window_end,
         stale_key="latency",
     )
+    if bqm_rows is None and bqm_configured:
+        bqm_status, bqm_last = UNAVAILABLE, None
     source_statuses = [cm_status, bqm_status]
-    rows = [*connection_latency_rows, *bqm_rows]
+    rows = [*connection_latency_rows, *(bqm_rows or [])]
     if PRESENT in source_statuses:
         status = PRESENT
     elif STALE in source_statuses:
         status = STALE
-    elif MISSING in source_statuses:
+    elif MISSING in source_statuses or UNAVAILABLE in source_statuses:
         status = MISSING
     else:
         status = OPTIONAL
 
     cm_count = _row_count(connection_latency_rows)
-    bqm_count = _row_count(bqm_rows)
+    bqm_count = _row_count(bqm_rows or [])
     if cm_count and bqm_count:
         hint_key = "docsight.evidence.item.latency.present_both" if status == PRESENT else None
         action = {"view": "connection-monitor"}
@@ -183,7 +186,7 @@ def build_checklist(
     *,
     timeline: list[dict[str, Any]],
     journal_entries: list[dict[str, Any]],
-    bqm_rows: list[dict[str, Any]],
+    bqm_rows: list[dict[str, Any]] | None,
     connection_latency_rows: list[dict[str, Any]] | None = None,
     capabilities: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
