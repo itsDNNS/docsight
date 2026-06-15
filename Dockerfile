@@ -37,7 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN adduser --disabled-password --gecos "" --uid 1000 appuser && \
-    mkdir -p /data && chown appuser:appuser /data
+    mkdir -p /data/modules /modules && \
+    chown -R appuser:appuser /data /modules
 COPY app/ ./app/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

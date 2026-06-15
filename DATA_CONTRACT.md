@@ -37,7 +37,7 @@ Examples:
 - Built-in demo fixtures, built-in module manifests, bundled maintainer notices, and static product assets.
 - Container image layers outside the mounted data directory.
 
-Built-in system files differ from user-installed extension files. Community modules and themes installed into `MODULES_DIR`, usually `/modules`, are local installation files chosen by the user. Their code and assets are not overwritten by DOCSight core updates unless the user installs, updates, removes, or replaces them.
+Built-in system files differ from user-installed extension files. Community modules and themes installed into `MODULES_DIR`, usually `/data/modules` in the Docker image, are local installation files chosen by the user. Their code and assets are not overwritten by DOCSight core updates unless the user installs, updates, removes, or replaces them.
 
 System updates must not rely on overwriting user-owned local data. Data migrations should preserve existing local records, create backup or rollback paths where risk is meaningful, and keep raw evidence intact unless the user chooses a destructive action.
 

@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from . import analyzer, web
 from .config import ConfigManager
 from .event_detector import EventDetector
+from .module_paths import get_modules_dir
 from .storage import SnapshotStorage
 from .tz import guess_iana_timezone, utc_cutoff
 
@@ -382,7 +383,7 @@ def main():
     from .module_loader import ModuleLoader
 
     builtin_path = os.path.join(os.path.dirname(__file__), "modules")
-    community_path = os.environ.get("MODULES_DIR", "/modules")
+    community_path = get_modules_dir()
     disabled_raw = config_mgr.get("disabled_modules", "")
     disabled_ids = {s.strip() for s in disabled_raw.split(",") if s.strip()}
 

@@ -92,6 +92,39 @@ class TestModulesInstall:
             assert resp.status_code == 400
             mock_dl.assert_not_called()
 
+    def test_successful_install_uses_configured_modules_dir(self, client, tmp_path, monkeypatch):
+        """Community installs write below MODULES_DIR and persist disabled-by-default."""
+        modules_dir = tmp_path / "modules"
+        monkeypatch.setenv("MODULES_DIR", str(modules_dir))
+
+        def fake_download(_url, target_dir):
+            os.makedirs(target_dir, exist_ok=True)
+            manifest = {
+                "id": "community.test",
+                "name": "Community Test",
+                "description": "Test module",
+                "version": "1.0.0",
+                "author": "DOCSight",
+                "minAppVersion": "2026.1",
+                "type": "analysis",
+                "contributes": {},
+            }
+            with open(os.path.join(target_dir, "manifest.json"), "w", encoding="utf-8") as f:
+                json.dump(manifest, f)
+            return True
+
+        with patch("app.blueprints.modules_bp.download_github_directory", side_effect=fake_download):
+            resp = client.post("/api/modules/install",
+                               data=json.dumps({"id": "community.test", "download_url": "https://api.github.com/test"}),
+                               content_type="application/json")
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data["success"] is True
+        assert (modules_dir / "community.test" / "manifest.json").is_file()
+        config = json.loads((tmp_path / "config" / "config.json").read_text(encoding="utf-8"))
+        assert "community.test" in config["disabled_modules"].split(",")
+
 
 class TestThemesInstall:
     def test_rejects_invalid_theme_id(self, client):
