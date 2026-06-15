@@ -9,6 +9,7 @@ from flask import Blueprint, jsonify, request
 
 from app.module_download import download_github_directory, fetch_registry as fetch_module_registry
 from app.module_loader import ID_PATTERN, validate_manifest
+from app.module_paths import get_modules_dir
 from app.path_safety import safe_child_path
 from app.theme_registry import download_theme, fetch_registry as fetch_theme_registry
 from app.web import get_config_manager, get_module_loader, require_auth
@@ -249,7 +250,7 @@ def api_themes_install():
     if not isinstance(theme_id, str) or not ID_PATTERN.match(theme_id):
         return jsonify({"success": False, "error": "Invalid theme ID"}), 400
 
-    modules_dir = os.environ.get("MODULES_DIR", "/modules")
+    modules_dir = get_modules_dir()
 
     try:
         theme_dir = safe_child_path(modules_dir, theme_id.replace(".", "_"))
@@ -263,7 +264,7 @@ def api_themes_install():
 
 
 def _get_modules_dir():
-    return os.environ.get("MODULES_DIR", "/modules")
+    return get_modules_dir()
 
 
 def _scan_installed_community_ids():
