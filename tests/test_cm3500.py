@@ -321,6 +321,19 @@ UpstreamServiceFlow =
         assert result["max_downstream_kbps"] == 1126400
         assert result["max_upstream_kbps"] == 52480
 
+    def test_unwraps_signed_uint32_service_flow_rates(self):
+        html = """<pre>
+DownstreamServiceFlow =
+    SfMaxTrafficRate = -1794967296
+DownstreamServiceFlow =
+    SfMaxTrafficRate = 15000000
+UpstreamServiceFlow =
+    SfMaxTrafficRate = 100000000
+</pre>"""
+        result = CM3500Driver._parse_service_flows(html)
+        assert result["max_downstream_kbps"] == 2500000
+        assert result["max_upstream_kbps"] == 100000
+
     def test_ignores_packet_classification_section(self):
         html = """<pre>
 DownstreamServiceFlow =

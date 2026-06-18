@@ -154,6 +154,8 @@ class CM3500Driver(ModemDriver):
         The config_params_cgi page contains a <pre> block with service flows.
         Each flow has a direction (Downstream/Upstream) and SfMaxTrafficRate
         in bps.  The highest rate per direction is the provisioned speed.
+        Some CM3500B firmware renders uint32 rates above 2 Gbit/s as signed
+        32-bit integers, so negative values are unwrapped before comparison.
         """
         ds_rates = []
         us_rates = []
@@ -169,9 +171,11 @@ class CM3500Driver(ModemDriver):
                                      "UpstreamPacketClassification")):
                 current_dir = None
             elif current_dir and stripped.startswith("SfMaxTrafficRate"):
-                match = re.search(r"=\s*(\d+)", stripped)
+                match = re.search(r"=\s*(-?\d+)", stripped)
                 if match:
                     rate = int(match.group(1))
+                    if rate < 0:
+                        rate += 2**32
                     if current_dir == "ds":
                         ds_rates.append(rate)
                     else:
