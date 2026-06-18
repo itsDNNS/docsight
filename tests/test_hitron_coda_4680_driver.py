@@ -254,8 +254,41 @@ class TestDocsisData:
         assert us_ofdma["channelID"] == 0
         assert us_ofdma["type"] == "OFDMA"
         assert us_ofdma["frequency"] == ""
-        assert us_ofdma["powerLevel"] == pytest.approx(52.6417)
+        assert us_ofdma["powerLevel"] == pytest.approx(38.75)
         assert us_ofdma["multiplex"] == "OFDMA"
+
+    def test_us_ofdma_uses_1_6_mhz_report_power(self, driver):
+        rows = [
+            {
+                "uschindex": "2",
+                "state": "OPERATE",
+                "channelBw": "39.2000",
+                "repPower": "53.8917",
+                "repPower1_6": "40.0000",
+                "fftVal": "2K",
+            }
+        ]
+
+        channels = driver._parse_us_ofdma(rows)
+
+        assert len(channels) == 1
+        assert channels[0]["powerLevel"] == pytest.approx(40.0)
+
+    def test_us_ofdma_leaves_power_unsupported_without_1_6_mhz_report_power(self, driver):
+        rows = [
+            {
+                "uschindex": "2",
+                "state": "OPERATE",
+                "channelBw": "39.2000",
+                "repPower": "53.8917",
+                "fftVal": "2K",
+            }
+        ]
+
+        channels = driver._parse_us_ofdma(rows)
+
+        assert len(channels) == 1
+        assert channels[0]["powerLevel"] is None
 
     def test_ds_ofdm_unlocked_rows_are_ignored(self, driver):
         rows = [

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from typing import Any
 
@@ -270,13 +271,24 @@ class HitronCoda4680Driver(ModemDriver):
                     # The captured CODA-4680 OFDMA API does not expose center
                     # frequency. Preserve unsupported as blank instead of 0 MHz.
                     "frequency": "",
-                    "powerLevel": float(row["repPower"]),
+                    "powerLevel": self._ofdma_power_1_6(row),
                     "modulation": "OFDMA",
                     "multiplex": "OFDMA",
                 })
             except (KeyError, TypeError, ValueError) as exc:
                 log.warning("Failed to parse Hitron CODA-4680 US OFDMA row: %s", exc)
         return channels
+
+    @staticmethod
+    def _ofdma_power_1_6(row: dict[str, Any]) -> float | None:
+        if "repPower1_6" not in row:
+            log.warning("Hitron CODA-4680 OFDMA row missing repPower1_6; leaving power unsupported")
+            return None
+        try:
+            power = float(str(row.get("repPower1_6")).strip())
+        except (TypeError, ValueError):
+            return None
+        return power if math.isfinite(power) else None
 
     @staticmethod
     def _parse_rate_kbps(value: Any) -> int:
