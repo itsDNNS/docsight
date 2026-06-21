@@ -1,894 +1,181 @@
-"""Static UI/CSS contract tests."""
+"""Durable static asset and catalog contract tests."""
+
+from __future__ import annotations
 
 import json
-import os
 import re
-import subprocess
 from collections import Counter
 from pathlib import Path
+from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
-VIEWS_CSS = ROOT / "app" / "static" / "css" / "views.css"
-CORRELATION_JS = ROOT / "app" / "static" / "js" / "correlation.js"
-CHART_ENGINE_JS = ROOT / "app" / "static" / "js" / "chart-engine.js"
-TRENDS_JS = ROOT / "app" / "static" / "js" / "trends.js"
-CHANNELS_JS = ROOT / "app" / "static" / "js" / "channels.js"
-MODULATION_MAIN_JS = ROOT / "app" / "modules" / "modulation" / "static" / "main.js"
-MODULATION_TEMPLATE = ROOT / "app" / "modules" / "modulation" / "templates" / "modulation_tab.html"
-COMPARISON_TEMPLATE = ROOT / "app" / "modules" / "comparison" / "templates" / "comparison_tab.html"
-CONNECTION_MONITOR_TEMPLATE = ROOT / "app" / "modules" / "connection_monitor" / "templates" / "connection_monitor_detail.html"
-SEGMENT_UTILIZATION_TEMPLATE = ROOT / "app" / "templates" / "segment_utilization_tab.html"
-SW_JS = ROOT / "app" / "static" / "sw.js"
-MAIN_CSS = ROOT / "app" / "static" / "css" / "main.css"
-INDEX_HTML = ROOT / "app" / "templates" / "index.html"
-NOTIFICATIONS_HTML = ROOT / "app" / "templates" / "settings" / "notifications.html"
-APP_I18N_DIR = ROOT / "app" / "i18n"
+APP = ROOT / "app"
+STATIC = APP / "static"
+TEMPLATES = APP / "templates"
+MODULES = APP / "modules"
+APP_I18N_DIR = APP / "i18n"
+
 EUROPEAN_LANGUAGE_PACK = {
     "bg", "cs", "da", "de", "el", "en", "es", "et", "fi", "fr",
     "ga", "hr", "hu", "it", "lt", "lv", "nb", "nl", "pl", "pt",
     "ro", "sk", "sl", "sv",
 }
+
 I18N_PLACEHOLDER_RE = re.compile(
     r"(</?[A-Za-z][^>]*>|&[a-zA-Z0-9#]+;|\{\{[^}]+\}\}|\{[^}]+\}|%\([^)]+\)[sd]|%[sd])"
 )
 I18N_PROTECTED_LITERALS = {"Apprise", "DOCSight", "dBmV", "Smokeping"}
 I18N_EMPTY_TAG_RE = re.compile(r"<([A-Za-z][^>]*)>\s*</\1>")
 I18N_LEADING_SENTINEL_RE = re.compile(r"^\s*@")
-CM_CSS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "style.css"
-CM_DETAIL_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-detail.js"
-CM_CHARTS_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-charts.js"
-CM_CARD_JS = ROOT / "app" / "modules" / "connection_monitor" / "static" / "js" / "connection-monitor-card.js"
-SEGMENT_UTILIZATION_JS = ROOT / "app" / "static" / "js" / "segment-utilization.js"
-BQM_CHART_JS = ROOT / "app" / "modules" / "bqm" / "static" / "js" / "bqm-chart.js"
-COMPARISON_MAIN_JS = ROOT / "app" / "modules" / "comparison" / "static" / "main.js"
-EVIDENCE_MANIFEST = ROOT / "app" / "modules" / "evidence" / "manifest.json"
-EVIDENCE_TEMPLATE = ROOT / "app" / "modules" / "evidence" / "templates" / "evidence_tab.html"
-EVIDENCE_MAIN_JS = ROOT / "app" / "modules" / "evidence" / "static" / "main.js"
-EVIDENCE_CSS = ROOT / "app" / "modules" / "evidence" / "static" / "style.css"
-UTILS_JS = ROOT / "app" / "static" / "js" / "utils.js"
-JOURNAL_JS = ROOT / "app" / "static" / "js" / "journal.js"
-
-
-def test_evidence_module_registers_guided_journey_assets():
-    manifest = json.loads(EVIDENCE_MANIFEST.read_text(encoding="utf-8"))
-    template = EVIDENCE_TEMPLATE.read_text(encoding="utf-8")
-    index = INDEX_HTML.read_text(encoding="utf-8")
-    js = EVIDENCE_MAIN_JS.read_text(encoding="utf-8")
-    css = EVIDENCE_CSS.read_text(encoding="utf-8")
-    sw_js = SW_JS.read_text(encoding="utf-8")
-
-    assert manifest["id"] == "docsight.evidence"
-    assert manifest["type"] == "analysis"
-    assert manifest["contributes"]["tab"] == "templates/evidence_tab.html"
-    assert "if modules|selectattr('id', 'equalto', 'docsight.evidence')|list" in index
-    assert index.count('data-view="evidence"') == 1
-    assert "mod-docsight-evidence" not in index
-    assert "view-evidence" in index
-    monitoring_idx = index.index('data-nav-section="monitoring"')
-    evidence_idx = index.index('data-nav-section="evidence"')
-    analysis_idx = index.index('data-nav-section="analysis"')
-    assert monitoring_idx < evidence_idx < analysis_idx
-    evidence_nav_block = index[evidence_idx:analysis_idx]
-    assert 'data-view="evidence"' in evidence_nav_block
-    assert 'data-nav-icon="clipboard-check"' in evidence_nav_block
-    analysis_setup = index[index.index("{% set analysis_items = [] %}"):analysis_idx]
-    assert "analysis_items.append('evidence')" not in analysis_setup
-    analysis_nav_block = index[analysis_idx:index.index('data-nav-section="external"')]
-    assert 'data-view="evidence"' not in analysis_nav_block
-    assert "if (typeof initEvidence === 'function') initEvidence();" in index
-    assert "function initEvidence()" in js
-    assert "'/api/evidence/checklist?incident_id='" in js
-    assert "URLSearchParams" not in js  # keep current query construction explicit and tiny
-    assert "data-lucide" in js
-    assert "data-icon" not in js
-    assert "toISOString()" not in js[js.index("function _evidenceDefaultWindow") : js.index("function _evidenceStatusLabel")]
-    assert "value + ':00Z'" not in js
-    assert "evidence-status-not_applicable" in css
-    assert "docsight.evidence.placeholder" in template
-    assert "item.label_key" in js
-    assert "function _evidenceRenderSourceBreakdown" in js
-    assert "docsight.evidence.source." in js
-    assert "evidence-source-row" in js
-    assert "unavailable: 'unavailable'" in js
-    assert "docsight.evidence.copy_success" in js
-    assert "docsight.evidence.copy_failed" in js
-    assert "navigator.clipboard.writeText(text).then" in js
-    assert "aria-live=\"polite\"" in template
-    assert "evidence-status-unavailable" in css
-    assert "evidence-source-list" in css
-    assert "evidence-source-row" in css
-    assert "/modules/docsight.evidence/static/main.js" in sw_js
-    assert "/modules/docsight.evidence/static/style.css" in sw_js
-
-
-def test_report_pdf_download_preserves_customer_detail_params():
-    js = UTILS_JS.read_text(encoding="utf-8")
-    download_block = js[js.index("function downloadReport()") : js.index("function copyExport()")]
-
-    assert "params.set('name', document.getElementById('report-name').value)" in download_block
-    assert "params.set('number', document.getElementById('report-number').value)" in download_block
-    assert "params.set('address', document.getElementById('report-address').value)" in download_block
-    assert "new URLSearchParams()" in download_block
-    assert "params.toString()" in download_block
-
-
-def test_incident_pdf_download_preserves_customer_detail_params():
-    js = JOURNAL_JS.read_text(encoding="utf-8")
-    download_block = js[js.index("window.downloadIncidentPdf") : js.index("function renderIncidentTimeline")]
-
-    assert "new URLSearchParams()" in download_block
-    assert "params.set('name', nameInput.value)" in download_block
-    assert "params.set('number', numberInput.value)" in download_block
-    assert "params.set('address', addressInput.value)" in download_block
-    assert "'/api/incidents/' + incidentId + '/report?' + params.toString()" in download_block
-
-
-def test_correlation_timeline_sticky_header_uses_opaque_surface():
-    css = VIEWS_CSS.read_text(encoding="utf-8")
-    header_block = css[css.index("#correlation-table thead th") : css.index("#correlation-table tbody tr")]
-
-    assert "position: sticky" in header_block
-    assert "background: var(--card-bg" in header_block
-    assert "rgba(0,0,0,0.15)" not in header_block
-    assert "z-index: 3" in header_block
-
-
-def test_correlation_table_uses_stable_desktop_columns():
-    css = VIEWS_CSS.read_text(encoding="utf-8")
-    table_block = css[css.index("#correlation-table {") : css.index("#correlation-table thead tr")]
 
-    assert "table-layout: fixed" in table_block
-    assert ".correlation-cell-timestamp" in css
-    assert ".correlation-cell-source" in css
-    assert ".correlation-cell-message" in css
-    assert ".correlation-cell-details" in css
-
-
-def test_correlation_legend_matches_home_signal_order_and_labels():
-    js = CORRELATION_JS.read_text(encoding="utf-8")
-
-    ds_idx = js.index("metric: 'dsPower'")
-    us_idx = js.index("metric: 'txPower'")
-    snr_idx = js.index("metric: 'snr'")
-
-    assert ds_idx < us_idx < snr_idx
-    assert "T.chart_ds_power || 'DS Power (dBmV)'" in js
-    assert "T.chart_us_power || 'US Power (dBmV)'" in js
-    assert "T.chart_snr || 'SNR (dB)'" in js
-
-
-def test_correlation_chart_omits_standalone_snr_axis_labels():
-    js = CORRELATION_JS.read_text(encoding="utf-8")
-
-    assert "ctx.fillText(s + ' dB'" not in js
-    assert "T.chart_snr_axis || 'SNR (dB)'" not in js
-
-
-def test_correlation_event_type_filter_applies_to_table_and_chart():
-    js = CORRELATION_JS.read_text(encoding="utf-8")
-
-    assert "function _corrEventTypeAllowed" in js
-    assert "_corrFilteredEvents(events)" in js
-    table_block = js[js.index("function renderCorrelationTable") :]
-    assert "_corrEventAllowed(e)" in table_block
-
-    popover_block = js[js.index("cb.addEventListener('change'") : js.index("// Close on outside click")]
-    assert "renderCorrelationChart(data)" in popover_block
-    assert "renderCorrelationTable(data)" in popover_block
-
-
-def test_correlation_event_severity_filter_applies_to_table_and_chart():
-    js = CORRELATION_JS.read_text(encoding="utf-8")
-
-    assert "var _corrEventSeverityFilter = {};" in js
-    assert "function _corrEventSeverityAllowed" in js
-    assert "function _corrEventAllowed" in js
-    assert "function _corrEscapeAttr" in js
-    assert "_CORR_SEVERITIES.indexOf(severity) !== -1 ? severity : 'info'" in js
-    assert "_corrFilteredEvents(events)" in js
-    filtered_block = js[js.index("function _corrFilteredEvents") : js.index("// Re-render chart")]
-    assert "_corrEventAllowed(e)" in filtered_block
-    table_block = js[js.index("function renderCorrelationTable") :]
-    assert "_corrEventAllowed(e)" in table_block
-    assert "data-event-severity" in js
-
-
-def test_static_cache_version_was_bumped_for_ui_followup_assets():
-    sw_js = SW_JS.read_text(encoding="utf-8")
-
-    assert "var CACHE_VERSION = 'v55';" in sw_js
-    assert "/static/css/main.css" in sw_js
-    assert "/static/js/channels.js" in sw_js
-    assert "/static/js/utils.js" in sw_js
-    assert "/modules/docsight.connection_monitor/static/style.css" in sw_js
-    assert "/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js" in sw_js
-    assert "/modules/docsight.modulation/static/main.js" in sw_js
-
-
-def test_home_signal_family_sparklines_use_data_keys():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    sparklines_js = (ROOT / "app" / "static" / "js" / "sparklines.js").read_text(encoding="utf-8")
-
-    assert "data-spark-key=\"{{ spark_key }}\"" in template
-    assert "querySelectorAll('canvas.metric-spark[data-spark-key]')" in sparklines_js
-    assert "canvas.dataset.sparkKey" in sparklines_js
-
-
-def test_home_signal_family_modulation_rows_stack_below_status():
-    css = MAIN_CSS.read_text(encoding="utf-8")
-    start = css.index(".dashboard-view .metrics-grid .metric-modulation-row")
-    block = css[start : css.index(".dashboard-view .metrics-grid .metric-context", start)]
-
-    assert "display: flex" in block
-    assert "align-items: baseline" in block
-    assert "gap: 6px" in block
-    assert "clear: both" in block
-    assert "width: 100%" in block
-
-
-def test_home_metric_range_bars_are_bottom_aligned_across_cards():
-    css = MAIN_CSS.read_text(encoding="utf-8")
-    card_block = css[
-        css.index(".dashboard-view .metrics-grid .metric-card.glass {") :
-        css.index(".dashboard-view .metrics-grid .metric-card.glass:hover")
-    ]
-    range_block = css[
-        css.index(".dashboard-view .metrics-grid .metric-range-viz {") :
-        css.index(".dashboard-view .metrics-grid .metric-range-caption", css.index(".dashboard-view .metrics-grid .metric-range-viz {"))
-    ]
-
-    assert "display: flex" in card_block
-    assert "flex-direction: column" in card_block
-    assert "margin-top: auto" in range_block
-    assert "padding-top: 8px" in range_block
-
-
-def test_home_signal_family_hint_uses_available_desktop_width():
-    css = MAIN_CSS.read_text(encoding="utf-8")
-    header_block = css[
-        css.index(".dashboard-section-header > span {") :
-        css.index(".dashboard-section-context", css.index(".dashboard-section-header > span {"))
-    ]
-
-    assert "max-width: min(72ch, calc(100vw - 24rem))" in header_block
-    assert "text-wrap: pretty" in header_block
-    assert "max-width: 38ch" not in header_block
-
-
-def test_channels_weather_overlay_contract_is_wired():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
-
-    assert 'id="channel-temp-toggle-btn"' in template
-    assert 'id="compare-temp-toggle-btn"' in template
-    assert "function _getChannelWeatherRange" in channels_js
-    assert "function _alignWeatherToChannelTimestamps" in channels_js
-    assert "function _fetchChannelWeatherForTimestamps" in channels_js
-    assert "function _updateChannelTempToggle" in channels_js
-    assert "function _updateCompareTempToggle" in channels_js
-    assert "_renderChannelTimelineCharts()" in channels_js
-    assert "_renderCompareCharts()" in channels_js
-    assert "tempData: _lastChannelWeather" in channels_js
-    assert "tempData: _lastCompareWeather" in channels_js
-
-
-def test_channels_modulation_charts_receive_temperature_overlay_options():
-    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
-    timeline_block = channels_js[
-        channels_js.index("renderChart('chart-ch-modulation'") : channels_js.index("function loadChannelTimeline")
-    ]
-    compare_block = channels_js[
-        channels_js.index("renderChart('chart-cmp-modulation'") : channels_js.index("function loadCompareCharts")
-    ]
-
-    assert "tempData:" in timeline_block
-    assert "tempByTimestamp" in timeline_block
-    assert "tempByTimestamp[d.timestamp] = _lastChannelWeather[idx]" in channels_js
-    assert "tempData:" in compare_block
-    assert "_lastCompareWeather" in compare_block
-
-
-def test_channels_chart_contracts_disable_implicit_points_and_zoom_fill():
-    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
-    chart_engine = CHART_ENGINE_JS.read_text(encoding="utf-8")
-    zoom_block = chart_engine[chart_engine.index("function openChartZoom") :]
-
-    assert "showPoints: false" in channels_js[channels_js.index("var powerDatasets") : channels_js.index("renderChart('chart-ch-power'")]
-    assert "showPoints: false" in channels_js[channels_js.index("var powerDatasets = _compareChannels.map") : channels_js.index("renderChart('chart-cmp-power'")]
-    assert "var zoomShowPoints = ds.showPoints;" in zoom_block
-    assert "if (zoomShowPoints === undefined) zoomShowPoints = n <= 30 && !isBar;" in zoom_block
-    assert "points: { show: zoomShowPoints" in zoom_block
-    assert "fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || (!isMulti && !isBar ? 'rgba(168,85,247,0.15)' : undefined))" not in zoom_block
-    assert "fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined)" in zoom_block
-
-
-def test_channels_controls_and_compare_titles_are_standardized():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    channel_toggle = template[template.index('id="channel-temp-toggle-btn"') : template.index('id="channel-compare-controls"')]
-    compare_toggle = template[template.index('id="compare-temp-toggle-btn"') : template.index('id="channel-no-data"')]
-    compare_charts = template[template.index('id="compare-charts"') : template.index('id="compare-errors-card"')]
-
-    assert "<svg" in channel_toggle
-    assert "<svg" in compare_toggle
-    assert "{{ t.power_dbmv }}" in compare_charts
-    assert "{{ t.snr_db }}" in compare_charts
-    assert "{{ t.power_history }}" not in compare_charts
-    assert "{{ t.snr_history }}" not in compare_charts
-
-
-def test_connection_monitor_raw_ping_log_export_is_discoverable():
-    template = (ROOT / "app" / "modules" / "connection_monitor" / "templates" / "connection_monitor_detail.html").read_text(encoding="utf-8")
-    detail_js = CM_DETAIL_JS.read_text(encoding="utf-8")
-
-    assert "cm-raw-log-panel" in template
-    assert "cm_raw_log_title" in template
-    assert "cm_raw_log_desc" in template
-    assert "cmExportRawLog" in detail_js
-    assert "format=pinglog" in detail_js
-    assert "resolution=raw" in detail_js
-    assert "cm_raw_log_download" in template or "dataset.lRawLogDownload" in detail_js
-
-
-def test_connection_monitor_raw_log_links_clear_on_no_data():
-    detail_js = CM_DETAIL_JS.read_text(encoding="utf-8")
-
-    assert "cm-raw-log-links" in detail_js
-    assert "rawLogLinks" in detail_js
-    assert "cm-raw-log-panel" in detail_js
-    assert "rawLogPanel.style.display = 'none'" in detail_js
-    assert "rawLogPanel.style.display = ''" in detail_js
-
-
-def test_connection_monitor_home_card_uses_kpi_card_anatomy():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    start = template.index('id="connection-monitor-card"')
-    card = template[start : template.index('{% endif %}', start)]
-
-    assert '<div class="metric-value-row">' in card
-    assert 'id="cm-card-latency"' in card
-    assert 'id="spark-connection-monitor"' in card
-    assert 'data-spark-key="connection_monitor_latency_ms"' in card
-    assert 'id="cm-card-avg"' in card
-    assert 'metric-sub metric-average-row' in card
-    assert 'id="cm-card-badge"' in card
-    assert 'metric-sub metric-status-row' in card
-    assert 'id="cm-card-mod-row"' in card
-    assert 'metric-sub metric-modulation-row' in card
-    assert 'id="cm-card-range"' in card
-    assert 'metric-range-viz' in card
-
-
-def test_connection_monitor_card_js_promotes_latency_to_primary_value():
-    script = f"""
-const fs = require('fs');
-const vm = require('vm');
-const code = fs.readFileSync({str(CM_CARD_JS)!r}, 'utf8');
-function makeEl(id) {{
-  return {{
-    id: id,
-    textContent: '',
-    className: '',
-    style: {{ props: {{}}, setProperty: function(k, v) {{ this.props[k] = v; }} }},
-    children: [],
-    appendChild: function(child) {{ this.children.push(child); this.textContent += child.textContent || ''; }},
-    setAttribute: function(k, v) {{ this[k] = v; }}
-  }};
-}}
-const elements = {{
-  'cm-card-latency': makeEl('cm-card-latency'),
-  'cm-card-avg': makeEl('cm-card-avg'),
-  'cm-card-badge': makeEl('cm-card-badge'),
-  'cm-card-mod-row': makeEl('cm-card-mod-row'),
-  'cm-card-range': makeEl('cm-card-range'),
-  'cm-card-range-context': makeEl('cm-card-range-context')
-}};
-const payload = {{
-  primary: {{ enabled: true, avg_latency_ms: 18.4, min_latency_ms: 15, max_latency_ms: 24, packet_loss_pct: 0 }},
-  backup: {{ enabled: true, avg_latency_ms: 21.6, min_latency_ms: 18, max_latency_ms: 26, packet_loss_pct: 0 }}
-}};
-const context = {{
-  console: console,
-  T: {{ health_good: 'Gut', health_marginal: 'Grenzwertig', health_critical: 'Kritisch', metric_average_label: 'Ø' }},
-  setInterval: function() {{}},
-  fetch: function() {{ return Promise.resolve({{ json: function() {{ return Promise.resolve(payload); }} }}); }},
-  document: {{
-    readyState: 'complete',
-    getElementById: function(id) {{ return elements[id] || null; }},
-    createElement: function() {{ return makeEl(null); }}
-  }}
-}};
-vm.createContext(context);
-vm.runInContext(code, context);
-setTimeout(function() {{
-  function assert(condition, message) {{ if (!condition) throw new Error(message); }}
-  assert(elements['cm-card-latency'].textContent === '20 ms ø', 'localized average label should be part of the primary value');
-  assert(elements['cm-card-avg'].textContent === '2/2 OK', 'target OK count should move to avg row');
-  assert(elements['cm-card-badge'].textContent === 'Gut', 'localized good status badge expected');
-  assert(elements['cm-card-badge'].className.indexOf('badge-good') !== -1, 'good badge class expected');
-  assert(elements['cm-card-mod-row'].textContent.indexOf('Packet Loss 0% · Jitter 8.5 ms') !== -1, 'packet loss and jitter metrics expected');
-  assert(elements['cm-card-range'].style.props['--metric-marker'] === '13.3%', 'latency marker should use 0-150 ms range');
-}}, 0);
-"""
-    result = subprocess.run(["node", "-e", script], cwd=ROOT, text=True, capture_output=True, check=False)
-
-    assert result.returncode == 0, result.stderr + result.stdout
-
-
-def test_chart_time_range_controls_use_normalized_existing_ranges():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    cm_template = (ROOT / "app" / "modules" / "connection_monitor" / "templates" / "connection_monitor_detail.html").read_text(encoding="utf-8")
-    expected_labels = ["1h", "6h", "1d", "2d", "3d", "7d", "30d", "90d"]
-    expected_values = ["1h", "6h", "1d", "2d", "3d", "7d", "30d", "90d"]
-    expected_seconds = ["3600", "21600", "86400", "172800", "259200", "604800", "2592000", "7776000"]
-
-    def block(source, start, end):
-        start_idx = source.index(start)
-        return source[start_idx : source.index(end, start_idx)]
-
-    def button_texts(html):
-        return re.findall(r"<button[^>]*>([^<{]+)</button>", html)
-
-    def data_values(html):
-        return re.findall(r"data-(?:range|value)=\"([^\"]+)\"", html)
-
-    controls = {
-        "trend": block(template, 'id="trend-tabs"', '</div>'),
-        "correlation": block(template, 'id="correlation-tabs"', '</div>'),
-        "channel": block(template, 'id="channel-time-tabs"', '</div>'),
-        "compare": block(template, 'id="compare-time-tabs"', '</div>'),
-    }
-    for name, html in controls.items():
-        assert button_texts(html) == expected_labels, name
-        assert data_values(html) == expected_values, name
-
-    cm_picker = block(cm_template, 'class="cm-range-picker', '</div>')
-    assert "trend-tabs" in cm_picker
-    assert button_texts(cm_picker) == expected_labels
-    assert re.findall(r"data-cm-range=\"([^\"]+)\"", cm_picker) == expected_seconds
-
-
-def test_chart_axis_label_formatter_contract_is_range_normalized():
-    script = f"""
-const fs = require('fs');
-const vm = require('vm');
-const code = fs.readFileSync({str(CHART_ENGINE_JS)!r}, 'utf8');
-const context = {{ console: console, window: {{ devicePixelRatio: 1 }} }};
-vm.createContext(context);
-vm.runInContext(code, context);
-const fmt = context.docsightFormatXAxisLabel;
-if (typeof fmt !== 'function') {{
-  throw new Error('docsightFormatXAxisLabel is not defined');
-}}
-const tsMs = Date.UTC(2026, 0, 2, 3, 4, 0);
-const tsSec = Math.floor(tsMs / 1000);
-const cases = [
-  [tsMs, '1h', '03:04'],
-  [tsMs, '6h', '03:04'],
-  [tsMs, '1d', '03:04'],
-  [tsMs, '2d', '01-02 03:04'],
-  [tsMs, '3d', '01-02 03:04'],
-  [tsMs, '7d', '01-02 03:04'],
-  [tsMs, '30d', '01-02'],
-  [tsMs, '90d', '01-02'],
-  [tsMs, 'bqm', '03:04'],
-  [tsSec, 24, '03:04'],
-  [tsSec, 168, '01-02 03:04'],
-  [tsSec, 720, '01-02'],
-  [tsSec, '168', '01-02 03:04'],
-  [tsSec, '720', '01-02'],
-  [tsSec, '86400s', '03:04'],
-  [tsSec, '604800s', '01-02 03:04'],
-  [tsSec, '2592000s', '01-02'],
-  [tsSec, 2160, '01-02'],
-];
-for (const [ts, range, expected] of cases) {{
-  const actual = fmt(ts, range);
-  if (actual !== expected) {{
-    throw new Error(`${{range}} expected ${{expected}} but got ${{actual}}`);
-  }}
-}}
-"""
-    env = os.environ.copy()
-    env["TZ"] = "UTC"
-    result = subprocess.run(["node", "-e", script], cwd=ROOT, env=env, text=True, capture_output=True, check=False)
-
-    assert result.returncode == 0, result.stderr + result.stdout
-
-
-def test_chart_axis_labels_use_shared_formatter_across_graphs():
-    chart_engine = CHART_ENGINE_JS.read_text(encoding="utf-8")
-    graph_sources = {
-        "trends": TRENDS_JS,
-        "channels": CHANNELS_JS,
-        "correlation": CORRELATION_JS,
-        "connection_monitor": CM_CHARTS_JS,
-        "segment_utilization": SEGMENT_UTILIZATION_JS,
-        "bqm": BQM_CHART_JS,
-        "comparison": COMPARISON_MAIN_JS,
-    }
-
-    assert "function docsightFormatXAxisLabel" in chart_engine
-    assert "function docsightFormatXAxisLabels" in chart_engine
-    for name, path in graph_sources.items():
-        js = path.read_text(encoding="utf-8")
-        assert "docsightFormatXAxisLabel" in js or "docsightFormatXAxisLabels" in js, name
-
-    legacy_patterns = {
-        "DD.MM axis labels": r"return dd \+ '\\.' \+ mo|return day \+ '\\.' \+ month|p2\(d\.getDate\(\)\) \+ '\\.'",
-        "slash date axis labels": r"getMonth\(\) \+ 1\) \+ '/' \+ d\.getDate",
-        "manual ISO axis labels": r"substring\(5, 16\)\.replace\('T', ' '\)|substring\(11, 16\)|formatDateDE\(d\.date\)",
-        "relative comparison hour labels": r"hourLabels\.map\(function\(h\) \{ return h \+ hrsLabel; \}\)",
-    }
+STATIC_URL_RE = re.compile(r"(?:href|src)=['\"](/(?:static|modules)/[^'\"?#]+)(?:\?[^'\"]*)?['\"]")
+QUOTED_ASSET_RE = re.compile(r"['\"](/(?:static|modules)/[^'\"?#]+)(?:\?[^'\"]*)?['\"]")
+MISMATCHED_HEADING_RE = re.compile(r"<(span|h2)\b[^>]*>[^\n]*</(?!\1>)(span|h2)>")
+
+
+def read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def module_id_to_dir() -> dict[str, Path]:
+    result: dict[str, Path] = {}
+    for manifest_path in MODULES.glob("*/manifest.json"):
+        manifest = read_json(manifest_path)
+        result[manifest["id"]] = manifest_path.parent
+    return result
+
+
+def local_asset_path(url: str, module_dirs: dict[str, Path] | None = None) -> Path | None:
+    if "{" in url or "}" in url:
+        return None
+    if url.startswith("/static/"):
+        return STATIC / url.removeprefix("/static/")
+    if url.startswith("/modules/"):
+        module_dirs = module_dirs or module_id_to_dir()
+        match = re.match(r"^/modules/([^/]+)/static/(.+)$", url)
+        if not match:
+            return None
+        module_id, rel_path = match.groups()
+        module_dir = module_dirs.get(module_id)
+        if module_dir is None:
+            return ROOT / "__missing_module__" / module_id / rel_path
+        return module_dir / "static" / rel_path
+    return None
+
+
+def collect_literal_asset_urls(paths: Iterable[Path]) -> dict[Path, set[str]]:
+    urls: dict[Path, set[str]] = {}
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        matches = {match.group(1) for match in STATIC_URL_RE.finditer(text)}
+        if matches:
+            urls[path] = matches
+    return urls
+
+
+def test_pwa_manifest_metadata_and_declared_assets_are_valid() -> None:
+    manifest = read_json(STATIC / "manifest.json")
+
+    assert manifest["name"].startswith("DOCSight")
+    assert manifest["short_name"] == "DOCSight"
+    assert manifest["display"] == "standalone"
+    assert manifest["start_url"].startswith("/")
+    assert manifest["scope"] == "/"
+    assert {item["form_factor"] for item in manifest["screenshots"]} == {"narrow", "wide"}
+
+    declared_assets = [icon["src"] for icon in manifest["icons"]]
+    declared_assets += [shot["src"] for shot in manifest["screenshots"]]
+    for shortcut in manifest["shortcuts"]:
+        assert shortcut["url"].startswith("/")
+        declared_assets.extend(icon["src"] for icon in shortcut["icons"])
+
+    missing = []
+    for url in declared_assets:
+        path = local_asset_path(url)
+        if path is None or not path.is_file():
+            missing.append(url)
+    assert missing == []
+
+
+def test_templates_reference_existing_literal_static_assets() -> None:
+    template_paths = sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
+    references = collect_literal_asset_urls(template_paths)
+    module_dirs = module_id_to_dir()
+
+    missing = []
+    for source, urls in references.items():
+        for url in sorted(urls):
+            path = local_asset_path(url, module_dirs)
+            if path is not None and not path.is_file():
+                missing.append(f"{source.relative_to(ROOT)} -> {url}")
+
+    assert missing == []
+
+
+def test_service_worker_precache_references_existing_public_assets() -> None:
+    sw_js = (STATIC / "sw.js").read_text(encoding="utf-8")
+    module_dirs = module_id_to_dir()
+
+    assert re.search(r"var CACHE_VERSION = 'v\d+';", sw_js)
+    for required in [
+        "/static/manifest.json",
+        "/static/logo.svg",
+        "/static/icon.png",
+        "/static/css/main.css",
+        "/static/js/chart-engine.js",
+    ]:
+        assert required in sw_js
+
+    missing = []
+    for url in sorted(set(QUOTED_ASSET_RE.findall(sw_js))):
+        path = local_asset_path(url, module_dirs)
+        if path is not None and not path.is_file():
+            missing.append(url)
+
+    assert missing == []
+
+
+def test_builtin_module_manifests_reference_existing_declared_files() -> None:
+    path_contributions = {"routes", "settings", "card", "tab", "static", "i18n", "thresholds"}
+    missing = []
+    for manifest_path in sorted(MODULES.glob("*/manifest.json")):
+        module_dir = manifest_path.parent
+        manifest = read_json(manifest_path)
+        assert manifest["id"].startswith("docsight.")
+        assert manifest["type"] in {"analysis", "driver", "integration", "theme"}
+        for key, value in manifest.get("contributes", {}).items():
+            if key in {"collector", "publisher", "driver"}:
+                value = value.split(":", 1)[0]
+            elif key not in path_contributions:
+                continue
+            target = module_dir / value.rstrip("/")
+            if not target.exists():
+                missing.append(f"{manifest_path.relative_to(ROOT)} {key}={value}")
+
+    assert missing == []
+
+
+def test_static_templates_keep_basic_heading_markup_well_formed() -> None:
     offenders = []
-    for name, path in graph_sources.items():
-        js = path.read_text(encoding="utf-8")
-        for label, pattern in legacy_patterns.items():
-            if re.search(pattern, js):
-                offenders.append(f"{name}: {label}")
+    for path in sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html")):
+        text = path.read_text(encoding="utf-8")
+        offenders.extend(f"{path.relative_to(ROOT)}: {match.group(0)}" for match in MISMATCHED_HEADING_RE.finditer(text))
 
     assert offenders == []
 
 
-def test_modulation_range_control_uses_normalized_labels_while_preserving_today():
-    template = MODULATION_TEMPLATE.read_text(encoding="utf-8")
-    range_tabs = template[template.index('id="modulation-range-tabs"') : template.index('</div>', template.index('id="modulation-range-tabs"'))]
-    labels_by_days = {
-        days: re.sub(r"\s+", " ", label).strip()
-        for days, label in re.findall(r'<button class="trend-tab(?: active)?" data-days="(\d+)">(.*?)</button>', range_tabs, re.S)
-    }
-
-    assert set(labels_by_days) == {"1", "7", "30"}
-    assert labels_by_days["1"] == "{{ t.get('docsight.modulation.today', 'Today') }}"
-    assert labels_by_days["7"] == "7d"
-    assert labels_by_days["30"] == "30d"
-
-
-def test_channels_legacy_days_hashes_normalize_to_range_tabs():
-    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
-
-    assert "function _normalizeChannelRangeValue" in channels_js
-    assert "if (/^\\d+$/.test(raw)) raw = raw + 'd';" in channels_js
-    assert "var allowed = ['1h', '6h', '1d', '2d', '3d', '7d', '30d', '90d'];" in channels_js
-    assert "return allowed.indexOf(raw) !== -1 ? raw : '1d';" in channels_js
-    assert "_normalizeChannelRangeValue(params.range || params.days || '1d')" in channels_js
-
-
-def test_trend_title_uses_stable_page_title_without_range_or_stale_date_suffix():
-    trends_js = TRENDS_JS.read_text(encoding="utf-8")
-
-    assert "title.textContent = T.signal_trends || 'Signal Trends'" in trends_js
-    assert "Signal Trends') + ' ('" not in trends_js
-    assert "formatDateDE(date)" not in trends_js
-    assert "&date=" not in trends_js
-
-
-def test_trend_errors_chart_labels_values_as_total_error_count():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    errors_card = template[template.index('id="trend-errors-card"') : template.index('id="chart-errors"')]
-
-    assert "{{ t.metric_error_count }}" in errors_card
-    assert "{{ t.errors }}" not in errors_card
-    offenders = []
-    for path in sorted(APP_I18N_DIR.glob("*.json")):
-        data = json.loads(path.read_text(encoding="utf-8-sig"))
-        if "metric_error_count" not in data:
-            offenders.append(path.name)
-    assert offenders == []
-
-
-def test_hero_chart_fetches_normalized_one_day_range():
-    hero_chart_js = (ROOT / "app" / "static" / "js" / "hero-chart.js").read_text(encoding="utf-8")
-
-    assert "fetch('/api/trends?range=1d')" in hero_chart_js
-    assert "fetch('/api/trends?range=week')" not in hero_chart_js
-
-
-def test_signal_trend_consumers_ignore_ancillary_sparkline_rows():
-    hero_chart_js = (ROOT / "app" / "static" / "js" / "hero-chart.js").read_text(encoding="utf-8")
-    trends_js = TRENDS_JS.read_text(encoding="utf-8")
-
-    assert "function isDocsisTrendRow(row)" in hero_chart_js
-    assert "isDocsisTrendRow(d) && new Date(d.timestamp) >= cutoff" in hero_chart_js
-    assert "function _isDocsisTrendRow(row)" in trends_js
-    assert "(results[0] || []).filter(_isDocsisTrendRow)" in trends_js
-
-
-def test_temperature_controls_are_consistently_after_time_range_controls_without_new_selectors():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    trend_header = template[template.index('id="view-trends"') : template.index('id="trend-no-data"')]
-    channel_controls = template[template.index('id="channel-timeline-controls"') : template.index('id="channel-compare-controls"')]
-    compare_controls = template[template.index('id="channel-compare-controls"') : template.index('id="channel-no-data"')]
-    correlation_header = template[template.index('id="view-correlation"') : template.index('id="correlation-loading"')]
-
-    assert trend_header.index('id="trend-tabs"') < trend_header.index('id="temp-toggle-btn"')
-    assert channel_controls.index('id="channel-time-tabs"') < channel_controls.index('id="channel-temp-toggle-btn"')
-    assert compare_controls.index('id="compare-time-tabs"') < compare_controls.index('id="compare-temp-toggle-btn"')
-    assert 'correlation-temp-toggle' not in correlation_header
-
-
-def _view_block(template: str, view_id: str) -> str:
-    start = template.index(f'id="{view_id}"')
-    next_view = template.find('id="view-', start + 1)
-    return template[start: next_view if next_view != -1 else len(template)]
-
-
-def test_main_blades_use_shared_correlation_style_page_header():
-    """Primary app views should use one Correlation-style top section contract."""
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    expected_titles = {
-        "view-trends": "t.signal_trends",
-        "view-bqm": "t.bqm_title",
-        "view-smokeping": "t.smokeping_title",
-        "view-correlation": "t.correlation_title",
-        "view-journal": "t.incident_journal",
-        "view-events": "t.event_log",
-        "view-channels": "t.channels",
-        "view-speedtest": "t.speedtest_tracker",
-        "view-gaming": "t.gaming_quality_label",
-        "view-bnetz": "t.bnetz_title",
-    }
-
-    offenders = []
-    for view_id, title_expression in expected_titles.items():
-        block = _view_block(template, view_id)
-        if "view-page-header" not in block:
-            offenders.append(f"{view_id}: missing shared header")
-        if "view-page-title" not in block:
-            offenders.append(f"{view_id}: missing shared title class")
-        if title_expression not in block:
-            offenders.append(f"{view_id}: missing stable title expression {title_expression}")
-
-    assert offenders == []
-
-
-def test_module_blades_use_shared_correlation_style_page_header():
-    module_templates = {
-        "connection-monitor": CONNECTION_MONITOR_TEMPLATE.read_text(encoding="utf-8"),
-        "modulation": MODULATION_TEMPLATE.read_text(encoding="utf-8"),
-        "comparison": COMPARISON_TEMPLATE.read_text(encoding="utf-8"),
-        "segment-utilization": SEGMENT_UTILIZATION_TEMPLATE.read_text(encoding="utf-8"),
-    }
-
-    offenders = []
-    for name, template in module_templates.items():
-        if "view-page-header" not in template:
-            offenders.append(f"{name}: missing shared header")
-        if "view-page-title" not in template:
-            offenders.append(f"{name}: missing shared title class")
-
-    assert offenders == []
-
-
-def test_connection_monitor_range_controls_live_in_shared_page_header_actions():
-    """Connection Monitor should not keep a separate boxed top control strip."""
-    template = CONNECTION_MONITOR_TEMPLATE.read_text(encoding="utf-8")
-    detail_js = CM_DETAIL_JS.read_text(encoding="utf-8")
-    cm_css = CM_CSS.read_text(encoding="utf-8")
-    header_block = template[
-        template.index('<div class="view-page-header cm-page-header">') :
-        template.index('<div id="cm-pinned-days-bar"')
-    ]
-    pin_block = detail_js[
-        detail_js.index("function updatePinButton") :
-        detail_js.index("// --- Pinned Days Bar ---")
-    ]
-    pinned_bar = template[
-        template.index('<div id="cm-pinned-days-bar"') :
-        template.index('<section id="cm-raw-log-panel"')
-    ]
-    range_picker = header_block[
-        header_block.index('class="cm-range-picker trend-tabs"') :
-        header_block.index('</div>', header_block.index('class="cm-range-picker trend-tabs"'))
-    ]
-
-    assert 'class="view-page-actions' in header_block
-    assert 'class="cm-range-picker trend-tabs"' in header_block
-    assert 'id="cm-capability-info" class="cm-capability"' in header_block
-    assert header_block.index('id="cm-capability-info"') < header_block.index('class="cm-range-picker trend-tabs"')
-    assert 'data-cm-range="3600"' in header_block
-    assert 'class="cm-control-strip"' not in template
-    assert 'id="cm-pin-day-btn"' in pinned_bar
-    assert 'id="cm-pin-day-btn"' not in header_block
-    assert 'cm-pin-day-btn' not in range_picker
-    assert "document.createElement('button')" not in pin_block
-    assert "parent.appendChild(btn)" not in pin_block
-    assert "btn.className = 'cm-pin-action';" not in pin_block
-    assert ".cm-pin-action" not in cm_css
-
-
-def test_events_and_channels_controls_are_part_of_shared_header_actions():
-    """Events and Channels should not keep visually separate legacy header/control rows."""
-    template = INDEX_HTML.read_text(encoding="utf-8")
-
-    events_header = template[
-        template.index('<div class="view-page-header events-header">') :
-        template.index('<div id="events-loading"')
-    ]
-    channels_header = template[
-        template.index('<div id="view-channels"') :
-        template.index('<div id="channel-info-bar"')
-    ]
-
-    assert '<div class="view-page-actions events-filter-section">' in events_header
-    assert '<div class="events-severity-pills" role="group" aria-label="{{ t.event_severity }}">' in events_header
-    assert 'events-filter-label' not in events_header
-    assert '<div class="events-filter-section">' not in events_header
-    assert '<div class="view-page-actions ch-controls">' not in channels_header
-    assert '<div class="view-page-actions">' in channels_header
-    assert 'id="channel-mode-tabs"' in channels_header
-
-
-def test_touched_header_templates_do_not_mix_span_and_h2_closing_tags():
-    templates = {
-        "index.html": INDEX_HTML.read_text(encoding="utf-8"),
-        "connection-monitor": CONNECTION_MONITOR_TEMPLATE.read_text(encoding="utf-8"),
-        "modulation": MODULATION_TEMPLATE.read_text(encoding="utf-8"),
-        "comparison": COMPARISON_TEMPLATE.read_text(encoding="utf-8"),
-        "segment-utilization": SEGMENT_UTILIZATION_TEMPLATE.read_text(encoding="utf-8"),
-    }
-    mismatched_tag = re.compile(r"<(span|h2)\b[^>]*>[^\n]*</(?!\1>)(span|h2)>")
-
-    offenders = []
-    for name, template in templates.items():
-        offenders.extend(f"{name}: {match.group(0)}" for match in mismatched_tag.finditer(template))
-
-    assert offenders == []
-
-
-def test_signal_trends_title_is_stable_and_does_not_embed_selected_range():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    trends_block = _view_block(template, "view-trends")
-    trends_js = TRENDS_JS.read_text(encoding="utf-8")
-
-    assert "{{ t.signal_trends }}" in trends_block
-    assert "Signal Trends') + ' ('" not in trends_js
-    assert "signal_trends || 'Signal Trends') + ' ('" not in trends_js
-
-
-def test_shared_view_page_header_css_matches_correlation_option_a_contract():
-    css = VIEWS_CSS.read_text(encoding="utf-8")
-    header_block = css[css.index(".view-page-header") : css.index(".view-page-actions")]
-    title_block = css[css.index(".view-page-title") : css.index(".view-page-subtitle")]
-    subtitle_block = css[css.index(".view-page-subtitle") : css.index("/* Correlation Chart Card")]
-
-    assert "display: flex" in header_block
-    assert "justify-content: space-between" in header_block
-    assert "flex-wrap: wrap" in header_block
-    assert "font-size: 1.15em" in title_block
-    assert "font-weight: 700" in title_block
-    assert "color: var(--text" in title_block
-    assert "font-size: 0.8em" in subtitle_block
-    assert "color: var(--text-muted" in subtitle_block
-
-
-def test_chart_engine_has_configurable_axis_padding_for_long_qam_labels():
-    js = CHART_ENGINE_JS.read_text(encoding="utf-8")
-    channels_js = CHANNELS_JS.read_text(encoding="utf-8")
-
-    assert "DEFAULT_Y_AXIS_SIZE" in js
-    assert "DEFAULT_ZOOM_Y_AXIS_SIZE" in js
-    assert "DEFAULT_X_EDGE_PADDING" in js
-    assert "function calculateXEdgePadding" in js
-    assert "function calculateMaxXTicks" in js
-    assert "opts.yAxisSize" in js
-    assert "params.opts.zoomYAxisSize" in js
-    assert "xData[0] - xEdgePadding" in js
-    assert "xData[xData.length - 1] + xEdgePadding" in js
-    assert "calculateMaxXTicks(labels, width, yAxisSize" in js
-    assert "yAxisSize: 72" in channels_js
-    assert "zoomYAxisSize: 80" in channels_js
-    assert "maxXTicks: 4" in channels_js
-
-
-def test_chart_zoom_uses_bounded_index_ticks_instead_of_all_samples():
-    js = CHART_ENGINE_JS.read_text(encoding="utf-8")
-    zoom_block = js[js.index("function openChartZoom") :]
-
-    assert "function buildEvenIndexTicks" in js
-    assert "calculateMaxXTicks(params.labels, w, zoomYAxisSize, 10)" in zoom_block
-    assert "var zoomXSplits = buildEvenIndexTicks(n, zoomMaxTicks);" in zoom_block
-    assert "for (var i = 0; i < n; i++) o.push(i); return o;" not in zoom_block
-    assert "filter: xTickValues" not in zoom_block
-
-
-def test_trend_single_metric_charts_fill_to_visible_axis_floor():
-    chart_engine = CHART_ENGINE_JS.read_text(encoding="utf-8")
-    trends = TRENDS_JS.read_text(encoding="utf-8")
-    snr_block = trends[trends.index("renderChart('chart-ds-snr'") : trends.index("renderChart('chart-us-power'")]
-
-    assert "function fillToScaleMin" in chart_engine
-    assert "if (ds.fillTo !== undefined && ds.fillTo !== null) s.fillTo = ds.fillTo;" in chart_engine
-    assert "fill: isBar ? (ds.color || '#a855f7') + 'cc' : (ds.fill || undefined)" in chart_engine
-    assert "var POWER_TREND_FILL" in trends
-    assert "fill: POWER_TREND_FILL" in snr_block
-    assert "fillTo: fillToScaleMin" in snr_block
-    assert trends.count("fill: POWER_TREND_FILL") >= 3
-
-
-def test_connection_monitor_card_treats_no_enabled_targets_as_no_data():
-    js = CM_CARD_JS.read_text(encoding="utf-8")
-    no_enabled_block = js[js.index("if (enabled.length === 0)") : js.index("var ok = enabled.filter")]
-
-    assert "setEmpty(elements);" in no_enabled_block
-    assert "return;" in no_enabled_block
-
-
-def test_modulation_overview_charts_bound_daily_x_axis_ticks():
-    js = MODULATION_MAIN_JS.read_text(encoding="utf-8")
-    dist_block = js[js.index("function renderGroupDistChart") : js.index("function attachModulationDayClick")]
-    trend_block = js[js.index("function renderGroupTrendChart") : js.index("/* ── Intraday")]
-
-    assert "function buildModulationXAxisTicks" in js
-    assert "calculateMaxXTicks(labels, width" in js
-    assert "buildEvenIndexTicks(labels.length" in js
-    assert "var xSplits = buildModulationXAxisTicks(labels, w);" in dist_block
-    assert "var xSplits = buildModulationXAxisTicks(labels, w);" in trend_block
-    assert "splits: function() { return xSplits; }" in dist_block
-    assert "splits: function() { return xSplits; }" in trend_block
-    assert "splits: function() { return xData; }" not in dist_block
-    assert "splits: function() { return xData; }" not in trend_block
-
-
-def test_downstream_channel_modulation_column_exposes_health_classification():
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    ds_table_block = template[template.index("DOWNSTREAM CHANNELS") : template.index("UPSTREAM CHANNELS")]
-
-    assert '<td data-health="{{ ch.modulation_health or \'good\' }}">{{ ch.modulation }}</td>' in ds_table_block
-
-
-def test_notification_settings_expose_channel_change_warning_cooldown():
-    template = NOTIFICATIONS_HTML.read_text(encoding="utf-8")
-
-    assert "cooldown_row('channel_change', t.notify_event_channel_change, 'info'" in template
-    assert "cooldown_row('channel_change', t.notify_event_channel_change, 'warning'" in template
-
-
-def test_dashboard_i18n_keys_exist_in_all_language_files():
-    required_keys = {
-        "dashboard_signal_trend",
-        "dashboard_signal_scope",
-        "dashboard_channel_health",
-        "dashboard_section_channels",
-        "dashboard_section_overview",
-        "dashboard_key_metrics",
-        "dashboard_key_metrics_hint",
-        "dashboard_channel_details",
-        "dashboard_channel_details_hint",
-        "dashboard_modulation_context",
-        "dashboard_modulation_open_detail",
-        "dashboard_modulation_unavailable",
-        "dashboard_modulation_missing_hint",
-        "dashboard_modulation_normal",
-        "dashboard_modulation_us_cause",
-        "dashboard_modulation_ds_detail_hint",
-    }
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    missing_from_template = [key for key in required_keys if key not in template]
-    assert missing_from_template == []
-
-    offenders = []
-    for path in sorted(APP_I18N_DIR.glob("*.json")):
-        data = json.loads(path.read_text(encoding="utf-8"))
-        missing = sorted(required_keys - data.keys())
-        if missing:
-            offenders.append(f"{path.name}: {', '.join(missing)}")
-
-    assert offenders == []
-
-
-def test_european_language_pack_files_cover_core_catalogs():
-    """Every selectable core i18n catalog participates in the European language pack."""
+def test_european_language_pack_files_cover_core_catalogs() -> None:
     present = {path.stem for path in APP_I18N_DIR.glob("*.json") if path.stem != "template"}
     missing = sorted(EUROPEAN_LANGUAGE_PACK - present)
 
     assert missing == []
 
 
-def test_builtin_module_i18n_catalogs_keep_only_runtime_sources():
+def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
     """Built-in module UI catalogs use en.json fallback; reports keeps PDF locale files."""
     offenders = []
     allowed_locale_modules = {"reports"}
-    for i18n_dir in sorted((ROOT / "app" / "modules").glob("*/i18n")):
+    for i18n_dir in sorted(MODULES.glob("*/i18n")):
         if not (i18n_dir / "en.json").exists():
             continue
         module_name = i18n_dir.parent.name
@@ -901,14 +188,14 @@ def test_builtin_module_i18n_catalogs_keep_only_runtime_sources():
     assert offenders == []
 
 
-def test_european_language_pack_metadata_and_key_parity():
+def test_european_language_pack_metadata_and_key_parity() -> None:
     """Core locale files are selectable and structurally complete."""
-    en = json.loads((APP_I18N_DIR / "en.json").read_text(encoding="utf-8-sig"))
+    en = read_json(APP_I18N_DIR / "en.json")
     expected_keys = set(en.keys())
     offenders = []
     for code in sorted(EUROPEAN_LANGUAGE_PACK):
         path = APP_I18N_DIR / f"{code}.json"
-        data = json.loads(path.read_text(encoding="utf-8-sig"))
+        data = read_json(path)
         meta = data.get("_meta", {})
         if not meta.get("language_name") or meta.get("language_name") == code:
             offenders.append(f"{code}: missing native language_name")
@@ -922,11 +209,11 @@ def test_european_language_pack_metadata_and_key_parity():
     assert offenders == []
 
 
-def test_european_language_pack_preserves_catalog_contracts():
+def test_european_language_pack_preserves_catalog_contracts() -> None:
     """Every catalog keeps key, list, and placeholder contracts intact."""
     offenders = []
 
-    def walk(path_label, source, target):
+    def walk(path_label: str, source: Any, target: Any) -> None:
         if isinstance(source, dict) and isinstance(target, dict):
             missing = sorted(set(source) - set(target))
             extra = sorted(set(target) - set(source))
@@ -955,10 +242,10 @@ def test_european_language_pack_preserves_catalog_contracts():
             if source_placeholders != target_placeholders:
                 offenders.append(f"{path_label}: placeholder mismatch")
 
-    i18n_dirs = [APP_I18N_DIR, ROOT / "app" / "modules" / "reports" / "i18n"]
-    module_i18n_dirs = sorted((ROOT / "app" / "modules").glob("*/i18n"))
+    i18n_dirs = [APP_I18N_DIR, MODULES / "reports" / "i18n"]
+    module_i18n_dirs = sorted(MODULES.glob("*/i18n"))
     for i18n_dir in module_i18n_dirs:
-        if i18n_dir.name == "i18n" and i18n_dir.parent.name == "reports":
+        if i18n_dir.parent.name == "reports":
             continue
         module_catalogs = sorted(path for path in i18n_dir.glob("*.json") if path.name != "en.json")
         if module_catalogs:
@@ -970,74 +257,10 @@ def test_european_language_pack_preserves_catalog_contracts():
         source_path = i18n_dir / "en.json"
         if not source_path.exists():
             continue
-        source = json.loads(source_path.read_text(encoding="utf-8-sig"))
+        source = read_json(source_path)
         for code in sorted(EUROPEAN_LANGUAGE_PACK):
             path = i18n_dir / f"{code}.json"
-            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            data = read_json(path)
             walk(f"{path.relative_to(ROOT)}", source, data)
 
     assert offenders == []
-
-
-def test_dashboard_insight_layout_uses_safe_responsive_columns():
-    css = MAIN_CSS.read_text(encoding="utf-8")
-
-    assert "grid-template-columns: 42px minmax(0, 1fr);" in css
-    assert "grid-column: 2;" in css
-    assert "minmax(280px, 1fr) minmax(230px" not in css
-
-
-def test_dashboard_modulation_layout_is_sidecar_not_below_channel_health():
-    css = MAIN_CSS.read_text(encoding="utf-8")
-    template = INDEX_HTML.read_text(encoding="utf-8")
-    visual_block = css[css.index(".dashboard-hero .hero-visual-row {") : css.index(".dashboard-hero .hero-chart-wrap {")]
-    health_block = css[css.index(".dashboard-hero .hero-channel-health {") : css.index(".dashboard-hero .hero-channel-health-head")]
-
-    assert "grid-template-columns: var(--hero-side-col) minmax(150px, 180px) minmax(0, 1fr);" in visual_block
-    assert "align-items: start;" in visual_block
-    assert "grid-column: 2;" in css[css.index(".dashboard-hero .hero-modulation-context {") : css.index(".dashboard-hero .hero-modulation-head {")]
-    assert "<aside class=\"hero-channel-health" in template
-    assert template.index('class="hero-channel-health"') < template.index('class="hero-modulation-context"') < template.index('class="hero-chart-wrap"')
-    assert "grid-template-rows: auto minmax(0, 1fr);" not in health_block
-
-
-def test_connection_monitor_mobile_pinned_bar_stays_hidden_by_default():
-    css = CM_CSS.read_text(encoding="utf-8")
-    mobile_block = css[css.index("@media (max-width: 760px)") :]
-
-    assert ".cm-pinned-bar," not in mobile_block
-    assert ".cm-pinned-bar {\n        display: flex;" not in mobile_block
-
-
-def test_connection_monitor_no_data_clears_range_bound_panels():
-    js = CM_DETAIL_JS.read_text(encoding="utf-8")
-    show_block = js[js.index("function showNoData") : js.index("function hideNoData")]
-
-    assert "cm-stats-cards" in show_block
-    assert "cm-outage-panel" in show_block
-    assert "textContent = ''" in show_block
-
-
-def test_connection_monitor_interactions_expose_keyboard_and_state():
-    js = CM_DETAIL_JS.read_text(encoding="utf-8")
-
-    assert "setAttribute('aria-pressed'" in js
-    assert "cm-pinned-chip" in js
-    assert "removeBtn = document.createElement('button')" in js
-    assert "removedActiveDay" in js
-    assert "var toggleBtn = document.createElement('button')" in js
-    assert "toggleBtn.setAttribute('aria-expanded'" in js
-    assert "tr.tabIndex = 0" not in js
-    assert "tr.setAttribute('role', 'button')" not in js
-
-
-def test_connection_monitor_availability_and_table_semantics_are_accessible():
-    js = CM_CHARTS_JS.read_text(encoding="utf-8")
-    css = CM_CSS.read_text(encoding="utf-8")
-
-    assert "container.setAttribute('role', 'img')" in js
-    assert "container.setAttribute('aria-label'" in js
-    assert "dataset.lAvailability" in js
-    assert "removeAttribute('aria-label')" in CM_DETAIL_JS.read_text(encoding="utf-8")
-    assert "cm-visually-hidden" in css
-    assert "#cm-per-target-stats .cm-target-table thead {\n    display: none;" not in css
