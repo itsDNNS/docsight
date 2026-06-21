@@ -41,11 +41,28 @@ def test_core_glossary_keys_present(lang):
         assert len(data[key]) > 10, f"Empty/too-short value for {key} in {lang}.json"
 
 
-@pytest.mark.parametrize("lang", LANGUAGES)
-def test_modulation_glossary_keys_present(lang):
-    path = os.path.join(MOD_I18N_DIR, f"{lang}.json")
+def test_modulation_glossary_keys_present_in_source_catalog():
+    path = os.path.join(MOD_I18N_DIR, "en.json")
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     for key in MOD_GLOSSARY_KEYS:
-        assert key in data, f"Missing {key} in modulation/{lang}.json"
-        assert len(data[key]) > 10, f"Empty/too-short value for {key} in modulation/{lang}.json"
+        assert key in data, f"Missing {key} in modulation/en.json"
+        assert len(data[key]) > 10, f"Empty/too-short value for {key} in modulation/en.json"
+
+
+def test_modulation_glossary_keys_fall_back_for_core_languages():
+    from app.i18n import _TRANSLATIONS
+    from app.module_loader import merge_module_i18n
+
+    original = {lang: dict(values) for lang, values in _TRANSLATIONS.items()}
+    try:
+        merge_module_i18n("docsight.modulation", MOD_I18N_DIR)
+        for lang in LANGUAGES:
+            data = _TRANSLATIONS[lang]
+            for key in MOD_GLOSSARY_KEYS:
+                namespaced = f"docsight.modulation.{key}"
+                assert namespaced in data, f"Missing {namespaced} fallback in {lang}"
+                assert len(data[namespaced]) > 10, f"Empty/too-short fallback for {namespaced} in {lang}"
+    finally:
+        _TRANSLATIONS.clear()
+        _TRANSLATIONS.update(original)

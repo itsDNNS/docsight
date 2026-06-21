@@ -1,9 +1,0 @@
-{
-  "weather_title": "Weer",
-  "weather_optional": "optioneel — correleer de signaalkwaliteit met de buitentemperatuur",
-  "weather_enable": "Schakel het verzamelen van weergegevens in",
-  "weather_enable_hint": "Haalt de buitentemperatuur per uur op van Open-Meteo (gratis, geen API-sleutel). Historische gegevens worden automatisch aangevuld.",
-  "weather_latitude": "Breedtegraad",
-  "weather_longitude": "Lengtegraad",
-  "weather_coord_hint": "De coördinaten van uw locatie (bijvoorbeeld 52.52 / 13.41 voor Berlijn). Vind de jouwe op latlong.net"
-}

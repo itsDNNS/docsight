@@ -228,7 +228,7 @@ DOCSight is built around an evidence-first workflow, then extended with deeper a
 | **Platform features** | [Home Assistant](https://github.com/itsDNNS/docsight/wiki/Home-Assistant), [Notifications](https://github.com/itsDNNS/docsight/wiki/Notifications), [Backup & Restore](https://github.com/itsDNNS/docsight/wiki/Backup-and-Restore), setup wizard, optional authentication, API tokens |
 | **Usability and extensibility** | [Demo Mode](https://github.com/itsDNNS/docsight/wiki/Features-Demo-Mode), [Theme Engine](https://github.com/itsDNNS/docsight/wiki/Themes), [Community Modules](https://github.com/itsDNNS/docsight-modules), [In-App Glossary](https://github.com/itsDNNS/docsight/wiki/Features-Glossary), [AI/LLM Export](https://github.com/itsDNNS/docsight/wiki/Features-LLM-Export) with local redaction controls |
 
-Also includes a 24-language European language pack (BG/CS/DA/DE/EL/EN/ES/ET/FI/FR/GA/HR/HU/IT/LT/LV/NB/NL/PL/PT/RO/SK/SL/SV), light/dark mode, PWA/offline support, and a system font toggle.
+Also includes a 24-language European language pack for the core interface (BG/CS/DA/DE/EL/EN/ES/ET/FI/FR/GA/HR/HU/IT/LT/LV/NB/NL/PL/PT/RO/SK/SL/SV), light/dark mode, PWA/offline support, and a system font toggle.
 
 ---
 

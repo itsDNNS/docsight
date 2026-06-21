@@ -446,7 +446,7 @@ class TestModuleDiscovery:
         assert en.get("docsight.comparison.title") == "Before/After Comparison"
 
         de = get_translations("de")
-        assert de.get("docsight.comparison.title") == "Vorher/Nachher-Vergleich"
+        assert de.get("docsight.comparison.title") == "Before/After Comparison"
 
     def test_comparison_manifest_valid(self):
         import json

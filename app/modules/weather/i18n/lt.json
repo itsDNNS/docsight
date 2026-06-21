@@ -1,9 +1,0 @@
-{
-  "weather_title": "Orai",
-  "weather_optional": "neprivaloma – koreliuokite signalo kokybę su lauko temperatūra",
-  "weather_enable": "Įjungti oro duomenų rinkimą",
-  "weather_enable_hint": "Gauna valandinę lauko temperatūrą iš Open-Meteo (nemokama, be API rakto). Istoriniai duomenys užpildomi automatiškai.",
-  "weather_latitude": "Platuma",
-  "weather_longitude": "Ilguma",
-  "weather_coord_hint": "Jūsų vietos koordinatės (pvz., 52.52 / 13.41 Berlyne). Raskite savo adresu latlong.net"
-}

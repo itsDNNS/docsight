@@ -566,7 +566,7 @@ class TestMergeModuleI18n:
             i18n_dir = os.path.join(d, "i18n")
             os.makedirs(i18n_dir)
             with open(os.path.join(i18n_dir, "en.json"), "w") as f:
-                json.dump({"greeting": "Hello from module"}, f)
+                json.dump({"greeting": "Hello from module", "fallback_only": "Fallback"}, f)
             with open(os.path.join(i18n_dir, "de.json"), "w") as f:
                 json.dump({"greeting": "Hallo vom Modul"}, f)
 
@@ -577,6 +577,20 @@ class TestMergeModuleI18n:
             de = get_translations("de")
             assert en.get("test.mymod.greeting") == "Hello from module"
             assert de.get("test.mymod.greeting") == "Hallo vom Modul"
+            assert de.get("test.mymod.fallback_only") == "Fallback"
+
+    def test_merge_english_only_translations_into_existing_languages(self):
+        with tempfile.TemporaryDirectory() as d:
+            i18n_dir = os.path.join(d, "i18n")
+            os.makedirs(i18n_dir)
+            with open(os.path.join(i18n_dir, "en.json"), "w") as f:
+                json.dump({"title": "English module title"}, f)
+
+            merge_module_i18n("test.english_only", i18n_dir)
+
+            from app.i18n import get_translations
+            assert get_translations("en").get("test.english_only.title") == "English module title"
+            assert get_translations("de").get("test.english_only.title") == "English module title"
 
     def test_missing_i18n_dir_skipped(self):
         """Non-existent i18n directory is silently skipped."""

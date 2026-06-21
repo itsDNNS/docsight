@@ -313,13 +313,20 @@ def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
 
     Keys are namespaced under the module ID:
         module i18n key "greeting" -> global key "module_id.greeting"
+
+    Built-in modules keep ``en.json`` as their source catalog.  Any existing
+    core language without a module-specific catalog receives the English module
+    strings as its fallback so templates can keep using one translation dict per
+    request.  If a community module ships its own locale file, those strings
+    overlay the English fallback for that language.
     """
     if not os.path.isdir(i18n_dir):
         log.debug("No i18n directory for module '%s': %s", module_id, i18n_dir)
         return
 
+    catalogs = {}
     for fname in sorted(os.listdir(i18n_dir)):
-        if not fname.endswith(".json"):
+        if not fname.endswith(".json") or fname == "template.json":
             continue
         lang = fname[:-5]  # "en.json" -> "en"
         fpath = os.path.join(i18n_dir, fname)
@@ -330,18 +337,42 @@ def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
             log.warning("Failed to load i18n file %s: %s", fpath, e)
             continue
 
+        if not isinstance(data, dict):
+            log.warning("Skipping non-object i18n payload in %s", fpath)
+            continue
+        catalogs[lang] = data
+
+    if not catalogs:
+        return
+
+    fallback = catalogs.get("en", {})
+    target_langs = set(_TRANSLATIONS) | set(catalogs)
+    if fallback:
+        target_langs.add("en")
+
+    for lang in sorted(target_langs):
+        data = dict(fallback)
+        if lang != "en":
+            data.update(catalogs.get(lang, {}))
+        elif "en" in catalogs:
+            data = catalogs["en"]
+        elif not data:
+            continue
+
         if lang not in _TRANSLATIONS:
             _TRANSLATIONS[lang] = {}
 
+        merged = 0
         for key, value in data.items():
             if key.startswith("_"):
                 continue  # skip metadata keys like _meta
             _TRANSLATIONS[lang][f"{module_id}.{key}"] = value
-            # Also add un-namespaced key for backward compat with JS code
+            merged += 1
+            # Also add un-namespaced key for backward compat with JS code.
             if key not in _TRANSLATIONS[lang]:
                 _TRANSLATIONS[lang][key] = value
 
-        log.debug("Merged %d i18n keys for module '%s' lang '%s'", len(data), module_id, lang)
+        log.debug("Merged %d i18n keys for module '%s' lang '%s'", merged, module_id, lang)
 
 
 # Core routes that community modules must not shadow.  These are exact

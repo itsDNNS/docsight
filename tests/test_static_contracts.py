@@ -876,17 +876,27 @@ def test_dashboard_i18n_keys_exist_in_all_language_files():
     assert offenders == []
 
 
-def test_european_language_pack_files_cover_core_and_modules():
-    """Every built-in i18n catalog participates in the European language pack."""
-    i18n_dirs = [APP_I18N_DIR] + sorted((ROOT / "app" / "modules").glob("*/i18n"))
+def test_european_language_pack_files_cover_core_catalogs():
+    """Every selectable core i18n catalog participates in the European language pack."""
+    present = {path.stem for path in APP_I18N_DIR.glob("*.json") if path.stem != "template"}
+    missing = sorted(EUROPEAN_LANGUAGE_PACK - present)
+
+    assert missing == []
+
+
+def test_builtin_module_i18n_catalogs_keep_only_runtime_sources():
+    """Built-in module UI catalogs use en.json fallback; reports keeps PDF locale files."""
     offenders = []
-    for i18n_dir in i18n_dirs:
+    allowed_locale_modules = {"reports"}
+    for i18n_dir in sorted((ROOT / "app" / "modules").glob("*/i18n")):
         if not (i18n_dir / "en.json").exists():
             continue
-        present = {path.stem for path in i18n_dir.glob("*.json") if path.stem != "template"}
-        missing = sorted(EUROPEAN_LANGUAGE_PACK - present)
-        if missing:
-            offenders.append(f"{i18n_dir.relative_to(ROOT)} missing {', '.join(missing)}")
+        module_name = i18n_dir.parent.name
+        generated = sorted(path.name for path in i18n_dir.glob("*.json") if path.name != "en.json")
+        if module_name in allowed_locale_modules:
+            generated = [name for name in generated if name == "template.json"]
+        if generated:
+            offenders.append(f"{i18n_dir.relative_to(ROOT)}: {', '.join(generated)}")
 
     assert offenders == []
 
@@ -945,7 +955,17 @@ def test_european_language_pack_preserves_catalog_contracts():
             if source_placeholders != target_placeholders:
                 offenders.append(f"{path_label}: placeholder mismatch")
 
-    i18n_dirs = [APP_I18N_DIR] + sorted((ROOT / "app" / "modules").glob("*/i18n"))
+    i18n_dirs = [APP_I18N_DIR, ROOT / "app" / "modules" / "reports" / "i18n"]
+    module_i18n_dirs = sorted((ROOT / "app" / "modules").glob("*/i18n"))
+    for i18n_dir in module_i18n_dirs:
+        if i18n_dir.name == "i18n" and i18n_dir.parent.name == "reports":
+            continue
+        module_catalogs = sorted(path for path in i18n_dir.glob("*.json") if path.name != "en.json")
+        if module_catalogs:
+            offenders.append(
+                f"{i18n_dir.relative_to(ROOT)}: module catalogs must be en.json only; "
+                f"found {[path.name for path in module_catalogs]}"
+            )
     for i18n_dir in i18n_dirs:
         source_path = i18n_dir / "en.json"
         if not source_path.exists():

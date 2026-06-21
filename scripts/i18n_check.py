@@ -5,7 +5,7 @@ i18n validation and template generation for DOCSight.
 Usage:
     python scripts/i18n_check.py              # validate all language files
     python scripts/i18n_check.py --validate   # same as above
-    python scripts/i18n_check.py --generate   # generate template.json files
+    python scripts/i18n_check.py --generate   # generate core template.json from en.json
 """
 
 import argparse
@@ -85,25 +85,20 @@ def flatten_key_paths(value, prefix=""):
 
 
 def cmd_generate():
-    """Generate template.json files from en.json for core and all modules."""
-    dirs = find_i18n_dirs()
-    generated = 0
+    """Generate the core template.json file from app/i18n/en.json."""
+    i18n_dir = ROOT / "app" / "i18n"
+    en_path = i18n_dir / "en.json"
+    template_path = i18n_dir / "template.json"
 
-    for label, i18n_dir in dirs:
-        en_path = i18n_dir / "en.json"
-        template_path = i18n_dir / "template.json"
+    source = load_json(en_path)
+    template = make_template(source)
 
-        source = load_json(en_path)
-        template = make_template(source)
+    with open(template_path, "w", encoding="utf-8") as f:
+        json.dump(template, f, indent=2, ensure_ascii=False)
+        f.write("\n")
 
-        with open(template_path, "w", encoding="utf-8") as f:
-            json.dump(template, f, indent=2, ensure_ascii=False)
-            f.write("\n")
-
-        print(f"  Generated {template_path.relative_to(ROOT)}  ({len(template)} keys)")
-        generated += 1
-
-    print(f"\nGenerated {generated} template file(s).")
+    print(f"  Generated {template_path.relative_to(ROOT)}  ({len(template)} keys)")
+    print("\nGenerated 1 template file.")
 
 
 def cmd_validate():
@@ -160,7 +155,7 @@ def main():
     parser = argparse.ArgumentParser(description="DOCSight i18n checker")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--generate", action="store_true",
-                       help="Generate template.json files from en.json")
+                       help="Generate core template.json from app/i18n/en.json")
     group.add_argument("--validate", action="store_true",
                        help="Validate language files against en.json (default)")
     args = parser.parse_args()
