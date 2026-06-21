@@ -14,6 +14,15 @@ INDEX = DOCS / "index.html"
 README = ROOT / "README.md"
 SECURITY = ROOT / "SECURITY.md"
 DATA_CONTRACT = ROOT / "DATA_CONTRACT.md"
+UNLINKED_PUBLIC_IMAGES = [
+    DOCS / "docsight.png",
+    DOCS / "screenshots" / "setup.png",
+    DOCS / "screenshots" / "smart-capture-settings.png",
+    DOCS / "screenshots" / "readme-hero-evidence.png",
+]
+LOCAL_PUBLIC_ASSET_RE = re.compile(
+    r"(?<![\w/-])(?:docs/)?(?:screenshots/|samples/)?[A-Za-z0-9_.-]+\.(?:png|jpg|jpeg|webp|svg|pdf)"
+)
 
 
 class LandingParser(HTMLParser):
@@ -264,6 +273,20 @@ def test_public_surface_docs_and_social_asset_exist() -> None:
     width, height = png_size(DOCS / "screenshots" / "dashboard-hero.png")
     assert width >= 1600
     assert height >= 900
+
+
+def test_public_docs_reference_existing_local_assets_without_unlinked_images() -> None:
+    public_docs = [README, *sorted(DOCS.rglob("*.md")), *sorted(DOCS.rglob("*.html"))]
+
+    missing = []
+    for source in public_docs:
+        for ref in sorted(set(LOCAL_PUBLIC_ASSET_RE.findall(source.read_text(encoding="utf-8")))):
+            asset = ROOT / ref if ref.startswith("docs/") else DOCS / ref
+            if not asset.exists():
+                missing.append(f"{source.relative_to(ROOT)} -> {ref}")
+
+    assert missing == []
+    assert [path.relative_to(ROOT).as_posix() for path in UNLINKED_PUBLIC_IMAGES if path.exists()] == []
 
 
 def test_proof_pack_uses_current_public_assets_and_claims() -> None:
