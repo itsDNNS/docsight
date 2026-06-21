@@ -17,6 +17,7 @@ from app import config as _cfg
 from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
 from app.i18n import _TRANSLATIONS
 from app.path_safety import safe_manifest_ref, safe_manifest_subpath
+from app.theme_registry import BUILTIN_THEMES
 
 log = logging.getLogger("docsis.modules")
 
@@ -258,6 +259,57 @@ def discover_builtin_modules(
         modules.append(info)
         log.info(
             "Registered built-in module: %s v%s%s",
+            info.id,
+            info.version,
+            "" if info.enabled else " [disabled]",
+        )
+
+    return modules
+
+
+def discover_builtin_theme_modules(disabled_ids: set[str] | None = None) -> list[ModuleInfo]:
+    """Load application-owned themes from the static theme registry."""
+    if disabled_ids is None:
+        disabled_ids = set()
+
+    modules: list[ModuleInfo] = []
+    seen_ids: set[str] = set()
+    for theme in BUILTIN_THEMES:
+        raw = {
+            "id": theme["id"],
+            "name": theme["name"],
+            "description": theme["description"],
+            "version": theme["version"],
+            "author": theme["author"],
+            "minAppVersion": theme["minAppVersion"],
+            "type": "theme",
+            "contributes": {"theme": "builtin"},
+            "config": {},
+        }
+        if theme.get("homepage"):
+            raw["homepage"] = theme["homepage"]
+        if theme.get("license"):
+            raw["license"] = theme["license"]
+        try:
+            info = validate_manifest(raw, "", builtin=True)
+            tdata = theme["theme_data"]
+            if not isinstance(tdata, dict):
+                raise ManifestError("Built-in theme data must be an object")
+            validate_theme(tdata)
+        except ManifestError as e:
+            log.warning("Skipping built-in theme %s: invalid registry entry: %s", theme.get("id"), e)
+            continue
+
+        if info.id in seen_ids:
+            log.warning("Skipping duplicate built-in theme '%s'", info.id)
+            continue
+
+        info.enabled = info.id not in disabled_ids
+        info.theme_data = tdata
+        seen_ids.add(info.id)
+        modules.append(info)
+        log.info(
+            "Registered built-in theme: %s v%s%s",
             info.id,
             info.version,
             "" if info.enabled else " [disabled]",
@@ -818,6 +870,9 @@ class ModuleLoader:
                     disabled_ids=self._disabled_ids,
                 )
             )
+            modules.extend(
+                discover_builtin_theme_modules(disabled_ids=self._disabled_ids)
+            )
         modules.extend(
             discover_modules(
                 search_paths=self._search_paths,
@@ -924,13 +979,16 @@ class ModuleLoader:
 
         # Theme
         if "theme" in c:
-            theme_path = safe_manifest_ref(mod.path, c["theme"])
-            if not os.path.isfile(theme_path):
-                raise ManifestError(f"Theme file not found: {c['theme']}")
-            with open(theme_path, "r", encoding="utf-8") as f:
-                tdata = json.load(f)
-            validate_theme(tdata)
-            mod.theme_data = tdata
+            if mod.theme_data is None:
+                theme_path = safe_manifest_ref(mod.path, c["theme"])
+                if not os.path.isfile(theme_path):
+                    raise ManifestError(f"Theme file not found: {c['theme']}")
+                with open(theme_path, "r", encoding="utf-8") as f:
+                    tdata = json.load(f)
+                validate_theme(tdata)
+                mod.theme_data = tdata
+            else:
+                validate_theme(mod.theme_data)
             log.info("Module '%s': loaded theme profile", mod.id)
 
         # Convention-based asset detection
