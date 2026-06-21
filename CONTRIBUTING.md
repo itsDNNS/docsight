@@ -104,11 +104,12 @@ Each core locale file has a `_meta` field with `language_name` and `flag`. When 
 
 DOCSight is used internationally and translations from native speakers are welcome. To add a new core language:
 
-1. Copy `app/i18n/template.json` to `app/i18n/<lang>.json` (e.g. `sv.json` for Swedish, `nl.json` for Dutch). Use the ISO 639-1 two-letter code.
-2. Fill in `_meta.language_name` (native spelling, e.g. `Svenska` not `Swedish`) and `_meta.flag` (emoji flag).
-3. Translate the values. Keep the JSON keys untouched. Preserve any `{placeholder}` tokens in the strings.
-4. Run `python scripts/i18n_check.py --validate` to make sure no keys are missing or extra compared to `en.json`.
-5. Open a PR. Mention in the description whether you are able to keep the translation updated when new strings are added in the future.
+1. Run `python scripts/i18n_check.py --generate` to create `app/i18n/template.json` locally from the current English source catalog.
+2. Copy the generated file to `app/i18n/<lang>.json` (e.g. `sv.json` for Swedish, `nl.json` for Dutch). Use the ISO 639-1 two-letter code.
+3. Fill in `_meta.language_name` (native spelling, e.g. `Svenska` not `Swedish`) and `_meta.flag` (emoji flag).
+4. Translate the values. Keep the JSON keys untouched. Preserve any `{placeholder}` tokens in the strings.
+5. Run `python scripts/i18n_check.py --validate` to make sure no keys are missing or extra compared to `en.json`.
+6. Open a PR. Mention in the description whether you are able to keep the translation updated when new strings are added in the future.
 
 We prefer new languages to be contributed by people who actually use the tool in that language, so the translation sounds natural and stays maintained over time. Partial translations are fine - missing keys fall back to English automatically.
 

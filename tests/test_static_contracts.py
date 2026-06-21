@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
@@ -206,6 +207,29 @@ def test_static_templates_keep_basic_heading_markup_well_formed() -> None:
         offenders.extend(f"{path.relative_to(ROOT)}: {match.group(0)}" for match in MISMATCHED_HEADING_RE.finditer(text))
 
     assert offenders == []
+
+
+def test_core_i18n_template_is_generated_on_demand_not_tracked() -> None:
+    """The translator template is generated locally from en.json when needed."""
+    template_path = APP_I18N_DIR / "template.json"
+    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    loader = (APP_I18N_DIR / "__init__.py").read_text(encoding="utf-8")
+
+    assert "app/i18n/template.json" in gitignore
+    assert "python scripts/i18n_check.py --generate" in contributing
+    assert "Copy the generated file to `app/i18n/<lang>.json`" in contributing
+    assert '_fname == "template.json"' in loader
+
+    if (ROOT / ".git").exists():
+        tracked = subprocess.run(
+            ["git", "ls-files", "--", str(template_path.relative_to(ROOT))],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        ).stdout.strip()
+        assert tracked == ""
 
 
 def test_european_language_pack_files_cover_core_catalogs() -> None:
