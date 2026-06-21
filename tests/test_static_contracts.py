@@ -167,8 +167,6 @@ def test_service_worker_precache_references_existing_public_assets() -> None:
         "/static/manifest.json",
         "/static/logo.svg",
         "/static/icon.png",
-        "/static/css/main.css",
-        "/static/js/chart-engine.js",
     ]:
         assert required in sw_js
 

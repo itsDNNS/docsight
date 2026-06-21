@@ -1,4 +1,4 @@
-var CACHE_VERSION = 'v56';
+var CACHE_VERSION = 'v57';
 var SHELL_CACHE = 'docsight-shell-' + CACHE_VERSION;
 var STATIC_CACHE = 'docsight-static-' + CACHE_VERSION;
 var OFFLINE_SHELL_HEADERS = {
@@ -10,59 +10,10 @@ var SHELL_URLS = [
   '/?source=pwa'
 ];
 
-var STATIC_URLS = [
-  '/static/css/fonts.css',
-  '/static/css/tokens.css',
-  '/static/css/components.css',
-  '/static/css/main.css',
-  '/static/css/views.css',
-  '/static/css/modals.css',
-  '/static/css/glossary.css',
-  '/static/css/segment-utilization.css',
-  '/static/js/chart-engine.js',
-  '/static/js/channels.js',
-  '/static/js/utils.js',
-  '/static/js/hero-chart.js',
-  '/static/js/sparklines.js',
-  '/static/js/events.js',
-  '/static/js/bqm.js',
-  '/static/js/speedtest.js',
-  '/static/js/journal.js',
-  '/static/js/correlation.js',
-  '/static/js/trends.js',
-  '/static/js/glossary.js',
-  '/static/js/icons.js',
-  '/static/js/settings.js',
-  '/static/js/integrations.js',
-  '/static/js/segment-utilization.js',
-  '/static/vendor/lucide.min.js',
-  '/static/vendor/uPlot.min.js',
-  '/static/vendor/uPlot.min.css',
-  '/static/fonts/outfit-latin.woff2',
-  '/static/fonts/outfit-latin-ext.woff2',
-  '/static/fonts/jetbrains-mono-latin.woff2',
-  '/static/fonts/jetbrains-mono-latin-ext.woff2',
-  '/static/logo.svg',
-  '/static/icon.png',
-  '/static/screenshots/dashboard-narrow.png',
-  '/static/screenshots/dashboard-wide.png',
+var CRITICAL_STATIC_URLS = [
   '/static/manifest.json',
-  '/modules/docsight.bnetz/static/style.css',
-  '/modules/docsight.bqm/static/js/bqm-chart.js',
-  '/modules/docsight.bqm/static/style.css',
-  '/modules/docsight.comparison/static/main.js',
-  '/modules/docsight.comparison/static/style.css',
-  '/modules/docsight.evidence/static/main.js',
-  '/modules/docsight.evidence/static/style.css',
-  '/modules/docsight.connection_monitor/static/js/connection-monitor-card.js',
-  '/modules/docsight.connection_monitor/static/js/connection-monitor-charts.js',
-  '/modules/docsight.connection_monitor/static/js/connection-monitor-detail.js',
-  '/modules/docsight.connection_monitor/static/style.css',
-  '/modules/docsight.journal/static/style.css',
-  '/modules/docsight.modulation/static/main.js',
-  '/modules/docsight.modulation/static/style.css',
-  '/modules/docsight.smokeping/static/main.js',
-  '/modules/docsight.speedtest/static/style.css'
+  '/static/logo.svg',
+  '/static/icon.png'
 ];
 
 function sameOrigin(url) {
@@ -148,7 +99,7 @@ self.addEventListener('install', function(e) {
   e.waitUntil(
     Promise.all([
       caches.open(SHELL_CACHE).then(function(cache) { return cache.addAll(SHELL_URLS); }),
-      caches.open(STATIC_CACHE).then(function(cache) { return cache.addAll(STATIC_URLS); })
+      caches.open(STATIC_CACHE).then(function(cache) { return cache.addAll(CRITICAL_STATIC_URLS); })
     ])
   );
   self.skipWaiting();
