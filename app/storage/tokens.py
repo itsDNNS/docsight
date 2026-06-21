@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from ..tz import utc_now
 
 
-class TokenMixin:
+class TokenMethods:
 
     def create_api_token(self, name):
         """Create a new API token. Returns (token_id, plaintext_token)."""
@@ -17,7 +17,7 @@ class TokenMixin:
         prefix = plaintext[:8]
         token_hash = generate_password_hash(plaintext)
         created_at = utc_now()
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cur = conn.execute(
                 "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at) VALUES (?, ?, ?, ?)",
                 (name, token_hash, prefix, created_at),
@@ -26,7 +26,7 @@ class TokenMixin:
 
     def validate_api_token(self, token):
         """Validate a Bearer token. Returns token info dict or None."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT id, name, token_hash, token_prefix, created_at, last_used_at FROM api_tokens WHERE revoked = 0"
@@ -45,7 +45,7 @@ class TokenMixin:
 
     def get_api_tokens(self):
         """Return list of all tokens (without hashes) for UI display."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT id, name, token_prefix, created_at, last_used_at, revoked FROM api_tokens ORDER BY created_at DESC"
@@ -54,7 +54,7 @@ class TokenMixin:
 
     def revoke_api_token(self, token_id):
         """Soft-revoke a token. Returns True if a token was revoked."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cur = conn.execute(
                 "UPDATE api_tokens SET revoked = 1 WHERE id = ? AND revoked = 0",
                 (token_id,),

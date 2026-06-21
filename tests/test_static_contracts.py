@@ -209,6 +209,14 @@ def test_static_templates_keep_basic_heading_markup_well_formed() -> None:
     assert offenders == []
 
 
+def test_snapshot_storage_uses_single_storage_base() -> None:
+    storage_init = (ROOT / "app" / "storage" / "__init__.py").read_text(encoding="utf-8")
+    assert "class SnapshotStorage(StorageBase):" in storage_init
+    assert "class SnapshotStorage(\n" not in storage_init
+    assert "_STORAGE_METHOD_GROUPS" in storage_init
+    assert "Mixin" not in storage_init
+
+
 def test_smart_capture_speedtest_adapter_tests_are_consolidated() -> None:
     files = sorted(path.name for path in ROOT.glob("tests/test_smart_capture*speedtest*.py"))
     assert files == ["test_smart_capture_adapter_speedtest.py"]

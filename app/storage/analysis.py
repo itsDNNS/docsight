@@ -10,7 +10,7 @@ from .error_counters import unwrap_uint32_counter_series
 _CHANNEL_ERROR_KEYS = ("correctable_errors", "uncorrectable_errors")
 
 
-class AnalysisMixin:
+class AnalysisMethods:
 
     def get_correlation_timeline(self, start_ts, end_ts, sources=None):
         """Return unified timeline entries from all sources, sorted by timestamp.
@@ -69,7 +69,7 @@ class AnalysisMixin:
                 })
 
         if "events" in sources:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._connect() as conn:
                 conn.row_factory = sqlite3.Row
                 rows = conn.execute(
                     "SELECT id, timestamp, severity, event_type, message, details "
@@ -115,7 +115,7 @@ class AnalysisMixin:
         # Smart Capture executions
         if "capture" in sources:
             try:
-                with sqlite3.connect(self.db_path) as conn:
+                with self._connect() as conn:
                     conn.row_factory = sqlite3.Row
                     rows = conn.execute(
                         "SELECT * FROM smart_capture_executions "
@@ -175,7 +175,7 @@ class AnalysisMixin:
         channel_id = int(channel_id)
         _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
         cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             if direction == "ds":
                 rows = conn.execute(
                     "SELECT timestamp, ds_channels_json FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
@@ -215,7 +215,7 @@ class AnalysisMixin:
         channel_set = set(channel_ids)
         cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
         col = "ds_channels_json" if direction == "ds" else "us_channels_json"
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rows = conn.execute(
                 f"SELECT timestamp, {col} FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
                 (cutoff,),

@@ -58,13 +58,13 @@ def _unwrap_anchor_start(timestamp: str) -> str:
     )
 
 
-class SnapshotMixin:
+class SnapshotMethods:
 
     def save_snapshot(self, analysis: AnalysisResult) -> None:
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
         ts = utc_now()
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._connect() as conn:
                 conn.execute(
                     "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
                     (
@@ -82,7 +82,7 @@ class SnapshotMixin:
 
     def get_snapshot_list(self) -> list[str]:
         """Return list of available snapshot timestamps (newest first)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rows = conn.execute(
                 "SELECT timestamp FROM snapshots ORDER BY timestamp DESC"
             ).fetchall()
@@ -90,7 +90,7 @@ class SnapshotMixin:
 
     def get_latest_snapshot(self) -> AnalysisResult | None:
         """Load the latest stored snapshot, or None when no baseline exists."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT summary_json, ds_channels_json, us_channels_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
             ).fetchone()
@@ -104,7 +104,7 @@ class SnapshotMixin:
 
     def get_snapshot(self, timestamp: str) -> AnalysisResult | None:
         """Load a single snapshot by timestamp. Returns analysis dict or None."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT summary_json, ds_channels_json, us_channels_json FROM snapshots WHERE timestamp = ?",
                 (timestamp,),
@@ -120,7 +120,7 @@ class SnapshotMixin:
     def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:
         """Get all snapshots between two ISO timestamps (inclusive)."""
         anchor_start = _unwrap_anchor_start(end_ts)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             anchor_rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? AND timestamp < ? ORDER BY timestamp",
@@ -159,7 +159,7 @@ class SnapshotMixin:
         """
         start_utc, end_utc = local_date_to_utc_range(date, self.tz_name)
         anchor_start = _unwrap_anchor_start(end_utc)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp",
@@ -205,7 +205,7 @@ class SnapshotMixin:
         """Get summary snapshots from the last N hours."""
         cutoff = utc_cutoff(hours=hours)
         anchor_start = utc_cutoff(hours=_UNWRAP_ANCHOR_DAYS * 24)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? ORDER BY timestamp",
@@ -221,7 +221,7 @@ class SnapshotMixin:
         range_start, _ = local_date_to_utc_range(start_date, self.tz_name)
         _, range_end = local_date_to_utc_range(end_date, self.tz_name)
         anchor_start = _unwrap_anchor_start(range_end)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rows = conn.execute(
                 "SELECT timestamp, summary_json FROM snapshots "
                 "WHERE timestamp >= ? AND timestamp <= ? "
@@ -241,7 +241,7 @@ class SnapshotMixin:
         All timestamps are now stored as UTC with Z suffix.
         """
         ts_param = timestamp
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
                    FROM snapshots
@@ -261,7 +261,7 @@ class SnapshotMixin:
 
     def get_current_channels(self):
         """Return DS and US channels from the latest snapshot."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT ds_channels_json, us_channels_json FROM snapshots ORDER BY timestamp DESC LIMIT 1"
             ).fetchone()

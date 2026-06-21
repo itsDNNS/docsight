@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 
-class PwaPushMixin:
+class PwaPushMethods:
     """Persist browser Push API subscriptions."""
 
     @staticmethod

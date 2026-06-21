@@ -6,7 +6,7 @@ import sqlite3
 from ..tz import utc_now
 
 
-class SmartCaptureMixin:
+class SmartCaptureMethods:
     db_path: str
 
     def save_execution(self, trigger_type, action_type, status,
@@ -18,7 +18,7 @@ class SmartCaptureMixin:
         assigned a DB id at evaluation time. trigger_timestamp is stored
         as a secondary correlation key.
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cur = conn.execute(
                 "INSERT INTO smart_capture_executions "
                 "(trigger_event_id, trigger_timestamp, trigger_type, action_type, status, "
@@ -33,7 +33,7 @@ class SmartCaptureMixin:
 
     def get_execution(self, execution_id):
         """Return a single execution record by id, or None."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT * FROM smart_capture_executions WHERE id = ?",
@@ -80,7 +80,7 @@ class SmartCaptureMixin:
         if not updates:
             return
         params.append(execution_id)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.execute(
                 f"UPDATE smart_capture_executions SET {', '.join(updates)} WHERE id = ?",
                 params,
@@ -89,7 +89,7 @@ class SmartCaptureMixin:
     def get_fired_unmatched(self, action_type):
         """Return FIRED executions without a linked result, filtered by action_type.
         Ordered by fired_at ASC (oldest first) for FIFO matching."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT * FROM smart_capture_executions "
@@ -110,7 +110,7 @@ class SmartCaptureMixin:
 
     def get_latest_smart_capture_fire(self, action_type):
         """Return the latest fired_at timestamp for accepted Smart Capture actions."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT fired_at FROM smart_capture_executions "
                 "WHERE action_type = ? AND fired_at IS NOT NULL "
@@ -121,7 +121,7 @@ class SmartCaptureMixin:
 
     def count_smart_capture_fires_since(self, action_type, since_timestamp):
         """Count accepted Smart Capture actions since a UTC timestamp."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT COUNT(*) FROM smart_capture_executions "
                 "WHERE action_type = ? AND fired_at IS NOT NULL AND fired_at >= ?",
@@ -132,7 +132,7 @@ class SmartCaptureMixin:
     def get_latest_speedtest_result_timestamp(self):
         """Return latest cached Speedtest Tracker result timestamp, if present."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._connect() as conn:
                 row = conn.execute(
                     "SELECT timestamp FROM speedtest_results "
                     "WHERE COALESCE(is_demo, 0) = 0 "
@@ -155,7 +155,7 @@ class SmartCaptureMixin:
         if action_type:
             query += " AND action_type = ?"
             params.append(action_type)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rowcount = conn.execute(query, params).rowcount
         return rowcount
 
@@ -173,7 +173,7 @@ class SmartCaptureMixin:
             updates.append("linked_result_id = ?")
             params.append(linked_result_id)
         params.extend([execution_id, expected_status])
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rowcount = conn.execute(
                 f"UPDATE smart_capture_executions SET {', '.join(updates)} "
                 "WHERE id = ? AND status = ?",
@@ -190,7 +190,7 @@ class SmartCaptureMixin:
             params.append(status)
         query += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(query, params).fetchall()
         results = []
@@ -207,7 +207,7 @@ class SmartCaptureMixin:
     def expire_stale_pending(self, cutoff_timestamp):
         """Bulk-expire PENDING executions with created_at before cutoff.
         Handles orphaned executions when no adapter is registered."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rowcount = conn.execute(
                 "UPDATE smart_capture_executions "
                 "SET status = 'expired', "

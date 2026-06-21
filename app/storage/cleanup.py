@@ -11,7 +11,7 @@ from ..tz import local_today, utc_now, utc_cutoff, local_to_utc
 log = logging.getLogger("docsis.storage")
 
 
-class CleanupMixin:
+class CleanupMethods:
 
     # ── Timezone ──
 
@@ -49,7 +49,7 @@ class CleanupMixin:
         - Runs in a single transaction (automatic rollback on error)
         - Skips NULL, empty, and already-UTC (Z-suffix) values
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT value FROM _docsight_meta WHERE key = 'tz_migrated'"
             ).fetchone()
@@ -64,7 +64,7 @@ class CleanupMixin:
             log.info("UTC migration: backup created at %s", backup_path)
 
         migrated_count = 0
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             for table, column in self._TIMESTAMP_COLUMNS:
                 # Check table and column exist
                 try:
@@ -150,7 +150,7 @@ class CleanupMixin:
         if self.max_days <= 0:
             return
         cutoff = utc_cutoff(days=self.max_days)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             deleted = conn.execute(
                 "DELETE FROM snapshots WHERE timestamp < ?", (cutoff,)
             ).rowcount
@@ -160,7 +160,7 @@ class CleanupMixin:
         today = local_today(tz)
         cutoff_date = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=self.max_days)).strftime("%Y-%m-%d")
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._connect() as conn:
                 bqm_deleted = conn.execute(
                     "DELETE FROM bqm_graphs WHERE date < ?", (cutoff_date,)
                 ).rowcount
@@ -169,7 +169,7 @@ class CleanupMixin:
         except sqlite3.OperationalError:
             pass  # Table may not exist if BQM module not loaded
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._connect() as conn:
                 weather_deleted = conn.execute(
                     "DELETE FROM weather_data WHERE timestamp < ?", (cutoff,)
                 ).rowcount
@@ -181,7 +181,7 @@ class CleanupMixin:
         if events_deleted:
             log.info("Cleaned up %d old events (before %s)", events_deleted, cutoff)
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self._connect() as conn:
                 sc_deleted = conn.execute(
                     "DELETE FROM smart_capture_executions WHERE created_at < ?", (cutoff,)
                 ).rowcount

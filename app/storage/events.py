@@ -9,11 +9,11 @@ from ..types import EventDict
 from ..tz import utc_cutoff
 
 
-class EventMixin:
+class EventMethods:
 
     def save_event(self, timestamp: str, severity: str, event_type: str, message: str, details: dict | None = None) -> int:
         """Save a single event. Returns the new event id."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cur = conn.execute(
                 "INSERT INTO events (timestamp, severity, event_type, message, details) "
                 "VALUES (?, ?, ?, ?, ?)",
@@ -26,7 +26,7 @@ class EventMixin:
         """Bulk insert events. Returns count of inserted rows."""
         if not events_list:
             return 0
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.executemany(
                 "INSERT INTO events (timestamp, severity, event_type, message, details, is_demo) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
@@ -51,7 +51,7 @@ class EventMixin:
         if not events_list:
             return []
         ids = []
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             for e in events_list:
                 cur = conn.execute(
                     "INSERT INTO events (timestamp, severity, event_type, message, details, is_demo) "
@@ -88,7 +88,7 @@ class EventMixin:
             query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY timestamp DESC, id DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(query, params).fetchall()
         results = []
@@ -122,13 +122,13 @@ class EventMixin:
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(query, params).fetchone()
         return row[0] if row else 0
 
     def acknowledge_event(self, event_id):
         """Acknowledge a single event. Returns True if found."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rowcount = conn.execute(
                 "UPDATE events SET acknowledged = 1 WHERE id = ?", (event_id,)
             ).rowcount
@@ -136,7 +136,7 @@ class EventMixin:
 
     def acknowledge_all_events(self):
         """Acknowledge all unacknowledged events. Returns rows affected."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             rowcount = conn.execute(
                 "UPDATE events SET acknowledged = 1 WHERE acknowledged = 0"
             ).rowcount
@@ -145,7 +145,7 @@ class EventMixin:
     def get_recent_events(self, hours: int = 48) -> list[dict]:
         """Return events from the last N hours, newest first."""
         cutoff = utc_cutoff(hours=hours)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT id, timestamp, severity, event_type, message, details, acknowledged "
@@ -168,7 +168,7 @@ class EventMixin:
         if days <= 0:
             return 0
         cutoff = utc_cutoff(days=days)
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             deleted = conn.execute(
                 "DELETE FROM events WHERE timestamp < ?", (cutoff,)
             ).rowcount
@@ -176,7 +176,7 @@ class EventMixin:
 
     def get_latest_spike_timestamp(self):
         """Return timestamp of the most recent error_spike event, or None."""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             row = conn.execute(
                 "SELECT timestamp FROM events WHERE event_type = 'error_spike' "
                 "ORDER BY timestamp DESC LIMIT 1"

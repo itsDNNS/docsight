@@ -3,6 +3,7 @@
 import logging
 import os
 import sqlite3
+from contextlib import contextmanager
 
 
 ALLOWED_MIME_TYPES = {
@@ -26,7 +27,7 @@ class StorageBase:
         self._init_db()
 
     def _init_db(self):
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
 
             # ── Migration: rename incidents → journal_entries ──
@@ -208,8 +209,16 @@ class StorageBase:
                 ON smart_capture_executions(created_at)
             """)
 
+    @contextmanager
     def _connect(self):
-        """Return a connection with foreign keys enabled."""
+        """Yield a connection with foreign keys enabled and close it afterwards."""
         conn = sqlite3.connect(self.db_path)
         conn.execute("PRAGMA foreign_keys = ON")
-        return conn
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
