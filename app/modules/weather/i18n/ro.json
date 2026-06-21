@@ -1,9 +1,0 @@
-{
-  "weather_title": "Vremea",
-  "weather_optional": "opțional — corelați calitatea semnalului cu temperatura exterioară",
-  "weather_enable": "Activați colectarea datelor meteo",
-  "weather_enable_hint": "Preia temperatura exterioară orară de la Open-Meteo (gratuit, fără cheie API). Datele istorice sunt completate automat.",
-  "weather_latitude": "Latitudine",
-  "weather_longitude": "Longitudine",
-  "weather_coord_hint": "Coordonatele locației dvs. (de exemplu, 52.52 / 13.41 pentru Berlin). Găsiți-l pe latlong.net"
-}

@@ -96,18 +96,13 @@ docker-compose.dev.yml - Development Docker setup
 
 ## Internationalization (i18n)
 
-Translations live in `app/i18n/` as JSON files:
+Translations live in `app/i18n/` as JSON files. The core interface has a 24-language European language pack; built-in modules keep `en.json` source catalogs and fall back to English unless a module explicitly ships its own locale file.
 
-- `en.json` - English
-- `de.json` - German
-- `fr.json` - French
-- `es.json` - Spanish
-
-Each file has a `_meta` field with `language_name` and `flag`. When adding or changing UI strings, update **all existing language files**.
+Each core locale file has a `_meta` field with `language_name` and `flag`. When adding or changing core UI strings, update **all existing core language files**. When adding or changing module UI strings, update the module's `en.json` source catalog and rely on English fallback unless the module intentionally owns a translated catalog.
 
 ### Adding a New Language
 
-DOCSight is used internationally and translations from native speakers are welcome. To add a new language:
+DOCSight is used internationally and translations from native speakers are welcome. To add a new core language:
 
 1. Copy `app/i18n/template.json` to `app/i18n/<lang>.json` (e.g. `sv.json` for Swedish, `nl.json` for Dutch). Use the ISO 639-1 two-letter code.
 2. Fill in `_meta.language_name` (native spelling, e.g. `Svenska` not `Swedish`) and `_meta.flag` (emoji flag).

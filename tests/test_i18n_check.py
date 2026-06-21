@@ -55,6 +55,22 @@ def test_flatten_key_paths_includes_nested_keys():
     assert "issue_labels.nested.value" in paths
 
 
+def test_generate_writes_only_core_template(tmp_path, monkeypatch):
+    root = tmp_path
+    core = root / "app" / "i18n"
+    module_i18n = root / "app" / "modules" / "example" / "i18n"
+    core.mkdir(parents=True)
+    module_i18n.mkdir(parents=True)
+    (core / "en.json").write_text(json.dumps({"_meta": {"language_name": "English", "flag": "gb"}, "title": "DOCSight"}), encoding="utf-8")
+    (module_i18n / "en.json").write_text(json.dumps({"title": "Module"}), encoding="utf-8")
+    monkeypatch.setattr(i18n_check, "ROOT", root)
+
+    i18n_check.cmd_generate()
+
+    assert (core / "template.json").exists()
+    assert not (module_i18n / "template.json").exists()
+
+
 def _string_values(value):
     if isinstance(value, str):
         yield value
