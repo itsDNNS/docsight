@@ -1306,9 +1306,9 @@ pypdf==6.13.3 \
     --hash=sha256:c6e3f86afb625791510b02ad5480e94b63970bb957df75d44657c282ecc52224 \
     --hash=sha256:f3cb822769725f1bac658c406cfc9460399043f3750c2d3e4650e0a85eacabd7
     # via -r requirements.in
-pytest==9.0.3 \
-    --hash=sha256:2c5efc453d45394fdd706ade797c0a81091eccd1d6e4bccfcd476e2b8e0ab5d9 \
-    --hash=sha256:b86ada508af81d19edeb213c681b1d48246c1a91d304c6c81a427674c17eb91c
+pytest==9.1.1 \
+    --hash=sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313 \
+    --hash=sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c
     # via -r requirements-test.in
 pywebpush==2.3.0 \
     --hash=sha256:3d97469fb14d4323c362319d438183737249a4115b50e146ce233e7f01e3cf98 \
