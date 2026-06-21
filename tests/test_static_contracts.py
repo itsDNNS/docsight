@@ -209,6 +209,15 @@ def test_static_templates_keep_basic_heading_markup_well_formed() -> None:
     assert offenders == []
 
 
+def test_smart_capture_speedtest_adapter_tests_are_consolidated() -> None:
+    files = sorted(path.name for path in ROOT.glob("tests/test_smart_capture*speedtest*.py"))
+    assert files == ["test_smart_capture_adapter_speedtest.py"]
+
+    tests = (ROOT / "tests" / files[0]).read_text(encoding="utf-8")
+    assert "test_recent_tracker_result_suppresses_before_post" in tests
+    assert "test_configured_match_window_can_reject_late_results" in tests
+
+
 def test_smart_capture_uses_direct_speedtest_execution_wiring() -> None:
     assert not (ROOT / "app" / "smart_capture" / "adapters" / "base.py").exists()
 
