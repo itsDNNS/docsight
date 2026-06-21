@@ -1,5 +1,6 @@
 """Module loader: discovers, validates, and loads DOCSight modules."""
 
+import importlib
 import importlib.util
 import json
 import logging
@@ -13,6 +14,7 @@ from flask import send_from_directory
 
 from app import analyzer as _analyzer
 from app import config as _cfg
+from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
 from app.i18n import _TRANSLATIONS
 from app.path_safety import safe_manifest_ref, safe_manifest_subpath
 
@@ -60,7 +62,7 @@ class ModuleInfo:
     has_js: bool = False
 
 
-def validate_manifest(raw: dict[str, Any], module_path: str) -> ModuleInfo:
+def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | None = None) -> ModuleInfo:
     """Validate a raw manifest dict and return a ModuleInfo.
 
     Raises ManifestError if the manifest is invalid.
@@ -125,9 +127,10 @@ def validate_manifest(raw: dict[str, Any], module_path: str) -> ModuleInfo:
             + ", ".join(sorted(unknown_config_secrets))
         )
 
-    # Detect builtin
-    norm = os.path.normpath(module_path).replace("\\", "/")
-    builtin = "/app/modules/" in norm or "\\app\\modules\\" in os.path.normpath(module_path)
+    # Detect builtin unless the caller already knows the module source.
+    if builtin is None:
+        norm = os.path.normpath(module_path).replace("\\", "/")
+        builtin = "/app/modules/" in norm or "\\app\\modules\\" in os.path.normpath(module_path)
 
     return ModuleInfo(
         id=mod_id,
@@ -152,6 +155,7 @@ def validate_manifest(raw: dict[str, Any], module_path: str) -> ModuleInfo:
 def discover_modules(
     search_paths: list[str] | None = None,
     disabled_ids: set[str] | None = None,
+    known_ids: set[str] | None = None,
 ) -> list[ModuleInfo]:
     """Scan directories for module manifest.json files.
 
@@ -159,6 +163,9 @@ def discover_modules(
         search_paths: List of directories to scan. Each directory is expected
             to contain subdirectories, each with a manifest.json.
         disabled_ids: Set of module IDs that should be marked as disabled.
+        known_ids: Module IDs that have already been registered by a
+            higher-priority source. Matching manifests are skipped as
+            duplicates.
 
     Returns:
         List of validated ModuleInfo objects. Invalid manifests are logged
@@ -170,7 +177,7 @@ def discover_modules(
         disabled_ids = set()
 
     modules: list[ModuleInfo] = []
-    seen_ids: set[str] = set()
+    seen_ids: set[str] = set(known_ids or set())
 
     for search_dir in search_paths:
         if not os.path.isdir(search_dir):
@@ -216,8 +223,51 @@ def discover_modules(
     return modules
 
 
+def discover_builtin_modules(
+    builtin_base_path: str,
+    disabled_ids: set[str] | None = None,
+) -> list[ModuleInfo]:
+    """Load built-in module manifests from the static application registry."""
+    if disabled_ids is None:
+        disabled_ids = set()
+
+    modules: list[ModuleInfo] = []
+    seen_ids: set[str] = set()
+    for entry in BUILTIN_MODULE_DIRS:
+        mod_dir = os.path.join(builtin_base_path, entry)
+        manifest_path = os.path.join(mod_dir, "manifest.json")
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning("Skipping built-in module %s: failed to read manifest: %s", entry, e)
+            continue
+
+        try:
+            info = validate_manifest(raw, mod_dir, builtin=True)
+        except ManifestError as e:
+            log.warning("Skipping built-in module %s: invalid manifest: %s", entry, e)
+            continue
+
+        if info.id in seen_ids:
+            log.warning("Skipping duplicate built-in module '%s' at %s", info.id, mod_dir)
+            continue
+
+        info.enabled = info.id not in disabled_ids
+        seen_ids.add(info.id)
+        modules.append(info)
+        log.info(
+            "Registered built-in module: %s v%s%s",
+            info.id,
+            info.version,
+            "" if info.enabled else " [disabled]",
+        )
+
+    return modules
+
+
 def reserve_module_config_secrets(modules: list[ModuleInfo]) -> None:
-    """Reserve module-owned secret keys across all discovered manifests.
+    """Reserve module-owned secret keys across all loaded manifests.
 
     Reservations are made before enabled modules are loaded so ownership is
     independent of load order and disabled modules still protect previously
@@ -389,6 +439,45 @@ _PROTECTED_API_PREFIXES = (
 )
 
 
+def _load_symbol(spec: str, module_id: str):
+    """Import a trusted built-in Python contribution by module path."""
+    if ":" not in spec:
+        log.warning("Built-in module '%s': invalid Python contribution spec", module_id)
+        return None
+    module_name, attr_name = spec.rsplit(":", 1)
+    try:
+        module = importlib.import_module(module_name)
+    except Exception as e:
+        log.error("Built-in module '%s': failed to import %s: %s", module_id, module_name, e)
+        return None
+    value = getattr(module, attr_name, None)
+    if value is None:
+        log.warning("Built-in module '%s': symbol '%s' not found in %s", module_id, attr_name, module_name)
+    return value
+
+
+def attach_builtin_python_contributions(mod: ModuleInfo) -> None:
+    """Attach statically registered Python entry points for a built-in module."""
+    specs = BUILTIN_PYTHON_CONTRIBUTIONS.get(mod.id)
+    if not specs:
+        specs = None
+
+    for key, attr_name in (
+        ("collector", "collector_class"),
+        ("publisher", "publisher_class"),
+        ("driver", "driver_class"),
+    ):
+        if key not in mod.contributes or getattr(mod, attr_name) is not None:
+            continue
+        spec = getattr(specs, key, None) if specs else None
+        if not spec:
+            raise ManifestError(f"Built-in module '{mod.id}' missing static {key} registration")
+        symbol = _load_symbol(spec, mod.id)
+        if symbol is None:
+            raise ManifestError(f"Built-in module '{mod.id}' failed to import static {key} registration")
+        setattr(mod, attr_name, symbol)
+
+
 def load_module_routes(app, module_id: str, module_path: str, routes_file: str, *, builtin: bool = False) -> None:
     """Dynamically load a Flask Blueprint from a module's routes file.
 
@@ -404,18 +493,26 @@ def load_module_routes(app, module_id: str, module_path: str, routes_file: str, 
         return
 
     dir_name = os.path.basename(module_path)
-    mod_name = f"app.modules.{dir_name}.routes"
-    try:
-        spec = importlib.util.spec_from_file_location(mod_name, routes_path)
-        if spec is None or spec.loader is None:
-            log.warning("Module '%s': could not create import spec for %s", module_id, routes_path)
+    if builtin:
+        mod_name = f"app.modules.{dir_name}.{os.path.splitext(os.path.basename(routes_file))[0]}"
+        try:
+            mod = importlib.import_module(mod_name)
+        except Exception as e:
+            log.error("Module '%s': failed to import routes: %s", module_id, e)
             return
-        mod = importlib.util.module_from_spec(spec)
-        sys.modules[mod_name] = mod
-        spec.loader.exec_module(mod)
-    except Exception as e:
-        log.error("Module '%s': failed to import routes: %s", module_id, e)
-        return
+    else:
+        mod_name = f"community_modules.{dir_name}.routes"
+        try:
+            spec = importlib.util.spec_from_file_location(mod_name, routes_path)
+            if spec is None or spec.loader is None:
+                log.warning("Module '%s': could not create import spec for %s", module_id, routes_path)
+                return
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules[mod_name] = mod
+            spec.loader.exec_module(mod)
+        except Exception as e:
+            log.error("Module '%s': failed to import routes: %s", module_id, e)
+            return
 
     # Find Blueprint
     blueprint = getattr(mod, "bp", None) or getattr(mod, "blueprint", None)
@@ -700,10 +797,12 @@ class ModuleLoader:
         app,
         search_paths: list[str] | None = None,
         disabled_ids: set[str] | None = None,
+        builtin_base_path: str | None = None,
     ):
         self._app = app
         self._search_paths = search_paths or []
         self._disabled_ids = disabled_ids or set()
+        self._builtin_base_path = builtin_base_path
         self._modules: list[ModuleInfo] = []
 
     def load_all(self) -> list[ModuleInfo]:
@@ -711,10 +810,22 @@ class ModuleLoader:
 
         Returns list of all discovered ModuleInfo (including disabled).
         """
-        self._modules = discover_modules(
-            search_paths=self._search_paths,
-            disabled_ids=self._disabled_ids,
+        modules: list[ModuleInfo] = []
+        if self._builtin_base_path:
+            modules.extend(
+                discover_builtin_modules(
+                    self._builtin_base_path,
+                    disabled_ids=self._disabled_ids,
+                )
+            )
+        modules.extend(
+            discover_modules(
+                search_paths=self._search_paths,
+                disabled_ids=self._disabled_ids,
+                known_ids={m.id for m in modules},
+            )
         )
+        self._modules = modules
         reserve_module_config_secrets(self._modules)
 
         for mod in self._modules:
@@ -759,6 +870,9 @@ class ModuleLoader:
         """Load a single module's contributions."""
         c = mod.contributes
 
+        if mod.builtin:
+            attach_builtin_python_contributions(mod)
+
         # Config defaults
         if mod.config or mod.config_secrets:
             mod.config_secrets = register_module_config(
@@ -785,15 +899,15 @@ class ModuleLoader:
         mod.template_paths = setup_module_templates(mod.id, mod.path, c)
 
         # Collector (class loaded but not instantiated -- collector discovery handles that)
-        if "collector" in c:
+        if "collector" in c and not mod.builtin:
             mod.collector_class = load_module_collector(mod.id, mod.path, c["collector"])
 
         # Publisher (class loaded but not instantiated -- main.py handles that)
-        if "publisher" in c:
+        if "publisher" in c and not mod.builtin:
             mod.publisher_class = load_module_publisher(mod.id, mod.path, c["publisher"])
 
         # Driver (class loaded but not instantiated -- DriverRegistry handles that)
-        if "driver" in c:
+        if "driver" in c and not mod.builtin:
             mod.driver_class = load_module_driver(mod.id, mod.path, c["driver"])
 
         # Thresholds

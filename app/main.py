@@ -389,7 +389,8 @@ def main():
 
     module_loader = ModuleLoader(
         web.app,
-        search_paths=[builtin_path, community_path],
+        builtin_base_path=builtin_path,
+        search_paths=[community_path],
         disabled_ids=disabled_ids,
     )
     module_loader.load_all()
