@@ -9,6 +9,7 @@ from typing import Any, Callable
 from ..types import EventDict
 
 SEVERITY_RANK = {"info": 0, "warning": 1, "critical": 2}
+CAPTURE_ACTION_TYPE = "capture"
 
 
 class ExecutionStatus(str, Enum):
@@ -21,13 +22,12 @@ class ExecutionStatus(str, Enum):
 
 @dataclass(frozen=True)
 class Trigger:
-    """A rule that matches events to actions.
+    """A rule that matches events to Smart Capture speedtest runs.
 
     Modules register triggers with the engine. When an event matches,
-    the engine applies guardrails and records an execution.
+    the engine applies guardrails and records a capture execution.
     """
     event_type: str
-    action_type: str
     config_key: str | None = None
     min_severity: str | None = None
     require_details: dict[str, Any] | None = field(default=None, hash=False)

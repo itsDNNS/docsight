@@ -34,7 +34,6 @@ def engine(storage):
     e = SmartCaptureEngine(storage, config)
     e.register_trigger(Trigger(
         event_type="modulation_change",
-        action_type="capture",
         min_severity="warning",
         require_details={"direction": "downgrade"},
     ))
@@ -83,7 +82,7 @@ class TestEvaluate:
         config = _make_config(sc_global_cooldown=600)
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(
-            event_type="modulation_change", action_type="capture",
+            event_type="modulation_change",
         ))
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
@@ -99,27 +98,25 @@ class TestEvaluate:
         config = _make_config(sc_enabled=False)
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(
-            event_type="modulation_change", action_type="capture",
+            event_type="modulation_change",
         ))
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
         engine.evaluate([event])
         assert storage.get_executions() == []
 
-    def test_multiple_triggers_can_match(self, storage):
+    def test_duplicate_trigger_not_dispatched_twice(self, storage):
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture"))
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="webhook"))
+        trigger = Trigger(event_type="modulation_change")
+        engine.register_trigger(trigger)
+        engine.register_trigger(trigger)
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
         engine.evaluate([event])
         rows = storage.get_executions()
-        assert len(rows) == 2
-        action_types = {r["action_type"] for r in rows}
-        assert action_types == {"capture", "webhook"}
+        assert len(rows) == 1
+        assert rows[0]["action_type"] == "capture"
 
     def test_empty_events_is_noop(self, engine, storage):
         engine.evaluate([])
@@ -129,8 +126,7 @@ class TestEvaluate:
         """Events with _id set get their trigger_event_id stored."""
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture"))
+        engine.register_trigger(Trigger(event_type="modulation_change"))
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "drop",
                  "_id": 42}
@@ -144,13 +140,13 @@ class TestRegisterTrigger:
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
         assert len(engine.triggers) == 0
-        engine.register_trigger(Trigger(event_type="test", action_type="test"))
+        engine.register_trigger(Trigger(event_type="test"))
         assert len(engine.triggers) == 1
 
     def test_duplicate_trigger_not_added(self, storage):
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
-        t = Trigger(event_type="test", action_type="test")
+        t = Trigger(event_type="test")
         engine.register_trigger(t)
         engine.register_trigger(t)
         assert len(engine.triggers) == 1
@@ -164,7 +160,6 @@ class TestEndToEnd:
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(
             event_type="modulation_change",
-            action_type="capture",
             min_severity="warning",
             require_details={"direction": "downgrade"},
         ))
@@ -198,7 +193,6 @@ class TestEndToEnd:
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(
             event_type="modulation_change",
-            action_type="capture",
             min_severity="warning",
             require_details={"direction": "downgrade"},
         ))
@@ -220,7 +214,6 @@ class TestEndToEnd:
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(
             event_type="modulation_change",
-            action_type="capture",
             require_details={"direction": "downgrade"},
         ))
 
@@ -247,7 +240,7 @@ class TestEndToEnd:
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(
-            event_type="modulation_change", action_type="capture",
+            event_type="modulation_change",
             require_details={"direction": "downgrade"},
         ))
 
@@ -282,13 +275,12 @@ class TestAdapterDispatch:
     def test_adapter_called_on_pending_execution(self, storage):
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture"))
+        engine.register_trigger(Trigger(event_type="modulation_change"))
 
         mock_adapter = MagicMock()
         mock_adapter.action_type = "capture"
         mock_adapter.execute.return_value = (True, None)
-        engine.register_adapter("capture", mock_adapter)
+        engine.register_speedtest_adapter(mock_adapter)
 
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "drop", "_id": 1}
@@ -302,8 +294,7 @@ class TestAdapterDispatch:
     def test_no_adapter_registered_stays_pending(self, storage):
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture"))
+        engine.register_trigger(Trigger(event_type="modulation_change"))
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
         engine.evaluate([event])
@@ -313,11 +304,10 @@ class TestAdapterDispatch:
     def test_suppressed_execution_does_not_call_adapter(self, storage):
         config = _make_config(sc_global_cooldown=600)
         engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture"))
+        engine.register_trigger(Trigger(event_type="modulation_change"))
         mock_adapter = MagicMock()
         mock_adapter.execute.return_value = (True, None)
-        engine.register_adapter("capture", mock_adapter)
+        engine.register_speedtest_adapter(mock_adapter)
 
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
@@ -325,13 +315,18 @@ class TestAdapterDispatch:
         engine.evaluate([event])  # second: suppressed, adapter NOT called
         assert mock_adapter.execute.call_count == 1
 
-    def test_adapter_action_types_property(self, storage):
+    def test_execution_records_use_capture_action_type(self, storage):
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
-        assert engine.adapter_action_types == []
-        mock_adapter = MagicMock()
-        engine.register_adapter("capture", mock_adapter)
-        assert engine.adapter_action_types == ["capture"]
+        engine.register_trigger(Trigger(event_type="modulation_change"))
+
+        event = {"event_type": "modulation_change", "severity": "warning",
+                 "timestamp": "2026-03-15T10:00:00Z", "message": "drop"}
+        engine.evaluate([event])
+
+        rows = storage.get_executions()
+        assert rows[0]["status"] == "pending"
+        assert rows[0]["action_type"] == "capture"
 
 
 class TestConfigDrivenTriggerGating:
@@ -339,7 +334,6 @@ class TestConfigDrivenTriggerGating:
         config = _make_config(sc_trigger_modulation=False)
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture",
                                         config_key="sc_trigger_modulation"))
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-16T10:00:00Z", "message": "drop"}
@@ -350,7 +344,6 @@ class TestConfigDrivenTriggerGating:
         config = _make_config(sc_trigger_modulation=True)
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture",
                                         config_key="sc_trigger_modulation"))
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-16T10:00:00Z", "message": "drop"}
@@ -360,8 +353,7 @@ class TestConfigDrivenTriggerGating:
     def test_trigger_without_config_key_always_fires(self, storage):
         config = _make_config()
         engine = SmartCaptureEngine(storage, config)
-        engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture"))
+        engine.register_trigger(Trigger(event_type="modulation_change"))
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-16T10:00:00Z", "message": "drop"}
         engine.evaluate([event])
@@ -372,7 +364,6 @@ class TestConfigDrivenTriggerGating:
         config = _make_config(sc_enabled=False, sc_trigger_modulation=True)
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(event_type="modulation_change",
-                                        action_type="capture",
                                         config_key="sc_trigger_modulation"))
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-16T10:00:00Z", "message": "drop"}

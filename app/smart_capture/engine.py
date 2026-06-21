@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import logging
 
+from typing import Any
+
 from ..types import EventDict
-from .adapters.base import ActionAdapter
 from .guardrails import GuardrailChain
-from .types import ExecutionStatus, Trigger
+from .types import CAPTURE_ACTION_TYPE, ExecutionStatus, Trigger
 
 log = logging.getLogger("docsis.smart_capture.engine")
 
@@ -18,7 +19,7 @@ class SmartCaptureEngine:
     Sits alongside the NotificationDispatcher as an event consumer.
     Modules register triggers; the engine evaluates incoming events against
     them, applies guardrails, and writes execution records to storage.
-    Registered adapters are called to execute actions for pending executions.
+    When configured, the Speedtest adapter is called for capture actions.
     """
 
     def __init__(self, storage, config_mgr):
@@ -26,27 +27,22 @@ class SmartCaptureEngine:
         self._config = config_mgr
         self._guardrails = GuardrailChain(config_mgr)
         self._triggers: list[Trigger] = []
-        self._adapters: dict[str, ActionAdapter] = {}
+        self._speedtest_adapter: Any | None = None
 
     @property
     def triggers(self) -> list[Trigger]:
         return list(self._triggers)
 
-    @property
-    def adapter_action_types(self) -> list[str]:
-        """Return list of action types with registered adapters."""
-        return list(self._adapters.keys())
-
     def register_trigger(self, trigger: Trigger):
-        """Register a trigger. Duplicates (same event_type + action_type) are ignored."""
+        """Register a trigger. Duplicate trigger definitions are ignored."""
         if trigger not in self._triggers:
             self._triggers.append(trigger)
-            log.info("Registered trigger: %s -> %s", trigger.event_type, trigger.action_type)
+            log.info("Registered trigger: %s -> %s", trigger.event_type, CAPTURE_ACTION_TYPE)
 
-    def register_adapter(self, action_type: str, adapter: ActionAdapter) -> None:
-        """Register an action adapter for an action type."""
-        self._adapters[action_type] = adapter
-        log.info("Registered adapter for action_type=%s", action_type)
+    def register_speedtest_adapter(self, adapter: Any) -> None:
+        """Wire the Speedtest Tracker capture adapter used by Smart Capture."""
+        self._speedtest_adapter = adapter
+        log.info("Registered Smart Capture speedtest adapter")
 
     def evaluate(self, events: list[EventDict]) -> None:
         """Evaluate a batch of events against registered triggers.
@@ -96,26 +92,25 @@ class SmartCaptureEngine:
             if allowed:
                 execution_id = self._storage.save_execution(
                     trigger_type=ev["event_type"],
-                    action_type=trigger.action_type,
+                    action_type=CAPTURE_ACTION_TYPE,
                     status=ExecutionStatus.PENDING,
                     trigger_event_id=ev.get("_id"),
                     trigger_timestamp=ev.get("timestamp"),
                     details=ev.get("details"),
                 )
                 log.info("Smart Capture: pending execution #%d for %s -> %s",
-                         execution_id, ev["event_type"], trigger.action_type)
+                         execution_id, ev["event_type"], CAPTURE_ACTION_TYPE)
 
-                adapter = self._adapters.get(trigger.action_type)
-                if adapter:
+                if self._speedtest_adapter is not None:
                     try:
-                        adapter.execute(execution_id, ev)
+                        self._speedtest_adapter.execute(execution_id, ev)
                     except Exception as e:
-                        log.error("Smart Capture: adapter error for #%d: %s",
+                        log.error("Smart Capture: speedtest adapter error for #%d: %s",
                                   execution_id, e)
             else:
                 self._storage.save_execution(
                     trigger_type=ev["event_type"],
-                    action_type=trigger.action_type,
+                    action_type=CAPTURE_ACTION_TYPE,
                     status=ExecutionStatus.SUPPRESSED,
                     trigger_event_id=ev.get("_id"),
                     trigger_timestamp=ev.get("timestamp"),
@@ -123,4 +118,4 @@ class SmartCaptureEngine:
                     details=ev.get("details"),
                 )
                 log.info("Smart Capture: suppressed %s -> %s (%s)",
-                         ev["event_type"], trigger.action_type, reason)
+                         ev["event_type"], CAPTURE_ACTION_TYPE, reason)

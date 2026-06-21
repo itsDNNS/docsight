@@ -23,7 +23,7 @@ def _make_config(**overrides):
     return config
 
 
-TRIGGER = Trigger(event_type="modulation_change", action_type="capture")
+TRIGGER = Trigger(event_type="modulation_change")
 EVENT = {"event_type": "modulation_change", "severity": "warning",
          "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
 
@@ -58,15 +58,15 @@ class TestGlobalCooldown:
 
 
 class TestBatchSemantics:
-    def test_two_triggers_same_event_both_allowed(self):
-        """Global cooldown must not suppress the second trigger for the same event."""
+    def test_two_distinct_matches_in_same_batch_both_allowed(self):
+        """Global cooldown must not suppress additional matches in one event batch."""
         chain = GuardrailChain(_make_config(sc_global_cooldown=300))
-        t1 = Trigger(event_type="modulation_change", action_type="capture")
-        t2 = Trigger(event_type="modulation_change", action_type="webhook")
+        t1 = Trigger(event_type="modulation_change")
+        t2 = Trigger(event_type="snr_change")
         results = chain.check_batch([(t1, EVENT), (t2, EVENT)])
         assert len(results) == 2
-        assert results[0][2] is True   # capture allowed
-        assert results[1][2] is True   # webhook allowed
+        assert results[0][2] is True
+        assert results[1][2] is True
 
     def test_global_cooldown_set_after_batch(self):
         """After a batch with allowed executions, next batch is blocked by global cooldown."""
@@ -85,7 +85,7 @@ class TestBatchSemantics:
         _check_one(chain, TRIGGER, EVENT)  # first fire, allowed
         _check_one(chain, TRIGGER, EVENT)  # second fire, trigger_cooldown blocks
         # Global cooldown should still reflect the first fire only
-        other = Trigger(event_type="error_spike", action_type="capture")
+        other = Trigger(event_type="error_spike")
         other_ev = {"event_type": "error_spike", "severity": "warning",
                     "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         allowed, _ = _check_one(chain, other, other_ev)
@@ -96,7 +96,7 @@ class TestPerTriggerCooldown:
     def test_different_trigger_not_blocked(self):
         chain = GuardrailChain(_make_config(sc_global_cooldown=0))
         _check_one(chain, TRIGGER, EVENT)
-        other_trigger = Trigger(event_type="error_spike", action_type="capture")
+        other_trigger = Trigger(event_type="error_spike")
         other_event = {"event_type": "error_spike", "severity": "warning",
                        "timestamp": "2026-03-15T10:00:00Z", "message": "spike"}
         allowed, reason = _check_one(chain, other_trigger, other_event)
@@ -118,11 +118,11 @@ class TestMaxActionsPerHour:
             sc_max_actions_per_hour=2, sc_flapping_threshold=999,
         ))
         _check_one(chain, TRIGGER, EVENT)
-        other = Trigger(event_type="error_spike", action_type="capture")
+        other = Trigger(event_type="error_spike")
         other_ev = {"event_type": "error_spike", "severity": "warning",
                     "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         _check_one(chain, other, other_ev)
-        third = Trigger(event_type="power_change", action_type="capture")
+        third = Trigger(event_type="power_change")
         third_ev = {"event_type": "power_change", "severity": "warning",
                     "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         allowed, reason = _check_one(chain, third, third_ev)
@@ -167,7 +167,7 @@ class TestFlappingSuppression:
         ))
         _check_one(chain, TRIGGER, EVENT)
         _check_one(chain, TRIGGER, EVENT)
-        other = Trigger(event_type="error_spike", action_type="capture")
+        other = Trigger(event_type="error_spike")
         other_ev = {"event_type": "error_spike", "severity": "warning",
                     "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         allowed, reason = _check_one(chain, other, other_ev)

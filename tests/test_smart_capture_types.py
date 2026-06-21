@@ -16,40 +16,40 @@ class TestExecutionStatus:
 
 class TestTriggerMatches:
     def test_matches_event_type(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture")
+        trigger = Trigger(event_type="modulation_change")
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         assert trigger.matches(event) is True
 
     def test_rejects_wrong_event_type(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture")
+        trigger = Trigger(event_type="modulation_change")
         event = {"event_type": "power_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         assert trigger.matches(event) is False
 
     def test_min_severity_filters_low(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture",
+        trigger = Trigger(event_type="modulation_change",
                           min_severity="warning")
         info_event = {"event_type": "modulation_change", "severity": "info",
                       "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         assert trigger.matches(info_event) is False
 
     def test_min_severity_passes_equal(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture",
+        trigger = Trigger(event_type="modulation_change",
                           min_severity="warning")
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         assert trigger.matches(event) is True
 
     def test_min_severity_passes_higher(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture",
+        trigger = Trigger(event_type="modulation_change",
                           min_severity="warning")
         event = {"event_type": "modulation_change", "severity": "critical",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         assert trigger.matches(event) is True
 
     def test_require_details_matches(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture",
+        trigger = Trigger(event_type="modulation_change",
                           require_details={"direction": "downgrade"})
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "test",
@@ -57,7 +57,7 @@ class TestTriggerMatches:
         assert trigger.matches(event) is True
 
     def test_require_details_rejects_mismatch(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture",
+        trigger = Trigger(event_type="modulation_change",
                           require_details={"direction": "downgrade"})
         event = {"event_type": "modulation_change", "severity": "info",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "test",
@@ -65,14 +65,14 @@ class TestTriggerMatches:
         assert trigger.matches(event) is False
 
     def test_require_details_rejects_missing_details(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture",
+        trigger = Trigger(event_type="modulation_change",
                           require_details={"direction": "downgrade"})
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
         assert trigger.matches(event) is False
 
     def test_no_severity_filter_accepts_all(self):
-        trigger = Trigger(event_type="error_spike", action_type="capture")
+        trigger = Trigger(event_type="error_spike")
         for sev in ("info", "warning", "critical"):
             event = {"event_type": "error_spike", "severity": sev,
                      "timestamp": "2026-03-15T10:00:00Z", "message": "test"}
@@ -81,16 +81,16 @@ class TestTriggerMatches:
 
 class TestTriggerConfigKey:
     def test_trigger_with_config_key(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture",
+        trigger = Trigger(event_type="modulation_change",
                           config_key="sc_trigger_modulation")
         assert trigger.config_key == "sc_trigger_modulation"
 
     def test_trigger_without_config_key(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture")
+        trigger = Trigger(event_type="modulation_change")
         assert trigger.config_key is None
 
     def test_config_key_does_not_affect_matches(self):
-        trigger = Trigger(event_type="modulation_change", action_type="capture",
+        trigger = Trigger(event_type="modulation_change",
                           config_key="sc_trigger_modulation")
         event = {"event_type": "modulation_change", "severity": "warning",
                  "timestamp": "2026-03-16T10:00:00Z", "message": "test"}
