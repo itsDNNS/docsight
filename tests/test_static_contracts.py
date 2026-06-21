@@ -14,6 +14,17 @@ STATIC = APP / "static"
 TEMPLATES = APP / "templates"
 MODULES = APP / "modules"
 APP_I18N_DIR = APP / "i18n"
+LUCIDE_JS = STATIC / "vendor" / "lucide.min.js"
+DYNAMIC_LUCIDE_ICONS = {
+    "book-open",  # built-in journal module menu icon
+    "corner-left-up",  # settings backup directory browser parent row
+    "folder",  # settings backup directory browser row
+    "gamepad-2",  # built-in feature card
+    "gauge",  # built-in feature card
+    "octagon-alert",  # dynamically rendered critical event severity
+    "puzzle",  # community module fallback icon
+    "shield-alert",  # dynamically rendered critical maintainer notice
+}
 
 EUROPEAN_LANGUAGE_PACK = {
     "bg", "cs", "da", "de", "el", "en", "es", "et", "fi", "fr",
@@ -71,6 +82,41 @@ def collect_literal_asset_urls(paths: Iterable[Path]) -> dict[Path, set[str]]:
         if matches:
             urls[path] = matches
     return urls
+
+
+def collect_required_lucide_icons() -> set[str]:
+    icons = set(DYNAMIC_LUCIDE_ICONS)
+    for path in APP.rglob("*"):
+        if path.is_dir() or path == LUCIDE_JS or path.suffix not in {".html", ".js"}:
+            continue
+        text = path.read_text(encoding="utf-8")
+        icons.update(
+            match.group(1)
+            for match in re.finditer(r"data-lucide=[\"']([^\"']+)[\"']", text)
+            if "{{" not in match.group(1) and "{%" not in match.group(1) and "+" not in match.group(1)
+        )
+        icons.update(
+            match.group(1)
+            for match in re.finditer(r"setAttribute\(['\"]data-lucide['\"],\s*['\"]([^'\"]+)['\"]\)", text)
+        )
+    for manifest_path in MODULES.glob("*/manifest.json"):
+        manifest = read_json(manifest_path)
+        icon = manifest.get("menu", {}).get("icon")
+        if isinstance(icon, str):
+            icons.add(icon)
+    return icons
+
+
+def test_lucide_bundle_is_app_subset_and_covers_rendered_icons() -> None:
+    js = LUCIDE_JS.read_text(encoding="utf-8")
+    required_icons = collect_required_lucide_icons()
+
+    assert LUCIDE_JS.stat().st_size < 60_000
+    assert "DOCSight ships a generated subset" in js
+    assert "AArrowDown" not in js  # full Lucide runtime marker
+    assert "createIcons" in js
+    missing = sorted(icon for icon in required_icons if f'"{icon}"' not in js)
+    assert missing == []
 
 
 def test_pwa_manifest_metadata_and_declared_assets_are_valid() -> None:
