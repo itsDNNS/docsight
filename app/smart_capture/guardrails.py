@@ -63,7 +63,7 @@ class GuardrailChain:
 
             any_allowed = False
             for trigger, event in trigger_results:
-                trigger_key = f"{trigger.event_type}:{trigger.action_type}"
+                trigger_key = trigger.event_type
 
                 # Record match for flapping (counts ALL matches, not just fires)
                 history = self._trigger_match_history.get(trigger_key, [])

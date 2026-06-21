@@ -209,6 +209,23 @@ def test_static_templates_keep_basic_heading_markup_well_formed() -> None:
     assert offenders == []
 
 
+def test_smart_capture_uses_direct_speedtest_execution_wiring() -> None:
+    assert not (ROOT / "app" / "smart_capture" / "adapters" / "base.py").exists()
+
+    engine = (ROOT / "app" / "smart_capture" / "engine.py").read_text(encoding="utf-8")
+    speedtest = (ROOT / "app" / "smart_capture" / "adapters" / "speedtest.py").read_text(encoding="utf-8")
+    main = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
+
+    trigger_types = (ROOT / "app" / "smart_capture" / "types.py").read_text(encoding="utf-8")
+
+    assert "register_speedtest_adapter" in engine
+    assert "register_adapter" not in engine
+    assert "ActionAdapter" not in speedtest
+    assert "action_type: str" not in trigger_types
+    assert "CAPTURE_ACTION_TYPE = \"capture\"" in trigger_types
+    assert "register_speedtest_adapter(stt_adapter)" in main
+
+
 def test_core_i18n_template_is_generated_on_demand_not_tracked() -> None:
     """The translator template is generated locally from en.json when needed."""
     template_path = APP_I18N_DIR / "template.json"

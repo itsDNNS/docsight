@@ -11,8 +11,7 @@ import requests
 
 from ...tz import utc_now
 from ...types import EventDict
-from ..types import ExecutionStatus
-from .base import ActionAdapter
+from ..types import CAPTURE_ACTION_TYPE, ExecutionStatus
 
 log = logging.getLogger("docsis.smart_capture.adapters.speedtest")
 
@@ -29,11 +28,11 @@ def _as_bool(value: Any) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
-class SpeedtestAdapter(ActionAdapter):
+class SpeedtestAdapter:
     """Triggers a Speedtest Tracker run and matches imported results."""
 
     def __init__(self, storage, config_mgr):
-        super().__init__(action_type="capture")
+        self.action_type = CAPTURE_ACTION_TYPE
         self._storage = storage
         self._config = config_mgr
         url = config_mgr.get("speedtest_tracker_url", "").rstrip("/")

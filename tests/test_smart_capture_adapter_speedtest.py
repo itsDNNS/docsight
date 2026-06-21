@@ -346,7 +346,7 @@ class TestEndToEnd:
 
         engine = SmartCaptureEngine(storage, config)
         engine.register_trigger(Trigger(
-            event_type="modulation_change", action_type="capture",
+            event_type="modulation_change",
             require_details={"direction": "downgrade"},
         ))
 
@@ -357,7 +357,7 @@ class TestEndToEnd:
             from app.smart_capture.adapters.speedtest import SpeedtestAdapter
             adapter = SpeedtestAdapter(storage, config)
 
-        engine.register_adapter("capture", adapter)
+        engine.register_speedtest_adapter(adapter)
 
         # Trigger event
         event = {
