@@ -250,6 +250,7 @@ def test_public_surface_docs_and_social_asset_exist() -> None:
         DOCS / "public-launch-follow-up-issues.md",
         DOCS / "proof-pack.md",
         DOCS / "samples" / "demo-complaint-report.pdf",
+        DOCS / "screenshots" / "bad-day-evidence.png",
         DOCS / "screenshots" / "dashboard-hero.png",
         DOCS / "screenshots" / "social-preview.png",
     ]
@@ -275,6 +276,14 @@ def test_proof_pack_uses_current_public_assets_and_claims() -> None:
     assert "DOCSight gives you proof" not in text
     assert "readme-hero-evidence.png" not in text
     assert "readme-hero-evidence.png" not in directory
+
+
+def test_public_surface_keeps_generated_assets_not_generation_tooling() -> None:
+    text = (DOCS / "proof-pack.md").read_text(encoding="utf-8")
+
+    assert not (ROOT / "scripts" / "generate_marketing_proof_pack.py").exists()
+    assert "scripts/generate_marketing_proof_pack.py" not in text
+    assert "Regenerating the bundled assets" not in text
 
 
 def test_feature_matrix_has_shipped_planned_and_out_of_scope_sections() -> None:

@@ -136,19 +136,15 @@ These assets would further strengthen the proof pack:
    - Redacted user setup, problem tracked, evidence used, what changed.
    - Use a real story only after explicit permission and redaction.
 
-## Regenerating the bundled assets
+## Updating the bundled assets
 
-From the repository root:
+The public repository keeps the generated, demo-safe assets, not the one-off generation tooling. When these assets need to change, regenerate them through maintainer-side docs tooling and commit only reviewed public outputs.
 
-```bash
-uv run --with fpdf2 --with pillow --with flask --with cryptography --with requests --with beautifulsoup4 python scripts/generate_marketing_proof_pack.py
-```
-
-Generated files:
+Bundled files:
 
 - `docs/screenshots/bad-day-evidence.png`
 - `docs/screenshots/dashboard-hero.png`
 - `docs/screenshots/social-preview.png`
 - `docs/samples/demo-complaint-report.pdf`
 
-The generator uses synthetic data only and should stay that way.
+Keep all updates synthetic and rerun the screenshot/report safety checklist above before publishing replacements.
