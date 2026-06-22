@@ -1,5 +1,7 @@
 """Tests for import parser (Excel/CSV -> Incident Journal)."""
 
+import io
+
 import pytest
 from datetime import datetime
 
@@ -21,6 +23,21 @@ from app.modules.journal.import_parser import (
 def _make_csv_bytes(text, encoding="utf-8"):
     """Encode CSV text to bytes for parser input."""
     return text.encode(encoding)
+
+
+def _make_xlsx_bytes(rows):
+    """Build a minimal XLSX workbook for retained Excel import tests."""
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    assert ws is not None
+    for row in rows:
+        ws.append(row)
+    buf = io.BytesIO()
+    wb.save(buf)
+    wb.close()
+    return buf.getvalue()
 
 
 # ── Year Rollover Detection (_extract_year_context) ──
@@ -449,6 +466,45 @@ class TestHelpers:
             ["", "", "", ""],
         ]
         assert _find_header_row(rows) is None
+
+
+# ── Full XLSX Contract Tests ──
+
+class TestXlsxImportContract:
+    def test_parse_file_keeps_excel_import_with_datetime_cells(self):
+        """XLSX import is a retained user-facing contract, not CSV-only fallback."""
+        xlsx_bytes = _make_xlsx_bytes([
+            ["Datum", "Titel", "Beschreibung"],
+            [datetime(2024, 1, 15, 8, 30), "Signal drop", "Downstream SNR below target"],
+            ["20.01.2024", "Technician visit", "Connector replaced"],
+        ])
+
+        result = parse_file(xlsx_bytes, "journal.xlsx")
+
+        assert result["columns"] == ["A", "B", "C"]
+        assert result["sample_headers"] == ["Datum", "Titel", "Beschreibung"]
+        assert result["mapping"] == {"date": 0, "title": 1, "description": 2}
+        assert result["total"] == 2
+        assert result["skipped"] == 0
+        assert result["rows"][0]["date"] == "2024-01-15"
+        assert result["rows"][0]["title"] == "Signal drop"
+        assert result["rows"][1]["date"] == "2024-01-20"
+
+    def test_parse_file_keeps_spreadsheet_month_headers_for_excel_import(self):
+        """Excel imports keep the same month-header/year-rollover handling as CSV."""
+        xlsx_bytes = _make_xlsx_bytes([
+            ["Monat", "Datum", "Ereignis", "Details"],
+            ["Dezember (2023)", "15.12.", "Packet loss", "Evening packet loss"],
+            ["Januar", "05.01.", "Recovered", "Line stabilized"],
+        ])
+
+        result = parse_file(xlsx_bytes, "journal.xlsx")
+        dates = {row["title"]: row["date"] for row in result["rows"]}
+
+        assert dates == {
+            "Packet loss": "2023-12-15",
+            "Recovered": "2024-01-05",
+        }
 
 
 # ── Full Integration Tests ──
