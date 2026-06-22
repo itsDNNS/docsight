@@ -5,7 +5,7 @@ Pure function -- no Flask dependency, no side effects.
 
 from __future__ import annotations
 
-from .analyzer import _parse_qam_order
+from .docsis_utils import parse_qam_order as _parse_qam_order
 from .types import AnalysisResult, ConnectionInfo, DeviceInfo
 
 # Health string to numeric mapping

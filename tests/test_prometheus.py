@@ -678,8 +678,8 @@ class TestEdgeCases:
         has_flask_import = bool(re.search(r"^(import flask|from flask)", source, re.MULTILINE | re.IGNORECASE))
         assert not has_flask_import, "prometheus.py must not contain Flask imports"
 
-    def test_reuses_parse_qam_order_from_analyzer(self):
-        """prometheus.py must import _parse_qam_order from app.analyzer."""
+    def test_reuses_shared_parse_qam_order_helper(self):
+        """prometheus.py must import QAM parsing from shared DOCSIS utilities."""
         import importlib.util
         import pathlib
 
@@ -687,8 +687,8 @@ class TestEdgeCases:
         assert spec is not None, "app.prometheus module not found"
         source_path = pathlib.Path(spec.origin)
         source = source_path.read_text(encoding="utf-8")
-        assert "_parse_qam_order" in source
-        assert "analyzer" in source
+        assert "parse_qam_order" in source
+        assert "docsis_utils" in source
 
     def test_realistic_full_data_produces_valid_prometheus_text(self):
         """Integration test: full realistic data must produce parseable Prometheus format."""

@@ -7,9 +7,9 @@ community threshold profiles loaded through the module system.
 from __future__ import annotations
 
 import logging
-import re
 from typing import Literal
 
+from .docsis_utils import parse_qam_order as _parse_qam_order
 from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
 from .tz import utc_now, _parse_utc
 
@@ -391,19 +391,6 @@ def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None)
     }
 
     _recalculate_summary_health(summary)
-
-
-def _parse_qam_order(modulation_str):
-    """Extract QAM order from modulation string. Returns None if unparseable."""
-    if not modulation_str:
-        return None
-    mod = modulation_str.upper().replace("-", "").strip()
-    if mod in ("QPSK",):
-        return 4
-    m = re.match(r"(\d+)\s*QAM", mod)
-    if m:
-        return int(m.group(1))
-    return None
 
 
 # EuroDOCSIS default symbol rate (kSym/s)

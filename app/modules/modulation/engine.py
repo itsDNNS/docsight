@@ -5,10 +5,13 @@ multi-day overview distribution, and intraday per-channel timeline.
 """
 
 import math
-import re
 from datetime import datetime
 from collections import defaultdict
 
+from app.docsis_utils import (
+    canonical_modulation_label as _canonical_label,
+    parse_qam_order as _parse_qam_order,
+)
 from app.tz import to_local
 
 
@@ -31,46 +34,6 @@ DISCLAIMER = (
 
 
 # ── Parsing helpers ──────────────────────────────────────────────────
-
-
-def _parse_qam_order(modulation_str):
-    """Extract QAM order from modulation string. Returns None if unparseable.
-
-    Mirrors app.analyzer._parse_qam_order but kept local to avoid circular imports.
-    """
-    if not modulation_str:
-        return None
-    mod = modulation_str.upper().replace("-", "").strip()
-    if mod in ("QPSK",):
-        return 4
-    m = re.match(r"(\d+)\s{0,5}QAM", mod)
-    if m:
-        return int(m.group(1))
-    return None
-
-
-def _canonical_label(modulation_str):
-    """Return a canonical display label for a modulation string.
-
-    Returns (label, qam_order_or_none).
-    - Known QAM → ("64QAM", 64)
-    - QPSK/4QAM → ("4QAM", 4)
-    - OFDM/OFDMA → ("OFDM"/"OFDMA", None)
-    - Unknown → ("Unknown", None)
-    """
-    if not modulation_str:
-        return ("Unknown", None)
-    raw = modulation_str.upper().replace("-", "").strip()
-
-    qam = _parse_qam_order(modulation_str)
-    if qam is not None:
-        return (f"{qam}QAM", qam)
-
-    if raw in ("OFDM", "OFDMA"):
-        return (raw, None)
-
-    return ("Unknown", None)
-
 
 def _channel_modulation(ch):
     """Return the modulation value to use for modulation analytics."""

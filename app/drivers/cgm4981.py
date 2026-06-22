@@ -40,6 +40,7 @@ import re
 import requests
 
 from .base import ModemDriver
+from ..docsis_utils import parse_qam_order
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 
 log = logging.getLogger("docsis.driver.cgm4981")
@@ -125,9 +126,9 @@ def _modulation(raw: str) -> str:
     if "OFDM" in up:
         return "OFDM"
     # '256 QAM' → '256QAM', '64 QAM' → '64QAM', etc.
-    m = re.search(r"(\d+)\s*QAM", up)
-    if m:
-        return f"{m.group(1)}QAM"
+    qam_order = parse_qam_order(up)
+    if qam_order is not None:
+        return f"{qam_order}QAM"
     if "QAM" in up:
         return "QAM"
     return raw.strip()
