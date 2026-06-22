@@ -26,7 +26,8 @@ Implementation notes
   This driver parses them by HTML section to avoid label-collision issues.
 - OFDM / OFDMA upstream channel power thresholds differ from SC-QAM.
   Cox provisions OFDMA upstream at lower per-channel power (~37 dBmV is normal).
-  Adjust ``thresholds_vfkd/thresholds.json`` if DOCSight flags these as critical:
+  Adjust the built-in analyzer threshold profile or install a community threshold
+  profile if DOCSight flags these as critical:
       ``upstream_power.ofdma.critical: [35.0, 50.0]``
       ``upstream_power.ofdma.good:     [37.0, 47.0]``
 """

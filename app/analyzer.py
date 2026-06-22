@@ -1,7 +1,7 @@
 """DOCSIS channel health analysis with configurable thresholds.
 
-Thresholds are loaded dynamically from the active threshold module.
-The module loader calls set_thresholds() during startup.
+Thresholds come from the built-in analyzer profile registry, with optional
+community threshold profiles loaded through the module system.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ log = logging.getLogger("docsis.analyzer")
 # --- Dynamic thresholds (set by module loader) ---
 _thresholds = {}
 
-# Hardcoded fallback (VFKD values) used if no threshold module is loaded
+# Hardcoded fallback (VFKD values) used if no threshold profile is loaded
 _FALLBACK_THRESHOLDS = {
     "downstream_power": {
         "_default": "256QAM",
@@ -46,7 +46,7 @@ _FALLBACK_THRESHOLDS = {
 
 
 def set_thresholds(data: dict[str, object]) -> None:
-    """Set thresholds from a loaded threshold module."""
+    """Set thresholds from a loaded threshold profile."""
     global _thresholds
     _thresholds = data
     log.info("Thresholds updated (%d sections)", len(data))

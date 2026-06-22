@@ -16,7 +16,7 @@ _FONT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "fonts")
 
 
 def _format_threshold_table():
-    """Build display-ready threshold rows from thresholds.json."""
+    """Build display-ready threshold rows from the active analyzer profile."""
     t = get_thresholds()
     rows = []
     # DS Power - per modulation

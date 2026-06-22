@@ -69,7 +69,7 @@ def _start_server(data_dir, port, admin_password=None):
     builtin_path = os.path.join(os.path.dirname(__file__), "..", "..", "app", "modules")
     builtin_path = os.path.abspath(builtin_path)
     module_loader = ModuleLoader(
-        web.app, search_paths=[builtin_path], disabled_ids=set()
+        web.app, search_paths=[], disabled_ids=set(), builtin_base_path=builtin_path
     )
     module_loader.load_all()
     web.init_modules(module_loader)
@@ -299,7 +299,7 @@ def _start_fritzbox_server(data_dir, port):
     builtin_path = os.path.join(os.path.dirname(__file__), "..", "..", "app", "modules")
     builtin_path = os.path.abspath(builtin_path)
     module_loader = ModuleLoader(
-        web.app, search_paths=[builtin_path], disabled_ids=set()
+        web.app, search_paths=[], disabled_ids=set(), builtin_base_path=builtin_path
     )
     module_loader.load_all()
     web.init_modules(module_loader)

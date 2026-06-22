@@ -264,7 +264,8 @@ def test_module_driver_registration_path_is_not_supported() -> None:
 
     assert '"driver"' not in module_loader
     assert "mod.type == 'driver'" not in module_card
-    assert json.loads((MODULES / "thresholds_vfkd" / "manifest.json").read_text(encoding="utf-8"))["type"] == "analysis"
+    assert not (MODULES / "thresholds_vfkd" / "manifest.json").exists()
+    assert "BUILTIN_THRESHOLD_PROFILES" in (ROOT / "app" / "threshold_profiles.py").read_text(encoding="utf-8")
 
 
 def test_core_i18n_template_is_generated_on_demand_not_tracked() -> None:

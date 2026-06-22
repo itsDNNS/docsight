@@ -90,7 +90,7 @@ def test_format_threshold_table_uses_real_values():
     assert "DS Power" in categories
     assert "US Power" in categories
     assert "SNR/MER" in categories
-    # Check that values come from thresholds.json, not hardcoded
+    # Check that values come from active thresholds, not hardcoded
     ds_256 = [r for r in rows if r["category"] == "DS Power" and r["variant"] == "256QAM"]
     assert len(ds_256) == 1
     assert "-4.0" in ds_256[0]["good"]
@@ -142,7 +142,7 @@ def test_generate_report_with_none_channel_values():
 
 def test_complaint_text_uses_real_thresholds():
     text = generate_complaint_text(MOCK_SNAPSHOTS)
-    # Should contain real threshold values from thresholds.json
+    # Should contain real active threshold values
     assert "-6.0 to 15.0 dBmV" in text
     assert "37.1 to 51.0 dBmV" in text
     assert ">= 31.0 dB" in text
