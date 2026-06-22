@@ -199,6 +199,34 @@ def test_dead_static_js_helpers_stay_removed() -> None:
     assert "toggleCard(" not in templates
 
 
+def test_unused_inter_font_assets_stay_removed() -> None:
+    for rel_path in [
+        "fonts/inter-latin.woff2",
+        "fonts/inter-latin-ext.woff2",
+    ]:
+        assert not (STATIC / rel_path).exists()
+
+    app_static_sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(APP.rglob("*"))
+        if path.is_file() and path.suffix in {".css", ".html", ".js", ".json"}
+    )
+    fonts_css = (STATIC / "css" / "fonts.css").read_text(encoding="utf-8")
+    tokens_css = (STATIC / "css" / "tokens.css").read_text(encoding="utf-8")
+
+    assert "inter-latin" not in app_static_sources.lower()
+    assert "/static/fonts/inter" not in app_static_sources.lower()
+    assert re.search(r"font-family:\s*['\"]?Inter['\"]?", fonts_css) is None
+    assert "--font-sans: 'Outfit'" in tokens_css
+    for retained in [
+        "fonts/outfit-latin.woff2",
+        "fonts/outfit-latin-ext.woff2",
+        "fonts/jetbrains-mono-latin.woff2",
+        "fonts/jetbrains-mono-latin-ext.woff2",
+    ]:
+        assert (STATIC / retained).is_file()
+
+
 def test_builtin_module_manifests_reference_existing_declared_files() -> None:
     path_contributions = {"routes", "settings", "card", "tab", "static", "i18n", "thresholds"}
     missing = []
