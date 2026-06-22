@@ -1,7 +1,7 @@
-"""Collector registry and discovery.
+"""Collector discovery.
 
-Provides a registry-based pattern for discovering and instantiating
-data collectors based on runtime configuration.
+Instantiates core collectors from runtime configuration and adds collector
+contributions from enabled modules.
 """
 
 import logging
@@ -41,12 +41,6 @@ class _ModuleConfigProxy:
     @property
     def data_dir(self):
         return self._cfg.data_dir
-
-# Registry maps collector name -> class
-COLLECTOR_REGISTRY = {
-    "modem": ModemCollector,
-    "demo": DemoCollector,
-}
 
 
 def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, analyzer, notifier=None, smart_capture=None):
@@ -144,7 +138,6 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
 __all__ = [
     "Collector",
     "CollectorResult",
-    "COLLECTOR_REGISTRY",
     "discover_collectors",
     "ModemCollector",
     "DemoCollector",

@@ -757,30 +757,20 @@ class MyCollector(Collector):
             # Store results
             self._storage.save_my_data(data)
             
-            return CollectorResult.ok(self.name, data)
+            return CollectorResult(source=self.name, data=data)
         except Exception as e:
-            return CollectorResult.failure(self.name, str(e))
+            return CollectorResult(source=self.name, success=False, error=str(e))
     
     def is_enabled(self) -> bool:
         # Check if configured
         return bool(self._config.get("my_source_url"))
 ```
 
-2. **Register in discovery:**
+2. **Add it to discovery:**
 
 ```python
 # app/collectors/__init__.py
 from .my_collector import MyCollector
-
-COLLECTOR_REGISTRY = {
-    "modem": ModemCollector,
-    "demo": DemoCollector,
-    "speedtest": SpeedtestCollector,
-    "bqm": BQMCollector,
-    "bnetz_watcher": BnetzWatcherCollector,
-    "backup": BackupCollector,
-    "my_source": MyCollector,  # Add here
-}
 
 def discover_collectors(...):
     collectors = []

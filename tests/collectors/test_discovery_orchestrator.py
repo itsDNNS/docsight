@@ -19,6 +19,11 @@ from app.drivers.ch7465_play import CH7465PlayDriver
 
 
 class TestDiscoverCollectors:
+    def test_collector_registry_is_not_exported(self):
+        import app.collectors as collectors
+
+        assert not hasattr(collectors, "COLLECTOR_REGISTRY")
+
     def _make_storage(self, tmp_path=None):
         import tempfile, os
         s = MagicMock()
