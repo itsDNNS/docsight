@@ -64,9 +64,9 @@ class BQMCollector(Collector):
         meta = self._storage.get_collection_metadata()
         if meta.get("last_success_target_date") == target_date:
             self._last_date = today
-            return CollectorResult.ok(
-                self.name,
-                {"skipped": True, "reason": "already_collected", "date": target_date},
+            return CollectorResult(
+                source=self.name,
+                data={"skipped": True, "reason": "already_collected", "date": target_date},
             )
 
         bqm_url = self._config_mgr.get("bqm_url") or ""
@@ -82,10 +82,18 @@ class BQMCollector(Collector):
         try:
             content = fetch_share_csv(share_id, variant="y")
             if not content:
-                return CollectorResult.failure(self.name, "Failed to download BQM CSV")
+                return CollectorResult(
+                    source=self.name,
+                    success=False,
+                    error="Failed to download BQM CSV",
+                )
             rows = parse_bqm_csv(content)
             if not rows:
-                return CollectorResult.failure(self.name, "BQM CSV contained no valid rows")
+                return CollectorResult(
+                    source=self.name,
+                    success=False,
+                    error="BQM CSV contained no valid rows",
+                )
             self._storage.store_csv_data(rows)
             dates = sorted({row["date"] for row in rows})
             graph_date = dates[-1]
@@ -96,11 +104,21 @@ class BQMCollector(Collector):
                 rows=len(rows),
             )
             self._last_date = today
-            return CollectorResult.ok(self.name, {"rows": len(rows), "date": graph_date})
+            return CollectorResult(
+                source=self.name, data={"rows": len(rows), "date": graph_date}
+            )
         except ThinkBroadbandBatchAbort as exc:
-            return CollectorResult.failure(self.name, f"ThinkBroadband batch aborted: {exc}")
+            return CollectorResult(
+                source=self.name,
+                success=False,
+                error=f"ThinkBroadband batch aborted: {exc}",
+            )
         except ValueError as exc:
-            return CollectorResult.failure(self.name, f"Invalid BQM CSV: {exc}")
+            return CollectorResult(
+                source=self.name,
+                success=False,
+                error=f"Invalid BQM CSV: {exc}",
+            )
 
     def _collect_png(self, url):
         """Legacy PNG collection: fetch graph image and store it for the daily target."""
@@ -116,5 +134,9 @@ class BQMCollector(Collector):
                 rows=1,
             )
             self._last_date = today
-            return CollectorResult.ok(self.name, {"date": graph_date, "mode": "png"})
-        return CollectorResult.failure(self.name, "Failed to fetch BQM graph")
+            return CollectorResult(
+                source=self.name, data={"date": graph_date, "mode": "png"}
+            )
+        return CollectorResult(
+            source=self.name, success=False, error="Failed to fetch BQM graph"
+        )

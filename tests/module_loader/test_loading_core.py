@@ -292,7 +292,7 @@ from app.collectors.base import Collector, CollectorResult
 class TestCollector(Collector):
     name = "test_collector"
     def collect(self):
-        return CollectorResult.ok("test", {})
+        return CollectorResult(source="test", data={})
 """)
             cls = load_module_collector("test.mod", mod_dir, "collector.py:TestCollector")
             assert cls is not None

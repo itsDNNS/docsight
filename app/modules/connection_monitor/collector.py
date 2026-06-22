@@ -68,7 +68,7 @@ class ConnectionMonitorCollector(Collector):
                 t for t in self._cm_storage.get_targets() if t["enabled"]
             ]
             if not targets:
-                return CollectorResult.ok(self.name, None)
+                return CollectorResult(source=self.name)
 
             # Determine which targets are due
             now = time.time()
@@ -80,7 +80,7 @@ class ConnectionMonitorCollector(Collector):
                     due.append(t)
 
             if not due:
-                return CollectorResult.ok(self.name, None)
+                return CollectorResult(source=self.name)
 
             # Probe all due targets in parallel
             samples = self._probe_targets(due, now)
@@ -102,10 +102,10 @@ class ConnectionMonitorCollector(Collector):
                 self._cm_storage.cleanup_traces(retention)
                 self._last_cleanup = now
 
-            return CollectorResult.ok(self.name, {"probed": len(due)})
+            return CollectorResult(source=self.name, data={"probed": len(due)})
         except Exception as exc:
             logger.exception("Connection Monitor collect error")
-            return CollectorResult.failure(self.name, str(exc))
+            return CollectorResult(source=self.name, success=False, error=str(exc))
 
     def _probe_targets(self, targets: list[dict], now: float) -> list[dict]:
         """Probe targets in parallel and return sample dicts."""

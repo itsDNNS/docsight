@@ -72,7 +72,7 @@ class BackupCollector(Collector):
             filename = create_backup_to_file(data_dir, backup_path)
             cleanup_old_backups(backup_path, keep=retention)
             log.info("Scheduled backup created: %s", filename)
-            return CollectorResult.ok(self.name, {"filename": filename})
+            return CollectorResult(source=self.name, data={"filename": filename})
         except Exception as e:
             log.error("Scheduled backup failed: %s", e)
-            return CollectorResult.failure(self.name, str(e))
+            return CollectorResult(source=self.name, success=False, error=str(e))

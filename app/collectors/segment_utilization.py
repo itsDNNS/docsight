@@ -49,7 +49,7 @@ class SegmentUtilizationCollector(Collector):
                 self._config.get("modem_password"),
             )
         except Exception as e:
-            return CollectorResult.failure(self.name, str(e))
+            return CollectorResult(source=self.name, success=False, error=str(e))
 
         try:
             resp = requests.get(
@@ -59,7 +59,7 @@ class SegmentUtilizationCollector(Collector):
             )
             resp.raise_for_status()
         except Exception as e:
-            return CollectorResult.failure(self.name, f"API request failed: {e}")
+            return CollectorResult(source=self.name, success=False, error=f"API request failed: {e}")
 
         try:
             body = resp.json()
@@ -97,12 +97,12 @@ class SegmentUtilizationCollector(Collector):
 
             self._run_maintenance()
 
-            return CollectorResult.ok(
-                self.name,
-                {"ds_total": ds_total, "us_total": us_total, "ds_own": ds_own, "us_own": us_own},
+            return CollectorResult(
+                source=self.name,
+                data={"ds_total": ds_total, "us_total": us_total, "ds_own": ds_own, "us_own": us_own},
             )
         except Exception as e:
-            return CollectorResult.failure(self.name, f"Parse failed: {e}")
+            return CollectorResult(source=self.name, success=False, error=f"Parse failed: {e}")
 
     def _run_maintenance(self):
         """Run downsample + cleanup once per day."""

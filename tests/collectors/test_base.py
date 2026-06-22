@@ -33,7 +33,7 @@ class TestCollectorResult:
         assert r.error == "timeout"
 
 
-# ── Collector ABC Tests ──
+# ── Collector Base Tests ──
 
 
 class ConcreteCollector(Collector):
@@ -48,10 +48,18 @@ class ConcreteCollector(Collector):
         return CollectorResult(source=self.name)
 
 
-class TestCollectorABC:
-    def test_cannot_instantiate_abc(self):
-        with pytest.raises(TypeError):
-            Collector(60)
+class TestCollectorBase:
+    def test_base_collector_stores_schedule_state(self):
+        c = Collector(60)
+        assert c.poll_interval_seconds == 60
+        assert c.is_enabled() is True
+
+    def test_base_methods_document_required_collector_api(self):
+        c = Collector(60)
+        with pytest.raises(NotImplementedError, match=r"Collector\.name"):
+            _ = c.name
+        with pytest.raises(NotImplementedError, match=r"Collector\.collect"):
+            c.collect()
 
     def test_initial_state(self):
         c = ConcreteCollector(120)

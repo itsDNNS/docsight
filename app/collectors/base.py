@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -24,19 +23,8 @@ class CollectorResult:
     error: str | None = None
     timestamp: float = field(default_factory=time.time)
 
-    @classmethod
-    def ok(cls, source: str, data: Any) -> "CollectorResult":
-        """Create a successful result."""
-        return cls(source=source, data=data, success=True)
-
-    @classmethod
-    def failure(cls, source: str, error: str) -> "CollectorResult":
-        """Create a failed result."""
-        return cls(source=source, success=False, error=error)
-
-
-class Collector(ABC):
-    """Abstract base class for all data collectors.
+class Collector:
+    """Base class for data collectors.
 
     Provides timestamp-based scheduling and fail-safe penalty tracking
     for consecutive failures with automatic recovery.
@@ -54,15 +42,13 @@ class Collector(ABC):
         self._collect_lock = threading.Lock()   # prevents concurrent collect()
 
     @property
-    @abstractmethod
     def name(self) -> str:
         """Unique identifier for this collector."""
-        ...
+        raise NotImplementedError("Collector.name")
 
-    @abstractmethod
     def collect(self) -> CollectorResult:
         """Run a single data collection cycle."""
-        ...
+        raise NotImplementedError("Collector.collect")
 
     def is_enabled(self) -> bool:
         """Override to conditionally disable this collector."""

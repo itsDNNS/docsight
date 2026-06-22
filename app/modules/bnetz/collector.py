@@ -33,8 +33,10 @@ class BnetzWatcherCollector(Collector):
         watch_dir = self._config_mgr.get("bnetz_watch_dir", "/data/bnetz")
 
         if not os.path.isdir(watch_dir):
-            return CollectorResult.failure(
-                self.name, f"Watch directory does not exist: {watch_dir}"
+            return CollectorResult(
+                source=self.name,
+                success=False,
+                error=f"Watch directory does not exist: {watch_dir}",
             )
 
         # Read set of already-imported filenames
@@ -50,7 +52,7 @@ class BnetzWatcherCollector(Collector):
 
         if not new_files:
             self._last_import_count = 0
-            return CollectorResult.ok(self.name, data={"imported": 0, "errors": 0})
+            return CollectorResult(source=self.name, data={"imported": 0, "errors": 0})
 
         imported_count = 0
         error_count = 0
@@ -88,13 +90,14 @@ class BnetzWatcherCollector(Collector):
         )
 
         if error_count > 0 and imported_count == 0:
-            return CollectorResult.failure(
-                self.name,
-                f"All {error_count} file(s) failed to import",
+            return CollectorResult(
+                source=self.name,
+                success=False,
+                error=f"All {error_count} file(s) failed to import",
             )
 
-        return CollectorResult.ok(
-            self.name, data={"imported": imported_count, "errors": error_count}
+        return CollectorResult(
+            source=self.name, data={"imported": imported_count, "errors": error_count}
         )
 
     def _import_pdf(self, fpath):

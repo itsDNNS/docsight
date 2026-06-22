@@ -335,7 +335,7 @@ class TestBQMCollector:
 
     @patch("app.modules.bqm.collector.BQMCollector._collect_png")
     def test_collect_png_url_delegates(self, mock_png):
-        mock_png.return_value = CollectorResult.ok("bqm", {"mode": "png"})
+        mock_png.return_value = CollectorResult(source="bqm", data={"mode": "png"})
         c, _, storage = self._make_collector(bqm_url="https://www.thinkbroadband.com/share/abc.png")
         result = c.collect()
         assert result.data.get("mode") == "png"
