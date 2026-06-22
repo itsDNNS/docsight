@@ -6,7 +6,19 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 import app.analyzer as analyzer
-from app.collectors.demo import DemoCollector
+from app.collectors.demo import (
+    DEMO_BNETZ_CAMPAIGN_OFFSETS_DAYS,
+    DEMO_BQM_DAYS,
+    DEMO_CONNECTION_MONITOR_DAYS,
+    DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS,
+    DEMO_CONNECTION_MONITOR_TARGETS,
+    DEMO_HISTORY_DAYS,
+    DEMO_HISTORY_INTERVAL_MINUTES,
+    DEMO_SPEEDTEST_HOURS,
+    DEMO_TRACEROUTE_TRACE_CONFIGS,
+    DEMO_WEATHER_DAYS,
+    DemoCollector,
+)
 from app.storage import SnapshotStorage
 from app.modules.speedtest.storage import SpeedtestStorage
 from app.modules.bqm.storage import BqmStorage
@@ -357,6 +369,64 @@ class TestDemoCollectorOFDMA:
         assert early_ofdma["profile_modulation"] == "512QAM"
         assert midday_ofdma["profile_modulation"] == "1024QAM"
         assert evening_ofdma["profile_modulation"] == "512QAM"
+
+
+class TestDemoSeedContract:
+    def test_demo_seed_contract_keeps_public_journey_surface(self):
+        """Demo mode should keep the onboarding/proof data surfaces stable."""
+        assert DEMO_HISTORY_DAYS == 270
+        assert DEMO_HISTORY_DAYS * 24 * 60 // DEMO_HISTORY_INTERVAL_MINUTES == 25920
+        assert DEMO_SPEEDTEST_HOURS == (8, 14, 21)
+        assert DEMO_BQM_DAYS == 30
+        assert len(DEMO_BNETZ_CAMPAIGN_OFFSETS_DAYS) == 9
+        assert DEMO_WEATHER_DAYS == 270
+        assert DEMO_CONNECTION_MONITOR_DAYS == 7
+        assert DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS == 10
+        assert [target[1] for target in DEMO_CONNECTION_MONITOR_TARGETS] == [
+            "Gateway",
+            "Cloudflare DNS",
+            "Google DNS",
+        ]
+        assert len(DEMO_TRACEROUTE_TRACE_CONFIGS) == 5
+
+    def test_seed_demo_data_invokes_all_supported_demo_surfaces(self, storage, monkeypatch):
+        collector = DemoCollector(
+            analyzer_fn=analyzer.analyze,
+            event_detector=MagicMock(),
+            storage=storage,
+            mqtt_pub=None,
+            web=MagicMock(),
+            poll_interval=300,
+        )
+        calls = []
+
+        for method in (
+            "_seed_history",
+            "_seed_events",
+            "_seed_journal_entries",
+            "_seed_speedtest_results",
+            "_seed_bqm_graphs",
+            "_seed_incident_containers",
+            "_seed_bnetz_measurements",
+            "_seed_weather_data",
+            "_seed_connection_monitor_data",
+        ):
+            monkeypatch.setattr(collector, method, lambda now, name=method: calls.append(name))
+
+        collector._seed_demo_data()
+
+        assert calls == [
+            "_seed_history",
+            "_seed_events",
+            "_seed_journal_entries",
+            "_seed_speedtest_results",
+            "_seed_bqm_graphs",
+            "_seed_incident_containers",
+            "_seed_bnetz_measurements",
+            "_seed_weather_data",
+            "_seed_connection_monitor_data",
+        ]
+        assert storage.max_days == 0
 
 
 # ── Migration Endpoint Tests ──
