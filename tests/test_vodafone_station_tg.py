@@ -2,14 +2,13 @@ import json
 from unittest.mock import patch, MagicMock
 
 import requests
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from app.drivers.vodafone_station import (
     VodafoneStationDriver,
     _aes_ccm_decrypt_hex,
     _aes_ccm_encrypt_hex,
 )
+from app.drivers.utils import pbkdf2_sha256
 
 # ===== Embedded fixture HTML =====
 # Two pages are fetched per call:
@@ -141,6 +140,13 @@ def test_tg_aes_ccm_helpers_match_retained_contract():
     assert _aes_ccm_decrypt_hex(key, nonce, encrypted_hex, b"loginPassword") == plaintext
 
 
+def test_vodafone_pbkdf2_helper_matches_sha256_contract():
+    # Reference vector generated with hashlib.pbkdf2_hmac("sha256", ...).
+    derived = pbkdf2_sha256(b"admin", bytes.fromhex("0011223344556677"))
+
+    assert derived.hex() == "924bdba9893e9331ea0545b8ac2a3099"
+
+
 def test_tg_login_posts_decryptable_aes_ccm_payload_from_cryptography():
     driver = VodafoneStationDriver(url="http://dummy", user="admin", password="admin")
     html = """
@@ -158,13 +164,7 @@ def test_tg_login_posts_decryptable_aes_ccm_payload_from_cryptography():
         text='createCookie("credential", "credential-cookie-value", 1);',
     )
 
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=16,
-        salt=bytes.fromhex("0011223344556677"),
-        iterations=1000,
-    )
-    key = kdf.derive(driver._password.encode("utf-8"))
+    key = pbkdf2_sha256(driver._password.encode("utf-8"), bytes.fromhex("0011223344556677"))
     encrypted_nonce = _aes_ccm_encrypt_hex(
         key,
         bytes.fromhex("0102030405060708"),

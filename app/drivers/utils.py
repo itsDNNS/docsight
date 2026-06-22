@@ -5,6 +5,7 @@ ensures consistent parsing behaviour and makes future changes propagate
 automatically.
 """
 
+import hashlib
 import logging
 import re
 import ssl
@@ -12,6 +13,18 @@ import ssl
 from requests.adapters import HTTPAdapter
 
 log = logging.getLogger("docsis.drivers.utils")
+
+
+def pbkdf2_sha256(key_material: bytes, salt: bytes, *, length: int = 16, iterations: int = 1000) -> bytes:
+    """Derive PBKDF2-HMAC-SHA256 bytes.
+
+    Args:
+        key_material: Password or other secret bytes to derive from.
+        salt: Salt bytes used for the derivation.
+        length: Derived key length in bytes.
+        iterations: PBKDF2 iteration count.
+    """
+    return hashlib.pbkdf2_hmac("sha256", key_material, salt, iterations, dklen=length)
 
 
 # ---------------------------------------------------------------------------

@@ -14,11 +14,10 @@ import logging
 import os
 
 import requests
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from .base import ModemDriver
+from .utils import pbkdf2_sha256
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
 
 log = logging.getLogger("docsis.driver.ultrahub7")
@@ -111,13 +110,10 @@ class UltraHub7Driver(ModemDriver):
                 salt = web_ui_secret[10:]
 
                 # Step 3: Derive encryption key with PBKDF2-HMAC-SHA256
-                kdf = PBKDF2HMAC(
-                    algorithm=hashes.SHA256(),
-                    length=16,  # AES-128
-                    salt=bytes(salt, "utf-8"),
-                    iterations=1000,
+                key = pbkdf2_sha256(
+                    bytes(salt_web_ui, "utf-8"),
+                    bytes(salt, "utf-8"),
                 )
-                key = kdf.derive(bytes(salt_web_ui, "utf-8"))
 
                 # Step 4: Encrypt password with AES-CCM
                 iv = os.urandom(16)

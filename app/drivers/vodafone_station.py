@@ -19,12 +19,10 @@ import re
 import time
 
 import requests
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESCCM
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from .base import ModemDriver
-from .utils import normalize_modulation
+from .utils import normalize_modulation, pbkdf2_sha256
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.vodafone_station")
@@ -178,22 +176,16 @@ class VodafoneStationDriver(ModemDriver):
             )
 
         # Step 2: First PBKDF2 -- password + salt -> hash1
-        kdf1 = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=16,
-            salt=salt.encode("utf-8"),
-            iterations=1000,
-        )
-        hash1 = kdf1.derive(self._password.encode("utf-8")).hex()
+        hash1 = pbkdf2_sha256(
+            self._password.encode("utf-8"),
+            salt.encode("utf-8"),
+        ).hex()
 
         # Step 3: Second PBKDF2 -- hash1 (as hex string) + saltwebui -> hash2
-        kdf2 = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=16,
-            salt=salt_webui.encode("utf-8"),
-            iterations=1000,
-        )
-        hash2 = kdf2.derive(hash1.encode("utf-8")).hex()
+        hash2 = pbkdf2_sha256(
+            hash1.encode("utf-8"),
+            salt_webui.encode("utf-8"),
+        ).hex()
 
         # Step 4: Login with derived hash
         r2 = self._session.post(
@@ -547,7 +539,7 @@ class VodafoneStationDriver(ModemDriver):
         iv_hex = self._extract_js_var(html, "myIv")
         salt_hex = self._extract_js_var(html, "mySalt")
 
-        if not all([session_id, iv_hex, salt_hex]):
+        if not session_id or not iv_hex or not salt_hex:
             raise RuntimeError(
                 "TG: Could not extract session variables from login page "
                 f"(sessionId={bool(session_id)}, myIv={bool(iv_hex)}, "
@@ -561,13 +553,10 @@ class VodafoneStationDriver(ModemDriver):
                    session_id[:8], iv_hex, salt_hex)
 
         # Step 2: Derive AES key via PBKDF2
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=16,
-            salt=bytes.fromhex(salt_hex),
-            iterations=1000,
+        key = pbkdf2_sha256(
+            self._password.encode("utf-8"),
+            bytes.fromhex(salt_hex),
         )
-        key = kdf.derive(self._password.encode("utf-8"))
 
         # Step 3: Encrypt credentials with AES-CCM
         # Full IV as nonce (8 bytes from 16 hex chars), 16-byte tag, AAD
