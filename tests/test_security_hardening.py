@@ -106,7 +106,7 @@ class TestThemeURLValidation:
 
 
 class TestModuleConfigProxy:
-    """Community modules should not see secrets they didn't declare."""
+    """Community modules should not see core secret or hash-backed settings."""
 
     def test_blocks_modem_password(self, tmp_path):
         cfg = ConfigManager(str(tmp_path))
@@ -130,15 +130,13 @@ class TestModuleConfigProxy:
         assert proxy.get("language") == "de"
         assert proxy.get("poll_interval") == 300
 
-    def test_allowed_secret_keys_passthrough(self, tmp_path):
-        """Modules that declare a secret in their config get access to it."""
+    def test_blocks_core_token_settings(self, tmp_path):
+        """Community modules cannot read core token settings through the proxy."""
         cfg = ConfigManager(str(tmp_path))
         cfg.save({"speedtest_tracker_token": "mytoken"})
 
-        proxy = _ModuleConfigProxy(
-            cfg, allowed_secret_keys={"speedtest_tracker_token"}
-        )
-        assert proxy.get("speedtest_tracker_token") == "mytoken"
+        proxy = _ModuleConfigProxy(cfg)
+        assert proxy.get("speedtest_tracker_token") is None
 
     def test_get_all_masks_secrets(self, tmp_path):
         cfg = ConfigManager(str(tmp_path))

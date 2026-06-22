@@ -15,17 +15,11 @@ log = logging.getLogger("docsis.collectors")
 
 
 class _ModuleConfigProxy:
-    """Read-only config proxy that hides secrets from community modules.
+    """Read-only config proxy that hides secret values from community modules."""
 
-    Builtin modules receive the real ConfigManager.  Community modules
-    get this proxy which blocks access to modem_password, admin_password,
-    mqtt_password, and other secret/hash keys unless they are specifically
-    declared as module-owned config_secrets and registered for that module.
-    """
-
-    def __init__(self, config_mgr, allowed_secret_keys=frozenset()):
+    def __init__(self, config_mgr):
         self._cfg = config_mgr
-        self._blocked = (SECRET_KEYS | HASH_KEYS) - set(allowed_secret_keys)
+        self._blocked = SECRET_KEYS | HASH_KEYS
 
     def get(self, key, default=None):
         if key in self._blocked:
@@ -129,14 +123,11 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             if mod.collector_class:
                 try:
                     # Community modules get a restricted config proxy that
-                    # hides secrets not declared in their own config defaults.
+                    # hides core secret and hash-backed settings.
                     if mod.builtin:
                         mod_cfg = config_mgr
                     else:
-                        mod_cfg = _ModuleConfigProxy(
-                            config_mgr,
-                            allowed_secret_keys=mod.config_secrets,
-                        )
+                        mod_cfg = _ModuleConfigProxy(config_mgr)
                     c = mod.collector_class(
                         config_mgr=mod_cfg,
                         storage=storage,

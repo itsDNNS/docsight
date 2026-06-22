@@ -58,7 +58,7 @@ Generated artifacts should be reviewed before sharing. They may include provider
 
 ## Configuration and secrets
 
-DOCSight stores local configuration under the configured data directory. Secret-bearing settings include router/modem credentials, MQTT credentials, webhook and Apprise settings, PWA Web Push VAPID private key material, admin password material, API token hashes, and module-owned secrets.
+DOCSight stores local configuration under the configured data directory. Secret-bearing settings include router/modem credentials, MQTT credentials, webhook and Apprise settings, PWA Web Push VAPID private key material, admin password material, and API token hashes.
 
 Rules:
 
@@ -162,16 +162,15 @@ Optional integrations are user-configured boundaries. They do not change the cor
 
 A disabled or unconfigured optional integration must not be required for DOCSight's local monitoring and evidence workflow to keep working.
 
-## Module-owned config and module-owned secrets
+## Module-owned config
 
-Community and built-in modules may define module-owned config and module-owned secrets. Module-owned config belongs to the local installation. Module-owned secrets must remain scoped to the owning module and must not grant other modules access to core secrets or another module's secrets.
+Community and built-in modules may define module-owned config. Module-owned config belongs to the local installation and is treated as user-owned local data when saved.
 
 Rules:
 
-- A module can read only its own declared secret keys through the restricted config proxy.
 - Community modules must not claim reserved core secret keys such as modem or admin credentials.
-- Duplicate module secret ownership conflicts should be treated as a security boundary, not only as a settings UI problem.
-- Module manifests, default settings, and system module code are system-owned files. The saved module configuration and saved module secrets are user-owned local data.
+- Community collectors receive a restricted config proxy that hides core secret and hash-backed settings.
+- Module manifests, default settings, and system module code are system-owned files. Saved module configuration is user-owned local data.
 
 ## Demo mode and real monitored data
 

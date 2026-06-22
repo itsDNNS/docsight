@@ -196,7 +196,7 @@ def test_data_contract_covers_optional_integration_boundaries() -> None:
         "Apprise",
         "PWA Web Push",
         "module-owned config",
-        "module-owned secrets",
+        "core secret and hash-backed settings",
         "Demo mode",
         "real monitored data",
     ]:

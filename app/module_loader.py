@@ -25,7 +25,6 @@ VALID_TYPES = {"driver", "integration", "analysis", "theme"}
 VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds", "theme", "driver"}
 REQUIRED_FIELDS = {"id", "name", "description", "version", "author", "minAppVersion", "type", "contributes"}
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
-_CONFLICTING_MODULE_SECRET_OWNER = "__conflicting_module_secret_owner__"
 
 
 class ManifestError(Exception):
@@ -48,7 +47,6 @@ class ModuleInfo:
     homepage: str = ""
     license: str = ""
     config: dict[str, Any] = field(default_factory=dict)
-    config_secrets: set[str] = field(default_factory=set)
     menu: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
     error: str | None = None
@@ -113,20 +111,8 @@ def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | 
     if not isinstance(config, dict):
         raise ManifestError("'config' must be a dict")
 
-    raw_config_secrets = raw.get("config_secrets", [])
-    if not isinstance(raw_config_secrets, list) or not all(
-        isinstance(key, str) for key in raw_config_secrets
-    ):
-        raise ManifestError("'config_secrets' must be a list of config key names")
-    config_secrets = set(raw_config_secrets)
-    if len(config_secrets) != len(raw_config_secrets):
-        raise ManifestError("'config_secrets' must not contain duplicate keys")
-    unknown_config_secrets = config_secrets - set(config.keys())
-    if unknown_config_secrets:
-        raise ManifestError(
-            "config_secrets must reference keys declared in config: "
-            + ", ".join(sorted(unknown_config_secrets))
-        )
+    if "config_secrets" in raw:
+        raise ManifestError("'config_secrets' is no longer supported")
 
     # Detect builtin unless the caller already knows the module source.
     if builtin is None:
@@ -147,7 +133,6 @@ def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | 
         homepage=raw.get("homepage", ""),
         license=raw.get("license", ""),
         config=config,
-        config_secrets=config_secrets,
         menu={**{"order": 999}, **raw.get("menu", {})},
         hints=raw.get("hints", {}),
     )
@@ -318,75 +303,22 @@ def discover_builtin_theme_modules(disabled_ids: set[str] | None = None) -> list
     return modules
 
 
-def reserve_module_config_secrets(modules: list[ModuleInfo]) -> None:
-    """Reserve module-owned secret keys across all loaded manifests.
-
-    Reservations are made before enabled modules are loaded so ownership is
-    independent of load order and disabled modules still protect previously
-    saved secrets from later claimants. Duplicate declarations are reserved as
-    conflicting and fail closed for every claimant.
-    """
-    declarations: dict[str, set[str]] = {}
-    for mod in modules:
-        for key in mod.config_secrets:
-            if key in (_cfg.SECRET_KEYS | _cfg.HASH_KEYS) and key not in _cfg.MODULE_SECRET_KEYS:
-                log.warning(
-                    "Module '%s' cannot reserve a core secret config key",
-                    mod.id,
-                )
-                continue
-            declarations.setdefault(key, set()).add(mod.id)
-
-    for key, owners in declarations.items():
-        if len(owners) == 1:
-            owner = next(iter(owners))
-        else:
-            owner = _CONFLICTING_MODULE_SECRET_OWNER
-            log.warning(
-                "A config secret key is declared by multiple modules: %s",
-                ", ".join(sorted(owners)),
-            )
-        _cfg.SECRET_KEYS.add(key)
-        _cfg.MODULE_SECRET_KEYS.add(key)
-        existing_owner = _cfg.MODULE_SECRET_OWNERS.get(key)
-        if existing_owner and existing_owner != owner:
-            _cfg.MODULE_SECRET_OWNERS[key] = _CONFLICTING_MODULE_SECRET_OWNER
-        else:
-            _cfg.MODULE_SECRET_OWNERS[key] = owner
-
-
 def register_module_config(
     config_defaults: dict[str, Any],
-    config_secrets: set[str] | list[str] | tuple[str, ...] | None = None,
     module_id: str | None = None,
     builtin: bool = False,
 ) -> set[str]:
-    """Register a module's config defaults into the global config system.
+    """Register a module's non-secret config defaults into the global config system.
 
-    - Adds defaults to config.DEFAULTS (without overwriting existing keys)
-    - Auto-detects bool/int keys and adds them to BOOL_KEYS/INT_KEYS
-    - Adds declared module-owned secrets to config.SECRET_KEYS when their
-      config key was actually registered by the module
-    - Tracks module-secret ownership so one community module cannot claim
-      another module's already-registered secret key
-    - Prevents community modules from claiming reserved core secret keys even
-      when a disabled built-in module has not registered that key's default yet
+    Module manifests no longer reserve their own secret keys. Core secret and
+    hash-backed settings stay owned by the built-in configuration layer.
     """
-    requested_secrets = set(config_secrets or set())
-    owner = module_id or ""
     registered_keys: set[str] = set()
-    reused_module_secrets: set[str] = set()
     for key, value in config_defaults.items():
-        existing_owner = _cfg.MODULE_SECRET_OWNERS.get(key)
-        if existing_owner and existing_owner != owner:
-            log.warning("Skipping a config key reserved for another module")
-            continue
         if key in _cfg.DEFAULTS:
-            if key in requested_secrets and existing_owner == owner:
-                reused_module_secrets.add(key)
             log.debug("Config key already exists in core, skipping")
             continue
-        if not builtin and key in (_cfg.SECRET_KEYS | _cfg.HASH_KEYS) and key not in _cfg.MODULE_SECRET_KEYS:
+        if not builtin and key in (_cfg.SECRET_KEYS | _cfg.HASH_KEYS):
             log.warning("Skipping a reserved core secret config key")
             continue
         _cfg.DEFAULTS[key] = value
@@ -395,19 +327,7 @@ def register_module_config(
             _cfg.BOOL_KEYS.add(key)
         elif isinstance(value, int):
             _cfg.INT_KEYS.add(key)
-
-    registered_secrets = (requested_secrets & registered_keys) | reused_module_secrets
-    skipped_secrets = requested_secrets - registered_secrets
-    if skipped_secrets:
-        log.warning(
-            "Skipping %d config_secret declaration(s) for non-owned keys",
-            len(skipped_secrets),
-        )
-    _cfg.SECRET_KEYS.update(registered_secrets)
-    _cfg.MODULE_SECRET_KEYS.update(registered_secrets)
-    for key in registered_secrets:
-        _cfg.MODULE_SECRET_OWNERS.setdefault(key, owner)
-    return registered_secrets
+    return registered_keys
 
 
 def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
@@ -881,7 +801,6 @@ class ModuleLoader:
             )
         )
         self._modules = modules
-        reserve_module_config_secrets(self._modules)
 
         for mod in self._modules:
             if not mod.enabled:
@@ -929,10 +848,9 @@ class ModuleLoader:
             attach_builtin_python_contributions(mod)
 
         # Config defaults
-        if mod.config or mod.config_secrets:
-            mod.config_secrets = register_module_config(
+        if mod.config:
+            register_module_config(
                 mod.config,
-                config_secrets=mod.config_secrets,
                 module_id=mod.id,
                 builtin=mod.builtin,
             )
