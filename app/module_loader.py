@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import sys
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -18,6 +19,7 @@ from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTION
 from app.i18n import _TRANSLATIONS
 from app.path_safety import safe_manifest_ref, safe_manifest_subpath
 from app.theme_registry import BUILTIN_THEMES
+from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 
 log = logging.getLogger("docsis.modules")
 
@@ -286,6 +288,53 @@ def discover_builtin_theme_modules(disabled_ids: set[str] | None = None) -> list
         modules.append(info)
         log.info(
             "Registered built-in theme: %s v%s%s",
+            info.id,
+            info.version,
+            "" if info.enabled else " [disabled]",
+        )
+
+    return modules
+
+
+def discover_builtin_threshold_modules(disabled_ids: set[str] | None = None) -> list[ModuleInfo]:
+    """Load application-owned threshold profiles from the static registry."""
+    if disabled_ids is None:
+        disabled_ids = set()
+
+    modules: list[ModuleInfo] = []
+    seen_ids: set[str] = set()
+    for profile in BUILTIN_THRESHOLD_PROFILES:
+        try:
+            raw = {
+                "id": profile["id"],
+                "name": profile["name"],
+                "description": profile["description"],
+                "version": profile["version"],
+                "author": profile["author"],
+                "minAppVersion": profile["minAppVersion"],
+                "type": "analysis",
+                "contributes": {"thresholds": "builtin"},
+                "config": {},
+            }
+            info = validate_manifest(raw, "", builtin=True)
+            tdata = profile["thresholds"]
+            if not isinstance(tdata, dict):
+                raise ManifestError("Built-in threshold data must be an object")
+            validate_thresholds(tdata)
+        except (KeyError, ManifestError) as e:
+            log.warning("Skipping built-in threshold profile %s: invalid registry entry: %s", profile.get("id"), e)
+            continue
+
+        if info.id in seen_ids:
+            log.warning("Skipping duplicate built-in threshold profile '%s'", info.id)
+            continue
+
+        info.enabled = info.id not in disabled_ids
+        info.thresholds_data = deepcopy(tdata)
+        seen_ids.add(info.id)
+        modules.append(info)
+        log.info(
+            "Registered built-in threshold profile: %s v%s%s",
             info.id,
             info.version,
             "" if info.enabled else " [disabled]",
@@ -736,6 +785,9 @@ class ModuleLoader:
                 )
             )
             modules.extend(
+                discover_builtin_threshold_modules(disabled_ids=self._disabled_ids)
+            )
+            modules.extend(
                 discover_builtin_theme_modules(disabled_ids=self._disabled_ids)
             )
         modules.extend(
@@ -826,13 +878,19 @@ class ModuleLoader:
 
         # Thresholds
         if "thresholds" in c:
-            thresholds_path = safe_manifest_ref(mod.path, c["thresholds"])
-            if not os.path.isfile(thresholds_path):
-                raise ManifestError(f"Thresholds file not found: {c['thresholds']}")
-            with open(thresholds_path, "r", encoding="utf-8") as f:
-                tdata = json.load(f)
-            validate_thresholds(tdata)
-            mod.thresholds_data = tdata
+            # Built-in profiles preload thresholds_data and use the "builtin" sentinel;
+            # community profiles keep the manifest-relative thresholds file path.
+            if mod.thresholds_data is None:
+                thresholds_path = safe_manifest_ref(mod.path, c["thresholds"])
+                if not os.path.isfile(thresholds_path):
+                    raise ManifestError(f"Thresholds file not found: {c['thresholds']}")
+                with open(thresholds_path, "r", encoding="utf-8") as f:
+                    tdata = json.load(f)
+                validate_thresholds(tdata)
+                mod.thresholds_data = tdata
+            else:
+                tdata = mod.thresholds_data
+                validate_thresholds(tdata)
             _analyzer.set_thresholds(tdata)
             log.info("Module '%s': loaded threshold profile", mod.id)
 

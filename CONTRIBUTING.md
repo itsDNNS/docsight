@@ -73,8 +73,8 @@ app/
   main.py            - Entrypoint, ThreadPoolExecutor polling loop
   web.py             - Flask routes and API endpoints (thread-safe state)
   analyzer.py        - DOCSIS channel health analysis
+  threshold_profiles.py - Built-in analyzer threshold profiles
   event_detector.py  - Signal anomaly detection (thread-safe)
-  thresholds.json    - Configurable signal thresholds (VFKD guidelines)
   config.py          - Configuration management (env + config.json)
   storage/           - SQLite storage (base + mixins), WAL mode, thread-safe
   collectors/        - Collector implementations (modem, demo, speedtest, bqm)

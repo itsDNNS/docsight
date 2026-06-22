@@ -423,7 +423,7 @@ Installed non-theme modules are discovered by `ModuleLoader` and persisted throu
 
 Module manifests can declare module-owned config defaults through the top-level `config` object. Module config remains plain local configuration; manifests cannot declare module-owned secret settings. Community collectors receive a restricted config proxy that hides core secret and hash-backed settings, so they cannot opt into credentials such as `modem_password` or `admin_password` by adding colliding config defaults.
 
-Threshold-profile modules are mutually exclusive. The UI renders threshold modules as a single radio group, and the batch API validates the invariant server-side so exactly one threshold profile remains active after save.
+Threshold profiles are mutually exclusive. The bundled VF/KD profile is registered from the static analyzer profile registry in `app/threshold_profiles.py`; installed community threshold profiles still use the module manifest `thresholds` contribution. The UI renders threshold profiles as a single radio group, and the batch API validates the invariant server-side so exactly one threshold profile remains active after save.
 
 ### Vodafone Station Auto-Detection
 
@@ -458,7 +458,7 @@ Variant is auto-detected on first login: CGA is tried first, then TG on failure.
                      ▼
 ┌──────────────────────────────────────────────────────────────┐
 │ 3. Analyzer (analyzer.py)                                    │
-│    • Load thresholds from thresholds.json                    │
+│    • Load active thresholds from analyzer profile registry   │
 │    • Parse DS/US channels                                    │
 │    • Assess power, SNR, errors per channel                   │
 │    • Aggregate to overall health (good/tolerated/marginal/critical) │

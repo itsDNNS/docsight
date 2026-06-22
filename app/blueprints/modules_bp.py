@@ -67,12 +67,12 @@ def api_module_enable(module_id):
     disabled_raw = config_mgr.get("disabled_modules", "")
     disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}
 
-    # Mutual exclusion: if enabling a threshold module, disable the currently active one
+    # Mutual exclusion: if enabling a threshold profile, disable the currently active one
     if "thresholds" in module.contributes:
         for m in loader.get_threshold_modules():
             if m.id != module_id and m.id not in disabled_set:
                 disabled_set.add(m.id)
-                log.info("Auto-disabled threshold module '%s' (mutual exclusion)", m.id)
+                log.info("Auto-disabled threshold profile '%s' (mutual exclusion)", m.id)
 
     # Mutual exclusion: if enabling a theme, disable others and set active_theme
     if module.type == "theme":
@@ -121,7 +121,7 @@ def api_module_disable(module_id):
                 "error": "Cannot disable the only active theme. Enable a different theme first.",
             }), 409
 
-    # Block disabling the last active threshold module
+    # Block disabling the last active threshold profile
     if "thresholds" in module.contributes:
         disabled_raw = config_mgr.get("disabled_modules", "")
         disabled_set = {s.strip() for s in disabled_raw.split(",") if s.strip()}

@@ -9,9 +9,11 @@ from flask import Flask
 
 from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
 from app.theme_registry import BUILTIN_THEMES
+from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 from app.module_loader import (
     attach_builtin_python_contributions,
     discover_builtin_modules,
+    discover_builtin_threshold_modules,
     discover_builtin_theme_modules,
     discover_modules,
     ModuleLoader,
@@ -37,6 +39,14 @@ def test_builtin_theme_registry_replaces_wrapper_module_dirs():
         "docsight.theme_tokyo_night",
     }
     assert not list(BUILTIN_MODULES_DIR.glob("theme_*/manifest.json"))
+
+
+def test_builtin_threshold_registry_replaces_wrapper_module_dir():
+    """Shipped threshold profiles live in the analyzer profile registry."""
+    assert len(BUILTIN_THRESHOLD_PROFILES) == 1
+    assert BUILTIN_THRESHOLD_PROFILES[0]["id"] == "docsight.thresholds_vfkd"
+    assert not (BUILTIN_MODULES_DIR / "thresholds_vfkd" / "manifest.json").exists()
+    assert not (BUILTIN_MODULES_DIR / "thresholds_vfkd" / "thresholds.json").exists()
 
 
 def test_discover_builtin_modules_uses_static_registry(monkeypatch):
@@ -115,6 +125,25 @@ def test_discover_builtin_theme_modules_uses_static_registry(monkeypatch):
     assert {mod.id for mod in modules} >= {"docsight.theme_classic", "docsight.theme_matrix"}
 
 
+def test_discover_builtin_threshold_modules_uses_static_registry(monkeypatch):
+    """Built-in threshold profiles must not scan module directories."""
+    import app.module_loader as module_loader
+
+    def fail_listdir(_path):
+        raise AssertionError("built-in threshold discovery must use the static registry")
+
+    monkeypatch.setattr(module_loader.os, "listdir", fail_listdir)
+
+    modules = discover_builtin_threshold_modules()
+
+    assert len(modules) == len(BUILTIN_THRESHOLD_PROFILES)
+    assert all(mod.builtin for mod in modules)
+    assert all(mod.type == "analysis" for mod in modules)
+    assert all(mod.thresholds_data for mod in modules)
+    assert modules[0].id == "docsight.thresholds_vfkd"
+    assert modules[0].contributes == {"thresholds": "builtin"}
+
+
 def test_builtin_theme_registry_preserves_optional_metadata():
     themes = {mod.id: mod for mod in discover_builtin_theme_modules()}
 
@@ -170,6 +199,77 @@ def test_full_loader_prevents_community_theme_shadowing_builtin_theme(tmp_path):
     assert len(classic_matches) == 1
     assert classic_matches[0].builtin is True
     assert classic_matches[0].name == "Classic"
+
+
+def test_full_loader_prevents_community_threshold_shadowing_builtin_profile(tmp_path):
+    module_dir = tmp_path / "threshold_shadow"
+    module_dir.mkdir()
+    (module_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "id": "docsight.thresholds_vfkd",
+                "name": "Threshold Shadow",
+                "description": "Should not override the built-in threshold profile",
+                "version": "1.0.0",
+                "author": "Test",
+                "minAppVersion": "2026.2",
+                "type": "analysis",
+                "contributes": {"thresholds": "thresholds.json"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (module_dir / "thresholds.json").write_text(
+        json.dumps(
+            {
+                "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-99, 99], "warning": [-99, 99], "critical": [-99, 99]}},
+                "upstream_power": {"_default": "sc_qam", "sc_qam": {"good": [-99, 99], "warning": [-99, 99], "critical": [-99, 99]}},
+                "snr": {"_default": "256QAM", "256QAM": {"good_min": 99, "warning_min": 99, "critical_min": 99}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    loader = ModuleLoader(
+        Flask(__name__),
+        builtin_base_path=str(BUILTIN_MODULES_DIR),
+        search_paths=[str(tmp_path)],
+    )
+    modules = loader.load_all()
+    threshold_matches = [mod for mod in modules if mod.id == "docsight.thresholds_vfkd"]
+
+    assert len(threshold_matches) == 1
+    assert threshold_matches[0].builtin is True
+    assert threshold_matches[0].name == "VFKD Thresholds"
+    thresholds = threshold_matches[0].thresholds_data
+    assert thresholds is not None
+    downstream = thresholds["downstream_power"]
+    assert isinstance(downstream, dict)
+    qam256 = downstream["256QAM"]
+    assert isinstance(qam256, dict)
+    assert qam256["good"] == [-4.0, 13.0]
+
+
+def test_full_loader_applies_builtin_threshold_profile_to_analyzer():
+    from app import analyzer
+
+    original = analyzer._thresholds.copy()
+    try:
+        loader = ModuleLoader(
+            Flask(__name__),
+            builtin_base_path=str(BUILTIN_MODULES_DIR),
+            search_paths=[],
+        )
+        loader.load_all()
+
+        active_thresholds = analyzer.get_thresholds()
+        downstream = active_thresholds["downstream_power"]
+        assert isinstance(downstream, dict)
+        qam256 = downstream["256QAM"]
+        assert isinstance(qam256, dict)
+        assert qam256["good"] == [-4.0, 13.0]
+    finally:
+        analyzer._thresholds = original
 
 
 def test_community_scan_skips_ids_already_registered_by_builtins(tmp_path):
