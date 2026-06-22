@@ -14,9 +14,10 @@ driver_registry.register_builtin("vodafone_station", "app.drivers.vodafone_stati
                                  hints={"default_url": "http://192.168.0.1", "default_user": "admin"})
 driver_registry.register_builtin("ch7465", "app.drivers.ch7465.CH7465Driver", "Compal CH7465 (Connect Box)",
                                  hints={"default_url": "http://192.168.100.1", "default_user": "admin"})
-driver_registry.register_builtin("ch7465_play", "app.drivers.ch7465_play.CH7465PlayDriver",
+driver_registry.register_builtin("ch7465_play", "app.drivers.ch7465.CH7465Driver",
                                  "Compal CH7465 (Play/UPC)",
-                                 hints={"default_url": "http://192.168.0.1", "username_required": False})
+                                 hints={"default_url": "http://192.168.0.1", "username_required": False},
+                                 init_kwargs={"play_firmware": True})
 driver_registry.register_builtin("cm3000", "app.drivers.cm3000.CM3000Driver", "Netgear CM3000",
                                  hints={"default_url": "http://192.168.100.1", "default_user": "admin"})
 driver_registry.register_builtin("cm3500", "app.drivers.cm3500.CM3500Driver", "Arris CM3500B",

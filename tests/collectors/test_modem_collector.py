@@ -15,7 +15,6 @@ from app.modules.bqm.collector import BQMCollector
 from app.drivers.base import ModemDriver
 from app.drivers.fritzbox import FritzBoxDriver
 from app.drivers.ch7465 import CH7465Driver
-from app.drivers.ch7465_play import CH7465PlayDriver
 
 
 class TestModemCollector:

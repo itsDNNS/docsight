@@ -15,12 +15,22 @@ class DriverRegistry:
         self._builtin: dict[str, str] = {}
         self._display_names: dict[str, str] = {}
         self._hints: dict[str, DriverHints] = {}
+        self._init_kwargs: dict[str, dict[str, object]] = {}
 
-    def register_builtin(self, type_key: str, class_path: str, display_name: str, hints: DriverHints | None = None) -> None:
+    def register_builtin(
+        self,
+        type_key: str,
+        class_path: str,
+        display_name: str,
+        hints: DriverHints | None = None,
+        init_kwargs: dict[str, object] | None = None,
+    ) -> None:
         self._builtin[type_key] = class_path
         self._display_names[type_key] = display_name
         if hints:
             self._hints[type_key] = hints
+        if init_kwargs:
+            self._init_kwargs[type_key] = dict(init_kwargs)
 
     def load_driver(self, modem_type: str, url: str, user: str, password: str) -> ModemDriver:
         qualified = self._builtin.get(modem_type)
@@ -32,7 +42,8 @@ class DriverRegistry:
         module_path, class_name = qualified.rsplit(".", 1)
         mod = importlib.import_module(module_path)
         cls = getattr(mod, class_name)
-        return cls(url, user, password)
+        kwargs = self._init_kwargs.get(modem_type, {})
+        return cls(url, user, password, **kwargs)
 
     def get_available_drivers(self) -> list[tuple[str, str]]:
         all_keys = self.get_all_type_keys()

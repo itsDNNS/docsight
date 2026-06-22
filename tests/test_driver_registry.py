@@ -10,6 +10,12 @@ class FakeDriver(ModemDriver):
     def get_connection_info(self): return {}
 
 
+class FlagDriver(FakeDriver):
+    def __init__(self, url, user, password, *, force_mode=False):
+        super().__init__(url, user, password)
+        self.force_mode = force_mode
+
+
 class TestDriverRegistry:
     def setup_method(self):
         self.reg = DriverRegistry()
@@ -18,6 +24,19 @@ class TestDriverRegistry:
         self.reg.register_builtin("fake", "tests.test_driver_registry.FakeDriver", "Fake Modem")
         driver = self.reg.load_driver("fake", "http://x", "u", "p")
         assert isinstance(driver, FakeDriver)
+
+    def test_load_builtin_passes_init_kwargs(self):
+        self.reg.register_builtin(
+            "flagged",
+            "tests.test_driver_registry.FlagDriver",
+            "Flagged Modem",
+            init_kwargs={"force_mode": True},
+        )
+
+        driver = self.reg.load_driver("flagged", "http://x", "u", "p")
+
+        assert isinstance(driver, FlagDriver)
+        assert driver.force_mode is True
 
     def test_unknown_type_raises(self):
         with pytest.raises(ValueError, match="Unknown modem_type"):

@@ -50,7 +50,14 @@ class CH7465Driver(ModemDriver):
     DOCSIS data is fetched via XML API endpoints.
     """
 
-    def __init__(self, url: str, user: str, password: str):
+    def __init__(
+        self,
+        url: str,
+        user: str,
+        password: str,
+        *,
+        play_firmware: bool | None = None,
+    ):
         super().__init__(url, user, password)
         session = requests.Session()
         self._session: requests.Session = session
@@ -64,7 +71,10 @@ class CH7465Driver(ModemDriver):
         # the application is exited.
         self._finalizer = weakref.finalize(self, CH7465Driver._cleanup, url, session)
         self._finalizer.atexit = True
-        self._is_play: bool | None = None
+        # The ch7465_play registry alias pins this to True so selected Play/UPC
+        # modems keep the known plaintext-login + token-on-every-request path.
+        # Plain ch7465 keeps auto-detection for mixed Connect Box firmware.
+        self._is_play: bool | None = play_firmware
 
     @staticmethod
     def _cleanup(url: str, session: requests.Session):
