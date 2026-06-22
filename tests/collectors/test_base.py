@@ -119,13 +119,28 @@ class TestCollectorABC:
         assert c.should_poll() is True
 
 
-# ── ModemDriver ABC Tests ──
+# ── ModemDriver Base-Class Tests ──
 
 
-class TestModemDriverABC:
-    def test_cannot_instantiate_abc(self):
-        with pytest.raises(TypeError):
-            ModemDriver("http://modem", "user", "pass")
+class TestModemDriverBase:
+    def test_base_driver_stores_credentials(self):
+        driver = ModemDriver("http://modem", "user", "pass")
+
+        assert driver._url == "http://modem"
+        assert driver._user == "user"
+        assert driver._password == "pass"
+
+    def test_base_methods_document_required_driver_api(self):
+        driver = ModemDriver("http://modem", "user", "pass")
+
+        for method_name in (
+            "login",
+            "get_docsis_data",
+            "get_device_info",
+            "get_connection_info",
+        ):
+            with pytest.raises(NotImplementedError, match=f"ModemDriver\\.{method_name}"):
+                getattr(driver, method_name)()
 
     def test_concrete_driver_stores_credentials(self):
         class DummyDriver(ModemDriver):
