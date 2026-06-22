@@ -1,8 +1,15 @@
+import json
 from unittest.mock import patch, MagicMock
 
 import requests
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-from app.drivers.vodafone_station import VodafoneStationDriver
+from app.drivers.vodafone_station import (
+    VodafoneStationDriver,
+    _aes_ccm_decrypt_hex,
+    _aes_ccm_encrypt_hex,
+)
 
 # ===== Embedded fixture HTML =====
 # Two pages are fetched per call:
@@ -114,6 +121,87 @@ def mock_router_responses(driver, section_id):
 driver = VodafoneStationDriver(url="http://dummy", user="admin", password="admin")
 
 # ===== Tests =====
+def test_tg_aes_ccm_helpers_match_retained_contract():
+    """Vodafone TG AES-CCM keeps ciphertext+tag hex and authenticated data semantics."""
+    key = bytes.fromhex("00112233445566778899aabbccddeeff")
+    nonce = bytes.fromhex("0102030405060708")
+    plaintext = b"docsight-vodafone-tg-login-payload"
+
+    encrypted_hex = _aes_ccm_encrypt_hex(
+        key,
+        nonce,
+        plaintext,
+        b"loginPassword",
+    )
+
+    assert encrypted_hex == (
+        "bbba77827b9992510b03321a8444dfe82d50c9b32c2f029dacf968c084c4e76d"
+        "ab0f0ce154fb9276354a741f45afcfbaa085"
+    )
+    assert _aes_ccm_decrypt_hex(key, nonce, encrypted_hex, b"loginPassword") == plaintext
+
+
+def test_tg_login_posts_decryptable_aes_ccm_payload_from_cryptography():
+    driver = VodafoneStationDriver(url="http://dummy", user="admin", password="admin")
+    html = """
+    <script>
+    var currentSessionId = '0123456789abcdef0123456789abcdef';
+    var myIv = '0102030405060708';
+    var mySalt = '0011223344556677';
+    </script>
+    """
+
+    page_response = MagicMock(status_code=200, text=html)
+    page_response.raise_for_status = MagicMock()
+    credential_response = MagicMock(
+        status_code=200,
+        text='createCookie("credential", "credential-cookie-value", 1);',
+    )
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=16,
+        salt=bytes.fromhex("0011223344556677"),
+        iterations=1000,
+    )
+    key = kdf.derive(driver._password.encode("utf-8"))
+    encrypted_nonce = _aes_ccm_encrypt_hex(
+        key,
+        bytes.fromhex("0102030405060708"),
+        b"0123456789abcdef0123456789abcdef-extra",
+        b"nonce",
+    )
+
+    login_response = MagicMock()
+    login_response.raise_for_status = MagicMock()
+    login_response.json.return_value = {"p_status": "OK", "encryptData": encrypted_nonce}
+    session_response = MagicMock(status_code=200)
+
+    with patch.object(driver._session, "get", side_effect=[page_response, credential_response]), \
+         patch.object(driver._session, "post", side_effect=[login_response, session_response]) as mock_post:
+        driver._login_tg()
+
+    login_payload = json.loads(mock_post.call_args_list[0].kwargs["data"])
+    assert login_payload["Name"] == "admin"
+    assert login_payload["AuthData"] == "loginPassword"
+    assert "EncryptData" in login_payload
+
+    assert driver._tg_key is not None
+    assert driver._tg_iv is not None
+    decrypted = _aes_ccm_decrypt_hex(
+        driver._tg_key,
+        driver._tg_iv,
+        login_payload["EncryptData"],
+        b"loginPassword",
+    )
+    assert json.loads(decrypted.decode("utf-8")) == {
+        "Password": driver._password,
+        "Nonce": "0123456789abcdef0123456789abcdef",
+    }
+    assert driver._tg_nonce == "0123456789abcdef0123456789abcdef"
+    assert driver._session.cookies.get("credential") == "credential-cookie-value"
+
+
 def test_happy_path():
     result = mock_router_responses(driver, "happy_path")
     assert result["hw_version"] == "HW1"
