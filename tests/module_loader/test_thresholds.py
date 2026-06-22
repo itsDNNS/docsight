@@ -9,7 +9,7 @@ import textwrap
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, load_module_driver, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
 
 _VALID_THRESHOLDS = {
     "downstream_power": {"_default": "256QAM", "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]}},
@@ -32,7 +32,7 @@ class TestThresholdContributes:
             "version": "1.0.0",
             "author": "Test",
             "minAppVersion": "2026.2",
-            "type": "driver",
+            "type": "analysis",
             "contributes": {"thresholds": "thresholds.json"},
         }
         info = validate_manifest(raw, "/some/path")
@@ -52,7 +52,7 @@ class TestThresholdContributes:
                 "version": "1.0.0",
                 "author": "Test",
                 "minAppVersion": "2026.2",
-                "type": "driver",
+                "type": "analysis",
                 "contributes": {"thresholds": "thresholds.json"},
             }
             (mod_dir / "manifest.json").write_text(json.dumps(manifest))
@@ -82,7 +82,7 @@ class TestThresholdContributes:
                 "version": "1.0.0",
                 "author": "Test",
                 "minAppVersion": "2026.2",
-                "type": "driver",
+                "type": "analysis",
                 "contributes": {"thresholds": "thresholds.json"},
             }
             (mod_dir / "manifest.json").write_text(json.dumps(manifest))
@@ -111,7 +111,7 @@ class TestThresholdContributes:
                 "version": "1.0.0",
                 "author": "Test",
                 "minAppVersion": "2026.2",
-                "type": "driver",
+                "type": "analysis",
                 "contributes": {"thresholds": "thresholds.json"},
             }
             (mod_dir / "manifest.json").write_text(json.dumps(manifest))
@@ -143,7 +143,7 @@ class TestThresholdWiring:
                 "version": "1.0.0",
                 "author": "Test",
                 "minAppVersion": "2026.2",
-                "type": "driver",
+                "type": "analysis",
                 "contributes": {"thresholds": "thresholds.json"},
             }
             (mod_dir / "manifest.json").write_text(json.dumps(manifest))
@@ -177,7 +177,7 @@ class TestGetThresholdModules:
             (mod_t / "manifest.json").write_text(json.dumps({
                 "id": "test.thresh", "name": "T", "description": "d",
                 "version": "1.0.0", "author": "a", "minAppVersion": "2026.2",
-                "type": "driver", "contributes": {"thresholds": "thresholds.json"},
+                "type": "analysis", "contributes": {"thresholds": "thresholds.json"},
             }))
             (mod_t / "thresholds.json").write_text(json.dumps(_VALID_THRESHOLDS))
 

@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import MagicMock
 from app.drivers.registry import DriverRegistry
 from app.drivers.base import ModemDriver
 
@@ -35,37 +34,9 @@ class TestDriverRegistry:
         self.reg.register_builtin("fake", "tests.test_driver_registry.FakeDriver", "Fake")
         assert self.reg.has_driver("fake")
 
-    def test_module_driver_overrides_builtin(self):
-        self.reg.register_builtin("fake", "tests.test_driver_registry.FakeDriver", "Built-in Fake")
-        self.reg.register_module_driver("fake", FakeDriver, "Module Fake")
-        result = self.reg.get_available_drivers()
-        assert ("fake", "Module Fake") in result
-
-    def test_module_driver_loads(self):
-        self.reg.register_module_driver("custom", FakeDriver, "Custom Driver")
-        driver = self.reg.load_driver("custom", "http://x", "u", "p")
-        assert isinstance(driver, FakeDriver)
-
-    def test_register_module_drivers_from_loader(self):
-        mod = MagicMock()
-        mod.driver_class = FakeDriver
-        mod.contributes = {"driver": "driver.py:FakeDriver"}
-        mod.id = "community.fake"
-        mod.name = "Fake Community Driver"
-        loader = MagicMock()
-        loader.get_enabled_modules.return_value = [mod]
-        self.reg.register_module_drivers(loader)
-        assert self.reg.has_driver("community.fake")
-
-    def test_register_module_drivers_skips_non_driver_modules(self):
-        mod = MagicMock()
-        mod.driver_class = None
-        mod.contributes = {"collector": "collector.py:Foo"}
-        mod.id = "community.collector"
-        loader = MagicMock()
-        loader.get_enabled_modules.return_value = [mod]
-        self.reg.register_module_drivers(loader)
-        assert not self.reg.has_driver("community.collector")
+    def test_registered_builtin_keys_are_the_only_available_driver_keys(self):
+        self.reg.register_builtin("fake", "tests.test_driver_registry.FakeDriver", "Fake")
+        assert self.reg.get_all_type_keys() == {"fake"}
 
 
 class TestGenericDriver:

@@ -180,7 +180,7 @@ class TestBatchModuleSettings:
                 "version": "1.0.0",
                 "author": "a",
                 "minAppVersion": "2026.2",
-                "type": "driver",
+                "type": "analysis" if contributes else "integration",
                 "contributes": contributes,
             }))
             if contributes:

@@ -1,10 +1,8 @@
 <div class="module-card glass {{ 'active' if mod.enabled }}" data-module-id="{{ mod.id }}">
     <div class="module-card-header">
-        <div class="card-icon {% if mod.type == 'integration' %}purple{% elif mod.type == 'driver' %}blue{% elif mod.type == 'analysis' %}green{% else %}purple{% endif %}">
+        <div class="card-icon {% if mod.type == 'integration' %}purple{% elif mod.type == 'analysis' %}green{% else %}purple{% endif %}">
             {% if mod.type == 'integration' %}
             <i data-lucide="plug"></i>
-            {% elif mod.type == 'driver' %}
-            <i data-lucide="cpu"></i>
             {% elif mod.type == 'analysis' %}
             <i data-lucide="bar-chart-2"></i>
             {% elif mod.type == 'theme' %}

@@ -187,9 +187,9 @@ def test_builtin_module_manifests_reference_existing_declared_files() -> None:
         module_dir = manifest_path.parent
         manifest = read_json(manifest_path)
         assert manifest["id"].startswith("docsight.")
-        assert manifest["type"] in {"analysis", "driver", "integration", "theme"}
+        assert manifest["type"] in {"analysis", "integration", "theme"}
         for key, value in manifest.get("contributes", {}).items():
-            if key in {"collector", "publisher", "driver"}:
+            if key in {"collector", "publisher"}:
                 value = value.split(":", 1)[0]
             elif key not in path_contributions:
                 continue
@@ -241,6 +241,30 @@ def test_smart_capture_uses_direct_speedtest_execution_wiring() -> None:
     assert "action_type: str" not in trigger_types
     assert "CAPTURE_ACTION_TYPE = \"capture\"" in trigger_types
     assert "register_speedtest_adapter(stt_adapter)" in main
+
+
+def test_module_driver_registration_path_is_not_supported() -> None:
+    """Module manifests should not expose modem-driver registration plumbing."""
+    module_loader = (ROOT / "app" / "module_loader.py").read_text(encoding="utf-8")
+    driver_registry = (ROOT / "app" / "drivers" / "registry.py").read_text(encoding="utf-8")
+    main = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
+    module_card = (ROOT / "app" / "templates" / "settings" / "_module_card.html").read_text(encoding="utf-8")
+
+    for removed in [
+        "load_module_driver",
+        "driver_class",
+        "get_driver_modules",
+        "register_module_drivers",
+        "register_module_driver",
+        "_module_drivers",
+    ]:
+        assert removed not in module_loader
+        assert removed not in driver_registry
+        assert removed not in main
+
+    assert '"driver"' not in module_loader
+    assert "mod.type == 'driver'" not in module_card
+    assert json.loads((MODULES / "thresholds_vfkd" / "manifest.json").read_text(encoding="utf-8"))["type"] == "analysis"
 
 
 def test_core_i18n_template_is_generated_on_demand_not_tracked() -> None:

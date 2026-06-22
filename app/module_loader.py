@@ -21,8 +21,8 @@ from app.theme_registry import BUILTIN_THEMES
 
 log = logging.getLogger("docsis.modules")
 
-VALID_TYPES = {"driver", "integration", "analysis", "theme"}
-VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds", "theme", "driver"}
+VALID_TYPES = {"integration", "analysis", "theme"}
+VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds", "theme"}
 REQUIRED_FIELDS = {"id", "name", "description", "version", "author", "minAppVersion", "type", "contributes"}
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
 
@@ -53,7 +53,6 @@ class ModuleInfo:
     template_paths: dict[str, str] = field(default_factory=dict)
     collector_class: type | None = None
     publisher_class: type | None = None
-    driver_class: type | None = None
     hints: dict[str, object] = field(default_factory=dict)
     thresholds_data: dict[str, object] | None = None
     theme_data: dict[str, object] | None = None
@@ -97,14 +96,6 @@ def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | 
         if forbidden:
             raise ManifestError(
                 f"Theme modules must not contribute {', '.join(sorted(forbidden))} (security)"
-            )
-
-    # Security: driver modules should not execute arbitrary server code
-    if mod_type == "driver":
-        forbidden = {"collector", "publisher"} & set(contributes.keys())
-        if forbidden:
-            raise ManifestError(
-                f"Driver modules must not contribute {', '.join(sorted(forbidden))} (security)"
             )
 
     config = raw.get("config", {})
@@ -437,7 +428,6 @@ def attach_builtin_python_contributions(mod: ModuleInfo) -> None:
     for key, attr_name in (
         ("collector", "collector_class"),
         ("publisher", "publisher_class"),
-        ("driver", "driver_class"),
     ):
         if key not in mod.contributes or getattr(mod, attr_name) is not None:
             continue
@@ -615,51 +605,6 @@ def load_module_publisher(module_id: str, module_path: str, spec: str):
         return None
 
     log.info("Module '%s': loaded publisher class '%s'", module_id, class_name)
-    return cls
-
-
-def load_module_driver(module_id: str, module_path: str, spec: str):
-    """Load a ModemDriver subclass from a module file.
-
-    Args:
-        module_id: The module's unique identifier.
-        module_path: Filesystem path to the module directory.
-        spec: "filename.py:ClassName" format (e.g. "driver.py:MyModemDriver")
-
-    Returns:
-        The ModemDriver subclass, or None if loading failed.
-    """
-    if ":" not in spec:
-        log.warning("Module '%s': driver spec must be 'file.py:ClassName', got '%s'", module_id, spec)
-        return None
-
-    filename, class_name = spec.rsplit(":", 1)
-    file_path = safe_manifest_ref(module_path, filename)
-
-    if not os.path.isfile(file_path):
-        log.warning("Module '%s': driver file not found: %s", module_id, file_path)
-        return None
-
-    dir_name = os.path.basename(module_path)
-    mod_name = f"app.modules.{dir_name}.driver"
-    try:
-        im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
-        if im_spec is None or im_spec.loader is None:
-            log.warning("Module '%s': could not create import spec for %s", module_id, file_path)
-            return None
-        mod = importlib.util.module_from_spec(im_spec)
-        sys.modules[mod_name] = mod
-        im_spec.loader.exec_module(mod)
-    except Exception as e:
-        log.error("Module '%s': failed to import driver: %s", module_id, e)
-        return None
-
-    cls = getattr(mod, class_name, None)
-    if cls is None:
-        log.warning("Module '%s': class '%s' not found in %s", module_id, class_name, file_path)
-        return None
-
-    log.info("Module '%s': loaded driver class '%s'", module_id, class_name)
     return cls
 
 
@@ -879,10 +824,6 @@ class ModuleLoader:
         if "publisher" in c and not mod.builtin:
             mod.publisher_class = load_module_publisher(mod.id, mod.path, c["publisher"])
 
-        # Driver (class loaded but not instantiated -- DriverRegistry handles that)
-        if "driver" in c and not mod.builtin:
-            mod.driver_class = load_module_driver(mod.id, mod.path, c["driver"])
-
         # Thresholds
         if "thresholds" in c:
             thresholds_path = safe_manifest_ref(mod.path, c["thresholds"])
@@ -931,7 +872,3 @@ class ModuleLoader:
     def get_theme_modules(self) -> list[ModuleInfo]:
         """Return all modules that contribute theme definitions."""
         return [m for m in self._modules if "theme" in m.contributes]
-
-    def get_driver_modules(self) -> list[ModuleInfo]:
-        """Return all modules that contribute a driver."""
-        return [m for m in self._modules if "driver" in m.contributes]

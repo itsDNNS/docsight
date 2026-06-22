@@ -60,7 +60,7 @@ def test_builtin_python_contribution_registry_covers_manifest_entry_points():
         manifest = json.loads((BUILTIN_MODULES_DIR / dirname / "manifest.json").read_text(encoding="utf-8"))
         contributes = manifest.get("contributes", {})
         specs = BUILTIN_PYTHON_CONTRIBUTIONS.get(manifest["id"])
-        for key in ("collector", "publisher", "driver"):
+        for key in ("collector", "publisher"):
             if key in contributes:
                 assert specs is not None, f"missing static Python contribution spec for {manifest['id']}"
                 assert getattr(specs, key), f"missing {key} spec for {manifest['id']}"

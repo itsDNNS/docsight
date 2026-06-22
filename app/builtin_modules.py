@@ -34,7 +34,6 @@ class BuiltinPythonContributions:
 
     collector: str | None = None
     publisher: str | None = None
-    driver: str | None = None
 
 
 BUILTIN_PYTHON_CONTRIBUTIONS: dict[str, BuiltinPythonContributions] = {

@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "itsDNNS",
   "minAppVersion": "2026.2",
-  "type": "driver",
+  "type": "analysis",
   "contributes": {
     "thresholds": "thresholds.json"
   }

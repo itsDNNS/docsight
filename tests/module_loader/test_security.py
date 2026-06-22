@@ -1,15 +1,12 @@
 """Tests for module loader path traversal and security constraints."""
 
 # tests/test_module_loader.py
-import importlib
 import json
 import os
-import tempfile
-import textwrap
 
 import pytest
 from flask import Flask
-from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, load_module_driver, setup_module_static, setup_module_templates, ModuleLoader
+from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
 
 _VALID_THEME = {
     "dark": {
@@ -278,16 +275,6 @@ class TestContributesPathTraversal:
         with pytest.raises(ValueError, match="Unsafe manifest reference"):
             load_module_publisher("test.mod", str(mod_dir), "../evil.py:Evil")
 
-    def test_driver_traversal_blocked(self, tmp_path):
-        """Driver spec with traversal filename must be rejected."""
-        from app.module_loader import load_module_driver
-
-        mod_dir = tmp_path / "mymod"
-        mod_dir.mkdir()
-
-        with pytest.raises(ValueError, match="Unsafe manifest reference"):
-            load_module_driver("test.mod", str(mod_dir), "../evil.py:Evil")
-
     def test_static_traversal_blocked(self, tmp_path):
         """Static dir with traversal must be rejected."""
         mod_dir = tmp_path / "staticmod"
@@ -314,69 +301,13 @@ class TestContributesPathTraversal:
         assert "unsafe manifest subpath" in mod.error.lower()
 
 
-def test_driver_in_valid_contributes():
+def test_driver_is_not_valid_contributes():
     from app.module_loader import VALID_CONTRIBUTES
-    assert "driver" in VALID_CONTRIBUTES
-
-
-class TestLoadModuleDriver:
-    """Tests for load_module_driver()."""
-
-    def test_valid_driver_spec(self, tmp_path):
-        driver_code = textwrap.dedent('''
-            from app.drivers.base import ModemDriver
-
-            class TestDriver(ModemDriver):
-                def login(self): pass
-                def get_docsis_data(self): return {}
-                def get_device_info(self): return {}
-                def get_connection_info(self): return {}
-        ''')
-        driver_file = tmp_path / "driver.py"
-        driver_file.write_text(driver_code)
-        cls = load_module_driver("test.mod", str(tmp_path), "driver.py:TestDriver")
-        assert cls is not None
-        assert cls.__name__ == "TestDriver"
-
-    def test_missing_colon_returns_none(self, tmp_path):
-        cls = load_module_driver("test.mod", str(tmp_path), "driver.py")
-        assert cls is None
-
-    def test_missing_file_returns_none(self, tmp_path):
-        cls = load_module_driver("test.mod", str(tmp_path), "missing.py:Foo")
-        assert cls is None
-
-    def test_missing_class_returns_none(self, tmp_path):
-        driver_file = tmp_path / "driver.py"
-        driver_file.write_text("class Other: pass")
-        cls = load_module_driver("test.mod", str(tmp_path), "driver.py:Missing")
-        assert cls is None
+    assert "driver" not in VALID_CONTRIBUTES
 
 
 class TestDriverModuleSecurity:
-    def test_driver_module_forbidden_contributions_rejected(self):
-        base = {
-            "id": "community.mydriver",
-            "name": "My Driver",
-            "description": "A driver",
-            "version": "1.0.0",
-            "author": "Test",
-            "minAppVersion": "2026.2",
-            "type": "driver",
-        }
-
-        for contribution, spec in {
-            "collector": "collector.py:Foo",
-            "publisher": "pub.py:Foo",
-        }.items():
-            raw = {
-                **base,
-                "contributes": {"driver": "driver.py:MyDriver", contribution: spec},
-            }
-            with pytest.raises(ManifestError, match="must not contribute"):
-                validate_manifest(raw, "/path")
-
-    def test_driver_module_with_only_driver_is_valid(self):
+    def test_driver_module_type_is_not_supported(self):
         raw = {
             "id": "community.mydriver",
             "name": "My Driver",
@@ -385,7 +316,23 @@ class TestDriverModuleSecurity:
             "author": "Test",
             "minAppVersion": "2026.2",
             "type": "driver",
+            "contributes": {},
+        }
+
+        with pytest.raises(ManifestError, match="Invalid type"):
+            validate_manifest(raw, "/path")
+
+    def test_driver_contribution_is_not_supported(self):
+        raw = {
+            "id": "community.mydriver",
+            "name": "My Driver",
+            "description": "A driver",
+            "version": "1.0.0",
+            "author": "Test",
+            "minAppVersion": "2026.2",
+            "type": "integration",
             "contributes": {"driver": "driver.py:MyDriver"},
         }
-        info = validate_manifest(raw, "/path")
-        assert info.type == "driver"
+
+        with pytest.raises(ManifestError, match="Unknown contributes keys"):
+            validate_manifest(raw, "/path")
