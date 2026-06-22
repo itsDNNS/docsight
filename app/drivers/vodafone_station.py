@@ -20,6 +20,7 @@ import time
 
 import requests
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from .base import ModemDriver
@@ -27,6 +28,16 @@ from .utils import normalize_modulation
 from ..types import DocsisData, DeviceInfo, ConnectionInfo
 
 log = logging.getLogger("docsis.driver.vodafone_station")
+
+
+def _aes_ccm_encrypt_hex(key: bytes, nonce: bytes, plaintext: bytes, aad: bytes) -> str:
+    """Encrypt with AES-CCM and return ciphertext+tag as hex."""
+    return AESCCM(key, tag_length=16).encrypt(nonce, plaintext, aad).hex()
+
+
+def _aes_ccm_decrypt_hex(key: bytes, nonce: bytes, encrypted_hex: str, aad: bytes) -> bytes:
+    """Decrypt AES-CCM ciphertext+tag stored as hex."""
+    return AESCCM(key, tag_length=16).decrypt(nonce, bytes.fromhex(encrypted_hex), aad)
 
 
 class VodafoneStationDriver(ModemDriver):
@@ -517,8 +528,6 @@ class VodafoneStationDriver(ModemDriver):
         7. POST /php/ajaxSet_Session.php to establish session
         8. Set credential cookie from base_95x.js
         """
-        from Crypto.Cipher import AES
-
         if self._tg_nonce and self._session.cookies:
             log.debug("TG session active, skipping login")
             return
@@ -564,13 +573,13 @@ class VodafoneStationDriver(ModemDriver):
         # Full IV as nonce (8 bytes from 16 hex chars), 16-byte tag, AAD
         payload_str = json.dumps({"Password": self._password, "Nonce": session_id})
         iv_bytes = bytes.fromhex(iv_hex)
-        auth_data = "loginPassword"
-
-        cipher = AES.new(key, AES.MODE_CCM, nonce=iv_bytes, mac_len=16)
-        cipher.update(auth_data.encode("utf-8"))
-        ciphertext = cipher.encrypt(payload_str.encode("utf-8"))
-        tag = cipher.digest()
-        encrypted_hex = (ciphertext + tag).hex()
+        auth_data = b"loginPassword"
+        encrypted_hex = _aes_ccm_encrypt_hex(
+            key,
+            iv_bytes,
+            payload_str.encode("utf-8"),
+            auth_data,
+        )
 
         # Step 4: POST login as JSON
         r2 = self._session.post(
@@ -579,7 +588,7 @@ class VodafoneStationDriver(ModemDriver):
             data=json.dumps({
                 "EncryptData": encrypted_hex,
                 "Name": self._user,
-                "AuthData": auth_data,
+                "AuthData": auth_data.decode("ascii"),
             }),
             timeout=10,
         )
@@ -608,12 +617,7 @@ class VodafoneStationDriver(ModemDriver):
 
         encrypted_nonce = resp.get("encryptData", "")
         if encrypted_nonce:
-            enc_bytes = bytes.fromhex(encrypted_nonce)
-            ct_part = enc_bytes[:-16]
-            tag_part = enc_bytes[-16:]
-            decipher = AES.new(key, AES.MODE_CCM, nonce=iv_bytes, mac_len=16)
-            decipher.update(b"nonce")
-            decrypted = decipher.decrypt_and_verify(ct_part, tag_part)
+            decrypted = _aes_ccm_decrypt_hex(key, iv_bytes, encrypted_nonce, b"nonce")
             nonce_full = decrypted.decode("utf-8")
             self._tg_nonce = nonce_full[:32]
             if len(nonce_full) > 32:
