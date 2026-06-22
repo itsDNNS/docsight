@@ -1,4 +1,4 @@
-var CACHE_VERSION = 'v57';
+var CACHE_VERSION = 'v58';
 var SHELL_CACHE = 'docsight-shell-' + CACHE_VERSION;
 var STATIC_CACHE = 'docsight-static-' + CACHE_VERSION;
 var OFFLINE_SHELL_HEADERS = {

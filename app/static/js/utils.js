@@ -344,9 +344,6 @@ function downloadExportMarkdown() {
     setExportStatus(T.export_download_ready || 'Download ready. Review the file before sharing it.', 'success');
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
-function toggleCard(el) {
-    el.classList.toggle('open');
-}
 function openSpeedtestSetupModal() {
     if (window.DOCSightModal) {
         window.DOCSightModal.open('speedtest-setup-modal');

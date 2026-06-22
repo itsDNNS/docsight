@@ -269,12 +269,6 @@ function showToast(msg, ok) {
 var MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
 var SECRET_FIELDS = ['modem_password', 'mqtt_password', 'admin_password', 'speedtest_tracker_token', 'notify_webhook_token', 'notify_apprise_key', 'notify_apprise_token', 'notify_pwa_push_vapid_private_key'];
 
-function escHtml(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-}
-
 function _isConfigSecretField(inp) {
     return !!(
         inp &&
@@ -1805,11 +1799,6 @@ function installTheme(themeId, downloadUrl) {
         .catch(function(err) {
             showToast((T.error_prefix || 'Error') + ': ' + err.message, true);
         });
-}
-
-function validateBqmMonitor() {
-    // Legacy function name kept for backwards compatibility
-    // No longer used — validation removed from settings UI
 }
 
 /* ── Smart Capture History ── */

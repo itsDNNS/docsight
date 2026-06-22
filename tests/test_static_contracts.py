@@ -180,6 +180,25 @@ def test_service_worker_precache_references_existing_public_assets() -> None:
     assert missing == []
 
 
+def test_dead_static_js_helpers_stay_removed() -> None:
+    assert not (STATIC / "js" / "icons.js").exists()
+
+    settings_js = (STATIC / "js" / "settings.js").read_text(encoding="utf-8")
+    utils_js = (STATIC / "js" / "utils.js").read_text(encoding="utf-8")
+    sw_js = (STATIC / "sw.js").read_text(encoding="utf-8")
+    templates = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
+    )
+
+    assert "function escHtml" not in settings_js
+    assert "function validateBqmMonitor" not in settings_js
+    assert "function toggleCard(" not in utils_js
+    assert "/static/js/icons.js" not in sw_js
+    assert "/static/js/icons.js" not in templates
+    assert "toggleCard(" not in templates
+
+
 def test_builtin_module_manifests_reference_existing_declared_files() -> None:
     path_contributions = {"routes", "settings", "card", "tab", "static", "i18n", "thresholds"}
     missing = []
