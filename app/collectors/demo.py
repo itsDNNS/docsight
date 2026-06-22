@@ -26,6 +26,39 @@ from ..gaming_index import compute_gaming_index
 
 log = logging.getLogger("docsis.collector.demo")
 
+DEMO_HISTORY_DAYS = 270
+DEMO_HISTORY_INTERVAL_MINUTES = 15
+DEMO_SPEEDTEST_HOURS = (8, 14, 21)
+DEMO_SPEEDTEST_SKIP_PROBABILITY = 0.15
+DEMO_SPEEDTEST_SERVERS = (
+    (12345, "Vodafone DE - Frankfurt"),
+    (23456, "Deutsche Telekom - Berlin"),
+    (34567, "1&1 Versatel - Dusseldorf"),
+)
+DEMO_BQM_DAYS = 30
+DEMO_BNETZ_CAMPAIGN_OFFSETS_DAYS = (250, 220, 190, 160, 130, 100, 70, 40, 10)
+DEMO_BNETZ_BAD_CAMPAIGN_INDEXES = {2, 5, 7}
+DEMO_WEATHER_DAYS = 270
+DEMO_CONNECTION_MONITOR_DAYS = 7
+DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS = 10
+DEMO_CONNECTION_MONITOR_TARGETS = (
+    ("gateway", "Gateway", "192.168.178.1"),
+    ("cloudflare", "Cloudflare DNS", "1.1.1.1"),
+    ("google", "Google DNS", "8.8.8.8"),
+)
+DEMO_CONNECTION_MONITOR_OUTAGES = (
+    (2, 20.5, 2),    # Day 3: short 2-min outage during evening
+    (4, 21.0, 3),    # Day 5: 3-min outage
+    (5, 19.75, 8),   # Day 6: the 8-minute outage that triggered investigation
+)
+DEMO_TRACEROUTE_TRACE_CONFIGS = (
+    {"target": "cloudflare", "days_ago": 5, "trigger": "outage", "reached": True},
+    {"target": "cloudflare", "days_ago": 2, "trigger": "packet_loss", "reached": True},
+    {"target": "cloudflare", "days_ago": 0, "trigger": "manual", "reached": True},
+    {"target": "google", "days_ago": 4, "trigger": "outage", "reached": True},
+    {"target": "google", "days_ago": 1, "trigger": "manual", "reached": True},
+)
+
 _FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "..", "fixtures")
 _BASE_DATA = None
 
@@ -222,9 +255,9 @@ class DemoCollector(Collector):
 
     def _seed_history(self, now):
         """Generate 9 months of historical snapshots (every 15 min)."""
-        days = 270
-        interval_min = 15
-        total = days * 24 * 60 // interval_min  # 8640 snapshots
+        days = DEMO_HISTORY_DAYS
+        interval_min = DEMO_HISTORY_INTERVAL_MINUTES
+        total = days * 24 * 60 // interval_min  # 25920 snapshots
         start = now - timedelta(days=days)
 
         rows = []
@@ -461,7 +494,7 @@ class DemoCollector(Collector):
 
     def _seed_events(self, now):
         """Seed realistic events spread over 9 months."""
-        days = 270
+        days = DEMO_HISTORY_DAYS
         events = [
             {
                 "timestamp": (now - timedelta(days=days - 1, hours=23)).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -742,15 +775,9 @@ class DemoCollector(Collector):
 
     def _seed_speedtest_results(self, now):
         """Seed 9 months of speedtest results (~3 per day, correlated with bad periods)."""
-        days = 270
+        days = DEMO_HISTORY_DAYS
         results = []
         result_id = 1
-        # Realistic demo server pool
-        demo_servers = [
-            (12345, "Vodafone DE - Frankfurt"),
-            (23456, "Deutsche Telekom - Berlin"),
-            (34567, "1&1 Versatel - Dusseldorf"),
-        ]
 
         for d in range(days):
             ts_day = now - timedelta(days=days - d)
@@ -758,11 +785,11 @@ class DemoCollector(Collector):
             bad_day = (day_of_year % 10 == 0)
 
             # 3 tests per day: morning, afternoon, evening
-            for hour in [8, 14, 21]:
+            for hour in DEMO_SPEEDTEST_HOURS:
                 ts = ts_day.replace(hour=hour, minute=random.randint(0, 59),
                                     second=random.randint(0, 59), microsecond=0)
                 # Skip some tests randomly (~15%) for realism
-                if random.random() < 0.15:
+                if random.random() < DEMO_SPEEDTEST_SKIP_PROBABILITY:
                     continue
 
                 # Bad period: 2-8 AM on bad days
@@ -781,7 +808,7 @@ class DemoCollector(Collector):
                     jitter = round(random.uniform(1, 4), 1)
                     loss = 0.0
 
-                srv = random.choice(demo_servers)
+                srv = random.choice(DEMO_SPEEDTEST_SERVERS)
                 results.append({
                     "id": result_id,
                     "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -823,7 +850,7 @@ class DemoCollector(Collector):
 
     def _seed_bqm_graphs(self, now):
         """Seed BQM placeholder graphs for the last 30 days."""
-        for d in range(30):
+        for d in range(DEMO_BQM_DAYS):
             date = (now - timedelta(days=d)).strftime("%Y-%m-%d")
             ts = (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%SZ")
             png = self._generate_bqm_png(seed=d)
@@ -842,9 +869,9 @@ class DemoCollector(Collector):
         from breitbandmessung.de Desktop App and Web Test exports.
         """
         # Campaign dates: roughly monthly, spread over the demo period
-        campaign_offsets_days = [250, 220, 190, 160, 130, 100, 70, 40, 10]
+        campaign_offsets_days = DEMO_BNETZ_CAMPAIGN_OFFSETS_DAYS
         # Campaigns where download shows deviation (correlate with bad signal periods)
-        bad_campaigns = {2, 5, 7}  # indices into campaign_offsets_days
+        bad_campaigns = DEMO_BNETZ_BAD_CAMPAIGN_INDEXES
 
         # Tariff values from real Desktop App CSV (GigaZuhause 1000 Kabel Nov 2023)
         dl_max, dl_normal, dl_min = 1000.0, 850.0, 600.0
@@ -930,7 +957,7 @@ class DemoCollector(Collector):
 
     def _seed_weather_data(self, now):
         """Seed 270 days of hourly outdoor temperature data with seasonal patterns."""
-        days = 270
+        days = DEMO_WEATHER_DAYS
         records = []
         rng = random.Random(42)
         for d in range(days, -1, -1):
@@ -982,21 +1009,16 @@ class DemoCollector(Collector):
             conn.execute("DELETE FROM connection_samples")
             conn.execute("DELETE FROM connection_targets")
 
-        gw_id = cm.create_target("Gateway", "192.168.178.1")
-        cf_id = cm.create_target("Cloudflare DNS", "1.1.1.1")
-        gg_id = cm.create_target("Google DNS", "8.8.8.8")
+        target_ids = {
+            name: cm.create_target(label, host)
+            for name, label, host in DEMO_CONNECTION_MONITOR_TARGETS
+        }
 
         rng = random.Random(2026)
-        days = 7
-        interval_s = 10  # 10s between samples
+        days = DEMO_CONNECTION_MONITOR_DAYS
+        interval_s = DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS
         samples_per_day = 86400 // interval_s  # 8640
-
-        # Outage windows (day_offset, hour_start, duration_minutes)
-        outages = [
-            (2, 20.5, 2),    # Day 3: short 2-min outage during evening
-            (4, 21.0, 3),    # Day 5: 3-min outage
-            (5, 19.75, 8),   # Day 6: the big one - 8 min outage that triggered investigation
-        ]
+        outages = DEMO_CONNECTION_MONITOR_OUTAGES
 
         rows = []
         for d in range(days):
@@ -1018,11 +1040,11 @@ class DemoCollector(Collector):
 
                 # --- Gateway: always fast, 1-3ms ---
                 gw_lat = round(rng.uniform(0.8, 3.0), 2)
-                rows.append((gw_id, ts, gw_lat, False, "tcp"))
+                rows.append((target_ids["gateway"], ts, gw_lat, False, "tcp"))
 
                 # --- External targets ---
-                for tid in (cf_id, gg_id):
-                    base = 11.0 if tid == cf_id else 14.0
+                for tid in (target_ids["cloudflare"], target_ids["google"]):
+                    base = 11.0 if tid == target_ids["cloudflare"] else 14.0
 
                     if in_outage:
                         # Full timeout
@@ -1057,7 +1079,13 @@ class DemoCollector(Collector):
 
         log.info("Demo: seeded %d connection monitor samples (%d days, 3 targets)", len(rows), days)
 
-        self._seed_traceroute_traces(cm, cf_id, gg_id, now, rng)
+        self._seed_traceroute_traces(
+            cm,
+            target_ids["cloudflare"],
+            target_ids["google"],
+            now,
+            rng,
+        )
 
     def _seed_traceroute_traces(self, cm, cf_id, gg_id, now, rng):
         """Seed realistic traceroute traces for demo targets."""
@@ -1094,16 +1122,11 @@ class DemoCollector(Collector):
             ],
         }
 
-        trace_configs = [
-            {"target_id": cf_id, "days_ago": 5, "trigger": "outage", "reached": True},
-            {"target_id": cf_id, "days_ago": 2, "trigger": "packet_loss", "reached": True},
-            {"target_id": cf_id, "days_ago": 0, "trigger": "manual", "reached": True},
-            {"target_id": gg_id, "days_ago": 4, "trigger": "outage", "reached": True},
-            {"target_id": gg_id, "days_ago": 1, "trigger": "manual", "reached": True},
-        ]
+        trace_target_ids = {"cloudflare": cf_id, "google": gg_id}
 
-        for tc in trace_configs:
-            template = hop_templates[tc["target_id"]]
+        for tc in DEMO_TRACEROUTE_TRACE_CONFIGS:
+            target_id = trace_target_ids[tc["target"]]
+            template = hop_templates[target_id]
             hops = []
             ips_for_fp = []
             for i, tmpl in enumerate(template):
@@ -1133,7 +1156,7 @@ class DemoCollector(Collector):
             ts = (now - timedelta(days=tc["days_ago"], hours=rng.randint(0, 12))).timestamp()
 
             cm.save_trace(
-                target_id=tc["target_id"],
+                target_id=target_id,
                 timestamp=ts,
                 trigger_reason=tc["trigger"],
                 hops=hops,
@@ -1142,7 +1165,7 @@ class DemoCollector(Collector):
                 is_demo=True,
             )
 
-        log.info("Demo: seeded %d traceroute traces", len(trace_configs))
+        log.info("Demo: seeded %d traceroute traces", len(DEMO_TRACEROUTE_TRACE_CONFIGS))
 
     @staticmethod
     def _generate_bqm_png(width=800, height=200, seed=0):
