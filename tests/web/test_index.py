@@ -588,6 +588,57 @@ class TestIndexRoute:
         assert "Modulation" not in status_row
         assert "--metric-range-accent: var(--warn);" in card
 
+    def test_home_signal_family_card_renders_distribution_and_driver_outside_status(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        sc_qam = sample_analysis["summary"]["signal_families"]["upstream"]["families"]["sc_qam"]
+        sc_qam.update({
+            "count": 4,
+            "health": "critical",
+            "health_cause": "modulation",
+            "health_counts": {"good": 0, "tolerated": 0, "warning": 3, "critical": 1},
+            "health_driver": {
+                "channel_id": 4,
+                "dimension": "modulation",
+                "family": "sc_qam",
+                "direction": "upstream",
+                "health": "critical",
+                "unit": None,
+                "value": "QPSK",
+            },
+        })
+        sc_qam["power"].update({"available": True, "avg": 41.9, "min": 41.2, "max": 42.5, "health": "good"})
+        sc_qam["modulation"].update({
+            "value": "16QAM",
+            "secondary": "QPSK",
+            "distinct": ["16QAM", "QPSK"],
+            "values": [
+                {"value": "16QAM", "health": "warning"},
+                {"value": "QPSK", "health": "critical"},
+            ],
+            "health": "critical",
+        })
+        sample_analysis["summary"]["us_scqam_power_avg"] = 41.9
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        card = _element_by_id(resp.get_data(as_text=True), "metric-us-sc-qam-card")
+        status_row = card[card.index('<div class="metric-sub metric-status-row">'):]
+        status_row = status_row[:status_row.index("</div>")]
+        assert "badge badge-critical" in status_row
+        assert "Driving" not in status_row
+        assert "Channels" not in status_row
+        assert '<div class="metric-sub metric-health-distribution-row">' in card
+        assert "Channels:" in card
+        assert "3 Marginal" in card
+        assert "1 Critical" in card
+        assert '<div class="metric-sub metric-health-driver-row">' in card
+        assert "Driving:" in card
+        assert "Ch 4" in card
+        assert "Modulation" in card
+        assert "QPSK" in card
+
     def test_home_signal_family_modulation_row_shows_plain_label_and_colored_values_without_second_status_pill(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
         ofdma = sample_analysis["summary"]["signal_families"]["upstream"]["families"]["ofdma"]

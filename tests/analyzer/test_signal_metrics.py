@@ -575,6 +575,69 @@ class TestSignalFamilySummaries:
         sc_qam = result["summary"]["signal_families"]["downstream"]["families"]["sc_qam"]
         assert sc_qam["health"] == "good"
         assert sc_qam["health_cause"] is None
+        assert sc_qam["health_counts"] == {"good": 1, "tolerated": 0, "warning": 0, "critical": 0}
+        assert sc_qam["health_driver"] is None
+
+    def test_downstream_ofdm_family_counts_and_driver_explain_power_outlier(self):
+        data = _make_data(
+            ds31=[
+                _make_ds31(193, power=9.1, mer="42.0"),
+                {
+                    "channelID": 194,
+                    "frequency": "167 MHz",
+                    "powerLevel": "-7.5",
+                    "modulation": "1024QAM",
+                    "mer": "33.0",
+                },
+            ],
+            us30=[_make_us30(1, power=42.0)],
+        )
+
+        result = analyze(data)
+
+        ofdm = result["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        assert ofdm["power"]["avg"] == 0.8
+        assert ofdm["health"] == "critical"
+        assert ofdm["health_cause"] == "power"
+        assert ofdm["health_counts"] == {"good": 1, "tolerated": 0, "warning": 0, "critical": 1}
+        assert ofdm["health_driver"] == {
+            "channel_id": 194,
+            "dimension": "power",
+            "family": "ofdm",
+            "direction": "downstream",
+            "health": "critical",
+            "unit": "dBmV",
+            "value": -7.5,
+        }
+
+    def test_upstream_sc_qam_family_counts_and_driver_explain_modulation_outlier(self):
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse="-35")],
+            us30=[
+                _make_us30(1, power=42.0, modulation="16QAM"),
+                _make_us30(2, power=42.0, modulation="16QAM"),
+                _make_us30(3, power=42.0, modulation="16QAM"),
+                _make_us30(4, power=42.0, modulation="QPSK"),
+            ],
+        )
+
+        result = analyze(data)
+
+        sc_qam = result["summary"]["signal_families"]["upstream"]["families"]["sc_qam"]
+        assert sc_qam["power"]["health"] == "good"
+        assert sc_qam["modulation"]["health"] == "critical"
+        assert sc_qam["health"] == "critical"
+        assert sc_qam["health_cause"] == "modulation"
+        assert sc_qam["health_counts"] == {"good": 0, "tolerated": 0, "warning": 3, "critical": 1}
+        assert sc_qam["health_driver"] == {
+            "channel_id": 4,
+            "dimension": "modulation",
+            "family": "sc_qam",
+            "direction": "upstream",
+            "health": "critical",
+            "unit": None,
+            "value": "QPSK",
+        }
 
     def test_downstream_sc_qam_family_health_surfaces_snr_cause(self):
         data = _make_data(
@@ -590,6 +653,15 @@ class TestSignalFamilySummaries:
         assert sc_qam["modulation"]["health"] == "good"
         assert sc_qam["health"] == "critical"
         assert sc_qam["health_cause"] == "snr"
+        assert sc_qam["health_driver"] == {
+            "channel_id": 1,
+            "dimension": "snr",
+            "family": "sc_qam",
+            "direction": "downstream",
+            "health": "critical",
+            "unit": "dB",
+            "value": 25.0,
+        }
 
     def test_downstream_ofdm_family_health_surfaces_mer_cause(self):
         data = _make_data(
@@ -605,6 +677,15 @@ class TestSignalFamilySummaries:
         assert ofdm["modulation"]["health"] == "good"
         assert ofdm["health"] == "critical"
         assert ofdm["health_cause"] == "mer"
+        assert ofdm["health_driver"] == {
+            "channel_id": 100,
+            "dimension": "mer",
+            "family": "ofdm",
+            "direction": "downstream",
+            "health": "critical",
+            "unit": "dB",
+            "value": 35.0,
+        }
 
 
 # -- Upstream bitrate calculation --

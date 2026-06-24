@@ -1052,6 +1052,7 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
+  "signal_family_driver_label": "Causa",
   "signal_family_unavailable": "Unavailable",
   "metric_average_label": "Prom.",
   "metric_active_channel_singular": "canal activo",

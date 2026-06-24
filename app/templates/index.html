@@ -815,6 +815,31 @@
                     <span class="badge badge-{{ raw_health }} badge-{{ health_class }}">{{ health_labels.get(raw_health, health_labels.get(health_class, raw_health|title)) }}</span>
                 </span>
             </div>
+            {% set health_counts = family.get('health_counts', {}) %}
+            {% set health_count_total = health_counts.get('good', 0) + health_counts.get('tolerated', 0) + health_counts.get('warning', 0) + health_counts.get('critical', 0) %}
+            {% if health_count_total > 1 %}
+            <div class="metric-sub metric-health-distribution-row">
+                <span class="metric-sub-label">{{ t.get('signal_family_channels_label', t.get('channels', 'Channels')) }}:</span>
+                {% set distribution = namespace(first=true) %}
+                {% for health_key in ['good', 'tolerated', 'warning', 'critical'] %}
+                    {% set count = health_counts.get(health_key, 0) %}
+                    {% if count %}
+                        {% if not distribution.first %}<span class="metric-sub-label metric-health-distribution-separator">·</span>{% endif %}
+                        <span class="range metric-health-count metric-health-count-{{ health_key }}">{{ count }} {{ health_labels.get(health_key, health_key|title) }}</span>
+                        {% set distribution.first = false %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% set health_driver = family.get('health_driver') %}
+            {% if health_driver and health_driver.get('health') not in ['good', 'missing'] %}
+            {% set driver_dimension = health_driver.get('dimension') %}
+            {% set driver_label_key = 'signal_family_metric_' ~ driver_dimension %}
+            <div class="metric-sub metric-health-driver-row">
+                <span class="metric-sub-label">{{ t.get('signal_family_driver_label', 'Driving') }}:</span>
+                <span class="range metric-health-driver-value">{% if health_driver.get('channel_id') is not none %}{{ t.ch_abbr }} {{ health_driver.get('channel_id') }} {% endif %}{{ t.get(driver_label_key, driver_dimension|title) }}{% if health_driver.get('value') is not none %} {{ health_driver.get('value') }}{% if health_driver.get('unit') %} {{ health_driver.get('unit') }}{% endif %}{% endif %}</span>
+            </div>
+            {% endif %}
             {% if modulation.get('value') %}
             <div class="metric-sub metric-modulation-row">
                 <span class="metric-sub-label">{{ t.get('signal_family_modulation_label', 'Modulation') }}:</span>

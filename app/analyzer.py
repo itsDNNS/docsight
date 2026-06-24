@@ -529,6 +529,65 @@ def _distinct_modulation_healths(channels, *, prefer_profile=False):
     ]
 
 
+def _family_health_counts(channels):
+    """Count composite channel health states for one signal family."""
+    counts = {"good": 0, "tolerated": 0, "warning": 0, "critical": 0}
+    for channel in channels:
+        health = channel.get("health") or "good"
+        if health in counts:
+            counts[health] += 1
+    return counts
+
+
+def _driver_value(channel, cause: SignalFamilyHealthCause, *, prefer_profile=False):
+    if cause == "power":
+        return channel.get("power"), "dBmV"
+    if cause in {"snr", "mer"}:
+        return channel.get("snr"), "dB"
+    value = _channel_modulation_value(channel, prefer_profile=prefer_profile)
+    return (str(value) if value else None), None
+
+
+def _driver_health(channel, cause: SignalFamilyHealthCause):
+    if cause == "power":
+        return channel.get("power_health", "good") if channel.get("power") is not None else "missing"
+    if cause in {"snr", "mer"}:
+        return channel.get("snr_health", "good") if channel.get("snr") is not None else "missing"
+    return channel.get("modulation_health", "good")
+
+
+def _family_health_driver(family, channels, *, direction, cause, family_health, prefer_profile=False):
+    """Return the channel/dimension that explains a family's worst status."""
+    if not cause or family_health in {"good", "missing"}:
+        return None
+
+    candidates = []
+    for channel in channels:
+        value, unit = _driver_value(channel, cause, prefer_profile=prefer_profile)
+        if value is None:
+            continue
+        health = _driver_health(channel, cause)
+        if health == "missing":
+            continue
+        candidates.append({
+            "channel_id": channel.get("channel_id"),
+            "dimension": cause,
+            "family": family,
+            "direction": direction,
+            "health": health,
+            "unit": unit,
+            "value": value,
+        })
+
+    if not candidates:
+        return None
+
+    matching_family_health = [candidate for candidate in candidates if candidate["health"] == family_health]
+    if matching_family_health:
+        return matching_family_health[0]
+    return max(candidates, key=lambda candidate: _HEALTH_RANK.get(candidate["health"], 0))
+
+
 def _channel_text(channel, *keys):
     return " ".join(str(channel.get(key, "") or "") for key in keys).upper().replace("-", "")
 
@@ -636,6 +695,15 @@ def _family_summary(family, channels, *, direction):
         "count": len(channels),
         "health": family_health,
         "health_cause": health_cause,
+        "health_counts": _family_health_counts(channels),
+        "health_driver": _family_health_driver(
+            family,
+            channels,
+            direction=direction,
+            cause=health_cause,
+            family_health=family_health,
+            prefer_profile=prefer_profile,
+        ),
         "power": {**power, "health": power_health},
         "modulation": {
             "available": bool(modulation_values),

@@ -1057,6 +1057,7 @@
   "signal_family_metric_snr": "SNR",
   "signal_family_metric_mer": "MER",
   "signal_family_modulation_label": "Modulation",
+  "signal_family_driver_label": "Αιτία",
   "signal_family_unavailable": "Unavailable",
   "metric_average_label": "Μ.Ο.",
   "metric_active_channel_singular": "ενεργό κανάλι",

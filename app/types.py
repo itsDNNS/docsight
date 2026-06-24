@@ -170,6 +170,18 @@ class SignalFamilyModulation(TypedDict):
 SignalFamilyHealthCause = Literal["power", "snr", "mer", "modulation"]
 
 
+class SignalFamilyHealthDriver(TypedDict):
+    """Channel/dimension that explains a signal family's worst status."""
+
+    channel_id: int | str | None
+    dimension: SignalFamilyHealthCause
+    family: str
+    direction: str
+    health: str
+    unit: str | None
+    value: float | str | None
+
+
 class SignalFamilySummary(TypedDict, total=False):
     """Summary for one DOCSIS signal family on the Home dashboard."""
 
@@ -177,6 +189,8 @@ class SignalFamilySummary(TypedDict, total=False):
     count: int
     health: str
     health_cause: SignalFamilyHealthCause | None
+    health_counts: dict[str, int]
+    health_driver: SignalFamilyHealthDriver | None
     power: SignalFamilyMetric
     snr: SignalFamilyMetric
     mer: SignalFamilyMetric
