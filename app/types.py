@@ -79,6 +79,7 @@ class DownstreamChannel(TypedDict):
     docsis_version: str
     health: str
     health_detail: str
+    theoretical_bitrate: float | None
     # Optional channel family for Home signal-family summaries
     channel_family: NotRequired[str]
     # Optional per-metric health keys (present when health_detail is non-empty)
@@ -228,7 +229,9 @@ class AnalysisSummary(TypedDict):
     ds_correctable_errors: int | None
     ds_uncorrectable_errors: int | None
     errors_supported: bool
+    ds_capacity_mbps: float | None
     us_capacity_mbps: float | None
+    capacity_coverage: dict[str, dict[str, int]]
     signal_families: NotRequired[SignalFamiliesSummary]
     ds_scqam_power_avg: NotRequired[float | None]
     ds_scqam_snr_avg: NotRequired[float | None]

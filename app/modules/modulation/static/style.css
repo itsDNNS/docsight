@@ -55,6 +55,112 @@
     color: var(--text-secondary, var(--muted));
 }
 
+.mod-capacity-panel {
+    padding: var(--space-md, 16px) var(--space-lg, 20px);
+    margin-bottom: var(--space-lg, 20px);
+    background: var(--card-bg, var(--surface));
+    border: 1px solid var(--card-border, var(--glass-border));
+    border-radius: var(--radius-md, 12px);
+}
+
+.mod-capacity-panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-md, 16px);
+    margin-bottom: var(--space-md, 16px);
+}
+
+.mod-capacity-panel-head h3 {
+    margin: 2px 0 0;
+    font-size: 1.02em;
+}
+
+.mod-capacity-kicker {
+    color: var(--text-muted, var(--muted));
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.mod-capacity-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md, 16px);
+}
+
+.mod-capacity-card {
+    display: grid;
+    gap: 8px;
+    padding: var(--space-md, 16px);
+    border-radius: var(--radius-sm, 8px);
+    background: var(--tint-subtle, rgba(255,255,255,0.02));
+    border-left: 3px solid var(--muted, #6b7280);
+}
+
+.mod-capacity-card.mod-capacity-headroom,
+.mod-capacity-card.mod-capacity-calculated {
+    border-left-color: var(--good, #10b981);
+}
+
+.mod-capacity-card.mod-capacity-close,
+.mod-capacity-card.mod-capacity-partial {
+    border-left-color: var(--warn, #f59e0b);
+}
+
+.mod-capacity-card.mod-capacity-below {
+    border-left-color: var(--crit, #ef4444);
+}
+
+.mod-capacity-card-top,
+.mod-capacity-subline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mod-capacity-card-top span,
+.mod-capacity-subline span {
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.78em;
+}
+
+.mod-capacity-card-top strong {
+    font-size: 1.28em;
+    font-variant-numeric: tabular-nums;
+}
+
+.mod-capacity-card-top strong span {
+    font-size: 0.68em;
+    color: var(--text-muted, var(--muted));
+}
+
+.mod-capacity-subline strong {
+    font-size: 0.86em;
+    font-variant-numeric: tabular-nums;
+}
+
+.mod-capacity-status {
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.82em;
+    font-weight: 600;
+}
+
+.mod-capacity-disclaimer {
+    margin: var(--space-md, 16px) 0 0;
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.82em;
+    line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+    .mod-capacity-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* KPI value health coloring — uses design system tokens */
 .mod-kpi-item-value.good { color: var(--good, #10b981); }
 .mod-kpi-item-value.warning { color: var(--warn, #f59e0b); }

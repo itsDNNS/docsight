@@ -1141,7 +1141,7 @@
                     <table class="channel-table">
                         <thead><tr>
                             <th>{{ t.ch_abbr }}</th><th>{{ t.frequency }}</th><th>{{ t.th_power }}</th>
-                            <th>{{ t.get('signal_family_metric_mer', 'MER') if group.grouper|string == '3.1' else t.snr_abbr }}</th><th>{{ t.mod_abbr }}</th><th>{{ t.signal_health }}</th>
+                            <th>{{ t.get('signal_family_metric_mer', 'MER') if group.grouper|string == '3.1' else t.snr_abbr }}</th><th>{{ t.mod_abbr }}</th><th title="{{ t.get('docsight.modulation.capacity_tooltip', 'Theoretical Layer-1 gross channel capacity; not usable throughput') }}">{{ t.get('docsight.modulation.capacity_short', 'Capacity') }}</th><th>{{ t.signal_health }}</th>
                         </tr></thead>
                         <tbody>
                         {% for ch in group.list %}
@@ -1154,6 +1154,7 @@
                             <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
                             <td data-health="{{ ch.snr_health or 'good' }}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
                             <td data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
+                            <td title="{{ t.get('docsight.modulation.capacity_tooltip', 'Theoretical Layer-1 gross channel capacity; not usable throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} Mbit/s{% else %}—{% endif %}</td>
                             <td>
                                 {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
                                 {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip_parts|join(', ') }}">{{ health_labels.crit }}</span>
@@ -1199,7 +1200,7 @@
                     <table class="channel-table">
                         <thead><tr>
                             <th>{{ t.ch_abbr }}</th><th>{{ t.frequency }}</th><th>{{ t.th_power }}</th>
-                            <th>{{ t.mod_abbr }}</th><th>{{ t.signal_health }}</th>
+                            <th>{{ t.mod_abbr }}</th><th title="{{ t.get('docsight.modulation.capacity_tooltip', 'Theoretical Layer-1 gross channel capacity; not usable throughput') }}">{{ t.get('docsight.modulation.capacity_short', 'Capacity') }}</th><th>{{ t.signal_health }}</th>
                         </tr></thead>
                         <tbody>
                         {% for ch in group.list %}
@@ -1212,6 +1213,7 @@
                             <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
                             <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
                             <td data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
+                            <td title="{{ t.get('docsight.modulation.capacity_tooltip', 'Theoretical Layer-1 gross channel capacity; not usable throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} Mbit/s{% else %}—{% endif %}</td>
                             <td>
                                 {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
                                 {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip }}">{{ health_labels.crit }}</span>

@@ -31,6 +31,17 @@ def test_clickable_distribution_chart_has_pointer_cursor():
     assert "cursor: pointer" in css
 
 
+def test_capacity_panel_contract_is_localized_and_styled():
+    css = MODULATION_CSS.read_text(encoding="utf-8")
+    i18n = (I18N_DIR / "en.json").read_text(encoding="utf-8")
+
+    assert ".mod-capacity-panel" in css
+    assert ".mod-capacity-card.mod-capacity-below" in css
+    assert "capacity_title" in i18n
+    assert "capacity_disclaimer" in i18n
+    assert "Layer-1 gross capacity" in i18n
+
+
 def test_low_qam_hint_does_not_use_stale_global_16qam_threshold():
     js = MODULATION_JS.read_text(encoding="utf-8")
 

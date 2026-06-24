@@ -1,6 +1,7 @@
 """Tests for index/dashboard rendering paths."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -202,6 +203,71 @@ class TestIndexRoute:
         docsis30_head = html[docsis30_start:html.index("</thead>", docsis30_start)]
         assert "<th>SNR</th>" in docsis30_head
         assert "<th>MER</th>" not in docsis30_head
+
+    def test_channel_tables_show_theoretical_capacity_column(self, client, sample_analysis):
+        sample_analysis["ds_channels"][0]["theoretical_bitrate"] = 55.62
+        sample_analysis["us_channels"][0]["theoretical_bitrate"] = 30.72
+        sample_analysis["summary"].update({
+            "ds_capacity_mbps": 55.6,
+            "us_capacity_mbps": 30.7,
+            "capacity_coverage": {
+                "downstream": {"calculated": 1, "total": 1, "unsupported": 0},
+                "upstream": {"calculated": 1, "total": 1, "unsupported": 0},
+            },
+        })
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert "Theoretical Layer-1 gross channel capacity" in html
+        assert "55.6 Mbit/s" in html
+        assert "30.7 Mbit/s" in html
+
+    def test_modulation_template_shows_capacity_vs_tariff_context(self):
+        template_path = (
+            Path(__file__).resolve().parents[2]
+            / "app" / "modules" / "modulation" / "templates" / "modulation_tab.html"
+        )
+        template = app.jinja_env.from_string(template_path.read_text(encoding="utf-8"))
+
+        html = template.render(
+            t={"docsight.modulation.capacity_status_below": "Below tariff"},
+            capacity_context={
+                "downstream": {
+                    "direction": "downstream",
+                    "capacity_mbps": 556.2,
+                    "tariff_mbps": 250,
+                    "ratio": 2.22,
+                    "calculated": 1,
+                    "total": 1,
+                    "unsupported": 0,
+                    "status": "headroom",
+                },
+                "upstream": {
+                    "direction": "upstream",
+                    "capacity_mbps": 30.7,
+                    "tariff_mbps": 40,
+                    "ratio": 0.77,
+                    "calculated": 1,
+                    "total": 1,
+                    "unsupported": 0,
+                    "status": "below",
+                },
+            },
+        )
+
+        assert 'id="modulation-capacity-panel"' in html
+        assert "Theoretical channel capacity (gross)" in html
+        assert "Layer-1 gross capacity" in html
+        assert "shared-medium" in html
+        assert "556.2" in html
+        assert "250 Mbit/s" in html
+        assert "2.22×" in html
+        assert "30.7" in html
+        assert "40 Mbit/s" in html
+        assert "Below tariff" in html
 
     def test_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, sample_analysis):
         _configure_speedtest(config_mgr)

@@ -37,5 +37,19 @@
     "glossary_sample_density": "Sample Density: number of polling samples collected for the selected period. More samples mean more accurate statistics.",
     "low_qam_denominator_hint": "Unknown samples stay in the total",
     "low_qam_legend_hint_d31_us": "US DOCSIS 3.1 upstream: 64QAM and below are Low-QAM (red). 128QAM is borderline (amber). 256QAM and above read as healthy.",
-    "low_qam_legend_hint_d30_us": "US DOCSIS 3.0 upstream: 64QAM is the healthy maximum (green). 32QAM is reduced (amber); 16QAM and below are low (red)."
+    "low_qam_legend_hint_d30_us": "US DOCSIS 3.0 upstream: 64QAM is the healthy maximum (green). 32QAM is reduced (amber); 16QAM and below are low (red).",
+    "capacity_short": "Capacity",
+    "capacity_tooltip": "Theoretical Layer-1 gross channel capacity; not usable throughput",
+    "capacity_kicker": "Layer-1 context",
+    "capacity_title": "Theoretical channel capacity (gross)",
+    "capacity_glossary": "Theoretical channel capacity is a Layer-1 gross estimate based on reported channel modulation and symbol rate. It is not guaranteed or currently usable internet throughput.",
+    "capacity_coverage": "Calculated channels",
+    "capacity_tariff": "Tariff",
+    "capacity_status_headroom": "Enough headroom versus tariff",
+    "capacity_status_close": "Close to tariff; watch modulation and bonding",
+    "capacity_status_below": "Below tariff; modulation or bonding may limit throughput",
+    "capacity_status_partial": "Partially calculated; unsupported channels are not included",
+    "capacity_status_calculated": "Calculated without tariff comparison",
+    "capacity_status_unavailable": "Not available from reported channel data",
+    "capacity_disclaimer": "Theoretical Layer-1 gross capacity based on reported channel modulation. Real IP throughput is lower and depends on tariff provisioning, DOCSIS overhead, segment utilization, and other shared-medium conditions."
 }

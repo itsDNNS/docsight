@@ -1198,6 +1198,54 @@ def _build_home_modulation_context(analysis):
     ]
 
 
+def _build_capacity_context(analysis, booked_download=0, booked_upload=0):
+    """Build current theoretical channel-capacity context for dashboard views."""
+    summary = analysis.get("summary", {}) if analysis else {}
+
+    def _direction(direction, channel_key, summary_key, tariff):
+        channels = analysis.get(channel_key, []) if analysis else []
+        coverage_all = summary.get("capacity_coverage") or {}
+        coverage = dict(coverage_all.get(direction) or {})
+        total = int(coverage.get("total", len(channels)) or 0)
+        calculated = int(coverage.get("calculated", 0) or 0)
+        if not coverage and channels:
+            calculated = sum(1 for ch in channels if ch.get("theoretical_bitrate") is not None)
+            total = len(channels)
+        unsupported = max(0, int(coverage.get("unsupported", total - calculated) or 0))
+        capacity = _to_float(summary.get(summary_key))
+        tariff_value = _to_float(tariff)
+        ratio = round(capacity / tariff_value, 2) if capacity is not None and tariff_value and tariff_value > 0 else None
+
+        if capacity is None or calculated == 0:
+            status = "unavailable"
+        elif unsupported > 0:
+            status = "partial"
+        elif ratio is None:
+            status = "calculated"
+        elif ratio < 1.0:
+            status = "below"
+        elif ratio < 1.3:
+            status = "close"
+        else:
+            status = "headroom"
+
+        return {
+            "direction": direction,
+            "capacity_mbps": capacity,
+            "tariff_mbps": tariff_value,
+            "ratio": ratio,
+            "calculated": calculated,
+            "total": total,
+            "unsupported": unsupported,
+            "status": status,
+        }
+
+    return {
+        "downstream": _direction("downstream", "ds_channels", "ds_capacity_mbps", booked_download),
+        "upstream": _direction("upstream", "us_channels", "us_capacity_mbps", booked_upload),
+    }
+
+
 @app.route("/sw.js")
 def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
@@ -1295,6 +1343,7 @@ def index():
         metric_ranges=_build_metric_ranges(analysis),
         home_snr_display=_build_home_snr_display_context(analysis),
         home_modulation_context=_build_home_modulation_context(analysis),
+        capacity_context=_build_capacity_context(analysis, booked_download, booked_upload),
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",
         dashboard_notices=get_active_notices(
