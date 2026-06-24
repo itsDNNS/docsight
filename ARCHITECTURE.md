@@ -461,6 +461,7 @@ Variant is auto-detected on first login: CGA is tried first, then TG on failure.
 │    • Load active thresholds from analyzer profile registry   │
 │    • Parse DS/US channels                                    │
 │    • Assess power, SNR, errors per channel                   │
+│    • Estimate SC-QAM gross channel capacity where supported   │
 │    • Aggregate to overall health (good/tolerated/marginal/critical) │
 │    • Return structured analysis dict                         │
 └────────────────────┬─────────────────────────────────────────┘

@@ -47,6 +47,46 @@
             </div>
         </div>
 
+        {% if capacity_context %}
+        <div class="mod-capacity-panel" id="modulation-capacity-panel">
+            <div class="mod-capacity-panel-head">
+                <div>
+                    <div class="mod-capacity-kicker">{{ t.get('docsight.modulation.capacity_kicker', 'Layer-1 context') }}</div>
+                    <h3>{{ t.get('docsight.modulation.capacity_title', 'Theoretical channel capacity (gross)') }}</h3>
+                </div>
+                {% if t.get('docsight.modulation.capacity_glossary') %}
+                <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.get('docsight.modulation.capacity_glossary') }}</div></span>
+                {% endif %}
+            </div>
+            <div class="mod-capacity-grid">
+                {% for cap in [capacity_context.downstream, capacity_context.upstream] %}
+                {% set cap_label = t.get('docsight.modulation.downstream', 'Downstream') if cap.direction == 'downstream' else t.get('docsight.modulation.upstream', 'Upstream') %}
+                {% set cap_status_label = t.get('docsight.modulation.capacity_status_' ~ cap.status, cap.status|replace('_', ' ')|title) %}
+                <div class="mod-capacity-card mod-capacity-{{ cap.status }}">
+                    <div class="mod-capacity-card-top">
+                        <span>{{ cap_label }}</span>
+                        <strong>{% if cap.capacity_mbps is not none %}{{ cap.capacity_mbps|round(1) }} <span>Mbit/s</span>{% else %}—{% endif %}</strong>
+                    </div>
+                    <div class="mod-capacity-subline">
+                        <span>{{ t.get('docsight.modulation.capacity_coverage', 'Calculated channels') }}</span>
+                        <strong>{{ cap.calculated }} / {{ cap.total }}</strong>
+                    </div>
+                    {% if cap.tariff_mbps %}
+                    <div class="mod-capacity-subline">
+                        <span>{{ t.get('docsight.modulation.capacity_tariff', 'Tariff') }}</span>
+                        <strong>{{ cap.tariff_mbps|round(0)|int }} Mbit/s{% if cap.ratio %} · {{ cap.ratio }}×{% endif %}</strong>
+                    </div>
+                    {% endif %}
+                    <div class="mod-capacity-status">{{ cap_status_label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            <p class="mod-capacity-disclaimer">
+                {{ t.get('docsight.modulation.capacity_disclaimer', 'Theoretical Layer-1 gross capacity based on reported channel modulation. Real IP throughput is lower and depends on tariff provisioning, DOCSIS overhead, segment utilization, and other shared-medium conditions.') }}
+            </p>
+        </div>
+        {% endif %}
+
         <!-- Protocol groups (dynamically populated by JS) -->
         <div id="modulation-protocol-groups"></div>
 

@@ -393,8 +393,11 @@ def apply_spike_suppression(analysis: AnalysisResult, last_spike_ts: str | None)
     _recalculate_summary_health(summary)
 
 
-# EuroDOCSIS default symbol rate (kSym/s)
-_DEFAULT_SYMBOL_RATE = 5120
+# DOCSIS SC-QAM default symbol rates (kSym/s) used when modems omit the
+# symbol-rate field. Upstream commonly uses 5.12 MSym/s channels; downstream
+# EuroDOCSIS 8 MHz channels use ~6.952 MSym/s.
+_DEFAULT_US_SC_QAM_SYMBOL_RATE = 5120
+_DEFAULT_DS_SC_QAM_SYMBOL_RATE = 6952
 
 _BITS_PER_SYMBOL = {
     4: 2,      # QPSK / 4-QAM
@@ -411,16 +414,37 @@ _BITS_PER_SYMBOL = {
 }
 
 
-def _channel_bitrate_mbps(modulation_str, symbol_rate_ksym=None):
-    """Calculate theoretical bitrate for a channel in Mbit/s.
+def _channel_bitrate_mbps(
+    modulation_str,
+    symbol_rate_ksym=None,
+    default_symbol_rate=_DEFAULT_US_SC_QAM_SYMBOL_RATE,
+):
+    """Calculate theoretical gross bitrate for a SC-QAM channel in Mbit/s.
 
-    Returns None if modulation is unparseable (e.g. OFDMA).
+    Returns None if modulation is unparseable (for example OFDM/OFDMA) or no
+    symbol rate/default symbol rate is available.
     """
     qam_order = _parse_qam_order(modulation_str)
     if qam_order is None or qam_order not in _BITS_PER_SYMBOL:
         return None
-    rate = symbol_rate_ksym or _DEFAULT_SYMBOL_RATE
-    return round(rate * _BITS_PER_SYMBOL[qam_order] / 1000, 2)
+    rate = symbol_rate_ksym if symbol_rate_ksym is not None else default_symbol_rate
+    if rate is None:
+        return None
+    return round(float(rate) * _BITS_PER_SYMBOL[qam_order] / 1000, 2)
+
+
+def _capacity_coverage(channels):
+    """Return calculated/unsupported coverage for theoretical channel capacity."""
+    total = len(channels)
+    calculated = sum(
+        1 for ch in channels
+        if ch.get("theoretical_bitrate") is not None
+    )
+    return {
+        "calculated": calculated,
+        "total": total,
+        "unsupported": max(0, total - calculated),
+    }
 
 
 def get_thresholds():
@@ -870,13 +894,19 @@ def analyze(data: DocsisData) -> AnalysisResult:
         snr = abs(_parse_float(ch.get("mse"))) if ch.get("mse") else None
         health, health_detail = _assess_ds_channel(ch, "3.0")
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
-        metric_h["modulation_health"] = _assess_ds_modulation(ch.get("modulation") or ch.get("type", ""), "3.0")
+        ds_modulation = ch.get("modulation") or ch.get("type", "")
+        metric_h["modulation_health"] = _assess_ds_modulation(ds_modulation, "3.0")
         profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
+        bitrate = _channel_bitrate_mbps(
+            ds_modulation,
+            ch.get("symbolRate"),
+            _DEFAULT_DS_SC_QAM_SYMBOL_RATE,
+        )
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
             "power": power,
-            "modulation": ch.get("modulation") or ch.get("type", ""),
+            "modulation": ds_modulation,
             "snr": snr,
             "correctable_errors": ch.get("corrErrors"),
             "uncorrectable_errors": ch.get("nonCorrErrors"),
@@ -884,6 +914,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
             "channel_family": "sc_qam",
             "health": health,
             "health_detail": health_detail,
+            "theoretical_bitrate": bitrate,
             **metric_h,
         }
         if profile_modulation:
@@ -909,6 +940,11 @@ def analyze(data: DocsisData) -> AnalysisResult:
         )
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
         metric_h["modulation_health"] = _assess_ds_modulation(ds_modulation, modulation_docsis_ver)
+        bitrate = _channel_bitrate_mbps(
+            ds_modulation,
+            ch.get("symbolRate"),
+            _DEFAULT_DS_SC_QAM_SYMBOL_RATE if channel_family == "sc_qam" else None,
+        )
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
@@ -921,6 +957,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
             "channel_family": channel_family,
             "health": health,
             "health_detail": health_detail,
+            "theoretical_bitrate": bitrate,
             **metric_h,
         }
         if profile_modulation:
@@ -936,7 +973,11 @@ def analyze(data: DocsisData) -> AnalysisResult:
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
         metric_h["modulation_health"] = _assess_us_modulation(ch, "3.0")
         mod = ch.get("modulation") or ch.get("type", "")
-        bitrate = _channel_bitrate_mbps(mod, ch.get("symbolRate"))
+        bitrate = _channel_bitrate_mbps(
+            mod,
+            ch.get("symbolRate"),
+            _DEFAULT_US_SC_QAM_SYMBOL_RATE,
+        )
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
@@ -958,7 +999,11 @@ def analyze(data: DocsisData) -> AnalysisResult:
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
         metric_h["modulation_health"] = _assess_us_modulation(ch, "3.1")
         mod = ch.get("modulation") or ch.get("type", "")
-        bitrate = _channel_bitrate_mbps(mod, ch.get("symbolRate"))
+        bitrate = _channel_bitrate_mbps(
+            mod,
+            ch.get("symbolRate"),
+            _DEFAULT_US_SC_QAM_SYMBOL_RATE,
+        )
         raw_power = ch.get("powerLevel")
         profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
         channel = {
@@ -1005,8 +1050,14 @@ def analyze(data: DocsisData) -> AnalysisResult:
         else None
     )
 
+    ds_bitrates = [c["theoretical_bitrate"] for c in ds_channels if c.get("theoretical_bitrate") is not None]
+    ds_capacity = round(sum(ds_bitrates), 1) if ds_bitrates else None
     us_bitrates = [c["theoretical_bitrate"] for c in us_channels if c["theoretical_bitrate"] is not None]
     us_capacity = round(sum(us_bitrates), 1) if us_bitrates else None
+    capacity_coverage = {
+        "downstream": _capacity_coverage(ds_channels),
+        "upstream": _capacity_coverage(us_channels),
+    }
 
     signal_families = _build_signal_family_summary(ds_channels, us_channels)
     ds_family_summaries = signal_families["downstream"]["families"]
@@ -1027,7 +1078,9 @@ def analyze(data: DocsisData) -> AnalysisResult:
         "ds_correctable_errors": total_corr,
         "ds_uncorrectable_errors": total_uncorr,
         "errors_supported": has_error_data,
+        "ds_capacity_mbps": ds_capacity,
         "us_capacity_mbps": us_capacity,
+        "capacity_coverage": capacity_coverage,
         "signal_families": signal_families,
         "ds_scqam_power_avg": ds_family_summaries.get("sc_qam", {}).get("power", {}).get("avg"),
         "ds_scqam_snr_avg": ds_family_summaries.get("sc_qam", {}).get("snr", {}).get("avg"),
