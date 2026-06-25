@@ -52,6 +52,8 @@ DEFAULTS = {
     "gaming_quality_enabled": True,
     "segment_utilization_enabled": True,
     "speedtest_tls_insecure": False,
+    "booked_download": 0,
+    "booked_upload": 0,
     "notify_webhook_url": "",
     "notify_webhook_token": "",
     "notify_apprise_enabled": False,
@@ -177,7 +179,7 @@ _LEGACY_KEY_MAP = {
     "fritz_password": "modem_password",
 }
 
-INT_KEYS = {"poll_interval", "web_port", "history_days", "notify_cooldown", "health_hysteresis",
+INT_KEYS = {"poll_interval", "web_port", "history_days", "booked_download", "booked_upload", "notify_cooldown", "health_hysteresis",
             "sc_global_cooldown", "sc_trigger_cooldown", "sc_max_actions_per_hour",
             "sc_speedtest_min_interval", "sc_speedtest_max_actions_per_day", "sc_speedtest_match_window",
             "sc_flapping_window", "sc_flapping_threshold",

@@ -165,6 +165,34 @@ class TestDistributionEndpoint:
         assert us["capacity_max_mbps"] == 30.7
         assert us["tariff_met_pct"] == 50.0
 
+    def test_capacity_history_uses_detected_connection_speed_when_booked_tariff_empty(self, client_with_storage):
+        client, storage = client_with_storage
+        from app.web import reset_modem_state, update_state
+
+        update_state(connection_info={"max_downstream_kbps": 50000, "max_upstream_kbps": 25000})
+        day = _ts_days_ago(1)[:10]
+        _store_snapshot(
+            storage,
+            f"{day}T10:00:00Z",
+            ds_channels=[{"modulation": "64QAM", "channel_id": 1, "docsis_version": "3.0"}],
+            us_channels=[{"modulation": "16QAM", "channel_id": 1, "docsis_version": "3.0"}],
+        )
+
+        try:
+            resp = client.get("/api/modulation/distribution?days=7&direction=us")
+            data = resp.get_json()
+
+            ds = data["capacity_history"]["downstream"]
+            us = data["capacity_history"]["upstream"]
+            assert ds["tariff_mbps"] == 50.0
+            assert ds["tariff_met_pct"] == 0.0
+            assert ds["status"] == "below_some_samples"
+            assert us["tariff_mbps"] == 25.0
+            assert us["tariff_met_pct"] == 0.0
+            assert us["status"] == "below_some_samples"
+        finally:
+            reset_modem_state()
+
 
     def test_aggregate_low_qam_pct_weighted_across_protocol_sample_counts(self, client_with_storage):
         client, storage = client_with_storage

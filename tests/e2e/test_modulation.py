@@ -277,7 +277,7 @@ class TestModulationControls:
         panel = self.page.locator("#modulation-capacity-panel")
         expect(panel).to_be_visible()
         expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("7d")
-        expect(self.page.locator("#mod-cap-ds-min")).to_contain_text("Mbit/s")
+        expect(self.page.locator("#mod-cap-ds-min")).to_contain_text("Mbps")
         expect(self.page.locator("#mod-cap-us-tariff")).not_to_have_text("—")
 
         today = self.page.locator('#modulation-range-tabs .trend-tab[data-days="1"]')

@@ -194,6 +194,13 @@ class TestConfigEnvOverride:
         config = ConfigManager(tmp_data_dir)
         assert config.get("poll_interval") == 600
 
+    def test_booked_speed_env_overrides(self, tmp_data_dir, monkeypatch):
+        monkeypatch.setenv("BOOKED_DOWNLOAD", "1000")
+        monkeypatch.setenv("BOOKED_UPLOAD", "50")
+        config = ConfigManager(tmp_data_dir)
+        assert config.get("booked_download") == 1000
+        assert config.get("booked_upload") == 50
+
     def test_apprise_env_overrides(self, tmp_data_dir, monkeypatch):
         monkeypatch.setenv("NOTIFY_APPRISE_ENABLED", "true")
         monkeypatch.setenv("NOTIFY_APPRISE_URL", "http://apprise:8000")

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 
 from app.tz import to_local, utc_now, utc_cutoff
-from app.web import require_auth, get_storage, get_config_manager
+from app.web import require_auth, get_storage, get_config_manager, get_state
 
 from .engine import (
     compute_capacity_history,
@@ -28,12 +28,36 @@ def _get_tz():
     return ""
 
 
+def _positive_number(value):
+    """Return positive numeric config/state values, else None."""
+    if value in (None, ""):
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
 def _get_capacity_tariffs():
-    """Return configured tariff values for capacity comparison."""
+    """Return configured or detected tariff values for capacity comparison."""
     cm = get_config_manager()
-    if not cm:
-        return None, None
-    return cm.get("booked_download"), cm.get("booked_upload")
+    booked_download = _positive_number(cm.get("booked_download")) if cm else None
+    booked_upload = _positive_number(cm.get("booked_upload")) if cm else None
+    if booked_download and booked_upload:
+        return booked_download, booked_upload
+
+    state = get_state()
+    conn_info = state.get("connection_info") if isinstance(state, dict) else {}
+    conn_info = conn_info or {}
+    detected_download = _positive_number(conn_info.get("max_downstream_kbps"))
+    detected_upload = _positive_number(conn_info.get("max_upstream_kbps"))
+    if detected_download is not None:
+        detected_download = detected_download / 1000
+    if detected_upload is not None:
+        detected_upload = detected_upload / 1000
+
+    return booked_download or detected_download, booked_upload or detected_upload
 
 
 @bp.route("/api/modulation/distribution")

@@ -49,6 +49,9 @@ def test_capacity_panel_updates_from_range_api_payload():
     assert "function updateCapacityHistory" in js
     assert "data.capacity_history" in js
     assert "updateCapacityHistory(data, rangeLabelForCapacity(data))" in js
+    assert "function capacityUnitLabel" in js
+    assert "currentLang === 'de'" in js
+    assert "Number(value).toFixed(1) + ' ' + capacityUnitLabel()" in js
     assert "above_tariff_throughout: 'Above tariff throughout selected period'" in js
 
 

@@ -222,8 +222,14 @@ class TestIndexRoute:
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
         assert "Theoretical Layer-1 gross channel capacity" in html
-        assert "55.6 Mbit/s" in html
-        assert "30.7 Mbit/s" in html
+        assert "55.6 Mbps" in html
+        assert "30.7 Mbps" in html
+
+        resp_de = client.get("/?lang=de")
+        assert resp_de.status_code == 200
+        html_de = resp_de.get_data(as_text=True)
+        assert "55.6 Mbit/s" in html_de
+        assert "30.7 Mbit/s" in html_de
 
     def test_modulation_template_shows_capacity_vs_tariff_context(self):
         template_path = (

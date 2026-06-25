@@ -1154,7 +1154,7 @@
                             <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
                             <td data-health="{{ ch.snr_health or 'good' }}">{{ ch.snr if ch.snr is not none else "—" }}{% if ch.snr is not none %} dB{% endif %}</td>
                             <td data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
-                            <td title="{{ t.get('docsight.modulation.capacity_tooltip', 'Theoretical Layer-1 gross channel capacity; not usable throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} Mbit/s{% else %}—{% endif %}</td>
+                            <td title="{{ t.get('docsight.modulation.capacity_tooltip', 'Theoretical Layer-1 gross channel capacity; not usable throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} {{ 'Mbit/s' if lang == 'de' else 'Mbps' }}{% else %}—{% endif %}</td>
                             <td>
                                 {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
                                 {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip_parts|join(', ') }}">{{ health_labels.crit }}</span>
@@ -1213,7 +1213,7 @@
                             <td>{{ ch.frequency }}{% if ch.frequency and 'MHz' not in ch.frequency|string %} MHz{% endif %}</td>
                             <td data-health="{{ ch.power_health or 'good' }}">{{ ch.power if ch.power is not none else "—" }}{% if ch.power is not none %} dBmV{% endif %}</td>
                             <td data-health="{{ ch.modulation_health or 'good' }}">{{ ch.modulation }}</td>
-                            <td title="{{ t.get('docsight.modulation.capacity_tooltip', 'Theoretical Layer-1 gross channel capacity; not usable throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} Mbit/s{% else %}—{% endif %}</td>
+                            <td title="{{ t.get('docsight.modulation.capacity_tooltip', 'Theoretical Layer-1 gross channel capacity; not usable throughput') }}">{% if ch.theoretical_bitrate is defined and ch.theoretical_bitrate is not none %}{{ ch.theoretical_bitrate|round(1) }} {{ 'Mbit/s' if lang == 'de' else 'Mbps' }}{% else %}—{% endif %}</td>
                             <td>
                                 {% if ch.health == "good" %}<span class="badge badge-good">{{ health_labels.good }}</span>
                                 {% elif ch.health == "critical" %}<span class="badge badge-crit" title="{{ ch_tip }}">{{ health_labels.crit }}</span>
@@ -2777,6 +2777,7 @@
 <script src="/static/js/chart-engine.js"></script>
 <script>
 var T = {{ t|tojson }};
+var currentLang = {{ lang|tojson }};
 var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 
 (function() {

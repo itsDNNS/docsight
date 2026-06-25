@@ -266,9 +266,13 @@ function updateOverviewKPIs(data) {
     }
 }
 
+function capacityUnitLabel() {
+    return currentLang === 'de' ? 'Mbit/s' : 'Mbps';
+}
+
 function formatCapacityMbps(value) {
     if (value === null || value === undefined) return '\u2014';
-    return Number(value).toFixed(1) + ' Mbit/s';
+    return Number(value).toFixed(1) + ' ' + capacityUnitLabel();
 }
 
 function rangeLabelForCapacity(data) {
