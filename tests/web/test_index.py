@@ -232,42 +232,16 @@ class TestIndexRoute:
         )
         template = app.jinja_env.from_string(template_path.read_text(encoding="utf-8"))
 
-        html = template.render(
-            t={"docsight.modulation.capacity_status_below": "Below tariff"},
-            capacity_context={
-                "downstream": {
-                    "direction": "downstream",
-                    "capacity_mbps": 556.2,
-                    "tariff_mbps": 250,
-                    "ratio": 2.22,
-                    "calculated": 1,
-                    "total": 1,
-                    "unsupported": 0,
-                    "status": "headroom",
-                },
-                "upstream": {
-                    "direction": "upstream",
-                    "capacity_mbps": 30.7,
-                    "tariff_mbps": 40,
-                    "ratio": 0.77,
-                    "calculated": 1,
-                    "total": 1,
-                    "unsupported": 0,
-                    "status": "below",
-                },
-            },
-        )
+        html = template.render(t={})
 
         assert 'id="modulation-capacity-panel"' in html
         assert "Theoretical channel capacity (gross)" in html
         assert "Layer-1 gross capacity" in html
         assert "shared-medium" in html
-        assert "556.2" in html
-        assert "250 Mbit/s" in html
-        assert "2.22×" in html
-        assert "30.7" in html
-        assert "40 Mbit/s" in html
-        assert "Below tariff" in html
+        assert 'id="mod-cap-ds-current"' in html
+        assert 'id="mod-cap-us-current"' in html
+        assert "Above tariff samples" in html
+        assert "Selected period" in html
 
     def test_speed_kpi_card_links_to_speedtest_view_and_uses_rabbit_icon(self, client, config_mgr, sample_analysis):
         _configure_speedtest(config_mgr)

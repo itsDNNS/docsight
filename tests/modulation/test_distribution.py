@@ -2,7 +2,13 @@
 
 from datetime import datetime, timezone
 
-from app.modules.modulation.engine import DISCLAIMER, compute_distribution, compute_distribution_v2, compute_intraday
+from app.modules.modulation.engine import (
+    DISCLAIMER,
+    compute_capacity_history,
+    compute_distribution,
+    compute_distribution_v2,
+    compute_intraday,
+)
 
 
 def _make_snapshot(timestamp, us_channels=None, ds_channels=None):
@@ -19,6 +25,135 @@ def _make_channels(modulations, docsis_version="3.0"):
         {"modulation": m, "channel_id": i, "docsis_version": docsis_version}
         for i, m in enumerate(modulations)
     ]
+
+
+
+class TestCapacityHistory:
+    def test_range_summary_tracks_min_average_current_and_tariff_samples(self):
+        snaps = [
+            _make_snapshot(
+                "2026-05-01T10:00:00Z",
+                ds_channels=[{
+                    "channel_id": 1,
+                    "modulation": "256QAM",
+                    "docsis_version": "3.0",
+                    "channel_family": "sc_qam",
+                }],
+                us_channels=[{
+                    "channel_id": 1,
+                    "modulation": "64QAM",
+                    "docsis_version": "3.0",
+                    "channel_family": "sc_qam",
+                }],
+            ),
+            _make_snapshot(
+                "2026-05-01T11:00:00Z",
+                ds_channels=[{
+                    "channel_id": 1,
+                    "modulation": "64QAM",
+                    "docsis_version": "3.0",
+                    "channel_family": "sc_qam",
+                }],
+                us_channels=[{
+                    "channel_id": 1,
+                    "modulation": "16QAM",
+                    "docsis_version": "3.0",
+                    "channel_family": "sc_qam",
+                }],
+            ),
+        ]
+
+        result = compute_capacity_history(
+            snaps,
+            "UTC",
+            booked_download="50",
+            booked_upload="25",
+        )
+
+        ds = result["downstream"]
+        assert ds["sample_count"] == 2
+        assert ds["capacity_min_mbps"] == 41.7
+        assert ds["capacity_avg_mbps"] == 48.7
+        assert ds["capacity_current_mbps"] == 41.7
+        assert ds["tariff_met_pct"] == 50.0
+        assert ds["below_tariff_sample_count"] == 1
+        assert ds["status"] == "below_some_samples"
+
+        us = result["upstream"]
+        assert us["capacity_min_mbps"] == 20.5
+        assert us["capacity_max_mbps"] == 30.7
+        assert us["tariff_met_pct"] == 50.0
+        assert us["status"] == "below_some_samples"
+
+    def test_capacity_history_counts_ofdm_ofdma_as_unsupported(self):
+        snaps = [
+            _make_snapshot(
+                "2026-05-01T10:00:00Z",
+                ds_channels=[{
+                    "channel_id": 33,
+                    "type": "OFDM",
+                    "modulation": "4096QAM",
+                    "symbolRate": 25000,
+                    "docsis_version": "3.1",
+                    "channel_family": "ofdm",
+                    "theoretical_bitrate": 300.0,
+                }],
+                us_channels=[{
+                    "channel_id": 41,
+                    "type": "OFDMA",
+                    "modulation": "1024QAM",
+                    "symbolRate": 1000,
+                    "docsis_version": "3.1",
+                    "channel_family": "ofdma",
+                    "theoretical_bitrate": 10.0,
+                }],
+            )
+        ]
+
+        result = compute_capacity_history(snaps, "UTC", booked_download=50, booked_upload=10)
+
+        assert result["downstream"]["capacity_sample_count"] == 0
+        assert result["downstream"]["capacity_min_mbps"] is None
+        assert result["downstream"]["calculated_channel_samples"] == 0
+        assert result["downstream"]["unsupported_channel_samples"] == 1
+        assert result["downstream"]["status"] == "unavailable"
+        assert result["upstream"]["capacity_sample_count"] == 0
+        assert result["upstream"]["calculated_channel_samples"] == 0
+        assert result["upstream"]["unsupported_channel_samples"] == 1
+
+    def test_capacity_history_can_filter_to_intraday_date(self):
+        snaps = [
+            _make_snapshot(
+                "2026-05-01T10:00:00Z",
+                ds_channels=[{
+                    "channel_id": 1,
+                    "modulation": "256QAM",
+                    "docsis_version": "3.0",
+                    "channel_family": "sc_qam",
+                }],
+            ),
+            _make_snapshot(
+                "2026-05-02T10:00:00Z",
+                ds_channels=[{
+                    "channel_id": 1,
+                    "modulation": "64QAM",
+                    "docsis_version": "3.0",
+                    "channel_family": "sc_qam",
+                }],
+            ),
+        ]
+
+        result = compute_capacity_history(
+            snaps,
+            "UTC",
+            booked_download=50,
+            target_date="2026-05-02",
+        )
+
+        assert result["downstream"]["sample_count"] == 1
+        assert result["downstream"]["capacity_current_mbps"] == 41.7
+        assert result["downstream"]["status"] == "below_some_samples"
+
 
 # ── _parse_qam_order ──
 

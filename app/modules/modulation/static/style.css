@@ -84,6 +84,12 @@
     text-transform: uppercase;
 }
 
+.mod-capacity-range {
+    margin-top: 4px;
+    color: var(--text-secondary, var(--muted));
+    font-size: 0.78em;
+}
+
 .mod-capacity-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -100,7 +106,9 @@
 }
 
 .mod-capacity-card.mod-capacity-headroom,
-.mod-capacity-card.mod-capacity-calculated {
+.mod-capacity-card.mod-capacity-calculated,
+.mod-capacity-card.mod-capacity-above_tariff_throughout,
+.mod-capacity-card.mod-capacity-observed {
     border-left-color: var(--good, #10b981);
 }
 
@@ -109,7 +117,8 @@
     border-left-color: var(--warn, #f59e0b);
 }
 
-.mod-capacity-card.mod-capacity-below {
+.mod-capacity-card.mod-capacity-below,
+.mod-capacity-card.mod-capacity-below_some_samples {
     border-left-color: var(--crit, #ef4444);
 }
 
@@ -121,8 +130,17 @@
     gap: 12px;
 }
 
+.mod-capacity-history-row {
+    display: grid;
+    grid-template-columns: repeat(3, max-content 1fr);
+    align-items: baseline;
+    column-gap: 6px;
+    row-gap: 4px;
+}
+
 .mod-capacity-card-top span,
-.mod-capacity-subline span {
+.mod-capacity-subline span,
+.mod-capacity-history-row span {
     color: var(--text-secondary, var(--muted));
     font-size: 0.78em;
 }
@@ -137,7 +155,8 @@
     color: var(--text-muted, var(--muted));
 }
 
-.mod-capacity-subline strong {
+.mod-capacity-subline strong,
+.mod-capacity-history-row strong {
     font-size: 0.86em;
     font-variant-numeric: tabular-nums;
 }

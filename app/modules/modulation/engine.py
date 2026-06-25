@@ -32,12 +32,199 @@ DISCLAIMER = (
     "polling samples and may not reflect every modulation change between polls."
 )
 
+DEFAULT_CAPACITY_SYMBOL_RATES = {
+    "ds": 6952,  # EuroDOCSIS downstream SC-QAM kSym/s
+    "us": 5120,  # upstream SC-QAM kSym/s
+}
+
+
 
 # ── Parsing helpers ──────────────────────────────────────────────────
 
 def _channel_modulation(ch):
     """Return the modulation value to use for modulation analytics."""
     return ch.get("profile_modulation") or ch.get("modulation") or ch.get("type") or ""
+
+
+def _is_ofdm_like(ch):
+    values = [
+        ch.get("channel_family", ""),
+        ch.get("type", ""),
+        ch.get("multiplex", ""),
+        ch.get("modulation", ""),
+    ]
+    haystack = " ".join(str(v).lower() for v in values if v is not None)
+    return "ofdm" in haystack or "ofdma" in haystack
+
+
+def _capacity_channel_family(ch, direction):
+    """Return whether channel capacity can use the SC-QAM formula."""
+    family = (ch.get("channel_family") or "").lower()
+    if family:
+        return "sc_qam" if family == "sc_qam" else "unsupported"
+    if _is_ofdm_like(ch):
+        return "unsupported"
+    docsis_version = str(ch.get("docsis_version", "3.0"))
+    if docsis_version == "3.0":
+        return "sc_qam"
+    multiplex = str(ch.get("multiplex", "")).replace("-", "").replace("_", "").upper()
+    type_value = str(ch.get("type", "")).replace("-", "").replace("_", "").upper()
+    if docsis_version == "3.1" and direction == "us" and multiplex in {"ATDMA", "TDMA", "SCQAM"}:
+        return "sc_qam"
+    if docsis_version == "3.1" and direction == "ds" and type_value in {"SCQAM", "QAM"}:
+        return "sc_qam"
+    return "unsupported"
+
+
+def _capacity_symbol_rate(ch, direction):
+    raw = ch.get("symbolRate", ch.get("symbol_rate"))
+    if raw not in (None, ""):
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            pass
+    return DEFAULT_CAPACITY_SYMBOL_RATES[direction]
+
+
+def _channel_capacity_mbps(ch, direction):
+    """Return SC-QAM Layer-1 gross capacity for one channel, or None."""
+    if _capacity_channel_family(ch, direction) != "sc_qam":
+        return None
+
+    existing = ch.get("theoretical_bitrate")
+    if existing is not None:
+        try:
+            return round(float(existing), 2)
+        except (TypeError, ValueError):
+            pass
+
+    qam_order = _parse_qam_order(_channel_modulation(ch))
+    if qam_order is None:
+        return None
+    symbol_rate = _capacity_symbol_rate(ch, direction)
+    return round(symbol_rate * math.log2(qam_order) / 1000, 2)
+
+
+def _snapshot_capacity(channels, direction):
+    calculated = 0
+    capacities = []
+    for ch in channels:
+        capacity = _channel_capacity_mbps(ch, direction)
+        if capacity is None:
+            continue
+        calculated += 1
+        capacities.append(capacity)
+    total = len(channels)
+    capacity_mbps = round(sum(capacities), 1) if capacities else None
+    return {
+        "capacity_mbps": capacity_mbps,
+        "calculated": calculated,
+        "total": total,
+        "unsupported": max(0, total - calculated),
+    }
+
+
+def _capacity_status(tariff_mbps, capacity_samples, below_count):
+    if capacity_samples <= 0:
+        return "unavailable"
+    if tariff_mbps:
+        if below_count > 0:
+            return "below_some_samples"
+        return "above_tariff_throughout"
+    return "observed"
+
+
+def _capacity_tariff_value(raw):
+    if raw in (None, ""):
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
+def _capacity_history_for_direction(snapshots, direction, tariff_mbps, tz_name, target_date=None):
+    tariff_mbps = _capacity_tariff_value(tariff_mbps)
+    channel_key = "ds_channels" if direction == "ds" else "us_channels"
+    capacities = []
+    sample_count = 0
+    calculated_channel_samples = 0
+    total_channel_samples = 0
+    snapshots_with_full_coverage = 0
+    last_capacity = None
+
+    for snap in snapshots:
+        ts = snap.get("timestamp", "")
+        local_ts = to_local(ts, tz_name) if tz_name else ts.rstrip("Z")
+        if target_date and local_ts[:10] != target_date:
+            continue
+        channels = snap.get(channel_key, [])
+        if not channels:
+            continue
+        sample_count += 1
+        snapshot = _snapshot_capacity(channels, direction)
+        calculated_channel_samples += snapshot["calculated"]
+        total_channel_samples += snapshot["total"]
+        if snapshot["total"] and snapshot["calculated"] == snapshot["total"]:
+            snapshots_with_full_coverage += 1
+        if snapshot["capacity_mbps"] is not None:
+            capacities.append(snapshot["capacity_mbps"])
+            last_capacity = snapshot["capacity_mbps"]
+
+    capacity_samples = len(capacities)
+    below_count = 0
+    met_count = 0
+    if tariff_mbps and capacity_samples:
+        below_count = sum(1 for capacity in capacities if capacity < tariff_mbps)
+        met_count = capacity_samples - below_count
+
+    coverage_pct = (
+        round(calculated_channel_samples / total_channel_samples * 100, 1)
+        if total_channel_samples else 0
+    )
+    tariff_met_pct = (
+        round(met_count / capacity_samples * 100, 1)
+        if tariff_mbps and capacity_samples else None
+    )
+
+    return {
+        "direction": "downstream" if direction == "ds" else "upstream",
+        "sample_count": sample_count,
+        "capacity_sample_count": capacity_samples,
+        "capacity_min_mbps": round(min(capacities), 1) if capacities else None,
+        "capacity_avg_mbps": round(sum(capacities) / capacity_samples, 1) if capacities else None,
+        "capacity_max_mbps": round(max(capacities), 1) if capacities else None,
+        "capacity_current_mbps": last_capacity,
+        "tariff_mbps": tariff_mbps,
+        "tariff_met_sample_count": met_count if tariff_mbps else None,
+        "below_tariff_sample_count": below_count if tariff_mbps else None,
+        "tariff_met_pct": tariff_met_pct,
+        "calculated_channel_samples": calculated_channel_samples,
+        "total_channel_samples": total_channel_samples,
+        "unsupported_channel_samples": max(0, total_channel_samples - calculated_channel_samples),
+        "coverage_pct": coverage_pct,
+        "full_coverage_sample_count": snapshots_with_full_coverage,
+        "status": _capacity_status(tariff_mbps, capacity_samples, below_count),
+    }
+
+
+def compute_capacity_history(
+    snapshots,
+    tz_name,
+    booked_download=None,
+    booked_upload=None,
+    target_date=None,
+):
+    """Compute range-aware theoretical SC-QAM capacity summaries."""
+    return {
+        "downstream": _capacity_history_for_direction(
+            snapshots, "ds", booked_download, tz_name, target_date=target_date
+        ),
+        "upstream": _capacity_history_for_direction(
+            snapshots, "us", booked_upload, tz_name, target_date=target_date
+        ),
+    }
 
 
 # ── Health index (per-protocol-group) ────────────────────────────────

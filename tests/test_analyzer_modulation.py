@@ -29,7 +29,7 @@ def test_docsis_30_downstream_64qam_is_healthy_not_marginal():
     assert result["summary"]["health"] == "good"
 
 
-def test_docsis_30_downstream_theoretical_capacity_uses_scqam_symbol_rate():
+def test_docsis_31_downstream_ofdm_capacity_is_not_estimated_from_qam_profile():
     result = analyze({
         "channelDs": {
             "docsis30": [
@@ -57,7 +57,9 @@ def test_docsis_30_downstream_theoretical_capacity_uses_scqam_symbol_rate():
                 "frequency": "134.975 - 324.975",
                 "powerLevel": "3.1",
                 "mer": "38.5",
-                "modulation": "OFDM",
+                "type": "OFDM",
+                "modulation": "4096QAM",
+                "symbolRate": 25000,
             }],
         },
         "channelUs": {"docsis30": [], "docsis31": []},
@@ -88,8 +90,10 @@ def test_upstream_capacity_compatibility_and_unknown_coverage():
                 "channelID": "5",
                 "frequency": "18 - 44 MHz",
                 "powerLevel": "45.0",
-                "modulation": "OFDMA",
+                "type": "OFDMA",
+                "modulation": "1024QAM",
                 "profile_modulation": "1024QAM",
+                "symbolRate": 1000,
             }],
         },
     })

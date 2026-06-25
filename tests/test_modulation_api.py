@@ -127,6 +127,43 @@ class TestDistributionEndpoint:
         assert "expected_samples" in data
         assert "sample_density" in data
         assert "disclaimer" in data
+        assert "capacity_history" in data
+        assert "downstream" in data["capacity_history"]
+        assert "upstream" in data["capacity_history"]
+
+    def test_capacity_history_includes_both_directions_and_tariff_status(self, client_with_storage, config_mgr):
+        client, storage = client_with_storage
+        config_mgr.save({
+            "modem_password": "test",
+            "modem_type": "fritzbox",
+            "timezone": "UTC",
+            "booked_download": 50,
+            "booked_upload": 25,
+        })
+        day = _ts_days_ago(1)[:10]
+        _store_snapshot(
+            storage,
+            f"{day}T10:00:00Z",
+            ds_channels=[{"modulation": "256QAM", "channel_id": 1, "docsis_version": "3.0"}],
+            us_channels=[{"modulation": "64QAM", "channel_id": 1, "docsis_version": "3.0"}],
+        )
+        _store_snapshot(
+            storage,
+            f"{day}T11:00:00Z",
+            ds_channels=[{"modulation": "64QAM", "channel_id": 1, "docsis_version": "3.0"}],
+            us_channels=[{"modulation": "16QAM", "channel_id": 1, "docsis_version": "3.0"}],
+        )
+
+        resp = client.get("/api/modulation/distribution?days=7&direction=us")
+        data = resp.get_json()
+
+        ds = data["capacity_history"]["downstream"]
+        us = data["capacity_history"]["upstream"]
+        assert ds["capacity_min_mbps"] == 41.7
+        assert ds["tariff_met_pct"] == 50.0
+        assert ds["status"] == "below_some_samples"
+        assert us["capacity_max_mbps"] == 30.7
+        assert us["tariff_met_pct"] == 50.0
 
 
     def test_aggregate_low_qam_pct_weighted_across_protocol_sample_counts(self, client_with_storage):
@@ -238,6 +275,8 @@ class TestIntradayEndpoint:
         ch = pg["channels"][0]
         assert ch["channel_id"] == 1
         assert len(ch["timeline"]) >= 1
+        assert data["capacity_history"]["upstream"]["sample_count"] == 2
+        assert data["capacity_history"]["upstream"]["capacity_min_mbps"] == 20.5
 
     def test_direction_param(self, client_with_storage):
         client, storage = client_with_storage

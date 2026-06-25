@@ -940,10 +940,14 @@ def analyze(data: DocsisData) -> AnalysisResult:
         )
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
         metric_h["modulation_health"] = _assess_ds_modulation(ds_modulation, modulation_docsis_ver)
-        bitrate = _channel_bitrate_mbps(
-            ds_modulation,
-            ch.get("symbolRate"),
-            _DEFAULT_DS_SC_QAM_SYMBOL_RATE if channel_family == "sc_qam" else None,
+        bitrate = (
+            _channel_bitrate_mbps(
+                ds_modulation,
+                ch.get("symbolRate"),
+                _DEFAULT_DS_SC_QAM_SYMBOL_RATE,
+            )
+            if channel_family == "sc_qam"
+            else None
         )
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
@@ -999,13 +1003,24 @@ def analyze(data: DocsisData) -> AnalysisResult:
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
         metric_h["modulation_health"] = _assess_us_modulation(ch, "3.1")
         mod = ch.get("modulation") or ch.get("type", "")
-        bitrate = _channel_bitrate_mbps(
-            mod,
-            ch.get("symbolRate"),
-            _DEFAULT_US_SC_QAM_SYMBOL_RATE,
-        )
         raw_power = ch.get("powerLevel")
         profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
+        channel_family = _classify_us_family({
+            "type": ch.get("type", ""),
+            "multiplex": ch.get("multiplex", ""),
+            "modulation": mod,
+            "profile_modulation": profile_modulation,
+            "docsis_version": "3.1",
+        })
+        bitrate = (
+            _channel_bitrate_mbps(
+                mod,
+                ch.get("symbolRate"),
+                _DEFAULT_US_SC_QAM_SYMBOL_RATE,
+            )
+            if channel_family == "sc_qam"
+            else None
+        )
         channel = {
             "channel_id": _parse_channel_id(ch.get("channelID", 0)),
             "frequency": ch.get("frequency", ""),
@@ -1013,13 +1028,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
             "modulation": mod,
             "multiplex": ch.get("multiplex", ""),
             "docsis_version": "3.1",
-            "channel_family": _classify_us_family({
-                "type": ch.get("type", ""),
-                "multiplex": ch.get("multiplex", ""),
-                "modulation": mod,
-                "profile_modulation": profile_modulation,
-                "docsis_version": "3.1",
-            }),
+            "channel_family": channel_family,
             "health": health,
             "health_detail": health_detail,
             "theoretical_bitrate": bitrate,

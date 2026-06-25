@@ -273,6 +273,19 @@ class TestModulationControls:
         overview = self.page.locator("#modulation-overview")
         expect(overview).not_to_be_visible()
 
+    def test_capacity_panel_updates_for_selected_range_and_today(self):
+        panel = self.page.locator("#modulation-capacity-panel")
+        expect(panel).to_be_visible()
+        expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("7d")
+        expect(self.page.locator("#mod-cap-ds-min")).to_contain_text("Mbit/s")
+        expect(self.page.locator("#mod-cap-us-tariff")).not_to_have_text("—")
+
+        today = self.page.locator('#modulation-range-tabs .trend-tab[data-days="1"]')
+        today.click()
+        self.page.wait_for_timeout(1000)
+        expect(panel).to_be_visible()
+        expect(self.page.locator("#mod-capacity-range-label")).to_contain_text("Selected day")
+
 
 # ── API Integration ──
 

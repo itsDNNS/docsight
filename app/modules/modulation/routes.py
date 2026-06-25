@@ -8,7 +8,12 @@ from flask import Blueprint, request, jsonify
 from app.tz import to_local, utc_now, utc_cutoff
 from app.web import require_auth, get_storage, get_config_manager
 
-from .engine import compute_distribution_v2, compute_intraday, compute_trend
+from .engine import (
+    compute_capacity_history,
+    compute_distribution_v2,
+    compute_intraday,
+    compute_trend,
+)
 
 log = logging.getLogger("docsis.web")
 
@@ -21,6 +26,14 @@ def _get_tz():
     if cm:
         return cm.get("timezone", "")
     return ""
+
+
+def _get_capacity_tariffs():
+    """Return configured tariff values for capacity comparison."""
+    cm = get_config_manager()
+    if not cm:
+        return None, None
+    return cm.get("booked_download"), cm.get("booked_upload")
 
 
 @bp.route("/api/modulation/distribution")
@@ -44,6 +57,13 @@ def api_modulation_distribution():
     tz_name = _get_tz()
 
     result = compute_distribution_v2(snapshots, direction, tz_name)
+    booked_download, booked_upload = _get_capacity_tariffs()
+    result["capacity_history"] = compute_capacity_history(
+        snapshots,
+        tz_name,
+        booked_download=booked_download,
+        booked_upload=booked_upload,
+    )
     return jsonify(result)
 
 
@@ -78,6 +98,14 @@ def api_modulation_intraday():
     snapshots = storage.get_range_data(start_ts, end_ts)
 
     result = compute_intraday(snapshots, direction, tz_name, date_str)
+    booked_download, booked_upload = _get_capacity_tariffs()
+    result["capacity_history"] = compute_capacity_history(
+        snapshots,
+        tz_name,
+        booked_download=booked_download,
+        booked_upload=booked_upload,
+        target_date=date_str,
+    )
     return jsonify(result)
 
 

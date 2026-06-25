@@ -36,10 +36,20 @@ def test_capacity_panel_contract_is_localized_and_styled():
     i18n = (I18N_DIR / "en.json").read_text(encoding="utf-8")
 
     assert ".mod-capacity-panel" in css
-    assert ".mod-capacity-card.mod-capacity-below" in css
+    assert ".mod-capacity-card.mod-capacity-below_some_samples" in css
     assert "capacity_title" in i18n
     assert "capacity_disclaimer" in i18n
+    assert "capacity_status_above_tariff_throughout" in i18n
     assert "Layer-1 gross capacity" in i18n
+
+
+def test_capacity_panel_updates_from_range_api_payload():
+    js = MODULATION_JS.read_text(encoding="utf-8")
+
+    assert "function updateCapacityHistory" in js
+    assert "data.capacity_history" in js
+    assert "updateCapacityHistory(data, rangeLabelForCapacity(data))" in js
+    assert "above_tariff_throughout: 'Above tariff throughout selected period'" in js
 
 
 def test_low_qam_hint_does_not_use_stale_global_16qam_threshold():

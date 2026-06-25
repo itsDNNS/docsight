@@ -216,6 +216,7 @@ function fetchOverview() {
             }
             if (kpis) kpis.style.display = '';
             updateOverviewKPIs(data);
+            updateCapacityHistory(data, rangeLabelForCapacity(data));
             renderProtocolGroups(data);
             showDisclaimer(data.disclaimer);
         }).catch(function(err) {
@@ -263,6 +264,93 @@ function updateOverviewKPIs(data) {
         dHint.textContent = data.sample_count + ' / ' + data.expected_samples +
             ' ' + (T['docsight.modulation.samples'] || T.samples || 'samples');
     }
+}
+
+function formatCapacityMbps(value) {
+    if (value === null || value === undefined) return '\u2014';
+    return Number(value).toFixed(1) + ' Mbit/s';
+}
+
+function rangeLabelForCapacity(data) {
+    if (data && data.date) {
+        return (T['docsight.modulation.capacity_selected_day'] || 'Selected day') + ': ' + data.date;
+    }
+    if (_modDays === 1) {
+        return T['docsight.modulation.capacity_today_period'] || 'Today';
+    }
+    var template = T['docsight.modulation.capacity_selected_days'] || 'Selected period: {days}d';
+    return template.replace('{days}', String(_modDays));
+}
+
+function capacityStatusText(summary) {
+    if (!summary) return '\u2014';
+    var key = 'docsight.modulation.capacity_status_' + summary.status;
+    var fallback = {
+        above_tariff_throughout: 'Above tariff throughout selected period',
+        below_some_samples: 'Below tariff in some samples',
+        observed: 'Observed for selected period',
+        unavailable: 'No calculated SC-QAM capacity in selected period'
+    }[summary.status] || summary.status || '\u2014';
+    var text = T[key] || fallback;
+    if (summary.unsupported_channel_samples > 0) {
+        text += ' · ' + (T['docsight.modulation.capacity_partial_coverage'] || 'partial coverage');
+    }
+    return text;
+}
+
+function capacityTariffText(summary) {
+    if (!summary || !summary.tariff_mbps) {
+        return T['docsight.modulation.capacity_no_tariff'] || 'No tariff configured';
+    }
+    if (summary.tariff_met_pct === null || summary.tariff_met_pct === undefined) {
+        return '\u2014';
+    }
+    return Number(summary.tariff_met_pct).toFixed(1) + '% · ' +
+        (summary.tariff_met_sample_count || 0) + '/' + (summary.capacity_sample_count || 0);
+}
+
+function updateCapacityCard(direction, summary) {
+    var prefix = direction === 'downstream' ? 'ds' : 'us';
+    var card = document.getElementById(direction === 'downstream' ? 'mod-capacity-downstream' : 'mod-capacity-upstream');
+    if (!card || !summary) return;
+
+    card.className = 'mod-capacity-card mod-capacity-' + (summary.status || 'unavailable');
+
+    var current = document.getElementById('mod-cap-' + prefix + '-current');
+    var min = document.getElementById('mod-cap-' + prefix + '-min');
+    var avg = document.getElementById('mod-cap-' + prefix + '-avg');
+    var max = document.getElementById('mod-cap-' + prefix + '-max');
+    var tariff = document.getElementById('mod-cap-' + prefix + '-tariff');
+    var coverage = document.getElementById('mod-cap-' + prefix + '-coverage');
+    var status = document.getElementById('mod-cap-' + prefix + '-status');
+
+    if (current) current.textContent = formatCapacityMbps(summary.capacity_current_mbps);
+    if (min) min.textContent = formatCapacityMbps(summary.capacity_min_mbps);
+    if (avg) avg.textContent = formatCapacityMbps(summary.capacity_avg_mbps);
+    if (max) max.textContent = formatCapacityMbps(summary.capacity_max_mbps);
+    if (tariff) tariff.textContent = capacityTariffText(summary);
+    if (coverage) {
+        coverage.textContent = (summary.calculated_channel_samples || 0) + ' / ' +
+            (summary.total_channel_samples || 0) + ' (' + Number(summary.coverage_pct || 0).toFixed(1) + '%)';
+    }
+    if (status) status.textContent = capacityStatusText(summary);
+}
+
+function updateCapacityHistory(data, rangeLabel) {
+    var panel = document.getElementById('modulation-capacity-panel');
+    if (!panel) return;
+    var history = data && data.capacity_history;
+    if (!history) {
+        panel.style.display = 'none';
+        return;
+    }
+    panel.style.display = '';
+    var label = document.getElementById('mod-capacity-range-label');
+    if (label) {
+        label.textContent = rangeLabel || (T['docsight.modulation.capacity_selected_period'] || 'Selected period');
+    }
+    updateCapacityCard('downstream', history.downstream);
+    updateCapacityCard('upstream', history.upstream);
 }
 
 function renderProtocolGroups(data) {
@@ -612,6 +700,7 @@ function fetchIntraday(dateStr) {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             renderIntraday(data);
+            updateCapacityHistory(data, rangeLabelForCapacity(data));
             showDisclaimer(data.disclaimer);
         }).catch(function(err) {
             console.error('Modulation intraday fetch error:', err);
