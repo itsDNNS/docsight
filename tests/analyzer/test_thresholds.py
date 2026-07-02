@@ -80,10 +80,12 @@ class TestSetThresholds:
 
     def setup_method(self):
         self._orig = analyzer._thresholds.copy()
+        self._orig_profile = analyzer._threshold_profile.copy()
         analyzer.set_thresholds(_TEST_THRESHOLDS)
 
     def teardown_method(self):
         analyzer._thresholds = self._orig
+        analyzer._threshold_profile = self._orig_profile
 
     def test_set_thresholds_updates_global(self):
         assert "downstream_power" in analyzer._thresholds
@@ -127,10 +129,12 @@ class TestOFDMAUpstream:
 
     def setup_method(self):
         self._orig = analyzer._thresholds.copy()
+        self._orig_profile = analyzer._threshold_profile.copy()
         analyzer.set_thresholds(_TEST_THRESHOLDS)
 
     def teardown_method(self):
         analyzer._thresholds = self._orig
+        analyzer._threshold_profile = self._orig_profile
 
     def test_ofdma_channel_threshold_classifications(self):
         cases = [
@@ -222,10 +226,12 @@ class TestDownstreamModulationHealth:
 
     def setup_method(self):
         self._orig = analyzer._thresholds.copy()
+        self._orig_profile = analyzer._threshold_profile.copy()
         analyzer.set_thresholds(_TEST_THRESHOLDS)
 
     def teardown_method(self):
         analyzer._thresholds = self._orig
+        analyzer._threshold_profile = self._orig_profile
 
     @pytest.mark.parametrize(
         ("modulation", "expected_health"),
@@ -269,10 +275,12 @@ class TestPercentErrors:
 
     def setup_method(self):
         self._orig = analyzer._thresholds.copy()
+        self._orig_profile = analyzer._threshold_profile.copy()
         analyzer.set_thresholds(_TEST_THRESHOLDS)
 
     def teardown_method(self):
         analyzer._thresholds = self._orig
+        analyzer._threshold_profile = self._orig_profile
 
     def test_no_errors_healthy(self):
         data = _make_data(ds30=[_make_ds30(1, corr=1000, uncorr=0)])

@@ -8,8 +8,10 @@ import sqlite3
 from datetime import timedelta
 from typing import cast
 
+from ..analyzer import get_analysis_metadata
 from ..types import AnalysisResult
 from ..tz import _parse_utc, local_date_to_utc_range, utc_cutoff, utc_now
+from ..version import get_available_app_version
 from .error_counters import unwrap_uint32_counter_series
 
 
@@ -28,6 +30,17 @@ def _normalize_summary_errors(summary):
         summary["ds_correctable_errors"] = None
         summary["ds_uncorrectable_errors"] = None
     return summary
+
+
+def _load_analysis_meta(raw: str | None) -> dict | None:
+    """Load optional snapshot provenance metadata."""
+    if not raw:
+        return None
+    try:
+        value = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return value if isinstance(value, dict) else None
 
 
 def _timestamp_in_range(
@@ -63,16 +76,18 @@ class SnapshotMethods:
     def save_snapshot(self, analysis: AnalysisResult, is_demo: bool = False) -> None:
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
         ts = utc_now()
+        analysis_meta = get_analysis_metadata(app_version=get_available_app_version())
         try:
             with self._connect() as conn:
                 conn.execute(
-                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo, analysis_meta_json) VALUES (?, ?, ?, ?, ?, ?)",
                     (
                         ts,
                         json.dumps(analysis["summary"]),
                         json.dumps(analysis["ds_channels"]),
                         json.dumps(analysis["us_channels"]),
                         int(is_demo),
+                        json.dumps(analysis_meta),
                     ),
                 )
             log.debug("Snapshot saved: %s", ts)
@@ -93,7 +108,7 @@ class SnapshotMethods:
         """Load the latest stored snapshot, or None when no baseline exists."""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT summary_json, ds_channels_json, us_channels_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
+                "SELECT summary_json, ds_channels_json, us_channels_json, analysis_meta_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
             ).fetchone()
         if not row:
             return None
@@ -101,13 +116,14 @@ class SnapshotMethods:
             "summary": _normalize_summary_errors(json.loads(row[0])),
             "ds_channels": json.loads(row[1]),
             "us_channels": json.loads(row[2]),
+            "analysis_meta": _load_analysis_meta(row[3]),
         })
 
     def get_snapshot(self, timestamp: str) -> AnalysisResult | None:
         """Load a single snapshot by timestamp. Returns analysis dict or None."""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT summary_json, ds_channels_json, us_channels_json FROM snapshots WHERE timestamp = ?",
+                "SELECT summary_json, ds_channels_json, us_channels_json, analysis_meta_json FROM snapshots WHERE timestamp = ?",
                 (timestamp,),
             ).fetchone()
         if not row:
@@ -116,6 +132,7 @@ class SnapshotMethods:
             "summary": _normalize_summary_errors(json.loads(row[0])),
             "ds_channels": json.loads(row[1]),
             "us_channels": json.loads(row[2]),
+            "analysis_meta": _load_analysis_meta(row[3]),
         })
 
     def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:

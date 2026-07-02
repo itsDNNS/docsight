@@ -81,7 +81,8 @@ class StorageBase:
                     timestamp TEXT NOT NULL,
                     summary_json TEXT NOT NULL,
                     ds_channels_json TEXT NOT NULL,
-                    us_channels_json TEXT NOT NULL
+                    us_channels_json TEXT NOT NULL,
+                    analysis_meta_json TEXT
                 )
             """)
             conn.execute("""
@@ -130,6 +131,14 @@ class StorageBase:
                         log.info("Migration: added is_demo column to %s", tbl)
                 except Exception as e:
                     log.warning("Failed to add is_demo to %s: %s", tbl, e)
+
+            try:
+                cols = [r[1] for r in conn.execute("PRAGMA table_info(snapshots)").fetchall()]
+                if "analysis_meta_json" not in cols:
+                    conn.execute("ALTER TABLE snapshots ADD COLUMN analysis_meta_json TEXT")
+                    log.info("Migration: added analysis_meta_json column to snapshots")
+            except Exception as e:
+                log.warning("Failed to add analysis_meta_json to snapshots: %s", e)
 
             # ── Weather data table ──
             conn.execute("""

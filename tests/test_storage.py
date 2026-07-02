@@ -4,6 +4,8 @@ import json
 import sqlite3
 
 import pytest
+from app import analyzer
+from app.storage import snapshot as snapshot_module
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
 
@@ -40,6 +42,101 @@ class TestSnapshotStorage:
         snap = storage.get_snapshot(ts)
         assert snap is not None
         assert snap["summary"]["ds_total"] == 33
+
+    def test_new_snapshot_stores_analysis_metadata(self, storage, sample_analysis, monkeypatch):
+        monkeypatch.setattr(snapshot_module, "get_available_app_version", lambda: "2026.7-test")
+        orig_thresholds = analyzer._thresholds.copy()
+        orig_profile = analyzer._threshold_profile.copy()
+        try:
+            analyzer.set_thresholds(
+                {"downstream_power": {}, "upstream_power": {}, "snr": {}},
+                profile_id="test.thresholds_alpha",
+                profile_version="1.2.3",
+            )
+
+            storage.save_snapshot(sample_analysis)
+            ts = storage.get_snapshot_list()[0]
+            snap = storage.get_snapshot(ts)
+            latest = storage.get_latest_snapshot()
+        finally:
+            analyzer._thresholds = orig_thresholds
+            analyzer._threshold_profile = orig_profile
+
+        assert snap is not None
+        assert latest is not None
+        assert snap["analysis_meta"] == latest["analysis_meta"]
+        assert snap["analysis_meta"] == {
+            "analyzer_schema": analyzer.ANALYZER_SCHEMA_VERSION,
+            "app_version": "2026.7-test",
+            "threshold_profile": {
+                "id": "test.thresholds_alpha",
+                "version": "1.2.3",
+            },
+        }
+
+    def test_unavailable_app_version_is_recorded_as_null(self, storage, sample_analysis, monkeypatch):
+        monkeypatch.setattr(snapshot_module, "get_available_app_version", lambda: None)
+
+        storage.save_snapshot(sample_analysis)
+        ts = storage.get_snapshot_list()[0]
+        snap = storage.get_snapshot(ts)
+
+        assert snap is not None
+        assert snap["analysis_meta"]["app_version"] is None
+
+    def test_old_snapshot_rows_read_with_null_analysis_metadata(self, tmp_path):
+        db_path = str(tmp_path / "legacy.db")
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE snapshots ("
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "timestamp TEXT NOT NULL, "
+                "summary_json TEXT NOT NULL, "
+                "ds_channels_json TEXT NOT NULL, "
+                "us_channels_json TEXT NOT NULL"
+                ")"
+            )
+            conn.execute(
+                "INSERT INTO snapshots "
+                "(timestamp, summary_json, ds_channels_json, us_channels_json) "
+                "VALUES (?, ?, ?, ?)",
+                ("2026-07-02T00:00:00Z", json.dumps({"ds_total": 1}), "[]", "[]"),
+            )
+
+        storage = SnapshotStorage(db_path, max_days=7)
+        snap = storage.get_snapshot("2026-07-02T00:00:00Z")
+
+        assert snap is not None
+        assert snap["analysis_meta"] is None
+
+    def test_threshold_profile_change_applies_to_subsequent_snapshots(self, storage, sample_analysis, monkeypatch):
+        monkeypatch.setattr(snapshot_module, "get_available_app_version", lambda: "2026.7-test")
+        orig_thresholds = analyzer._thresholds.copy()
+        orig_profile = analyzer._threshold_profile.copy()
+        try:
+            analyzer.set_thresholds({}, profile_id="test.thresholds_alpha", profile_version="1.0.0")
+            storage.save_snapshot(sample_analysis)
+            analyzer.set_thresholds({}, profile_id="test.thresholds_beta", profile_version="2.0.0")
+            storage.save_snapshot(sample_analysis)
+        finally:
+            analyzer._thresholds = orig_thresholds
+            analyzer._threshold_profile = orig_profile
+
+        with sqlite3.connect(storage.db_path) as conn:
+            rows = conn.execute(
+                "SELECT analysis_meta_json FROM snapshots ORDER BY id"
+            ).fetchall()
+
+        first = json.loads(rows[0][0])
+        second = json.loads(rows[1][0])
+        assert first["threshold_profile"] == {
+            "id": "test.thresholds_alpha",
+            "version": "1.0.0",
+        }
+        assert second["threshold_profile"] == {
+            "id": "test.thresholds_beta",
+            "version": "2.0.0",
+        }
 
     def test_get_nonexistent_snapshot(self, storage):
         assert storage.get_snapshot("2099-01-01T00:00:00") is None
