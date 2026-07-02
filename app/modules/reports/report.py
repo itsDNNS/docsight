@@ -359,6 +359,16 @@ def _format_optional_count(value):
     return f"{value:,}" if value is not None else "N/A"
 
 
+def _format_optional_decimal(value):
+    """Format a decimal metric while preserving unavailable values."""
+    if value is None:
+        return "-"
+    try:
+        return f"{float(value):.1f}"
+    except (TypeError, ValueError):
+        return "-"
+
+
 def _compute_worst_values(snapshots):
     """Compute worst values across all snapshots in the range."""
     worst = {
@@ -589,8 +599,8 @@ def generate_report(
             pdf._table_row([
                 ch.get("channel_id", ""),
                 (ch.get("frequency") or "")[:10],
-                f"{ch.get('power') or 0:.1f}",
-                f"{ch.get('snr') or 0:.1f}" if ch.get("snr") else "-",
+                _format_optional_decimal(ch.get('power')),
+                _format_optional_decimal(ch.get("snr")),
                 str(ch.get("modulation") or "")[:10],
                 _format_optional_count(ch.get('correctable_errors')),
                 _format_optional_count(ch.get('uncorrectable_errors')),
@@ -607,7 +617,7 @@ def generate_report(
             pdf._table_row([
                 ch.get("channel_id", ""),
                 (ch.get("frequency") or "")[:12],
-                f"{ch.get('power') or 0:.1f}",
+                _format_optional_decimal(ch.get('power')),
                 str(ch.get("modulation") or "")[:12],
                 str(ch.get("multiplex") or "")[:15],
                 ch.get("health", ""),

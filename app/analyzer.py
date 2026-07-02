@@ -456,7 +456,7 @@ def get_thresholds():
     return _strip(_t())
 
 
-def _parse_float(val, default=0.0):
+def _parse_float(val, default=None):
     try:
         return float(val)
     except (TypeError, ValueError):
@@ -786,19 +786,23 @@ def _assess_ds_channel(ch, docsis_ver, *, modulation_docsis_ver: str | None = No
 
     if raw_power is not None:
         power = _parse_float(raw_power)
-        pt = _get_ds_power_thresholds(modulation)
-        if power < pt["crit_min"] or power > pt["crit_max"]:
-            issues.append("power critical")
-        elif power < pt["warn_min"] or power > pt["warn_max"]:
-            issues.append("power warning")
-        elif power < pt["good_min"] or power > pt["good_max"]:
-            issues.append("power tolerated")
+        if power is not None:
+            pt = _get_ds_power_thresholds(modulation)
+            if power < pt["crit_min"] or power > pt["crit_max"]:
+                issues.append("power critical")
+            elif power < pt["warn_min"] or power > pt["warn_max"]:
+                issues.append("power warning")
+            elif power < pt["good_min"] or power > pt["good_max"]:
+                issues.append("power tolerated")
 
     snr_val = None
-    if docsis_ver == "3.0" and ch.get("mse"):
-        snr_val = abs(_parse_float(ch["mse"]))
-    elif docsis_ver == "3.1" and ch.get("mer"):
-        snr_val = _parse_float(ch["mer"])
+    raw_mse = ch.get("mse")
+    raw_mer = ch.get("mer")
+    if docsis_ver == "3.0" and raw_mse is not None:
+        parsed_mse = _parse_float(raw_mse)
+        snr_val = abs(parsed_mse) if parsed_mse is not None else None
+    elif docsis_ver == "3.1" and raw_mer is not None:
+        snr_val = _parse_float(raw_mer)
 
     if snr_val is not None:
         st = _get_snr_thresholds(modulation)
@@ -837,19 +841,20 @@ def _assess_us_channel(ch, docsis_ver="3.0"):
 
     if raw_power is not None:
         power = _parse_float(raw_power)
-        pt = _get_us_power_thresholds(channel_type)
-        if power < pt["crit_min"]:
-            issues.append("power critical low")
-        elif power > pt["crit_max"]:
-            issues.append("power critical high")
-        elif power < pt["warn_min"]:
-            issues.append("power warning low")
-        elif power > pt["warn_max"]:
-            issues.append("power warning high")
-        elif power < pt["good_min"]:
-            issues.append("power tolerated low")
-        elif power > pt["good_max"]:
-            issues.append("power tolerated high")
+        if power is not None:
+            pt = _get_us_power_thresholds(channel_type)
+            if power < pt["crit_min"]:
+                issues.append("power critical low")
+            elif power > pt["crit_max"]:
+                issues.append("power critical high")
+            elif power < pt["warn_min"]:
+                issues.append("power warning low")
+            elif power > pt["warn_max"]:
+                issues.append("power warning high")
+            elif power < pt["good_min"]:
+                issues.append("power tolerated low")
+            elif power > pt["good_max"]:
+                issues.append("power tolerated high")
     mod_health = _assess_us_modulation(ch, docsis_ver)
     mod_issue = _modulation_issue(mod_health)
     if mod_issue:
@@ -891,7 +896,9 @@ def analyze(data: DocsisData) -> AnalysisResult:
     ds_channels = []
     for ch in ds30:
         power = _parse_float(ch.get("powerLevel"))
-        snr = abs(_parse_float(ch.get("mse"))) if ch.get("mse") else None
+        raw_mse = ch.get("mse")
+        parsed_mse = _parse_float(raw_mse) if raw_mse is not None else None
+        snr = abs(parsed_mse) if parsed_mse is not None else None
         health, health_detail = _assess_ds_channel(ch, "3.0")
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
         ds_modulation = ch.get("modulation") or ch.get("type", "")
@@ -923,7 +930,8 @@ def analyze(data: DocsisData) -> AnalysisResult:
     for ch in ds31:
         raw_power = ch.get("powerLevel")
         power = _parse_float(raw_power) if raw_power is not None else None
-        snr = _parse_float(ch.get("mer")) if ch.get("mer") else None
+        raw_mer = ch.get("mer")
+        snr = _parse_float(raw_mer) if raw_mer is not None else None
         ds_modulation = ch.get("modulation") or ch.get("type", "")
         profile_modulation = ch.get("profile_modulation") or ch.get("profileModulation")
         channel_family = _classify_ds_family({

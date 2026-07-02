@@ -139,6 +139,14 @@ def test_generate_report_with_none_channel_values():
     assert isinstance(pdf, bytes)
     assert pdf[:5] == b"%PDF-"
 
+    text = "\n".join(
+        page.extract_text() or ""
+        for page in PdfReader(io.BytesIO(pdf)).pages
+    )
+    assert "1 - - N/A N/A good" in text
+    assert "1 - good" in text
+    assert "1 0.0" not in text
+
 
 def test_complaint_text_uses_real_thresholds():
     text = generate_complaint_text(MOCK_SNAPSHOTS)
