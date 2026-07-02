@@ -48,6 +48,40 @@ def config_mgr(tmp_path):
 
 
 @pytest.fixture
+def sample_analysis():
+    return {
+        "summary": {
+            "ds_total": 1,
+            "us_total": 1,
+            "health": "good",
+            "health_issues": [],
+        },
+        "ds_channels": [{
+            "channel_id": 1,
+            "frequency": "602 MHz",
+            "power": 3.0,
+            "snr": 35.0,
+            "modulation": "256QAM",
+            "correctable_errors": 100,
+            "uncorrectable_errors": 5,
+            "docsis_version": "3.0",
+            "health": "good",
+            "health_detail": "",
+        }],
+        "us_channels": [{
+            "channel_id": 1,
+            "frequency": "37 MHz",
+            "power": 42.0,
+            "modulation": "64QAM",
+            "multiplex": "ATDMA",
+            "docsis_version": "3.0",
+            "health": "good",
+            "health_detail": "",
+        }],
+    }
+
+
+@pytest.fixture
 def client(config_mgr, storage):
     init_config(config_mgr)
     init_storage(storage)
@@ -171,6 +205,59 @@ class TestDemoMarking:
                 "SELECT is_demo FROM incidents WHERE id = ?", (inc_id,)
             ).fetchone()
         assert row[0] == 1
+
+    def test_save_snapshot_default_not_demo(self, storage, sample_analysis):
+        storage.save_snapshot(sample_analysis)
+        with sqlite3.connect(storage.db_path) as conn:
+            row = conn.execute(
+                "SELECT is_demo FROM snapshots ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        assert row[0] == 0
+
+    def test_save_snapshot_marks_demo(self, storage, sample_analysis):
+        storage.save_snapshot(sample_analysis, is_demo=True)
+        with sqlite3.connect(storage.db_path) as conn:
+            row = conn.execute(
+                "SELECT is_demo FROM snapshots ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        assert row[0] == 1
+
+    def test_demo_collector_live_poll_rows_are_demo_and_purgeable(self, storage, sample_analysis):
+        web = MagicMock()
+        web._state = {}
+        detector = MagicMock()
+        detector.check.return_value = [{
+            "timestamp": "2026-07-02T00:00:00Z",
+            "severity": "info",
+            "event_type": "demo_event",
+            "message": "demo event",
+        }]
+        collector = DemoCollector(
+            analyzer_fn=MagicMock(return_value=sample_analysis),
+            event_detector=detector,
+            storage=storage,
+            mqtt_pub=None,
+            web=web,
+            poll_interval=900,
+        )
+
+        with patch.object(collector, "_seed_demo_data"), \
+             patch.object(collector, "_generate_data", return_value={}):
+            collector.collect()
+
+        with sqlite3.connect(storage.db_path) as conn:
+            snapshot_row = conn.execute(
+                "SELECT is_demo FROM snapshots ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            event_row = conn.execute(
+                "SELECT is_demo FROM events ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        assert snapshot_row[0] == 1
+        assert event_row[0] == 1
+
+        storage.purge_demo_data()
+        assert _count_rows(storage, "snapshots", is_demo=1) == 0
+        assert _count_rows(storage, "events", is_demo=1) == 0
 
     def test_save_events_marks_demo(self, storage):
         events = [

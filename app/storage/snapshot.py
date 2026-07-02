@@ -60,18 +60,19 @@ def _unwrap_anchor_start(timestamp: str) -> str:
 
 class SnapshotMethods:
 
-    def save_snapshot(self, analysis: AnalysisResult) -> None:
+    def save_snapshot(self, analysis: AnalysisResult, is_demo: bool = False) -> None:
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
         ts = utc_now()
         try:
             with self._connect() as conn:
                 conn.execute(
-                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) VALUES (?, ?, ?, ?, ?)",
                     (
                         ts,
                         json.dumps(analysis["summary"]),
                         json.dumps(analysis["ds_channels"]),
                         json.dumps(analysis["us_channels"]),
+                        int(is_demo),
                     ),
                 )
             log.debug("Snapshot saved: %s", ts)

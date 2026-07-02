@@ -224,12 +224,12 @@ class DemoCollector(Collector):
 
         # Web state + persistent storage
         self._web.update_state(analysis=analysis)
-        self._storage.save_snapshot(analysis)
+        self._storage.save_snapshot(analysis, is_demo=True)
 
         # Event detection
         events = self._event_detector.check(analysis)
         if events:
-            self._storage.save_events_with_ids(events)
+            self._storage.save_events_with_ids(events, is_demo=True)
             log.info("Demo: detected %d event(s)", len(events))
             if self._notifier:
                 self._notifier.dispatch(events)
