@@ -8,13 +8,13 @@
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <link rel="apple-touch-icon" href="/static/icon.png">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/fonts.css">
-    <link rel="stylesheet" href="/static/css/tokens.css">
-    <link rel="stylesheet" href="/static/css/components.css">
-    <link rel="stylesheet" href="/static/css/modals.css">
-    <link rel="stylesheet" href="/static/css/settings.css">
+    <link rel="stylesheet" href="/static/css/fonts.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/modals.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/settings.css?v={{ version|urlencode }}">
     {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
-    <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
+    <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css?v={{ version|urlencode }}">
     {% endfor %}
     {% if active_theme_data %}
     <style id="theme-module-vars">
@@ -30,7 +30,7 @@
     }
     </style>
     {% endif %}
-    <script src="/static/vendor/lucide.min.js"></script>
+    <script src="/static/vendor/lucide.min.js?v={{ version|urlencode }}"></script>
 </head>
 <body>
 
@@ -200,12 +200,12 @@ var currentTz = '{{ config.timezone|default("", true) }}';
 try { var savedCooldowns = JSON.parse({{ config.notify_cooldowns|default("{}")|tojson }}); } catch(e) { var savedCooldowns = {}; }
 var DRIVER_HINTS = {{ driver_hints | tojson }};
 </script>
-<script src="/static/js/modals.js"></script>
-<script src="/static/js/utils.js"></script>
-<script src="/static/js/notices.js"></script>
-<script src="/static/js/settings.js"></script>
+<script src="/static/js/modals.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/utils.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/notices.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/settings.js?v={{ version|urlencode }}"></script>
 {% for mod in modules if mod.has_js %}
-<script src="/modules/{{ mod.id }}/static/main.js"></script>
+<script src="/modules/{{ mod.id }}/static/main.js?v={{ version|urlencode }}"></script>
 {% endfor %}
 
 </body>

@@ -2,6 +2,8 @@
 
 from playwright.sync_api import expect
 
+from app.web import APP_VERSION
+
 
 def test_manifest_loads_and_service_worker_can_be_enabled_for_e2e(page, live_server):
     """Local E2E should be able to opt into the same service worker path production uses."""
@@ -31,6 +33,30 @@ def test_manifest_loads_and_service_worker_can_be_enabled_for_e2e(page, live_ser
         """
     )
     assert sw_ready is True
+
+
+def test_static_js_and_css_requests_include_app_version(page, live_server):
+    """Rendered shell should version cache-first JS/CSS requests with the app version."""
+    page.goto(f"{live_server}/")
+    page.wait_for_load_state("networkidle")
+
+    offenders = page.evaluate(
+        r"""
+        (expectedVersion) => Array.from(document.querySelectorAll('script[src], link[rel="stylesheet"][href]'))
+            .map((el) => el.getAttribute('src') || el.getAttribute('href'))
+            .filter(Boolean)
+            .filter((raw) => {
+                const url = new URL(raw, window.location.origin);
+                return url.origin === window.location.origin
+                    && (url.pathname.startsWith('/static/') || url.pathname.startsWith('/modules/'))
+                    && /\.(js|css)$/.test(url.pathname)
+                    && url.searchParams.get('v') !== expectedVersion;
+            })
+        """,
+        APP_VERSION,
+    )
+
+    assert offenders == []
 
 
 def test_offline_cached_shell_is_explicitly_read_only(page, context, live_server):
