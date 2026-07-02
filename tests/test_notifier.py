@@ -198,6 +198,67 @@ class TestDiscordFormatEmbed:
 # DiscordWebhookChannel.send
 # ---------------------------------------------------------------------------
 
+class TestWebhookChannelSend:
+    @patch("app.notifier.requests.post")
+    def test_http_error_log_uses_safe_endpoint_label(self, mock_post, caplog):
+        import logging
+
+        path_marker = "SECRET-PATH-MARKER"
+        query_marker = "SECRET-QUERY-MARKER"
+        user_marker = "SECRET-USER-MARKER"
+        resp = MagicMock(status_code=500)
+        resp.url = f"https://{user_marker}@hooks.example.test:8443/{path_marker}?token={query_marker}"
+        resp.raise_for_status.side_effect = requests.HTTPError(
+            f"500 Server Error for url: {resp.url}",
+            response=resp,
+        )
+        mock_post.return_value = resp
+        channel = WebhookChannel(resp.url)
+
+        with caplog.at_level(logging.WARNING, logger="docsis.notifier"):
+            assert channel.send({
+                "source": "docsight",
+                "timestamp": "2026-07-01T00:00:00Z",
+                "severity": "critical",
+                "event_type": "test",
+                "message": "x",
+                "details": {},
+            }) is False
+
+        assert caplog.records[0].args[0] == "https://hooks.example.test:8443"
+        assert "HTTPError" in caplog.text
+        assert path_marker not in caplog.text
+        assert query_marker not in caplog.text
+        assert user_marker not in caplog.text
+        assert resp.url not in caplog.text
+
+    @patch("app.notifier.requests.post")
+    def test_network_exception_log_does_not_include_exception_text_url(self, mock_post, caplog):
+        import logging
+
+        path_marker = "SECRET-NTFY-TOPIC"
+        query_marker = "SECRET-QUERY-MARKER"
+        url = f"https://ntfy.sh/{path_marker}?token={query_marker}"
+        mock_post.side_effect = requests.ConnectionError(f"failed to connect to {url}")
+        channel = WebhookChannel(url)
+
+        with caplog.at_level(logging.WARNING, logger="docsis.notifier"):
+            assert channel.send({
+                "source": "docsight",
+                "timestamp": "2026-07-01T00:00:00Z",
+                "severity": "warning",
+                "event_type": "test",
+                "message": "x",
+                "details": {},
+            }) is False
+
+        assert caplog.records[0].args[0] == "https://ntfy.sh"
+        assert "ConnectionError" in caplog.text
+        assert path_marker not in caplog.text
+        assert query_marker not in caplog.text
+        assert url not in caplog.text
+
+
 class TestDiscordWebhookSend:
     @patch("app.notifier.requests.post")
     def test_send_posts_embed_payload(self, mock_post):
@@ -504,6 +565,34 @@ class TestDispatcherChannelSetup:
         }
         assert "secret-token-123" not in result.get("error", "")
         assert "internal/path" not in result.get("error", "")
+
+    def test_dispatch_logs_unexpected_channel_exception_without_secret_text(self, monkeypatch, caplog):
+        import logging
+
+        secret_marker = "SECRET-DISPATCH-TOKEN"
+
+        class BrokenChannel:
+            def send(self, payload):
+                raise RuntimeError(f"failed to post https://hooks.example.test/{secret_marker}")
+
+        dispatcher = NotificationDispatcher(self._make_config(None))
+        monkeypatch.setattr(dispatcher, "_get_channels", lambda: [BrokenChannel()])
+
+        with caplog.at_level(logging.WARNING, logger="docsis.notifier"):
+            dispatcher.dispatch([
+                {
+                    "timestamp": "2026-07-01T00:00:00Z",
+                    "severity": "critical",
+                    "event_type": "test",
+                    "message": "x",
+                    "details": {},
+                },
+            ])
+
+        assert "BrokenChannel" in caplog.text
+        assert "RuntimeError" in caplog.text
+        assert secret_marker not in caplog.text
+        assert "hooks.example.test" not in caplog.text
 
 
 class TestDispatcherSeverityCooldowns:

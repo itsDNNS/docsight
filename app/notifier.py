@@ -7,7 +7,7 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 import requests
 
 try:
@@ -42,6 +42,26 @@ DISCORD_SEVERITY_COLORS = {
 }
 
 
+def _safe_endpoint_label(url: str) -> str:
+    """Return a log-safe endpoint label with scheme, host, and optional port only."""
+
+    try:
+        parsed = urlsplit(str(url or ""))
+    except ValueError:
+        return "webhook endpoint"
+    if not parsed.scheme or not parsed.hostname:
+        return "webhook endpoint"
+    host = parsed.hostname
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    try:
+        port = parsed.port
+    except ValueError:
+        port = None
+    port_label = f":{port}" if port is not None else ""
+    return f"{parsed.scheme}://{host}{port_label}"
+
+
 class NotificationChannel(ABC):
     """Base class for notification channels."""
 
@@ -55,6 +75,7 @@ class WebhookChannel(NotificationChannel):
 
     def __init__(self, url, headers=None):
         self._url = url
+        self._log_label = _safe_endpoint_label(url)
         self._headers = {"Content-Type": "application/json"}
         if headers:
             self._headers.update(headers)
@@ -69,8 +90,17 @@ class WebhookChannel(NotificationChannel):
             )
             r.raise_for_status()
             return True
+        except requests.HTTPError as e:
+            status = e.response.status_code if e.response is not None else "unknown"
+            log.warning(
+                "Webhook POST failed (%s): HTTP %s (%s)",
+                self._log_label,
+                status,
+                type(e).__name__,
+            )
+            return False
         except Exception as e:
-            log.warning("Webhook POST failed (%s): %s", self._url, e)
+            log.warning("Webhook POST failed (%s): %s", self._log_label, type(e).__name__)
             return False
 
 
@@ -395,7 +425,7 @@ class NotificationDispatcher:
                 except Exception as e:
                     log.warning(
                         "Notification failed (%s): %s",
-                        type(channel).__name__, e,
+                        type(channel).__name__, type(e).__name__,
                     )
 
     def _should_send(self, event) -> bool:
