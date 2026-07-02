@@ -190,6 +190,9 @@ _UPDATE_CACHE_TTL = 3600  # 1 hour
 
 def _check_for_update():
     """Return cached update info. Triggers background check if stale."""
+    update_checks_enabled = getattr(_config_manager, "is_update_check_enabled", None)
+    if not callable(update_checks_enabled) or not update_checks_enabled():
+        return None
     now = time.time()
     if now - _update_cache["checked_at"] < _UPDATE_CACHE_TTL:
         return _update_cache["latest"]

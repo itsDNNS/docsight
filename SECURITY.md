@@ -52,7 +52,7 @@ DOCSight is designed to run **100% locally** on your network:
 
 The [data contract](DATA_CONTRACT.md) defines which files are local user data, which files are system-owned, which generated artifacts can contain private information, and which fields require redaction before sharing exports or diagnostics.
 
-### Maintainer notices and privacy
+### Maintainer notices and release checks
 
 DOCSight can show maintainer notices for important project, upgrade, or safety information. These notices are designed for self-hosted environments and follow the same local-first privacy model as the rest of DOCSight.
 
@@ -63,6 +63,13 @@ Current notice behavior:
 - Dismissals are stored locally in the DOCSight configuration by stable notice ID.
 - Showing or dismissing a notice does not send telemetry, analytics, modem data, logs, credentials, tokens, configuration, usage information, or an installation ID anywhere.
 - DOCSight does not fetch a remote notice feed or render remote HTML for maintainer notices.
+
+Release update checks are also local-first and operator-controlled:
+
+- `update_check_enabled` / `UPDATE_CHECK_ENABLED` controls whether DOCSight checks the public GitHub Releases API for newer DOCSight versions.
+- Release update checks are disabled by default.
+- When enabled, the check fetches public release metadata only; it does not upload telemetry, analytics, modem data, logs, credentials, configuration, usage information, or an installation ID.
+- If GitHub is offline or unreachable, the check fails silently and the local instance remains usable.
 
 If a remote notice feed is added in a future release, it must preserve the self-hosted trust model:
 

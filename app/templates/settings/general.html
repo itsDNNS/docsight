@@ -32,6 +32,32 @@
         </div>
     </div>
 
+    <!-- Release Update Checks Card -->
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon purple">
+                    <i data-lucide="refresh-cw"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t.get('release_update_checks', 'Release update checks') }}</div>
+                    <div class="card-subtitle">{{ t.get('release_update_checks_desc', 'Control outbound checks for new DOCSight releases') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-info">
+                <span class="toggle-title">{{ t.get('release_update_checks_toggle', 'Check GitHub releases') }}</span>
+                <span class="toggle-desc">{{ t.get('release_update_checks_hint', 'When enabled, DOCSight checks the public GitHub releases API for newer versions. This is disabled by default and does not upload modem data, logs, credentials, analytics, or an installation ID.') }}</span>
+            </div>
+            <input type="hidden" name="update_check_enabled" value="false">
+            <label class="toggle">
+                <input type="checkbox" id="update_check_enabled" name="update_check_enabled" value="true" {% if config.update_check_enabled %}checked{% endif %}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+
     <!-- Localization Card -->
     <div class="settings-card glass">
         <div class="card-header">

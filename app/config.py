@@ -48,6 +48,7 @@ DEFAULTS = {
     "isp_name": "",
     "admin_password": "",
     "dismissed_notice_ids": [],
+    "update_check_enabled": False,
     "demo_mode": False,
     "gaming_quality_enabled": True,
     "segment_utilization_enabled": True,
@@ -120,6 +121,7 @@ ENV_MAP = {
     "booked_download": "BOOKED_DOWNLOAD",
     "booked_upload": "BOOKED_UPLOAD",
     "demo_mode": "DEMO_MODE",
+    "update_check_enabled": "UPDATE_CHECK_ENABLED",
     "gaming_quality_enabled": "GAMING_QUALITY_ENABLED",
     "segment_utilization_enabled": "SEGMENT_UTILIZATION_ENABLED",
     "bnetz_enabled": "BNETZ_ENABLED",
@@ -184,7 +186,7 @@ INT_KEYS = {"poll_interval", "web_port", "history_days", "booked_download", "boo
             "sc_speedtest_min_interval", "sc_speedtest_max_actions_per_day", "sc_speedtest_match_window",
             "sc_flapping_window", "sc_flapping_threshold",
             "sc_trigger_error_spike_min_delta"}
-BOOL_KEYS = {"demo_mode", "gaming_quality_enabled", "segment_utilization_enabled", "notify_apprise_enabled",
+BOOL_KEYS = {"demo_mode", "update_check_enabled", "gaming_quality_enabled", "segment_utilization_enabled", "notify_apprise_enabled",
              "notify_pwa_push_enabled",
              "speedtest_tls_insecure", "sc_enabled", "sc_trigger_modulation", "sc_trigger_snr",
              "sc_trigger_error_spike", "sc_trigger_health", "sc_trigger_packet_loss"}
@@ -407,6 +409,10 @@ class ConfigManager:
     def is_demo_mode(self):
         """True if DEMO_MODE is enabled."""
         return bool(self.get("demo_mode"))
+
+    def is_update_check_enabled(self):
+        """True if release update checks against GitHub are enabled."""
+        return self._get_bool("update_check_enabled")
 
     def is_mqtt_configured(self):
         """True if mqtt_host is set (MQTT is optional)."""

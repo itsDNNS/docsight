@@ -180,14 +180,19 @@ Real monitored data comes from the user's modem, router, configured integrations
 
 Switching from Demo mode to live mode should preserve user-created journal entries and incidents where the product promises that behavior, while allowing demo-seeded monitoring rows to be removed cleanly.
 
-## Future optional remote behavior
+## Optional remote behavior
 
-Any future optional remote behavior must be explicit opt-in, disabled by default, and must preserve local operation when disabled.
+Optional remote behavior must be explicit opt-in, disabled by default, and must preserve local operation when disabled.
 
-Future remote behavior must also follow these constraints:
+Current optional remote behavior:
+
+- **Release update checks** are controlled by `update_check_enabled` / `UPDATE_CHECK_ENABLED` and are disabled by default. When enabled, DOCSight checks the public GitHub Releases API for the latest DOCSight release tag. It does not upload modem data, logs, credentials, tokens, reports, analytics, or an installation ID.
+- **Module and theme registries** are only fetched from the Settings extension/theme management surfaces using the configured registry URLs. Installed registry URLs, selected IDs, and downloaded files stay within the local installation boundary.
+
+All optional remote behavior must follow these constraints:
 
 - It must clearly explain what is fetched or sent before enablement.
-- It must not upload private payloads, identifiers, analytics, modem data, logs, credentials, tokens, reports, or installation IDs as a side effect of checking for updates or notices.
+- It must not upload private payloads, identifiers, analytics, modem data, logs, credentials, tokens, reports, or installation IDs as a side effect of checking for updates, notices, registries, or other optional remote sources.
 - It must not render remote HTML, untrusted Markdown, scripts, or tracking pixels inside the app.
 - It must fail safely when offline or unavailable so local monitoring, local history, and local exports continue to work.
 - It must have tests for opt-in behavior, disabled-by-default behavior, and redaction of any shareable payload.
