@@ -3,6 +3,8 @@
 import logging
 import sqlite3
 
+from app.storage.sqlite import connect_sqlite
+
 from app.tz import utc_now
 
 log = logging.getLogger("docsis.storage.journal")
@@ -21,7 +23,7 @@ class JournalStorage:
 
     def _ensure_table(self):
         """Create the journal tables if they don't exist."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS journal_entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +73,7 @@ class JournalStorage:
 
     def _connect(self):
         """Return a connection with foreign keys enabled."""
-        conn = sqlite3.connect(self.db_path)
+        conn = connect_sqlite(self.db_path)
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 

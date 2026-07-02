@@ -1,6 +1,8 @@
 """Segment utilization storage (standalone, not a core mixin)."""
 
 import sqlite3
+
+from app.storage.sqlite import connect_sqlite
 import threading
 from datetime import datetime, timedelta, timezone
 
@@ -48,7 +50,7 @@ class SegmentUtilizationStorage:
         self._ensure_table()
 
     def _ensure_table(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = connect_sqlite(self.db_path)
         try:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS segment_utilization (
@@ -88,7 +90,7 @@ class SegmentUtilizationStorage:
             conn.close()
 
     def _connect(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = connect_sqlite(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
 

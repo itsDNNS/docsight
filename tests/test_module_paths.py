@@ -37,4 +37,15 @@ def test_container_prepares_community_module_storage():
     assert "mkdir -p /data/modules /modules" in dockerfile
     assert "chown -R appuser:appuser /data /modules" in dockerfile
     assert "mkdir -p /data/modules" in entrypoint
-    assert "chown -R appuser:appuser /data" in entrypoint
+    assert "chown appuser:appuser /data/modules" in entrypoint
+    assert "repair_owner_if_needed /data" in entrypoint
+    assert "stat -c '%u:%g'" in entrypoint
+    assert 'chown -R appuser:appuser "$target"' in entrypoint
+
+
+def test_docker_healthcheck_uses_configured_web_port():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "os.environ.get('WEB_PORT', '8765')" in dockerfile
+    assert "http://localhost:{port}/health" in dockerfile
+    assert "localhost:8765/health" not in dockerfile

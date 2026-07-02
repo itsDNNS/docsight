@@ -7,6 +7,8 @@ import math
 import os
 import random
 import sqlite3
+
+from app.storage.sqlite import connect_sqlite
 import struct
 import time
 import zlib
@@ -290,7 +292,7 @@ class DemoCollector(Collector):
             ))
 
         # Bulk insert for speed
-        with sqlite3.connect(self._storage.db_path) as conn:
+        with connect_sqlite(self._storage.db_path) as conn:
             conn.executemany(
                 "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo) "
                 "VALUES (?, ?, ?, ?, ?)",
@@ -826,7 +828,7 @@ class DemoCollector(Collector):
 
         # Bulk insert with is_demo=1 directly (save_speedtest_results doesn't support is_demo)
         if results:
-            with sqlite3.connect(self._storage.db_path) as conn:
+            with connect_sqlite(self._storage.db_path) as conn:
                 conn.executemany(
                     "INSERT OR IGNORE INTO speedtest_results "
                     "(id, timestamp, download_mbps, upload_mbps, download_human, "
@@ -854,7 +856,7 @@ class DemoCollector(Collector):
             date = (now - timedelta(days=d)).strftime("%Y-%m-%d")
             ts = (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%SZ")
             png = self._generate_bqm_png(seed=d)
-            with sqlite3.connect(self._storage.db_path) as conn:
+            with connect_sqlite(self._storage.db_path) as conn:
                 conn.execute(
                     "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob, is_demo) "
                     "VALUES (?, ?, ?, 1)",
@@ -942,7 +944,7 @@ class DemoCollector(Collector):
                 1,                    # is_demo
             ))
 
-        with sqlite3.connect(self._storage.db_path) as conn:
+        with connect_sqlite(self._storage.db_path) as conn:
             conn.executemany(
                 "INSERT INTO bnetz_measurements "
                 "(date, timestamp, provider, tariff, "
@@ -976,8 +978,7 @@ class DemoCollector(Collector):
                     "timestamp": ts.strftime("%Y-%m-%d %H:%M:%SZ"),
                     "temperature": temp,
                 })
-        import sqlite3 as _sqlite3
-        with _sqlite3.connect(self._storage.db_path) as conn:
+        with connect_sqlite(self._storage.db_path) as conn:
             conn.executemany(
                 "INSERT OR IGNORE INTO weather_data "
                 "(timestamp, temperature, is_demo) VALUES (?, ?, 1)",

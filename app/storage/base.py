@@ -3,6 +3,8 @@
 import logging
 import os
 import sqlite3
+
+from .sqlite import connect_sqlite
 from contextlib import contextmanager
 
 
@@ -212,7 +214,7 @@ class StorageBase:
     @contextmanager
     def _connect(self):
         """Yield a connection with foreign keys enabled and close it afterwards."""
-        conn = sqlite3.connect(self.db_path)
+        conn = connect_sqlite(self.db_path)
         conn.execute("PRAGMA foreign_keys = ON")
         try:
             yield conn

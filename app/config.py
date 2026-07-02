@@ -47,6 +47,7 @@ DEFAULTS = {
     "temperature_unit": "celsius",
     "isp_name": "",
     "admin_password": "",
+    "metrics_require_token": False,
     "dismissed_notice_ids": [],
     "update_check_enabled": False,
     "demo_mode": False,
@@ -114,6 +115,7 @@ ENV_MAP = {
     "history_days": "HISTORY_DAYS",
     "data_dir": "DATA_DIR",
     "admin_password": "ADMIN_PASSWORD",
+    "metrics_require_token": "METRICS_REQUIRE_TOKEN",
     "bqm_url": "BQM_URL",
     "speedtest_tracker_url": "SPEEDTEST_TRACKER_URL",
     "speedtest_tracker_token": "SPEEDTEST_TRACKER_TOKEN",
@@ -187,7 +189,7 @@ INT_KEYS = {"poll_interval", "web_port", "history_days", "booked_download", "boo
             "sc_flapping_window", "sc_flapping_threshold",
             "sc_trigger_error_spike_min_delta"}
 BOOL_KEYS = {"demo_mode", "update_check_enabled", "gaming_quality_enabled", "segment_utilization_enabled", "notify_apprise_enabled",
-             "notify_pwa_push_enabled",
+             "notify_pwa_push_enabled", "metrics_require_token",
              "speedtest_tls_insecure", "sc_enabled", "sc_trigger_modulation", "sc_trigger_snr",
              "sc_trigger_error_spike", "sc_trigger_health", "sc_trigger_packet_loss"}
 

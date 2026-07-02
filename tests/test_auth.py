@@ -1,12 +1,20 @@
 """Tests for web UI authentication."""
 
 import json
+import re
 import sqlite3
 import pytest
 from werkzeug.security import generate_password_hash
-from app.web import app, update_state, init_config, init_storage
+from app.web import app, update_state, init_config, init_storage, _login_attempts, _LOGIN_MAX_TRACKED_IPS
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
+
+
+def _login_csrf(client):
+    resp = client.get("/login")
+    match = re.search(rb'name="csrf_token" value="([^"]+)"', resp.data)
+    assert match, "login form should include a CSRF token"
+    return match.group(1).decode("utf-8")
 
 
 @pytest.fixture
@@ -95,22 +103,22 @@ class TestAuthEnabled:
         assert b"DOCSight" in resp.data
 
     def test_login_wrong_password(self, auth_client):
-        resp = auth_client.post("/login", data={"password": "wrong"})
+        resp = auth_client.post("/login", data={"password": "wrong", "csrf_token": _login_csrf(auth_client)})
         assert resp.status_code == 200  # stays on login page
 
     def test_login_correct_password(self, auth_client):
-        resp = auth_client.post("/login", data={"password": "secret123"}, follow_redirects=False)
+        resp = auth_client.post("/login", data={"password": "secret123", "csrf_token": _login_csrf(auth_client)}, follow_redirects=False)
         assert resp.status_code == 302
         assert resp.headers["Location"] == "/"
 
     def test_session_persists(self, auth_client):
-        auth_client.post("/login", data={"password": "secret123"})
+        auth_client.post("/login", data={"password": "secret123", "csrf_token": _login_csrf(auth_client)})
         update_state(analysis={"summary": {"ds_total": 1, "us_total": 1, "ds_power_min": 0, "ds_power_max": 0, "ds_power_avg": 0, "us_power_min": 0, "us_power_max": 0, "us_power_avg": 0, "ds_snr_min": 0, "ds_snr_avg": 0, "ds_correctable_errors": 0, "ds_uncorrectable_errors": 0, "health": "good", "health_issues": []}, "ds_channels": [], "us_channels": []})
         resp = auth_client.get("/")
         assert resp.status_code == 200
 
     def test_logout(self, auth_client):
-        auth_client.post("/login", data={"password": "secret123"})
+        auth_client.post("/login", data={"password": "secret123", "csrf_token": _login_csrf(auth_client)})
         auth_client.get("/logout")
         resp = auth_client.get("/")
         assert resp.status_code == 302
@@ -141,12 +149,28 @@ class TestAuthEnabled:
         assert stored != "secret123"
         assert stored.startswith(("scrypt:", "pbkdf2:"))
 
+    def test_login_rejects_missing_csrf_token(self, auth_client):
+        resp = auth_client.post("/login", data={"password": "secret123"})
+        assert resp.status_code == 400
+
+    def test_login_rejects_non_ascii_csrf_token_without_crashing(self, auth_client):
+        resp = auth_client.post("/login", data={"password": "secret123", "csrf_token": "ü"})
+        assert resp.status_code == 400
+
+    def test_login_attempt_tracking_is_bounded(self):
+        _login_attempts.clear()
+        for idx in range(_LOGIN_MAX_TRACKED_IPS + 25):
+            _login_attempts[f"198.51.100.{idx}"] = [idx + 1.0]
+        from app.web import _prune_login_attempts
+        _prune_login_attempts(now=10_000.0)
+        assert len(_login_attempts) <= _LOGIN_MAX_TRACKED_IPS
+
 
 class TestApiTokenAuth:
     """Tests for API token (Bearer) authentication."""
 
     def _login(self, client):
-        client.post("/login", data={"password": "secret123"})
+        client.post("/login", data={"password": "secret123", "csrf_token": _login_csrf(client)})
 
     def test_create_token_requires_session(self, auth_client_with_storage):
         """Token creation without session returns 401."""

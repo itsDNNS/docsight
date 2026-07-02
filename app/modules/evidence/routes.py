@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 import os
 import sqlite3
+
+from app.storage.sqlite import connect_sqlite
 from datetime import datetime, timezone
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -77,7 +79,7 @@ def _normalise_window_ts(value: str, tz_name: str) -> str:
 
 def _get_journal_entries_for_window(db_path: str, start_ts: str, end_ts: str) -> list[dict[str, Any]]:
     start_date, end_date = _local_date_bounds_for_window(start_ts, end_ts, _get_tz_name())
-    with sqlite3.connect(db_path) as conn:
+    with connect_sqlite(db_path) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT id, date, title, description, icon, incident_id, created_at, updated_at "
@@ -142,7 +144,7 @@ def _get_connection_latency_rows(start_ts: str, end_ts: str) -> list[dict[str, A
     end_epoch = _utc_ts_to_epoch(end_ts)
     rows: list[dict[str, Any]] = []
     try:
-        with sqlite3.connect(db_path) as conn:
+        with connect_sqlite(db_path) as conn:
             conn.row_factory = sqlite3.Row
             raw = conn.execute(
                 """
