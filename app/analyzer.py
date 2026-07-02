@@ -17,6 +17,8 @@ log = logging.getLogger("docsis.analyzer")
 
 # --- Dynamic thresholds (set by module loader) ---
 _thresholds = {}
+ANALYZER_SCHEMA_VERSION = 1
+_threshold_profile = {"id": None, "version": None}
 
 # Hardcoded fallback (VFKD values) used if no threshold profile is loaded
 _FALLBACK_THRESHOLDS = {
@@ -45,11 +47,26 @@ _FALLBACK_THRESHOLDS = {
 }
 
 
-def set_thresholds(data: dict[str, object]) -> None:
+def set_thresholds(
+    data: dict[str, object],
+    *,
+    profile_id: str | None = None,
+    profile_version: str | None = None,
+) -> None:
     """Set thresholds from a loaded threshold profile."""
-    global _thresholds
+    global _thresholds, _threshold_profile
     _thresholds = data
+    _threshold_profile = {"id": profile_id, "version": profile_version}
     log.info("Thresholds updated (%d sections)", len(data))
+
+
+def get_analysis_metadata(app_version: str | None = None) -> dict[str, object]:
+    """Return provenance metadata for newly persisted analysis snapshots."""
+    return {
+        "analyzer_schema": ANALYZER_SCHEMA_VERSION,
+        "app_version": app_version,
+        "threshold_profile": dict(_threshold_profile),
+    }
 
 
 def _t():

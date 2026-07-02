@@ -261,6 +261,7 @@ class AnalysisResult(TypedDict):
     summary: AnalysisSummary
     ds_channels: list[DownstreamChannel]
     us_channels: list[UpstreamChannel]
+    analysis_meta: NotRequired[dict[str, Any] | None]
 
 
 # ── Event Types ──────────────────────────────────────────────────

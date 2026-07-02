@@ -7,7 +7,6 @@ import os
 import re
 import secrets
 import stat
-import subprocess
 import threading
 import time
 from datetime import datetime, timedelta
@@ -27,6 +26,7 @@ from .gaming_index import compute_gaming_index
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name as _get_public_tz_name, to_local as _to_local
+from .version import get_app_version
 
 _IANA_REGIONS = {"Africa", "America", "Antarctica", "Arctic", "Asia",
                  "Atlantic", "Australia", "Europe", "Indian", "Pacific"}
@@ -204,27 +204,7 @@ def _valid_login_csrf_token(candidate):
         and secrets.compare_digest(token.encode("utf-8"), candidate.encode("utf-8"))
     )
 
-def _get_version():
-    """Get version from VERSION file, git tag, or fall back to 'dev'."""
-    # 1. Check VERSION file (written during Docker build)
-    for vpath in ("/app/VERSION", os.path.join(os.path.dirname(__file__), "..", "VERSION")):
-        try:
-            with open(vpath) as f:
-                v = f.read().strip()
-                if v:
-                    return v
-        except FileNotFoundError:
-            pass
-    # 2. Try git
-    try:
-        return subprocess.check_output(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            stderr=subprocess.DEVNULL, text=True
-        ).strip()
-    except Exception:
-        return "dev"
-
-APP_VERSION = _get_version()
+APP_VERSION = get_app_version()
 
 # GitHub update check (background, never blocks page loads)
 _update_cache = {"latest": None, "checked_at": 0, "checking": False}

@@ -891,7 +891,11 @@ class ModuleLoader:
             else:
                 tdata = mod.thresholds_data
                 validate_thresholds(tdata)
-            _analyzer.set_thresholds(tdata)
+            _analyzer.set_thresholds(
+                tdata,
+                profile_id=mod.id,
+                profile_version=mod.version,
+            )
             log.info("Module '%s': loaded threshold profile", mod.id)
 
         # Theme
