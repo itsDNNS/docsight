@@ -1,7 +1,9 @@
 """Tests for web UI authentication."""
 
 import json
+import sqlite3
 import pytest
+from werkzeug.security import generate_password_hash
 from app.web import app, update_state, init_config, init_storage
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
@@ -184,6 +186,91 @@ class TestApiTokenAuth:
         assert resp.status_code == 401
         data = resp.get_json()
         assert "error" in data
+
+    def test_token_validation_filters_by_prefix_before_hash_check(self, storage, monkeypatch):
+        """Token validation should hash-check only rows with the presented token prefix."""
+        bearer = "dsk_match1"
+        checked_hashes = []
+
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(
+                "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at, revoked) VALUES (?, ?, ?, ?, 0)",
+                ("wrong-prefix", "wrong-prefix-hash", "dsk_nope", "2026-01-01T00:00:00Z"),
+            )
+            conn.execute(
+                "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at, revoked) VALUES (?, ?, ?, ?, 0)",
+                ("match", "match-hash", bearer[:8], "2026-01-01T00:00:00Z"),
+            )
+            conn.execute(
+                "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at, revoked) VALUES (?, ?, ?, ?, 1)",
+                ("revoked-match", "revoked-hash", bearer[:8], "2026-01-01T00:00:00Z"),
+            )
+
+        def fake_check_password_hash(stored_hash, presented_token):
+            checked_hashes.append(stored_hash)
+            assert presented_token == bearer
+            return stored_hash == "match-hash"
+
+        monkeypatch.setattr("app.storage.tokens.check_password_hash", fake_check_password_hash)
+
+        token_info = storage.validate_api_token(bearer)
+
+        assert token_info is not None
+        assert token_info["name"] == "match"
+        assert checked_hashes == ["match-hash"]
+
+    def test_token_validation_throttles_recent_last_used_writes(self, storage, monkeypatch):
+        """A frequently used token remains valid without writing last_used_at every request."""
+        bearer = "dsk_throt1"
+        previous_last_used = "2026-01-01T00:00:30Z"
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(
+                "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at, last_used_at, revoked) "
+                "VALUES (?, ?, ?, ?, ?, 0)",
+                (
+                    "recent",
+                    generate_password_hash(bearer),
+                    bearer[:8],
+                    "2026-01-01T00:00:00Z",
+                    previous_last_used,
+                ),
+            )
+
+        monkeypatch.setattr("app.storage.tokens.utc_now", lambda: "2026-01-01T00:01:00Z")
+
+        token_info = storage.validate_api_token(bearer)
+
+        assert token_info is not None
+        with sqlite3.connect(storage.db_path) as conn:
+            last_used_at = conn.execute(
+                "SELECT last_used_at FROM api_tokens WHERE token_prefix = ?", (bearer[:8],)
+            ).fetchone()[0]
+        assert last_used_at == previous_last_used
+
+    def test_token_validation_updates_stale_last_used(self, storage, monkeypatch):
+        """last_used_at still refreshes after the throttle window."""
+        bearer = "dsk_stale1"
+        with sqlite3.connect(storage.db_path) as conn:
+            conn.execute(
+                "INSERT INTO api_tokens (name, token_hash, token_prefix, created_at, last_used_at, revoked) "
+                "VALUES (?, ?, ?, ?, ?, 0)",
+                (
+                    "stale",
+                    generate_password_hash(bearer),
+                    bearer[:8],
+                    "2026-01-01T00:00:00Z",
+                    "2026-01-01T00:00:00Z",
+                ),
+            )
+
+        monkeypatch.setattr("app.storage.tokens.utc_now", lambda: "2026-01-01T00:01:01Z")
+
+        assert storage.validate_api_token(bearer) is not None
+        with sqlite3.connect(storage.db_path) as conn:
+            last_used_at = conn.execute(
+                "SELECT last_used_at FROM api_tokens WHERE token_prefix = ?", (bearer[:8],)
+            ).fetchone()[0]
+        assert last_used_at == "2026-01-01T00:01:01Z"
 
     def test_revoked_token_rejected(self, auth_client_with_storage):
         """A revoked token is no longer accepted."""
