@@ -65,10 +65,10 @@ class TestParseFloat:
         assert _parse_float("-7.2") == -7.2
 
     def test_none(self):
-        assert _parse_float(None) == 0.0
+        assert _parse_float(None) is None
 
     def test_empty_string(self):
-        assert _parse_float("") == 0.0
+        assert _parse_float("") is None
 
     def test_custom_default(self):
         assert _parse_float("bad", default=-1.0) == -1.0
