@@ -82,6 +82,7 @@ class StorageBase:
                     summary_json TEXT NOT NULL,
                     ds_channels_json TEXT NOT NULL,
                     us_channels_json TEXT NOT NULL,
+                    raw_json TEXT,
                     analysis_meta_json TEXT
                 )
             """)
@@ -137,8 +138,11 @@ class StorageBase:
                 if "analysis_meta_json" not in cols:
                     conn.execute("ALTER TABLE snapshots ADD COLUMN analysis_meta_json TEXT")
                     log.info("Migration: added analysis_meta_json column to snapshots")
+                if "raw_json" not in cols:
+                    conn.execute("ALTER TABLE snapshots ADD COLUMN raw_json TEXT")
+                    log.info("Migration: added raw_json column to snapshots")
             except Exception as e:
-                log.warning("Failed to add analysis_meta_json to snapshots: %s", e)
+                log.warning("Failed to add optional snapshot metadata columns: %s", e)
 
             # ── Weather data table ──
             conn.execute("""

@@ -6,10 +6,10 @@ import json
 import logging
 import sqlite3
 from datetime import timedelta
-from typing import cast
+from typing import Any, cast
 
 from ..analyzer import get_analysis_metadata
-from ..types import AnalysisResult
+from ..types import AnalysisResult, DocsisData
 from ..tz import _parse_utc, local_date_to_utc_range, utc_cutoff, utc_now
 from ..version import get_available_app_version
 from .error_counters import unwrap_uint32_counter_series
@@ -19,6 +19,17 @@ _SUMMARY_ERROR_KEYS = ("ds_correctable_errors", "ds_uncorrectable_errors")
 _LONGEST_TREND_RANGE_DAYS = 90
 _UNWRAP_PRE_RANGE_ANCHOR_DAYS = 2
 _UNWRAP_ANCHOR_DAYS = _LONGEST_TREND_RANGE_DAYS + _UNWRAP_PRE_RANGE_ANCHOR_DAYS
+MAX_RAW_SNAPSHOT_BYTES = 512 * 1024
+_SENSITIVE_RAW_KEYS = {
+    "authorization",
+    "cookie",
+    "csrf",
+    "key",
+    "password",
+    "secret",
+    "session",
+    "token",
+}
 
 log = logging.getLogger("docsis.storage")
 
@@ -41,6 +52,50 @@ def _load_analysis_meta(raw: str | None) -> dict | None:
     except (json.JSONDecodeError, TypeError):
         return None
     return value if isinstance(value, dict) else None
+
+
+def _load_raw_data(raw: str | None) -> dict | None:
+    """Load optional raw snapshot evidence payload."""
+    if not raw:
+        return None
+    try:
+        value = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _redact_raw_value(value: Any) -> Any:
+    """Return a JSON-safe raw payload with obvious secret-bearing keys redacted."""
+    if isinstance(value, dict):
+        cleaned = {}
+        for key, child in value.items():
+            key_text = str(key)
+            if any(marker in key_text.lower() for marker in _SENSITIVE_RAW_KEYS):
+                cleaned[key_text] = "[REDACTED]"
+            else:
+                cleaned[key_text] = _redact_raw_value(child)
+        return cleaned
+    if isinstance(value, list):
+        return [_redact_raw_value(child) for child in value]
+    if isinstance(value, tuple):
+        return [_redact_raw_value(child) for child in value]
+    return value
+
+
+def _dump_raw_data(raw_data: DocsisData | dict[str, Any] | None) -> str | None:
+    """Serialize raw snapshot evidence when it is JSON-safe and bounded."""
+    if raw_data is None:
+        return None
+    try:
+        payload = json.dumps(_redact_raw_value(raw_data), separators=(",", ":"), sort_keys=True)
+    except (TypeError, ValueError):
+        log.warning("Skipping raw snapshot payload: payload is not JSON serializable")
+        return None
+    if len(payload.encode("utf-8")) > MAX_RAW_SNAPSHOT_BYTES:
+        log.warning("Skipping raw snapshot payload: payload exceeds %d bytes", MAX_RAW_SNAPSHOT_BYTES)
+        return None
+    return payload
 
 
 def _timestamp_in_range(
@@ -73,20 +128,27 @@ def _unwrap_anchor_start(timestamp: str) -> str:
 
 class SnapshotMethods:
 
-    def save_snapshot(self, analysis: AnalysisResult, is_demo: bool = False) -> None:
+    def save_snapshot(
+        self,
+        analysis: AnalysisResult,
+        is_demo: bool = False,
+        raw_data: DocsisData | dict[str, Any] | None = None,
+    ) -> None:
         """Save current analysis as a snapshot. Runs cleanup afterwards."""
         ts = utc_now()
         analysis_meta = get_analysis_metadata(app_version=get_available_app_version())
+        raw_json = _dump_raw_data(raw_data)
         try:
             with self._connect() as conn:
                 conn.execute(
-                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo, analysis_meta_json) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo, raw_json, analysis_meta_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
                         ts,
                         json.dumps(analysis["summary"]),
                         json.dumps(analysis["ds_channels"]),
                         json.dumps(analysis["us_channels"]),
                         int(is_demo),
+                        raw_json,
                         json.dumps(analysis_meta),
                     ),
                 )
@@ -108,7 +170,7 @@ class SnapshotMethods:
         """Load the latest stored snapshot, or None when no baseline exists."""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT summary_json, ds_channels_json, us_channels_json, analysis_meta_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
+                "SELECT summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
             ).fetchone()
         if not row:
             return None
@@ -117,13 +179,14 @@ class SnapshotMethods:
             "ds_channels": json.loads(row[1]),
             "us_channels": json.loads(row[2]),
             "analysis_meta": _load_analysis_meta(row[3]),
+            "raw_data": _load_raw_data(row[4]),
         })
 
     def get_snapshot(self, timestamp: str) -> AnalysisResult | None:
         """Load a single snapshot by timestamp. Returns analysis dict or None."""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT summary_json, ds_channels_json, us_channels_json, analysis_meta_json FROM snapshots WHERE timestamp = ?",
+                "SELECT summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots WHERE timestamp = ?",
                 (timestamp,),
             ).fetchone()
         if not row:
@@ -133,7 +196,17 @@ class SnapshotMethods:
             "ds_channels": json.loads(row[1]),
             "us_channels": json.loads(row[2]),
             "analysis_meta": _load_analysis_meta(row[3]),
+            "raw_data": _load_raw_data(row[4]),
         })
+
+    def get_snapshot_raw_data(self, timestamp: str) -> dict | None:
+        """Return the raw driver payload stored with a snapshot, if available."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT raw_json FROM snapshots WHERE timestamp = ?",
+                (timestamp,),
+            ).fetchone()
+        return _load_raw_data(row[0]) if row else None
 
     def get_range_data(self, start_ts: str, end_ts: str) -> list[dict]:
         """Get all snapshots between two ISO timestamps (inclusive)."""

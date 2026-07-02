@@ -84,6 +84,51 @@ class TestSnapshotStorage:
         assert snap is not None
         assert snap["analysis_meta"]["app_version"] is None
 
+    def test_new_snapshot_can_store_raw_payload(self, storage, sample_analysis):
+        raw_payload = {
+            "docsis": "3.1",
+            "downstream": [{"channelID": 1, "powerLevel": "3.0"}],
+            "upstream": [{"channelID": 1, "powerLevel": "42.0"}],
+        }
+
+        storage.save_snapshot(sample_analysis, raw_data=raw_payload)
+        ts = storage.get_snapshot_list()[0]
+        snap = storage.get_snapshot(ts)
+        latest = storage.get_latest_snapshot()
+
+        assert snap is not None
+        assert latest is not None
+        assert snap["raw_data"] == raw_payload
+        assert latest["raw_data"] == raw_payload
+        assert storage.get_snapshot_raw_data(ts) == raw_payload
+
+    def test_raw_payload_redacts_sensitive_keys(self, storage, sample_analysis):
+        raw_payload = {
+            "docsis": "3.1",
+            "password": "secret-value",
+            "nested": {"sessionToken": "token-value"},
+            "downstream": [],
+            "upstream": [],
+        }
+
+        storage.save_snapshot(sample_analysis, raw_data=raw_payload)
+        ts = storage.get_snapshot_list()[0]
+        raw = storage.get_snapshot_raw_data(ts)
+
+        assert raw is not None
+        assert raw["password"] == "[REDACTED]"
+        assert raw["nested"]["sessionToken"] == "[REDACTED]"
+
+    def test_oversized_raw_payload_is_not_stored(self, storage, sample_analysis, monkeypatch):
+        monkeypatch.setattr(snapshot_module, "MAX_RAW_SNAPSHOT_BYTES", 16)
+
+        storage.save_snapshot(sample_analysis, raw_data={"downstream": [{"frequency": "x" * 100}], "upstream": []})
+        ts = storage.get_snapshot_list()[0]
+        snap = storage.get_snapshot(ts)
+
+        assert snap is not None
+        assert snap["raw_data"] is None
+
     def test_old_snapshot_rows_read_with_null_analysis_metadata(self, tmp_path):
         db_path = str(tmp_path / "legacy.db")
         with sqlite3.connect(db_path) as conn:
@@ -108,6 +153,7 @@ class TestSnapshotStorage:
 
         assert snap is not None
         assert snap["analysis_meta"] is None
+        assert snap["raw_data"] is None
 
     def test_threshold_profile_change_applies_to_subsequent_snapshots(self, storage, sample_analysis, monkeypatch):
         monkeypatch.setattr(snapshot_module, "get_available_app_version", lambda: "2026.7-test")

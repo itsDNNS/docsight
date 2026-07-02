@@ -262,6 +262,7 @@ class AnalysisResult(TypedDict):
     ds_channels: list[DownstreamChannel]
     us_channels: list[UpstreamChannel]
     analysis_meta: NotRequired[dict[str, Any] | None]
+    raw_data: NotRequired[DocsisData | dict[str, Any] | None]
 
 
 # ── Event Types ──────────────────────────────────────────────────

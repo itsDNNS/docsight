@@ -205,7 +205,7 @@ class ModemCollector(Collector):
 
         # Web state + persistent storage
         self._web.update_state(analysis=analysis)
-        self._storage.save_snapshot(analysis)
+        self._storage.save_snapshot(analysis, raw_data=data)
 
         # Event detection
         events = self._event_detector.check(analysis)
