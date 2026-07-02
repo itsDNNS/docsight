@@ -1,0 +1,49 @@
+name: Full browser E2E
+
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  full-e2e:
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'full-e2e')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --require-hashes -r requirements-test.txt
+          pip install pytest-playwright==0.7.2 playwright==1.58.0
+          python -m playwright install --with-deps chromium
+
+      - name: Run full browser E2E suite
+        run: TZ=UTC python -m pytest -q tests/e2e --tb=short
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: full-e2e-artifacts
+          if-no-files-found: ignore
+          path: |
+            test-results/
+            playwright-report/
+            tests/e2e/screenshots/

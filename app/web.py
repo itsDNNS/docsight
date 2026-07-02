@@ -5,6 +5,7 @@ import logging
 import math
 import os
 import re
+import secrets
 import stat
 import subprocess
 import threading
@@ -128,6 +129,8 @@ _login_attempts = {}  # IP -> [timestamp, ...]
 _LOGIN_MAX_ATTEMPTS = 5
 _LOGIN_WINDOW = 900  # 15 min
 _LOGIN_LOCKOUT_BASE = 30  # seconds, doubles each excess attempt
+_LOGIN_MAX_TRACKED_IPS = 2048
+_LOGIN_CSRF_SESSION_KEY = "login_csrf_token"
 
 
 def _get_client_ip():
@@ -141,12 +144,32 @@ def _get_client_ip():
     return request.remote_addr or "unknown"
 
 
+def _prune_login_attempts(now=None):
+    """Drop expired and oldest login-attempt buckets to keep memory bounded."""
+    now = now or time.time()
+    expired = [ip for ip, attempts in _login_attempts.items() if not [t for t in attempts if now - t < _LOGIN_WINDOW]]
+    for ip in expired:
+        _login_attempts.pop(ip, None)
+
+    for ip, attempts in list(_login_attempts.items()):
+        _login_attempts[ip] = [t for t in attempts if now - t < _LOGIN_WINDOW]
+
+    if len(_login_attempts) <= _LOGIN_MAX_TRACKED_IPS:
+        return
+
+    oldest_first = sorted(
+        _login_attempts,
+        key=lambda ip: _login_attempts[ip][-1] if _login_attempts[ip] else 0,
+    )
+    for ip in oldest_first[: len(_login_attempts) - _LOGIN_MAX_TRACKED_IPS]:
+        _login_attempts.pop(ip, None)
+
+
 def _check_login_rate_limit(ip):
     """Return seconds until retry allowed, or 0 if not limited."""
     now = time.time()
+    _prune_login_attempts(now)
     attempts = _login_attempts.get(ip, [])
-    attempts = [t for t in attempts if now - t < _LOGIN_WINDOW]
-    _login_attempts[ip] = attempts
     if len(attempts) >= _LOGIN_MAX_ATTEMPTS:
         excess = len(attempts) - _LOGIN_MAX_ATTEMPTS
         lockout = _LOGIN_LOCKOUT_BASE * (2 ** min(excess, 8))
@@ -158,9 +181,28 @@ def _check_login_rate_limit(ip):
 
 def _record_failed_login(ip):
     """Record a failed login attempt."""
-    if ip not in _login_attempts:
-        _login_attempts[ip] = []
-    _login_attempts[ip].append(time.time())
+    now = time.time()
+    _prune_login_attempts(now)
+    _login_attempts.setdefault(ip, []).append(now)
+    _prune_login_attempts(now)
+
+
+def _get_login_csrf_token():
+    """Return the session-bound token used by the login form."""
+    token = session.get(_LOGIN_CSRF_SESSION_KEY)
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session[_LOGIN_CSRF_SESSION_KEY] = token
+    return token
+
+
+def _valid_login_csrf_token(candidate):
+    """Validate the submitted login CSRF token against the session token."""
+    token = session.get(_LOGIN_CSRF_SESSION_KEY)
+    return bool(
+        token and candidate
+        and secrets.compare_digest(token.encode("utf-8"), candidate.encode("utf-8"))
+    )
 
 def _get_version():
     """Get version from VERSION file, git tag, or fall back to 'dev'."""
@@ -619,13 +661,19 @@ def login():
     t = get_translations(lang)
     theme = _config_manager.get_theme() if _config_manager else "dark"
     error = None
+    csrf_token = _get_login_csrf_token()
     if request.method == "POST":
         ip = _get_client_ip()
+        if not _valid_login_csrf_token(request.form.get("csrf_token", "")):
+            _record_failed_login(ip)
+            audit_log.warning("Login rejected: invalid csrf token for ip=%s", ip)
+            error = t.get("login_failed", "Invalid password")
+            return render_template("login.html", t=t, lang=lang, theme=theme, error=error, csrf_token=csrf_token), 400
         wait = _check_login_rate_limit(ip)
         if wait > 0:
             audit_log.warning("Login rate-limited: ip=%s (retry in %ds)", ip, int(wait))
             error = t.get("login_rate_limited", "Too many attempts. Try again later.")
-            return render_template("login.html", t=t, lang=lang, theme=theme, error=error)
+            return render_template("login.html", t=t, lang=lang, theme=theme, error=error, csrf_token=csrf_token)
         pw = request.form.get("password", "")
         stored = _config_manager.get("admin_password", "")
         if stored.startswith(("scrypt:", "pbkdf2:")):
@@ -640,12 +688,13 @@ def login():
             _login_attempts.pop(ip, None)
             session.permanent = True
             session["authenticated"] = True
+            session.pop(_LOGIN_CSRF_SESSION_KEY, None)
             audit_log.info("Login successful: ip=%s", ip)
             return redirect("/")
         _record_failed_login(ip)
         audit_log.warning("Login failed: ip=%s", ip)
         error = t.get("login_failed", "Invalid password")
-    return render_template("login.html", t=t, lang=lang, theme=theme, error=error)
+    return render_template("login.html", t=t, lang=lang, theme=theme, error=error, csrf_token=csrf_token)
 
 
 @app.route("/logout")

@@ -18,6 +18,20 @@ TRUSTED_HOSTS = {
 }
 
 
+def safe_url_label(url: str | None) -> str:
+    """Return a log-safe endpoint label without path, query, or credentials."""
+    if not url:
+        return "<empty-url>"
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.hostname:
+            return "<invalid-url>"
+        port = f":{parsed.port}" if parsed.port else ""
+    except (TypeError, ValueError):
+        return "<invalid-url>"
+    return f"{parsed.scheme}://{parsed.hostname}{port}"
+
+
 def is_trusted_url(url: str) -> bool:
     """Check that a URL uses HTTPS and points to a trusted GitHub host."""
     try:
@@ -41,7 +55,7 @@ def fetch_registry(registry_url: str, key: str = "modules", timeout: int = 10) -
         timeout: request timeout in seconds
     """
     if not is_trusted_url(registry_url):
-        log.error("Refusing registry fetch: untrusted URL %s", registry_url)
+        log.error("Refusing registry fetch: untrusted endpoint %s", safe_url_label(registry_url))
         return []
     try:
         with urllib.request.urlopen(registry_url, timeout=timeout) as resp:
@@ -49,7 +63,7 @@ def fetch_registry(registry_url: str, key: str = "modules", timeout: int = 10) -
         entries = data.get(key, [])
         return [e for e in entries if validate_registry_entry(e)]
     except Exception as e:
-        log.warning("Failed to fetch registry from %s: %s", registry_url, e)
+        log.warning("Failed to fetch registry from %s: %s", safe_url_label(registry_url), e)
         return []
 
 
@@ -68,7 +82,7 @@ def download_github_directory(download_url: str, target_dir: str, timeout: int =
         True on success, False on failure (target_dir is cleaned up on failure)
     """
     if not is_trusted_url(download_url):
-        log.error("Refusing download: untrusted URL %s", download_url)
+        log.error("Refusing download: untrusted endpoint %s", safe_url_label(download_url))
         return False
 
     try:
@@ -93,7 +107,7 @@ def download_github_directory(download_url: str, target_dir: str, timeout: int =
             if entry_type == "file":
                 file_url = entry.get("download_url")
                 if not file_url or not is_trusted_url(file_url):
-                    log.warning("Skipping untrusted file URL: %s", file_url)
+                    log.warning("Skipping untrusted file endpoint: %s", safe_url_label(file_url))
                     continue
                 with urllib.request.urlopen(file_url, timeout=timeout) as resp:
                     with open(candidate, "wb") as f:
@@ -102,7 +116,7 @@ def download_github_directory(download_url: str, target_dir: str, timeout: int =
             elif entry_type == "dir":
                 subdir_url = entry.get("url", "")
                 if not is_trusted_url(subdir_url):
-                    log.warning("Skipping untrusted dir URL: %s", subdir_url)
+                    log.warning("Skipping untrusted dir endpoint: %s", safe_url_label(subdir_url))
                     continue
                 if not download_github_directory(subdir_url, candidate, timeout):
                     shutil.rmtree(target_dir, ignore_errors=True)
@@ -110,6 +124,6 @@ def download_github_directory(download_url: str, target_dir: str, timeout: int =
 
         return True
     except Exception as e:
-        log.error("Failed to download from %s: %s", download_url, e)
+        log.error("Failed to download from %s: %s", safe_url_label(download_url), e)
         shutil.rmtree(target_dir, ignore_errors=True)
         return False

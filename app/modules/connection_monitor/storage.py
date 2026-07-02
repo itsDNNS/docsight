@@ -4,6 +4,8 @@ import logging
 import math
 import os
 import sqlite3
+
+from app.storage.sqlite import connect_sqlite
 import time
 
 logger = logging.getLogger(__name__)
@@ -18,7 +20,7 @@ class ConnectionMonitorStorage:
         self._init_tables()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        conn = connect_sqlite(self.db_path)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
         conn.row_factory = sqlite3.Row

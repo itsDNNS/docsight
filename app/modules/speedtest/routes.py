@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify
 
 from app.web import require_auth, get_config_manager, get_state, get_storage, clear_speedtest_latest
 from app.i18n import get_translations
+from app.storage.sqlite import connect_sqlite
 
 from .client import SpeedtestClient
 from .storage import SpeedtestStorage
@@ -82,8 +83,7 @@ def _enrich_speedtest(result):
 def _annotate_smart_capture(results, db_path):
     """Annotate speedtest results with smart_capture flag."""
     try:
-        import sqlite3
-        with sqlite3.connect(db_path) as conn:
+        with connect_sqlite(db_path) as conn:
             rows = conn.execute(
                 "SELECT linked_result_id FROM smart_capture_executions "
                 "WHERE status = 'completed' AND linked_result_id IS NOT NULL"

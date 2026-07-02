@@ -4,6 +4,7 @@ import pytest
 import app.web as _web
 from app.web import app, update_state, init_config, init_storage
 from app.config import ConfigManager
+from app.storage import SnapshotStorage
 
 
 @pytest.fixture(autouse=True)
@@ -41,6 +42,14 @@ def auth_config(tmp_path):
 
 
 @pytest.fixture
+def protected_metrics_config(tmp_path):
+    """Config with token-protected metrics enabled."""
+    mgr = ConfigManager(str(tmp_path / "protected-data"))
+    mgr.save({"modem_password": "test", "modem_type": "fritzbox", "metrics_require_token": True})
+    return mgr
+
+
+@pytest.fixture
 def metrics_client(noauth_config):
     """Flask test client with no authentication configured."""
     init_config(noauth_config)
@@ -57,6 +66,18 @@ def auth_client(auth_config):
     init_storage(None)
     app.config["TESTING"] = True
     with app.test_client() as client:
+        yield client
+
+
+@pytest.fixture
+def protected_metrics_client(protected_metrics_config, tmp_path):
+    """Flask test client with token-protected metrics enabled."""
+    storage = SnapshotStorage(str(tmp_path / "metrics-tokens.db"), max_days=7)
+    init_config(protected_metrics_config)
+    init_storage(storage)
+    app.config["TESTING"] = True
+    with app.test_client() as client:
+        client._docsight_storage = storage
         yield client
 
 
@@ -164,3 +185,18 @@ class TestMetricsEndpoint:
         resp = metrics_client.get("/metrics")
         body = resp.data.decode("utf-8")
         assert "docsight_last_poll_timestamp_seconds" in body
+
+    def test_token_protection_rejects_missing_token(self, protected_metrics_client):
+        resp = protected_metrics_client.get("/metrics")
+        assert resp.status_code == 401
+        assert b"Authentication required" in resp.data
+
+    def test_token_protection_rejects_invalid_token(self, protected_metrics_client):
+        resp = protected_metrics_client.get("/metrics", headers={"Authorization": "Bearer dsk_invalid"})
+        assert resp.status_code == 401
+
+    def test_token_protection_allows_valid_token(self, protected_metrics_client):
+        _, token = protected_metrics_client._docsight_storage.create_api_token("prometheus")
+        resp = protected_metrics_client.get("/metrics", headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 200
+        assert resp.content_type == "text/plain; version=0.0.4; charset=utf-8"

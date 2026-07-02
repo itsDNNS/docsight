@@ -112,6 +112,7 @@
         <div class="error" role="alert">{{ error }}</div>
         {% endif %}
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="password" id="login-password" name="password" placeholder="{{ t.password }}" aria-label="{{ t.password }}" autofocus required>
             <button type="submit">{{ t.login_button }}</button>
         </form>

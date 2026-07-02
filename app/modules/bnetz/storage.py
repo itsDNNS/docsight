@@ -4,6 +4,8 @@ import json
 import logging
 import sqlite3
 
+from app.storage.sqlite import connect_sqlite
+
 from app.tz import utc_now
 
 log = logging.getLogger("docsis.storage.bnetz")
@@ -21,7 +23,7 @@ class BnetzStorage:
 
     def _ensure_table(self):
         """Create the bnetz_measurements table if it doesn't exist."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS bnetz_measurements ("
                 "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -63,7 +65,7 @@ class BnetzStorage:
             "download": parsed_data.get("measurements_download", []),
             "upload": parsed_data.get("measurements_upload", []),
         }
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             cur = conn.execute(
                 "INSERT INTO bnetz_measurements "
                 "(date, timestamp, provider, tariff, "
@@ -97,7 +99,7 @@ class BnetzStorage:
 
     def get_bnetz_measurements(self, limit=50):
         """Return list of BNetzA measurements (without PDF blob), newest first."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT id, date, timestamp, provider, tariff, "
@@ -124,7 +126,7 @@ class BnetzStorage:
 
     def get_bnetz_pdf(self, measurement_id):
         """Return the original PDF bytes for a BNetzA measurement, or None."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             row = conn.execute(
                 "SELECT pdf_blob FROM bnetz_measurements WHERE id = ?",
                 (measurement_id,),
@@ -133,7 +135,7 @@ class BnetzStorage:
 
     def delete_bnetz_measurement(self, measurement_id):
         """Delete a BNetzA measurement. Returns True if found."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             rowcount = conn.execute(
                 "DELETE FROM bnetz_measurements WHERE id = ?",
                 (measurement_id,),
@@ -142,7 +144,7 @@ class BnetzStorage:
 
     def get_bnetz_in_range(self, start_ts, end_ts):
         """Return BNetzA measurements within a time range, oldest first."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT id, date, timestamp, provider, tariff, "
@@ -158,7 +160,7 @@ class BnetzStorage:
 
     def get_latest_bnetz(self):
         """Return the most recent BNetzA measurement (without blob), or None."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT id, date, timestamp, provider, tariff, "

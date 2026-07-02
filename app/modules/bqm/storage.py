@@ -3,6 +3,8 @@
 import logging
 import sqlite3
 
+from app.storage.sqlite import connect_sqlite
+
 from app.tz import local_today, utc_now
 
 log = logging.getLogger("docsis.storage.bqm")
@@ -21,7 +23,7 @@ class BqmStorage:
 
     def _ensure_table(self):
         """Create the BQM tables if they don't exist."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.execute(
                 "CREATE TABLE IF NOT EXISTS bqm_graphs ("
                 "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -68,7 +70,7 @@ class BqmStorage:
         if not rows:
             return
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with connect_sqlite(self.db_path) as conn:
                 conn.execute("PRAGMA busy_timeout = 5000")
                 conn.executemany(
                     "INSERT OR IGNORE INTO bqm_data "
@@ -95,7 +97,7 @@ class BqmStorage:
             raise
 
     def _rows_for_query(self, query, params):
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
@@ -120,7 +122,7 @@ class BqmStorage:
 
     def get_csv_dates(self):
         """Return list of dates with CSV data (newest first)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT DISTINCT date FROM bqm_data ORDER BY date DESC"
             ).fetchall()
@@ -128,7 +130,7 @@ class BqmStorage:
 
     def has_csv_data(self, target_date):
         """Return True if CSV data exists for the given date."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             row = conn.execute(
                 "SELECT 1 FROM bqm_data WHERE date = ? LIMIT 1",
                 (target_date,),
@@ -140,7 +142,7 @@ class BqmStorage:
         target_date = graph_date or local_today(self.tz_name)
         ts = utc_now()
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with connect_sqlite(self.db_path) as conn:
                 conn.execute(
                     "INSERT OR IGNORE INTO bqm_graphs (date, timestamp, image_blob) VALUES (?, ?, ?)",
                     (target_date, ts, image_data),
@@ -153,7 +155,7 @@ class BqmStorage:
         """Import a BQM graph for a specific date.
         Returns: 'imported', 'skipped', or 'replaced'."""
         ts = date + "T00:00:00"
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             existing = conn.execute(
                 "SELECT 1 FROM bqm_graphs WHERE date = ?", (date,)
             ).fetchone()
@@ -173,13 +175,13 @@ class BqmStorage:
 
     def delete_bqm_graph(self, date):
         """Delete a single BQM graph. Returns True if deleted."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             cur = conn.execute("DELETE FROM bqm_graphs WHERE date = ?", (date,))
         return cur.rowcount > 0
 
     def delete_bqm_graphs_range(self, start_date, end_date):
         """Delete BQM graphs in date range (inclusive). Returns count."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             cur = conn.execute(
                 "DELETE FROM bqm_graphs WHERE date >= ? AND date <= ?",
                 (start_date, end_date),
@@ -188,13 +190,13 @@ class BqmStorage:
 
     def delete_all_bqm_graphs(self):
         """Delete all BQM graphs. Returns count."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             cur = conn.execute("DELETE FROM bqm_graphs")
         return cur.rowcount
 
     def get_bqm_dates(self):
         """Return list of dates with BQM graphs (newest first)."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             rows = conn.execute(
                 "SELECT date FROM bqm_graphs ORDER BY date DESC"
             ).fetchall()
@@ -202,7 +204,7 @@ class BqmStorage:
 
     def get_bqm_graph(self, date):
         """Return BQM graph PNG bytes for a date, or None."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             row = conn.execute(
                 "SELECT image_blob FROM bqm_graphs WHERE date = ?", (date,)
             ).fetchone()
@@ -210,7 +212,7 @@ class BqmStorage:
 
     def set_meta(self, key, value):
         """Persist a module metadata key."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.execute(
                 "INSERT INTO bqm_meta (key, value) VALUES (?, ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
@@ -219,7 +221,7 @@ class BqmStorage:
 
     def get_collection_metadata(self):
         """Return persisted BQM collection metadata."""
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             rows = conn.execute("SELECT key, value FROM bqm_meta").fetchall()
         return {key: value for key, value in rows}
 
@@ -232,7 +234,7 @@ class BqmStorage:
             "last_success_mode": mode,
             "last_success_rows": rows,
         }
-        with sqlite3.connect(self.db_path) as conn:
+        with connect_sqlite(self.db_path) as conn:
             conn.executemany(
                 "INSERT INTO bqm_meta (key, value) VALUES (?, ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
