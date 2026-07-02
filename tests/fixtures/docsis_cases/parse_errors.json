@@ -1,0 +1,48 @@
+{
+  "description": "Unparseable raw numeric strings are treated as unknown channel values.",
+  "expect": {
+    "ds_channels": [
+      {
+        "channel_id": 1,
+        "index": 0,
+        "power": null,
+        "snr": null
+      }
+    ],
+    "summary": {
+      "errors_supported": true,
+      "health": "good"
+    },
+    "us_channels": [
+      {
+        "channel_id": 2,
+        "index": 0,
+        "power": null
+      }
+    ]
+  },
+  "id": "parse_errors",
+  "raw": {
+    "docsis": "3.1",
+    "downstream": [
+      {
+        "channelID": "1",
+        "corrErrors": 0,
+        "frequency": "650 MHz",
+        "modulation": "256QAM",
+        "mse": "bad",
+        "nonCorrErrors": 0,
+        "powerLevel": "not-a-number"
+      }
+    ],
+    "upstream": [
+      {
+        "channelID": "2",
+        "frequency": "42 MHz",
+        "modulation": "64QAM",
+        "multiplex": "ATDMA",
+        "powerLevel": "bad"
+      }
+    ]
+  }
+}

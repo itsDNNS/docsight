@@ -1,0 +1,56 @@
+{
+  "description": "OFDMA upstream with very low profile modulation is surfaced as critical.",
+  "expect": {
+    "ds_channels": [
+      {
+        "channel_family": "ofdm",
+        "index": 0,
+        "snr": 40.0
+      }
+    ],
+    "summary": {
+      "health": "critical"
+    },
+    "summary_contains": {
+      "health_issues": [
+        "us_modulation_critical"
+      ]
+    },
+    "us_channels": [
+      {
+        "channel_family": "ofdma",
+        "health": "critical",
+        "index": 0,
+        "modulation_health": "critical",
+        "profile_modulation": "QPSK"
+      }
+    ]
+  },
+  "id": "us31_low_qam",
+  "raw": {
+    "docsis": "3.1",
+    "downstream": [
+      {
+        "channelID": 193,
+        "corrErrors": 0,
+        "frequency": "794 MHz",
+        "mer": "40.0",
+        "modulation": "OFDM",
+        "nonCorrErrors": 0,
+        "powerLevel": "1.0",
+        "type": "OFDM"
+      }
+    ],
+    "upstream": [
+      {
+        "channelID": 9,
+        "frequency": "37 MHz",
+        "modulation": "OFDMA",
+        "multiplex": "OFDMA",
+        "powerLevel": "43.0",
+        "profile_modulation": "QPSK",
+        "type": "OFDMA"
+      }
+    ]
+  }
+}

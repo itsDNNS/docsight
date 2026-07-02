@@ -1,0 +1,47 @@
+{
+  "description": "Missing/null signal metrics must stay null on channels instead of becoming measured zero.",
+  "expect": {
+    "ds_channels": [
+      {
+        "index": 0,
+        "power": null,
+        "snr": null
+      }
+    ],
+    "summary": {
+      "ds_correctable_errors": 0,
+      "ds_uncorrectable_errors": 0,
+      "errors_supported": true,
+      "health": "good"
+    },
+    "us_channels": [
+      {
+        "index": 0,
+        "power": null
+      }
+    ]
+  },
+  "id": "null_gaps",
+  "raw": {
+    "docsis": "3.1",
+    "downstream": [
+      {
+        "channelID": 1,
+        "corrErrors": 0,
+        "frequency": "650 MHz",
+        "modulation": "256QAM",
+        "mse": null,
+        "nonCorrErrors": 0,
+        "powerLevel": null
+      }
+    ],
+    "upstream": [
+      {
+        "channelID": 1,
+        "frequency": "42 MHz",
+        "modulation": "64QAM",
+        "multiplex": "ATDMA"
+      }
+    ]
+  }
+}

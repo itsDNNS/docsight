@@ -1,0 +1,51 @@
+{
+  "description": "DOCSIS snapshot with channel signal data but unsupported error counters.",
+  "expect": {
+    "ds_channels": [
+      {
+        "correctable_errors": null,
+        "index": 0,
+        "power": 1.5,
+        "snr": null,
+        "uncorrectable_errors": null
+      }
+    ],
+    "summary": {
+      "ds_correctable_errors": null,
+      "ds_total": 1,
+      "ds_uncorr_pct": null,
+      "ds_uncorrectable_errors": null,
+      "errors_supported": false,
+      "health": "good",
+      "us_total": 1
+    },
+    "us_channels": [
+      {
+        "index": 0,
+        "power": 43.0
+      }
+    ]
+  },
+  "id": "unsupported_counters",
+  "raw": {
+    "docsis": "3.1",
+    "downstream": [
+      {
+        "channelID": 1,
+        "frequency": "650 MHz",
+        "modulation": "256QAM",
+        "mse": "-38.5",
+        "powerLevel": "1.5"
+      }
+    ],
+    "upstream": [
+      {
+        "channelID": 1,
+        "frequency": "42 MHz",
+        "modulation": "64QAM",
+        "multiplex": "ATDMA",
+        "powerLevel": "43.0"
+      }
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "description": "Counter wrap/reset case keeps cumulative deltas from fabricating a new spike.",
+  "expect": {
+    "summary": {
+      "ds_correctable_errors": 5,
+      "ds_uncorrectable_errors": 7,
+      "health": "good"
+    },
+    "summary_contains": {
+      "error_baseline": {
+        "active": true,
+        "counter_reset": true,
+        "ds_correctable_delta": 0,
+        "ds_uncorrectable_delta": 0
+      }
+    }
+  },
+  "id": "counter_reset_baseline",
+  "postprocess": "cumulative_error_baseline",
+  "previous_raw": {
+    "docsis": "3.1",
+    "downstream": [
+      {
+        "channelID": 1,
+        "corrErrors": 4294967290,
+        "frequency": "650 MHz",
+        "modulation": "256QAM",
+        "mse": "-38.0",
+        "nonCorrErrors": 4294967290,
+        "powerLevel": "1.0"
+      }
+    ],
+    "upstream": [
+      {
+        "channelID": 1,
+        "frequency": "42 MHz",
+        "modulation": "64QAM",
+        "multiplex": "ATDMA",
+        "powerLevel": "43.0"
+      }
+    ]
+  },
+  "raw": {
+    "docsis": "3.1",
+    "downstream": [
+      {
+        "channelID": 1,
+        "corrErrors": 5,
+        "frequency": "650 MHz",
+        "modulation": "256QAM",
+        "mse": "-38.0",
+        "nonCorrErrors": 7,
+        "powerLevel": "1.0"
+      }
+    ],
+    "upstream": [
+      {
+        "channelID": 1,
+        "frequency": "42 MHz",
+        "modulation": "64QAM",
+        "multiplex": "ATDMA",
+        "powerLevel": "43.0"
+      }
+    ]
+  }
+}

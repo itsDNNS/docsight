@@ -1,0 +1,26 @@
+{
+  "checklist": {
+    "bqm_rows": [],
+    "capabilities": {
+      "bqm_configured": false,
+      "docsis_supported": false,
+      "speedtest_configured": false
+    },
+    "connection_latency_rows": [],
+    "journal_entries": [],
+    "timeline": [],
+    "window": {
+      "from": "2026-07-02T12:00:00Z",
+      "to": "2026-07-02T13:00:00Z"
+    }
+  },
+  "description": "Generic router mode makes DOCSIS evidence items not applicable rather than missing.",
+  "expect": {
+    "checklist": {
+      "events": "not_applicable",
+      "signal": "not_applicable",
+      "speedtest": "optional"
+    }
+  },
+  "id": "generic_router_not_applicable"
+}

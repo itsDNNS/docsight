@@ -1,0 +1,71 @@
+{
+  "description": "Downstream remains stable while upstream power degrades into a critical state.",
+  "expect": {
+    "events": [
+      "health_change",
+      "power_change"
+    ],
+    "summary": {
+      "health": "critical"
+    },
+    "summary_contains": {
+      "health_issues": [
+        "us_power_critical_high"
+      ]
+    },
+    "us_channels": [
+      {
+        "health": "critical",
+        "index": 0,
+        "power_health": "critical"
+      }
+    ]
+  },
+  "id": "stable_ds_degraded_us",
+  "previous_raw": {
+    "docsis": "3.1",
+    "downstream": [
+      {
+        "channelID": 1,
+        "corrErrors": 0,
+        "frequency": "650 MHz",
+        "modulation": "256QAM",
+        "mse": "-39.0",
+        "nonCorrErrors": 0,
+        "powerLevel": "1.0"
+      }
+    ],
+    "upstream": [
+      {
+        "channelID": 1,
+        "frequency": "42 MHz",
+        "modulation": "64QAM",
+        "multiplex": "ATDMA",
+        "powerLevel": "43.0"
+      }
+    ]
+  },
+  "raw": {
+    "docsis": "3.1",
+    "downstream": [
+      {
+        "channelID": 1,
+        "corrErrors": 0,
+        "frequency": "650 MHz",
+        "modulation": "256QAM",
+        "mse": "-39.0",
+        "nonCorrErrors": 0,
+        "powerLevel": "1.0"
+      }
+    ],
+    "upstream": [
+      {
+        "channelID": 1,
+        "frequency": "42 MHz",
+        "modulation": "64QAM",
+        "multiplex": "ATDMA",
+        "powerLevel": "57.0"
+      }
+    ]
+  }
+}
