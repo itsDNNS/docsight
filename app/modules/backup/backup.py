@@ -9,6 +9,8 @@ import logging
 import os
 import shutil
 import sqlite3
+
+from app.storage.sqlite import connect_sqlite
 import tarfile
 import tempfile
 from datetime import datetime, timezone
@@ -44,7 +46,7 @@ def _get_table_counts(db_path):
     """Return {table_name: row_count} for all user tables."""
     counts = {}
     try:
-        conn = sqlite3.connect(db_path)
+        conn = connect_sqlite(db_path)
         tables = [r[0] for r in conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
         ).fetchall()]
@@ -65,13 +67,13 @@ def _vacuum_db(data_dir, db_name, dest_path):
     if not os.path.exists(src):
         return False
 
-    conn = sqlite3.connect(src)
+    conn = connect_sqlite(src)
     conn.execute(f"VACUUM INTO '{dest_path}'")
     conn.close()
 
     # Remove demo data from copy (only relevant for main DB)
     if db_name == "docsis_history.db":
-        copy_conn = sqlite3.connect(dest_path)
+        copy_conn = connect_sqlite(dest_path)
         demo_tables = [
             "snapshots", "events", "journal_entries", "incidents",
             "speedtest_results", "bqm_graphs", "bnetz_measurements",

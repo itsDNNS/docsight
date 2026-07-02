@@ -43,6 +43,6 @@ COPY app/ ./app/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 HEALTHCHECK --interval=60s --timeout=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')" || exit 1
+    CMD python -c "import os, urllib.request; port = os.environ.get('WEB_PORT', '8765'); urllib.request.urlopen(f'http://localhost:{port}/health')" || exit 1
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "-m", "app.main"]

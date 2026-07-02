@@ -2,6 +2,8 @@
 
 import logging
 import sqlite3
+
+from app.storage.sqlite import DEFAULT_SQLITE_BUSY_TIMEOUT_MS, connect_sqlite
 import threading
 from collections import defaultdict
 from pathlib import Path
@@ -24,7 +26,7 @@ class WeatherStorage:
     Creates the weather_data table if it doesn't exist.
     """
 
-    BUSY_TIMEOUT_MS = 5000
+    BUSY_TIMEOUT_MS = DEFAULT_SQLITE_BUSY_TIMEOUT_MS
     _locks = defaultdict(threading.RLock)
 
     def __init__(self, db_path):
@@ -35,9 +37,8 @@ class WeatherStorage:
 
     def _connect(self):
         """Return a connection with WAL mode and busy timeout."""
-        conn = sqlite3.connect(self.db_path)
+        conn = connect_sqlite(self.db_path)
         conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute(f"PRAGMA busy_timeout={self.BUSY_TIMEOUT_MS}")
         return conn
 
     def _ensure_table(self):
