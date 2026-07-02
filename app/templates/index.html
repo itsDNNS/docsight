@@ -11,16 +11,16 @@
     <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
     <link rel="apple-touch-icon" href="/static/icon.png">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/fonts.css">
-    <link rel="stylesheet" href="/static/css/tokens.css">
-    <link rel="stylesheet" href="/static/css/components.css">
-    <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="stylesheet" href="/static/css/views.css">
-    <link rel="stylesheet" href="/static/css/modals.css">
-    <link rel="stylesheet" href="/static/css/glossary.css">
-    <link rel="stylesheet" href="/static/css/segment-utilization.css">
+    <link rel="stylesheet" href="/static/css/fonts.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/main.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/views.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/modals.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/glossary.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/segment-utilization.css?v={{ version|urlencode }}">
     {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
-    <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css">
+    <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css?v={{ version|urlencode }}">
     {% endfor %}
     {% if active_theme_data %}
     <style id="theme-module-vars">
@@ -39,7 +39,7 @@
     {% if config.font_family == 'system' %}
     <style id="font-override">:root { --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }</style>
     {% endif %}
-    <script src="/static/vendor/lucide.min.js"></script>
+    <script src="/static/vendor/lucide.min.js?v={{ version|urlencode }}"></script>
 </head>
 <body>
 <div id="offline-status-banner" class="offline-status-banner" role="status" aria-live="polite" hidden>
@@ -1093,7 +1093,7 @@
         {% endif %}
     </div>
     {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-    <script src="/modules/docsight.connection_monitor/static/js/connection-monitor-card.js"></script>
+    <script src="/modules/docsight.connection_monitor/static/js/connection-monitor-card.js?v={{ version|urlencode }}"></script>
     {% endif %}
 
     {# ══════════════════════════════════════════════════════════════════════════
@@ -2689,10 +2689,10 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<link rel="stylesheet" href="/static/vendor/uPlot.min.css">
-<script src="/static/vendor/uPlot.min.js"></script>
-<script src="{{ url_for('static', filename='js/hero-chart.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sparklines.js') }}"></script>
+<link rel="stylesheet" href="/static/vendor/uPlot.min.css?v={{ version|urlencode }}">
+<script src="/static/vendor/uPlot.min.js?v={{ version|urlencode }}"></script>
+<script src="{{ url_for('static', filename='js/hero-chart.js') }}?v={{ version|urlencode }}"></script>
+<script src="{{ url_for('static', filename='js/sparklines.js') }}?v={{ version|urlencode }}"></script>
 
 {# ── Channel Health Donut Charts - Phase 3 Task 3.4 ── #}
 <script>
@@ -2774,7 +2774,7 @@
 })();
 </script>
 
-<script src="/static/js/chart-engine.js"></script>
+<script src="/static/js/chart-engine.js?v={{ version|urlencode }}"></script>
 <script>
 var T = {{ t|tojson }};
 var currentLang = {{ lang|tojson }};
@@ -3354,23 +3354,23 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 })();
 
 </script>
-<script src="/static/js/modals.js"></script>
-<script src="/static/js/journal.js"></script>
-<script src="/modules/docsight.bqm/static/js/bqm-chart.js"></script>
-<script src="/static/js/bqm.js"></script>
-<script src="/static/js/trends.js"></script>
-<script src="/static/js/channels.js"></script>
-<script src="/static/js/integrations.js"></script>
-<script src="/static/js/events.js"></script>
-<script src="/static/js/utils.js"></script>
-<script src="/static/js/notices.js"></script>
-<script src="/static/js/speedtest.js"></script>
-<script src="/static/js/correlation.js"></script>
-<script src="/static/js/segment-utilization.js"></script>
-<script src="/static/js/glossary.js"></script>
+<script src="/static/js/modals.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/journal.js?v={{ version|urlencode }}"></script>
+<script src="/modules/docsight.bqm/static/js/bqm-chart.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/bqm.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/trends.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/channels.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/integrations.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/events.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/utils.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/notices.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/speedtest.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/correlation.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/segment-utilization.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/glossary.js?v={{ version|urlencode }}"></script>
 
 {% for mod in modules if mod.has_js %}
-<script src="/modules/{{ mod.id }}/static/main.js"></script>
+<script src="/modules/{{ mod.id }}/static/main.js?v={{ version|urlencode }}"></script>
 {% endfor %}
 
 <script>

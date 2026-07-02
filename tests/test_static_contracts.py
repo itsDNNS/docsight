@@ -42,6 +42,14 @@ I18N_LEADING_SENTINEL_RE = re.compile(r"^\s*@")
 
 STATIC_URL_RE = re.compile(r"(?:href|src)=['\"](/(?:static|modules)/[^'\"?#]+)(?:\?[^'\"]*)?['\"]")
 QUOTED_ASSET_RE = re.compile(r"['\"](/(?:static|modules)/[^'\"?#]+)(?:\?[^'\"]*)?['\"]")
+STATIC_JS_CSS_TAG_RE = re.compile(
+    r"<(?:script|link)\b[^>]+(?:src|href)=['\"](/(?:static|modules)/[^'\"]+\.(?:js|css)(?:\?[^'\"]*)?)['\"]",
+    re.IGNORECASE,
+)
+STATIC_URL_FOR_JS_CSS_TAG_RE = re.compile(
+    r"<(?:script|link)\b[^>]+(?:src|href)=['\"](\{\{\s*url_for\('static',\s*filename='[^']+\.(?:js|css)'\)\s*\}\}(?:\?[^'\"]*)?)['\"]",
+    re.IGNORECASE,
+)
 MISMATCHED_HEADING_RE = re.compile(r"<(span|h2)\b[^>]*>[^\n]*</(?!\1>)(span|h2)>")
 
 
@@ -157,6 +165,21 @@ def test_templates_reference_existing_literal_static_assets() -> None:
                 missing.append(f"{source.relative_to(ROOT)} -> {url}")
 
     assert missing == []
+
+
+def test_template_static_js_and_css_urls_are_versioned() -> None:
+    """Cache-first static JS/CSS references must change when the app version changes."""
+    offenders = []
+    template_paths = sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
+
+    for path in template_paths:
+        text = path.read_text(encoding="utf-8")
+        for match in list(STATIC_JS_CSS_TAG_RE.finditer(text)) + list(STATIC_URL_FOR_JS_CSS_TAG_RE.finditer(text)):
+            url = match.group(1)
+            if "?v={{ version|urlencode }}" not in url:
+                offenders.append(f"{path.relative_to(ROOT)} -> {url}")
+
+    assert offenders == []
 
 
 def test_service_worker_precache_references_existing_public_assets() -> None:
