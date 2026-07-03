@@ -342,6 +342,33 @@ class TestPublisher:
         assert cls is None
 
 
+@pytest.mark.parametrize(
+    ("loader", "filename", "spec", "kind"),
+    [
+        (load_module_collector, "collector.py", "collector.py:MissingCollector", "collector"),
+        (load_module_publisher, "publisher.py", "publisher.py:MissingPublisher", "publisher"),
+    ],
+)
+def test_module_class_loader_keeps_kind_specific_contract(loader, filename, spec, kind, caplog):
+    """Collector and publisher wrappers retain kind-specific logging and failure behavior."""
+    with tempfile.TemporaryDirectory() as d:
+        mod_dir = os.path.join(d, "testmod")
+        os.makedirs(mod_dir)
+        with open(os.path.join(mod_dir, filename), "w") as f:
+            f.write("class OtherClass:\n    pass\n")
+
+        cls = loader("test.mod", mod_dir, spec)
+
+    assert cls is None
+    assert "class 'Missing" in caplog.text
+
+    caplog.clear()
+    cls = loader("test.bad", "/tmp", filename)
+
+    assert cls is None
+    assert f"{kind} spec must be 'file.py:ClassName'" in caplog.text
+
+
 class TestStaticAndTemplates:
     """Test static file serving and template path registration."""
 

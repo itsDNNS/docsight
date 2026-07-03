@@ -567,6 +567,42 @@ def load_module_routes(app, module_id: str, module_path: str, routes_file: str, 
             log.error("Module '%s': failed to register blueprint: %s", module_id, e)
 
 
+def _load_module_class(module_id: str, module_path: str, spec: str, kind: str):
+    """Load a contributed class from a module-owned Python file."""
+    if ":" not in spec:
+        log.warning("Module '%s': %s spec must be 'file.py:ClassName', got '%s'", module_id, kind, spec)
+        return None
+
+    filename, class_name = spec.rsplit(":", 1)
+    file_path = safe_manifest_ref(module_path, filename)
+
+    if not os.path.isfile(file_path):
+        log.warning("Module '%s': %s file not found: %s", module_id, kind, file_path)
+        return None
+
+    dir_name = os.path.basename(module_path)
+    mod_name = f"app.modules.{dir_name}.{kind}"
+    try:
+        im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
+        if im_spec is None or im_spec.loader is None:
+            log.warning("Module '%s': could not create import spec for %s", module_id, file_path)
+            return None
+        mod = importlib.util.module_from_spec(im_spec)
+        sys.modules[mod_name] = mod
+        im_spec.loader.exec_module(mod)
+    except Exception as e:
+        log.error("Module '%s': failed to import %s: %s", module_id, kind, e)
+        return None
+
+    cls = getattr(mod, class_name, None)
+    if cls is None:
+        log.warning("Module '%s': class '%s' not found in %s", module_id, class_name, file_path)
+        return None
+
+    log.info("Module '%s': loaded %s class '%s'", module_id, kind, class_name)
+    return cls
+
+
 def load_module_collector(module_id: str, module_path: str, spec: str):
     """Load a Collector class from a module file.
 
@@ -578,38 +614,7 @@ def load_module_collector(module_id: str, module_path: str, spec: str):
     Returns:
         The Collector subclass, or None if loading failed.
     """
-    if ":" not in spec:
-        log.warning("Module '%s': collector spec must be 'file.py:ClassName', got '%s'", module_id, spec)
-        return None
-
-    filename, class_name = spec.rsplit(":", 1)
-    file_path = safe_manifest_ref(module_path, filename)
-
-    if not os.path.isfile(file_path):
-        log.warning("Module '%s': collector file not found: %s", module_id, file_path)
-        return None
-
-    dir_name = os.path.basename(module_path)
-    mod_name = f"app.modules.{dir_name}.collector"
-    try:
-        im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
-        if im_spec is None or im_spec.loader is None:
-            log.warning("Module '%s': could not create import spec for %s", module_id, file_path)
-            return None
-        mod = importlib.util.module_from_spec(im_spec)
-        sys.modules[mod_name] = mod
-        im_spec.loader.exec_module(mod)
-    except Exception as e:
-        log.error("Module '%s': failed to import collector: %s", module_id, e)
-        return None
-
-    cls = getattr(mod, class_name, None)
-    if cls is None:
-        log.warning("Module '%s': class '%s' not found in %s", module_id, class_name, file_path)
-        return None
-
-    log.info("Module '%s': loaded collector class '%s'", module_id, class_name)
-    return cls
+    return _load_module_class(module_id, module_path, spec, "collector")
 
 
 def load_module_publisher(module_id: str, module_path: str, spec: str):
@@ -623,38 +628,7 @@ def load_module_publisher(module_id: str, module_path: str, spec: str):
     Returns:
         The Publisher class, or None if loading failed.
     """
-    if ":" not in spec:
-        log.warning("Module '%s': publisher spec must be 'file.py:ClassName', got '%s'", module_id, spec)
-        return None
-
-    filename, class_name = spec.rsplit(":", 1)
-    file_path = safe_manifest_ref(module_path, filename)
-
-    if not os.path.isfile(file_path):
-        log.warning("Module '%s': publisher file not found: %s", module_id, file_path)
-        return None
-
-    dir_name = os.path.basename(module_path)
-    mod_name = f"app.modules.{dir_name}.publisher"
-    try:
-        im_spec = importlib.util.spec_from_file_location(mod_name, file_path)
-        if im_spec is None or im_spec.loader is None:
-            log.warning("Module '%s': could not create import spec for %s", module_id, file_path)
-            return None
-        mod = importlib.util.module_from_spec(im_spec)
-        sys.modules[mod_name] = mod
-        im_spec.loader.exec_module(mod)
-    except Exception as e:
-        log.error("Module '%s': failed to import publisher: %s", module_id, e)
-        return None
-
-    cls = getattr(mod, class_name, None)
-    if cls is None:
-        log.warning("Module '%s': class '%s' not found in %s", module_id, class_name, file_path)
-        return None
-
-    log.info("Module '%s': loaded publisher class '%s'", module_id, class_name)
-    return cls
+    return _load_module_class(module_id, module_path, spec, "publisher")
 
 
 def setup_module_static(app, module_id: str, module_path: str, static_subdir: str) -> None:
