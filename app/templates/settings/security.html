@@ -50,8 +50,8 @@
             <div style="font-weight: 600; margin-bottom: 6px;">{{ t.api_token_created }}</div>
             <div class="input-with-action">
                 <code id="api-token-plaintext" style="flex: 1; word-break: break-all; font-size: 0.82rem; padding: 10px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); font-family: 'JetBrains Mono', monospace;"></code>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="copyToken()">
-                    <i data-lucide="copy" style="width:14px;height:14px;"></i>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copyToken()" aria-label="{{ t.copy_clipboard }}" title="{{ t.copy_clipboard }}">
+                    <i data-lucide="copy" style="width:14px;height:14px;" aria-hidden="true"></i>
                 </button>
             </div>
             <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 8px;">{{ t.api_token_copy_warning }}</div>

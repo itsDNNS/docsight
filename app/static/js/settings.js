@@ -8,13 +8,41 @@
 /* ── Section Controller ── */
 var _currentSection = 'connection';
 var _saveHiddenSections = { support: true, about: true };
+var _mobileSidebarFocusReturn = null;
+var _mobileSidebarMedia = window.matchMedia ? window.matchMedia('(max-width: 768px)') : null;
+
+function _isMobileSidebarMode() {
+    return !!(_mobileSidebarMedia && _mobileSidebarMedia.matches);
+}
+
+function _setSidebarAccessibility(sidebar, isOpen) {
+    if (!sidebar) return;
+    if (_isMobileSidebarMode() && !isOpen) {
+        sidebar.setAttribute('aria-hidden', 'true');
+        sidebar.setAttribute('inert', '');
+    } else {
+        sidebar.removeAttribute('aria-hidden');
+        sidebar.removeAttribute('inert');
+    }
+}
+
+function syncMobileSidebarAccessibility() {
+    var sidebar = document.getElementById('settings-sidebar');
+    _setSidebarAccessibility(sidebar, !!(sidebar && sidebar.classList.contains('open')));
+}
 
 function switchSection(id) {
     _currentSection = id;
 
     /* Sidebar: update active link */
     document.querySelectorAll('.nav-item[data-section]').forEach(function(link) {
-        link.classList.toggle('active', link.getAttribute('data-section') === id);
+        var isActive = link.getAttribute('data-section') === id;
+        link.classList.toggle('active', isActive);
+        if (isActive) {
+            link.setAttribute('aria-current', 'page');
+        } else {
+            link.removeAttribute('aria-current');
+        }
     });
 
     /* Panels: show selected */
@@ -49,16 +77,51 @@ function switchSection(id) {
 function openMobileSidebar() {
     var sidebar = document.getElementById('settings-sidebar');
     var backdrop = document.getElementById('sidebar-backdrop');
-    if (sidebar) sidebar.classList.add('open');
+    var menuButton = document.getElementById('mobile-menu-button');
+    _mobileSidebarFocusReturn = document.activeElement || menuButton;
+    if (sidebar) {
+        sidebar.classList.add('open');
+        _setSidebarAccessibility(sidebar, true);
+    }
     if (backdrop) backdrop.classList.add('active');
+    if (menuButton) menuButton.setAttribute('aria-expanded', 'true');
+    var activeNav = sidebar ? sidebar.querySelector('.nav-item.active[data-section]') : null;
+    var firstNav = sidebar ? sidebar.querySelector('.nav-item[data-section]') : null;
+    var focusTarget = activeNav || firstNav;
+    if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
 }
 
-function closeMobileSidebar() {
+function closeMobileSidebar(options) {
+    options = options || {};
     var sidebar = document.getElementById('settings-sidebar');
     var backdrop = document.getElementById('sidebar-backdrop');
-    if (sidebar) sidebar.classList.remove('open');
+    var menuButton = document.getElementById('mobile-menu-button');
+    var wasOpen = !!(sidebar && sidebar.classList.contains('open'));
+    if (sidebar) {
+        sidebar.classList.remove('open');
+        _setSidebarAccessibility(sidebar, false);
+    }
     if (backdrop) backdrop.classList.remove('active');
+    if (menuButton) menuButton.setAttribute('aria-expanded', 'false');
+    var shouldRestoreFocus = options.restoreFocus !== false;
+    if (wasOpen && shouldRestoreFocus) {
+        var focusTarget = _mobileSidebarFocusReturn;
+        if (!focusTarget || typeof focusTarget.focus !== 'function' || !document.contains(focusTarget)) {
+            focusTarget = menuButton;
+        }
+        if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus();
+    }
+    _mobileSidebarFocusReturn = null;
 }
+
+document.addEventListener('keydown', function(event) {
+    if (event.key !== 'Escape') return;
+    var sidebar = document.getElementById('settings-sidebar');
+    if (sidebar && sidebar.classList.contains('open')) {
+        event.preventDefault();
+        closeMobileSidebar();
+    }
+});
 
 /* ── Collapsible Cards ── */
 function _syncCardCollapseAria(card) {
@@ -1373,10 +1436,14 @@ function loadBackupList() {
             delBtn.type = 'button';
             delBtn.className = 'btn btn-secondary';
             delBtn.style.cssText = 'padding:2px 8px;font-size:0.75em;';
+            var deleteLabel = ((T.backup_delete || T.bqm_delete || 'Delete backup') + ' ' + b.filename).trim();
             delBtn.setAttribute('data-filename', b.filename);
+            delBtn.setAttribute('aria-label', deleteLabel);
+            delBtn.setAttribute('title', deleteLabel);
             delBtn.addEventListener('click', function() { deleteBackup(this.getAttribute('data-filename')); });
             var icon = document.createElement('i');
             icon.setAttribute('data-lucide', 'trash-2');
+            icon.setAttribute('aria-hidden', 'true');
             icon.style.cssText = 'width:12px;height:12px;';
             delBtn.appendChild(icon);
             td4.appendChild(delBtn);
@@ -1655,6 +1722,14 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleUsernameField();
     updateStatusDots();
     updateNotificationChannelSummaries();
+    syncMobileSidebarAccessibility();
+    if (_mobileSidebarMedia) {
+        if (typeof _mobileSidebarMedia.addEventListener === 'function') {
+            _mobileSidebarMedia.addEventListener('change', syncMobileSidebarAccessibility);
+        } else if (typeof _mobileSidebarMedia.addListener === 'function') {
+            _mobileSidebarMedia.addListener(syncMobileSidebarAccessibility);
+        }
+    }
 
     /* Listen for input changes on integration fields to update dots and card summaries */
     ['notify_webhook_url'].forEach(function(id) {

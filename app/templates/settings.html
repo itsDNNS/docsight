@@ -56,8 +56,8 @@
         <div class="sidebar-nav">
             <div class="nav-group" aria-labelledby="settings-nav-core-label">
                 <div class="nav-group-label" id="settings-nav-core-label">{{ t.settings }}</div>
-                <button class="nav-item active" data-section="connection" onclick="switchSection('connection')">
-                    <i data-lucide="radio" class="nav-icon"></i>
+                <button class="nav-item active" data-section="connection" onclick="switchSection('connection')" aria-current="page">
+                    <i data-lucide="radio" class="nav-icon" aria-hidden="true"></i>
                     {{ t.step_modem }}
                 </button>
                 <button class="nav-item" data-section="general" onclick="switchSection('general')">
@@ -124,8 +124,8 @@
     <div class="main-content">
         <!-- Mobile header (visible at 768px and below) -->
         <div class="mobile-header">
-            <button class="mobile-menu-btn" onclick="openMobileSidebar()">
-                <i data-lucide="menu"></i>
+            <button class="mobile-menu-btn" id="mobile-menu-button" type="button" onclick="openMobileSidebar()" aria-label="{{ t.get('settings_open_navigation', 'Open settings navigation') }}" aria-controls="settings-sidebar" aria-expanded="false">
+                <i data-lucide="menu" aria-hidden="true"></i>
             </button>
             <span class="page-title" style="font-size: 1.1rem;" id="mobile-title">{{ t.step_modem }}</span>
         </div>
