@@ -1483,7 +1483,20 @@ button.notification-collapse-button {
 }
 
 /* ─── Responsive ─── */
-@media (max-width: 640px) {
+@media (max-width: 900px) {
+  .main-content {
+    padding: var(--space-xl);
+    padding-bottom: calc(var(--space-xl) + 88px + env(safe-area-inset-bottom, 0px));
+    max-width: none;
+  }
+  .form-grid.cols-2 { grid-template-columns: 1fr; }
+  .support-grid { grid-template-columns: 1fr; }
+  .support-star { flex-wrap: wrap; }
+  .support-star-link { margin-left: 0; }
+  .save-footer { padding-inline: var(--space-xl); }
+}
+
+@media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s var(--ease-out-expo);
