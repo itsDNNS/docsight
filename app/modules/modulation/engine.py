@@ -11,6 +11,7 @@ from collections import defaultdict
 from app.docsis_utils import (
     canonical_modulation_label as _canonical_label,
     parse_qam_order as _parse_qam_order,
+    sc_qam_capacity_family as _sc_qam_capacity_family,
 )
 from app.tz import to_local
 
@@ -46,34 +47,9 @@ def _channel_modulation(ch):
     return ch.get("profile_modulation") or ch.get("modulation") or ch.get("type") or ""
 
 
-def _is_ofdm_like(ch):
-    values = [
-        ch.get("channel_family", ""),
-        ch.get("type", ""),
-        ch.get("multiplex", ""),
-        ch.get("modulation", ""),
-    ]
-    haystack = " ".join(str(v).lower() for v in values if v is not None)
-    return "ofdm" in haystack or "ofdma" in haystack
-
-
 def _capacity_channel_family(ch, direction):
     """Return whether channel capacity can use the SC-QAM formula."""
-    family = (ch.get("channel_family") or "").lower()
-    if family:
-        return "sc_qam" if family == "sc_qam" else "unsupported"
-    if _is_ofdm_like(ch):
-        return "unsupported"
-    docsis_version = str(ch.get("docsis_version", "3.0"))
-    if docsis_version == "3.0":
-        return "sc_qam"
-    multiplex = str(ch.get("multiplex", "")).replace("-", "").replace("_", "").upper()
-    type_value = str(ch.get("type", "")).replace("-", "").replace("_", "").upper()
-    if docsis_version == "3.1" and direction == "us" and multiplex in {"ATDMA", "TDMA", "SCQAM"}:
-        return "sc_qam"
-    if docsis_version == "3.1" and direction == "ds" and type_value in {"SCQAM", "QAM"}:
-        return "sc_qam"
-    return "unsupported"
+    return _sc_qam_capacity_family(direction, ch)
 
 
 def _capacity_symbol_rate(ch, direction):

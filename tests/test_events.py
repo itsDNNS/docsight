@@ -1562,3 +1562,81 @@ class TestEventsJsRendering:
         # Top-level SNR header must still render.
         assert "SNR" in html
         assert "TypeError" not in html
+
+
+def test_snr_change_uses_analyzer_channel_health_when_available(detector):
+    prev = _make_analysis(
+        ds_snr_min=35.0,
+        ds_channels=[{
+            "channel_id": 1,
+            "frequency": "602 MHz",
+            "docsis_version": "3.1",
+            "channel_family": "ofdm",
+            "modulation": "4096QAM",
+            "snr": 35.0,
+            "snr_health": "good",
+            "health": "good",
+            "health_detail": "",
+        }],
+    )
+    cur = _make_analysis(
+        ds_snr_min=24.0,
+        ds_channels=[{
+            "channel_id": 1,
+            "frequency": "602 MHz",
+            "docsis_version": "3.1",
+            "channel_family": "ofdm",
+            "modulation": "4096QAM",
+            "snr": 24.0,
+            "snr_health": "critical",
+            "health": "critical",
+            "health_detail": "snr critical",
+        }],
+    )
+
+    detector.check(prev)
+    events = detector.check(cur)
+
+    snr_events = [event for event in events if event["event_type"] == "snr_change"]
+    assert len(snr_events) == 1
+    assert snr_events[0]["severity"] == "critical"
+    assert "threshold_value" not in snr_events[0]["details"]
+    affected = snr_events[0]["details"]["affected_channels"][0]
+    assert affected["current_health"] == "critical"
+    assert affected["channel_type"] == "OFDM"
+
+
+def test_modulation_change_includes_analyzer_modulation_health(detector):
+    prev = _make_analysis(
+        us_channels=[{
+            "channel_id": 1,
+            "frequency": "37 MHz",
+            "docsis_version": "3.1",
+            "channel_family": "ofdma",
+            "modulation": "1024QAM",
+            "modulation_health": "good",
+            "health": "good",
+            "health_detail": "",
+        }],
+    )
+    cur = _make_analysis(
+        us_channels=[{
+            "channel_id": 1,
+            "frequency": "37 MHz",
+            "docsis_version": "3.1",
+            "channel_family": "ofdma",
+            "modulation": "64QAM",
+            "modulation_health": "warning",
+            "health": "warning",
+            "health_detail": "modulation warning",
+        }],
+    )
+
+    detector.check(prev)
+    events = detector.check(cur)
+
+    mod_event = next(event for event in events if event["event_type"] == "modulation_change")
+    change = mod_event["details"]["changes"][0]
+    assert mod_event["severity"] == "warning"
+    assert change["current_modulation_health"] == "warning"
+    assert change["channel_type"] == "OFDMA"
