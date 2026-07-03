@@ -9,7 +9,7 @@ import re
 import sys
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from flask import send_from_directory
 
@@ -253,37 +253,28 @@ def discover_builtin_theme_modules(disabled_ids: set[str] | None = None) -> list
     modules: list[ModuleInfo] = []
     seen_ids: set[str] = set()
     for theme in BUILTIN_THEMES:
-        raw = {
-            "id": theme["id"],
-            "name": theme["name"],
-            "description": theme["description"],
-            "version": theme["version"],
-            "author": theme["author"],
-            "minAppVersion": theme["minAppVersion"],
-            "type": "theme",
-            "contributes": {"theme": "builtin"},
-            "config": {},
-        }
-        if theme.get("homepage"):
-            raw["homepage"] = theme["homepage"]
-        if theme.get("license"):
-            raw["license"] = theme["license"]
-        try:
-            info = validate_manifest(raw, "", builtin=True)
-            tdata = theme["theme_data"]
-            if not isinstance(tdata, dict):
-                raise ManifestError("Built-in theme data must be an object")
-            validate_theme(tdata)
-        except ManifestError as e:
-            log.warning("Skipping built-in theme %s: invalid registry entry: %s", theme.get("id"), e)
-            continue
+        info = ModuleInfo(
+            id=theme["id"],
+            name=theme["name"],
+            description=theme["description"],
+            version=theme["version"],
+            author=theme["author"],
+            min_app_version=theme["minAppVersion"],
+            type="theme",
+            contributes={"theme": "builtin"},
+            path="",
+            builtin=True,
+            homepage=theme.get("homepage", ""),
+            license=theme.get("license", ""),
+            menu={"order": 999},
+            theme_data=theme["theme_data"],
+        )
 
         if info.id in seen_ids:
             log.warning("Skipping duplicate built-in theme '%s'", info.id)
             continue
 
         info.enabled = info.id not in disabled_ids
-        info.theme_data = tdata
         seen_ids.add(info.id)
         modules.append(info)
         log.info(
@@ -304,33 +295,26 @@ def discover_builtin_threshold_modules(disabled_ids: set[str] | None = None) -> 
     modules: list[ModuleInfo] = []
     seen_ids: set[str] = set()
     for profile in BUILTIN_THRESHOLD_PROFILES:
-        try:
-            raw = {
-                "id": profile["id"],
-                "name": profile["name"],
-                "description": profile["description"],
-                "version": profile["version"],
-                "author": profile["author"],
-                "minAppVersion": profile["minAppVersion"],
-                "type": "analysis",
-                "contributes": {"thresholds": "builtin"},
-                "config": {},
-            }
-            info = validate_manifest(raw, "", builtin=True)
-            tdata = profile["thresholds"]
-            if not isinstance(tdata, dict):
-                raise ManifestError("Built-in threshold data must be an object")
-            validate_thresholds(tdata)
-        except (KeyError, ManifestError) as e:
-            log.warning("Skipping built-in threshold profile %s: invalid registry entry: %s", profile.get("id"), e)
-            continue
+        info = ModuleInfo(
+            id=cast(str, profile["id"]),
+            name=cast(str, profile["name"]),
+            description=cast(str, profile["description"]),
+            version=cast(str, profile["version"]),
+            author=cast(str, profile["author"]),
+            min_app_version=cast(str, profile["minAppVersion"]),
+            type="analysis",
+            contributes={"thresholds": "builtin"},
+            path="",
+            builtin=True,
+            menu={"order": 999},
+            thresholds_data=deepcopy(cast(dict[str, object], profile["thresholds"])),
+        )
 
         if info.id in seen_ids:
             log.warning("Skipping duplicate built-in threshold profile '%s'", info.id)
             continue
 
         info.enabled = info.id not in disabled_ids
-        info.thresholds_data = deepcopy(tdata)
         seen_ids.add(info.id)
         modules.append(info)
         log.info(
