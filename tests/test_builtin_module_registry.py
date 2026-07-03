@@ -17,6 +17,9 @@ from app.module_loader import (
     discover_builtin_theme_modules,
     discover_modules,
     ModuleLoader,
+    validate_manifest,
+    validate_theme,
+    validate_thresholds,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,12 +73,56 @@ def test_builtin_theme_alias_tokens_are_centralized():
         assert f"{alias}: var({canonical});" in tokens_css
 
 
+def test_builtin_theme_registry_entries_match_expected_schema():
+    """Built-in themes are trusted at runtime but must stay schema-valid in tests."""
+    for theme in BUILTIN_THEMES:
+        validate_manifest(
+            {
+                "id": theme["id"],
+                "name": theme["name"],
+                "description": theme["description"],
+                "version": theme["version"],
+                "author": theme["author"],
+                "minAppVersion": theme["minAppVersion"],
+                "type": "theme",
+                "contributes": {"theme": "builtin"},
+                "homepage": theme.get("homepage", ""),
+                "license": theme.get("license", ""),
+            },
+            "",
+            builtin=True,
+        )
+        assert isinstance(theme["theme_data"], dict)
+        validate_theme(theme["theme_data"])
+
+
 def test_builtin_threshold_registry_replaces_wrapper_module_dir():
     """Shipped threshold profiles live in the analyzer profile registry."""
     assert len(BUILTIN_THRESHOLD_PROFILES) == 1
     assert BUILTIN_THRESHOLD_PROFILES[0]["id"] == "docsight.thresholds_vfkd"
     assert not (BUILTIN_MODULES_DIR / "thresholds_vfkd" / "manifest.json").exists()
     assert not (BUILTIN_MODULES_DIR / "thresholds_vfkd" / "thresholds.json").exists()
+
+
+def test_builtin_threshold_registry_entries_match_expected_schema():
+    """Built-in thresholds are trusted at runtime but must stay schema-valid in tests."""
+    for profile in BUILTIN_THRESHOLD_PROFILES:
+        validate_manifest(
+            {
+                "id": profile["id"],
+                "name": profile["name"],
+                "description": profile["description"],
+                "version": profile["version"],
+                "author": profile["author"],
+                "minAppVersion": profile["minAppVersion"],
+                "type": "analysis",
+                "contributes": {"thresholds": "builtin"},
+            },
+            "",
+            builtin=True,
+        )
+        assert isinstance(profile["thresholds"], dict)
+        validate_thresholds(profile["thresholds"])
 
 
 def test_discover_builtin_modules_uses_static_registry(monkeypatch):
@@ -150,6 +197,7 @@ def test_discover_builtin_theme_modules_uses_static_registry(monkeypatch):
     assert len(modules) == len(BUILTIN_THEMES)
     assert all(mod.builtin for mod in modules)
     assert all(mod.type == "theme" for mod in modules)
+    assert all(mod.menu["order"] == 999 for mod in modules)
     assert all(mod.theme_data for mod in modules)
     assert {mod.id for mod in modules} >= {"docsight.theme_classic", "docsight.theme_matrix"}
 
@@ -168,6 +216,7 @@ def test_discover_builtin_threshold_modules_uses_static_registry(monkeypatch):
     assert len(modules) == len(BUILTIN_THRESHOLD_PROFILES)
     assert all(mod.builtin for mod in modules)
     assert all(mod.type == "analysis" for mod in modules)
+    assert all(mod.menu["order"] == 999 for mod in modules)
     assert all(mod.thresholds_data for mod in modules)
     assert modules[0].id == "docsight.thresholds_vfkd"
     assert modules[0].contributes == {"thresholds": "builtin"}
