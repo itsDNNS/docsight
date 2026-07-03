@@ -29,6 +29,40 @@ class TestSettingsLoad:
         assert "active" in btn.get_attribute("class")
 
 
+class TestSettingsMobileSidebar:
+    """Mobile sidebar keeps the full settings navigation reachable."""
+
+    def test_support_nav_stays_visible_when_mobile_sidebar_overflows(self, settings_page):
+        settings_page.set_viewport_size({"width": 390, "height": 844})
+        settings_page.reload(wait_until="networkidle")
+
+        settings_page.locator(".mobile-menu-btn").click()
+        sidebar = settings_page.locator("#settings-sidebar")
+        support = settings_page.locator('button[data-section="support"]')
+        expect(sidebar).to_have_class(re.compile(r".*\bopen\b.*"))
+        expect(support).to_be_visible()
+
+        metrics = settings_page.evaluate(
+            """
+            () => {
+              const sidebar = document.querySelector('#settings-sidebar');
+              const support = document.querySelector('button[data-section="support"]');
+              const sidebarRect = sidebar.getBoundingClientRect();
+              const supportRect = support.getBoundingClientRect();
+              return {
+                scrollHeight: sidebar.scrollHeight,
+                clientHeight: sidebar.clientHeight,
+                supportTop: supportRect.top - sidebarRect.top,
+                supportBottom: supportRect.bottom - sidebarRect.top,
+              };
+            }
+            """
+        )
+        assert metrics["scrollHeight"] > metrics["clientHeight"]
+        assert metrics["supportTop"] >= 0
+        assert metrics["supportBottom"] <= metrics["clientHeight"]
+
+
 class TestSettingsTabSwitching:
     """Clicking sidebar tabs shows the correct panel."""
 
