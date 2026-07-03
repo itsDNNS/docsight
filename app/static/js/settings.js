@@ -7,7 +7,7 @@
 
 /* ── Section Controller ── */
 var _currentSection = 'connection';
-var _saveHiddenSections = { support: true, themes: true, about: true };
+var _saveHiddenSections = { support: true, about: true };
 
 function switchSection(id) {
     _currentSection = id;
@@ -34,7 +34,7 @@ function switchSection(id) {
     /* Auto-load data for certain panels */
     if (id === 'security') loadApiTokens();
     if (target && target.querySelector('#backup-list')) loadBackupList();
-    if (id === 'themes') refreshRegistry();
+    if (id === 'appearance') loadThemeRegistryIfNeeded();
     if (id === 'smart_capture') loadSmartCaptureHistory();
     if (id === 'extensions') refreshModuleRegistry();
 
@@ -1705,9 +1705,18 @@ function applyTheme(themeId) {
 
 
 /* ── Theme Registry ── */
+var _themeRegistryFetching = false;
+var _themeRegistryLoaded = false;
+
+function loadThemeRegistryIfNeeded() {
+    if (_themeRegistryLoaded || _themeRegistryFetching) return;
+    refreshRegistry();
+}
+
 function refreshRegistry() {
     var gallery = document.getElementById('registry-gallery');
-    if (!gallery) return;
+    if (!gallery || _themeRegistryFetching) return;
+    _themeRegistryFetching = true;
     gallery.textContent = '';
     var p = document.createElement('p');
     p.textContent = T.loading || 'Loading...';
@@ -1720,6 +1729,7 @@ function refreshRegistry() {
         .then(function(r) { return r.json(); })
         .then(function(themes) {
             gallery.textContent = '';
+            _themeRegistryLoaded = true;
             if (!themes.length) {
                 var empty = document.createElement('div');
                 empty.className = 'empty-state';
@@ -1772,13 +1782,15 @@ function refreshRegistry() {
         })
         .catch(function() {
             gallery.textContent = '';
+            _themeRegistryLoaded = false;
             var err = document.createElement('div');
             err.className = 'empty-state';
             var msg = document.createElement('p');
             msg.textContent = T.theme_registry_failed || 'Failed to load registry';
             err.appendChild(msg);
             gallery.appendChild(err);
-        });
+        })
+        .finally(function() { _themeRegistryFetching = false; });
 }
 
 function installTheme(themeId, downloadUrl) {
