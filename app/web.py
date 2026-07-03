@@ -1379,7 +1379,6 @@ def index():
         t=t, lang=lang, languages=LANGUAGES, lang_flags=LANG_FLAGS,
         temperature_unit=_config_manager.get("temperature_unit", "celsius") if _config_manager else "celsius",
         dashboard_notices=get_active_notices(
-            APP_VERSION,
             dismissed_ids=_get_dismissed_notice_ids(),
             location="dashboard",
         ),
@@ -1486,7 +1485,6 @@ def settings():
         built_in_features=built_in_features,
         app_version=APP_VERSION,
         settings_notices=get_active_notices(
-            APP_VERSION,
             dismissed_ids=_get_dismissed_notice_ids(),
             location="settings",
         ),

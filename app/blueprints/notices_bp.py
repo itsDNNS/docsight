@@ -9,7 +9,7 @@ from app.maintainer_notices import (
     get_active_notices,
     is_valid_notice_id,
 )
-from app.web import APP_VERSION, get_config_manager, require_auth
+from app.web import get_config_manager, require_auth
 
 notices_bp = Blueprint("notices_bp", __name__)
 
@@ -29,7 +29,6 @@ def api_notices_list():
 
     config_mgr = get_config_manager()
     notices = get_active_notices(
-        APP_VERSION,
         dismissed_ids=_dismissed_ids(config_mgr),
         location=location,
     )

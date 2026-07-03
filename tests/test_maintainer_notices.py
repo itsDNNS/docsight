@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 import pytest
 
 from app.maintainer_notices import (
@@ -26,7 +24,6 @@ def test_active_notice_matches_location_and_excludes_dismissed_ids():
     notices = [_notice(id="visible"), _notice(id="dismissed")]
 
     active = get_active_notices(
-        "v2026-05-02.1",
         dismissed_ids=["dismissed"],
         location="dashboard",
         notices=notices,
@@ -42,23 +39,33 @@ def test_notice_severity_sorting_prioritizes_critical_then_warning_then_info():
         _notice(id="warning", severity="warning"),
     ]
 
-    active = get_active_notices("v2026-05-02.1", notices=notices)
+    active = get_active_notices(notices=notices)
 
     assert [notice["id"] for notice in active] == ["critical", "warning", "info"]
 
 
-def test_version_and_time_constraints_are_enforced():
-    now = datetime(2026, 5, 2, tzinfo=timezone.utc)
+def test_notice_payload_exposes_only_shipped_public_fields():
     notices = [
-        _notice(id="current", min_version="2026-05-01.1", max_version="2026-05-03.1"),
-        _notice(id="too-new", min_version="2026-05-03.1"),
-        _notice(id="expired", expires_at="2026-05-01T00:00:00Z"),
-        _notice(id="future", starts_at="2026-05-03T00:00:00Z"),
+        _notice(
+            id="linked",
+            link_label="Open",
+            link_url="/settings#about",
+            internal_note="operator-only",
+        )
     ]
 
-    active = get_active_notices("v2026-05-02.1", notices=notices, now=now)
+    active = get_active_notices(notices=notices)
 
-    assert [notice["id"] for notice in active] == ["current"]
+    assert active == [
+        {
+            "id": "linked",
+            "severity": "info",
+            "title": "Local notice",
+            "body": "Bundled with DOCSight.",
+            "link_label": "Open",
+            "link_url": "/settings#about",
+        }
+    ]
 
 
 def test_notices_reject_remote_html_and_unsafe_links():
@@ -77,25 +84,16 @@ def test_relative_and_https_links_are_allowed():
     validate_notice_schema(_notice(link_url="https://github.com/itsDNNS/docsight", link_label="Open"))
 
 
-def test_mixed_version_tokens_do_not_crash_filtering():
-    notices = [_notice(id="rc-notice", min_version="1.0.rc1")]
-
-    active = get_active_notices("1.0.2", notices=notices)
-
-    assert active == []
-
-
 def test_invalid_notices_are_ignored_so_notices_remain_non_blocking():
     notices = [
         _notice(id="visible"),
         _notice(id="bad-html", body="<strong>broken</strong>"),
         "not-a-mapping",
         _notice(id="bad-link", link_url=["https://example.com"], link_label="Open"),
-        _notice(id="bad-time", starts_at=123),
         _notice(id="bad-location", locations=(["dashboard"],)),
     ]
 
-    active = get_active_notices("v2026-05-02.1", notices=notices)
+    active = get_active_notices(notices=notices)
 
     assert [notice["id"] for notice in active] == ["visible"]
 
