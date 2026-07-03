@@ -73,6 +73,65 @@ class TestSettingsMobileSidebar:
         assert metrics["supportTop"] >= 0
         assert metrics["supportBottom"] <= metrics["sidebarHeight"]
 
+    def test_mobile_sidebar_escape_closes_drawer_and_restores_focus(self, settings_page):
+        settings_page.set_viewport_size({"width": 390, "height": 844})
+        settings_page.reload(wait_until="networkidle")
+
+        menu_button = settings_page.locator("#mobile-menu-button")
+        sidebar = settings_page.locator("#settings-sidebar")
+        expect(menu_button).to_have_attribute("aria-label", "Open settings navigation")
+        expect(menu_button).to_have_attribute("aria-controls", "settings-sidebar")
+        expect(menu_button).to_have_attribute("aria-expanded", "false")
+
+        menu_button.click()
+        expect(sidebar).to_have_class(re.compile(r".*\bopen\b.*"))
+        expect(sidebar).not_to_have_attribute("inert", "")
+        expect(sidebar).not_to_have_attribute("aria-hidden", "true")
+        expect(menu_button).to_have_attribute("aria-expanded", "true")
+        assert settings_page.evaluate("() => document.activeElement && document.activeElement.getAttribute('data-section')") == "connection"
+
+        settings_page.keyboard.press("Escape")
+        expect(sidebar).not_to_have_class(re.compile(r".*\bopen\b.*"))
+        expect(sidebar).to_have_attribute("inert", "")
+        expect(sidebar).to_have_attribute("aria-hidden", "true")
+        expect(menu_button).to_have_attribute("aria-expanded", "false")
+        assert settings_page.evaluate("() => document.activeElement && document.activeElement.id") == "mobile-menu-button"
+
+    def test_active_settings_navigation_item_is_announced(self, settings_page):
+        connection = settings_page.locator('button[data-section="connection"]')
+        notifications = settings_page.locator('button[data-section="notifications"]')
+        expect(connection).to_have_attribute("aria-current", "page")
+        expect(notifications).not_to_have_attribute("aria-current", "page")
+
+        notifications.click()
+        expect(notifications).to_have_attribute("aria-current", "page")
+        expect(connection).not_to_have_attribute("aria-current", "page")
+
+    def test_icon_only_settings_controls_have_accessible_names(self, settings_page):
+        settings_page.route(
+            "**/api/backup/list",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body='[{"filename":"docsight_backup_2026-03-14_120000.tar.gz","size":3145728,"modified":"2026-03-14T12:00:00"}]',
+            ),
+        )
+
+        expect(settings_page.locator("#mobile-menu-button")).to_have_attribute("aria-label", "Open settings navigation")
+
+        settings_page.locator('button[data-section="extensions"]').click()
+        refresh = settings_page.locator("#module-registry-refresh")
+        expect(refresh).to_have_attribute("aria-label", "Refresh")
+        expect(refresh).to_have_attribute("title", "Refresh")
+
+        settings_page.locator('button[data-section="mod-docsight_backup"]').click()
+        expect(settings_page.locator('#backup_enabled')).to_have_attribute("aria-labelledby", "backup-enabled-label")
+        expect(settings_page.locator('label[for="backup_path"]')).to_have_text("Backup Path")
+        delete_button = settings_page.locator('#backup-list button[aria-label^="Delete"]')
+        expect(delete_button).to_have_count(1)
+        expect(delete_button).to_have_attribute("aria-label", re.compile(r"Delete .*docsight_backup_2026-03-14_120000\.tar\.gz"))
+        expect(delete_button.locator('svg[aria-hidden="true"], i[aria-hidden="true"]')).to_have_count(1)
+
     @pytest.mark.parametrize("width, expect_drawer", [(700, True), (850, False)])
     @pytest.mark.parametrize("section, setup", [
         ("connection", None),

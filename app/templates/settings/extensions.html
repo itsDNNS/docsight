@@ -94,8 +94,8 @@
                     <div class="card-subtitle">{{ t.get('extensions_community_desc', 'Browse and install modules from the community registry') }}</div>
                 </div>
             </div>
-            <button class="btn btn-ghost" onclick="refreshModuleRegistry()" id="module-registry-refresh" title="{{ t.get('extensions_refresh', 'Refresh') }}">
-                <i data-lucide="refresh-cw" style="width:16px;height:16px;"></i>
+            <button type="button" class="btn btn-ghost" onclick="refreshModuleRegistry()" id="module-registry-refresh" title="{{ t.get('extensions_refresh', t.refresh) }}" aria-label="{{ t.get('extensions_refresh', t.refresh) }}">
+                <i data-lucide="refresh-cw" style="width:16px;height:16px;" aria-hidden="true"></i>
             </button>
         </div>
         <div id="module-registry-container" style="padding: 0 var(--card-padding) var(--card-padding);">

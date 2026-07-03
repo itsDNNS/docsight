@@ -45,6 +45,23 @@ class TestSettingsRoute:
         )
         assert html.index('id="settings-nav-core-label"') < html.index('data-section="connection"')
 
+    def test_settings_icon_only_controls_have_accessible_names(self, client, config_mgr):
+        config_mgr.save({"admin_password": "admin-secret-value"})
+        init_config(config_mgr)
+        with client.session_transaction() as session:
+            session["authenticated"] = True
+
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        html = resp.data.decode("utf-8")
+
+        assert re.search(r'<button[^>]+id="mobile-menu-button"[^>]+aria-label="Open settings navigation"', html)
+        assert 'aria-controls="settings-sidebar"' in html
+        assert 'aria-expanded="false"' in html
+        assert re.search(r'<button[^>]+data-section="connection"[^>]+aria-current="page"', html)
+        assert re.search(r'<button[^>]+onclick="copyToken\(\)"[^>]+aria-label="Copy to Clipboard"', html)
+        assert re.search(r'<button[^>]+id="module-registry-refresh"[^>]+aria-label="Refresh"', html)
+
     def test_settings_notifications_channel_cards_render_compact_status_headers(self, client):
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200

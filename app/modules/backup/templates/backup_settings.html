@@ -38,18 +38,18 @@
 
         <div class="toggle-row">
             <div class="toggle-info">
-                <span class="toggle-title">{{ t.enabled }}</span>
+                <span class="toggle-title" id="backup-enabled-label">{{ t.enabled }}</span>
             </div>
             <input type="hidden" name="backup_enabled" value="false">
             <label class="toggle">
-                <input type="checkbox" id="backup_enabled" name="backup_enabled" value="true" {% if config.backup_enabled %}checked{% endif %}>
+                <input type="checkbox" id="backup_enabled" name="backup_enabled" value="true" aria-labelledby="backup-enabled-label" {% if config.backup_enabled %}checked{% endif %}>
                 <span class="toggle-slider"></span>
             </label>
         </div>
 
         <div id="backup-auto-settings" style="{% if not config.backup_enabled %}opacity:0.5;pointer-events:none;{% endif %}">
             <div class="form-field" style="margin-top: var(--space-md);">
-                <label class="form-label">{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
+                <label class="form-label" for="backup_path">{{ t['docsight.backup.backup_path'] or 'Backup Path' }}</label>
                 <div class="input-with-action">
                     <input class="form-input" type="text" id="backup_path" name="backup_path" value="{{ config.backup_path }}" readonly style="cursor:pointer;">
                     <button type="button" class="btn btn-ghost btn-sm" onclick="openBrowseModal(this)">
@@ -95,7 +95,7 @@
         <div class="browse-modal-header">
             <h3 id="browse-modal-title">{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h3>
             <button type="button" class="btn-icon" onclick="closeBrowseModal()" aria-label="{{ t.close or 'Close' }}">
-                <i data-lucide="x"></i>
+                <i data-lucide="x" aria-hidden="true"></i>
             </button>
         </div>
         <div class="browse-modal-summary">
