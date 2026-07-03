@@ -150,6 +150,29 @@ def _module_registry_payload(status="not_installed"):
     ]
 
 
+class TestSettingsThemeRegistry:
+    """The Appearance panel loads available themes without manual refresh."""
+
+    def test_appearance_panel_loads_theme_registry_once_when_opened(self, settings_page):
+        registry_requests = []
+
+        def capture_registry(route):
+            registry_requests.append(route.request.url)
+            route.fulfill(json=_theme_registry_payload())
+
+        settings_page.route("**/api/themes/registry", capture_registry)
+
+        settings_page.locator('button[data-section="appearance"]').click()
+        expect(settings_page.locator('#registry-gallery .theme-card')).to_have_count(1)
+        expect(settings_page.locator('#registry-gallery')).to_contain_text("Registry Test Theme")
+        assert len(registry_requests) == 1
+
+        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('button[data-section="appearance"]').click()
+        expect(settings_page.locator('#registry-gallery .theme-card')).to_have_count(1)
+        assert len(registry_requests) == 1
+
+
 class TestSettingsToastStates:
     """Theme and module registry operations report the correct toast polarity."""
 
