@@ -57,3 +57,28 @@ def test_canonical_modulation_label(value, expected):
 )
 def test_qam_rank_uses_shared_parser(value, rank):
     assert qam_rank(value) == rank
+
+
+def test_classify_channel_family_keeps_degraded_ofdm_profiles_on_ofdm_family():
+    from app.docsis_utils import classify_channel_family, channel_type_label
+
+    channel = {
+        "docsis_version": "3.1",
+        "profile_modulation": "256QAM",
+        "modulation": "",
+    }
+
+    assert classify_channel_family("ds", channel) == "ofdm"
+    assert channel_type_label("ds", channel) == "OFDM"
+
+
+def test_classify_channel_family_distinguishes_us31_sc_qam_from_ofdma():
+    from app.docsis_utils import classify_channel_family, sc_qam_capacity_family
+
+    sc_qam = {"docsis_version": "3.1", "multiplex": "ATDMA", "modulation": "64QAM"}
+    ofdma = {"docsis_version": "3.1", "type": "OFDMA", "profile_modulation": "64QAM"}
+
+    assert classify_channel_family("us", sc_qam) == "sc_qam"
+    assert sc_qam_capacity_family("us", sc_qam) == "sc_qam"
+    assert classify_channel_family("us", ofdma) == "ofdma"
+    assert sc_qam_capacity_family("us", ofdma) == "unsupported"

@@ -69,6 +69,38 @@ class TestReportHelpers:
         assert _format_optional_count(0) == "0"
         assert _format_optional_count(1234) == "1,234"
 
+    def test_diagnostic_notes_trust_analyzer_metric_health(self):
+        from app.modules.reports.report import _build_diagnostic_notes
+
+        analysis = {
+            "ds_channels": [
+                {
+                    "channel_id": 1,
+                    "docsis_version": "3.0",
+                    "modulation": "256QAM",
+                    "power": 30.0,
+                    "snr": 20.0,
+                    "power_health": "good",
+                    "snr_health": "good",
+                }
+            ],
+            "us_channels": [
+                {
+                    "channel_id": 2,
+                    "docsis_version": "3.1",
+                    "type": "OFDMA",
+                    "profile_modulation": "64QAM",
+                    "power": 55.0,
+                    "power_health": "critical",
+                }
+            ],
+        }
+
+        notes = _build_diagnostic_notes(analysis)
+
+        assert [note["type"] for note in notes] == ["us_power_high"]
+        assert notes[0]["channel_type"] == "OFDMA"
+
 
 class TestComplaintRoutes:
     def test_api_report_passes_customer_details_to_pdf_generator(self):

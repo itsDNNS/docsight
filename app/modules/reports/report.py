@@ -9,6 +9,11 @@ from datetime import datetime
 from fpdf import FPDF
 
 from app.analyzer import get_thresholds
+from app.docsis_utils import (
+    channel_type_label as _channel_type_label,
+    classify_channel_family as _classify_channel_family,
+    modulation_threshold_key as _modulation_threshold_key,
+)
 
 log = logging.getLogger("docsis.report")
 
@@ -93,10 +98,10 @@ def _default_warn_thresholds():
 
 
 def _build_diagnostic_notes(current_analysis):
-    """Check channels for out-of-spec values and return diagnostic notes.
+    """Build report notes from analyzer channel health and shared DOCSIS semantics.
 
-    Each note is a dict with keys: type, channel_id, metric, value, spec_max,
-    spec_min, deviation_pct, severity.
+    Analyzer-provided metric health is authoritative when present. Legacy
+    snapshots without metric health fall back to threshold comparisons.
     """
     if not current_analysis:
         return []
@@ -107,25 +112,27 @@ def _build_diagnostic_notes(current_analysis):
     ds_thresholds = t.get("downstream_power", {})
     snr_thresholds = t.get("snr", {})
 
-    _MOD_ALIASES = {"OFDM": "4096QAM", "OFDMA": "4096QAM"}
+    def metric_allows_note(ch, metric_key):
+        health = ch.get(metric_key)
+        if health is None:
+            return True
+        return health in {"tolerated", "warning", "critical"}
 
     for ch in current_analysis.get("us_channels", []):
         power = ch.get("power")
-        if power is None:
+        if power is None or not metric_allows_note(ch, "power_health"):
             continue
-        mod = (ch.get("modulation") or "").upper()
-        if mod in ("OFDMA",):
-            key = "ofdma"
-        else:
-            key = "sc_qam"
+        family = _classify_channel_family("us", ch)
+        key = "ofdma" if family == "ofdma" else "sc_qam"
         spec = us_thresholds.get(key, {})
         crit = spec.get("critical", [35.0, 53.0])
+        channel_label = _channel_type_label("us", ch) or (ch.get("modulation") or key.upper())
         if power > crit[1]:
             deviation = round((power - crit[1]) / crit[1] * 100)
             notes.append({
                 "type": "us_power_high",
                 "channel_id": ch.get("channel_id", "?"),
-                "channel_type": mod or key.upper(),
+                "channel_type": channel_label,
                 "metric": "upstream power",
                 "value": power,
                 "spec_max": crit[1],
@@ -137,7 +144,7 @@ def _build_diagnostic_notes(current_analysis):
             notes.append({
                 "type": "us_power_low",
                 "channel_id": ch.get("channel_id", "?"),
-                "channel_type": mod or key.upper(),
+                "channel_type": channel_label,
                 "metric": "upstream power",
                 "value": power,
                 "spec_min": crit[0],
@@ -146,18 +153,19 @@ def _build_diagnostic_notes(current_analysis):
             })
 
     for ch in current_analysis.get("ds_channels", []):
-        power = ch.get("power")
         mod = (ch.get("modulation") or "256QAM").upper()
-        lookup = _MOD_ALIASES.get(mod, mod)
-        spec = ds_thresholds.get(lookup, ds_thresholds.get("256QAM", {}))
-        crit = spec.get("critical", [-8.0, 20.0])
-        if power is not None:
+        lookup = _modulation_threshold_key(mod, ds_thresholds)
+        channel_label = _channel_type_label("ds", ch) or mod
+        power = ch.get("power")
+        if power is not None and metric_allows_note(ch, "power_health"):
+            spec = ds_thresholds.get(lookup, ds_thresholds.get("256QAM", {}))
+            crit = spec.get("critical", [-8.0, 20.0])
             if power > crit[1]:
                 deviation = round((power - crit[1]) / max(abs(crit[1]), 1) * 100)
                 notes.append({
                     "type": "ds_power_high",
                     "channel_id": ch.get("channel_id", "?"),
-                    "channel_type": mod,
+                    "channel_type": channel_label,
                     "metric": "downstream power",
                     "value": power,
                     "spec_max": crit[1],
@@ -169,7 +177,7 @@ def _build_diagnostic_notes(current_analysis):
                 notes.append({
                     "type": "ds_power_low",
                     "channel_id": ch.get("channel_id", "?"),
-                    "channel_type": mod,
+                    "channel_type": channel_label,
                     "metric": "downstream power",
                     "value": power,
                     "spec_min": crit[0],
@@ -178,15 +186,16 @@ def _build_diagnostic_notes(current_analysis):
                 })
 
         snr = ch.get("snr")
-        if snr is not None:
-            snr_spec = snr_thresholds.get(lookup, snr_thresholds.get("256QAM", {}))
+        if snr is not None and metric_allows_note(ch, "snr_health"):
+            snr_lookup = _modulation_threshold_key(mod, snr_thresholds)
+            snr_spec = snr_thresholds.get(snr_lookup, snr_thresholds.get("256QAM", {}))
             snr_crit = snr_spec.get("critical_min", 29.0)
             if snr < snr_crit:
                 deviation = round((snr_crit - snr) / max(snr_crit, 1) * 100)
                 notes.append({
                     "type": "snr_low",
                     "channel_id": ch.get("channel_id", "?"),
-                    "channel_type": mod,
+                    "channel_type": channel_label,
                     "metric": "SNR/MER",
                     "value": snr,
                     "spec_min": snr_crit,

@@ -9,7 +9,11 @@ from __future__ import annotations
 import logging
 from typing import Literal
 
-from .docsis_utils import parse_qam_order as _parse_qam_order
+from .docsis_utils import (
+    classify_channel_family as _shared_classify_channel_family,
+    modulation_threshold_key as _modulation_threshold_key,
+    parse_qam_order as _parse_qam_order,
+)
 from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
 from .tz import utc_now, _parse_utc
 
@@ -82,9 +86,7 @@ _MODULATION_ALIASES = {
 
 def _resolve_modulation(modulation, section):
     """Resolve modulation string to a key in thresholds config."""
-    if modulation in section:
-        return modulation
-    return _MODULATION_ALIASES.get(modulation, section.get("_default", "256QAM"))
+    return _modulation_threshold_key(modulation, section)
 
 
 def _get_ds_power_thresholds(modulation=None):
@@ -629,70 +631,14 @@ def _family_health_driver(family, channels, *, direction, cause, family_health, 
     return max(candidates, key=lambda candidate: _HEALTH_RANK.get(candidate["health"], 0))
 
 
-def _channel_text(channel, *keys):
-    return " ".join(str(channel.get(key, "") or "") for key in keys).upper().replace("-", "")
-
-
 def _classify_ds_family(channel):
     """Classify downstream channels into SC-QAM, OFDM, or unknown families."""
-    docsis_version = str(channel.get("docsis_version", "") or "")
-    is_docsis31_plus = "3.1" in docsis_version or "4.0" in docsis_version
-    type_text = _channel_text(channel, "type")
-    modulation_text = _channel_text(channel, "modulation")
-    profile_text = _channel_text(channel, "profile_modulation")
-
-    if "OFDM" in type_text or "OFDMA" in type_text:
-        return "ofdm"
-    if "SCQAM" in type_text or type_text == "QAM":
-        return "sc_qam"
-    if "OFDM" in modulation_text or "OFDMA" in modulation_text:
-        return "ofdm"
-
-    modulation_rank = _parse_qam_order(modulation_text)
-    if modulation_rank:
-        if modulation_rank >= 1024 and is_docsis31_plus:
-            return "ofdm"
-        return "sc_qam"
-
-    # Profile modulation is an OFDM profile signal, not an SC-QAM channel type.
-    # A degraded DOCSIS 3.1 OFDM profile can be 256QAM/512QAM and must still
-    # remain on the OFDM/MER Home lane when explicit modulation/type is absent.
-    if profile_text and is_docsis31_plus:
-        return "ofdm"
-    if _parse_qam_order(profile_text):
-        return "sc_qam"
-
-    if is_docsis31_plus:
-        return "ofdm"
-    if "3.0" in docsis_version:
-        return "sc_qam"
-    return "unknown"
+    return _shared_classify_channel_family("ds", channel)
 
 
 def _classify_us_family(channel):
     """Classify upstream channels into SC-QAM, OFDMA, or unknown families."""
-    docsis_version = str(channel.get("docsis_version", "") or "")
-    is_docsis31_plus = "3.1" in docsis_version or "4.0" in docsis_version
-    type_text = _channel_text(channel, "type", "multiplex")
-    modulation_text = _channel_text(channel, "modulation")
-    profile_text = _channel_text(channel, "profile_modulation")
-
-    if "OFDMA" in type_text:
-        return "ofdma"
-    if any(token in type_text for token in ("ATDMA", "SCQAM", "TDMA")):
-        return "sc_qam"
-    if "OFDMA" in modulation_text:
-        return "ofdma"
-    if profile_text and is_docsis31_plus:
-        return "ofdma"
-    if is_docsis31_plus:
-        return "ofdma"
-    if _parse_qam_order(modulation_text):
-        return "sc_qam"
-
-    if "3.0" in docsis_version:
-        return "sc_qam"
-    return "unknown"
+    return _shared_classify_channel_family("us", channel)
 
 
 def _family_summary(family, channels, *, direction):
