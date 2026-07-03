@@ -7,7 +7,6 @@ telemetry when displayed or dismissed.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import re
 from typing import Any
 from urllib.parse import urlparse
@@ -38,45 +37,6 @@ LOCAL_NOTICES: tuple[dict[str, Any], ...] = (
 
 class NoticeValidationError(ValueError):
     """Raised when a bundled notice violates the local notice contract."""
-
-
-def _parse_datetime(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    normalized = value.replace("Z", "+00:00")
-    parsed = datetime.fromisoformat(normalized)
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
-
-
-def _version_parts(value: str) -> tuple[tuple[int, Any], ...]:
-    raw = (value or "").strip().lstrip("v")
-    if not raw or raw == "dev":
-        return ()
-    parts: list[tuple[int, Any]] = []
-    for token in raw.replace("-", ".").split("."):
-        if token.isdigit():
-            parts.append((0, int(token)))
-        else:
-            parts.append((1, token))
-    return tuple(parts)
-
-
-def _version_gte(current: str, minimum: str) -> bool:
-    cur = _version_parts(current)
-    min_parts = _version_parts(minimum)
-    if not cur or not min_parts:
-        return True
-    return cur >= min_parts
-
-
-def _version_lte(current: str, maximum: str) -> bool:
-    cur = _version_parts(current)
-    max_parts = _version_parts(maximum)
-    if not cur or not max_parts:
-        return True
-    return cur <= max_parts
 
 
 def is_valid_notice_id(value: str) -> bool:
@@ -139,16 +99,6 @@ def validate_notice_schema(notice: dict[str, Any]) -> None:
     if not _is_safe_link(notice.get("link_url")):
         raise NoticeValidationError("Notice links must be relative or HTTPS URLs")
 
-    for key in ("starts_at", "expires_at"):
-        value = notice.get(key)
-        if value:
-            if not isinstance(value, str):
-                raise NoticeValidationError(f"Invalid {key} timestamp")
-            try:
-                _parse_datetime(value)
-            except ValueError as exc:
-                raise NoticeValidationError(f"Invalid {key} timestamp") from exc
-
 
 def coerce_dismissed_notice_ids(dismissed_ids: Any) -> list[str]:
     """Normalize persisted dismissal values into bounded stable IDs."""
@@ -169,34 +119,9 @@ def _coerce_dismissed_ids(dismissed_ids: Any) -> set[str]:
     return set(coerce_dismissed_notice_ids(dismissed_ids))
 
 
-def _matches_constraints(
-    notice: dict[str, Any],
-    *,
-    app_version: str,
-    location: str | None,
-    now: datetime,
-) -> bool:
+def _matches_location(notice: dict[str, Any], location: str | None) -> bool:
     locations = set(notice.get("locations", ("dashboard", "settings")))
-    if location and location not in locations:
-        return False
-
-    starts_at = _parse_datetime(notice.get("starts_at"))
-    if starts_at and starts_at > now:
-        return False
-
-    expires_at = _parse_datetime(notice.get("expires_at"))
-    if expires_at and expires_at <= now:
-        return False
-
-    min_version = notice.get("min_version")
-    if min_version and not _version_gte(app_version, str(min_version)):
-        return False
-
-    max_version = notice.get("max_version")
-    if max_version and not _version_lte(app_version, str(max_version)):
-        return False
-
-    return True
+    return location is None or location in locations
 
 
 def serialize_notice(notice: dict[str, Any]) -> dict[str, Any]:
@@ -208,18 +133,16 @@ def serialize_notice(notice: dict[str, Any]) -> dict[str, Any]:
         "title": notice["title"],
         "body": notice["body"],
     }
-    for key in ("link_label", "link_url", "min_version", "max_version"):
+    for key in ("link_label", "link_url"):
         if notice.get(key):
             data[key] = notice[key]
     return data
 
 
 def get_active_notices(
-    app_version: str,
     dismissed_ids: Any = None,
     location: str | None = None,
     *,
-    now: datetime | None = None,
     notices: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Return active bundled notices after local filtering and dismissal."""
@@ -227,7 +150,6 @@ def get_active_notices(
         return []
 
     dismissed = _coerce_dismissed_ids(dismissed_ids)
-    evaluated_at = now or datetime.now(timezone.utc)
     source = LOCAL_NOTICES if notices is None else notices
     active: list[dict[str, Any]] = []
 
@@ -236,7 +158,7 @@ def get_active_notices(
             validate_notice_schema(notice)
             if notice["id"] in dismissed:
                 continue
-            if not _matches_constraints(notice, app_version=app_version, location=location, now=evaluated_at):
+            if not _matches_location(notice, location):
                 continue
             active.append(serialize_notice(notice))
         except (NoticeValidationError, AttributeError, TypeError, ValueError):
