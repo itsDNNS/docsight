@@ -73,6 +73,50 @@ class TestSettingsMobileSidebar:
         assert metrics["supportTop"] >= 0
         assert metrics["supportBottom"] <= metrics["sidebarHeight"]
 
+    @pytest.mark.parametrize("width, expect_drawer", [(700, True), (850, False)])
+    @pytest.mark.parametrize("section, setup", [
+        ("connection", None),
+        ("notifications", "expand-webhook"),
+    ])
+    def test_tablet_widths_use_comfortable_single_column_settings_forms(self, settings_page, width, expect_drawer, section, setup):
+        settings_page.set_viewport_size({"width": width, "height": 844})
+        settings_page.reload(wait_until="networkidle")
+        settings_page.evaluate("section => window.switchSection(section)", section)
+        if setup == "expand-webhook":
+            settings_page.locator('#notification-webhook-card .notification-collapse-button').click()
+
+        metrics = settings_page.evaluate(
+            """
+            ({section, expectDrawer}) => {
+              const panel = document.querySelector(`#panel-${section}`);
+              const grids = Array.from(panel.querySelectorAll('.form-grid.cols-2'))
+                .filter((grid) => grid.getClientRects().length > 0 && !grid.closest('[inert]'));
+              const fieldWidths = grids.flatMap((grid) => Array.from(grid.querySelectorAll('.form-field'))
+                .filter((field) => field.getClientRects().length > 0)
+                .map((field) => field.getBoundingClientRect().width));
+              const mobileHeader = document.querySelector('.mobile-header');
+              const sidebar = document.querySelector('#settings-sidebar');
+              const sidebarRect = sidebar.getBoundingClientRect();
+              return {
+                gridColumns: grids.map((grid) => getComputedStyle(grid).gridTemplateColumns.trim().split(' ').filter(Boolean).length),
+                minFieldWidth: Math.min(...fieldWidths),
+                mobileHeaderVisible: getComputedStyle(mobileHeader).display !== 'none',
+                sidebarOffCanvas: sidebarRect.right <= 1,
+                docWidth: document.documentElement.scrollWidth,
+                viewportWidth: window.innerWidth,
+                expectDrawer,
+              };
+            }
+            """,
+            {"section": section, "expectDrawer": expect_drawer},
+        )
+        assert metrics["gridColumns"]
+        assert all(count == 1 for count in metrics["gridColumns"])
+        assert metrics["minFieldWidth"] >= 280
+        assert metrics["docWidth"] <= metrics["viewportWidth"]
+        assert metrics["mobileHeaderVisible"] is expect_drawer
+        assert metrics["sidebarOffCanvas"] is expect_drawer
+
 
 class TestSettingsTabSwitching:
     """Clicking sidebar tabs shows the correct panel."""
