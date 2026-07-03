@@ -154,6 +154,32 @@ class TestSnapshotStorage:
         assert snap is not None
         assert snap["analysis_meta"] is None
         assert snap["raw_data"] is None
+        with sqlite3.connect(storage.db_path) as conn:
+            snapshot_cols = {row[1] for row in conn.execute("PRAGMA table_info(snapshots)")}
+            meta = conn.execute(
+                "SELECT value FROM _docsight_meta WHERE key = 'schema_version'"
+            ).fetchone()
+
+        assert {"is_demo", "raw_json", "analysis_meta_json"}.issubset(snapshot_cols)
+        assert meta == ("2",)
+
+    def test_storage_schema_creates_query_indexes(self, storage):
+        with sqlite3.connect(storage.db_path) as conn:
+            event_indexes = {row[1] for row in conn.execute("PRAGMA index_list(events)")}
+            snapshot_indexes = {row[1] for row in conn.execute("PRAGMA index_list(snapshots)")}
+            meta = conn.execute(
+                "SELECT value FROM _docsight_meta WHERE key = 'schema_version'"
+            ).fetchone()
+
+        assert "idx_events_type_ts" in event_indexes
+        assert "idx_snapshots_ts_id" in snapshot_indexes
+        assert meta == ("2",)
+
+    def test_save_snapshot_surfaces_storage_errors(self, tmp_path, storage, sample_analysis):
+        storage.db_path = str(tmp_path)
+
+        with pytest.raises(sqlite3.Error):
+            storage.save_snapshot(sample_analysis)
 
     def test_threshold_profile_change_applies_to_subsequent_snapshots(self, storage, sample_analysis, monkeypatch):
         monkeypatch.setattr(snapshot_module, "get_available_app_version", lambda: "2026.7-test")
@@ -332,6 +358,49 @@ class TestSnapshotStorage:
         s.save_snapshot(sample_analysis)
         s.save_snapshot(sample_analysis)
         assert len(s.get_snapshot_list()) == 2
+
+    def test_cleanup_preserves_snapshots_and_events_inside_incident_windows(self, tmp_path):
+        db_path = str(tmp_path / "retention.db")
+        storage = SnapshotStorage(db_path, max_days=1)
+        summary = json.dumps({"health": "good", "errors_supported": False})
+        channels = json.dumps([])
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE incidents ("
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "name TEXT NOT NULL, "
+                "status TEXT NOT NULL DEFAULT 'open', "
+                "start_date TEXT, "
+                "end_date TEXT, "
+                "created_at TEXT NOT NULL, "
+                "updated_at TEXT NOT NULL, "
+                "is_demo INTEGER NOT NULL DEFAULT 0"
+                ")"
+            )
+            conn.execute(
+                "INSERT INTO incidents (name, start_date, end_date, created_at, updated_at) "
+                "VALUES ('Protected incident', '2020-01-01', '2020-01-02', '2020-01-01T00:00:00Z', '2020-01-01T00:00:00Z')"
+            )
+            for ts in ("2019-12-31T12:00:00Z", "2020-01-01T12:00:00Z"):
+                conn.execute(
+                    "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json) "
+                    "VALUES (?, ?, ?, ?)",
+                    (ts, summary, channels, channels),
+                )
+                conn.execute(
+                    "INSERT INTO events (timestamp, severity, event_type, message, details) "
+                    "VALUES (?, 'warning', 'error_spike', 'test', NULL)",
+                    (ts,),
+                )
+
+        storage._cleanup()
+
+        with sqlite3.connect(db_path) as conn:
+            snapshots = [row[0] for row in conn.execute("SELECT timestamp FROM snapshots ORDER BY timestamp")]
+            events = [row[0] for row in conn.execute("SELECT timestamp FROM events ORDER BY timestamp")]
+
+        assert snapshots == ["2020-01-01T12:00:00Z"]
+        assert events == ["2020-01-01T12:00:00Z"]
 
 
 @pytest.fixture

@@ -154,9 +154,9 @@ class SnapshotMethods:
                 )
                 snapshot_id = cur.lastrowid
             log.debug("Snapshot saved: %s", ts)
-        except Exception as e:
-            log.error("Failed to save snapshot: %s", e)
-            return None
+        except Exception:
+            log.exception("Failed to save snapshot")
+            raise
         self._cleanup()
         return snapshot_id
 
@@ -337,15 +337,18 @@ class SnapshotMethods:
 
         All timestamps are now stored as UTC with Z suffix.
         """
-        ts_param = timestamp
+        center = _parse_utc(timestamp)
+        start_ts = (center - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_ts = (center + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ts_param = center.strftime("%Y-%m-%dT%H:%M:%SZ")
         with self._connect() as conn:
             row = conn.execute(
                 """SELECT timestamp, summary_json, ds_channels_json, us_channels_json
                    FROM snapshots
-                   WHERE ABS(julianday(REPLACE(timestamp, 'Z', '')) - julianday(REPLACE(?, 'Z', ''))) <= (2.0 / 24.0)
+                   WHERE timestamp >= ? AND timestamp <= ?
                    ORDER BY ABS(julianday(REPLACE(timestamp, 'Z', '')) - julianday(REPLACE(?, 'Z', '')))
                    LIMIT 1""",
-                (ts_param, ts_param),
+                (start_ts, end_ts, ts_param),
             ).fetchone()
         if not row:
             return None

@@ -16,6 +16,37 @@ MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_ATTACHMENTS_PER_ENTRY = 10
 
 log = logging.getLogger("docsis.storage")
+SCHEMA_VERSION = 2
+
+
+def _table_columns(conn, table):
+    return [row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+
+
+def _table_exists(conn, table):
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table,),
+    ).fetchone()
+    return row is not None
+
+
+def _add_column_if_missing(conn, table, column, ddl):
+    if not _table_exists(conn, table):
+        return False
+    if column in _table_columns(conn, table):
+        return False
+    conn.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
+    log.info("Migration: added %s column to %s", column, table)
+    return True
+
+
+def _set_schema_version(conn):
+    conn.execute(
+        "INSERT INTO _docsight_meta (key, value) VALUES ('schema_version', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (str(SCHEMA_VERSION),),
+    )
 
 
 class StorageBase:
@@ -31,6 +62,12 @@ class StorageBase:
     def _init_db(self):
         with self._connect() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS _docsight_meta (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )
+            """)
 
             # ── Migration: rename incidents → journal_entries ──
             # Detect old schema: incidents table has a 'title' column
@@ -119,30 +156,24 @@ class StorageBase:
                 CREATE INDEX IF NOT EXISTS idx_events_ack
                 ON events(acknowledged)
             """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_events_type_ts
+                ON events(event_type, timestamp DESC)
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_snapshots_ts_id
+                ON snapshots(timestamp DESC, id DESC)
+            """)
             # ── Migration: add is_demo column to demo-seeded tables ──
             # Note: speedtest_results, bqm_graphs, bnetz_measurements tables are
             # now created by their respective modules. We still try the migration
             # here because the tables may already exist from a previous version.
             _demo_tables = ["snapshots", "events", "journal_entries", "incidents", "speedtest_results", "bqm_graphs", "bnetz_measurements", "weather_data"]
             for tbl in _demo_tables:
-                try:
-                    cols = [r[1] for r in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
-                    if "is_demo" not in cols:
-                        conn.execute(f"ALTER TABLE {tbl} ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
-                        log.info("Migration: added is_demo column to %s", tbl)
-                except Exception as e:
-                    log.warning("Failed to add is_demo to %s: %s", tbl, e)
+                _add_column_if_missing(conn, tbl, "is_demo", "is_demo INTEGER NOT NULL DEFAULT 0")
 
-            try:
-                cols = [r[1] for r in conn.execute("PRAGMA table_info(snapshots)").fetchall()]
-                if "analysis_meta_json" not in cols:
-                    conn.execute("ALTER TABLE snapshots ADD COLUMN analysis_meta_json TEXT")
-                    log.info("Migration: added analysis_meta_json column to snapshots")
-                if "raw_json" not in cols:
-                    conn.execute("ALTER TABLE snapshots ADD COLUMN raw_json TEXT")
-                    log.info("Migration: added raw_json column to snapshots")
-            except Exception as e:
-                log.warning("Failed to add optional snapshot metadata columns: %s", e)
+            _add_column_if_missing(conn, "snapshots", "analysis_meta_json", "analysis_meta_json TEXT")
+            _add_column_if_missing(conn, "snapshots", "raw_json", "raw_json TEXT")
 
             # ── Weather data table ──
             conn.execute("""
@@ -187,14 +218,6 @@ class StorageBase:
                 ON pwa_push_subscriptions(updated_at)
             """)
 
-            # ── Schema metadata (UTC migration tracking etc.) ──
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS _docsight_meta (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                )
-            """)
-
             # ── Smart Capture executions ──
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS smart_capture_executions (
@@ -223,6 +246,7 @@ class StorageBase:
                 CREATE INDEX IF NOT EXISTS idx_sc_exec_created
                 ON smart_capture_executions(created_at)
             """)
+            _set_schema_version(conn)
 
     @contextmanager
     def _connect(self):
