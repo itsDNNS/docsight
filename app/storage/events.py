@@ -169,9 +169,9 @@ class EventMethods:
             return 0
         cutoff = utc_cutoff(days=days)
         with self._connect() as conn:
-            deleted = conn.execute(
-                "DELETE FROM events WHERE timestamp < ?", (cutoff,)
-            ).rowcount
+            deleted = self._delete_expired_unprotected_rows(  # type: ignore[attr-defined]
+                conn, "events", "timestamp", cutoff
+            )
         return deleted
 
     def get_latest_spike_timestamp(self):

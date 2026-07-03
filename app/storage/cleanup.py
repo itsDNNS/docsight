@@ -6,7 +6,7 @@ import shutil
 import sqlite3
 from datetime import datetime, timedelta
 
-from ..tz import local_today, utc_now, utc_cutoff, local_to_utc
+from ..tz import local_today, utc_now, utc_cutoff, local_to_utc, local_date_to_utc_range
 
 log = logging.getLogger("docsis.storage")
 
@@ -105,6 +105,50 @@ class CleanupMethods:
         )
         return True
 
+    def _incident_retention_ranges(self, conn):
+        """Return UTC timestamp ranges for explicit incident windows."""
+        try:
+            rows = conn.execute(
+                "SELECT start_date, COALESCE(end_date, '') FROM incidents "
+                "WHERE start_date IS NOT NULL AND start_date != ''"
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return []
+
+        ranges = []
+        tz = getattr(self, 'tz_name', '')
+        today = local_today(tz)
+        for start_date, end_date in rows:
+            try:
+                start_ts, _ = local_date_to_utc_range(start_date, tz)
+                _, end_ts = local_date_to_utc_range(end_date or today, tz)
+            except Exception as exc:
+                log.warning("Retention skipped invalid incident window %r..%r: %s", start_date, end_date, exc)
+                continue
+            ranges.append((start_ts, end_ts))
+        return ranges
+
+    def _delete_expired_unprotected_rows(self, conn, table, timestamp_column, cutoff):
+        """Delete old rows unless their timestamp lies in an incident window."""
+        ranges = self._incident_retention_ranges(conn)
+        if not ranges:
+            return conn.execute(
+                f"DELETE FROM {table} WHERE {timestamp_column} < ?",
+                (cutoff,),
+            ).rowcount
+
+        protected = " OR ".join(
+            f"({timestamp_column} >= ? AND {timestamp_column} <= ?)"
+            for _ in ranges
+        )
+        params = [cutoff]
+        for start_ts, end_ts in ranges:
+            params.extend([start_ts, end_ts])
+        return conn.execute(
+            f"DELETE FROM {table} WHERE {timestamp_column} < ? AND NOT ({protected})",
+            params,
+        ).rowcount
+
     def purge_demo_data(self):
         """Delete all rows with is_demo=1 from all demo-seeded tables.
 
@@ -151,9 +195,9 @@ class CleanupMethods:
             return
         cutoff = utc_cutoff(days=self.max_days)
         with self._connect() as conn:
-            deleted = conn.execute(
-                "DELETE FROM snapshots WHERE timestamp < ?", (cutoff,)
-            ).rowcount
+            deleted = self._delete_expired_unprotected_rows(
+                conn, "snapshots", "timestamp", cutoff
+            )
         if deleted:
             log.info("Cleaned up %d old snapshots (before %s)", deleted, cutoff)
         tz = getattr(self, 'tz_name', '')
