@@ -6,6 +6,13 @@ import pytest
 from playwright.sync_api import expect
 
 
+def _login(auth_page, auth_server):
+    auth_page.goto(f"{auth_server}/login")
+    auth_page.fill('input[name="password"]', "e2e-test-password")
+    auth_page.click('button[type="submit"]')
+    auth_page.wait_for_load_state("networkidle")
+
+
 class TestSettingsLoad:
     """Settings page loads correctly."""
 
@@ -244,6 +251,49 @@ class TestSettingsDirtyState:
         expect(settings_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
 
         assert payloads[-1]["notify_pwa_push_vapid_private_key"] == "••••••••"
+
+    def test_saved_admin_password_is_masked_when_unrelated_setting_is_saved(self, auth_page, auth_server):
+        payloads = []
+
+        def capture_config(route):
+            payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        _login(auth_page, auth_server)
+        auth_page.goto(f"{auth_server}/settings")
+        auth_page.wait_for_load_state("networkidle")
+        auth_page.route("**/api/config", capture_config)
+
+        admin_password = auth_page.locator('#admin_password')
+        expect(admin_password).to_have_attribute("data-saved-secret", "true")
+        assert admin_password.input_value() == ""
+
+        auth_page.locator('button[data-section="general"]').click()
+        auth_page.locator('#poll_interval').fill('903')
+        auth_page.locator('#save-footer button[type="submit"]').click()
+        expect(auth_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        assert payloads[-1]["admin_password"] == "••••••••"
+
+    def test_user_edited_admin_password_is_submitted_and_cleared_after_save(self, auth_page, auth_server):
+        payloads = []
+
+        def capture_config(route):
+            payloads.append(route.request.post_data_json)
+            route.fulfill(json={"success": True})
+
+        _login(auth_page, auth_server)
+        auth_page.goto(f"{auth_server}/settings")
+        auth_page.wait_for_load_state("networkidle")
+        auth_page.route("**/api/config", capture_config)
+
+        auth_page.locator('button[data-section="security"]').click()
+        auth_page.locator('#admin_password').fill('new-admin-secret')
+        auth_page.locator('#save-footer button[type="submit"]').click()
+        expect(auth_page.locator("#save-footer")).not_to_have_class(re.compile(r".*\bvisible\b.*"))
+
+        assert payloads[-1]["admin_password"] == "new-admin-secret"
+        assert auth_page.locator('#admin_password').input_value() == ""
 
     def test_user_edited_saved_secret_is_submitted_and_cleared_after_save(self, settings_page):
         payloads = []

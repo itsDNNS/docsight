@@ -1,5 +1,7 @@
 """Tests for settings and setup pages."""
 
+import re
+
 from app.web import init_config, app
 from app.config import ConfigManager
 
@@ -30,6 +32,24 @@ class TestSettingsRoute:
         assert resp.status_code == 200
         assert b"Segment Utilization" in resp.data
         assert b"Disabled" in resp.data
+
+    def test_settings_admin_password_field_uses_saved_secret_placeholder(self, client, config_mgr):
+        config_mgr.save({"admin_password": "admin-secret-value"})
+        init_config(config_mgr)
+        with client.session_transaction() as session:
+            session["authenticated"] = True
+
+        resp = client.get("/settings?lang=en")
+
+        assert resp.status_code == 200
+        html = resp.data.decode("utf-8")
+        admin_match = re.search(r'<input[^>]+id="admin_password"[^>]*>', html)
+        assert admin_match is not None
+        admin_input = admin_match.group(0)
+        assert "admin-secret-value" not in html
+        assert "••••••••" not in admin_input
+        assert 'value=""' in admin_input
+        assert 'data-saved-secret="true"' in admin_input
 
 
 class TestSetupRoute:
