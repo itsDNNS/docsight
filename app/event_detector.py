@@ -97,15 +97,46 @@ def _channel_type_label(direction: str, channel: dict, fallback: dict | None = N
 class EventDetector:
     """Compare consecutive analyses and emit event dicts."""
 
-    def __init__(self, hysteresis=0):
+    def __init__(self, hysteresis=0, baseline: AnalysisResult | None = None):
         self._prev = None
+        self._prev_snapshot_id = None
         self._lock = threading.Lock()
         self._hysteresis = max(0, int(hysteresis or 0))
         self._confirmed_health = None
         self._pending_health = None
         self._pending_count = 0
+        self.seed(baseline)
 
-    def check(self, analysis: AnalysisResult) -> list[EventDict]:
+    def seed(self, analysis: AnalysisResult | None, snapshot_id: int | None = None) -> None:
+        """Seed the detector with a persisted baseline snapshot after restart."""
+        if not analysis:
+            return
+        if snapshot_id is None:
+            snapshot_id = analysis.get("snapshot_id")
+        with self._lock:
+            self._prev = analysis
+            self._prev_snapshot_id = snapshot_id
+            if self._hysteresis >= 2:
+                self._confirmed_health = analysis.get("summary", {}).get("health", "good")
+            self._pending_health = None
+            self._pending_count = 0
+
+    @staticmethod
+    def _annotate_event_details(events, snapshot_id, previous_snapshot_id):
+        """Attach source snapshot provenance to generated event details."""
+        if snapshot_id is None and previous_snapshot_id is None:
+            return
+        for event in events:
+            details = event.get("details")
+            if not isinstance(details, dict):
+                details = {}
+                event["details"] = details
+            if snapshot_id is not None:
+                details.setdefault("snapshot_id", snapshot_id)
+            if previous_snapshot_id is not None:
+                details.setdefault("previous_snapshot_id", previous_snapshot_id)
+
+    def check(self, analysis: AnalysisResult, snapshot_id: int | None = None) -> list[EventDict]:
         """Compare current analysis with previous, return list of event dicts.
 
         Called after each poll. On first call (no previous), stores baseline
@@ -113,19 +144,23 @@ class EventDetector:
         """
         with self._lock:
             prev = self._prev
+            prev_snapshot_id = self._prev_snapshot_id
             self._prev = analysis
+            self._prev_snapshot_id = snapshot_id
         ts = utc_now()
 
         if prev is None:
             # First poll: generate baseline event
             health = analysis.get("summary", {}).get("health", "unknown")
-            return [{
+            events = [{
                 "timestamp": ts,
                 "severity": "info",
                 "event_type": "monitoring_started",
                 "message": f"Monitoring started (Health: {health})",
                 "details": {"health": health},
             }]
+            self._annotate_event_details(events, snapshot_id, prev_snapshot_id)
+            return events
 
         events = []
         cur_s = analysis.get("summary", {})
@@ -146,6 +181,7 @@ class EventDetector:
         # Error spike
         self._check_errors(events, ts, cur_s, prev_s)
 
+        self._annotate_event_details(events, snapshot_id, prev_snapshot_id)
         return events
 
     def _check_health(self, events, ts, cur, prev):
@@ -208,35 +244,45 @@ class EventDetector:
 
     def _check_power(self, events, ts, cur, prev):
         # Downstream power avg shift
-        ds_cur = cur.get("ds_power_avg", 0)
-        ds_prev = prev.get("ds_power_avg", 0)
-        if abs(ds_cur - ds_prev) > POWER_SHIFT_THRESHOLD:
+        ds_cur = _coerce_float(cur.get("ds_power_avg"))
+        ds_prev = _coerce_float(prev.get("ds_power_avg"))
+        if ds_cur is not None and ds_prev is not None and abs(ds_cur - ds_prev) > POWER_SHIFT_THRESHOLD:
             events.append({
                 "timestamp": ts,
                 "severity": "warning",
                 "event_type": "power_change",
                 "message": f"DS power avg shifted from {ds_prev} to {ds_cur} dBmV",
-                "details": {"direction": "downstream", "prev": ds_prev, "current": ds_cur},
+                "details": {
+                    "direction": "downstream",
+                    "prev": ds_prev,
+                    "current": ds_cur,
+                    "threshold_delta": POWER_SHIFT_THRESHOLD,
+                },
             })
 
         # Upstream power avg shift
-        us_cur = cur.get("us_power_avg", 0)
-        us_prev = prev.get("us_power_avg", 0)
-        if abs(us_cur - us_prev) > POWER_SHIFT_THRESHOLD:
+        us_cur = _coerce_float(cur.get("us_power_avg"))
+        us_prev = _coerce_float(prev.get("us_power_avg"))
+        if us_cur is not None and us_prev is not None and abs(us_cur - us_prev) > POWER_SHIFT_THRESHOLD:
             events.append({
                 "timestamp": ts,
                 "severity": "warning",
                 "event_type": "power_change",
                 "message": f"US power avg shifted from {us_prev} to {us_cur} dBmV",
-                "details": {"direction": "upstream", "prev": us_prev, "current": us_cur},
+                "details": {
+                    "direction": "upstream",
+                    "prev": us_prev,
+                    "current": us_cur,
+                    "threshold_delta": POWER_SHIFT_THRESHOLD,
+                },
             })
 
     def _check_snr(self, events, ts, cur_analysis, prev_analysis):
         cur = cur_analysis.get("summary", {})
         prev = prev_analysis.get("summary", {})
-        snr_cur = cur.get("ds_snr_min", 0)
-        snr_prev = prev.get("ds_snr_min", 0)
-        if snr_cur == snr_prev:
+        snr_cur = _coerce_float(cur.get("ds_snr_min"))
+        snr_prev = _coerce_float(prev.get("ds_snr_min"))
+        if snr_cur is None or snr_prev is None or snr_cur == snr_prev:
             return
 
         st = _snr_thresholds()
@@ -258,6 +304,7 @@ class EventDetector:
                     "prev": snr_prev,
                     "current": snr_cur,
                     "threshold": "critical",
+                    "threshold_value": snr_crit,
                     "affected_channels": affected_channels,
                 },
             })
@@ -276,6 +323,7 @@ class EventDetector:
                     "prev": snr_prev,
                     "current": snr_cur,
                     "threshold": "warning",
+                    "threshold_value": snr_warn,
                     "affected_channels": affected_channels,
                 },
             })
@@ -467,7 +515,11 @@ class EventDetector:
                 "severity": severity,
                 "event_type": "modulation_change",
                 "message": f"Modulation dropped on {len(downgrades)} channel(s)",
-                "details": {"changes": downgrades, "direction": "downgrade"},
+                "details": {
+                    "changes": downgrades,
+                    "direction": "downgrade",
+                    "critical_rank_drop": QAM_CRITICAL_DROP,
+                },
             })
         if upgrades:
             events.append({
@@ -493,7 +545,12 @@ class EventDetector:
                 "severity": "warning",
                 "event_type": "error_spike",
                 "message": f"Uncorrectable errors jumped by {delta:,} (from {uncorr_prev:,} to {uncorr_cur:,})",
-                "details": {"prev": uncorr_prev, "current": uncorr_cur, "delta": delta},
+                "details": {
+                    "prev": uncorr_prev,
+                    "current": uncorr_cur,
+                    "delta": delta,
+                    "threshold_delta": UNCORR_SPIKE_THRESHOLD,
+                },
             })
 
     def _check_restart(self, events, ts, cur, prev):
@@ -576,5 +633,7 @@ class EventDetector:
                 "prev_uncorr_total": prev_uncorr_total,
                 "current_corr_total": cur_corr_total,
                 "current_uncorr_total": cur_uncorr_total,
+                "declining_channel_ratio_threshold": RESTART_CHANNEL_THRESHOLD,
+                "minimum_overlap_channels": RESTART_MIN_OVERLAP,
             },
         })

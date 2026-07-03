@@ -50,6 +50,7 @@ class ModemCollector(Collector):
         self._device_info: DeviceInfo | None = None
         self._connection_info: ConnectionInfo | None = None
         self._discovery_published = False
+        self._event_detector.seed(self._storage.get_latest_snapshot())
 
     def collect(self) -> CollectorResult:
         self._driver.login()
@@ -205,10 +206,10 @@ class ModemCollector(Collector):
 
         # Web state + persistent storage
         self._web.update_state(analysis=analysis)
-        self._storage.save_snapshot(analysis, raw_data=data)
+        snapshot_id = self._storage.save_snapshot(analysis, raw_data=data)
 
         # Event detection
-        events = self._event_detector.check(analysis)
+        events = self._event_detector.check(analysis, snapshot_id=snapshot_id)
         if events:
             self._storage.save_events_with_ids(events)
             log.info("Detected %d event(s)", len(events))
