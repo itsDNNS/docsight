@@ -53,50 +53,58 @@
         </a>
 
         <!-- Settings Navigation -->
-        <div class="nav-group">
-            <button class="nav-item active" data-section="connection" onclick="switchSection('connection')">
-                <i data-lucide="radio" class="nav-icon"></i>
-                {{ t.step_modem }}
-            </button>
-            <button class="nav-item" data-section="general" onclick="switchSection('general')">
-                <i data-lucide="settings" class="nav-icon"></i>
-                {{ t.general }}
-            </button>
-            <button class="nav-item" data-section="notifications" onclick="switchSection('notifications')">
-                <i data-lucide="bell" class="nav-icon"></i>
-                {{ t.notifications }}
-            </button>
-            <button class="nav-item" data-section="smart_capture" onclick="switchSection('smart_capture')">
-                <i data-lucide="zap" class="nav-icon"></i>
-                {{ t.get('smart_capture', 'Smart Capture') }}
-            </button>
-            <button class="nav-item" data-section="appearance" onclick="switchSection('appearance')">
-                <i data-lucide="palette" class="nav-icon"></i>
-                {{ t.appearance }}
-            </button>
-            <button class="nav-item" data-section="security" onclick="switchSection('security')">
-                <i data-lucide="shield" class="nav-icon"></i>
-                {{ t.security }}
-            </button>
-            <button class="nav-item" data-section="extensions" onclick="switchSection('extensions')">
-                <i data-lucide="package" class="nav-icon"></i>
-                {{ t.get('settings_extensions', 'Extensions') }}
-            </button>
-            <button class="nav-item" data-section="about" onclick="switchSection('about')">
-                <i data-lucide="info" class="nav-icon"></i>
-                {{ t.get('about_project', 'About Project') }}
-            </button>
+        <div class="sidebar-nav">
+            <div class="nav-group" aria-labelledby="settings-nav-core-label">
+                <div class="nav-group-label" id="settings-nav-core-label">{{ t.settings }}</div>
+                <button class="nav-item active" data-section="connection" onclick="switchSection('connection')">
+                    <i data-lucide="radio" class="nav-icon"></i>
+                    {{ t.step_modem }}
+                </button>
+                <button class="nav-item" data-section="general" onclick="switchSection('general')">
+                    <i data-lucide="settings" class="nav-icon"></i>
+                    {{ t.general }}
+                </button>
+                <button class="nav-item" data-section="notifications" onclick="switchSection('notifications')">
+                    <i data-lucide="bell" class="nav-icon"></i>
+                    {{ t.notifications }}
+                </button>
+                <button class="nav-item" data-section="smart_capture" onclick="switchSection('smart_capture')">
+                    <i data-lucide="zap" class="nav-icon"></i>
+                    {{ t.get('smart_capture', 'Smart Capture') }}
+                </button>
+                <button class="nav-item" data-section="appearance" onclick="switchSection('appearance')">
+                    <i data-lucide="palette" class="nav-icon"></i>
+                    {{ t.appearance }}
+                </button>
+                <button class="nav-item" data-section="security" onclick="switchSection('security')">
+                    <i data-lucide="shield" class="nav-icon"></i>
+                    {{ t.security }}
+                </button>
+                <button class="nav-item" data-section="extensions" onclick="switchSection('extensions')">
+                    <i data-lucide="package" class="nav-icon"></i>
+                    {{ t.get('settings_extensions', 'Extensions') }}
+                </button>
+                <button class="nav-item" data-section="about" onclick="switchSection('about')">
+                    <i data-lucide="info" class="nav-icon"></i>
+                    {{ t.get('about_project', 'About Project') }}
+                </button>
+            </div>
             {% set settings_modules = [] %}
             {% for mod in modules if mod.template_paths.get('settings') %}
                 {% if settings_modules.append(mod) %}{% endif %}
             {% endfor %}
-            {% for mod in settings_modules|sort(attribute='name') %}
-            <button class="nav-item nav-sub-item" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
-                <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}" class="nav-icon"></i>
-                {{ t.get(mod.menu.label_key, mod.name) }}
-                <span class="nav-badge {{ 'success' if mod.enabled else 'info' }}">{{ 'ON' if mod.enabled else 'OFF' }}</span>
-            </button>
-            {% endfor %}
+            {% if settings_modules %}
+            <div class="nav-group" aria-labelledby="settings-nav-modules-label">
+                <div class="nav-group-label" id="settings-nav-modules-label">{{ t.modules }}</div>
+                {% for mod in settings_modules|sort(attribute='name') %}
+                <button class="nav-item nav-sub-item" data-section="mod-{{ mod.id|replace('.', '_') }}" onclick="switchSection('mod-{{ mod.id|replace('.', '_') }}')">
+                    <i data-lucide="{{ mod.menu.get('icon', 'puzzle') }}" class="nav-icon"></i>
+                    {{ t.get(mod.menu.label_key, mod.name) }}
+                    <span class="nav-badge {{ 'success' if mod.enabled else 'info' }}">{{ 'ON' if mod.enabled else 'OFF' }}</span>
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         <!-- Support (bottom) -->

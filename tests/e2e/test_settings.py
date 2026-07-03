@@ -28,6 +28,15 @@ class TestSettingsLoad:
         btn = settings_page.locator('button[data-section="connection"]')
         assert "active" in btn.get_attribute("class")
 
+    def test_sidebar_navigation_has_group_labels(self, settings_page):
+        core_group = settings_page.locator('.nav-group[aria-labelledby="settings-nav-core-label"]')
+        module_group = settings_page.locator('.nav-group[aria-labelledby="settings-nav-modules-label"]')
+
+        expect(core_group.locator('#settings-nav-core-label')).to_have_text("Settings")
+        expect(module_group.locator('#settings-nav-modules-label')).to_have_text("Modules")
+        expect(core_group.locator('button[data-section="connection"]')).to_be_visible()
+        assert module_group.locator('.nav-sub-item').count() > 0
+
 
 class TestSettingsMobileSidebar:
     """Mobile sidebar keeps the full settings navigation reachable."""
@@ -46,21 +55,23 @@ class TestSettingsMobileSidebar:
             """
             () => {
               const sidebar = document.querySelector('#settings-sidebar');
+              const sidebarNav = document.querySelector('#settings-sidebar .sidebar-nav');
               const support = document.querySelector('button[data-section="support"]');
               const sidebarRect = sidebar.getBoundingClientRect();
               const supportRect = support.getBoundingClientRect();
               return {
-                scrollHeight: sidebar.scrollHeight,
-                clientHeight: sidebar.clientHeight,
+                navScrollHeight: sidebarNav.scrollHeight,
+                navClientHeight: sidebarNav.clientHeight,
                 supportTop: supportRect.top - sidebarRect.top,
                 supportBottom: supportRect.bottom - sidebarRect.top,
+                sidebarHeight: sidebarRect.height,
               };
             }
             """
         )
-        assert metrics["scrollHeight"] > metrics["clientHeight"]
+        assert metrics["navScrollHeight"] > metrics["navClientHeight"]
         assert metrics["supportTop"] >= 0
-        assert metrics["supportBottom"] <= metrics["clientHeight"]
+        assert metrics["supportBottom"] <= metrics["sidebarHeight"]
 
 
 class TestSettingsTabSwitching:
