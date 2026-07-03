@@ -1,9 +1,10 @@
 <!-- ═══ Panel: Notifications ═══ -->
 <div class="settings-panel" id="panel-notifications">
+    {% set webhook_configured = (config.notify_webhook_url|default('', true)|trim) %}
     <!-- Webhook Config Card -->
-    <div class="settings-card glass">
-        <div class="card-header">
-            <div class="card-title-group">
+    <div class="settings-card glass notification-channel-card collapsible-card{% if not webhook_configured %} collapsed{% endif %}" id="notification-webhook-card" data-channel-card="webhook">
+        <div class="card-header notification-card-header">
+            <button type="button" class="card-title-group card-collapse-toggle notification-card-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-webhook-body" aria-expanded="{{ 'true' if webhook_configured else 'false' }}">
                 <div class="card-icon purple">
                     <i data-lucide="bell"></i>
                 </div>
@@ -11,8 +12,15 @@
                     <div class="card-title">{{ t.notify_title }}</div>
                     <div class="card-subtitle">{{ t.notify_desc }}</div>
                 </div>
+            </button>
+            <div class="notification-channel-actions">
+                <span class="channel-status-badge {{ 'status-enabled' if webhook_configured else 'status-muted' }}" data-channel-badge="webhook">{{ t.enabled if webhook_configured else t.not_configured }}</span>
+                <button type="button" class="notification-collapse-button card-collapse-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-webhook-body" aria-expanded="{{ 'true' if webhook_configured else 'false' }}" aria-label="{{ t.notify_title }}">
+                    <i data-lucide="chevron-down" class="card-collapse-icon"></i>
+                </button>
             </div>
         </div>
+        <div class="card-collapse-body" id="notification-webhook-body"{% if not webhook_configured %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
         <div class="form-grid cols-2">
             <div class="form-field" style="grid-column: 1 / -1">
                 <label class="form-label" for="notify_webhook_url">{{ t.notify_webhook_url }}</label>
@@ -39,12 +47,13 @@
                 <span class="form-hint">{{ t.notify_cooldown_hint }}</span>
             </div>
         </div>
+        </div>
     </div>
 
     <!-- Apprise Config Card -->
-    <div class="settings-card glass">
-        <div class="card-header">
-            <div class="card-title-group">
+    <div class="settings-card glass notification-channel-card collapsible-card{% if not config.notify_apprise_enabled %} collapsed{% endif %}" id="notification-apprise-card" data-channel-card="apprise">
+        <div class="card-header notification-card-header">
+            <button type="button" class="card-title-group card-collapse-toggle notification-card-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-apprise-body" aria-expanded="{{ 'true' if config.notify_apprise_enabled else 'false' }}">
                 <div class="card-icon green">
                     <i data-lucide="radio-tower"></i>
                 </div>
@@ -52,18 +61,17 @@
                     <div class="card-title">{{ t.notify_apprise_title }}</div>
                     <div class="card-subtitle">{{ t.notify_apprise_desc }}</div>
                 </div>
+            </button>
+            <div class="notification-channel-actions">
+                <span class="channel-status-badge {{ 'status-enabled' if config.notify_apprise_enabled else 'status-disabled' }}" data-channel-badge="apprise">{{ t.enabled if config.notify_apprise_enabled else t.disabled }}</span>
+                <label class="toggle notification-header-toggle" aria-label="{{ t.notify_apprise_enabled }}"><input type="checkbox" id="notify_apprise_enabled" name="notify_apprise_enabled" value="true" {% if config.notify_apprise_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
+                <button type="button" class="notification-collapse-button card-collapse-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-apprise-body" aria-expanded="{{ 'true' if config.notify_apprise_enabled else 'false' }}" aria-label="{{ t.notify_apprise_title }}">
+                    <i data-lucide="chevron-down" class="card-collapse-icon"></i>
+                </button>
             </div>
         </div>
+        <div class="card-collapse-body" id="notification-apprise-body"{% if not config.notify_apprise_enabled %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
         <div class="form-grid cols-2">
-            <div class="form-field" style="grid-column: 1 / -1">
-                <div class="toggle-row">
-                    <span>
-                        <label class="form-label" for="notify_apprise_enabled">{{ t.notify_apprise_enabled }}</label>
-                        <span class="form-hint">{{ t.notify_apprise_enabled_hint }}</span>
-                    </span>
-                    <label class="toggle"><input type="checkbox" id="notify_apprise_enabled" name="notify_apprise_enabled" value="true" {% if config.notify_apprise_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
-                </div>
-            </div>
             <div class="form-field" style="grid-column: 1 / -1">
                 <label class="form-label" for="notify_apprise_url">{{ t.notify_apprise_url }}</label>
                 <input class="form-input" type="url" id="notify_apprise_url" name="notify_apprise_url" value="{{ config.notify_apprise_url }}" placeholder="http://apprise:8000">
@@ -85,12 +93,13 @@
                 <span class="form-hint">{{ t.notify_apprise_tag_hint }}</span>
             </div>
         </div>
+        </div>
     </div>
 
     <!-- PWA Web Push Config Card -->
-    <div class="settings-card glass" id="pwa-push-card">
-        <div class="card-header">
-            <div class="card-title-group">
+    <div class="settings-card glass notification-channel-card collapsible-card{% if not config.notify_pwa_push_enabled %} collapsed{% endif %}" id="pwa-push-card" data-channel-card="pwa">
+        <div class="card-header notification-card-header">
+            <button type="button" class="card-title-group card-collapse-toggle notification-card-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-pwa-push-body" aria-expanded="{{ 'true' if config.notify_pwa_push_enabled else 'false' }}">
                 <div class="card-icon blue">
                     <i data-lucide="smartphone"></i>
                 </div>
@@ -98,18 +107,17 @@
                     <div class="card-title">{{ t.notify_pwa_push_title }}</div>
                     <div class="card-subtitle">{{ t.notify_pwa_push_desc }}</div>
                 </div>
+            </button>
+            <div class="notification-channel-actions">
+                <span class="channel-status-badge {{ 'status-enabled' if config.notify_pwa_push_enabled else 'status-disabled' }}" data-channel-badge="pwa">{{ t.enabled if config.notify_pwa_push_enabled else t.disabled }}</span>
+                <label class="toggle notification-header-toggle" aria-label="{{ t.notify_pwa_push_enabled }}"><input type="checkbox" id="notify_pwa_push_enabled" name="notify_pwa_push_enabled" value="true" {% if config.notify_pwa_push_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
+                <button type="button" class="notification-collapse-button card-collapse-toggle" onclick="toggleCardCollapse(this)" aria-controls="notification-pwa-push-body" aria-expanded="{{ 'true' if config.notify_pwa_push_enabled else 'false' }}" aria-label="{{ t.notify_pwa_push_title }}">
+                    <i data-lucide="chevron-down" class="card-collapse-icon"></i>
+                </button>
             </div>
         </div>
+        <div class="card-collapse-body" id="notification-pwa-push-body"{% if not config.notify_pwa_push_enabled %} aria-hidden="true" inert{% else %} aria-hidden="false"{% endif %}>
         <div class="form-grid cols-2">
-            <div class="form-field" style="grid-column: 1 / -1">
-                <div class="toggle-row">
-                    <span>
-                        <label class="form-label" for="notify_pwa_push_enabled">{{ t.notify_pwa_push_enabled }}</label>
-                        <span class="form-hint">{{ t.notify_pwa_push_enabled_hint }}</span>
-                    </span>
-                    <label class="toggle"><input type="checkbox" id="notify_pwa_push_enabled" name="notify_pwa_push_enabled" value="true" {% if config.notify_pwa_push_enabled %}checked{% endif %}><span class="toggle-slider"></span></label>
-                </div>
-            </div>
             <div class="form-field">
                 <label class="form-label" for="notify_pwa_push_vapid_public_key">{{ t.notify_pwa_push_vapid_public_key }}</label>
                 <input class="form-input" type="text" id="notify_pwa_push_vapid_public_key" name="notify_pwa_push_vapid_public_key" value="{{ config.notify_pwa_push_vapid_public_key }}" placeholder="B...">
@@ -139,6 +147,7 @@
                 </div>
                 <span class="form-hint">{{ t.notify_pwa_push_permission_hint }}</span>
             </div>
+        </div>
         </div>
     </div>
 

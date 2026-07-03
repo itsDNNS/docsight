@@ -61,12 +61,80 @@ function closeMobileSidebar() {
 }
 
 /* ── Collapsible Cards ── */
+function _syncCardCollapseAria(card) {
+    if (!card) return;
+    var expanded = !card.classList.contains('collapsed');
+    card.querySelectorAll('.card-collapse-toggle[aria-expanded]').forEach(function(toggle) {
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+    if (card.classList.contains('notification-channel-card')) {
+        var body = card.querySelector('.card-collapse-body');
+        if (body) {
+            body.setAttribute('aria-hidden', expanded ? 'false' : 'true');
+            if (expanded) {
+                body.removeAttribute('inert');
+            } else {
+                body.setAttribute('inert', '');
+            }
+        }
+    }
+}
+
 function toggleCardCollapse(headerEl) {
     var card = headerEl.closest('.collapsible-card');
     if (card) {
         card.classList.toggle('collapsed');
+        _syncCardCollapseAria(card);
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
+}
+
+function expandNotificationChannelCard(controlEl) {
+    if (!controlEl || !controlEl.checked) return;
+    var card = controlEl.closest('.notification-channel-card');
+    if (card && card.classList.contains('collapsed')) {
+        card.classList.remove('collapsed');
+        _syncCardCollapseAria(card);
+    }
+}
+
+function _notificationLabel(key, fallback) {
+    return (typeof T !== 'undefined' && T[key]) ? T[key] : fallback;
+}
+
+function _setNotificationChannelBadge(channel, enabled, label) {
+    var badge = document.querySelector('[data-channel-badge="' + channel + '"]');
+    if (!badge) return;
+    badge.textContent = label;
+    badge.classList.toggle('status-enabled', enabled);
+    badge.classList.toggle('status-disabled', !enabled && channel !== 'webhook');
+    badge.classList.toggle('status-muted', !enabled && channel === 'webhook');
+}
+
+function updateNotificationChannelSummaries() {
+    var webhook = document.getElementById('notify_webhook_url');
+    var webhookConfigured = !!(webhook && webhook.value.trim() !== '');
+    _setNotificationChannelBadge(
+        'webhook',
+        webhookConfigured,
+        webhookConfigured ? _notificationLabel('enabled', 'Enabled') : _notificationLabel('not_configured', 'Not configured')
+    );
+
+    var apprise = document.getElementById('notify_apprise_enabled');
+    var appriseEnabled = !!(apprise && apprise.checked);
+    _setNotificationChannelBadge(
+        'apprise',
+        appriseEnabled,
+        appriseEnabled ? _notificationLabel('enabled', 'Enabled') : _notificationLabel('disabled', 'Disabled')
+    );
+
+    var pwa = document.getElementById('notify_pwa_push_enabled');
+    var pwaEnabled = !!(pwa && pwa.checked);
+    _setNotificationChannelBadge(
+        'pwa',
+        pwaEnabled,
+        pwaEnabled ? _notificationLabel('enabled', 'Enabled') : _notificationLabel('disabled', 'Disabled')
+    );
 }
 
 /* ── API Token Management ── */
@@ -1586,11 +1654,22 @@ document.addEventListener('DOMContentLoaded', function() {
     onIspChange();
     toggleUsernameField();
     updateStatusDots();
+    updateNotificationChannelSummaries();
 
-    /* Listen for input changes on integration fields to update dots */
+    /* Listen for input changes on integration fields to update dots and card summaries */
     ['notify_webhook_url'].forEach(function(id) {
         var el = document.getElementById(id);
-        if (el) el.addEventListener('input', updateStatusDots);
+        if (el) {
+            el.addEventListener('input', updateStatusDots);
+            el.addEventListener('input', updateNotificationChannelSummaries);
+        }
+    });
+    ['notify_apprise_enabled', 'notify_pwa_push_enabled'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('change', function() {
+            updateNotificationChannelSummaries();
+            expandNotificationChannelCard(el);
+        });
     });
 
     /* Modem type change */

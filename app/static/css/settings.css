@@ -335,6 +335,74 @@ html, body {
   cursor: pointer;
   user-select: none;
 }
+button.card-collapse-toggle,
+button.notification-collapse-button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+}
+.notification-card-header {
+  align-items: flex-start;
+}
+.notification-card-toggle {
+  flex: 1;
+  min-width: 0;
+}
+.notification-channel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.channel-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--glass-border);
+  background: var(--tint-subtle);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.channel-status-badge.status-enabled {
+  background: var(--good-muted);
+  border-color: color-mix(in srgb, var(--good) 28%, transparent);
+  color: var(--success);
+}
+.channel-status-badge.status-disabled,
+.channel-status-badge.status-muted {
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+  border-color: color-mix(in srgb, var(--muted) 18%, transparent);
+  color: var(--text-muted);
+}
+.notification-header-toggle {
+  flex-shrink: 0;
+}
+.notification-collapse-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s var(--ease-out-expo), color 0.2s var(--ease-out-expo);
+}
+.notification-collapse-button:hover,
+.notification-collapse-button:focus-visible {
+  background: var(--tint-hover);
+  outline: none;
+}
 .card-collapse-icon {
   width: 18px;
   height: 18px;
@@ -354,7 +422,7 @@ html, body {
 .collapsible-card.collapsed .card-collapse-body {
   grid-template-rows: 0fr;
 }
-.collapsible-card.collapsed .card-collapse-toggle {
+.collapsible-card.collapsed .card-header {
   margin-bottom: 0;
 }
 .collapsible-card.collapsed .card-collapse-icon {
@@ -1479,6 +1547,21 @@ html, body {
   .save-footer { left: 0; }
   .mobile-header { display: flex !important; }
   .settings-card { padding: 18px; }
+  .notification-card-header {
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+  .notification-channel-actions {
+    gap: 8px;
+  }
+  .channel-status-badge {
+    font-size: 0.62rem;
+    padding: 3px 8px;
+  }
+  .notification-card-toggle .card-icon {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 /* ─── Backup List ─── */

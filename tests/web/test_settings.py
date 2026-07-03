@@ -45,6 +45,20 @@ class TestSettingsRoute:
         )
         assert html.index('id="settings-nav-core-label"') < html.index('data-section="connection"')
 
+    def test_settings_notifications_channel_cards_render_compact_status_headers(self, client):
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        html = resp.data.decode("utf-8")
+
+        for card_id in ["notification-webhook-card", "notification-apprise-card", "pwa-push-card"]:
+            match = re.search(rf'<div class="[^"]*notification-channel-card[^"]*collapsed[^"]*" id="{card_id}"', html)
+            assert match is not None
+        assert 'data-channel-badge="webhook">Not configured</span>' in html
+        assert 'data-channel-badge="apprise">Disabled</span>' in html
+        assert 'data-channel-badge="pwa">Disabled</span>' in html
+        assert 'aria-controls="notification-webhook-body"' in html
+        assert 'id="notification-webhook-body" aria-hidden="true" inert' in html
+
     def test_settings_admin_password_field_uses_saved_secret_placeholder(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
         init_config(config_mgr)
