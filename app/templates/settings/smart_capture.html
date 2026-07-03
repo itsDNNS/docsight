@@ -35,17 +35,17 @@
                 </div>
                 <div class="sc-sub-settings">
                     <div class="form-grid cols-2">
-                        <div class="form-group">
-                            <label for="sc_trigger_modulation_direction">{{ t.get('sc_trigger_direction', 'Direction') }}</label>
-                            <select id="sc_trigger_modulation_direction" name="sc_trigger_modulation_direction">
+                        <div class="form-field">
+                            <label class="form-label" for="sc_trigger_modulation_direction">{{ t.get('sc_trigger_direction', 'Direction') }}</label>
+                            <select class="form-input form-select" id="sc_trigger_modulation_direction" name="sc_trigger_modulation_direction">
                                 <option value="both" {{ 'selected' if config.get('sc_trigger_modulation_direction', 'both') == 'both' }}>{{ t.get('sc_trigger_direction_both', 'Both') }}</option>
                                 <option value="DS" {{ 'selected' if config.get('sc_trigger_modulation_direction') == 'DS' }}>{{ t.get('sc_trigger_direction_ds', 'Downstream only') }}</option>
                                 <option value="US" {{ 'selected' if config.get('sc_trigger_modulation_direction') == 'US' }}>{{ t.get('sc_trigger_direction_us', 'Upstream only') }}</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="sc_trigger_modulation_min_qam">{{ t.get('sc_trigger_min_qam', 'Min QAM level') }}</label>
-                            <select id="sc_trigger_modulation_min_qam" name="sc_trigger_modulation_min_qam">
+                        <div class="form-field">
+                            <label class="form-label" for="sc_trigger_modulation_min_qam">{{ t.get('sc_trigger_min_qam', 'Min QAM level') }}</label>
+                            <select class="form-input form-select" id="sc_trigger_modulation_min_qam" name="sc_trigger_modulation_min_qam">
                                 <option value="" {{ 'selected' if not config.get('sc_trigger_modulation_min_qam') }}>{{ t.get('sc_trigger_min_qam_any', 'Any downgrade') }}</option>
                                 <option value="4096QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '4096QAM' }}>{{ t.get('sc_trigger_min_qam_4096', 'At or below 4096QAM (DOCSIS 3.1)') }}</option>
                                 <option value="2048QAM" {{ 'selected' if config.get('sc_trigger_modulation_min_qam') == '2048QAM' }}>{{ t.get('sc_trigger_min_qam_2048', 'At or below 2048QAM') }}</option>
@@ -97,9 +97,9 @@
                 </div>
                 <div class="sc-sub-settings">
                     <div class="form-grid cols-2">
-                        <div class="form-group">
-                            <label for="sc_trigger_error_spike_min_delta">{{ t.get('sc_trigger_min_delta', 'Min error delta') }}</label>
-                            <input type="number" id="sc_trigger_error_spike_min_delta" name="sc_trigger_error_spike_min_delta"
+                        <div class="form-field">
+                            <label class="form-label" for="sc_trigger_error_spike_min_delta">{{ t.get('sc_trigger_min_delta', 'Min error delta') }}</label>
+                            <input class="form-input" type="number" id="sc_trigger_error_spike_min_delta" name="sc_trigger_error_spike_min_delta"
                                    value="{{ config.get('sc_trigger_error_spike_min_delta', 0) }}" min="0">
                             <div class="form-hint">{{ t.get('sc_trigger_min_delta_hint', '0 = trigger on any spike') }}</div>
                         </div>
@@ -124,9 +124,9 @@
                 </div>
                 <div class="sc-sub-settings">
                     <div class="form-grid cols-2">
-                        <div class="form-group">
-                            <label for="sc_trigger_health_level">{{ t.get('sc_trigger_health_level', 'Health level') }}</label>
-                            <select id="sc_trigger_health_level" name="sc_trigger_health_level">
+                        <div class="form-field">
+                            <label class="form-label" for="sc_trigger_health_level">{{ t.get('sc_trigger_health_level', 'Health level') }}</label>
+                            <select class="form-input form-select" id="sc_trigger_health_level" name="sc_trigger_health_level">
                                 <option value="any_degradation" {{ 'selected' if config.get('sc_trigger_health_level', 'any_degradation') == 'any_degradation' }}>{{ t.get('sc_trigger_health_level_any', 'Any degradation') }}</option>
                                 <option value="critical_only" {{ 'selected' if config.get('sc_trigger_health_level') == 'critical_only' }}>{{ t.get('sc_trigger_health_level_critical', 'Critical only') }}</option>
                             </select>
@@ -152,9 +152,9 @@
                 </div>
                 <div class="sc-sub-settings">
                     <div class="form-grid cols-2">
-                        <div class="form-group">
-                            <label for="sc_trigger_packet_loss_min_pct">{{ t.get('sc_trigger_packet_loss_min_pct', 'Min packet loss %') }}</label>
-                            <input type="number" id="sc_trigger_packet_loss_min_pct" name="sc_trigger_packet_loss_min_pct"
+                        <div class="form-field">
+                            <label class="form-label" for="sc_trigger_packet_loss_min_pct">{{ t.get('sc_trigger_packet_loss_min_pct', 'Min packet loss %') }}</label>
+                            <input class="form-input" type="number" id="sc_trigger_packet_loss_min_pct" name="sc_trigger_packet_loss_min_pct"
                                    value="{{ config.get('sc_trigger_packet_loss_min_pct', '5.0') }}" min="0" max="100" step="0.1">
                             <div class="form-hint">{{ t.get('sc_trigger_packet_loss_min_pct_hint', 'Requires Connection Monitor module. Only fires when packet loss exceeds both this threshold and the Connection Monitor warning threshold.') }}</div>
                         </div>
@@ -179,36 +179,36 @@
                 </div>
             </div>
             <div class="form-grid cols-2">
-                <div class="form-group">
-                    <label for="sc_global_cooldown">{{ t.get('sc_global_cooldown', 'Global cooldown (seconds)') }}</label>
-                    <input type="number" id="sc_global_cooldown" name="sc_global_cooldown"
+                <div class="form-field">
+                    <label class="form-label" for="sc_global_cooldown">{{ t.get('sc_global_cooldown', 'Global cooldown (seconds)') }}</label>
+                    <input class="form-input" type="number" id="sc_global_cooldown" name="sc_global_cooldown"
                            value="{{ config.get('sc_global_cooldown', 300) }}" min="0" max="86400">
                 </div>
-                <div class="form-group">
-                    <label for="sc_trigger_cooldown">{{ t.get('sc_trigger_cooldown_label', 'Per-trigger cooldown (seconds)') }}</label>
-                    <input type="number" id="sc_trigger_cooldown" name="sc_trigger_cooldown"
+                <div class="form-field">
+                    <label class="form-label" for="sc_trigger_cooldown">{{ t.get('sc_trigger_cooldown_label', 'Per-trigger cooldown (seconds)') }}</label>
+                    <input class="form-input" type="number" id="sc_trigger_cooldown" name="sc_trigger_cooldown"
                            value="{{ config.get('sc_trigger_cooldown', 900) }}" min="0" max="86400">
                 </div>
-                <div class="form-group">
-                    <label for="sc_max_actions_per_hour">{{ t.get('sc_max_actions_per_hour', 'Max actions per hour') }}</label>
-                    <input type="number" id="sc_max_actions_per_hour" name="sc_max_actions_per_hour"
+                <div class="form-field">
+                    <label class="form-label" for="sc_max_actions_per_hour">{{ t.get('sc_max_actions_per_hour', 'Max actions per hour') }}</label>
+                    <input class="form-input" type="number" id="sc_max_actions_per_hour" name="sc_max_actions_per_hour"
                            value="{{ config.get('sc_max_actions_per_hour', 4) }}" min="1" max="60">
                 </div>
-                <div class="form-group">
-                    <label for="sc_speedtest_min_interval">{{ t.get('sc_speedtest_min_interval', 'Speedtest min interval (seconds)') }}</label>
-                    <input type="number" id="sc_speedtest_min_interval" name="sc_speedtest_min_interval"
+                <div class="form-field">
+                    <label class="form-label" for="sc_speedtest_min_interval">{{ t.get('sc_speedtest_min_interval', 'Speedtest min interval (seconds)') }}</label>
+                    <input class="form-input" type="number" id="sc_speedtest_min_interval" name="sc_speedtest_min_interval"
                            value="{{ config.get('sc_speedtest_min_interval', 14400) }}" min="0" max="86400">
                     <div class="form-hint">{{ t.get('sc_speedtest_min_interval_hint', 'Blocks Smart Capture if Speedtest Tracker already ran recently, including its own schedule.') }}</div>
                 </div>
-                <div class="form-group">
-                    <label for="sc_speedtest_max_actions_per_day">{{ t.get('sc_speedtest_max_actions_per_day', 'Smart Capture speedtests per day') }}</label>
-                    <input type="number" id="sc_speedtest_max_actions_per_day" name="sc_speedtest_max_actions_per_day"
+                <div class="form-field">
+                    <label class="form-label" for="sc_speedtest_max_actions_per_day">{{ t.get('sc_speedtest_max_actions_per_day', 'Smart Capture speedtests per day') }}</label>
+                    <input class="form-input" type="number" id="sc_speedtest_max_actions_per_day" name="sc_speedtest_max_actions_per_day"
                            value="{{ config.get('sc_speedtest_max_actions_per_day', 4) }}" min="0" max="96">
                     <div class="form-hint">{{ t.get('sc_speedtest_max_actions_per_day_hint', 'Rolling 24h cap for extra Speedtest Tracker runs triggered by DOCSight. 0 disables this cap.') }}</div>
                 </div>
-                <div class="form-group">
-                    <label for="sc_speedtest_match_window">{{ t.get('sc_speedtest_match_window', 'Speedtest result match window (seconds)') }}</label>
-                    <input type="number" id="sc_speedtest_match_window" name="sc_speedtest_match_window"
+                <div class="form-field">
+                    <label class="form-label" for="sc_speedtest_match_window">{{ t.get('sc_speedtest_match_window', 'Speedtest result match window (seconds)') }}</label>
+                    <input class="form-input" type="number" id="sc_speedtest_match_window" name="sc_speedtest_match_window"
                            value="{{ config.get('sc_speedtest_match_window', 900) }}" min="60" max="3600">
                     <div class="form-hint">{{ t.get('sc_speedtest_match_window_hint', 'How long DOCSight waits to link a triggered Speedtest Tracker result before expiring it.') }}</div>
                 </div>
