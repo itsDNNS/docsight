@@ -248,19 +248,21 @@ class AnalysisSummary(TypedDict):
     error_baseline: NotRequired[ErrorBaseline]
 
 
-# ── Full Analysis Result ─────────────────────────────────────────
-
-
 class AnalysisResult(TypedDict):
-    """Complete result from analyzer.analyze().
+    """Complete output from analyzer.analyze().
 
-    This is the primary data structure flowing through the system:
-    analyzer -> collector -> storage/web/mqtt/events/prometheus.
+    This is the canonical structure consumed by:
+    - web.update_state(analysis=...)
+    - storage.save_snapshot()
+    - EventDetector.check()
+    - MQTT publisher
     """
 
     summary: AnalysisSummary
     ds_channels: list[DownstreamChannel]
     us_channels: list[UpstreamChannel]
+    snapshot_id: NotRequired[int]
+    timestamp: NotRequired[str]
     analysis_meta: NotRequired[dict[str, Any] | None]
     raw_data: NotRequired[DocsisData | dict[str, Any] | None]
 

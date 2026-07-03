@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import shutil
+import sqlite3
 import subprocess
 import textwrap
 import pytest
@@ -199,6 +200,23 @@ class TestEventStorage:
         assert latest["summary"]["ds_uncorrectable_errors"] == 200
         assert latest["summary"]["ds_correctable_errors"] == 1000
 
+    def test_save_snapshot_returns_row_id(self, storage):
+        snapshot_id = storage.save_snapshot(_make_analysis())
+
+        assert isinstance(snapshot_id, int)
+        with sqlite3.connect(storage.db_path) as conn:
+            row = conn.execute("SELECT id FROM snapshots WHERE id = ?", (snapshot_id,)).fetchone()
+        assert row == (snapshot_id,)
+
+    def test_get_latest_snapshot_includes_snapshot_identity(self, storage):
+        snapshot_id = storage.save_snapshot(_make_analysis(ds_uncorrectable_errors=321))
+
+        latest = storage.get_latest_snapshot()
+
+        assert latest is not None
+        assert latest["snapshot_id"] == snapshot_id
+        assert latest["timestamp"]
+
 
 class TestEventExportApi:
     def test_events_export_csv_respects_filters_and_serializes_details(self, events_client, storage):
@@ -368,6 +386,58 @@ class TestEventDetector:
         events = detector.check(_make_analysis(ds_power_avg=3.0))
         power_events = [e for e in events if e["event_type"] == "power_change"]
         assert len(power_events) == 0
+
+    def test_power_change_skips_missing_power_values(self, detector):
+        detector.check(_make_analysis(ds_power_avg=2.5, us_power_avg=42.0))
+        current = _make_analysis(ds_power_avg=2.5, us_power_avg=42.0)
+        current["summary"]["ds_power_avg"] = None
+        del current["summary"]["us_power_avg"]
+
+        events = detector.check(current)
+
+        assert [e for e in events if e["event_type"] == "power_change"] == []
+
+    def test_snr_change_skips_missing_snr_values(self, detector):
+        detector.check(_make_analysis(ds_snr_min=35.0))
+        current = _make_analysis(ds_snr_min=35.0)
+        current["summary"]["ds_snr_min"] = None
+
+        events = detector.check(current)
+
+        assert [e for e in events if e["event_type"] == "snr_change"] == []
+
+    def test_event_details_include_snapshot_traceability(self, detector):
+        detector.check(_make_analysis(health="good"), snapshot_id=41)
+
+        events = detector.check(_make_analysis(health="critical"), snapshot_id=42)
+
+        health_event = next(e for e in events if e["event_type"] == "health_change")
+        assert health_event["details"]["snapshot_id"] == 42
+        assert health_event["details"]["previous_snapshot_id"] == 41
+
+    def test_seeded_detector_detects_degradation_after_restart(self, storage):
+        previous = _make_analysis(health="good")
+        previous_id = storage.save_snapshot(previous)
+        latest = storage.get_latest_snapshot()
+        detector = EventDetector()
+        detector.seed(latest)
+
+        events = detector.check(_make_analysis(health="critical"), snapshot_id=previous_id + 1)
+
+        assert [e for e in events if e["event_type"] == "monitoring_started"] == []
+        health_event = next(e for e in events if e["event_type"] == "health_change")
+        assert health_event["details"]["prev"] == "good"
+        assert health_event["details"]["current"] == "critical"
+        assert health_event["details"]["previous_snapshot_id"] == previous_id
+
+    def test_power_event_details_include_threshold_metadata(self, detector):
+        detector.check(_make_analysis(ds_power_avg=2.5), snapshot_id=10)
+
+        events = detector.check(_make_analysis(ds_power_avg=5.0), snapshot_id=11)
+
+        power_event = next(e for e in events if e["event_type"] == "power_change")
+        assert power_event["details"]["threshold_delta"] == 2.0
+        assert power_event["details"]["snapshot_id"] == 11
 
     def test_snr_drop_warning(self, detector):
         detector.check(_make_analysis(ds_snr_min=35.0))

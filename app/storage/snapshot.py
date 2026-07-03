@@ -133,14 +133,14 @@ class SnapshotMethods:
         analysis: AnalysisResult,
         is_demo: bool = False,
         raw_data: DocsisData | dict[str, Any] | None = None,
-    ) -> None:
-        """Save current analysis as a snapshot. Runs cleanup afterwards."""
+    ) -> int | None:
+        """Save current analysis as a snapshot and return the inserted row id."""
         ts = utc_now()
         analysis_meta = get_analysis_metadata(app_version=get_available_app_version())
         raw_json = _dump_raw_data(raw_data)
         try:
             with self._connect() as conn:
-                conn.execute(
+                cur = conn.execute(
                     "INSERT INTO snapshots (timestamp, summary_json, ds_channels_json, us_channels_json, is_demo, raw_json, analysis_meta_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
                         ts,
@@ -152,11 +152,13 @@ class SnapshotMethods:
                         json.dumps(analysis_meta),
                     ),
                 )
+                snapshot_id = cur.lastrowid
             log.debug("Snapshot saved: %s", ts)
         except Exception as e:
             log.error("Failed to save snapshot: %s", e)
-            return
+            return None
         self._cleanup()
+        return snapshot_id
 
     def get_snapshot_list(self) -> list[str]:
         """Return list of available snapshot timestamps (newest first)."""
@@ -170,33 +172,37 @@ class SnapshotMethods:
         """Load the latest stored snapshot, or None when no baseline exists."""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
+                "SELECT id, timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots ORDER BY timestamp DESC, rowid DESC LIMIT 1"
             ).fetchone()
         if not row:
             return None
         return cast(AnalysisResult, {
-            "summary": _normalize_summary_errors(json.loads(row[0])),
-            "ds_channels": json.loads(row[1]),
-            "us_channels": json.loads(row[2]),
-            "analysis_meta": _load_analysis_meta(row[3]),
-            "raw_data": _load_raw_data(row[4]),
+            "snapshot_id": row[0],
+            "timestamp": row[1],
+            "summary": _normalize_summary_errors(json.loads(row[2])),
+            "ds_channels": json.loads(row[3]),
+            "us_channels": json.loads(row[4]),
+            "analysis_meta": _load_analysis_meta(row[5]),
+            "raw_data": _load_raw_data(row[6]),
         })
 
     def get_snapshot(self, timestamp: str) -> AnalysisResult | None:
         """Load a single snapshot by timestamp. Returns analysis dict or None."""
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots WHERE timestamp = ?",
+                "SELECT id, timestamp, summary_json, ds_channels_json, us_channels_json, analysis_meta_json, raw_json FROM snapshots WHERE timestamp = ?",
                 (timestamp,),
             ).fetchone()
         if not row:
             return None
         return cast(AnalysisResult, {
-            "summary": _normalize_summary_errors(json.loads(row[0])),
-            "ds_channels": json.loads(row[1]),
-            "us_channels": json.loads(row[2]),
-            "analysis_meta": _load_analysis_meta(row[3]),
-            "raw_data": _load_raw_data(row[4]),
+            "snapshot_id": row[0],
+            "timestamp": row[1],
+            "summary": _normalize_summary_errors(json.loads(row[2])),
+            "ds_channels": json.loads(row[3]),
+            "us_channels": json.loads(row[4]),
+            "analysis_meta": _load_analysis_meta(row[5]),
+            "raw_data": _load_raw_data(row[6]),
         })
 
     def get_snapshot_raw_data(self, timestamp: str) -> dict | None:

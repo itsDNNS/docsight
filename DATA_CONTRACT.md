@@ -75,6 +75,7 @@ The main DOCSight history is local SQLite data. It is evidence, not cache.
 - Raw modem counters, channel snapshots, incident records, and imported measurements should remain faithful to the source data.
 - Saved DOCSIS snapshots may include a bounded, local copy of the raw driver payload used to produce the analyzed snapshot. This is evidence for replaying future rule/analyzer changes, not telemetry sent to DOCSight maintainers.
 - Raw driver payload persistence applies simple privacy safeguards: obvious secret-bearing keys are redacted before storage and oversized/non-JSON payloads are skipped rather than forced into the history database.
+- Signal events generated from a saved poll can carry local snapshot row references in their structured details so event evidence can be traced back to the source snapshot inside the same installation database.
 - Derived views may compute health windows, trends, ranges, summaries, and report sections, but they should not rewrite raw modem evidence just to fit a display model.
 - Unsupported or unknown fields should stay distinguishable from measured zero values.
 - Database migrations should preserve user-owned local data and document any rare destructive migration path before it runs.
