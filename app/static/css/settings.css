@@ -69,7 +69,7 @@ html, body {
   -webkit-backdrop-filter: blur(32px) saturate(1.2);
   border-right: 1px solid var(--glass-border);
   padding: var(--space-md);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 [data-theme="light"] .sidebar {
@@ -120,6 +120,13 @@ html, body {
 
 .nav-group {
   margin-bottom: var(--space-lg);
+}
+
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .nav-group-label {
@@ -212,7 +219,17 @@ html, body {
 }
 
 .sidebar-support {
-  margin-top: auto;
+  flex-shrink: 0;
+  padding-top: 6px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background:
+    linear-gradient(to bottom, transparent, color-mix(in srgb, var(--void-deep) 92%, transparent) 18px),
+    color-mix(in srgb, var(--void-deep) 88%, transparent);
+}
+[data-theme="light"] .sidebar-support {
+  background:
+    linear-gradient(to bottom, transparent, color-mix(in srgb, var(--void-deep) 94%, transparent) 18px),
+    color-mix(in srgb, var(--void-deep) 92%, transparent);
 }
 
 /* ─── Main Content ─── */
@@ -1415,6 +1432,11 @@ html, body {
   .nav-group {
     margin-bottom: var(--space-sm);
   }
+  .nav-group-label {
+    font-size: 0.62rem;
+    padding: 0 10px;
+    margin-bottom: 4px;
+  }
   .nav-item {
     gap: 10px;
     padding: 8px 10px;
@@ -1438,20 +1460,7 @@ html, body {
     padding: 2px 6px;
   }
   .sidebar-support {
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
     margin-top: var(--space-sm);
-    padding-top: 6px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background:
-      linear-gradient(to bottom, transparent, color-mix(in srgb, var(--void-deep) 92%, transparent) 18px),
-      color-mix(in srgb, var(--void-deep) 88%, transparent);
-  }
-  [data-theme="light"] .sidebar-support {
-    background:
-      linear-gradient(to bottom, transparent, color-mix(in srgb, var(--void-deep) 94%, transparent) 18px),
-      color-mix(in srgb, var(--void-deep) 92%, transparent);
   }
   .sidebar-support .nav-separator {
     margin: 8px var(--space-sm);

@@ -33,6 +33,18 @@ class TestSettingsRoute:
         assert b"Segment Utilization" in resp.data
         assert b"Disabled" in resp.data
 
+    def test_settings_sidebar_groups_core_and_module_navigation(self, client):
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        html = resp.data.decode("utf-8")
+
+        assert 'aria-labelledby="settings-nav-core-label"' in html
+        assert 'id="settings-nav-core-label"' in html
+        assert re.search(
+            r'id="settings-nav-core-label"[^>]*>\s*Settings\s*</div>', html
+        )
+        assert html.index('id="settings-nav-core-label"') < html.index('data-section="connection"')
+
     def test_settings_admin_password_field_uses_saved_secret_placeholder(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
         init_config(config_mgr)
