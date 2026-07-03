@@ -130,6 +130,64 @@ class TestSettingsFormElements:
         expect(settings_page.locator('#notify_pwa_push_vapid_subject')).to_have_count(1)
         expect(settings_page.locator('#pwa-push-status')).to_have_count(1)
 
+    def test_notifications_channel_cards_are_collapsed_with_live_status_summaries(self, settings_page):
+        settings_page.locator('button[data-section="notifications"]').click()
+
+        for card_id in ["notification-webhook-card", "notification-apprise-card", "pwa-push-card"]:
+            card = settings_page.locator(f"#{card_id}")
+            expect(card).to_have_class(re.compile(r".*\bcollapsed\b.*"))
+            expect(card.locator('.card-collapse-body')).to_have_attribute("aria-hidden", "true")
+            expect(card.locator('.card-collapse-body')).to_have_attribute("inert", "")
+
+        expect(settings_page.locator('[data-channel-badge="webhook"]')).to_have_text("Not configured")
+        expect(settings_page.locator('[data-channel-badge="apprise"]')).to_have_text("Disabled")
+        expect(settings_page.locator('[data-channel-badge="pwa"]')).to_have_text("Disabled")
+
+        settings_page.locator('#notification-webhook-card .notification-collapse-button').click()
+        expect(settings_page.locator('#notification-webhook-card')).not_to_have_class(re.compile(r".*\bcollapsed\b.*"))
+        expect(settings_page.locator('#notification-webhook-card .notification-collapse-button')).to_have_attribute("aria-expanded", "true")
+        expect(settings_page.locator('#notification-webhook-body')).to_have_attribute("aria-hidden", "false")
+        expect(settings_page.locator('#notification-webhook-body')).not_to_have_attribute("inert", "")
+
+    def test_notifications_channel_badges_update_when_toggles_or_url_change(self, settings_page):
+        settings_page.route("**/api/config", lambda route: route.fulfill(json={"success": True}))
+        settings_page.locator('button[data-section="notifications"]').click()
+
+        settings_page.locator('#notify_webhook_url').evaluate("el => { el.value = 'https://ntfy.sh/docsight'; el.dispatchEvent(new Event('input', {bubbles: true})); }")
+        expect(settings_page.locator('[data-channel-badge="webhook"]')).to_have_text("Enabled")
+
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('#notify_apprise_enabled + .toggle-slider').click()
+        expect(settings_page.locator('[data-channel-badge="apprise"]')).to_have_text("Enabled")
+        expect(settings_page.locator('#notification-apprise-card')).not_to_have_class(re.compile(r".*\bcollapsed\b.*"))
+
+        with settings_page.expect_request("**/api/config"):
+            settings_page.locator('#notify_pwa_push_enabled + .toggle-slider').click()
+        expect(settings_page.locator('[data-channel-badge="pwa"]')).to_have_text("Enabled")
+        expect(settings_page.locator('#pwa-push-card')).not_to_have_class(re.compile(r".*\bcollapsed\b.*"))
+
+    def test_notifications_mobile_scroll_is_reduced_by_collapsed_channel_cards(self, settings_page):
+        settings_page.set_viewport_size({"width": 390, "height": 844})
+        settings_page.reload(wait_until="networkidle")
+        settings_page.evaluate("() => window.switchSection('notifications')")
+
+        metrics = settings_page.evaluate(
+            """
+            () => {
+              const panel = document.querySelector('#panel-notifications');
+              const main = document.querySelector('.main-content');
+              return {
+                panelScrollHeight: panel.scrollHeight,
+                mainClientHeight: main.clientHeight,
+                collapsedChannels: panel.querySelectorAll('.notification-channel-card.collapsed').length,
+              };
+            }
+            """
+        )
+        assert metrics["collapsedChannels"] == 3
+        assert metrics["panelScrollHeight"] < 2000
+        assert metrics["panelScrollHeight"] > metrics["mainClientHeight"]
+
     def test_notifications_panel_has_per_severity_cooldown_rows(self, settings_page):
         settings_page.locator('button[data-section="notifications"]').click()
 
