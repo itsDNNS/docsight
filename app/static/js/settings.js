@@ -1694,11 +1694,11 @@ function applyTheme(themeId) {
                     _originalStyles = {};
                     location.reload();
                 } else {
-                    showToast(data.error || (T.theme_apply_failed || 'Failed to apply theme'), true);
+                    showToast(data.error || (T.theme_apply_failed || 'Failed to apply theme'), false);
                 }
             })
             .catch(function(err) {
-                showToast((T.error_prefix || 'Error') + ': ' + err.message, true);
+                showToast((T.error_prefix || 'Error') + ': ' + err.message, false);
             });
     });
 }
@@ -1790,14 +1790,14 @@ function installTheme(themeId, downloadUrl) {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) {
-                showToast(T.theme_installed || 'Theme installed — restart required');
+                showToast(T.theme_installed || 'Theme installed — restart required', true);
                 refreshRegistry();
             } else {
-                showToast(data.error || (T.theme_install_failed || 'Install failed'), true);
+                showToast(data.error || (T.theme_install_failed || 'Install failed'), false);
             }
         })
         .catch(function(err) {
-            showToast((T.error_prefix || 'Error') + ': ' + err.message, true);
+            showToast((T.error_prefix || 'Error') + ': ' + err.message, false);
         });
 }
 
@@ -1940,7 +1940,7 @@ function refreshModuleRegistry() {
             if (loading) loading.style.display = 'none';
             gallery.style.display = 'none';
             if (empty) empty.style.display = '';
-            showToast(T.extensions_fetch_failed || 'Failed to load registry.', true);
+            showToast(T.extensions_fetch_failed || 'Failed to load registry.', false);
         })
         .finally(function() { _registryFetching = false; });
 }
@@ -2038,19 +2038,19 @@ function installModule(e, id, downloadUrl) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToast(T.extensions_install_success || 'Module installed successfully');
+            showToast(T.extensions_install_success || 'Module installed successfully', true);
             var banner = document.getElementById('module-restart-banner');
             if (banner) { banner.style.display = ''; if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]}); }
             refreshModuleRegistry();
         } else {
-            showToast(data.error || (T.extensions_install_failed || 'Installation failed'), true);
+            showToast(data.error || (T.extensions_install_failed || 'Installation failed'), false);
             btn.disabled = false;
             btn.className = 'btn btn-sm btn-install';
             btn.textContent = T.extensions_install || 'Install';
         }
     })
     .catch(function(err) {
-        showToast((T.extensions_install_failed || 'Installation failed') + ': ' + err.message, true);
+        showToast((T.extensions_install_failed || 'Installation failed') + ': ' + err.message, false);
         btn.disabled = false;
         btn.className = 'btn btn-sm btn-install';
         btn.textContent = T.extensions_install || 'Install';
@@ -2084,19 +2084,19 @@ function uninstallModule(e, id) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToast(T.extensions_uninstall_success || 'Module uninstalled');
+            showToast(T.extensions_uninstall_success || 'Module uninstalled', true);
             var banner = document.getElementById('module-restart-banner');
             if (banner) { banner.style.display = ''; if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]}); }
             refreshModuleRegistry();
         } else {
-            showToast(data.error || (T.extensions_uninstall_failed || 'Uninstall failed'), true);
+            showToast(data.error || (T.extensions_uninstall_failed || 'Uninstall failed'), false);
             btn.disabled = false;
             btn.className = 'btn btn-sm btn-uninstall';
             btn.textContent = T.extensions_uninstall || 'Uninstall';
         }
     })
     .catch(function(err) {
-        showToast((T.extensions_uninstall_failed || 'Uninstall failed') + ': ' + err.message, true);
+        showToast((T.extensions_uninstall_failed || 'Uninstall failed') + ': ' + err.message, false);
         btn.disabled = false;
         btn.className = 'btn btn-sm btn-uninstall';
         btn.textContent = T.extensions_uninstall || 'Uninstall';
