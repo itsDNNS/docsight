@@ -113,6 +113,100 @@ class TestSettingsFormElements:
         ).to_have_count(1)
 
 
+def _assert_toast_state(page, ok):
+    toast = page.locator("#toast")
+    expect(toast).to_be_visible()
+    expected = "toast-ok" if ok else "toast-fail"
+    unexpected = "toast-fail" if ok else "toast-ok"
+    expect(toast).to_have_class(re.compile(rf".*\b{expected}\b.*"))
+    expect(toast).not_to_have_class(re.compile(rf".*\b{unexpected}\b.*"))
+
+
+def _theme_registry_payload():
+    return [
+        {
+            "id": "docsight.theme_test_registry",
+            "name": "Registry Test Theme",
+            "description": "Test theme from registry",
+            "version": "1.0.0",
+            "author": "DOCSight Tests",
+            "download_url": "https://example.invalid/theme.zip",
+        }
+    ]
+
+
+def _module_registry_payload(status="not_installed"):
+    return [
+        {
+            "id": "docsight.test_module",
+            "name": "Registry Test Module",
+            "description": "Test module from registry",
+            "author": "DOCSight Tests",
+            "version": "1.0.0",
+            "status": status,
+            "download_url": "https://example.invalid/module.zip",
+            "verified": True,
+        }
+    ]
+
+
+class TestSettingsToastStates:
+    """Theme and module registry operations report the correct toast polarity."""
+
+    @pytest.mark.parametrize("success", [True, False])
+    def test_theme_install_toast_state_matches_result(self, settings_page, success):
+        settings_page.route("**/api/themes/registry", lambda route: route.fulfill(json=_theme_registry_payload()))
+        settings_page.route(
+            "**/api/themes/install",
+            lambda route: route.fulfill(json={"success": success} if success else {"success": False, "error": "Theme failed"}),
+        )
+
+        settings_page.locator('button[data-section="appearance"]').click()
+        settings_page.locator('#panel-appearance button[onclick="refreshRegistry()"]').click()
+        install_button = settings_page.locator('#registry-gallery .theme-card button', has_text=re.compile("Install", re.I))
+        expect(install_button).to_have_count(1)
+        install_button.click()
+
+        _assert_toast_state(settings_page, success)
+
+    @pytest.mark.parametrize("success", [True, False])
+    def test_module_install_toast_state_matches_result(self, settings_page, success):
+        settings_page.route("**/api/modules/registry", lambda route: route.fulfill(json=_module_registry_payload()))
+        settings_page.route(
+            "**/api/modules/install",
+            lambda route: route.fulfill(json={"success": success} if success else {"success": False, "error": "Module failed"}),
+        )
+
+        settings_page.locator('button[data-section="extensions"]').click()
+        install_button = settings_page.locator('#module-registry-gallery button').first
+        expect(install_button).to_have_text(re.compile("Install", re.I))
+        install_button.click()
+        expect(install_button).to_have_text(re.compile("Confirm", re.I))
+        install_button.click()
+
+        _assert_toast_state(settings_page, success)
+
+    @pytest.mark.parametrize("success", [True, False])
+    def test_module_uninstall_toast_state_matches_result(self, settings_page, success):
+        settings_page.route(
+            "**/api/modules/registry",
+            lambda route: route.fulfill(json=_module_registry_payload(status="installed_enabled")),
+        )
+        settings_page.route(
+            "**/api/modules/uninstall",
+            lambda route: route.fulfill(json={"success": success} if success else {"success": False, "error": "Uninstall failed"}),
+        )
+
+        settings_page.locator('button[data-section="extensions"]').click()
+        uninstall_button = settings_page.locator('#module-registry-gallery button').first
+        expect(uninstall_button).to_have_text(re.compile("Uninstall", re.I))
+        uninstall_button.click()
+        expect(uninstall_button).to_have_text(re.compile("Confirm", re.I))
+        uninstall_button.click()
+
+        _assert_toast_state(settings_page, success)
+
+
 class TestSettingsDirtyState:
     """Unsaved-change prompts only appear for deliberate settings edits."""
 
