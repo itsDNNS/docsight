@@ -59,6 +59,35 @@ class TestSettingsRoute:
         assert 'aria-controls="notification-webhook-body"' in html
         assert 'id="notification-webhook-body" aria-hidden="true" inert' in html
 
+    def test_settings_smart_capture_uses_shared_form_classes(self, client):
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        html = resp.data.decode("utf-8")
+        smart_capture = html[html.index('id="panel-smart_capture"'):html.index('id="sc-dependent-content"')]
+        guardrails = html[html.index('id="sc-dependent-content"'):html.index('id="sc-history-container"')]
+        scoped_html = smart_capture + guardrails
+
+        assert 'class="form-group"' not in scoped_html
+        for control_id in [
+            "sc_trigger_modulation_direction",
+            "sc_trigger_modulation_min_qam",
+            "sc_trigger_health_level",
+        ]:
+            assert re.search(rf'<select[^>]+class="form-input form-select"[^>]+id="{control_id}"', scoped_html)
+            assert re.search(rf'<label[^>]+class="form-label"[^>]+for="{control_id}"', scoped_html)
+        for control_id in [
+            "sc_trigger_error_spike_min_delta",
+            "sc_trigger_packet_loss_min_pct",
+            "sc_global_cooldown",
+            "sc_trigger_cooldown",
+            "sc_max_actions_per_hour",
+            "sc_speedtest_min_interval",
+            "sc_speedtest_max_actions_per_day",
+            "sc_speedtest_match_window",
+        ]:
+            assert re.search(rf'<input[^>]+class="form-input"[^>]+id="{control_id}"', scoped_html)
+            assert re.search(rf'<label[^>]+class="form-label"[^>]+for="{control_id}"', scoped_html)
+
     def test_settings_admin_password_field_uses_saved_secret_placeholder(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
         init_config(config_mgr)

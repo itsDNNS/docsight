@@ -188,6 +188,52 @@ class TestSettingsFormElements:
         assert metrics["panelScrollHeight"] < 2000
         assert metrics["panelScrollHeight"] > metrics["mainClientHeight"]
 
+    def test_smart_capture_form_controls_use_shared_visual_contract(self, settings_page):
+        settings_page.locator('button[data-section="smart_capture"]').click()
+        controls = [
+            "sc_trigger_modulation_direction",
+            "sc_trigger_modulation_min_qam",
+            "sc_trigger_error_spike_min_delta",
+            "sc_trigger_health_level",
+            "sc_trigger_packet_loss_min_pct",
+            "sc_global_cooldown",
+            "sc_trigger_cooldown",
+            "sc_max_actions_per_hour",
+            "sc_speedtest_min_interval",
+            "sc_speedtest_max_actions_per_day",
+            "sc_speedtest_match_window",
+        ]
+
+        for control_id in controls:
+            control = settings_page.locator(f"#{control_id}")
+            expect(control).to_have_class(re.compile(r".*\bform-input\b.*"))
+            expect(settings_page.locator(f'label[for="{control_id}"]')).to_have_class(re.compile(r".*\bform-label\b.*"))
+
+        for control_id in [
+            "sc_trigger_modulation_direction",
+            "sc_trigger_modulation_min_qam",
+            "sc_trigger_health_level",
+        ]:
+            expect(settings_page.locator(f"#{control_id}")).to_have_class(re.compile(r".*\bform-select\b.*"))
+
+        metrics = settings_page.evaluate(
+            """
+            (ids) => ids.map((id) => {
+              const el = document.getElementById(id);
+              const styles = getComputedStyle(el);
+              return {
+                id,
+                height: el.getBoundingClientRect().height,
+                bg: styles.backgroundColor,
+                color: styles.color,
+              };
+            })
+            """,
+            controls,
+        )
+        assert all(item["height"] >= 44 for item in metrics)
+        assert all(item["bg"] != "rgb(255, 255, 255)" for item in metrics)
+
     def test_notifications_panel_has_per_severity_cooldown_rows(self, settings_page):
         settings_page.locator('button[data-section="notifications"]').click()
 
