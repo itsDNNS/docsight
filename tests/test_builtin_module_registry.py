@@ -41,6 +41,35 @@ def test_builtin_theme_registry_replaces_wrapper_module_dirs():
     assert not list(BUILTIN_MODULES_DIR.glob("theme_*/manifest.json"))
 
 
+def test_builtin_theme_alias_tokens_are_centralized():
+    """Theme data stores canonical tokens; compatibility aliases live in tokens.css."""
+    alias_tokens = {
+        "--card-bg",
+        "--text-primary",
+        "--text-muted",
+        "--success",
+        "--warning",
+        "--danger",
+    }
+
+    for theme in BUILTIN_THEMES:
+        for mode in ("dark", "light"):
+            tokens = theme["theme_data"][mode]
+            assert not alias_tokens & tokens.keys(), f"{theme['id']} {mode} repeats alias tokens"
+            assert {"--card", "--text", "--muted", "--good", "--warn", "--crit"} <= tokens.keys()
+
+    tokens_css = (ROOT / "app" / "static" / "css" / "tokens.css").read_text(encoding="utf-8")
+    for alias, canonical in {
+        "--card-bg": "--card",
+        "--text-primary": "--text",
+        "--text-muted": "--muted",
+        "--success": "--good",
+        "--warning": "--warn",
+        "--danger": "--crit",
+    }.items():
+        assert f"{alias}: var({canonical});" in tokens_css
+
+
 def test_builtin_threshold_registry_replaces_wrapper_module_dir():
     """Shipped threshold profiles live in the analyzer profile registry."""
     assert len(BUILTIN_THRESHOLD_PROFILES) == 1

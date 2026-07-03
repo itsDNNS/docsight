@@ -29,9 +29,9 @@
   --tolerated-muted: rgba(132, 204, 22, 0.15);
 
   /* Text */
-  --text-primary: #e8edff;
+  --text: #e8edff;
   --text-secondary: #9ba3c8;
-  --text-muted: #7880a6;
+  --muted: #7880a6;
   --text-on-accent: #fff;
 
   /* Glass */
@@ -88,17 +88,20 @@
   --bg: var(--void);
   --card: var(--surface);
   --card-border: var(--glass-border);
-  --text: var(--text-primary);
+  --text-primary: var(--text);
+  --text-muted: var(--muted);
   --accent: var(--amethyst);
   --accent-hover: var(--amethyst-light);
   --accent-muted: var(--amethyst-muted);
+  --success: var(--good);
+  --warning: var(--warn);
+  --danger: var(--crit);
   --input-border: var(--glass-border);
   --overlay: rgba(0,0,0,0.6);
   --hover-bg: var(--hover);
-  --muted: var(--text-muted);
-  --card-bg: var(--surface);
+  --card-bg: var(--card);
   --border: var(--glass-border);
-  --primary: var(--amethyst);
+  --primary: var(--accent);
 }
 
 /* ── Color Palette: Light ── */
@@ -109,9 +112,9 @@
   --elevated: #f0edf5;
   --hover: #e8e4f0;
 
-  --text-primary: #1a1520;
+  --text: #1a1520;
   --text-secondary: #5e5673;
-  --text-muted: #8a82a0;
+  --muted: #8a82a0;
 
   --good: #059669;
   --good-muted: rgba(5, 150, 105, 0.12);
@@ -141,5 +144,4 @@
   /* Legacy aliases */
   --bg: var(--void);
   --card: var(--surface);
-  --text: var(--text-primary);
 }
