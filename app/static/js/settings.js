@@ -304,18 +304,15 @@ function revokeToken(id, name) {
     }).catch(function() { showToast(T.error_prefix || 'Error', false); });
 }
 
-/* ── Status Dots ── */
-function updateStatusDots() {
-    var dots = {
-        notifications: 'notify_webhook_url'
-    };
-    for (var section in dots) {
-        var el = document.getElementById(dots[section]);
-        var dot = document.getElementById('dot-' + section);
-        if (el && dot) {
-            dot.classList.toggle('visible', el.value.trim() !== '');
-        }
-    }
+/* ── Modem Status Indicator ── */
+function setModemStatus(state, text) {
+    var box = document.getElementById('modem-status');
+    if (!box) return;
+    box.hidden = false;
+    box.classList.remove('testing', 'connected', 'disconnected');
+    box.classList.add(state);
+    var label = document.getElementById('modem-status-text');
+    if (label) label.textContent = text;
 }
 
 /* ── Theme Toggle ── */
@@ -466,6 +463,7 @@ function testModem() {
     span.textContent = '\u23F3';
     el.appendChild(span);
     el.appendChild(document.createTextNode(' ' + T.testing));
+    setModemStatus('testing', T.testing);
     var data = getFormData();
     fetch('/api/test-modem', {
         method: 'POST',
@@ -482,12 +480,14 @@ function testModem() {
             check.textContent = '\u2713';
             el.appendChild(check);
             el.appendChild(document.createTextNode(' ' + T.connected + ': ' + (res.model || 'OK')));
+            setModemStatus('connected', T.connected + ': ' + (res.model || 'OK'));
         } else {
             el.className = 'test-result test-fail';
             var x = document.createElement('span');
             x.textContent = '\u2717';
             el.appendChild(x);
             el.appendChild(document.createTextNode(' ' + T.error_prefix + ': ' + (res.error || T.unknown_error)));
+            setModemStatus('disconnected', T.error_prefix + ': ' + (res.error || T.unknown_error));
         }
     })
     .catch(function() {
@@ -497,6 +497,7 @@ function testModem() {
         x.textContent = '\u2717';
         el.appendChild(x);
         el.appendChild(document.createTextNode(' ' + T.network_error));
+        setModemStatus('disconnected', T.network_error);
     });
 }
 
@@ -1720,7 +1721,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initTimezoneHint();
     onIspChange();
     toggleUsernameField();
-    updateStatusDots();
     updateNotificationChannelSummaries();
     syncMobileSidebarAccessibility();
     if (_mobileSidebarMedia) {
@@ -1735,7 +1735,6 @@ document.addEventListener('DOMContentLoaded', function() {
     ['notify_webhook_url'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) {
-            el.addEventListener('input', updateStatusDots);
             el.addEventListener('input', updateNotificationChannelSummaries);
         }
     });

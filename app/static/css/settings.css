@@ -738,6 +738,14 @@ button.notification-collapse-button {
   font-size: 0.82rem;
   font-weight: 500;
 }
+.status-indicator[hidden] {
+  display: none;
+}
+.status-indicator.testing {
+  background: color-mix(in srgb, var(--text-muted) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-muted) 18%, transparent);
+  color: var(--text-muted);
+}
 .status-indicator.connected {
   background: color-mix(in srgb, var(--good) 8%, transparent);
   border: 1px solid var(--good-muted);
@@ -752,6 +760,8 @@ button.notification-collapse-button {
   width: 8px; height: 8px;
   border-radius: 50%;
   background: currentColor;
+}
+.status-indicator.testing .status-dot {
   animation: pulse 2s infinite;
 }
 
@@ -1560,6 +1570,20 @@ button.notification-collapse-button {
   .save-footer { left: 0; }
   .mobile-header { display: flex !important; }
   .settings-card { padding: 18px; }
+  .connection-card-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .connection-card-header .card-title-group {
+    flex: 1 1 100%;
+  }
+  .connection-card-header .status-indicator {
+    margin-left: 52px;
+    max-width: calc(100% - 52px);
+  }
+  .connection-card-header #modem-status-text {
+    overflow-wrap: anywhere;
+  }
   .notification-card-header {
     align-items: flex-start;
     gap: var(--space-sm);

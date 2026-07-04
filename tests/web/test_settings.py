@@ -76,6 +76,19 @@ class TestSettingsRoute:
         assert 'aria-controls="notification-webhook-body"' in html
         assert 'id="notification-webhook-body" aria-hidden="true" inert' in html
 
+    def test_settings_modem_status_indicator_starts_hidden_and_live(self, client):
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        html = resp.data.decode("utf-8")
+
+        match = re.search(r'<div class="status-indicator" id="modem-status"[^>]*>', html)
+        assert match is not None
+        status_tag = match.group(0)
+        assert "hidden" in status_tag
+        assert 'role="status"' in status_tag
+        assert 'aria-live="polite"' in status_tag
+        assert 'id="dot-notifications"' not in html
+
     def test_settings_smart_capture_uses_shared_form_classes(self, client):
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200
