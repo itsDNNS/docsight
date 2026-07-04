@@ -31,7 +31,7 @@ function syncMobileSidebarAccessibility() {
     _setSidebarAccessibility(sidebar, !!(sidebar && sidebar.classList.contains('open')));
 }
 
-function switchSection(id) {
+function _applySection(id) {
     _currentSection = id;
 
     /* Sidebar: update active link */
@@ -66,12 +66,40 @@ function switchSection(id) {
     if (id === 'smart_capture') loadSmartCaptureHistory();
     if (id === 'extensions') refreshModuleRegistry();
 
-    /* URL hash */
-    history.replaceState(null, '', '#' + id);
-
     /* Mobile: close sidebar after selection */
     closeMobileSidebar();
 }
+
+/* User-initiated section change: apply and add a browser history entry so
+   Back/Forward move between previously viewed settings sections. Re-selecting
+   the current section replaces state instead of stacking a duplicate entry. */
+function switchSection(id) {
+    var isNewSection = id !== _currentSection;
+    _applySection(id);
+    if (isNewSection) {
+        history.pushState(null, '', '#' + id);
+    } else {
+        history.replaceState(null, '', '#' + id);
+    }
+}
+
+/* Resolve the section referenced by the current URL hash (default: connection). */
+function _sectionFromHash() {
+    var hash = location.hash.replace('#', '');
+    return (hash && document.getElementById('panel-' + hash)) ? hash : 'connection';
+}
+
+/* Non-pushing variant for Back/Forward and manual hash edits: the browser has
+   already updated the URL, so only reflect it in the UI. The guard also makes
+   the popstate+hashchange double-fire on navigation a no-op the second time. */
+function _syncSectionFromHash() {
+    var id = _sectionFromHash();
+    if (id === _currentSection) return;
+    _applySection(id);
+}
+
+window.addEventListener('popstate', _syncSectionFromHash);
+window.addEventListener('hashchange', _syncSectionFromHash);
 
 /* ── Mobile Sidebar ── */
 function openMobileSidebar() {
@@ -1764,13 +1792,11 @@ document.addEventListener('DOMContentLoaded', function() {
     _formDirty = false;
     _manualDirty = false;
 
-    /* Restore section from URL hash, default to connection */
-    var hash = location.hash.replace('#', '');
-    if (hash && document.getElementById('panel-' + hash)) {
-        switchSection(hash);
-    } else {
-        switchSection('connection');
-    }
+    /* Restore section from URL hash (default: connection); replace state so the
+       initial load does not leave a spurious Back entry. */
+    var initialSection = _sectionFromHash();
+    _applySection(initialSection);
+    history.replaceState(null, '', '#' + initialSection);
 });
 
 /* ── Module Management ── */
