@@ -1,7 +1,7 @@
 {
   "id": "docsight.bnetz",
-  "name": "BNetzA Broadband Measurement",
-  "description": "BNetzA Breitbandmessung protocol parsing and file watcher",
+  "name": "BNetzA File Watcher Module",
+  "description": "Automatic import module for BNetzA PDFs/CSVs; configure the watch directory in BNetzA File Watcher.",
   "version": "1.0.0",
   "author": "itsDNNS",
   "minAppVersion": "2026.2",

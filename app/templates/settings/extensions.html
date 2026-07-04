@@ -24,7 +24,7 @@
 
         {% set features = [] %}
         {% if features.append({'name': t.gaming_quality_label, 'desc': t.gaming_quality_hint, 'field': 'gaming_quality_enabled', 'checked': config.gaming_quality_enabled, 'disabled': false}) %}{% endif %}
-        {% if features.append({'name': t.bnetz_title, 'desc': t.bnetz_upload_hint, 'field': 'bnetz_enabled', 'checked': config.bnetz_enabled, 'disabled': false}) %}{% endif %}
+        {% if features.append({'name': t.get('bnetz_feature_title', t.bnetz_title), 'desc': t.get('bnetz_feature_hint', t.bnetz_upload_hint), 'field': 'bnetz_enabled', 'checked': config.bnetz_enabled, 'disabled': false}) %}{% endif %}
         {% if features.append({'name': t.get('seg_title', 'Segment Utilization'), 'desc': seg_desc, 'field': 'segment_utilization_enabled', 'checked': config.segment_utilization_enabled and not seg_disabled, 'disabled': seg_disabled}) %}{% endif %}
 
         {% set modules_list = [] %}

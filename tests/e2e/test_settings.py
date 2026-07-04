@@ -37,6 +37,21 @@ class TestSettingsLoad:
         expect(core_group.locator('button[data-section="connection"]')).to_be_visible()
         assert module_group.locator('.nav-sub-item').count() > 0
 
+    @pytest.mark.parametrize("width", [1280, 390])
+    def test_bnetz_extension_labels_distinguish_dashboard_and_file_watcher(self, settings_page, width):
+        settings_page.set_viewport_size({"width": width, "height": 844})
+        settings_page.reload(wait_until="networkidle")
+        settings_page.evaluate("() => window.switchSection('extensions')")
+
+        panel = settings_page.locator("#panel-extensions")
+        expect(panel.get_by_text("BNetzA measurement dashboard")).to_be_visible()
+        expect(panel.get_by_text("Shows manual BNetzA uploads and evidence on the dashboard")).to_be_visible()
+        expect(panel.get_by_text("BNetzA File Watcher Module")).to_be_visible()
+        expect(panel.get_by_text("Automatic import module for BNetzA PDFs/CSVs")).to_be_visible()
+        expect(settings_page.locator('button[data-section="mod-docsight_bnetz"]')).to_have_text(re.compile("BNetzA File Watcher"))
+
+        assert panel.evaluate("el => el.scrollWidth <= document.documentElement.clientWidth")
+
 
 class TestSettingsMobileSidebar:
     """Mobile sidebar keeps the full settings navigation reachable."""
