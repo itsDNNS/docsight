@@ -222,6 +222,16 @@ def test_dead_static_js_helpers_stay_removed() -> None:
     assert "toggleCard(" not in templates
 
 
+def test_settings_small_button_rule_is_defined_once() -> None:
+    """Settings small buttons share one .btn-sm size and touch target."""
+    css = (STATIC / "css" / "settings.css").read_text(encoding="utf-8")
+    definitions = re.findall(r"(?m)^\.btn-sm\s*\{[^}]*\}", css)
+    assert len(definitions) == 1
+    rule = definitions[0]
+    assert "padding: 8px 14px" in rule
+    assert "min-height: 36px" in rule
+
+
 def test_unused_inter_font_assets_stay_removed() -> None:
     for rel_path in [
         "fonts/inter-latin.woff2",

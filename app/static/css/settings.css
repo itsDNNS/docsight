@@ -1759,11 +1759,6 @@ button.notification-collapse-button {
   color: var(--success);
 }
 
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 0.8rem;
-}
-
 /* Theme Preview Overlay */
 .theme-preview-overlay {
   position: fixed;
@@ -2005,10 +2000,6 @@ button.notification-collapse-button {
   border-radius: 4px;
   font-size: 0.7em;
   vertical-align: middle;
-}
-.btn-sm {
-  padding: 4px 10px;
-  font-size: 0.8em;
 }
 .btn-install {
   background: var(--good-muted);
