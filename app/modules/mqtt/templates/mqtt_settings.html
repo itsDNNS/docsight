@@ -1,7 +1,7 @@
 <!-- ═══ Panel: MQTT ═══ -->
 <div class="settings-panel" id="panel-mod-docsight_mqtt">
     <div class="settings-card glass">
-        <div class="card-header">
+        <div class="card-header status-card-header">
             <div class="card-title-group">
                 <div class="card-icon purple">
                     <i data-lucide="radio-tower"></i>
@@ -11,7 +11,7 @@
                     <div class="card-subtitle">{{ t['docsight.mqtt.mqtt_optional_ha'] or 'optional - for Home Assistant' }}</div>
                 </div>
             </div>
-            <div class="status-indicator" id="mqtt-status">
+            <div class="status-indicator" id="mqtt-status" role="status" aria-live="polite" hidden>
                 <span class="status-dot"></span>
                 <span id="mqtt-status-text"></span>
             </div>

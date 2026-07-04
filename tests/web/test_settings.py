@@ -142,6 +142,16 @@ class TestSettingsRoute:
         assert 'aria-live="polite"' in status_tag
         assert 'id="dot-notifications"' not in html
 
+    def test_settings_mqtt_status_indicator_starts_hidden_and_live(self):
+        template = Path("app/modules/mqtt/templates/mqtt_settings.html").read_text()
+        status = BeautifulSoup(template, "html.parser").select_one("#mqtt-status")
+
+        assert status is not None
+        assert "hidden" in status.attrs
+        assert status.get("role") == "status"
+        assert status.get("aria-live") == "polite"
+        assert status.select_one("#mqtt-status-text") is not None
+
     def test_settings_smart_capture_uses_shared_form_classes(self, client):
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200

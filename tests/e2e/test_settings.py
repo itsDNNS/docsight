@@ -300,6 +300,87 @@ class TestSettingsFormElements:
         expect(status).not_to_have_attribute("hidden", "")
         expect(status.locator("#modem-status-text")).to_have_text("Error: Auth failed")
 
+    def test_mqtt_status_updates_while_testing_and_after_success(self, settings_page):
+        pending_routes = []
+
+        def hold_mqtt(route):
+            pending_routes.append(route)
+
+        settings_page.route("**/api/test-mqtt", hold_mqtt)
+        settings_page.locator('button[data-section="mod-docsight_mqtt"]').click()
+        status = settings_page.locator("#mqtt-status")
+        expect(status).to_have_attribute("hidden", "")
+
+        with settings_page.expect_request("**/api/test-mqtt"):
+            settings_page.locator('#panel-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+
+        expect(status).to_have_class(re.compile(r".*\btesting\b.*"))
+        expect(status).not_to_have_attribute("hidden", "")
+        expect(status.locator("#mqtt-status-text")).to_have_text(re.compile("Testing", re.I))
+        assert len(pending_routes) == 1
+
+        pending_routes[0].fulfill(json={"success": True})
+
+        expect(status).to_have_class(re.compile(r".*\bconnected\b.*"))
+        expect(status).not_to_have_class(re.compile(r".*\bdisconnected\b.*"))
+        expect(status.locator("#mqtt-status-text")).to_have_text("Connected")
+
+    def test_mqtt_status_updates_after_failed_connection_test(self, settings_page):
+        settings_page.route(
+            "**/api/test-mqtt",
+            lambda route: route.fulfill(json={"success": False, "error": "MQTT auth failed"}),
+        )
+        settings_page.locator('button[data-section="mod-docsight_mqtt"]').click()
+        status = settings_page.locator("#mqtt-status")
+        expect(status).to_have_attribute("hidden", "")
+
+        settings_page.locator('#panel-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+
+        expect(status).to_have_class(re.compile(r".*\bdisconnected\b.*"))
+        expect(status).not_to_have_class(re.compile(r".*\bconnected\b.*"))
+        expect(status).not_to_have_attribute("hidden", "")
+        expect(status.locator("#mqtt-status-text")).to_have_text("Error: MQTT auth failed")
+
+    def test_mqtt_status_updates_after_network_error(self, settings_page):
+        settings_page.route("**/api/test-mqtt", lambda route: route.abort())
+        settings_page.locator('button[data-section="mod-docsight_mqtt"]').click()
+        status = settings_page.locator("#mqtt-status")
+        expect(status).to_have_attribute("hidden", "")
+
+        settings_page.locator('#panel-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+
+        expect(status).to_have_class(re.compile(r".*\bdisconnected\b.*"))
+        expect(status).not_to_have_attribute("hidden", "")
+        expect(status.locator("#mqtt-status-text")).to_have_text("Network error")
+
+    def test_mqtt_status_wraps_without_mobile_overflow(self, settings_page):
+        settings_page.set_viewport_size({"width": 390, "height": 844})
+        settings_page.reload(wait_until="networkidle")
+        settings_page.route(
+            "**/api/test-mqtt",
+            lambda route: route.fulfill(
+                json={
+                    "success": False,
+                    "error": "Connection refused by broker at mqtt.example.invalid:1883",
+                }
+            ),
+        )
+        settings_page.evaluate("() => window.switchSection('mod-docsight_mqtt')")
+        settings_page.locator('#panel-mod-docsight_mqtt button[onclick="testMqtt()"]').click()
+
+        expect(settings_page.locator("#mqtt-status")).to_have_class(
+            re.compile(r".*\bdisconnected\b.*")
+        )
+        metrics = settings_page.evaluate(
+            """
+            () => ({
+              docWidth: document.documentElement.scrollWidth,
+              viewportWidth: window.innerWidth,
+            })
+            """
+        )
+        assert metrics["docWidth"] <= metrics["viewportWidth"]
+
     def test_security_has_password_field(self, settings_page):
         settings_page.locator('button[data-section="security"]').click()
         pw = settings_page.locator('input[type="password"]')

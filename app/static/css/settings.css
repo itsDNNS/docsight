@@ -1508,6 +1508,7 @@ button.notification-collapse-button {
 
 @media (max-width: 768px) {
   .sidebar {
+    box-sizing: border-box;
     transform: translateX(-100%);
     transition: transform 0.3s var(--ease-out-expo);
     width: min(88vw, 320px);
@@ -1570,18 +1571,18 @@ button.notification-collapse-button {
   .save-footer { left: 0; }
   .mobile-header { display: flex !important; }
   .settings-card { padding: 18px; }
-  .connection-card-header {
+  .status-card-header {
     align-items: flex-start;
     flex-wrap: wrap;
   }
-  .connection-card-header .card-title-group {
+  .status-card-header .card-title-group {
     flex: 1 1 100%;
   }
-  .connection-card-header .status-indicator {
+  .status-card-header .status-indicator {
     margin-left: 52px;
     max-width: calc(100% - 52px);
   }
-  .connection-card-header #modem-status-text {
+  .status-card-header .status-indicator span:last-child {
     overflow-wrap: anywhere;
   }
   .notification-card-header {

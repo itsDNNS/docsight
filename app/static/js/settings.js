@@ -332,15 +332,23 @@ function revokeToken(id, name) {
     }).catch(function() { showToast(T.error_prefix || 'Error', false); });
 }
 
-/* ── Modem Status Indicator ── */
-function setModemStatus(state, text) {
-    var box = document.getElementById('modem-status');
+/* ── Connection Test Status Indicators ── */
+function setConnectionTestStatus(boxId, labelId, state, text) {
+    var box = document.getElementById(boxId);
     if (!box) return;
     box.hidden = false;
     box.classList.remove('testing', 'connected', 'disconnected');
     box.classList.add(state);
-    var label = document.getElementById('modem-status-text');
+    var label = document.getElementById(labelId);
     if (label) label.textContent = text;
+}
+
+function setModemStatus(state, text) {
+    setConnectionTestStatus('modem-status', 'modem-status-text', state, text);
+}
+
+function setMqttStatus(state, text) {
+    setConnectionTestStatus('mqtt-status', 'mqtt-status-text', state, text);
 }
 
 /* ── Theme Toggle ── */
@@ -539,6 +547,7 @@ function testMqtt() {
     span.textContent = '\u23F3';
     el.appendChild(span);
     el.appendChild(document.createTextNode(' ' + T.testing));
+    setMqttStatus('testing', T.testing);
     var data = getFormData();
     fetch('/api/test-mqtt', {
         method: 'POST',
@@ -555,12 +564,14 @@ function testMqtt() {
             check.textContent = '\u2713';
             el.appendChild(check);
             el.appendChild(document.createTextNode(' ' + T.connected));
+            setMqttStatus('connected', T.connected);
         } else {
             el.className = 'test-result test-fail';
             var x = document.createElement('span');
             x.textContent = '\u2717';
             el.appendChild(x);
             el.appendChild(document.createTextNode(' ' + T.error_prefix + ': ' + (res.error || T.unknown_error)));
+            setMqttStatus('disconnected', T.error_prefix + ': ' + (res.error || T.unknown_error));
         }
     })
     .catch(function() {
@@ -570,6 +581,7 @@ function testMqtt() {
         x.textContent = '\u2717';
         el.appendChild(x);
         el.appendChild(document.createTextNode(' ' + T.network_error));
+        setMqttStatus('disconnected', T.network_error);
     });
 }
 
