@@ -4,8 +4,17 @@ import json
 import re
 from pathlib import Path
 
+from bs4 import BeautifulSoup
+
 from app.web import init_config, app
 from app.config import ConfigManager
+
+
+def _rendered_panel(html: str, panel_id: str):
+    soup = BeautifulSoup(html, "html.parser")
+    panel = soup.find(id=panel_id)
+    assert panel is not None
+    return panel
 
 class TestSettingsRoute:
     def test_settings_contains_comcast_xfinity_isp_option(self, client):
@@ -13,13 +22,41 @@ class TestSettingsRoute:
         assert resp.status_code == 200
         assert b"Comcast/Xfinity" in resp.data
 
-    def test_settings_modules_lists_builtin_features(self, client):
+    def test_settings_extensions_panel_lists_rendered_feature_toggles(self, client):
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200
-        assert b"Built-in Features" in resp.data
-        assert b"Gaming Quality Index" in resp.data
-        assert b"Segment Utilization" in resp.data
-        assert b"Requires FRITZ!OS 8.20 or newer" in resp.data
+        panel = _rendered_panel(resp.data.decode("utf-8"), "panel-extensions")
+
+        headings = [
+            heading.get_text(" ", strip=True)
+            for heading in panel.select(".toggle-section-divider")
+        ]
+        assert headings
+        assert panel.select_one("#module-registry-refresh") is not None
+        assert "Community Modules" in panel.get_text(" ", strip=True)
+
+        rendered_rows = {
+            row.select_one(".toggle-title").get_text(" ", strip=True): row
+            for row in panel.select(".toggle-row")
+            if row.select_one(".toggle-title")
+        }
+        assert "Gaming Quality Index" in rendered_rows
+        assert "Segment Utilization" in rendered_rows
+        assert (
+            rendered_rows["Gaming Quality Index"].select_one(
+                'input[name="gaming_quality_enabled"]'
+            )
+            is not None
+        )
+        assert (
+            rendered_rows["Segment Utilization"].select_one(
+                'input[name="segment_utilization_enabled"]'
+            )
+            is not None
+        )
+        assert "Requires FRITZ!OS 8.20 or newer" in rendered_rows[
+            "Segment Utilization"
+        ].get_text(" ", strip=True)
 
     def test_settings_bnetz_labels_distinguish_dashboard_and_file_watcher(self, client):
         resp = client.get("/settings?lang=en")

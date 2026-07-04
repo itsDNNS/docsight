@@ -112,6 +112,27 @@ class TestSettingsMobileSidebar:
         expect(menu_button).to_have_attribute("aria-expanded", "false")
         assert settings_page.evaluate("() => document.activeElement && document.activeElement.id") == "mobile-menu-button"
 
+    def test_mobile_sidebar_nav_selection_closes_drawer(self, settings_page):
+        settings_page.set_viewport_size({"width": 390, "height": 844})
+        settings_page.reload(wait_until="networkidle")
+
+        settings_page.locator("#mobile-menu-button").click()
+        sidebar = settings_page.locator("#settings-sidebar")
+        expect(sidebar).to_have_class(re.compile(r".*\bopen\b.*"))
+
+        settings_page.locator('button[data-section="notifications"]').click()
+
+        expect(sidebar).not_to_have_class(re.compile(r".*\bopen\b.*"))
+        expect(sidebar).to_have_attribute("aria-hidden", "true")
+        expect(sidebar).to_have_attribute("inert", "")
+        expect(settings_page.locator("#mobile-menu-button")).to_have_attribute(
+            "aria-expanded", "false"
+        )
+        expect(settings_page.locator("#panel-notifications")).to_be_visible()
+        expect(settings_page.locator('button[data-section="notifications"]')).to_have_attribute(
+            "aria-current", "page"
+        )
+
     def test_active_settings_navigation_item_is_announced(self, settings_page):
         connection = settings_page.locator('button[data-section="connection"]')
         notifications = settings_page.locator('button[data-section="notifications"]')
@@ -213,6 +234,24 @@ class TestSettingsTabSwitching:
         settings_page.locator('button[data-section="connection"]').click()
         panel = settings_page.locator("#panel-connection")
         assert panel.is_visible()
+
+    def test_initial_hash_deep_link_restores_section_on_load(self, page, live_server):
+        page.goto(f"{live_server}/settings#notifications")
+        page.wait_for_load_state("networkidle")
+
+        expect(page.locator("#panel-notifications")).to_be_visible()
+        expect(page.locator('button[data-section="notifications"]')).to_have_attribute(
+            "aria-current", "page"
+        )
+        assert page.url.endswith("#notifications")
+
+        page.locator('button[data-section="general"]').click()
+        expect(page.locator("#panel-general")).to_be_visible()
+        assert page.url.endswith("#general")
+
+        page.go_back()
+        expect(page.locator("#panel-notifications")).to_be_visible()
+        assert page.url.endswith("#notifications")
 
     def test_section_changes_create_browser_history(self, settings_page):
         settings_page.locator('button[data-section="general"]').click()
@@ -482,6 +521,23 @@ class TestSettingsThemeRegistry:
 class TestSettingsToastStates:
     """Theme and module registry operations report the correct toast polarity."""
 
+    @pytest.mark.parametrize("ok, expected, unexpected", [
+        (True, "toast-ok", "toast-fail"),
+        (False, "toast-fail", "toast-ok"),
+    ])
+    def test_toast_helper_applies_explicit_polarity_classes(
+        self, settings_page, ok, expected, unexpected
+    ):
+        settings_page.evaluate(
+            "({ok}) => window.showToast(ok ? 'Saved' : 'Failed', ok)",
+            {"ok": ok},
+        )
+
+        toast = settings_page.locator("#toast")
+        expect(toast).to_be_visible()
+        expect(toast).to_have_class(re.compile(rf".*\b{expected}\b.*"))
+        expect(toast).not_to_have_class(re.compile(rf".*\b{unexpected}\b.*"))
+
     @pytest.mark.parametrize("success", [True, False])
     def test_theme_install_toast_state_matches_result(self, settings_page, success):
         settings_page.route("**/api/themes/registry", lambda route: route.fulfill(json=_theme_registry_payload()))
@@ -534,6 +590,28 @@ class TestSettingsToastStates:
         uninstall_button.click()
 
         _assert_toast_state(settings_page, success)
+
+
+class TestSettingsModuleRegistry:
+    """The Extensions panel loads community modules without manual refresh."""
+
+    def test_extensions_panel_auto_loads_module_registry_when_opened(self, settings_page):
+        registry_requests = []
+
+        def capture_registry(route):
+            registry_requests.append(route.request.url)
+            route.fulfill(json=_module_registry_payload())
+
+        settings_page.route("**/api/modules/registry", capture_registry)
+
+        settings_page.locator('button[data-section="extensions"]').click()
+        expect(
+            settings_page.locator("#module-registry-gallery .module-registry-card")
+        ).to_have_count(1)
+        expect(settings_page.locator("#module-registry-gallery")).to_contain_text(
+            "Registry Test Module"
+        )
+        assert len(registry_requests) == 1
 
 
 class TestSettingsDirtyState:
