@@ -199,6 +199,19 @@ class TestSettingsTabSwitching:
         panel = settings_page.locator("#panel-connection")
         assert panel.is_visible()
 
+    def test_section_changes_create_browser_history(self, settings_page):
+        settings_page.locator('button[data-section="general"]').click()
+        settings_page.locator('button[data-section="notifications"]').click()
+        expect(settings_page.locator("#panel-notifications")).to_be_visible()
+
+        settings_page.go_back()
+        expect(settings_page.locator("#panel-general")).to_be_visible()
+        assert settings_page.url.endswith("#general")
+
+        settings_page.go_forward()
+        expect(settings_page.locator("#panel-notifications")).to_be_visible()
+        assert settings_page.url.endswith("#notifications")
+
 
 class TestSettingsFormElements:
     """Form elements exist on settings panels."""
