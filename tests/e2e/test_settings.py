@@ -207,6 +207,32 @@ class TestSettingsFormElements:
         select = settings_page.locator('select[name="modem_type"], #modem_type, #modem-type')
         assert select.count() > 0
 
+    def test_modem_status_updates_after_successful_connection_test(self, settings_page):
+        settings_page.route("**/api/test-modem", lambda route: route.fulfill(json={"success": True, "model": "Demo CM"}))
+
+        status = settings_page.locator("#modem-status")
+        expect(status).to_have_attribute("hidden", "")
+
+        settings_page.locator('button[onclick="testModem()"]').click()
+
+        expect(status).to_have_class(re.compile(r".*\bconnected\b.*"))
+        expect(status).not_to_have_class(re.compile(r".*\bdisconnected\b.*"))
+        expect(status).not_to_have_attribute("hidden", "")
+        expect(status.locator("#modem-status-text")).to_have_text("Connected: Demo CM")
+
+    def test_modem_status_updates_after_failed_connection_test(self, settings_page):
+        settings_page.route("**/api/test-modem", lambda route: route.fulfill(json={"success": False, "error": "Auth failed"}))
+
+        status = settings_page.locator("#modem-status")
+        expect(status).to_have_attribute("hidden", "")
+
+        settings_page.locator('button[onclick="testModem()"]').click()
+
+        expect(status).to_have_class(re.compile(r".*\bdisconnected\b.*"))
+        expect(status).not_to_have_class(re.compile(r".*\bconnected\b.*"))
+        expect(status).not_to_have_attribute("hidden", "")
+        expect(status.locator("#modem-status-text")).to_have_text("Error: Auth failed")
+
     def test_security_has_password_field(self, settings_page):
         settings_page.locator('button[data-section="security"]').click()
         pw = settings_page.locator('input[type="password"]')
