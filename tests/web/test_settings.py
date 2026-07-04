@@ -1,6 +1,8 @@
 """Tests for settings and setup pages."""
 
+import json
 import re
+from pathlib import Path
 
 from app.web import init_config, app
 from app.config import ConfigManager
@@ -18,6 +20,20 @@ class TestSettingsRoute:
         assert b"Gaming Quality Index" in resp.data
         assert b"Segment Utilization" in resp.data
         assert b"Requires FRITZ!OS 8.20 or newer" in resp.data
+
+    def test_settings_bnetz_labels_distinguish_dashboard_and_file_watcher(self, client):
+        resp = client.get("/settings?lang=en")
+        assert resp.status_code == 200
+        html = resp.data.decode("utf-8")
+
+        assert "BNetzA measurement dashboard" in html
+        assert "Shows manual BNetzA uploads and evidence on the dashboard" in html
+        assert "use BNetzA File Watcher for automatic imports" in html
+
+        manifest_path = Path("app/modules/bnetz/manifest.json")
+        manifest = json.loads(manifest_path.read_text())
+        assert manifest["name"] == "BNetzA File Watcher Module"
+        assert "Automatic import module for BNetzA PDFs/CSVs" in manifest["description"]
 
     def test_settings_connection_includes_segment_toggle_for_fritzbox(self, client):
         resp = client.get("/settings?lang=en")
