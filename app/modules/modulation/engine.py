@@ -10,6 +10,7 @@ from collections import defaultdict
 
 from app.docsis_utils import (
     canonical_modulation_label as _canonical_label,
+    classify_channel_family as _classify_channel_family,
     parse_qam_order as _parse_qam_order,
     sc_qam_capacity_family as _sc_qam_capacity_family,
 )
@@ -84,9 +85,12 @@ def _channel_capacity_mbps(ch, direction):
 def _snapshot_capacity(channels, direction):
     calculated = 0
     capacities = []
+    unsupported_families = defaultdict(int)
     for ch in channels:
         capacity = _channel_capacity_mbps(ch, direction)
         if capacity is None:
+            family = _classify_channel_family(direction, ch)
+            unsupported_families[family] += 1
             continue
         calculated += 1
         capacities.append(capacity)
@@ -97,6 +101,7 @@ def _snapshot_capacity(channels, direction):
         "calculated": calculated,
         "total": total,
         "unsupported": max(0, total - calculated),
+        "unsupported_families": dict(sorted(unsupported_families.items())),
     }
 
 
@@ -127,6 +132,7 @@ def _capacity_history_for_direction(snapshots, direction, tariff_mbps, tz_name, 
     sample_count = 0
     calculated_channel_samples = 0
     total_channel_samples = 0
+    unsupported_family_samples = defaultdict(int)
     snapshots_with_full_coverage = 0
     last_capacity = None
 
@@ -142,6 +148,8 @@ def _capacity_history_for_direction(snapshots, direction, tariff_mbps, tz_name, 
         snapshot = _snapshot_capacity(channels, direction)
         calculated_channel_samples += snapshot["calculated"]
         total_channel_samples += snapshot["total"]
+        for family, count in snapshot["unsupported_families"].items():
+            unsupported_family_samples[family] += count
         if snapshot["total"] and snapshot["calculated"] == snapshot["total"]:
             snapshots_with_full_coverage += 1
         if snapshot["capacity_mbps"] is not None:
@@ -179,6 +187,7 @@ def _capacity_history_for_direction(snapshots, direction, tariff_mbps, tz_name, 
         "calculated_channel_samples": calculated_channel_samples,
         "total_channel_samples": total_channel_samples,
         "unsupported_channel_samples": max(0, total_channel_samples - calculated_channel_samples),
+        "unsupported_channel_families": dict(sorted(unsupported_family_samples.items())),
         "coverage_pct": coverage_pct,
         "full_coverage_sample_count": snapshots_with_full_coverage,
         "status": _capacity_status(tariff_mbps, capacity_samples, below_count),

@@ -165,6 +165,34 @@ class TestDistributionEndpoint:
         assert us["capacity_max_mbps"] == 30.7
         assert us["tariff_met_pct"] == 50.0
 
+    def test_capacity_history_reports_unsupported_channel_families_for_partial_estimates(self, client_with_storage):
+        client, storage = client_with_storage
+        day = _ts_days_ago(1)[:10]
+        _store_snapshot(
+            storage,
+            f"{day}T10:00:00Z",
+            ds_channels=[
+                {"modulation": "256QAM", "channel_id": 1, "docsis_version": "3.0"},
+                {"modulation": "4096QAM", "type": "OFDM", "channel_id": 33, "docsis_version": "3.1"},
+            ],
+            us_channels=[
+                {"modulation": "64QAM", "channel_id": 1, "docsis_version": "3.0"},
+                {"modulation": "1024QAM", "type": "OFDMA", "channel_id": 5, "docsis_version": "3.1"},
+            ],
+        )
+
+        resp = client.get("/api/modulation/distribution?days=7&direction=ds")
+        data = resp.get_json()
+
+        ds = data["capacity_history"]["downstream"]
+        us = data["capacity_history"]["upstream"]
+        assert ds["coverage_pct"] == 50.0
+        assert ds["unsupported_channel_samples"] == 1
+        assert ds["unsupported_channel_families"] == {"ofdm": 1}
+        assert us["coverage_pct"] == 50.0
+        assert us["unsupported_channel_samples"] == 1
+        assert us["unsupported_channel_families"] == {"ofdma": 1}
+
     def test_capacity_history_uses_detected_connection_speed_when_booked_tariff_empty(self, client_with_storage):
         client, storage = client_with_storage
         from app.web import reset_modem_state, update_state

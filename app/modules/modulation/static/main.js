@@ -286,6 +286,47 @@ function rangeLabelForCapacity(data) {
     return template.replace('{days}', String(_modDays));
 }
 
+function capacityFamilyLabel(family) {
+    var normalized = String(family || '').toLowerCase();
+    var fallback = {
+        ofdm: 'OFDM',
+        ofdma: 'OFDMA',
+        unknown: 'unsupported'
+    }[normalized] || normalized || 'unsupported';
+    return T['docsight.modulation.capacity_family_' + normalized] || fallback;
+}
+
+function unsupportedCapacityFamilies(summary) {
+    var families = summary && summary.unsupported_channel_families ? summary.unsupported_channel_families : {};
+    return Object.keys(families).filter(function(family) {
+        return Number(families[family] || 0) > 0;
+    }).sort().map(capacityFamilyLabel);
+}
+
+function capacityCoverageText(summary) {
+    var calculated = summary ? (summary.calculated_channel_samples || 0) : 0;
+    var total = summary ? (summary.total_channel_samples || 0) : 0;
+    var pct = Number(summary && summary.coverage_pct || 0).toFixed(1);
+    var template = T['docsight.modulation.capacity_coverage_detail'] ||
+        '{calculated} of {total} channel samples calculated ({pct}%)';
+    return template
+        .replace('{calculated}', String(calculated))
+        .replace('{total}', String(total))
+        .replace('{pct}', pct);
+}
+
+function capacityPartialCaveatText(summary) {
+    if (!summary || !(summary.unsupported_channel_samples > 0)) return '';
+    var families = unsupportedCapacityFamilies(summary);
+    if (families.length > 0) {
+        var template = T['docsight.modulation.capacity_partial_caveat'] ||
+            'Partial estimate: {families} channels are not included in this SC-QAM capacity sum.';
+        return template.replace('{families}', families.join('/'));
+    }
+    return T['docsight.modulation.capacity_partial_caveat_generic'] ||
+        'Partial estimate: unsupported DOCSIS channels are not included in this SC-QAM capacity sum.';
+}
+
 function capacityStatusText(summary) {
     if (!summary) return '\u2014';
     var key = 'docsight.modulation.capacity_status_' + summary.status;
@@ -297,7 +338,7 @@ function capacityStatusText(summary) {
     }[summary.status] || summary.status || '\u2014';
     var text = T[key] || fallback;
     if (summary.unsupported_channel_samples > 0) {
-        text += ' · ' + (T['docsight.modulation.capacity_partial_coverage'] || 'partial coverage');
+        text = (T['docsight.modulation.capacity_partial_coverage'] || 'Partial estimate') + ' · ' + text;
     }
     return text;
 }
@@ -318,7 +359,9 @@ function updateCapacityCard(direction, summary) {
     var card = document.getElementById(direction === 'downstream' ? 'mod-capacity-downstream' : 'mod-capacity-upstream');
     if (!card || !summary) return;
 
-    card.className = 'mod-capacity-card mod-capacity-' + (summary.status || 'unavailable');
+    var partial = summary.unsupported_channel_samples > 0;
+    card.className = 'mod-capacity-card mod-capacity-' + (summary.status || 'unavailable') +
+        (partial ? ' mod-capacity-partial' : '');
 
     var current = document.getElementById('mod-cap-' + prefix + '-current');
     var min = document.getElementById('mod-cap-' + prefix + '-min');
@@ -327,6 +370,7 @@ function updateCapacityCard(direction, summary) {
     var tariff = document.getElementById('mod-cap-' + prefix + '-tariff');
     var coverage = document.getElementById('mod-cap-' + prefix + '-coverage');
     var status = document.getElementById('mod-cap-' + prefix + '-status');
+    var caveat = document.getElementById('mod-cap-' + prefix + '-caveat');
 
     if (current) current.textContent = formatCapacityMbps(summary.capacity_current_mbps);
     if (min) min.textContent = formatCapacityMbps(summary.capacity_min_mbps);
@@ -334,10 +378,14 @@ function updateCapacityCard(direction, summary) {
     if (max) max.textContent = formatCapacityMbps(summary.capacity_max_mbps);
     if (tariff) tariff.textContent = capacityTariffText(summary);
     if (coverage) {
-        coverage.textContent = (summary.calculated_channel_samples || 0) + ' / ' +
-            (summary.total_channel_samples || 0) + ' (' + Number(summary.coverage_pct || 0).toFixed(1) + '%)';
+        coverage.textContent = capacityCoverageText(summary);
     }
     if (status) status.textContent = capacityStatusText(summary);
+    if (caveat) {
+        var caveatText = capacityPartialCaveatText(summary);
+        caveat.textContent = caveatText;
+        caveat.hidden = !caveatText;
+    }
 }
 
 function updateCapacityHistory(data, rangeLabel) {
