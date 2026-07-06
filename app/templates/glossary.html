@@ -20,7 +20,7 @@
     <header class="glossary-page-hero">
         <div>
             <a class="glossary-back-link" href="/">← {{ t.get('home', 'Home') }}</a>
-            <p class="eyebrow">DOCSight knowledge base</p>
+            <p class="eyebrow">{{ t.get('glossary_knowledge_eyebrow', 'DOCSight knowledge base') }}</p>
             <h1 id="glossary-title">{{ t.get('glossary_page_title', 'Glossary') }}</h1>
             <p class="glossary-page-intro">
                 {{ t.get('glossary_page_intro', 'Canonical DOCSIS and cable terms with explanation levels from beginner-friendly to technician detail.') }}
@@ -42,17 +42,17 @@
     <section class="glossary-layout" aria-label="Glossary terms">
         <aside class="glossary-index" aria-label="Term index">
             <div class="glossary-filter-card" aria-labelledby="glossary-filter-title">
-                <h2 id="glossary-filter-title">Find a term</h2>
-                <label for="glossary-search">Search by term, alias, category, or ID</label>
-                <input id="glossary-search" class="glossary-search" type="search" autocomplete="off" placeholder="Search DOCSIS, SNR, Speedtest…" aria-describedby="glossary-result-count">
-                <div class="glossary-category-filters" aria-label="Filter by category">
-                    <button type="button" class="active" data-category-filter="all" aria-pressed="true">All</button>
+                <h2 id="glossary-filter-title">{{ t.get('glossary_filter_title', 'Find a term') }}</h2>
+                <label for="glossary-search">{{ t.get('glossary_search_label', 'Search by term, alias, category, or ID') }}</label>
+                <input id="glossary-search" class="glossary-search" type="search" autocomplete="off" placeholder="{{ t.get('glossary_search_placeholder', 'Search DOCSIS, SNR, Speedtest…') }}" aria-describedby="glossary-result-count">
+                <div class="glossary-category-filters" aria-label="{{ t.get('glossary_category_filter_label', 'Filter by category') }}">
+                    <button type="button" class="active" data-category-filter="all" aria-pressed="true">{{ t.get('glossary_all_categories', 'All') }}</button>
                     {% for category in categories %}
                     <button type="button" data-category-filter="{{ category.id }}" aria-pressed="false">{{ category.title }}</button>
                     {% endfor %}
                 </div>
-                <p id="glossary-result-count" class="glossary-result-count" aria-live="polite">{{ terms|length }} terms shown</p>
-                <p id="glossary-no-results" class="glossary-no-results" hidden>No matching glossary terms. Try a broader word such as DOCSIS, signal, speed, or errors.</p>
+                <p id="glossary-result-count" class="glossary-result-count" aria-live="polite" data-singular-template="{{ t.get('glossary_result_singular', '{count} term shown') }}" data-plural-template="{{ t.get('glossary_result_plural', '{count} terms shown') }}">{{ t.get('glossary_result_plural', '{count} terms shown').replace('{count}', terms|length|string) }}</p>
+                <p id="glossary-no-results" class="glossary-no-results" hidden>{{ t.get('glossary_no_results', 'No matching glossary terms. Try a broader word such as DOCSIS, signal, speed, or errors.') }}</p>
             </div>
             {% for category in categories %}
             <section class="glossary-index-section" data-category-section="{{ category.id }}">
@@ -95,7 +95,7 @@
             </section>
 
             <section class="glossary-all-levels" aria-labelledby="all-levels-heading">
-                <h3 id="all-levels-heading">All explanation levels</h3>
+                <h3 id="all-levels-heading">{{ t.get('glossary_all_levels_heading', 'All explanation levels') }}</h3>
                 <div class="glossary-level-grid">
                     {% for item in level_options %}
                     <section class="glossary-level-summary {{ 'active' if item.id == selected_level else '' }}">
@@ -108,7 +108,7 @@
 
             {% if selected_term.misconceptions %}
             <section class="glossary-callout" aria-labelledby="misconceptions-heading">
-                <h3 id="misconceptions-heading">Common misconceptions</h3>
+                <h3 id="misconceptions-heading">{{ t.get('glossary_misconceptions_heading', 'Common misconceptions') }}</h3>
                 <ul>
                     {% for item in selected_term.misconceptions %}
                     <li>{{ item }}</li>
@@ -119,7 +119,7 @@
 
             {% if selected_term.protected_terms %}
             <section class="glossary-protected" aria-labelledby="protected-heading">
-                <h3 id="protected-heading">Protected technical terms</h3>
+                <h3 id="protected-heading">{{ t.get('glossary_protected_heading', 'Protected technical terms') }}</h3>
                 <div class="glossary-chip-row">
                     {% for token in selected_term.protected_terms %}
                     <span class="glossary-chip glossary-chip-technical">{{ token }}</span>
@@ -130,7 +130,7 @@
 
             {% if related_terms %}
             <section class="glossary-related" aria-labelledby="related-heading">
-                <h3 id="related-heading">Related terms</h3>
+                <h3 id="related-heading">{{ t.get('glossary_related_heading', 'Related terms') }}</h3>
                 <div class="glossary-related-grid">
                     {% for term in related_terms %}
                     <a href="{{ url_for('glossary_page', lang=lang, level=selected_level, term=term.id) }}">
@@ -142,7 +142,7 @@
             </section>
             {% endif %}
             {% else %}
-            <h2 id="glossary-term-title">No glossary term selected</h2>
+            <h2 id="glossary-term-title">{{ t.get('glossary_no_term_selected', 'No glossary term selected') }}</h2>
             {% endif %}
         </article>
     </section>

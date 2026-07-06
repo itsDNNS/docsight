@@ -24,6 +24,34 @@ CORE_GLOSSARY_KEYS = [
     "glossary_gaming_index",
 ]
 
+GLOSSARY_PAGE_KEYS = [
+    "glossary_page_title",
+    "glossary_page_intro",
+    "glossary_level_selector",
+    "glossary_knowledge_eyebrow",
+    "glossary_filter_title",
+    "glossary_search_label",
+    "glossary_search_placeholder",
+    "glossary_category_filter_label",
+    "glossary_all_categories",
+    "glossary_result_singular",
+    "glossary_result_plural",
+    "glossary_no_results",
+    "glossary_all_levels_heading",
+    "glossary_misconceptions_heading",
+    "glossary_protected_heading",
+    "glossary_related_heading",
+    "glossary_no_term_selected",
+    "glossary_level_eli5",
+    "glossary_level_eli5_desc",
+    "glossary_level_basic",
+    "glossary_level_basic_desc",
+    "glossary_level_advanced",
+    "glossary_level_advanced_desc",
+    "glossary_level_technician",
+    "glossary_level_technician_desc",
+]
+
 MOD_GLOSSARY_KEYS = [
     "glossary_health_index",
     "glossary_low_qam",
@@ -41,6 +69,38 @@ def test_core_glossary_keys_present(lang):
     for key in CORE_GLOSSARY_KEYS:
         assert key in data, f"Missing {key} in {lang}.json"
         assert len(data[key]) > 10, f"Empty/too-short value for {key} in {lang}.json"
+
+
+def test_glossary_page_keys_present_in_every_offered_language():
+    i18n_files = sorted(
+        (
+            path for path in os.scandir(I18N_DIR)
+            if path.name.endswith(".json") and path.name != "template.json"
+        ),
+        key=lambda path: path.name,
+    )
+    assert i18n_files
+    with open(os.path.join(I18N_DIR, "en.json"), encoding="utf-8-sig") as f:
+        english = json.load(f)
+
+    protected_tokens = {"DOCSIS", "SNR", "Speedtest"}
+    for entry in i18n_files:
+        with open(entry.path, encoding="utf-8-sig") as f:
+            data = json.load(f)
+        for key in GLOSSARY_PAGE_KEYS:
+            assert key in data, f"Missing {key} in {entry.name}"
+            assert data[key], f"Empty value for {key} in {entry.name}"
+            if key in {"glossary_result_singular", "glossary_result_plural"}:
+                assert "{count}" in data[key], f"Missing count placeholder in {key} for {entry.name}"
+        placeholder = data["glossary_search_placeholder"]
+        no_results = data["glossary_no_results"]
+        for token in protected_tokens:
+            assert token in placeholder or token in no_results, f"Missing protected search token {token} in {entry.name}"
+        if entry.name != "en.json":
+            for key in GLOSSARY_PAGE_KEYS:
+                if key == "glossary_level_eli5":
+                    continue
+                assert data[key] != english[key], f"English glossary UI fallback leaked for {key} in {entry.name}"
 
 
 def test_modulation_glossary_keys_present_in_source_catalog():
