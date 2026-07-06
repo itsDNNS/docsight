@@ -221,7 +221,7 @@ class TestIndexRoute:
 
         assert resp.status_code == 200
         html = resp.get_data(as_text=True)
-        assert "Theoretical Layer-1 gross channel capacity" in html
+        assert "Layer-1 estimate for supported SC-QAM channels" in html
         assert "55.6 Mbps" in html
         assert "30.7 Mbps" in html
 
@@ -241,8 +241,11 @@ class TestIndexRoute:
         html = template.render(t={})
 
         assert 'id="modulation-capacity-panel"' in html
-        assert "Theoretical channel capacity (gross)" in html
-        assert "Layer-1 gross capacity" in html
+        assert "Calculated SC-QAM gross capacity" in html
+        assert "Not speedtest throughput" in html
+        assert "Not tariff speed" in html
+        assert "OFDM/OFDMA excluded when unsupported" in html
+        assert "Layer-1 SC-QAM gross capacity" in html
         assert "shared-medium" in html
         assert 'id="mod-cap-ds-current"' in html
         assert 'id="mod-cap-us-current"' in html

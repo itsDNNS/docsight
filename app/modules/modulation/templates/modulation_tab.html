@@ -20,13 +20,18 @@
     <div class="mod-capacity-panel" id="modulation-capacity-panel" style="display:none;">
         <div class="mod-capacity-panel-head">
             <div>
-                <div class="mod-capacity-kicker">{{ t.get('docsight.modulation.capacity_kicker', 'Layer-1 context') }}</div>
-                <h3>{{ t.get('docsight.modulation.capacity_title', 'Theoretical channel capacity (gross)') }}</h3>
+                <div class="mod-capacity-kicker">{{ t.get('docsight.modulation.capacity_kicker', 'Layer-1 SC-QAM estimate') }}</div>
+                <h3>{{ t.get('docsight.modulation.capacity_title', 'Calculated SC-QAM gross capacity') }}</h3>
                 <div class="mod-capacity-range" id="mod-capacity-range-label">{{ t.get('docsight.modulation.capacity_selected_period', 'Selected period') }}</div>
             </div>
             {% if t.get('docsight.modulation.capacity_glossary') %}
             <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.get('docsight.modulation.capacity_glossary') }}</div></span>
             {% endif %}
+        </div>
+        <div class="mod-capacity-warning-list" aria-label="{{ t.get('docsight.modulation.capacity_title', 'Calculated SC-QAM gross capacity') }} caveats">
+            <span>{{ t.get('docsight.modulation.capacity_warning_not_throughput', 'Not speedtest throughput') }}</span>
+            <span>{{ t.get('docsight.modulation.capacity_warning_not_tariff', 'Not tariff speed') }}</span>
+            <span>{{ t.get('docsight.modulation.capacity_warning_sc_qam_only', 'SC-QAM only; OFDM/OFDMA excluded when unsupported') }}</span>
         </div>
         <div class="mod-capacity-grid">
             {% for direction, card_id, current_id, min_id, avg_id, max_id, tariff_id, coverage_id, status_id in [
@@ -53,11 +58,12 @@
                     <strong id="{{ coverage_id }}">—</strong>
                 </div>
                 <div class="mod-capacity-status" id="{{ status_id }}">—</div>
+                <div class="mod-capacity-caveat" id="mod-cap-{{ 'ds' if direction == 'downstream' else 'us' }}-caveat" hidden></div>
             </div>
             {% endfor %}
         </div>
         <p class="mod-capacity-disclaimer">
-            {{ t.get('docsight.modulation.capacity_disclaimer', 'Theoretical Layer-1 gross capacity based on reported channel modulation. Real IP throughput is lower and depends on tariff provisioning, DOCSIS overhead, segment utilization, and other shared-medium conditions.') }}
+            {{ t.get('docsight.modulation.capacity_disclaimer', 'Calculated Layer-1 SC-QAM gross capacity based on supported channel data. Real IP throughput is lower and depends on tariff provisioning, DOCSIS overhead, segment utilization, test endpoint, modem and CMTS behavior, and other shared-medium conditions.') }}
         </p>
     </div>
 

@@ -37,10 +37,15 @@ def test_capacity_panel_contract_is_localized_and_styled():
 
     assert ".mod-capacity-panel" in css
     assert ".mod-capacity-card.mod-capacity-below_some_samples" in css
+    assert ".mod-capacity-warning-list" in css
+    assert ".mod-capacity-caveat" in css
     assert "capacity_title" in i18n
     assert "capacity_disclaimer" in i18n
-    assert "capacity_status_above_tariff_throughout" in i18n
-    assert "Layer-1 gross capacity" in i18n
+    assert "capacity_warning_not_throughput" in i18n
+    assert "capacity_partial_caveat" in i18n
+    assert "Calculated SC-QAM gross capacity" in i18n
+    assert "Not speedtest throughput" in i18n
+    assert "not tariff speed" in i18n.lower()
 
 
 def test_capacity_panel_updates_from_range_api_payload():
@@ -53,6 +58,10 @@ def test_capacity_panel_updates_from_range_api_payload():
     assert "currentLang === 'de'" in js
     assert "Number(value).toFixed(1) + ' ' + capacityUnitLabel()" in js
     assert "above_tariff_throughout: 'Above tariff throughout selected period'" in js
+    assert "function capacityCoverageText" in js
+    assert "function capacityPartialCaveatText" in js
+    assert "unsupported_channel_families" in js
+    assert "mod-cap-' + prefix + '-caveat" in js
 
 
 def test_low_qam_hint_does_not_use_stale_global_16qam_threshold():
