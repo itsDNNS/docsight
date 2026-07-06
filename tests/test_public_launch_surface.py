@@ -146,8 +146,36 @@ def test_readme_points_to_product_page_without_displacing_wiki() -> None:
 
     assert '<a href="https://itsdnns.github.io/docsight/">Product page</a>' in readme
     assert '<a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>' in readme
+    assert "docs/windows-quick-start.md" in readme
     assert "docs/screenshots/dashboard-hero.png" in readme
     assert "docs/screenshots/dashboard-dark.png" in readme
+
+
+def test_windows_quick_start_is_discoverable_and_powershell_safe() -> None:
+    readme = README.read_text(encoding="utf-8")
+    install = (ROOT / "INSTALL.md").read_text(encoding="utf-8")
+    guide_path = DOCS / "windows-quick-start.md"
+    guide = guide_path.read_text(encoding="utf-8")
+
+    assert guide_path.exists()
+    assert "[Windows quick start](docs/windows-quick-start.md)" in readme
+    assert "[Windows quick start](docs/windows-quick-start.md)" in install
+    assert "Docker Desktop" in guide
+    assert "docker info" in guide
+    assert "engine is running" in guide
+    assert "docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest" in guide
+    assert "```powershell" in guide
+    assert "\\\n" not in guide
+    for phrase in [
+        "docker` is not recognized",
+        "cannot connect to the Docker daemon",
+        "WSL 2",
+        "Port `8765` is already allocated",
+        "The name `docsight` is already in use",
+        "does not open",
+    ]:
+        assert phrase in guide
+    assert "native Windows install" not in guide
 
 
 def test_data_contract_is_linked_from_public_docs() -> None:

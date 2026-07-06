@@ -4,6 +4,8 @@
 
 Covers Docker Run, Docker Compose, Portainer, Synology NAS, Unraid, updating, and troubleshooting.
 
+On Windows 10/11, start with the [Windows quick start](docs/windows-quick-start.md). It covers Docker Desktop, WSL 2/Hyper-V, a one-line PowerShell command, and common startup fixes.
+
 If setup or collection does not behave as expected, run the passive local doctor inside the same container before collecting manual environment details:
 
 ```bash

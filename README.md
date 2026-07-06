@@ -46,7 +46,7 @@
 
 ## Get Started
 
-Start with the fastest path for your setup.
+Start with the fastest path for your setup. On Windows 10/11, use the [Windows quick start](docs/windows-quick-start.md) for Docker Desktop checks, a PowerShell-safe command, and common startup fixes.
 
 ### Option 1: Try the demo
 
@@ -59,12 +59,14 @@ docker run -d --name docsight-demo -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnn
 ### Option 2: Connect your own modem or router
 
 ```bash
-docker run -d --name docsight -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
+docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_data:/data ghcr.io/itsdnns/docsight:latest
 ```
+
+Windows PowerShell users can paste the same command as one line. Before running it, make sure Docker Desktop is installed and the Docker engine is running.
 
 Open `http://localhost:8765`, then choose Demo Mode, a supported DOCSIS modem, or Generic Router mode in the setup wizard.
 
-[Full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation) | [Example Compose Stacks](https://github.com/itsDNNS/docsight/wiki/Example-Compose-Stacks)
+[Windows quick start](docs/windows-quick-start.md) | [Full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation) | [Example Compose Stacks](https://github.com/itsDNNS/docsight/wiki/Example-Compose-Stacks)
 
 ---
 
