@@ -66,3 +66,20 @@ def test_dashboard_contextual_help_links_to_matching_glossary_term(page, live_se
     link = page.locator("#glossary-popover-overlay .glossary-popover-link")
     expect(link).to_be_visible()
     expect(link).to_have_attribute("href", re.compile(r"/glossary\?lang=en&term=docsis&level=basic"))
+
+
+def test_dashboard_contextual_glossary_link_is_keyboard_reachable(page, live_server):
+    page.goto(f"{live_server}/?lang=en")
+    page.wait_for_load_state("networkidle")
+
+    hint = page.locator(".hero-meta-item.glossary-hint", has_text="DOCSIS basics")
+    hint.focus()
+    page.keyboard.press("Enter")
+
+    link = page.locator("#glossary-popover-overlay .glossary-popover-link")
+    expect(link).to_be_visible()
+    expect(link).to_be_focused()
+
+    page.keyboard.press("Enter")
+    expect(page).to_have_url(re.compile(r"/glossary\?lang=en&term=docsis&level=basic"))
+    expect(page.locator("#glossary-term-title", has_text="DOCSIS")).to_be_visible()

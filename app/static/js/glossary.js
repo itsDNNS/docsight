@@ -114,13 +114,17 @@
         e.preventDefault();
         e.stopImmediatePropagation();
         hint.click();
+        var link = overlay.querySelector('.glossary-popover-link');
+        if (link && hint === activeHint) {
+          link.focus();
+        }
       }
     }
   }, true);
 
   document.addEventListener('click', function (e) {
-    // Ignore clicks on the overlay itself
-    if (e.target === overlay) return;
+    // Keep overlay interactions alive so keyboard and pointer users can activate popover links.
+    if (overlay.contains(e.target)) return;
 
     var hint = e.target.closest('.glossary-hint');
     if (hint) {
@@ -155,8 +159,16 @@
   });
 
   document.addEventListener('focusout', function (e) {
-    var hint = e.target.closest('.glossary-hint');
-    if (hint && hint === activeHint) closeAll();
+    if (!activeHint) return;
+    var leavingHint = e.target.closest('.glossary-hint') === activeHint;
+    var leavingOverlay = overlay.contains(e.target);
+    if (!leavingHint && !leavingOverlay) return;
+    window.setTimeout(function () {
+      var focused = document.activeElement;
+      if (activeHint && !activeHint.contains(focused) && !overlay.contains(focused)) {
+        closeAll();
+      }
+    }, 0);
   });
 
   document.addEventListener('keydown', function (e) {
