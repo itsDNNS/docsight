@@ -30,7 +30,18 @@
     var source = hint.querySelector('.glossary-popover');
     if (!source) return;
     var isDashboardMeta = hint.matches('.dashboard-view .insights-meta .hero-meta-item');
-    overlay.textContent = source.textContent;
+    var targetTermId = hint.getAttribute('data-glossary-term-id');
+    var targetLevel = hint.getAttribute('data-glossary-term-level') || 'basic';
+    overlay.textContent = '';
+    overlay.appendChild(document.createTextNode(source.textContent.trim()));
+    if (targetTermId && /^[a-z0-9_]+$/.test(targetTermId) && /^(eli5|basic|advanced|technician)$/.test(targetLevel)) {
+      var link = document.createElement('a');
+      var lang = document.documentElement.getAttribute('lang') || 'en';
+      link.className = 'glossary-popover-link';
+      link.href = '/glossary?lang=' + encodeURIComponent(lang) + '&term=' + encodeURIComponent(targetTermId) + '&level=' + encodeURIComponent(targetLevel);
+      link.textContent = hint.getAttribute('data-glossary-term-label') || 'Open glossary article';
+      overlay.appendChild(link);
+    }
     overlay.style.display = 'block';
     overlay.classList.remove('above');
     overlay.classList.toggle('dashboard-meta-popover', isDashboardMeta);

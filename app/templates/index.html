@@ -520,7 +520,9 @@
                             <i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch
                         </span>
                         <span class="hero-meta-item glossary-hint" style="cursor:help;"
-                            title="{{ t.get('docsis_basics_label', 'DOCSIS basics') }}">
+                            title="{{ t.get('docsis_basics_label', 'DOCSIS basics') }}"
+                            data-glossary-term-id="docsis" data-glossary-term-level="basic"
+                            data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}">
                             <i data-lucide="book-open"></i>
                             <span class="hero-meta-label">{{ t.get('docsis_basics_label', 'DOCSIS basics') }}</span>
                             <span class="glossary-popover">{{ t.get('glossary_docsis_basics', 'Cable internet uses DOCSIS, not DSL. DOCSight reads modem, channel, and signal data from supported cable gateways. Signal health, modulation, and SC-QAM capacity estimates are Layer-1/channel diagnostics, not Speedtest/IP throughput or tariff speed. Cable is a shared medium; segment utilization and provider/network conditions can affect real speeds.') }}</span>
@@ -895,7 +897,7 @@
         {% if not has_signal_family_metric_cards %}
         {# Card 1: DS Power (legacy aggregate fallback) #}
         <div class="metric-card glass">
-            <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span>
+            <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-level="basic" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ds_power }}</div></span>
             <div class="metric-header">
                 <span class="metric-label">{{ t.signal_ds_power }}</span>
                 <div class="metric-icon purple"><i data-lucide="arrow-down"></i></div>
@@ -915,7 +917,7 @@
 
         {# Card 2: US Power (legacy aggregate fallback) #}
         <div class="metric-card glass">
-            <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span>
+            <span class="glossary-hint" data-glossary-term-id="power_level" data-glossary-term-level="basic" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_us_power }}</div></span>
             <div class="metric-header">
                 <span class="metric-label">{{ t.signal_us_power }}</span>
                 <div class="metric-icon blue"><i data-lucide="arrow-up"></i></div>
@@ -940,7 +942,7 @@
         {% set snr_min = snr_display.min if snr_display.min is defined and snr_display.min is not none else s.ds_snr_min %}
         {% set snr_max = snr_display.max if snr_display.max is defined and snr_display.max is not none else s.ds_snr_max %}
         <div class="metric-card glass">
-            <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_snr }}</div></span>
+            <span class="glossary-hint" data-glossary-term-id="snr_mer" data-glossary-term-level="basic" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_snr }}</div></span>
             <div class="metric-header">
                 <span class="metric-label">{{ snr_label }}</span>
                 <div class="metric-icon green"><i data-lucide="signal"></i></div>
@@ -982,7 +984,7 @@
         {# Card 4: Errors #}
         {% if (s.errors_supported is not defined or s.errors_supported) and s.ds_uncorr_pct is not none %}
         <div class="metric-card glass" id="metric-errors-card">
-            <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
+            <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-level="basic" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
             <div class="metric-header">
                 <span class="metric-label">{{ t.card_errors }}</span>
                 <div class="metric-icon amber"><i data-lucide="alert-triangle"></i></div>
@@ -1143,7 +1145,7 @@
         <div class="docsis-group">
             <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="ds-docsis-group-{{ loop.index }}" onclick="if(!event.target.closest('.glossary-hint')){var open=this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded', open ? 'true' : 'false')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 <i data-lucide="chevron-right"></i>
-                DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
+                DOCSIS {{ group.grouper }} {{ 'OFDM' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint" data-glossary-term-id="{{ 'ofdm' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-level="basic" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
             </div>
             <div class="table-scroll-wrapper" id="ds-docsis-group-{{ loop.index }}">
                 <div class="table-scroll">
@@ -1202,7 +1204,7 @@
         <div class="docsis-group">
             <div class="docsis-group-header" role="button" tabindex="0" aria-expanded="false" aria-controls="us-docsis-group-{{ loop.index }}" onclick="if(!event.target.closest('.glossary-hint')){var open=this.parentElement.classList.toggle('open');this.setAttribute('aria-expanded', open ? 'true' : 'false')}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
                 <i data-lucide="chevron-right"></i>
-                DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
+                DOCSIS {{ group.grouper }} {{ 'OFDMA' if group.grouper == '3.1' else 'SC-QAM' }} <span class="glossary-hint" data-glossary-term-id="{{ 'ofdma' if group.grouper == '3.1' else 'sc_qam' }}" data-glossary-term-level="basic" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_ofdm if group.grouper == '3.1' else t.glossary_scqam }}</div></span> · {{ group.list|length }} {{ t.channel if group.list|length == 1 else t.channels }}
             </div>
             <div class="table-scroll-wrapper" id="us-docsis-group-{{ loop.index }}">
                 <div class="table-scroll">
