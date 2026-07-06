@@ -44,7 +44,10 @@
     });
 
     if (resultCount) {
-      resultCount.textContent = visibleCount + (visibleCount === 1 ? ' term shown' : ' terms shown');
+      var template = visibleCount === 1
+        ? resultCount.getAttribute('data-singular-template')
+        : resultCount.getAttribute('data-plural-template');
+      resultCount.textContent = (template || '{count} terms shown').replace('{count}', String(visibleCount));
     }
     if (noResults) {
       noResults.hidden = visibleCount !== 0;

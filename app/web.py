@@ -1290,22 +1290,30 @@ def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
 
 
-_GLOSSARY_LEVEL_LABELS = {
+_GLOSSARY_LEVEL_KEYS = {
     "eli5": {
-        "label": "ELI5",
-        "description": "Plain-language first explanation",
+        "label_key": "glossary_level_eli5",
+        "label_default": "ELI5",
+        "description_key": "glossary_level_eli5_desc",
+        "description_default": "Plain-language first explanation",
     },
     "basic": {
-        "label": "Basic",
-        "description": "Practical meaning for end users",
+        "label_key": "glossary_level_basic",
+        "label_default": "Basic",
+        "description_key": "glossary_level_basic_desc",
+        "description_default": "Practical meaning for end users",
     },
     "advanced": {
-        "label": "Advanced",
-        "description": "Technical context without provider-only assumptions",
+        "label_key": "glossary_level_advanced",
+        "label_default": "Advanced",
+        "description_key": "glossary_level_advanced_desc",
+        "description_default": "Technical context without provider-only assumptions",
     },
     "technician": {
-        "label": "Technician",
-        "description": "Precise DOCSIS and diagnostics boundaries",
+        "label_key": "glossary_level_technician",
+        "label_default": "Technician",
+        "description_key": "glossary_level_technician_desc",
+        "description_default": "Precise DOCSIS and diagnostics boundaries",
     },
 }
 
@@ -1326,10 +1334,14 @@ def glossary_page():
     selected_term = get_glossary_term(selected_term_id, lang) or (terms[0] if terms else None)
     related_terms = get_related_terms(selected_term, lang) if selected_term else []
     level_options = [
-        {"id": level, **_GLOSSARY_LEVEL_LABELS[level]}
-        for level in GLOSSARY_LEVELS
+        {
+            "id": level,
+            "label": t.get(config["label_key"], config["label_default"]),
+            "description": t.get(config["description_key"], config["description_default"]),
+        }
+        for level, config in _GLOSSARY_LEVEL_KEYS.items()
     ]
-    selected_level_label = _GLOSSARY_LEVEL_LABELS[selected_level]["label"]
+    selected_level_label = next(item["label"] for item in level_options if item["id"] == selected_level)
     category_by_id = {category["id"]: category for category in categories}
     return render_template(
         "glossary.html",
