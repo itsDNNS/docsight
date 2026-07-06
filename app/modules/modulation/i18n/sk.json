@@ -42,6 +42,7 @@
   "capacity_tooltip": "Odhad Layer-1 pre podporované kanály SC-QAM; nepodporované kanály OFDM/OFDMA nezobrazujú žiadny odhad; nepoužiteľná priepustnosť IP",
   "capacity_kicker": "Layer-1 SC-QAM odhad",
   "capacity_title": "Vypočítaná hrubá kapacita SC-QAM",
+  "capacity_caveats_label": "Výhrady týkajúce sa kapacity",
   "capacity_glossary": "Vypočítaná hrubá kapacita SC-QAM je odhad Layer-1 založený na hlásenej modulácii kanála SC-QAM a symbolovej rýchlosti. Kanály OFDM/OFDMA nie sú zahrnuté, pokiaľ DOCSight nemá dostatok údajov pre podporovaný vzorec. Nie je to tarifná rýchlosť, testovacia priepustnosť ani kompletné meranie kapacity segmentu.",
   "capacity_warning_not_throughput": "Nie je to priepustnosť zo speedtestu",
   "capacity_warning_not_tariff": "Nie je to rýchlosť tarify",

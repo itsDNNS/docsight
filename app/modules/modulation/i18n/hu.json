@@ -42,6 +42,7 @@
   "capacity_tooltip": "Layer-1 becslés a támogatott SC-QAM csatornákra; a nem támogatott OFDM/OFDMA csatornák nem mutatnak becslést; nem használható IP átviteli sebesség",
   "capacity_kicker": "Layer-1 SC-QAM becslés",
   "capacity_title": "Számított SC-QAM bruttó kapacitás",
+  "capacity_caveats_label": "Kapacitási figyelmeztetések",
   "capacity_glossary": "A számított SC-QAM bruttó kapacitás egy Layer-1 becslés, amely a jelentett SC-QAM csatornamoduláción és szimbólumsebességen alapul. A OFDM/OFDMA csatornák nem szerepelnek, kivéve, ha a DOCSight elegendő adattal rendelkezik egy támogatott képlethez. Ez nem tarifális sebesség, sebességteszt átviteli sebesség vagy teljes szegmens-kapacitás mérés.",
   "capacity_warning_not_throughput": "Nem speedtest-átviteli sebesség",
   "capacity_warning_not_tariff": "Nem tarifacsomag szerinti sebesség",

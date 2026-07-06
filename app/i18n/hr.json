@@ -783,6 +783,8 @@
   "glossary_ofdm": "OFDM/OFDMA: DOCSIS 3.1 tehnologija koja koristi široke kanale s tisućama podnosača. Omogućuje veće brzine, ali je osjetljiviji na smetnje.",
   "glossary_modulation": "Modulacija (razina QAM): više razine poput 256QAM ili 4096QAM prenose više podataka po signalu. Niža modulacija ukazuje na degradaciju signala.",
   "glossary_docsis": "DOCSIS 3.0 koristi SC-QAM kanale. DOCSIS 3.1 dodaje OFDM/OFDMA za veće brzine. Većina modema koristi oboje istovremeno (mješoviti način).",
+  "docsis_basics_label": "DOCSIS osnove",
+  "glossary_docsis_basics": "Kabelski internet koristi DOCSIS, a ne DSL. DOCSight čita podatke o modemu, kanalu i signalu s podržanih kabelskih pristupnika. Procjene zdravlja signala, modulacije i SC-QAM kapaciteta su Layer-1/dijagnostika kanala, a ne Speedtest/IP propusnost ili tarifna brzina. Kabel je zajednički medij; iskorištenost segmenta i uvjeti pružatelja/mreže mogu utjecati na stvarne brzine.",
   "glossary_gaming_index": "Indeks kvalitete igranja: ocjenjuje vašu vezu za igranje u stvarnom vremenu na temelju latencije, podrhtavanja i gubitka paketa. A/B = odličan, C = igriv, D/F = problematičan.",
   "update_available": "Ažuriranje",
   "gaming_badge_label": "Igre",

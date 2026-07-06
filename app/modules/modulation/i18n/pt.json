@@ -42,6 +42,7 @@
   "capacity_tooltip": "Estimativa Layer-1 para canais SC-QAM suportados; canais OFDM/OFDMA não suportados não mostram estimativa; taxa de transferência IP não utilizável",
   "capacity_kicker": "Estimativa Layer-1 SC-QAM",
   "capacity_title": "Capacidade bruta SC-QAM calculada",
+  "capacity_caveats_label": "Advertências de capacidade",
   "capacity_glossary": "A capacidade bruta SC-QAM calculada é uma estimativa Layer-1 baseada na modulação de canal SC-QAM relatada e na taxa de símbolo. Os canais OFDM/OFDMA não são incluídos, a menos que DOCSight tenha dados suficientes para uma fórmula suportada. Não se trata de velocidade tarifária, rendimento de teste de velocidade ou medição completa da capacidade do segmento.",
   "capacity_warning_not_throughput": "Não é throughput de speedtest",
   "capacity_warning_not_tariff": "Não é a velocidade do plano",

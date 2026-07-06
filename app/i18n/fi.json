@@ -783,6 +783,8 @@
   "glossary_ofdm": "OFDM/OFDMA: DOCSIS 3.1 -tekniikka, joka käyttää leveitä kanavia ja tuhansia apukantoaaltoja. Mahdollistaa suuremmat nopeudet, mutta on herkempi häiriöille.",
   "glossary_modulation": "Modulaatio (QAM-taso): korkeammat tasot, kuten 256QAM tai 4096QAM, kuljettavat enemmän dataa signaalia kohden. Alempi modulaatio osoittaa signaalin heikkenemistä.",
   "glossary_docsis": "DOCSIS 3.0 käyttää SC-QAM-kanavia. DOCSIS 3.1 lisää OFDM/OFDMA:n suuremmille nopeuksille. Useimmat modeemit käyttävät molempia samanaikaisesti (sekoitettu tila).",
+  "docsis_basics_label": "DOCSIS perusasiat",
+  "glossary_docsis_basics": "Kaapeli-internet käyttää DOCSIS, ei DSL. DOCSight lukee modeemi-, kanava- ja signaalitietoja tuetuista kaapeliyhdyskäytävistä. Signaalin kunto-, modulaatio- ja SC-QAM-kapasiteetin arviot ovat Layer-1/kanavadiagnostiikkaa, eivät Speedtest/IP:n suoritustehoa tai tariffinopeutta. Kaapeli on jaettu tietoväline; segmentin käyttö ja palveluntarjoajan/verkon olosuhteet voivat vaikuttaa todellisiin nopeuksiin.",
   "glossary_gaming_index": "Pelin laatuindeksi: arvioi yhteytesi reaaliaikaista pelaamista varten latenssin, värinän ja pakettihäviön perusteella. A/B = loistava, C = pelattava, D/F = ongelmallinen.",
   "update_available": "Päivitys",
   "gaming_badge_label": "Pelaaminen",

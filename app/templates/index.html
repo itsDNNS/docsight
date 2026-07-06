@@ -516,6 +516,12 @@
                             title="{{ t.channel_count_tooltip }}">
                             <i data-lucide="radio"></i> {{ s.ds_total }}/{{ s.us_total }} Ch
                         </span>
+                        <span class="hero-meta-item glossary-hint" style="cursor:help;"
+                            title="{{ t.get('docsis_basics_label', 'DOCSIS basics') }}">
+                            <i data-lucide="book-open"></i>
+                            <span class="hero-meta-label">{{ t.get('docsis_basics_label', 'DOCSIS basics') }}</span>
+                            <span class="glossary-popover">{{ t.get('glossary_docsis_basics', 'Cable internet uses DOCSIS, not DSL. DOCSight reads modem, channel, and signal data from supported cable gateways. Signal health, modulation, and SC-QAM capacity estimates are Layer-1/channel diagnostics, not Speedtest/IP throughput or tariff speed. Cable is a shared medium; segment utilization and provider/network conditions can affect real speeds.') }}</span>
+                        </span>
                         {% if connection_info and connection_info.max_downstream_kbps %}
                         <span class="hero-meta-item"><i data-lucide="gauge"></i> {{ connection_info.max_downstream_kbps // 1000 }}/{{ connection_info.max_upstream_kbps // 1000 }} MBit/s</span>
                         {% elif booked_download and booked_download > 0 %}

@@ -19,6 +19,8 @@ CORE_GLOSSARY_KEYS = [
     "glossary_ofdm",
     "glossary_modulation",
     "glossary_docsis",
+    "docsis_basics_label",
+    "glossary_docsis_basics",
     "glossary_gaming_index",
 ]
 
@@ -66,3 +68,37 @@ def test_modulation_glossary_keys_fall_back_for_core_languages():
     finally:
         _TRANSLATIONS.clear()
         _TRANSLATIONS.update(original)
+
+
+def test_docsis_basics_glossary_preserves_core_meaning_in_every_offered_language():
+    """The beginner DOCSIS explanation must not become English-only or lose terms."""
+    i18n_files = sorted(
+        (
+            path for path in os.scandir(I18N_DIR)
+            if path.name.endswith(".json") and path.name != "template.json"
+        ),
+        key=lambda path: path.name,
+    )
+    assert i18n_files
+
+    protected_terms = {"DOCSight", "DOCSIS", "DSL", "SC-QAM", "Speedtest", "IP"}
+    with open(os.path.join(I18N_DIR, "en.json"), encoding="utf-8-sig") as f:
+        source_text = json.load(f)["glossary_docsis_basics"]
+    for entry in i18n_files:
+        with open(entry.path, encoding="utf-8-sig") as f:
+            data = json.load(f)
+        label = data.get("docsis_basics_label", "")
+        text = data.get("glossary_docsis_basics", "")
+        assert label, f"Missing docsis_basics_label in {entry.name}"
+        assert len(text) > 120, f"DOCSIS basics copy too short in {entry.name}"
+        for term in protected_terms:
+            assert term in text, f"Missing protected term {term} in {entry.name}"
+        if entry.name == "en.json":
+            source_text = text
+            assert "Cable internet uses DOCSIS, not DSL" in text
+            assert "not Speedtest/IP throughput or tariff speed" in text
+            assert "shared medium" in text
+        else:
+            assert label != "DOCSIS basics", f"English label fallback leaked into {entry.name}"
+            assert text != source_text, f"English text fallback leaked into {entry.name}"
+            assert not text.startswith("Cable internet uses DOCSIS"), f"English text fallback leaked into {entry.name}"

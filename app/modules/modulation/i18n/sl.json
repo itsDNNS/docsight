@@ -42,6 +42,7 @@
   "capacity_tooltip": "ocena Layer-1 za podprte kanale SC-QAM; nepodprti kanali OFDM/OFDMA ne kažejo ocene; neuporabna prepustnost IP",
   "capacity_kicker": "Ocena Layer-1 SC-QAM",
   "capacity_title": "Izračunana SC-QAM bruto zmogljivost",
+  "capacity_caveats_label": "Opozorila glede zmogljivosti",
   "capacity_glossary": "Izračunana bruto zmogljivost SC-QAM je ocena Layer-1, ki temelji na poročani modulaciji kanala SC-QAM in hitrosti simbolov. Kanali OFDM/OFDMA niso vključeni, razen če ima DOCSight dovolj podatkov za podprto formulo. Ne gre za tarifno hitrost, prepustnost pri preizkusu hitrosti ali celotno merjenje zmogljivosti segmenta.",
   "capacity_warning_not_throughput": "Ni prepustnost iz speedtesta",
   "capacity_warning_not_tariff": "Ni hitrost naročniškega paketa",

@@ -42,6 +42,7 @@
   "capacity_tooltip": "Layer-1-estimat for understøttede SC-QAM-kanaler; ikke-understøttede OFDM/OFDMA-kanaler viser intet estimat; ikke brugbar IP-gennemstrømning",
   "capacity_kicker": "Layer-1 SC-QAM skøn",
   "capacity_title": "Beregnet SC-QAM bruttokapacitet",
+  "capacity_caveats_label": "Kapacitetsbemærkninger",
   "capacity_glossary": "Beregnet SC-QAM bruttokapacitet er et Layer-1 estimat baseret på rapporteret SC-QAM kanalmodulation og symbolhastighed. OFDM/OFDMA-kanaler er ikke inkluderet, medmindre DOCSight har nok data til en understøttet formel. Det er ikke tarifhastighed, speedtest-gennemløb eller en komplet segmentkapacitetsmåling.",
   "capacity_warning_not_throughput": "Ikke speedtest-gennemstrømning",
   "capacity_warning_not_tariff": "Ikke tariferet hastighed",

@@ -164,6 +164,10 @@ It is probably not the right tool if:
 
 Generic Router mode still works for fiber, DSL, satellite, and other routers, but DOCSight is strongest when it can see DOCSIS cable signal data.
 
+### DOCSIS basics for new cable users
+
+Cable internet is **DOCSIS over coax**, not DSL. DOCSight reads modem, channel, and signal data from supported cable gateways. Signal health, modulation, and SC-QAM capacity estimates are diagnostics for the physical/channel layer; they are not the same as a Speedtest, your tariff speed, or guaranteed usable throughput. Cable is also a shared medium, so segment utilization and provider/network conditions can affect real-world speeds.
+
 ---
 
 ## Start in the way that fits you

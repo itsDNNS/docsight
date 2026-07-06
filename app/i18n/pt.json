@@ -783,6 +783,8 @@
   "glossary_ofdm": "OFDM/OFDMA: DOCSIS Tecnologia 3.1 usando canais amplos com milhares de subportadoras. Permite velocidades mais altas, mas é mais sensível a interferências.",
   "glossary_modulation": "Modulação (nível QAM): níveis mais altos como 256QAM ou 4096QAM transportam mais dados por sinal. Modulação mais baixa indica degradação do sinal.",
   "glossary_docsis": "DOCSIS 3.0 usa canais SC-QAM. DOCSIS 3.1 adiciona OFDM/OFDMA para velocidades mais altas. A maioria dos modems usa ambos simultaneamente (modo misto).",
+  "docsis_basics_label": "Noções básicas de DOCSIS",
+  "glossary_docsis_basics": "A Internet a cabo usa DOCSIS, não DSL. DOCSight lê dados de modem, canal e sinal de gateways de cabo suportados. As estimativas de integridade do sinal, modulação e capacidade SC-QAM são diagnósticos Layer-1/canal, não taxa de transferência ou velocidade tarifária Speedtest/IP. O cabo é um meio compartilhado; a utilização do segmento e as condições do provedor/rede podem afetar as velocidades reais.",
   "glossary_gaming_index": "Índice de qualidade de jogos: classifica sua conexão para jogos em tempo real com base na latência, instabilidade e perda de pacotes. A/B = ótimo, C = jogável, D/F = problemático.",
   "update_available": "Atualização",
   "gaming_badge_label": "Jogos",

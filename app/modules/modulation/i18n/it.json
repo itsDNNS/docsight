@@ -42,6 +42,7 @@
   "capacity_tooltip": "Stima Layer-1 per i canali SC-QAM supportati; i canali OFDM/OFDMA non supportati non mostrano alcuna stima; throughput IP non utilizzabile",
   "capacity_kicker": "Layer-1 SC-QAM stima",
   "capacity_title": "Capacità lorda SC-QAM calcolata",
+  "capacity_caveats_label": "Note sulla capacità",
   "capacity_glossary": "La capacità lorda SC-QAM calcolata è una stima Layer-1 basata sulla modulazione del canale SC-QAM e sulla velocità di simbolo riportate. I canali OFDM/OFDMA non sono inclusi a meno che DOCSight non disponga di dati sufficienti per una formula supportata. Non si tratta della velocità tariffaria, del throughput dello speedtest o di una misurazione completa della capacità del segmento.",
   "capacity_warning_not_throughput": "Non è throughput da speedtest",
   "capacity_warning_not_tariff": "Non è la velocità del piano",

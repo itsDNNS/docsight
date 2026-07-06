@@ -783,6 +783,8 @@
   "glossary_ofdm": "OFDM/OFDMA: DOCSIS 3.1 technologija, naudojanti plačius kanalus su tūkstančiais antrinių nešėjų. Įgalina didesnį greitį, bet yra jautresnis trukdžiams.",
   "glossary_modulation": "Moduliacija (QAM lygis): aukštesni lygiai, pvz., 256QAM arba 4096QAM, perduoda daugiau duomenų vienam signalui. Mažesnė moduliacija rodo signalo pablogėjimą.",
   "glossary_docsis": "DOCSIS 3.0 naudoja SC-QAM kanalus. DOCSIS 3.1 prideda OFDM/OFDMA didesniam greičiui. Dauguma modemų naudoja abu vienu metu (mišrus režimas).",
+  "docsis_basics_label": "DOCSIS pagrindai",
+  "glossary_docsis_basics": "Kabelinis internetas naudoja DOCSIS, o ne DSL. DOCSight nuskaito modemo, kanalo ir signalo duomenis iš palaikomų kabelių šliuzų. Signalo būklės, moduliavimo ir SC-QAM talpos įvertinimai yra Layer-1 / kanalo diagnostika, o ne Speedtest / IP pralaidumas ar tarifo greitis. Kabelis yra bendra laikmena; segmento naudojimas ir teikėjo / tinklo sąlygos gali turėti įtakos realiam greičiui.",
   "glossary_gaming_index": "Žaidimų kokybės indeksas: įvertina jūsų ryšį realiuoju laiku žaidimams pagal delsą, drebėjimą ir paketų praradimą. A/B = puikus, C = galima žaisti, D/F = problemiškas.",
   "update_available": "Atnaujinkite",
   "gaming_badge_label": "Žaidimai",
