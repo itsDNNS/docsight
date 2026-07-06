@@ -41,13 +41,26 @@
 
     <section class="glossary-layout" aria-label="Glossary terms">
         <aside class="glossary-index" aria-label="Term index">
+            <div class="glossary-filter-card" aria-labelledby="glossary-filter-title">
+                <h2 id="glossary-filter-title">Find a term</h2>
+                <label for="glossary-search">Search by term, alias, category, or ID</label>
+                <input id="glossary-search" class="glossary-search" type="search" autocomplete="off" placeholder="Search DOCSIS, SNR, Speedtest…" aria-describedby="glossary-result-count">
+                <div class="glossary-category-filters" aria-label="Filter by category">
+                    <button type="button" class="active" data-category-filter="all" aria-pressed="true">All</button>
+                    {% for category in categories %}
+                    <button type="button" data-category-filter="{{ category.id }}" aria-pressed="false">{{ category.title }}</button>
+                    {% endfor %}
+                </div>
+                <p id="glossary-result-count" class="glossary-result-count" aria-live="polite">{{ terms|length }} terms shown</p>
+                <p id="glossary-no-results" class="glossary-no-results" hidden>No matching glossary terms. Try a broader word such as DOCSIS, signal, speed, or errors.</p>
+            </div>
             {% for category in categories %}
-            <section class="glossary-index-section">
+            <section class="glossary-index-section" data-category-section="{{ category.id }}">
                 <h2>{{ category.title }}</h2>
                 <p>{{ category.description }}</p>
                 <ul>
                     {% for term in terms if term.category == category.id %}
-                    <li>
+                    <li data-glossary-term data-category="{{ term.category }}" data-search="{{ (term.title ~ ' ' ~ term.id ~ ' ' ~ category.title ~ ' ' ~ (term.aliases|join(' ')))|e }}">
                         <a class="{{ 'active' if selected_term and selected_term.id == term.id else '' }}" href="{{ url_for('glossary_page', lang=lang, level=selected_level, term=term.id) }}" aria-current="{{ 'page' if selected_term and selected_term.id == term.id else 'false' }}">
                             {{ term.title }}
                         </a>
@@ -137,5 +150,6 @@
 <script>
 if (window.lucide) window.lucide.createIcons();
 </script>
+<script src="/static/js/glossary-page.js?v={{ version|urlencode }}" defer></script>
 </body>
 </html>

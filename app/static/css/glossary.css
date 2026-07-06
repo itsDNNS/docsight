@@ -101,6 +101,19 @@ body > .glossary-popover.above::before {
   border-bottom: 1px solid var(--glass-border);
 }
 
+body > .glossary-popover .glossary-popover-link {
+  display: block;
+  margin-top: 10px;
+  color: var(--amethyst-light);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+body > .glossary-popover .glossary-popover-link:hover,
+body > .glossary-popover .glossary-popover-link:focus-visible {
+  text-decoration: underline;
+}
+
 /* Mobile: full width bottom sheet */
 @media (max-width: 768px) {
   .glossary-hint {
@@ -282,6 +295,73 @@ body > .glossary-popover.above::before {
 
 .glossary-index li + li {
   margin-top: 8px;
+}
+
+.glossary-filter-card {
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.glossary-filter-card label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.glossary-search {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.glossary-search:focus-visible,
+.glossary-category-filters button:focus-visible {
+  outline: 2px solid var(--amethyst);
+  outline-offset: 2px;
+}
+
+.glossary-category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.glossary-category-filters button {
+  min-height: 34px;
+  padding: 6px 10px;
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.glossary-category-filters button.active,
+.glossary-category-filters button:hover {
+  color: var(--text-primary);
+  border-color: var(--amethyst);
+  background: color-mix(in srgb, var(--amethyst) 14%, transparent);
+}
+
+.glossary-result-count,
+.glossary-no-results {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.glossary-no-results {
+  color: var(--amber, #fbbf24);
 }
 
 .glossary-index a {
