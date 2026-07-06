@@ -211,6 +211,9 @@
                     <i data-lucide="file-text"></i> {{ t.incident_report }}
                 </button>
                 {% endif %}
+                <a class="nav-item" href="/glossary?lang={{ lang|urlencode }}" data-nav-icon="book-open" data-nav-title="{{ t.get('glossary_page_title', 'Glossary') }}">
+                    <i data-lucide="book-open"></i> {{ t.get('glossary_page_title', 'Glossary') }}
+                </a>
             </div>
         </div>
         {% set tab_modules = [] %}
