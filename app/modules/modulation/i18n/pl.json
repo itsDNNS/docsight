@@ -42,6 +42,7 @@
   "capacity_tooltip": "Oszacowanie Layer-1 dla obsługiwanych kanałów SC-QAM; nieobsługiwane kanały OFDM/OFDMA nie wykazują szacunków; nieużyteczna przepustowość IP",
   "capacity_kicker": "Oszacowanie Layer-1 SC-QAM",
   "capacity_title": "Obliczona pojemność brutto SC-QAM",
+  "capacity_caveats_label": "Uwagi dotyczące pojemności",
   "capacity_glossary": "Obliczona pojemność brutto SC-QAM to szacunkowa wartość Layer-1 oparta na raportowanej modulacji kanału i szybkości symboli SC-QAM. Kanały OFDM/OFDMA nie są uwzględniane, chyba że DOCSight ma wystarczającą ilość danych dla obsługiwanej formuły. Nie jest to prędkość taryfowa, przepustowość speedtestu ani pełny pomiar pojemności segmentu.",
   "capacity_warning_not_throughput": "To nie przepustowość ze speedtestu",
   "capacity_warning_not_tariff": "To nie prędkość taryfy",

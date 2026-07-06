@@ -165,6 +165,25 @@ class TestIndexRoute:
         resp = client.get("/?lang=de")
         assert resp.status_code == 200
 
+    def test_dashboard_exposes_docsis_basics_help_in_english_and_german(self, client, sample_analysis):
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+        assert resp.status_code == 200
+        html = resp.get_data(as_text=True)
+        assert "DOCSIS basics" in html
+        assert "Cable internet uses DOCSIS, not DSL" in html
+        assert "not Speedtest/IP throughput or tariff speed" in html
+        assert "Cable is a shared medium" in html
+
+        resp_de = client.get("/?lang=de")
+        assert resp_de.status_code == 200
+        html_de = resp_de.get_data(as_text=True)
+        assert "DOCSIS-Grundlagen" in html_de
+        assert "Kabelinternet nutzt DOCSIS, nicht DSL" in html_de
+        assert "kein Speedtest/IP-Durchsatz" in html_de
+        assert "Shared Medium" in html_de
+
     def test_downstream_docsis31_ofdm_channel_table_labels_quality_as_mer(self, client, sample_analysis):
         sample_analysis["ds_channels"] = [
             {
@@ -245,8 +264,12 @@ class TestIndexRoute:
         assert "Not speedtest throughput" in html
         assert "Not tariff speed" in html
         assert "OFDM/OFDMA excluded when unsupported" in html
+        assert "Capacity caveats" in html
         assert "Layer-1 SC-QAM gross capacity" in html
         assert "shared-medium" in html
+        assert "DOCSIS basics" in html
+        assert "Cable internet uses DOCSIS, not DSL" in html
+        assert "not Speedtest/IP throughput or tariff speed" in html
         assert 'id="mod-cap-ds-current"' in html
         assert 'id="mod-cap-us-current"' in html
         assert "Above tariff samples" in html

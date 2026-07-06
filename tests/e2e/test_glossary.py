@@ -23,6 +23,17 @@ class TestGlossaryPresence:
         hints = demo_page.locator('#view-dashboard .metric-card .glossary-hint')
         assert hints.count() >= 4, f"Expected at least 4 glossary hints, got {hints.count()}"
 
+    def test_dashboard_docsis_basics_help_is_reachable(self, demo_page):
+        hint = demo_page.locator('#view-dashboard .hero-meta-item.glossary-hint', has_text='DOCSIS basics')
+        expect(hint).to_be_visible()
+        hint.click()
+        popover = demo_page.locator(POPOVER)
+        expect(popover).to_be_visible()
+        text = popover.text_content()
+        assert 'Cable internet uses DOCSIS, not DSL' in text
+        assert 'not Speedtest/IP throughput or tariff speed' in text
+        assert 'shared medium' in text
+
 
 class TestGlossaryPopover:
     """Verify popover open/close behavior."""
@@ -96,7 +107,19 @@ class TestGlossaryModulation:
         demo_page.locator('.nav-item[data-view="modulation"]').click()
         demo_page.wait_for_timeout(2000)
         hints = demo_page.locator('#view-modulation .glossary-hint')
-        assert hints.count() >= 3, f"Expected 3 modulation glossary hints, got {hints.count()}"
+        assert hints.count() >= 4, f"Expected at least 4 modulation glossary hints, got {hints.count()}"
+
+    def test_modulation_capacity_docsis_basics_help_is_reachable(self, demo_page):
+        demo_page.locator('.nav-item[data-view="modulation"]').click()
+        demo_page.locator('#modulation-capacity-panel').wait_for(state='visible')
+        hint = demo_page.locator('#modulation-capacity-panel .mod-capacity-basics-hint')
+        expect(hint).to_be_visible()
+        hint.click()
+        popover = demo_page.locator(POPOVER)
+        expect(popover).to_be_visible()
+        text = popover.text_content()
+        assert 'Cable internet uses DOCSIS, not DSL' in text
+        assert 'not Speedtest/IP throughput or tariff speed' in text
 
     def test_health_index_popover(self, demo_page):
         demo_page.locator('.nav-item[data-view="modulation"]').click()

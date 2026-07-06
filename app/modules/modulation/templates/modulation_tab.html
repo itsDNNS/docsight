@@ -24,11 +24,18 @@
                 <h3>{{ t.get('docsight.modulation.capacity_title', 'Calculated SC-QAM gross capacity') }}</h3>
                 <div class="mod-capacity-range" id="mod-capacity-range-label">{{ t.get('docsight.modulation.capacity_selected_period', 'Selected period') }}</div>
             </div>
+            <div class="mod-capacity-help-actions">
             {% if t.get('docsight.modulation.capacity_glossary') %}
             <span class="glossary-hint"><i data-lucide="info"></i><div class="glossary-popover">{{ t.get('docsight.modulation.capacity_glossary') }}</div></span>
             {% endif %}
+            <span class="glossary-hint mod-capacity-basics-hint">
+                <i data-lucide="book-open"></i>
+                <span class="mod-capacity-basics-label">{{ t.get('docsis_basics_label', 'DOCSIS basics') }}</span>
+                <div class="glossary-popover">{{ t.get('glossary_docsis_basics', 'Cable internet uses DOCSIS, not DSL. DOCSight reads modem, channel, and signal data from supported cable gateways. Signal health, modulation, and SC-QAM capacity estimates are Layer-1/channel diagnostics, not Speedtest/IP throughput or tariff speed. Cable is a shared medium; segment utilization and provider/network conditions can affect real speeds.') }}</div>
+            </span>
+            </div>
         </div>
-        <div class="mod-capacity-warning-list" aria-label="{{ t.get('docsight.modulation.capacity_title', 'Calculated SC-QAM gross capacity') }} caveats">
+        <div class="mod-capacity-warning-list" aria-label="{{ t.get('docsight.modulation.capacity_caveats_label', 'Capacity caveats') }}">
             <span>{{ t.get('docsight.modulation.capacity_warning_not_throughput', 'Not speedtest throughput') }}</span>
             <span>{{ t.get('docsight.modulation.capacity_warning_not_tariff', 'Not tariff speed') }}</span>
             <span>{{ t.get('docsight.modulation.capacity_warning_sc_qam_only', 'SC-QAM only; OFDM/OFDMA excluded when unsupported') }}</span>

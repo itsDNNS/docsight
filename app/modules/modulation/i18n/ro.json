@@ -42,6 +42,7 @@
   "capacity_tooltip": "Estimare Layer-1 pentru canalele SC-QAM acceptate; canalele OFDM/OFDMA neacceptate nu afișează nicio estimare; debitul IP nu poate fi utilizat",
   "capacity_kicker": "Layer-1 SC-QAM estimare",
   "capacity_title": "Capacitate brută SC-QAM calculată",
+  "capacity_caveats_label": "Avertismente privind capacitatea",
   "capacity_glossary": "Capacitatea brută SC-QAM calculată este o estimare Layer-1 bazată pe modulația canalului SC-QAM raportată și pe rata simbolului. Canalele OFDM/OFDMA nu sunt incluse decât dacă DOCSight are suficiente date pentru o formulă acceptată. Nu este o viteză tarifară, viteza testului de viteză sau o măsurare completă a capacității segmentului.",
   "capacity_warning_not_throughput": "Nu este debit de speedtest",
   "capacity_warning_not_tariff": "Nu este viteza abonamentului",

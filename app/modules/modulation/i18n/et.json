@@ -42,6 +42,7 @@
   "capacity_tooltip": "Layer-1 prognoos toetatud SC-QAM kanalite jaoks; toetamata OFDM/OFDMA kanalid ei näita hinnangut; ei ole kasutatav IP läbilaskevõime",
   "capacity_kicker": "Layer-1 SC-QAM hinnang",
   "capacity_title": "Arvutatud SC-QAM brutovõimsus",
+  "capacity_caveats_label": "Mahutuse hoiatused",
   "capacity_glossary": "Arvutatud SC-QAM brutovõimsus on Layer-1 hinnang, mis põhineb teatatud SC-QAM kanali modulatsioonil ja sümbolikiirusel. OFDM/OFDMA kanaleid ei kaasata, välja arvatud juhul, kui DOCSight-l on toetatud valemi jaoks piisavalt andmeid. See ei ole tariifikiirus, kiirustesti läbilaskevõime ega täielik segmendi võimsuse mõõtmine.",
   "capacity_warning_not_throughput": "Ei ole speedtesti läbilase",
   "capacity_warning_not_tariff": "Ei ole paketikiirus",

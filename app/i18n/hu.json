@@ -783,6 +783,8 @@
   "glossary_ofdm": "OFDM/OFDMA: DOCSIS 3.1 technológia széles csatornákat használ, több ezer alvivővel. Nagyobb sebességet tesz lehetővé, de érzékenyebb az interferenciára.",
   "glossary_modulation": "Moduláció (QAM szint): a magasabb szinteken, mint a 256QAM vagy a 4096QAM jelenként több adatot szállítanak. Az alacsonyabb moduláció jelromlást jelez.",
   "glossary_docsis": "A DOCSIS 3.0 SC-QAM csatornákat használ. A DOCSIS 3.1 hozzáadja a OFDM/OFDMA-t a nagyobb sebesség érdekében. A legtöbb modem mindkettőt egyszerre használja (vegyes mód).",
+  "docsis_basics_label": "DOCSIS alapok",
+  "glossary_docsis_basics": "A kábeles internet a DOCSIS-et használja, nem a DSL-et. A DOCSight beolvassa a modem-, csatorna- és jeladatokat a támogatott kábelátjárókról. A jelállapot, a moduláció és a SC-QAM kapacitás becslései a Layer-1/csatorna diagnosztikát jelentik, nem pedig a Speedtest/IP átviteli sebességet vagy tarifa sebességet. A kábel megosztott adathordozó; A szegmens kihasználtsága és a szolgáltatói/hálózati feltételek befolyásolhatják a valós sebességet.",
   "glossary_gaming_index": "Gaming Quality Index: a késleltetés, a jitter és a csomagvesztés alapján értékeli a kapcsolatot a valós idejű játékhoz. A/B = nagyszerű, C = játszható, D/F = problémás.",
   "update_available": "Frissítés",
   "gaming_badge_label": "Játék",

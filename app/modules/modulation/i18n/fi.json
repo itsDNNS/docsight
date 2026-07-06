@@ -42,6 +42,7 @@
   "capacity_tooltip": "Layer-1-arvio tuetuille SC-QAM-kanaville; ei-tuetut OFDM/OFDMA-kanavat eivät näytä arviota; ei käyttökelpoinen IP-läpäisykyky",
   "capacity_kicker": "Layer-1 SC-QAM -arvio",
   "capacity_title": "Laskettu SC-QAM bruttokapasiteetti",
+  "capacity_caveats_label": "Kapasiteettivaroitukset",
   "capacity_glossary": "Laskettu SC-QAM-bruttokapasiteetti on Layer-1-arvio, joka perustuu raportoituun SC-QAM-kanavamodulaatioon ja symbolinopeuteen. OFDM/OFDMA-kanavia ei sisällytetä, ellei DOCSight:llä ole tarpeeksi tietoa tuettuun kaavaan. Se ei ole tariffinopeus, nopeustestin suorituskyky tai täydellinen segmentin kapasiteetin mittaus.",
   "capacity_warning_not_throughput": "Ei speedtestin läpimeno",
   "capacity_warning_not_tariff": "Ei liittymän sopimusnopeus",

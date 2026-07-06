@@ -42,6 +42,7 @@
   "capacity_tooltip": "Layer-1 aprēķins atbalstītajiem SC-QAM kanāliem; neatbalstīti OFDM/OFDMA kanāli nerāda aprēķinus; nav lietojama IP caurlaidspēja",
   "capacity_kicker": "Layer-1 SC-QAM tāme",
   "capacity_title": "Aprēķinātā SC-QAM bruto jauda",
+  "capacity_caveats_label": "Jaudas brīdinājumi",
   "capacity_glossary": "Aprēķinātā SC-QAM bruto jauda ir Layer-1 aprēķins, pamatojoties uz ziņoto SC-QAM kanāla modulāciju un simbolu ātrumu. OFDM/OFDMA kanāli netiek iekļauti, ja vien DOCSight nav pietiekami daudz datu atbalstītai formulai. Tas nav tarifu ātrums, ātruma pārbaudes caurlaidspēja vai pilnīgs segmenta jaudas mērījums.",
   "capacity_warning_not_throughput": "Nav speedtest caurlaidspēja",
   "capacity_warning_not_tariff": "Nav tarifa ātrums",

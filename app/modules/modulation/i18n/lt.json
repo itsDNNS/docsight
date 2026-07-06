@@ -42,6 +42,7 @@
   "capacity_tooltip": "Layer-1 įvertinimas palaikomiems SC-QAM kanalams; nepalaikomi OFDM/OFDMA kanalai nerodo įvertinimo; nenaudojamas IP pralaidumas",
   "capacity_kicker": "Layer-1 SC-QAM sąmata",
   "capacity_title": "Apskaičiuota SC-QAM bendroji talpa",
+  "capacity_caveats_label": "Talpos įspėjimai",
   "capacity_glossary": "Apskaičiuotas SC-QAM bendrasis pajėgumas yra Layer-1 įvertinimas, pagrįstas pranešta SC-QAM kanalo moduliacija ir simbolių sparta. OFDM/OFDMA kanalai neįtraukiami, nebent DOCSight turi pakankamai duomenų palaikomai formulei. Tai nėra tarifo greitis, greičio tikrinimo pralaidumas ar pilnas segmento talpos matavimas.",
   "capacity_warning_not_throughput": "Ne speedtest pralaidumas",
   "capacity_warning_not_tariff": "Ne plano greitis",

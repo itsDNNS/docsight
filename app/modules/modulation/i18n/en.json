@@ -42,6 +42,7 @@
   "capacity_tooltip": "Layer-1 estimate for supported SC-QAM channels; unsupported OFDM/OFDMA channels show no estimate; not usable IP throughput",
   "capacity_kicker": "Layer-1 SC-QAM estimate",
   "capacity_title": "Calculated SC-QAM gross capacity",
+  "capacity_caveats_label": "Capacity caveats",
   "capacity_glossary": "Calculated SC-QAM gross capacity is a Layer-1 estimate based on reported SC-QAM channel modulation and symbol rate. OFDM/OFDMA channels are not included unless DOCSight has enough data for a supported formula. It is not tariff speed, speedtest throughput, or a complete segment-capacity measurement.",
   "capacity_warning_not_throughput": "Not speedtest throughput",
   "capacity_warning_not_tariff": "Not tariff speed",

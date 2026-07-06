@@ -783,6 +783,8 @@
   "glossary_ofdm": "OFDM/OFDMA: Technológia DOCSIS 3.1 využívajúca široké kanály s tisíckami pomocných nosných. Umožňuje vyššie rýchlosti, ale je citlivejší na rušenie.",
   "glossary_modulation": "Modulácia (úroveň QAM): vyššie úrovne ako 256QAM alebo 4096QAM prenášajú viac údajov na signál. Nižšia modulácia indikuje degradáciu signálu.",
   "glossary_docsis": "DOCSIS 3.0 používa kanály SC-QAM. DOCSIS 3.1 pridáva OFDM/OFDMA pre vyššie rýchlosti. Väčšina modemov používa oba súčasne (zmiešaný režim).",
+  "docsis_basics_label": "Základy DOCSIS",
+  "glossary_docsis_basics": "Káblový internet používa DOCSIS, nie DSL. DOCSight číta údaje modemu, kanála a signálu z podporovaných káblových brán. Odhady stavu signálu, modulácie a kapacity SC-QAM sú diagnostikou Layer-1/kanál, nie priepustnosťou alebo tarifnou rýchlosťou Speedtest/IP. Kábel je zdieľané médium; využitie segmentu a podmienky poskytovateľa/siete môžu ovplyvniť skutočné rýchlosti.",
   "glossary_gaming_index": "Index hernej kvality: hodnotí vaše pripojenie pre hranie v reálnom čase na základe latencie, jitteru a straty paketov. A/B = skvelé, C = hrateľné, D/F = problematické.",
   "update_available": "Aktualizácia",
   "gaming_badge_label": "Hranie",

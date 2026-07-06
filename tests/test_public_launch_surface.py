@@ -178,6 +178,20 @@ def test_windows_quick_start_is_discoverable_and_powershell_safe() -> None:
     assert "native Windows install" not in guide
 
 
+def test_readme_explains_docsis_basics_without_overclaiming_throughput() -> None:
+    readme = README.read_text(encoding="utf-8")
+    section = readme.split("### DOCSIS basics for new cable users", 1)[1].split("---", 1)[0]
+
+    assert "DOCSIS over coax" in section
+    assert "not DSL" in section
+    assert "modem, channel, and signal data" in section
+    assert "not the same as a Speedtest" in section
+    assert "tariff speed" in section
+    assert "Cable is also a shared medium" in section
+    assert "can affect real-world speeds" in section
+    assert "guaranteed" in section
+
+
 def test_data_contract_is_linked_from_public_docs() -> None:
     readme = README.read_text(encoding="utf-8")
     security = SECURITY.read_text(encoding="utf-8")

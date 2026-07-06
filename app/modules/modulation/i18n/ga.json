@@ -42,6 +42,7 @@
   "capacity_tooltip": "Meastachán Layer-1 do chainéil SC-QAM tacaithe; ní thaispeánann cainéil neamhthacaithe OFDM/OFDMA aon meastachán; tréchur IP nach féidir a úsáid",
   "capacity_kicker": "Layer-1 SC-QAM meastachán",
   "capacity_title": "Ollacmhainneacht SC-QAM ríofa",
+  "capacity_caveats_label": "Cabhlacha cumais",
   "capacity_glossary": "Is meastachán Layer-1 é ollacmhainneacht SC-QAM atá bunaithe ar mhodhnú cainéal tuairiscithe SC-QAM agus ar ráta siombaile. Ní chuirtear cainéil OFDM/OFDMA san áireamh ach amháin má tá go leor sonraí ag DOCSight le haghaidh foirmle tacaithe. Ní luas taraife, tréchur is tapúla ná tomhas iomlán ar thoilleadh deighleog.",
   "capacity_warning_not_throughput": "Ní toradh speedtest é",
   "capacity_warning_not_tariff": "Ní luas an phacáiste é",
