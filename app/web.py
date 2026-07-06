@@ -23,6 +23,13 @@ from .config import POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
 from .docsis_utils import qam_rank
 from .gaming_index import compute_gaming_index
+from .glossary import (
+    GLOSSARY_LEVELS,
+    get_glossary_categories,
+    get_glossary_term,
+    get_glossary_terms,
+    get_related_terms,
+)
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
 from .tz import guess_iana_timezone as _guess_iana_timezone, get_tz_name as _get_public_tz_name, to_local as _to_local
@@ -1281,6 +1288,66 @@ def _build_capacity_context(analysis, booked_download=0, booked_upload=0):
 @app.route("/sw.js")
 def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
+
+
+_GLOSSARY_LEVEL_LABELS = {
+    "eli5": {
+        "label": "ELI5",
+        "description": "Plain-language first explanation",
+    },
+    "basic": {
+        "label": "Basic",
+        "description": "Practical meaning for end users",
+    },
+    "advanced": {
+        "label": "Advanced",
+        "description": "Technical context without provider-only assumptions",
+    },
+    "technician": {
+        "label": "Technician",
+        "description": "Precise DOCSIS and diagnostics boundaries",
+    },
+}
+
+
+@app.route("/glossary")
+@require_auth
+def glossary_page():
+    """Render the canonical in-app glossary foundation."""
+    lang = _get_lang()
+    t = get_translations(lang)
+    theme = _config_manager.get_theme() if _config_manager else "dark"
+    terms = get_glossary_terms(lang)
+    categories = get_glossary_categories(lang)
+    selected_level = request.args.get("level", "basic")
+    if selected_level not in GLOSSARY_LEVELS:
+        selected_level = "basic"
+    selected_term_id = request.args.get("term") or (terms[0]["id"] if terms else "")
+    selected_term = get_glossary_term(selected_term_id, lang) or (terms[0] if terms else None)
+    related_terms = get_related_terms(selected_term, lang) if selected_term else []
+    level_options = [
+        {"id": level, **_GLOSSARY_LEVEL_LABELS[level]}
+        for level in GLOSSARY_LEVELS
+    ]
+    selected_level_label = _GLOSSARY_LEVEL_LABELS[selected_level]["label"]
+    category_by_id = {category["id"]: category for category in categories}
+    return render_template(
+        "glossary.html",
+        t=t,
+        lang=lang,
+        languages=LANGUAGES,
+        lang_flags=LANG_FLAGS,
+        theme=theme,
+        version=APP_VERSION,
+        categories=categories,
+        category_by_id=category_by_id,
+        terms=terms,
+        selected_term=selected_term,
+        selected_level=selected_level,
+        selected_level_label=selected_level_label,
+        level_options=level_options,
+        related_terms=related_terms,
+    )
 
 
 @app.route("/")

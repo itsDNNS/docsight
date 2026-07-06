@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" data-theme="{{ theme|default('dark') }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#06080f">
+    <title>{{ t.get('glossary_page_title', 'Glossary') }} · DOCSight</title>
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="apple-touch-icon" href="/static/icon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/css/fonts.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/tokens.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/components.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/main.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="/static/css/glossary.css?v={{ version|urlencode }}">
+    <script src="/static/vendor/lucide.min.js?v={{ version|urlencode }}"></script>
+</head>
+<body class="glossary-page-body">
+<main class="glossary-page" aria-labelledby="glossary-title">
+    <header class="glossary-page-hero">
+        <div>
+            <a class="glossary-back-link" href="/">← {{ t.get('home', 'Home') }}</a>
+            <p class="eyebrow">DOCSight knowledge base</p>
+            <h1 id="glossary-title">{{ t.get('glossary_page_title', 'Glossary') }}</h1>
+            <p class="glossary-page-intro">
+                {{ t.get('glossary_page_intro', 'Canonical DOCSIS and cable terms with explanation levels from beginner-friendly to technician detail.') }}
+            </p>
+        </div>
+        <div class="glossary-level-card" aria-labelledby="glossary-level-title">
+            <h2 id="glossary-level-title">{{ t.get('glossary_level_selector', 'Explanation level') }}</h2>
+            <div class="glossary-levels" role="list">
+                {% for item in level_options %}
+                <a class="glossary-level {{ 'active' if item.id == selected_level else '' }}" role="listitem" href="{{ url_for('glossary_page', lang=lang, level=item.id, term=selected_term.id if selected_term else None) }}" aria-current="{{ 'true' if item.id == selected_level else 'false' }}">
+                    <span>{{ item.label }}</span>
+                    <small>{{ item.description }}</small>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </header>
+
+    <section class="glossary-layout" aria-label="Glossary terms">
+        <aside class="glossary-index" aria-label="Term index">
+            {% for category in categories %}
+            <section class="glossary-index-section">
+                <h2>{{ category.title }}</h2>
+                <p>{{ category.description }}</p>
+                <ul>
+                    {% for term in terms if term.category == category.id %}
+                    <li>
+                        <a class="{{ 'active' if selected_term and selected_term.id == term.id else '' }}" href="{{ url_for('glossary_page', lang=lang, level=selected_level, term=term.id) }}" aria-current="{{ 'page' if selected_term and selected_term.id == term.id else 'false' }}">
+                            {{ term.title }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% endfor %}
+        </aside>
+
+        <article class="glossary-article" aria-labelledby="glossary-term-title">
+            {% if selected_term %}
+            <div class="glossary-term-header">
+                <div>
+                    <p class="eyebrow">{{ category_by_id[selected_term.category].title }}</p>
+                    <h2 id="glossary-term-title">{{ selected_term.title }}</h2>
+                </div>
+                <span class="glossary-term-id">{{ selected_term.id }}</span>
+            </div>
+
+            {% if selected_term.aliases %}
+            <div class="glossary-chip-row" aria-label="Aliases">
+                {% for alias in selected_term.aliases %}
+                <span class="glossary-chip">{{ alias }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <section class="glossary-level-panel" aria-labelledby="selected-level-heading">
+                <h3 id="selected-level-heading">{{ selected_level_label }}</h3>
+                <p>{{ selected_term.levels[selected_level] }}</p>
+            </section>
+
+            <section class="glossary-all-levels" aria-labelledby="all-levels-heading">
+                <h3 id="all-levels-heading">All explanation levels</h3>
+                <div class="glossary-level-grid">
+                    {% for item in level_options %}
+                    <section class="glossary-level-summary {{ 'active' if item.id == selected_level else '' }}">
+                        <h4>{{ item.label }}</h4>
+                        <p>{{ selected_term.levels[item.id] }}</p>
+                    </section>
+                    {% endfor %}
+                </div>
+            </section>
+
+            {% if selected_term.misconceptions %}
+            <section class="glossary-callout" aria-labelledby="misconceptions-heading">
+                <h3 id="misconceptions-heading">Common misconceptions</h3>
+                <ul>
+                    {% for item in selected_term.misconceptions %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% endif %}
+
+            {% if selected_term.protected_terms %}
+            <section class="glossary-protected" aria-labelledby="protected-heading">
+                <h3 id="protected-heading">Protected technical terms</h3>
+                <div class="glossary-chip-row">
+                    {% for token in selected_term.protected_terms %}
+                    <span class="glossary-chip glossary-chip-technical">{{ token }}</span>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if related_terms %}
+            <section class="glossary-related" aria-labelledby="related-heading">
+                <h3 id="related-heading">Related terms</h3>
+                <div class="glossary-related-grid">
+                    {% for term in related_terms %}
+                    <a href="{{ url_for('glossary_page', lang=lang, level=selected_level, term=term.id) }}">
+                        <span>{{ term.title }}</span>
+                        <small>{{ term.id }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+            {% else %}
+            <h2 id="glossary-term-title">No glossary term selected</h2>
+            {% endif %}
+        </article>
+    </section>
+</main>
+<script>
+if (window.lucide) window.lucide.createIcons();
+</script>
+</body>
+</html>
