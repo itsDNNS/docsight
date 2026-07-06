@@ -14,11 +14,45 @@ def test_glossary_catalog_schema_is_valid():
     assert validate_glossary_catalog() == []
 
 
-def test_minimal_vertical_slice_contains_required_foundation_terms():
+def test_core_docsis_glossary_contains_required_terms_and_levels():
     terms = {term["id"]: term for term in get_glossary_terms("en")}
+    required_terms = {
+        "docsis",
+        "dsl_vs_cable",
+        "coaxial_cable",
+        "cable_modem_router",
+        "cmts",
+        "node_segment",
+        "shared_medium",
+        "downstream",
+        "upstream",
+        "channel_bonding",
+        "sc_qam",
+        "ofdm",
+        "ofdma",
+        "qam_modulation_order",
+        "channel_width_symbol_rate",
+        "power_level",
+        "snr_mer",
+        "attenuation",
+        "ingress_noise",
+        "correctable_errors",
+        "uncorrectable_errors",
+        "layer1_capacity",
+        "gross_vs_net_capacity",
+        "ip_throughput",
+        "speedtest",
+        "tariff_speed",
+        "segment_utilization",
+        "capacity_vs_throughput",
+        "provisioning",
+        "bootfile_config_file",
+        "partial_service",
+        "resync_reboot",
+    }
 
-    for term_id in {"docsis", "shared_medium", "sc_qam", "ofdm", "capacity_vs_throughput"}:
-        assert term_id in terms
+    assert required_terms.issubset(terms)
+    for term_id in required_terms:
         term = terms[term_id]
         assert term["title"]
         assert term["category"]
@@ -38,7 +72,7 @@ def test_related_glossary_terms_resolve_to_existing_terms():
 
 def test_categories_are_localized_and_used_by_terms():
     categories = {category["id"]: category for category in get_glossary_categories("en")}
-    assert {"cable_basics", "modulation_channels", "capacity_throughput"}.issubset(categories)
+    assert {"cable_basics", "modulation_channels", "signal_quality", "error_counters", "capacity_throughput", "modem_state"}.issubset(categories)
     for category in categories.values():
         assert category["title"]
         assert category["description"]
@@ -60,3 +94,32 @@ def test_capacity_term_preserves_no_speedtest_overclaim_boundary():
     assert "not your tariff speed" in joined
     assert "not a speedtest" in joined
     assert "not guaranteed real IP throughput" in joined
+
+
+def test_core_glossary_preserves_required_technical_tokens():
+    expected_tokens = {
+        "docsis": {"DOCSIS", "DSL"},
+        "cmts": {"CMTS", "DOCSIS"},
+        "sc_qam": {"SC-QAM", "QAM", "Layer-1"},
+        "ofdm": {"OFDM", "DOCSIS"},
+        "ofdma": {"OFDMA", "DOCSIS"},
+        "capacity_vs_throughput": {"Speedtest", "IP", "Layer-1"},
+        "snr_mer": {"SNR", "MER"},
+    }
+
+    for term_id, tokens in expected_tokens.items():
+        term = get_glossary_term(term_id, "en")
+        assert term is not None
+        joined = " ".join([term["title"], *term["aliases"], *term["levels"].values(), *term["misconceptions"]])
+        for token in tokens:
+            assert token in term["protected_terms"]
+            assert token in joined
+
+
+def test_glossary_aliases_do_not_duplicate_other_term_titles_or_aliases():
+    seen = {}
+    for term in get_glossary_terms("en"):
+        for value in (term["title"], *term["aliases"]):
+            normalized = value.casefold()
+            previous = seen.setdefault(normalized, term["id"])
+            assert previous == term["id"], f"{term['id']} duplicates alias/title {value!r} from {previous}"
