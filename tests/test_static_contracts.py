@@ -379,9 +379,9 @@ def test_european_language_pack_files_cover_core_catalogs() -> None:
 
 
 def test_builtin_module_i18n_catalogs_keep_only_runtime_sources() -> None:
-    """Built-in module UI catalogs use en.json fallback; reports keeps PDF locale files."""
+    """Built-in module catalogs are intentional: reports and modulation ship locales."""
     offenders = []
-    allowed_locale_modules = {"reports"}
+    allowed_locale_modules = {"reports", "modulation"}
     for i18n_dir in sorted(MODULES.glob("*/i18n")):
         if not (i18n_dir / "en.json").exists():
             continue
@@ -449,10 +449,11 @@ def test_european_language_pack_preserves_catalog_contracts() -> None:
             if source_placeholders != target_placeholders:
                 offenders.append(f"{path_label}: placeholder mismatch")
 
-    i18n_dirs = [APP_I18N_DIR, MODULES / "reports" / "i18n"]
+    i18n_dirs = [APP_I18N_DIR, MODULES / "reports" / "i18n", MODULES / "modulation" / "i18n"]
     module_i18n_dirs = sorted(MODULES.glob("*/i18n"))
+    allowed_locale_modules = {"reports", "modulation"}
     for i18n_dir in module_i18n_dirs:
-        if i18n_dir.parent.name == "reports":
+        if i18n_dir.parent.name in allowed_locale_modules:
             continue
         module_catalogs = sorted(path for path in i18n_dir.glob("*.json") if path.name != "en.json")
         if module_catalogs:

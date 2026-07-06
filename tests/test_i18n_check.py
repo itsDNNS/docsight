@@ -102,3 +102,34 @@ def test_german_i18n_uses_real_umlauts_in_user_facing_text():
                 offenders.append(f"{path}: {text}")
 
     assert offenders == []
+
+
+def test_modulation_i18n_covers_all_offered_languages_with_local_capacity_copy():
+    core_i18n_dir = Path("app/i18n")
+    modulation_i18n_dir = Path("app/modules/modulation/i18n")
+    core_langs = {path.stem for path in core_i18n_dir.glob("*.json") if path.name != "template.json"}
+    modulation_langs = {path.stem for path in modulation_i18n_dir.glob("*.json")}
+
+    assert modulation_langs == core_langs
+
+    english = json.loads((modulation_i18n_dir / "en.json").read_text(encoding="utf-8"))
+    capacity_keys = {key for key in english if key.startswith("capacity_")}
+    exempt_same_as_english = {"capacity_family_ofdm", "capacity_family_ofdma"}
+    placeholder_pattern = re.compile(r"\{[^}]+\}")
+
+    for lang in sorted(core_langs - {"en"}):
+        data = json.loads((modulation_i18n_dir / f"{lang}.json").read_text(encoding="utf-8"))
+        assert set(data) == set(english), lang
+
+        untranslated = [
+            key for key in capacity_keys - exempt_same_as_english
+            if data[key] == english[key]
+        ]
+        assert untranslated == [], lang
+
+        leaked_tokens = [text for text in _string_values(data) if "ZX" in text]
+        assert leaked_tokens == [], lang
+
+        for key, source in english.items():
+            for placeholder in placeholder_pattern.findall(source):
+                assert placeholder in data[key], f"{lang}/{key} lost {placeholder}"
