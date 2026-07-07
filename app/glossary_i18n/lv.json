@@ -20,10 +20,10 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "DOCSIS tīkli apvieno pakārtotos un augšupējos kanālus, piemēram, SC-QAM, OFDM un OFDMA. DOCSight var interpretēt lokālā modema redzamo signālu un kanālu datus, taču tas nevar redzēt visus pakalpojumu sniedzēja puses segmentus vai maršrutēšanas nosacījumus.",
-        "basic": "DOCSIS nodrošina interneta pakalpojumu, izmantojot koaksiālo kabeli. DOCSight nolasa modema, kanālu un signāla datus no atbalstītajām kabeļa ierīcēm, tāpēc tā diagnostika apraksta kabeļa saiti, nevis DSL līniju.",
-        "eli5": "DOCSIS ir valoda, ko kabeļa modems izmanto, lai sazinātos ar kabeļtīklu. Tas ir kabeļa internets, nevis DSL pa tālruņa līniju.",
-        "technician": "DOCSIS nosaka kabeļmodema piekļuves slāni starp CM un CMTS, izmantojot HFC/koaksiālo segmentu. Vietējo kanālu telemetrija ir noderīga RF un MAC slāņa diagnostikai, taču pakalpojumu sniedzēja nodrošināšana, segmentu slodze, CMTS politika un IP maršrutēšana paliek ārpus tikai modema pierādījumu robežas."
+        "advanced": "DOCSIS izmanto dažādas lejupsaites un augšupsaites kanālu grupas, piemēram, SC-QAM, OFDM un OFDMA. Katra grupa sniedz atšķirīgus pierādījumus, tāpēc DOCSight nošķir kanāla tipu, virzienu un atbalsta statusu.",
+        "basic": "DOCSIS nodrošina interneta pakalpojumu pa koaksiālo kabeli. DOCSight nolasa modema, kanālu un signāla datus no atbalstītām DOCSIS ierīcēm, tāpēc tā pierādījumi attiecas uz kabeļa piekļuves līniju, nevis DSL.",
+        "eli5": "DOCSIS ir kabeļinterneta valoda, ko lieto kabeļmodems un pakalpojumu sniedzēja tīkls.",
+        "technician": "Izmantojiet DOCSIS pierādījumus kā modema puses RF/MAC kontekstu: kanāla noslēgšanos, jaudu, MER/SNR, modulāciju, kļūdas un notikumus. Pakalpojumu sniedzēja nodrošinājumam, CMTS politikai, segmenta noslogojumam un IP maršrutēšanai joprojām nepieciešami atsevišķi pamatojoši avoti."
       },
       "misconceptions": [
         "DOCSIS nav DSL; DSL vērtības un kabeļtelevīzijas kanālu vērtības nevajadzētu salīdzināt viens pret vienu."
@@ -37,74 +37,6 @@
     },
     {
       "aliases": [
-        "DSL",
-        "Tālruņa līnija pret koaksi"
-      ],
-      "category": "cable_basics",
-      "id": "dsl_vs_cable",
-      "levels": {
-        "advanced": "DSL parasti parāda līniju no punkta līdz punktam ar sinhronizācijas ātruma stila vērtībām. DOCSIS izmanto koplietojamus koaksiālos segmentus, saistītos kanālus un CMTS plānošanu, tāpēc modema kanālu diagnostikai ir nepieciešama atšķirīga interpretācija.",
-        "basic": "DOCSight ir balstīts uz kabeļa/DOCSIS pierādījumiem. Kabeļa modema vērtības, piemēram, kanāli, modulācija, SNR/MER un DOCSIS jauda, ​​nedrīkst nolasīt kā DSL sinhronizācijas ātrumu vai DSL līniju statistiku.",
-        "eli5": "DSL un kabelis ir divi dažādi veidi, kā nodrošināt internetu mājās. DSL izmanto tālruņa vadu; kabeļinternets izmanto koaksiālo kabeli un DOCSIS.",
-        "technician": "Neatzīmējiet DSL vājinājuma, sinhronizācijas vai profila jēdzienus tieši DOCSIS RF/MAC pierādījumos. DOCSIS kanāla stāvoklis, OFDM/OFDMA profili, pakalpojumu plūsmas un CMTS darbība raksturo atšķirīgu piekļuves arhitektūru."
-      },
-      "misconceptions": [
-        "Kabeļtelevīzijas kanālu saraksts nav DSL sinhronizācijas tabula."
-      ],
-      "protected_terms": [
-        "DSL",
-        "DOCSIS",
-        "DOCSight"
-      ],
-      "title": "DSL salīdzinājumā ar kabeli"
-    },
-    {
-      "aliases": [
-        "Koaksiālais",
-        "Antenas kabelis",
-        "Kabeļa līnija"
-      ],
-      "category": "cable_basics",
-      "id": "coaxial_cable",
-      "levels": {
-        "advanced": "DOCSIS koaksiālie ceļi ir RF ceļi: jaudas līmenis, SNR/MER, iekļūšana, vājināšanās un kanālu bloķēšana var mainīties, ja kabeļi, sadalītāji vai pastiprinātāji ir slikti vai nepareizi izmēri.",
-        "basic": "Kabeļa internets darbojas, izmantojot koaksiālo kabeli starp jūsu māju un pakalpojumu sniedzēja tīklu. Sadalītāji, savienotāji un mājas vadi var ietekmēt signāla līmeni un kvalitāti.",
-        "eli5": "Koaksiālais kabelis ir apaļš kabelis, kas pārraida TV un kabeļu interneta signālus. Jūsu kabeļa modems to izmanto, lai izveidotu savienojumu ar DOCSIS tīklu.",
-        "technician": "HFC tīklos koaksiālais posms nodrošina lejupējos un augšējos RF kanālus starp modemu un piekļuves tīklu. DOCSight var parādīt modema redzamos RF simptomus, bet ne visu fizisko iekārtu topoloģiju."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "HFC",
-        "DOCSight"
-      ],
-      "title": "Koaksiālais kabelis"
-    },
-    {
-      "aliases": [
-        "Modems",
-        "Vārteja",
-        "Kabeļa maršrutētājs",
-        "Tilta režīms"
-      ],
-      "category": "cable_basics",
-      "id": "cable_modem_router",
-      "levels": {
-        "advanced": "Vārteja apvieno DOCSIS modema funkcijas ar maršrutēšanu/NAT/Wi-Fi. Tilta režīms var atklāt maršrutēšanu uz citu ierīci, taču DOCSIS signāla un kanāla pierādījumi joprojām pieder modema pusei.",
-        "basic": "Kabeļa modems apstrādā DOCSIS pakalpojumu sniedzēja pusē. Daudzas ierīces darbojas arī kā maršrutētāji, Wi-Fi piekļuves punkti vai vārtejas jūsu mājas IP tīklam.",
-        "eli5": "Modems/maršrutētājs ir kaste, kas savieno jūsu mājas tīklu ar kabeļtīklu.",
-        "technician": "Atdaliet DOCSIS slāņa novērojumus no LAN/maršrutētāja darbības. Labs RF un kanālu stāvoklis neizslēdz Wi-Fi, NAT, ugunsmūra, maršrutēšanas vai klienta puses vājās vietas aiz modema."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "DOCSight",
-        "IP"
-      ],
-      "title": "Kabeļa modems/maršrutētājs"
-    },
-    {
-      "aliases": [
         "kabeļa modema beigu sistēma",
         "tālvadības PHY",
         "Pakalpojumu sniedzēja austiņa"
@@ -112,10 +44,10 @@
       "category": "cable_basics",
       "id": "cmts",
       "levels": {
-        "advanced": "Pakalpojumu sniedzēja puses sistēmas plāno augšupējo piekļuvi, nodrošina pakārtotos kanālus, piemēro nodrošinājumu un piedalās pakalpojumu plūsmas limitos. Vietējie modema pierādījumi var norādīt uz problēmām, bet nevar pilnībā aprakstīt CMTS politiku.",
-        "basic": "CMTS vai saistīta pakalpojumu sniedzēja puses piekļuves sistēma pārvalda DOCSIS modemus, kanālus, plānošanu un pakalpojumu konfigurāciju. DOCSight parasti redz tikai šo attiecību modema pusi.",
-        "eli5": "CMTS ir pakalpojumu sniedzēja puses sistēma, ar kuru sazinās jūsu kabeļmodēms.",
-        "technician": "CMTS, CCAP, Remote PHY un mezglu arhitektūras ietekmē kanālu pieejamību, profila piešķiršanu, plānošanu un traucējumu apstrādi. DOCSight nedrīkst izsecināt nodrošinātāja puses stāvokli, ja vien to neatklāj nepārprotami atbalstīts avots."
+        "advanced": "CMTS/CCAP darbība var ietekmēt kanālu pieejamību, profilus, plānošanu un nodrošināšanu, taču šie pakalpojumu sniedzēja lēmumi caur modema telemetriju ir redzami tikai daļēji.",
+        "basic": "CMTS vai līdzīga piekļuves sistēma pārvalda DOCSIS modemus, kanālus, plānošanu un pakalpojuma konfigurāciju. DOCSight parasti redz tikai modema pusi.",
+        "eli5": "CMTS ir pakalpojumu sniedzēja puses sistēma, ar kuru sazinās jūsu kabeļmodems.",
+        "technician": "Nespriediet par precīzu CMTS stāvokli, balstoties tikai uz modema datiem. CMTS saistītu formulējumu lietojiet tikai tad, ja to apstiprina skaidri pakalpojumu sniedzēja dati, notikumu konteksts vai modema lauki, kas šo informāciju faktiski atklāj."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -135,10 +67,10 @@
       "category": "cable_basics",
       "id": "node_segment",
       "levels": {
-        "advanced": "Pakalpojumu grupas un mezglu robežas ietekmē strīdu, kanālu slodzi un jaunināšanas plānošanu. Vietējais modems var atklāt savu kanāla stāvokli, nevis pilnu blakus esošo modemu sarakstu vai kopējo pakalpojumu sniedzēja pieprasījumu.",
-        "basic": "Cilvēkiem vienā kabeļa segmentā ir kopīga piekļuves tīkla jauda. Mezglu sadalījums var samazināt to lietotāju skaitu, kas koplieto vienus un tos pašus resursus, taču DOCSight parasti nevar redzēt visu segmentu kopu.",
-        "eli5": "Segments ir kabeļtīkla daļa, ko koplieto māju grupa.",
-        "technician": "Segmenta interpretācija ir atkarīga no pakalpojumu sniedzēja topoloģijas, pakalpojumu grupas lieluma, attālās PHY/CMTS dizaina un aktīvajiem abonentiem. Uztveriet pilnīgu izmantošanu kā pakalpojumu sniedzēja puses pierādījumu, ja vien tas netiek mērīts, izmantojot atbalstītu avotu."
+        "advanced": "Servisa grupas robežas ietekmē konkurenci par resursiem, kanāla noslodzi un jaudas plānošanu. Lokālais modems var uzrādīt simptomus, taču neatspoguļo visu segmenta lietotāju kopumu vai providera plānotāja stāvokli.",
+        "basic": "Cilvēki vienā kabeļa segmentā daļēji izmanto kopīgu piekļuves tīkla kapacitāti. Mezgla sadalīšana var samazināt lietotāju skaitu, kas dala vienus un tos pašus resursus.",
+        "eli5": "Mezgls jeb segments ir kabeļtīkla daļa, ko kopīgi izmanto grupa māju.",
+        "technician": "Lietojiet terminu \"segments\" piesardzīgi: vispirms pierādiet lokālā signāla stāvokli, tad salīdziniet laika sakritības, ātruma/latentuma pierādījumus un providera informāciju, pirms problēmu attiecināt uz segmenta noslodzi."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -157,10 +89,10 @@
       "category": "cable_basics",
       "id": "shared_medium",
       "levels": {
-        "advanced": "DOCSIS jauda tiek dalīta starp kanāliem un pakalpojumu grupām. Vietējā modema statistika parāda jūsu kanālu un signāla stāvokli, savukārt strīdi un plānošana notiek pakalpojumu sniedzēja pusē.",
-        "basic": "Kabeļu tīkli koplieto piekļuves tīkla daļas starp vairākiem lietotājiem. Segmenta slodze var ietekmēt reālo ātrumu, un DOCSight nevar tieši izmērīt katru otro segmenta modemu.",
-        "eli5": "Kabeļa segments ir kā ceļš, ko izmanto vairākas mājas. Jūsu modemam var būt tīrs signāls pat tad, ja ceļš ir aizņemts.",
-        "technician": "Koplietojamās vides darbība ir atkarīga no pakalpojumu grupas lieluma, CMTS plānošanas, OFDMA/OFDM profiliem, nodrošinājuma un aktīvā abonenta pieprasījuma. DOCSight var izcelt lokālos RF/kanāla simptomus, taču tai nevajadzētu secināt, ka segments ir pilnībā izmantots, ja vien atbalstītais datu avots to neatklāj."
+        "advanced": "Koplietotā tīkla uzvedība ir atkarīga no pakalpojuma grupas lieluma, plānošanas, kanālu kapacitātes, aktīvā pieprasījuma un operatora politikas. Viens modems nevar tieši izmērīt visu segmentu.",
+        "basic": "Koplietotais tīkls var būt noslogots pat tad, ja jūsu paša modema signāls izskatās tīrs. DOCSight nošķir lokālā modema pierādījumus no operatora puses noslodzes apgalvojumiem.",
+        "eli5": "Kabeļinternets izmanto koplietotu piekļuves tīklu kopā ar citiem kaimiņiem.",
+        "technician": "Nošķiriet tīru RF pierādījumu no sastrēguma pierādījuma. Pirms koplietotā tīkla kā pamatcēloņa noteikšanas salīdziniet diennakts laika modeļus, speedtest/BQM/monitoringa datus un operatora atgriezenisko saiti."
       },
       "misconceptions": [
         "Labs signāla līmenis nepierāda, ka pakalpojumu sniedzēja segments nav pārslogots."
@@ -181,10 +113,10 @@
       "category": "modulation_channels",
       "id": "downstream",
       "levels": {
-        "advanced": "Lejupkārt var izmantot SC-QAM un/vai OFDM kanālus. Jauda, ​​SNR/MER, modulācija, profila informācija un bloķēšanas stāvoklis palīdz izskaidrot, vai modems kanālus uztver tīri.",
-        "basic": "Programmā DOCSIS pakārtotie kanāli pārsūta datus no nodrošinātāja tīkla uz modemu. DOCSight rāda pakārtotā kanāla stāvokli atsevišķi no augšpus stāvokļa, jo virzieni darbojas atšķirīgi.",
-        "eli5": "Pakārtotie ir dati, kas nāk no interneta uz jūsu mājām.",
-        "technician": "Pakārtotie pierādījumi apraksta saņemšanas ceļu un pakārtoto kanālu kopu, kas redzama modemam. To nevajadzētu sajaukt ar lietojumprogrammu lejupielādes caurlaidspēju no gala līdz galam, kas ir atkarīga arī no nodrošinājuma, plānošanas, maršrutēšanas un klientiem."
+        "advanced": "Downstream pierādījumi var nākt no SC-QAM un OFDM kanāliem. Jauda, SNR/MER, modulācijas/profila dati un kanāla bloķēšana raksturo, vai modems var tīri uztvert nesējsignālu.",
+        "basic": "Downstream kanāli pārraida lejupielādes un citu ienākošo trafiku. DOCSight atsevišķi rāda to bloķēšanas statusu un signāla kvalitāti, atšķirot tos no upstream kanāliem.",
+        "eli5": "Downstream ir dati, kas plūst no pakalpojumu sniedzēja tīkla uz tavu modemu.",
+        "technician": "Izmeklējot downstream problēmas, salīdziniet skartos kanālus, MER/SNR izmaiņas, koriģējamo/nekoriģējamo kļūdu pieaugumu, OFDM profila izmaiņas un notikumu laika zīmogus, nevis vērtējiet diagnozi pēc vienas uztveršanas vērtības."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -203,10 +135,10 @@
       "category": "modulation_channels",
       "id": "upstream",
       "levels": {
-        "advanced": "Upstream var izmantot SC-QAM un/vai OFDMA. To ieplāno pakalpojumu sniedzēja sistēma, tāpēc vietējā modema dati parāda pārraides nosacījumus, taču ne visi iemesli var atšķirties augšupielādes caurlaides ātrumā.",
-        "basic": "Programmā DOCSIS augšupējie kanāli pārsūta datus no modema atpakaļ uz pakalpojumu sniedzēja tīklu. Augšupējās problēmas bieži izpaužas kā liela pārraides jauda, ​​kanālu kritumi vai trokšņaina atgriešanās ceļa darbība.",
-        "eli5": "Augšupstraume ir dati, kas tiek nosūtīti no jūsu mājām uz internetu, piemēram, augšupielāde, atstājot jūsu māju.",
-        "technician": "Augšpuses interpretācijai ir nepieciešama pārraides jauda, ​​kanāla bloķēšana, modulācijas/profila stāvoklis, diapazona statuss un atgriešanās ceļa trokšņu konteksts. DOCSight modemā redzamie RF pierādījumi ir jānošķir no CMTS puses plānošanas vai pakalpojumu plūsmas politikas."
+        "advanced": "Upstream var izmantot SC-QAM vai OFDMA. Raidīšanas jauda, modulācijas pazemināšanās, ranging uzvedība un atpakaļceļa trokšņa pazīmes bieži ir nozīmīgākas nekā lejupielādes puses vērtības.",
+        "basic": "Upstream kanāli pārraida augšupielādes, pieprasījumus un modema saskaņošanu (ranging). DOCSight izmanto tos kā augšupielādes puses signāla pierādījumus.",
+        "eli5": "Upstream ir dati, kas no jūsu modema plūst atpakaļ uz pakalpojumu sniedzēja tīklu.",
+        "technician": "Upstream kļūmju gadījumā salīdziniet jaudas svārstības, kanālu zudumus, OFDMA atbalsta iztrūkumus, T3/T4 notikumus, kā arī latentuma vai pakešu zuduma logus. Trūkstoši upstream lauki nozīmē neatbalstīts vai nav ziņots, nevis automātiski nulle."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -225,10 +157,10 @@
       "category": "modulation_channels",
       "id": "channel_bonding",
       "levels": {
-        "advanced": "Bonding apvieno vairākus kanālu resursus, savukārt plānošana, modulācija, signāla kvalitāte, pakalpojumu ierobežojumi un protokola pieskaitāmās izmaksas nosaka, kas var kļūt par izmantojamu caurlaidspēju.",
-        "basic": "DOCSIS modemi bieži vienlaikus izmanto vairākus lejupējos un augšupējos kanālus. Vairāk savienotu kanālu var palielināt caurlaidspēju, taču tas joprojām negarantē atbilstošu Speedtest rezultātu.",
-        "eli5": "Kanālu savienošana ļauj modemam izmantot vairākus kabeļtelevīzijas kanālus kopā, piemēram, izmantojot vairāk nekā vienu joslu.",
-        "technician": "Saistītā kanāla kapacitātei ir jāatšķir SC-QAM summas no OFDM/OFDMA profila atkarīgās kapacitātes. Pakalpojumu plūsmas ierobežojumi, MAC plānošana, FEC, RF traucējumi un konkurence atdala saistīto PHY kapacitāti no lietojumprogrammas lietderīgās caurlaidspējas."
+        "advanced": "Apvienošana summē kanālu kapacitāti, taču reālais rezultāts ir atkarīgs no virziena, kanālu saimes (SC-QAM vai OFDM/OFDMA), fiksācijas stāvokļa, profiliem, plānotāja uzvedības un pakalpojuma konfigurācijas.",
+        "basic": "DOCSIS modemi bieži vienlaikus izmanto vairākus lejupejošos un augšupejošos kanālus. DOCSight sagrupē redzamos kanālus, lai varētu redzēt, kas ir apvienots, fiksēts un darbojas pareizi.",
+        "eli5": "Channel bonding ļauj modemam vairākus kabeļa kanālus izmantot kopā.",
+        "technician": "Analizējot apvienošanas datus, pievērsiet uzmanību iztrūkstošiem vai pasliktinātiem kanāliem saišķī, katras kanālu saimes atsevišķai stāvoklim, kā arī tam, vai simptomi skar vienu kanālu, vienu virzienu vai visu pakalpojuma grupu."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -249,10 +181,10 @@
       "category": "modulation_channels",
       "id": "sc_qam",
       "levels": {
-        "advanced": "SC-QAM izmanto vienu nesēju ar fiksētu kanāla platumu un QAM modulācijas secību. Augstāka modulācija var pārvadāt vairāk bitu uz vienu simbolu, taču aplēse joprojām ir bruto kanāla kapacitāte, nevis IP caurlaidspēja.",
-        "basic": "SC-QAM kanāli ir tradicionālie DOCSIS kanāli. DOCSight bieži vien var novērtēt to bruto Layer-1 kapacitāti, pamatojoties uz modulāciju un kanālu detaļām.",
-        "eli5": "SC-QAM ir viena veida kabeļtelevīzijas kanāls. Uztveriet to kā vienu joslu, kas var pārsūtīt datus starp kabeļtīklu un jūsu modemu.",
-        "technician": "DOCSIS SC-QAM kanāliem modulācijas secība, simbolu ātrums, kanāla platums un PHY pieskaitāmās izmaksas nosaka 1. slāņa bruto aprēķinus. FEC, MAC kadrēšana, plānošana, savienošana un IP pieskaitāmās izmaksas atdala šo aprēķinu no izmantojamās lietojumprogrammas caurlaidspējas."
+        "advanced": "SC-QAM izmanto vienu nesējfrekvenci ar fiksētu kanāla platumu un QAM kārtu, tāpēc, ja modems nodrošina pietiekami daudz lauku, vispārējā kanāla konteksta noteikšana ir vienkāršāka nekā profilos balstītam OFDM/OFDMA.",
+        "basic": "SC-QAM kanāli ir tradicionāli DOCSIS 3.0 stila kanāli. DOCSight parasti var uzrādīt to jaudu, SNR/MER, modulāciju, sinhronizācijas stāvokli un stāvokli.",
+        "eli5": "SC-QAM ir klasiskais šaurās joslas DOCSIS kanāla tips.",
+        "technician": "Izmantojiet SC-QAM rindas, lai izolētu konkrētam kanālam specifiskus traucējumus: salīdziniet blakus esošos kanālus, modulācijas izmaiņas, MER/SNR un kļūdu pieaugumu, pirms no viena sliktā rādītāja izdarāt secinājumu par visu tīklu."
       },
       "misconceptions": [
         "SC-QAM kapacitātes novērtējums nav Speedtest rezultāts."
@@ -273,10 +205,10 @@
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
-        "advanced": "OFDM lejupējie kanāli izmanto daudzus apakšnesējus un profilus. Reālā izmantojamā kapacitāte ir atkarīga no profila piešķiršanas, apakšnesēju stāvokļa, izslēgšanas joslām un pakalpojumu sniedzēja puses plānošanas.",
-        "basic": "DOCSIS 3.1 izmanto OFDM pakārtotajiem elastīgiem, lielas ietilpības uztveršanas kanāliem. DOCSight var parādīt signāla stāvokli pat tad, ja tas nevar aprēķināt tādu pašu vienkāršo kapacitātes numuru kā SC-QAM.",
-        "eli5": "OFDM ir jaunāks pakārtota kabeļa kanāla veids, kas sadala plašu kanālu daudzos sīkos gabalos.",
-        "technician": "OFDM kapacitātes novērtēšanai nepieciešams profils un apakšnesēja konteksts. Ja nav pietiekami daudz profila datu, DOCSight ir jāapstrādā OFDM kā novērots, taču tas nav jāiekļauj tikai SC-QAM bruto kapacitātes summās."
+        "advanced": "OFDM veselība ir atkarīga no profiliem, izslēgtajiem apakšnesējiem, PLC/bloķēšanas stāvokļa un profilu pieejamības. Trūkstoša profilu informācija jāatstāj kā unknown, nevis jāaizpilda ar minētu kapacitāti.",
+        "basic": "DOCSIS 3.1 izmanto OFDM plašiem lejupielādes uztveršanas kanāliem. DOCSight to marķē atsevišķi, jo OFDM pierādījumi atšķiras no klasiskajām SC-QAM rindām.",
+        "eli5": "OFDM ir DOCSIS 3.1 lejupielādes kanāla tips, kas veidots no daudziem maziem apakšnesējiem.",
+        "technician": "OFDM diagnostikai salīdziniet profilu izmaiņas, MER līdzīgos rādītājus, kodvārdu/kļūdu uzvedību un blakus esošos SC-QAM pierādījumus. Neatbalstītus profilu laukus uzskatiet par datu robežu, nevis par pierādījumu labam vai sliktam pakalpojumam."
       },
       "misconceptions": [
         "Ja trūkst OFDM kapacitātes skaitļa, tas nenozīmē, ka kanāls nav izmantots; iespējams, DOCSight vienkārši trūkst drošu profila līmeņa datu."
@@ -296,10 +228,10 @@
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
-        "advanced": "OFDMA augšupējā kapacitāte ir atkarīga no apakšnesēju piešķiršanas, profila piešķiršanas, minislotu plānošanas, atgriešanās ceļa trokšņa un pakalpojumu sniedzēja lēmumiem, ko modema lapa var pilnībā neatklāt.",
-        "basic": "DOCSIS 3.1 izmanto OFDMA augšupielādei elastīgiem kanāliem. DOCSight var parādīt OFDMA signāla vai jaudas datus, taču vienkārša SC-QAM stila kapacitātes matemātika parasti nav droša bez sīkākas informācijas.",
-        "eli5": "OFDMA ir jaunāks augšpuses kabeļa kanāla veids, kas ļauj daudziem modemiem koplietot nelielas plaša kanāla daļas.",
-        "technician": "OFDMA telemetrijai ir nepieciešams profils/apakšnesējs un plānošanas konteksts drošai interpretācijai. Apkopoto report power un katra apakšnesēja pierādījumus nedrīkst sajaukt, ja vien draiveris neatklāj precīzu paredzēto metriku."
+        "advanced": "OFDMA darbība ir atkarīga no profiliem, apakšnesējiem, minisegmentiem, atgriezeniskā ceļa trokšņa un plānotāja konteksta. Trūkstoši, None vai null lauki nozīmē neatbalstīts vai nav ziņots, nevis izmērīta nulle.",
+        "basic": "OFDMA ļauj vairākiem modemiem koplietot plaša augšupielādes bloka daļas. DOCSight to marķē atsevišķi no SC-QAM augšupielādes kanāliem.",
+        "eli5": "OFDMA ir DOCSIS 3.1 augšupielādes kanāla veids.",
+        "technician": "Diagnosticējiet OFDMA, izmantojot augšupielādes notikumus, pārraides uzvedību, profilu pieejamību un latentuma/zudumu laika sakritību. Neizdariet SC-QAM stila jaudas pieņēmumus, ja vien modems nenodrošina nepieciešamo OFDMA detalizāciju."
       },
       "misconceptions": [
         "OFDMA kanāls bez parādīta kapacitātes skaitļa joprojām var būt aktīvs un svarīgs."
@@ -321,10 +253,10 @@
       "category": "modulation_channels",
       "id": "qam_modulation_order",
       "levels": {
-        "advanced": "Augstāka modulācijas secība palielina bitu skaitu uz simbolu, bet samazina toleranci pret troksni un kropļojumiem. Modulācija jāinterpretē, izmantojot SNR/MER, kanāla veidu un profila kontekstu.",
-        "basic": "QAM/modulācijas secība ietekmē to, cik bitu kanāls var pārnēsāt. Ja signāla kvalitāte ir slikta, kanālam var būt nepieciešama mazāka modulācija, un tāpēc tam ir mazāka bruto kapacitāte.",
-        "eli5": "Modulācija ir veids, kā dati tiek iesaiņoti kabeļa signālā. Lielāki QAM numuri var pārsūtīt vairāk datu, taču tiem ir nepieciešams tīrāks signāls.",
-        "technician": "SC-QAM modulācijas secība tieši ievada Layer-1 kapacitātes aprēķinus kopā ar simbolu ātrumu un kanāla platumu. Attiecībā uz OFDM/OFDMA profila/apakšnesēja piešķiršana padara attiecības sarežģītākas nekā viena etiķete katram kanālam."
+        "advanced": "QAM kārta jāinterpretē kopā ar kanāla saimi un SNR/MER. SC-QAM ir vienkāršāka, fiksēta kanāla attiecība salīdzinājumā ar OFDM/OFDMA profilu bāzētiem kanāliem.",
+        "basic": "Augstāki QAM līmeņi var pārnest vairāk bitu simbolā, bet tiem nepieciešams tīrāks signāls. DOCSight parāda modulāciju, lai kritumi vai zemi QAM stāvokļi būtu redzami.",
+        "eli5": "Modulācija nosaka, cik daudz datu tiek iepakots katrā kabeļsignāla solī.",
+        "technician": "Izmantojiet modulācijas izmaiņas kā pierādījumu, nevis kā atsevišķu spriedumu. Salīdziniet tās ar MER/SNR, jaudu, kļūdu pieaugumu, kanāla saimi un to, vai vērtība ir pašreizējā, vai tikai modema pēdējais ziņotais stāvoklis."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -338,29 +270,6 @@
     },
     {
       "aliases": [
-        "Kanāla platums",
-        "Simbolu ātrums",
-        "MHz",
-        "Msym/s"
-      ],
-      "category": "modulation_channels",
-      "id": "channel_width_symbol_rate",
-      "levels": {
-        "advanced": "DOCSIS kanālu plānos tiek izmantoti noteikti platumi un simbolu ātrumi. Kapacitātes matemātika ir atkarīga no kanālu saimes; SC-QAM var novērtēt tiešāk nekā OFDM/OFDMA bez profila datiem.",
-        "basic": "Atbalstītiem SC-QAM kanāliem kanāla platums, simbolu ātrums un modulācija palīdz novērtēt 1. slāņa bruto kapacitāti. Šīs ievades joprojām pašas par sevi nerada reālu IP caurlaidspēju.",
-        "eli5": "Kanāla platums norāda, cik daudz frekvences vietas kanāls izmanto. Simbolu ātrums norāda, cik ātri signāla soļi tiek nosūtīti šajā kanālā.",
-        "technician": "Kapacitātes aprēķinos ir jābūt skaidriem pieņēmumiem par kanālu saimi. EuroDOCSIS/DOCSIS platumus, simbolu ātrumus, modulācijas secību un PHY pieskaitāmās izmaksas nedrīkst atkārtoti akli izmantot OFDM/OFDMA profilos."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "MHz"
-      ],
-      "title": "Kanāla platums/simbolu ātrums"
-    },
-    {
-      "aliases": [
         "Signāla līmenis",
         "dBmV",
         "Saņemšanas jauda",
@@ -369,10 +278,10 @@
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "Jauda jāinterpretē pēc virziena un kanāla veida. Tīra izskata lejupvērstā vērtība automātiski neapliecina augšupējo stāvokli, un liela augšpuses pārraides jauda var liecināt, ka modems smagi strādā, lai sasniegtu pakalpojumu sniedzēja pusi.",
-        "basic": "DOCSight var parādīt pakārtoto uztveršanas jaudu un augšējo pārraides jaudu, kad modems tās atklāj. Vērtības ārpus paredzamajiem diapazoniem var norādīt uz kabeļu, sadalītāja, pastiprinātāja vai atgriešanās ceļa problēmām.",
-        "eli5": "Jaudas līmenis ir tas, cik spēcīgs kabeļa signāls izskatās modemam vai cik grūti modemam ir jārunā.",
-        "technician": "Enerģijas diagnostikai ir vajadzīgas vienības, virziens, kanālu saime un ierīces draivera semantika. OFDMA kopējā jauda un atskaites jauda uz 1,6 MHz nav jāuzskata par savstarpēji aizvietojamiem rādītājiem."
+        "advanced": "Jauda jāinterpretē atbilstoši virzienam un kanāla tipam. Lejupsaites uztveršanas līmenis, augšupsaites raidīšanas līmenis un OFDMA ziņotās jaudas lauks nav savstarpēji aizvietojami mērījumi.",
+        "basic": "DOCSight var parādīt lejupsaites uztveršanas jaudu un augšupsaites raidīšanas jaudu, ja modems tās ziņo. Šie divi virzieni nozīmē ko atšķirīgu.",
+        "eli5": "Jaudas līmenis parāda, cik spēcīgs ir kabeļa signāls vai cik skaļi modemam jārunā, lai atbildētu.",
+        "technician": "Jaudas datus izmanto kopā ar MER/SNR, modulāciju, sinhronizācijas stāvokli, splitteru/kabeļu vēsturi un laika faktoru. Neatbalstītus vai trūkstošus jaudas laukus nedrīkst pārvērst par nulles vērtības mērījumiem."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -392,10 +301,10 @@
       "category": "signal_quality",
       "id": "snr_mer",
       "levels": {
-        "advanced": "SNR/MER jāinterpretē kopā ar modulāciju, kanālu saimi un kļūdu skaitītājiem. Robežvērtība atkarībā no smaguma pakāpes var izraisīt zemākus profilus, labojamas kļūdas vai nelabojamas kļūdas.",
-        "basic": "SNR un MER ir kvalitātes mērījumi. Labākas vērtības parasti nozīmē, ka modems var uzticamāk atšifrēt kanālu, taču tās joprojām nav tieši vienādas ar Speedtest veiktspēju.",
-        "eli5": "SNR/MER norāda, cik skaidrs signāls ir salīdzinājumā ar troksni. Skaidrāks signāls padara lielāku datu pakotni uzticamāku.",
-        "technician": "MER/SNR sliekšņi ir atkarīgi no modulācijas un ieviešanas. DOCSight vajadzētu izvairīties no pakalpojumu sniedzēja vainas pieprasīšanas tikai vienas vērtības dēļ; Korelācija ar kanāla bloķēšanu, modulācijas profilu, FEC skaitītājiem un laika tendenci ir spēcīgāks pierādījums."
+        "advanced": "SNR/MER iegūst nozīmi, ja to lasa kopā ar modulāciju, kanālu saimi, kļūdu skaitītājiem un laika tendencēm. Viena tīra vērtība var slēpt periodisku troksni vai profila izmaiņas.",
+        "basic": "SNR un MER ir signāla kvalitātes mērījumi. Labākas vērtības parasti nozīmē, ka modems var kanālu dekodēt stabilāk.",
+        "eli5": "SNR/MER parāda, cik skaidri modems var \"dzirdēt\" signālu trokšņa fonā.",
+        "technician": "Eskalācijai fiksē MER/SNR kopā ar skarto kanālu ID, laika zīmogiem, kļūdu līmeņa izmaiņām, jaudu un notikumiem. Nesajauc SNR/MER semantiku starp dažādām kanālu saimēm, iepriekš nepārbaudot, ko modems faktiski uzrāda."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -408,52 +317,6 @@
     },
     {
       "aliases": [
-        "Signāla zudums",
-        "Slāpēšana",
-        "Kabeļa zudums"
-      ],
-      "category": "signal_quality",
-      "id": "attenuation",
-      "levels": {
-        "advanced": "Vājināšanos var izraisīt kabeļa garums, sadalītāji, sienas kontaktligzdas, filtri, slikti savienotāji vai iekārtas apstākļi. Tas bieži parādās netieši, izmantojot uztveršanas jaudu, pārraides jaudu, SNR/MER vai kanāla stabilitāti.",
-        "basic": "Daži signāla zudumi ir normāli, taču pārāk liels zudums var izstumt jaudas līmeņus ārpus diapazona vai piespiest modemu pārraidīt spēcīgāk uz augšu. DOCSight redz efektu, nevis katru fizisko cēloni.",
-        "eli5": "Vājināšanās nozīmē, ka signāls kļūst vājāks, pārvietojoties pa kabeli, sadalītājiem un savienotājiem.",
-        "technician": "Neizseciniet precīzu dB zuduma ceļu tikai no modema statistikas. Uztveriet vājināšanos kā diagnostikas hipotēzi, ko atbalsta virzienam specifiskas jaudas izmaiņas, topoloģijas zināšanas un pierādījumi pirms/pēc elektroinstalācijas."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "dBmV",
-        "DOCSight"
-      ],
-      "title": "Vājināšanās"
-    },
-    {
-      "aliases": [
-        "Troksnis",
-        "Ieeja",
-        "Traucējumi",
-        "Atgriešanās ceļa troksnis"
-      ],
-      "category": "signal_quality",
-      "id": "ingress_noise",
-      "levels": {
-        "advanced": "Troksnis var būt periodisks, specifisks virzienam vai ierobežots ar noteiktām frekvencēm. Laika tendence ietekmētajos kanālos parasti ir noderīgāka nekā viens izolēts momentuzņēmums.",
-        "basic": "Iekļūšana un troksnis var samazināt SNR/MER, izraisīt kļūdas vai padarīt augšupējo komunikāciju nestabilu. DOCSight var parādīt simptomus, ja modems atklāj ietekmēto signālu un kļūdu datus.",
-        "eli5": "Troksnis ir nevēlams signāls, kas sajaukts kabeļa signālā. Pārāk daudz trokšņa padara datus grūtāk nolasāmus.",
-        "technician": "Atgriešanās ceļa iekļūšana, impulsu troksnis, kopējā ceļa kropļojumi un lokālas kabeļu kļūdas var atšķirīgi ietekmēt DOCSIS kanālus. DOCSight ir jāsniedz modemā redzami pierādījumi, nepieprasot pilnīgu rūpnīcas lokalizāciju."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SNR",
-        "MER",
-        "OFDMA"
-      ],
-      "title": "Ieeja/troksnis"
-    },
-    {
-      "aliases": [
         "Labojamie",
         "Izlabotie koda vārdi",
         "FEC labots"
@@ -461,10 +324,10 @@
       "category": "error_counters",
       "id": "correctable_errors",
       "levels": {
-        "advanced": "Koriģējamie atspoguļo FEC darbu. Var būt noderīga izaugsme trokšņa notikumu laikā, augsti rādītāji konkrētos kanālos vai korelācija ar zemu MER; vecie kumulatīvie kopējie rādītāji vien ir vāji pierādījumi.",
-        "basic": "Koriģējamie skaitītāji var pacelties pat uz darba līnijas. Likmei, laikam, ietekmētajiem kanāliem un tam, vai arī nelabojamie palielinās, ir vairāk nekā viena neapstrādāta summa.",
-        "eli5": "Labojamās kļūdas ir nelielas kļūdas, ko modems varēja labot, pirms tās ir zaudējušas datus.",
-        "technician": "Turiet neapstrādātus modema skaitītājus atsevišķi no atvasinātajiem tarifiem. DOCSight ir jāsaglabā kumulatīvās vērtības kā pierādījums, izmantojot novērojumu logus, bāzes līnijas un pieauguma tempus veselības interpretācijai."
+        "advanced": "Labojamās kļūdas parāda FEC darbu, nevis tiešu paku zudumu. Nesens pieaugums trokšņa notikumu laikā ir stiprāks pierādījums nekā liels kopējais skaits, kas uzkrājies no pagātnes.",
+        "basic": "Labojamo kļūdu skaitītāji var pieaugt pat tad, ja līnija darbojas normāli. DOCSight padara tos noderīgus, parādot pieauguma ātrumu, laiku, skartos kanālus un to, vai pieaug arī nelabojamās kļūdas.",
+        "eli5": "Labojamās kļūdas ir signāla kļūdas, ko modems spēja izlabot.",
+        "technician": "Salīdziniet labotu kodvārdu pieaugumu pēc kanāla un laika loga. Sasaistiet to ar MER/SNR, modulāciju un nelabojamām kļūdām, lai atšķirtu nekaitīgu fona labošanu no aktīva traucējuma."
       },
       "misconceptions": [
         "Augsta vecā koriģējamā kopsumma automātiski nav aktīva kļūme."
@@ -485,10 +348,10 @@
       "category": "error_counters",
       "id": "uncorrectable_errors",
       "levels": {
-        "advanced": "Nelabojamajiem ir jābūt saistītiem ar SNR/MER, kanālu bloķēšanu, modulācijas izmaiņām un lietotājam redzamiem simptomiem. Atiestatīšana vai atsāknēšana var arī mainīt neapstrādātu skaitītāja darbību.",
-        "basic": "Nelabojamie var norādīt uz zaudētiem datiem kanāla līmenī, īpaši, ja tie pieaug novērošanas loga laikā. To laiks un augšanas ātrums ir svarīgāks par veco skaitītāju.",
-        "eli5": "Nelabojamas kļūdas ir kļūdas, ko modems nevarēja novērst. Tās ir nopietnākas par labojamām kļūdām.",
-        "technician": "Lai iegūtu pierādījumus, saglabājiet neapstrādātus nelabojamus skaitītājus un aprēķiniet atvasināto pieaugumu no zināmas bāzes līnijas. Izvairieties no modema kopējo summu pārrakstīšanas; atšķirt skaitītāja atiestatīšanu, aptvērumu un pašreizējo novērošanas loga tapas."
+        "advanced": "Pierādījumos jāuztur nošķirti neapstrādāti kumulatīvie skaitītāji no atvasinātā pieauguma. Atiestatīšanas, pārpildes (wraparound) un modema pārstartēšanas var mainīt neapstrādātos kopsummas, nenozīmējot jaunu darbības pārtraukumu.",
+        "basic": "Nelabojamas kļūdas var nozīmēt zaudētus datus kanāla līmenī, it īpaši, ja to skaits pieaug novērošanas perioda laikā. DOCSight pieaugumu un tā laiku uzskata par nozīmīgāku nekā vienu vecu kopējo skaitli.",
+        "eli5": "Nelabojamas kļūdas ir signāla kļūdas, kuras modems nevarēja izlabot.",
+        "technician": "Izmantojiet nelabojamās kļūdas kā pamatojumu eskalācijai, ja svaigs pieaugums sakrīt ar zemu MER/SNR, modulācijas pazemināšanos, notikumu žurnālu ierakstiem vai lietotājam redzamu latentumu/datu zudumu. Eksportējot pierādījumus, saglabājiet neapstrādāto skaitītāju."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -500,74 +363,6 @@
     },
     {
       "aliases": [
-        "Layer-1",
-        "bruto kapacitāte",
-        "kanāla kapacitāte"
-      ],
-      "category": "capacity_throughput",
-      "id": "layer1_capacity",
-      "levels": {
-        "advanced": "Layer-1 ietilpība ir zemāka par MAC plānošanu, FEC, savienošanas uzvedību, pakalpojumu plūsmas ierobežojumiem, IP pieskaitāmajām izmaksām, lietojumprogrammu darbību un segmentu slodzi. Tas ir viens diagnostikas slānis, nevis viss savienojums.",
-        "basic": "DOCSight var novērtēt Layer-1 bruto kapacitāti atbalstītajiem SC-QAM kanāliem. Tas ir noderīgs kanāla konteksts, taču tas nav solījums par lietojamu interneta ātrumu.",
-        "eli5": "1. slāņa kapacitāte ir teorētisks skaitlis tam, ko var pārvadāt kabeļa signāla slānis, pirms tiek noņemtas reālās pieskaitāmās izmaksas.",
-        "technician": "PHY/Layer-1 kapacitāte ir jāmarķē kā bruto kanāla pierādījums. Nepielīdziniet to pakalpojumu plūsmas ātrumiem, TCP/UDP labvadībai, Speedtest rezultātiem vai līgumā noteikto tarifu ātrumam."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "Layer-1",
-        "DOCSIS",
-        "SC-QAM",
-        "IP"
-      ],
-      "title": "Layer-1 kapacitāte"
-    },
-    {
-      "aliases": [
-        "bruto kapacitāte",
-        "neto kapacitāte",
-        "pieskaitāmās izmaksas"
-      ],
-      "category": "capacity_throughput",
-      "id": "gross_vs_net_capacity",
-      "levels": {
-        "advanced": "Bruto un neto atšķirības rodas no PHY pieskaitāmajām izmaksām, FEC, MAC kadrēšanas, strīda, pakalpojumu plūsmas veidošanas, IP/TCP/UDP pieskaitāmās izmaksas un lietojumprogrammu darbības. Dažādi testi mēra dažādus slāņus.",
-        "basic": "Bruto kanāla aprēķins sākas pirms DOCSIS, IP un lietojumprogrammas pieskaitāmajām izmaksām. Neto caurlaidspēja ir zemāka, un tā ir atkarīga arī no plānošanas, pakalpojumu sniedzēja ierobežojumiem, klientiem un ceļa uz serveri.",
-        "eli5": "Bruto ir pirms pieskaitāmajām izmaksām. Tīkls ir tuvāk tam, kas paliek pāri pēc tam, kad tīkls izmanto kādu vietu komunikācijas darbam.",
-        "technician": "Saglabājiet mērījumu slāni nepārprotami: PHY bruto kapacitāte, MAC/pakalpojuma plūsmas ātrums, IP caurlaidspēja un lietojumprogrammas lietderīgā caurlaidspēja ir atsevišķi. Šo slāņu sajaukšana rada maldinošus salīdzinājumus."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "Layer-1",
-        "IP"
-      ],
-      "title": "Bruto pret neto kapacitāti"
-    },
-    {
-      "aliases": [
-        "interneta caurlaidspēja",
-        "Goodput",
-        "Izmantojamais ātrums",
-        "Speedtest"
-      ],
-      "category": "capacity_throughput",
-      "id": "ip_throughput",
-      "levels": {
-        "advanced": "Caurlaidība var būt zemāka par kanāla kapacitāti nodrošinājuma, plānošanas, konkurences, trafika formēšanas, pakešu zuduma, latentuma, klientu ierobežojumu un servera puses vājo vietu dēļ.",
-        "basic": "IP caurlaidspēja ir tuvāka lietotņu un ātruma testu pieredzei, nevis kanāla kapacitātei. Tā ir atkarīga no DOCSIS stāvokļa, pakalpojumu sniedzēja konfigurācijas, maršrutēšanas, Wi-Fi/LAN un attālā servera.",
-        "eli5": "IP caurlaidspēja ir reāli dati, kas nodrošina to, izmantojot jūsu interneta savienojumu pēc tīkla pārslodzes un ierobežojumiem.",
-        "technician": "Lietderīgā caurlaidspēja ir rezultāts no gala līdz galam. DOCSight modema diagnostika var izskaidrot vietējos DOCSIS slāņa pierādījumus, taču tai nevajadzētu apgalvot, ka IP caurlaidspējas rezultātam ir viens vienīgs cēlonis bez atbalsta datiem."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "IP",
-        "DOCSIS",
-        "Speedtest"
-      ],
-      "title": "IP caurlaidspēja"
-    },
-    {
-      "aliases": [
         "Ātruma tests",
         "Lejupielādes tests",
         "Augšupielādes tests",
@@ -576,10 +371,10 @@
       "category": "capacity_throughput",
       "id": "speedtest",
       "levels": {
-        "advanced": "ātruma testi var palīdzēt pārbaudīt lietotāju ietekmi, taču tie nav tas pats, kas kanālu diagnostika. Zemam rezultātam ir nepieciešama korelācija ar modema pierādījumiem, klienta ceļu un pakalpojumu sniedzēja/pakalpojuma ierobežojumiem.",
-        "basic": "A Speedtest ir vienā brīdī veikts mērījums no gala līdz galam. To ietekmē DOCSIS stāvoklis, tarifu ierobežojumi, segmenta slodze, Wi-Fi/LAN, maršrutēšana un izvēlētais testa serveris.",
-        "eli5": "Ātruma tests pārbauda, ​​cik ātri dati pašlaik tiek pārvietoti uz testa serveri un no tā.",
-        "technician": "Apstrādājiet Speedtest datus kā IP/lietojumprogrammas slāņa pierādījumus. Salīdziniet tos ar tarifu ātrumu un diagnostikas laika grafiku, nevis tieši ar PHY bruto SC-QAM kapacitāti vai neapstrādātu kanālu skaitu."
+        "advanced": "Speedtest mēra IP veiktspēju no gala līdz galam vienā konkrētā brīdī. Tas nav tas pats, kas DOCSIS kanāla kapacitāte, tarifa ātrums vai vietējā RF signāla stāvoklis.",
+        "basic": "DOCSight var reģistrēt lejupielādes, augšupielādes, aiztures un jitter vērtības, lai lietotājam redzamo veiktspēju varētu salīdzināt ar DOCSIS pierādījumiem.",
+        "eli5": "Speedtest parāda ātrumu un aizturi, ko lietotājs redz testa laikā.",
+        "technician": "Speedtest rezultātus interpretē kopā ar testa serveri, diennakts laiku, savienojuma monitoringa datiem, segmenta pazīmēm un modema pierādījumiem. Neizmantojiet vienu zemu rezultātu kā pierādījumu DOCSIS signāla kļūmei."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -592,29 +387,6 @@
     },
     {
       "aliases": [
-        "Rezervētais ātrums",
-        "Plāna ātrums",
-        "Līguma ātrums",
-        "Paredzētais ātrums"
-      ],
-      "category": "capacity_throughput",
-      "id": "tariff_speed",
-      "levels": {
-        "advanced": "Plāna ātrumu parasti nodrošina pakalpojumu sniedzēja konfigurācijas un pakalpojumu plūsmas ierobežojumi. Reālais ātrums ir atkarīgs arī no tīkla slodzes, modema stāvokļa, maršrutēšanas un vietējā klienta apstākļiem.",
-        "basic": "Tarifa ātrums ir produkta un nodrošinājuma robeža. DOCSight kanāla dati var parādīt, vai kabeļa saite izskatās vesela, taču tie nevar pierādīt visas pakalpojumu sniedzēja puses politiku vai līguma detaļas.",
-        "eli5": "Tarifa ātrums ir interneta plāns, par kuru maksājat, piemēram, rezervētā lejupielādes un augšupielādes likme.",
-        "technician": "Neizseciniet precīzu abonenta pakalpojumu plūsmas konfigurāciju tikai no kanāla kapacitātes. Izmantojiet skaidru provisioning vai Speedtest pierādījumus, kad tie ir pieejami, un turiet DOCSight kapacitātes etiķetes atsevišķi no tarifu prasībām."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Tarifa ātrums"
-    },
-    {
-      "aliases": [
         "Segmenta slodze",
         "Sastrēgumi",
         "Mezgla slodze",
@@ -623,10 +395,10 @@
       "category": "capacity_throughput",
       "id": "segment_utilization",
       "levels": {
-        "advanced": "Segmenta slodze ir atkarīga no pakalpojumu grupas lieluma, aktīvajiem abonentiem, kanāla kapacitātes, CMTS plānošanas un diennakts laika. Vietējie modema pierādījumi var parādīt simptomus, bet ne pilnu izmantošanas saucēju.",
-        "basic": "Noslogots segments var samazināt reālo ātrumu pat tad, ja modema signāls izskatās labs. DOCSight nedrīkst pieprasīt precīzu segmenta izmantošanu, ja vien atbalstīts avots neatklāj šos datus.",
-        "eli5": "Segmenta izmantošana nozīmē, cik noslogots ir koplietotais kabeļa segments.",
-        "technician": "Pilnīgai izmantošanai ir nepieciešami pakalpojumu sniedzēja vai atbalstīti ārēji pierādījumi. Izvairieties no segmenta kopējās slodzes iegūšanas tikai no viena modema kanālu saraksta, Speedtest vai signāla stāvokļa."
+        "advanced": "Unknown paliek redzama kategorija un saglabājas sadalījuma saucējos. Tās izslēgšana liktu pieejamajiem paraugiem izskatīties noteiktākiem, nekā tie patiesībā ir.",
+        "basic": "Skats salīdzina lokālā signāla pierādījumus ar atbalstītiem noslodzes vai veiktspējas signāliem, ja šie datu avoti ir pieejami.",
+        "eli5": "Segmenta noslodzes rādītājs palīdz atšķirt jūsu modema signālu no kopīga segmenta noslodzes pazīmēm.",
+        "technician": "Izmantojiet šo skatu tikai ar tā pierādījumu robežu: atbalstītajiem paraugiem, Unknown grupām, trūkstošajiem datiem un ārējiem veiktspējas mērījumiem jāpaliek nodalītiem eksportos un skaidrojumos."
       },
       "misconceptions": [
         "Labs modema signāls nav nepārslogota segmenta pierādījums."
@@ -637,125 +409,6 @@
         "DOCSight"
       ],
       "title": "Segmenta izmantošana"
-    },
-    {
-      "aliases": [
-        "Caurlaidspēja",
-        "Kanāla kapacitāte",
-        "Kapacitāte salīdzinājumā ar caurlaidspēju"
-      ],
-      "category": "capacity_throughput",
-      "id": "capacity_vs_throughput",
-      "levels": {
-        "advanced": "Layer-1 kanāla kapacitāte ir novērtējums pirms MAC, FEC, plānošanas, kanālu apvienošanas, segmenta slodzes, trafika formēšanas un IP/lietojumprogrammas papildu izmaksām. Speedtest vienā brīdī mēra ceļu no gala līdz galam.",
-        "basic": "DOCSight kapacitātes aprēķini apraksta kanāla līmeņa bruto kapacitāti, īpaši atbalstītajiem SC-QAM kanāliem. Tie nav tavs tarifa ātrums, nav Speedtest un negarantē reālu IP caurlaidspēju.",
-        "eli5": "Kapacitāte ir tas, cik daudz kabeļa kanāls teorētiski varētu pārvadāt. Speedtest rāda, ko tavs savienojums šobrīd nodrošina pēc tam, kad ietekmē arī daudzi citi faktori.",
-        "technician": "Nepielīdzini PHY bruto kapacitāti pakalpojuma plūsmas ātruma ierobežojumiem vai TCP/UDP lietderīgajai caurlaidspējai. Novēroto caurlaidspēju var ietekmēt CMTS plānošana, provisioning, OFDM/OFDMA profila pieejamība, RF traucējumi, rindas, peering un testa servera darbība."
-      },
-      "misconceptions": [
-        "Kanālu kapacitātes summa nav pierādījums tam, ka klientam Speedtest būtu jāredz tas pats skaitlis.",
-        "Tarifa ātrums ir produkta konfigurācija; DOCSight kanālu diagnostika ir lokāls pierādījums."
-      ],
-      "protected_terms": [
-        "Layer-1",
-        "SC-QAM",
-        "Speedtest",
-        "IP",
-        "DOCSight"
-      ],
-      "title": "Kapacitāte salīdzinājumā ar Speedtest"
-    },
-    {
-      "aliases": [
-        "Nodrošinātais pakalpojums",
-        "Pakalpojuma plūsma",
-        "Aktivizācija",
-        "Plāna konfigurācija"
-      ],
-      "category": "modem_state",
-      "id": "provisioning",
-      "levels": {
-        "advanced": "nodrošināšana var ietekmēt tarifu ātrumu, pakalpojumu plūsmas, modema autorizāciju, sāknēšanas faila/konfigurācijas piešķiršanu un iespējotās funkcijas. Tas ir nošķirts no neapstrādāta RF signāla kvalitātes.",
-        "basic": "nodrošināšana kontrolē, vai modems ir atļauts tiešsaistē un kādi pakalpojuma ierobežojumi ir spēkā. DOCSight var rādīt mājienus, taču nodrošinātāja puses konfigurācija ne vienmēr ir pilnībā redzama no modema.",
-        "eli5": "Nodrošināšana ir veids, kā pakalpojumu sniedzējs norāda modemam, kādam pakalpojumam tam jābūt.",
-        "technician": "Uztveriet nodrošināšanu kā pakalpojumu sniedzēja kontrolētu DOCSIS/MAC slāņa līgumu. Vietējās modema lapas var atklāt sāknēšanas failu nosaukumus vai pakalpojuma statusu, bet ne visas CMTS politikas vai abonenta konta loģikas."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "nodrošināšana"
-    },
-    {
-      "aliases": [
-        "sāknēšanas fails",
-        "konfigurācijas fails",
-        "DOCSIS konfigurācija",
-        "Pakalpojuma konfigurācija"
-      ],
-      "category": "modem_state",
-      "id": "bootfile_config_file",
-      "levels": {
-        "advanced": "Sāknēšanas faila pierādījumi var atbalstīt nodrošinājuma diagnostiku, taču nosaukumi ir specifiski pakalpojumu sniedzējam un var nebūt precīzi saistīti ar publiskajām tarifu etiķetēm. Tas jālieto uzmanīgi un kopā ar citiem pierādījumiem.",
-        "basic": "DOCSIS konfigurācijas fails var definēt pakalpojuma darbību, piemēram, ātruma ierobežojumus un iespējotos līdzekļus. Daži modemi atklāj nosaukumu; DOCSight nevajadzētu uzņemties pilnu saturu tikai no nosaukuma.",
-        "eli5": "Sāknēšanas fails/konfigurācijas fails ir nodrošinātāja instrukcijas, ko modems saņem, startējot.",
-        "technician": "DOCSIS konfigurācijas faili ir daļa no modema reģistrācijas/nodrošināšanas. Bez faktiskā faila satura un CMTS konteksta parādītais faila nosaukums ir tikai mājiens, nevis pilnīgs pakalpojumu plūsmas līgums."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "sāknēšanas fails/konfigurācijas fails"
-    },
-    {
-      "aliases": [
-        "Daļēja savienošana",
-        "Trūkst kanālu",
-        "Daļēja kanāla bloķēšana"
-      ],
-      "category": "modem_state",
-      "id": "partial_service",
-      "levels": {
-        "advanced": "Daļēju pakalpojumu var izraisīt RF problēmas, profila/kanāla problēmas, apkope, nodrošināšana vai modema/CMTS darbības. Tas jāinterpretē ar kanāla bloķēšanu, kļūdām, jaudu un notikumu laiku.",
-        "basic": "Modems, kas darbojas daļēji, joprojām var nodrošināt internetu, taču ar mazāku kanālu skaitu, zemāku noturību vai samazinātu veiktspēju. DOCSight var palīdzēt parādīt, kuras redzamās kanālu ģimenes tiek ietekmētas.",
-        "eli5": "Daļējs pakalpojums nozīmē, ka modems ir tiešsaistē, bet neizmanto visus paredzētos kanālus vai funkcijas.",
-        "technician": "Neuzskatiet daļēju apkalpošanu kā vienu fiksētu iemeslu. Diagnosticējiet pēc virziena, kanālu saimes, notikumu žurnāla, RF metrikas un to, vai stāvoklis joprojām pastāv atkārtotas sinhronizācijas/atsāknēšanas vai pakalpojumu sniedzēja uzturēšanas logos."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "OFDM",
-        "OFDMA"
-      ],
-      "title": "Daļējs pakalpojums"
-    },
-    {
-      "aliases": [
-        "Modema atsāknēšana",
-        "Resinhronizācija",
-        "Diapazona restartēšana",
-        "Atkārtota savienošana"
-      ],
-      "category": "modem_state",
-      "id": "resync_reboot",
-      "levels": {
-        "advanced": "Atkārtoti sinhronizāciju var izraisīt apkope, RF nestabilitāte, nodrošinājuma izmaiņas, strāvas zudums, modema programmaparatūra vai pakalpojumu sniedzēja puses notikumi. Salīdziniet momentuzņēmumus pirms/pēc, nevis tikai vienu stāvokli.",
-        "basic": "Atsāknēšana un atkārtota sinhronizācija var īslaicīgi notīrīt skaitītājus, mainīt kanālu piešķiršanu vai atjaunot pakalpojumu pēc kļūmes. Ja tie notiek negaidīti, laiks ir svarīgs pierādījums.",
-        "eli5": "Atsāknēšana restartē modemu. Atkārtoti sinhronizējot, tas atkārtoti izveido savienojumu ar kabeļtīklu.",
-        "technician": "Lai iegūtu pierādījumus, saglabājiet laika zīmogus, notikumu žurnālus, kanālu izmaiņas un pretsākuma efektus saistībā ar atsāknēšanas/atkārtotas sinhronizācijas notikumiem. Neuztveriet atiestatīšanas skaitītājus kā pierādījumu tam, ka agrākais samazinājums nekad nav noticis."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Atkārtoti sinhronizēt/reboot"
     }
   ]
 }

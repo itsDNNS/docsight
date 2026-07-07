@@ -20,10 +20,10 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "DOCSIS hálózatok egyesítik a downstream és upstream csatornákat, mint például az SC-QAM, OFDM és OFDMA. A DOCSight képes értelmezni a helyi modem által látható jel- és csatornaadatokat, de nem láthat minden szolgáltató oldali szegmenst vagy útválasztási feltételt. A",
-        "basic": "DOCSIS internetszolgáltatást nyújt koax kábelen keresztül. A DOCSight beolvassa a modem-, csatorna- és jeladatokat a támogatott kábeleszközökről, így diagnosztikája a kábelkapcsolatot írja le, nem pedig DSL-vonalat. A",
-        "eli5": "A DOCSIS az a nyelv, amelyet a kábelmodem a kábelhálózattal való kommunikációhoz használ. Ez kábeles internet, nem DSL telefonvonalon keresztül. A",
-        "technician": "DOCSIS meghatározza a kábelmodem hozzáférési réteget a CM és a CMTS között a HFC/koax szegmensen keresztül. A helyi csatorna telemetriája hasznos az RF- és MAC-réteg diagnosztikához, de a szolgáltatói kiépítés, a szegmensterhelés, a CMTS-házirend és az IP-útválasztás kívül marad a csak modemes bizonyítékok határán. A"
+        "advanced": "A DOCSIS letöltési és feltöltési irányban is többféle csatornacsaládot használ, például SC-QAM, OFDM és OFDMA. Mindegyik család más jellegű adatokat tesz elérhetővé, ezért a DOCSight külön kezeli a csatornatípust, az irányt és a támogatottsági állapotot.",
+        "basic": "A DOCSIS koax kábelen keresztül biztosítja az internetszolgáltatást. A DOCSight a támogatott DOCSIS eszközökből olvassa ki a modem-, csatorna- és jelállapot-adatokat, így az általa szolgáltatott bizonyíték a kábeles hozzáférési kapcsolatra vonatkozik, nem a DSL-re.",
+        "eli5": "A DOCSIS az a kábelinternet-nyelv, amelyet a kábelmodem és a szolgáltató hálózata beszél egymással.",
+        "technician": "A DOCSIS-adatokat modemoldali RF/MAC kontextusként kezeld: csatornazár, teljesítményszint, MER/SNR, moduláció, hibák és események. A szolgáltatói provisioning, a CMTS-szabályzat, a szegmensterhelés és az IP-útválasztás megítéléséhez továbbra is külön alátámasztó forrás szükséges."
       },
       "misconceptions": [
         "DOCSIS nem DSL; A DSL-értékeket és a kábelcsatorna-értékeket nem szabad egy az egyhez hasonlítani."
@@ -37,74 +37,6 @@
     },
     {
       "aliases": [
-        "DSL",
-        "Telefonvonal és koax"
-      ],
-      "category": "cable_basics",
-      "id": "dsl_vs_cable",
-      "levels": {
-        "advanced": "DSL rendszerint pont-pont vonalat jelenít meg szinkronizálási sebesség stílusértékekkel. A DOCSIS megosztott koax szegmenseket, kötött csatornákat és CMTS-ütemezést használ, ezért a modemcsatorna-diagnosztika eltérő értelmezést igényel.",
-        "basic": "A DOCSight kábeles/DOCSIS bizonyítékokra épül. A kábelmodem értékeit, például a csatornákat, a modulációt, az SNR/MER-t és a DOCSIS-kapacitást nem szabad úgy olvasni, mint a DSL-szinkronizálási sebességeket vagy a DSL-vonalstatisztikát. A",
-        "eli5": "A DSL és a kábel két különböző módja annak, hogy az internetet hazavigyük. A DSL telefonvezetékeket használ; kábeles internet koaxiális kábelt és DOCSIS-t használ.",
-        "technician": "Ne rendelje hozzá a DSL csillapítási, szinkronizálási vagy profilfogalmakat közvetlenül a DOCSIS RF/MAC bizonyítékaihoz. A DOCSIS csatorna állapota, az OFDM/OFDMA profilok, a szolgáltatásfolyamatok és a CMTS viselkedés eltérő hozzáférési architektúrát ír le."
-      },
-      "misconceptions": [
-        "A kábelcsatorna lista nem DSL szinkronizálási táblázat."
-      ],
-      "protected_terms": [
-        "DSL",
-        "DOCSIS",
-        "DOCSight"
-      ],
-      "title": "DSL vs. kábel"
-    },
-    {
-      "aliases": [
-        "Koax",
-        "Antennakábel",
-        "Kábelvonal"
-      ],
-      "category": "cable_basics",
-      "id": "coaxial_cable",
-      "levels": {
-        "advanced": "DOCSIS koaxiális utak rádiófrekvenciás utak: a teljesítményszint, az SNR/MER, a bemenet, a csillapítás és a csatornazár megváltozhat, ha a kábelezés, az elosztók vagy az erősítők rosszak vagy rossz a mérete.",
-        "basic": "A kábeles internet koaxiális kábelen fut az otthona és a szolgáltató hálózata között. Az elosztók, csatlakozók és az otthoni vezetékek befolyásolhatják a jelszintet és a minőséget. A",
-        "eli5": "A koaxiális kábel egy kerek kábel, amely TV és kábeles internetjeleket továbbít. A kábelmodem ezt használja a DOCSIS hálózathoz való csatlakozáshoz.",
-        "technician": "A HFC hálózatokban a koaxiális láb lefelé és felfelé irányuló RF csatornákat visz a modem és a hozzáférési hálózat között. A DOCSight megjelenítheti a modem által látható rádiófrekvenciás tüneteket, de nem a teljes fizikai üzem topológiáját."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "HFC",
-        "DOCSight"
-      ],
-      "title": "Koaxiális kábel"
-    },
-    {
-      "aliases": [
-        "Modem",
-        "Gateway",
-        "Kábelútválasztó",
-        "Híd üzemmód"
-      ],
-      "category": "cable_basics",
-      "id": "cable_modem_router",
-      "levels": {
-        "advanced": "Az átjáró egyesíti a DOCSIS modem funkcióit az útválasztással/NAT/Wi-Fi-vel. Az áthidaló módban előfordulhat, hogy az útválasztást egy másik eszköz felé irányítják, de a DOCSIS jel és csatorna bizonyítékai továbbra is a modem oldalához tartoznak.",
-        "basic": "Egy kábelmodem kezeli a DOCSIS-t a szolgáltatói oldalon. Sok eszköz útválasztóként, Wi-Fi hozzáférési pontként vagy átjáróként is működik az otthoni IP-hálózathoz.",
-        "eli5": "A modem/router az a doboz, amely az otthoni hálózatot összeköti a kábelhálózattal.",
-        "technician": "A DOCSIS-réteg megfigyelései elkülönítése a LAN/router viselkedésétől. A jó rádiófrekvenciás és csatornaállapot nem zárja ki a Wi-Fi, NAT, tűzfal, útválasztás vagy kliensoldali szűk keresztmetszeteket a modem mögött."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "DOCSight",
-        "IP"
-      ],
-      "title": "Kábelmodem/router"
-    },
-    {
-      "aliases": [
         "Kábelmodem lezáró rendszer",
         "Távoli PHY",
         "Szolgáltatói fejállomás"
@@ -112,10 +44,10 @@
       "category": "cable_basics",
       "id": "cmts",
       "levels": {
-        "advanced": "A szolgáltatói oldali rendszerek ütemezik az upstream hozzáférést, biztosítanak lefelé irányuló csatornákat, alkalmaznak kiépítést, és részt vesznek a szolgáltatásáramlási korlátokban. A helyi modem bizonyítékai problémákra utalhatnak, de nem tudják teljes mértékben leírni a CMTS-szabályzatot. A",
-        "basic": "Egy CMTS vagy kapcsolódó szolgáltatóoldali hozzáférési rendszer kezeli a DOCSIS modemeket, csatornákat, ütemezést és szolgáltatáskonfigurációt. A DOCSight általában csak a kapcsolat modem oldalát látja.",
-        "eli5": "A CMTS a szolgáltató oldali rendszer, amellyel a kábelmodem kommunikál.",
-        "technician": "CMTS, CCAP, Remote PHY és csomópont architektúrák befolyásolják a csatorna elérhetőségét, a profil hozzárendelését, az ütemezést és a károsodások kezelését. A DOCSightnak nem szabad kikövetkeztetnie a szolgáltató oldali állapotát, hacsak egy kifejezetten támogatott forrás nem teszi közzé."
+        "advanced": "A CMTS/CCAP működése befolyásolhatja a csatornák elérhetőségét, a profilokat, az ütemezést és a provisioningot, de ezek a szolgáltatói oldali döntések a modemtelemetrián keresztül csak részben figyelhetők meg.",
+        "basic": "A CMTS vagy egy hasonló hozzáférési rendszer kezeli a DOCSIS modemeket, a csatornákat, az ütemezést és a szolgáltatás-konfigurációt. A DOCSight jellemzően csak a modem oldalát látja.",
+        "eli5": "A CMTS az a szolgáltatói oldali rendszer, amellyel a kábelmodemed kommunikál.",
+        "technician": "Ne következtess a pontos CMTS-állapotra kizárólag a modemadatokból. CMTS-re vonatkozó megfogalmazást csak akkor használj, ha azt kifejezett szolgáltatói adat, eseménykontextus vagy azt ténylegesen feltáró modemmező alátámasztja."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -135,10 +67,10 @@
       "category": "cable_basics",
       "id": "node_segment",
       "levels": {
-        "advanced": "A szolgáltatáscsoportok és csomóponthatárok befolyásolják a versenyt, a csatornaterhelést és a frissítés tervezését. A helyi modem felfedheti saját csatornaállapotát, nem pedig a szomszédos modemek teljes listáját vagy a teljes szolgáltatói igényt.",
-        "basic": "Az ugyanabban a kábelszegmensben dolgozók bizonyos hozzáférési hálózati kapacitáson osztoznak. A csomópont-felosztás csökkentheti, hogy hány felhasználó osztozik ugyanazon az erőforráson, de a DOCSight általában nem látja a teljes szegmenspopulációt.",
-        "eli5": "A szegmens a kábelhálózat azon része, amelyet otthonok csoportja oszt meg.",
-        "technician": "A szegmensek értelmezése a szolgáltató topológiájától, a szolgáltatáscsoport méretétől, a távoli PHY/CMTS tervezéstől és az aktív előfizetőktől függ. A teljes felhasználást szolgáltató oldali bizonyítékként kezelje, hacsak nem támogatott forráson keresztül mérik."
+        "advanced": "A service-group határai befolyásolják az erőforrásokért folyó versengést, a csatornaterhelést és a bővítési terveket. A helyi modem mutathat tüneteket, de nem látja a teljes szegmens felhasználói létszámát vagy a szolgáltató oldali ütemező állapotát.",
+        "basic": "Az azonos kábelszegmensben lévő felhasználók megosztják egymással a hozzáférési hálózat kapacitásának egy részét. Egy node felosztás csökkentheti az azonos erőforrásokat megosztó felhasználók számát.",
+        "eli5": "A node vagy szegmens a kábelhálózat azon része, amelyet egy csoportnyi háztartás közösen használ.",
+        "technician": "Óvatosan fogalmazz szegmensre vonatkozó megállapításokat: először igazold a helyi jelminőséget, majd vesd össze az időzítést, a sebesség-/késleltetés-bizonyítékokat és a szolgáltatói adatokat, mielőtt egy problémát szegmensterhelésnek minősítenél."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -157,10 +89,10 @@
       "category": "cable_basics",
       "id": "shared_medium",
       "levels": {
-        "advanced": "DOCSIS kapacitása meg van osztva csatornák és szolgáltatáscsoportok között. A helyi modemstatisztikák a csatornát és a jelállapotot mutatják, míg a versengés és az ütemezés a szolgáltató oldalán történik.",
-        "basic": "A kábelhálózatok több felhasználó között osztják meg a hozzáférési hálózat egyes részeit. A szegmens terhelése befolyásolhatja a valós sebességet, és a DOCSight nem képes közvetlenül mérni a szegmens összes többi modemet. A",
-        "eli5": "A kábelszegmens olyan, mint egy út, amelyet több otthon használ. A modemnek akkor is tiszta jele lehet, ha forgalmas az út.",
-        "technician": "A megosztott adathordozó viselkedése a szolgáltatáscsoport méretétől, a CMTS ütemezésétől, az OFDMA/OFDM profiloktól, a kiépítéstől és az aktív előfizetői igénytől függ. A DOCSight kiemelheti a helyi rádiófrekvenciás/csatorna-tüneteket, de nem következtethet teljes szegmenskihasználásra, hacsak egy támogatott adatforrás fel nem fedi."
+        "advanced": "A megosztott közeg viselkedése a service-group méretétől, az ütemezéstől, a csatornakapacitástól, az aktuális terheléstől és a szolgáltatói szabályzattól függ. Egyetlen modem nem tudja közvetlenül lemérni a teljes szegmenst.",
+        "basic": "Egy megosztott közeg akkor is túlterhelt lehet, ha a saját modemed jele tisztának tűnik. A DOCSight elkülöníti a helyi modem bizonyítékait a szolgáltató oldali terhelésre vonatkozó állításoktól.",
+        "eli5": "A kábelinternet a környék hozzáférési hálózatának egy részét más felhasználókkal osztja meg.",
+        "technician": "Válaszd külön a tiszta RF-bizonyítékokat a torlódásra utaló bizonyítékoktól. Vesd össze a napszak szerinti mintázatokat, a speedtest/BQM/monitoring adatokat és a szolgáltatói visszajelzéseket, mielőtt a megosztott közeget tennéd meg gyökérokként."
       },
       "misconceptions": [
         "A jó jelszint nem bizonyítja, hogy a szolgáltatói szegmens nem túlterhelt."
@@ -181,10 +113,10 @@
       "category": "modulation_channels",
       "id": "downstream",
       "levels": {
-        "advanced": "Downstream SC-QAM és/vagy OFDM csatornákat használhat. A tápellátás, az SNR/MER, a moduláció, a profilinformációk és a zárolási állapot segít megmagyarázni, hogy a modem tisztán fogadja-e a csatornákat.",
-        "basic": "A DOCSIS-ben a downstream csatornák továbbítják az adatokat a szolgáltató hálózatától a modemig. A DOCSight külön mutatja a lefelé irányuló csatorna állapotát az upstream állapottól, mivel az irányok eltérően viselkednek. A",
-        "eli5": "A lefelé irányuló csatornák az internetről az otthona felé érkeznek.",
-        "technician": "A downstream bizonyítékok leírják a modem számára látható vételi útvonalat és lefelé irányuló csatornakészletet. Nem szabad összetéveszteni a végpontok közötti alkalmazásletöltési sebességgel, amely a kiépítéstől, az ütemezéstől, az útválasztástól és az ügyfelektől is függ."
+        "advanced": "A downstream bizonyítékok SC-QAM és OFDM csatornákból származhatnak. A teljesítmény, az SNR/MER, a moduláció/profil adatok és a csatornazárolás mutatja meg, hogy a modem tisztán tudja-e venni a vivőjelet.",
+        "basic": "A downstream csatornák továbbítják a letöltéseket és más befelé irányuló forgalmat. A DOCSight külön mutatja ezek zárolási állapotát és jelminőségét az upstream csatornákhoz képest.",
+        "eli5": "A downstream az az adatforgalom, amely a szolgáltató hálózatától a modem felé halad.",
+        "technician": "A downstream problémák vizsgálatakor az érintett csatornákat, az MER/SNR változásokat, a javítható/javíthatatlan hibák növekedését, az OFDM profilváltásokat és az eseményidőbélyegeket együtt kell értékelni, nem pedig egyetlen vételi értéket tekinteni teljes diagnózisnak."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -203,10 +135,10 @@
       "category": "modulation_channels",
       "id": "upstream",
       "levels": {
-        "advanced": "Upstream SC-QAM-ot és/vagy OFDMA-t használhat. A szolgáltató oldali rendszer ütemezi, így a helyi modem adatok megmutatják az átviteli feltételeket, de nem minden ok miatt változhat a feltöltési sebesség.",
-        "basic": "A DOCSIS-ben az upstream csatornák továbbítják az adatokat a modemtől a szolgáltatói hálózatba. Az upstream problémák gyakran nagy adási teljesítményként, csatornakiesésként vagy zajos visszatérési útként jelentkeznek. A",
-        "eli5": "Az Upstream olyan adatok, amelyek otthonából az internet felé mennek, mint egy feltöltés, amely elhagyja a házat.",
-        "technician": "Az upstream értelmezéshez adási teljesítményre, csatornazárra, modulációs/profilállapotra, tartománybesorolási állapotra és visszatérési zaj kontextusra van szüksége. A DOCSightnak külön kell tartania a modem által látható rádiófrekvenciás bizonyítékokat a CMTS-oldali ütemezéstől vagy a szolgáltatásfolyamat-szabályzattól."
+        "advanced": "Az upstream SC-QAM-ot vagy OFDMA-t is használhat. Az adóteljesítmény, a modulációcsökkenések, a ranging viselkedése és a visszirányú zajtünetek gyakran fontosabbak, mint a letöltési oldal értékei.",
+        "basic": "Az upstream csatornák továbbítják a feltöltéseket, a kéréseket és a modem rangingjét. A DOCSight ezeket a feltöltési oldal jelbizonyítékaként használja.",
+        "eli5": "Az upstream az az adatforgalom, amely a modemtől a szolgáltató hálózata felé halad.",
+        "technician": "Upstream hibák esetén hasonlítsd össze a teljesítményváltozásokat, a csatornakieséseket, az OFDMA-támogatási hiányosságokat, a T3/T4 eseményeket, valamint a késleltetési vagy csomagvesztési időablakokat. A hiányzó upstream mezők nem támogatottat vagy nem jelentettet jelentenek, nem automatikusan nullát."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -225,10 +157,10 @@
       "category": "modulation_channels",
       "id": "channel_bonding",
       "levels": {
-        "advanced": "Bonding több csatorna-erőforrást egyesít, míg az ütemezés, a moduláció, a jelminőség, a szolgáltatási korlátok és a protokoll többletterhelése határozza meg, hogy mi válhat használható átviteli sebességgé.",
-        "basic": "DOCSIS modemek gyakran több downstream és upstream csatornát használnak egyszerre. Az összekapcsoltabb csatornák növelhetik a kapacitást, de ez még mindig nem garantálja a megfelelő Speedtest eredményt. A",
-        "eli5": "A csatornakötés lehetővé teszi, hogy a modem több kábelcsatornát együtt használjon, például egynél több sávot. A",
-        "technician": "A kötött csatorna kapacitásának meg kell különböztetnie az SC-QAM összegeket az OFDM/OFDMA profilfüggő kapacitástól. A szolgáltatásáramlási korlátok, a MAC-ütemezés, a FEC, az RF-károsodás és a versengés elválasztja a kötött PHY-kapacitást az alkalmazás jó teljesítményétől."
+        "advanced": "A kötegelés összeadja a csatornák kapacitását, de a ténylegesen kihasználható eredmény az iránytól, a csatornacsaládtól, a zárolási állapottól, a profiloktól, az ütemező viselkedésétől és a szolgáltatás konfigurációjától is függ.",
+        "basic": "A DOCSIS modemek gyakran egyszerre több letöltési és feltöltési csatornát használnak. A DOCSight csoportosítja a látható csatornákat, így jól látszik, mi van kötegelve, zárolva és milyen az egészségi állapotuk.",
+        "eli5": "A csatornakötegelés lehetővé teszi, hogy egy modem több kábelcsatornát használjon együtt.",
+        "technician": "A kötegelési bizonyítékok áttekintésekor keresd a köteg hiányzó vagy leromlott tagjait, a csatornacsalád szerinti egészségi állapotot, és azt, hogy a tünetek egyetlen csatornát, egyetlen irányt vagy a teljes szolgáltatási csoportot érintik-e."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -248,10 +180,10 @@
       "category": "modulation_channels",
       "id": "sc_qam",
       "levels": {
-        "advanced": "SC-QAM egyetlen vivőt használ rögzített csatornaszélességgel és QAM modulációs sorrenddel. A nagyobb moduláció több bitet hordozhat szimbólumonként, de a becslés továbbra is a bruttó csatornakapacitás, nem pedig az IP átviteli sebesség.",
-        "basic": "SC-QAM csatornák hagyományos DOCSIS csatornák. A DOCSight gyakran meg tudja becsülni a bruttó Layer-1 kapacitásukat a moduláció és a csatorna részletei alapján. A",
-        "eli5": "Az SC-QAM a kábelcsatorna egyik fajtája. Tekintsd úgy, mint egy sávot, amely adatokat szállíthat a kábelhálózat és a modem között. A",
-        "technician": "A DOCSIS SC-QAM csatornák esetében a modulációs sorrend, a szimbólumsebesség, a csatorna szélessége és a PHY overhead határozza meg a bruttó Layer-1 becsléseket. A FEC, a MAC keretezés, az ütemezés, a kötés és az IP többletköltség elválasztja ezt a becslést a használható alkalmazás átviteli sebességétől."
+        "advanced": "Az SC-QAM egyetlen vivőt használ, rögzített csatornaszélességgel és QAM renddel. Emiatt az általános csatornakontextus egyszerűbben meghatározható, mint a profilalapú OFDM/OFDMA esetében, ha a modem elegendő mezőt biztosít.",
+        "basic": "Az SC-QAM csatornák a hagyományos, DOCSIS 3.0-stílusú csatornák. A DOCSight jellemzően meg tudja mutatni a teljesítményüket, SNR/MER értéküket, modulációjukat, zárolási állapotukat és egészségi állapotukat.",
+        "eli5": "Az SC-QAM a klasszikus, keskeny sávú DOCSIS csatornatípus.",
+        "technician": "Használd az SC-QAM sorokat a csatornaspecifikus zavarok elkülönítésére: hasonlítsd össze a szomszédos csatornákat, a modulációváltozásokat, a MER/SNR értékeket és a hibanövekedést, mielőtt egyetlen rossz értékből a teljes hálózatra vonatkozó következtetést vonnál le."
       },
       "misconceptions": [
         "Az SC-QAM kapacitásbecslés nem Speedtest eredmény."
@@ -272,10 +204,10 @@
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
-        "advanced": "OFDM downstream csatornák sok alvivőt és profilt használnak. A valós felhasználható kapacitás a profil hozzárendelésétől, az alvivő állapotától, a kizárási sávoktól és a szolgáltató oldali ütemezésétől függ. A",
-        "basic": "A DOCSIS 3.1 OFDM-et használ a rugalmas, nagy kapacitású vételi csatornákhoz. A DOCSight akkor is megjelenítheti jelállapotát, ha nem tudja kiszámítani ugyanazt az egyszerű kapacitásszámot, mint az SC-QAM. A",
-        "eli5": "OFDM egy újabb lefelé irányuló kábelcsatorna-típus, amely egy széles csatornát sok apró darabra oszt fel.",
-        "technician": "OFDM kapacitásbecsléshez profil- és alvivő-kontextusra van szükség. Elegendő profiladatok hiányában a DOCSightnak az OFDM-et megfigyeltként kell kezelnie, de nem kell beleszámítania az SC-QAM bruttó kapacitásösszegébe."
+        "advanced": "Az OFDM állapota a profiloktól, a kizárt alvivőktől, a PLC/lock állapottól és a profil-elérhetőségtől függ. A hiányzó profiladatokat unknown állapotúként kell kezelni, nem szabad becsült kapacitással pótolni.",
+        "basic": "A DOCSIS 3.1 az OFDM-et használja a széles sávú letöltési csatornákhoz. A DOCSight külön kezeli, mert az OFDM adatai eltérnek a hagyományos SC-QAM sorokétól.",
+        "eli5": "Az OFDM a DOCSIS 3.1 letöltési (downstream) csatornatípusa, amely sok kis alvivőből épül fel.",
+        "technician": "Az OFDM diagnosztikájához hasonlítsd össze a profilváltozásokat, a MER-szerű mutatókat, a kódszó-/hibaviselkedést és a szomszédos SC-QAM adatokat. A nem támogatott profilmezőket adatkorlátnak tekintsd, nem a szolgáltatás jó vagy rossz minőségének bizonyítékaként."
       },
       "misconceptions": [
         "Az OFDM kapacitás hiánya nem jelenti azt, hogy a csatorna kihasználatlan; Előfordulhat, hogy a DOCSight egyszerűen nem rendelkezik biztonságos profilszintű adatokkal."
@@ -295,10 +227,10 @@
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
-        "advanced": "OFDMA upstream kapacitása az alvivő kiosztásától, a profil-hozzárendeléstől, a minislot ütemezésétől, a visszatérési útvonal zajától és a szolgáltató oldali döntésektől függ, amelyeket a modemoldal esetleg nem tesz ki teljesen. A",
-        "basic": "DOCSIS 3.1 OFDMA upstreamet használ a rugalmas feltöltési csatornákhoz. A DOCSight OFDMA jel- vagy teljesítményadatokat jeleníthet meg, de az egyszerű SC-QAM-stílusú kapacitásszámítás általában nem biztonságos részletesebb részletek nélkül. A",
-        "eli5": "OFDMA egy újabb upstream kábelcsatorna-típus, amely lehetővé teszi, hogy sok modem megosszon egy széles csatorna apró darabjait. A",
-        "technician": "OFDMA telemetriának profilra/alvivőre és ütemezési környezetre van szüksége a biztonságos értelmezéshez. Az összesített jelentésteljesítményt és az alszolgáltatónkénti bizonyítékot nem szabad összekeverni, kivéve, ha az illesztőprogram pontosan a kívánt mérőszámot teszi közzé."
+        "advanced": "Az OFDMA a profiloktól, alvivőktől, minislotoktól, a visszirányú zajtól és az ütemező kontextusától függ. A hiányzó, None vagy null mezők azt jelentik, hogy az adat nem támogatott vagy nem jelentett, nem pedig mért nulla.",
+        "basic": "Az OFDMA lehetővé teszi, hogy több kábelmodem osszon meg egy széles feltöltési blokk részeit. A DOCSight külön kezeli az SC-QAM feltöltési csatornáktól.",
+        "eli5": "Az OFDMA a DOCSIS 3.1 feltöltési (upstream) csatornatípusa.",
+        "technician": "Az OFDMA diagnosztizálásához használj feltöltési eseményeket, adástovábbítási viselkedést, profil-elérhetőséget és késleltetés/csomagvesztés időzítést. Kerüld az SC-QAM-szerű kapacitásbecsléseket, hacsak a kábelmodem nem biztosítja a szükséges OFDMA-részleteket."
       },
       "misconceptions": [
         "A megjelenített kapacitásszám nélküli OFDMA-csatorna továbbra is aktív és fontos lehet."
@@ -320,10 +252,10 @@
       "category": "modulation_channels",
       "id": "qam_modulation_order",
       "levels": {
-        "advanced": "A magasabb modulációs sorrend növeli a szimbólumonkénti bitek számát, de csökkenti a zaj- és torzítástűrést. A modulációt SNR/MER-rel, csatornatípussal és profilkontextussal kell értelmezni.",
-        "basic": "QAM/modulációs sorrend befolyásolja, hogy egy csatorna hány bitet hordozhat. Ha a jel minősége gyenge, előfordulhat, hogy egy csatornának alacsonyabb modulációra van szüksége, és ezért kisebb a bruttó kapacitása.",
-        "eli5": "A moduláció az, ahogyan az adatok csomagolódnak a kábeljelbe. A magasabb QAM számok több adatot hordozhatnak, de tisztább jelre van szükségük. A",
-        "technician": "Az SC-QAM esetében a modulációs sorrend közvetlenül táplálja az 1. réteg kapacitásbecsléseit a szimbólumsebességgel és a csatornaszélességgel. Az OFDM/OFDMA esetében a profil/alvivő hozzárendelése bonyolultabbá teszi a kapcsolatot, mint egy címke csatornánként."
+        "advanced": "A QAM rendet a csatornacsaláddal és az SNR/MER értékkel együtt kell értelmezni. Az SC-QAM egyszerűbb, fix csatorna-kapcsolattal rendelkezik, mint az OFDM/OFDMA profil alapú csatornái.",
+        "basic": "A magasabb QAM szintek több bitet tudnak szimbólumonként továbbítani, de tisztább jelet igényelnek. A DOCSight megjeleníti a modulációt, így a visszaesések vagy az alacsony QAM állapotok láthatóvá válnak.",
+        "eli5": "A moduláció azt jelzi, mennyi adat fér bele a kábeljel egyetlen lépésébe.",
+        "technician": "A moduláció változásait bizonyítékként kezeld, ne önálló ítéletként. Vesd össze az MER/SNR, a teljesítmény, a hibaszám növekedése és a csatornacsalád adataival, és azzal is, hogy az érték aktuális-e, vagy csak a modem utoljára jelentett állapota."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -337,29 +269,6 @@
     },
     {
       "aliases": [
-        "Csatorna szélessége",
-        "Szimbólumsebesség",
-        "MHz",
-        "Msym/s"
-      ],
-      "category": "modulation_channels",
-      "id": "channel_width_symbol_rate",
-      "levels": {
-        "advanced": "DOCSIS csatornatervek meghatározott szélességet és szimbólumsebességet használnak. A kapacitás matematikai a csatornacsaládtól függ; Az SC-QAM közvetlenebbül becsülhető meg, mint az OFDM/OFDMA profiladatok nélkül.",
-        "basic": "A támogatott SC-QAM csatornák esetében a csatornaszélesség, a szimbólumsebesség és a moduláció segít megbecsülni a bruttó Layer-1 kapacitást. Ezek a bemenetek önmagukban még mindig nem produkálnak valódi IP átvitelt. A",
-        "eli5": "A csatorna szélessége az, hogy egy csatorna mekkora frekvenciaterületet használ. A szimbólumsebesség azt jelzi, hogy milyen gyors jellépéseket küldenek a csatornán belül.",
-        "technician": "A kapacitásszámításoknak expliciteknek kell lenniük a csatornacsaládra vonatkozó feltételezésekben. Az EuroDOCSIS/DOCSIS szélességeket, szimbólumsebességet, modulációs sorrendet és a PHY overhead-et nem szabad vakon újra felhasználni az OFDM/OFDMA profilokban."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "MHz"
-      ],
-      "title": "Csatorna szélessége / szimbólumsebesség"
-    },
-    {
-      "aliases": [
         "Jelszint",
         "dBmV",
         "Fogadási teljesítmény",
@@ -368,10 +277,10 @@
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "A teljesítményt irány és csatornatípus szerint kell értelmezni. A letisztult kinézetű downstream érték nem bizonyítja automatikusan az upstream állapotot, és a nagy felfelé irányuló adási teljesítmény arra utalhat, hogy a modem keményen dolgozik a szolgáltatói oldal elérése érdekében.",
-        "basic": "A DOCSight képes megjeleníteni a lefelé irányuló vételi és a felfelé irányuló adási teljesítményt, amikor a modem felfedi ezeket. A várt tartományokon kívül eső értékek kábelezési, elosztó-, erősítő- vagy visszatérési problémákra utalhatnak.",
-        "eli5": "A teljesítményszint az, hogy milyen erősnek tűnik a kábeljel a modem számára, vagy milyen keményen kell a modemnek visszaszólnia.",
-        "technician": "A teljesítménydiagnosztikához egységekre, irányra, csatornacsaládra és eszköz-illesztőprogram-szemantikára van szükség. Az OFDMA összesített teljesítményét és az 1,6 MHz-enkénti jelentésteljesítményt nem szabad felcserélhető mérőszámként kezelni."
+        "advanced": "A teljesítményt irány és csatornatípus szerint kell értelmezni. A downstream vételi szint, az upstream adási szint és az OFDMA report-power mező nem egymással felcserélhető mérések.",
+        "basic": "A DOCSight megjelenítheti a downstream vételi teljesítményt és az upstream adási teljesítményt, ha a modem jelenti ezeket. A két irány más-más dolgot jelent.",
+        "eli5": "A teljesítményszint azt mutatja, mennyire erős a kábeljel, illetve mekkora erővel kell a modemnek visszaszólnia.",
+        "technician": "A teljesítményadatokat az MER/SNR, a moduláció, a lock állapot, az elosztók/kábelezés előzményei és az időzítés fényében kezeld. Ne értelmezd a nem támogatott vagy hiányzó teljesítménymezőket nulla értékű mérésként."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -391,10 +300,10 @@
       "category": "signal_quality",
       "id": "snr_mer",
       "levels": {
-        "advanced": "SNR/MER-t a moduláció, a csatornacsalád és a hibaszámlálók mellett kell értelmezni. A marginális érték a súlyosságtól függően alacsonyabb profilokat, javítható vagy nem javítható hibákat okozhat. A",
-        "basic": "SNR és MER minőségi mérések. A jobb értékek általában azt jelentik, hogy a modem megbízhatóbban tudja dekódolni a csatornát, de még mindig nem egyenlő a Speedtest teljesítményével. A",
-        "eli5": "SNR/MER jelzi, hogy a jel mennyire tiszta a zajhoz képest. A tisztább jel megbízhatóbbá teszi a nagyobb adatcsomagolást. A",
-        "technician": "MER/SNR küszöbértékek moduláció- és megvalósításfüggőek. A DOCSightnak kerülnie kell a szolgáltatói hibának egyetlen érték alapján történő állítását; A csatornazárral, a modulációs profillal, az FEC-számlálókkal és az időtrenddel való korreláció erősebb bizonyíték."
+        "advanced": "Az SNR/MER akkor válik igazán értelmezhetővé, ha moduláció, csatornacsalád, hibaszámlálók és időbeli trendek együtt olvashatók. Egyetlen tiszta érték elfedhet időszakos zajt vagy profilváltást.",
+        "basic": "Az SNR és a MER jelminőségi mérőszámok. A jobb érték általában azt jelenti, hogy a modem megbízhatóbban tudja dekódolni a csatornát.",
+        "eli5": "Az SNR/MER azt mutatja meg, mennyire tisztán hallja a modem a jelet a zaj mellett.",
+        "technician": "Eszkalációhoz rögzítsd a MER/SNR értéket az érintett csatorna-azonosítókkal, időbélyegekkel, hibaarány-változásokkal, teljesítménnyel és eseményekkel együtt. Ne keverd az SNR/MER jelentését különböző csatornacsaládok között anélkül, hogy megnéznéd, mit jelent ténylegesen a modem kimenete."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -407,52 +316,6 @@
     },
     {
       "aliases": [
-        "Jelveszteség",
-        "Csillapítás",
-        "Kábelveszteség"
-      ],
-      "category": "signal_quality",
-      "id": "attenuation",
-      "levels": {
-        "advanced": "A csillapítás származhat kábelhosszból, osztókból, fali aljzatokból, szűrőkből, rossz csatlakozókból vagy üzemi körülményekből. Gyakran közvetetten jelenik meg a vételi teljesítményen, az adási teljesítményen, az SNR/MER-en vagy a csatornastabilitáson keresztül.",
-        "basic": "Némi jelveszteség normális, de a túl nagy veszteség kiszoríthatja a teljesítményszinteket a tartományból, vagy arra kényszerítheti a modemet, hogy erősebben sugározzon felfelé. A DOCSight a hatást látja, nem minden fizikai okot.",
-        "eli5": "A csillapítás azt jelenti, hogy a jel gyengébb lesz, amikor a kábelen, elosztókon és csatlakozókon keresztül halad.",
-        "technician": "Csak a modem statisztikáiból ne következtessen pontos dB veszteségútra. Kezelje a csillapítást diagnosztikai hipotézisként, amelyet az irányspecifikus teljesítményváltozások, a topológia ismerete és a huzalozás előtti/utáni bizonyítékok támogatnak."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "dBmV",
-        "DOCSight"
-      ],
-      "title": "Csillapítás"
-    },
-    {
-      "aliases": [
-        "Zaj",
-        "Bemenet",
-        "Zaj",
-        "Visszatérő zaj"
-      ],
-      "category": "signal_quality",
-      "id": "ingress_noise",
-      "levels": {
-        "advanced": "A zaj lehet szakaszos, irányspecifikus vagy bizonyos frekvenciákra korlátozódik. Az érintett csatornák közötti időbeli trend általában hasznosabb, mint egy elszigetelt pillanatkép.",
-        "basic": "A behatolás és a zaj csökkentheti az SNR/MER-t, hibákat okozhat, vagy instabillá teheti a felfelé irányuló kommunikációt. A DOCSight tüneteket jelezhet, ha a modem érintett jel- és hibaadatokat tesz közzé.",
-        "eli5": "A zaj nem kívánt jel keveredik a kábeljelbe. A túl sok zaj megnehezíti az adatok olvashatóságát.",
-        "technician": "A visszatérő út behatolása, az impulzuszaj, a közös út torzítása és a helyi kábelezési hibák eltérően befolyásolhatják a DOCSIS csatornákat. A DOCSightnak modem által látható bizonyítékot kell bemutatnia anélkül, hogy igényt tartana a teljes üzemi lokalizációra."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SNR",
-        "MER",
-        "OFDMA"
-      ],
-      "title": "Bemenet/zaj"
-    },
-    {
-      "aliases": [
         "Javíthatók",
         "Javított kódszavak",
         "FEC javítva"
@@ -460,10 +323,10 @@
       "category": "error_counters",
       "id": "correctable_errors",
       "levels": {
-        "advanced": "A korrekciók a FEC munkáját tükrözik. Hasznos lehet a növekedés a zajesemények során, a magas arányok bizonyos csatornákon, vagy az alacsony MER-rel való korreláció; A régi összesített összegek önmagukban gyenge bizonyítékok.",
-        "basic": "A korrigálható számlálók akár munkavonalon is emelkedhetnek. Az arány, az időzítés, az érintett csatornák és az, hogy a javíthatatlanok is emelkednek-e, többet számítanak, mint egy nyers összeg.",
-        "eli5": "A javítható hibák olyan apró hibák, amelyeket a modem ki tudott javítani, mielőtt adatvesztés lett volna.",
-        "technician": "A nyers modemszámlálókat tartsa külön a származtatott díjaktól. A DOCSightnak meg kell őriznie a kumulatív értékeket bizonyítékként, miközben megfigyelési ablakokat, alapvonalakat és növekedési ütemeket használ az állapot értelmezéséhez."
+        "advanced": "A javítható hibák a FEC munkáját jelzik, nem közvetlen csomagvesztést. A zajesemények során jelentkező friss növekedés erősebb bizonyíték, mint egy múltból maradt nagy kumulatív összeg.",
+        "basic": "A javítható hibaszámlálók egy működő vonalon is emelkedhetnek. A DOCSight ezt úgy teszi hasznossá, hogy megmutatja az ütemet, az időzítést, az érintett csatornákat, és hogy a javíthatatlan hibák is nőnek-e.",
+        "eli5": "A javítható hibák olyan jelhibák, amelyeket a modem ki tudott javítani.",
+        "technician": "Hasonlítsd össze a javított kódszavak növekedését csatornánként és időablakonként. Párosítsd MER/SNR-értékkel, modulációval és javíthatatlan hibákkal, hogy elkülönítsd az ártalmatlan háttérjavítást egy aktív zavartól."
       },
       "misconceptions": [
         "A magas régi korrigálható összeg nem automatikusan aktív hiba."
@@ -484,10 +347,10 @@
       "category": "error_counters",
       "id": "uncorrectable_errors",
       "levels": {
-        "advanced": "A nem javítható értékeket összefüggésbe kell hozni az SNR/MER-rel, a csatornazárral, a modulációs változásokkal és a felhasználó által látható tünetekkel. Az alaphelyzetbe állítás vagy újraindítás a nyers számláló viselkedését is megváltoztathatja.",
-        "basic": "A nem javítható adatok a csatorna szintjén jelezhetik az elveszett adatokat, különösen akkor, ha a megfigyelési ablak alatt növekednek. Időzítésük és növekedési ütemük többet számít, mint egy régi számláló.",
-        "eli5": "A javíthatatlan hibák olyan hibák, amelyeket a modem nem tudott kijavítani. Súlyosabbak, mint a javítható hibák.",
-        "technician": "Bizonyítékként őrizze meg a nyers, nem javítható számlálókat, és számítsa ki a származtatott növekedést egy ismert alapvonalból. Kerülje a modem összegeinek újraírását; megkülönböztetni a számláló nullázását, az átkerülést és az aktuális megfigyelési ablak tüskéit."
+        "advanced": "A bizonyítékokban a nyers kumulatív számlálókat el kell különíteni a származtatott növekedéstől. Visszaállítások, túlcsordulás és modem-újraindítás megváltoztathatja a nyers összegeket anélkül, hogy új üzemzavart jelentene.",
+        "basic": "A javíthatatlan hibák csatornaszintű adatvesztést jelenthetnek, különösen ha a megfigyelt időszakban növekednek. A DOCSight a növekedést és az időzítést fontosabbnak tekinti egyetlen régi összegnél.",
+        "eli5": "A javíthatatlan hibák olyan jelhibák, amelyeket a modem nem tudott kijavítani.",
+        "technician": "A javíthatatlan hibákat eszkalációs bizonyítékként használd, ha a friss növekedés alacsony MER/SNR értékekkel, moduláció-visszaeséssel, eseménynapló-bejegyzésekkel vagy felhasználó által észlelt késleltetéssel/csomagvesztéssel párosul. Bizonyíték exportálásakor őrizd meg a nyers számlálót."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -499,73 +362,6 @@
     },
     {
       "aliases": [
-        "PHY kapacitás",
-        "Fizikai réteg kapacitása",
-        "Csatornakapacitás"
-      ],
-      "category": "capacity_throughput",
-      "id": "layer1_capacity",
-      "levels": {
-        "advanced": "Layer-1 kapacitása nem éri el a MAC ütemezést, a FEC-et, a kötési viselkedést, a szolgáltatásáramlási korlátokat, az IP többletterhelést, az alkalmazás viselkedését és a szegmensterhelést. Ez egy diagnosztikai réteg, nem a teljes kapcsolat. A",
-        "basic": "DOCSight megbecsülheti az 1. réteg bruttó kapacitását a támogatott SC-QAM csatornákhoz. Ez hasznos csatornakörnyezet, de nem ígér használható internetsebességet. A",
-        "eli5": "Az 1. réteg kapacitása egy elméleti szám arra vonatkozóan, hogy a kábeljelréteg mennyit képes hordozni, mielőtt a valós világban jelentkező többletterhelést eltávolítanák. A",
-        "technician": "PHY/Layer-1 kapacitást bruttó csatorna bizonyítékként kell megjelölni. Ne tegye egyenlőségjelet a szolgáltatás áramlási sebességével, a TCP/UDP goodputtal, a Speedtest eredményekkel vagy a szerződéses tarifa sebességével."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "Layer-1",
-        "DOCSIS",
-        "SC-QAM",
-        "IP"
-      ],
-      "title": "Layer-1 kapacitás"
-    },
-    {
-      "aliases": [
-        "Bruttó kapacitás",
-        "Nettó áteresztőképesség",
-        "Rezsi"
-      ],
-      "category": "capacity_throughput",
-      "id": "gross_vs_net_capacity",
-      "levels": {
-        "advanced": "A bruttó-nettó különbségek a PHY többletköltségből, a FEC-ből, a MAC-keretezésből, a versenyből, a szolgáltatásfolyam-alakításból, az IP/TCP/UDP többletterhelésből és az alkalmazások viselkedéséből származnak. A különböző tesztek különböző rétegeket mérnek.",
-        "basic": "A bruttó csatornabecslés a DOCSIS, IP és alkalmazás többletköltsége előtt kezdődik. A nettó átviteli sebesség alacsonyabb, és az ütemezéstől, a szolgáltatói korlátoktól, az ügyfelektől és a kiszolgáló elérési útjától is függ.",
-        "eli5": "A bruttó a rezsi előtt van. A hálózat közelebb van ahhoz, ami megmarad, miután a hálózat felhasznál némi helyet a kommunikáció működéséhez.",
-        "technician": "A mérési réteg legyen egyértelmű: a PHY bruttó kapacitása, a MAC/szolgáltatás áramlási sebessége, az IP átviteli sebesség és az alkalmazás jó teljesítménye elkülönül. Ezeknek a rétegeknek a keverése félrevezető összehasonlításokat eredményez."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "Layer-1",
-        "IP"
-      ],
-      "title": "Bruttó vs. nettó kapacitás"
-    },
-    {
-      "aliases": [
-        "Internet átviteli sebesség",
-        "Goodput",
-        "Használható sebesség"
-      ],
-      "category": "capacity_throughput",
-      "id": "ip_throughput",
-      "levels": {
-        "advanced": "Az átviteli sebesség alacsonyabb lehet, mint a csatorna kapacitása a kiépítés, ütemezés, versengés, a forgalom alakítása, a csomagvesztés, a várakozási idő, az ügyfélkorlátok és a szerveroldali szűk keresztmetszetek miatt.",
-        "basic": "IP átviteli sebesség közelebb áll az alkalmazások és a Speedtests élményéhez, mint a csatorna kapacitásához. Ez a DOCSIS állapotától, a szolgáltató konfigurációjától, az útválasztástól, a Wi-Fi/LAN-tól és a távoli szervertől függ.",
-        "eli5": "Az IP átviteli sebesség az a valós adat, amely áthalad az internetkapcsolaton a hálózati túlterhelés és a korlátok után. A",
-        "technician": "A jó teljesítmény/áteresztőképesség egy végponttól végpontig terjedő eredmény. A DOCSight modem diagnosztikája megmagyarázhatja a helyi DOCSIS-réteg bizonyítékait, de nem hivatkozhat kizárólagos ok-okozati összefüggésre az IP átviteli teljesítményre vonatkozóan, alátámasztó adatok nélkül."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "IP",
-        "DOCSIS",
-        "Speedtest"
-      ],
-      "title": "IP átviteli sebesség"
-    },
-    {
-      "aliases": [
         "Sebességteszt",
         "Letöltési teszt",
         "Feltöltési teszt",
@@ -574,10 +370,10 @@
       "category": "capacity_throughput",
       "id": "speedtest",
       "levels": {
-        "advanced": "sebességtesztek segíthetnek ellenőrizni a felhasználói hatást, de nem azonosak a csatornadiagnosztikával. Az alacsony eredmény korrelációt igényel a modem bizonyítékaival, az ügyfélútvonallal és a szolgáltató/szolgáltatás korlátaival.",
-        "basic": "A Speedtest egy végponttól végpontig végzett mérés egy pillanatban. Befolyásolja a DOCSIS állapota, a tarifakorlátok, a szegmens terhelése, a Wi-Fi/LAN, az útválasztás és a kiválasztott tesztszerver. A",
-        "eli5": "A Speedtest ellenőrzi, hogy jelenleg milyen gyorsan mozognak az adatok egy tesztkiszolgálóra és onnan.",
-        "technician": "A Speedtest adatait IP/alkalmazási réteg bizonyítékként kezelje. Hasonlítsa össze a tarifa sebességével és a diagnosztikai idővonalakkal, ne közvetlenül a PHY bruttó SC-QAM kapacitásával vagy a nyers csatornaszámokkal."
+        "advanced": "A speedtest egyetlen pillanatban méri a végpontok közötti IP-teljesítményt. Ez nem azonos a DOCSIS csatornakapacitással, a tarifában szereplő sebességgel vagy a helyi RF-állapottal.",
+        "basic": "A DOCSight rögzítheti a letöltési, feltöltési sebességet, a késleltetést és a jittert, hogy a felhasználó által látott teljesítmény összevethető legyen a DOCSIS bizonyítékokkal.",
+        "eli5": "A Speedtest a felhasználó által a teszt során tapasztalt átviteli sebességet és késleltetést méri.",
+        "technician": "A speedtest eredményeit a tesztszerverrel, a napszakkal, a kapcsolatfigyelő adataival, szegmens-nyomokkal és modem bizonyítékokkal együtt értelmezd. Kerüld, hogy egyetlen alacsony eredményt DOCSIS jelhiba bizonyítékaként használj."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -590,29 +386,6 @@
     },
     {
       "aliases": [
-        "Lekötött sebesség",
-        "Tervezett sebesség",
-        "Szerződéses sebesség",
-        "Előzetes sebesség"
-      ],
-      "category": "capacity_throughput",
-      "id": "tariff_speed",
-      "levels": {
-        "advanced": "A terv sebességét általában a szolgáltató konfigurációja és a szolgáltatásáramlási korlátok kényszerítik ki. A valós sebesség a hálózat terhelésétől, a modem állapotától, az útválasztástól és a helyi ügyfélkörülményektől is függ.",
-        "basic": "A tarifa sebessége a termék és a kiépítés határa. A DOCSight csatorna adatai megmutatják, hogy a kábelkapcsolat egészségesnek tűnik-e, de nem igazolhat minden szolgáltatói oldali szabályzatot vagy szerződéses részletet.",
-        "eli5": "A tarifa sebessége a fizetett internetcsomag, például a lefoglalt letöltési és feltöltési díj.",
-        "technician": "Ne következtessen az előfizetői szolgáltatásfolyam pontos konfigurációjára kizárólag a csatorna kapacitásából. Ha rendelkezésre áll, használjon explicit rendelkezésre állást vagy Speedtest bizonyítékot, és tartsa elkülönítve a DOCSight kapacitáscímkéit a tarifakövetelésektől."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Tarifa sebesség"
-    },
-    {
-      "aliases": [
         "Szegmens terhelés",
         "Torlódás",
         "Csomópont terhelés",
@@ -621,10 +394,10 @@
       "category": "capacity_throughput",
       "id": "segment_utilization",
       "levels": {
-        "advanced": "A szegmensek terhelése a szolgáltatáscsoport méretétől, az aktív előfizetőktől, a csatornakapacitástól, a CMTS ütemezésétől és a napszaktól függ. A helyi modem bizonyítékai tüneteket mutathatnak, de nem a teljes kihasználtsági nevezőt.",
-        "basic": "A forgalmas szegmens még akkor is csökkentheti a valós sebességet, ha a modem jele jó. A DOCSight nem igényelhet pontos szegmenshasználatot, hacsak egy támogatott forrás nem teszi közzé ezeket az adatokat.",
-        "eli5": "A szegmens kihasználtsága azt jelenti, hogy a megosztott kábelszegmens mennyire foglalt.",
-        "technician": "A teljes körű felhasználáshoz szolgáltatói oldali vagy támogatott külső bizonyítékra van szükség. Kerülje a teljes szegmensterhelés levezetését egyetlen modem csatornalistájából, Speedtest vagy csak a jelállapotból."
+        "advanced": "Az Unknown továbbra is látható kategória marad, és megjelenik az eloszlások nevezőjében is. Ha elhagynánk, a rendelkezésre álló minták a valóságosnál biztosabbnak tűnnének.",
+        "basic": "A nézet a helyi jelre vonatkozó adatokat összeveti a támogatott kihasználtsági vagy teljesítményjelekkel, amennyiben ezek az adatforrások elérhetők.",
+        "eli5": "A Segment Utilization segíti szétválasztani a modemed jelét a megosztott szegmens terhelésére utaló jelektől.",
+        "technician": "Ezt a nézetet csak a bizonyítékok határainak figyelembevételével használd: a támogatott mintáknak, az unknown kategóriáknak, a hiányzó adatoknak és a külső teljesítménymérési adatoknak külön kell maradniuk az exportokban és a magyarázatokban."
       },
       "misconceptions": [
         "A jó modemjel nem a túlterhelt szegmens bizonyítéka."
@@ -635,124 +408,6 @@
         "DOCSight"
       ],
       "title": "Szegmens kihasználtság"
-    },
-    {
-      "aliases": [
-        "áteresztőképesség",
-        "Kapacitás vs átviteli teljesítmény"
-      ],
-      "category": "capacity_throughput",
-      "id": "capacity_vs_throughput",
-      "levels": {
-        "advanced": "Layer-1 csatorna kapacitása a MAC, FEC, ütemezés, kötés, szegmensterhelés, forgalom alakítás és IP/alkalmazás többletterhelés előtt van. A sebességtesztek egy végponttól végpontig terjedő útvonalat mérnek egy adott pillanatban.",
-        "basic": "DOCSight kapacitásbecslések csatornaszintű bruttó kapacitást írnak le, különösen a támogatott SC-QAM csatornák esetében. Ezek nem a tarifa sebessége, nem Speedtest, és nem garantált valós IP átvitel. A",
-        "eli5": "A kapacitás az, amit a kábelsáv elméletileg elbír. A Speedtest az, amit a kapcsolat azonnal biztosít, miután sok más dolgot is tartalmaz. A",
-        "technician": "Ne tegye egyenlőségjelet a PHY bruttó kapacitása és a szolgáltatás-áramlási sebesség korlátaival vagy a TCP/UDP jótállással. A CMTS-ütemezés, a kiépítés, az OFDM/OFDMA-profilok elérhetősége, az RF-károsodás, a sorba állítás, a társviszony-létesítés és a tesztszerver viselkedése egyaránt uralhatja a megfigyelt átviteli sebességet."
-      },
-      "misconceptions": [
-        "A csatornakapacitás összege nem bizonyítja, hogy az ügyfélnek ugyanazt a számot kell látnia a Speedtest-ben.",
-        "A tarifa sebessége a termék konfigurációja; A DOCSight csatorna diagnosztikája helyi bizonyíték."
-      ],
-      "protected_terms": [
-        "Layer-1",
-        "SC-QAM",
-        "Speedtest",
-        "IP",
-        "DOCSight"
-      ],
-      "title": "Kapacitás vs. sebességteszt"
-    },
-    {
-      "aliases": [
-        "Kiépített szolgáltatás",
-        "Szolgáltatásfolyamat",
-        "Aktiválás",
-        "Tervkonfiguráció"
-      ],
-      "category": "modem_state",
-      "id": "provisioning",
-      "levels": {
-        "advanced": "A kiépítés befolyásolhatja a tarifa sebességét, a szolgáltatásfolyamatokat, a modem engedélyezését, a rendszerindító fájl/konfig hozzárendelését és az engedélyezett szolgáltatásokat. Ez elkülönül a nyers RF jel minőségétől.",
-        "basic": "kiépítés szabályozza, hogy a modem engedélyezve van-e online, és mely szolgáltatási korlátozások vonatkoznak rá. A DOCSight utalásokat jeleníthet meg, de a szolgáltató oldali konfigurációja nem mindig látható teljesen a modemből.",
-        "eli5": "A kiépítés során a szolgáltató közli a modemnek, hogy milyen szolgáltatással kell rendelkeznie. A",
-        "technician": "Kezelje a kiépítést szolgáltató által vezérelt DOCSIS/MAC-rétegű szerződésként. A helyi modem oldalakon megjelenhetnek a rendszerindító fájlok nevei vagy a szolgáltatás állapota, de nem minden CMTS-házirend vagy előfizetői fiók logika."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Ellátás"
-    },
-    {
-      "aliases": [
-        "Indítófájl",
-        "Konfigurációs fájl",
-        "DOCSIS konfiguráció",
-        "Szolgáltatáskonfiguráció"
-      ],
-      "category": "modem_state",
-      "id": "bootfile_config_file",
-      "levels": {
-        "advanced": "A rendszerindító fájl bizonyítékai támogathatják a kiépítési diagnózist, de a nevek szolgáltató-specifikusak, és előfordulhat, hogy nem felelnek meg egyértelműen a nyilvános tarifacímkéknek. Óvatosan és más bizonyítékokkal együtt kell használni. A",
-        "basic": "A DOCSIS konfigurációs fájlja meghatározhatja a szolgáltatás viselkedését, például sebességkorlátokat és engedélyezett szolgáltatásokat. Egyes modemek felfedik a nevet; A DOCSight nem feltételezheti a teljes tartalmat pusztán a névből.",
-        "eli5": "A rendszerindító fájl/konfig fájl olyan szolgáltatói utasítás, amelyet a modem az induláskor kap.",
-        "technician": "DOCSIS konfigurációs fájlok a modem regisztrációjának/kiépítésének részét képezik. A tényleges fájltartalom és a CMTS-kontextus nélkül a megjelenített fájlnév csak tipp, nem pedig teljes szolgáltatásfolyamat-szerződés."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Indítófájl/konfig fájl"
-    },
-    {
-      "aliases": [
-        "Részleges kötés",
-        "Hiányzó csatornák",
-        "Részleges csatornazár"
-      ],
-      "category": "modem_state",
-      "id": "partial_service",
-      "levels": {
-        "advanced": "Részleges szolgáltatás származhat rádiófrekvenciás problémákból, profil/csatorna problémákból, karbantartásból, kiépítésből vagy modem/CMTS viselkedésből. Csatornazárral, hibákkal, tápellátással és eseményidőzítéssel kell értelmezni.",
-        "basic": "A részleges szolgáltatásban lévő modem továbbra is biztosíthat internetet, de kevesebb csatornával, kisebb rugalmassággal vagy csökkentett teljesítménnyel. A DOCSight segíthet megmutatni, hogy mely látható csatornacsaládokat érinti.",
-        "eli5": "A részleges szolgáltatás azt jelenti, hogy a modem online állapotban van, de nem használja az összes elvárt csatornát vagy funkciót.",
-        "technician": "Ne kezelje a részleges szolgáltatást egyetlen rögzített okként. Diagnosztizálja irány, csatornacsalád, eseménynapló, rádiófrekvenciás mérőszámok, valamint azt, hogy az állapot továbbra is fennáll-e az újraszinkronizálás/újraindítás vagy a szolgáltatói karbantartási ablakok között."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "OFDM",
-        "OFDMA"
-      ],
-      "title": "Részleges szolgáltatás"
-    },
-    {
-      "aliases": [
-        "Modem újraindítása",
-        "Újraszinkronizálás",
-        "Tartományos újraindítás",
-        "Újracsatlakozás"
-      ],
-      "category": "modem_state",
-      "id": "resync_reboot",
-      "levels": {
-        "advanced": "Az újraszinkronizálást kiválthatja a karbantartás, az RF instabilitás, a kiépítés változásai, az áramkimaradás, a modem firmware vagy a szolgáltató oldali események. Hasonlítsa össze az előtte/utána pillanatképeket, ne csak egy állapotot olvasson.",
-        "basic": "Az újraindítások és újraszinkronizálások ideiglenesen törölhetik a számlálókat, megváltoztathatják a csatorna hozzárendelését, vagy hiba után visszaállíthatják a szolgáltatást. Ha váratlanul történnek, az időzítés fontos bizonyíték.",
-        "eli5": "Az újraindítás újraindítja a modemet. Az újraszinkronizálás újracsatlakoztatja a kábelhálózathoz.",
-        "technician": "Bizonyítékként őrizze meg az időbélyegeket, az eseménynaplókat, a csatornamódosításokat és az ellentétes kiindulási hatásokat az újraindítási/újraszinkronizálási események körül. Ne értelmezze a visszaállítási számlálókat annak bizonyítékaként, hogy korábban nem történt értékvesztés."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Újraszinkronizálás/újraindítás"
     }
   ]
 }

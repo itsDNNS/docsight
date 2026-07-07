@@ -20,10 +20,10 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "DOCSIS-võrgud ühendavad allavoolu ja ülesvoolu kanaleid, nagu SC-QAM, OFDM ja OFDMA. DOCSight saab tõlgendada kohaliku modemi nähtava signaali ja kanali andmeid, kuid see ei näe kõiki pakkujapoolseid segmente või marsruutimise tingimusi.",
-        "basic": "DOCSIS pakub Interneti-teenust koaksiaalkaabli kaudu. DOCSight loeb toetatud kaabelseadmete modemi-, kanali- ja signaaliandmeid, nii et selle diagnostika kirjeldab pigem kaablilinki kui DSL-liini.",
-        "eli5": "DOCSIS on keel, mida kaabelmodem kasutab kaabelvõrguga rääkimiseks. See on kaabel-internet, mitte DSL telefoniliini kaudu.",
-        "technician": "DOCSIS määrab CM-i ja CMTS-i vahelise kaabelmodemi juurdepääsukihi HFC/koaksiaalsegmendi kaudu. Kohaliku kanali telemeetria on kasulik RF- ja MAC-kihi diagnostika jaoks, kuid pakkuja varustamine, segmendi koormus, CMTS-poliitika ja IP-marsruutimine jäävad väljapoole ainult modemi tõenduspiiri."
+        "advanced": "DOCSIS kasutab alla- ja üleslüli kanalite peresid, näiteks SC-QAM, OFDM ja OFDMA. Iga pere annab erinevaid andmeid, seega hoiab DOCSight kanali tüübi, suuna ja toetuse oleku eraldi.",
+        "basic": "DOCSIS edastab internetiteenust koaksiaalkaabli kaudu. DOCSight loeb toetatud DOCSIS-seadmetelt modemi, kanali ja signaali andmeid, seega puudutavad selle andmed kaabelühendust, mitte DSL-i.",
+        "eli5": "DOCSIS on kaabelinterneti keel, mida räägivad kaabelmodem ja operaatori võrk.",
+        "technician": "Kasuta DOCSIS-andmeid modemipoolse RF/MAC-kontekstina: kanali lukustus, võimsus, MER/SNR, modulatsioon, vead ja sündmused. Operaatori seadistus, CMTS-i poliitika, segmendi koormus ja IP-marsruutimine vajavad endiselt selgeid tõendavaid allikaid."
       },
       "misconceptions": [
         "DOCSIS ei ole DSL; DSL-i väärtusi ja kaabelkanalite väärtusi ei tohiks üks-ühele võrrelda."
@@ -37,74 +37,6 @@
     },
     {
       "aliases": [
-        "DSL",
-        "Telefoniliin vs koaksiaalkaabel"
-      ],
-      "category": "cable_basics",
-      "id": "dsl_vs_cable",
-      "levels": {
-        "advanced": "DSL esitab tavaliselt punktist punkti joont koos sünkroonimiskiiruse stiiliväärtustega. DOCSIS kasutab jagatud koaksiaalsegmente, ühendatud kanaleid ja CMTS-i ajastamist, seega vajab modemikanali diagnostika erinevat tõlgendust.",
-        "basic": "DOCSight on üles ehitatud kaabli/DOCSISe tõenditele. Kaabelmodemi väärtusi, nagu kanalid, modulatsioon, SNR/MER ja DOCSIS-i võimsus, ei tohiks lugeda nagu DSL-i sünkroonimiskiirusi või DSL-liinide statistikat.",
-        "eli5": "DSL ja kaabel on kaks erinevat viisi Interneti koju toomiseks. DSL kasutab telefoni juhtmeid; kaabel-internet kasutab koaksiaalkaablit ja DOCSIS-e.",
-        "technician": "Ärge vastendage DSL-i sumbumise, sünkroonimise või profiili mõisteid otse DOCSIS RF/MAC tõenditele. DOCSISe kanali olek, OFDM/OFDMA profiilid, teenusevood ja CMTS-käitumine kirjeldavad teistsugust juurdepääsuarhitektuuri."
-      },
-      "misconceptions": [
-        "Kaabelkanalite loend ei ole DSL-i sünkroonimistabel."
-      ],
-      "protected_terms": [
-        "DSL",
-        "DOCSIS",
-        "DOCSight"
-      ],
-      "title": "DSL vs kaabel"
-    },
-    {
-      "aliases": [
-        "Koaksiaalkaabel",
-        "Antennikaabel",
-        "Kaabliliin"
-      ],
-      "category": "cable_basics",
-      "id": "coaxial_cable",
-      "levels": {
-        "advanced": "DOCSIS koaksiaalteed on RF-teed: võimsustase, SNR/MER, sissepääs, sumbumine ja kanalilukk võivad muutuda, kui kaabeldus, jaoturid või võimendid on kehvad või valesti valitud.",
-        "basic": "Kaabel-internet jookseb koaksiaalkaabli kaudu teie kodu ja teenusepakkuja võrgu vahel. Jaoturid, pistikud ja kodusisene juhtmestik võivad mõjutada signaali taset ja kvaliteeti.",
-        "eli5": "Koaksiaalkaabel on ümmargune kaabel, mis edastab TV- ja kaabel-Interneti-signaale. Teie kaabelmodem kasutab seda DOCSIS-võrguga ühenduse loomiseks.",
-        "technician": "HFC-võrkudes kannab koaksiaalharu allavoolu ja ülesvoolu RF-kanaleid modemi ja juurdepääsuvõrgu vahel. DOCSight võib näidata modemile nähtavaid RF sümptomeid, kuid mitte kogu füüsilise tehase topoloogiat."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "HFC",
-        "DOCSight"
-      ],
-      "title": "Koaksiaalkaabel"
-    },
-    {
-      "aliases": [
-        "Modem",
-        "Gateway",
-        "Kaabelruuter",
-        "Sillarežiim"
-      ],
-      "category": "cable_basics",
-      "id": "cable_modem_router",
-      "levels": {
-        "advanced": "Lüüs ühendab DOCSIS-modemi funktsioonid marsruutimise/NAT/Wi-Fi-ga. Sillarežiim võib paljastada marsruutimise teisele seadmele, kuid DOCSIS-signaali ja kanali tõendid kuuluvad endiselt modemi poolele.",
-        "basic": "Kaabelmodem käsitleb teenusepakkuja poolel DOCSIS-e. Paljud seadmed toimivad ka teie koduse IP-võrgu ruuterite, WiFi-pääsupunktide või lüüsidena.",
-        "eli5": "Modem/ruuter on kast, mis ühendab teie koduvõrgu kaabelvõrguga.",
-        "technician": "Eraldage DOCSIS-kihi vaatlused kohtvõrgu/ruuteri käitumisest. Hea raadiosageduse ja kanali olek ei välista WiFi-, NAT-i, tulemüüri, marsruutimise või kliendipoolseid kitsaskohti modemi taga."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "DOCSight",
-        "IP"
-      ],
-      "title": "Kaabelmodem/ruuter"
-    },
-    {
-      "aliases": [
         "Kaabelmodemi lõppsüsteem",
         "Kaug-PHY",
         "Teenusepakkuja peatelefon"
@@ -112,10 +44,10 @@
       "category": "cable_basics",
       "id": "cmts",
       "levels": {
-        "advanced": "Pakkujapoolsed süsteemid planeerivad ülesvoolu juurdepääsu, pakuvad allavoolukanaleid, rakendavad varustust ja osalevad teenusevoo piirangutes. Kohalikud modemi tõendid võivad vihjata probleemidele, kuid ei suuda täielikult kirjeldada CMTS-poliitikat.",
-        "basic": "CMTS või sellega seotud pakkujapoolne juurdepääsusüsteem haldab DOCSIS-i modemeid, kanaleid, ajastamist ja teenuse konfiguratsiooni. DOCSight näeb tavaliselt ainult selle suhte modemi poolt.",
-        "eli5": "CMTS on pakkujapoolne süsteem, millega teie kaabelmodem räägib.",
-        "technician": "CMTS, CCAP, Remote PHY ja sõlmede arhitektuurid mõjutavad kanali saadavust, profiili määramist, ajastamist ja kahjustuste käsitlemist. DOCSight ei tohiks järeldada pakkujapoolset olekut, välja arvatud juhul, kui selgesõnaline toetatud allikas seda paljastab."
+        "advanced": "CMTS/CCAP käitumine võib mõjutada kanalite saadavust, profiile, ajastust ja seadistust, kuid need operaatoripoolsed otsused paistavad modemi telemeetriast läbi vaid osaliselt.",
+        "basic": "CMTS või sellega seotud juurdepääsusüsteem haldab DOCSIS-modemeid, kanaleid, ajastust ja teenuse seadistust. DOCSight näeb tavaliselt ainult modemipoolset osa.",
+        "eli5": "CMTS on operaatoripoolne süsteem, millega su kaabelmodem suhtleb.",
+        "technician": "Ära tuleta täpset CMTS-i olekut ainuüksi modemi andmetest. Kasuta CMTS-iga seotud sõnastust vaid siis, kui seda toetavad selged operaatori andmed, sündmuste kontekst või modemi väljad, mis seda tegelikult näitavad."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -135,10 +67,10 @@
       "category": "cable_basics",
       "id": "node_segment",
       "levels": {
-        "advanced": "Teenuserühmad ja sõlmede piirid mõjutavad konkurentsi, kanali koormust ja versiooniuuenduse planeerimist. Kohalik modem võib avaldada oma kanali oleku, mitte naabermodemite täielikku loendit või teenusepakkuja kogunõudlust.",
-        "basic": "Samas kaablisegmendis olevad inimesed jagavad teatud juurdepääsuvõrgu võimsust. Sõlmejaotus võib vähendada samu ressursse jagavate kasutajate arvu, kuid DOCSight ei näe tavaliselt kogu segmendi populatsiooni.",
-        "eli5": "Segment on kaabelvõrgu osa, mida jagab kodude rühm.",
-        "technician": "Segmendi tõlgendamine sõltub teenusepakkuja topoloogiast, teenuserühma suurusest, PHY/CMTS-i kaugkujundusest ja aktiivsetest abonentidest. Käsitlege täielikku kasutamist kui teenusepakkujapoolset tõendusmaterjali, kui seda ei mõõdeta toetatud allika kaudu."
+        "advanced": "Teenusegrupi piirid mõjutavad konkurentsi, kanali koormust ja uuenduste planeerimist. Kohalik modem võib näidata sümptomeid, kuid mitte kogu segmendi kasutajaskonda ega operaatori ajastaja olekut.",
+        "basic": "Sama kaabelsegmendi kasutajad jagavad osa juurdepääsuvõrgu ressurssidest. Sõlme jagamine (node split) võib vähendada sama ressursi jagajate arvu.",
+        "eli5": "Sõlm ehk segment on kaabelvõrgu osa, mida jagab kodude rühm.",
+        "technician": "Kasuta segmendiga seotud väiteid ettevaatlikult: tõesta esmalt kohaliku signaali korrasolek, seejärel võrdle ajastust, kiiruse/latentsuse andmeid ja operaatori infot, enne kui nimetad probleemi segmendi koormuseks."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -157,10 +89,10 @@
       "category": "cable_basics",
       "id": "shared_medium",
       "levels": {
-        "advanced": "DOCSISe võimsus on jagatud kanalite ja teenuserühmade vahel. Kohaliku modemi statistika näitab teie kanalit ja signaali olekut, samas kui vaidlused ja ajastamine toimuvad pakkuja poolel.",
-        "basic": "Kaabelvõrgud jagavad juurdepääsuvõrgu osi mitme kasutaja vahel. Segmendi koormus võib mõjutada tegelikku kiirust ja DOCSight ei saa otseselt mõõta kõiki teisi segmendi modemeid.",
-        "eli5": "Kaablisegment on nagu tee, mida kasutavad mitmed kodud. Teie modemil võib olla puhas signaal isegi siis, kui tee on hõivatud.",
-        "technician": "Jagatud andmekandja käitumine sõltub teenuserühma suurusest, CMTS-i ajakavast, OFDMA/OFDM-profiilidest, pakkumisest ja aktiivsest abonendi nõudlusest. DOCSight võib esile tuua kohaliku RF/kanali sümptomid, kuid ei tohiks järeldada segmendi täielikku kasutust, välja arvatud juhul, kui toetatud andmeallikas seda paljastab."
+        "advanced": "Jagatud keskkonna käitumine sõltub teenusegrupi suurusest, ajastusest, kanali mahtuvusest, aktiivsest nõudlusest ja operaatori poliitikast. Üks modem ei suuda otseselt mõõta kogu segmenti.",
+        "basic": "Jagatud keskkond võib olla ülekoormatud isegi siis, kui sinu enda modemi signaal näib korras. DOCSight eristab kohaliku modemi andmed operaatoripoolsetest koormusväidetest.",
+        "eli5": "Kaabelinternet jagab osa naabruskonna juurdepääsuvõrgust teiste kasutajatega.",
+        "technician": "Erista puhast RF-tõendusmaterjali ülekoormuse tõenditest. Seosta kellaajapõhised mustrid, speedtest/BQM/seiretulemused ja operaatori tagasiside, enne kui käsitled jagatud keskkonda algpõhjusena."
       },
       "misconceptions": [
         "Hea signaalitase ei tõenda, et teenusepakkuja segment on ülekoormatud."
@@ -181,10 +113,10 @@
       "category": "modulation_channels",
       "id": "downstream",
       "levels": {
-        "advanced": "Allavoolu võib kasutada SC-QAM ja/või OFDM kanaleid. Toide, SNR/MER, modulatsioon, profiiliteave ja luku olek aitavad selgitada, kas modem võtab kanalid puhtalt vastu.",
-        "basic": "DOCSIS-is kannavad allavoolukanalid andmeid pakkuja võrgust modemisse. DOCSight näitab allavoolu kanali olekut eraldi ülesvoolu olekust, kuna suunad käituvad erinevalt.",
-        "eli5": "Allavoolu on andmed, mis tulevad Internetist teie kodu poole.",
-        "technician": "Allavoolu tõendid kirjeldavad modemile nähtavat vastuvõtuteed ja allavoolukanalite komplekti. Seda ei tohiks segi ajada rakenduste täieliku allalaadimise läbilaskevõimega, mis sõltub ka pakkumisest, ajakavast, marsruutimisest ja klientidest."
+        "advanced": "Allalüli andmed võivad pärineda SC-QAM ja OFDM kanalitelt. Võimsus, SNR/MER, modulatsiooni/profiili andmed ja kanali lukustus näitavad, kas modem suudab kandesagedust puhtalt vastu võtta.",
+        "basic": "Allalüli kanalid kannavad allalaadimisi ja muud sissetulevat liiklust. DOCSight kuvab nende lukustusoleku ja signaalikvaliteedi eraldi üleslüli kanalitest.",
+        "eli5": "Allalüli (downstream) on andmeliiklus, mis liigub operaatori võrgust sinu modemi poole.",
+        "technician": "Allalüli probleemide uurimisel seosta mõjutatud kanalid, MER/SNR muutused, parandatavate/parandamatute vigade kasv, OFDM profiili muutused ja sündmuste ajatemplid, selle asemel et käsitleda üht vastuvõtuväärtust kogu diagnoosina."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -203,10 +135,10 @@
       "category": "modulation_channels",
       "id": "upstream",
       "levels": {
-        "advanced": "Upstream võib kasutada SC-QAM-i ja/või OFDMA-d. See on ajastatud teenusepakkujapoolse süsteemi poolt, nii et kohaliku modemi andmed näitavad edastustingimusi, kuid mitte kõik põhjused võivad üleslaadimise läbilaskevõime erineda.",
-        "basic": "DOCSIS-is kannavad ülesvoolu kanalid andmeid modemist tagasi teenusepakkuja võrku. Ülesvoolu probleemid ilmnevad sageli suure saatevõimsuse, kanali languse või mürarikka tagasitee käitumisena.",
-        "eli5": "Ülesvoolu on andmed, mis liiguvad teie kodust Internetti, nagu teie kodust lahkuv üleslaadimine.",
-        "technician": "Ülesvoolu tõlgendamine vajab saatevõimsust, kanali lukku, modulatsiooni/profiili olekut, vahemiku olekut ja tagasitee müra konteksti. DOCSight peaks hoidma modemile nähtavat raadiosageduslikku tõendusmaterjali eraldi CMTS-poolsest ajakavast või teenusevoo poliitikast."
+        "advanced": "Üleslüli võib kasutada SC-QAM-i või OFDMA-t. Saatevõimsus, modulatsiooni langused, rangingu käitumine ja tagasiside müra sümptomid on sageli olulisemad kui allalüli väärtused.",
+        "basic": "Üleslüli kanalid kannavad üleslaadimisi, päringuid ja modemi rangingut. DOCSight kasutab neid üleslüli signaalitõendina.",
+        "eli5": "Üleslüli (upstream) on andmeliiklus, mis liigub sinu modemist tagasi operaatori võrgu poole.",
+        "technician": "Üleslüli rikete puhul võrdle võimsuse nihkeid, kanalite väljalangemisi, OFDMA toe puudujääke, T3/T4 sündmusi ning latentsuse või paketikao perioode. Puuduvad üleslüli väljad tähendavad, et see pole toetatud või pole raporteeritud, mitte automaatselt nulli."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -225,10 +157,10 @@
       "category": "modulation_channels",
       "id": "channel_bonding",
       "levels": {
-        "advanced": "Liimimine ühendab mitu kanaliressurssi, samas kui ajakava, modulatsioon, signaali kvaliteet, teenuse limiidid ja protokolli üldkulud määravad, mis võib muutuda kasutatavaks läbilaskevõimeks.",
-        "basic": "DOCSIS-modemid kasutavad sageli korraga mitut alla- ja ülesvoolu kanalit. Rohkem seotud kanaleid võib suurendada läbilaskevõimet, kuid see ei garanteeri siiski sobivat Speedtesti tulemust.",
-        "eli5": "Kanalite ühendamine võimaldab modemil kasutada koos mitut kaabelkanalit, näiteks kasutada rohkem kui ühte rada.",
-        "technician": "Seotud kanali läbilaskevõime peab eristama SC-QAM summasid OFDM/OFDMA profiilist sõltuvast mahust. Teenusevoo piirangud, MAC-i ajastamine, FEC, RF-i kahjustus ja konkurents eraldavad seotud PHY-läbilaskevõime rakenduse kasulikust läbilaskest."
+        "advanced": "Ühendamine liidab kanalite mahtuvuse kokku, kuid tegelik kasutatav tulemus sõltub suunast, kanaliperekonnast, lukustusolekust, profiilidest, ajastaja (scheduler) käitumisest ja teenuse seadistusest.",
+        "basic": "DOCSIS modemid kasutavad sageli korraga mitut allalaadimis- ja üleslaadimiskanalit. DOCSight rühmitab nähtavad kanalid, et näha, mis on ühendatud, lukustatud ja korras.",
+        "eli5": "Kanalite ühendamine (channel bonding) tähendab, et modem kasutab korraga mitut kaabelkanalit.",
+        "technician": "Ühendamise tõendeid analüüsides otsi puuduvaid või halvenenud liikmeid kimbus, perekonnaspetsiifilist tervislikku seisundit ning seda, kas sümptomid mõjutavad üht kanalit, üht suunda või kogu teenindusgruppi."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -249,10 +181,10 @@
       "category": "modulation_channels",
       "id": "sc_qam",
       "levels": {
-        "advanced": "SC-QAM kasutab üht kandjat, millel on fikseeritud kanalilaius ja QAM modulatsiooni järjekord. Kõrgem modulatsioon võib kanda rohkem bitte sümboli kohta, kuid hinnang on ikkagi kanali kogumaht, mitte IP läbilaskevõime.",
-        "basic": "SC-QAM kanalid on traditsioonilised DOCSIS-kanalid. DOCSight saab sageli hinnata nende Layer-1 bruto läbilaskevõimet modulatsiooni ja kanali üksikasjade põhjal.",
-        "eli5": "SC-QAM on ühte tüüpi kaabelkanalid. Mõelge sellele kui ühele rajale, mis suudab edastada andmeid kaabelvõrgu ja modemi vahel.",
-        "technician": "DOCSIS SC-QAM kanalite puhul määravad modulatsiooni järjekord, sümbolikiirus, kanali laius ja PHY üldkulud kihi 1 brutohinnangud. FEC, MAC raamimine, ajastamine, sidumine ja IP üldkulud eraldavad need hinnangud kasutatavast rakenduse läbilaskevõimest."
+        "advanced": "SC-QAM kasutab üht kandesagedust kindla kanalilaiuse ja QAM-järguga. See teeb üldise kanalikonteksti lihtsamaks kui profiilipõhine OFDM/OFDMA, kui modem edastab piisavalt välju.",
+        "basic": "SC-QAM kanalid on traditsioonilised DOCSIS 3.0-stiilis kanalid. DOCSight suudab tavaliselt näidata nende võimsust, SNR/MER väärtust, modulatsiooni, lukustusolekut ja tervislikku seisundit.",
+        "eli5": "SC-QAM on klassikaline kitsas DOCSIS kanali tüüp.",
+        "technician": "Kasuta SC-QAM ridu kanalispetsiifilise häire eraldamiseks: võrdle naaberkanaleid, modulatsiooni muutusi, MER/SNR väärtusi ja vigade kasvu, enne kui liigud ühest halvast väärtusest kogu võrgu tasandi järelduseni."
       },
       "misconceptions": [
         "SC-QAM läbilaskevõime hinnang ei ole Speedtesti tulemus."
@@ -273,10 +205,10 @@
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
-        "advanced": "OFDM allavoolukanalid kasutavad paljusid alamkandjaid ja profiile. Tegelik kasutatav läbilaskevõime sõltub profiili määramisest, alamkandja seisundist, välistusribadest ja teenusepakkujapoolsest ajastamisest.",
-        "basic": "DOCSIS 3.1 kasutab allavoolu OFDM-i paindlike ja suure mahuga vastuvõtukanalite jaoks. DOCSight võib näidata nende signaali olekut isegi siis, kui see ei suuda arvutada sama lihtsat läbilaskevõime numbrit kui SC-QAM-i puhul.",
-        "eli5": "OFDM on uuem allavoolu kaabelkanali tüüp, mis jagab laia kanali paljudeks väikesteks tükkideks.",
-        "technician": "OFDM läbilaskevõime hindamine nõuab profiili ja alamkandja konteksti. Ilma piisavate profiiliandmeteta peaks DOCSight käsitlema OFDM-i vaadeldud kujul, kuid mitte lisama seda ainult SC-QAM-i bruto läbilaskevõime summadesse."
+        "advanced": "OFDM-i tervislik seisund sõltub profiilidest, väljajäetud alamkandjatest, PLC/lukustusolekust ja profiilide kättesaadavusest. Puuduv profiiliteave peaks jääma teadmata (Unknown), mitte täidetud oletatud mahtuvusega.",
+        "basic": "DOCSIS 3.1 kasutab OFDM-i laiade allalaadimise vastuvõtukanalite jaoks. DOCSight märgib selle eraldi, sest OFDM-i tõendid erinevad klassikalistest SC-QAM ridadest.",
+        "eli5": "OFDM on DOCSIS 3.1 allalaadimise kanali tüüp, mis koosneb paljudest väikestest alamkandjatest.",
+        "technician": "OFDM-i diagnostikaks võrdle profiilide muutusi, MER-i-sarnaseid näitajaid, koodisõna/vigade käitumist ja naaber-SC-QAM tõendeid. Käsitle toetamata profiiliväljasid andmepiirina, mitte tõendina heast või halvast teenusest."
       },
       "misconceptions": [
         "OFDM-i läbilaskevõime numbri puudumine ei tähenda, et kanal on kasutamata; DOCSightil võivad lihtsalt puududa turvalised profiilitaseme andmed."
@@ -296,10 +228,10 @@
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
-        "advanced": "OFDMA ülesvoolu läbilaskevõime sõltub alamkandja eraldamisest, profiili määramisest, minipesa ajakavast, tagasitee mürast ja pakkujapoolsetest otsustest, mida modemileht ei pruugi täielikult paljastada.",
-        "basic": "DOCSIS 3.1 kasutab ülesvoolu OFDMA-d paindlike üleslaadimiskanalite jaoks. DOCSight võib näidata OFDMA signaali või toiteandmeid, kuid lihtne SC-QAM-stiilis läbilaskevõime arvutus ei ole tavaliselt ilma täpsemate üksikasjadeta ohutu.",
-        "eli5": "OFDMA on uuem ülesvoolu kaabelkanali tüüp, mis võimaldab paljudel modemitel jagada väikeseid laia kanali tükke.",
-        "technician": "OFDMA telemeetria vajab turvaliseks tõlgendamiseks profiili/alamkandjat ja ajakava konteksti. Aruande koondvõimsust ja alamkandjate kohta käivaid tõendeid ei tohiks segada, välja arvatud juhul, kui draiver avaldab täpselt kavandatud mõõdikut."
+        "advanced": "OFDMA sõltub profiilidest, alamkandjatest, minislottidest, tagasitee mürast ja ajastaja (scheduler) kontekstist. Puuduvad, None või null väljad tähendavad, et andmed on toetamata või esitamata, mitte mõõdetud nulli.",
+        "basic": "OFDMA võimaldab paljudel modemitel jagada laia üleslaadimisploki osi. DOCSight märgib selle eraldi SC-QAM üleslaadimiskanalitest.",
+        "eli5": "OFDMA on DOCSIS 3.1 üleslaadimise kanali tüüp.",
+        "technician": "Diagnoosi OFDMA-t üleslaadimissündmuste, saatekäitumise, profiilide kättesaadavuse ja latentsuse/kadude ajastuse põhjal. Väldi SC-QAM-stiilis mahtuvuse oletusi, kui modem ei paku vajalikke OFDMA üksikasju."
       },
       "misconceptions": [
         "Ilma kuvatava mahunumbrita OFDMA-kanal võib endiselt olla aktiivne ja oluline."
@@ -321,10 +253,10 @@
       "category": "modulation_channels",
       "id": "qam_modulation_order",
       "levels": {
-        "advanced": "Kõrgemad modulatsioonijärjestused suurendavad bitte sümboli kohta, kuid vähendavad müra ja moonutuste tolerantsi. Modulatsiooni tuleb tõlgendada SNR/MER, kanali tüübi ja profiili kontekstiga.",
-        "basic": "QAM/modulatsiooni järjekord mõjutab seda, kui palju bitte kanal suudab kanda. Kui signaali kvaliteet on halb, võib kanal vajada väiksemat modulatsiooni ja seetõttu on selle läbilaskevõime väiksem.",
-        "eli5": "Modulatsioon on see, kuidas andmed pakitakse kaabli signaali. Kõrgemad QAM-numbrid võivad kanda rohkem andmeid, kuid vajavad puhtamat signaali.",
-        "technician": "SC-QAM-i puhul toidab modulatsioonijärjekord otse Layer-1 läbilaskevõime hinnanguid koos sümbolikiiruse ja kanali laiusega. OFDM/OFDMA puhul muudab profiili/alamkandja määramine suhte keerulisemaks kui üks silt kanali kohta."
+        "advanced": "QAM järku tuleb tõlgendada koos kanaliperekonna ja SNR/MER-iga. SC-QAM-il on lihtsam fikseeritud kanali seos kui profiilipõhistel OFDM/OFDMA kanalitel.",
+        "basic": "Kõrgemad QAM tasemed suudavad kanda rohkem bitte sümboli kohta, kuid vajavad puhtamat signaali. DOCSight näitab modulatsiooni, et katkestused või madal-QAM olekud oleksid nähtavad.",
+        "eli5": "Modulatsioon näitab, kui palju andmeid mahub iga kaablisignaali sammu.",
+        "technician": "Kasuta modulatsiooni muutusi tõendina, mitte eraldiseisva otsusena. Seosta neid MER/SNR-i, võimsuse, vigade kasvu, kanaliperekonna ja sellega, kas väärtus on hetkeväärtus või ainult modemi viimane teatatud olek."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -338,29 +270,6 @@
     },
     {
       "aliases": [
-        "Kanali laius",
-        "Sümbolisagedus",
-        "MHz",
-        "Msym/s"
-      ],
-      "category": "modulation_channels",
-      "id": "channel_width_symbol_rate",
-      "levels": {
-        "advanced": "DOCSIS kanaliplaanid kasutavad määratletud laiusi ja sümbolikiirusi. Läbilaskevõime arvutus sõltub kanali perekonnast; SC-QAM-i saab hinnata otsesemalt kui OFDM/OFDMA-d ilma profiiliandmeteta.",
-        "basic": "Toetatud SC-QAM-kanalite puhul aitavad kanali laius, sümbolikiirus ja modulatsioon hinnata Layer-1 bruto läbilaskevõimet. Need sisendid ei tooda endiselt tegelikku IP läbilaskevõimet.",
-        "eli5": "Kanali laius näitab, kui palju sagedusruumi kanal kasutab. Sümbolikiirus näitab, kui kiiresti signaalisammu selles kanalis saadetakse.",
-        "technician": "Läbilaskevõime arvutused peaksid hoidma kanaliperekonna eeldused selged. EuroDOCSISe/DOCSISe laiusi, sümbolikiirusi, modulatsioonijärjekorda ja PHY üldkulusid ei tohi OFDM/OFDMA profiilides pimesi uuesti kasutada."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "MHz"
-      ],
-      "title": "Kanali laius / sümbolisagedus"
-    },
-    {
-      "aliases": [
         "Signaali tase",
         "dBmV",
         "Vastuvõtu võimsus",
@@ -369,10 +278,10 @@
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "Toidet tuleb tõlgendada suuna ja kanali tüübi järgi. Puhta välimusega allavoolu väärtus ei tõenda automaatselt ülesvoolu tervist ja suur ülesvoolu edastusvõimsus võib viidata sellele, et modem teeb kõvasti tööd, et teenusepakkuja poolele jõuda.",
-        "basic": "DOCSight võib näidata allavoolu vastuvõtu- ja ülesvoolu saatevõimsust, kui modem need paljastab. Väärtused väljaspool eeldatavat vahemikku võivad viidata kaabelduse, jaoturi, võimendi või tagasitee probleemidele.",
-        "eli5": "Toitetase näitab, kui tugev kaabelsignaal modemile paistab või kui kõvasti modem peab tagasi rääkima.",
-        "technician": "Toitediagnostika vajab ühikuid, suunda, kanaliperekonda ja seadme-draiveri semantikat. OFDMA koguvõimsust ja 1,6 MHz aruandevõimsust ei tohiks käsitleda vahetatavate mõõdikutena."
+        "advanced": "Võimsust tuleb tõlgendada suuna ja kanalitüübi järgi. Allalaadimise vastuvõtutase, üleslaadimise saatetase ja OFDMA raporteeritud võimsuse väli ei ole omavahel asendatavad mõõtmised.",
+        "basic": "DOCSight saab näidata allalaadimise vastuvõtuvõimsust ja üleslaadimise saatevõimsust, kui modem neid edastab. Need kaks suunda tähendavad erinevaid asju.",
+        "eli5": "Võimsustase näitab, kui tugev kaablisignaal paistab, või kui kõvasti peab modem tagasi rääkima.",
+        "technician": "Kasuta võimsustõendeid koos MER/SNR-i, modulatsiooni, lukustusoleku, jaoturite/kaabelduse ajaloo ja ajastusega. Ära muuda toetamata või puuduvaid võimsusvälju null-väärtusega mõõtmisteks."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -392,10 +301,10 @@
       "category": "signal_quality",
       "id": "snr_mer",
       "levels": {
-        "advanced": "SNR/MER tuleks tõlgendada koos modulatsiooni, kanaliperekonna ja vealoenduriga. Piirväärtus võib sõltuvalt raskusastmest põhjustada madalamaid profiile, parandatavaid vigu või parandamatuid vigu.",
-        "basic": "SNR ja MER on kvaliteedimõõtmised. Paremad väärtused tähendavad tavaliselt, et modem suudab kanali usaldusväärsemalt dekodeerida, kuid need ei võrdu siiski Speedtesti jõudlusega.",
-        "eli5": "SNR/MER näitab, kui selge on signaal võrreldes müraga. Selgem signaal muudab suurema andmepaketi usaldusväärsemaks.",
-        "technician": "MER/SNR läved sõltuvad modulatsioonist ja rakendamisest. DOCSight peaks vältima teenusepakkuja vea väitmist ainult ühest väärtusest; Korrelatsioon kanaliluku, modulatsiooniprofiili, FEC-loendurite ja aja trendiga on tugevam tõend."
+        "advanced": "SNR/MER omandab tähenduse alles koos modulatsiooni, kanaliperekonna, vealoendurite ja ajatrendidega. Üks puhas väärtus võib varjata vahelduvat müra või profiilimuutusi.",
+        "basic": "SNR ja MER on signaalikvaliteedi mõõdikud. Paremad väärtused tähendavad tavaliselt, et modem suudab kanalit usaldusväärsemalt dekodeerida.",
+        "eli5": "SNR/MER kirjeldab, kui selgelt modem suudab müra sees signaali \"kuulda\".",
+        "technician": "Eskaleerimiseks jäädvusta MER/SNR koos mõjutatud kanali ID-de, ajatemplite, veamäära muutuste, võimsuse ja sündmustega. Väldi SNR/MER tähenduste segamist erinevate kanaliperekondade vahel, kontrollimata, mida modem tegelikult raporteerib."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -408,52 +317,6 @@
     },
     {
       "aliases": [
-        "Signaalikadu",
-        "Sumbumine",
-        "Kaabli kadu"
-      ],
-      "category": "signal_quality",
-      "id": "attenuation",
-      "levels": {
-        "advanced": "Sumbumine võib tuleneda kaabli pikkusest, jaoturitest, seinakontaktidest, filtritest, halbadest pistikutest või seadmestiku tingimustest. Sageli ilmneb see kaudselt vastuvõtuvõimsuse, saatevõimsuse, SNR/MER või kanali stabiilsuse kaudu.",
-        "basic": "Teatud signaalikadu on normaalne, kuid liiga suur kadu võib viia võimsustaseme vahemikust välja või sundida modemit ülesvoolu tugevamini edastama. DOCSight näeb mõju, mitte iga füüsilist põhjust.",
-        "eli5": "Sumbumine tähendab, et signaal nõrgeneb, kui see liigub läbi kaabli, jaoturite ja pistikute.",
-        "technician": "Ärge järeldage täpset dB kaotusteed ainult modemi statistika põhjal. Käsitlege sumbumist diagnostilise hüpoteesina, mida toetavad suunaspetsiifilised võimsuse muutused, topoloogiateadmised ja enne/pärast juhtmestiku ühendamist."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "dBmV",
-        "DOCSight"
-      ],
-      "title": "Sumbumine"
-    },
-    {
-      "aliases": [
-        "Müra",
-        "Sissepääs",
-        "Häired",
-        "Tagasitee müra"
-      ],
-      "category": "signal_quality",
-      "id": "ingress_noise",
-      "levels": {
-        "advanced": "Müra võib olla katkendlik, suunaspetsiifiline või piiratud teatud sagedustega. Mõjutatud kanalite ajasuundumus on tavaliselt kasulikum kui üks isoleeritud hetktõmmis.",
-        "basic": "Sissepääs ja müra võivad vähendada SNR/MER-i, põhjustada vigu või muuta ülesvoolu side ebastabiilseks. DOCSight võib näidata sümptomeid, kui modem avaldab mõjutatud signaali- ja veaandmed.",
-        "eli5": "Müra on kaablisignaali segatud soovimatu signaal. Liiga palju müra muudab andmete lugemise raskemaks.",
-        "technician": "Tagasitee sissepääs, impulssmüra, ühise tee moonutused ja kohaliku kaabli tõrked võivad DOCSIS-i kanaleid erinevalt mõjutada. DOCSight peaks esitama modemiga nähtavaid tõendeid ilma tehase täielikku lokaliseerimist nõudmata."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SNR",
-        "MER",
-        "OFDMA"
-      ],
-      "title": "Sissepääs/müra"
-    },
-    {
-      "aliases": [
         "Parandatavad sõnad",
         "Parandatud koodsõnad",
         "FEC parandatud"
@@ -461,10 +324,10 @@
       "category": "error_counters",
       "id": "correctable_errors",
       "levels": {
-        "advanced": "Parandused kajastavad FEC tööd. Kasv mürasündmuste ajal, kõrged määrad teatud kanalites või korrelatsioon madala MER-iga võivad olla kasulikud; Ainuüksi vanad kumulatiivsed summad on nõrgad tõendid.",
-        "basic": "Korrigeeritavad loendurid võivad tõusta isegi töötaval joonel. Kiirus, ajastus, mõjutatud kanalid ja see, kas ka parandamatud väärtused tõusevad, on olulisemad kui üks töötlemata kogusumma.",
-        "eli5": "Parandatavad vead on väikesed vead, mida modem suutis parandada enne andmete kadumist.",
-        "technician": "Hoidke modemi töötlemata loendurid tuletatud määradest eraldi. DOCSight peaks säilitama kumulatiivsed väärtused tõenditena, kasutades samal ajal tervise tõlgendamiseks vaatlusaknaid, baasjooni ja kasvumäärasid."
+        "advanced": "Parandatavad vead näitavad FEC-i tööd, mitte otsest pakettide kadu. Hiljutine kasv müra sündmuse ajal on tugevam tõend kui suur kumulatiivne koguarv minevikust.",
+        "basic": "Parandatavate vigade loendur võib tõusta ka töötaval liinil. DOCSight muudab selle kasulikuks, näidates määra, ajastust, mõjutatud kanaleid ja seda, kas ka parandamatud vead kasvavad.",
+        "eli5": "Parandatavad vead on signaalivead, mille modem suutis ise parandada.",
+        "technician": "Võrdle parandatud koodisõnade kasvu kanali ja ajavahemiku kaupa. Kombineeri see MER/SNR, modulatsiooni ja parandamatute vigadega, et eristada kahjutut taustaparandust aktiivsest häirest."
       },
       "misconceptions": [
         "Kõrge vana parandatav kogusumma ei ole automaatselt aktiivne rike."
@@ -485,10 +348,10 @@
       "category": "error_counters",
       "id": "uncorrectable_errors",
       "levels": {
-        "advanced": "Parandamatud väärtused peaksid olema korrelatsioonis SNR/MER, kanaliluku, modulatsioonimuutuste ja kasutajale nähtavate sümptomitega. Lähtestamine või taaskäivitamine võib muuta ka töötlemata loenduri käitumist.",
-        "basic": "Parandamatud andmed võivad viidata kadunud andmetele kanali tasemel, eriti kui need suurenevad vaatlusakna ajal. Nende ajastus ja kasvukiirus on olulisemad kui vana loendur.",
-        "eli5": "Parandamatud vead on vead, mida modem ei suutnud parandada. Need on tõsisemad kui parandatavad vead.",
-        "technician": "Tõendite saamiseks säilitage töötlemata korrigeerimata loendurid ja arvutage tuletatud kasv teadaolevast lähtetasemest. Vältige modemi kogusummade ümberkirjutamist; eristada loenduri lähtestamist, ümberkujundamist ja voolu vaatlusakna naelu."
+        "advanced": "Tõendusmaterjalis tuleb hoida toored kumulatiivsed loendurid eraldi tuletatud kasvust. Lähtestamised, ületäitumine ja modemi taaskäivitused võivad muuta toorandmete koguarve ilma uue katkestuseta.",
+        "basic": "Parandamatud vead võivad tähendada kanali tasandi andmete kadu, eriti kui need kasvavad vaatlusperioodi jooksul. DOCSight peab kasvu ja ajastust olulisemaks kui üht vana koguarvu.",
+        "eli5": "Parandamatud vead on signaalivead, mida modem ei suutnud parandada.",
+        "technician": "Kasuta parandamatuid vigu eskaleerimise tõendina, kui värske kasv langeb kokku madala MER/SNR-iga, modulatsiooni langusega, sündmuslogidega või kasutajale nähtava latentsuse/kaoga. Säilita eksportimisel toores loendur."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -500,74 +363,6 @@
     },
     {
       "aliases": [
-        "Layer-1",
-        "bruto läbilaskevõime",
-        "kanali läbilaskevõime"
-      ],
-      "category": "capacity_throughput",
-      "id": "layer1_capacity",
-      "levels": {
-        "advanced": "Layer-1 läbilaskevõime jääb alla MAC-i ajastamisele, FEC-ile, sidumiskäitumisele, teenusevoo piirangutele, IP üldkuludele, rakenduste käitumisele ja segmendi koormusele. See on üks diagnostiline kiht, mitte kogu ühendus.",
-        "basic": "DOCSight võib hinnata toetatud SC-QAM kanalite Layer-1 bruto läbilaskevõimet. See on kasulik kanali kontekst, kuid see ei luba kasutatavat Interneti-kiirust.",
-        "eli5": "Layer-1 läbilaskevõime on teoreetiline arv selle kohta, mida kaabli signaalikiht suudab kanda enne reaalmaailma lisakulude mahaarvamist.",
-        "technician": "PHY/Layer-1 läbilaskevõime tuleks märgistada kanali bruto tõendina. Ärge võrdsustage seda teenusevoo kiiruste, TCP/UDP kasuliku läbilaske, Speedtesti tulemuste või lepingulise tariifikiirusega."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "Layer-1",
-        "DOCSIS",
-        "SC-QAM",
-        "IP"
-      ],
-      "title": "Layer-1 läbilaskevõime"
-    },
-    {
-      "aliases": [
-        "bruto läbilaskevõime",
-        "neto läbilaskevõime",
-        "lisakulu"
-      ],
-      "category": "capacity_throughput",
-      "id": "gross_vs_net_capacity",
-      "levels": {
-        "advanced": "Bruto-to-net erinevused tulenevad PHY üldkuludest, FEC-st, MAC-i raamimisest, konkurentsist, teenusevoo kujundamisest, IP/TCP/UDP üldkuludest ja rakenduste käitumisest. Erinevad testid mõõdavad erinevaid kihte.",
-        "basic": "Kanali brutohinnang algab enne DOCSIS-i, IP-aadressi ja rakenduse üldkulusid. Neto läbilaskevõime on madalam ja sõltub ka ajakavast, pakkuja piirangutest, klientidest ja serveri teest.",
-        "eli5": "Bruto on enne üldkulusid. Net on lähemal sellele, mis jääb alles pärast seda, kui võrk kasutab side toimimiseks veidi ruumi.",
-        "technician": "Hoidke mõõtmiskihid selged: PHY bruto läbilaskevõime, MAC/teenusevoo kiirus, IP läbilaskevõime ja rakenduse kasulik läbilase on eraldi. Nende kihtide segamine loob eksitavaid võrdlusi."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "Layer-1",
-        "IP"
-      ],
-      "title": "Bruto vs neto läbilaskevõime"
-    },
-    {
-      "aliases": [
-        "Interneti läbilaskevõime",
-        "Goodput",
-        "Kasutatav kiirus",
-        "Speedtest"
-      ],
-      "category": "capacity_throughput",
-      "id": "ip_throughput",
-      "levels": {
-        "advanced": "Läbilaskevõime võib olla väiksem kui kanali läbilaskevõime varustamise, ajastamise, võistlemise, liikluse kujundamise, pakettide kadumise, latentsuse, kliendipiirangute ja serveripoolsete kitsaskohtade tõttu.",
-        "basic": "IP läbilaskevõime on rakenduste ja kiirustestide kogemustele lähemal kui kanali mahutavus. See sõltub DOCSIS-i seisundist, pakkuja konfiguratsioonist, marsruutimisest, Wi-Fi-st/LAN-ist ja kaugserverist.",
-        "eli5": "IP läbilaskevõime on tegelikud andmed, mis läbivad teie Interneti-ühenduse pärast võrgu ülekoormust ja piiranguid.",
-        "technician": "Hea jõudlus/läbilaskvus on lõpptulemus. DOCSighti modemi diagnostika võib selgitada kohaliku DOCSIS-kihi tõendeid, kuid need ei tohiks väita IP läbilaskevõime tulemuse ainsat põhjuslikku seost ilma toetavate andmeteta."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "IP",
-        "DOCSIS",
-        "Speedtest"
-      ],
-      "title": "IP läbilaskevõime"
-    },
-    {
-      "aliases": [
         "Kiiruse test",
         "Laadige test alla",
         "Laadi test üles",
@@ -576,10 +371,10 @@
       "category": "capacity_throughput",
       "id": "speedtest",
       "levels": {
-        "advanced": "Kiirustestid võivad aidata kontrollida kasutaja mõju, kuid need ei ole samad, mis kanali diagnostika. Madal tulemus vajab korrelatsiooni modemi tõendite, klienditee ja pakkuja/teenuse piirangutega.",
-        "basic": "Speedtest on ühe hetke mõõtmine otsast lõpuni. Seda mõjutavad DOCSISe seisund, tariifipiirangud, segmendi koormus, Wi-Fi/LAN, marsruutimine ja valitud testserver.",
-        "eli5": "Speedtest kontrollib, kui kiiresti andmed praegu testserverisse ja sealt välja liiguvad.",
-        "technician": "Käsitle Speedtesti andmeid IP/rakenduse kihi tõenditena. Võrdle neid tariifikiiruse ja diagnostiliste ajajoontega, mitte otse PHY SC-QAM bruto läbilaskevõime või töötlemata kanalite arvuga."
+        "advanced": "Speedtest mõõdab otspunktide vahelist IP-jõudlust ühel hetkel. See ei ole sama, mis DOCSIS-kanali läbilaskevõime, tariifikiirus või kohalik RF-signaali seisund.",
+        "basic": "DOCSight saab salvestada allalaadimise, üleslaadimise, latentsuse ja jitteri, et kasutajale nähtavat jõudlust saaks võrrelda DOCSIS-tõenditega.",
+        "eli5": "Speedtest mõõdab läbilaskevõimet ja latentsust, mida kasutaja testi ajal näeb.",
+        "technician": "Tõlgenda speedtesti tulemusi koos testserveri, kellaaja, ühendusmonitori andmete, segmendi vihjete ja modemi tõenditega. Väldi ühe madala tulemuse kasutamist tõendina DOCSIS-signaali rikke kohta."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -592,29 +387,6 @@
     },
     {
       "aliases": [
-        "Broneeritud kiirus",
-        "Plaanikiirus",
-        "Lepinguline kiirus",
-        "Ettenähtud kiirus"
-      ],
-      "category": "capacity_throughput",
-      "id": "tariff_speed",
-      "levels": {
-        "advanced": "Plaani kiirust jõustatakse tavaliselt pakkuja konfiguratsiooni ja teenusevoo piirangute kaudu. Tegelik kiirus sõltub ka võrgu koormusest, modemi olekust, marsruutimisest ja kohalikust kliendi tingimustest.",
-        "basic": "Tariifikiirus on toote ja varustamise piir. DOCSighti kanali andmed võivad näidata, kas kaabellink näeb välja terve, kuid see ei saa tõestada kõiki teenusepakkujapoolseid eeskirju või lepingu üksikasju.",
-        "eli5": "Tariifikiirus on Interneti-pakett, mille eest maksate, näiteks broneeritud alla- ja üleslaadimismäär.",
-        "technician": "Ära tuleta abonendi teenusevoo täpset konfiguratsiooni ainult kanali läbilaskevõime põhjal. Võimaluse korral kasuta selgesõnalist provisioning’u või Speedtesti tõendusmaterjali ja hoia DOCSighti läbilaskevõime sildid tariifiväidetest eraldi."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Tariifi kiirus"
-    },
-    {
-      "aliases": [
         "Segmendi koormus",
         "Ummikud",
         "Sõlmekoormus",
@@ -623,10 +395,10 @@
       "category": "capacity_throughput",
       "id": "segment_utilization",
       "levels": {
-        "advanced": "Segmendi koormus sõltub teenuserühma suurusest, aktiivsetest abonentidest, kanali mahust, CMTS-i ajakavast ja kellaajast. Kohalikud modemi tõendid võivad näidata sümptomeid, kuid mitte täielikku kasutuse nimetajat.",
-        "basic": "Hõivatud segment võib tegelikku kiirust vähendada isegi siis, kui modemi signaal tundub hea. DOCSight ei tohiks nõuda segmendi täpset kasutamist, välja arvatud juhul, kui toetatud allikas neid andmeid avaldab.",
-        "eli5": "Segmendi kasutus näitab, kui hõivatud on jagatud kaablisegment.",
-        "technician": "Täielik kasutamine nõuab pakkujapoolset või toetatud välist tõendusmaterjali. Vältige segmendi kogukoormuse tuletamist üksiku modemi kanalite loendist, Speedtestist või ainult signaali olekust."
+        "advanced": "Unknown jääb nähtavaks kategooriaks ja säilib jaotuse nimetajates. Selle eemaldamine jätaks mulje, et olemasolevad valimid on kindlamad, kui need tegelikult on.",
+        "basic": "Vaade võrdleb kohalikku signaali tõendusmaterjali toetatud koormuse või jõudluse signaalidega, kui need andmeallikad on saadaval.",
+        "eli5": "Segment Utilization aitab eristada sinu modemi signaali jagatud segmendi koormuse vihjetest.",
+        "technician": "Kasuta seda vaadet ainult koos selle tõenduspiiriga: toetatud valimid, Unknown kimbud, puuduvad andmed ja välised jõudlusmõõtmised peavad ekspordis ja selgitustes eraldi püsima."
       },
       "misconceptions": [
         "Hea modemi signaal ei ole ülekoormamata segmendi tõend."
@@ -637,125 +409,6 @@
         "DOCSight"
       ],
       "title": "Segmendi kasutus"
-    },
-    {
-      "aliases": [
-        "Läbilaskevõime",
-        "Kanali läbilaskevõime",
-        "Kanalimaht vs läbilaskevõime"
-      ],
-      "category": "capacity_throughput",
-      "id": "capacity_vs_throughput",
-      "levels": {
-        "advanced": "Layer-1 kanali läbilaskevõime on hinnang enne MAC-i, FEC-i, ajastamist, kanalite sidumist, segmendi koormust, liikluse kujundamist ning IP/rakenduse lisakulu. Speedtest mõõdab ühel ajahetkel kogu otsast lõpuni teed.",
-        "basic": "DOCSighti kanalimahu hinnangud kirjeldavad kanalitaseme bruto läbilaskevõimet, eriti toetatud SC-QAM-kanalite puhul. Need ei ole sinu paketikiirus, Speedtest ega garanteeritud tegelik IP läbilaskevõime.",
-        "eli5": "Kanalimaht on see, kui palju kaabliühendus võiks teoreetiliselt üle kanda. Speedtest näitab, mida sinu ühendus parajasti annab pärast seda, kui arvesse tulevad veel paljud muud tegurid.",
-        "technician": "Ära võrdsusta PHY bruto läbilaskevõimet teenusevoo kiiruspiirangute või TCP/UDP kasuliku läbilaskega. Vaadeldavat läbilaskevõimet võivad mõjutada CMTS-i ajastamine, provisioning, OFDM/OFDMA-profiili saadavus, RF-häired, järjekorrad, peering ja testserveri käitumine."
-      },
-      "misconceptions": [
-        "Kanalite läbilaskevõime summa ei tõenda, et klient peaks Speedtestis sama numbrit nägema.",
-        "Paketikiirus on teenuse konfiguratsioon; DOCSighti kanalidiagnostika on kohalik tõendusmaterjal."
-      ],
-      "protected_terms": [
-        "Layer-1",
-        "SC-QAM",
-        "Speedtest",
-        "IP",
-        "DOCSight"
-      ],
-      "title": "Kanalimaht vs Speedtest"
-    },
-    {
-      "aliases": [
-        "Pakutav teenus",
-        "Teenuse voog",
-        "Aktiveerimine",
-        "Plaani konfiguratsioon"
-      ],
-      "category": "modem_state",
-      "id": "provisioning",
-      "levels": {
-        "advanced": "Provisjon võib mõjutada tariifikiirust, teenusevoogusid, modemi autoriseerimist, alglaadimisfaili/konfiguratsiooni määramist ja lubatud funktsioone. See on RF-signaali töötlemata kvaliteedist eraldiseisev.",
-        "basic": "Provisioning kontrollib, kas modem on võrgus lubatud ja millised teenusepiirangud kehtivad. DOCSight võib näidata vihjeid, kuid pakkujapoolne konfiguratsioon ei ole alati modemist täielikult nähtav.",
-        "eli5": "Provisjon on see, kuidas pakkuja ütleb modemile, milline teenus sellel peaks olema.",
-        "technician": "Käsitlege pakkumist pakkuja juhitava DOCSIS-/MAC-kihi lepinguna. Kohalikud modemilehed võivad paljastada alglaadimisfailide nimed või teenuse oleku, kuid mitte kogu CMTS-poliitika või abonendikonto loogika."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Provisjon"
-    },
-    {
-      "aliases": [
-        "alglaadimisfail",
-        "konfiguratsioonifail",
-        "DOCSIS konfiguratsioon",
-        "Teenuse konfiguratsioon"
-      ],
-      "category": "modem_state",
-      "id": "bootfile_config_file",
-      "levels": {
-        "advanced": "Algfaili tõendid võivad toetada varustamise diagnoosimist, kuid nimed on teenusepakkujapõhised ega pruugi avalike tariifi siltidega puhtalt seostada. Seda tuleks kasutada ettevaatlikult ja koos muude tõenditega.",
-        "basic": "DOCSISe konfiguratsioonifail võib määratleda teenuse käitumist, nagu kiiruspiirangud ja lubatud funktsioonid. Mõned modemid avaldavad nime; DOCSight ei tohiks eeldada täielikku sisu ainult nime põhjal.",
-        "eli5": "Alglaadimis-/konfiguratsioonifail on pakkuja juhised, mille modem saab käivitamisel.",
-        "technician": "DOCSISe konfiguratsioonifailid on osa modemi registreerimisest/varustamisest. Ilma tegeliku failisisu ja CMTS-i kontekstita on kuvatav failinimi vaid vihje, mitte täielik teenusevoo leping."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "alglaadimis-/konfiguratsioonifail"
-    },
-    {
-      "aliases": [
-        "Osaline sidumine",
-        "Puuduvad kanalid",
-        "Kanali osaline lukk"
-      ],
-      "category": "modem_state",
-      "id": "partial_service",
-      "levels": {
-        "advanced": "Osaline teenus võib tuleneda raadiosagedusprobleemidest, profiili/kanali probleemidest, hooldusest, varustamise või modemi/CMTS-i käitumisest. Seda tuleks tõlgendada kanali lukustuse, vigade, toite ja sündmuste ajastusega.",
-        "basic": "Osalises teenuses olev modem võib endiselt pakkuda Internetti, kuid vähemate kanalite, väiksema vastupidavuse või väiksema jõudlusega. DOCSight aitab näidata, milliseid nähtavaid kanaliperekondi see mõjutab.",
-        "eli5": "Osaline teenus tähendab, et modem on võrgus, kuid ei kasuta kõiki eeldatavaid kanaleid ega funktsioone.",
-        "technician": "Ärge käsitlege osalist teenindust ühe fikseeritud põhjusena. Diagnoosige suuna, kanalipere, sündmuste logi, RF-mõõdikute ja selle järgi, kas seisund püsib uuesti sünkroonimise/taaskäivitamise või teenusepakkuja hooldusakendes."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "OFDM",
-        "OFDMA"
-      ],
-      "title": "Osaline teenus"
-    },
-    {
-      "aliases": [
-        "Modemi taaskäivitamine",
-        "Resünkroniseerimine",
-        "Vahemaa taaskäivitamine",
-        "Ühendage uuesti"
-      ],
-      "category": "modem_state",
-      "id": "resync_reboot",
-      "levels": {
-        "advanced": "Taassünkroonimise võivad käivitada hooldus, raadiosageduse ebastabiilsus, muudatused varustamises, toitekadu, modemi püsivara või teenusepakkujapoolsed sündmused. Võrrelge hetktõmmiseid enne/pärast, selle asemel, et lugeda ainult ühte olekut.",
-        "basic": "Taaskäivitused ja uuesti sünkroonimised võivad ajutiselt tühjendada loendureid, muuta kanali määramist või taastada teenuse pärast riket. Kui need juhtuvad ootamatult, on ajastus oluline tõend.",
-        "eli5": "Taaskäivitamine taaskäivitab modemi. Taassünkroonimine ühendab selle uuesti kaabelvõrguga.",
-        "technician": "Tõendite saamiseks säilitage taaskäivitamise/resünkroonimise sündmuste ümber ajatemplid, sündmuste logid, kanalimuudatused ja algtaseme vastasmõjud. Ärge tõlgendage lähtestusloendureid tõendina, et varasemat väärtuse langust pole kunagi toimunud."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Resync/reboot"
     }
   ]
 }

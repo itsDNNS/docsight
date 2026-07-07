@@ -20,10 +20,10 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "DOCSIS tinklai sujungia pasroviui ir aukštyn nukreiptus kanalus, tokius kaip SC-QAM, OFDM ir OFDMA. DOCSight gali interpretuoti vietinio modemo matomo signalo ir kanalo duomenis, bet nemato visų teikėjo segmentų ar maršruto sąlygų.",
-        "basic": "DOCSIS teikia interneto paslaugą koaksialiniu kabeliu. DOCSight nuskaito modemo, kanalo ir signalo duomenis iš palaikomų kabelinių įrenginių, todėl jo diagnostika apibūdina kabelio ryšį, o ne DSL liniją.",
-        "eli5": "DOCSIS yra kalba, kurią kabelinis modemas naudoja kalbėdamas su kabeliniu tinklu. Tai kabelinis internetas, o ne DSL per telefono liniją.",
-        "technician": "DOCSIS apibrėžia kabelinio modemo prieigos sluoksnį tarp CM ir CMTS per HFC/koaksialinį segmentą. Vietinio kanalo telemetrija yra naudinga RF ir MAC sluoksnių diagnostikai, tačiau teikėjo aprūpinimas, segmentų apkrova, CMTS politika ir IP maršruto parinkimas lieka už tik modemo įrodymų ribos."
+        "advanced": "DOCSIS naudoja įvairias žemyn ir aukštyn srautų kanalų šeimas, tokias kaip SC-QAM, OFDM ir OFDMA. Kiekviena šeima pateikia skirtingus duomenis, todėl DOCSight atskirai fiksuoja kanalo tipą, kryptį ir palaikymo būseną.",
+        "basic": "DOCSIS perduoda interneto paslaugą koaksialiniu kabeliu. DOCSight nuskaito modemo, kanalų ir signalo duomenis iš palaikomų DOCSIS įrenginių, todėl jo duomenys apibūdina kabelinę prieigos liniją, o ne DSL.",
+        "eli5": "DOCSIS – tai kabelinio interneto „kalba“, kuria bendrauja kabelinis modemas ir paslaugų teikėjo tinklas.",
+        "technician": "DOCSIS duomenis naudokite kaip modemo pusės RF/MAC kontekstą: kanalo užsifiksavimą, galią, MER/SNR, moduliaciją, klaidas ir įvykius. Teikėjo konfigūracijai, CMTS politikai, segmento apkrovai ir IP maršrutizavimui vis tiek reikia atskirų patvirtinančių šaltinių."
       },
       "misconceptions": [
         "DOCSIS nėra DSL; DSL verčių ir kabelinių kanalų verčių nereikėtų lyginti vienas su vienu."
@@ -37,74 +37,6 @@
     },
     {
       "aliases": [
-        "DSL",
-        "Telefono linija ir koaksialinis ryšys"
-      ],
-      "category": "cable_basics",
-      "id": "dsl_vs_cable",
-      "levels": {
-        "advanced": "DSL paprastai pateikia liniją nuo taško iki taško su sinchronizavimo greičio stiliaus reikšmėmis. DOCSIS naudoja bendrus koaksialinius segmentus, susietus kanalus ir CMTS planavimą, todėl modemo kanalų diagnostikai reikia skirtingų interpretacijų.",
-        "basic": "„DOCSight“ sukurta remiantis kabeliu / DOCSIS įrodymais. Kabelinio modemo reikšmės, pvz., kanalai, moduliacija, SNR/MER ir DOCSIS talpa, neturėtų būti skaitomos kaip DSL sinchronizavimo spartos arba DSL linijos statistika.",
-        "eli5": "DSL ir kabelis yra du skirtingi būdai, kaip pritraukti internetą į namus. DSL naudoja telefono laidus; kabelinis internetas naudoja koaksialinį kabelį ir DOCSIS.",
-        "technician": "Neprijunkite DSL slopinimo, sinchronizavimo ar profilio sąvokų tiesiai į DOCSIS RF/MAC įrodymus. DOCSIS kanalo būsena, OFDM/OFDMA profiliai, paslaugų srautai ir CMTS elgsena apibūdina skirtingą prieigos architektūrą."
-      },
-      "misconceptions": [
-        "Kabelinių kanalų sąrašas nėra DSL sinchronizavimo lentelė."
-      ],
-      "protected_terms": [
-        "DSL",
-        "DOCSIS",
-        "DOCSight"
-      ],
-      "title": "DSL ir kabelis"
-    },
-    {
-      "aliases": [
-        "Koaksialus",
-        "Antenos kabelis",
-        "Kabelio linija"
-      ],
-      "category": "cable_basics",
-      "id": "coaxial_cable",
-      "levels": {
-        "advanced": "DOCSIS koaksialiniai keliai yra RF keliai: galios lygis, SNR/MER, įėjimas, slopinimas ir kanalo užraktas gali keistis, kai kabeliai, skirstytuvai ar stiprintuvai yra prasti arba netinkamo dydžio.",
-        "basic": "Kabelinis internetas veikia bendraašiu kabeliu tarp jūsų namų ir tiekėjo tinklo. Skirstytuvai, jungtys ir namų laidai gali turėti įtakos signalo lygiui ir kokybei.",
-        "eli5": "Coax yra apvalus kabelis, kuriuo perduodami TV ir kabelinio interneto signalai. Kabelinis modemas jį naudoja prisijungdamas prie DOCSIS tinklo.",
-        "technician": "HFC tinkluose koaksialinė kojelė perduoda RF kanalus pasroviui ir prieš srovę tarp modemo ir prieigos tinklo. DOCSight gali rodyti modemo matomus RF simptomus, bet ne visą fizinę gamyklos topologiją."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "HFC",
-        "DOCSight"
-      ],
-      "title": "Koaksialinis kabelis"
-    },
-    {
-      "aliases": [
-        "Modemas",
-        "Gateway",
-        "Kabelinis maršruto parinktuvas",
-        "Tilto režimas"
-      ],
-      "category": "cable_basics",
-      "id": "cable_modem_router",
-      "levels": {
-        "advanced": "Šliuzas sujungia DOCSIS modemo funkcijas su maršruto parinkimu/NAT/Wi-Fi. Tilto režimas gali atskleisti maršrutą kitam įrenginiui, tačiau DOCSIS signalo ir kanalo įrodymai vis tiek priklauso modemo pusei.",
-        "basic": "Kabelinis modemas tvarko DOCSIS teikėjo pusėje. Daugelis įrenginių taip pat veikia kaip maršrutizatoriai, „Wi-Fi“ prieigos taškai arba šliuzai jūsų namų IP tinkle.",
-        "eli5": "Modemas / maršruto parinktuvas yra dėžutė, jungianti jūsų namų tinklą prie kabelinio tinklo.",
-        "technician": "Atskirkite DOCSIS sluoksnio stebėjimus nuo LAN / maršrutizatoriaus veikimo. Gera RF ir kanalo būsena neatmeta „Wi-Fi“, NAT, ugniasienės, maršruto parinkimo ar kliento kliūčių už modemo."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "DOCSight",
-        "IP"
-      ],
-      "title": "Kabelinis modemas / maršruto parinktuvas"
-    },
-    {
-      "aliases": [
         "Kabelinio modemo užbaigimo sistema",
         "Nuotolinis PHY",
         "Teikėjo ausinės"
@@ -112,10 +44,10 @@
       "category": "cable_basics",
       "id": "cmts",
       "levels": {
-        "advanced": "Teikėjo pusės suplanuoja prieigą prie srauto, teikia tolesnius kanalus, taiko aprūpinimą ir dalyvauja paslaugų srauto ribose. Vietinio modemo įrodymai gali reikšti problemas, bet negali visiškai apibūdinti CMTS politikos.",
-        "basic": "CMTS arba susijusi teikėjo pusės prieigos sistema valdo DOCSIS modemus, kanalus, planavimą ir paslaugų konfigūraciją. DOCSight paprastai mato tik modeminę šio ryšio pusę.",
-        "eli5": "CMTS yra tiekėjo pusės sistema, su kuria bendrauja jūsų kabelinis modemas.",
-        "technician": "CMTS, CCAP, Remote PHY ir mazgų architektūros turi įtakos kanalo pasiekiamumui, profilio priskyrimui, planavimui ir pažeidimų valdymui. DOCSight neturėtų daryti išvados teikėjo pusės būsenos, nebent aiškiai palaikomas šaltinis ją atskleistų."
+        "advanced": "CMTS/CCAP elgsena gali turėti įtakos kanalų prieinamumui, profiliams, tvarkaraščiams ir konfigūravimui, tačiau šie teikėjo pusės sprendimai per modemo telemetriją matomi tik iš dalies.",
+        "basic": "CMTS arba susijusi prieigos sistema valdo DOCSIS modemus, kanalus, tvarkaraščius ir paslaugos konfigūraciją. DOCSight paprastai mato tik modemo pusę.",
+        "eli5": "CMTS – tai paslaugų teikėjo pusės sistema, su kuria bendrauja jūsų kabelinis modemas.",
+        "technician": "Nedarykite tikslių išvadų apie CMTS būseną remdamiesi vien modemo duomenimis. Su CMTS susijusias formuluotes vartokite tik tada, kai jas patvirtina aiškūs teikėjo duomenys, įvykių kontekstas arba modemo laukai, kurie tai iš tikrųjų atskleidžia."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -135,10 +67,10 @@
       "category": "cable_basics",
       "id": "node_segment",
       "levels": {
-        "advanced": "Paslaugų grupės ir mazgų ribos įtakoja varžybas, kanalo apkrovą ir atnaujinimo planavimą. Vietinis modemas gali atskleisti savo kanalo būseną, o ne visą gretimų modemų sąrašą ar visą teikėjo poreikį.",
-        "basic": "Žmonės, priklausantys tam pačiam kabelių segmentui, dalijasi tam tikru prieigos tinklo pajėgumu. Mazgo padalijimas gali sumažinti vartotojų, kurie dalijasi tais pačiais ištekliais, skaičių, tačiau DOCSight paprastai nemato visos segmento populiacijos.",
-        "eli5": "Segmentas yra kabelinio tinklo dalis, kurią dalijasi namų grupė.",
-        "technician": "Segmento interpretacija priklauso nuo teikėjo topologijos, paslaugų grupės dydžio, nuotolinio PHY/CMTS dizaino ir aktyvių abonentų. Visišką panaudojimą vertinkite kaip teikėjo įrodymą, nebent jis būtų įvertintas naudojant palaikomą šaltinį."
+        "advanced": "Aptarnavimo grupės ribos daro įtaką konkurencijai dėl išteklių, kanalo apkrovai ir modernizavimo planavimui. Vietinis modemas gali parodyti simptomus, bet ne visos segmento populiacijos ar tiekėjo planuoklio būklės.",
+        "basic": "To paties kabelio segmento naudotojai dalijasi dalimi prieigos tinklo pajėgumo. Mazgo padalijimas gali sumažinti naudotojų, dalijamų tais pačiais ištekliais, skaičių.",
+        "eli5": "Mazgas arba segmentas – tai kabelinio tinklo dalis, kurią bendrai naudoja grupė namų.",
+        "technician": "Vartokite segmento terminą atsargiai: pirmiausia įrodykite vietinio signalo būklę, tada palyginkite laiko, greičio / delsos įrodymus bei tiekėjo informaciją, prieš vadindami problemą segmento apkrova."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -157,10 +89,10 @@
       "category": "cable_basics",
       "id": "shared_medium",
       "levels": {
-        "advanced": "DOCSIS talpa dalijama kanalams ir paslaugų grupėms. Vietinio modemo statistika rodo jūsų kanalą ir signalo būseną, o ginčai ir planavimas vyksta teikėjo pusėje.",
-        "basic": "Kabeliniai tinklai dalijasi prieigos tinklo dalimis tarp kelių vartotojų. Segmento apkrova gali paveikti tikrąjį greitį, o DOCSight negali tiesiogiai išmatuoti kiekvieno kito segmento modemo.",
-        "eli5": "Kabelio segmentas yra tarsi kelias, kuriuo naudojasi keli namai. Jūsų modemas gali turėti švarų signalą net tada, kai kelias užimtas.",
-        "technician": "Bendrinamos terpės elgsena priklauso nuo paslaugų grupės dydžio, CMTS planavimo, OFDMA / OFDM profilių, aprūpinimo ir aktyvaus abonento poreikio. DOCSight gali pabrėžti vietinius RF / kanalo simptomus, bet neturėtų daryti išvados apie visišką segmento panaudojimą, nebent palaikomas duomenų šaltinis tai atskleidžia."
+        "advanced": "Bendros terpės elgsena priklauso nuo aptarnavimo grupės dydžio, planavimo, kanalo pajėgumo, esamos paklausos ir tiekėjo politikos. Vienas modemas negali tiesiogiai išmatuoti viso segmento.",
+        "basic": "Bendra terpė gali būti apkrauta net kai jūsų paties modemo signalas atrodo švarus. DOCSight atskiria vietinio modemo įrodymus nuo teiginių apie tiekėjo pusės apkrovą.",
+        "eli5": "Kabelinis internetas dalijasi kaimynystės prieigos tinklo dalimis su kitais naudotojais.",
+        "technician": "Atskirkite švarius RF įrodymus nuo perkrovos įrodymų. Prieš laikant bendrą terpę pagrindine priežastimi, susiekite paros meto tendencijas, spartos testo / BQM / stebėsenos duomenis ir tiekėjo atsiliepimus."
       },
       "misconceptions": [
         "Geras signalo lygis neįrodo, kad teikėjo segmentas nėra perkrautas."
@@ -181,10 +113,10 @@
       "category": "modulation_channels",
       "id": "downstream",
       "levels": {
-        "advanced": "Pasroviui gali būti naudojami SC-QAM ir (arba) OFDM kanalai. Maitinimas, SNR/MER, moduliacija, profilio informacija ir užrakto būsena padeda paaiškinti, ar modemas kanalus priima švariai.",
-        "basic": "DOCSIS pasroviui kanalai perduoda duomenis iš teikėjo tinklo į modemą. DOCSight rodo pasroviui skirto kanalo būseną atskirai nuo būsenos prieš srovę, nes kryptys veikia skirtingai.",
-        "eli5": "Žemiau yra duomenys, gaunami iš interneto į jūsų namus.",
-        "technician": "Pasroviui būdingi įrodymai apibūdina modemui matomą priėmimo kelią ir pasroviui skirtų kanalų rinkinį. Jo nereikėtų painioti su programų atsisiuntimo nuo galo iki galo pralaidumu, kuris taip pat priklauso nuo aprūpinimo, planavimo, maršruto parinkimo ir klientų."
+        "advanced": "Downstream duomenys gali būti gaunami iš SC-QAM ir OFDM kanalų. Galia, SNR/MER, moduliacijos/profilio duomenys bei kanalo prisijungimo būsena parodo, ar modemas gali švariai priimti nešlį.",
+        "basic": "Downstream kanalai perduoda atsisiuntimus ir kitą įeinantį srautą. DOCSight rodo jų prisijungimo būseną ir signalo kokybę atskirai nuo upstream kanalų.",
+        "eli5": "Downstream — tai duomenys, keliaujantys iš tiekėjo tinklo į jūsų modemą.",
+        "technician": "Tirdami downstream problemas, koreliuokite paveiktus kanalus, MER/SNR pokyčius, korekcinių/nekorekcinių klaidų augimą, OFDM profilio pasikeitimus ir įvykių laiko žymes, o ne laikykite vieną priėmimo reikšmę visa diagnoze."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -203,10 +135,10 @@
       "category": "modulation_channels",
       "id": "upstream",
       "levels": {
-        "advanced": "Prieš srovę gali naudoti SC-QAM ir (arba) OFDMA. Jį suplanuoja teikėjo sistema, todėl vietinio modemo duomenys rodo perdavimo sąlygas, tačiau ne dėl visų priežasčių įkėlimo pralaidumas gali skirtis.",
-        "basic": "DOCSIS kanalai perduoda duomenis iš modemo atgal į teikėjo tinklą. Prieš srovę susijusios problemos dažnai pasireiškia kaip didelė perdavimo galia, kanalo sumažėjimas arba triukšmingas grįžtamojo kelio elgesys.",
-        "eli5": "Prieš srovę – tai duomenys, siunčiami iš jūsų namų į internetą, pavyzdžiui, įkėlimas paliekant jūsų namus.",
-        "technician": "Prieš srovę interpretuojant reikia perdavimo galios, kanalo užrakto, moduliacijos / profilio būsenos, diapazono būsenos ir grįžtamojo kelio triukšmo konteksto. DOCSight turėtų atskirti modemo matomus RF įrodymus nuo CMTS pusės planavimo arba paslaugų srauto politikos."
+        "advanced": "Upstream gali naudoti SC-QAM arba OFDMA. Perdavimo galia, moduliacijos kritimai, ranging elgsena ir grįžtamojo kelio triukšmo simptomai dažnai svarbesni nei atsisiuntimo pusės reikšmės.",
+        "basic": "Upstream kanalai perduoda įkėlimus, užklausas ir modemo ranging procesą. DOCSight juos naudoja kaip įkėlimo pusės signalo įrodymus.",
+        "eli5": "Upstream — tai duomenys, keliaujantys iš jūsų modemo atgal į tiekėjo tinklą.",
+        "technician": "Tirdami upstream gedimus, lyginkite galios pokyčius, kanalų kritimus, OFDMA palaikymo spragas, T3/T4 įvykius bei uždelsimo ar paketų praradimo laikotarpius. Trūkstami upstream laukai reiškia nepalaikoma arba nepranešta, o ne automatiškai nulį."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -225,10 +157,10 @@
       "category": "modulation_channels",
       "id": "channel_bonding",
       "levels": {
-        "advanced": "Bonding“ sujungia kelis kanalo išteklius, o planavimas, moduliavimas, signalo kokybė, paslaugų ribos ir protokolo pridėtinės išlaidos nustato, kas gali tapti tinkamu pralaidumu.",
-        "basic": "DOCSIS modemai dažnai vienu metu naudoja kelis pasroviui ir aukštyn nukreiptus kanalus. Labiau sujungti kanalai gali padidinti talpą, tačiau tai vis tiek negarantuoja atitinkamo Speedtest rezultato. „",
-        "eli5": "Kanalų sujungimas leidžia modemui naudoti kelis kabelinius kanalus kartu, pavyzdžiui, naudojant daugiau nei vieną juostą.",
-        "technician": "Surišto kanalo talpa turi skirti SC-QAM sumas nuo OFDM/OFDMA profilio priklausomų pajėgumų. Paslaugų srauto ribos, MAC planavimas, FEC, RF sutrikimas ir ginčas atskiria susietą PHY pajėgumą nuo programos naudingumo."
+        "advanced": "Sujungimas sujungia kanalų talpą, tačiau realus naudingas rezultatas priklauso nuo krypties, kanalų šeimos, užrakinimo būsenos, profilių, planuoklio elgsenos ir paslaugos konfigūracijos.",
+        "basic": "DOCSIS modemai dažnai vienu metu naudoja kelis atsisiuntimo ir siuntimo kanalus. DOCSight sugrupuoja matomus kanalus, kad galėtumėte matyti, kas sujungta, užrakinta ir sveika.",
+        "eli5": "Kanalų sujungimas leidžia modemui vienu metu naudoti kelis kabelio kanalus.",
+        "technician": "Vertindami sujungimo įrodymus, ieškokite trūkstamų ar prastėjusių narių pakete, šeimai būdingos būklės ir to, ar simptomai paveikia vieną kanalą, vieną kryptį ar visą paslaugų grupę."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -249,10 +181,10 @@
       "category": "modulation_channels",
       "id": "sc_qam",
       "levels": {
-        "advanced": "SC-QAM naudoja vieną nešiklį su fiksuotu kanalo pločiu ir QAM moduliavimo tvarka. Didesnė moduliacija gali perduoti daugiau bitų vienam simboliui, tačiau įvertinimas vis tiek yra bendrasis kanalo pajėgumas, o ne IP pralaidumas.",
-        "basic": "SC-QAM kanalai yra tradiciniai DOCSIS kanalai. DOCSight dažnai gali įvertinti savo bendrą 1 sluoksnio pajėgumą pagal moduliaciją ir kanalo duomenis.",
-        "eli5": "SC-QAM yra viena iš kabelinių kanalų rūšių. Pagalvokite apie tai kaip apie vieną juostą, kuri gali perduoti duomenis tarp kabelinio tinklo ir modemo.",
-        "technician": "DOCSIS SC-QAM kanalams moduliavimo tvarka, simbolių sparta, kanalo plotis ir PHY pridėtinės išlaidos nustato bendruosius 1 sluoksnio įvertinimus. FEC, MAC kadravimas, planavimas, susiejimas ir IP pridėtinės išlaidos atskiria šį įvertinimą nuo naudojamos programos pralaidumo."
+        "advanced": "SC-QAM naudoja vieną nešlį su fiksuotu kanalo pločiu ir QAM eile. Todėl bendras kanalo kontekstas yra paprastesnis nei profiliais grįstas OFDM/OFDMA, kai modemas pateikia pakankamai laukų.",
+        "basic": "SC-QAM kanalai yra tradiciniai DOCSIS 3.0 tipo kanalai. DOCSight paprastai gali parodyti jų galią, SNR/MER, moduliaciją, užrakinimo būseną ir sveikatą.",
+        "eli5": "SC-QAM yra klasikinis siauras DOCSIS kanalo tipas.",
+        "technician": "Naudokite SC-QAM eilutes, kad izoliuotumėte konkrečiam kanalui būdingus trikdžius: prieš pereidami nuo vienos prastos reikšmės prie viso tinklo išvados, palyginkite gretimus kanalus, moduliacijos pokyčius, MER/SNR ir klaidų augimą."
       },
       "misconceptions": [
         "SC-QAM talpos įvertinimas nėra greičio testo rezultatas."
@@ -273,10 +205,10 @@
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
-        "advanced": "OFDM pasroviui kanalai naudoja daug antrinių nešėjų ir profilių. Tikrasis naudojamas pajėgumas priklauso nuo profilio priskyrimo, antrinio operatoriaus būklės, išskyrimo juostų ir teikėjo pusės planavimo.",
-        "basic": "DOCSIS 3.1 naudoja OFDM pasroviui lankstiems, didelės talpos priėmimo kanalams. DOCSight gali rodyti savo signalo būseną net tada, kai negali apskaičiuoti to paties paprasto pajėgumo skaičiaus kaip SC-QAM.",
-        "eli5": "OFDM yra naujesnis pasroviui skirtas kabelinio kanalo tipas, padalantis platų kanalą į daugybę mažų dalių.",
-        "technician": "OFDM pajėgumo įvertinimui reikalingas profilis ir antrinio nešlio kontekstas. Neturėdamas pakankamai profilio duomenų, DOCSight turėtų traktuoti OFDM kaip pastebėtą, bet neįtraukti į tik SC-QAM bendrosios talpos sumas."
+        "advanced": "OFDM būklė priklauso nuo profilių, išjungtų subnešlių, PLC/lock būsenos ir profilio prieinamumo. Trūkstama profilio informacija turėtų likti nežinoma, o ne užpildyta spėjama talpa.",
+        "basic": "DOCSIS 3.1 naudoja OFDM plačiems žemyn srauto priėmimo kanalams. DOCSight jį žymi atskirai, nes OFDM įrodymai skiriasi nuo klasikinių SC-QAM eilučių.",
+        "eli5": "OFDM yra DOCSIS 3.1 žemyn srauto kanalo tipas, sudarytas iš daugybės mažų subnešlių.",
+        "technician": "Diagnozuojant OFDM, palyginkite profilio pokyčius, MER tipo rodiklius, kodinio žodžio/klaidų elgseną ir gretimų SC-QAM įrodymus. Nepalaikomus profilio laukus laikykite duomenų riba, o ne geros ar blogos paslaugos įrodymu."
       },
       "misconceptions": [
         "Trūksta OFDM talpos nereiškia, kad kanalas nenaudojamas; DOCSight gali tiesiog trūkti saugių profilio lygio duomenų."
@@ -296,10 +228,10 @@
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
-        "advanced": "OFDMA srauto pajėgumas priklauso nuo antrinio nešlio paskirstymo, profilio priskyrimo, mažųjų lizdų planavimo, grįžimo kelio triukšmo ir tiekėjo sprendimų, kurių modemo puslapis gali neatskleisti iki galo.",
-        "basic": "DOCSIS 3.1 naudoja OFDMA prieš srovę lanksčiams įkėlimo kanalams. DOCSight gali rodyti OFDMA signalo arba galios duomenis, tačiau paprasta SC-QAM stiliaus talpos matematika paprastai nėra saugi be išsamesnės informacijos.",
-        "eli5": "OFDMA yra naujesnis priešsrovinio kabelio kanalo tipas, leidžiantis daugeliui modemų dalytis mažytėmis plataus kanalo dalimis.",
-        "technician": "OFDMA telemetrijai reikia profilio / antrinio nešlio ir planavimo konteksto, kad būtų galima saugiai interpretuoti. Nereikėtų maišyti bendrosios ataskaitos galios ir antrinio operatoriaus duomenų, nebent tvarkyklė atskleidžia tikslią numatytą metriką."
+        "advanced": "OFDMA priklauso nuo profilių, subnešlių, minifėdų, grįžtamojo kelio triukšmo ir planuotojo konteksto. Trūkstami, None arba null laukai reiškia nepalaikoma arba nepranešta, o ne išmatuotą nulį.",
+        "basic": "OFDMA leidžia daugeliui modemų dalytis plataus aukštyn srauto bloko dalimis. DOCSight jį žymi atskirai nuo SC-QAM aukštyn srauto kanalų.",
+        "eli5": "OFDMA yra DOCSIS 3.1 aukštyn srauto kanalo tipas.",
+        "technician": "OFDMA diagnozuokite pagal aukštyn srauto įvykius, perdavimo elgseną, profilio prieinamumą ir delsos/nuostolių laiką. Venkite SC-QAM tipo talpos spėjimų, nebent modemas pateikia reikiamas OFDMA detales."
       },
       "misconceptions": [
         "OFDMA kanalas be rodomo talpos numerio vis tiek gali būti aktyvus ir svarbus."
@@ -321,10 +253,10 @@
       "category": "modulation_channels",
       "id": "qam_modulation_order",
       "levels": {
-        "advanced": "Didesnė moduliavimo tvarka padidina bitų skaičių vienam simboliui, bet sumažina triukšmo ir iškraipymo toleranciją. Moduliacija turi būti interpretuojama naudojant SNR/MER, kanalo tipą ir profilio kontekstą.",
-        "basic": "QAM/moduliacijos tvarka turi įtakos kanalo galimų bitų kiekiui. Jei signalo kokybė prasta, kanalui gali prireikti mažesnės moduliacijos, todėl jo bendroji talpa yra mažesnė.",
-        "eli5": "Moduliavimas yra tai, kaip duomenys pakuojami į kabelio signalą. Didesni QAM numeriai gali perduoti daugiau duomenų, tačiau reikia švaresnio signalo.",
-        "technician": "SC-QAM moduliavimo tvarka tiesiogiai pateikia 1 sluoksnio talpos įverčius su simbolių sparta ir kanalo pločiu. OFDM / OFDMA atveju, profilio / antrinio nešlio priskyrimas daro ryšį sudėtingesnį nei viena etiketė vienam kanalui."
+        "advanced": "QAM eilę reikia vertinti kartu su kanalo tipu ir SNR/MER. SC-QAM turi paprastesnį, fiksuoto kanalo ryšį, palyginti su profiliais grįstais OFDM/OFDMA kanalais.",
+        "basic": "Aukštesni QAM lygiai gali perduoti daugiau bitų per simbolį, tačiau tam reikia švaresnio signalo. DOCSight rodo moduliaciją, todėl matomi kritimai ar žemo QAM būsenos.",
+        "eli5": "Moduliacija nusako, kiek duomenų sutalpinama į kiekvieną kabelio signalo žingsnį.",
+        "technician": "Moduliacijos pokyčius naudokite kaip įrodymą, o ne kaip atskirą sprendimą. Susiekite juos su MER/SNR, galia, klaidų augimu, kanalo tipu ir tuo, ar reikšmė yra aktuali, ar tik paskutinė modemo praneštoji būsena."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -338,29 +270,6 @@
     },
     {
       "aliases": [
-        "Kanalo plotis",
-        "Simbolių dažnis",
-        "MHz",
-        "Msym/s"
-      ],
-      "category": "modulation_channels",
-      "id": "channel_width_symbol_rate",
-      "levels": {
-        "advanced": "DOCSIS kanalų planuose naudojami apibrėžti pločiai ir simbolių dažnis. Matematinė talpa priklauso nuo kanalų šeimos; SC-QAM galima įvertinti tiesiogiai nei OFDM/OFDMA be profilio duomenų.",
-        "basic": "Palaikomiems SC-QAM kanalams kanalo plotis, simbolių sparta ir moduliacija padeda įvertinti bendrą 1 sluoksnio talpą. Šios įvesties vis dar nesukuria tikro IP pralaidumo.",
-        "eli5": "Kanalo plotis rodo, kiek dažnių vietos kanalas naudoja. Simbolių sparta yra tai, kaip greitai signalo žingsniai siunčiami tame kanale.",
-        "technician": "Skaičiuojant talpą, kanalų šeimos prielaidos turėtų būti aiškios. EuroDOCSIS / DOCSIS pločiai, simbolių dažnis, moduliavimo tvarka ir PHY pridėtinės vertės negali būti pakartotinai aklai naudojami OFDM / OFDMA profiliuose."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "MHz"
-      ],
-      "title": "Kanalo plotis / simbolių dažnis"
-    },
-    {
-      "aliases": [
         "Signalo lygis",
         "dBmV",
         "Priėmimo galia",
@@ -369,10 +278,10 @@
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "Galia turi būti interpretuojama pagal kryptį ir kanalo tipą. Aiškiai atrodanti pasroviui skirta vertė automatiškai neįrodo sveikatos būklės prieš srovę, o didelė perdavimo galia gali reikšti, kad modemas sunkiai dirba, kad pasiektų tiekėjo pusę.",
-        "basic": "DOCSight gali parodyti pasroviui priėmimo ir prieš srovę perdavimo galią, kai modemas juos atskleidžia. Vertės, nepatenkančios į numatytus intervalus, gali reikšti kabelių, skirstytuvo, stiprintuvo ar grįžtamojo kelio problemas.",
-        "eli5": "Galios lygis yra tai, koks stiprus kabelio signalas atrodo modemui arba kaip sunkiai modemas turi kalbėti atgal.",
-        "technician": "Galios diagnostikai reikalingi vienetai, kryptis, kanalų šeima ir įrenginio-tvarkyklės semantika. OFDMA visuminė galia ir 1,6 MHz ataskaitų galia neturėtų būti traktuojamos kaip keičiamos metrikos."
+        "advanced": "Galią reikia vertinti pagal kryptį ir kanalo tipą. Downstream priėmimo lygis, upstream siuntimo lygis ir OFDMA pranešamos galios laukas nėra tarpusavyje pakeičiami matavimai.",
+        "basic": "DOCSight gali rodyti downstream priėmimo galią ir upstream siuntimo galią, kai modemas jas praneša. Šios dvi kryptys reiškia skirtingus dalykus.",
+        "eli5": "Galios lygis parodo, koks stiprus atrodo kabelio signalas arba kaip garsiai modemas turi „kalbėti“ atgal.",
+        "technician": "Galios įrodymus naudokite kartu su MER/SNR, moduliacija, lock būsena, splitterių/kabeliavimo istorija ir laiko sekomis. Nepalaikomų ar trūkstamų galios laukų nelaikykite nuline išmatuota reikšme."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -392,10 +301,10 @@
       "category": "signal_quality",
       "id": "snr_mer",
       "levels": {
-        "advanced": "SNR/MER turėtų būti aiškinamas kartu su moduliacija, kanalų šeima ir klaidų skaitikliais. Ribinė vertė gali sukelti žemesnius profilius, taisomas klaidas arba nepataisomas klaidas, priklausomai nuo sunkumo.",
-        "basic": "SNR ir MER yra kokybės matavimai. Geresnės reikšmės paprastai reiškia, kad modemas gali patikimiau iššifruoti kanalą, tačiau jos vis tiek nėra tiesiogiai lygios Speedtest našumui.",
-        "eli5": "SNR/MER nurodo, koks aiškus signalas lyginamas su triukšmu. Aiškesnis signalas daro didesnį duomenų paketą patikimesnį.",
-        "technician": "MER/SNR slenksčiai priklauso nuo moduliacijos ir įgyvendinimo. DOCSight turėtų vengti teigti, kad teikėjas kaltas vien dėl vienos vertės; Ryšys su kanalo užraktu, moduliacijos profiliu, FEC skaitikliais ir laiko tendencija yra tvirtesnis įrodymas."
+        "advanced": "SNR/MER įgauna prasmę tik vertinant kartu su moduliacija, kanalų šeima, klaidų skaitikliais ir laiko tendencijomis. Viena „švari“ reikšmė gali paslėpti trumpalaikį triukšmą ar profilio pokyčius.",
+        "basic": "SNR ir MER yra signalo kokybės matavimai. Geresnės reikšmės paprastai reiškia, kad modemas gali patikimiau iškoduoti kanalą.",
+        "eli5": "SNR/MER parodo, kaip aiškiai modemas „girdi“ signalą triukšme.",
+        "technician": "Eskalacijai fiksuokite MER/SNR kartu su paveiktų kanalų ID, laiko žymomis, klaidų dažnio pokyčiais, galia ir įvykiais. Venkite maišyti SNR/MER reikšmes tarp skirtingų kanalų šeimų, iš anksto nepatikrinę, ką modemas realiai praneša."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -408,52 +317,6 @@
     },
     {
       "aliases": [
-        "Signalo praradimas",
-        "Slopinimas",
-        "Kabelio praradimas"
-      ],
-      "category": "signal_quality",
-      "id": "attenuation",
-      "levels": {
-        "advanced": "Slopinimas gali atsirasti dėl kabelio ilgio, skirstytuvų, sieninių lizdų, filtrų, blogų jungčių arba gamyklos sąlygų. Jis dažnai atsiranda netiesiogiai dėl priėmimo galios, perdavimo galios, SNR/MER arba kanalo stabilumo.",
-        "basic": "Kai kurie signalo praradimai yra normalūs, tačiau per didelis praradimas gali išstumti galios lygį už diapazono arba priversti modemą perduoti sunkesnį perdavimą prieš srovę. DOCSight mato poveikį, o ne kiekvieną fizinę priežastį.",
-        "eli5": "Slopinimas reiškia, kad signalas silpnėja, kai jis keliauja per kabelį, skirstytuvus ir jungtis.",
-        "technician": "Vien iš modemo statistikos nenurodykite tikslaus dB nuostolių kelio. Laikykite slopinimą kaip diagnostinę hipotezę, paremtą krypčiai būdingais galios pokyčiais, žiniomis apie topologiją ir prieš / po laidų prijungimo įrodymus."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "dBmV",
-        "DOCSight"
-      ],
-      "title": "Slopinimas"
-    },
-    {
-      "aliases": [
-        "Triukšmas",
-        "Įėjimas",
-        "Trikdžiai",
-        "Grįžtamojo kelio triukšmas"
-      ],
-      "category": "signal_quality",
-      "id": "ingress_noise",
-      "levels": {
-        "advanced": "Triukšmas gali būti pertraukiamas, būdingas krypčiai arba apribotas tam tikrais dažniais. Laiko tendencija paveiktuose kanaluose paprastai yra naudingesnė nei viena atskira momentinė nuotrauka.",
-        "basic": "Įėjimas ir triukšmas gali sumažinti SNR/MER, sukelti klaidų arba padaryti ryšį prieš srovę nestabilų. DOCSight gali rodyti simptomus, kai modemas atskleidžia paveikto signalo ir klaidų duomenis.",
-        "eli5": "Triukšmas yra nepageidaujamas signalas, sumaišytas su kabelio signalu. Per daug triukšmo apsunkina duomenų nuskaitymą.",
-        "technician": "Grįžtamojo kelio patekimas, impulsinis triukšmas, bendrojo kelio iškraipymai ir vietiniai kabelių gedimai gali skirtingai paveikti DOCSIS kanalus. DOCSight turėtų pateikti modemo matomus įrodymus, nereikalaujant visos gamyklos lokalizacijos."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SNR",
-        "MER",
-        "OFDMA"
-      ],
-      "title": "Įėjimas / triukšmas"
-    },
-    {
-      "aliases": [
         "Taisomos klaidos",
         "Pataisyti kodiniai žodžiai",
         "FEC pataisyta"
@@ -461,10 +324,10 @@
       "category": "error_counters",
       "id": "correctable_errors",
       "levels": {
-        "advanced": "Koreguojamosios medžiagos atspindi FEC darbą. Gali būti naudingas augimas triukšmo įvykių metu, dideli rodikliai tam tikruose kanaluose arba koreliacija su mažu MER; Vien senos kumuliacinės sumos yra silpnas įrodymas.",
-        "basic": "Koreguojami skaitikliai gali pakilti net ant darbinės linijos. Greitis, laikas, paveikti kanalai ir tai, ar nepataisomi rodikliai taip pat didėja, yra svarbesni nei viena neapdorota suma.",
-        "eli5": "Taisomos klaidos yra nedidelės klaidos, kurias modemas gali ištaisyti prieš pradėdamas prarasti duomenis.",
-        "technician": "Laikykite neapdorotus modemo skaitiklius atskirai nuo išvestinių tarifų. DOCSight turėtų išsaugoti kumuliacines vertes kaip įrodymą, naudodamas stebėjimo langus, bazines linijas ir augimo tempus sveikatos interpretavimui."
+        "advanced": "Taisomos klaidos rodo FEC atliktą darbą, o ne tiesioginį paketų praradimą. Neseniai užfiksuotas augimas triukšmo įvykių metu yra tvirtesnis įrodymas nei didelis sukauptas istorinis skaičius.",
+        "basic": "Taisomų klaidų skaitikliai gali augti net veikiančioje linijoje. DOCSight juos padaro naudingus, parodydamas dažnį, laiką, paveiktus kanalus ir tai, ar kartu auga ir netaisomos klaidos.",
+        "eli5": "Taisomos klaidos – tai signalo klaidos, kurias modemas sugebėjo ištaisyti.",
+        "technician": "Lyginkite ištaisytų kodinių žodžių augimą pagal kanalą ir laiko langą. Vertinkite kartu su MER/SNR, moduliacija ir netaisomomis klaidomis, kad atskirtumėte nekenksmingą foninį taisymą nuo aktyvaus sutrikimo."
       },
       "misconceptions": [
         "Didelė sena koreguojama suma automatiškai nėra aktyvi klaida."
@@ -485,10 +348,10 @@
       "category": "error_counters",
       "id": "uncorrectable_errors",
       "levels": {
-        "advanced": "Nepataisomi dalykai turėtų būti koreliuojami su SNR/MER, kanalo užraktu, moduliacijos pokyčiais ir naudotojo matomais simptomais. Atstatymas arba perkrovimas taip pat gali pakeisti neapdorotą skaitiklio elgesį.",
-        "basic": "Nepataisomi duomenys gali rodyti prarastus duomenis kanalo lygiu, ypač kai jie auga stebėjimo lango metu. Jų laikas ir augimo tempas yra svarbesni nei senas skaitiklis.",
-        "eli5": "Netaisomos klaidos yra klaidos, kurių modemas negalėjo ištaisyti. Jie yra rimtesni nei taisomos klaidos.",
-        "technician": "Norėdami gauti įrodymų, išsaugokite neapdorotus nepataisomus skaitiklius ir apskaičiuokite gautą augimą pagal žinomą bazinę liniją. Venkite perrašyti modemo sumų; atskirti skaitiklio atstatymus, apvyniojimą ir dabartinius stebėjimo lango šuolius."
+        "advanced": "Įrodymuose žalius kaupiamuosius skaitiklius reikia laikyti atskirai nuo išvestinio augimo. Atstatymai (resets), skaitiklio persipildymas (wraparound) ir modemo perkrovimai gali pakeisti žalius bendrus skaičius, nors tai nereiškia naujo trikio.",
+        "basic": "Uncorrectables gali reikšti prarastus duomenis kanalo lygmenyje, ypač kai jų skaičius auga stebėjimo lango metu. DOCSight augimą ir laiką laiko svarbesniu nei vieną seną bendrą skaičių.",
+        "eli5": "Uncorrectable errors – tai signalo klaidos, kurių modemas negalėjo pataisyti.",
+        "technician": "Naudokite uncorrectables kaip eskalacijos įrodymą, kai naujas augimas sutampa su žemu MER/SNR, moduliacijos kritimais, įvykių žurnalais ar vartotojui matomu delsos/paketų praradimu. Eksportuojant įrodymus išsaugokite žalią skaitiklį."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -500,74 +363,6 @@
     },
     {
       "aliases": [
-        "PHY talpa",
-        "Fizinio sluoksnio talpa",
-        "Kanalo talpa"
-      ],
-      "category": "capacity_throughput",
-      "id": "layer1_capacity",
-      "levels": {
-        "advanced": "Layer-1 talpa yra mažesnė už MAC planavimą, FEC, surišimo elgseną, paslaugų srauto ribas, IP pridėtines išlaidas, taikomųjų programų elgesį ir segmentų apkrovą. Tai vienas diagnostinis sluoksnis, o ne visas ryšys.",
-        "basic": "DOCSight gali įvertinti 1 sluoksnio bendrąjį palaikomų SC-QAM kanalų pajėgumą. Tai naudingas kanalo kontekstas, tačiau tai nėra tinkamo interneto greičio pažadas.",
-        "eli5": "1 sluoksnio talpa yra teorinis skaičius, nurodantis, ką kabelio signalo sluoksnis gali nešti prieš pašalinant realias viršutines sąnaudas.",
-        "technician": "PHY/Layer-1 talpa turėtų būti pažymėta kaip bendrasis kanalo įrodymas. Netapatinkite to su paslaugų srauto sparta, TCP/UDP našumu, greičio testo rezultatais ar sutartinio tarifo sparta."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "Layer-1",
-        "DOCSIS",
-        "SC-QAM",
-        "IP"
-      ],
-      "title": "Layer-1 talpa"
-    },
-    {
-      "aliases": [
-        "Bendrasis pajėgumas",
-        "Grynasis pralaidumas",
-        "Papildomos išlaidos"
-      ],
-      "category": "capacity_throughput",
-      "id": "gross_vs_net_capacity",
-      "levels": {
-        "advanced": "Bendrosios ir grynosios vertės skirtumai atsiranda dėl PHY pridėtinių išlaidų, FEC, MAC kadravimo, ginčų, paslaugų srauto formavimo, IP/TCP/UDP pridėtinių išlaidų ir taikomųjų programų veikimo. Skirtingi testai matuoja skirtingus sluoksnius.",
-        "basic": "Bendrasis kanalo įvertinimas prasideda prieš DOCSIS, IP ir taikomosios programos pridėtines išlaidas. Grynasis pralaidumas yra mažesnis ir taip pat priklauso nuo planavimo, teikėjo apribojimų, klientų ir kelio į serverį.",
-        "eli5": "Bruto yra prieš pridėtines išlaidas. Tinklas yra arčiau to, kas lieka po to, kai tinklas naudoja tam tikrą erdvę komunikacijos darbui.",
-        "technician": "Išlaikykite aiškų matavimo sluoksnį: PHY bendrasis pajėgumas, MAC / paslaugos srautas, IP pralaidumas ir programos naudingumas yra atskiri. Sumaišius šiuos sluoksnius sukuriami klaidinantys palyginimai."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "Layer-1",
-        "IP"
-      ],
-      "title": "Bendrasis ir grynasis pajėgumas"
-    },
-    {
-      "aliases": [
-        "Interneto pralaidumas",
-        "Geras našumas",
-        "Naudojamas greitis",
-        "Speedtest"
-      ],
-      "category": "capacity_throughput",
-      "id": "ip_throughput",
-      "levels": {
-        "advanced": "Pralaidumas gali būti mažesnis nei kanalo pajėgumas dėl aprūpinimo, planavimo, ginčų, srauto formavimo, paketų praradimo, delsos, kliento apribojimų ir serverio kliūčių.",
-        "basic": "IP pralaidumas yra artimesnis programoms ir greičio testams, nei kanalo talpa. Tai priklauso nuo DOCSIS būklės, teikėjo konfigūracijos, maršruto parinkimo, „Wi-Fi“ / LAN ir nuotolinio serverio.",
-        "eli5": "IP pralaidumas yra tikrieji duomenys, kurie perduodami per jūsų interneto ryšį po tinklo papildomų išlaidų ir apribojimų.",
-        "technician": "Geras našumas / pralaidumas yra galutinis rezultatas. DOCSight modemo diagnostika gali paaiškinti vietinius DOCSIS sluoksnio įrodymus, tačiau jie neturėtų reikalauti vienintelio IP pralaidumo rezultato priežastingumo be patvirtinančių duomenų."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "IP",
-        "DOCSIS",
-        "Speedtest"
-      ],
-      "title": "IP pralaidumas"
-    },
-    {
-      "aliases": [
         "greičio testas",
         "Atsisiuntimo testas",
         "Įkėlimo testas",
@@ -576,10 +371,10 @@
       "category": "capacity_throughput",
       "id": "speedtest",
       "levels": {
-        "advanced": "greičio testai gali padėti patvirtinti vartotojo poveikį, tačiau jie nėra tas pats, kas kanalo diagnostika. Žemas rezultatas turi būti siejamas su modemo įrodymais, kliento keliu ir teikėjo / paslaugos apribojimais.",
-        "basic": "„Speedtest“ yra vieno momento matavimas nuo galo iki galo. Tam įtakos turi DOCSIS būklė, tarifų limitai, segmento apkrova, Wi-Fi/LAN, maršruto parinkimas ir pasirinktas bandomasis serveris.",
-        "eli5": "„Speedtest“ tikrina, kaip greitai duomenys šiuo metu juda į bandomąjį serverį ir iš jo.",
-        "technician": "Greičio testo duomenis vertinkite kaip IP / taikomųjų programų sluoksnio įrodymus. Palyginkite jį su tarifų greičiu ir diagnostikos tvarkaraščiais, o ne tiesiogiai su PHY bendruoju SC-QAM pajėgumu arba neapdorotų kanalų skaičiumi."
+        "advanced": "Speedtest matuoja end-to-end IP našumą vienu momentu. Tai nėra tas pats, kas DOCSIS kanalo talpa, tarifinis greitis ar vietinė RF būklė.",
+        "basic": "DOCSight gali fiksuoti atsisiuntimo, įkėlimo, delsos ir jitter reikšmes, kad vartotojui matomą našumą būtų galima palyginti su DOCSIS įrodymais.",
+        "eli5": "Speedtest išmatuoja pralaidumą ir delsą, kuriuos vartotojas mato testo metu.",
+        "technician": "Speedtest rezultatus aiškinkite kartu su testavimo serveriu, paros laiku, connection monitor duomenimis, segmento požymiais ir modemo įrodymais. Venkite vieno žemo rezultato naudoti kaip DOCSIS signalo trikio įrodymo."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -592,29 +387,6 @@
     },
     {
       "aliases": [
-        "Užsakytas greitis",
-        "Planinis greitis",
-        "Sutartinis greitis",
-        "Numatytas greitis"
-      ],
-      "category": "capacity_throughput",
-      "id": "tariff_speed",
-      "levels": {
-        "advanced": "Plano sparta paprastai užtikrinama per teikėjo konfigūraciją ir paslaugų srauto apribojimus. Tikrasis greitis taip pat priklauso nuo tinklo apkrovos, modemo būsenos, maršruto parinkimo ir vietinio kliento sąlygų.",
-        "basic": "Tarifo greitis yra produkto ir aprūpinimo riba. DOCSight kanalo duomenys gali parodyti, ar kabelio ryšys atrodo sveikas, tačiau jie negali įrodyti kiekvienos teikėjo politikos ar sutarties detalės.",
-        "eli5": "Tarifų sparta – tai interneto planas, už kurį mokate, pvz., užsakytas atsisiuntimo ir įkėlimo tarifas.",
-        "technician": "Tikslios abonento paslaugų srauto konfigūracijos nenurodykite vien iš kanalo talpos. Jei įmanoma, naudokite aiškų aprūpinimo arba greičio testo įrodymus ir DOCSight talpos etiketes laikykite atskirai nuo prašymų dėl tarifų."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Tarifinis greitis"
-    },
-    {
-      "aliases": [
         "Segmento apkrova",
         "Spūstis",
         "Mazgo apkrova",
@@ -623,10 +395,10 @@
       "category": "capacity_throughput",
       "id": "segment_utilization",
       "levels": {
-        "advanced": "Segmento apkrova priklauso nuo paslaugų grupės dydžio, aktyvių abonentų, kanalo talpos, CMTS planavimo ir paros laiko. Vietinio modemo įrodymai gali rodyti simptomus, bet ne visą naudojimo vardiklį.",
-        "basic": "Užimtas segmentas gali sumažinti tikrąjį greitį, net jei modemo signalas atrodo geras. DOCSight neturėtų reikalauti tikslaus segmento panaudojimo, nebent palaikomas šaltinis atskleistų tuos duomenis.",
-        "eli5": "Segmento panaudojimas reiškia, kaip užimtas bendrai naudojamas kabelio segmentas.",
-        "technician": "Visiškam panaudojimui reikia tiekėjo pusės arba palaikomų išorinių įrodymų. Venkite visos segmento apkrovos gauti iš vieno modemo kanalų sąrašo, greičio testo ar signalo būsenos."
+        "advanced": "Unknown lieka matoma kategorija ir išlieka pasiskirstymo vardikliuose. Ją pašalinus, turimi pavyzdžiai atrodytų patikimesni, nei yra iš tikrųjų.",
+        "basic": "Šis rodinys palygina vietinius signalo įrodymus su palaikomais apkrovos ar veikimo signalais, kai tokie duomenų šaltiniai yra prieinami.",
+        "eli5": "Segmento apkrova padeda atskirti jūsų modemo signalą nuo bendro segmento apkrovos požymių.",
+        "technician": "Naudokite šį rodinį tik atsižvelgdami į jo įrodymų ribas: palaikomi pavyzdžiai, unknown grupės, trūkstami duomenys ir išoriniai veikimo matavimai eksportuose bei paaiškinimuose turi likti atskirti."
       },
       "misconceptions": [
         "Geras modemo signalas nėra neperkrauto segmento įrodymas."
@@ -637,124 +409,6 @@
         "DOCSight"
       ],
       "title": "Segmento panaudojimas"
-    },
-    {
-      "aliases": [
-        "Pralaidumas",
-        "Talpa ir pralaidumas"
-      ],
-      "category": "capacity_throughput",
-      "id": "capacity_vs_throughput",
-      "levels": {
-        "advanced": "Layer-1 kanalo talpa yra prieš MAC, FEC, planavimą, susiejimą, segmentų apkrovą, srauto formavimą ir IP / programos pridėtines išlaidas. Greičio testai matuoja kelią nuo galo iki galo vienu momentu.",
-        "basic": "DOCSight talpos įvertinimai apibūdina kanalo lygio bendrąjį pajėgumą, ypač palaikomų SC-QAM kanalų. Jie nėra jūsų tarifo greitis, ne „Speedtest“ ir negarantuojamas tikrasis IP pralaidumas.",
-        "eli5": "Teoriškai kabelinė juosta gali nešti. „Speedtest“ yra tai, ką jūsų ryšys suteikia dabar, kai įtraukta daug kitų dalykų.",
-        "technician": "Neprilyginkite PHY bendrojo pajėgumo paslaugų srauto greičio riboms arba TCP/UDP geros galios. CMTS planavimas, aprūpinimas, OFDM / OFDMA profilio prieinamumas, RF sutrikimas, eilės, bendravimas ir testavimo serverio elgsena gali dominuoti stebimu pralaidumu."
-      },
-      "misconceptions": [
-        "Kanalo talpos suma nėra įrodymas, kad klientas turėtų matyti tą patį skaičių greičio teste.",
-        "Tarifo greitis yra gaminio konfigūracija; DOCSight kanalo diagnostika yra vietinis įrodymas."
-      ],
-      "protected_terms": [
-        "Layer-1",
-        "SC-QAM",
-        "Speedtest",
-        "IP",
-        "DOCSight"
-      ],
-      "title": "Talpa ir greičio testas"
-    },
-    {
-      "aliases": [
-        "Teikiama paslauga",
-        "Paslaugos srautas",
-        "Aktyvinimas",
-        "Plano konfigūracija"
-      ],
-      "category": "modem_state",
-      "id": "provisioning",
-      "levels": {
-        "advanced": "Aprūpinimas gali turėti įtakos tarifų greičiui, paslaugų srautams, modemo autorizacijai, įkrovos failo / konfigūracijos priskyrimui ir įgalintoms funkcijoms. Jis skiriasi nuo neapdoroto RF signalo kokybės.",
-        "basic": "aprūpinimas kontroliuoja, ar modemas leidžiamas prisijungus ir kokie paslaugų apribojimai taikomi. DOCSight gali rodyti užuominas, bet tiekėjo pusės konfigūracija ne visada visiškai matoma iš modemo.",
-        "eli5": "Teikimas yra tai, kaip teikėjas nurodo modemui, kokią paslaugą jis turi turėti.",
-        "technician": "Teikimą traktuokite kaip teikėjo valdomą DOCSIS / MAC lygmens sutartį. Vietinio modemo puslapiuose gali būti rodomi įkrovos failų pavadinimai arba paslaugos būsena, bet ne visa CMTS politika arba abonento paskyros logika."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "aprūpinimas"
-    },
-    {
-      "aliases": [
-        "įkrovos failas",
-        "konfigūracijos failas",
-        "DOCSIS konfigūracija",
-        "Paslaugos konfigūracija"
-      ],
-      "category": "modem_state",
-      "id": "bootfile_config_file",
-      "levels": {
-        "advanced": "Įkrovos failo įrodymai gali padėti atlikti aprūpinimo diagnozę, tačiau pavadinimai priklauso nuo paslaugų teikėjo ir gali būti netinkamai susieti su viešosiomis tarifų etiketėmis. Jis turėtų būti naudojamas atsargiai ir kartu su kitais įrodymais.",
-        "basic": "DOCSIS konfigūracijos failas gali apibrėžti paslaugos elgesį, pvz., greičio ribas ir įgalintas funkcijas. Kai kurie modemai atskleidžia pavadinimą; DOCSight neturėtų prisiimti viso turinio vien iš pavadinimo.",
-        "eli5": "Įkrovos failas / konfigūracijos failas yra teikėjo instrukcijos, kurias modemas gauna paleidęs.",
-        "technician": "DOCSIS konfigūracijos failai yra modemo registracijos / aprūpinimo dalis. Be tikrojo failo turinio ir CMTS konteksto rodomas failo pavadinimas yra tik užuomina, o ne visa paslaugų srauto sutartis."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "įkrovos failas / konfigūracijos failas"
-    },
-    {
-      "aliases": [
-        "Dalinis sujungimas",
-        "Trūksta kanalų",
-        "Dalinis kanalo užraktas"
-      ],
-      "category": "modem_state",
-      "id": "partial_service",
-      "levels": {
-        "advanced": "Dalinė paslauga gali atsirasti dėl RF problemų, profilio / kanalo problemų, priežiūros, aprūpinimo arba modemo / CMTS veikimo. Tai turėtų būti aiškinama naudojant kanalo užraktą, klaidas, galią ir įvykių laiką.",
-        "basic": "Dalinės paslaugos modemas vis tiek gali teikti internetą, bet mažiau kanalų, mažesnio atsparumo arba mažesnio našumo. DOCSight gali padėti parodyti, kurios matomų kanalų šeimos yra paveiktos.",
-        "eli5": "Dalinė paslauga reiškia, kad modemas yra prijungtas, bet nenaudoja visų numatytų kanalų ar funkcijų.",
-        "technician": "Nelaikykite dalinio aptarnavimo kaip vienos nustatytos priežasties. Diagnozuokite pagal kryptį, kanalų šeimą, įvykių žurnalą, RF metriką ir tai, ar būklė išlieka per sinchronizavimo / paleidimo iš naujo arba tiekėjo priežiūros langus."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "OFDM",
-        "OFDMA"
-      ],
-      "title": "Dalinė paslauga"
-    },
-    {
-      "aliases": [
-        "Modemo paleidimas iš naujo",
-        "Iš naujo sinchronizavimas",
-        "Paleidimas iš naujo",
-        "Prijunkite iš naujo"
-      ],
-      "category": "modem_state",
-      "id": "resync_reboot",
-      "levels": {
-        "advanced": "Pakartotinį sinchronizavimą gali suaktyvinti techninė priežiūra, RF nestabilumas, aprūpinimo pakeitimai, energijos praradimas, modemo programinė įranga arba teikėjo įvykiai. Palyginkite momentines nuotraukas prieš / po, o ne skaitykite vieną būseną.",
-        "basic": "Perkrovimas ir sinchronizavimas gali laikinai išvalyti skaitiklius, pakeisti kanalo priskyrimą arba atkurti paslaugą po gedimo. Jei jie įvyksta netikėtai, laikas yra svarbus įrodymas.",
-        "eli5": "Perkrovimas iš naujo paleidžia modemą. Pakartotinis sinchronizavimas leidžia iš naujo prisijungti prie kabelinio tinklo.",
-        "technician": "Norėdami gauti įrodymų, išsaugokite laiko žymes, įvykių žurnalus, kanalų pakeitimus ir priešingus pradinius efektus, susijusius su perkrovimo / sinchronizavimo įvykiais. Nevertinkite atstatymo skaitiklių kaip įrodymo, kad ankstesnis vertės sumažėjimas niekada nebuvo."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Pakartotinis sinchronizavimas / paleidimas iš naujo"
     }
   ]
 }

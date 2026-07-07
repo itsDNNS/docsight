@@ -20,10 +20,10 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "DOCSIS combinano canali downstream e upstream come SC-QAM, OFDM e OFDMA. DOCSight può interpretare il segnale visibile al modem locale e i dati del canale, ma non può vedere ogni segmento lato provider o condizione di instradamento.",
-        "basic": "DOCSIS trasporta il servizio Internet su cavo coassiale. DOCSight legge i dati del modem, del canale e del segnale dai dispositivi via cavo supportati, quindi la sua diagnostica descrive il collegamento via cavo anziché una linea DSL. Le reti",
-        "eli5": "DOCSIS è il linguaggio utilizzato da un modem via cavo per comunicare con la rete via cavo. Si tratta di Internet via cavo, non DSL su linea telefonica.",
-        "technician": "DOCSIS definisce il livello di accesso del modem via cavo tra CM e CMTS sul segmento HFC/coassiale. La telemetria del canale locale è utile per la diagnostica a livello RF e MAC, ma il provisioning del provider, il carico del segmento, la policy CMTS e il routing IP rimangono al di fuori del limite delle prove solo modem."
+        "advanced": "DOCSIS utilizza famiglie di canali downstream e upstream come SC-QAM, OFDM e OFDMA. Ogni famiglia espone evidenze diverse, perciò DOCSight tiene separati tipo di canale, direzione e stato di supporto.",
+        "basic": "DOCSIS trasporta il servizio internet sul cavo coassiale. DOCSight legge i dati di modem, canali e segnale dai dispositivi DOCSIS supportati, quindi le sue evidenze riguardano il collegamento di accesso via cavo e non la DSL.",
+        "eli5": "DOCSIS è il linguaggio dell'internet via cavo parlato tra un cable modem e la rete del provider.",
+        "technician": "Usa le evidenze DOCSIS come contesto RF/MAC lato modem: aggancio dei canali, potenza, MER/SNR, modulazione, errori ed eventi. Il provisioning del provider, le policy del CMTS, il carico di segmento e l'instradamento IP richiedono comunque fonti di supporto esplicite."
       },
       "misconceptions": [
         "DOCSIS non è DSL; I valori DSL e i valori del canale via cavo non devono essere confrontati uno a uno."
@@ -37,74 +37,6 @@
     },
     {
       "aliases": [
-        "DSL",
-        "Linea telefonica e cavo coassiale"
-      ],
-      "category": "cable_basics",
-      "id": "dsl_vs_cable",
-      "levels": {
-        "advanced": "DSL presenta solitamente una linea punto a punto con valori di stile della velocità di sincronizzazione. DOCSIS utilizza segmenti coassiali condivisi, canali collegati e pianificazione CMTS, quindi la diagnostica del canale modem necessita di interpretazioni diverse.",
-        "basic": "DOCSight è costruito attorno a prove via cavo/DOCSIS. I valori del modem via cavo quali canali, modulazione, SNR/MER e capacità DOCSIS non devono essere letti come velocità di sincronizzazione DSL o statistiche della linea DSL.",
-        "eli5": "DSL e cavo sono due modi diversi per portare Internet a casa. DSL utilizza il cablaggio telefonico; Internet via cavo utilizza cavo coassiale e DOCSIS.",
-        "technician": "Non mappare i concetti di attenuazione, sincronizzazione o profilo DSL direttamente sulle prove RF/MAC DOCSIS. Lo stato del canale DOCSIS, i profili OFDM/OFDMA, i flussi di servizio e il comportamento CMTS descrivono un'architettura di accesso diversa."
-      },
-      "misconceptions": [
-        "Un elenco di canali via cavo non è una tabella di sincronizzazione DSL."
-      ],
-      "protected_terms": [
-        "DSL",
-        "DOCSIS",
-        "DOCSight"
-      ],
-      "title": "DSL e cavo"
-    },
-    {
-      "aliases": [
-        "Coassiale",
-        "Cavo antenna",
-        "Cavo linea"
-      ],
-      "category": "cable_basics",
-      "id": "coaxial_cable",
-      "levels": {
-        "advanced": "DOCSIS sono percorsi RF: livello di potenza, SNR/MER, ingresso, attenuazione e blocco del canale possono cambiare quando cavi, splitter o amplificatori sono scadenti o di dimensioni errate.",
-        "basic": "La connessione Internet via cavo viene eseguita su un cavo coassiale tra la tua casa e la rete del provider. Splitter, connettori e cablaggio domestico possono influenzare i livelli e la qualità del segnale. I percorsi coassiali",
-        "eli5": "Coassiale è il cavo rotondo che trasporta i segnali TV e Internet via cavo. Il modem via cavo lo utilizza per connettersi alla rete DOCSIS.",
-        "technician": "Nelle reti HFC, il ramo coassiale trasporta i canali RF downstream e upstream tra il modem e la rete di accesso. DOCSight può mostrare sintomi RF visibili nel modem ma non l'intera topologia fisica dell'impianto."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "HFC",
-        "DOCSight"
-      ],
-      "title": "Cavo coassiale"
-    },
-    {
-      "aliases": [
-        "Modem",
-        "Gateway",
-        "Router via cavo",
-        "Modalità bridge"
-      ],
-      "category": "cable_basics",
-      "id": "cable_modem_router",
-      "levels": {
-        "advanced": "Un gateway combina le funzioni del modem DOCSIS con routing/NAT/Wi-Fi. La modalità bridge può esporre il routing a un altro dispositivo, ma il segnale DOCSIS e la prova del canale appartengono ancora al lato modem.",
-        "basic": "Un modem via cavo gestisce DOCSIS dal lato del provider. Molti dispositivi fungono anche da router, punti di accesso Wi-Fi o gateway per la rete IP domestica.",
-        "eli5": "Il modem/router è la scatola che collega la rete domestica alla rete via cavo.",
-        "technician": "Osservazioni separate del livello DOCSIS dal comportamento LAN/router. Un buon stato RF e canale non esclude Wi-Fi, NAT, firewall, routing o colli di bottiglia lato client dietro il modem."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "DOCSight",
-        "IP"
-      ],
-      "title": "Modem/router via cavo"
-    },
-    {
-      "aliases": [
         "Sistema di terminazione modem via cavo",
         "PHY remoto",
         "Headend del provider"
@@ -112,10 +44,10 @@
       "category": "cable_basics",
       "id": "cmts",
       "levels": {
-        "advanced": "I sistemi lato provider pianificano l'accesso upstream, forniscono canali downstream, applicano il provisioning e partecipano ai limiti del flusso di servizio. Le prove del modem locale possono suggerire problemi ma non possono descrivere completamente la politica CMTS.",
-        "basic": "Un CMTS o un sistema di accesso lato provider correlato gestisce i modem, i canali, la pianificazione e la configurazione del servizio DOCSIS. DOCSight di solito vede solo il lato moderno di tale relazione.",
-        "eli5": "Il CMTS è il sistema lato provider con cui comunica il modem via cavo.",
-        "technician": "CMTS, CCAP, PHY remoto e le architetture dei nodi influiscono sulla disponibilità del canale, sull'assegnazione del profilo, sulla pianificazione e sulla gestione delle limitazioni. DOCSight non dovrebbe dedurre lo stato lato provider a meno che una fonte esplicita supportata non lo esponga."
+        "advanced": "Il comportamento di CMTS/CCAP può influenzare disponibilità dei canali, profili, schedulazione e provisioning, ma queste decisioni lato provider sono visibili solo in parte tramite la telemetria del modem.",
+        "basic": "Un CMTS o sistema di accesso equivalente gestisce i modem DOCSIS, i canali, la schedulazione e la configurazione del servizio. DOCSight vede di norma solo il lato modem.",
+        "eli5": "Il CMTS è il sistema lato provider con cui comunica il tuo cable modem.",
+        "technician": "Non dedurre lo stato esatto del CMTS dalla sola evidenza del modem. Usa riferimenti al CMTS solo se supportati da dati espliciti del provider, contesto degli eventi o campi del modem che li espongano effettivamente."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -135,10 +67,10 @@
       "category": "cable_basics",
       "id": "node_segment",
       "levels": {
-        "advanced": "I gruppi di servizi e i confini dei nodi influenzano il conflitto, il carico del canale e la pianificazione dell'aggiornamento. Un modem locale può esporre il proprio stato del canale, non un elenco completo dei modem vicini o la domanda totale del provider.",
-        "basic": "Le persone nello stesso segmento via cavo condividono una parte della capacità della rete di accesso. Una divisione del nodo può ridurre il numero di utenti che condividono le stesse risorse, ma DOCSight normalmente non è in grado di vedere l'intera popolazione del segmento.",
-        "eli5": "Un segmento è la parte della rete via cavo condivisa da un gruppo di abitazioni.",
-        "technician": "L'interpretazione del segmento dipende dalla topologia del provider, dalle dimensioni del gruppo di servizi, dalla progettazione PHY/CMTS remota e dagli abbonati attivi. Trattare l'utilizzo completo come prova dal lato del fornitore, a meno che non venga misurato tramite una fonte supportata."
+        "advanced": "I confini del service-group influenzano la contesa, il carico dei canali e la pianificazione degli upgrade. Un modem locale può mostrare sintomi ma non l'intera popolazione del segmento né lo stato dello scheduler del provider.",
+        "basic": "Le persone nello stesso segmento via cavo condividono parte della capacità della rete di accesso. La suddivisione di un nodo può ridurre il numero di utenti che condividono le stesse risorse.",
+        "eli5": "Un nodo o segmento è la parte della rete via cavo condivisa da un gruppo di abitazioni.",
+        "technician": "Usa il linguaggio di segmento con cautela: prova prima la salute del segnale locale, poi confronta la tempistica, le evidenze di velocità/latenza e le informazioni del provider prima di attribuire un problema all'utilizzo del segmento."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -157,10 +89,10 @@
       "category": "cable_basics",
       "id": "shared_medium",
       "levels": {
-        "advanced": "DOCSIS è condivisa tra canali e gruppi di servizi. Le statistiche del modem locale mostrano il tuo canale e lo stato del segnale, mentre il conflitto e la pianificazione avvengono dal lato del provider.",
-        "basic": "Le reti via cavo condividono parti della rete di accesso tra più utenti. Il carico del segmento può influire sulle velocità reali e DOCSight non può misurare direttamente tutti gli altri modem sul segmento. La capacità",
-        "eli5": "Un segmento di cavo è come una strada utilizzata da più case. Il tuo modem può avere un segnale pulito anche quando la strada è trafficata.",
-        "technician": "Il comportamento del mezzo condiviso dipende dalle dimensioni del gruppo di servizi, dalla pianificazione CMTS, dai profili OFDMA/OFDM, dal provisioning e dalla domanda di abbonati attivi. DOCSight può evidenziare sintomi RF/canale locali ma non dovrebbe dedurre l'utilizzo completo del segmento a meno che un'origine dati supportata non lo esponga."
+        "advanced": "Il comportamento del mezzo condiviso dipende dalla dimensione del service-group, dallo scheduling, dalla capacità dei canali, dalla domanda attiva e dalla politica del provider. Un singolo modem non può misurare direttamente l'intero segmento.",
+        "basic": "Un mezzo condiviso può essere occupato anche quando il segnale del tuo modem risulta pulito. DOCSight separa le evidenze locali del modem dalle affermazioni sull'utilizzo lato provider.",
+        "eli5": "L'internet via cavo condivide parti della rete di accesso del quartiere con altri utenti.",
+        "technician": "Distingui le evidenze RF pulite dalle evidenze di congestione. Correla i pattern per fascia oraria, i dati di speedtest/BQM/monitoraggio e il feedback del provider prima di considerare il mezzo condiviso come causa principale."
       },
       "misconceptions": [
         "Un buon livello del segnale non dimostra che il segmento del fornitore non sia congestionato."
@@ -181,10 +113,10 @@
       "category": "modulation_channels",
       "id": "downstream",
       "levels": {
-        "advanced": "Downstream può utilizzare canali SC-QAM e/o OFDM. Alimentazione, SNR/MER, modulazione, informazioni sul profilo e stato di blocco aiutano a spiegare se il modem riceve i canali in modo pulito.",
-        "basic": "In DOCSIS, i canali downstream trasportano i dati dalla rete del provider al modem. DOCSight mostra lo stato del canale a valle separatamente dallo stato a monte perché le direzioni si comportano diversamente.",
-        "eli5": "Downstream sono i dati provenienti da Internet verso casa tua.",
-        "technician": "L'evidenza downstream descrive il percorso di ricezione e il set di canali downstream visibili al modem. Non deve essere confuso con la velocità effettiva di download delle applicazioni end-to-end, che dipende anche dal provisioning, dalla pianificazione, dal routing e dai client."
+        "advanced": "Le evidenze downstream possono provenire da canali SC-QAM e OFDM. Potenza, SNR/MER, dati di modulazione/profilo e stato di aggancio del canale descrivono se il modem riesce a ricevere la portante in modo pulito.",
+        "basic": "I canali downstream trasportano i download e altro traffico in entrata. DOCSight ne mostra lo stato di aggancio e la qualità del segnale separatamente dai canali upstream.",
+        "eli5": "Downstream è il traffico dati che viaggia dalla rete del provider verso il tuo modem.",
+        "technician": "Per indagare i problemi downstream, correla i canali interessati, le variazioni di MER/SNR, la crescita di errori correggibili/non correggibili, i cambi di profilo OFDM e i timestamp degli eventi, invece di considerare un singolo valore di ricezione come diagnosi completa."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -203,10 +135,10 @@
       "category": "modulation_channels",
       "id": "upstream",
       "levels": {
-        "advanced": "Upstream può utilizzare SC-QAM e/o OFDMA. È pianificato dal sistema lato provider, quindi i dati del modem locale mostrano le condizioni di trasmissione ma non per tutti i motivi la velocità di caricamento può variare.",
-        "basic": "In DOCSIS, i canali upstream riportano i dati dal modem alla rete del provider. I problemi a monte spesso si manifestano come potenza di trasmissione elevata, cadute di canale o comportamento rumoroso del percorso di ritorno.",
-        "eli5": "Upstream sono i dati che vanno da casa tua verso Internet, come un caricamento che esce da casa tua.",
-        "technician": "L'interpretazione upstream richiede potenza di trasmissione, blocco del canale, stato di modulazione/profilo, stato di portata e contesto del rumore del percorso di ritorno. DOCSight dovrebbe mantenere le prove RF visibili al modem separate dalla pianificazione lato CMTS o dalla politica del flusso di servizio."
+        "advanced": "L'upstream può usare SC-QAM oppure OFDMA. Potenza di trasmissione, cadute di modulazione, comportamento del ranging e sintomi di rumore sul percorso di ritorno spesso contano più dei valori lato download.",
+        "basic": "I canali upstream trasportano gli upload, le richieste e il ranging del modem. DOCSight li usa come evidenza del segnale lato invio.",
+        "eli5": "Upstream è il traffico dati che viaggia dal tuo modem verso la rete del provider.",
+        "technician": "Per i guasti upstream, confronta le variazioni di potenza, le cadute di canale, le lacune di supporto OFDMA, gli eventi T3/T4 e le finestre di latenza o perdita di pacchetti. I campi upstream mancanti significano non supportato o non riportato, non automaticamente zero."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -225,10 +157,10 @@
       "category": "modulation_channels",
       "id": "channel_bonding",
       "levels": {
-        "advanced": "Il bonding combina diverse risorse di canale, mentre la pianificazione, la modulazione, la qualità del segnale, i limiti del servizio e l'overhead del protocollo determinano quale può diventare il throughput utilizzabile.",
-        "basic": "I modem DOCSIS utilizzano spesso più canali downstream e upstream contemporaneamente. Un numero maggiore di canali collegati può aggiungere capacità, ma ciò non garantisce comunque un risultato Speedtest corrispondente.",
-        "eli5": "Il collegamento dei canali consente a un modem di utilizzare diversi canali via cavo insieme, ad esempio utilizzando più di una corsia.",
-        "technician": "La capacità del canale vincolato deve distinguere le somme SC-QAM dalla capacità dipendente dal profilo OFDM/OFDMA. I limiti del flusso di servizio, la pianificazione MAC, il FEC, il deterioramento RF e la contesa separano la capacità PHY vincolata dal goodput dell'applicazione."
+        "advanced": "Il bonding combina la capacità dei canali, ma il risultato utilizzabile dipende dalla direzione, dalla famiglia di canale, dallo stato di lock, dai profili, dal comportamento dello scheduler e dalla configurazione del servizio.",
+        "basic": "I modem DOCSIS spesso usano più canali downstream e upstream contemporaneamente. DOCSight raggruppa i canali visibili così puoi vedere cosa è aggregato, agganciato (locked) e in stato di salute corretto.",
+        "eli5": "Il channel bonding permette a un modem di usare più canali via cavo insieme.",
+        "technician": "Quando esamini le evidenze di bonding, cerca membri mancanti o degradati nel bundle, lo stato di salute specifico per famiglia, e se i sintomi riguardano un solo canale, una sola direzione o l'intero service group."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -249,10 +181,10 @@
       "category": "modulation_channels",
       "id": "sc_qam",
       "levels": {
-        "advanced": "SC-QAM utilizza una portante singola con larghezza di canale fissa e ordine di modulazione QAM. Una modulazione più elevata può trasportare più bit per simbolo, ma la stima è ancora la capacità lorda del canale, non il throughput IP.",
-        "basic": "SC-QAM sono canali DOCSIS tradizionali. DOCSight può spesso stimare la capacità lorda del Livello 1 dalla modulazione e dai dettagli del canale.",
-        "eli5": "SC-QAM è un tipo di canale via cavo. Consideralo come una corsia che può trasportare dati tra la rete via cavo e il tuo modem. I canali",
-        "technician": "Per i canali DOCSIS SC-QAM, l'ordine di modulazione, la velocità dei simboli, la larghezza del canale e l'overhead PHY determinano le stime lorde del Livello-1. FEC, framing MAC, pianificazione, bonding e sovraccarico IP separano tale stima dal throughput utilizzabile dell'applicazione."
+        "advanced": "SC-QAM utilizza una singola portante con larghezza di canale fissa e un ordine QAM definito. Questo rende il contesto complessivo del canale più diretto rispetto a OFDM/OFDMA basati su profili, quando il modem espone campi sufficienti.",
+        "basic": "I canali SC-QAM sono canali tradizionali in stile DOCSIS 3.0. DOCSight può solitamente mostrarne potenza, SNR/MER, modulazione, stato di lock e salute.",
+        "eli5": "SC-QAM è il tipo di canale DOCSIS classico e stretto.",
+        "technician": "Usa le righe SC-QAM per isolare un guasto specifico del canale: confronta canali adiacenti, variazioni di modulazione, MER/SNR e crescita degli errori prima di passare da un singolo valore scarso a una conclusione estesa all'intero impianto."
       },
       "misconceptions": [
         "Una stima della capacità SC-QAM non è un risultato dello Speedtest."
@@ -273,10 +205,10 @@
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
-        "advanced": "I canali downstream OFDM utilizzano molte sottoportanti e profili. La reale capacità utilizzabile dipende dall'assegnazione del profilo, dallo stato della sottoportante, dalle bande di esclusione e dalla pianificazione lato provider.",
-        "basic": "DOCSIS 3.1 utilizza OFDM downstream per canali di ricezione flessibili e ad alta capacità. DOCSight può mostrare lo stato del segnale anche quando non è in grado di calcolare lo stesso semplice numero di capacità di SC-QAM.",
-        "eli5": "OFDM è un nuovo tipo di canale via cavo downstream che divide un ampio canale in molti piccoli pezzi.",
-        "technician": "La stima della capacità OFDM richiede il contesto del profilo e della sottoportante. Senza dati di profilo sufficienti, DOCSight dovrebbe trattare OFDM come osservato ma non incluso negli importi della capacità lorda solo di SC-QAM."
+        "advanced": "Lo stato di salute di OFDM dipende da profili, sottoportanti escluse, stato di lock del PLC e disponibilità dei profili. Le informazioni di profilo mancanti devono restare unknown invece di essere sostituite con capacità stimate.",
+        "basic": "DOCSIS 3.1 usa OFDM per i canali downstream a banda larga. DOCSight lo etichetta separatamente perché i dati OFDM differiscono dalle righe classiche SC-QAM.",
+        "eli5": "OFDM è il tipo di canale downstream DOCSIS 3.1 formato da molte piccole sottoportanti.",
+        "technician": "Per la diagnostica OFDM, confronta i cambi di profilo, gli indicatori simili a MER, il comportamento di codeword/errori e i dati adiacenti SC-QAM. Tratta i campi di profilo non supportati come un limite dei dati, non come prova di un servizio buono o cattivo."
       },
       "misconceptions": [
         "La capacità OFDM mancante non significa che il canale non è utilizzato; DOCSight potrebbe semplicemente non avere dati sicuri a livello di profilo."
@@ -296,10 +228,10 @@
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
-        "advanced": "La capacità upstream OFDMA dipende dall'allocazione della sottoportante, dall'assegnazione del profilo, dalla pianificazione dei minislot, dal rumore del percorso di ritorno e dalle decisioni lato provider che una pagina del modem potrebbe non esporre completamente.",
-        "basic": "DOCSIS 3.1 utilizza OFDMA upstream per canali di caricamento flessibili. DOCSight può mostrare il segnale OFDMA o i dati di potenza, ma i semplici calcoli di capacità in stile SC-QAM di solito non sono sicuri senza ulteriori dettagli.",
-        "eli5": "OFDMA è un nuovo tipo di canale via cavo upstream che consente a molti modem di condividere piccole parti di un ampio canale.",
-        "technician": "La telemetria OFDMA necessita di profilo/sottoportante e contesto di pianificazione per un'interpretazione sicura. La potenza del report aggregato e le prove per sottoportante non dovrebbero essere mescolate a meno che il driver non esponga l'esatta metrica prevista."
+        "advanced": "OFDMA dipende da profili, sottoportanti, minislot, rumore sul percorso di ritorno e contesto dello scheduler. Campi mancanti, None o null significano non supportato o non riportato, non misurato come zero.",
+        "basic": "OFDMA permette a molti modem di condividere parti di un ampio blocco upstream. DOCSight lo etichetta separatamente dai canali upstream SC-QAM.",
+        "eli5": "OFDMA è il tipo di canale upstream DOCSIS 3.1.",
+        "technician": "Diagnostica OFDMA con eventi upstream, comportamento di trasmissione, disponibilità dei profili e tempistiche di latenza/perdita. Evita stime di capacità in stile SC-QAM a meno che il modem non esponga i dettagli OFDMA richiesti."
       },
       "misconceptions": [
         "Un canale OFDMA senza un numero di capacità visualizzato può comunque essere attivo e importante."
@@ -321,10 +253,10 @@
       "category": "modulation_channels",
       "id": "qam_modulation_order",
       "levels": {
-        "advanced": "Ordini di modulazione più alti aumentano i bit per simbolo ma riducono la tolleranza per rumore e distorsione. La modulazione deve essere interpretata con SNR/MER, tipo di canale e contesto del profilo.",
-        "basic": "L'ordine QAM/modulazione influisce sul numero di bit che un canale può trasportare. Se la qualità del segnale è scarsa, un canale potrebbe necessitare di una modulazione inferiore e quindi avere una capacità lorda inferiore.",
-        "eli5": "La modulazione è il modo in cui i dati vengono inseriti nel segnale del cavo. Numeri QAM più alti possono trasportare più dati, ma necessitano di un segnale più pulito.",
-        "technician": "Per SC-QAM, l'ordine di modulazione alimenta direttamente le stime di capacità del Livello 1 con la velocità di simbolo e la larghezza del canale. Per OFDM/OFDMA, l'assegnazione profilo/sottoportante rende la relazione più complessa di un'etichetta per canale."
+        "advanced": "L'ordine QAM va interpretato insieme alla famiglia di canale e a SNR/MER. SC-QAM ha una relazione a canale fisso più semplice rispetto ai canali basati su profili OFDM/OFDMA.",
+        "basic": "Livelli QAM più alti trasportano più bit per simbolo, ma richiedono un segnale più pulito. DOCSight mostra la modulazione, così cali o stati Low-QAM diventano visibili.",
+        "eli5": "La modulazione indica quanti dati vengono inseriti in ogni passo (simbolo) del segnale via cavo.",
+        "technician": "Usa le variazioni di modulazione come indizio, non come verdetto isolato. Correlale con MER/SNR, potenza, crescita degli errori, famiglia di canale, e verifica se il valore è attuale o solo l'ultimo stato riportato dal modem."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -338,29 +270,6 @@
     },
     {
       "aliases": [
-        "Larghezza canale",
-        "Symbol rate",
-        "MHz",
-        "Msim/s"
-      ],
-      "category": "modulation_channels",
-      "id": "channel_width_symbol_rate",
-      "levels": {
-        "advanced": "DOCSIS utilizzano larghezze e velocità di simbolo definite. I calcoli relativi alla capacità dipendono dalla famiglia di canali; SC-QAM può essere stimato in modo più diretto rispetto a OFDM/OFDMA senza dati di profilo.",
-        "basic": "Per i canali SC-QAM supportati, la larghezza del canale, la velocità dei simboli e la modulazione aiutano a stimare la capacità lorda del Livello-1. Questi input ancora non producono da soli un reale throughput IP. I piani di canale",
-        "eli5": "La larghezza del canale indica lo spazio di frequenza utilizzato da un canale. La frequenza dei simboli è la velocità con cui i passaggi del segnale vengono inviati all'interno di quel canale.",
-        "technician": "I calcoli della capacità dovrebbero mantenere esplicite le ipotesi relative alla famiglia di canali. Le larghezze, i tassi di simbolo, l'ordine di modulazione e l'overhead PHY di EuroDOCSIS/DOCSIS non devono essere riutilizzati ciecamente nei profili OFDM/OFDMA."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "MHz"
-      ],
-      "title": "Larghezza canale/symbol rate"
-    },
-    {
-      "aliases": [
         "Livello di segnale",
         "dBmV",
         "Potenza di ricezione",
@@ -369,10 +278,10 @@
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "La potenza deve essere interpretata in base alla direzione e al tipo di canale. Un valore downstream dall'aspetto pulito non dimostra automaticamente l'integrità dell'upstream e un'elevata potenza di trasmissione upstream può suggerire che il modem sta lavorando duramente per raggiungere il lato del provider.",
-        "basic": "DOCSight può mostrare la potenza di ricezione downstream e la potenza di trasmissione upstream quando il modem le espone. I valori al di fuori degli intervalli previsti possono indicare problemi di cablaggio, splitter, amplificatore o percorso di ritorno.",
-        "eli5": "Il livello di potenza indica la potenza con cui il segnale del cavo appare al modem o la forza con cui il modem deve rispondere.",
-        "technician": "La diagnostica di potenza richiede unità, direzione, famiglia di canali e semantica del driver di dispositivo. La potenza aggregata OFDMA e la potenza del report per 1,6 MHz non devono essere trattate come parametri intercambiabili."
+        "advanced": "La potenza va interpretata in base alla direzione e al tipo di canale. Un livello di ricezione downstream, un livello di trasmissione upstream e un campo report-power OFDMA non sono misure intercambiabili.",
+        "basic": "DOCSight può mostrare la potenza di ricezione in downstream e la potenza di trasmissione in upstream quando il modem le riporta. Le due direzioni hanno significati diversi.",
+        "eli5": "Il livello di potenza indica quanto è forte il segnale via cavo, oppure quanto forte deve trasmettere il modem per farsi sentire.",
+        "technician": "Utilizza i dati di potenza insieme a MER/SNR, modulazione, stato di lock, storico di splitter/cablaggio e tempistica. Non trasformare campi di potenza non supportati o mancanti in misurazioni a valore zero."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -392,10 +301,10 @@
       "category": "signal_quality",
       "id": "snr_mer",
       "levels": {
-        "advanced": "SNR/MER deve essere interpretato insieme alla modulazione, alla famiglia di canali e ai contatori di errori. Un valore marginale può causare profili inferiori, errori correggibili o errori non correggibili a seconda della gravità.",
-        "basic": "SNR e MER sono misurazioni di qualità. Valori migliori di solito significano che il modem può decodificare il canale in modo più affidabile, ma non equivalgono comunque direttamente alle prestazioni di Speedtest.",
-        "eli5": "SNR/MER indica quanto è chiaro il segnale rispetto al rumore. Un segnale più chiaro rende più affidabile l'impacchettamento dei dati.",
-        "technician": "Le soglie MER/SNR dipendono dalla modulazione e dall'implementazione. DOCSight dovrebbe evitare di rivendicare la colpa del fornitore solo per un valore; la correlazione con il blocco del canale, il profilo di modulazione, i contatori FEC e la tendenza temporale costituisce una prova più forte."
+        "advanced": "SNR/MER acquisisce significato se letto insieme a modulazione, famiglia di canale, contatori di errore e andamento nel tempo. Un singolo valore pulito può nascondere rumore intermittente o cambi di profilo.",
+        "basic": "SNR e MER sono misure della qualità del segnale. Valori migliori indicano solitamente che il modem può decodificare il canale in modo più affidabile.",
+        "eli5": "SNR/MER indica quanto chiaramente il modem riesce a distinguere il segnale dal rumore.",
+        "technician": "Per un'escalation, raccogliere MER/SNR insieme agli ID dei canali interessati, timestamp, variazioni del tasso di errore, potenza ed eventi. Evitare di mescolare la semantica di SNR/MER tra famiglie di canale diverse senza verificare cosa riporta effettivamente il modem."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -408,52 +317,6 @@
     },
     {
       "aliases": [
-        "Perdita di segnale",
-        "Smorzamento",
-        "Perdita di cavo"
-      ],
-      "category": "signal_quality",
-      "id": "attenuation",
-      "levels": {
-        "advanced": "L'attenuazione può derivare dalla lunghezza del cavo, dai divisori, dalle prese a muro, dai filtri, da connettori difettosi o dalle condizioni dell'impianto. Spesso appare indirettamente attraverso la potenza di ricezione, potenza di trasmissione, SNR/MER o stabilità del canale.",
-        "basic": "Una certa perdita di segnale è normale, ma una perdita eccessiva può spingere i livelli di potenza fuori portata o forzare il modem a trasmettere più duramente a monte. DOCSight vede l'effetto, non tutte le cause fisiche.",
-        "eli5": "Attenuazione significa che il segnale diventa più debole mentre viaggia attraverso cavi, splitter e connettori.",
-        "technician": "Non dedurre un percorso preciso di perdita in dB solo dalle statistiche del modem. Trattare l'attenuazione come un'ipotesi diagnostica supportata da cambiamenti di potenza specifici della direzione, conoscenza della topologia e prove prima/dopo il cablaggio."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "dBmV",
-        "DOCSight"
-      ],
-      "title": "Attenuazione"
-    },
-    {
-      "aliases": [
-        "Rumore",
-        "Ingresso",
-        "Interferenza",
-        "Rumore del percorso di ritorno"
-      ],
-      "category": "signal_quality",
-      "id": "ingress_noise",
-      "levels": {
-        "advanced": "Il rumore può essere intermittente, specifico della direzione o limitato a determinate frequenze. Una tendenza temporale tra i canali interessati è solitamente più utile di uno snapshot isolato.",
-        "basic": "L'ingresso e il rumore possono ridurre SNR/MER, causare errori o rendere instabile la comunicazione a monte. DOCSight può mostrare sintomi quando il modem espone segnali interessati e dati di errore.",
-        "eli5": "Il rumore è un segnale indesiderato mescolato al segnale del cavo. Troppo rumore rende i dati più difficili da leggere.",
-        "technician": "L'ingresso del percorso di ritorno, il rumore impulsivo, la distorsione del percorso comune e i guasti del cablaggio locale possono influenzare i canali DOCSIS in modo diverso. DOCSight dovrebbe presentare prove visibili al giorno d'oggi senza rivendicare la localizzazione completa dell'impianto."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SNR",
-        "MER",
-        "OFDMA"
-      ],
-      "title": "Ingresso/rumore"
-    },
-    {
-      "aliases": [
         "Elementi correggibili",
         "Codeword corretti",
         "FEC corretto"
@@ -461,10 +324,10 @@
       "category": "error_counters",
       "id": "correctable_errors",
       "levels": {
-        "advanced": "Gli elementi correggibili riflettono il lavoro della FEC. Possono essere utili la crescita durante eventi di rumore, frequenze elevate su canali specifici o la correlazione con un MER basso; i soli vecchi totali cumulativi costituiscono una prova debole.",
-        "basic": "I contatori correggibili possono salire anche su una linea di lavoro. La velocità, i tempi, i canali interessati e l’eventuale aumento dei fattori non correggibili contano più di un totale grezzo.",
-        "eli5": "Gli errori correggibili sono piccoli errori che il modem può correggere prima che diventino dati persi.",
-        "technician": "Mantenere i contatori modem grezzi separati dalle tariffe derivate. DOCSight dovrebbe preservare i valori cumulativi come prova mentre utilizza finestre di osservazione, linee di base e tassi di crescita per l’interpretazione della salute."
+        "advanced": "Gli errori correggibili riflettono il lavoro del FEC, non una perdita diretta di pacchetti. Una crescita recente durante eventi di rumore è un'evidenza più solida di un grande totale cumulativo residuo dal passato.",
+        "basic": "I contatori di errori correggibili possono aumentare anche su una linea funzionante. DOCSight li rende utili mostrando tasso, tempistica, canali coinvolti ed eventuale aumento parallelo degli errori non correggibili.",
+        "eli5": "Gli errori correggibili sono errori di segnale che il modem è riuscito a riparare.",
+        "technician": "Confrontare la crescita dei codeword corretti per canale e intervallo di tempo. Abbinarla a MER/SNR, modulazione ed errori non correggibili per distinguere una correzione di fondo innocua da un'anomalia attiva."
       },
       "misconceptions": [
         "Un vecchio totale correggibile elevato non è automaticamente un guasto attivo."
@@ -485,10 +348,10 @@
       "category": "error_counters",
       "id": "uncorrectable_errors",
       "levels": {
-        "advanced": "Gli elementi non correggibili devono essere correlati a SNR/MER, blocco del canale, modifiche della modulazione e sintomi visibili all'utente. Un ripristino o un riavvio possono anche modificare il comportamento grezzo del contatore.",
-        "basic": "Gli elementi non correggibili possono indicare la perdita di dati a livello di canale, soprattutto quando crescono durante la finestra di osservazione. La tempistica e il tasso di crescita contano più di un vecchio contatore totale.",
-        "eli5": "Gli errori non correggibili sono errori che il modem non è riuscito a correggere. Sono più gravi degli errori correggibili.",
-        "technician": "A titolo di prova, conservare i contatori grezzi non correggibili e calcolare la crescita derivata da una linea di base nota. Evitare di riscrivere i totali del modem; distinguere i reset dei contatori, il wraparound e i picchi della finestra di osservazione corrente."
+        "advanced": "Le evidenze devono mantenere separati i contatori cumulativi grezzi dalla crescita derivata. Reset, wraparound e riavvii del modem possono modificare i totali grezzi senza rappresentare una nuova interruzione.",
+        "basic": "Gli errori non correggibili possono indicare perdita di dati a livello di canale, soprattutto quando aumentano durante la finestra di osservazione. DOCSight considera l'aumento e la tempistica più importanti di un singolo totale storico.",
+        "eli5": "Gli errori non correggibili sono errori nel segnale che il modem non è riuscito a riparare.",
+        "technician": "Usa gli errori non correggibili come evidenza per l'escalation quando una crescita recente coincide con MER/SNR bassi, cadute di modulazione, log di eventi o latenza/perdita visibili all'utente. Conserva il contatore grezzo quando esporti le evidenze."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -500,73 +363,6 @@
     },
     {
       "aliases": [
-        "Capacità PHY",
-        "Capacità del livello fisico",
-        "Capacità del canale"
-      ],
-      "category": "capacity_throughput",
-      "id": "layer1_capacity",
-      "levels": {
-        "advanced": "La capacità di livello 1 si trova al di sotto della pianificazione MAC, del FEC, del comportamento di bonding, dei limiti del flusso di servizio, dell'overhead IP, del comportamento dell'applicazione e del carico del segmento. Si tratta di un livello diagnostico, non dell'intera connessione. La capacità",
-        "basic": "DOCSight può stimare la capacità lorda del livello 1 per i canali SC-QAM supportati. Questo è un utile contesto del canale, ma non è una promessa di velocità Internet utilizzabile.",
-        "eli5": "La capacità del livello 1 è un numero teorico di ciò che il livello del segnale del cavo può trasportare prima che il sovraccarico del mondo reale venga rimosso.",
-        "technician": "PHY/Layer-1 deve essere etichettata come prova del canale lordo. Non equipararlo alle tariffe del flusso di servizio, al goodput TCP/UDP, ai risultati dello Speedtest o alla velocità delle tariffe contrattuali."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "Layer-1",
-        "DOCSIS",
-        "SC-QAM",
-        "IP"
-      ],
-      "title": "Capacità livello 1"
-    },
-    {
-      "aliases": [
-        "Capacità lorda",
-        "Portata netta",
-        "Spese generali"
-      ],
-      "category": "capacity_throughput",
-      "id": "gross_vs_net_capacity",
-      "levels": {
-        "advanced": "Le differenze lorde-nette derivano dal sovraccarico PHY, FEC, framing MAC, contesa, modellazione del flusso di servizio, sovraccarico IP/TCP/UDP e comportamento dell'applicazione. Test diversi misurano strati diversi.",
-        "basic": "Una stima lorda del canale inizia prima di DOCSIS, IP e sovraccarico dell'applicazione. Il throughput netto è inferiore e dipende anche dalla pianificazione, dai limiti del provider, dai client e dal percorso del server.",
-        "eli5": "Il lordo è prima delle spese generali. La rete è più vicina a ciò che rimane dopo che la rete ha utilizzato dello spazio per far funzionare la comunicazione.",
-        "technician": "Mantieni esplicito il livello di misurazione: la capacità lorda PHY, le velocità di flusso del servizio/MAC, il throughput IP e il goodput dell'applicazione sono separati. Mescolare questi strati crea confronti fuorvianti."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "Layer-1",
-        "IP"
-      ],
-      "title": "Capacità lorda rispetto a quella netta"
-    },
-    {
-      "aliases": [
-        "Velocità effettiva Internet",
-        "Goodput",
-        "Velocità utilizzabile"
-      ],
-      "category": "capacity_throughput",
-      "id": "ip_throughput",
-      "levels": {
-        "advanced": "La velocità effettiva può essere inferiore alla capacità del canale a causa di provisioning, pianificazione, contesa, modellazione del traffico, perdita di pacchetti, latenza, limiti client e colli di bottiglia sul lato server.",
-        "basic": "è più vicino all'esperienza delle app e degli Speedtest rispetto alla capacità del canale. Dipende dall'integrità di DOCSIS, dalla configurazione del provider, dal routing, dal Wi-Fi/LAN e dal server remoto.",
-        "eli5": "La velocità effettiva IP è i dati reali che attraversano la connessione Internet dopo il sovraccarico e i limiti della rete. Il throughput IP",
-        "technician": "Goodput/throughput è un risultato end-to-end. La diagnostica del modem DOCSight può spiegare le prove locali del livello DOCSIS, ma non dovrebbe rivendicare la sola causalità per un risultato di throughput IP senza supportare i dati."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "IP",
-        "DOCSIS",
-        "Speedtest"
-      ],
-      "title": "Velocità effettiva IP"
-    },
-    {
-      "aliases": [
         "Test velocità",
         "Scarica test",
         "Carica test",
@@ -575,10 +371,10 @@
       "category": "capacity_throughput",
       "id": "speedtest",
       "levels": {
-        "advanced": "possono aiutare a convalidare l'impatto dell'utente, ma non sono la stessa cosa della diagnostica del canale. Un risultato basso richiede la correlazione con le prove del modem, il percorso del client e i limiti del provider/servizio.",
-        "basic": "Uno Speedtest è una misurazione end-to-end in un dato momento. È influenzato dallo stato del DOCSIS, dai limiti tariffari, dal carico del segmento, dal Wi-Fi/LAN, dal routing e dal server di test scelto. Gli speedtest",
-        "eli5": "Uno Speedtest controlla la velocità con cui i dati si spostano da e verso un server di test in questo momento.",
-        "technician": "Tratta i dati Speedtest come prova a livello IP/applicazione. Confrontalo con la velocità tariffaria e le tempistiche diagnostiche, non direttamente con la capacità SC-QAM lorda PHY o con i conteggi dei canali grezzi."
+        "advanced": "Uno speedtest misura le prestazioni IP end-to-end in un singolo momento. Non equivale alla capacità di canale DOCSIS, alla velocità contrattuale o allo stato locale del segnale RF.",
+        "basic": "DOCSight può registrare download, upload, latenza e jitter in modo da poter confrontare le prestazioni visibili all'utente con le evidenze DOCSIS.",
+        "eli5": "Lo Speedtest misura la velocità e la latenza che un utente vede durante un test.",
+        "technician": "Interpreta i risultati dello speedtest insieme a server di test, orario, dati del connection monitor, indizi sul segmento ed evidenze del modem. Evita di usare un singolo risultato basso come prova di un guasto del segnale DOCSIS."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -591,29 +387,6 @@
     },
     {
       "aliases": [
-        "Velocità prenotata",
-        "Velocità pianificata",
-        "Velocità contrattuale",
-        "Velocità fornita"
-      ],
-      "category": "capacity_throughput",
-      "id": "tariff_speed",
-      "levels": {
-        "advanced": "La velocità del piano viene solitamente applicata attraverso la configurazione del provider e i limiti del flusso di servizio. La velocità reale dipende anche dal carico della rete, dallo stato del modem, dal routing e dalle condizioni del client locale.",
-        "basic": "La velocità delle tariffe è un limite del prodotto e della fornitura. I dati del canale DOCSight possono mostrare se il collegamento via cavo sembra integro, ma non possono dimostrare ogni politica lato fornitore o dettaglio contrattuale.",
-        "eli5": "La velocità tariffaria è il piano Internet per cui paghi, ad esempio la velocità di download e upload prenotata.",
-        "technician": "Non dedurre l'esatta configurazione del flusso di servizio dell'abbonato esclusivamente dalla capacità del canale. Utilizza il provisioning esplicito o le prove Speedtest quando disponibili e mantieni le etichette di capacità DOCSight separate dalle dichiarazioni tariffarie."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Velocità tariffaria"
-    },
-    {
-      "aliases": [
         "Carico del segmento",
         "Congestione",
         "Carico del nodo",
@@ -622,10 +395,10 @@
       "category": "capacity_throughput",
       "id": "segment_utilization",
       "levels": {
-        "advanced": "Il carico del segmento dipende dalle dimensioni del gruppo di servizi, dagli abbonati attivi, dalla capacità del canale, dalla pianificazione CMTS e dall'ora del giorno. Le prove del modem locale possono mostrare sintomi ma non il denominatore di utilizzo completo.",
-        "basic": "Un segmento occupato può ridurre la velocità reale anche quando il segnale del modem sembra buono. DOCSight non dovrebbe dichiarare l'utilizzo esatto del segmento a meno che una fonte supportata non esponga tali dati.",
-        "eli5": "L'utilizzo del segmento indica quanto è occupato il segmento del cavo condiviso.",
-        "technician": "L'utilizzo completo richiede prove esterne supportate o da parte del fornitore. Evitare di ricavare il carico totale del segmento solo dall'elenco dei canali, dallo Speedtest o dallo stato del segnale di un singolo modem."
+        "advanced": "Unknown resta una categoria visibile e rimane nei denominatori della distribuzione. Escluderla farebbe apparire i campioni disponibili più certi di quanto non siano.",
+        "basic": "La vista confronta le prove del segnale locale con i segnali di utilizzo o prestazioni supportati, quando queste fonti di dati sono disponibili.",
+        "eli5": "L'utilizzo del segmento aiuta a distinguere il segnale del tuo modem dagli indizi di carico condivisi sul segmento.",
+        "technician": "Usa questa vista solo rispettando il suo limite di evidenza: campioni supportati, bucket unknown, dati mancanti e misurazioni di prestazioni esterne devono restare separati negli export e nelle spiegazioni."
       },
       "misconceptions": [
         "Un buon segnale del modem non è la prova di un segmento non congestionato."
@@ -636,124 +409,6 @@
         "DOCSight"
       ],
       "title": "Utilizzo del segmento"
-    },
-    {
-      "aliases": [
-        "Produttività",
-        "Capacità vs produttività"
-      ],
-      "category": "capacity_throughput",
-      "id": "capacity_vs_throughput",
-      "levels": {
-        "advanced": "La capacità del canale Layer-1 viene prima di MAC, FEC, pianificazione, bonding, carico di segmenti, modellazione del traffico e sovraccarico IP/applicazione. Gli speedtest misurano un percorso end-to-end in un determinato momento nel tempo.",
-        "basic": "Le stime della capacità di DOCSight descrivono la capacità lorda a livello di canale, in particolare per i canali SC-QAM supportati. Non rappresentano la velocità tariffaria, né uno Speedtest, né il throughput IP reale garantito.",
-        "eli5": "La capacità è ciò che la corsia dei cavi potrebbe trasportare in teoria. Uno Speedtest è ciò che la tua connessione offre in questo momento dopo che sono state incluse molte altre cose.",
-        "technician": "Non equiparare la capacità lorda PHY ai limiti di portata del servizio o al goodput TCP/UDP. La pianificazione CMTS, il provisioning, la disponibilità del profilo OFDM/OFDMA, il danneggiamento RF, l'accodamento, il peering e il comportamento del server di test possono tutti dominare il throughput osservato."
-      },
-      "misconceptions": [
-        "La somma della capacità del canale non è la prova che un cliente dovrebbe vedere lo stesso numero in uno Speedtest.",
-        "La velocità della tariffa è una configurazione del prodotto; La diagnostica del canale DOCSight è una prova locale."
-      ],
-      "protected_terms": [
-        "Layer-1",
-        "SC-QAM",
-        "Speedtest",
-        "IP",
-        "DOCSight"
-      ],
-      "title": "Capacità rispetto a Speedtest"
-    },
-    {
-      "aliases": [
-        "Servizio fornito",
-        "Flusso del servizio",
-        "Attivazione",
-        "Configurazione del piano"
-      ],
-      "category": "modem_state",
-      "id": "provisioning",
-      "levels": {
-        "advanced": "Il provisioning può influire sulla velocità delle tariffe, sui flussi di servizio, sull'autorizzazione del modem, sull'assegnazione del file di avvio/configurazione e sulle funzionalità abilitate. È separato dalla qualità del segnale RF grezzo.",
-        "basic": "Il provisioning controlla se il modem è consentito online e quali limiti di servizio si applicano. DOCSight potrebbe mostrare suggerimenti, ma la configurazione lato provider non è sempre completamente visibile dal modem.",
-        "eli5": "Il provisioning è il modo in cui il provider comunica al modem quale servizio dovrebbe avere.",
-        "technician": "Trattare il provisioning come un contratto a livello DOCSIS/MAC controllato dal provider. Le pagine del modem locale possono esporre i nomi dei file di avvio o lo stato del servizio, ma non tutti i criteri CMTS o la logica dell'account dell'abbonato."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Provisioning"
-    },
-    {
-      "aliases": [
-        "File di avvio",
-        "File di configurazione",
-        "DOCSIS config",
-        "Configurazione del servizio"
-      ],
-      "category": "modem_state",
-      "id": "bootfile_config_file",
-      "levels": {
-        "advanced": "Le prove del file di avvio possono supportare la diagnosi del provisioning, ma i nomi sono specifici del fornitore e potrebbero non essere associati in modo chiaro alle etichette tariffarie pubbliche. Dovrebbe essere usato con attenzione e con altre prove. I file di configurazione",
-        "basic": "Un file di configurazione DOCSIS può definire il comportamento del servizio come limiti di velocità e funzionalità abilitate. Alcuni modem espongono il nome; DOCSight non dovrebbe dedurre l'intero contenuto dal solo nome.",
-        "eli5": "Il file bootfile/config contiene le istruzioni del provider che il modem riceve all'avvio.",
-        "technician": "DOCSIS fanno parte della registrazione/provisioning del modem. Senza il contenuto effettivo del file e il contesto CMTS, un nome file visualizzato è solo un suggerimento, non un contratto completo del flusso di servizio."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "File di avvio/file di configurazione"
-    },
-    {
-      "aliases": [
-        "Bonding parziale",
-        "Canali mancanti",
-        "Blocco canale parziale"
-      ],
-      "category": "modem_state",
-      "id": "partial_service",
-      "levels": {
-        "advanced": "Il servizio parziale può derivare da problemi RF, problemi di profilo/canale, manutenzione, provisioning o comportamento del modem/CMTS. Dovrebbe essere interpretato con il blocco del canale, gli errori, la potenza e la tempistica degli eventi.",
-        "basic": "Un modem in servizio parziale può comunque fornire Internet, ma con meno canali, minore resilienza o prestazioni ridotte. DOCSight può aiutare a mostrare quali famiglie di canali visibili sono interessate.",
-        "eli5": "Servizio parziale significa che il modem è online ma non utilizza tutti i canali o le funzioni previste.",
-        "technician": "Non considerare il servizio parziale come una causa fissa. Effettua la diagnosi in base alla direzione, alla famiglia di canali, al registro eventi, ai parametri RF e se la condizione persiste durante le finestre di risincronizzazione/riavvio o di manutenzione del provider."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "OFDM",
-        "OFDMA"
-      ],
-      "title": "Servizio parziale"
-    },
-    {
-      "aliases": [
-        "Riavvio del modem",
-        "Risincronizzazione",
-        "Riavvio a intervalli",
-        "Riconnessione"
-      ],
-      "category": "modem_state",
-      "id": "resync_reboot",
-      "levels": {
-        "advanced": "Una risincronizzazione può essere attivata da manutenzione, instabilità RF, modifiche al provisioning, perdita di alimentazione, firmware del modem o eventi lato provider. Confronta le istantanee prima/dopo invece di leggere uno stato solo.",
-        "basic": "I riavvii e le risincronizzazioni possono azzerare temporaneamente i contatori, modificare l'assegnazione dei canali o ripristinare il servizio dopo un errore. Se accadono inaspettatamente, il tempismo è una prova importante.",
-        "eli5": "Un riavvio riavvia il modem. Una risincronizzazione lo fa riconnettere alla rete via cavo.",
-        "technician": "A titolo di prova, conservare timestamp, registri eventi, modifiche dei canali ed effetti controriferiti agli eventi di riavvio/risincronizzazione. Non interpretare i contatori di ripristino come prova che una precedente compromissione non si è mai verificata."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Risincronizzazione/riavvio"
     }
   ]
 }
