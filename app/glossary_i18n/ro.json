@@ -1,0 +1,778 @@
+{
+  "categories": [
+    {
+      "description": "Termeni de bază pentru înțelegerea internetului prin cablu și ceea ce poate observa DOCSight.",
+      "id": "cable_basics",
+      "title": "Noțiuni de bază pentru cablu/DOCSIS"
+    },
+    {
+      "description": "Cum canalele DOCSIS transportă date și de ce este importantă tehnologia canalului.",
+      "id": "modulation_channels",
+      "title": "Modulație și canale"
+    },
+    {
+      "description": "Termeni privind puterea, zgomotul și calitatea liniei care ajută la explicarea stării de sănătate a semnalului vizibil la modem.",
+      "id": "signal_quality",
+      "title": "Calitatea semnalului"
+    },
+    {
+      "description": "Contoare de cuvinte de cod corectate și necorectate, inclusiv ceea ce totalurile brute pot și nu pot dovedi.",
+      "id": "error_counters",
+      "title": "Contoare de erori"
+    },
+    {
+      "description": "Limite între diagnosticarea canalului, capacitatea brută, viteza tarifului și testele de viteză.",
+      "id": "capacity_throughput",
+      "title": "Capacitate și debit"
+    },
+    {
+      "description": "Stare de aprovizionare, service parțial, repornire și configurare vizibile în jurul modemului.",
+      "id": "modem_state",
+      "title": "Starea modemului și aprovizionării"
+    }
+  ],
+  "terms": [
+    {
+      "aliases": [
+        "Internet prin cablu",
+        "Specificații interfeței serviciului de date prin cablu"
+      ],
+      "category": "cable_basics",
+      "id": "docsis",
+      "levels": {
+        "advanced": "DOCSIS combină canale în aval și în amonte, cum ar fi SC-QAM, OFDM și OFDMA. DOCSight poate interpreta semnalul local și datele de canal vizibile de modem, dar nu poate vedea fiecare segment sau condiție de rutare la nivelul furnizorului.",
+        "basic": "DOCSIS oferă serviciu de internet prin cablu coaxial. DOCSight citește date de modem, canal și semnal de la dispozitivele de cablu acceptate, astfel încât diagnosticele sale descriu legătura prin cablu mai degrabă decât o linie DSL. Rețelele",
+        "eli5": "DOCSIS este limba pe care o folosește un modem prin cablu pentru a vorbi cu rețeaua de cablu. Este internet prin cablu, nu DSL printr-o linie telefonică.",
+        "technician": "DOCSIS definește stratul de acces al modemului de cablu între CM și CMTS pe segmentul HFC/coaxial. Telemetria canalului local este utilă pentru diagnosticarea stratului RF și MAC, dar furnizarea furnizorului, încărcarea segmentului, politica CMTS și rutarea IP rămân în afara limitei dovezilor doar modemului."
+      },
+      "misconceptions": [
+        "DOCSIS nu este DSL; Valorile DSL și valorile canalelor de cablu nu trebuie comparate unu-la-unu."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "DSL",
+        "DOCSight"
+      ],
+      "title": "DOCSIS"
+    },
+    {
+      "aliases": [
+        "DSL",
+        "Linie telefonică vs coaxială"
+      ],
+      "category": "cable_basics",
+      "id": "dsl_vs_cable",
+      "levels": {
+        "advanced": "DSL prezintă de obicei o linie punct-la-punct cu valori de stil de sincronizare. DOCSIS utilizează segmente coaxiale partajate, canale legate și programare CMTS, astfel încât diagnosticarea canalului modemului necesită o interpretare diferită.",
+        "basic": "DOCSight este construit în jurul probelor prin cablu/DOCSIS. Valorile modemului de cablu, cum ar fi canalele, modulația, SNR/MER și capacitatea DOCSIS nu trebuie citite ca ratele de sincronizare DSL sau statisticile liniei DSL.",
+        "eli5": "DSL și cablu sunt două moduri diferite de a aduce internetul acasă. DSL utilizează cabluri telefonice; Internetul prin cablu folosește cablu coaxial și DOCSIS.",
+        "technician": "Nu mapați conceptele de atenuare, sincronizare sau profil DSL direct pe dovezi DOCSIS RF/MAC. Starea canalului DOCSIS, profilurile OFDM/OFDMA, fluxurile de servicii și comportamentul CMTS descriu o arhitectură de acces diferită."
+      },
+      "misconceptions": [
+        "O listă de canale prin cablu nu este un tabel de sincronizare DSL."
+      ],
+      "protected_terms": [
+        "DSL",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "DSL vs cablu"
+    },
+    {
+      "aliases": [
+        "Coax",
+        "Cablu antenă",
+        "Linie de cablu"
+      ],
+      "category": "cable_basics",
+      "id": "coaxial_cable",
+      "levels": {
+        "advanced": "DOCSIS sunt căi RF: nivelul de putere, SNR/MER, intrarea, atenuarea și blocarea canalului se pot schimba atunci când cablurile, splitterele sau amplificatoarele sunt slabe sau dimensionate greșit.",
+        "basic": "Internetul prin cablu rulează prin cablu coaxial între casa dvs. și rețeaua furnizorului. Splitterele, conectorii și cablajul la domiciliu pot afecta nivelul și calitatea semnalului. Căile coaxiale",
+        "eli5": "Coax este cablul rotund care transportă semnale TV și internet prin cablu. Modemul de cablu îl folosește pentru a se conecta la rețeaua DOCSIS.",
+        "technician": "În rețelele HFC, piciorul coaxial transportă canale RF în aval și în amonte între modem și rețeaua de acces. DOCSight poate prezenta simptome RF vizibile la modem, dar nu întreaga topologie fizică a instalației."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "HFC",
+        "DOCSight"
+      ],
+      "title": "Cablu coaxial"
+    },
+    {
+      "aliases": [
+        "Modem",
+        "Gateway",
+        "Router prin cablu",
+        "Mod pod"
+      ],
+      "category": "cable_basics",
+      "id": "cable_modem_router",
+      "levels": {
+        "advanced": "Un gateway combină funcțiile modemului DOCSIS cu rutare/NAT/Wi-Fi. Modul bridge poate expune rutarea către un alt dispozitiv, dar semnalul DOCSIS și dovezile canalului aparțin în continuare laturii modemului.",
+        "basic": "Un modem prin cablu se ocupă de DOCSIS din partea furnizorului. Multe dispozitive acționează și ca routere, puncte de acces Wi-Fi sau gateway-uri pentru rețeaua IP de acasă.",
+        "eli5": "Modemul/routerul este cutia care conectează rețeaua dvs. de domiciliu la rețeaua de cablu.",
+        "technician": "Separați observațiile la nivelul DOCSIS de comportamentul LAN/router. Starea bună a RF și a canalului nu exclude Wi-Fi, NAT, firewall, rutare sau blocajele la nivelul clientului în spatele modemului."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "DOCSight",
+        "IP"
+      ],
+      "title": "Modem/router prin cablu"
+    },
+    {
+      "aliases": [
+        "Sistem de terminare prin modem de cablu",
+        "PHY la distanță",
+        "Headend furnizor"
+      ],
+      "category": "cable_basics",
+      "id": "cmts",
+      "levels": {
+        "advanced": "Sistemele din partea furnizorului programează accesul în amonte, furnizează canale în aval, aplică furnizarea și participă la limitele fluxului de servicii. Dovezile modemului local pot sugera probleme, dar nu pot descrie complet politica CMTS.",
+        "basic": "Un CMTS sau un sistem de acces asociat furnizorului gestionează modemurile, canalele, programarea și configurarea serviciului DOCSIS. DOCSight vede de obicei doar partea modem a acelei relații.",
+        "eli5": "CMTS este sistemul la nivelul furnizorului cu care vorbește modemul dvs. de cablu.",
+        "technician": "CMTS, CCAP, Remote PHY și arhitecturile nodurilor afectează disponibilitatea canalului, atribuirea profilului, programarea și gestionarea defecțiunilor. DOCSight nu ar trebui să deducă starea furnizorului decât dacă o expune o sursă explicită acceptată."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "CMTS",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "CMTS"
+    },
+    {
+      "aliases": [
+        "Segment",
+        "Grup de servicii",
+        "Nod de cablu",
+        "Nod împărțit"
+      ],
+      "category": "cable_basics",
+      "id": "node_segment",
+      "levels": {
+        "advanced": "Grupurile de servicii și limitele nodurilor influențează conflictul, încărcarea canalului și planificarea upgrade-ului. Un modem local își poate expune propria stare de canal, nu o listă completă de modemuri învecinate sau cererea totală a furnizorului.",
+        "basic": "Persoanele din același segment de cablu au o anumită capacitate de acces la rețea. O împărțire a nodurilor poate reduce numărul de utilizatori care împart aceleași resurse, dar DOCSight nu poate vedea în mod normal întreaga populație de segment.",
+        "eli5": "Un segment este partea rețelei de cablu partajată de un grup de locuințe.",
+        "technician": "Interpretarea segmentului depinde de topologia furnizorului, dimensionarea grupului de servicii, designul PHY/CMTS la distanță și abonații activi. Tratați utilizarea completă ca o dovadă a furnizorului, dacă nu este măsurată printr-o sursă susținută."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Nod/segment"
+    },
+    {
+      "aliases": [
+        "Segment de cablu",
+        "Nod",
+        "Rețea de acces partajat"
+      ],
+      "category": "cable_basics",
+      "id": "shared_medium",
+      "levels": {
+        "advanced": "DOCSIS este partajată între canale și grupuri de servicii. Statisticile modemului local arată starea canalului și a semnalului dvs., în timp ce conflictele și programarea au loc din partea furnizorului.",
+        "basic": "Rețelele de cablu partajează părți ale rețelei de acces între mai mulți utilizatori. Încărcarea segmentului poate afecta vitezele reale, iar DOCSight nu poate măsura direct orice alt modem de pe segment. Capacitatea",
+        "eli5": "Un segment de cablu este ca un drum pe care îl folosesc mai multe case. Modemul dumneavoastră poate avea un semnal curat chiar și atunci când drumul este aglomerat.",
+        "technician": "Comportamentul partajat-mediu depinde de dimensionarea grupului de servicii, programarea CMTS, profilurile OFDMA/OFDM, furnizarea și cererea abonaților activi. DOCSight poate evidenția simptomele locale RF/canal, dar nu ar trebui să deducă utilizarea completă a segmentului decât dacă o sursă de date acceptată o expune."
+      },
+      "misconceptions": [
+        "Un nivel bun de semnal nu dovedește că segmentul furnizorului este neaglomerat."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Mediu partajat"
+    },
+    {
+      "aliases": [
+        "Direcția de descărcare",
+        "DS",
+        "Canale în aval"
+      ],
+      "category": "modulation_channels",
+      "id": "downstream",
+      "levels": {
+        "advanced": "Downstream poate utiliza canale SC-QAM și/sau OFDM. Puterea, SNR/MER, modulația, informațiile de profil și starea de blocare ajută la explicarea dacă modemul primește canalele în mod curat.",
+        "basic": "În DOCSIS, canalele din aval transportă date de la rețeaua furnizorului la modem. DOCSight arată starea canalului în aval separat de starea în amonte, deoarece direcțiile se comportă diferit.",
+        "eli5": "În aval sunt date care vin de pe internet către casa dvs.",
+        "technician": "Dovezile în aval descriu calea de primire și setul de canale în aval vizibile pentru modem. Nu trebuie confundat cu debitul de descărcare a aplicațiilor de la capăt la capăt, care depinde și de furnizare, programare, rutare și clienți."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM"
+      ],
+      "title": "În aval"
+    },
+    {
+      "aliases": [
+        "Direcția de încărcare",
+        "US",
+        "Canale în amonte"
+      ],
+      "category": "modulation_channels",
+      "id": "upstream",
+      "levels": {
+        "advanced": "Upstream poate utiliza SC-QAM și/sau OFDMA. Este programat de sistemul de la furnizor, astfel încât datele modemului local arată condițiile de transmisie, dar nu toate motivele pentru care debitul de încărcare poate varia.",
+        "basic": "În DOCSIS, canalele din amonte transportă date de la modem înapoi la rețeaua furnizorului. Problemele din amonte apar adesea ca putere mare de transmisie, scăderi de canal sau comportament zgomotos pe calea de întoarcere.",
+        "eli5": "În amonte sunt date care trec de la domiciliu către internet, ca o încărcare care iese din casă.",
+        "technician": "Interpretarea în amonte necesită putere de transmisie, blocare a canalului, stare de modulație/profil, stare de distanță și context de zgomot pe calea de întoarcere. DOCSight ar trebui să păstreze dovezile RF vizibile pe modem separat de politica de programare sau de flux de servicii la nivelul CMTS."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDMA"
+      ],
+      "title": "În amonte"
+    },
+    {
+      "aliases": [
+        "Canale legate",
+        "Pachetul de canale",
+        "Legătura DOCSIS"
+      ],
+      "category": "modulation_channels",
+      "id": "channel_bonding",
+      "levels": {
+        "advanced": "Bonding combină mai multe resurse de canal, în timp ce programarea, modulația, calitatea semnalului, limitele serviciului și supraîncărcarea protocolului determină ceea ce poate deveni debitul utilizabil.",
+        "basic": "DOCSIS folosesc adesea mai multe canale în aval și în amonte în același timp. Mai multe canale legate pot adăuga capacitate, dar tot nu garantează un rezultat Speedtest potrivit.",
+        "eli5": "Legarea canalelor permite unui modem să utilizeze mai multe canale de cablu împreună, cum ar fi utilizarea mai mult de o bandă. Modemurile",
+        "technician": "Capacitatea canalului legat trebuie să distingă sumele SC-QAM de capacitatea dependentă de profil OFDM/OFDMA. Limitele fluxului de servicii, programarea MAC, FEC, deteriorarea RF și disputa separă capacitatea PHY legată de puterea bună a aplicației."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "Legarea canalelor"
+    },
+    {
+      "aliases": [
+        "Un singur purtător QAM",
+        "DOCSIS 3.0 canal",
+        "QAM canal"
+      ],
+      "category": "modulation_channels",
+      "id": "sc_qam",
+      "levels": {
+        "advanced": "SC-QAM utilizează un singur purtător cu o lățime fixă ​​a canalului și ordine de modulație QAM. Modulația mai mare poate transporta mai mulți biți per simbol, dar estimarea este încă capacitatea brută a canalului, nu debitul IP.",
+        "basic": "SC-QAM sunt canale DOCSIS tradiționale. DOCSight își poate estima adesea capacitatea brută de Layer-1 din modulație și detaliile canalului.",
+        "eli5": "SC-QAM este un fel de canal de cablu. Gândiți-vă la aceasta ca pe o bandă care poate transporta date între rețeaua de cablu și modemul dvs. Canalele",
+        "technician": "Pentru canalele DOCSIS SC-QAM, ordinea modulației, rata simbolurilor, lățimea canalului și supraîncărcarea PHY determină estimările brute de Layer-1. FEC, încadrarea MAC, programarea, legăturile și supraîncărcarea IP separă această estimare de debitul utilizabil al aplicației."
+      },
+      "misconceptions": [
+        "O estimare a capacității SC-QAM nu este un rezultat Speedtest."
+      ],
+      "protected_terms": [
+        "SC-QAM",
+        "DOCSIS",
+        "QAM",
+        "Layer-1"
+      ],
+      "title": "SC-QAM"
+    },
+    {
+      "aliases": [
+        "DOCSIS 3.1 în aval",
+        "Multiplexare ortogonală cu diviziune de frecvență"
+      ],
+      "category": "modulation_channels",
+      "id": "ofdm",
+      "levels": {
+        "advanced": "OFDM din aval folosesc mulți subpurtători și profiluri. Capacitatea reală utilizabilă depinde de atribuirea profilului, starea suboperatorului, benzile de excludere și programarea furnizorului. Estimarea capacității",
+        "basic": "DOCSIS 3.1 utilizează OFDM în aval pentru canale de recepție flexibile, de mare capacitate. DOCSight poate arăta starea semnalului lor chiar și atunci când nu poate calcula același număr de capacitate simplu ca SC-QAM. Canalele",
+        "eli5": "OFDM este un tip de canal de cablu mai nou, în aval, care împarte un canal larg în multe bucăți minuscule.",
+        "technician": "OFDM necesită profil și context de subpurtător. Fără date suficiente de profil, DOCSight ar trebui să trateze OFDM așa cum s-a observat, dar nu este inclus în sumele de capacitate brută doar SC-QAM."
+      },
+      "misconceptions": [
+        "Lipsa capacității OFDM nu înseamnă că canalul este neutilizat; DOCSight poate pur și simplu să nu aibă date sigure la nivel de profil."
+      ],
+      "protected_terms": [
+        "OFDM",
+        "DOCSIS",
+        "SC-QAM"
+      ],
+      "title": "OFDM"
+    },
+    {
+      "aliases": [
+        "DOCSIS 3.1 în amonte",
+        "Acces multiplu cu diviziune ortogonală de frecvență"
+      ],
+      "category": "modulation_channels",
+      "id": "ofdma",
+      "levels": {
+        "advanced": "depinde de alocarea subpurtătorului, alocarea profilului, programarea minislot, zgomotul pe calea de întoarcere și deciziile din partea furnizorului pe care o pagină de modem ar putea să nu le expună complet. Telemetria",
+        "basic": "DOCSIS 3.1 utilizează OFDMA în amonte pentru canale de încărcare flexibile. DOCSight poate afișa semnal OFDMA sau date de putere, dar matematica simplă a capacității în stil SC-QAM nu este de obicei sigură fără mai multe detalii. Capacitatea în amonte OFDMA",
+        "eli5": "OFDMA este un tip de canal de cablu mai nou, în amonte, care permite multor modemuri să partajeze bucăți mici dintr-un canal larg.",
+        "technician": "OFDMA necesită profil/subpurtător și context de programare pentru o interpretare sigură. Puterea de raportare agregată și dovezile pentru fiecare subtransportator nu trebuie amestecate decât dacă șoferul expune valoarea exactă dorită."
+      },
+      "misconceptions": [
+        "Un canal OFDMA fără un număr de capacitate afișat poate fi încă activ și important."
+      ],
+      "protected_terms": [
+        "OFDMA",
+        "DOCSIS",
+        "SC-QAM"
+      ],
+      "title": "OFDMA"
+    },
+    {
+      "aliases": [
+        "QAM",
+        "256-QAM",
+        "4096-QAM",
+        "Modulație"
+      ],
+      "category": "modulation_channels",
+      "id": "qam_modulation_order",
+      "levels": {
+        "advanced": "Ordinele de modulație mai mari cresc biții pe simbol, dar reduc toleranța la zgomot și distorsiune. Modulația trebuie interpretată cu SNR/MER, tipul de canal și contextul profilului.",
+        "basic": "QAM/ordinea de modulare afectează câți biți poate transporta un canal. Dacă calitatea semnalului este slabă, un canal poate avea nevoie de o modulație mai mică și, prin urmare, poate avea o capacitate brută mai mică.",
+        "eli5": "Modulația este modul în care datele sunt împachetate în semnalul cablului. Numerele QAM mai mari pot transporta mai multe date, dar au nevoie de un semnal mai curat.",
+        "technician": "Pentru SC-QAM, ordinea de modulare alimentează direct estimările de capacitate de Layer-1 cu rata de simbol și lățimea canalului. Pentru OFDM/OFDMA, atribuirea profilului/subpurtatorului face relația mai complexă decât o etichetă pe canal."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "QAM",
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "QAM / comanda de modulare"
+    },
+    {
+      "aliases": [
+        "Lățimea canalului",
+        "Rata simbolului",
+        "MHz",
+        "Msym/s"
+      ],
+      "category": "modulation_channels",
+      "id": "channel_width_symbol_rate",
+      "levels": {
+        "advanced": "DOCSIS folosesc lățimi și rate de simboluri definite. Capacitatea matematică depinde de familia de canale; SC-QAM poate fi estimat mai direct decât OFDM/OFDMA fără date de profil.",
+        "basic": "Pentru canalele SC-QAM acceptate, lățimea canalului, rata simbolurilor și modulația ajută la estimarea capacității brute de Layer-1. Aceste intrări încă nu produc de la sine un randament IP real. Planurile de canale",
+        "eli5": "Lățimea canalului este cât spațiu de frecvență folosește un canal. Rata simbolurilor este cât de repede sunt trimiși pașii de semnal în interiorul canalului respectiv.",
+        "technician": "Calculele de capacitate ar trebui să mențină explicite ipotezele familiei de canale. Lățimile EuroDOCSIS/DOCSIS, ratele simbolurilor, ordinea de modulare și supraîncărcarea PHY nu trebuie reutilizate în mod orbește pe profilurile OFDM/OFDMA."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "MHz"
+      ],
+      "title": "Lățimea canalului / rata simbolurilor"
+    },
+    {
+      "aliases": [
+        "Nivel de semnal",
+        "dBmV",
+        "Recepție putere",
+        "Transmite putere"
+      ],
+      "category": "signal_quality",
+      "id": "power_level",
+      "levels": {
+        "advanced": "Puterea trebuie interpretată după direcție și tip de canal. O valoare în aval cu aspect curat nu dovedește automat sănătatea în amonte, iar puterea mare de transmisie în amonte poate sugera că modemul lucrează din greu pentru a ajunge la partea furnizorului.",
+        "basic": "DOCSight poate afișa puterea de recepție în aval și puterea de transmisie în amonte atunci când modemul le expune. Valorile în afara intervalelor așteptate pot indica probleme de cablare, splitter, amplificator sau cale de întoarcere.",
+        "eli5": "Nivel de putere este cât de puternic arată semnalul cablului către modem sau cât de greu trebuie să răspundă modemul.",
+        "technician": "Diagnosticarea puterii necesită unități, direcție, familie de canale și semantică a driverului dispozitivului. Puterea agregată OFDMA și puterea raportului per-1,6 MHz nu trebuie tratate ca valori interschimbabile."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "dBmV",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "Nivel de putere"
+    },
+    {
+      "aliases": [
+        "Raportul semnal-zgomot",
+        "Raportul erorilor de modulație",
+        "MER",
+        "SNR"
+      ],
+      "category": "signal_quality",
+      "id": "snr_mer",
+      "levels": {
+        "advanced": "SNR/MER ar trebui interpretat alături de modulație, familie de canale și contoare de erori. O valoare marginală poate cauza profiluri mai scăzute, erori corectabile sau erori necorectabile, în funcție de gravitate.",
+        "basic": "SNR și MER sunt măsurători de calitate. Valori mai bune înseamnă, de obicei, că modemul poate decoda canalul mai fiabil, dar încă nu egalează direct performanța Speedtest.",
+        "eli5": "SNR/MER spune cât de clar este semnalul în comparație cu zgomotul. Un semnal mai clar face ca pachetul de date mai mare să fie mai fiabil.",
+        "technician": "Pragurile MER/SNR sunt dependente de modulare și implementare. DOCSight ar trebui să evite revendicarea erorii furnizorului doar de la o singură valoare; corelația cu blocarea canalului, profilul de modulație, contoarele FEC și tendința de timp este o dovadă mai puternică."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "SNR",
+        "MER",
+        "DOCSIS",
+        "QAM"
+      ],
+      "title": "SNR/MER"
+    },
+    {
+      "aliases": [
+        "Pierderea semnalului",
+        "Amortire",
+        "Pierderea cablului"
+      ],
+      "category": "signal_quality",
+      "id": "attenuation",
+      "levels": {
+        "advanced": "Atenuarea poate proveni de la lungimea cablului, despărțitoare, prize de perete, filtre, conectori defectuos sau condiții ale instalației. Apare adesea indirect prin puterea de recepție, puterea de transmisie, SNR/MER sau stabilitatea canalului.",
+        "basic": "O anumită pierdere de semnal este normală, dar o pierdere prea mare poate împinge nivelurile de putere în afara intervalului sau poate forța modemul să transmită mai greu în amonte. DOCSight vede efectul, nu orice cauză fizică.",
+        "eli5": "Atenuarea înseamnă că semnalul devine mai slab pe măsură ce trece prin cablu, splitter și conectori.",
+        "technician": "Nu deduceți o cale de pierdere precisă în dB numai din statisticile modemului. Tratați atenuarea ca pe o ipoteză de diagnosticare susținută de schimbările de putere specifice direcției, cunoștințele de topologie și dovezile înainte/după cablare."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "dBmV",
+        "DOCSight"
+      ],
+      "title": "Atenuare"
+    },
+    {
+      "aliases": [
+        "Zgomot",
+        "Intrare",
+        "Interferență",
+        "Zgomot pe calea de întoarcere"
+      ],
+      "category": "signal_quality",
+      "id": "ingress_noise",
+      "levels": {
+        "advanced": "Zgomotul poate fi intermitent, specific direcției sau limitat la anumite frecvențe. O tendință de timp pe canalele afectate este de obicei mai utilă decât un instantaneu izolat.",
+        "basic": "Pătrunderea și zgomotul pot reduce SNR/MER, pot provoca erori sau pot face instabilă comunicarea în amonte. DOCSight poate prezenta simptome atunci când modemul expune semnalul afectat și datele de eroare.",
+        "eli5": "Zgomotul este un semnal nedorit amestecat în semnalul cablului. Prea mult zgomot face ca datele să fie mai greu de citit.",
+        "technician": "Intrarea pe calea de întoarcere, zgomotul de impuls, distorsiunea pe calea comună și defecțiunile de cablare locală pot afecta în mod diferit canalele DOCSIS. DOCSight ar trebui să prezinte dovezi vizibile la modem fără a pretinde localizarea completă a plantei."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SNR",
+        "MER",
+        "OFDMA"
+      ],
+      "title": "Intrare/zgomot"
+    },
+    {
+      "aliases": [
+        "Corectabile",
+        "Cuvinte de cod corectate",
+        "FEC corectate"
+      ],
+      "category": "error_counters",
+      "id": "correctable_errors",
+      "levels": {
+        "advanced": "Corectabilele reflectă munca FEC. Creșterea în timpul evenimentelor de zgomot, ratele ridicate pe anumite canale sau corelarea cu MER scăzut pot fi utile; Numai vechile totaluri cumulate sunt dovezi slabe.",
+        "basic": "Contoarele corectabile se pot ridica chiar și pe o linie de lucru. Rata, sincronizarea, canalele afectate și dacă elementele necorectabile cresc, de asemenea, contează mai mult decât un total brut.",
+        "eli5": "Erorile corectabile sunt mici greșeli pe care modemul le-ar putea remedia înainte de a deveni date pierdute.",
+        "technician": "Păstrați contoarele de modem brute separate de ratele derivate. DOCSight ar trebui să păstreze valorile cumulate ca dovezi în timp ce utilizează ferestre de observare, linii de bază și rate de creștere pentru interpretarea sănătății."
+      },
+      "misconceptions": [
+        "Un total vechi corectabil ridicat nu este automat o eroare activă."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "FEC",
+        "DOCSight"
+      ],
+      "title": "Erori corectabile"
+    },
+    {
+      "aliases": [
+        "Incorectabile",
+        "Cuvinte de cod necorectate",
+        "FEC necorectat"
+      ],
+      "category": "error_counters",
+      "id": "uncorrectable_errors",
+      "levels": {
+        "advanced": "Incorectabilele ar trebui să fie corelate cu SNR/MER, blocarea canalului, modificările modulației și simptomele vizibile de utilizator. O resetare sau repornire poate modifica, de asemenea, comportamentul contorului brut.",
+        "basic": "Necorectabilele pot indica date pierdute la nivel de canal, mai ales atunci când cresc în timpul ferestrei de observare. Momentul și rata lor de creștere contează mai mult decât un total de contor vechi.",
+        "eli5": "Erorile necorectate sunt greșeli pe care modemul nu le-a putut remedia. Sunt mai grave decât erorile corectabile.",
+        "technician": "Pentru dovezi, păstrați contoarele brute necorectabile și calculați creșterea derivată dintr-o linie de referință cunoscută. Evitați rescrierea totalurilor modemului; distingeți resetările contorului, wraparound și vârfurile curente ale ferestrei de observare. Capacitate"
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "FEC",
+        "DOCSight"
+      ],
+      "title": "Erori necorectabile"
+    },
+    {
+      "aliases": [
+        "Capacitate PHY",
+        "Capacitatea stratului fizic",
+        "Capacitatea canalului"
+      ],
+      "category": "capacity_throughput",
+      "id": "layer1_capacity",
+      "levels": {
+        "advanced": "Layer-1 se află sub programarea MAC, FEC, comportamentul de legătură, limitele fluxului de servicii, supraîncărcarea IP, comportamentul aplicației și încărcarea segmentului. Este un singur strat de diagnosticare, nu întreaga conexiune. Capacitatea",
+        "basic": "DOCSight poate estima capacitatea brută de Layer-1 pentru canalele SC-QAM acceptate. Acesta este un context de canal util, dar nu este o promisiune a vitezei utilizabile a internetului. Capacitatea",
+        "eli5": "Capacitatea stratului 1 este un număr teoretic pentru ceea ce poate transporta stratul de semnal al cablului înainte ca suprafața din lumea reală să fie îndepărtată.",
+        "technician": "PHY/Layer-1 ar trebui să fie etichetată ca dovadă brută a canalului. Nu-l echivalați cu ratele de flux de servicii, valoarea TCP/UDP, rezultatele Speedtest sau viteza tarifului contractual."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "Layer-1",
+        "DOCSIS",
+        "SC-QAM",
+        "IP"
+      ],
+      "title": "Layer-1"
+    },
+    {
+      "aliases": [
+        "Capacitate brută",
+        "Debit net",
+        "Overhead"
+      ],
+      "category": "capacity_throughput",
+      "id": "gross_vs_net_capacity",
+      "levels": {
+        "advanced": "Diferențele brut-net provin din supraîncărcarea PHY, FEC, încadrarea MAC, disputa, modelarea fluxului de servicii, supraîncărcarea IP/TCP/UDP și comportamentul aplicației. Teste diferite măsoară straturi diferite.",
+        "basic": "O estimare brută a canalului începe înainte de DOCSIS, IP și supraîncărcarea aplicației. Debitul net este mai mic și depinde, de asemenea, de programare, limitele furnizorului, clienți și calea către server.",
+        "eli5": "Brut este înainte de overhead. Rețeaua este mai aproape de ceea ce rămâne după ce rețeaua folosește un spațiu pentru a face comunicarea să funcționeze.",
+        "technician": "Păstrați stratul de măsurare explicit: capacitatea brută PHY, ratele de flux MAC/serviciu, debitul IP și puterea bună a aplicației sunt separate. Amestecarea acestor straturi creează comparații înșelătoare."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "Layer-1",
+        "IP"
+      ],
+      "title": "Capacitate brută vs. netă"
+    },
+    {
+      "aliases": [
+        "Debitul de internet",
+        "Debit bun",
+        "Viteza de utilizare"
+      ],
+      "category": "capacity_throughput",
+      "id": "ip_throughput",
+      "levels": {
+        "advanced": "Debitul poate fi mai mic decât capacitatea canalului din cauza aprovizionării, programării, disputei, modelării traficului, pierderii pachetelor, latenței, limitelor clienților și blocajelor de pe partea serverului.",
+        "basic": "este mai aproape de experiența aplicațiilor și Speedtests decât capacitatea canalului. Depinde de sănătatea DOCSIS, de configurația furnizorului, de rutare, de Wi-Fi/LAN și de serverul de la distanță.",
+        "eli5": "Debitul de IP este datele reale care trec prin conexiunea dvs. la internet după supraîncărcarea și limitele rețelei. Debitul IP",
+        "technician": "Goodput/throughput este un rezultat de la capăt la capăt. Diagnosticarea modemului DOCSight poate explica dovezile locale ale nivelului DOCSIS, dar nu ar trebui să pretindă cauzalitate unică pentru un rezultat de debit IP fără date de sprijin."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "IP",
+        "DOCSIS",
+        "Speedtest"
+      ],
+      "title": "Debitul IP"
+    },
+    {
+      "aliases": [
+        "Test de viteză",
+        "Test de descărcare",
+        "Test de încărcare",
+        "Ookla"
+      ],
+      "category": "capacity_throughput",
+      "id": "speedtest",
+      "levels": {
+        "advanced": "Speedtests pot ajuta la validarea impactului utilizatorului, dar nu sunt la fel cu diagnosticarea canalului. Un rezultat scăzut necesită corelarea cu dovezile modemului, calea clientului și limitele furnizorului/serviciului.",
+        "basic": "Un Speedtest este o măsurătoare de la capăt la capăt la un moment dat. Este afectat de sănătatea DOCSIS, limitele tarifare, încărcarea segmentului, Wi-Fi/LAN, rutare și serverul de testare ales.",
+        "eli5": "Un Speedtest verifică cât de repede se mută datele către și de la un server de testare chiar acum.",
+        "technician": "Tratați datele Speedtest ca dovezi IP/strat de aplicație. Comparați-l cu viteza tarifului și cu termenele de diagnosticare, nu direct cu capacitatea SC-QAM brută PHY sau cu numărul de canale brute."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "Speedtest",
+        "IP",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "Speedtest"
+    },
+    {
+      "aliases": [
+        "Viteza rezervată",
+        "Viteza planului",
+        "Viteza contractului",
+        "Viteza prevăzută"
+      ],
+      "category": "capacity_throughput",
+      "id": "tariff_speed",
+      "levels": {
+        "advanced": "Viteza planului este de obicei impusă prin configurarea furnizorului și limitele fluxului de servicii. Viteza reală depinde și de încărcarea rețelei, starea modemului, rutare și condițiile clientului local.",
+        "basic": "Viteza tarifului este o limită de produs și aprovizionare. Datele canalului DOCSight pot arăta dacă legătura prin cablu pare sănătoasă, dar nu pot dovedi fiecare politică sau detaliu contractual la nivelul furnizorului.",
+        "eli5": "Viteza tarifară este planul de internet pentru care plătiți, cum ar fi o rată de descărcare și încărcare rezervată.",
+        "technician": "Nu deduceți configurația exactă a fluxului de servicii abonaților numai din capacitatea canalului. Folosiți furnizarea explicită sau dovezile Speedtest atunci când sunt disponibile și păstrați etichetele de capacitate DOCSight separate de cererile de tarif."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "IP"
+      ],
+      "title": "Viteza tarifară"
+    },
+    {
+      "aliases": [
+        "Încărcarea segmentului",
+        "Congestie",
+        "Încărcarea nodului",
+        "Încărcarea grupului de servicii"
+      ],
+      "category": "capacity_throughput",
+      "id": "segment_utilization",
+      "levels": {
+        "advanced": "Încărcarea segmentului depinde de dimensiunea grupului de servicii, abonații activi, capacitatea canalului, programarea CMTS și ora din zi. Dovezile modemului local pot prezenta simptome, dar nu și numitorul complet de utilizare.",
+        "basic": "Un segment ocupat poate reduce vitezele reale chiar și atunci când semnalul modemului dumneavoastră arată bine. DOCSight nu ar trebui să pretindă utilizarea exactă a segmentului decât dacă o sursă acceptată expune acele date.",
+        "eli5": "Utilizarea segmentului înseamnă cât de ocupat este segmentul de cablu partajat.",
+        "technician": "Utilizarea completă necesită dovezi externe de partea furnizorului sau susținute. Evitați să derivați încărcarea totală a segmentului doar din lista de canale a unui singur modem, Speedtest sau starea semnalului."
+      },
+      "misconceptions": [
+        "Un semnal bun de modem nu este dovada unui segment neaglomerat."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Utilizarea segmentului"
+    },
+    {
+      "aliases": [
+        "Debit",
+        "Capacitate vs. debit"
+      ],
+      "category": "capacity_throughput",
+      "id": "capacity_vs_throughput",
+      "levels": {
+        "advanced": "Layer-1 este înaintea MAC, FEC, programare, legare, încărcare segment, modelarea traficului și IP/aplicație generală. Testele de viteză măsoară o cale de la un capăt la altul la un moment dat.",
+        "basic": "DOCSight descriu capacitatea brută la nivel de canal, în special pentru canalele SC-QAM acceptate. Ele nu sunt viteza dvs. tarifară, nu sunt un Speedtest și nu sunt garantate debitul IP real. Capacitatea canalului",
+        "eli5": "Capacitatea este ceea ce ar putea transporta banda de cablu în teorie. Un Speedtest este ceea ce oferă conexiunea dvs. chiar acum, după ce sunt incluse multe alte lucruri. Estimările de capacitate",
+        "technician": "Nu echivalați capacitatea brută PHY cu limitele debitului de serviciu sau cu puterea TCP/UDP. Programarea CMTS, furnizarea, disponibilitatea profilului OFDM/OFDMA, deteriorarea RF, coada de așteptare, peering-ul și comportamentul serverului de testare pot domina debitul observat."
+      },
+      "misconceptions": [
+        "O sumă a capacității canalului nu este dovada că un client ar trebui să vadă același număr într-un Speedtest.",
+        "Viteza tarifului este o configurație a produsului; Diagnosticarea canalului DOCSight este dovezi locale."
+      ],
+      "protected_terms": [
+        "Layer-1",
+        "SC-QAM",
+        "Speedtest",
+        "IP",
+        "DOCSight"
+      ],
+      "title": "Capacitate vs. Speedtest"
+    },
+    {
+      "aliases": [
+        "Serviciu furnizat",
+        "Flux de servicii",
+        "Activare",
+        "Configurare plan"
+      ],
+      "category": "modem_state",
+      "id": "provisioning",
+      "levels": {
+        "advanced": "Aprovizionarea poate afecta viteza tarifelor, fluxurile de servicii, autorizarea modemului, atribuirea fișierului de boot/configurare și funcțiile activate. Este separat de calitatea semnalului RF brut.",
+        "basic": "Provisioning controlează dacă modemul este permis online și ce limite de servicii se aplică. DOCSight poate afișa indicii, dar configurația furnizorului nu este întotdeauna complet vizibilă de pe modem.",
+        "eli5": "Aprovizionarea este modul în care furnizorul îi spune modemului ce serviciu ar trebui să aibă.",
+        "technician": "Tratați furnizarea ca pe un contract de nivel DOCSIS/MAC controlat de furnizor. Paginile modemului local pot expune numele fișierelor de pornire sau starea serviciului, dar nu toate politicile CMTS sau logica contului de abonat."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "IP"
+      ],
+      "title": "Aprovizionare"
+    },
+    {
+      "aliases": [
+        "Fișier de pornire",
+        "Fișier de configurare",
+        "DOCSIS config",
+        "Service config"
+      ],
+      "category": "modem_state",
+      "id": "bootfile_config_file",
+      "levels": {
+        "advanced": "Dovezile fișierului de boot pot susține diagnosticarea furnizării, dar numele sunt specifice furnizorului și este posibil să nu fie corelate cu etichetele tarifelor publice. Ar trebui folosit cu atenție și cu alte dovezi. Fișierele de configurare",
+        "basic": "Un fișier de configurare DOCSIS poate defini comportamentul serviciului, cum ar fi limitele de rată și funcțiile activate. Unele modemuri expun numele; DOCSight nu ar trebui să preia conținutul complet doar din nume.",
+        "eli5": "Fișierul de boot/fișierul de configurare este instrucțiunile furnizorului pe care modemul le primește când pornește.",
+        "technician": "DOCSIS fac parte din înregistrarea/provizionarea modemului. Fără conținutul real al fișierului și contextul CMTS, un nume de fișier afișat este doar un indiciu, nu un contract complet de flux de servicii."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Fișier de pornire/fișier de configurare"
+    },
+    {
+      "aliases": [
+        "Conectare parțială",
+        "Canale lipsă",
+        "Blocare parțială a canalului"
+      ],
+      "category": "modem_state",
+      "id": "partial_service",
+      "levels": {
+        "advanced": "Serviciul parțial poate proveni din probleme RF, probleme de profil/canal, întreținere, aprovizionare sau comportamentul modemului/CMTS. Ar trebui interpretat cu blocarea canalului, erori, putere și sincronizare a evenimentului.",
+        "basic": "Un modem în serviciu parțial poate oferi în continuare internet, dar cu mai puține canale, rezistență mai mică sau performanță redusă. DOCSight vă poate ajuta să arătați care familii de canale vizibile sunt afectate.",
+        "eli5": "Serviciu parțial înseamnă că modemul este online, dar nu utilizează toate canalele sau funcțiile așteptate.",
+        "technician": "Nu tratați service-ul parțial ca pe o cauză fixă. Diagnosticați în funcție de direcție, familie de canale, jurnal de evenimente, valori RF și dacă starea persistă în ferestrele de resincronizare/repornire sau de întreținere a furnizorului."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "Serviciu parțial"
+    },
+    {
+      "aliases": [
+        "Repornire modem",
+        "Resincronizare",
+        "Repornire interval",
+        "Reconectare"
+      ],
+      "category": "modem_state",
+      "id": "resync_reboot",
+      "levels": {
+        "advanced": "O resincronizare poate fi declanșată de întreținere, instabilitate RF, modificări de aprovizionare, pierdere de energie, firmware de modem sau evenimente la nivelul furnizorului. Comparați instantaneele înainte/după în loc să citiți o singură stare.",
+        "basic": "Repornirile și resincronizările pot șterge temporar contoarele, pot schimba alocarea canalului sau pot restabili serviciul după o eroare. Dacă se întâmplă în mod neașteptat, momentul este o dovadă importantă.",
+        "eli5": "O repornire repornește modemul. O resincronizare îl face să se reconnecteze la rețeaua de cablu.",
+        "technician": "Pentru dovezi, păstrați marcajele de timp, jurnalele de evenimente, modificările canalului și efectele de contra-linie în jurul evenimentelor de repornire/resincronizare. Nu interpretați contoarele de resetare ca o dovadă că deteriorarea anterioară nu a avut loc niciodată."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Resincronizare/repornire"
+    }
+  ]
+}

@@ -80,8 +80,8 @@ def test_categories_are_localized_and_used_by_terms():
         assert term["category"] in categories
 
 
-def test_glossary_lookup_falls_back_to_english_for_untranslated_locale():
-    term = get_glossary_term("docsis", "de")
+def test_glossary_lookup_falls_back_to_english_for_unsupported_locale():
+    term = get_glossary_term("docsis", "zz")
     assert term is not None
     assert term["title"] == "DOCSIS"
     assert "DOCSIS is the language" in term["levels"]["eli5"]

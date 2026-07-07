@@ -1,0 +1,779 @@
+{
+  "categories": [
+    {
+      "description": "Ydintermit kaapeli-internet-yhteyden ymmärtämiseen ja DOCSightin havaitsemiseen.",
+      "id": "cable_basics",
+      "title": "Kaapeli/DOCSIS-perustiedot"
+    },
+    {
+      "description": "Miten DOCSIS-kanavat kuljettavat dataa ja miksi kanavatekniikalla on merkitystä.",
+      "id": "modulation_channels",
+      "title": "Modulaatio ja kanavat"
+    },
+    {
+      "description": "Teho-, kohina- ja linjanlaatutermit, jotka auttavat selittämään modeemin näkyvän signaalin kunnon.",
+      "id": "signal_quality",
+      "title": "Signaalin laatu"
+    },
+    {
+      "description": "Korjatut ja korjaamattomat koodisanalaskurit, mukaan lukien mitä raakasummat voidaan todistaa ja mitä ei.",
+      "id": "error_counters",
+      "title": "Virhelaskurit"
+    },
+    {
+      "description": "Kanavadiagnostiikan, bruttokapasiteetin, tariffinopeuden ja nopeustestien väliset rajat.",
+      "id": "capacity_throughput",
+      "title": "Kapasiteetti ja suorituskyky"
+    },
+    {
+      "description": "Modeemin ympärillä näkyvät hallinta-, osittaiset huolto-, uudelleenkäynnistys- ja konfigurointitilat.",
+      "id": "modem_state",
+      "title": "Modeemi ja valmistelutila"
+    }
+  ],
+  "terms": [
+    {
+      "aliases": [
+        "Kaapeli-internet",
+        "Data Over Cable Service Interface -määritykset"
+      ],
+      "category": "cable_basics",
+      "id": "docsis",
+      "levels": {
+        "advanced": "DOCSIS-verkot yhdistävät alavirran ja ylävirran kanavat, kuten SC-QAM, OFDM ja OFDMA. DOCSight voi tulkita paikallisen modeemin näkyvän signaalin ja kanavan datan, mutta se ei voi nähdä kaikkia tarjoajan puolen segmenttejä tai reititysehtoja.",
+        "basic": "DOCSIS tarjoaa Internet-palvelun koaksiaalikaapelilla. DOCSight lukee modeemi-, kanava- ja signaalitiedot tuetuilta kaapelilaitteilta, joten sen diagnostiikka kuvaa kaapelilinkkiä DSL-linjan sijaan.",
+        "eli5": "DOCSIS on kieli, jolla kaapelimodeemi puhuu kaapeliverkon kanssa. Se on kaapeli-internet, ei DSL puhelinlinjan kautta.",
+        "technician": "DOCSIS määrittää kaapelimodeemin pääsykerroksen CM:n ja CMTS:n välillä HFC/koaksiaalisegmentin kautta. Paikallisen kanavan telemetria on hyödyllinen RF- ja MAC-kerroksen diagnostiikassa, mutta palveluntarjoajan provisiointi, segmenttien kuormitus, CMTS-käytäntö ja IP-reititys jäävät vain modeemin näyttörajan ulkopuolelle."
+      },
+      "misconceptions": [
+        "DOCSIS ei ole DSL; DSL-arvoja ja kaapelikanavien arvoja ei pidä verrata yksitellen."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "DSL",
+        "DOCSight"
+      ],
+      "title": "DOCSIS"
+    },
+    {
+      "aliases": [
+        "DSL",
+        "Puhelinlinja vs. koaksiaali"
+      ],
+      "category": "cable_basics",
+      "id": "dsl_vs_cable",
+      "levels": {
+        "advanced": "DSL esittää yleensä pisteestä pisteeseen -viivan synkronointinopeuden tyyliarvoilla. DOCSIS käyttää jaettuja koaksiaalisegmenttejä, sidottuja kanavia ja CMTS-ajoitusta, joten modeemikanavadiagnostiikka tarvitsee erilaista tulkintaa.",
+        "basic": "DOCSight on rakennettu kaapeli-/DOCSIS-todisteiden ympärille. Kaapelimodeemiarvoja, kuten kanavia, modulaatiota, SNR/MER- ja DOCSIS-kapasiteettia, ei pidä lukea kuten DSL-synkronointinopeuksia tai DSL-linjatilastoja.",
+        "eli5": "DSL ja kaapeli ovat kaksi eri tapaa tuoda internet kotiin. DSL käyttää puhelinjohdotusta; kaapeli-internet käyttää koaksiaalikaapelia ja DOCSISia.",
+        "technician": "Älä yhdistä DSL-vaimennus-, synkronointi- tai profiilikäsitteitä suoraan DOCSIS RF/MAC -todisteisiin. DOCSIS-kanavan tila, OFDM/OFDMA-profiilit, palveluvuot ja CMTS-käyttäytyminen kuvaavat erilaista pääsyarkkitehtuuria."
+      },
+      "misconceptions": [
+        "Kaapelikanavaluettelo ei ole DSL-synkronointitaulukko."
+      ],
+      "protected_terms": [
+        "DSL",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "DSL vs. kaapeli"
+    },
+    {
+      "aliases": [
+        "Koaksiaali",
+        "Antennikaapeli",
+        "Kaapelilinja"
+      ],
+      "category": "cable_basics",
+      "id": "coaxial_cable",
+      "levels": {
+        "advanced": "DOCSIS-koaksiaalireitit ovat RF-polkuja: tehotaso, SNR/MER, sisääntulo, vaimennus ja kanavalukko voivat muuttua, kun kaapelointi, jakajat tai vahvistimet ovat huonoja tai väärän kokoisia.",
+        "basic": "Kaapeli-internet kulkee koaksiaalikaapelilla kotisi ja palveluntarjoajan verkon välillä. Jakajat, liittimet ja kodin sisäiset johdot voivat vaikuttaa signaalin tasoon ja laatuun.",
+        "eli5": "Coax on pyöreä kaapeli, joka kuljettaa TV- ja kaapeli-internet-signaaleja. Kaapelimodeemisi käyttää sitä yhteyden muodostamiseen DOCSIS-verkkoon.",
+        "technician": "HFC-verkoissa koaksiaalihaara kuljettaa alavirran ja ylävirran RF-kanavia modeemin ja liityntäverkon välillä. DOCSight voi näyttää modeemin näkyviä RF-oireita, mutta ei koko fyysistä laitoksen topologiaa."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "HFC",
+        "DOCSight"
+      ],
+      "title": "Koaksiaalikaapeli"
+    },
+    {
+      "aliases": [
+        "Modeemi",
+        "Gateway",
+        "Kaapelireititin",
+        "Siltatila"
+      ],
+      "category": "cable_basics",
+      "id": "cable_modem_router",
+      "levels": {
+        "advanced": "Yhdyskäytävä yhdistää DOCSIS-modeemin toiminnot reitityksen/NAT/Wi-Fi:n kanssa. Siltatila saattaa paljastaa reitityksen toiselle laitteelle, mutta DOCSIS-signaalin ja -kanavan todisteet kuuluvat silti modeemin puolelle.",
+        "basic": "Kaapelimodeemi käsittelee DOCSIS:ia palveluntarjoajan puolella. Monet laitteet toimivat myös reitittiminä, Wi-Fi-tukipisteinä tai yhdyskäytävinä kotisi IP-verkkoon.",
+        "eli5": "Modeemi/reititin on laatikko, joka yhdistää kotiverkkosi kaapeliverkkoon.",
+        "technician": "Erottele DOCSIS-kerroksen havainnot lähiverkon/reitittimen käyttäytymisestä. Hyvä RF- ja kanavatila ei sulje pois Wi-Fi-, NAT-, palomuuri-, reititys- tai asiakaspuolen pullonkauloja modeemin takana."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "DOCSight",
+        "IP"
+      ],
+      "title": "Kaapelimodeemi/reititin"
+    },
+    {
+      "aliases": [
+        "Kaapelimodeemin päätejärjestelmä",
+        "Kauko-PHY",
+        "Palveluntarjoajan headend"
+      ],
+      "category": "cable_basics",
+      "id": "cmts",
+      "levels": {
+        "advanced": "Palveluntarjoajan puoleiset järjestelmät ajoittavat pääsyn ylävirran puolelle, tarjoavat alavirran kanavia, käyttävät provisiointia ja osallistuvat palveluvirran rajoituksiin. Paikalliset modeemit voivat vihjata ongelmista, mutta eivät täysin kuvaile CMTS-käytäntöä.",
+        "basic": "CMTS tai siihen liittyvä palveluntarjoajan pääsyjärjestelmä hallitsee DOCSIS-modeemeja, kanavia, ajoitusta ja palvelun määrityksiä. DOCSight näkee yleensä vain tämän suhteen modeemipuolen.",
+        "eli5": "CMTS on palveluntarjoajan puoleinen järjestelmä, jolle kaapelimodeemisi puhuu.",
+        "technician": "CMTS-, CCAP-, Remote PHY- ja solmuarkkitehtuurit vaikuttavat kanavan saatavuuteen, profiilien määrittämiseen, ajoitukseen ja häiriöiden käsittelyyn. DOCSightin ei pitäisi päätellä palveluntarjoajan tilaa, ellei nimenomaisesti tuettu lähde paljasta sitä."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "CMTS",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "CMTS"
+    },
+    {
+      "aliases": [
+        "Segmentti",
+        "Palveluryhmä",
+        "Kaapelisolmu",
+        "Solmujako"
+      ],
+      "category": "cable_basics",
+      "id": "node_segment",
+      "levels": {
+        "advanced": "Palveluryhmät ja solmujen rajat vaikuttavat kilpailuun, kanavakuormitukseen ja päivityssuunnitteluun. Paikallinen modeemi voi paljastaa oman kanavansa tilan, ei täydellistä luetteloa viereisistä modeemeista tai palveluntarjoajan kokonaiskysynnästä.",
+        "basic": "Saman kaapelisegmentin ihmiset jakavat jonkin verran pääsyverkkokapasiteettia. Solmujako voi vähentää samoja resursseja jakavien käyttäjien määrää, mutta DOCSight ei normaalisti näe koko segmenttipopulaatiota.",
+        "eli5": "Segmentti on kaapeliverkon osa, jonka jakaa kotiryhmä.",
+        "technician": "Segmentin tulkinta riippuu palveluntarjoajan topologiasta, palveluryhmän koosta, etä-PHY/CMTS-suunnittelusta ja aktiivisista tilaajista. Käsittele täydellistä käyttöä toimittajapuolen todisteena, ellei sitä mitata tuetun lähteen kautta."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Solmu/segmentti"
+    },
+    {
+      "aliases": [
+        "Kaapelisegmentti",
+        "Solmu",
+        "Jaettu liityntäverkko"
+      ],
+      "category": "cable_basics",
+      "id": "shared_medium",
+      "levels": {
+        "advanced": "DOCSIS -kapasiteetti on jaettu kanavien ja palveluryhmien kesken. Paikalliset modeemitilastot näyttävät kanavasi ja signaalisi tilan, kun taas kilpailu ja aikataulutus tapahtuvat palveluntarjoajan puolella.",
+        "basic": "Kaapeliverkot jakavat liityntäverkon osia useiden käyttäjien kesken. Segmenttien kuormitus voi vaikuttaa todellisiin nopeuksiin, eikä DOCSight voi mitata suoraan jokaista toista segmentin modeemia.",
+        "eli5": "Kaapelisegmentti on kuin tie, jota useat kodit käyttävät. Modeemillasi voi olla puhdas signaali, vaikka tie on varattu.",
+        "technician": "Jaetun välineen käyttäytyminen riippuu palveluryhmän mitoituksesta, CMTS-aikataulutuksesta, OFDMA/OFDM-profiileista, tarjonnasta ja aktiivisesta tilaajatarpeesta. DOCSight voi korostaa paikallisia RF-/kanavaoireita, mutta sen ei pitäisi päätellä segmentin täydellistä käyttöä, ellei tuettu tietolähde paljasta sitä."
+      },
+      "misconceptions": [
+        "Hyvä signaalitaso ei todista, että palveluntarjoajasegmentti on ruuhkaton."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Jaettu media"
+    },
+    {
+      "aliases": [
+        "Lataussuunta",
+        "DS",
+        "Alavirran kanavat"
+      ],
+      "category": "modulation_channels",
+      "id": "downstream",
+      "levels": {
+        "advanced": "Downstream voi käyttää SC-QAM- ja/tai OFDM-kanavia. Virta, SNR/MER, modulaatio, profiilitiedot ja lukitustila auttavat selittämään, vastaanottaako modeemi kanavat puhtaasti.",
+        "basic": "DOCSIS:ssä alavirran kanavat kuljettavat tietoja palveluntarjoajan verkosta modeemiin. DOCSight näyttää alavirran kanavan tilan erillään ylävirran tilasta, koska suunnat käyttäytyvät eri tavalla.",
+        "eli5": "Alavirran kanavat tulevat Internetistä kotiisi.",
+        "technician": "Alavirran todiste kuvaa modeemille näkyvää vastaanottopolkua ja alavirran kanavajoukkoa. Sitä ei pidä sekoittaa päästä-päähän sovellusten latausnopeuteen, joka riippuu myös valmistelusta, ajoituksesta, reitityksestä ja asiakkaista."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM"
+      ],
+      "title": "Alavirtaan"
+    },
+    {
+      "aliases": [
+        "Lataussuunta",
+        "US",
+        "Ylävirran kanavat"
+      ],
+      "category": "modulation_channels",
+      "id": "upstream",
+      "levels": {
+        "advanced": "Upstream voi käyttää SC-QAM:ia ja/tai OFDMA:ta. Palveluntarjoajan järjestelmän on ajoittanut sen, joten paikalliset modeemitiedot näyttävät lähetysolosuhteet, mutta kaikki syyt eivät voi vaihdella.",
+        "basic": "DOCSIS:ssä ylävirran kanavat kuljettavat tietoja modeemista takaisin palveluntarjoajan verkkoon. Ylävirran ongelmat ilmenevät usein suurena lähetystehona, kanavan putoamisena tai meluisena paluutien käyttäytymisenä.",
+        "eli5": "Upstream on dataa, joka kulkee kotoasi Internetiin, kuten kotisi lähetys.",
+        "technician": "Ylävirran tulkinta vaatii lähetystehon, kanavalukon, modulaation/profiilin tilan, etäisyyden tilan ja paluutien kohinakontekstin. DOCSightin tulee pitää modeemille näkyvä RF-todisteet erillään CMTS-puolen ajoituksesta tai palveluvirtakäytännöstä."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDMA"
+      ],
+      "title": "Upstream"
+    },
+    {
+      "aliases": [
+        "Yhdistetyt kanavat",
+        "Kanavapaketti",
+        "DOCSIS-sidos"
+      ],
+      "category": "modulation_channels",
+      "id": "channel_bonding",
+      "levels": {
+        "advanced": "Yhdistäminen yhdistää useita kanavaresursseja, kun taas ajoitus, modulaatio, signaalin laatu, palvelurajoitukset ja protokollan ylimääräiset kustannukset määrittävät, mikä voi olla käyttökelpoista.",
+        "basic": "DOCSIS-modeemit käyttävät usein useita alavirran ja ylävirran kanavia samanaikaisesti. Enemmän sidotut kanavat voivat lisätä kapasiteettia, mutta se ei silti takaa vastaavaa Speedtest-tulosta.",
+        "eli5": "Kanavaliitoksen avulla modeemi voi käyttää useita kaapelikanavia yhdessä, kuten useampaa kuin yhtä kaistaa.",
+        "technician": "Sidoskanavakapasiteetin on erotettava SC-QAM-summat OFDM/OFDMA-profiilista riippuvaisesta kapasiteetista. Palvelun virtausrajat, MAC-aikataulutus, FEC, RF-häiriöt ja kilpailu erottavat sidotun PHY-kapasiteetin sovelluksen goodputista."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "Kanavien liittäminen"
+    },
+    {
+      "aliases": [
+        "Yhden kantoaallon QAM",
+        "DOCSIS 3.0-kanavainen",
+        "QAM-kanava"
+      ],
+      "category": "modulation_channels",
+      "id": "sc_qam",
+      "levels": {
+        "advanced": "SC-QAM käyttää yhtä kantoaaltoa, jolla on kiinteä kanavan leveys ja QAM-modulaatiojärjestys. Korkeampi modulaatio voi kuljettaa enemmän bittejä symbolia kohti, mutta arvio on silti kanavan bruttokapasiteetti, ei IP-läpäisykyky.",
+        "basic": "SC-QAM -kanavat ovat perinteisiä DOCSIS-kanavia. DOCSight voi usein arvioida Layer-1 bruttokapasiteettinsa modulaation ja kanavatietojen perusteella.",
+        "eli5": "SC-QAM on eräänlainen kaapelikanava. Ajattele sitä yhtenä kaistana, joka voi kuljettaa tietoja kaapeliverkon ja modeemi välillä.",
+        "technician": "DOCSIS SC-QAM -kanaville modulaatiojärjestys, symbolinopeus, kanavan leveys ja PHY-ylimäärä määrittävät kerroksen 1 bruttoarviot. FEC, MAC-kehystys, ajoitus, sidos ja IP-ylimääräiset kustannukset erottavat tämän arvion käytettävästä sovellusten suorituskyvystä."
+      },
+      "misconceptions": [
+        "SC-QAM-kapasiteettiarvio ei ole nopeustestin tulos."
+      ],
+      "protected_terms": [
+        "SC-QAM",
+        "DOCSIS",
+        "QAM",
+        "Layer-1"
+      ],
+      "title": "SC-QAM"
+    },
+    {
+      "aliases": [
+        "DOCSIS 3.1 alavirran",
+        "Ortogonaalinen taajuusjakoinen multipleksointi"
+      ],
+      "category": "modulation_channels",
+      "id": "ofdm",
+      "levels": {
+        "advanced": "OFDM:n alavirran kanavat käyttävät monia apukantoaaltoja ja profiileja. Todellinen käytettävissä oleva kapasiteetti riippuu profiilin määrittämisestä, apukantoaallon kunnosta, poissulkemiskaistoista ja palveluntarjoajan aikataulusta.",
+        "basic": "DOCSIS 3.1 käyttää OFDM:ää myötävirtaan joustaviin, suurikapasiteettisiin vastaanottokanaviin. DOCSight saattaa näyttää signaalin tilansa, vaikka se ei pysty laskemaan samaa yksinkertaista kapasiteettilukua kuin SC-QAM.",
+        "eli5": "OFDM on uudempi alavirran kaapelikanavatyyppi, joka jakaa leveän kanavan moniin pieniin osiin.",
+        "technician": "OFDM-kapasiteetin estimointi vaatii profiilin ja apukantoaallon kontekstin. Ilman riittäviä profiilitietoja DOCSightin tulisi käsitellä OFDM:ää havaittuna, mutta se ei sisälly vain SC-QAM:n bruttokapasiteettisummiin."
+      },
+      "misconceptions": [
+        "Puuttuva OFDM-kapasiteetti ei tarkoita, että kanava on käyttämätön; DOCSightista voi yksinkertaisesti puuttua turvallisia profiilitason tietoja."
+      ],
+      "protected_terms": [
+        "OFDM",
+        "DOCSIS",
+        "SC-QAM"
+      ],
+      "title": "OFDM"
+    },
+    {
+      "aliases": [
+        "DOCSIS 3.1 ylävirran",
+        "Ortogonaalinen taajuusjakoinen monikäyttö"
+      ],
+      "category": "modulation_channels",
+      "id": "ofdma",
+      "levels": {
+        "advanced": "OFDMA ylävirran kapasiteetti riippuu apukantoaallon allokoinnista, profiilin osoituksesta, minivälien ajoituksesta, paluutien kohinasta ja palveluntarjoajan päätöksistä, joita modeemisivu ei välttämättä paljasta täysin.",
+        "basic": "DOCSIS 3.1 käyttää OFDMA:ta ylävirtaan joustaviin latauskanaviin. DOCSight saattaa näyttää OFDMA-signaalia tai tehodataa, mutta yksinkertainen SC-QAM-tyylinen kapasiteetin laskeminen ei yleensä ole turvallista ilman tarkempia tietoja.",
+        "eli5": "OFDMA on uudempi ylävirran kaapelikanavatyyppi, jonka avulla monet modeemit voivat jakaa pieniä osia laajasta kanavasta.",
+        "technician": "OFDMA-telemetria tarvitsee profiilin/alikantoaallon ja ajoituskontekstin turvallista tulkintaa varten. Yhdistelmäraportin tehoa ja alioperaattorikohtaista näyttöä ei pidä sekoittaa, ellei ohjain paljasta tarkkaa tarkoitettua mittaa."
+      },
+      "misconceptions": [
+        "OFDMA-kanava ilman näytettävää kapasiteettinumeroa voi silti olla aktiivinen ja tärkeä."
+      ],
+      "protected_terms": [
+        "OFDMA",
+        "DOCSIS",
+        "SC-QAM"
+      ],
+      "title": "OFDMA"
+    },
+    {
+      "aliases": [
+        "QAM",
+        "256-QAM",
+        "4096-QAM",
+        "Modulaatio"
+      ],
+      "category": "modulation_channels",
+      "id": "qam_modulation_order",
+      "levels": {
+        "advanced": "Korkeammat modulaatiojärjestykset lisäävät bittejä symbolia kohti, mutta vähentävät kohinan ja vääristymän toleranssia. Modulaatio on tulkittava SNR/MER:n, kanavatyypin ja profiilikontekstin kanssa.",
+        "basic": "QAM/modulaatiojärjestys vaikuttaa siihen, kuinka monta bittiä kanava voi kuljettaa. Jos signaalin laatu on huono, kanava saattaa tarvita pienemmän modulaation ja siten kuljettaa vähemmän bruttokapasiteettia.",
+        "eli5": "Modulaatio on tapa, jolla data pakataan kaapelisignaaliin. Suuremmat QAM-luvut voivat kuljettaa enemmän dataa, mutta tarvitsevat puhtaamman signaalin.",
+        "technician": "SC-QAM:lle modulaatiojärjestys syöttää suoraan Layer 1 -kapasiteettiarviot symbolinopeudella ja kanavan leveydellä. OFDM/OFDMA:ssa profiilin/alikantoaallon määrittäminen tekee suhteesta monimutkaisemman kuin yksi nimike kanavaa kohden."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "QAM",
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "QAM / modulaatiojärjestys"
+    },
+    {
+      "aliases": [
+        "Kanavan leveys",
+        "Symbolinopeus",
+        "MHz",
+        "Msym/s"
+      ],
+      "category": "modulation_channels",
+      "id": "channel_width_symbol_rate",
+      "levels": {
+        "advanced": "DOCSIS -kanavasuunnitelmat käyttävät määritettyjä leveyksiä ja symbolinopeutta. Kapasiteetin laskeminen riippuu kanavaperheestä; SC-QAM voidaan arvioida suoremmin kuin OFDM/OFDMA ilman profiilitietoja.",
+        "basic": "Tuetuille SC-QAM-kanaville kanavan leveys, symbolinopeus ja modulaatio auttavat arvioimaan kerroksen 1 bruttokapasiteettia. Nämä syötteet eivät vieläkään tuota todellista IP-läpäisykykyä itsestään.",
+        "eli5": "Kanavan leveys kertoo kuinka paljon taajuustilaa kanava käyttää. Symbolinopeus on se, kuinka nopeita signaaliaskeleita lähetetään kyseisen kanavan sisällä.",
+        "technician": "Kapasiteettilaskelmien tulisi pitää kanavaperheoletukset selkeinä. EuroDOCSIS/DOCSIS-leveyksiä, symbolinopeuksia, modulaatiojärjestystä ja PHY-ylimäärää ei saa käyttää uudelleen sokeasti OFDM/OFDMA-profiileissa."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "MHz"
+      ],
+      "title": "Kanavan leveys / symbolinopeus"
+    },
+    {
+      "aliases": [
+        "Signaalitaso",
+        "dBmV",
+        "Vastaanottoteho",
+        "Lähetysteho"
+      ],
+      "category": "signal_quality",
+      "id": "power_level",
+      "levels": {
+        "advanced": "Teho on tulkittava suunnan ja kanavatyypin mukaan. Selkeän näköinen alavirran arvo ei automaattisesti todista ylävirran kunnon, ja suuri ylävirran lähetysteho voi viitata siihen, että modeemi työskentelee kovasti päästäkseen palveluntarjoajan puolelle.",
+        "basic": "DOCSight voi näyttää alavirran vastaanottotehon ja ylävirran lähetystehon, kun modeemi paljastaa ne. Odotettujen rajojen ulkopuolella olevat arvot voivat viitata kaapelointiin, jaottimeen, vahvistimeen tai paluutieongelmiin.",
+        "eli5": "Tehotaso on se, kuinka vahva kaapelisignaali näyttää modeemille tai kuinka kovaa modeemin on puhuttava takaisin.",
+        "technician": "Tehodiagnostiikka vaatii yksiköitä, suunnan, kanavaperheen ja laite-ajurin semantiikan. OFDMA-aggregoitua tehoa ja 1,6 MHz:n raportointitehoa ei pidä käsitellä vaihdettavina mittareina."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "dBmV",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "Tehotaso"
+    },
+    {
+      "aliases": [
+        "Signaali-kohinasuhde",
+        "Modulaatiovirhesuhde",
+        "MER",
+        "SNR"
+      ],
+      "category": "signal_quality",
+      "id": "snr_mer",
+      "levels": {
+        "advanced": "SNR/MER tulee tulkita yhdessä modulaation, kanavaperheen ja virhelaskurien kanssa. Raja-arvo voi aiheuttaa matalampia profiileja, korjattavia virheitä tai korjaamattomia virheitä vakavuuden mukaan.",
+        "basic": "SNR ja MER ovat laatumittauksia. Paremmat arvot tarkoittavat yleensä sitä, että modeemi voi purkaa kanavan luotettavammin, mutta ne eivät silti vastaa suoraan Speedtest-suorituskykyä.",
+        "eli5": "SNR/MER kertoo kuinka selkeä signaali on kohinaan verrattuna. Selkeämpi signaali tekee korkeamman datan pakkaamisesta luotettavampaa.",
+        "technician": "MER/SNR-kynnykset ovat modulaatiosta ja toteutuksesta riippuvaisia. DOCSightin tulee välttää väittämästä toimittajan vikaa pelkästään yhdestä arvosta; korrelaatio kanavan lukituksen, modulaatioprofiilin, FEC-laskurien ja aikatrendin kanssa on vahvempi todiste."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "SNR",
+        "MER",
+        "DOCSIS",
+        "QAM"
+      ],
+      "title": "SNR/MER"
+    },
+    {
+      "aliases": [
+        "Signaalihäviö",
+        "Vaimennus",
+        "Kaapelihäviö"
+      ],
+      "category": "signal_quality",
+      "id": "attenuation",
+      "levels": {
+        "advanced": "Vaimennus voi johtua kaapelin pituudesta, jakajista, pistorasiasta, suodattimista, huonoista liittimistä tai laitosolosuhteista. Se ilmenee usein epäsuorasti vastaanottotehon, lähetystehon, SNR/MER:n tai kanavan vakauden kautta.",
+        "basic": "Osa signaalin häviöstä on normaalia, mutta liian suuri häviö voi siirtää tehotasoja alueen ulkopuolelle tai pakottaa modeemin lähettämään voimakkaammin vastavirtaan. DOCSight näkee seurauksen, ei kaikkia fyysisiä syitä.",
+        "eli5": "Vaimennus tarkoittaa, että signaali heikkenee kulkiessaan kaapelin, jakajien ja liittimien läpi.",
+        "technician": "Älä päättele tarkkaa dB-häviöpolkua pelkästään modeemin tilastoista. Käsittele vaimennusta diagnostisena hypoteesina, jota tukevat suuntakohtaiset tehonmuutokset, topologiatieto ja todisteet ennen/jälkeen johdotuksen."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "dBmV",
+        "DOCSight"
+      ],
+      "title": "Vaimennus"
+    },
+    {
+      "aliases": [
+        "kohina",
+        "sisääntulo",
+        "häiriö",
+        "Paluutien kohina"
+      ],
+      "category": "signal_quality",
+      "id": "ingress_noise",
+      "levels": {
+        "advanced": "Melu voi olla ajoittaista, suuntakohtaista tai rajoitettu tietyille taajuuksille. Aikatrendi vaikutusalaan kuuluvien kanavien välillä on yleensä hyödyllisempää kuin yksi erillinen tilannekuva.",
+        "basic": "Sisäänpääsy ja kohina voivat vähentää SNR/MER-arvoa, aiheuttaa virheitä tai tehdä tulovirran tiedonsiirrosta epävakaa. DOCSight voi näyttää oireita, kun modeemi paljastaa signaali- ja virhetiedot.",
+        "eli5": "Kohina on ei-toivottua signaalia, joka on sekoitettu kaapelisignaaliin. Liian paljon kohinaa vaikeuttaa tietojen lukemista.",
+        "technician": "Paluutien sisääntulo, impulssikohina, yhteisen polun vääristymät ja paikalliset kaapelointivirheet voivat vaikuttaa DOCSIS-kanaviin eri tavalla. DOCSightin tulee esittää modeemin kautta näkyvää näyttöä vaatimatta täydellistä laitoksen sijaintia."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SNR",
+        "MER",
+        "OFDMA"
+      ],
+      "title": "sisääntulo/kohina"
+    },
+    {
+      "aliases": [
+        "Korjattavat",
+        "Korjatut koodisanat",
+        "FEC korjattu"
+      ],
+      "category": "error_counters",
+      "id": "correctable_errors",
+      "levels": {
+        "advanced": "Korjattavat osat heijastavat FEC-työtä. Kasvu kohinatapahtumien aikana, korkeat nopeudet tietyillä kanavilla tai korrelaatio alhaisen MER:n kanssa voivat olla hyödyllisiä; vanhat kumulatiiviset summat ovat yksinään heikkoja todisteita.",
+        "basic": "Korjattavat laskurit voivat nousta jopa työlinjalla. Nopeudella, ajoituksella, vaikuttavilla kanavilla ja korjaamattomien nousulla on enemmän merkitystä kuin yhdellä raakasummalla.",
+        "eli5": "Korjattavat virheet ovat pieniä virheitä, joita modeemi voi korjata ennen kuin ne katosivat.",
+        "technician": "Pidä modeemin raakalaskurit erillään johdetuista hinnoista. DOCSightin tulee säilyttää kumulatiiviset arvot todisteena, kun se käyttää havainnointiikkunoita, perusarvoja ja kasvunopeuksia terveyden tulkintaan."
+      },
+      "misconceptions": [
+        "Korkea vanha korjattava kokonaissumma ei ole automaattisesti aktiivinen vika."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "FEC",
+        "DOCSight"
+      ],
+      "title": "Korjattavat virheet"
+    },
+    {
+      "aliases": [
+        "Korjaamattomat",
+        "Korjaamattomat koodisanat",
+        "FEC korjaamaton"
+      ],
+      "category": "error_counters",
+      "id": "uncorrectable_errors",
+      "levels": {
+        "advanced": "Korjaamattomien tulee korreloida SNR/MER:n, kanavalukituksen, modulaatiomuutosten ja käyttäjälle näkyvien oireiden kanssa. Nollaus tai uudelleenkäynnistys voi myös muuttaa raakalaskurin käyttäytymistä.",
+        "basic": "Korjaamattomat voivat osoittaa kadonneita tietoja kanavatasolla, varsinkin kun ne kasvavat havaintoikkunan aikana. Niiden ajoitus ja kasvunopeus ovat tärkeämpiä kuin vanha laskuri.",
+        "eli5": "Korjaamattomat virheet ovat virheitä, joita modeemi ei voinut korjata. Ne ovat vakavampia kuin korjattavat virheet.",
+        "technician": "Säilytä käsittelemättömät korjaamattomat laskurit ja laske johdettu kasvu tunnetusta lähtötasosta todisteeksi. Vältä modeemin kokonaissumman uudelleenkirjoittamista; erottaa laskurin nollaukset, kiertäminen ja nykyiset havaintoikkunan piikit."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "FEC",
+        "DOCSight"
+      ],
+      "title": "Korjaamattomat virheet"
+    },
+    {
+      "aliases": [
+        "PHY kapasiteetti",
+        "Fyysisen kerroksen kapasiteetti",
+        "Kanavan kapasiteetti"
+      ],
+      "category": "capacity_throughput",
+      "id": "layer1_capacity",
+      "levels": {
+        "advanced": "Layer-1:n kapasiteetti on alle MAC-aikataulutuksen, FEC:n, sidoskäyttäytymisen, palvelun virtausrajojen, IP-ylimäärän, sovelluksen käyttäytymisen ja segmenttien kuormituksen. Se on yksi diagnostinen kerros, ei koko yhteys.",
+        "basic": "DOCSight voi arvioida kerroksen 1 bruttokapasiteetin tuetuille SC-QAM-kanaville. Tämä on hyödyllinen kanavakonteksti, mutta se ei ole lupaus käyttökelpoisesta Internet-nopeudesta.",
+        "eli5": "Layer-1 kapasiteetti on teorialuku sille, mitä kaapelin signaalikerros voi kuljettaa ennen kuin todelliset ylimääräiset kustannukset poistetaan.",
+        "technician": "PHY/Layer-1 -kapasiteetti tulee merkitä bruttokanavan todisteeksi. Älä rinnasta sitä palvelun virtausnopeuksiin, TCP/UDP-hyvätuloon, Speedtest-tuloksiin tai sopimustariffinopeuteen."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "Layer-1",
+        "DOCSIS",
+        "SC-QAM",
+        "IP"
+      ],
+      "title": "Layer-1 kapasiteetti"
+    },
+    {
+      "aliases": [
+        "Bruttokapasiteetti",
+        "Nettokapasiteetti",
+        "Yleiskustannukset"
+      ],
+      "category": "capacity_throughput",
+      "id": "gross_vs_net_capacity",
+      "levels": {
+        "advanced": "Brutto- ja netto-erot johtuvat PHY:n yleiskustannuksista, FEC:stä, MAC-kehyksestä, kilpailusta, palveluvuon muotoilusta, IP/TCP/UDP-ylimääräisistä kustannuksista ja sovellusten käyttäytymisestä. Erilaiset testit mittaavat eri kerroksia.",
+        "basic": "Kanavan bruttoarvio alkaa ennen DOCSIS-, IP- ja sovelluksen lisäkustannuksia. Nettonopeus on pienempi ja riippuu myös ajoituksesta, palveluntarjoajan rajoista, asiakkaista ja palvelimen polusta.",
+        "eli5": "Brutto on ennen yleiskustannuksia. Netti on lähempänä sitä, mikä jää jäljelle sen jälkeen, kun verkko käyttää jonkin verran tilaa kommunikoinnin saamiseen toimimaan.",
+        "technician": "Pidä mittauskerros selkeänä: PHY:n bruttokapasiteetti, MAC/palvelun virtausnopeudet, IP-läpäisykyky ja sovelluksen hyväteho ovat erillisiä. Näiden kerrosten sekoittaminen luo harhaanjohtavia vertailuja."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "Layer-1",
+        "IP"
+      ],
+      "title": "Brutto vs. nettokapasiteetti"
+    },
+    {
+      "aliases": [
+        "Internet-läpäisykyky",
+        "Goodput",
+        "Käytettävä nopeus",
+        "Speedtest"
+      ],
+      "category": "capacity_throughput",
+      "id": "ip_throughput",
+      "levels": {
+        "advanced": "Suorituskyky voi olla pienempi kuin kanavan kapasiteetti provisioinnin, ajoituksen, kilpailun, liikenteen muotoilun, pakettien katoamisen, latenssin, asiakasrajojen ja palvelinpuolen pullonkaulojen vuoksi.",
+        "basic": "IP-läpäisykyky on lähempänä sovellusten ja nopeustestien kokemusta kuin kanavakapasiteettia. Se riippuu DOCSIS-kunnosta, palveluntarjoajan määrityksistä, reitityksestä, Wi-Fi-/LAN-yhteydestä ja etäpalvelimesta.",
+        "eli5": "IP-läpäisykyky on todellista dataa, joka kulkee Internet-yhteytesi läpi verkon ylikuormituksen ja rajoitusten jälkeen.",
+        "technician": "Hyväteho/läpäisykyky on päästä päähän -tulos. DOCSight-modeemidiagnostiikka voi selittää paikallisen DOCSIS-kerroksen todisteet, mutta niiden ei pitäisi väittää yksinomaan syy-yhteyttä IP-läpivirtaustulokselle ilman tukitietoja."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "IP",
+        "DOCSIS",
+        "Speedtest"
+      ],
+      "title": "IP-läpäisykyky"
+    },
+    {
+      "aliases": [
+        "Nopeustesti",
+        "Lataa testi",
+        "Lataa testi",
+        "Ookla"
+      ],
+      "category": "capacity_throughput",
+      "id": "speedtest",
+      "levels": {
+        "advanced": "Nopeustestit voivat auttaa vahvistamaan käyttäjien vaikutuksen, mutta ne eivät ole sama asia kuin kanavadiagnostiikka. Matala tulos tarvitsee korrelaation modeemin todisteiden, asiakaspolun ja tarjoajan/palvelun rajojen kanssa.",
+        "basic": "Nopeustesti on päästä päähän -mittaus yhdellä hetkellä. Siihen vaikuttavat DOCSIS:n kunto, tariffirajat, segmentin kuormitus, Wi-Fi/LAN, reititys ja valittu testipalvelin.",
+        "eli5": "Nopeustesti tarkistaa, kuinka nopeasti data liikkuu testipalvelimelle ja sieltä pois juuri nyt.",
+        "technician": "Käsittele Speedtest-tietoja IP-/sovellustason todisteina. Vertaa sitä tariffinopeuteen ja diagnostisiin aikajanoihin, ei suoraan PHY:n SC-QAM-bruttokapasiteettiin tai raakakanavien määrään."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "Speedtest",
+        "IP",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "Speedtest"
+    },
+    {
+      "aliases": [
+        "Varattu nopeus",
+        "Suunnitelmanopeus",
+        "Sopimusnopeus",
+        "Varattu nopeus"
+      ],
+      "category": "capacity_throughput",
+      "id": "tariff_speed",
+      "levels": {
+        "advanced": "Suunnitelman nopeus pakotetaan yleensä palveluntarjoajan konfigurointiin ja palveluvirtarajoituksiin. Todellinen nopeus riippuu myös verkon kuormituksesta, modeemin tilasta, reitityksestä ja paikallisista asiakasolosuhteista.",
+        "basic": "Tariffinopeus on tuotteen ja provisioinnin raja. DOCSight-kanavatiedot voivat näyttää, näyttääkö kaapelilinkki terveeltä, mutta se ei voi todistaa kaikkia palveluntarjoajan käytäntöjä tai sopimusten yksityiskohtia.",
+        "eli5": "Tariffinopeus on Internet-suunnitelma, josta maksat, kuten varattu lataus- ja latausnopeus.",
+        "technician": "Älä päättele tarkkaa tilaajapalveluvirran konfiguraatiota pelkästään kanavakapasiteetin perusteella. Käytä eksplisiittistä provisiointia tai Speedtest-todisteita, jos niitä on saatavilla, ja pidä DOCSight-kapasiteettimerkinnät erillään tariffivaatimuksista."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "IP"
+      ],
+      "title": "Tariffinopeus"
+    },
+    {
+      "aliases": [
+        "Segmentin kuormitus",
+        "Ruuhka",
+        "Solmukuorma",
+        "Palveluryhmän kuormitus"
+      ],
+      "category": "capacity_throughput",
+      "id": "segment_utilization",
+      "levels": {
+        "advanced": "Segmenttien kuormitus riippuu palveluryhmän koosta, aktiivisista tilaajista, kanavakapasiteetista, CMTS-aikataulutuksesta ja kellonajasta. Paikalliset modeemit voivat näyttää oireita, mutta eivät täydellistä käyttöastetta.",
+        "basic": "Varattu segmentti voi vähentää todellisia nopeuksia, vaikka modeemisignaali näyttää hyvältä. DOCSightin ei pitäisi vaatia tarkkaa segmentin käyttöä, ellei tuettu lähde paljasta näitä tietoja.",
+        "eli5": "Segmenttien käyttö tarkoittaa, kuinka kiireinen jaettu kaapelisegmentti on.",
+        "technician": "Täydellinen hyödyntäminen edellyttää toimittajapuolen tai tuettua ulkoista näyttöä. Vältä segmenttien kokonaiskuormituksen johtamista yksittäisen modeemin kanavaluettelosta, Speedtest-testistä tai signaalin tilasta."
+      },
+      "misconceptions": [
+        "Hyvä modeemisignaali ei ole todiste ruuhkattomasta segmentistä."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Segmenttien käyttö"
+    },
+    {
+      "aliases": [
+        "Läpäisykyky",
+        "Kapasiteetti vs"
+      ],
+      "category": "capacity_throughput",
+      "id": "capacity_vs_throughput",
+      "levels": {
+        "advanced": "Layer-1 kanavakapasiteetti on ennen MAC:ta, FEC:tä, ajoitusta, sidontaa, segmenttikuormaa, liikenteen muotoilua ja IP/sovellusten lisäkustannuksia. Nopeustestit mittaavat päästä päähän -polun kerrallaan.",
+        "basic": "DOCSightin kapasiteettiarviot kuvaavat kanavatason bruttokapasiteettia, erityisesti tuetuille SC-QAM-kanaville. Ne eivät ole tariffinopeuttasi, eivät Speedtest-testejä eivätkä taattua todellista IP-läpäisykykyä.",
+        "eli5": "Kapasiteetti on se, mitä kaapelikaista voisi teoriassa kantaa. Speedtest on se, mitä yhteytesi tarjoaa juuri nyt, kun monet muut asiat ovat mukana.",
+        "technician": "Älä rinnasta PHY:n bruttokapasiteettia palvelun virtausnopeuden rajoituksiin tai TCP/UDP-hyvätuloon. CMTS-ajoitus, provisiointi, OFDM/OFDMA-profiilin saatavuus, RF-häiriöt, jonotukset, peering ja testipalvelimen käyttäytyminen voivat kaikki hallita havaittua suorituskykyä."
+      },
+      "misconceptions": [
+        "Kanavan kapasiteetin summa ei ole todiste siitä, että asiakkaan pitäisi nähdä sama numero Speedtestissä.",
+        "Tariffinopeus on tuotteen kokoonpano; DOCSight-kanavan diagnostiikka on paikallista näyttöä."
+      ],
+      "protected_terms": [
+        "Layer-1",
+        "SC-QAM",
+        "Speedtest",
+        "IP",
+        "DOCSight"
+      ],
+      "title": "Kapasiteetti vs. nopeustesti"
+    },
+    {
+      "aliases": [
+        "Tarjottu palvelu",
+        "Palvelun kulku",
+        "Aktivointi",
+        "Suunnitelman konfigurointi"
+      ],
+      "category": "modem_state",
+      "id": "provisioning",
+      "levels": {
+        "advanced": "Käyttöönotto voi vaikuttaa tariffinopeuteen, palveluvirtoihin, modeemin valtuutukseen, käynnistystiedoston/asetusten määritykseen ja käytössä oleviin ominaisuuksiin. Se on erillinen raaka-RF-signaalin laadusta.",
+        "basic": "Provisioning hallitsee, sallitaanko modeemi online-tilassa ja mitkä palvelurajoitukset ovat voimassa. DOCSight saattaa näyttää vihjeitä, mutta palveluntarjoajan kokoonpano ei aina ole täysin näkyvissä modeemista.",
+        "eli5": "Provisiointi on tapa, jolla palveluntarjoaja kertoo modeemille, minkä palvelun sillä pitäisi olla.",
+        "technician": "Käsittele provisiointia palveluntarjoajan ohjaamana DOCSIS/MAC-kerroksen sopimuksena. Paikalliset modeemisivut voivat paljastaa käynnistystiedostojen nimet tai palvelun tilan, mutta eivät kaikkea CMTS-käytäntöä tai tilaajatilin logiikkaa."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "IP"
+      ],
+      "title": "Provisioning"
+    },
+    {
+      "aliases": [
+        "Käynnistystiedosto",
+        "Asetustiedosto",
+        "DOCSIS-määritykset",
+        "Palvelun konfigurointi"
+      ],
+      "category": "modem_state",
+      "id": "bootfile_config_file",
+      "levels": {
+        "advanced": "Käynnistystiedostotodisteet voivat tukea provisiointidiagnoosia, mutta nimet ovat palveluntarjoajakohtaisia ​​eivätkä välttämättä täsmää julkisiin tariffitarroihin. Sitä tulee käyttää huolellisesti ja muiden todisteiden kanssa.",
+        "basic": "DOCSIS-määritystiedosto voi määrittää palvelun käyttäytymisen, kuten nopeusrajoitukset ja käytössä olevat ominaisuudet. Jotkut modeemit paljastavat nimen; DOCSight ei saa olettaa koko sisältöä pelkästään nimestä.",
+        "eli5": "Käynnistystiedosto/määritystiedosto on toimittajan ohjeita, jotka modeemi vastaanottaa käynnistyessään.",
+        "technician": "DOCSIS -kokoonpanotiedostot ovat osa modeemin rekisteröintiä/käyttöönottoa. Ilman varsinaista tiedoston sisältöä ja CMTS-kontekstia näytettävä tiedostonimi on vain vihje, ei täydellinen palvelukulkusopimus."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Käynnistystiedosto/määritystiedosto"
+    },
+    {
+      "aliases": [
+        "Osittainen sidos",
+        "Puuttuvat kanavat",
+        "Osittainen kanavalukko"
+      ],
+      "category": "modem_state",
+      "id": "partial_service",
+      "levels": {
+        "advanced": "Osittainen palvelu voi johtua RF-ongelmista, profiili-/kanava-ongelmista, ylläpidosta, provisiosta tai modeemin/CMTS-käyttäytymisestä. Se tulisi tulkita kanavan lukituksen, virheiden, tehon ja tapahtuman ajoituksen mukaan.",
+        "basic": "Osittaisessa palvelussa oleva modeemi voi silti tarjota Internetiä, mutta vähemmän kanavia, heikompaa joustavuutta tai heikentynyttä suorituskykyä. DOCSight voi auttaa näyttämään, mitä näkyviä kanavaperheitä tämä koskee.",
+        "eli5": "Osittainen palvelu tarkoittaa, että modeemi on online-tilassa, mutta ei käytä kaikkia odotettuja kanavia tai toimintoja.",
+        "technician": "Älä pidä osittaista palvelua yhtenä kiinteänä syynä. Tee diagnoosi suunnan, kanavaperheen, tapahtumalokin, RF-mittareiden ja jatkuuko tila uudelleensynkronoinnin/uudelleenkäynnistyksen tai palveluntarjoajan ylläpitoikkunoiden välillä."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "Osittainen palvelu"
+    },
+    {
+      "aliases": [
+        "Modeemin uudelleenkäynnistys",
+        "Uudelleensynkronointi",
+        "Alueen uudelleenkäynnistys",
+        "Yhdistä uudelleen"
+      ],
+      "category": "modem_state",
+      "id": "resync_reboot",
+      "levels": {
+        "advanced": "Uudelleensynkronoinnin voivat laukaista ylläpito, RF-epävakaus, hallintamuutokset, tehohäviö, modeemin laiteohjelmisto tai palveluntarjoajan tapahtumat. Vertaa ennen/jälkeen tilannekuvia sen sijaan, että luet yhden tilan yksin.",
+        "basic": "Uudelleenkäynnistykset ja uudelleensynkronointi voivat tilapäisesti tyhjentää laskurit, muuttaa kanavan määritystä tai palauttaa palvelun vian jälkeen. Jos ne tapahtuvat odottamatta, ajoitus on tärkeä todiste.",
+        "eli5": "Uudelleenkäynnistys käynnistää modeemin uudelleen. Uudelleensynkronointi yhdistää sen uudelleen kaapeliverkkoon.",
+        "technician": "Säilytä todisteita varten aikaleimat, tapahtumalokit, kanavamuutokset ja vastaperustehosteet uudelleenkäynnistys-/uudelleensynkronointitapahtumien ympärillä. Älä tulkitse nollattuja laskureita todisteeksi siitä, ettei aikaisempaa arvonalennusta ole koskaan tapahtunut."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Uudelleensynkronointi/uudelleenkäynnistys"
+    }
+  ]
+}
