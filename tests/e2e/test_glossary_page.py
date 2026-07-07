@@ -93,6 +93,19 @@ def test_glossary_mobile_uses_picker_instead_of_inline_long_list(page, live_serv
     expect(page.locator("#glossary-mobile-picker [data-glossary-term]", has_text="CMTS")).to_be_visible()
     expect(page.locator("#glossary-mobile-picker [data-search^='Speedtest ']")).to_be_hidden()
 
+    page.keyboard.press("Shift+Tab")
+    expect(page.locator(".glossary-mobile-picker-close")).to_be_focused()
+    for _ in range(8):
+        page.keyboard.press("Tab")
+        focus_inside_picker = page.evaluate(
+            "document.querySelector('#glossary-mobile-picker').contains(document.activeElement)"
+        )
+        assert focus_inside_picker is True
+
+    page.keyboard.press("Escape")
+    expect(page.locator("#glossary-mobile-picker")).to_be_hidden()
+    expect(page.locator(".glossary-mobile-picker-trigger")).to_be_focused()
+
 
 def test_dashboard_contextual_help_links_to_matching_glossary_term(page, live_server):
     page.goto(f"{live_server}/?lang=en")

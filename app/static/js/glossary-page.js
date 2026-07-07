@@ -7,6 +7,14 @@
   var picker = document.querySelector('[data-glossary-picker]');
   var openButton = document.querySelector('[data-glossary-picker-open]');
   var closeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-glossary-picker-close]'));
+  var focusableSelector = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
   var lastFocused = null;
 
   function normalize(value) {
@@ -38,6 +46,52 @@
     });
     setCount(resultCount, visibleCount);
     if (noResults) noResults.hidden = visibleCount !== 0;
+  }
+
+  function isVisible(element) {
+    var style = window.getComputedStyle(element);
+    var rect = element.getBoundingClientRect();
+    return style.display !== 'none'
+      && style.visibility !== 'hidden'
+      && rect.width > 0
+      && rect.height > 0;
+  }
+
+  function getPickerFocusableElements() {
+    if (!picker || picker.hidden) return [];
+    var dialog = picker.querySelector('[role="dialog"]') || picker;
+    return Array.prototype.slice.call(dialog.querySelectorAll(focusableSelector)).filter(isVisible);
+  }
+
+  function trapPickerFocus(event) {
+    if (event.key !== 'Tab' || !picker || picker.hidden) return;
+
+    var focusableElements = getPickerFocusableElements();
+    if (!focusableElements.length) {
+      event.preventDefault();
+      return;
+    }
+
+    var first = focusableElements[0];
+    var last = focusableElements[focusableElements.length - 1];
+    var active = document.activeElement;
+
+    if (focusableElements.indexOf(active) === -1) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+      return;
+    }
+
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    }
   }
 
   panels.forEach(function (panel) {
@@ -78,6 +132,8 @@
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && picker && !picker.hidden) {
       closePicker();
+      return;
     }
+    trapPickerFocus(event);
   });
 })();
