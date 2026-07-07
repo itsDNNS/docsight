@@ -188,6 +188,9 @@ def test_glossary_term_content_localized_for_every_offered_non_english_language(
     english_categories = {category["id"]: category for category in get_glossary_categories("en")}
 
     for lang in sorted(offered):
+        glossary_i18n_path = os.path.join(os.path.dirname(__file__), "..", "app", "glossary_i18n", f"{lang}.json")
+        with open(glossary_i18n_path, encoding="utf-8-sig") as f:
+            translated_term_ids = {item["id"] for item in json.load(f).get("terms", [])}
         localized_terms = {term["id"]: term for term in get_glossary_terms(lang)}
         localized_categories = {category["id"]: category for category in get_glossary_categories(lang)}
         assert set(localized_terms) == set(english_terms), f"Term IDs differ in {lang}"
@@ -207,6 +210,9 @@ def test_glossary_term_content_localized_for_every_offered_non_english_language(
             assert all(alias.strip() for alias in term["aliases"]), f"Blank alias for {term_id} in {lang}"
             joined = " ".join([term["title"], *term["aliases"], *term["levels"].values(), *term["misconceptions"]])
             english_joined = " ".join([english_term["title"], *english_term["aliases"], *english_term["levels"].values(), *english_term["misconceptions"]])
+            if term_id not in translated_term_ids:
+                assert term["source_pages"], f"Untranslated glossary term {term_id} must declare source pages"
+                continue
             assert joined != english_joined, f"English term fallback leaked for {term_id} in {lang}"
             for level in GLOSSARY_LEVELS:
                 assert len(term["levels"][level]) > 40, f"Too-short {level} for {term_id} in {lang}"

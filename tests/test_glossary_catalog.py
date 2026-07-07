@@ -49,6 +49,12 @@ def test_core_docsis_glossary_contains_required_terms_and_levels():
         "bootfile_config_file",
         "partial_service",
         "resync_reboot",
+        "t3_t4_timeout",
+        "remote_phy",
+        "mixed_mode",
+        "return_path_interference",
+        "health_status",
+        "gaming_index",
     }
 
     assert required_terms.issubset(terms)
@@ -58,6 +64,9 @@ def test_core_docsis_glossary_contains_required_terms_and_levels():
         assert term["category"]
         assert term["aliases"]
         assert term["protected_terms"]
+        assert "tags" in term
+        assert "source_pages" in term
+        assert "ui_contexts" in term
         assert set(term["levels"]) == set(GLOSSARY_LEVELS)
         for level in GLOSSARY_LEVELS:
             assert len(term["levels"][level]) > 60
@@ -114,6 +123,51 @@ def test_core_glossary_preserves_required_technical_tokens():
         for token in tokens:
             assert token in term["protected_terms"]
             assert token in joined
+
+
+def test_wiki_source_vocabulary_is_indexed_as_tags_aliases_and_source_pages():
+    terms = {term["id"]: term for term in get_glossary_terms("en")}
+    expected = {
+        "docsis": {"DOCSIS-Glossary.md", "Features-Glossary.md"},
+        "power_level": {"DOCSIS-Glossary.md", "Features-Glossary.md"},
+        "snr_mer": {"DOCSIS-Glossary.md", "Features-Glossary.md"},
+        "sc_qam": {"DOCSIS-Glossary.md", "Features-Glossary.md"},
+        "ofdm": {"DOCSIS-Glossary.md", "Features-Glossary.md"},
+        "ofdma": {"DOCSIS-Glossary.md", "Features-Glossary.md"},
+        "t3_t4_timeout": {"DOCSIS-Glossary.md"},
+        "remote_phy": {"DOCSIS-Glossary.md"},
+        "return_path_interference": {"DOCSIS-Glossary.md"},
+        "mixed_mode": {"DOCSIS-Glossary.md"},
+        "health_status": {"DOCSIS-Glossary.md"},
+        "gaming_index": {"Features-Glossary.md"},
+    }
+
+    for term_id, source_pages in expected.items():
+        term = terms[term_id]
+        assert source_pages.issubset(set(term["source_pages"]))
+        assert term["tags"]
+        assert term["ui_contexts"]
+
+    alias_index = {
+        alias
+        for term in terms.values()
+        for alias in term["aliases"]
+    }
+    for alias in {
+        "DS Power",
+        "US Power",
+        "Errors",
+        "Channels",
+        "vCMTS",
+        "R-PHY",
+        "T3 timeout",
+        "T4 timeout",
+        "Good",
+        "Marginal",
+        "Poor",
+        "Gaming Quality Index",
+    }:
+        assert alias in alias_index
 
 
 def test_glossary_aliases_do_not_duplicate_other_term_titles_or_aliases():

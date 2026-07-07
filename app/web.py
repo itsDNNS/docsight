@@ -10,6 +10,7 @@ import stat
 import threading
 import time
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 import requests as _requests
 
@@ -28,7 +29,6 @@ from .glossary import (
     get_glossary_categories,
     get_glossary_term,
     get_glossary_terms,
-    get_related_terms,
 )
 from .i18n import get_translations, LANGUAGES, LANG_FLAGS
 from .maintainer_notices import coerce_dismissed_notice_ids, get_active_notices
@@ -1290,76 +1290,37 @@ def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
 
 
-_GLOSSARY_LEVEL_KEYS = {
-    "eli5": {
-        "label_key": "glossary_level_eli5",
-        "label_default": "ELI5",
-        "description_key": "glossary_level_eli5_desc",
-        "description_default": "Plain-language first explanation",
-    },
-    "basic": {
-        "label_key": "glossary_level_basic",
-        "label_default": "Basic",
-        "description_key": "glossary_level_basic_desc",
-        "description_default": "Practical meaning for end users",
-    },
-    "advanced": {
-        "label_key": "glossary_level_advanced",
-        "label_default": "Advanced",
-        "description_key": "glossary_level_advanced_desc",
-        "description_default": "Technical context without provider-only assumptions",
-    },
-    "technician": {
-        "label_key": "glossary_level_technician",
-        "label_default": "Technician",
-        "description_key": "glossary_level_technician_desc",
-        "description_default": "Precise DOCSIS and diagnostics boundaries",
-    },
-}
+def _build_glossary_context(lang, t, selected_term_id=None):
+    """Build static glossary view data for the app shell."""
+    terms = sorted(get_glossary_terms(lang), key=lambda term: term["title"].casefold())
+    categories = get_glossary_categories(lang)
+    selected_term = get_glossary_term(selected_term_id, lang) if selected_term_id else None
+    if not selected_term and terms:
+        selected_term = terms[0]
+    category_by_id = {category["id"]: category for category in categories}
+    return {
+        "glossary_terms": terms,
+        "glossary_categories": categories,
+        "glossary_category_by_id": category_by_id,
+        "glossary_selected_term": selected_term,
+    }
 
 
 @app.route("/glossary")
 @require_auth
 def glossary_page():
-    """Render the canonical in-app glossary foundation."""
+    """Compatibility endpoint for existing glossary deep links."""
     lang = _get_lang()
-    t = get_translations(lang)
-    theme = _config_manager.get_theme() if _config_manager else "dark"
-    terms = sorted(get_glossary_terms(lang), key=lambda term: term["title"].casefold())
-    categories = get_glossary_categories(lang)
-    selected_level = request.args.get("level", "basic")
-    if selected_level not in GLOSSARY_LEVELS:
-        selected_level = "basic"
-    selected_term_id = request.args.get("term") or (terms[0]["id"] if terms else "")
-    selected_term = get_glossary_term(selected_term_id, lang) or (terms[0] if terms else None)
-    related_terms = get_related_terms(selected_term, lang) if selected_term else []
-    level_options = [
-        {
-            "id": level,
-            "label": t.get(config["label_key"], config["label_default"]),
-            "description": t.get(config["description_key"], config["description_default"]),
-        }
-        for level, config in _GLOSSARY_LEVEL_KEYS.items()
-    ]
-    selected_level_label = next(item["label"] for item in level_options if item["id"] == selected_level)
-    category_by_id = {category["id"]: category for category in categories}
-    return render_template(
-        "glossary.html",
-        t=t,
-        lang=lang,
-        languages=LANGUAGES,
-        lang_flags=LANG_FLAGS,
-        theme=theme,
-        version=APP_VERSION,
-        categories=categories,
-        category_by_id=category_by_id,
-        terms=terms,
-        selected_term=selected_term,
-        selected_level=selected_level,
-        selected_level_label=selected_level_label,
-        level_options=level_options,
-        related_terms=related_terms,
-    )
+    terms = {term["id"] for term in get_glossary_terms(lang)}
+    hash_params = {}
+    term_id = request.args.get("term", "")
+    if term_id in terms:
+        hash_params["term"] = term_id
+    level = request.args.get("level", "")
+    if level in GLOSSARY_LEVELS:
+        hash_params["level"] = level
+    hash_query = f"?{urlencode(hash_params)}" if hash_params else ""
+    return redirect(f"/?{urlencode({'lang': lang})}#glossary{hash_query}")
 
 
 @app.route("/")
@@ -1461,6 +1422,7 @@ def index():
             dismissed_ids=_get_dismissed_notice_ids(),
             location="dashboard",
         ),
+        **_build_glossary_context(lang, t, request.args.get("term")),
     )
 
 
