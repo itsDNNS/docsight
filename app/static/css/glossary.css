@@ -297,7 +297,8 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 .glossary-term-link:focus-visible,
 .glossary-mobile-picker-trigger:focus-visible,
 .glossary-mobile-picker-close:focus-visible,
-.glossary-chip-link:focus-visible {
+.glossary-chip-link:focus-visible,
+.glossary-related-link:focus-visible {
   outline: 2px solid var(--amethyst);
   outline-offset: 2px;
 }
@@ -368,17 +369,31 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 
 .glossary-term-header-card h2,
 .glossary-term-header-card h3 {
-  margin-bottom: 12px;
+  margin-bottom: 0;
   font-size: 2.25rem;
   letter-spacing: 0;
   line-height: 1;
   overflow-wrap: anywhere;
 }
 
+.glossary-aliases {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.glossary-aliases span {
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
 .glossary-term-header-card p:last-child,
 .glossary-summary-card p,
 .glossary-explanation-card p,
-.glossary-callout li {
+.glossary-callout li,
+.glossary-empty-state p {
   margin-bottom: 0;
   color: var(--text-secondary);
   line-height: 1.65;
@@ -395,6 +410,82 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 
 .glossary-explanation-card p {
   color: var(--text-primary);
+}
+
+.glossary-detail-block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.glossary-detail-block summary {
+  color: var(--text-primary);
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.glossary-detail-block summary:focus-visible {
+  outline: 2px solid var(--amethyst);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.glossary-detail-block p {
+  margin-top: 10px;
+}
+
+.glossary-media-card {
+  display: grid;
+  gap: 14px;
+}
+
+.glossary-media-item {
+  margin: 0;
+}
+
+.glossary-media-item img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.glossary-media-item figcaption {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.glossary-related-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.glossary-related-row span {
+  font-weight: 800;
+}
+
+.glossary-related-link {
+  color: var(--text-primary);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--amethyst) 50%, transparent);
+}
+
+.glossary-related-link:hover,
+.glossary-related-link:focus-visible {
+  color: var(--amethyst-light);
+}
+
+.glossary-empty-state[hidden] {
+  display: none !important;
 }
 
 .glossary-callout {

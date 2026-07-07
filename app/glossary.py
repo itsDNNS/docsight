@@ -42,6 +42,7 @@ class GlossaryTerm:
     tags: tuple[str, ...] = ()
     source_pages: tuple[str, ...] = ()
     ui_contexts: tuple[str, ...] = ()
+    media: tuple[dict[str, Any], ...] = ()
 
     def localized(self, lang: str = "en") -> dict[str, Any]:
         """Return a template-friendly localized term, falling back to English."""
@@ -50,8 +51,17 @@ class GlossaryTerm:
         metadata = _metadata_for_term(self.id)
         aliases = tuple(translation.get("aliases") or self.aliases.get(lang) or self.aliases.get("en", ()))
         aliases = _unique((*aliases, *metadata.get("aliases", ())))
-        levels = translation.get("levels") or self.levels.get(lang) or self.levels["en"]
+        translated_levels = translation.get("levels") if isinstance(translation.get("levels"), dict) else {}
+        native_levels = self.levels.get(lang, {})
+        english_levels = self.levels["en"]
+        levels = {
+            level: (
+                str(translated_levels.get(level) or native_levels.get(level) or english_levels.get(level) or "").strip()
+            )
+            for level in GLOSSARY_LEVELS
+        }
         misconceptions = tuple(translation.get("misconceptions") or self.misconceptions.get(lang) or self.misconceptions.get("en", ()))
+        media = translation.get("media") if isinstance(translation.get("media"), list) else list(self.media)
         return {
             "id": self.id,
             "category": self.category,
@@ -64,6 +74,7 @@ class GlossaryTerm:
             "tags": list(_unique((*self.tags, *metadata.get("tags", ())))),
             "source_pages": list(_unique((*self.source_pages, *metadata.get("source_pages", ())))),
             "ui_contexts": list(_unique((*self.ui_contexts, *metadata.get("ui_contexts", ())))),
+            "media": media,
         }
 
 
@@ -973,13 +984,9 @@ def get_glossary_categories(lang: str = "en") -> list[dict[str, str]]:
 
 
 def get_glossary_terms(lang: str = "en") -> list[dict[str, Any]]:
-    """Return localized glossary terms sorted by category order and title."""
+    """Return localized glossary terms sorted as one global alphabetical dictionary."""
     localized = [term.localized(lang) for term in _TERMS]
-    category_order = {category.id: index for index, category in enumerate(_CATEGORIES)}
-    return sorted(
-        localized,
-        key=lambda item: (category_order.get(item["category"], 999), item["title"].lower()),
-    )
+    return sorted(localized, key=lambda item: item["title"].casefold())
 
 
 def get_glossary_term(term_id: str, lang: str = "en") -> dict[str, Any] | None:
