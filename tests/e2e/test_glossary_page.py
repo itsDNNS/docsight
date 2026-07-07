@@ -62,6 +62,28 @@ def test_glossary_term_list_navigation_updates_hash_and_article(page, live_serve
     expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="Gaming Index")).to_be_visible()
 
 
+def test_glossary_level_deep_link_opens_detail_inside_explanation(page, live_server):
+    page.goto(f"{live_server}/?lang=en#glossary?term=docsis&level=technician")
+    page.wait_for_selector("#view-glossary.active", state="visible")
+
+    article = _active_article(page)
+    expect(article.locator(".glossary-term-header-card h3", has_text="DOCSIS")).to_be_visible()
+    detail = article.locator('[data-glossary-detail-level="technician"]')
+    expect(detail).to_be_visible()
+    assert detail.evaluate("node => node.open") is True
+    expect(article.locator(".glossary-summary-card", has_text="Quick summary")).to_be_visible()
+    expect(article.locator(".glossary-explanation-card", has_text="Explanation")).to_be_visible()
+
+
+def test_glossary_invalid_deep_link_shows_searchable_empty_state(page, live_server):
+    page.goto(f"{live_server}/?lang=en#glossary?term=not_a_real_term")
+    page.wait_for_selector("#view-glossary.active", state="visible")
+
+    expect(page.locator("#view-glossary [data-glossary-missing]")).to_be_visible()
+    expect(page.locator("#glossary-search")).to_have_value("not_a_real_term")
+    expect(page.locator("#view-glossary .glossary-term-article:not([hidden])")).to_have_count(0)
+
+
 def test_glossary_mobile_layout_has_no_horizontal_overflow(page, live_server):
     page.set_viewport_size({"width": 393, "height": 852})
     page.goto(f"{live_server}/?lang=en&term=gaming_index#glossary?term=gaming_index")
@@ -82,6 +104,27 @@ def test_glossary_search_filters_alphabetical_terms(page, live_server):
     expect(page.locator(".glossary-index-desktop [data-term-id='cmts']")).to_be_visible()
     expect(page.locator(".glossary-index-desktop [data-search^='Speedtest ']")).to_be_hidden()
     expect(page.locator("#glossary-result-count")).to_contain_text("1 term shown")
+
+    search.fill("SNR")
+    first_visible = page.locator(".glossary-index-desktop [data-glossary-term]:visible").first
+    expect(first_visible).to_have_attribute("data-term-id", "snr_mer")
+    page.keyboard.press("Enter")
+    expect(page).to_have_url(re.compile(r"#glossary\?term=snr_mer"))
+    expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="SNR/MER")).to_be_visible()
+
+    search.fill("")
+    restored_terms = page.locator(".glossary-index-desktop .glossary-term-link").evaluate_all(
+        "nodes => nodes.slice(0, 3).map(node => node.textContent.trim())"
+    )
+    assert restored_terms == ["Before/After Comparison", "BNetzA measurement", "BQM"]
+
+
+def test_glossary_alias_deep_link_resolves_to_canonical_term(page, live_server):
+    page.goto(f"{live_server}/?lang=en#glossary?term=Signal-to-noise%20ratio")
+    page.wait_for_selector("#view-glossary.active", state="visible")
+
+    expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="SNR/MER")).to_be_visible()
+    expect(page.locator("#view-glossary [data-glossary-missing]")).to_be_hidden()
 
 
 def test_glossary_desktop_click_does_not_refocus_closed_mobile_picker(page, live_server):

@@ -77,6 +77,13 @@ def test_glossary_lookup_falls_back_to_english_for_unsupported_locale():
     assert "DOCSIS is the standard cable modems use" in term["levels"]["eli5"]
 
 
+def test_glossary_terms_use_one_global_alphabetical_order():
+    terms = get_glossary_terms("en")
+    titles = [term["title"] for term in terms]
+    assert titles == sorted(titles, key=str.casefold)
+    assert titles[:3] == ["Before/After Comparison", "BNetzA measurement", "BQM"]
+
+
 def test_speedtest_feature_keeps_throughput_boundary_in_app_terms():
     term = get_glossary_term("speedtest", "en")
     assert term is not None

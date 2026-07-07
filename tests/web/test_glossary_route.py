@@ -54,6 +54,13 @@ def test_index_glossary_renders_simple_summary_and_explanation(client, sample_an
     assert 'data-glossary-level' not in html
     assert "SC-QAM is the classic narrow DOCSIS channel type" in html
     assert "SC-QAM channels are traditional DOCSIS 3.0-style channels" in html
+    active_article = html.split('class="glossary-term-article" data-glossary-article data-term-id="sc_qam"', 1)[1].split('class="glossary-term-article" data-glossary-article', 1)[0]
+    assert '<p class="eyebrow">' not in active_article
+    assert "DOCSIS terms" not in active_article
+    assert "Also searched as" in active_article
+    assert 'data-glossary-detail-level="advanced"' in html
+    assert 'data-glossary-detail-level="technician"' in html
+    assert 'class="glossary-media-card"' not in html
 
 
 def test_index_glossary_exposes_wiki_source_search_metadata(client, sample_analysis):

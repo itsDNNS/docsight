@@ -1298,10 +1298,12 @@ def _build_glossary_context(lang, t, selected_term_id=None):
     if not selected_term and terms:
         selected_term = terms[0]
     category_by_id = {category["id"]: category for category in categories}
+    term_by_id = {term["id"]: term for term in terms}
     return {
         "glossary_terms": terms,
         "glossary_categories": categories,
         "glossary_category_by_id": category_by_id,
+        "glossary_term_by_id": term_by_id,
         "glossary_selected_term": selected_term,
     }
 
