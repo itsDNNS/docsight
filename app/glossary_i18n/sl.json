@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Osnovni pojmi za razumevanje kabelskega interneta in tega, kar DOCSight lahko opazi.",
-      "id": "cable_basics",
-      "title": "Osnove kabla/DOCSIS"
+      "description": "Pojmi kabelskega/DOCSIS protokola, signala, kanalov in dogodkov, ki jih razlaga DOCSight.",
+      "id": "docsis_terms",
+      "title": "Pojmi DOCSIS"
     },
     {
-      "description": "Kako kanali DOCSIS prenašajo podatke in zakaj je tehnologija kanala pomembna.",
-      "id": "modulation_channels",
-      "title": "Modulacija in kanali"
-    },
-    {
-      "description": "Izrazi o moči, šumu in kakovosti linije, ki pomagajo razložiti stanje vidnega signala modema.",
-      "id": "signal_quality",
-      "title": "Kakovost signala"
-    },
-    {
-      "description": "Popravljeni in nepopravljeni števci kodnih besed, vključno s tem, kaj neobdelane vsote lahko in ne morejo dokazati.",
-      "id": "error_counters",
-      "title": "Števci napak"
-    },
-    {
-      "description": "Meje med diagnostiko kanala, bruto zmogljivostjo, tarifno hitrostjo in preizkusi hitrosti.",
-      "id": "capacity_throughput",
-      "title": "Zmogljivost in prepustnost"
-    },
-    {
-      "description": "Stanja zagotavljanja, delne storitve, ponovnega zagona in konfiguracije, vidna okoli modema.",
-      "id": "modem_state",
-      "title": "Modem in stanje zagotavljanja"
+      "description": "Pogledi, integracije in dokazna orodja, ki jih zagotavlja DOCSight.",
+      "id": "docsight_features",
+      "title": "Funkcije DOCSight"
     }
   ],
   "terms": [

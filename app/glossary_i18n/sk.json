@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Základné pojmy na pochopenie káblového internetu a toho, čo môže DOCSight pozorovať.",
-      "id": "cable_basics",
-      "title": "Základy káblového pripojenia/DOCSIS"
+      "description": "Pojmy káblového/DOCSIS protokolu, signálu, kanálov a udalostí, ktoré DOCSight vysvetľuje.",
+      "id": "docsis_terms",
+      "title": "Pojmy DOCSIS"
     },
     {
-      "description": "Ako kanály DOCSIS prenášajú údaje a prečo je technológia kanálov dôležitá.",
-      "id": "modulation_channels",
-      "title": "Modulácia a kanály"
-    },
-    {
-      "description": "Výkon, šum a kvalita linky, ktoré pomáhajú vysvetliť stav viditeľného signálu modemu.",
-      "id": "signal_quality",
-      "title": "Kvalita signálu"
-    },
-    {
-      "description": "Opravené a neopravené počítadlá kódových slov vrátane toho, čo môžu a nemôžu dokázať hrubé súčty.",
-      "id": "error_counters",
-      "title": "Počítadlá chýb"
-    },
-    {
-      "description": "Hranice medzi diagnostikou kanála, hrubou kapacitou, tarifnou rýchlosťou a testami rýchlosti.",
-      "id": "capacity_throughput",
-      "title": "Kapacita a priepustnosť"
-    },
-    {
-      "description": "Stavy poskytovania, čiastočnej služby, reštartu a konfigurácie viditeľné okolo modemu.",
-      "id": "modem_state",
-      "title": "Stav modemu a poskytovania"
+      "description": "Zobrazenia, integrácie a nástroje dôkazov poskytované samotným DOCSight.",
+      "id": "docsight_features",
+      "title": "Funkcie DOCSight"
     }
   ],
   "terms": [

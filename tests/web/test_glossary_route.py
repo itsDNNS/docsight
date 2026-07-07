@@ -37,7 +37,8 @@ def test_index_renders_glossary_inside_app_shell(client, sample_analysis):
     assert 'href="/glossary?lang=en"' not in html
     assert "DOCSIS" in html
     assert "SC-QAM" in html
-    assert "Capacity vs. speedtest" in html
+    assert "Gaming Index" in html
+    assert "DSL vs. cable" not in html
 
 
 def test_index_glossary_renders_simple_summary_and_explanation(client, sample_analysis):
@@ -51,8 +52,8 @@ def test_index_glossary_renders_simple_summary_and_explanation(client, sample_an
     assert "Explanation" in html
     assert 'id="glossary-level-selector"' not in html
     assert 'data-glossary-level' not in html
-    assert "SC-QAM is one kind of cable channel" in html
-    assert "SC-QAM channels are traditional DOCSIS channels" in html
+    assert "SC-QAM is the classic narrow DOCSIS channel type" in html
+    assert "SC-QAM channels are traditional DOCSIS 3.0-style channels" in html
 
 
 def test_index_glossary_exposes_wiki_source_search_metadata(client, sample_analysis):
@@ -66,9 +67,9 @@ def test_index_glossary_exposes_wiki_source_search_metadata(client, sample_analy
     assert 'id="glossary-mobile-search"' in html
     assert 'data-category-filter=' not in html
     assert 'data-source-pages="DOCSIS-Glossary.md Features-Glossary.md"' in html
-    assert 'data-tags="signal ds-power us-power dbmv wiki-glossary"' in html
+    assert 'data-tags="signal ds-power us-power dbmv wiki-term"' in html
     assert 'data-ui-contexts="dashboard_signal_cards channel_tables"' in html
-    assert 'data-search="CMTS cmts Cable/DOCSIS basics' in html
+    assert 'data-search="CMTS cmts DOCSIS terms' in html
     assert 'vCMTS' in html
     assert '/static/js/glossary-page.js?v=' in html
 
@@ -82,7 +83,7 @@ def test_index_glossary_lists_terms_alphabetically(client, sample_analysis):
     html = resp.get_data(as_text=True)
     desktop = html.split('id="glossary-desktop-terms"', 1)[1].split("</nav>", 1)[0]
     desktop_terms = re.findall(r'class="glossary-term-link[^"]*"[^>]*>\s*([^<]+?)\s*</a>', desktop)
-    assert desktop_terms[:3] == ["Attenuation", "Bootfile/config file", "Cable modem/router"]
+    assert desktop_terms[:3] == ["Channel bonding", "CMTS", "Correctable errors"]
 
 
 def test_contextual_glossary_links_target_existing_terms(client, sample_analysis):

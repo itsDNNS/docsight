@@ -14,63 +14,44 @@ def test_glossary_catalog_schema_is_valid():
     assert validate_glossary_catalog() == []
 
 
-def test_core_docsis_glossary_contains_required_terms_and_levels():
+def test_core_glossary_contains_only_docsis_terms_and_docsight_features():
     terms = {term["id"]: term for term in get_glossary_terms("en")}
-    required_terms = {
-        "docsis",
-        "dsl_vs_cable",
-        "coaxial_cable",
-        "cable_modem_router",
-        "cmts",
-        "node_segment",
-        "shared_medium",
-        "downstream",
-        "upstream",
-        "channel_bonding",
-        "sc_qam",
-        "ofdm",
-        "ofdma",
-        "qam_modulation_order",
-        "channel_width_symbol_rate",
-        "power_level",
-        "snr_mer",
-        "attenuation",
-        "ingress_noise",
-        "correctable_errors",
-        "uncorrectable_errors",
-        "layer1_capacity",
-        "gross_vs_net_capacity",
-        "ip_throughput",
-        "speedtest",
-        "tariff_speed",
-        "segment_utilization",
-        "capacity_vs_throughput",
-        "provisioning",
-        "bootfile_config_file",
-        "partial_service",
-        "resync_reboot",
-        "t3_t4_timeout",
-        "remote_phy",
-        "mixed_mode",
-        "return_path_interference",
-        "health_status",
-        "gaming_index",
+    expected_docsis_terms = {
+        "docsis", "downstream", "upstream", "channel_bonding", "sc_qam", "ofdm", "ofdma",
+        "mixed_mode", "qam_modulation_order", "qpsk", "power_level", "snr_mer",
+        "correctable_errors", "uncorrectable_errors", "t3_t4_timeout", "cmts", "vcmts",
+        "remote_phy", "return_path_interference", "node_segment", "shared_medium", "health_status",
+    }
+    expected_docsight_features = {
+        "dashboard", "in_app_glossary", "channel_timeline", "signal_trends",
+        "modulation_performance", "segment_utilization", "correlation_analysis",
+        "before_after_comparison", "connection_monitor", "event_log", "incident_journal",
+        "smart_capture", "speedtest", "bqm", "smokeping", "bnetza", "gaming_index",
+        "llm_export", "doctor_diagnostics", "pwa_offline",
     }
 
-    assert required_terms.issubset(terms)
-    for term_id in required_terms:
-        term = terms[term_id]
+    assert set(terms) == expected_docsis_terms | expected_docsight_features
+    for term in terms.values():
+        assert term["category"] in {"docsis_terms", "docsight_features"}
         assert term["title"]
-        assert term["category"]
         assert term["aliases"]
-        assert term["protected_terms"]
-        assert "tags" in term
-        assert "source_pages" in term
-        assert "ui_contexts" in term
+        assert term["source_pages"]
+        assert term["tags"]
+        assert term["ui_contexts"]
         assert set(term["levels"]) == set(GLOSSARY_LEVELS)
         for level in GLOSSARY_LEVELS:
-            assert len(term["levels"][level]) > 60
+            assert len(term["levels"][level]) > 40
 
+
+def test_derived_explainer_terms_do_not_appear_as_top_level_glossary_entries():
+    term_ids = {term["id"] for term in get_glossary_terms("en")}
+    removed_explainers = {
+        "dsl_vs_cable", "coaxial_cable", "cable_modem_router", "channel_width_symbol_rate",
+        "attenuation", "ingress_noise", "layer1_capacity", "gross_vs_net_capacity",
+        "ip_throughput", "tariff_speed", "capacity_vs_throughput", "provisioning",
+        "bootfile_config_file", "partial_service", "resync_reboot",
+    }
+    assert term_ids.isdisjoint(removed_explainers)
 
 def test_related_glossary_terms_resolve_to_existing_terms():
     for term in get_glossary_terms("en"):
@@ -81,7 +62,7 @@ def test_related_glossary_terms_resolve_to_existing_terms():
 
 def test_categories_are_localized_and_used_by_terms():
     categories = {category["id"]: category for category in get_glossary_categories("en")}
-    assert {"cable_basics", "modulation_channels", "signal_quality", "error_counters", "capacity_throughput", "modem_state"}.issubset(categories)
+    assert set(categories) == {"docsis_terms", "docsight_features"}
     for category in categories.values():
         assert category["title"]
         assert category["description"]
@@ -93,26 +74,26 @@ def test_glossary_lookup_falls_back_to_english_for_unsupported_locale():
     term = get_glossary_term("docsis", "zz")
     assert term is not None
     assert term["title"] == "DOCSIS"
-    assert "DOCSIS is the language" in term["levels"]["eli5"]
+    assert "DOCSIS is the standard cable modems use" in term["levels"]["eli5"]
 
 
-def test_capacity_term_preserves_no_speedtest_overclaim_boundary():
-    term = get_glossary_term("capacity_vs_throughput", "en")
+def test_speedtest_feature_keeps_throughput_boundary_in_app_terms():
+    term = get_glossary_term("speedtest", "en")
     assert term is not None
     joined = " ".join(term["levels"].values())
-    assert "not your tariff speed" in joined
-    assert "not a speedtest" in joined
-    assert "not guaranteed real IP throughput" in joined
-
+    assert "download" in joined
+    assert "latency" in joined
+    assert "DOCSIS evidence" in joined
 
 def test_core_glossary_preserves_required_technical_tokens():
     expected_tokens = {
         "docsis": {"DOCSIS", "DSL"},
         "cmts": {"CMTS", "DOCSIS"},
-        "sc_qam": {"SC-QAM", "QAM", "Layer-1"},
+        "vcmts": {"vCMTS", "CMTS"},
+        "sc_qam": {"SC-QAM", "QAM"},
         "ofdm": {"OFDM", "DOCSIS"},
         "ofdma": {"OFDMA", "DOCSIS"},
-        "capacity_vs_throughput": {"Speedtest", "IP", "Layer-1"},
+        "qpsk": {"QPSK", "QAM"},
         "snr_mer": {"SNR", "MER"},
     }
 
@@ -139,7 +120,11 @@ def test_wiki_source_vocabulary_is_indexed_as_tags_aliases_and_source_pages():
         "return_path_interference": {"DOCSIS-Glossary.md"},
         "mixed_mode": {"DOCSIS-Glossary.md"},
         "health_status": {"DOCSIS-Glossary.md"},
-        "gaming_index": {"Features-Glossary.md"},
+        "qpsk": {"DOCSIS-Glossary.md"},
+        "vcmts": {"DOCSIS-Glossary.md"},
+        "gaming_index": {"Features-Glossary.md", "Features-Gaming-Quality.md"},
+        "dashboard": {"Features-Dashboard.md"},
+        "in_app_glossary": {"Features-Glossary.md"},
     }
 
     for term_id, source_pages in expected.items():
@@ -158,7 +143,7 @@ def test_wiki_source_vocabulary_is_indexed_as_tags_aliases_and_source_pages():
         "US Power",
         "Errors",
         "Channels",
-        "vCMTS",
+        "Virtual CMTS",
         "R-PHY",
         "T3 timeout",
         "T4 timeout",

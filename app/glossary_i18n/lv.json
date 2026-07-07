@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Galvenie termini, lai izprastu kabeļa internetu un to, ko DOCSight var novērot.",
-      "id": "cable_basics",
-      "title": "Kabeļa/DOCSIS pamati"
+      "description": "Kabeļa/DOCSIS protokola, signāla, kanālu un notikumu termini, ko skaidro DOCSight.",
+      "id": "docsis_terms",
+      "title": "DOCSIS termini"
     },
     {
-      "description": "Kā DOCSIS kanāli pārnēsā datus un kāpēc kanālu tehnoloģijai ir nozīme.",
-      "id": "modulation_channels",
-      "title": "Modulācija un kanāli"
-    },
-    {
-      "description": "Jaudas, trokšņa un līnijas kvalitātes termini, kas palīdz izskaidrot modema redzamā signāla stāvokli.",
-      "id": "signal_quality",
-      "title": "Signāla kvalitāte"
-    },
-    {
-      "description": "Laboti un nelaboti koda vārdu skaitītāji, tostarp to, ko neapstrādātas summas var pierādīt un ko nevar pierādīt.",
-      "id": "error_counters",
-      "title": "Kļūdu skaitītāji"
-    },
-    {
-      "description": "Robežas starp kanālu diagnostiku, bruto jaudu, tarifa ātrumu un ātruma testiem.",
-      "id": "capacity_throughput",
-      "title": "Jauda un caurlaidspēja"
-    },
-    {
-      "description": "Nodrošināšanas, daļējas apkalpošanas, atsāknēšanas un konfigurācijas stāvokļi, kas ir redzami ap modemu.",
-      "id": "modem_state",
-      "title": "Modema un nodrošināšanas stāvoklis"
+      "description": "DOCSight nodrošinātie skati, integrācijas un pierādījumu rīki.",
+      "id": "docsight_features",
+      "title": "DOCSight funkcijas"
     }
   ],
   "terms": [

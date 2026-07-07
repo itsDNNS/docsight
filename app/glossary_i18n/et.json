@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Põhiterminid kaabel-Interneti mõistmiseks ja DOCSighti jälgimiseks.",
-      "id": "cable_basics",
-      "title": "Kaabli/DOCSISe põhitõed"
+      "description": "Kaabli/DOCSIS-i protokolli, signaali, kanali ja sündmuste terminid, mida DOCSight selgitab.",
+      "id": "docsis_terms",
+      "title": "DOCSIS-i terminid"
     },
     {
-      "description": "Kuidas DOCSISe kanalid andmeid edastavad ja miks kanalitehnoloogia on oluline.",
-      "id": "modulation_channels",
-      "title": "Modulatsioon ja kanalid"
-    },
-    {
-      "description": "Toite-, müra- ja liinikvaliteedi terminid, mis aitavad selgitada modemi nähtava signaali seisukorda.",
-      "id": "signal_quality",
-      "title": "Signaali kvaliteet"
-    },
-    {
-      "description": "Parandatud ja parandamata koodisõnade loendurid, sealhulgas toorsummad, mida saab tõestada ja mida mitte.",
-      "id": "error_counters",
-      "title": "Vealoendurid"
-    },
-    {
-      "description": "Piirid kanalidiagnostika, koguvõimsuse, tariifikiiruse ja kiirustestide vahel.",
-      "id": "capacity_throughput",
-      "title": "Võimsus ja läbilaskevõime"
-    },
-    {
-      "description": "Modemi ümber nähtavad etteandmise, osalise teeninduse, taaskäivitamise ja konfiguratsiooni olekud.",
-      "id": "modem_state",
-      "title": "Modemi ja varustamise olek"
+      "description": "Vaated, integratsioonid ja tõendusvahendid, mida DOCSight ise pakub.",
+      "id": "docsight_features",
+      "title": "DOCSighti funktsioonid"
     }
   ],
   "terms": [

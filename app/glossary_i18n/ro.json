@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Termeni de bază pentru înțelegerea internetului prin cablu și ceea ce poate observa DOCSight.",
-      "id": "cable_basics",
-      "title": "Noțiuni de bază pentru cablu/DOCSIS"
+      "description": "Termeni de protocol, semnal, canale și evenimente cablu/DOCSIS explicați de DOCSight.",
+      "id": "docsis_terms",
+      "title": "Termeni DOCSIS"
     },
     {
-      "description": "Cum canalele DOCSIS transportă date și de ce este importantă tehnologia canalului.",
-      "id": "modulation_channels",
-      "title": "Modulație și canale"
-    },
-    {
-      "description": "Termeni privind puterea, zgomotul și calitatea liniei care ajută la explicarea stării de sănătate a semnalului vizibil la modem.",
-      "id": "signal_quality",
-      "title": "Calitatea semnalului"
-    },
-    {
-      "description": "Contoare de cuvinte de cod corectate și necorectate, inclusiv ceea ce totalurile brute pot și nu pot dovedi.",
-      "id": "error_counters",
-      "title": "Contoare de erori"
-    },
-    {
-      "description": "Limite între diagnosticarea canalului, capacitatea brută, viteza tarifului și testele de viteză.",
-      "id": "capacity_throughput",
-      "title": "Capacitate și debit"
-    },
-    {
-      "description": "Stare de aprovizionare, service parțial, repornire și configurare vizibile în jurul modemului.",
-      "id": "modem_state",
-      "title": "Starea modemului și aprovizionării"
+      "description": "Vizualizări, integrări și instrumente de evidență oferite de DOCSight.",
+      "id": "docsight_features",
+      "title": "Funcții DOCSight"
     }
   ],
   "terms": [
