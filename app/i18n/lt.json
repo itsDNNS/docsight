@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Delsos intervalas",
   "speed_contract_good_label": "≥ 80 % sutarties",
   "glossary_page_title": "Žodynas",
-  "glossary_page_intro": "Kanoniniai DOCSIS ir kabelio terminai su paaiškinimo lygiais nuo pradedančiojo iki techniko.",
+  "glossary_page_intro": "Ieškokite kabelio ir DOCSIS terminų, tada skaitykite trumpą santrauką ir paaiškinimą.",
   "glossary_level_selector": "Paaiškinimo lygis",
   "glossary_knowledge_eyebrow": "DOCSight žinių bazė",
   "glossary_filter_title": "Rasti terminą",
-  "glossary_search_label": "Ieškoti pagal terminą, aliasą, kategoriją arba ID",
+  "glossary_search_label": "Ieškoti terminų",
   "glossary_search_placeholder": "Ieškoti DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filtruoti pagal kategoriją",
   "glossary_all_categories": "Visi",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Techninis kontekstas be vien tiekėjo prielaidų",
   "glossary_level_technician": "Technikas",
   "glossary_level_technician_desc": "Tikslios DOCSIS ir diagnostikos ribos",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Trumpai",
+  "glossary_explanation_heading": "Paaiškinimas",
+  "glossary_change_term": "Ieškoti arba keisti terminą",
+  "glossary_selected_term": "Pasirinktas terminas",
+  "glossary_alphabetical_terms": "Abėcėlės tvarka",
+  "glossary_close_picker": "Uždaryti terminų parinkiklį",
+  "glossary_not_confuse_heading": "Nepainioti",
+  "glossary_aliases_heading": "Taip pat ieškoma kaip"
 }

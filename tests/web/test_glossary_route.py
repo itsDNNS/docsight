@@ -2,7 +2,7 @@
 
 import re
 
-from app.glossary import GLOSSARY_LEVELS, get_glossary_terms
+from app.glossary import get_glossary_terms
 from app.web import update_state
 
 
@@ -21,17 +21,19 @@ def test_glossary_route_renders_canonical_terms(client, sample_analysis):
     assert "docsis" in html
 
 
-def test_glossary_route_supports_all_explanation_levels(client, sample_analysis):
+def test_glossary_route_renders_simple_summary_and_explanation(client, sample_analysis):
     update_state(analysis=sample_analysis)
 
     resp = client.get("/glossary?lang=en&term=sc_qam&level=technician")
 
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
-    for label in ("ELI5", "Basic", "Advanced", "Technician"):
-        assert label in html
-    assert "aria-current=\"true\"" in html
-    assert "Layer-1 estimates" in html or "gross Layer-1 estimates" in html
+    assert "Quick summary" in html
+    assert "Explanation" in html
+    assert "All explanation levels" not in html
+    assert "Technician" not in html
+    assert "SC-QAM is one kind of cable channel" in html
+    assert "SC-QAM channels are traditional DOCSIS channels" in html
 
 
 def test_glossary_route_falls_back_from_invalid_term_and_level(client, sample_analysis):
@@ -41,8 +43,8 @@ def test_glossary_route_falls_back_from_invalid_term_and_level(client, sample_an
 
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
-    assert "Basic" in html
-    assert any(level in html for level in GLOSSARY_LEVELS)
+    assert "Quick summary" in html
+    assert "Explanation" in html
     assert "No glossary term selected" not in html
 
 
@@ -58,7 +60,7 @@ def test_dashboard_links_to_standalone_glossary(client, sample_analysis):
     assert 'data-glossary-term-id="docsis" data-glossary-term-level="basic"' in html
 
 
-def test_glossary_route_exposes_search_and_category_filter_metadata(client, sample_analysis):
+def test_glossary_route_exposes_simple_search_metadata(client, sample_analysis):
     update_state(analysis=sample_analysis)
 
     resp = client.get("/glossary?lang=en&term=docsis")
@@ -66,10 +68,22 @@ def test_glossary_route_exposes_search_and_category_filter_metadata(client, samp
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
     assert 'id="glossary-search"' in html
-    assert 'data-category-filter="signal_quality"' in html
+    assert 'id="glossary-mobile-search"' in html
     assert 'data-glossary-term data-category="capacity_throughput"' in html
+    assert 'data-category-filter=' not in html
     assert 'data-search="CMTS cmts Cable/DOCSIS basics' in html
     assert '/static/js/glossary-page.js?v=' in html
+
+
+def test_glossary_route_lists_terms_alphabetically(client, sample_analysis):
+    update_state(analysis=sample_analysis)
+
+    resp = client.get("/glossary?lang=en&term=docsis")
+
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    desktop_terms = re.findall(r'class="glossary-term-link[^"]*"[^>]*>\s*([^<]+?)\s*</a>', html)
+    assert desktop_terms[:3] == ["Attenuation", "Bootfile/config file", "Cable modem/router"]
 
 
 def test_contextual_glossary_links_target_existing_terms(client, sample_analysis):

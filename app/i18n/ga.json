@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Raon moille",
   "speed_contract_good_label": "≥ 80% den chonradh",
   "glossary_page_title": "Gluais",
-  "glossary_page_intro": "Téarmaí canónacha DOCSIS agus cábla le leibhéil mhínithe ó thosaitheoir go teicneoir.",
+  "glossary_page_intro": "Cuardaigh téarmaí cábla agus DOCSIS, ansin léigh achoimre ghearr agus an míniú.",
   "glossary_level_selector": "Leibhéal míniúcháin",
   "glossary_knowledge_eyebrow": "Bunachar eolais DOCSight",
   "glossary_filter_title": "Aimsigh téarma",
-  "glossary_search_label": "Cuardaigh de réir téarma, ailias, catagóire nó ID",
+  "glossary_search_label": "Cuardaigh téarmaí",
   "glossary_search_placeholder": "Cuardaigh DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Scag de réir catagóire",
   "glossary_all_categories": "Gach ceann",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Comhthéacs teicniúil gan toimhdí soláthraí amháin",
   "glossary_level_technician": "Teicneoir",
   "glossary_level_technician_desc": "Teorainneacha beachta DOCSIS agus diagnóisice",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Achoimre ghearr",
+  "glossary_explanation_heading": "Míniú",
+  "glossary_change_term": "Cuardaigh nó athraigh téarma",
+  "glossary_selected_term": "Téarma roghnaithe",
+  "glossary_alphabetical_terms": "In ord aibítre",
+  "glossary_close_picker": "Dún roghnóir téarmaí",
+  "glossary_not_confuse_heading": "Ná measctar le",
+  "glossary_aliases_heading": "Cuardaítear freisin mar"
 }

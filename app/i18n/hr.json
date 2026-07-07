@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Raspon latencije",
   "speed_contract_good_label": "≥ 80 % ugovora",
   "glossary_page_title": "Pojmovnik",
-  "glossary_page_intro": "Kanoniski DOCSIS i kabelski pojmovi s razinama objašnjenja od početnika do tehničara.",
+  "glossary_page_intro": "Pretražite kabelske i DOCSIS pojmove, zatim pročitajte kratak sažetak i objašnjenje.",
   "glossary_level_selector": "Razina objašnjenja",
   "glossary_knowledge_eyebrow": "Baza znanja DOCSight",
   "glossary_filter_title": "Pronađi pojam",
-  "glossary_search_label": "Traži po pojmu, aliasu, kategoriji ili ID-u",
+  "glossary_search_label": "Pretraži pojmove",
   "glossary_search_placeholder": "Traži DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filtriraj po kategoriji",
   "glossary_all_categories": "Sve",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Tehnički kontekst bez pretpostavki samo o operateru",
   "glossary_level_technician": "Tehničar",
   "glossary_level_technician_desc": "Precizne granice DOCSIS-a i dijagnostike",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Kratko objašnjenje",
+  "glossary_explanation_heading": "Objašnjenje",
+  "glossary_change_term": "Pretraži ili promijeni pojam",
+  "glossary_selected_term": "Odabrani pojam",
+  "glossary_alphabetical_terms": "Abecedno",
+  "glossary_close_picker": "Zatvori odabir pojma",
+  "glossary_not_confuse_heading": "Ne miješati s",
+  "glossary_aliases_heading": "Traži se i kao"
 }

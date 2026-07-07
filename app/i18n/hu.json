@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Késleltetési tartomány",
   "speed_contract_good_label": "≥ 80% a szerződésből",
   "glossary_page_title": "Fogalomtár",
-  "glossary_page_intro": "Kanonikus DOCSIS- és kábelkifejezések magyarázati szintekkel kezdőtől technikusig.",
+  "glossary_page_intro": "Keressen kábeles és DOCSIS fogalmakat, majd olvassa el a rövid összefoglalót és a magyarázatot.",
   "glossary_level_selector": "Magyarázati szint",
   "glossary_knowledge_eyebrow": "DOCSight tudásbázis",
   "glossary_filter_title": "Kifejezés keresése",
-  "glossary_search_label": "Keresés kifejezés, alias, kategória vagy ID alapján",
+  "glossary_search_label": "Fogalmak keresése",
   "glossary_search_placeholder": "Keresés DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Szűrés kategória szerint",
   "glossary_all_categories": "Mind",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Technikai kontextus szolgáltatói feltételezések nélkül",
   "glossary_level_technician": "Technikus",
   "glossary_level_technician_desc": "Pontos DOCSIS- és diagnosztikai határok",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Röviden",
+  "glossary_explanation_heading": "Magyarázat",
+  "glossary_change_term": "Fogalom keresése vagy váltása",
+  "glossary_selected_term": "Kiválasztott fogalom",
+  "glossary_alphabetical_terms": "Ábécé szerint",
+  "glossary_close_picker": "Fogalomválasztó bezárása",
+  "glossary_not_confuse_heading": "Nem összetévesztendő",
+  "glossary_aliases_heading": "Így is keresik"
 }

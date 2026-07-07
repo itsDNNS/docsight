@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Zakres opóźnienia",
   "speed_contract_good_label": "≥ 80% umowy",
   "glossary_page_title": "Glosariusz",
-  "glossary_page_intro": "Kanononiczne terminy DOCSIS i kablowe z poziomami wyjaśnień od początkującego do technika.",
+  "glossary_page_intro": "Wyszukaj terminy kablowe i DOCSIS, a potem przeczytaj krótkie podsumowanie i wyjaśnienie.",
   "glossary_level_selector": "Poziom wyjaśnienia",
   "glossary_knowledge_eyebrow": "Baza wiedzy DOCSight",
   "glossary_filter_title": "Znajdź termin",
-  "glossary_search_label": "Szukaj według terminu, aliasu, kategorii lub ID",
+  "glossary_search_label": "Szukaj terminów",
   "glossary_search_placeholder": "Szukaj DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filtruj według kategorii",
   "glossary_all_categories": "Wszystkie",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Kontekst techniczny bez założeń tylko po stronie operatora",
   "glossary_level_technician": "Technik",
   "glossary_level_technician_desc": "Precyzyjne granice DOCSIS i diagnostyki",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Krótko wyjaśnione",
+  "glossary_explanation_heading": "Wyjaśnienie",
+  "glossary_change_term": "Szukaj lub zmień termin",
+  "glossary_selected_term": "Wybrany termin",
+  "glossary_alphabetical_terms": "Alfabetycznie",
+  "glossary_close_picker": "Zamknij wybór terminu",
+  "glossary_not_confuse_heading": "Nie mylić z",
+  "glossary_aliases_heading": "Wyszukiwane także jako"
 }

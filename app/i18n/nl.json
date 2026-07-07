@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Latentiebereik",
   "speed_contract_good_label": "≥ 80% van contract",
   "glossary_page_title": "Woordenlijst",
-  "glossary_page_intro": "Canonieke DOCSIS- en kabelbegrippen met uitleg­niveaus van beginner tot technicus.",
+  "glossary_page_intro": "Zoek kabel- en DOCSIS-termen en lees daarna een korte samenvatting en de uitleg.",
   "glossary_level_selector": "Uitlegniveau",
   "glossary_knowledge_eyebrow": "DOCSight-kennisbank",
   "glossary_filter_title": "Term zoeken",
-  "glossary_search_label": "Zoek op term, alias, categorie of ID",
+  "glossary_search_label": "Termen zoeken",
   "glossary_search_placeholder": "Zoek DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filter op categorie",
   "glossary_all_categories": "Alle",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Technische context zonder alleen provider-aannames",
   "glossary_level_technician": "Technicus",
   "glossary_level_technician_desc": "Precieze DOCSIS- en diagnosegrenzen",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Kort uitgelegd",
+  "glossary_explanation_heading": "Uitleg",
+  "glossary_change_term": "Term zoeken of wijzigen",
+  "glossary_selected_term": "Geselecteerde term",
+  "glossary_alphabetical_terms": "Alfabetisch",
+  "glossary_close_picker": "Termkiezer sluiten",
+  "glossary_not_confuse_heading": "Niet verwarren met",
+  "glossary_aliases_heading": "Ook gezocht als"
 }

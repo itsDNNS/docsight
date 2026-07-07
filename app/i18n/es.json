@@ -1076,11 +1076,11 @@
   "cm_latency_range": "Rango de latencia",
   "speed_contract_good_label": "≥ 80 % del contrato",
   "glossary_page_title": "Glosario",
-  "glossary_page_intro": "Términos canónicos de DOCSIS y cable con niveles de explicación desde principiantes hasta técnicos.",
+  "glossary_page_intro": "Busca términos de cable y DOCSIS y lee una breve síntesis y la explicación.",
   "glossary_level_selector": "Nivel de explicación",
   "glossary_knowledge_eyebrow": "Base de conocimiento de DOCSight",
   "glossary_filter_title": "Buscar un término",
-  "glossary_search_label": "Buscar por término, alias, categoría o ID",
+  "glossary_search_label": "Buscar términos",
   "glossary_search_placeholder": "Buscar DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filtrar por categoría",
   "glossary_all_categories": "Todos",
@@ -1099,5 +1099,13 @@
   "glossary_level_advanced": "Avanzado",
   "glossary_level_advanced_desc": "Contexto técnico sin asumir datos del operador",
   "glossary_level_technician": "Técnico",
-  "glossary_level_technician_desc": "Límites precisos de DOCSIS y diagnóstico"
+  "glossary_level_technician_desc": "Límites precisos de DOCSIS y diagnóstico",
+  "glossary_summary_heading": "Resumen breve",
+  "glossary_explanation_heading": "Explicación",
+  "glossary_change_term": "Buscar o cambiar término",
+  "glossary_selected_term": "Término seleccionado",
+  "glossary_alphabetical_terms": "Alfabético",
+  "glossary_close_picker": "Cerrar selector de términos",
+  "glossary_not_confuse_heading": "No confundir",
+  "glossary_aliases_heading": "También buscado como"
 }
