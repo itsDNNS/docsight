@@ -92,6 +92,31 @@ def test_speedtest_feature_keeps_throughput_boundary_in_app_terms():
     assert "latency" in joined
     assert "DOCSIS evidence" in joined
 
+
+def test_glossary_domain_semantics_are_pinned_to_docsight_behavior():
+    """Glossary copy must preserve diagnostic semantics instead of inventing values."""
+    ofdma = get_glossary_term("ofdma", "en")
+    segment = get_glossary_term("segment_utilization", "en")
+    modulation = get_glossary_term("modulation_performance", "en")
+
+    assert ofdma is not None
+    ofdma_joined = " ".join(ofdma["levels"].values())
+    assert "unsupported or not reported" in ofdma_joined
+    assert "not measured zero" in ofdma_joined
+    assert "None" in ofdma_joined
+    assert "null" in ofdma_joined
+
+    assert segment is not None
+    segment_joined = " ".join(segment["levels"].values())
+    assert "Unknown" in segment_joined
+    assert "denominators" in segment_joined
+
+    assert modulation is not None
+    modulation_joined = " ".join(modulation["levels"].values())
+    assert "DOCSIS 3.1 upstream Low-QAM" in modulation_joined
+    assert "≤64QAM" in modulation_joined
+
+
 def test_core_glossary_preserves_required_technical_tokens():
     expected_tokens = {
         "docsis": {"DOCSIS", "DSL"},
