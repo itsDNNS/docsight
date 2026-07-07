@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Obseg zakasnitve",
   "speed_contract_good_label": "≥ 80 % pogodbe",
   "glossary_page_title": "Slovar",
-  "glossary_page_intro": "Kanončni DOCSIS in kabelski izrazi z ravnmi razlage od začetnika do tehnika.",
+  "glossary_page_intro": "Poiščite kabelske in DOCSIS izraze, nato preberite kratek povzetek in razlago.",
   "glossary_level_selector": "Raven razlage",
   "glossary_knowledge_eyebrow": "Baza znanja DOCSight",
   "glossary_filter_title": "Poišči izraz",
-  "glossary_search_label": "Išči po izrazu, vzdevku, kategoriji ali ID-ju",
+  "glossary_search_label": "Išči izraze",
   "glossary_search_placeholder": "Išči DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filtriraj po kategoriji",
   "glossary_all_categories": "Vse",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Tehnični kontekst brez predpostavk samo o operaterju",
   "glossary_level_technician": "Tehnik",
   "glossary_level_technician_desc": "Natančne meje DOCSIS in diagnostike",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Kratko pojasnilo",
+  "glossary_explanation_heading": "Razlaga",
+  "glossary_change_term": "Poišči ali zamenjaj izraz",
+  "glossary_selected_term": "Izbrani izraz",
+  "glossary_alphabetical_terms": "Abecedno",
+  "glossary_close_picker": "Zapri izbiro izraza",
+  "glossary_not_confuse_heading": "Ne zamenjuj",
+  "glossary_aliases_heading": "Išče se tudi kot"
 }

@@ -1,68 +1,83 @@
-/* glossary-page.js — Search and category filtering for the standalone glossary */
+/* glossary-page.js — Simple glossary search and mobile term picker */
 
 (function () {
   'use strict';
 
-  var searchInput = document.getElementById('glossary-search');
-  var categoryButtons = Array.prototype.slice.call(document.querySelectorAll('[data-category-filter]'));
-  var termItems = Array.prototype.slice.call(document.querySelectorAll('[data-glossary-term]'));
-  var categorySections = Array.prototype.slice.call(document.querySelectorAll('[data-category-section]'));
-  var resultCount = document.getElementById('glossary-result-count');
-  var noResults = document.getElementById('glossary-no-results');
-  var activeCategory = 'all';
-
-  if (!searchInput || !termItems.length) return;
+  var panels = Array.prototype.slice.call(document.querySelectorAll('[data-glossary-panel]'));
+  var picker = document.querySelector('[data-glossary-picker]');
+  var openButton = document.querySelector('[data-glossary-picker-open]');
+  var closeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-glossary-picker-close]'));
+  var lastFocused = null;
 
   function normalize(value) {
     return (value || '').toLocaleLowerCase().trim();
   }
 
-  function updateCategoryButtons() {
-    categoryButtons.forEach(function (button) {
-      var isActive = button.getAttribute('data-category-filter') === activeCategory;
-      button.classList.toggle('active', isActive);
-      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    });
+  function setCount(resultCount, visibleCount) {
+    if (!resultCount) return;
+    var template = visibleCount === 1
+      ? resultCount.getAttribute('data-singular-template')
+      : resultCount.getAttribute('data-plural-template');
+    resultCount.textContent = (template || '{count} terms shown').replace('{count}', String(visibleCount));
   }
 
-  function filterTerms() {
-    var query = normalize(searchInput.value);
-    var visibleCount = 0;
+  function filterPanel(panel) {
+    var input = panel.querySelector('[data-glossary-search]');
+    var terms = Array.prototype.slice.call(panel.querySelectorAll('[data-glossary-term]'));
+    var resultCount = panel.querySelector('.glossary-result-count');
+    var noResults = panel.querySelector('.glossary-no-results');
+    if (!input || !terms.length) return;
 
-    termItems.forEach(function (item) {
-      var matchesCategory = activeCategory === 'all' || item.getAttribute('data-category') === activeCategory;
+    var query = normalize(input.value);
+    var visibleCount = 0;
+    terms.forEach(function (item) {
       var haystack = normalize(item.getAttribute('data-search'));
-      var matchesSearch = !query || haystack.indexOf(query) !== -1;
-      var isVisible = matchesCategory && matchesSearch;
+      var isVisible = !query || haystack.indexOf(query) !== -1;
       item.hidden = !isVisible;
       if (isVisible) visibleCount += 1;
     });
-
-    categorySections.forEach(function (section) {
-      var hasVisibleTerm = !!section.querySelector('[data-glossary-term]:not([hidden])');
-      section.hidden = !hasVisibleTerm;
-    });
-
-    if (resultCount) {
-      var template = visibleCount === 1
-        ? resultCount.getAttribute('data-singular-template')
-        : resultCount.getAttribute('data-plural-template');
-      resultCount.textContent = (template || '{count} terms shown').replace('{count}', String(visibleCount));
-    }
-    if (noResults) {
-      noResults.hidden = visibleCount !== 0;
-    }
-    updateCategoryButtons();
+    setCount(resultCount, visibleCount);
+    if (noResults) noResults.hidden = visibleCount !== 0;
   }
 
-  categoryButtons.forEach(function (button) {
-    button.addEventListener('click', function () {
-      activeCategory = button.getAttribute('data-category-filter') || 'all';
-      filterTerms();
-      searchInput.focus({ preventScroll: true });
+  panels.forEach(function (panel) {
+    var input = panel.querySelector('[data-glossary-search]');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      filterPanel(panel);
     });
+    filterPanel(panel);
   });
 
-  searchInput.addEventListener('input', filterTerms);
-  filterTerms();
+  function openPicker() {
+    if (!picker) return;
+    lastFocused = document.activeElement;
+    picker.hidden = false;
+    if (openButton) openButton.setAttribute('aria-expanded', 'true');
+    var search = picker.querySelector('[data-glossary-search]');
+    if (search) search.focus({ preventScroll: true });
+  }
+
+  function closePicker() {
+    if (!picker) return;
+    picker.hidden = true;
+    if (openButton) openButton.setAttribute('aria-expanded', 'false');
+    if (lastFocused && typeof lastFocused.focus === 'function') {
+      lastFocused.focus({ preventScroll: true });
+    }
+  }
+
+  if (openButton) {
+    openButton.addEventListener('click', openPicker);
+  }
+
+  closeButtons.forEach(function (button) {
+    button.addEventListener('click', closePicker);
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && picker && !picker.hidden) {
+      closePicker();
+    }
+  });
 })();

@@ -1325,7 +1325,7 @@ def glossary_page():
     lang = _get_lang()
     t = get_translations(lang)
     theme = _config_manager.get_theme() if _config_manager else "dark"
-    terms = get_glossary_terms(lang)
+    terms = sorted(get_glossary_terms(lang), key=lambda term: term["title"].casefold())
     categories = get_glossary_categories(lang)
     selected_level = request.args.get("level", "basic")
     if selected_level not in GLOSSARY_LEVELS:

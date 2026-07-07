@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Interval de latență",
   "speed_contract_good_label": "≥ 80% din contract",
   "glossary_page_title": "Glosar",
-  "glossary_page_intro": "Termeni canonici DOCSIS și de cablu cu niveluri de explicație de la începător la tehnician.",
+  "glossary_page_intro": "Caută termeni de cablu și DOCSIS, apoi citește un scurt rezumat și explicația.",
   "glossary_level_selector": "Nivel de explicație",
   "glossary_knowledge_eyebrow": "Baza de cunoștințe DOCSight",
   "glossary_filter_title": "Găsește un termen",
-  "glossary_search_label": "Caută după termen, alias, categorie sau ID",
+  "glossary_search_label": "Caută termeni",
   "glossary_search_placeholder": "Caută DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filtrează după categorie",
   "glossary_all_categories": "Toate",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Context tehnic fără presupuneri doar de operator",
   "glossary_level_technician": "Tehnician",
   "glossary_level_technician_desc": "Limite precise DOCSIS și de diagnostic",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Pe scurt",
+  "glossary_explanation_heading": "Explicație",
+  "glossary_change_term": "Caută sau schimbă termenul",
+  "glossary_selected_term": "Termen selectat",
+  "glossary_alphabetical_terms": "Alfabetic",
+  "glossary_close_picker": "Închide selectorul de termeni",
+  "glossary_not_confuse_heading": "A nu se confunda",
+  "glossary_aliases_heading": "Căutat și ca"
 }

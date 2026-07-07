@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Εύρος καθυστέρησης",
   "speed_contract_good_label": "≥ 80% του συμβολαίου",
   "glossary_page_title": "Γλωσσάρι",
-  "glossary_page_intro": "Κανονικοί όροι DOCSIS και καλωδίου με επίπεδα εξήγησης από αρχάριο έως τεχνικό.",
+  "glossary_page_intro": "Αναζητήστε όρους καλωδίου και DOCSIS και διαβάστε μια σύντομη σύνοψη και την εξήγηση.",
   "glossary_level_selector": "Επίπεδο εξήγησης",
   "glossary_knowledge_eyebrow": "Βάση γνώσης DOCSight",
   "glossary_filter_title": "Βρείτε όρο",
-  "glossary_search_label": "Αναζήτηση ανά όρο, ψευδώνυμο, κατηγορία ή ID",
+  "glossary_search_label": "Αναζήτηση όρων",
   "glossary_search_placeholder": "Αναζήτηση DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Φιλτράρισμα ανά κατηγορία",
   "glossary_all_categories": "Όλα",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Τεχνικό πλαίσιο χωρίς υποθέσεις μόνο του παρόχου",
   "glossary_level_technician": "Τεχνικός",
   "glossary_level_technician_desc": "Ακριβή όρια DOCSIS και διαγνωστικών",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Σύντομη σύνοψη",
+  "glossary_explanation_heading": "Εξήγηση",
+  "glossary_change_term": "Αναζήτηση ή αλλαγή όρου",
+  "glossary_selected_term": "Επιλεγμένος όρος",
+  "glossary_alphabetical_terms": "Αλφαβητικά",
+  "glossary_close_picker": "Κλείσιμο επιλογέα όρων",
+  "glossary_not_confuse_heading": "Να μη συγχέεται",
+  "glossary_aliases_heading": "Αναζητείται και ως"
 }

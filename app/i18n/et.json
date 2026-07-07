@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Latentsuse vahemik",
   "speed_contract_good_label": "≥ 80% lepingust",
   "glossary_page_title": "Sõnastik",
-  "glossary_page_intro": "Kanoonilised DOCSIS-i ja kaabli terminid koos selgitustasemetega algajast tehnikuni.",
+  "glossary_page_intro": "Otsi kaabli ja DOCSIS termineid ning loe lühikokkuvõtet ja selgitust.",
   "glossary_level_selector": "Selgituse tase",
   "glossary_knowledge_eyebrow": "DOCSighti teadmistebaas",
   "glossary_filter_title": "Leia termin",
-  "glossary_search_label": "Otsi termini, aliase, kategooria või ID järgi",
+  "glossary_search_label": "Otsi termineid",
   "glossary_search_placeholder": "Otsi DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filtreeri kategooria järgi",
   "glossary_all_categories": "Kõik",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Tehniline kontekst ilma ainult teenusepakkuja eeldusteta",
   "glossary_level_technician": "Tehnik",
   "glossary_level_technician_desc": "Täpsed DOCSIS-i ja diagnostika piirid",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Lühidalt",
+  "glossary_explanation_heading": "Selgitus",
+  "glossary_change_term": "Otsi või vaheta terminit",
+  "glossary_selected_term": "Valitud termin",
+  "glossary_alphabetical_terms": "Tähestikuliselt",
+  "glossary_close_picker": "Sulge terminivalik",
+  "glossary_not_confuse_heading": "Ära aja segi",
+  "glossary_aliases_heading": "Otsitakse ka kui"
 }

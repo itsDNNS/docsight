@@ -1081,11 +1081,11 @@
   "cm_latency_range": "Latensområde",
   "speed_contract_good_label": "≥ 80 % av avtalen",
   "glossary_page_title": "Ordliste",
-  "glossary_page_intro": "Kanoniske DOCSIS- og kabelbegreper med forklaringsnivåer fra nybegynner til tekniker.",
+  "glossary_page_intro": "Søk etter kabel- og DOCSIS-begreper, og les deretter en kort oppsummering og forklaringen.",
   "glossary_level_selector": "Forklaringsnivå",
   "glossary_knowledge_eyebrow": "DOCSight-kunnskapsbase",
   "glossary_filter_title": "Finn et begrep",
-  "glossary_search_label": "Søk etter begrep, alias, kategori eller ID",
+  "glossary_search_label": "Søk etter begreper",
   "glossary_search_placeholder": "Søk DOCSIS, SNR, Speedtest…",
   "glossary_category_filter_label": "Filtrer etter kategori",
   "glossary_all_categories": "Alle",
@@ -1104,5 +1104,13 @@
   "glossary_level_advanced_desc": "Teknisk kontekst uten rene operatørantakelser",
   "glossary_level_technician": "Tekniker",
   "glossary_level_technician_desc": "Presise DOCSIS- og diagnosegrenser",
-  "glossary_level_eli5": "ELI5"
+  "glossary_level_eli5": "ELI5",
+  "glossary_summary_heading": "Kort forklart",
+  "glossary_explanation_heading": "Forklaring",
+  "glossary_change_term": "Søk eller bytt begrep",
+  "glossary_selected_term": "Valgt begrep",
+  "glossary_alphabetical_terms": "Alfabetisk",
+  "glossary_close_picker": "Lukk begrepsvelger",
+  "glossary_not_confuse_heading": "Ikke forveksle",
+  "glossary_aliases_heading": "Søkes også som"
 }
