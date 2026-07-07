@@ -228,3 +228,22 @@ def test_localized_glossary_lookup_normalizes_region_locale():
     assert german is not None and english is not None
     assert german["levels"]["eli5"] != english["levels"]["eli5"]
     assert "DOCSIS" in german["levels"]["eli5"]
+
+
+def test_localized_glossary_preserves_required_literal_tokens():
+    required = {
+        "docsis": {"DOCSIS"},
+        "sc_qam": {"SC-QAM", "QAM"},
+        "ofdm": {"OFDM", "DOCSIS"},
+        "ofdma": {"OFDMA", "DOCSIS"},
+        "snr_mer": {"SNR", "MER"},
+        "modulation_performance": {"DOCSIS", "Low-QAM", "≤64QAM"},
+    }
+
+    for lang in _offered_core_languages():
+        for term_id, tokens in required.items():
+            term = get_glossary_term(term_id, lang)
+            assert term is not None
+            joined = " ".join([term["title"], *term["aliases"], *term["levels"].values(), *term["misconceptions"]])
+            for token in tokens:
+                assert token in joined, f"Missing literal {token} for {term_id} in {lang}"

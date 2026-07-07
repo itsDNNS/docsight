@@ -220,8 +220,8 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         ('ofdm', 'upstream', 'mixed_mode', 'return_path_interference'),
         'OFDMA is the DOCSIS 3.1 upstream channel type.',
         'OFDMA lets many modems share pieces of a wide upstream block. DOCSight labels it separately from SC-QAM upstream channels.',
-        'OFDMA depends on profile, subcarrier, minislot, return-path noise, and scheduling context. DOCSight should avoid simple SC-QAM-style capacity guesses when the data is incomplete.',
-        'OFDMA depends on profile, subcarrier, minislot, return-path noise, and scheduling context. DOCSight should avoid simple SC-QAM-style capacity guesses when the data is incomplete.',
+        'OFDMA depends on profile, subcarrier, minislot, return-path noise, and scheduling context. Missing or null modem fields mean unsupported or not reported, not measured zero; DOCSight should avoid simple SC-QAM-style capacity guesses when the data is incomplete.',
+        'OFDMA depends on profile, subcarrier, minislot, return-path noise, and scheduling context. Missing, None, or null modem fields mean unsupported or not reported, not measured zero; DOCSight should avoid simple SC-QAM-style capacity guesses when the data is incomplete.',
     ),
     _term(
         'mixed_mode',
@@ -463,8 +463,8 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         ('qam_modulation_order', 'sc_qam', 'ofdm', 'ofdma'),
         "Modulation Performance is a DOCSight feature for understanding the app's diagnostic evidence.",
         'Modulation Performance focuses on QAM/channel-family behavior so degraded modulation and capacity-sensitive signal problems are easier to spot.',
-        'Modulation Performance focuses on QAM/channel-family behavior so degraded modulation and capacity-sensitive signal problems are easier to spot. It should be read as an app feature explanation, not as a new DOCSIS protocol term.',
-        'Modulation Performance focuses on QAM/channel-family behavior so degraded modulation and capacity-sensitive signal problems are easier to spot. Keep the feature evidence boundary explicit: DOCSight can organize and correlate supported data sources, but it should not invent provider-side facts.',
+        'Modulation Performance focuses on QAM/channel-family behavior so degraded modulation and capacity-sensitive signal problems are easier to spot. For DOCSIS 3.1 upstream Low-QAM, DOCSight treats ≤64QAM as the low-QAM boundary.',
+        'Modulation Performance focuses on QAM/channel-family behavior so degraded modulation and capacity-sensitive signal problems are easier to spot. For DOCSIS 3.1 upstream Low-QAM, keep the ≤64QAM boundary separate from DOCSIS 3.0 upstream color semantics.',
     ),
     _term(
         'segment_utilization',
@@ -475,8 +475,8 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         ('shared_medium', 'node_segment', 'speedtest'),
         "Segment Utilization is a DOCSight feature for understanding the app's diagnostic evidence.",
         'Segment Utilization is DOCSight’s view for separating local signal evidence from shared-segment load signals when supported data is available.',
-        'Segment Utilization is DOCSight’s view for separating local signal evidence from shared-segment load signals when supported data is available. It should be read as an app feature explanation, not as a new DOCSIS protocol term.',
-        'Segment Utilization is DOCSight’s view for separating local signal evidence from shared-segment load signals when supported data is available. Keep the feature evidence boundary explicit: DOCSight can organize and correlate supported data sources, but it should not invent provider-side facts.',
+        'Segment Utilization is DOCSight’s view for separating local signal evidence from shared-segment load signals when supported data is available. Unknown remains a visible category and stays in distribution denominators instead of being dropped.',
+        'Segment Utilization is DOCSight’s view for separating local signal evidence from shared-segment load signals when supported data is available. Keep Unknown in denominators so supported samples, unknown buckets, and missing data are not mixed into invented certainty.',
     ),
     _term(
         'correlation_analysis',
