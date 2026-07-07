@@ -211,9 +211,9 @@
                     <i data-lucide="file-text"></i> {{ t.incident_report }}
                 </button>
                 {% endif %}
-                <a class="nav-item" href="/glossary?lang={{ lang|urlencode }}" data-nav-icon="book-open" data-nav-title="{{ t.get('glossary_page_title', 'Glossary') }}">
+                <button class="nav-item" data-view="glossary" data-nav-icon="book-open" data-nav-title="{{ t.get('glossary_page_title', 'Glossary') }}">
                     <i data-lucide="book-open"></i> {{ t.get('glossary_page_title', 'Glossary') }}
-                </a>
+                </button>
             </div>
         </div>
         {% set tab_modules = [] %}
@@ -1786,6 +1786,11 @@
         <div id="incident-timeline-signals" class="incident-timeline-card"></div>
         <div id="incident-timeline-bnetz" class="incident-timeline-card" style="display:none;"></div>
     </div>
+</div>
+
+<!-- ═══ View: Glossary ═══ -->
+<div id="view-glossary" class="view glossary-app-view">
+    {% include "partials/glossary_view.html" %}
 </div>
 
 <!-- ═══ View: Event Log ═══ -->
@@ -3378,6 +3383,7 @@ var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
 <script src="/static/js/speedtest.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/correlation.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/segment-utilization.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/glossary-page.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/glossary.js?v={{ version|urlencode }}"></script>
 
 {% for mod in modules if mod.has_js %}

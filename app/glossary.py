@@ -11,6 +11,22 @@ from typing import Any, Iterable
 GLOSSARY_LEVELS: tuple[str, ...] = ("eli5", "basic", "advanced", "technician")
 
 
+def _unique(values: Iterable[str]) -> tuple[str, ...]:
+    """Return non-empty strings with stable order and case-insensitive de-duplication."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        cleaned = value.strip()
+        if not cleaned:
+            continue
+        key = cleaned.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(cleaned)
+    return tuple(result)
+
+
 @dataclass(frozen=True)
 class GlossaryTerm:
     """A canonical glossary term with stable IDs and multi-level explanations."""
@@ -23,12 +39,17 @@ class GlossaryTerm:
     misconceptions: dict[str, tuple[str, ...]]
     related: tuple[str, ...]
     protected_terms: tuple[str, ...]
+    tags: tuple[str, ...] = ()
+    source_pages: tuple[str, ...] = ()
+    ui_contexts: tuple[str, ...] = ()
 
     def localized(self, lang: str = "en") -> dict[str, Any]:
         """Return a template-friendly localized term, falling back to English."""
         translation = _localized_term_payload(self.id, lang)
         title = translation.get("title") or self.title.get(lang) or self.title["en"]
+        metadata = _metadata_for_term(self.id)
         aliases = tuple(translation.get("aliases") or self.aliases.get(lang) or self.aliases.get("en", ()))
+        aliases = _unique((*aliases, *metadata.get("aliases", ())))
         levels = translation.get("levels") or self.levels.get(lang) or self.levels["en"]
         misconceptions = tuple(translation.get("misconceptions") or self.misconceptions.get(lang) or self.misconceptions.get("en", ()))
         return {
@@ -40,6 +61,9 @@ class GlossaryTerm:
             "misconceptions": list(misconceptions),
             "related": list(self.related),
             "protected_terms": list(self.protected_terms),
+            "tags": list(_unique((*self.tags, *metadata.get("tags", ())))),
+            "source_pages": list(_unique((*self.source_pages, *metadata.get("source_pages", ())))),
+            "ui_contexts": list(_unique((*self.ui_contexts, *metadata.get("ui_contexts", ())))),
         }
 
 
@@ -163,7 +187,7 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         "cmts",
         "cable_basics",
         "CMTS",
-        ("Cable Modem Termination System", "Remote PHY", "Provider headend"),
+        ("Cable Modem Termination System", "Provider headend"),
         ("CMTS", "DOCSIS", "DOCSight"),
         ("docsis", "shared_medium", "provisioning", "segment_utilization"),
         "The CMTS is the provider-side system your cable modem talks to.",
@@ -496,13 +520,203 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         "Resync/reboot",
         ("Modem reboot", "Resynchronization", "Ranging restart", "Reconnect"),
         ("DOCSIS", "CMTS", "DOCSight"),
-        ("partial_service", "provisioning", "correctable_errors", "uncorrectable_errors"),
+        ("partial_service", "provisioning", "correctable_errors", "uncorrectable_errors", "t3_t4_timeout"),
         "A reboot restarts the modem. A resync makes it reconnect to the cable network.",
         "Reboots and resyncs can temporarily clear counters, change channel assignment, or restore service after a fault. If they happen unexpectedly, the timing is important evidence.",
         "A resync can be triggered by maintenance, RF instability, provisioning changes, power loss, modem firmware, or provider-side events. Compare before/after snapshots rather than reading one state alone.",
         "For evidence, preserve timestamps, event logs, channel changes, and counter-baseline effects around reboot/resync events. Do not interpret reset counters as proof that earlier impairment never happened.",
     ),
+    _term(
+        "t3_t4_timeout",
+        "modem_state",
+        "T3 / T4 timeout",
+        ("T3 timeout", "T4 timeout", "Ranging timeout", "DOCSIS timeout"),
+        ("T3", "T4", "DOCSIS", "CMTS"),
+        ("resync_reboot", "upstream", "ingress_noise", "partial_service"),
+        "T3 and T4 timeouts are modem events that mean the modem had trouble keeping DOCSIS communication with the provider side.",
+        "A T3 timeout usually points to missed ranging responses; a T4 timeout is more severe and can lead to a resync. They are useful timing evidence, especially when they align with upstream power, noise, or channel drops.",
+        "Timeouts should be read with the event log, upstream channel state, transmit power, return-path noise symptoms, and maintenance windows. A single old event is weaker than repeated events that align with visible impairment.",
+        "Treat T3/T4 events as MAC/ranging evidence, not a complete root cause. Confirm direction, channel family, event cadence, and whether counters or channel locks changed around the same timestamps.",
+    ),
+    _term(
+        "remote_phy",
+        "cable_basics",
+        "Remote PHY",
+        ("R-PHY", "Remote PHY device", "RPD"),
+        ("Remote PHY", "DOCSIS", "CMTS"),
+        ("cmts", "node_segment", "shared_medium"),
+        "Remote PHY moves part of the cable access system closer to the neighborhood instead of keeping everything in a central headend.",
+        "In modern cable networks, Remote PHY can place PHY-layer functions in a remote node while the provider still controls scheduling and service behavior centrally. DOCSight normally sees only the modem-side effects.",
+        "Remote PHY changes the access architecture, but it does not make local modem evidence provider-complete. Signal, channel, and event data still need the same evidence boundaries as other DOCSIS deployments.",
+        "R-PHY/RPD and vCMTS designs affect where RF and MAC functions live. DOCSight should not infer exact provider topology unless a supported source exposes it explicitly.",
+    ),
+    _term(
+        "mixed_mode",
+        "modulation_channels",
+        "Mixed mode (3.0 + 3.1)",
+        ("DOCSIS 3.0 + 3.1", "Mixed DOCSIS mode", "SC-QAM plus OFDM"),
+        ("DOCSIS", "SC-QAM", "OFDM", "OFDMA"),
+        ("docsis", "sc_qam", "ofdm", "ofdma", "channel_bonding"),
+        "Mixed mode means a modem can use older DOCSIS 3.0-style channels and newer DOCSIS 3.1 channels at the same time.",
+        "Many cable connections show SC-QAM channels together with OFDM downstream or OFDMA upstream. DOCSight should describe each channel family separately because their capacity and signal evidence are not identical.",
+        "Mixed mode is normal during DOCSIS 3.1 deployments. SC-QAM totals may be estimable while OFDM/OFDMA profile capacity remains unknown unless the modem exposes enough profile data.",
+        "Keep DOCSIS version, channel family, direction, and profile availability explicit. Do not merge SC-QAM, OFDM, and OFDMA into one capacity number unless the required data is present.",
+    ),
+    _term(
+        "return_path_interference",
+        "signal_quality",
+        "Rückwegstörer",
+        ("Return-path interferer", "Return path noise", "Upstream ingress", "Rückweg noise"),
+        ("DOCSIS", "SNR", "MER", "OFDMA"),
+        ("ingress_noise", "upstream", "t3_t4_timeout", "power_level"),
+        "A Rückwegstörer is interference in the upstream return path. It can make uploads and modem ranging unstable.",
+        "Return-path interference can come from bad cabling, loose connectors, faulty devices, or plant issues that inject noise into upstream frequencies. DOCSight can show symptoms, not the exact physical source.",
+        "Symptoms can include rising upstream transmit power, upstream channel changes, lower modulation/profile quality, T3/T4 events, or intermittent packet loss. Time correlation matters more than one snapshot.",
+        "Use modem-visible upstream evidence carefully: return-path ingress is often shared and intermittent. Provider-side spectrum or plant data is needed to localize it with confidence.",
+    ),
+    _term(
+        "health_status",
+        "signal_quality",
+        "Health status",
+        ("Good", "Marginal", "Poor", "Signal health", "Channel health"),
+        ("DOCSight", "DOCSIS", "SNR", "dBmV"),
+        ("power_level", "snr_mer", "correctable_errors", "uncorrectable_errors"),
+        "Health status is DOCSight's short label for whether visible signal evidence looks good, marginal, or poor.",
+        "Good, marginal, and poor summarize modem-visible evidence such as power, SNR/MER, channel lock, and errors. They are a triage label, not a provider fault verdict by themselves.",
+        "Health labels should be interpreted with thresholds, direction, channel family, time trend, and user-visible symptoms. A marginal label can be useful even when service still works.",
+        "Status labels compress evidence for scanning. Preserve raw values and timestamps whenever the label is used for support, escalation, or before/after comparison.",
+    ),
+    _term(
+        "gaming_index",
+        "capacity_throughput",
+        "Gaming Index",
+        ("Gaming Quality Index", "Gaming quality", "Latency quality"),
+        ("DOCSight", "DOCSIS", "IP"),
+        ("speedtest", "ip_throughput", "health_status", "segment_utilization"),
+        "Gaming Index is a quick DOCSight quality signal for latency-sensitive use, not a raw download-speed score.",
+        "The gaming quality view combines latency-sensitive evidence such as latency, jitter, packet loss, and signal health when available. It helps separate smooth-feeling connections from connections that only look fast in a speedtest.",
+        "Gaming quality can degrade because of local Wi-Fi/LAN issues, DOCSIS impairment, queueing, routing, segment load, or remote-server conditions. It should be correlated with signal and throughput evidence.",
+        "Treat the index as a derived user-experience indicator. Keep its inputs visible and avoid claiming a single DOCSIS root cause unless timing and layer-specific evidence support it.",
+    ),
 )
+
+_GLOSSARY_WIKI_INDEX: dict[str, dict[str, tuple[str, ...]]] = {
+    "docsis": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("docsis", "cable-internet", "access-layer", "wiki-glossary"),
+        "ui_contexts": ("dashboard_docsis_basics", "channels_docsis_group"),
+        "aliases": ("DOCSIS 3.0", "DOCSIS 3.1", "DOCSIS 4.0"),
+    },
+    "downstream": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("direction", "download", "channels", "wiki-glossary"),
+        "ui_contexts": ("dashboard_signal_cards", "channel_tables"),
+    },
+    "upstream": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("direction", "upload", "channels", "return-path", "wiki-glossary"),
+        "ui_contexts": ("dashboard_signal_cards", "channel_tables"),
+    },
+    "power_level": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("signal", "ds-power", "us-power", "dbmv", "wiki-glossary"),
+        "ui_contexts": ("dashboard_signal_cards", "channel_tables"),
+        "aliases": ("DS Power", "US Power"),
+    },
+    "snr_mer": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("signal", "snr", "mer", "noise", "wiki-glossary"),
+        "ui_contexts": ("dashboard_signal_cards", "channel_tables"),
+    },
+    "correctable_errors": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("errors", "fec", "codewords", "wiki-glossary"),
+        "ui_contexts": ("dashboard_error_cards", "channel_tables"),
+    },
+    "uncorrectable_errors": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("errors", "fec", "codewords", "packet-loss-risk", "wiki-glossary"),
+        "ui_contexts": ("dashboard_error_cards", "channel_tables"),
+        "aliases": ("Errors",),
+    },
+    "qam_modulation_order": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("modulation", "qam", "capacity", "wiki-glossary"),
+        "ui_contexts": ("modulation_view", "channel_tables"),
+    },
+    "channel_bonding": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("channels", "bonding", "capacity", "wiki-glossary"),
+        "ui_contexts": ("channel_tables",),
+        "aliases": ("Channels",),
+    },
+    "sc_qam": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("sc-qam", "docsis-3.0", "modulation", "wiki-glossary"),
+        "ui_contexts": ("dashboard_docsis_group", "modulation_view", "channel_tables"),
+    },
+    "ofdm": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("ofdm", "docsis-3.1", "downstream", "wiki-glossary"),
+        "ui_contexts": ("dashboard_docsis_group", "modulation_view", "channel_tables"),
+    },
+    "ofdma": {
+        "source_pages": ("DOCSIS-Glossary.md", "Features-Glossary.md"),
+        "tags": ("ofdma", "docsis-3.1", "upstream", "wiki-glossary"),
+        "ui_contexts": ("dashboard_docsis_group", "modulation_view", "channel_tables"),
+    },
+    "mixed_mode": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("mixed-mode", "docsis-3.0", "docsis-3.1", "wiki-glossary"),
+        "ui_contexts": ("channel_tables", "modulation_view"),
+    },
+    "t3_t4_timeout": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("events", "ranging", "timeout", "upstream", "wiki-glossary"),
+        "ui_contexts": ("event_log", "incident_journal"),
+    },
+    "cmts": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("cmts", "vcmts", "provider-side", "wiki-glossary"),
+        "ui_contexts": ("dashboard_docsis_basics",),
+        "aliases": ("vCMTS", "Virtual CMTS", "CCAP"),
+    },
+    "remote_phy": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("remote-phy", "rphy", "provider-side", "node", "wiki-glossary"),
+        "ui_contexts": ("dashboard_docsis_basics",),
+    },
+    "return_path_interference": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("rueckwegstoerer", "return-path", "noise", "upstream", "wiki-glossary"),
+        "ui_contexts": ("dashboard_signal_cards", "event_log"),
+    },
+    "node_segment": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("node", "segment", "node-split", "service-group", "wiki-glossary"),
+        "ui_contexts": ("segment_utilization", "dashboard_docsis_basics"),
+    },
+    "shared_medium": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("shared-medium", "segment", "congestion", "wiki-glossary"),
+        "ui_contexts": ("segment_utilization", "speedtest_correlation"),
+    },
+    "health_status": {
+        "source_pages": ("DOCSIS-Glossary.md",),
+        "tags": ("health", "good", "marginal", "poor", "wiki-glossary"),
+        "ui_contexts": ("dashboard_health", "channel_tables"),
+    },
+    "gaming_index": {
+        "source_pages": ("Features-Glossary.md",),
+        "tags": ("gaming-index", "latency", "jitter", "quality", "wiki-glossary"),
+        "ui_contexts": ("gaming_view", "dashboard_gaming_badge"),
+    },
+}
+
+
+def _metadata_for_term(term_id: str) -> dict[str, tuple[str, ...]]:
+    return _GLOSSARY_WIKI_INDEX.get(term_id, {})
+
 
 _GLOSSARY_I18N_DIR = Path(__file__).with_name("glossary_i18n")
 
@@ -592,7 +806,15 @@ def validate_glossary_catalog(terms: Iterable[GlossaryTerm] = _TERMS) -> list[st
         for token in term.protected_terms:
             if not token:
                 errors.append(f"{term.id}: empty protected term")
-        for alias in (term.title.get("en", ""), *term.aliases.get("en", ())):
+        metadata = _metadata_for_term(term.id)
+        for field in ("tags", "source_pages", "ui_contexts"):
+            values = metadata.get(field, ())
+            if not values:
+                continue
+            for value in values:
+                if not value.strip():
+                    errors.append(f"{term.id}: empty {field[:-1]}")
+        for alias in (term.title.get("en", ""), *term.aliases.get("en", ()), *metadata.get("aliases", ())):
             normalized = alias.strip().casefold()
             if not normalized:
                 errors.append(f"{term.id}: empty alias")

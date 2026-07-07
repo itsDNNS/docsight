@@ -7,6 +7,8 @@
   var picker = document.querySelector('[data-glossary-picker]');
   var openButton = document.querySelector('[data-glossary-picker-open]');
   var closeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-glossary-picker-close]'));
+  var articles = Array.prototype.slice.call(document.querySelectorAll('[data-glossary-article]'));
+  var selectedLabel = document.querySelector('[data-glossary-mobile-selected]');
   var focusableSelector = [
     'a[href]',
     'button:not([disabled])',
@@ -19,6 +21,54 @@
 
   function normalize(value) {
     return (value || '').toLocaleLowerCase().trim();
+  }
+
+  function parseGlossaryHash() {
+    var hash = window.location.hash ? window.location.hash.slice(1) : '';
+    if (!hash) return null;
+    var parts = hash.split('?');
+    if (parts[0] !== 'glossary') return null;
+    var params = new URLSearchParams(parts.slice(1).join('?'));
+    return {
+      term: params.get('term') || '',
+      level: params.get('level') || ''
+    };
+  }
+
+  function glossaryHashForTerm(termId) {
+    return '#glossary?term=' + encodeURIComponent(termId);
+  }
+
+  function findArticle(termId) {
+    if (!termId) return null;
+    return articles.find(function (article) {
+      return article.getAttribute('data-term-id') === termId;
+    }) || null;
+  }
+
+  function setActiveTerm(termId, options) {
+    options = options || {};
+    var article = findArticle(termId) || articles[0];
+    if (!article) return;
+    var activeTermId = article.getAttribute('data-term-id');
+
+    articles.forEach(function (item) {
+      item.hidden = item !== article;
+    });
+
+    document.querySelectorAll('[data-glossary-term]').forEach(function (link) {
+      var isActive = link.getAttribute('data-term-id') === activeTermId;
+      link.classList.toggle('active', isActive);
+      link.setAttribute('aria-current', isActive ? 'page' : 'false');
+    });
+
+    if (selectedLabel) {
+      selectedLabel.textContent = selectedLabel.textContent.split(':')[0] + ': ' + (article.getAttribute('data-title') || activeTermId);
+    }
+
+    if (options.updateHash && window.location.hash !== glossaryHashForTerm(activeTermId)) {
+      window.location.hash = glossaryHashForTerm(activeTermId);
+    }
   }
 
   function setCount(resultCount, visibleCount) {
@@ -113,7 +163,7 @@
   }
 
   function closePicker() {
-    if (!picker) return;
+    if (!picker || picker.hidden) return;
     picker.hidden = true;
     if (openButton) openButton.setAttribute('aria-expanded', 'false');
     if (lastFocused && typeof lastFocused.focus === 'function') {
@@ -128,6 +178,24 @@
   closeButtons.forEach(function (button) {
     button.addEventListener('click', closePicker);
   });
+
+  document.addEventListener('click', function (event) {
+    var link = event.target.closest('[data-glossary-term]');
+    if (!link) return;
+    var termId = link.getAttribute('data-term-id');
+    if (!findArticle(termId)) return;
+    event.preventDefault();
+    setActiveTerm(termId, { updateHash: true });
+    closePicker();
+  });
+
+  window.addEventListener('hashchange', function () {
+    var parsed = parseGlossaryHash();
+    if (parsed) setActiveTerm(parsed.term);
+  });
+
+  var parsed = parseGlossaryHash();
+  if (parsed) setActiveTerm(parsed.term);
 
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && picker && !picker.hidden) {

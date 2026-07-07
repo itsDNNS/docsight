@@ -177,6 +177,31 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   box-shadow: var(--shadow-sm);
 }
 
+.glossary-app-view {
+  min-width: 0;
+}
+
+.glossary-app-view .glossary-view-header {
+  margin-bottom: 16px;
+}
+
+.glossary-app-view .glossary-article {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.glossary-term-article {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+
+.glossary-term-article[hidden] {
+  display: none !important;
+}
+
 .glossary-page-header {
   padding: 24px;
   margin-bottom: 20px;
@@ -206,8 +231,8 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 
 .glossary-page h1 {
   margin-bottom: 10px;
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  letter-spacing: -0.04em;
+  font-size: 2.5rem;
+  letter-spacing: 0;
 }
 
 .glossary-page-intro {
@@ -240,7 +265,9 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
 }
 
 .glossary-index h2,
-.glossary-mobile-picker h2 {
+.glossary-index h3,
+.glossary-mobile-picker h2,
+.glossary-mobile-picker h3 {
   margin-bottom: 16px;
   font-size: 1.25rem;
   letter-spacing: -0.02em;
@@ -339,10 +366,11 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   overflow: hidden;
 }
 
-.glossary-term-header-card h2 {
+.glossary-term-header-card h2,
+.glossary-term-header-card h3 {
   margin-bottom: 12px;
-  font-size: clamp(2rem, 5vw, 3rem);
-  letter-spacing: -0.04em;
+  font-size: 2.25rem;
+  letter-spacing: 0;
   line-height: 1;
   overflow-wrap: anywhere;
 }
@@ -507,6 +535,10 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   }
 
   .glossary-term-header-card h2 {
+    font-size: 2rem;
+  }
+
+  .glossary-term-header-card h3 {
     font-size: 2rem;
   }
 

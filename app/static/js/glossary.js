@@ -38,7 +38,7 @@
       var link = document.createElement('a');
       var lang = document.documentElement.getAttribute('lang') || 'en';
       link.className = 'glossary-popover-link';
-      link.href = '/glossary?lang=' + encodeURIComponent(lang) + '&term=' + encodeURIComponent(targetTermId) + '&level=' + encodeURIComponent(targetLevel);
+      link.href = '/?lang=' + encodeURIComponent(lang) + '#glossary?term=' + encodeURIComponent(targetTermId) + '&level=' + encodeURIComponent(targetLevel);
       link.textContent = hint.getAttribute('data-glossary-term-label') || 'Open glossary article';
       overlay.appendChild(link);
     }
