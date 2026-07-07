@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import unquote
 
 GLOSSARY_LEVELS: tuple[str, ...] = ("eli5", "basic", "advanced", "technician")
 
@@ -870,6 +871,34 @@ _GLOSSARY_WIKI_INDEX: dict[str, dict[str, tuple[str, ...]]] = {
 def _metadata_for_term(term_id: str) -> dict[str, tuple[str, ...]]:
     return _GLOSSARY_WIKI_INDEX.get(term_id, {})
 
+
+def _validate_media_entries(term_id: str, media: Iterable[dict[str, Any]]) -> list[str]:
+    """Validate optional glossary media stays local, explicit, and accessible."""
+    errors: list[str] = []
+    for index, item in enumerate(media):
+        if not isinstance(item, dict):
+            errors.append(f"{term_id}: media {index} must be an object")
+            continue
+        raw_src = item.get("src", "")
+        raw_alt = item.get("alt", "")
+        src = raw_src.strip() if isinstance(raw_src, str) else ""
+        decoded_src = unquote(src)
+        alt = raw_alt.strip() if isinstance(raw_alt, str) else ""
+        if not src:
+            errors.append(f"{term_id}: media {index} missing src")
+        elif (
+            not src.startswith("/static/")
+            or decoded_src.startswith(("http://", "https://", "//"))
+            or ":" in decoded_src.split("/", 1)[0]
+            or "\\" in decoded_src
+            or ".." in Path(decoded_src).parts
+        ):
+            errors.append(f"{term_id}: media {index} src must be a local static path")
+        if not alt:
+            errors.append(f"{term_id}: media {index} missing alt")
+    return errors
+
+
 _GLOSSARY_I18N_DIR = Path(__file__).with_name("glossary_i18n")
 
 
@@ -958,6 +987,7 @@ def validate_glossary_catalog(terms: Iterable[GlossaryTerm] = _TERMS) -> list[st
         for token in term.protected_terms:
             if not token:
                 errors.append(f"{term.id}: empty protected term")
+        errors.extend(_validate_media_entries(term.id, term.media))
         metadata = _metadata_for_term(term.id)
         for field in ("tags", "source_pages", "ui_contexts"):
             values = metadata.get(field, ())
