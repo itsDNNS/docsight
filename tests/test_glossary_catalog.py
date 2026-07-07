@@ -2,6 +2,7 @@
 
 from app.glossary import (
     GLOSSARY_LEVELS,
+    GlossaryTerm,
     get_glossary_categories,
     get_glossary_term,
     get_glossary_terms,
@@ -12,6 +13,53 @@ from app.glossary import (
 
 def test_glossary_catalog_schema_is_valid():
     assert validate_glossary_catalog() == []
+
+
+def _media_test_term(media):
+    return GlossaryTerm(
+        id="media_test",
+        category="docsis_terms",
+        title={"en": "Media test"},
+        aliases={"en": ("Media alias",)},
+        levels={"en": {level: f"Valid {level} explanation" for level in GLOSSARY_LEVELS}},
+        misconceptions={},
+        related=(),
+        protected_terms=("DOCSIS",),
+        media=media,
+    )
+
+
+def test_glossary_media_schema_accepts_local_static_media():
+    term = _media_test_term(({"src": "/static/glossary/ofdm.svg", "alt": "OFDM diagram"},))
+
+    assert validate_glossary_catalog((term,)) == []
+
+
+def test_glossary_media_schema_rejects_external_or_unsafe_media():
+    invalid_cases = [
+        ({"src": "https://example.test/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "//cdn.example.test/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "javascript:alert(1)", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "data:image/svg+xml,abc", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/etc/passwd", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "glossary/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "static/glossary/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "\\\\cdn.example.test\\ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/glossary\\ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "../private/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/../private/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/%2e%2e/private/ofdm.svg", "alt": "OFDM diagram"}, "local static path"),
+        ({"src": "/static/glossary/ofdm.svg", "alt": ""}, "missing alt"),
+        ({"src": "", "alt": "OFDM diagram"}, "missing src"),
+        ({"src": None, "alt": "OFDM diagram"}, "missing src"),
+        ({"src": "/static/glossary/ofdm.svg", "alt": None}, "missing alt"),
+        ("/static/glossary/ofdm.svg", "must be an object"),
+    ]
+
+    for media_item, expected_error in invalid_cases:
+        term = _media_test_term((media_item,))
+        errors = validate_glossary_catalog((term,))
+        assert any(expected_error in error for error in errors), errors
 
 
 def test_core_glossary_contains_only_docsis_terms_and_docsight_features():
