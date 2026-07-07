@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Kärntermer för att förstå kabelinternet och vad DOCSight kan observera.",
-      "id": "cable_basics",
-      "title": "Kabel/DOCSIS grunderna"
+      "description": "Kabel-/DOCSIS-protokoll-, signal-, kanal- och händelsetermer som DOCSight förklarar.",
+      "id": "docsis_terms",
+      "title": "DOCSIS-termer"
     },
     {
-      "description": "Hur DOCSIS-kanaler bär data och varför kanalteknologi är viktig.",
-      "id": "modulation_channels",
-      "title": "Modulering och kanaler"
-    },
-    {
-      "description": "Termer för effekt, brus och linjekvalitet som hjälper till att förklara modem-synlig signalhälsa.",
-      "id": "signal_quality",
-      "title": "Signalkvalitet"
-    },
-    {
-      "description": "Korrigerade och okorrigerade kodordsräknare, inklusive vad råsummor kan och inte kan bevisa.",
-      "id": "error_counters",
-      "title": "Felräknare"
-    },
-    {
-      "description": "Gränser mellan kanaldiagnostik, bruttokapacitet, tariffhastighet och Speedtests.",
-      "id": "capacity_throughput",
-      "title": "Kapacitet och genomströmning"
-    },
-    {
-      "description": "Provisionering, partiell service, omstart och konfigurationstillstånd synliga runt modemet.",
-      "id": "modem_state",
-      "title": "Modem och etableringstillstånd"
+      "description": "Vyer, integrationer och evidensverktyg som DOCSight själv tillhandahåller.",
+      "id": "docsight_features",
+      "title": "DOCSight-funktioner"
     }
   ],
   "terms": [

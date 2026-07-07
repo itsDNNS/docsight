@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Pagrindiniai terminai, skirti suprasti kabelinį internetą ir tai, ką gali pastebėti DOCSight.",
-      "id": "cable_basics",
-      "title": "Kabelio / DOCSIS pagrindai"
+      "description": "Kabelio/DOCSIS protokolo, signalo, kanalų ir įvykių terminai, kuriuos aiškina DOCSight.",
+      "id": "docsis_terms",
+      "title": "DOCSIS terminai"
     },
     {
-      "description": "Kaip DOCSIS kanalai perduoda duomenis ir kodėl svarbi kanalų technologija.",
-      "id": "modulation_channels",
-      "title": "Moduliavimas ir kanalai"
-    },
-    {
-      "description": "Galios, triukšmo ir linijos kokybės terminai, padedantys paaiškinti modemo matomo signalo būklę.",
-      "id": "signal_quality",
-      "title": "Signalo kokybė"
-    },
-    {
-      "description": "Pataisyti ir nepataisyti kodinių žodžių skaitikliai, įskaitant tai, ką galima įrodyti ir ko negali įrodyti neapdorotos sumos.",
-      "id": "error_counters",
-      "title": "Klaidų skaitikliai"
-    },
-    {
-      "description": "Ribos tarp kanalo diagnostikos, bendrosios talpos, tarifo greičio ir greičio testų.",
-      "id": "capacity_throughput",
-      "title": "Talpa ir pralaidumas"
-    },
-    {
-      "description": "Aplink modemą matomos aprūpinimo, dalinio aptarnavimo, perkrovimo ir konfigūracijos būsenos.",
-      "id": "modem_state",
-      "title": "Modemas ir aprūpinimo būsena"
+      "description": "DOCSight teikiami rodiniai, integracijos ir įrodymų įrankiai.",
+      "id": "docsight_features",
+      "title": "DOCSight funkcijos"
     }
   ],
   "terms": [

@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Téarmaí lárnacha chun an t-idirlíon cábla a thuiscint agus cad is féidir le DOCSight a fheiceáil.",
-      "id": "cable_basics",
-      "title": "Bunúsacha cábla/DOCSIS"
+      "description": "Téarmaí prótacail, comhartha, cainéal agus imeachtaí cábla/DOCSIS a mhíníonn DOCSight.",
+      "id": "docsis_terms",
+      "title": "Téarmaí DOCSIS"
     },
     {
-      "description": "Conas a iompraíonn cainéil DOCSIS sonraí agus cén fáth a bhfuil tábhacht le teicneolaíocht cainéal.",
-      "id": "modulation_channels",
-      "title": "Modhnú agus cainéil"
-    },
-    {
-      "description": "Téarmaí cumhachta, torainn, agus cáilíochta líne a chuidíonn le sláinte chomhartha infheicthe móideim a mhíniú.",
-      "id": "signal_quality",
-      "title": "Cáilíocht an chomhartha"
-    },
-    {
-      "description": "Áiritheoirí códfhocail cheartaithe agus neamhcheartaithe, lena n-áirítear na hamhiomláin is féidir agus nach féidir a chruthú.",
-      "id": "error_counters",
-      "title": "Áiritheoirí earráide"
-    },
-    {
-      "description": "Teorainneacha idir diagnóisic chainéil, ollacmhainneacht, luas taraife, agus Luastástálacha. Móideim",
-      "id": "capacity_throughput",
-      "title": "Acmhainn agus tréchur"
-    },
-    {
-      "description": "Soláthair, seirbhís pháirteach, atosaigh, agus staideanna cumraíochta le feiceáil timpeall an mhóidim.",
-      "id": "modem_state",
-      "title": "agus staid soláthair"
+      "description": "Radhairc, comhtháthuithe agus uirlisí fianaise a sholáthraíonn DOCSight.",
+      "id": "docsight_features",
+      "title": "Gnéithe DOCSight"
     }
   ],
   "terms": [

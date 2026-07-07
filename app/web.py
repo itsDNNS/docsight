@@ -1292,7 +1292,7 @@ def service_worker():
 
 def _build_glossary_context(lang, t, selected_term_id=None):
     """Build static glossary view data for the app shell."""
-    terms = sorted(get_glossary_terms(lang), key=lambda term: term["title"].casefold())
+    terms = get_glossary_terms(lang)
     categories = get_glossary_categories(lang)
     selected_term = get_glossary_term(selected_term_id, lang) if selected_term_id else None
     if not selected_term and terms:

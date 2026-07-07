@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "A kábeles internet és a DOCSight által megfigyelhető dolgok megértéséhez szükséges alapfogalmak.",
-      "id": "cable_basics",
-      "title": "Kábel/DOCSIS alapismeretek"
+      "description": "A DOCSight által magyarázott kábel/DOCSIS protokoll-, jel-, csatorna- és eseményfogalmak.",
+      "id": "docsis_terms",
+      "title": "DOCSIS fogalmak"
     },
     {
-      "description": "Hogyan továbbítanak a DOCSIS csatornák az adatokat, és miért számít a csatornatechnológia.",
-      "id": "modulation_channels",
-      "title": "Moduláció és csatornák"
-    },
-    {
-      "description": "Teljesítmény-, zaj- és vonalminőség-kifejezések, amelyek segítenek megmagyarázni a modem által látható jelek állapotát.",
-      "id": "signal_quality",
-      "title": "Jelminőség"
-    },
-    {
-      "description": "Javított és nem javított kódszószámlálók, beleértve azt is, hogy a nyers összegek mit tudnak és mit nem.",
-      "id": "error_counters",
-      "title": "Hibaszámlálók"
-    },
-    {
-      "description": "Határok a csatornadiagnosztika, a bruttó kapacitás, a tarifa sebessége és a sebességtesztek között.",
-      "id": "capacity_throughput",
-      "title": "Kapacitás és áteresztőképesség"
-    },
-    {
-      "description": "A modem körül látható kiépítési, részleges szolgáltatási, újraindítási és konfigurációs állapotok.",
-      "id": "modem_state",
-      "title": "Modem és kiépítési állapot"
+      "description": "A DOCSight által biztosított nézetek, integrációk és bizonyítékeszközök.",
+      "id": "docsight_features",
+      "title": "DOCSight funkciók"
     }
   ],
   "terms": [

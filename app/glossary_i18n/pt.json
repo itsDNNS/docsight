@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Termos básicos para entender a Internet a cabo e o que o DOCSight pode observar.",
-      "id": "cable_basics",
-      "title": "Noções básicas sobre cabo/DOCSIS"
+      "description": "Termos de protocolo, sinal, canais e eventos de cabo/DOCSIS explicados pelo DOCSight.",
+      "id": "docsis_terms",
+      "title": "Termos DOCSIS"
     },
     {
-      "description": "Como os canais DOCSIS transportam dados e por que a tecnologia do canal é importante.",
-      "id": "modulation_channels",
-      "title": "Modulação e canais"
-    },
-    {
-      "description": "Termos de potência, ruído e qualidade de linha que ajudam a explicar a integridade do sinal visível do modem.",
-      "id": "signal_quality",
-      "title": "Qualidade do sinal"
-    },
-    {
-      "description": "Contadores de palavras-código corrigidos e não corrigidos, incluindo o que os totais brutos podem ou não provar.",
-      "id": "error_counters",
-      "title": "Contadores de erros"
-    },
-    {
-      "description": "Limites entre diagnóstico de canal, capacidade bruta, velocidade tarifária e testes de velocidade.",
-      "id": "capacity_throughput",
-      "title": "Capacidade e rendimento"
-    },
-    {
-      "description": "Estados de provisionamento, serviço parcial, reinicialização e configuração visíveis em torno do modem.",
-      "id": "modem_state",
-      "title": "Modem e estado de provisionamento"
+      "description": "Vistas, integrações e ferramentas de evidência fornecidas pelo DOCSight.",
+      "id": "docsight_features",
+      "title": "Funções DOCSight"
     }
   ],
   "terms": [

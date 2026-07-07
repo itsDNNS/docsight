@@ -1,34 +1,14 @@
 {
   "categories": [
     {
-      "description": "Ydintermit kaapeli-internet-yhteyden ymmärtämiseen ja DOCSightin havaitsemiseen.",
-      "id": "cable_basics",
-      "title": "Kaapeli/DOCSIS-perustiedot"
+      "description": "Kaapeli-/DOCSIS-protokollin, signaalin, kanavien ja tapahtumien termit, joita DOCSight selittää.",
+      "id": "docsis_terms",
+      "title": "DOCSIS-termit"
     },
     {
-      "description": "Miten DOCSIS-kanavat kuljettavat dataa ja miksi kanavatekniikalla on merkitystä.",
-      "id": "modulation_channels",
-      "title": "Modulaatio ja kanavat"
-    },
-    {
-      "description": "Teho-, kohina- ja linjanlaatutermit, jotka auttavat selittämään modeemin näkyvän signaalin kunnon.",
-      "id": "signal_quality",
-      "title": "Signaalin laatu"
-    },
-    {
-      "description": "Korjatut ja korjaamattomat koodisanalaskurit, mukaan lukien mitä raakasummat voidaan todistaa ja mitä ei.",
-      "id": "error_counters",
-      "title": "Virhelaskurit"
-    },
-    {
-      "description": "Kanavadiagnostiikan, bruttokapasiteetin, tariffinopeuden ja nopeustestien väliset rajat.",
-      "id": "capacity_throughput",
-      "title": "Kapasiteetti ja suorituskyky"
-    },
-    {
-      "description": "Modeemin ympärillä näkyvät hallinta-, osittaiset huolto-, uudelleenkäynnistys- ja konfigurointitilat.",
-      "id": "modem_state",
-      "title": "Modeemi ja valmistelutila"
+      "description": "DOCSightin tarjoamat näkymät, integraatiot ja evidenssityökalut.",
+      "id": "docsight_features",
+      "title": "DOCSight-ominaisuudet"
     }
   ],
   "terms": [

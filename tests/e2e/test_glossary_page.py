@@ -43,7 +43,7 @@ def test_glossary_app_view_renders_inside_shell(page, live_server):
     expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="DOCSIS")).to_be_visible()
     expect(_active_article(page).locator(".glossary-summary-card", has_text="Quick summary")).to_be_visible()
     expect(_active_article(page).locator(".glossary-explanation-card", has_text="Explanation")).to_be_visible()
-    expect(page.locator(".glossary-index-desktop .glossary-term-link").first).to_have_text("Attenuation")
+    expect(page.locator(".glossary-index-desktop .glossary-term-link").first).to_have_text("Channel bonding")
     _assert_visible_boxes_do_not_overlap(page, "#view-glossary .glossary-term-article:not([hidden]) > .glossary-card")
 
 
@@ -51,19 +51,19 @@ def test_glossary_term_list_navigation_updates_hash_and_article(page, live_serve
     page.goto(f"{live_server}/?lang=en&term=sc_qam#glossary?term=sc_qam")
     page.wait_for_selector("#view-glossary.active", state="visible")
 
-    expect(_active_article(page).locator(".glossary-explanation-card", has_text="gross Layer-1 capacity")).to_be_visible()
+    expect(_active_article(page).locator(".glossary-explanation-card", has_text="DOCSIS 3.0-style channels")).to_be_visible()
 
-    page.locator(".glossary-index-desktop [data-glossary-term]", has_text="Capacity vs. speedtest").click()
-    expect(page).to_have_url(re.compile(r"#glossary\?term=capacity_vs_throughput"))
-    expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="Capacity vs. speedtest")).to_be_visible()
+    page.locator(".glossary-index-desktop [data-glossary-term]", has_text="Gaming Index").click()
+    expect(page).to_have_url(re.compile(r"#glossary\?term=gaming_index"))
+    expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="Gaming Index")).to_be_visible()
 
 
 def test_glossary_mobile_layout_has_no_horizontal_overflow(page, live_server):
     page.set_viewport_size({"width": 393, "height": 852})
-    page.goto(f"{live_server}/?lang=en&term=capacity_vs_throughput#glossary?term=capacity_vs_throughput")
+    page.goto(f"{live_server}/?lang=en&term=gaming_index#glossary?term=gaming_index")
     page.wait_for_selector("#view-glossary.active", state="visible")
 
-    expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="Capacity vs. speedtest")).to_be_visible()
+    expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="Gaming Index")).to_be_visible()
     has_overflow = page.evaluate("document.documentElement.scrollWidth > document.documentElement.clientWidth")
     assert has_overflow is False
     _assert_visible_boxes_do_not_overlap(page, "#view-glossary .glossary-term-article:not([hidden]) > .glossary-card")
@@ -74,8 +74,8 @@ def test_glossary_search_filters_alphabetical_terms(page, live_server):
     page.wait_for_selector("#view-glossary.active", state="visible")
 
     search = page.locator("#glossary-search")
-    search.fill("CMTS")
-    expect(page.locator(".glossary-index-desktop [data-glossary-term]", has_text="CMTS")).to_be_visible()
+    search.fill("Cable Modem")
+    expect(page.locator(".glossary-index-desktop [data-term-id='cmts']")).to_be_visible()
     expect(page.locator(".glossary-index-desktop [data-search^='Speedtest ']")).to_be_hidden()
     expect(page.locator("#glossary-result-count")).to_contain_text("1 term shown")
 
@@ -90,7 +90,7 @@ def test_glossary_desktop_click_does_not_refocus_closed_mobile_picker(page, live
     expect(page.locator("#glossary-mobile-picker")).to_be_hidden()
 
     page.set_viewport_size({"width": 1440, "height": 950})
-    page.locator(".glossary-index-desktop [data-glossary-term]", has_text="CMTS").click()
+    page.locator(".glossary-index-desktop [data-term-id='cmts']").click()
 
     expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="CMTS")).to_be_visible()
     trigger_has_focus = page.evaluate(
@@ -112,8 +112,8 @@ def test_glossary_mobile_uses_picker_instead_of_inline_long_list(page, live_serv
     expect(page.locator("#glossary-mobile-picker")).to_be_visible()
     mobile_search = page.locator("#glossary-mobile-search")
     expect(mobile_search).to_be_focused()
-    mobile_search.fill("CMTS")
-    expect(page.locator("#glossary-mobile-picker [data-glossary-term]", has_text="CMTS")).to_be_visible()
+    mobile_search.fill("Cable Modem")
+    expect(page.locator("#glossary-mobile-picker [data-term-id='cmts']")).to_be_visible()
     expect(page.locator("#glossary-mobile-picker [data-search^='Speedtest ']")).to_be_hidden()
 
     page.keyboard.press("Shift+Tab")
