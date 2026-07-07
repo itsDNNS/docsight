@@ -14,6 +14,7 @@ from app.glossary import (
 )
 
 I18N_DIR = os.path.join(os.path.dirname(__file__), "..", "app", "i18n")
+GLOSSARY_I18N_DIR = os.path.join(os.path.dirname(__file__), "..", "app", "glossary_i18n")
 MOD_I18N_DIR = os.path.join(
     os.path.dirname(__file__), "..", "app", "modules", "modulation", "i18n"
 )
@@ -180,6 +181,12 @@ def _offered_core_languages():
     )
 
 
+def _load_glossary_locale(lang):
+    path = os.path.join(GLOSSARY_I18N_DIR, f"{lang}.json")
+    with open(path, encoding="utf-8-sig") as f:
+        return json.load(f)
+
+
 def test_glossary_term_content_localized_for_every_offered_non_english_language():
     offered = set(_offered_core_languages()) - {"en"}
     assert set(get_glossary_localization_languages()) == offered
@@ -228,6 +235,43 @@ def test_localized_glossary_lookup_normalizes_region_locale():
     assert german is not None and english is not None
     assert german["levels"]["eli5"] != english["levels"]["eli5"]
     assert "DOCSIS" in german["levels"]["eli5"]
+
+
+def test_glossary_i18n_catalogs_define_fields_without_field_level_fallbacks():
+    english_terms = {term["id"]: term for term in get_glossary_terms("en")}
+    english_categories = {category["id"]: category for category in get_glossary_categories("en")}
+
+    for lang in get_glossary_localization_languages():
+        raw = _load_glossary_locale(lang)
+        raw_categories = {category["id"]: category for category in raw.get("categories", [])}
+        raw_terms = {term["id"]: term for term in raw.get("terms", [])}
+
+        for category_id, english_category in english_categories.items():
+            category = raw_categories.get(category_id)
+            assert category is not None, f"Missing raw category {category_id} in {lang}"
+            assert str(category.get("title", "")).strip(), f"Missing category title for {category_id} in {lang}"
+            assert str(category.get("description", "")).strip(), f"Missing category description for {category_id} in {lang}"
+            assert category["description"] != english_category["description"], (
+                f"English category description fallback leaked for {category_id} in {lang}"
+            )
+
+        for term_id, english_term in english_terms.items():
+            raw_term = raw_terms.get(term_id)
+            if raw_term is None:
+                assert english_term["source_pages"], f"Missing raw term {term_id} in {lang} without source metadata"
+                continue
+
+            title = str(raw_term.get("title", "")).strip()
+            aliases = raw_term.get("aliases")
+            levels = raw_term.get("levels")
+            assert title, f"Missing raw title for {term_id} in {lang}"
+            assert isinstance(aliases, list) and aliases, f"Missing raw aliases for {term_id} in {lang}"
+            assert all(str(alias).strip() for alias in aliases), f"Blank raw alias for {term_id} in {lang}"
+            assert isinstance(levels, dict), f"Missing raw levels for {term_id} in {lang}"
+            for level in GLOSSARY_LEVELS:
+                text = str(levels.get(level, "")).strip()
+                assert len(text) > 40, f"Missing or too-short raw {level} for {term_id} in {lang}"
+                assert text != english_term["levels"][level], f"English raw {level} fallback leaked for {term_id} in {lang}"
 
 
 def test_localized_glossary_preserves_required_literal_tokens():
