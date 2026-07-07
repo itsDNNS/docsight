@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Iterable
 
 GLOSSARY_LEVELS: tuple[str, ...] = ("eli5", "basic", "advanced", "technician")
@@ -23,10 +26,11 @@ class GlossaryTerm:
 
     def localized(self, lang: str = "en") -> dict[str, Any]:
         """Return a template-friendly localized term, falling back to English."""
-        title = self.title.get(lang) or self.title["en"]
-        aliases = self.aliases.get(lang) or self.aliases.get("en", ())
-        levels = self.levels.get(lang) or self.levels["en"]
-        misconceptions = self.misconceptions.get(lang) or self.misconceptions.get("en", ())
+        translation = _localized_term_payload(self.id, lang)
+        title = translation.get("title") or self.title.get(lang) or self.title["en"]
+        aliases = tuple(translation.get("aliases") or self.aliases.get(lang) or self.aliases.get("en", ()))
+        levels = translation.get("levels") or self.levels.get(lang) or self.levels["en"]
+        misconceptions = tuple(translation.get("misconceptions") or self.misconceptions.get(lang) or self.misconceptions.get("en", ()))
         return {
             "id": self.id,
             "category": self.category,
@@ -48,10 +52,11 @@ class GlossaryCategory:
     description: dict[str, str]
 
     def localized(self, lang: str = "en") -> dict[str, str]:
+        translation = _localized_category_payload(self.id, lang)
         return {
             "id": self.id,
-            "title": self.title.get(lang) or self.title["en"],
-            "description": self.description.get(lang) or self.description["en"],
+            "title": translation.get("title") or self.title.get(lang) or self.title["en"],
+            "description": translation.get("description") or self.description.get(lang) or self.description["en"],
         }
 
 
@@ -498,6 +503,51 @@ _TERMS: tuple[GlossaryTerm, ...] = (
         "For evidence, preserve timestamps, event logs, channel changes, and counter-baseline effects around reboot/resync events. Do not interpret reset counters as proof that earlier impairment never happened.",
     ),
 )
+
+_GLOSSARY_I18N_DIR = Path(__file__).with_name("glossary_i18n")
+
+
+def _normalize_lang(lang: str | None) -> str:
+    """Normalize request/app locale IDs to glossary localization file names."""
+    if not lang:
+        return "en"
+    return lang.split("-", 1)[0].split("_", 1)[0].lower()
+
+
+@lru_cache(maxsize=1)
+def _load_glossary_localizations() -> dict[str, dict[str, Any]]:
+    """Load optional localized glossary catalogs from JSON files."""
+    catalogs: dict[str, dict[str, Any]] = {}
+    if not _GLOSSARY_I18N_DIR.exists():
+        return catalogs
+    for path in sorted(_GLOSSARY_I18N_DIR.glob("*.json")):
+        lang = path.stem
+        if lang == "en":
+            continue
+        with path.open(encoding="utf-8-sig") as handle:
+            data = json.load(handle)
+        categories = {item["id"]: item for item in data.get("categories", [])}
+        terms = {item["id"]: item for item in data.get("terms", [])}
+        catalogs[lang] = {"categories": categories, "terms": terms}
+    return catalogs
+
+
+def get_glossary_localization_languages() -> tuple[str, ...]:
+    """Return language IDs that provide localized glossary term content."""
+    return tuple(sorted(_load_glossary_localizations()))
+
+
+def _localized_term_payload(term_id: str, lang: str) -> dict[str, Any]:
+    catalog = _load_glossary_localizations().get(_normalize_lang(lang), {})
+    term = catalog.get("terms", {}).get(term_id, {})
+    return term if isinstance(term, dict) else {}
+
+
+def _localized_category_payload(category_id: str, lang: str) -> dict[str, Any]:
+    catalog = _load_glossary_localizations().get(_normalize_lang(lang), {})
+    category = catalog.get("categories", {}).get(category_id, {})
+    return category if isinstance(category, dict) else {}
+
 
 
 def _category_ids() -> set[str]:

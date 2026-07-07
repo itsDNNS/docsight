@@ -5,6 +5,14 @@ import os
 
 import pytest
 
+from app.glossary import (
+    GLOSSARY_LEVELS,
+    get_glossary_categories,
+    get_glossary_localization_languages,
+    get_glossary_term,
+    get_glossary_terms,
+)
+
 I18N_DIR = os.path.join(os.path.dirname(__file__), "..", "app", "i18n")
 MOD_I18N_DIR = os.path.join(
     os.path.dirname(__file__), "..", "app", "modules", "modulation", "i18n"
@@ -162,3 +170,55 @@ def test_docsis_basics_glossary_preserves_core_meaning_in_every_offered_language
             assert label != "DOCSIS basics", f"English label fallback leaked into {entry.name}"
             assert text != source_text, f"English text fallback leaked into {entry.name}"
             assert not text.startswith("Cable internet uses DOCSIS"), f"English text fallback leaked into {entry.name}"
+
+
+def _offered_core_languages():
+    return sorted(
+        entry.name[:-5]
+        for entry in os.scandir(I18N_DIR)
+        if entry.name.endswith(".json") and entry.name != "template.json"
+    )
+
+
+def test_glossary_term_content_localized_for_every_offered_non_english_language():
+    offered = set(_offered_core_languages()) - {"en"}
+    assert set(get_glossary_localization_languages()) == offered
+
+    english_terms = {term["id"]: term for term in get_glossary_terms("en")}
+    english_categories = {category["id"]: category for category in get_glossary_categories("en")}
+
+    for lang in sorted(offered):
+        localized_terms = {term["id"]: term for term in get_glossary_terms(lang)}
+        localized_categories = {category["id"]: category for category in get_glossary_categories(lang)}
+        assert set(localized_terms) == set(english_terms), f"Term IDs differ in {lang}"
+        assert set(localized_categories) == set(english_categories), f"Category IDs differ in {lang}"
+
+        for category_id, english_category in english_categories.items():
+            category = localized_categories[category_id]
+            assert category["title"], f"Missing category title for {category_id} in {lang}"
+            assert category["description"], f"Missing category description for {category_id} in {lang}"
+            assert category["description"] != english_category["description"], f"English category fallback leaked for {category_id} in {lang}"
+
+        for term_id, english_term in english_terms.items():
+            term = localized_terms[term_id]
+            assert term["title"].strip(), f"Missing title for {term_id} in {lang}"
+            assert set(term["levels"]) == set(GLOSSARY_LEVELS), f"Missing levels for {term_id} in {lang}"
+            assert term["aliases"], f"Missing aliases for {term_id} in {lang}"
+            assert all(alias.strip() for alias in term["aliases"]), f"Blank alias for {term_id} in {lang}"
+            joined = " ".join([term["title"], *term["aliases"], *term["levels"].values(), *term["misconceptions"]])
+            english_joined = " ".join([english_term["title"], *english_term["aliases"], *english_term["levels"].values(), *english_term["misconceptions"]])
+            assert joined != english_joined, f"English term fallback leaked for {term_id} in {lang}"
+            for level in GLOSSARY_LEVELS:
+                assert len(term["levels"][level]) > 40, f"Too-short {level} for {term_id} in {lang}"
+                assert term["levels"][level] != english_term["levels"][level], f"English {level} fallback leaked for {term_id} in {lang}"
+            for token in term["protected_terms"]:
+                if token in english_joined:
+                    assert token in joined, f"Missing protected token {token} for {term_id} in {lang}"
+
+
+def test_localized_glossary_lookup_normalizes_region_locale():
+    german = get_glossary_term("docsis", "de-DE")
+    english = get_glossary_term("docsis", "en")
+    assert german is not None and english is not None
+    assert german["levels"]["eli5"] != english["levels"]["eli5"]
+    assert "DOCSIS" in german["levels"]["eli5"]

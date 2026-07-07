@@ -1,0 +1,778 @@
+{
+  "categories": [
+    {
+      "description": "Kerneudtryk for at forstå kabelinternet og hvad DOCSight kan observere.",
+      "id": "cable_basics",
+      "title": "Kabel/DOCSIS grundlæggende"
+    },
+    {
+      "description": "Hvordan DOCSIS-kanaler bærer data, og hvorfor kanalteknologi betyder noget.",
+      "id": "modulation_channels",
+      "title": "Modulering og kanaler"
+    },
+    {
+      "description": "Termer for strøm, støj og linjekvalitet, der hjælper med at forklare modem-synlige signalsundhed.",
+      "id": "signal_quality",
+      "title": "Signalkvalitet"
+    },
+    {
+      "description": "Korrigerede og ukorrigerede kodeordstællere, inklusive hvad råtotaler kan og ikke kan bevise.",
+      "id": "error_counters",
+      "title": "Fejltællere"
+    },
+    {
+      "description": "Grænser mellem kanaldiagnostik, bruttokapacitet, tarifhastighed og Speedtests.",
+      "id": "capacity_throughput",
+      "title": "Kapacitet og gennemløb"
+    },
+    {
+      "description": "Klargøring, delvis service, genstart og konfigurationstilstande synlige omkring modemmet.",
+      "id": "modem_state",
+      "title": "Modem og klargøringstilstand"
+    }
+  ],
+  "terms": [
+    {
+      "aliases": [
+        "Kabel internet",
+        "Data over kabel-servicegrænsefladespecifikation"
+      ],
+      "category": "cable_basics",
+      "id": "docsis",
+      "levels": {
+        "advanced": "DOCSIS-netværk kombinerer downstream- og upstream-kanaler såsom SC-QAM, OFDM og OFDMA. DOCSight kan fortolke lokalt modem-synlige signal- og kanaldata, men det kan ikke se alle udbydersidesegmenter eller routingbetingelser.",
+        "basic": "DOCSIS leverer internetservice over koaksialkabel. DOCSight læser modem-, kanal- og signaldata fra understøttede kabelenheder, så dens diagnostik beskriver kabelforbindelsen i stedet for en DSL-linje.",
+        "eli5": "DOCSIS er det sprog et kabelmodem bruger til at tale med kabelnetværket. Det er kabelinternet, ikke DSL over en telefonlinje.",
+        "technician": "DOCSIS definerer kabelmodemadgangslaget mellem CM og CMTS over HFC/coax-segmentet. Lokal kanaltelemetri er nyttig til RF- og MAC-lagsdiagnostik, men udbyderprovisionering, segmentbelastning, CMTS-politik og IP-routing forbliver uden for evidensgrænsen for kun modem."
+      },
+      "misconceptions": [
+        "DOCSIS er ikke DSL; DSL-værdier og kabelkanalværdier bør ikke sammenlignes én til én."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "DSL",
+        "DOCSight"
+      ],
+      "title": "DOCSIS"
+    },
+    {
+      "aliases": [
+        "DSL",
+        "Telefonlinje vs coax"
+      ],
+      "category": "cable_basics",
+      "id": "dsl_vs_cable",
+      "levels": {
+        "advanced": "DSL præsenterer normalt en punkt-til-punkt linje med stilværdier for synkroniseringshastighed. DOCSIS bruger delte coax-segmenter, bundne kanaler og CMTS-planlægning, så modemkanaldiagnostik har brug for en anden fortolkning.",
+        "basic": "DOCSight er bygget op omkring kabel/DOCSIS beviser. Kabelmodemværdier såsom kanaler, modulering, SNR/MER og DOCSIS-kapacitet bør ikke læses som DSL-synkroniseringshastigheder eller DSL-linjestatistikker.",
+        "eli5": "DSL og kabel er to forskellige måder at bringe internet hjem på. DSL bruger telefonledninger; kabelinternet bruger koaksialkabel og DOCSIS.",
+        "technician": "Tilknyt ikke DSL-dæmpning, synkronisering eller profilkoncepter direkte på DOCSIS RF/MAC-beviser. DOCSIS-kanaltilstand, OFDM/OFDMA-profiler, serviceflows og CMTS-adfærd beskriver en anden adgangsarkitektur."
+      },
+      "misconceptions": [
+        "En kabelkanalliste er ikke en DSL-synkroniseringstabel."
+      ],
+      "protected_terms": [
+        "DSL",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "DSL vs. kabel"
+    },
+    {
+      "aliases": [
+        "Coax",
+        "Antennekabel",
+        "Kabellinje"
+      ],
+      "category": "cable_basics",
+      "id": "coaxial_cable",
+      "levels": {
+        "advanced": "DOCSIS coax-stier er RF-stier: effektniveau, SNR/MER, indgang, dæmpning og kanallås kan ændres, når kabler, splittere eller forstærkere er dårlige eller har en forkert størrelse.",
+        "basic": "Kabelinternet kører over koaksialkabel mellem dit hjem og udbyderens netværk. Splittere, stik og ledninger i hjemmet kan påvirke signalniveauer og kvalitet.",
+        "eli5": "Coax er det runde kabel, der bærer TV- og kabelinternetsignaler. Dit kabelmodem bruger det til at oprette forbindelse til DOCSIS-netværket.",
+        "technician": "I HFC-netværk fører coax-benet nedstrøms og opstrøms RF-kanaler mellem modemmet og adgangsnetværket. DOCSight kan vise modem-synlige RF-symptomer, men ikke hele den fysiske plantetopologi."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "HFC",
+        "DOCSight"
+      ],
+      "title": "Koaksialkabel"
+    },
+    {
+      "aliases": [
+        "Modem",
+        "Gateway",
+        "Kabelrouter",
+        "Bridge mode"
+      ],
+      "category": "cable_basics",
+      "id": "cable_modem_router",
+      "levels": {
+        "advanced": "En gateway kombinerer DOCSIS-modemfunktioner med routing/NAT/Wi-Fi. Bridge-tilstand kan udsætte routing til en anden enhed, men DOCSIS signal- og kanalbeviser tilhører stadig modemsiden.",
+        "basic": "Et kabelmodem håndterer DOCSIS på udbydersiden. Mange enheder fungerer også som routere, Wi-Fi-adgangspunkter eller gateways til dit hjemme-IP-netværk.",
+        "eli5": "Modemet/routeren er boksen, der forbinder dit hjemmenetværk til kabelnetværket.",
+        "technician": "Adskil DOCSIS-lagsobservationer fra LAN/routeradfærd. God RF- og kanaltilstand udelukker ikke Wi-Fi, NAT, firewall, routing eller flaskehalse på klientsiden bag modemmet."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "DOCSight",
+        "IP"
+      ],
+      "title": "Kabelmodem/router"
+    },
+    {
+      "aliases": [
+        "Kabelmodemtermineringssystem",
+        "Fjernbetjening PHY",
+        "Udbyder headend"
+      ],
+      "category": "cable_basics",
+      "id": "cmts",
+      "levels": {
+        "advanced": "Systemer på udbydersiden planlægger upstream-adgang, leverer downstream-kanaler, anvender klargøring og deltager i serviceflow-grænser. Lokale modembeviser kan antyde problemer, men kan ikke fuldt ud beskrive CMTS-politik.",
+        "basic": "Et CMTS eller relateret adgangssystem på udbydersiden administrerer DOCSIS-modemmer, kanaler, planlægning og servicekonfiguration. DOCSight ser normalt kun modemsiden af ​​dette forhold.",
+        "eli5": "CMTS er det system på udbydersiden, dit kabelmodem taler med.",
+        "technician": "CMTS-, CCAP-, Remote PHY- og nodearkitekturer påvirker kanaltilgængelighed, profiltildeling, planlægning og håndtering af værdiforringelser. DOCSight bør ikke udlede udbydersidetilstand, medmindre en eksplicit understøttet kilde afslører det."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "CMTS",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "CMTS"
+    },
+    {
+      "aliases": [
+        "Segment",
+        "Servicegruppe",
+        "Kabelknude",
+        "Nodeopdeling"
+      ],
+      "category": "cable_basics",
+      "id": "node_segment",
+      "levels": {
+        "advanced": "Tjenestegrupper og knudepunkter påvirker konflikt, kanalbelastning og opgraderingsplanlægning. Et lokalt modem kan afsløre sin egen kanaltilstand, ikke en komplet liste over tilstødende modemer eller den samlede udbyderefterspørgsel.",
+        "basic": "Folk i det samme kabelsegment deler en vis adgangsnetværkskapacitet. En nodeopdeling kan reducere, hvor mange brugere der deler de samme ressourcer, men DOCSight kan normalt ikke se hele segmentpopulationen.",
+        "eli5": "Et segment er den del af kabelnetværket, der deles af en gruppe af boliger.",
+        "technician": "Segmentfortolkning afhænger af udbydertopologi, servicegruppestørrelser, Remote PHY/CMTS-design og aktive abonnenter. Behandl fuldstændig udnyttelse som bevis på udbydersiden, medmindre det måles gennem en understøttet kilde."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Node/segment"
+    },
+    {
+      "aliases": [
+        "Kabelsegment",
+        "Node",
+        "Delt adgangsnetværk"
+      ],
+      "category": "cable_basics",
+      "id": "shared_medium",
+      "levels": {
+        "advanced": "DOCSIS-kapacitet deles på tværs af kanaler og servicegrupper. Lokal modemstatistik viser din kanal og signaltilstand, mens strid og planlægning sker hos udbyderen.",
+        "basic": "Kabelnetværk deler dele af adgangsnetværket mellem flere brugere. Segmentbelastning kan påvirke reelle hastigheder, og DOCSight kan ikke direkte måle hvert andet modem på segmentet.",
+        "eli5": "Et kabelsegment er som en vej, som flere hjem bruger. Dit modem kan have et rent signal, selv når vejen er befærdet.",
+        "technician": "Shared-medium adfærd afhænger af servicegruppestørrelse, CMTS-planlægning, OFDMA/OFDM-profiler, klargøring og aktiv abonnentefterspørgsel. DOCSight kan fremhæve lokale RF/kanalsymptomer, men bør ikke udlede fuldstændig segmentudnyttelse, medmindre en understøttet datakilde afslører det."
+      },
+      "misconceptions": [
+        "Et godt signalniveau beviser ikke, at udbydersegmentet er ubelastet."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Delt medium"
+    },
+    {
+      "aliases": [
+        "Downloadretning",
+        "DS",
+        "Downstream-kanaler"
+      ],
+      "category": "modulation_channels",
+      "id": "downstream",
+      "levels": {
+        "advanced": "Downstream kan bruge SC-QAM- og/eller OFDM-kanaler. Strøm, SNR/MER, modulering, profiloplysninger og låsetilstand hjælper med at forklare, om modemmet modtager kanalerne rent.",
+        "basic": "I DOCSIS overfører downstream-kanaler data fra udbyderens netværk til modemmet. DOCSight viser nedstrøms kanaltilstand separat fra opstrømstilstand, fordi retningerne opfører sig forskelligt.",
+        "eli5": "Downstream er data, der kommer fra internettet mod dit hjem.",
+        "technician": "Downstream-bevis beskriver modtagestien og downstream-kanalsættet, der er synligt for modemmet. Det bør ikke forveksles med ende-til-ende applikationsoverførselsgennemstrømning, som også afhænger af klargøring, planlægning, routing og klienter."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM"
+      ],
+      "title": "Nedstrøms"
+    },
+    {
+      "aliases": [
+        "Uploadretning",
+        "US",
+        "Upstream-kanaler"
+      ],
+      "category": "modulation_channels",
+      "id": "upstream",
+      "levels": {
+        "advanced": "Upstream kan bruge SC-QAM og/eller OFDMA. Det er planlagt af udbyderens system, så lokale modemdata viser overførselsbetingelser, men det er ikke alle grunde til, at uploadgennemstrømningen kan variere.",
+        "basic": "I DOCSIS fører opstrømskanaler data fra modemmet tilbage til udbyderens netværk. Opstrømsproblemer viser sig ofte som høj sendeeffekt, kanalfald eller støjende returvejsadfærd.",
+        "eli5": "Upstream er data, der går fra dit hjem mod internettet, som en upload, der forlader dit hus.",
+        "technician": "Opstrømsfortolkning har brug for sendeeffekt, kanallås, modulerings-/profiltilstand, rækkeviddestatus og returvejsstøjkontekst. DOCSight bør holde modem-synlige RF-beviser adskilt fra CMTS-side planlægning eller service-flow politik."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDMA"
+      ],
+      "title": "Upstream"
+    },
+    {
+      "aliases": [
+        "Bondede kanaler",
+        "Kanalbundt",
+        "DOCSIS binding"
+      ],
+      "category": "modulation_channels",
+      "id": "channel_bonding",
+      "levels": {
+        "advanced": "Bonding kombinerer flere kanalressourcer, mens planlægning, modulering, signalkvalitet, servicegrænser og protokoloverhead bestemmer, hvad der kan blive brugbart gennemløb.",
+        "basic": "DOCSIS-modemmer bruger ofte flere downstream- og upstream-kanaler på samme tid. Flere bundne kanaler kan tilføje kapacitet, men det garanterer stadig ikke et matchende Speedtest-resultat.",
+        "eli5": "Kanalbinding giver et modem mulighed for at bruge flere kabelkanaler sammen, f.eks. at bruge mere end én bane.",
+        "technician": "Bonded-kanal kapacitet skal skelne SC-QAM summer fra OFDM/OFDMA profilafhængig kapacitet. Serviceflowgrænser, MAC-planlægning, FEC, RF-forringelse og konflikt adskiller bundet PHY-kapacitet fra applikationens goodput."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "Kanalbinding"
+    },
+    {
+      "aliases": [
+        "Single-carrier QAM",
+        "DOCSIS 3.0-kanal",
+        "QAM-kanal"
+      ],
+      "category": "modulation_channels",
+      "id": "sc_qam",
+      "levels": {
+        "advanced": "SC-QAM bruger en enkelt bærebølge med en fast kanalbredde og QAM-modulationsrækkefølge. Højere modulering kan bære flere bits pr. symbol, men estimatet er stadig bruttokanalkapacitet, ikke IP-gennemstrømning.",
+        "basic": "SC-QAM-kanaler er traditionelle DOCSIS-kanaler. DOCSight kan ofte estimere deres brutto Layer-1 kapacitet ud fra modulering og kanaldetaljer.",
+        "eli5": "SC-QAM er en slags kabelkanal. Tænk på det som én bane, der kan transportere data mellem kabelnetværket og dit modem.",
+        "technician": "For DOCSIS SC-QAM-kanaler bestemmer modulationsrækkefølge, symbolhastighed, kanalbredde og PHY-overhead brutto Layer-1 estimater. FEC, MAC-framing, planlægning, bonding og IP-overhead adskiller dette estimat fra brugbar applikationsgennemstrømning."
+      },
+      "misconceptions": [
+        "Et SC-QAM-kapacitetsestimat er ikke et Speedtest-resultat."
+      ],
+      "protected_terms": [
+        "SC-QAM",
+        "DOCSIS",
+        "QAM",
+        "Layer-1"
+      ],
+      "title": "SC-QAM"
+    },
+    {
+      "aliases": [
+        "DOCSIS 3.1 downstream",
+        "Ortogonal frekvens-division multipleksing"
+      ],
+      "category": "modulation_channels",
+      "id": "ofdm",
+      "levels": {
+        "advanced": "OFDM downstream-kanaler bruger mange underbærere og profiler. Virkelig brugbar kapacitet afhænger af profiltildeling, underbærersundhed, ekskluderingsbånd og planlægning på udbydersiden.",
+        "basic": "DOCSIS 3.1 bruger OFDM downstream til fleksible modtagekanaler med høj kapacitet. DOCSight kan vise deres signaltilstand, selv når den ikke kan beregne det samme simple kapacitetstal som SC-QAM.",
+        "eli5": "OFDM er en nyere downstream kabelkanal type, der deler en bred kanal i mange bittesmå stykker.",
+        "technician": "OFDM-kapacitetsestimering kræver profil- og underbærerkontekst. Uden tilstrækkelige profildata bør DOCSight behandle OFDM som observeret, men ikke inkluderet i SC-QAM-kun bruttokapacitetssummer."
+      },
+      "misconceptions": [
+        "Manglende OFDM-kapacitet betyder ikke, at kanalen er ubrugt; DOCSight mangler muligvis simpelthen sikre data på profilniveau."
+      ],
+      "protected_terms": [
+        "OFDM",
+        "DOCSIS",
+        "SC-QAM"
+      ],
+      "title": "OFDM"
+    },
+    {
+      "aliases": [
+        "DOCSIS 3.1 upstream",
+        "Ortogonal frekvensopdelt multipeladgang"
+      ],
+      "category": "modulation_channels",
+      "id": "ofdma",
+      "levels": {
+        "advanced": "OFDMA upstream-kapacitet afhænger af underbærertildeling, profiltildeling, minislot-planlægning, returvejsstøj og udbydersidebeslutninger, som en modemside muligvis ikke eksponerer fuldt ud.",
+        "basic": "DOCSIS 3.1 bruger OFDMA upstream til fleksible uploadkanaler. DOCSight viser muligvis OFDMA-signal- eller strømdata, men simpel kapacitetsmatematik i SC-QAM-stil er normalt ikke sikker uden flere detaljer.",
+        "eli5": "OFDMA er en nyere opstrøms kabelkanaltype, der lader mange modemer dele små stykker af en bred kanal.",
+        "technician": "OFDMA-telemetri har brug for profil/underbærer og planlægningskontekst for sikker fortolkning. Samlet rapportstyrke og bevis pr. underbærer bør ikke blandes, medmindre føreren afslører den nøjagtige tilsigtede metrik."
+      },
+      "misconceptions": [
+        "En OFDMA-kanal uden et vist kapacitetsnummer kan stadig være aktiv og vigtig."
+      ],
+      "protected_terms": [
+        "OFDMA",
+        "DOCSIS",
+        "SC-QAM"
+      ],
+      "title": "OFDMA"
+    },
+    {
+      "aliases": [
+        "QAM",
+        "256-QAM",
+        "4096-QAM",
+        "Modulering"
+      ],
+      "category": "modulation_channels",
+      "id": "qam_modulation_order",
+      "levels": {
+        "advanced": "Højere modulationsordrer øger bits pr. symbol, men reducerer tolerancen for støj og forvrængning. Modulation skal fortolkes med SNR/MER, kanaltype og profilkontekst.",
+        "basic": "QAM/modulationsrækkefølge påvirker, hvor mange bit en kanal kan bære. Hvis signalkvaliteten er dårlig, kan en kanal have behov for en lavere modulation og derfor have mindre bruttokapacitet.",
+        "eli5": "Modulation er, hvordan data pakkes ind i kabelsignalet. Højere QAM-numre kan bære flere data, men har brug for et renere signal.",
+        "technician": "For SC-QAM leverer moduleringsordren direkte Layer-1 kapacitetsestimater med symbolhastighed og kanalbredde. For OFDM/OFDMA gør profil/underbærertildeling forholdet mere komplekst end én etiket pr. kanal."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "QAM",
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "QAM / moduleringsordre"
+    },
+    {
+      "aliases": [
+        "Kanalbredde",
+        "Symbolhastighed",
+        "MHz",
+        "Msym/s"
+      ],
+      "category": "modulation_channels",
+      "id": "channel_width_symbol_rate",
+      "levels": {
+        "advanced": "DOCSIS kanalplaner bruger definerede bredder og symbolhastigheder. Kapacitets matematik afhænger af kanalfamilien; SC-QAM kan estimeres mere direkte end OFDM/OFDMA uden profildata.",
+        "basic": "For understøttede SC-QAM-kanaler hjælper kanalbredde, symbolhastighed og modulering med at estimere brutto Layer-1-kapacitet. Disse input producerer stadig ikke rigtig IP-gennemstrømning af sig selv.",
+        "eli5": "Kanalbredde er, hvor meget frekvensplads en kanal bruger. Symbolhastighed er, hvor hurtigt signaltrin sendes inde i den kanal.",
+        "technician": "Kapacitetsberegninger bør holde kanalfamilieantagelser eksplicitte. EuroDOCSIS/DOCSIS-bredder, symbolhastigheder, modulationsrækkefølge og PHY-overhead må ikke genbruges blindt på tværs af OFDM/OFDMA-profiler."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "MHz"
+      ],
+      "title": "Kanalbredde/symbolhastighed"
+    },
+    {
+      "aliases": [
+        "Signalniveau",
+        "dBmV",
+        "Modtag strøm",
+        "Sendeeffekt"
+      ],
+      "category": "signal_quality",
+      "id": "power_level",
+      "levels": {
+        "advanced": "Effekt skal fortolkes efter retning og kanaltype. En nedstrøms værdi, der ser rent ud, beviser ikke automatisk opstrøms sundhed, og høj opstrøms sendeeffekt kan tyde på, at modemmet arbejder hårdt for at nå udbyderens side.",
+        "basic": "DOCSight kan vise nedstrøms modtageeffekt og opstrøms sendeeffekt, når modemmet afslører dem. Værdier uden for forventede områder kan indikere kabelføring, splitter, forstærker eller returvejsproblemer.",
+        "eli5": "Effektniveau er, hvor stærkt kabelsignalet ser ud til modemmet, eller hvor hårdt modemmet skal tale tilbage.",
+        "technician": "Strømdiagnostik har brug for enheder, retning, kanalfamilie og enhedsdriversemantik. OFDMA samlet effekt og per-1,6 MHz rapporteffekt bør ikke behandles som udskiftelige metrikker."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "dBmV",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "Effektniveau"
+    },
+    {
+      "aliases": [
+        "Signal-støj-forhold",
+        "Modulationsfejlforhold",
+        "MER",
+        "SNR"
+      ],
+      "category": "signal_quality",
+      "id": "snr_mer",
+      "levels": {
+        "advanced": "SNR/MER skal fortolkes sammen med modulering, kanalfamilie og fejltællere. En marginal værdi kan forårsage lavere profiler, korrigerbare fejl eller ukorrigerbare fejl afhængigt af sværhedsgraden.",
+        "basic": "SNR og MER er kvalitetsmålinger. Bedre værdier betyder normalt, at modemmet kan afkode kanalen mere pålideligt, men de svarer stadig ikke direkte til Speedtest-ydelsen.",
+        "eli5": "SNR/MER siger, hvor klart signalet er sammenlignet med støj. Klarere signal gør højere datapakning mere pålidelig.",
+        "technician": "MER/SNR-tærskler er modulations- og implementeringsafhængige. DOCSight bør undgå at hævde udbyderens fejl fra én værdi alene; korrelation med kanallås, modulationsprofil, FEC-tællere og tidstrend er stærkere bevis."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "SNR",
+        "MER",
+        "DOCSIS",
+        "QAM"
+      ],
+      "title": "SNR/MER"
+    },
+    {
+      "aliases": [
+        "Signaltab",
+        "Dæmpning",
+        "Kabeltab"
+      ],
+      "category": "signal_quality",
+      "id": "attenuation",
+      "levels": {
+        "advanced": "Dæmpning kan komme fra kabellængde, splittere, vægudtag, filtre, dårlige stik eller anlægsforhold. Det vises ofte indirekte gennem modtageeffekt, sendeeffekt, SNR/MER eller kanalstabilitet.",
+        "basic": "Noget signaltab er normalt, men for meget tab kan skubbe effektniveauer ud af rækkevidde eller tvinge modemmet til at transmittere hårdere opstrøms. DOCSight ser effekten, ikke alle fysiske årsager.",
+        "eli5": "Dæmpning betyder, at signalet bliver svagere, når det bevæger sig gennem kabel, splittere og stik.",
+        "technician": "Udled ikke en præcis dB-tabssti fra modemstatistik alene. Behandl dæmpning som en diagnostisk hypotese understøttet af retningsspecifikke effektændringer, topologividen og før/efter ledningsbevis."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "dBmV",
+        "DOCSight"
+      ],
+      "title": "Dæmpning"
+    },
+    {
+      "aliases": [
+        "Støj",
+        "Indgang",
+        "Interferens",
+        "Returvejsstøj"
+      ],
+      "category": "signal_quality",
+      "id": "ingress_noise",
+      "levels": {
+        "advanced": "Støj kan være intermitterende, retningsspecifik eller begrænset til visse frekvenser. En tidstrend på tværs af berørte kanaler er normalt mere nyttig end ét isoleret øjebliksbillede.",
+        "basic": "Indgang og støj kan reducere SNR/MER, forårsage fejl eller gøre opstrømskommunikation ustabil. DOCSight kan vise symptomer, når modemmet afslører berørte signal- og fejldata.",
+        "eli5": "Støj er et uønsket signal, der er blandet ind i kabelsignalet. For meget støj gør data sværere at læse.",
+        "technician": "Returvejsindtrængen, impulsstøj, fællesvejsforvrængning og lokale kablingsfejl kan påvirke DOCSIS-kanaler forskelligt. DOCSight bør præsentere modem-synlige beviser uden at kræve fuld plantelokalisering."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SNR",
+        "MER",
+        "OFDMA"
+      ],
+      "title": "Indgang/støj"
+    },
+    {
+      "aliases": [
+        "Korrigerbare",
+        "Korrigerede kodeord",
+        "FEC rettet"
+      ],
+      "category": "error_counters",
+      "id": "correctable_errors",
+      "levels": {
+        "advanced": "Correctables afspejler FEC-arbejde. Vækst under støjhændelser, høje rater på specifikke kanaler eller korrelation med lav MER kan være nyttig; Alene gamle kumulative totaler er svage beviser.",
+        "basic": "Korrigerbare tællere kan stige selv på en arbejdslinje. Hastigheden, timingen, berørte kanaler, og hvorvidt ukorrigerbare også stiger, betyder mere end én rå total.",
+        "eli5": "Korrigerbare fejl er små fejl, som modemmet kunne rette, før de blev tabte data.",
+        "technician": "Hold råmodemtællere adskilt fra afledte satser. DOCSight bør bevare kumulative værdier som bevis, mens der bruges observationsvinduer, basislinjer og vækstrater til sundhedsfortolkning."
+      },
+      "misconceptions": [
+        "En høj gammel korrigerbar total er ikke automatisk en aktiv fejl."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "FEC",
+        "DOCSight"
+      ],
+      "title": "Korrigerbare fejl"
+    },
+    {
+      "aliases": [
+        "Ukorrigerbare",
+        "Ukorrigerede kodeord",
+        "FEC ukorrigerede"
+      ],
+      "category": "error_counters",
+      "id": "uncorrectable_errors",
+      "levels": {
+        "advanced": "Ukorrigerbare skal korreleres med SNR/MER, kanallås, modulationsændringer og brugersynlige symptomer. En nulstilling eller genstart kan også ændre den rå tælleradfærd.",
+        "basic": "Uncorrectables kan indikere tabte data på kanalniveau, især når de vokser under observationsvinduet. Deres timing og vækstrate betyder mere end en gammel tællertotal.",
+        "eli5": "Ukorrigerbare fejl er fejl, som modemmet ikke kunne rette. De er mere alvorlige end korrigerbare fejl.",
+        "technician": "Som bevis skal du beholde rå ukorrigerbare tællere og beregne afledt vækst fra en kendt baseline. Undgå at omskrive modemtotaler; skelne tællernulstillinger, omvikling og aktuelle observationsvinduespidser."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "FEC",
+        "DOCSight"
+      ],
+      "title": "Ukorrigerbare fejl"
+    },
+    {
+      "aliases": [
+        "PHY kapacitet",
+        "Fysisk lagkapacitet",
+        "Kanalkapacitet"
+      ],
+      "category": "capacity_throughput",
+      "id": "layer1_capacity",
+      "levels": {
+        "advanced": "Layer-1-kapaciteten ligger under MAC-planlægning, FEC, bindingsadfærd, serviceflowgrænser, IP-overhead, applikationsadfærd og segmentbelastning. Det er ét diagnostisk lag, ikke hele forbindelsen.",
+        "basic": "DOCSight kan estimere Layer-1 bruttokapacitet for understøttede SC-QAM-kanaler. Dette er nyttig kanalkontekst, men det er ikke et løfte om brugbar internethastighed.",
+        "eli5": "Layer-1 kapacitet er et teoretisk tal for, hvad kabelsignallaget kan bære, før den virkelige verden overhead fjernes.",
+        "technician": "PHY/Layer-1-kapacitet skal mærkes som bruttokanalbevis. Sæt ikke lighedstegn mellem det med serviceflowhastigheder, TCP/UDP goodput, Speedtest-resultater eller kontraktlig tarifhastighed."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "Layer-1",
+        "DOCSIS",
+        "SC-QAM",
+        "IP"
+      ],
+      "title": "Layer-1 kapacitet"
+    },
+    {
+      "aliases": [
+        "Bruttokapacitet",
+        "Nettogennemløb",
+        "Overhead"
+      ],
+      "category": "capacity_throughput",
+      "id": "gross_vs_net_capacity",
+      "levels": {
+        "advanced": "Brutto-til-net-forskelle kommer fra PHY-overhead, FEC, MAC-framing, konflikt, serviceflow-formning, IP/TCP/UDP-overhead og applikationsadfærd. Forskellige test måler forskellige lag.",
+        "basic": "Et bruttokanalestimat starter før DOCSIS, IP og applikationsoverhead. Nettogennemløbet er lavere og afhænger også af planlægning, udbydergrænser, klienter og stien til serveren.",
+        "eli5": "Brutto er før overhead. Net er tættere på det, der er tilbage, efter at netværket bruger noget plads til at få kommunikationen til at fungere.",
+        "technician": "Hold målelaget eksplicit: PHY bruttokapacitet, MAC/service-flowhastigheder, IP-gennemløb og applikations-goodput er adskilte. Blanding af disse lag skaber misvisende sammenligninger."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "Layer-1",
+        "IP"
+      ],
+      "title": "Brutto vs. nettokapacitet"
+    },
+    {
+      "aliases": [
+        "Internet-gennemstrømning",
+        "Goodput",
+        "Brugbar hastighed"
+      ],
+      "category": "capacity_throughput",
+      "id": "ip_throughput",
+      "levels": {
+        "advanced": "Gennemløbet kan være lavere end kanalkapaciteten på grund af klargøring, planlægning, konflikt, trafikformning, pakketab, latens, klientgrænser og flaskehalse på serversiden.",
+        "basic": "IP-gennemstrømning er tættere på, hvad apps og Speedtests oplever, end kanalkapacitet er. Det afhænger af DOCSIS-sundhed, udbyderkonfiguration, routing, Wi-Fi/LAN og fjernserveren.",
+        "eli5": "IP-gennemstrømning er de rigtige data, der kommer gennem din internetforbindelse efter netværksoverhead og grænser.",
+        "technician": "Goodput/throughput er et ende-til-ende resultat. DOCSight-modemdiagnostik kan forklare lokal DOCSIS-lagsbevis, men de bør ikke hævde den eneste årsagssammenhæng for et IP-gennemløbsresultat uden understøttende data."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "IP",
+        "DOCSIS",
+        "Speedtest"
+      ],
+      "title": "IP-gennemstrømning"
+    },
+    {
+      "aliases": [
+        "Hastighedstest",
+        "Download test",
+        "Upload test",
+        "Ookla"
+      ],
+      "category": "capacity_throughput",
+      "id": "speedtest",
+      "levels": {
+        "advanced": "Hastighedstest kan hjælpe med at validere brugerpåvirkning, men de er ikke det samme som kanaldiagnostik. Et lavt resultat kræver korrelation med modembevis, klientsti og grænser for udbyder/service.",
+        "basic": "En hastighedstest er en ende-til-ende-måling på et øjeblik. Det er påvirket af DOCSIS-sundhed, takstgrænser, segmentbelastning, Wi-Fi/LAN, routing og den valgte testserver.",
+        "eli5": "En Speedtest kontrollerer, hvor hurtigt data flytter til og fra en testserver lige nu.",
+        "technician": "Behandl Speedtest-data som IP/applikationslagsbevis. Sammenlign det med tarifhastighed og diagnostiske tidslinjer, ikke direkte med PHY brutto SC-QAM-kapacitet eller rå kanalantal."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "Speedtest",
+        "IP",
+        "DOCSIS",
+        "DOCSight"
+      ],
+      "title": "Hastighedstest"
+    },
+    {
+      "aliases": [
+        "Reserveret hastighed",
+        "Planhastighed",
+        "Kontrakthastighed",
+        "Forsynet hastighed"
+      ],
+      "category": "capacity_throughput",
+      "id": "tariff_speed",
+      "levels": {
+        "advanced": "Planhastigheden håndhæves normalt gennem udbyderkonfiguration og serviceflowgrænser. Den reelle hastighed afhænger også af netværksbelastning, modemtilstand, routing og lokale klientforhold.",
+        "basic": "Tarifhastighed er en produkt- og leveringsgrænse. DOCSight-kanaldata kan vise, om kabelforbindelsen ser sund ud, men den kan ikke bevise enhver udbydersidepolitik eller kontraktlige detaljer.",
+        "eli5": "Taksthastighed er den internetplan, du betaler for, såsom en booket download- og uploadhastighed.",
+        "technician": "Udled ikke den nøjagtige konfiguration af abonnentserviceflow udelukkende ud fra kanalkapacitet. Brug eksplicit leverings- eller Speedtest-bevis, når det er tilgængeligt, og hold DOCSight-kapacitetsetiketter adskilt fra tarifkrav."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "IP"
+      ],
+      "title": "Tarifhastighed"
+    },
+    {
+      "aliases": [
+        "Segmentbelastning",
+        "Overbelastning",
+        "Nodebelastning",
+        "Servicegruppebelastning"
+      ],
+      "category": "capacity_throughput",
+      "id": "segment_utilization",
+      "levels": {
+        "advanced": "Segmentbelastning afhænger af servicegruppestørrelse, aktive abonnenter, kanalkapacitet, CMTS-planlægning og tidspunkt på dagen. Lokalt modem bevis kan vise symptomer, men ikke den fulde udnyttelsesnævner.",
+        "basic": "Et travlt segment kan reducere reelle hastigheder, selv når dit modemsignal ser godt ud. DOCSight bør ikke gøre krav på nøjagtig segmentudnyttelse, medmindre en understøttet kilde afslører disse data.",
+        "eli5": "Segmentudnyttelse betyder, hvor travlt det delte kabelsegment er.",
+        "technician": "Fuldstændig udnyttelse kræver udbyderside eller understøttet eksternt bevis. Undgå at udlede den samlede segmentbelastning fra et enkelt modems kanalliste, Speedtest eller signaltilstand alene."
+      },
+      "misconceptions": [
+        "Godt modemsignal er ikke bevis på et uoverbelastet segment."
+      ],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Segmentudnyttelse"
+    },
+    {
+      "aliases": [
+        "Gennemløb",
+        "Kapacitet vs gennemløb"
+      ],
+      "category": "capacity_throughput",
+      "id": "capacity_vs_throughput",
+      "levels": {
+        "advanced": "Layer-1 kanalkapacitet er før MAC, FEC, planlægning, binding, segmentbelastning, trafikformning og IP/applikationsoverhead. Speedtests måler en ende-til-ende-sti på et tidspunkt.",
+        "basic": "DOCSight-kapacitetsestimater beskriver bruttokapacitet på kanalniveau, især for understøttede SC-QAM-kanaler. De er ikke din tarifhastighed, ikke en Speedtest og ikke garanteret reel IP-gennemstrømning.",
+        "eli5": "Kapacitet er, hvad kabelbanen i teorien kunne bære. En Speedtest er, hvad din forbindelse leverer lige nu, efter at mange andre ting er inkluderet.",
+        "technician": "Sæt ikke lighedstegn mellem PHY-bruttokapacitet og serviceflowhastighedsgrænser eller TCP/UDP-godput. CMTS-planlægning, klargøring, tilgængelighed af OFDM/OFDMA-profiler, RF-forringelse, kødannelse, peering og testserveradfærd kan alle dominere observeret gennemstrømning."
+      },
+      "misconceptions": [
+        "En kanalkapacitetssum er ikke et bevis på, at en kunde skal se det samme tal i en Speedtest.",
+        "Tarifhastighed er en produktkonfiguration; DOCSight-kanaldiagnostik er lokal evidens."
+      ],
+      "protected_terms": [
+        "Layer-1",
+        "SC-QAM",
+        "Speedtest",
+        "IP",
+        "DOCSight"
+      ],
+      "title": "Kapacitet vs. Speedtest"
+    },
+    {
+      "aliases": [
+        "Provisioned service",
+        "Serviceflow",
+        "Aktivering",
+        "Plankonfig"
+      ],
+      "category": "modem_state",
+      "id": "provisioning",
+      "levels": {
+        "advanced": "Provisioning kan påvirke tarifhastighed, serviceflows, modemautorisation, bootfile/config-tildeling og aktiverede funktioner. Det er adskilt fra rå RF-signalkvalitet.",
+        "basic": "Provisioning kontrollerer, om modemmet er tilladt online, og hvilke servicegrænser der gælder. DOCSight kan vise tip, men udbyderens konfiguration er ikke altid fuldt synlig fra modemmet.",
+        "eli5": "Provisioning er, hvordan udbyderen fortæller modemet, hvilken service det skal have.",
+        "technician": "Behandl levering som en udbyderkontrolleret DOCSIS/MAC-lagskontrakt. Lokale modemsider kan afsløre bootfilnavne eller tjenestetilstand, men ikke al CMTS-politik eller abonnentkontologik."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "IP"
+      ],
+      "title": "Provisioning"
+    },
+    {
+      "aliases": [
+        "Bootfil",
+        "Konfigurationsfil",
+        "DOCSIS config",
+        "Service config"
+      ],
+      "category": "modem_state",
+      "id": "bootfile_config_file",
+      "levels": {
+        "advanced": "Bootfile-beviser kan understøtte klargøringsdiagnose, men navnene er udbyderspecifikke og kan muligvis ikke henføres til offentlige takstmærker. Det skal bruges med omhu og med andre beviser.",
+        "basic": "En DOCSIS-konfigurationsfil kan definere tjenesteadfærd såsom hastighedsgrænser og aktiverede funktioner. Nogle modemer afslører navnet; DOCSight bør ikke antage det fulde indhold fra navnet alene.",
+        "eli5": "Bootfilen/config-filen er udbyderinstruktioner, som modemmet modtager, når det starter.",
+        "technician": "DOCSIS-konfigurationsfiler er en del af modemregistrering/-klargøring. Uden det faktiske filindhold og CMTS-kontekst er et vist filnavn kun et tip, ikke en komplet service-flow-kontrakt."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Bootfil/konfigurationsfil"
+    },
+    {
+      "aliases": [
+        "Delvis binding",
+        "Manglende kanaler",
+        "Delvis kanallås"
+      ],
+      "category": "modem_state",
+      "id": "partial_service",
+      "levels": {
+        "advanced": "Delvis service kan komme fra RF-problemer, profil-/kanalproblemer, vedligeholdelse, klargøring eller modem/CMTS-adfærd. Det skal fortolkes med kanallås, fejl, strøm og hændelsestidspunkt.",
+        "basic": "Et modem i delvis service kan stadig levere internet, men med færre kanaler, lavere modstandskraft eller reduceret ydeevne. DOCSight kan hjælpe med at vise, hvilke synlige kanalfamilier der er berørt.",
+        "eli5": "Delvis service betyder, at modemmet er online, men ikke bruger alle forventede kanaler eller funktioner.",
+        "technician": "Behandl ikke delvis service som én fast årsag. Diagnostiser efter retning, kanalfamilie, hændelseslog, RF-metrics, og om tilstanden fortsætter på tværs af gensynkronisering/genstart eller udbydervedligeholdelsesvinduer."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "SC-QAM",
+        "OFDM",
+        "OFDMA"
+      ],
+      "title": "Delvis service"
+    },
+    {
+      "aliases": [
+        "Genstart af modem",
+        "Gensynkronisering",
+        "Område genstart",
+        "Genopret forbindelse"
+      ],
+      "category": "modem_state",
+      "id": "resync_reboot",
+      "levels": {
+        "advanced": "En gensynkronisering kan udløses af vedligeholdelse, RF-ustabilitet, provisioneringsændringer, strømtab, modemfirmware eller hændelser på udbydersiden. Sammenlign før/efter snapshots i stedet for at læse en tilstand alene.",
+        "basic": "Genstarter og gensynkroniseringer kan midlertidigt rydde tællere, ændre kanaltildeling eller gendanne service efter en fejl. Hvis de sker uventet, er timingen et vigtigt bevis.",
+        "eli5": "En genstart genstarter modemmet. En resynkronisering får den til at oprette forbindelse til kabelnetværket igen.",
+        "technician": "For bevis, bevar tidsstempler, hændelseslogfiler, kanalændringer og modbaseline-effekter omkring genstart/gensynkroniseringshændelser. Fortolk ikke nulstillingstællere som bevis på, at tidligere værdiforringelse aldrig er sket."
+      },
+      "misconceptions": [],
+      "protected_terms": [
+        "DOCSIS",
+        "CMTS",
+        "DOCSight"
+      ],
+      "title": "Gensynkronisering/genstart"
+    }
+  ]
+}
