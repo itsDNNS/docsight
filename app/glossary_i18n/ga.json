@@ -20,10 +20,10 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "Comhcheanglaíonn líonraí DOCSIS cainéil iartheachtacha agus in aghaidh srutha amhail SC-QAM, OFDM, agus OFDMA. Is féidir le DOCSight léirmhíniú a dhéanamh ar shonraí áitiúla comharthaí agus cainéil atá infheicthe ag móideim, ach ní fheiceann sé gach deighleog ar thaobh an tsoláthraí nó gach coinníoll ródaithe.",
-        "basic": "Déanann DOCSIS seirbhís idirlín a iompar thar chábla comhais. Léann DOCSight sonraí móideim, cainéil agus comharthaí ó ghléasanna cábla tacaithe, mar sin déanann a dhiagnóisic cur síos ar an nasc cábla seachas líne DSL.",
-        "eli5": "Is é DOCSIS an teanga a úsáideann móideim cábla chun labhairt leis an líonra cábla. Idirlíon cábla atá i gceist, ní DSL thar líne teileafóin.",
-        "technician": "Sainmhíníonn DOCSIS an ciseal rochtana móideim cábla idir an CM agus CMTS thar an teascán HFC/coax. Tá teiliméadracht cainéal áitiúil úsáideach le haghaidh diagnóisic RF agus ciseal MAC, ach fanann soláthar soláthraithe, ualach deighleog, beartas CMTS, agus ródú IP lasmuigh den teorainn fianaise móideim-amháin."
+        "advanced": "Úsáideann DOCSIS meascán de theaghlaigh cainéal anuas agus suas, mar shampla SC-QAM, OFDM, agus OFDMA. Nochtann gach teaghlach fianaise éagsúil, mar sin coinníonn DOCSight cineál an chainéil, an treo, agus stádas tacaíochta ar leithligh óna chéile.",
+        "basic": "Iompraíonn DOCSIS seirbhís idirlín thar chábla comhaiseach. Léann DOCSight sonraí maidir leis an maisín, na cainéil, agus an comhartha ó ghléasanna DOCSIS a dtacaítear leo, mar sin baineann a fhianaise le nasc rochtana an chábla seachas DSL.",
+        "eli5": "Is é DOCSIS an teanga idirlín cábla a labhraíonn maisín cábla agus líonra an tsoláthraí lena chéile.",
+        "technician": "Úsáid fianaise DOCSIS mar chomhthéacs RF/MAC ar thaobh an mhaisín: glasáil cainéil, cumhacht, MER/SNR, modhnú, earráidí, agus imeachtaí. Teastaíonn foinsí tacaíochta sainráite fós maidir le soláthar an tsoláthraí, beartas CMTS, ualach deighleoige, agus ródú IP."
       },
       "misconceptions": [
         "Ní DSL é DOCSIS; Níor cheart luachanna DSL agus luachanna cainéal cábla a chur i gcomparáid duine le duine."
@@ -37,74 +37,6 @@
     },
     {
       "aliases": [
-        "DSL",
-        "Líne ghutháin vs coax"
-      ],
-      "category": "cable_basics",
-      "id": "dsl_vs_cable",
-      "levels": {
-        "advanced": "Cuireann DSL líne pointe go pointe i láthair de ghnáth le luachanna stíle an ráta sioncronaithe. Úsáideann DOCSIS deighleoga comh-roinnte comhais, cainéil bhanna, agus sceidealú CMTS, mar sin is gá léirmhíniú difriúil a dhéanamh ar dhiagnóisic chainéil móideim.",
-        "basic": "Tá DOCSight bunaithe ar fhianaise cábla/DOCSIS. Níor cheart luachanna móideim cábla amhail cainéil, modhnú, SNR/MER, agus toilleadh DOCSIS a léamh ar nós rátaí sioncronaithe DSL nó staitisticí líne DSL.",
-        "eli5": "Dhá bhealach dhifriúla chun an t-idirlíon a thabhairt abhaile iad DSL agus cábla. Úsáideann DSL sreangú gutháin; Úsáideann idirlíon cábla comhaiseach cábla agus DOCSIS.",
-        "technician": "Ná mapáil coincheapa caolaithe, sioncronaithe nó próifíle DSL go díreach ar fhianaise DOCSIS RF/MAC. Déanann staid chainéil DOCSIS, próifílí OFDM/OFDMA, sreafaí seirbhíse, agus iompar CMTS cur síos ar ailtireacht rochtana eile."
-      },
-      "misconceptions": [
-        "Ní tábla sioncronaithe DSL é liosta cainéal cábla."
-      ],
-      "protected_terms": [
-        "DSL",
-        "DOCSIS",
-        "DOCSight"
-      ],
-      "title": "DSL vs. cábla"
-    },
-    {
-      "aliases": [
-        "Coax",
-        "Cábla antenna",
-        "Líne cábla"
-      ],
-      "category": "cable_basics",
-      "id": "coaxial_cable",
-      "levels": {
-        "advanced": "DOCSIS: is féidir leis an leibhéal cumhachta, SNR/MER, dul isteach, caolú, agus glas cainéal athrú nuair a bhíonn cáblaí, scoilteoirí, nó aimplitheoirí bocht nó mí-mhéid.",
-        "basic": "thar chábla comhaiseach idir do theach agus líonra an tsoláthraí. Is féidir le scoilteoirí, nascóirí, agus sreangú sa bhaile difear a dhéanamh ar leibhéil comharthaí agus ar cháilíocht. Is cosáin RF iad cosáin bhréige",
-        "eli5": "Is é Coax an cábla cruinn a iompraíonn comharthaí idirlín teilifíse agus cábla. Úsáideann do mhodem cábla é chun nascadh le líonra DOCSIS. Ritheann idirlíon cábla",
-        "technician": "I líonraí HFC, iompraíonn an chos bhréige cainéil RF le sruth agus in aghaidh an tsrutha idir an móideim agus an líonra rochtana. Is féidir le DOCSight comharthaí RF atá le feiceáil ar an modem a thaispeáint ach ní féidir topology iomlán an phlanda a léiriú."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "HFC",
-        "DOCSight"
-      ],
-      "title": "Cábla comhaiseach"
-    },
-    {
-      "aliases": [
-        "Móideim",
-        "Geata",
-        "Ródaire cábla",
-        "Mód droichid"
-      ],
-      "category": "cable_basics",
-      "id": "cable_modem_router",
-      "levels": {
-        "advanced": "Nascann tairseach feidhmeanna móideim DOCSIS le ródú/NAT/Wi-Fi. Féadfaidh mód droichid ródú a nochtadh chuig gléas eile, ach baineann fianaise comhartha agus cainéal DOCSIS le taobh an mhóidiméid fós.",
-        "basic": "Láimhseálann móideim cábla DOCSIS ar thaobh an tsoláthraí. Feidhmíonn go leor gléasanna freisin mar ródairí, pointí rochtana Wi-Fi, nó geataí do do líonra IP baile.",
-        "eli5": "Is é an móideim/ródaire an bosca a nascann do líonra baile leis an líonra cábla.",
-        "technician": "Breathnú ciseal DOCSIS a scaradh ó iompar LAN/ródaire. Ní chuireann dea-staid RF agus cainéal as an áireamh Wi-Fi, NAT, balla dóiteáin, ródú, nó scrogaill taobh cliaint taobh thiar den mhóideim. Córas Foirceannadh Móideim Cábla"
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "DOCSight",
-        "IP"
-      ],
-      "title": "Móideim cábla/ródaire"
-    },
-    {
-      "aliases": [
         "CMTS",
         "Cianda FHY",
         "Ceannteideal an tsoláthraí"
@@ -112,10 +44,10 @@
       "category": "cable_basics",
       "id": "cmts",
       "levels": {
-        "advanced": "Déanann córais ar thaobh an tsoláthraí rochtain in aghaidh an tsrutha a sceidealú, cuireann siad bealaí iartheachtacha ar fáil, cuireann siad soláthar i bhfeidhm, agus glacann siad páirt i dteorainneacha sreafa seirbhíse. Is féidir le fianaise móideim áitiúil fadhbanna a thabhairt le fios ach ní féidir cur síos iomlán a dhéanamh ar bheartas CMTS. Cuireann",
-        "basic": "Bainistíonn CMTS nó córas rochtana ar thaobh an tsoláthraí gaolmhar Móideimí DOCSIS, cainéil, sceidealú agus cumraíocht seirbhíse. De ghnáth ní fheiceann DOCSight ach taobh móideim an chaidrimh sin.",
-        "eli5": "Is é an CMTS an córas ar thaobh an tsoláthraí a mbíonn do mhodem cábla ag caint leis.",
-        "technician": "CMTS, CCAP, PHY cianda, agus ailtireachtaí nód isteach ar infhaighteacht cainéal, sannadh próifíle, sceidealú, agus láimhseáil lagaithe. Níor cheart do DOCSight tátal a bhaint as staid an tsoláthraí ach amháin má nochtar foinse shainráite a dtacaítear léi."
+        "advanced": "Is féidir le hiompar CMTS/CCAP difear a dhéanamh d'infhaighteacht cainéal, próifílí, sceidealú, agus soláthar, ach ní léir na cinntí sin ar thaobh an tsoláthraí ach go páirteach trí theileméadracht an mhaisín.",
+        "basic": "Bainistíonn CMTS nó córas rochtana gaolmhar maisíní DOCSIS, cainéil, sceidealú, agus cumraíocht seirbhíse. De ghnáth ní fheiceann DOCSight ach taobh an mhaisín.",
+        "eli5": "Is é an CMTS an córas ar thaobh an tsoláthraí lena labhraíonn do mhaisín cábla.",
+        "technician": "Ná bain tátal cruinn faoi staid an CMTS as fianaise an mhaisín amháin. Ná húsáid focail bhainteacha le CMTS ach amháin nuair a thacaíonn sonraí sainráite ón soláthraí, comhthéacs imeachta, nó réimsí maisín a nochtann é go hiarbhír."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -135,10 +67,10 @@
       "category": "cable_basics",
       "id": "node_segment",
       "levels": {
-        "advanced": "Bíonn tionchar ag grúpaí seirbhíse agus teorainneacha nóid ar chonspóid, ualach cainéal agus pleanáil uasghrádaithe. Is féidir le móideim áitiúil a staid chainéil féin a nochtadh, ní liosta iomlán de mhóidiméid chomharsanachta nó éileamh iomlán an tsoláthraí.",
-        "basic": "Roinneann daoine sa deighleog cábla céanna roinnt acmhainn rochtana-líonra. Is féidir le scoilt nód líon na n-úsáideoirí a roinneann na hacmhainní céanna a laghdú, ach de ghnáth ní féidir le DOCSight an daonra iomlán deighleog a fheiceáil.",
-        "eli5": "Is éard is teascán ann an chuid den líonra cábla a roinneann grúpa tithe.",
-        "technician": "Braitheann léirmhíniú deighleog ar thipeolaíocht an tsoláthraí, ar mhéid an ghrúpa seirbhíse, ar dhearadh cianda PHY/CMTS, agus ar shíntiúsóirí gníomhacha. Déileáil le húsáid iomlán mar fhianaise ar thaobh an tsoláthraí mura ndéantar é a thomhas trí fhoinse tacaithe."
+        "advanced": "Bíonn tionchar ag teorainneacha an ghrúpa seirbhíse ar chomórtas, ar ualach cainéil, agus ar phleanáil uasghrádaithe. Is féidir le modem áitiúil comharthaí a thaispeáint, ach ní léiríonn sé daonra iomlán na deighleoige ná staid sceidealóir an tsoláthraí.",
+        "basic": "Roinneann daoine sa deighleog chábla chéanna cuid de acmhainn an líonra rochtana. Is féidir le scoilteadh nód líon na n-úsáideoirí a roinneann na hacmhainní céanna a laghdú.",
+        "eli5": "Is éard atá i nód nó i deighleog ná an chuid den líonra cábla a roinneann grúpa tithe eatarthu.",
+        "technician": "Bí cúramach le teanga deighleoige: cruthaigh sláinte an chomhartha áitiúil ar dtús, ansin déan comparáid idir patrúin ama, fianaise luais/laitheachta, agus faisnéis ón soláthraí sula gcuirtear an locht ar úsáid na deighleoige."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -157,10 +89,10 @@
       "category": "cable_basics",
       "id": "shared_medium",
       "levels": {
-        "advanced": "thar cainéil agus grúpaí seirbhíse. Léiríonn staitisticí móideim áitiúla do chainéil agus staid chomharthaí, agus tarlaíonn argóint agus sceidealú ar thaobh an tsoláthraí.",
-        "basic": "codanna den líonra rochtana idir úsáideoirí iolracha. Is féidir le hualach deighleog difear a dhéanamh ar fhíorluasanna, agus ní féidir le DOCSight gach móideim eile ar an mír a thomhas go díreach. Roinntear acmhainn DOCSIS",
-        "eli5": "Tá teascán cábla cosúil le bóthar a úsáideann go leor tithe. Is féidir le comhartha glan a bheith ag do móideim fiú nuair a bhíonn an bóthar gnóthach. Roinneann líonraí cábla",
-        "technician": "Braitheann iompar meántéarmach ar mhéid an ghrúpa seirbhíse, sceidealú CMTS, próifílí OFDMA/OFDM, soláthar, agus éileamh gníomhach ó shíntiúsóirí. Is féidir le DOCSight comharthaí RF/chainéil áitiúla a aibhsiú ach níor cheart go mbeadh tátal a bhaint as úsáid iomlán na míre mura nocht foinse sonraí tacaithe é."
+        "advanced": "Braitheann iompar an mheáin roinnte ar mhéid an ghrúpa seirbhíse, ar sceidealú, ar acmhainn cainéil, ar éileamh gníomhach, agus ar bheartas an tsoláthraí. Ní féidir le modem amháin an deighleog iomlán a thomhas go díreach.",
+        "basic": "Féadfaidh meán roinnte a bheith gnóthach fiú nuair a bhíonn comhartha do mhodem féin ag breathnú glan. Déanann DOCSight idirdhealú idir fianaise ón modem áitiúil agus éilimh ar úsáid ó thaobh an tsoláthraí.",
+        "eli5": "Roinneann idirlíon cábla codanna de líonra rochtana na comharsanachta le húsáideoirí eile.",
+        "technician": "Déan idirdhealú idir fianaise RF ghlan agus fianaise brú tráchta. Comhcheangail patrúin ama an lae, sonraí speedtest/BQM/monitóireachta, agus aiseolas ón soláthraí sula ndéantar an meán roinnte a mheas mar bhunchúis."
       },
       "misconceptions": [
         "Ní chruthaíonn leibhéal comhartha maith go bhfuil an deighleog soláthraí gan phlódú."
@@ -181,10 +113,10 @@
       "category": "modulation_channels",
       "id": "downstream",
       "levels": {
-        "advanced": "Downstream cainéil SC-QAM agus/nó OFDM a úsáid. Míníonn Cumhacht, SNR/MER, modhnú, faisnéis phróifíle, agus stát glasála cibé an bhfaigheann an móideim na cainéil go glan.",
-        "basic": "In DOCSIS, iompraíonn cainéil iartheachtacha sonraí ón líonra soláthraithe go dtí an móideim. Taispeánann DOCSight staid chainéil le sruth ar leithligh ón stát in aghaidh an tsrutha toisc go n-iompraíonn na treoracha iad féin ar bhealach difriúil. Is féidir le",
-        "eli5": "Is sonraí le sruth a thagann ón idirlíon i dtreo do theach.",
-        "technician": "Déanann fianaise iartheachtach cur síos ar an gcosán glactha agus ar an gcainéal iartheachtach atá le feiceáil ag an móideim. Níor cheart é a mheascadh le tréchur íoslódála feidhmchláir ó cheann go ceann, a bhraitheann freisin ar sholáthar, sceidealú, ródú agus cliaint."
+        "advanced": "Is féidir fianaise an tsrutha anuas a theacht ó chainéil SC-QAM agus OFDM. Léiríonn sonraí cumhachta, SNR/MER, modúlaithe/próifíle, agus glasáil chainéal an bhfuil an modam in ann an iompróir a ghlacadh go glan.",
+        "basic": "Iompraíonn cainéil an tsrutha anuas íoslódálacha agus trácht isteach eile. Taispeánann DOCSight a stádas glasála agus caighdeán an chomhartha ar leithligh ó chainéil an tsrutha aníos.",
+        "eli5": "Is sonraí iad an sruth anuas a thaistealaíonn ó líonra an tsoláthraí i dtreo do mhodaim.",
+        "technician": "Nuair a imscrúdaítear fadhbanna sa sruth anuas, déan comparáid idir na cainéil a bhfuil tionchar orthu, athruithe MER/SNR, fás ceartaithe/neamhcheartaithe, athruithe próifíle OFDM, agus stampaí ama imeachtaí, seachas luach glactha amháin a chaitheamh mar an diagnóis iomlán."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -203,10 +135,10 @@
       "category": "modulation_channels",
       "id": "upstream",
       "levels": {
-        "advanced": "Féadfaidh Upstream úsáid a bhaint as SC-QAM agus/nó OFDMA. Tá sé sceidealaithe ag an gcóras ar thaobh an tsoláthraí, mar sin taispeánann sonraí áitiúla móideim na coinníollacha tarchuir ach ní féidir le tréchur uaslódála gach cúis a athrú.",
-        "basic": "In DOCSIS, iompraíonn cainéil réamhtheachtacha sonraí ón modem ar ais go dtí an líonra soláthraithe. Is minic a thagann fadhbanna in aghaidh an tsrutha chun cinn mar chumhacht tarchurtha ard, titeann cainéil, nó iompar cosáin fillte torainn.",
-        "eli5": "Is in aghaidh srutha sonraí a théann ó do theach i dtreo an idirlín, cosúil le huaslódáil a fhágann do theach.",
-        "technician": "Tarchuireann riachtanais léirmhínithe in aghaidh an tsrutha cumhacht, glas cainéal, staid mhodhnúcháin/phróifíl, stádas raon, agus comhthéacs torainn cosáin fillte. Ba cheart do DOCSight fianaise RF infheicthe móideim a choinneáil ar leithligh ó bheartas sceidealaithe nó sreabhadh seirbhíse CMTS."
+        "advanced": "Féadfaidh an sruth aníos SC-QAM nó OFDMA a úsáid. Is minice a bhraitheann sé ar chumhacht tarchurtha, laghduithe modúlaithe, iompar raonaithe, agus airíonna torainn ar an gcosán fillte ná ar luachanna ar thaobh an íoslódála.",
+        "basic": "Iompraíonn cainéil an tsrutha aníos uaslódálacha, iarratais, agus raonú an mhodaim. Úsáideann DOCSight iad mar fhianaise chomhartha ar thaobh an uaslódála.",
+        "eli5": "Is sonraí iad an sruth aníos a thaistealaíonn ó do mhodam ar ais i dtreo líonra an tsoláthraí.",
+        "technician": "I gcás lochtanna sa sruth aníos, déan comparáid idir aistrithe cumhachta, titimí cainéal, bearnaí tacaíochta OFDMA, imeachtaí T3/T4, agus fuinneoga latency nó caillteanas paicéad. Ciallaíonn réimsí sruth aníos atá ar iarraidh nach dtacaítear leo nó nach dtuairiscítear iad, ní nialas go huathoibríoch."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -225,10 +157,10 @@
       "category": "modulation_channels",
       "id": "channel_bonding",
       "levels": {
-        "advanced": "Comhcheanglaíonn nascáil roinnt acmhainní cainéal, agus cinneann sceidealú, modhnú, cáilíocht comhartha, teorainneacha seirbhíse, agus forchostais prótacail cad is féidir a bheith tréchur inúsáidte.",
-        "basic": "Is minic a úsáideann móideimí DOCSIS ilbhealaí le sruth agus in aghaidh an tsrutha ag an am céanna. Is féidir le níos mó bealaí nasctha toilleadh a chur leis, ach ní ráthaíonn sé fós toradh Meaitseála Speedtest.",
-        "eli5": "Ligeann nascadh cainéal le móideim roinnt cainéal cábla a úsáid le chéile, mar shampla níos mó ná lána amháin a úsáid.",
-        "technician": "Ní mór d'acmhainn chainéil nasctha idirdhealú a dhéanamh idir suimeanna SC-QAM agus acmhainn phróifíl-spleách OFDM/OFDMA. Scarann ​​teorainneacha sreafa seirbhíse, sceidealú MAC, FEC, lagú RF, agus conspóid cumas PHY nasctha ó dhea-chur feidhme."
+        "advanced": "Comhcheanglaíonn an ceangal acmhainn na gcainéal, ach braitheann an toradh inúsáidte ar an treo, ar theaghlach an chainéil, ar staid an ghlais, ar phróifílí, ar iompar an sceidealóra, agus ar chumraíocht na seirbhíse.",
+        "basic": "Is minic a úsáideann modeim DOCSIS roinnt cainéal íoslódála agus uaslódála ag an am céanna. Grúpálann DOCSight na cainéil infheicthe ionas gur féidir leat a fheiceáil cad atá ceangailte, faoi ghlas, agus folláin.",
+        "eli5": "Ligeann ceangal cainéal (channel bonding) do mhodem roinnt cainéal cábla a úsáid le chéile.",
+        "technician": "Agus fianaise an cheangail á hathbhreithniú, cuardaigh baill atá ar iarraidh nó lagaithe sa mbeart, folláine a bhaineann le teaghlach ar leith, agus an mbaineann na hairíonna le cainéal amháin, le treo amháin, nó leis an ngrúpa seirbhíse ar fad."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -249,10 +181,10 @@
       "category": "modulation_channels",
       "id": "sc_qam",
       "levels": {
-        "advanced": "SC-QAM iompróir aonair le leithead cainéal seasta agus ordú modhnú QAM. Is féidir le modhnú níos airde níos mó giotán a iompar in aghaidh an tsiombail, ach is é an meastachán fós acmhainn comhlán cainéal, ní tréchur IP.",
-        "basic": "SC-QAM. Is minic gur féidir le DOCSight a n-ollacmhainneacht Chiseal-1 a ​​mheas ó mhionsonraí modhnú agus cainéal. Úsáideann",
-        "eli5": "SC-QAM. Smaoinigh air mar lána amháin ar féidir sonraí a iompar idir an líonra cábla agus do móideim. Is cainéil traidisiúnta DOCSIS iad cainéil",
-        "technician": "I gcás cainéil DOCSIS SC-QAM, cinneann ord modhnúcháin, ráta siombaile, leithead cainéal, agus forchostais PHY ollmheastacháin Sraith-1. Scarann ​​frámaíocht FEC, MAC, sceidealú, nascáil, agus forchostais IP an meastachán sin ó thréchur feidhmchláir inúsáidte."
+        "advanced": "Úsáideann SC-QAM iompróir amháin le leithead cainéil socraithe agus ord QAM. Mar sin, tá comhthéacs ginearálta an chainéil níos simplí ná OFDM/OFDMA atá bunaithe ar phróifílí, nuair a nochtann an modem go leor réimsí.",
+        "basic": "Is cainéil thraidisiúnta ar stíl DOCSIS 3.0 iad cainéil SC-QAM. De ghnáth is féidir le DOCSight a gcumhacht, SNR/MER, modhnú, staid an ghlais, agus folláine a thaispeáint.",
+        "eli5": "Is é SC-QAM an cineál clasaiceach cúng cainéil DOCSIS.",
+        "technician": "Úsáid rónna SC-QAM chun lagú a bhaineann go sonrach le cainéal a aimsiú go leithleach: déan comparáid idir cainéil chomharsanachta, athruithe modhnaithe, MER/SNR, agus fás earráidí sula ndéanann tú tátal ar fud na plandála bunaithe ar luach lag amháin."
       },
       "misconceptions": [
         "Ní toradh Speedtest é meastachán acmhainne SC-QAM."
@@ -273,10 +205,10 @@
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
-        "advanced": "OFDM go leor fo-iompróirí agus próifílí. Braitheann cumas fíor-inúsáidte ar shannadh próifíle, sláinte fo-iompróir, bannaí eisiaimh, agus sceidealú ar thaobh an tsoláthraí. Teastaíonn próifíl agus comhthéacs an fho-iompróra chun meastachán acmhainne",
-        "basic": "Úsáideann DOCSIS 3.1 OFDM le sruth le haghaidh bealaí glactha solúbtha ard-acmhainne. Féadfaidh DOCSight a staid chomhartha a thaispeáint fiú nuair nach féidir leis an uimhir toilleadh simplí céanna agus SC-QAM a ríomh. Úsáideann bealaí anuas",
-        "eli5": "OFDM a scoilteann cainéal leathan ina mhórchuid píosaí bídeacha.",
-        "technician": "OFDM. Gan sonraí próifíle leordhóthanacha, ba cheart go ndéileálfadh DOCSight le OFDM mar a breathnaíodh ach nach n-áirítear i suimeanna acmhainne comhlán SC-QAM amháin."
+        "advanced": "Braitheann sláinte OFDM ar phróifílí, ar fho-iompróirí eisiata, ar staid ghlasála PLC, agus ar infhaighteacht phróifílí. Ba cheart go bhfanfadh faisnéis phróifíle atá in easnamh mar Unknown in ionad é a líonadh le toilleadh buailte.",
+        "basic": "Úsáideann DOCSIS 3.1 OFDM le haghaidh cainéal leathan glactha íoslódála. Lipéadaíonn DOCSight é ar leithligh mar go bhfuil an fhianaise OFDM difriúil ó shraitheanna traidisiúnta SC-QAM.",
+        "eli5": "Is é OFDM an cineál cainéil íoslódála i DOCSIS 3.1 atá comhdhéanta as go leor fo-iompróirí beaga.",
+        "technician": "Le haghaidh diagnóiseach OFDM, déan comparáid idir athruithe próifíle, táscairí cosúil le MER, iompar codewords/earráidí, agus fianaise chomharsanachta SC-QAM. Caith le réimsí próifíle nach dtacaítear leo mar theorainn sonraí, ní mar chruthúnas ar sheirbhís mhaith nó dhona."
       },
       "misconceptions": [
         "Ní chiallaíonn toilleadh OFDM in easnamh go bhfuil an cainéal gan úsáid; D’fhéadfadh go mbeadh easpa sonraí sábháilte ar leibhéal próifíle in easnamh ar DOCSight."
@@ -296,10 +228,10 @@
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
-        "advanced": "OFDMA ar leithdháileadh fo-iompróir, sannadh próifíle, sceidealú mionslot, torann cosán fillte, agus cinntí ar thaobh an tsoláthraí nach nochtfar go hiomlán leathanach móideim. Tá próifíl/fo-iompróir agus comhthéacs sceidealaithe de dhíth ar theileiméadracht",
-        "basic": "DOCSIS 3.1 OFDMA in aghaidh an tsrutha le haghaidh cainéil uaslódála solúbtha. Féadfaidh DOCSight sonraí comhartha nó cumhachta OFDMA a thaispeáint, ach de ghnáth ní bhíonn matamaitic acmhainne simplí SC-QAM sábháilte gan níos mó sonraí. Braitheann acmhainn in aghaidh srutha",
-        "eli5": "OFDMA Is cineál cainéal cábla in aghaidh an tsrutha níos nuaí é a ligeann do go leor móideim píosaí beaga bídeacha de chainéil leathan a roinnt. Úsáideann",
-        "technician": "OFDMA chun léirmhíniú sábháilte a dhéanamh. Níor cheart cumhacht tuairisce comhiomlán agus fianaise in aghaidh an fho-iompróra a mheascadh ach amháin má nochtar an tiománaí an mhéadrach atá beartaithe."
+        "advanced": "Braitheann OFDMA ar phróifílí, ar fho-iompróirí, ar mhionsliotáin, ar thorann an chosáin fhillte, agus ar chomhthéacs an sceidealóra. Ciallaíonn réimsí atá in easnamh, None, nó null nach dtacaítear leo nó nár tuairiscíodh iad, ní gur tomhaiseadh nialas.",
+        "basic": "Ligeann OFDMA do go leor móideimí codanna de bhloc leathan uaslódála a roinnt. Lipéadaíonn DOCSight é ar leithligh ó chainéil uaslódála SC-QAM.",
+        "eli5": "Is é OFDMA an cineál cainéil uaslódála i DOCSIS 3.1.",
+        "technician": "Déan diagnóis ar OFDMA le himeachtaí uaslódála, iompar tarchuir, infhaighteacht próifíle, agus uainiú latency/chaillteanais. Seachain buailtí toillis ar stíl SC-QAM mura nochtann an móideim na sonraí OFDMA riachtanacha."
       },
       "misconceptions": [
         "Is féidir le cainéal OFDMA gan uimhir toilleadh ar taispeáint a bheith gníomhach agus tábhachtach fós."
@@ -321,10 +253,10 @@
       "category": "modulation_channels",
       "id": "qam_modulation_order",
       "levels": {
-        "advanced": "Méadaíonn orduithe modhnúcháin níos airde giotán in aghaidh an tsiombail ach laghdaítear lamháltas maidir le torann agus saobhadh. Ní mór modhnú a léirmhíniú le SNR/MER, cineál cainéal, agus comhthéacs próifíle.",
-        "basic": "Bíonn tionchar ag QAM/ordú modhnúcháin ar cé mhéad giotán is féidir le cainéal a iompar. Má tá cáilíocht an chomhartha lag, d’fhéadfadh go mbeadh modhnú níos ísle ag teastáil ó chainéal agus mar sin go mbeidh níos lú olltoilleadh ann.",
-        "eli5": "Is é modhnú an chaoi a ndéantar sonraí a phacáil isteach sa chomhartha cábla. Is féidir le huimhreacha QAM níos airde níos mó sonraí a iompar, ach tá gá le comhartha níos glaine.",
-        "technician": "I gcás SC-QAM, cothaíonn ordú modhnúcháin go díreach meastacháin acmhainne Sraith-1 le ráta siombaile agus leithead an chainéil. I gcás OFDM/OFDMA, déanann sannadh próifíle/fo-iompróra an gaol níos casta ná lipéad amháin in aghaidh an chainéil."
+        "advanced": "Ní mór ord QAM a léirmhíniú in éineacht le fine cainéil agus SNR/MER. Tá gaol níos simplí ag SC-QAM le cainéal seasta, i gcomparáid le cainéil OFDM/OFDMA atá bunaithe ar phróifíl.",
+        "basic": "Is féidir le leibhéil QAM níos airde níos mó giotán a iompar in aghaidh an tsiombail, ach teastaíonn comhartha níos glaine uathu. Taispeánann DOCSight an modulation ionas go bhfeictear titimí nó staideanna low-QAM.",
+        "eli5": "Léiríonn modulation an méid sonraí a phacáiltear i ngach coiscéim de chomhartha an chábla.",
+        "technician": "Úsáid athruithe modulation mar fhianaise, ní mar bhreithiúnas aonair. Ceangail iad le MER/SNR, cumhacht, fás earráidí, fine cainéil, agus cibé an luach reatha é nó nach bhfuil ann ach staid dheireanach tuairiscithe an mhóideim."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -338,29 +270,6 @@
     },
     {
       "aliases": [
-        "Leithead an chainéil",
-        "Ráta siombaile",
-        "MHz",
-        "Msym/s"
-      ],
-      "category": "modulation_channels",
-      "id": "channel_width_symbol_rate",
-      "levels": {
-        "advanced": "DOCSIS leithid sainithe agus rátaí siombaile. Braitheann cumas matamaitice ar an teaghlach cainéal; Is féidir SC-QAM a mheas ar bhealach níos dírí ná OFDM/OFDMA gan sonraí próifíle.",
-        "basic": "Le haghaidh cainéil SC-QAM a dtacaítear leo, cuidíonn leithead an chainéil, an ráta siombaile, agus modhnú le hacmhainn Chomhlán Sraith-1 a mheas. Ní tháirgeann na hionchuir seo fíor-thréchur IP leo féin go fóill. Úsáideann pleananna cainéal",
-        "eli5": "Is é leithead an chainéil cé mhéad spás minicíochta a úsáideann cainéal. Is é an ráta siombaile cé chomh tapa agus a sheoltar céimeanna comhartha laistigh den chainéal sin.",
-        "technician": "Ba cheart go gcoinneofaí boinn tuisceana cainéil-teaghlaigh go follasach sna ríomhanna toillte. Ní cheart leithead EuroDOCSIS/DOCSIS, rátaí siombailí, ord modhnúcháin, agus forchostais PHY a athúsáid go dall thar phróifílí OFDM/OFDMA."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "MHz"
-      ],
-      "title": "Leithead an chainéil / ráta siombaile"
-    },
-    {
-      "aliases": [
         "Leibhéal an chomhartha",
         "dBmV",
         "Faigh cumhacht",
@@ -369,10 +278,10 @@
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "Power a léirmhíniú de réir treo agus cineál cainéal. Ní chruthaíonn luach glan in aghaidh srutha sláinte in aghaidh an tsrutha go huathoibríoch, agus is féidir le cumhacht tarchurtha ard in aghaidh an tsrutha a thabhairt le tuiscint go bhfuil an modem ag obair go crua chun taobh an tsoláthraí a bhaint amach.",
-        "basic": "Is féidir le DOCSight cumhacht faigh le sruth a thaispeáint agus cumhacht tarchurtha in aghaidh an tsrutha nuair a nochtar an móideim iad. Is féidir le luachanna lasmuigh de na raonta ionchais saincheisteanna cáblaithe, scoilteora, aimplitheoirí nó cosáin fillte a léiriú. Ní mór",
-        "eli5": "Is é an leibhéal cumhachta cé chomh láidir is atá an comhartha cábla ag breathnú ar an modem, nó cé chomh deacair is gá don mhodem labhairt ar ais.",
-        "technician": "Teastaíonn aonaid, treo, aicme cainéil agus séimeantaic tiománaí gléas le diagnóisic chumhachta. Níor cheart caitheamh le cumhacht chomhiomlán OFDMA agus cumhacht tuairisce per-1.6 MHz mar mhéadracht idirmhalartaithe."
+        "advanced": "Ní mór cumhacht a léirmhíniú de réir treo agus cineál cainéil. Ní tomhais inmhalartaithe iad leibhéal glactha downstream, leibhéal tarchurtha upstream, agus réimse report-power OFDMA.",
+        "basic": "Is féidir le DOCSight cumhacht ghlactha downstream agus cumhacht tharchurtha upstream a thaispeáint nuair a thuairiscíonn an móideim iad. Tá brí dhifriúil ag an dá threo.",
+        "eli5": "Insíonn leibhéal cumhachta cé chomh láidir is atá comhartha an chábla, nó cé chomh crua is a chaithfidh an móideim labhairt ar ais.",
+        "technician": "Úsáid fianaise cumhachta in éineacht le MER/SNR, modulation, staid ghlasála, stair na roinnteoirí/an chábla, agus uainiú. Ná hathraigh réimsí cumhachta nach dtacaítear leo, nó atá ar iarraidh, ina dtomhais nialasacha."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -392,10 +301,10 @@
       "category": "signal_quality",
       "id": "snr_mer",
       "levels": {
-        "advanced": "Ba cheart SNR/MER a léirmhíniú in éineacht le modhnú, aicme cainéal, agus áiritheoirí earráide. Is féidir le luach imeallach próifílí níos ísle, earráidí incheartaithe, nó earráidí do-cheartaithe a chruthú ag brath ar dhéine.",
-        "basic": "Is tomhais cháilíochta iad SNR agus MER. Ciallaíonn luachanna níos fearr go hiondúil gur féidir leis an modem an cainéal a dhíchódú ar bhealach níos iontaofa, ach fós ní bhíonn siad comhionann go díreach le feidhmíocht Speedtest.",
-        "eli5": "Deir SNR/MER cé chomh soiléir is atá an comhartha i gcomparáid le torann. Déanann comhartha níos soiléire pacáil sonraí níos airde níos iontaofa.",
-        "technician": "Braitheann tairseacha MER/SNR ar mhodhnú agus ar chur i bhfeidhm. Ba cheart do DOCSight locht an tsoláthraí a éileamh ó luach amháin a sheachaint; Is fianaise níos láidre é comhghaolú le glasáil cainéal, próifíl modhnú, cuntair FEC, agus treocht ama."
+        "advanced": "Faigheann SNR/MER a chuid brí nuair a léitear é in éineacht le modhnú, teaghlach cainéil, comhairimh earráidí, agus treochtaí ama. Is féidir le luach glan amháin torann uaineach nó athruithe próifíle a cheilt.",
+        "basic": "Is tomhais ar cháilíocht an chomhartha iad SNR agus MER. De ghnáth, ciallaíonn luachanna níos fearr gur féidir leis an mhodem an cainéal a dhíchódú níos iontaofa.",
+        "eli5": "Léiríonn SNR/MER cé chomh soiléir agus is féidir leis an mhodem an comhartha a chloisteáil tríd an torann.",
+        "technician": "Le haghaidh tarchuir aníos, glac MER/SNR in éineacht le haitheantais na gcainéal a bhfuil tionchar orthu, stampaí ama, athruithe ar ráta earráidí, cumhacht, agus imeachtaí. Seachain semantaicí SNR/MER a mheascadh trasna teaghlach cainéal gan a sheiceáil cad go díreach a thuairiscíonn an modem."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -408,52 +317,6 @@
     },
     {
       "aliases": [
-        "Caillteanas comhartha",
-        "Damping",
-        "Caillteanas cábla"
-      ],
-      "category": "signal_quality",
-      "id": "attenuation",
-      "levels": {
-        "advanced": "Is féidir le maolú teacht ó fhad cábla, scoilteoirí, asraonta balla, scagairí, droch-nascairí, nó coinníollacha plandaí. Is minic a fheictear go hindíreach trí chumhacht glactha, cumhacht a tharchur, SNR/MER, nó cobhsaíocht cainéal.",
-        "basic": "Is gnách go gcailltear roinnt comharthaí, ach féadann an iomarca caillteanais na leibhéil chumhachta a bhrú amach as an raon nó iallach a chur ar an móideim tarchur níos deacra in aghaidh an tsrutha. Feiceann DOCSight an éifeacht, ní gach cúis fhisiceach.",
-        "eli5": "Ciallaíonn maolú go n-éiríonn an comhartha níos laige agus é ag taisteal trí chábla, scoilteoirí agus nascóirí.",
-        "technician": "Ná tátal a bhaint as conair bheacht dB caillteanais ó stats móideim amháin. Caitheamh le caolú mar hipitéis dhiagnóiseach arna thacú ag athruithe cumhachta treo-shonracha, eolas topology, agus fianaise roimh / tar éis sreangaithe."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "dBmV",
-        "DOCSight"
-      ],
-      "title": "Laghdú"
-    },
-    {
-      "aliases": [
-        "Torann",
-        "Ingress",
-        "Cur isteach",
-        "Torann cosáin fillte"
-      ],
-      "category": "signal_quality",
-      "id": "ingress_noise",
-      "levels": {
-        "advanced": "Féadfaidh torann a bheith corrach, treo-shonrach, nó teoranta do mhinicíochtaí áirithe. Is gnách go mbíonn treocht ama thar na bealaí lena mbaineann níos úsáidí ná pictiúr aonair amháin.",
-        "basic": "Is féidir le dul isteach agus torann SNR/MER a laghdú, earráidí a chruthú, nó cumarsáid in aghaidh an tsrutha a dhéanamh éagobhsaí. Is féidir le DOCSight comharthaí a thaispeáint nuair a nochtar an móideim sonraí comhartha agus earráide lena mbaineann.",
-        "eli5": "Is comhartha gan iarraidh é torann measctha isteach sa chomhartha cábla. Déanann an iomarca torainn sonraí níos deacra a léamh.",
-        "technician": "Is féidir le hiontráil chosáin fillte, torann ríogach, saobhadh cosáin comónta, agus lochtanna cáblaithe áitiúla difear difriúil a dhéanamh do chainéil DOCSIS. Ba cheart do DOCSight fianaise infheicthe móideim a chur i láthair gan logánú iomlán plandaí a éileamh."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SNR",
-        "MER",
-        "OFDMA"
-      ],
-      "title": "Isteach/torann"
-    },
-    {
-      "aliases": [
         "Correctables",
         "Códfhocail cheartaithe",
         "FEC ceartaithe"
@@ -461,10 +324,10 @@
       "category": "error_counters",
       "id": "correctable_errors",
       "levels": {
-        "advanced": "Léiríonn Correctables obair FEC. Is féidir le fás le linn imeachtaí torainn, rátaí arda ar chainéil ar leith, nó comhghaol le MER íseal a bheith úsáideach; is fianaise lag iad na sean-iomlán carnach amháin.",
-        "basic": "Is féidir le cuntair incheartaithe ardú fiú ar líne oibre. Ardaíonn an ráta, an t-am, na bealaí lena mbaineann, agus cibé an ardaíonn ábhar neamhcheartaithe níos mó ná amhiomlán amháin.",
-        "eli5": "Is botúin bheaga iad earráidí incheartaithe a d'fhéadfadh an móideim a dheisiú sular cailleadh sonraí iad.",
-        "technician": "Coinnigh cuntair móideim amh scartha ó rátaí díorthaithe. Ba cheart do DOCSight luachanna carnacha a chaomhnú mar fhianaise agus úsáid á baint as fuinneoga breathnóireachta, bonnlínte agus rátaí fáis le haghaidh léirmhíniú sláinte."
+        "advanced": "Léiríonn earráidí inceartaithe obair FEC, ní cailliúint dhíreach paicéad. Is fianaise níos láidre é fás le déanaí le linn imeachtaí torainn ná iomlán carnach mór atá fágtha ón am atá caite.",
+        "basic": "Is féidir le comhairimh inceartaithe ardú fiú ar líne atá ag feidhmiú i gceart. Déanann DOCSight úsáideach iad trí ráta, uainiú, cainéil a bhfuil tionchar orthu, agus cé acu an bhfuil ardú freisin ar earráidí do-cheartaithe a thaispeáint.",
+        "eli5": "Is earráidí comhartha iad earráidí inceartaithe ar éirigh leis an mhodem a dheisiú.",
+        "technician": "Déan comparáid idir fás na bhfocalchód ceartaithe de réir cainéil agus fuinneoige ama. Cuir in éineacht é le MER/SNR, modhnú, agus earráidí do-cheartaithe chun ceartúchán cúlra neamhdhíobhálach a scaradh ó lagú gníomhach."
       },
       "misconceptions": [
         "Ní locht gníomhach go huathoibríoch é seaniomlán ard incheartaithe."
@@ -485,10 +348,10 @@
       "category": "error_counters",
       "id": "uncorrectable_errors",
       "levels": {
-        "advanced": "Ba cheart míreanna neamhcheartaithe a chomhghaolú le SNR/MER, glasáil cainéal, athruithe modhnúcháin, agus comharthaí infheicthe ag an úsáideoir. Is féidir le hathshocrú nó atosaigh iompar cuntar amh a athrú freisin.",
-        "basic": "Uncorrectables sonraí caillte a chur in iúl ag leibhéal an chainéil, go háirithe nuair a fhásann siad le linn na fuinneoige breathnóireachta. Is mó an tábhacht a bhaineann lena n-uainiú agus lena ráta fáis ná sean-chuntar iomlán.",
-        "eli5": "Earráidí do-cheartaithe is ea botúin nach bhféadfaí a cheartú. Tá siad níos tromchúisí ná earráidí incheartaithe. Is féidir le",
-        "technician": "Mar fhianaise, coinnigh cuntair amh do-cheartaithe agus ríomh fás díorthaithe ó bhunlíne aitheanta. Seachain iomláin móideim a athscríobh; idirdhealú a dhéanamh idir athshocrú cuntair, timfhilleadh, agus spící fhuinneog breathnadóireachta reatha."
+        "advanced": "Ba chóir fianaise a choinneáil ionas go bhfuil na comhairimh charnacha amha ar leithligh ón bhfás díorthaithe. Is féidir le hathshocruithe, timfhilleadh, agus atosú an mhodem na hiomláin amha a athrú gan briseadh nua a léiriú.",
+        "basic": "D'fhéadfadh earráidí neamh-inceartaithe sonraí ar leibhéal an chainéil a chailleadh, go háirithe nuair a mhéadaíonn siad le linn na tréimhse breathnóireachta. Tugann DOCSight tosaíocht don fhás agus don am seachas d'iomlán sean amháin.",
+        "eli5": "Is éard atá i n-earráidí nach féidir a cheartú ná botúin chomhartha nár éirigh leis an modem a dheisiú.",
+        "technician": "Bain úsáid as earráidí neamh-inceartaithe mar fhianaise ardaithe nuair a thagann fás úr le MER/SNR íseal, laghduithe modhlaithe, logaí imeachtaí, nó moill/chailliúint atá le feiceáil ag an úsáideoir. Coinnigh an comhaireamh amh nuair a onnmhairítear fianaise."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -500,73 +363,6 @@
     },
     {
       "aliases": [
-        "PHY acmhainn",
-        "Acmhainn ciseal fisiciúil",
-        "Acmhainn chainéil"
-      ],
-      "category": "capacity_throughput",
-      "id": "layer1_capacity",
-      "levels": {
-        "advanced": "faoi bhun sceidealú MAC, FEC, iompar nasctha, teorainneacha sreabhadh seirbhíse, lastuas IP, iompar iarratais, agus ualach deighleog. Is ciseal diagnóiseach amháin é, ní an nasc iomlán. Ba cheart toilleadh",
-        "basic": "DOCSight acmhainn chomhlán Chiseal-1 a ​​mheas do chainéil SC-QAM a dtacaítear leo. Is comhthéacs cainéal úsáideach é seo, ach ní gealltanas é luas inúsáidte idirlín. Tá toilleadh Sraithe-1",
-        "eli5": "Is uimhir theoiric é toilleadh Sraithe-1 maidir leis an méid is féidir leis an gciseal comhartha cábla a iompar sula mbaintear lastuas den fhíorshaol. Féadfaidh",
-        "technician": "PHY/Layer-1 a lipéadú mar fhianaise cainéil chomhláin. Ná hionann é agus rátaí sreafa seirbhíse, toradh TCP/UDP, torthaí Speedtest, nó luas taraife conarthach."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "Layer-1",
-        "DOCSIS",
-        "SC-QAM",
-        "IP"
-      ],
-      "title": "Sraith-1 acmhainn"
-    },
-    {
-      "aliases": [
-        "Ollacmhainneacht",
-        "Glantréchur",
-        "Lasnairde"
-      ],
-      "category": "capacity_throughput",
-      "id": "gross_vs_net_capacity",
-      "levels": {
-        "advanced": "Tagann difríochtaí comhlán go glan ó PHY lastuas, FEC, frámaíocht MAC, spairne, múnlú sreafa seirbhíse, forchostais IP/TCP/UDP, agus iompar feidhmchlár. Tomhaiseann tástálacha éagsúla sraitheanna éagsúla.",
-        "basic": "Tosaíonn meastachán comhlán cainéal roimh DOCSIS, IP, agus forchostas feidhmchláir. Tá tréchur glan níos ísle agus braitheann sé freisin ar sceidealú, teorainneacha soláthraithe, cliaint, agus an cosán chuig an bhfreastalaí.",
-        "eli5": "Tá an t-ollleibhéal roimh lastuas. Tá Net níos gaire don méid atá fágtha tar éis don líonra roinnt spáis a úsáid chun cumarsáid a dhéanamh.",
-        "technician": "Coinnigh an ciseal tomhais soiléir: tá ollacmhainneacht PHY, rátaí sreafa MAC/seirbhíse, tréchur IP, agus dea-chur feidhme ar leithligh. Cruthaíonn meascadh na sraitheanna sin comparáidí míthreoracha. Tréchur IP"
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "Layer-1",
-        "IP"
-      ],
-      "title": "Comhlán vs. toilleadh"
-    },
-    {
-      "aliases": [
-        "Tréchur Idirlín",
-        "Goodput",
-        "Luas inúsáidte"
-      ],
-      "category": "capacity_throughput",
-      "id": "ip_throughput",
-      "levels": {
-        "advanced": "a bheith níos ísle ná toilleadh an chainéil mar gheall ar sholáthar, sceidealú, argóint, múnlú tráchta, caillteanas paicéad, latency, teorainneacha cliant, agus scrogaill ar thaobh an fhreastalaí.",
-        "basic": "níos gaire don taithí atá ag apps agus Speedtests ná mar atá acmhainn cainéal. Braitheann sé ar shláinte DOCSIS, cumraíocht an tsoláthraí, ródú, Wi-Fi/LAN, agus an cianfhreastalaí. Is féidir le tréchur",
-        "eli5": "Is é tréchur IP na fíor-shonraí a dhéanann trí do nasc idirlín é tar éis forchostais agus teorainneacha líonra. Tá tréchur IP",
-        "technician": "Is toradh ceann go ceann é toradh maith/tréchur. Is féidir le diagnóisic móideim DOCSight fianaise áitiúil ciseal DOCSIS a mhíniú, ach níor cheart dóibh cúisíocht amháin a éileamh maidir le toradh tréchur IP gan sonraí tacaíochta."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "IP",
-        "DOCSIS",
-        "Speedtest"
-      ],
-      "title": "Tréchur IP"
-    },
-    {
-      "aliases": [
         "Tástáil luais",
         "Íosluchtaigh tástáil",
         "Tástáil uaslódáil",
@@ -575,10 +371,10 @@
       "category": "capacity_throughput",
       "id": "speedtest",
       "levels": {
-        "advanced": "Is féidir le Speedtests cabhrú le tionchar an úsáideora a bhailíochtú, ach ní hionann iad agus diagnóisic chainéil. Teastaíonn comhghaol idir toradh íseal agus fianaise móideim, cosán an chliaint, agus teorainneacha soláthraí/seirbhíse.",
-        "basic": "Is tomhas ceann go ceann é Speedtest ag nóiméad amháin. Cuireann sláinte DOCSIS, teorainneacha taraife, ualach deighleog, Wi-Fi/LAN, ródú, agus an freastalaí tástála roghnaithe isteach air.",
-        "eli5": "Seiceálann Speedtest cé chomh tapa agus a aistríonn sonraí chuig agus ó fhreastalaí tástála faoi láthair.",
-        "technician": "Déileáil le sonraí Speedtest mar fhianaise IP/ciseal iarratais. Déan é a chur i gcomparáid le luas taraife agus línte ama diagnóiseacha, ní go díreach i gcoinne ollacmhainneacht PHY SC-QAM nó comhaireamh cainéal amh."
+        "advanced": "Tomhaiseann Speedtest feidhmíocht IP ó cheann go ceann ag nóiméad amháin. Ní hionann é agus toilleadh cainéil DOCSIS, luas taraife, nó sláinte RF áitiúil.",
+        "basic": "Is féidir le DOCSight íoslódáil, uaslódáil, moill, agus creathadh a thaifeadadh ionas gur féidir feidhmíocht atá le feiceáil ag an úsáideoir a chur i gcomparáid le fianaise DOCSIS.",
+        "eli5": "Tomhaiseann an Speedtest an tréchur agus an mhoill a fheiceann úsáideoir le linn tástála.",
+        "technician": "Léirmhínigh torthaí Speedtest in éineacht le freastalaí na tástála, am an lae, sonraí monatóireachta ceangail, leideanna deighleoige, agus fianaise modem. Seachain toradh íseal amháin a úsáid mar chruthúnas ar locht comhartha DOCSIS."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -591,29 +387,6 @@
     },
     {
       "aliases": [
-        "Luas áirithinte",
-        "Luas an phlean",
-        "Luas an chonartha",
-        "Luas soláthartha"
-      ],
-      "category": "capacity_throughput",
-      "id": "tariff_speed",
-      "levels": {
-        "advanced": "De ghnáth cuirtear luas an phlean i bhfeidhm trí chumraíocht an tsoláthraí agus teorainneacha sreafa seirbhíse. Braitheann luas fíor freisin ar ualach líonra, ar staid móideim, ar ródú, agus ar choinníollacha cliant áitiúil.",
-        "basic": "Is teorainn táirge agus soláthair é luas taraife. Is féidir le sonraí cainéil DOCSight a thaispeáint an bhfuil cuma shláintiúil ar an nasc cábla, ach ní féidir leis gach beartas nó mionsonraí conarthacha ar thaobh an tsoláthraí a chruthú.",
-        "eli5": "Is é luas taraife an plean idirlín a n-íocann tú as, mar ráta íoslódála agus uaslódála curtha in áirithe.",
-        "technician": "Ná tátal as an gcumraíocht sreafa seirbhíse suibscríobhaí beacht ó thoilleadh an chainéil amháin. Bain úsáid as soláthar follasach nó fianaise Luastástála nuair atá sí ar fáil, agus coinnigh lipéid acmhainne DOCSight scartha ó éilimh taraife."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Luas na taraife"
-    },
-    {
-      "aliases": [
         "Ualach deighleog",
         "Plódú",
         "Nód-ualach",
@@ -622,10 +395,10 @@
       "category": "capacity_throughput",
       "id": "segment_utilization",
       "levels": {
-        "advanced": "Braitheann ualach deighleog ar mhéid an ghrúpa seirbhíse, ar shíntiúsóirí gníomhacha, ar acmhainn cainéal, ar sceidealú CMTS, agus ar am den lá. D’fhéadfadh comharthaí a léiriú le fianaise móideim áitiúil ach ní léireoidh sé an t-ainmneoir úsáide iomlán.",
-        "basic": "Is féidir le teascán gnóthach fíorluasanna a laghdú fiú nuair a bhíonn cuma mhaith ar do chomhartha móideim. Níor cheart go n-éileodh DOCSight go mbainfí úsáid chruinn as deighleog mura nochtaítear na sonraí sin ó fhoinse tacaithe.",
-        "eli5": "Ciallaíonn úsáid deighleog cé chomh gnóthach is atá an teascán cábla comhroinnte.",
-        "technician": "Teastaíonn fianaise ó thaobh an tsoláthraí nó fianaise sheachtrach tacaithe le húsáid iomlán. Seachain ualach iomlán na míre a dhíorthú ó liosta cainéal móideim amháin, Speedtest, nó staid chomhartha amháin."
+        "advanced": "Fanann Unknown mar chatagóir infheicthe agus fanann sí sna hainmneoirí dáileacháin. Dá gcuirfí ar leataobh í, bheadh cuma níos deimhní ar na samplaí atá ar fáil ná mar atá i ndáiríre.",
+        "basic": "Déanann an t-amharc seo comparáid idir fianaise chomhartha áitiúil agus comharthaí tacaithe maidir le húsáid nó feidhmíocht, nuair a bhíonn na foinsí sonraí sin ar fáil.",
+        "eli5": "Cabhraíonn Segment Utilization leat comhartha do mhodaim féin a scaradh ó leideanna faoi ualach ar an deighilt roinnte.",
+        "technician": "Ná húsáid an t-amharc seo ach laistigh dá theorainn fianaise: ní mór samplaí tacaithe, ciseáin Unknown, sonraí atá in easnamh, agus tomhais feidhmíochta seachtracha a choinneáil ar leithligh in aschuir agus i míniúcháin."
       },
       "misconceptions": [
         "Ní cruthúnas ar mhír gan phlódú é comhartha maith móideim. Acmhainn"
@@ -636,125 +409,6 @@
         "DOCSight"
       ],
       "title": "Úsáid deighleog"
-    },
-    {
-      "aliases": [
-        "Tréchur",
-        "Acmhainn vs tréchur",
-        "Layer-1"
-      ],
-      "category": "capacity_throughput",
-      "id": "capacity_vs_throughput",
-      "levels": {
-        "advanced": "Tá toilleadh cainéal ciseal-1 roimh MAC, FEC, sceidealú, nascáil, ualach deighleog, múnlú tráchta, agus forchostais IP/iarratas. Tomhaiseann tástálacha luais cosán ceann go ceann ag aon nóiméad amháin.",
-        "basic": "Déanann meastacháin acmhainneachta DOCSight cur síos ar ollacmhainneacht leibhéal na gcainéal, go háirithe do chainéil SC-QAM a dtacaítear leo. Ní hiad do luas taraife, ní Speedtest, agus ní tréchur IP fíor ráthaithe.",
-        "eli5": "Is é an acmhainn a d’fhéadfadh an lána cábla a iompar go teoiriciúil. Is é Speedtest a sheachadann do nasc díreach anois tar éis go leor rudaí eile a chur san áireamh.",
-        "technician": "Ná hionann acmhainn chomhlán PHY agus teorainneacha ráta sreafa seirbhíse nó dea-aschur TCP/UDP. Is féidir le sceidealú CMTS, soláthar, infhaighteacht phróifíl OFDM/OFDMA, lagú RF, scuaine, piaraí, agus iompar freastalaí tástála ceannasaíocht a dhéanamh ar an tréchur breathnaithe."
-      },
-      "misconceptions": [
-        "Ní cruthúnas é suim toilleadh cainéil gur cheart do chustaiméir an uimhir chéanna a fheiceáil i Speedtest.",
-        "Is cumraíocht táirge é luas taraife; Fianaise áitiúil is ea diagnóisic chainéil DOCSight."
-      ],
-      "protected_terms": [
-        "Layer-1",
-        "SC-QAM",
-        "Speedtest",
-        "IP",
-        "DOCSight"
-      ],
-      "title": "Cumas vs Speedtest"
-    },
-    {
-      "aliases": [
-        "Seirbhís sholáthair",
-        "Sreabhadh seirbhíse",
-        "Gníomhachtaithe",
-        "Plean config"
-      ],
-      "category": "modem_state",
-      "id": "provisioning",
-      "levels": {
-        "advanced": "difear a dhéanamh do luas taraife, sreafaí seirbhíse, údarú móideim, sannadh bootfile/config, agus gnéithe cumasaithe. Tá sé ar leithligh ó chaighdeán comhartha RF amh.",
-        "basic": "Rialaíonn soláthar cibé an gceadaítear an móideim ar líne agus cé na teorainneacha seirbhíse atá i bhfeidhm. Seans go dtaispeánfar leideanna do DOCSight, ach ní bhíonn an chumraíocht ar thaobh an tsoláthraí le feiceáil go hiomlán ón móideim i gcónaí. Is féidir le soláthar",
-        "eli5": "Soláthar Is é an chaoi a n-insíonn an soláthraí don móideim cén tseirbhís ba cheart a bheith aige.",
-        "technician": "Déileáil le soláthar mar chonradh ciseal DOCSIS/MAC-rialaithe ag an soláthraí. Féadfaidh leathanaigh áitiúla móideim ainmneacha na gcomhad tosaithe nó staid na seirbhíse a nochtadh, ach ní nochtfar gach polasaí CMTS nó loighic cuntais suibscríobhaí."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Soláthar seirbhíse"
-    },
-    {
-      "aliases": [
-        "Bootfile",
-        "Comhad cumraíochta",
-        "DOCSIS config",
-        "Cumraíocht seirbhíse"
-      ],
-      "category": "modem_state",
-      "id": "bootfile_config_file",
-      "levels": {
-        "advanced": "tacú le diagnóis soláthair, ach baineann na hainmneacha go sonrach leis an soláthraí agus ní fhéadfaidh siad mapáil glan ar lipéid taraife poiblí. Ba chóir é a úsáid go cúramach agus le fianaise eile. Tá comhaid chumraíochta",
-        "basic": "Is féidir le comhad cumraíochta DOCSIS iompraíocht seirbhíse a shainmhíniú ar nós teorainneacha rátaí agus gnéithe cumasaithe. Nochtann roinnt móideimí an t-ainm; Níor cheart do DOCSight glacadh leis an ábhar iomlán ón ainm amháin. Is féidir le fianaise Bootfile",
-        "eli5": "Is é atá sa bootfile/comhad cumraíochta ná treoracha an tsoláthraí a fhaigheann an móideim nuair a thosaíonn sé.",
-        "technician": "DOCSIS mar chuid de chlárú/soláthar móideim. Gan inneachar an chomhaid iarbhír agus comhthéacs CMTS, níl in ainm comhaid ar taispeáint ach leid, ní conradh sreafa seirbhíse iomlán."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Bootfile/comhad cumraíochta"
-    },
-    {
-      "aliases": [
-        "Páirtnasc",
-        "Cainéil ar iarraidh",
-        "Glasáil cainéal páirteach"
-      ],
-      "category": "modem_state",
-      "id": "partial_service",
-      "levels": {
-        "advanced": "Is féidir le seirbhís pháirteach teacht ó shaincheisteanna RF, fadhbanna próifíle / cainéil, cothabháil, soláthar, nó iompar móideim / CMTS. Ba cheart é a léirmhíniú le glas cainéal, earráidí, cumhacht, agus uainiú imeachtaí.",
-        "basic": "Féadfaidh móideim i bpáirtseirbhís idirlíon a sholáthar fós, ach le níos lú bealaí, le hathléimneacht níos ísle, nó le feidhmíocht laghdaithe. Is féidir le DOCSight cuidiú a thaispeáint cé na teaghlaigh cainéil infheicthe a bhfuil tionchar orthu.",
-        "eli5": "Ciallaíonn seirbhís pháirteach go bhfuil an móideim ar líne ach nach n-úsáideann sé gach cainéal ná feidhm a bhfuiltear ag súil leis.",
-        "technician": "Ná caith seirbhís pháirteach mar chúis sheasta amháin. Déan diagnóis de réir treorach, teaghlach an chainéil, loga imeachtaí, méadracht RF, agus cibé an leanann an riocht ar aghaidh thar fhuinneoga athshioncronaithe/atosaigh nó cothabhála soláthraí."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "OFDM",
-        "OFDMA"
-      ],
-      "title": "Páirtseirbhís"
-    },
-    {
-      "aliases": [
-        "Atosaigh Móideim",
-        "Athshioncronú",
-        "Rang a atosú",
-        "Athcheangail"
-      ],
-      "category": "modem_state",
-      "id": "resync_reboot",
-      "levels": {
-        "advanced": "Is féidir athshioncronú a spreagadh trí chothabháil, éagobhsaíocht RF, athruithe soláthair, caillteanas cumhachta, firmware móideim, nó imeachtaí ar thaobh an tsoláthraí. Déan comparáid idir grianghraif roimh/i ndiaidh in áit staid amháin a léamh ina n-aonar.",
-        "basic": "Is féidir le hathshocraíochtaí agus le hathshioncronú cuntair a ghlanadh go sealadach, sannadh an chainéil a athrú, nó an tseirbhís a athchóiriú tar éis lochta. Má tharlaíonn siad gan choinne, is fianaise thábhachtach é an t-am.",
-        "eli5": "Atosaíonn A atosaigh an móideim. Déanann athshioncronú é a athcheangal leis an líonra cábla.",
-        "technician": "Le haghaidh fianaise, caomhnaigh stampaí ama, logaí imeachtaí, athruithe cainéal, agus éifeachtaí frith-bhonnlíne timpeall ar imeachtaí atosaigh/athshioncronaithe. Ná léirmhínigh cuntair athshocraithe mar chruthúnas nár tharla lagú níos luaithe riamh."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Athshioncronú/atosaigh Móideim"
     }
   ]
 }

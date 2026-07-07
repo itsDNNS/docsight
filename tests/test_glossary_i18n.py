@@ -245,6 +245,9 @@ def test_glossary_i18n_catalogs_define_fields_without_field_level_fallbacks():
         raw = _load_glossary_locale(lang)
         raw_categories = {category["id"]: category for category in raw.get("categories", [])}
         raw_terms = {term["id"]: term for term in raw.get("terms", [])}
+        assert set(raw_terms).issubset(set(english_terms)), (
+            f"Stale raw glossary terms in {lang}: {sorted(set(raw_terms) - set(english_terms))}"
+        )
 
         for category_id, english_category in english_categories.items():
             category = raw_categories.get(category_id)
@@ -272,6 +275,27 @@ def test_glossary_i18n_catalogs_define_fields_without_field_level_fallbacks():
                 text = str(levels.get(level, "")).strip()
                 assert len(text) > 40, f"Missing or too-short raw {level} for {term_id} in {lang}"
                 assert text != english_term["levels"][level], f"English raw {level} fallback leaked for {term_id} in {lang}"
+
+
+def test_glossary_level_texts_do_not_repeat_lower_level_copy():
+    """Each level should add a new explanation layer instead of prefixing or duplicating another level."""
+    for lang in ["en", *get_glossary_localization_languages()]:
+        for term in get_glossary_terms(lang):
+            normalized = {
+                level: " ".join(term["levels"][level].split())
+                for level in GLOSSARY_LEVELS
+            }
+            for index, left_level in enumerate(GLOSSARY_LEVELS):
+                for right_level in GLOSSARY_LEVELS[index + 1:]:
+                    left = normalized[left_level]
+                    right = normalized[right_level]
+                    assert left != right, f"Duplicate glossary levels for {term['id']} {left_level}/{right_level} in {lang}"
+                    assert not right.startswith(left), (
+                        f"{right_level} repeats {left_level} as a prefix for {term['id']} in {lang}"
+                    )
+                    assert not left.startswith(right), (
+                        f"{left_level} repeats {right_level} as a prefix for {term['id']} in {lang}"
+                    )
 
 
 def test_localized_glossary_preserves_required_literal_tokens():

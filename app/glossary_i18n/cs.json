@@ -20,10 +20,10 @@
       "category": "cable_basics",
       "id": "docsis",
       "levels": {
-        "advanced": "Sítě DOCSIS kombinují downstream a upstream kanály jako SC-QAM, OFDM a OFDMA. DOCSight může interpretovat místní modem-viditelný signál a data kanálu, ale nemůže vidět každý segment na straně poskytovatele nebo podmínku směrování.",
-        "basic": "DOCSIS přenáší internetovou službu přes koaxiální kabel. DOCSight čte data modemu, kanálu a signálu z podporovaných kabelových zařízení, takže jeho diagnostika popisuje kabelové spojení spíše než linku DSL.",
-        "eli5": "DOCSIS je jazyk, který kabelový modem používá pro komunikaci s kabelovou sítí. Je to kabelový internet, ne DSL přes telefonní linku.",
-        "technician": "DOCSIS definuje přístupovou vrstvu kabelového modemu mezi CM a CMTS přes segment HFC/koaxiální kabel. Telemetrie místních kanálů je užitečná pro diagnostiku na vrstvě RF a MAC, ale poskytování poskytovatelů, zatížení segmentů, zásady CMTS a směrování IP zůstávají mimo hranice evidence pouze pro modem."
+        "advanced": "DOCSIS používá kombinaci downstream a upstream rodin kanálů jako SC-QAM, OFDM a OFDMA. Každá rodina zpřístupňuje různé důkazy, takže DOCSight odděluje typ kanálu, směr a stav podpory.",
+        "basic": "DOCSIS přenáší internetové služby přes koaxiální kabel. DOCSight čte data modemu, kanálů a signálu z podporovaných DOCSIS zařízení, takže jeho důkazy se týkají spíše přístupového vedení než DSL.",
+        "eli5": "DOCSIS je jazyk kabelového internetu, kterým si mluví kabelový modem a síť poskytovatele.",
+        "technician": "Využívejte DOCSIS důkazy jako kontext na straně modemu: zámek kanálu, výkon, MER/SNR, modulace, chyby a eventy. Provisioning poskytovatele, politika CMTS, zatížení segmentu a směrování IP stále vyžadují explicitní podpůrné zdroje."
       },
       "misconceptions": [
         "DOCSIS není DSL; Hodnoty DSL a hodnoty kabelových kanálů by se neměly porovnávat jedna ku jedné."
@@ -37,74 +37,6 @@
     },
     {
       "aliases": [
-        "DSL",
-        "Telefonní linka vs koax"
-      ],
-      "category": "cable_basics",
-      "id": "dsl_vs_cable",
-      "levels": {
-        "advanced": "DSL obvykle představuje linku point-to-point s hodnotami stylu synchronizace. DOCSIS používá sdílené koaxiální segmenty, spojené kanály a plánování CMTS, takže diagnostika modemového kanálu vyžaduje jinou interpretaci.",
-        "basic": "DOCSight je postaven na kabelových/DOCSIS důkazech. Hodnoty kabelového modemu, jako jsou kanály, modulace, SNR/MER a kapacita DOCSIS, by se neměly číst jako synchronizační rychlosti DSL nebo statistiky linek DSL.",
-        "eli5": "DSL a kabel jsou dva různé způsoby, jak přivést internet domů. DSL používá telefonní kabely; kabelový internet používá koaxiální kabel a DOCSIS.",
-        "technician": "Nemapujte útlum DSL, synchronizaci nebo koncepty profilu přímo na důkazy DOCSIS RF/MAC. Stav kanálu DOCSIS, profily OFDM/OFDMA, toky služeb a chování CMTS popisují odlišnou architekturu přístupu."
-      },
-      "misconceptions": [
-        "Seznam kabelových kanálů není synchronizační tabulka DSL."
-      ],
-      "protected_terms": [
-        "DSL",
-        "DOCSIS",
-        "DOCSight"
-      ],
-      "title": "DSL vs. kabel"
-    },
-    {
-      "aliases": [
-        "Coax",
-        "Anténní kabel",
-        "Kabelové vedení"
-      ],
-      "category": "cable_basics",
-      "id": "coaxial_cable",
-      "levels": {
-        "advanced": "DOCSIS jsou vysokofrekvenční cesty: úroveň výkonu, SNR/MER, ingress, útlum a uzamčení kanálu se mohou změnit, když jsou kabely, rozbočovače nebo zesilovače špatné nebo mají nesprávnou velikost.",
-        "basic": "Kabelový internet běží přes koaxiální kabel mezi vaším domovem a sítí poskytovatele. Rozbočovače, konektory a domácí kabeláž mohou ovlivnit úroveň a kvalitu signálu. Koaxiální cesty",
-        "eli5": "Coax je kulatý kabel, který přenáší televizní a kabelové internetové signály. Váš kabelový modem jej používá k připojení k síti DOCSIS.",
-        "technician": "V sítích HFC přenáší koaxiální větev výstupní a protisměrné RF kanály mezi modemem a přístupovou sítí. DOCSight může vykazovat modemově viditelné RF symptomy, ale ne celou fyzickou topologii rostliny."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "HFC",
-        "DOCSight"
-      ],
-      "title": "Koaxiální kabel"
-    },
-    {
-      "aliases": [
-        "Modem",
-        "Brána",
-        "Kabelový router",
-        "Režim mostu"
-      ],
-      "category": "cable_basics",
-      "id": "cable_modem_router",
-      "levels": {
-        "advanced": "Brána kombinuje funkce modemu DOCSIS se směrováním/NAT/Wi-Fi. Režim mostu může odhalit směrování na jiné zařízení, ale důkaz signálu a kanálu DOCSIS stále patří straně modemu.",
-        "basic": "Kabelový modem zpracovává DOCSIS na straně poskytovatele. Mnoho zařízení také funguje jako směrovače, přístupové body Wi-Fi nebo brány pro vaši domácí IP síť.",
-        "eli5": "Modem/router je krabice, která spojuje vaši domácí síť s kabelovou sítí.",
-        "technician": "Oddělte pozorování na vrstvě DOCSIS od chování LAN/routeru. Dobrý stav RF a kanálů nevylučuje Wi-Fi, NAT, firewall, směrování nebo úzká místa na straně klienta za modemem."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "DOCSight",
-        "IP"
-      ],
-      "title": "Kabelový modem/router"
-    },
-    {
-      "aliases": [
         "Systém zakončení kabelového modemu",
         "Vzdálená PHY",
         "Koncová stanice poskytovatele"
@@ -112,10 +44,10 @@
       "category": "cable_basics",
       "id": "cmts",
       "levels": {
-        "advanced": "Systémy na straně poskytovatele plánují upstream přístup, poskytují downstream kanály, aplikují zřizování a podílejí se na omezeních toku služeb. Důkazy místního modemu mohou naznačovat problémy, ale nemohou plně popsat zásady CMTS. Architektury",
-        "basic": "CMTS nebo související přístupový systém na straně poskytovatele spravuje modemy DOCSIS, kanály, plánování a konfiguraci služeb. DOCSight obvykle vidí pouze modemovou stránku tohoto vztahu.",
-        "eli5": "CMTS je systém na straně poskytovatele, se kterým komunikuje váš kabelový modem.",
-        "technician": "CMTS, CCAP, Remote PHY a uzlů ovlivňují dostupnost kanálu, přiřazení profilů, plánování a zpracování narušení. DOCSight by neměl odvozovat stav na straně poskytovatele, pokud jej neodhalí explicitní podporovaný zdroj."
+        "advanced": "Chování CMTS/CCAP může ovlivnit dostupnost kanálů, profily, plánování a provisioning, ale ta rozhodnutí na straně poskytovatele jsou viditelná jen částečně přes telemetrii modemu.",
+        "basic": "CMTS nebo související přístupový systém spravuje DOCSIS modemy, kanály, plánování a konfiguraci služby. DOCSight obvykle vidí pouze stranu modemu.",
+        "eli5": "CMTS je systém na straně poskytovatele, se kterým si váš kabelový modem povídá.",
+        "technician": "Neodvozujte přesný stav CMTS pouze z důkazů modemu. Používejte formulace související s CMTS pouze pokud jsou podporovány explicitními daty poskytovatele, kontextem eventu nebo poli modemu, která jej skutečně zpřístupňují."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -135,10 +67,10 @@
       "category": "cable_basics",
       "id": "node_segment",
       "levels": {
-        "advanced": "Skupiny služeb a hranice uzlů ovlivňují spory, zatížení kanálu a plánování upgradu. Místní modem může odhalit svůj vlastní stav kanálu, nikoli úplný seznam sousedních modemů nebo celkovou poptávku poskytovatele.",
-        "basic": "Lidé ve stejném kabelovém segmentu sdílejí určitou kapacitu přístupové sítě. Rozdělení uzlů může snížit počet uživatelů, kteří sdílejí stejné prostředky, ale DOCSight normálně nevidí celou populaci segmentu.",
-        "eli5": "Segment je část kabelové sítě sdílená skupinou domácností.",
-        "technician": "Interpretace segmentů závisí na topologii poskytovatele, velikosti skupiny služeb, vzdáleném návrhu PHY/CMTS a aktivních předplatitelích. Považujte úplné využití za důkaz na straně poskytovatele, pokud není měřeno z podporovaného zdroje."
+        "advanced": "Hranice skupiny služeb ovlivňují konkurenci, zatížení kanálu a plánování upgradu. Místní modem může ukazovat příznaky, ale ne plnou populaci segmentu či stav plánovače poskytovatele.",
+        "basic": "Lidé ve stejném kabelovém segmentu sdílí část kapacity přístupové sítě. Dělení uzlu může snížit počet uživatelů sdílících stejné zdroje.",
+        "eli5": "Uzel nebo segment je část kabelové sítě, kterou sdílí skupina domů.",
+        "technician": "Opatrně používejte terminologii segmentu: nejdříve prokažte zdraví místního signálu, pak porovnejte načasování, důkazy o rychlosti/latenci a informace poskytovatele předtím, než budete problém přiřazovat využití segmentu."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -157,10 +89,10 @@
       "category": "cable_basics",
       "id": "shared_medium",
       "levels": {
-        "advanced": "DOCSIS je sdílena mezi kanály a skupinami služeb. Statistiky místního modemu ukazují váš kanál a stav signálu, zatímco spory a plánování probíhají na straně poskytovatele.",
-        "basic": "Kabelové sítě sdílejí části přístupové sítě mezi více uživateli. Zatížení segmentu může ovlivnit skutečné rychlosti a DOCSight nemůže přímo měřit každý druhý modem v segmentu. Kapacita",
-        "eli5": "Kabelový segment je jako silnice, kterou používá několik domácností. Váš modem může mít čistý signál, i když je silnice rušná.",
-        "technician": "Chování sdíleného média závisí na velikosti skupiny služeb, plánování CMTS, profilech OFDMA/OFDM, zřizování a poptávce aktivních účastníků. DOCSight může zvýraznit místní symptomy RF/kanálu, ale neměl by usuzovat na úplné využití segmentu, pokud to neodhalí podporovaný zdroj dat."
+        "advanced": "Chování sdíleného média závisí na velikosti skupiny služeb, plánování, kapacitě kanálu, aktivní poptávce a politice poskytovatele. Jeden modem nemůže měřit celý segment přímo.",
+        "basic": "Sdílené médium může být vytížené i když váš vlastní signál modemu vypadá čistě. DOCSight odděluje důkazy místního modemu od tvrzení o využití na straně poskytovatele.",
+        "eli5": "Kabelový internet sdílí části přístupové sítě v okolí s dalšími uživateli.",
+        "technician": "Rozlišujte čisté RF důkazy od důkazů o přetížení. Korelujte vzorce podle denní doby, data speedtest/BQM/monitoringu a zpětnou vazbu poskytovatele předtím, než budete sdílené médium považovat za kořenovou příčinu."
       },
       "misconceptions": [
         "Dobrá úroveň signálu nedokazuje, že segment poskytovatelů není přetížený."
@@ -181,10 +113,10 @@
       "category": "modulation_channels",
       "id": "downstream",
       "levels": {
-        "advanced": "Downstream může používat kanály SC-QAM a/nebo OFDM. Napájení, SNR/MER, modulace, informace o profilu a stav uzamčení pomáhají vysvětlit, zda modem přijímá kanály čistě.",
-        "basic": "V DOCSIS přenášejí kanály směrem dolů data ze sítě poskytovatele do modemu. DOCSight zobrazuje stav výstupního kanálu odděleně od stavu upstream, protože směry se chovají odlišně.",
-        "eli5": "Downstream jsou data přicházející z internetu k vám domů.",
-        "technician": "Důkaz pro příjem popisuje přijímací cestu a sadu výstupních kanálů viditelnou pro modem. Nemělo by se zaměňovat s propustností stahování aplikací typu end-to-end, která také závisí na zajišťování, plánování, směrování a klientech."
+        "advanced": "Downstream důkazy mohou pocházet z kanálů SC-QAM a OFDM. Výkon, SNR/MER, data modulace/profilu a zámek kanálu popisují, zda modem může čistě přijímat nosnou vlnu.",
+        "basic": "Downstream kanály přenášejí stahování a další příchozí provoz. DOCSight zobrazuje jejich stav zámku a kvalitu signálu odděleně od upstream kanálů.",
+        "eli5": "Downstream je data cestující z sítě poskytovatele směrem k vašemu modemu.",
+        "technician": "Vyšetřujte downstream problémy korelací postižených kanálů, změn MER/SNR, růstu opravitelných/nenapravitelných chyb, změn OFDM profilu a časových značek eventů místo toho, abyste jednu přijatou hodnotu považovali za celou diagnózu."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -203,10 +135,10 @@
       "category": "modulation_channels",
       "id": "upstream",
       "levels": {
-        "advanced": "Upstream může používat SC-QAM a/nebo OFDMA. Je naplánováno systémem na straně poskytovatele, takže data místního modemu ukazují podmínky přenosu, ale ne z každého důvodu se propustnost odesílání může lišit.",
-        "basic": "V DOCSIS přenášejí upstream kanály data z modemu zpět do sítě poskytovatele. Problémy s upstreamem se často projevují jako vysoký vysílací výkon, výpadky kanálu nebo hlučné chování zpětné cesty.",
-        "eli5": "Upstream jsou data směřující z vašeho domova na internet, jako když upload opustí váš dům.",
-        "technician": "Interpretace proti proudu vyžaduje vysílací výkon, zámek kanálu, stav modulace/profilu, stav rozsahu a šum zpětné cesty. DOCSight by měl uchovávat viditelnou RF evidenci modemu odděleně od plánování na straně CMTS nebo zásad toku služeb."
+        "advanced": "Upstream může používat SC-QAM nebo OFDMA. Vysílací výkon, pokles modulace, chování rangingu a příznaky hluku zpětné cesty často záleží více než hodnoty na straně stahování.",
+        "basic": "Upstream kanály přenášejí nahrávání, požadavky a ranging modemu. DOCSight je používá jako důkazy signálu na straně nahrávání.",
+        "eli5": "Upstream je data cestující z vašeho modemu zpět směrem k síti poskytovatele.",
+        "technician": "Pro upstream chyby porovnávejte změny výkonu, pokles kanálu, mezery v podpoře OFDMA, eventy T3/T4 a okna latence nebo ztráty paketů. Chybějící upstream pole znamenají nepodporované nebo nehlášené, ne automaticky nula."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -225,10 +157,10 @@
       "category": "modulation_channels",
       "id": "channel_bonding",
       "levels": {
-        "advanced": "Bonding kombinuje několik kanálových zdrojů, zatímco plánování, modulace, kvalita signálu, limity služeb a režie protokolu určují, jaká může být využitelná propustnost.",
-        "basic": "Modemy DOCSIS často používají více kanálů pro příjem a pro odesílání současně. Více propojených kanálů může zvýšit kapacitu, ale stále to nezaručuje odpovídající výsledek Speedtestu.",
-        "eli5": "Spojení kanálů umožňuje modemu používat několik kabelových kanálů dohromady, jako je použití více než jednoho pruhu.",
-        "technician": "Kapacita vázaného kanálu musí rozlišovat součty SC-QAM od kapacity závislé na profilu OFDM/OFDMA. Limity toku služeb, plánování MAC, FEC, narušení RF a spory oddělují vázanou kapacitu PHY od dobré hodnoty aplikace."
+        "advanced": "Vazba kombinuje kapacitu kanálů, ale použitelný výsledek závisí na směru, rodině kanálu, stavu zámku, profilech, chování plánovače a konfiguraci služby.",
+        "basic": "Modemy DOCSIS často současně používají více downstreamových i upstreamových kanálů. DOCSight seskupuje viditelné kanály, abyste viděli, které jsou vázány, uzamčeny a zdravé.",
+        "eli5": "Vazba kanálů umožňuje modemu používat několik kabelových kanálů současně.",
+        "technician": "Při kontrole důkazů vazby hledejte chybějící nebo degradované členy balíku, zdraví specifické pro rodinu kanálů a zda příznaky ovlivňují jeden kanál, jeden směr nebo celou skupinu služeb."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -249,10 +181,10 @@
       "category": "modulation_channels",
       "id": "sc_qam",
       "levels": {
-        "advanced": "SC-QAM používá jednu nosnou s pevnou šířkou kanálu a pořadím modulace QAM. Vyšší modulace může nést více bitů na symbol, ale odhadem je stále hrubá kapacita kanálu, nikoli propustnost IP.",
-        "basic": "SC-QAM jsou tradiční kanály DOCSIS. DOCSight může často odhadnout svou hrubou kapacitu vrstvy 1 z modulace a podrobností o kanálu.",
-        "eli5": "SC-QAM je jeden druh kabelového kanálu. Představte si to jako jeden pruh, který může přenášet data mezi kabelovou sítí a vaším modemem. Kanály",
-        "technician": "U kanálů DOCSIS SC-QAM určují hrubé odhady vrstvy 1 pořadí modulace, symbolová rychlost, šířka kanálu a režie PHY. FEC, rámování MAC, plánování, spojování a režie IP oddělují tento odhad od použitelné propustnosti aplikací."
+        "advanced": "SC-QAM používá jednu nosnou s pevnou šířkou kanálu a řádem QAM. To činí kontext kanálu jasnějším než u kanálů OFDM/OFDMA založených na profilech, když modem odhalí dostatek polí.",
+        "basic": "Kanály SC-QAM jsou tradiční kanály ve stylu DOCSIS 3.0. DOCSight obvykle zobrazuje jejich výkon, SNR/MER, modulaci, stav zámku a zdraví.",
+        "eli5": "SC-QAM je klasický, úzký typ kanálu DOCSIS.",
+        "technician": "Použijte řádky SC-QAM k izolaci poškození specifického pro kanál: porovnávejte sousední kanály, změny modulace, MER/SNR a růst chyb, než eskalujete od jedné špatné hodnoty k závěrům o síti."
       },
       "misconceptions": [
         "Odhad kapacity SC-QAM není výsledkem testu rychlosti."
@@ -273,10 +205,10 @@
       "category": "modulation_channels",
       "id": "ofdm",
       "levels": {
-        "advanced": "OFDM využívají mnoho dílčích nosných a profilů. Skutečná využitelná kapacita závisí na přiřazení profilu, stavu subnosné, vylučovacích pásmech a plánování na straně poskytovatele.",
-        "basic": "DOCSIS 3.1 využívá OFDM downstream pro flexibilní, vysokokapacitní přijímací kanály. DOCSight může zobrazit stav jejich signálu, i když nemůže vypočítat stejné jednoduché číslo kapacity jako SC-QAM. Kanálové kanály",
-        "eli5": "OFDM je novější typ downstream kabelového kanálu, který rozděluje široký kanál na mnoho malých kousků.",
-        "technician": "Odhad kapacity OFDM vyžaduje profil a kontext subnosné. Bez dostatečných profilových dat by DOCSight měl považovat OFDM za pozorovaný, ale nezahrnutý do součtů hrubé kapacity pouze SC-QAM."
+        "advanced": "Zdraví OFDM závisí na profilech, vyloučených nosných, stavu PLC/zámku a dostupnosti profilu. Chybějící informace o profilu by měly zůstat neznámé místo vyplnění odhadnutou kapacitou.",
+        "basic": "DOCSIS 3.1 používá OFDM pro širokopásmové downstreamové kanály. DOCSight jej označuje zvlášť, protože se důkazy OFDM liší od klasických řádků SC-QAM.",
+        "eli5": "OFDM je downstreamový typ kanálu DOCSIS 3.1 složený z mnoha malých nosných.",
+        "technician": "Při diagnostice OFDM porovnávejte změny profilu, indikátory podobné MER, chování kódového slova/chyby a sousední důkazy SC-QAM. Považujte nepodporovaná pole profilu za hranici dat, nikoli za důkaz dobré či špatné služby."
       },
       "misconceptions": [
         "Chybějící kapacita OFDM neznamená, že kanál je nevyužitý; DOCSight může jednoduše postrádat bezpečná data na úrovni profilu."
@@ -296,10 +228,10 @@
       "category": "modulation_channels",
       "id": "ofdma",
       "levels": {
-        "advanced": "OFDMA závisí na přidělení subnosné, přiřazení profilu, plánování minislotů, šumu zpětné cesty a rozhodnutích na straně poskytovatele, která stránka modemu nemusí plně odhalit. Telemetrie",
-        "basic": "DOCSIS 3.1 využívá OFDMA upstream pro flexibilní kanály pro nahrávání. DOCSight může ukazovat signál OFDMA nebo údaje o výkonu, ale jednoduchá kapacitní matematika ve stylu SC-QAM obvykle není bezpečná bez dalších podrobností. Upstream kapacita",
-        "eli5": "OFDMA je novější typ upstream kabelového kanálu, který umožňuje mnoha modemům sdílet malé kousky širokého kanálu.",
-        "technician": "OFDMA potřebuje profil/subnosnou a plánovací kontext pro bezpečnou interpretaci. Výkon souhrnného hlášení a důkazy pro jednotlivé subnosiče by se neměly míchat, pokud řidič neodhalí přesně zamýšlenou metriku."
+        "advanced": "OFDMA závisí na profilech, nosných, mini-slotech, šumu zpětné cesty a kontextu plánovače. Chybějící, None nebo null pole znamenají nepodporované nebo nehlášené, ne měřenou nulu.",
+        "basic": "OFDMA umožňuje mnoha modemům sdílet části širokého upstreamového bloku. DOCSight jej označuje zvlášť od upstreamových kanálů SC-QAM.",
+        "eli5": "OFDMA je upstreamový typ kanálu DOCSIS 3.1.",
+        "technician": "Diagnostikujte OFDMA pomocí upstreamových událostí, chování přenosu, dostupnosti profilu a časování latence/ztrát. Vyhněte se odhadům kapacity ve stylu SC-QAM, pokud modem neodhalí požadované detaily OFDMA."
       },
       "misconceptions": [
         "Kanál OFDMA bez zobrazeného čísla kapacity může být stále aktivní a důležitý."
@@ -321,10 +253,10 @@
       "category": "modulation_channels",
       "id": "qam_modulation_order",
       "levels": {
-        "advanced": "Vyšší řády modulace zvyšují počet bitů na symbol, ale snižují toleranci šumu a zkreslení. Modulace musí být interpretována pomocí SNR/MER, typu kanálu a kontextu profilu.",
-        "basic": "Pořadí QAM/modulace ovlivňuje, kolik bitů může kanál přenášet. Pokud je kvalita signálu špatná, kanál může vyžadovat nižší modulaci, a proto má menší hrubou kapacitu.",
-        "eli5": "Modulace je způsob, jakým jsou data sbalena do kabelového signálu. Vyšší čísla QAM mohou přenášet více dat, ale potřebují čistší signál.",
-        "technician": "U SC-QAM pořadí modulace přímo dodává odhady kapacity vrstvy 1 se symbolovou rychlostí a šířkou kanálu. Pro OFDM/OFDMA dělá přiřazení profilu/subnosné vztah složitějším než jedno označení na kanál."
+        "advanced": "Řád QAM musí být interpretován s rodinou kanálu a SNR/MER. SC-QAM má jednodušší vztah pevného kanálu než kanály OFDM/OFDMA založené na profilech.",
+        "basic": "Vyšší úrovně QAM mohou přenášet více bitů na symbol, ale potřebují čistší signál. DOCSight zobrazuje modulaci, abyste viděli poklesy nebo stavy nízké QAM.",
+        "eli5": "Modulace je množství dat zabalených v každém kroku signálu kabelu.",
+        "technician": "Používejte změny modulace jako důkaz, ne jako izolované rozhodnutí. Korelujte je s MER/SNR, výkonem, růstem chyb, rodinou kanálu a zda je hodnota aktuální nebo pouze poslední hlášený stav modemu."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -338,29 +270,6 @@
     },
     {
       "aliases": [
-        "Šířka kanálu",
-        "Symbolová rychlost",
-        "MHz",
-        "Msym/s"
-      ],
-      "category": "modulation_channels",
-      "id": "channel_width_symbol_rate",
-      "levels": {
-        "advanced": "DOCSIS používají definované šířky a přenosové rychlosti. Výpočet kapacity závisí na rodině kanálů; SC-QAM lze odhadnout příměji než OFDM/OFDMA bez profilových dat.",
-        "basic": "U podporovaných kanálů SC-QAM pomáhá odhadnout hrubou kapacitu vrstvy 1, šířku kanálu, symbolovou rychlost a modulaci. Tyto vstupy samy o sobě neprodukují skutečnou propustnost IP. Kanálové plány",
-        "eli5": "Šířka kanálu udává, kolik frekvenčního prostoru kanál využívá. Symbolová rychlost je rychlost odesílání signálových kroků uvnitř tohoto kanálu.",
-        "technician": "Výpočty kapacity by měly zachovat explicitní předpoklady skupiny kanálů. Šířky EuroDOCSIS/DOCSIS, symbolové rychlosti, pořadí modulace a režie PHY nesmí být slepě znovu použity napříč profily OFDM/OFDMA."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "MHz"
-      ],
-      "title": "Šířka kanálu / symbolová rychlost"
-    },
-    {
-      "aliases": [
         "Úroveň signálu",
         "dBmV",
         "Přijímaný výkon",
@@ -369,10 +278,10 @@
       "category": "signal_quality",
       "id": "power_level",
       "levels": {
-        "advanced": "Výkon musí být interpretován podle směru a typu kanálu. Čistě vypadající downstream hodnota automaticky neprokazuje upstream zdraví a vysoký upstream vysílací výkon může naznačovat, že modem tvrdě pracuje, aby dosáhl na stranu poskytovatele.",
-        "basic": "DOCSight může zobrazit výstupní výkon příjmu a vysílací výkon, když je modem odkryje. Hodnoty mimo očekávané rozsahy mohou indikovat problémy s kabeláží, rozbočovačem, zesilovačem nebo zpětnou cestou.",
-        "eli5": "Úroveň výkonu udává, jak silný kabelový signál vypadá na modemu nebo jak moc musí modem odpovídat.",
-        "technician": "Diagnostika napájení vyžaduje jednotky, směr, rodinu kanálů a sémantiku ovladače zařízení. Agregovaný výkon OFDMA a výkon hlášení na 1,6 MHz by neměly být považovány za vzájemně zaměnitelné metriky."
+        "advanced": "Výkon musí být interpretován podle směru a typu kanálu. Downstreamová úroveň příjmu, upstreamová úroveň vysílání a pole OFDMA report-power nejsou zaměnitelná měření.",
+        "basic": "DOCSight může zobrazit downstreamový výkon příjmu a upstreamový vysílací výkon, když je modem hlásí. Oba směry znamenají různé věci.",
+        "eli5": "Úroveň výkonu ukazuje, jak silný kabelový signál vypadá, nebo jak moc musí modem vysílat zpět.",
+        "technician": "Používejte důkazy o výkonu s MER/SNR, modulací, stavem zámku, historií rozdělovačů/kabeláže a časováním. Nepřeměňujte nepodporovaná či chybějící pole výkonu na měření s nulovou hodnotou."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -392,10 +301,10 @@
       "category": "signal_quality",
       "id": "snr_mer",
       "levels": {
-        "advanced": "SNR/MER by měl být interpretován společně s modulací, skupinou kanálů a čítači chyb. Mezní hodnota může způsobit nižší profily, opravitelné chyby nebo neopravitelné chyby v závislosti na závažnosti.",
-        "basic": "SNR a MER jsou měřítka kvality. Lepší hodnoty obvykle znamenají, že modem může dekódovat kanál spolehlivěji, ale stále se přímo nevyrovnají výkonu Speedtestu.",
-        "eli5": "SNR/MER říká, jak čistý je signál ve srovnání se šumem. Díky jasnějšímu signálu je vyšší sbalení dat spolehlivější.",
-        "technician": "Prahové hodnoty MER/SNR jsou závislé na modulaci a implementaci. DOCSight by se měl vyvarovat nárokování chyby poskytovatele pouze z jedné hodnoty; korelace s uzamčením kanálu, profilem modulace, čítači FEC a časovým trendem je silnějším důkazem."
+        "advanced": "SNR/MER má smysl při čtení s modulací, rodinou kanálu, počítadly chyb a časovými trendy. Jedna čistá hodnota může skrývat přerušovaný šum nebo změny profilu.",
+        "basic": "SNR a MER jsou měření kvality signálu. Lepší hodnoty obvykle znamenají, že se modem může více spolehnout na dekódování kanálu.",
+        "eli5": "SNR/MER popisuje, jak jasně se modem může slyšet signál skrz šum.",
+        "technician": "Pro eskalaci zachyťte MER/SNR spolu s postižený ID kanálů, časovými razítky, změnami chybovosti, výkonem a událostmi. Vyhněte se míchání sémantiky SNR/MER mezi rodinami kanálů bez ověření, co modem skutečně hlásí."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -408,52 +317,6 @@
     },
     {
       "aliases": [
-        "Ztráta signálu",
-        "Tlumení",
-        "Ztráta kabelu"
-      ],
-      "category": "signal_quality",
-      "id": "attenuation",
-      "levels": {
-        "advanced": "Útlum může pocházet z délky kabelu, rozbočovačů, zásuvek ve zdi, filtrů, špatných konektorů nebo podmínek závodu. Často se objevuje nepřímo prostřednictvím přijímacího výkonu, vysílacího výkonu, SNR/MER nebo stability kanálu.",
-        "basic": "Určitá ztráta signálu je normální, ale příliš velká ztráta může vytlačit úrovně výkonu mimo rozsah nebo donutit modem, aby vysílal tvrději proti proudu. DOCSight vidí účinek, ne každou fyzickou příčinu.",
-        "eli5": "Útlum znamená, že signál zeslabuje, když prochází kabelem, rozbočovači a konektory.",
-        "technician": "Neodvozujte přesnou cestu ztráty dB pouze ze statistik modemu. Pokládejte útlum jako diagnostickou hypotézu podporovanou směrově specifickými změnami výkonu, znalostmi topologie a důkazy před/po zapojení."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "dBmV",
-        "DOCSight"
-      ],
-      "title": "Útlum"
-    },
-    {
-      "aliases": [
-        "Šum",
-        "Vstup",
-        "Rušení",
-        "Šum zpětné cesty"
-      ],
-      "category": "signal_quality",
-      "id": "ingress_noise",
-      "levels": {
-        "advanced": "Šum může být přerušovaný, specifický pro směr nebo omezený na určité frekvence. Časový trend napříč ovlivněnými kanály je obvykle užitečnější než jeden izolovaný snímek.",
-        "basic": "Vstup a šum mohou snížit SNR/MER, způsobit chyby nebo způsobit nestabilitu upstream komunikace. DOCSight může vykazovat příznaky, když modem vystaví ovlivněný signál a chybová data.",
-        "eli5": "Šum je nežádoucí signál smíchaný se signálem kabelu. Příliš mnoho šumu ztěžuje čtení dat.",
-        "technician": "Vstup zpětné cesty, impulsní šum, zkreslení společné cesty a chyby místní kabeláže mohou ovlivnit kanály DOCSIS odlišně. DOCSight by měl prezentovat modemově viditelné důkazy bez nároku na úplnou lokalizaci závodu."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SNR",
-        "MER",
-        "OFDMA"
-      ],
-      "title": "Vstup/šum"
-    },
-    {
-      "aliases": [
         "Opravitelné",
         "Opravená kódová slova",
         "FEC opraveno"
@@ -461,10 +324,10 @@
       "category": "error_counters",
       "id": "correctable_errors",
       "levels": {
-        "advanced": "odrážejí práci FEC. Užitečný může být růst během šumových událostí, vysoké rychlosti na konkrétních kanálech nebo korelace s nízkým MER; samotné staré kumulativní součty jsou slabým důkazem.",
-        "basic": "Opravitelné čítače mohou stoupat i na pracovní lince. Na rychlosti, načasování, ovlivněných kanálech a na tom, zda narůstají také neopravitelné, záleží více než na jednom hrubém součtu. Opravitelné položky",
-        "eli5": "Opravitelné chyby jsou malé chyby, které může modem opravit, než se z nich stanou data.",
-        "technician": "Udržujte nezpracované modemové čítače odděleně od odvozených sazeb. DOCSight by měl zachovat kumulativní hodnoty jako důkaz při použití pozorovacích oken, základních linií a rychlostí růstu pro interpretaci zdraví."
+        "advanced": "Opravitelné chyby ukazují práci FEC, ne přímou ztrátu paketů. Nedávný růst během hlučných poruch je silnější důkaz než velký kumulativní součet zbylý z minulosti.",
+        "basic": "Počítadla opravitelných chyb mohou stoupat i na pracující lince. DOCSight je užitečné tím, že zobrazuje rychlost, časování, postižené kanály a zda stoupají i neopravitelné chyby.",
+        "eli5": "Opravitelné chyby jsou chyby signálu, které se modem mohl opravit.",
+        "technician": "Porovnávejte růst opravených kódových slov podle kanálu a časového okna. Spárujte to s MER/SNR, modulací a neopravitelnými chybami, abyste oddělili neškodné opravy na pozadí od aktivního narušení."
       },
       "misconceptions": [
         "Vysoký starý opravitelný součet není automaticky aktivní poruchou."
@@ -485,10 +348,10 @@
       "category": "error_counters",
       "id": "uncorrectable_errors",
       "levels": {
-        "advanced": "Neopravitelné by měly korelovat s SNR/MER, uzamčením kanálu, změnami modulace a uživateli viditelnými příznaky. Reset nebo restart může také změnit chování nezpracovaného čítače.",
-        "basic": "Neopravitelné mohou indikovat ztracená data na úrovni kanálu, zvláště když během pozorovacího okna narostou. Jejich načasování a rychlost růstu záleží více než na starém čítači.",
-        "eli5": "Neopravitelné chyby jsou chyby, které modem nedokázal opravit. Jsou závažnější než opravitelné chyby.",
-        "technician": "Pro důkaz si ponechte nezpracované neopravitelné čítače a vypočítejte odvozený růst ze známé základní linie. Vyhněte se přepisování součtů modemu; rozlišit resety počítadla, obtékání a špičky aktuálního pozorovacího okna."
+        "advanced": "Důkazy by měly udržovat nezpracované kumulativní počítadla oddělená od odvozeného růstu. Resetování, přetečení a restartování modemu mohou změnit nezpracované součty bez reprezentace nového výpadku.",
+        "basic": "Neopravitelné chyby mohou znamenat ztrátu dat na úrovni kanálu, zvláště když se zvyšují během okna pozorování. DOCSight považuje růst a časování za důležitější než jeden starý součet.",
+        "eli5": "Neopravitelné chyby jsou chyby signálu, které se modem nemohl opravit.",
+        "technician": "Používejte neopravitelné chyby jako důkaz pro eskalaci, když se čerstvý růst shoduje s nízkým MER/SNR, poklesem modulace, protokoly událostí nebo viditelnou latencí/ztrátou uživatele. Uchovejte nezpracované počítadlo při exportu důkazů."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -500,74 +363,6 @@
     },
     {
       "aliases": [
-        "Kapacita PHY",
-        "Kapacita fyzické vrstvy",
-        "Kapacita kanálu"
-      ],
-      "category": "capacity_throughput",
-      "id": "layer1_capacity",
-      "levels": {
-        "advanced": "Layer-1 leží pod plánováním MAC, FEC, chováním spojování, limity toku služeb, režií IP, chováním aplikací a zatížením segmentu. Je to jedna diagnostická vrstva, ne celé spojení. Kapacita",
-        "basic": "DOCSight může odhadnout hrubou kapacitu vrstvy 1 pro podporované kanály SC-QAM. To je užitečný kontext kanálu, ale není to příslib použitelné rychlosti internetu. Kapacita",
-        "eli5": "Kapacita vrstvy 1 je teoretické číslo toho, co může vrstva kabelového signálu přenést, než bude odstraněna reálná režie.",
-        "technician": "PHY/Layer-1 by měla být označena jako hrubý důkaz kanálu. Nepřirovnávat to k rychlostem toku služeb, dobrému výkonu TCP/UDP, výsledkům testu rychlosti nebo rychlosti smluvního tarifu."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "Layer-1",
-        "DOCSIS",
-        "SC-QAM",
-        "IP"
-      ],
-      "title": "Kapacita vrstvy 1"
-    },
-    {
-      "aliases": [
-        "Hrubá kapacita",
-        "Čistá propustnost",
-        "Režie"
-      ],
-      "category": "capacity_throughput",
-      "id": "gross_vs_net_capacity",
-      "levels": {
-        "advanced": "Hrubé rozdíly pocházejí z režie PHY, FEC, rámce MAC, soupeření, tvarování toku služeb, režie IP/TCP/UDP a chování aplikací. Různé testy měří různé vrstvy.",
-        "basic": "Hrubý odhad kanálu začíná před DOCSIS, IP a režií aplikace. Čistá propustnost je nižší a závisí také na plánování, limitech poskytovatele, klientech a cestě k serveru.",
-        "eli5": "Hrubá je před režií. Síť je blíže tomu, co zbyde poté, co síť využije určitý prostor pro fungování komunikace.",
-        "technician": "Udržujte vrstvu měření explicitní: hrubá kapacita PHY, rychlost MAC/služby, propustnost IP a aplikační goodput jsou oddělené. Míchání těchto vrstev vytváří zavádějící srovnání."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "Layer-1",
-        "IP"
-      ],
-      "title": "Hrubá vs. čistá kapacita"
-    },
-    {
-      "aliases": [
-        "Propustnost internetu",
-        "Goodput",
-        "Použitelná rychlost",
-        "Speedtest"
-      ],
-      "category": "capacity_throughput",
-      "id": "ip_throughput",
-      "levels": {
-        "advanced": "Propustnost může být nižší než kapacita kanálu z důvodu zajišťování, plánování, sporů, tvarování provozu, ztráty paketů, latence, limitů klientů a úzkých míst na straně serveru.",
-        "basic": "je blíže tomu, co aplikace a testy rychlosti zažívají, než kapacita kanálu. Záleží na stavu DOCSIS, konfiguraci poskytovatele, směrování, Wi-Fi/LAN a vzdáleném serveru.",
-        "eli5": "Propustnost IP je skutečná data, která projdou vaším internetovým připojením po režii sítě a omezeních. Propustnost IP",
-        "technician": "Dobrá propustnost/propustnost je konečným výsledkem. Diagnostika modemu DOCSight může vysvětlit místní důkazy na vrstvě DOCSIS, ale neměla by tvrdit výhradní kauzalitu výsledku propustnosti IP bez podpůrných dat."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "IP",
-        "DOCSIS",
-        "Speedtest"
-      ],
-      "title": "Propustnost IP"
-    },
-    {
-      "aliases": [
         "Test rychlosti",
         "Stáhnout test",
         "Nahrát test",
@@ -576,10 +371,10 @@
       "category": "capacity_throughput",
       "id": "speedtest",
       "levels": {
-        "advanced": "Testy rychlosti mohou pomoci ověřit dopad na uživatele, ale nejsou totéž jako diagnostika kanálu. Nízký výsledek vyžaduje korelaci s důkazy modemu, cestou klienta a limity poskytovatele/služby.",
-        "basic": "Speedtest je komplexní měření v jednom okamžiku. Je ovlivněn stavem DOCSIS, tarifními limity, zatížením segmentu, Wi-Fi/LAN, směrováním a zvoleným testovacím serverem.",
-        "eli5": "Speedtest kontroluje, jak rychle se data přesouvají na testovací server a z něj právě teď.",
-        "technician": "Zacházejte s daty Speedtestu jako s důkazem IP/aplikační vrstvy. Porovnejte to s rychlostí tarifů a diagnostickými časovými osami, nikoli přímo s hrubou kapacitou SC-QAM PHY nebo nezpracovanými počty kanálů."
+        "advanced": "Speedtest měří výkon IP od začátku do konce v jednom okamžiku. Není to totéž jako kapacita kanálu DOCSIS, tarifní rychlost nebo místní RF zdraví.",
+        "basic": "DOCSight může zaznamenávat stahování, nahrávání, latenci a jitter, aby bylo možné porovnat viditelný výkon uživatele s důkazy DOCSIS.",
+        "eli5": "Speedtest měří propustnost a latenci, kterou uživatel vidí během testu.",
+        "technician": "Interpretujte výsledky speedtestu s testovacím serverem, časem dne, daty monitoru připojení, vodítky segmentů a důkazy modemu. Vyvarujte se používání jednoho nízkého výsledku jako důkazu vady signálu DOCSIS."
       },
       "misconceptions": [],
       "protected_terms": [
@@ -592,29 +387,6 @@
     },
     {
       "aliases": [
-        "Rezervovaná rychlost",
-        "Rychlost plánu",
-        "Rychlost zakázky",
-        "Rezervovaná rychlost"
-      ],
-      "category": "capacity_throughput",
-      "id": "tariff_speed",
-      "levels": {
-        "advanced": "Rychlost plánu je obvykle vynucována prostřednictvím konfigurace poskytovatele a limitů toku služeb. Skutečná rychlost také závisí na zatížení sítě, stavu modemu, směrování a místních podmínkách klienta.",
-        "basic": "Tarifní rychlost je hranicí produktu a poskytování. Data kanálu DOCSight mohou ukázat, zda kabelové spojení vypadá v pořádku, ale nemohou prokázat všechny zásady na straně poskytovatele nebo smluvní podrobnosti.",
-        "eli5": "Tarifní rychlost je internetový plán, za který platíte, jako je rezervovaná rychlost stahování a odesílání.",
-        "technician": "Neodvozujte přesnou konfiguraci toku služeb předplatitele pouze z kapacity kanálu. Použijte explicitní zřizování nebo důkazy Speedtest, pokud jsou k dispozici, a udržujte štítky kapacity DOCSight oddělené od požadavků na tarify."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Tarifní rychlost"
-    },
-    {
-      "aliases": [
         "Zatížení segmentu",
         "Zahlcení",
         "Zatížení uzlu",
@@ -623,10 +395,10 @@
       "category": "capacity_throughput",
       "id": "segment_utilization",
       "levels": {
-        "advanced": "Zatížení segmentu závisí na velikosti skupiny služeb, aktivních odběratelích, kapacitě kanálu, plánování CMTS a denní době. Důkaz místního modemu může vykazovat příznaky, ale ne plný jmenovatel využití.",
-        "basic": "Vytížený segment může snížit skutečné rychlosti, i když signál vašeho modemu vypadá dobře. DOCSight by neměl nárokovat přesné využití segmentu, pokud podporovaný zdroj tato data nezveřejňuje.",
-        "eli5": "Využití segmentu znamená vytížení segmentu sdíleného kabelu.",
-        "technician": "Úplné využití vyžaduje na straně poskytovatele nebo podporované externí důkazy. Vyhněte se odvozování celkové zátěže segmentu pouze ze seznamu kanálů jednoho modemu, testu rychlosti nebo stavu signálu."
+        "advanced": "Unknown zůstává viditelnou kategorií a zůstává ve jmenovatelích distribuce. Jeho vynechání by dostupné vzorky vykreslilo jistěji, než skutečně jsou.",
+        "basic": "Zobrazení porovnává místní důkazy signálu s podporovanou využitím nebo signály výkonu, když jsou tyto zdroje dat dostupné.",
+        "eli5": "Segment Utilization pomáhá oddělit signál vašeho modemu od vodítek zatížení sdíleného segmentu.",
+        "technician": "Používejte toto zobrazení pouze s jeho hranicí důkazů: podporované vzorky, Unknown skupiny, chybějící data a externí měření výkonu musí v exportech a vysvětleních zůstat oddělené."
       },
       "misconceptions": [
         "Dobrý signál modemu není důkazem nepřetíženého segmentu."
@@ -637,125 +409,6 @@
         "DOCSight"
       ],
       "title": "Využití segmentu"
-    },
-    {
-      "aliases": [
-        "Propustnost",
-        "Kapacita vs propustnost",
-        "Layer-1"
-      ],
-      "category": "capacity_throughput",
-      "id": "capacity_vs_throughput",
-      "levels": {
-        "advanced": "Kapacita kanálu vrstvy 1 je před MAC, FEC, plánováním, spojováním, zatížením segmentu, tvarováním provozu a režií IP/aplikací. Speedtesty měří cestu od konce ke konci v jednom okamžiku.",
-        "basic": "Odhady kapacity DOCSight popisují hrubou kapacitu na úrovni kanálu, zejména pro podporované kanály SC-QAM. Nejedná se o rychlost vašeho tarifu, ani o Speedtest, ani o zaručenou skutečnou propustnost IP.",
-        "eli5": "Kapacita je to, co by kabelová dráha teoreticky mohla nést. Speedtest je to, co vaše připojení poskytuje právě teď, když je zahrnuto mnoho dalších věcí.",
-        "technician": "Nedávejte rovnítko mezi hrubou kapacitu PHY a limity rychlosti toku služeb nebo hodnotu TCP/UDP. Plánování CMTS, poskytování, dostupnost profilů OFDM/OFDMA, narušení RF, řazení do fronty, peering a chování testovacího serveru – to vše může dominovat sledované propustnosti."
-      },
-      "misconceptions": [
-        "Součet kapacity kanálu není důkazem, že by zákazník měl v testu rychlosti vidět stejné číslo.",
-        "Tarifní rychlost je konfigurace produktu; Diagnostika kanálu DOCSight je místním důkazem."
-      ],
-      "protected_terms": [
-        "Layer-1",
-        "SC-QAM",
-        "Speedtest",
-        "IP",
-        "DOCSight"
-      ],
-      "title": "Kapacita vs. Speedtest"
-    },
-    {
-      "aliases": [
-        "Poskytovaná služba",
-        "Tok služby",
-        "Aktivace",
-        "Konfigurace plánu"
-      ],
-      "category": "modem_state",
-      "id": "provisioning",
-      "levels": {
-        "advanced": "Provisioning může ovlivnit rychlost tarifů, toky služeb, autorizaci modemu, přiřazení bootfile/config a povolené funkce. Je oddělená od kvality surového RF signálu.",
-        "basic": "Provisioning řídí, zda je modem povolen online a jaké limity služeb platí. DOCSight může zobrazovat rady, ale konfigurace na straně poskytovatele není z modemu vždy plně viditelná.",
-        "eli5": "Poskytování je způsob, jakým poskytovatel sdělí modemu, jakou službu by měl mít.",
-        "technician": "Považujte zřizování za smlouvu na vrstvě DOCSIS/MAC řízenou poskytovatelem. Stránky místního modemu mohou odhalit názvy spouštěcích souborů nebo stav služby, ale ne všechny zásady CMTS nebo logiku účtu předplatitele."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "IP"
-      ],
-      "title": "Provisionování služby"
-    },
-    {
-      "aliases": [
-        "Zaváděcí soubor",
-        "Konfigurační soubor",
-        "Konfigurace DOCSIS",
-        "Service config"
-      ],
-      "category": "modem_state",
-      "id": "bootfile_config_file",
-      "levels": {
-        "advanced": "mohou podporovat diagnostiku poskytování, ale názvy jsou specifické pro poskytovatele a nemusí se čistě mapovat na veřejné štítky tarifů. Měl by být používán opatrně as dalšími důkazy. Konfigurační soubory",
-        "basic": "Konfigurační soubor DOCSIS může definovat chování služby, jako jsou rychlostní limity a povolené funkce. Některé modemy odhalují název; DOCSight by neměl převzít celý obsah pouze z názvu. Důkazy spouštěcího souboru",
-        "eli5": "Bootfile/config file jsou instrukce poskytovatele, které modem obdrží při spuštění.",
-        "technician": "DOCSIS jsou součástí registrace/zřizování modemu. Bez skutečného obsahu souboru a kontextu CMTS je zobrazený název souboru pouze nápovědou, nikoli úplnou smlouvou o toku služeb."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Zaváděcí/konfigurační soubor"
-    },
-    {
-      "aliases": [
-        "Částečná vazba",
-        "Chybějící kanály",
-        "Částečné uzamčení kanálu"
-      ],
-      "category": "modem_state",
-      "id": "partial_service",
-      "levels": {
-        "advanced": "Částečná služba může pocházet z problémů s RF, problémy s profilem/kanálem, údržbou, zajišťováním nebo chováním modemu/CMTS. Mělo by být interpretováno s uzamčením kanálu, chybami, výkonem a časováním událostí.",
-        "basic": "Modem v částečné službě může stále poskytovat internet, ale s menším počtem kanálů, nižší odolností nebo sníženým výkonem. DOCSight může pomoci ukázat, které skupiny viditelných kanálů jsou ovlivněny.",
-        "eli5": "Částečná služba znamená, že modem je online, ale nepoužívá všechny očekávané kanály nebo funkce.",
-        "technician": "Nepovažujte částečný servis za jednu pevnou příčinu. Diagnostikujte podle směru, skupiny kanálů, protokolu událostí, vysokofrekvenčních metrik a podle toho, zda stav přetrvává během období opětovné synchronizace/rebootu nebo údržby poskytovatele."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "SC-QAM",
-        "OFDM",
-        "OFDMA"
-      ],
-      "title": "Částečná služba"
-    },
-    {
-      "aliases": [
-        "Restartovat modem",
-        "Resynchronizace",
-        "Restartovat rozsah",
-        "Znovu připojit"
-      ],
-      "category": "modem_state",
-      "id": "resync_reboot",
-      "levels": {
-        "advanced": "Opětovná synchronizace může být spuštěna údržbou, nestabilitou RF, změnami v poskytování, ztrátou napájení, firmwarem modemu nebo událostmi na straně poskytovatele. Porovnejte snímky před/po místo čtení jednoho stavu samostatně.",
-        "basic": "Rebooty a opětovné synchronizace mohou dočasně vymazat čítače, změnit přiřazení kanálu nebo obnovit službu po poruše. Pokud k nim dojde nečekaně, důležitým důkazem je načasování.",
-        "eli5": "Restart restartuje modem. Po opětovné synchronizaci se znovu připojí ke kabelové síti.",
-        "technician": "Pro důkaz uchovávejte časová razítka, protokoly událostí, změny kanálů a efekty protizákladního stavu kolem událostí restartu/resynchronizace. Neinterpretujte resetované čítače jako důkaz, že k dřívějšímu poškození nikdy nedošlo."
-      },
-      "misconceptions": [],
-      "protected_terms": [
-        "DOCSIS",
-        "CMTS",
-        "DOCSight"
-      ],
-      "title": "Znovu synchronizovat/restartovat"
     }
   ]
 }

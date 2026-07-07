@@ -122,7 +122,7 @@ def test_glossary_lookup_falls_back_to_english_for_unsupported_locale():
     term = get_glossary_term("docsis", "zz")
     assert term is not None
     assert term["title"] == "DOCSIS"
-    assert "DOCSIS is the standard cable modems use" in term["levels"]["eli5"]
+    assert "DOCSIS is the cable-internet language" in term["levels"]["eli5"]
 
 
 def test_glossary_terms_use_one_global_alphabetical_order():
