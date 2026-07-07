@@ -43,7 +43,11 @@ def test_glossary_app_view_renders_inside_shell(page, live_server):
     expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="DOCSIS")).to_be_visible()
     expect(_active_article(page).locator(".glossary-summary-card", has_text="Quick summary")).to_be_visible()
     expect(_active_article(page).locator(".glossary-explanation-card", has_text="Explanation")).to_be_visible()
-    expect(page.locator(".glossary-index-desktop .glossary-term-link").first).to_have_text("Channel bonding")
+    expect(page.locator(".glossary-index-desktop .glossary-term-link").first).to_have_text("Before/After Comparison")
+    desktop_terms = page.locator(".glossary-index-desktop .glossary-term-link").evaluate_all(
+        "nodes => nodes.map(node => node.textContent.trim())"
+    )
+    assert desktop_terms == sorted(desktop_terms, key=str.casefold)
     _assert_visible_boxes_do_not_overlap(page, "#view-glossary .glossary-term-article:not([hidden]) > .glossary-card")
 
 
