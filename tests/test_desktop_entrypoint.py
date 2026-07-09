@@ -112,6 +112,16 @@ def test_select_port_raises_when_range_is_unavailable(monkeypatch):
         desktop.select_port(env, max_port=8766)
 
 
+def test_open_browser_can_be_skipped_for_ci_smoke(monkeypatch):
+    calls = []
+    monkeypatch.setenv("DOCSIGHT_SKIP_BROWSER", "1")
+    monkeypatch.setattr(desktop.webbrowser, "open", lambda url: calls.append(url))
+
+    desktop.open_browser(8765)
+
+    assert calls == []
+
+
 def test_runtime_root_uses_source_checkout_by_default():
     assert desktop.get_runtime_root() == ROOT
 

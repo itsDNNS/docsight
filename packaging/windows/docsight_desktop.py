@@ -206,6 +206,9 @@ def _wait_for_ready(port: int, timeout_seconds: float = HEALTH_TIMEOUT_SECONDS) 
 
 def open_browser(port: int) -> None:
     """Open the desktop preview URL in the default browser."""
+    if os.environ.get("DOCSIGHT_SKIP_BROWSER") == "1":
+        LOG.info("Skipping browser launch because DOCSIGHT_SKIP_BROWSER=1")
+        return
     webbrowser.open(f"http://{DEFAULT_HOST}:{port}/")
 
 

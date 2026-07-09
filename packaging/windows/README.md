@@ -76,6 +76,27 @@ The build uses a Windows-resolved, hash-pinned runtime install from
 install from `requirements-build.txt`. The generated `VERSION` file is bundled
 next to the packaged `app/` tree so `/health` reports the build version.
 
+## CI automation
+
+The `Windows Desktop Preview` workflow builds the portable package on
+`windows-latest`, smoke-tests the built `DOCSight.exe` against
+`http://127.0.0.1:<port>/health`, and uploads the ZIP plus `.sha256` as workflow
+artifacts. Published releases also receive the ZIP and checksum as release
+assets.
+
+For local Windows smoke testing after a build:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packaging/windows/smoke_test.ps1 `
+  -BundleDir packaging/windows/dist/DOCSight `
+  -ExpectedVersion v2026-07-09.1
+```
+
+The smoke test launches the packaged executable, uses a temporary
+`LOCALAPPDATA`, skips browser launch via `DOCSIGHT_SKIP_BROWSER=1`, verifies the
+`/health` status and version, checks the listener is bound to `127.0.0.1`, and
+then stops the process.
+
 ## Packaging boundary
 
 The Desktop Preview artifact is a Docker-free tryout build for exploring
@@ -88,7 +109,6 @@ Windows packaging tree out of the Docker build context as well.
 
 ## Non-goals for this slice
 
-- No GitHub Actions automation yet.
 - No tray icon, WebView shell, auto-start, updater, installer, MSI, or MSIX.
 - No native Windows ICMP/traceroute diagnostics.
 - No code signing.
