@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Aakkosjärjestys",
   "glossary_close_picker": "Sulje termivalitsin",
   "glossary_not_confuse_heading": "Älä sekoita",
-  "glossary_aliases_heading": "Haetaan myös nimellä"
+  "glossary_aliases_heading": "Haetaan myös nimellä",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview on kokeiluversio",
+  "desktop_preview_notice_body": "Käytä DOCSight Desktop Previewiä sovelluksen paikalliseen kokeiluun. Luotettavaan 24/7-valvontaan käytä Dockeria; lepotila tai horrostila keskeyttää datan keruun.",
+  "desktop_preview_notice_link": "Lue ominaisuudet ja rajoitukset"
 }

@@ -54,6 +54,15 @@ def _server_tz_info():
 log = logging.getLogger("docsis.web")
 audit_log = logging.getLogger("docsis.audit")
 
+DESKTOP_PREVIEW_NOTICE_ID = "docsight-desktop-preview-v0"
+DESKTOP_PREVIEW_DOC_URL = "https://github.com/itsDNNS/docsight/blob/main/docs/windows-desktop-preview.md"
+
+
+def is_desktop_preview_mode() -> bool:
+    """Return True when DOCSight runs as the local Desktop Preview build."""
+    return os.environ.get("DOCSIGHT_DESKTOP_MODE") == "1"
+
+
 _THEME_COLLECTIONS = [
     {
         "key": "signature",
@@ -727,6 +736,7 @@ def inject_auth():
     ]
     theme_collections = _build_theme_collections(all_theme_modules)
 
+    desktop_mode = is_desktop_preview_mode()
     return {
         "auth_enabled": auth_enabled,
         "version": APP_VERSION,
@@ -736,6 +746,10 @@ def inject_auth():
         "theme_collections": theme_collections,
         "active_theme_data": active_theme_data,
         "active_theme_id": active_theme_id,
+        "desktop_mode": desktop_mode,
+        "desktop_preview_doc_url": DESKTOP_PREVIEW_DOC_URL,
+        "desktop_preview_notice_id": DESKTOP_PREVIEW_NOTICE_ID,
+        "desktop_preview_notice_dismissed": desktop_mode and DESKTOP_PREVIEW_NOTICE_ID in _get_dismissed_notice_ids(),
     }
 
 

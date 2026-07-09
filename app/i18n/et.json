@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Tähestikuliselt",
   "glossary_close_picker": "Sulge terminivalik",
   "glossary_not_confuse_heading": "Ära aja segi",
-  "glossary_aliases_heading": "Otsitakse ka kui"
+  "glossary_aliases_heading": "Otsitakse ka kui",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview on prooviversioon",
+  "desktop_preview_notice_body": "Kasuta DOCSight Desktop Preview’d rakenduse kohalikuks proovimiseks. Usaldusväärseks 24/7 jälgimiseks kasuta Dockerit; sülearvuti unerežiim või talveuni peatab andmete kogumise.",
+  "desktop_preview_notice_link": "Loe võimalusi ja piiranguid"
 }

@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Αλφαβητικά",
   "glossary_close_picker": "Κλείσιμο επιλογέα όρων",
   "glossary_not_confuse_heading": "Να μη συγχέεται",
-  "glossary_aliases_heading": "Αναζητείται και ως"
+  "glossary_aliases_heading": "Αναζητείται και ως",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Το Desktop Preview είναι δοκιμαστική έκδοση",
+  "desktop_preview_notice_body": "Χρησιμοποιήστε το DOCSight Desktop Preview για τοπική δοκιμή της εφαρμογής. Για αξιόπιστη παρακολούθηση 24/7, χρησιμοποιήστε Docker· η αναστολή ή αδρανοποίηση του φορητού διακόπτει τη συλλογή δεδομένων.",
+  "desktop_preview_notice_link": "Διαβάστε δυνατότητες και όρια"
 }

@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Abecedně",
   "glossary_close_picker": "Zavřít výběr pojmu",
   "glossary_not_confuse_heading": "Nezaměňovat",
-  "glossary_aliases_heading": "Hledáno také jako"
+  "glossary_aliases_heading": "Hledáno také jako",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview je zkušební sestavení",
+  "desktop_preview_notice_body": "Použijte DOCSight Desktop Preview k místnímu vyzkoušení aplikace. Pro spolehlivý monitoring 24/7 použijte Docker; spánek nebo hibernace notebooku pozastaví sběr dat.",
+  "desktop_preview_notice_link": "Přečíst možnosti a omezení"
 }

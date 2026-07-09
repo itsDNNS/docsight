@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Alfabētiski",
   "glossary_close_picker": "Aizvērt terminu izvēli",
   "glossary_not_confuse_heading": "Nejaukt ar",
-  "glossary_aliases_heading": "Meklē arī kā"
+  "glossary_aliases_heading": "Meklē arī kā",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview ir izmēģinājuma versija",
+  "desktop_preview_notice_body": "Izmantojiet DOCSight Desktop Preview, lai lokāli iepazītu lietotni. Uzticamai 24/7 uzraudzībai izmantojiet Docker; klēpjdatora miegs vai hibernācija aptur datu vākšanu.",
+  "desktop_preview_notice_link": "Lasīt iespējas un ierobežojumus"
 }

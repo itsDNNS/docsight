@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Ábécé szerint",
   "glossary_close_picker": "Fogalomválasztó bezárása",
   "glossary_not_confuse_heading": "Nem összetévesztendő",
-  "glossary_aliases_heading": "Így is keresik"
+  "glossary_aliases_heading": "Így is keresik",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "A Desktop Preview próba build",
+  "desktop_preview_notice_body": "A DOCSight Desktop Preview helyi kipróbálásra való. Megbízható 24/7 monitorozáshoz használj Dockert; a laptop alvó vagy hibernált állapota szünetelteti az adatgyűjtést.",
+  "desktop_preview_notice_link": "Képességek és korlátok"
 }

@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Alfabetisch",
   "glossary_close_picker": "Termkiezer sluiten",
   "glossary_not_confuse_heading": "Niet verwarren met",
-  "glossary_aliases_heading": "Ook gezocht als"
+  "glossary_aliases_heading": "Ook gezocht als",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview is een proefversie",
+  "desktop_preview_notice_body": "Gebruik DOCSight Desktop Preview om de app lokaal te verkennen. Gebruik Docker voor betrouwbare 24/7-monitoring; slaapstand of sluimerstand pauzeert de gegevensverzameling.",
+  "desktop_preview_notice_link": "Lees mogelijkheden en beperkingen"
 }

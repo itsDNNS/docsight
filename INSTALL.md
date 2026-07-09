@@ -4,7 +4,14 @@
 
 Covers Docker Run, Docker Compose, Portainer, Synology NAS, Unraid, updating, and troubleshooting.
 
-On Windows 10/11, start with the [Windows quick start](docs/windows-quick-start.md). It covers Docker Desktop, WSL 2/Hyper-V, a one-line PowerShell command, and common startup fixes.
+## Windows chooser
+
+| If you want to... | Start here |
+|---|---|
+| Quickly try DOCSight on a Windows PC without Docker | [Desktop Preview for Windows](docs/windows-desktop-preview.md) |
+| Monitor your connection continuously on Windows | [Windows Docker Desktop quick start](docs/windows-quick-start.md) |
+
+On Windows 10/11, the normal 24/7 monitoring path is Docker Desktop. Start with the [Windows quick start](docs/windows-quick-start.md) when you want the supported Docker path. The Desktop Preview is a portable tryout build and is not intended for always-on collection.
 
 If setup or collection does not behave as expected, run the passive local doctor inside the same container before collecting manual environment details:
 

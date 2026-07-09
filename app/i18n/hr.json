@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Abecedno",
   "glossary_close_picker": "Zatvori odabir pojma",
   "glossary_not_confuse_heading": "Ne miješati s",
-  "glossary_aliases_heading": "Traži se i kao"
+  "glossary_aliases_heading": "Traži se i kao",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview je probna verzija",
+  "desktop_preview_notice_body": "Koristite DOCSight Desktop Preview za lokalno upoznavanje aplikacije. Za pouzdano 24/7 praćenje koristite Docker; mirovanje ili hibernacija prijenosnika pauzira prikupljanje podataka.",
+  "desktop_preview_notice_link": "Pročitaj mogućnosti i ograničenja"
 }

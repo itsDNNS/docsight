@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Alfabetic",
   "glossary_close_picker": "Închide selectorul de termeni",
   "glossary_not_confuse_heading": "A nu se confunda",
-  "glossary_aliases_heading": "Căutat și ca"
+  "glossary_aliases_heading": "Căutat și ca",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview este o versiune de probă",
+  "desktop_preview_notice_body": "Folosiți DOCSight Desktop Preview pentru a explora aplicația local. Pentru monitorizare fiabilă 24/7, folosiți Docker; somnul sau hibernarea laptopului oprește temporar colectarea datelor.",
+  "desktop_preview_notice_link": "Citiți capabilitățile și limitele"
 }

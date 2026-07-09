@@ -89,6 +89,42 @@ body {
   background: rgba(120,130,180,0.1);
   color: var(--text-muted);
 }
+.desktop-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--info) 32%, transparent);
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  color: var(--info);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.desktop-preview-badge:hover,
+.desktop-preview-badge:focus-visible {
+  border-color: var(--info);
+  color: var(--info);
+  text-decoration: none;
+}
+.desktop-preview-badge-sidebar { margin-top: var(--space-sm); min-height: auto !important; }
+.desktop-preview-badge-settings { margin-top: 4px; }
+.sidebar > .desktop-preview-badge-settings {
+  margin: 0 var(--space-sm) var(--space-sm);
+}
+.desktop-preview-badge-mobile {
+  flex-shrink: 0;
+  margin-left: var(--space-xs);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
 
 /* ── Status Dots ── */
 .status-dot {
