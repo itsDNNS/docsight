@@ -51,7 +51,32 @@ if os.environ.get("DOCSIGHT_AUDIT_JSON", "").strip() == "1":
 def run_web(port):
     """Run production web server in a separate thread."""
     from waitress import serve
-    serve(web.app, host="0.0.0.0", port=port, threads=4, _quiet=True)
+    host = get_web_host()
+    serve(web.app, host=host, port=port, threads=4, _quiet=True)
+
+
+def get_web_host():
+    """Return the configured web bind address, preserving the server default."""
+    return os.environ.get("WEB_HOST", "0.0.0.0")
+
+
+def _apply_timezone(cfg):
+    """Apply the configured timezone where the platform supports TZ reloads."""
+    tz = cfg.get("timezone")
+    if tz:
+        os.environ["TZ"] = tz
+        if hasattr(time, "tzset"):
+            time.tzset()
+
+
+def _handle_config_changed(config_mgr, storage, start_polling):
+    """Reload config and apply runtime changes after a web UI save."""
+    log.info("Configuration changed, restarting polling loop")
+    config_mgr._load()
+    _apply_timezone(config_mgr)
+    storage.max_days = config_mgr.get("history_days", 7)
+    if config_mgr.is_configured():
+        start_polling()
 
 
 def _get_modem_config_key(config_mgr):
@@ -325,12 +350,6 @@ def polling_loop(config_mgr, storage, stop_event):
 
 
 def main():
-    def _apply_timezone(cfg):
-        tz = cfg.get("timezone")
-        if tz:
-            os.environ["TZ"] = tz
-            time.tzset()
-
     data_dir = os.environ.get("DATA_DIR", "/data")
     config_mgr = ConfigManager(data_dir)
     _apply_timezone(config_mgr)
@@ -366,15 +385,7 @@ def main():
 
     def on_config_changed():
         """Called when config is saved via web UI."""
-        log.info("Configuration changed, restarting polling loop")
-        # Reload config from file
-        config_mgr._load()
-        # Apply timezone change immediately
-        _apply_timezone(config_mgr)
-        # Update storage max_days
-        storage.max_days = config_mgr.get("history_days", 7)
-        if config_mgr.is_configured():
-            start_polling()
+        _handle_config_changed(config_mgr, storage, start_polling)
 
     web.init_config(config_mgr, on_config_changed)
 
@@ -415,9 +426,10 @@ def main():
 
     # Start Flask
     web_port = config_mgr.get("web_port", 8765)
+    web_host = get_web_host()
     web_thread = threading.Thread(target=run_web, args=(web_port,), daemon=True)
     web_thread.start()
-    log.info("Web UI started on port %d", web_port)
+    log.info("Web UI started on %s:%d", web_host, web_port)
 
     # Start polling if already configured
     if config_mgr.is_configured():
