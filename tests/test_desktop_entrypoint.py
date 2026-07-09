@@ -112,6 +112,19 @@ def test_select_port_raises_when_range_is_unavailable(monkeypatch):
         desktop.select_port(env, max_port=8766)
 
 
+def test_runtime_root_uses_source_checkout_by_default():
+    assert desktop.get_runtime_root() == ROOT
+
+
+def test_runtime_root_uses_pyinstaller_meipass(monkeypatch, tmp_path):
+    bundle_root = tmp_path / "_internal"
+
+    monkeypatch.setattr(desktop.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(desktop.sys, "_MEIPASS", str(bundle_root), raising=False)
+
+    assert desktop.get_runtime_root() == bundle_root
+
+
 def test_configure_logging_uses_rotating_file_handler(tmp_path, monkeypatch):
     log_file = tmp_path / "logs" / "docsight.log"
     calls = {}
