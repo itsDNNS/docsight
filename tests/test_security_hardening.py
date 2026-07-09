@@ -2,6 +2,7 @@
 
 import json
 import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -272,7 +273,7 @@ class TestSafeManifestSubpath:
         from app.path_safety import safe_manifest_subpath
 
         result = safe_manifest_subpath(str(tmp_path), "templates/tab.html")
-        assert result.endswith("templates/tab.html")
+        assert Path(result).parts[-2:] == ("templates", "tab.html")
 
     def test_traversal_blocked(self, tmp_path):
         from app.path_safety import safe_manifest_subpath

@@ -662,7 +662,7 @@ class TestBqmChartConfig:
 
     def test_loss_scale_inverted(self):
         """Loss Y-axis must be inverted: range returns [sentMax, 0]."""
-        with open("app/modules/bqm/static/js/bqm-chart.js", "r") as f:
+        with open("app/modules/bqm/static/js/bqm-chart.js", "r", encoding="utf-8") as f:
             js = f.read()
         # The scale range must return [sentMax, 0] (inverted), not [0, sentMax]
         assert "return [sentMax, 0]" in js
@@ -688,7 +688,7 @@ class TestBqmChartConfig:
 
     def test_toggle_logic_in_bqm_js(self):
         """bqm.js must contain toggle handler wiring."""
-        with open("app/static/js/bqm.js", "r") as f:
+        with open("app/static/js/bqm.js", "r", encoding="utf-8") as f:
             js = f.read()
         assert "bqm-toggle-uplot" in js
         assert "bqm-toggle-png" in js
@@ -696,7 +696,7 @@ class TestBqmChartConfig:
 
     def test_live_badge_labels_cached_png_without_claiming_live(self):
         """Cached fallback status must not be labelled as live freshness."""
-        with open("app/static/js/bqm.js", "r") as f:
+        with open("app/static/js/bqm.js", "r", encoding="utf-8") as f:
             js = f.read()
         assert "T.bqm_cached_png" in js
         assert "T.bqm_cached_png_loaded" in js
@@ -704,7 +704,7 @@ class TestBqmChartConfig:
 
     def test_no_slideshow_in_bqm_js(self):
         """bqm.js must not contain any slideshow references."""
-        with open("app/static/js/bqm.js", "r") as f:
+        with open("app/static/js/bqm.js", "r", encoding="utf-8") as f:
             js = f.read()
         assert "slideshow" not in js.lower()
         assert "bqm-play" not in js
