@@ -43,6 +43,10 @@ venv/
 .claude/
 .worktrees/
 
+# Windows Desktop Preview build outputs
+packaging/windows/build/
+packaging/windows/dist/
+
 # GSD planning (local only)
 .planning/
 .codex/

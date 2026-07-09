@@ -23,7 +23,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import MutableMapping
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 MAX_PORT = 8775
@@ -182,10 +182,17 @@ def select_port(
     raise RuntimeError(f"No free loopback port found in {preferred}-{max_port}")
 
 
+def get_runtime_root() -> Path:
+    """Return the root that contains bundled app data or the source checkout."""
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+    return SOURCE_ROOT
+
+
 def _ensure_repo_on_path() -> None:
-    repo_root = str(REPO_ROOT)
-    if repo_root not in sys.path:
-        sys.path.insert(0, repo_root)
+    runtime_root = str(get_runtime_root())
+    if runtime_root not in sys.path:
+        sys.path.insert(0, runtime_root)
 
 
 def _wait_for_ready(port: int, timeout_seconds: float = HEALTH_TIMEOUT_SECONDS) -> bool:

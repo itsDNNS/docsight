@@ -1,0 +1,27 @@
+# Git and repository metadata
+.git
+.github
+
+# Local Python/dev artifacts
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+
+# Tests and local docs are not needed by the runtime image
+tests
+docs
+packaging
+
+# Local config/data artifacts
+.env
+.env.local
+*.db
+config.json
+.config_key
+
+# Editor files
+.vscode
+.idea
