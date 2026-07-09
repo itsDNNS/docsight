@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Alfabetisk",
   "glossary_close_picker": "Luk begrebsvælger",
   "glossary_not_confuse_heading": "Må ikke forveksles",
-  "glossary_aliases_heading": "Søges også som"
+  "glossary_aliases_heading": "Søges også som",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview er en prøveversion",
+  "desktop_preview_notice_body": "Brug DOCSight Desktop Preview til at udforske appen lokalt. Til pålidelig 24/7-overvågning skal du bruge Docker; slumre- eller dvaletilstand pauser dataindsamlingen.",
+  "desktop_preview_notice_link": "Læs funktioner og begrænsninger"
 }

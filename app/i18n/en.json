@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Alphabetical",
   "glossary_close_picker": "Close term picker",
   "glossary_not_confuse_heading": "Do not confuse",
-  "glossary_aliases_heading": "Also searched as"
+  "glossary_aliases_heading": "Also searched as",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview is a tryout build",
+  "desktop_preview_notice_body": "Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.",
+  "desktop_preview_notice_link": "Read capabilities and limits"
 }

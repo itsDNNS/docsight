@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Азбучно",
   "glossary_close_picker": "Затваряне на избора на термин",
   "glossary_not_confuse_heading": "Не бъркайте",
-  "glossary_aliases_heading": "Търси се и като"
+  "glossary_aliases_heading": "Търси се и като",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview е пробна версия",
+  "desktop_preview_notice_body": "Използвайте DOCSight Desktop Preview, за да разгледате приложението локално. За надеждно 24/7 наблюдение използвайте Docker; заспиване или хибернация на лаптопа спира събирането на данни.",
+  "desktop_preview_notice_link": "Прочетете възможности и ограничения"
 }

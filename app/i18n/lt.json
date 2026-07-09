@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Abėcėlės tvarka",
   "glossary_close_picker": "Uždaryti terminų parinkiklį",
   "glossary_not_confuse_heading": "Nepainioti",
-  "glossary_aliases_heading": "Taip pat ieškoma kaip"
+  "glossary_aliases_heading": "Taip pat ieškoma kaip",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview yra bandomoji versija",
+  "desktop_preview_notice_body": "Naudokite DOCSight Desktop Preview programai vietoje išbandyti. Patikimam 24/7 stebėjimui naudokite Docker; kompiuterio miegas ar hibernacija sustabdo duomenų rinkimą.",
+  "desktop_preview_notice_link": "Skaityti galimybes ir ribas"
 }

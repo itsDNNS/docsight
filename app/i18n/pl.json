@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "Alfabetycznie",
   "glossary_close_picker": "Zamknij wybór terminu",
   "glossary_not_confuse_heading": "Nie mylić z",
-  "glossary_aliases_heading": "Wyszukiwane także jako"
+  "glossary_aliases_heading": "Wyszukiwane także jako",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Desktop Preview to wersja próbna",
+  "desktop_preview_notice_body": "Użyj DOCSight Desktop Preview, aby lokalnie poznać aplikację. Do niezawodnego monitoringu 24/7 użyj Dockera; uśpienie lub hibernacja laptopa wstrzymuje zbieranie danych.",
+  "desktop_preview_notice_link": "Zobacz możliwości i ograniczenia"
 }

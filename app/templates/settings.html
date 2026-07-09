@@ -51,6 +51,9 @@
                 <div class="sidebar-subtitle">{{ t.settings }}</div>
             </div>
         </a>
+        {% if desktop_mode %}
+        <a class="desktop-preview-badge desktop-preview-badge-settings" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</a>
+        {% endif %}
 
         <!-- Settings Navigation -->
         <div class="sidebar-nav">
@@ -128,9 +131,31 @@
                 <i data-lucide="menu" aria-hidden="true"></i>
             </button>
             <span class="page-title" style="font-size: 1.1rem;" id="mobile-title">{{ t.step_modem }}</span>
+            {% if desktop_mode %}
+            <a class="desktop-preview-badge desktop-preview-badge-mobile" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</a>
+            {% endif %}
         </div>
 
         <form id="settings-form" autocomplete="off">
+            {% if desktop_mode and not desktop_preview_notice_dismissed %}
+            <div class="notice-stack settings-notice-stack desktop-preview-notice-stack">
+                <article class="maintainer-notice notice-info desktop-preview-notice" data-notice-id="{{ desktop_preview_notice_id }}">
+                    <div class="notice-icon"><i data-lucide="info"></i></div>
+                    <div class="notice-content">
+                        <div class="notice-title-row">
+                            <h2>{{ t.get('desktop_preview_notice_title', 'Desktop Preview is a tryout build') }}</h2>
+                            <span class="badge badge-info">{{ t.get('desktop_preview_badge', 'Desktop Preview') }}</span>
+                        </div>
+                        <p>{{ t.get('desktop_preview_notice_body', 'Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.') }}</p>
+                        <a class="notice-link" href="{{ desktop_preview_doc_url }}" target="_blank" rel="noopener noreferrer">{{ t.get('desktop_preview_notice_link', 'Read capabilities and limits') }}</a>
+                    </div>
+                    <button type="button" class="notice-dismiss" onclick="dismissMaintainerNotice('{{ desktop_preview_notice_id }}')" aria-label="{{ t.get('notice_dismiss', 'Dismiss') }}">
+                        <i data-lucide="x"></i>
+                    </button>
+                </article>
+            </div>
+            {% endif %}
+
             {% if demo_mode %}
             <!-- ═══ Demo Mode Migration Banner ═══ -->
             <div class="settings-card glass" style="border-color: rgba(245,158,11,0.3);" id="demo-migrate-banner">

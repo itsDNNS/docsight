@@ -1112,5 +1112,9 @@
   "glossary_alphabetical_terms": "In ord aibítre",
   "glossary_close_picker": "Dún roghnóir téarmaí",
   "glossary_not_confuse_heading": "Ná measctar le",
-  "glossary_aliases_heading": "Cuardaítear freisin mar"
+  "glossary_aliases_heading": "Cuardaítear freisin mar",
+  "desktop_preview_badge": "Desktop Preview",
+  "desktop_preview_notice_title": "Is leagan trialach é Desktop Preview",
+  "desktop_preview_notice_body": "Úsáid DOCSight Desktop Preview chun an aip a thriail go háitiúil. Le haghaidh monatóireacht iontaofa 24/7, úsáid Docker; cuireann codladh nó geimhriú ríomhaire glúine bailiú sonraí ar sos.",
+  "desktop_preview_notice_link": "Léigh cumais agus teorainneacha"
 }
