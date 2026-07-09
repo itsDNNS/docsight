@@ -368,6 +368,18 @@ class TestBrowseDirectory:
         result = browse_directory(str(root), allowed_roots=[str(root)])
         assert result["parent"] is None
 
+    def test_browse_uses_data_dir_as_default_allowed_root(self, tmp_path, monkeypatch):
+        data_root = tmp_path / "desktop_data"
+        nested = data_root / "exports"
+        nested.mkdir(parents=True)
+
+        monkeypatch.setenv("DATA_DIR", str(data_root))
+
+        result = browse_directory(str(data_root))
+
+        assert "exports" in result["directories"]
+        assert result["path"] == os.path.realpath(data_root)
+
     def test_browse_nonexistent_dir(self, tmp_path):
         with pytest.raises(ValueError, match="Not a directory"):
             browse_directory(str(tmp_path / "nope"), allowed_roots=[str(tmp_path)])

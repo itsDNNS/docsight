@@ -310,6 +310,9 @@ def browse_directory(path, allowed_roots=None):
     """
     if allowed_roots is None:
         allowed_roots = ["/backup", "/data"]
+        data_dir = os.environ.get("DATA_DIR")
+        if data_dir:
+            allowed_roots.append(data_dir)
 
     real_path = os.path.realpath(path)
 
