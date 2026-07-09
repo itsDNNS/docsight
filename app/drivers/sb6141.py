@@ -7,8 +7,8 @@ authentication. Channel data is on /cmSignalData.htm in transposed tables
 
 Device info is on /cmHelpData.htm as plain text with <BR> separators.
 
-This driver may also work with other Motorola/Arris SB6xxx modems
-(SB6121, SB6183) that share the same web UI format.
+This driver may also work with Motorola/Arris SB6xxx modems that share
+the same transposed table web UI format.
 """
 
 from __future__ import annotations
