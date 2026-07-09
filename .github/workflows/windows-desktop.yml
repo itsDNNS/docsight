@@ -1,0 +1,111 @@
+name: Windows Desktop Preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional version label for the desktop artifact
+        required: false
+        type: string
+  pull_request:
+    branches: [main]
+    paths:
+      - app/**
+      - packaging/windows/**
+      - requirements.txt
+      - .github/workflows/windows-desktop.yml
+  push:
+    branches: [main]
+    paths:
+      - app/**
+      - packaging/windows/**
+      - requirements.txt
+      - .github/workflows/windows-desktop.yml
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      artifact-name: ${{ steps.artifact.outputs.name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            packaging/windows/requirements-runtime-windows.txt
+            packaging/windows/requirements-build.txt
+
+      - name: Resolve artifact version
+        id: version
+        shell: pwsh
+        run: |
+          $version = ""
+          if ("${{ github.event_name }}" -eq "release") {
+            $version = "${{ github.event.release.tag_name }}"
+          } elseif ("${{ github.event_name }}" -eq "workflow_dispatch" -and -not [string]::IsNullOrWhiteSpace("${{ inputs.version }}")) {
+            $version = "${{ inputs.version }}".Trim()
+          } else {
+            $version = (git describe --tags --always --dirty).Trim()
+          }
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Unable to resolve artifact version."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build portable package
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File packaging/windows/build.ps1 -Version "${{ steps.version.outputs.version }}"
+
+      - name: Smoke-test built package
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File packaging/windows/smoke_test.ps1 -BundleDir packaging/windows/dist/DOCSight -ExpectedVersion "${{ steps.version.outputs.version }}" -Port 8765
+
+      - name: Resolve artifact name
+        id: artifact
+        shell: pwsh
+        run: |
+          $safeVersion = "${{ steps.version.outputs.version }}" -replace '[^A-Za-z0-9._-]', '-'
+          "name=docsight-desktop-preview-win64-$safeVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          if-no-files-found: error
+          path: |
+            packaging/windows/dist/DOCSight-Desktop-Preview-win64-*.zip
+            packaging/windows/dist/DOCSight-Desktop-Preview-win64-*.zip.sha256
+
+  attach-release-assets:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download desktop artifact
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ needs.build.outputs.artifact-name }}
+          path: release-assets
+
+      - name: Attach assets to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG_NAME" release-assets/*.zip release-assets/*.sha256 --clobber

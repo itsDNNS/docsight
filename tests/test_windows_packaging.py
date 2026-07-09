@@ -16,6 +16,7 @@ def test_windows_packaging_files_exist():
         "requirements-build.in",
         "requirements-build.txt",
         "requirements-runtime-windows.txt",
+        "smoke_test.ps1",
         "README.md",
     ):
         assert (WINDOWS_PACKAGING / relative).is_file()
