@@ -68,7 +68,7 @@ class TestSettingsRoute:
         assert "use BNetzA File Watcher for automatic imports" in html
 
         manifest_path = Path("app/modules/bnetz/manifest.json")
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         assert manifest["name"] == "BNetzA File Watcher Module"
         assert "Automatic import module for BNetzA PDFs/CSVs" in manifest["description"]
 
@@ -143,7 +143,9 @@ class TestSettingsRoute:
         assert 'id="dot-notifications"' not in html
 
     def test_settings_mqtt_status_indicator_starts_hidden_and_live(self):
-        template = Path("app/modules/mqtt/templates/mqtt_settings.html").read_text()
+        template = Path("app/modules/mqtt/templates/mqtt_settings.html").read_text(
+            encoding="utf-8"
+        )
         status = BeautifulSoup(template, "html.parser").select_one("#mqtt-status")
 
         assert status is not None

@@ -15,9 +15,13 @@ def test_windows_packaging_files_exist():
         "build.ps1",
         "requirements-build.in",
         "requirements-build.txt",
+        "requirements-runtime-windows.in",
         "requirements-runtime-windows.txt",
+        "requirements-test-windows.in",
+        "requirements-test-windows.txt",
         "smoke_test.ps1",
         "README.md",
+        "QA-CHECKLIST.md",
     ):
         assert (WINDOWS_PACKAGING / relative).is_file()
 
@@ -61,6 +65,7 @@ def test_runtime_windows_lock_contains_windows_marked_dependencies():
 
     assert "click==8.3.1" in lock_text
     assert "colorama==0.4.6" in lock_text
+    assert "tzdata==2026.2" in lock_text
 
 
 def test_docker_context_excludes_windows_packaging():

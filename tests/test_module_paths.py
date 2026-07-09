@@ -1,10 +1,20 @@
 """Contracts for community module storage paths."""
 
 from pathlib import Path
+import sys
+
+import pytest
 
 from app.module_paths import DEFAULT_MODULES_DIR, get_modules_dir
 
 ROOT = Path(__file__).resolve().parents[1]
+pytestmark = [
+    pytest.mark.linux_only,
+    pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Container runtime path and Docker entrypoint contracts are Linux-only.",
+    ),
+]
 
 
 def test_default_modules_dir_is_persisted_data_volume(monkeypatch):

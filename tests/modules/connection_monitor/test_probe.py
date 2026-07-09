@@ -2,8 +2,11 @@
 
 import socket
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 from app.modules.connection_monitor.probe import ProbeEngine, ProbeResult
 
@@ -323,7 +326,7 @@ class TestIPv6Support:
 
 
 class TestIPv6Regressions:
-    """Regression coverage for the Codex review blockers on the #361 fix."""
+    """Regression coverage for IPv6 fallback blockers on the #361 fix."""
 
     def test_icmp_raw_fallback_resolves_ipv4_literal_without_eai_service(self):
         """Raw ICMP must resolve IPv4 literals without tripping EAI_SERVICE.
@@ -490,7 +493,7 @@ class TestIPv6Regressions:
 
 
 class TestDualStackFallback:
-    """Codex gate 2: ICMP fallback must iterate addrinfo like TCP does.
+    """Gate 2: ICMP fallback must iterate addrinfo like TCP does.
 
     The partial fix resolved every (family, sockaddr) but then probed only
     ``addresses[0]``. A dual-stack hostname whose first usable family was
@@ -658,6 +661,11 @@ class TestDualStackFallback:
         assert result.latency_ms is None
         assert result.method == "icmp"
 
+    @pytest.mark.linux_only
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="ICMP helper compile probe requires Linux C networking headers and gcc.",
+    )
     def test_icmp_helper_c_source_reserves_bounded_per_address_budget(self, tmp_path):
         """Helper must bound each address's wait so a silent first address does
         not starve later addresses of time.

@@ -2,6 +2,7 @@
 
 import hashlib
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -375,6 +376,11 @@ class TestHelperSource:
         assert "ICMP_TIME_EXCEEDED" in src
         assert "inet_ntop(AF_INET" in src
 
+    @pytest.mark.linux_only
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Traceroute helper compile probe requires Linux C networking headers and gcc.",
+    )
     def test_helper_compiles_with_strict_warnings(self, tmp_path):
         """Helper builds cleanly with -O2 -Wall -Werror."""
         binary = tmp_path / "docsight-traceroute-helper"
