@@ -62,17 +62,15 @@ def test_glossary_term_list_navigation_updates_hash_and_article(page, live_serve
     expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="Gaming Index")).to_be_visible()
 
 
-def test_glossary_level_deep_link_opens_detail_inside_explanation(page, live_server):
+def test_glossary_legacy_level_deep_link_opens_article_without_detail_ui(page, live_server):
     page.goto(f"{live_server}/?lang=en#glossary?term=docsis&level=technician")
     page.wait_for_selector("#view-glossary.active", state="visible")
 
     article = _active_article(page)
     expect(article.locator(".glossary-term-header-card h3", has_text="DOCSIS")).to_be_visible()
-    detail = article.locator('[data-glossary-detail-level="technician"]')
-    expect(detail).to_be_visible()
-    assert detail.evaluate("node => node.open") is True
     expect(article.locator(".glossary-summary-card", has_text="Quick summary")).to_be_visible()
     expect(article.locator(".glossary-explanation-card", has_text="Explanation")).to_be_visible()
+    expect(article.locator('[data-glossary-detail-level]')).to_have_count(0)
 
 
 def test_glossary_invalid_deep_link_shows_searchable_empty_state(page, live_server):
@@ -184,7 +182,7 @@ def test_dashboard_contextual_help_links_to_matching_in_app_glossary_term(page, 
     page.locator(".hero-meta-item.glossary-hint", has_text="DOCSIS basics").click()
     link = page.locator("#glossary-popover-overlay .glossary-popover-link")
     expect(link).to_be_visible()
-    expect(link).to_have_attribute("href", re.compile(r"/\?lang=en#glossary\?term=docsis&level=basic"))
+    expect(link).to_have_attribute("href", re.compile(r"/\?lang=en#glossary\?term=docsis$"))
 
 
 def test_dashboard_contextual_glossary_link_is_keyboard_reachable(page, live_server):
@@ -200,6 +198,6 @@ def test_dashboard_contextual_glossary_link_is_keyboard_reachable(page, live_ser
     expect(link).to_be_focused()
 
     page.keyboard.press("Enter")
-    expect(page).to_have_url(re.compile(r"/\?lang=en#glossary\?term=docsis&level=basic"))
+    expect(page).to_have_url(re.compile(r"/\?lang=en#glossary\?term=docsis"))
     page.wait_for_selector("#view-glossary.active", state="visible")
     expect(_active_article(page).locator(".glossary-term-header-card h3", has_text="DOCSIS")).to_be_visible()

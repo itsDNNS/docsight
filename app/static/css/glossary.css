@@ -412,27 +412,8 @@ body > .glossary-popover .glossary-popover-link:focus-visible {
   color: var(--text-primary);
 }
 
-.glossary-detail-block {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--glass-border);
-}
-
-.glossary-detail-block summary {
-  color: var(--text-primary);
-  cursor: pointer;
-  font-weight: 800;
-  line-height: 1.4;
-}
-
-.glossary-detail-block summary:focus-visible {
-  outline: 2px solid var(--amethyst);
-  outline-offset: 4px;
-  border-radius: var(--radius-sm);
-}
-
-.glossary-detail-block p {
-  margin-top: 10px;
+.glossary-explanation-card p + p {
+  margin-top: 12px;
 }
 
 .glossary-media-card {

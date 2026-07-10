@@ -31,14 +31,13 @@
     if (!source) return;
     var isDashboardMeta = hint.matches('.dashboard-view .insights-meta .hero-meta-item');
     var targetTermId = hint.getAttribute('data-glossary-term-id');
-    var targetLevel = hint.getAttribute('data-glossary-term-level') || 'basic';
     overlay.textContent = '';
     overlay.appendChild(document.createTextNode(source.textContent.trim()));
-    if (targetTermId && /^[a-z0-9_]+$/.test(targetTermId) && /^(eli5|basic|advanced|technician)$/.test(targetLevel)) {
+    if (targetTermId && /^[a-z0-9_]+$/.test(targetTermId)) {
       var link = document.createElement('a');
       var lang = document.documentElement.getAttribute('lang') || 'en';
       link.className = 'glossary-popover-link';
-      link.href = '/?lang=' + encodeURIComponent(lang) + '#glossary?term=' + encodeURIComponent(targetTermId) + '&level=' + encodeURIComponent(targetLevel);
+      link.href = '/?lang=' + encodeURIComponent(lang) + '#glossary?term=' + encodeURIComponent(targetTermId);
       link.textContent = hint.getAttribute('data-glossary-term-label') || 'Open glossary article';
       overlay.appendChild(link);
     }
