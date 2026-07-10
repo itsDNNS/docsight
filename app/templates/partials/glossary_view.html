@@ -62,16 +62,10 @@
                 <h4 id="explanation-heading-{{ term.id }}">{{ t.get('glossary_explanation_heading', 'Explanation') }}</h4>
                 <p>{{ term.levels.basic }}</p>
                 {% if term.levels.advanced and term.levels.advanced != term.levels.basic %}
-                <details class="glossary-detail-block" data-glossary-detail-level="advanced">
-                    <summary>{{ t.get('glossary_level_advanced', 'Advanced') }}</summary>
-                    <p>{{ term.levels.advanced }}</p>
-                </details>
+                <p>{{ term.levels.advanced }}</p>
                 {% endif %}
                 {% if term.levels.technician and term.levels.technician != term.levels.basic and term.levels.technician != term.levels.advanced %}
-                <details class="glossary-detail-block" data-glossary-detail-level="technician">
-                    <summary>{{ t.get('glossary_level_technician', 'Technician') }}</summary>
-                    <p>{{ term.levels.technician }}</p>
-                </details>
+                <p>{{ term.levels.technician }}</p>
                 {% endif %}
             </section>
 

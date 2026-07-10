@@ -14,6 +14,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from .base import ModemDriver
+from .utils import hz_to_mhz, parse_number
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 
 log = logging.getLogger("docsis.driver.sb6183")
@@ -117,16 +118,16 @@ class SB6183Driver(ModemDriver):
             if len(cells) < 9 or not cells[3].isdigit() or cells[1].strip().lower() != "locked":
                 continue
             try:
-                snr = self._parse_number(cells[6])
+                snr = parse_number(cells[6])
                 result.append({
                     "channelID": int(cells[3]),
-                    "frequency": self._normalize_mhz(cells[4]),
-                    "powerLevel": self._parse_number(cells[5]),
+                    "frequency": hz_to_mhz(cells[4]),
+                    "powerLevel": parse_number(cells[5]),
                     "mer": snr,
                     "mse": -snr if snr else None,
                     "modulation": cells[2],
-                    "corrErrors": int(self._parse_number(cells[7])),
-                    "nonCorrErrors": int(self._parse_number(cells[8])),
+                    "corrErrors": int(parse_number(cells[7])),
+                    "nonCorrErrors": int(parse_number(cells[8])),
                 })
             except (ValueError, TypeError, IndexError) as e:
                 log.warning("Failed to parse SB6183 DS channel: %s", e)
@@ -144,24 +145,14 @@ class SB6183Driver(ModemDriver):
             try:
                 result.append({
                     "channelID": int(cells[3]),
-                    "frequency": self._normalize_mhz(cells[5]),
-                    "powerLevel": self._parse_number(cells[6]),
+                    "frequency": hz_to_mhz(cells[5]),
+                    "powerLevel": parse_number(cells[6]),
                     "modulation": cells[2],
                     "multiplex": cells[2],
                 })
             except (ValueError, TypeError, IndexError) as e:
                 log.warning("Failed to parse SB6183 US channel: %s", e)
         return result
-
-    @staticmethod
-    def _normalize_mhz(freq_str: str) -> str:
-        from .utils import hz_to_mhz
-        return hz_to_mhz(freq_str)
-
-    @staticmethod
-    def _parse_number(val_str: str) -> float:
-        from .utils import parse_number
-        return parse_number(val_str)
 
     @staticmethod
     def _is_status_page(html: str) -> bool:

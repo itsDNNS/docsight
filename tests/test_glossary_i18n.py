@@ -36,29 +36,21 @@ CORE_GLOSSARY_KEYS = [
 GLOSSARY_PAGE_KEYS = [
     "glossary_page_title",
     "glossary_page_intro",
-    "glossary_level_selector",
-    "glossary_knowledge_eyebrow",
     "glossary_filter_title",
     "glossary_search_label",
     "glossary_search_placeholder",
-    "glossary_category_filter_label",
-    "glossary_all_categories",
     "glossary_result_singular",
     "glossary_result_plural",
     "glossary_no_results",
-    "glossary_all_levels_heading",
-    "glossary_misconceptions_heading",
-    "glossary_protected_heading",
     "glossary_related_heading",
     "glossary_no_term_selected",
-    "glossary_level_eli5",
-    "glossary_level_eli5_desc",
-    "glossary_level_basic",
-    "glossary_level_basic_desc",
-    "glossary_level_advanced",
-    "glossary_level_advanced_desc",
-    "glossary_level_technician",
-    "glossary_level_technician_desc",
+    "glossary_summary_heading",
+    "glossary_explanation_heading",
+    "glossary_change_term",
+    "glossary_selected_term",
+    "glossary_alphabetical_terms",
+    "glossary_close_picker",
+    "glossary_aliases_heading",
 ]
 
 MOD_GLOSSARY_KEYS = [
@@ -107,8 +99,6 @@ def test_glossary_page_keys_present_in_every_offered_language():
             assert token in placeholder or token in no_results, f"Missing protected search token {token} in {entry.name}"
         if entry.name != "en.json":
             for key in GLOSSARY_PAGE_KEYS:
-                if key == "glossary_level_eli5":
-                    continue
                 assert data[key] != english[key], f"English glossary UI fallback leaked for {key} in {entry.name}"
 
 

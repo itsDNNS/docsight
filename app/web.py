@@ -25,7 +25,6 @@ from .analyzer import get_thresholds
 from .docsis_utils import qam_rank
 from .gaming_index import compute_gaming_index
 from .glossary import (
-    GLOSSARY_LEVELS,
     get_glossary_categories,
     get_glossary_term,
     get_glossary_terms,
@@ -1332,9 +1331,6 @@ def glossary_page():
     term_id = request.args.get("term", "")
     if term_id in terms:
         hash_params["term"] = term_id
-    level = request.args.get("level", "")
-    if level in GLOSSARY_LEVELS:
-        hash_params["level"] = level
     hash_query = f"?{urlencode(hash_params)}" if hash_params else ""
     return redirect(f"/?{urlencode({'lang': lang})}#glossary{hash_query}")
 

@@ -35,16 +35,11 @@
     var parts = hash.split('?');
     if (parts[0] !== 'glossary') return null;
     var params = new URLSearchParams(parts.slice(1).join('?'));
-    return {
-      term: params.get('term') || '',
-      level: params.get('level') || ''
-    };
+    return { term: params.get('term') || '' };
   }
 
-  function glossaryHashForTerm(termId, level) {
-    var hash = '#glossary?term=' + encodeURIComponent(termId);
-    if (level) hash += '&level=' + encodeURIComponent(level);
-    return hash;
+  function glossaryHashForTerm(termId) {
+    return '#glossary?term=' + encodeURIComponent(termId);
   }
 
   function findArticle(termId) {
@@ -95,7 +90,6 @@
 
   function setActiveTerm(termId, options) {
     options = options || {};
-    var requestedLevel = /^(eli5|basic|advanced|technician)$/.test(options.level || '') ? options.level : '';
     var resolvedTermId = resolveTermId(termId);
     var article = findArticle(resolvedTermId) || (!termId ? articles[0] : null);
     if (!article) {
@@ -107,9 +101,6 @@
 
     articles.forEach(function (item) {
       item.hidden = item !== article;
-      Array.prototype.slice.call(item.querySelectorAll('[data-glossary-detail-level]')).forEach(function (detail) {
-        detail.open = false;
-      });
     });
 
     document.querySelectorAll('[data-glossary-term]').forEach(function (link) {
@@ -123,19 +114,13 @@
       selectedLabel.textContent = (selectedPrefix || 'Selected term') + ': ' + (article.getAttribute('data-title') || activeTermId);
     }
 
-    var targetDetail = null;
-    if (requestedLevel === 'advanced' || requestedLevel === 'technician') {
-      targetDetail = article.querySelector('[data-glossary-detail-level="' + requestedLevel + '"]');
-      if (targetDetail) targetDetail.open = true;
+    if (options.updateHash && window.location.hash !== glossaryHashForTerm(activeTermId)) {
+      window.location.hash = glossaryHashForTerm(activeTermId);
     }
 
-    if (options.updateHash && window.location.hash !== glossaryHashForTerm(activeTermId, requestedLevel)) {
-      window.location.hash = glossaryHashForTerm(activeTermId, requestedLevel);
-    }
-
-    if (options.scroll && targetDetail) {
+    if (options.scroll) {
       window.requestAnimationFrame(function () {
-        targetDetail.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        article.scrollIntoView({ block: 'start', behavior: 'smooth' });
       });
     }
   }
@@ -311,11 +296,11 @@
 
   window.addEventListener('hashchange', function () {
     var parsed = parseGlossaryHash();
-    if (parsed) setActiveTerm(parsed.term, { level: parsed.level, scroll: true });
+    if (parsed) setActiveTerm(parsed.term, { scroll: true });
   });
 
   var parsed = parseGlossaryHash();
-  if (parsed) setActiveTerm(parsed.term, { level: parsed.level });
+  if (parsed) setActiveTerm(parsed.term);
 
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && picker && !picker.hidden) {

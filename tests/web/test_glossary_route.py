@@ -12,7 +12,7 @@ def test_glossary_route_redirects_to_in_app_glossary(client, sample_analysis):
     resp = client.get("/glossary?lang=en&term=sc_qam&level=basic")
 
     assert resp.status_code == 302
-    assert resp.headers["Location"] == "/?lang=en#glossary?term=sc_qam&level=basic"
+    assert resp.headers["Location"] == "/?lang=en#glossary?term=sc_qam"
 
 
 def test_glossary_route_drops_invalid_deep_link_values(client, sample_analysis):
@@ -58,8 +58,8 @@ def test_index_glossary_renders_simple_summary_and_explanation(client, sample_an
     assert '<p class="eyebrow">' not in active_article
     assert "DOCSIS terms" not in active_article
     assert "Also searched as" in active_article
-    assert 'data-glossary-detail-level="advanced"' in html
-    assert 'data-glossary-detail-level="technician"' in html
+    assert 'data-glossary-detail-level=' not in html
+    assert "Use SC-QAM rows to isolate channel-specific impairment" in html
     assert 'class="glossary-media-card"' not in html
 
 
