@@ -162,7 +162,30 @@ class TestUpstreamOFDMA:
         assert ch["channelID"] == 0
         assert ch["type"] == "OFDMA"
         assert ch["frequency"] == "42 MHz"
-        assert ch["powerLevel"] == pytest.approx(51.6417)
+        assert ch["powerLevel"] == pytest.approx(37.75)
+
+    def test_missing_1_6_mhz_report_power_stays_unsupported(self, driver, caplog):
+        operating = [dict(US_OFDMA_DATA[0])]
+        del operating[0]["repPower1_6"]
+        resp = MagicMock(status_code=200)
+        resp.json.return_value = operating
+
+        with patch.object(driver._session, "get", return_value=resp):
+            channels = driver._fetch_us_ofdma()
+
+        assert channels[0]["powerLevel"] is None
+        assert "missing repPower1_6" in caplog.text
+
+    @pytest.mark.parametrize("value", [None, "", "N/A", "nan", "inf", "-inf", []])
+    def test_invalid_1_6_mhz_report_power_stays_unsupported(self, driver, value):
+        operating = [dict(US_OFDMA_DATA[0], repPower1_6=value)]
+        resp = MagicMock(status_code=200)
+        resp.json.return_value = operating
+
+        with patch.object(driver._session, "get", return_value=resp):
+            channels = driver._fetch_us_ofdma()
+
+        assert channels[0]["powerLevel"] is None
 
     def test_skip_disabled_ofdma(self, driver):
         disabled = [dict(US_OFDMA_DATA[1])]

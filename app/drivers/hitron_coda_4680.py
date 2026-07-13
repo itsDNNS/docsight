@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import time
 from typing import Any
 
@@ -22,7 +21,7 @@ import requests
 
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 from .base import ModemDriver
-from .utils import hz_to_mhz, make_legacy_tls_adapter, normalize_modulation
+from .utils import hz_to_mhz, make_legacy_tls_adapter, normalize_modulation, parse_optional_finite_float
 
 log = logging.getLogger("docsis.driver.hitron_coda_4680")
 
@@ -284,11 +283,7 @@ class HitronCoda4680Driver(ModemDriver):
         if "repPower1_6" not in row:
             log.warning("Hitron CODA-4680 OFDMA row missing repPower1_6; leaving power unsupported")
             return None
-        try:
-            power = float(str(row.get("repPower1_6")).strip())
-        except (TypeError, ValueError):
-            return None
-        return power if math.isfinite(power) else None
+        return parse_optional_finite_float(row.get("repPower1_6"))
 
     @staticmethod
     def _parse_rate_kbps(value: Any) -> int:

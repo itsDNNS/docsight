@@ -7,6 +7,7 @@ automatically.
 
 import hashlib
 import logging
+import math
 import re
 import ssl
 
@@ -53,6 +54,15 @@ def parse_number(value: str) -> float:
         return float(parts[0])
     except (ValueError, IndexError):
         return 0.0
+
+
+def parse_optional_finite_float(value) -> float | None:
+    """Parse a finite float while preserving missing or invalid values as unsupported."""
+    try:
+        number = float(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
 
 
 def hz_to_mhz(freq) -> str:
