@@ -63,7 +63,7 @@ def test_build_lock_contains_windows_pyinstaller_dependencies():
 def test_runtime_windows_lock_contains_windows_marked_dependencies():
     lock_text = (WINDOWS_PACKAGING / "requirements-runtime-windows.txt").read_text(encoding="utf-8")
 
-    assert "click==8.3.1" in lock_text
+    assert "click==8.4.2" in lock_text
     assert "colorama==0.4.6" in lock_text
     assert "tzdata==2026.2" in lock_text
 
