@@ -21,7 +21,7 @@ import requests
 
 from .base import ModemDriver
 from ..types import DocsisData, DeviceInfo, ConnectionInfo, RawChannel
-from .utils import make_legacy_tls_adapter
+from .utils import make_legacy_tls_adapter, parse_optional_finite_float
 
 log = logging.getLogger("docsis.driver.hitron")
 
@@ -177,13 +177,20 @@ class HitronDriver(ModemDriver):
                     "channelID": int(ch["uschindex"]),
                     "type": "OFDMA",
                     "frequency": self._hz_to_mhz(ch.get("frequency", "0")),
-                    "powerLevel": float(ch["repPower"]),
+                    "powerLevel": self._ofdma_power_1_6(ch),
                     "modulation": "OFDMA",
                     "multiplex": "",
                 })
             except (ValueError, KeyError, TypeError) as e:
                 log.warning("Failed to parse Hitron US OFDMA row: %s", e)
         return channels
+
+    @staticmethod
+    def _ofdma_power_1_6(row: dict[str, str]) -> float | None:
+        if "repPower1_6" not in row:
+            log.warning("Hitron CODA-56 OFDMA row missing repPower1_6; leaving power unsupported")
+            return None
+        return parse_optional_finite_float(row.get("repPower1_6"))
 
     # -- Helpers --
 
