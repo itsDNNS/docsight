@@ -9,7 +9,16 @@ from email.utils import parsedate_to_datetime
 
 import pytest
 from werkzeug.security import generate_password_hash
-from app.web import app, update_state, init_config, init_storage, _login_attempts, _LOGIN_MAX_TRACKED_IPS
+from app.web import (
+    _AUTH_STATE_CONTEXT,
+    _LOGIN_MAX_TRACKED_IPS,
+    _keyed_sha256_hexdigest,
+    _login_attempts,
+    app,
+    init_config,
+    init_storage,
+    update_state,
+)
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 
@@ -29,6 +38,19 @@ def _login(client, credential=None):
         data={"password": credential, "csrf_token": _login_csrf(client)},
         follow_redirects=False,
     )
+
+
+def test_keyed_sha256_digest_is_compatible_with_existing_auth_state_format():
+    key = bytes(range(32))
+    password_representation = (
+        b"scrypt:32768:8:1$fixed-salt$fixed-password-hash"
+    )
+
+    digest = _keyed_sha256_hexdigest(
+        key, _AUTH_STATE_CONTEXT + password_representation
+    )
+
+    assert digest == "d9657a5a0e8823e7c611426f9e40f0ac2fd3af7c2df8479e90410f238bd89f31"
 
 
 @pytest.fixture

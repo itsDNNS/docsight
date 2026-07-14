@@ -1,7 +1,6 @@
 """Flask web UI for DOCSight – DOCSIS channel monitoring."""
 
 import functools
-import hmac
 import logging
 import math
 import os
@@ -15,6 +14,7 @@ from urllib.parse import urlencode
 
 import requests as _requests
 
+from cryptography.hazmat.primitives import hashes, hmac
 from flask import Flask, render_template, request, jsonify, redirect, session, send_from_directory
 from jinja2 import FileSystemLoader, ChoiceLoader
 from markupsafe import Markup
@@ -664,9 +664,18 @@ def init_config(config_manager, on_config_changed=None):
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=_session_lifetime_days())
 
 
+def _keyed_sha256_hexdigest(key: bytes, message: bytes) -> str:
+    """Return the HMAC-SHA256 of message as lowercase hexadecimal."""
+    mac = hmac.HMAC(key, hashes.SHA256())
+    mac.update(message)
+    return mac.finalize().hex()
+
+
 def _secret_values_match(left, right):
     """Compare secret representations without timing-sensitive equality."""
-    return hmac.compare_digest(str(left or "").encode(), str(right or "").encode())
+    return secrets.compare_digest(
+        str(left or "").encode(), str(right or "").encode()
+    )
 
 
 def _admin_password_matches(effective_password, candidate):
@@ -689,7 +698,7 @@ def _auth_state_fingerprint(password_representation=None):
         )
     key = app.secret_key.encode() if isinstance(app.secret_key, str) else app.secret_key
     value = _AUTH_STATE_CONTEXT + str(password_representation or "").encode("utf-8")
-    return hmac.new(key, value, "sha256").hexdigest()
+    return _keyed_sha256_hexdigest(key, value)
 
 
 def _auth_state_path():
@@ -745,7 +754,7 @@ def _admin_session_marker(password_representation=None):
         return ""
     key = app.secret_key.encode() if isinstance(app.secret_key, str) else app.secret_key
     value = _AUTH_MARKER_CONTEXT + str(password_representation).encode("utf-8")
-    return hmac.new(key, value, "sha256").hexdigest()
+    return _keyed_sha256_hexdigest(key, value)
 
 
 def _authenticated_session_is_valid():
