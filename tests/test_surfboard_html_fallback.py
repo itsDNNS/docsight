@@ -147,19 +147,103 @@ class TestHtmlLogin:
         assert driver._html_status_cache == STATUS_HTML
         assert driver._logged_in is True
 
-    def test_html_login_rejects_short_response(self, driver):
-        """HTML login rejects responses without channel data after retry."""
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = "<html><body>Login</body></html>"
-        mock_resp.raise_for_status = MagicMock()
+    def test_html_login_http_error_does_not_expose_credentials(self):
+        """HTTP failures report only the response status, not request secrets."""
+        credential_marker = "CODEQL_ALERT_96_CREDENTIAL_MARKER"
+        credential_value = "CODEQL_ALERT_96_PASSWORD"
+        encoded_credentials = base64.b64encode(
+            f"{credential_marker}:{credential_value}".encode()
+        ).decode()
+        request_url = (
+            "https://192.168.100.1/cmconnectionstatus.html"
+            f"?marker={credential_marker}&login_{encoded_credentials}"
+        )
+        request = requests.Request("GET", request_url).prepare()
+        response = requests.Response()
+        response.status_code = 401
+        response.request = request
+        response.url = request_url
+        raw_error = f"unique raw HTTP error for {request_url}"
+        error = requests.HTTPError(
+            raw_error, request=request, response=response
+        )
+        driver = SurfboardDriver(
+            "https://192.168.100.1", credential_marker, credential_value
+        )
+
+        with patch.object(driver._session, "get", side_effect=error), \
+             pytest.raises(RuntimeError) as exc_info:
+            driver._html_login()
+
+        error_text = str(exc_info.value)
+        assert error_text == "SURFboard HTML login failed (HTTP 401)"
+        assert credential_marker not in error_text
+        assert encoded_credentials not in error_text
+        assert request_url not in error_text
+        assert raw_error not in error_text
+        assert exc_info.value.__cause__ is error
+
+    def test_html_login_connection_error_does_not_expose_message(self, driver):
+        """Transport failures report the exception type without its message."""
+        sensitive_marker = "CODEQL_ALERT_96_CONNECTION_SECRET"
+        raw_error = f"connection refused with secret {sensitive_marker}"
+        error = requests.ConnectionError(raw_error)
+
+        with patch.object(driver._session, "get", side_effect=error), \
+             pytest.raises(RuntimeError) as exc_info:
+            driver._html_login()
+
+        error_text = str(exc_info.value)
+        assert error_text == "SURFboard HTML login failed: ConnectionError"
+        assert sensitive_marker not in error_text
+        assert raw_error not in error_text
+        assert exc_info.value.__cause__ is error
+
+    def test_html_login_retry_warning_does_not_log_response_body(
+        self, driver, caplog
+    ):
+        """The retry warning reports size without exposing response content."""
+        sensitive_marker = "CODEQL_ALERT_96_SECRET_MARKER"
+        response_body = f"<html><body>{sensitive_marker}: login failed</body></html>"
+
+        caplog.set_level("WARNING", logger="docsis.driver.surfboard")
+        with patch.object(driver, "_fresh_session") as fresh_session, \
+             patch.object(
+                 driver,
+                 "_html_login_attempt",
+                 side_effect=[response_body, STATUS_HTML],
+             ):
+            driver._html_login()
+
+        fresh_session.assert_called_once_with()
+        assert driver._logged_in is True
+        assert "non-channel response" in caplog.text
+        assert "resetting session and retrying" in caplog.text
+        assert f"{len(response_body)} bytes" in caplog.text
+        assert sensitive_marker not in caplog.text
+        assert response_body not in caplog.text
+
+    def test_html_login_rejects_short_response_without_exposing_body(self, driver):
+        """The final transient error reports size without exposing response content."""
+        sensitive_marker = "CODEQL_ALERT_96_FINAL_SECRET_MARKER"
+        first_body = "<html><body>Login</body></html>"
+        response_body = f"<html><body>{sensitive_marker}: access denied</body></html>"
 
         from app.drivers.surfboard import TransientHtmlChannelPageError
         with patch.object(driver, "_fresh_session"), \
-             patch.object(driver, "_html_login_attempt", return_value=mock_resp.text):
-            with pytest.raises(TransientHtmlChannelPageError, match="non-channel response after retry"):
+             patch.object(
+                 driver,
+                 "_html_login_attempt",
+                 side_effect=[first_body, response_body],
+             ):
+            with pytest.raises(TransientHtmlChannelPageError) as exc_info:
                 driver._html_login()
 
+        error_text = str(exc_info.value)
+        assert "non-channel response after retry" in error_text
+        assert f"({len(response_body)} bytes)" in error_text
+        assert sensitive_marker not in error_text
+        assert response_body not in error_text
         assert driver._logged_in is False
 
     def test_html_login_rejects_response_without_downstream(self, driver):
