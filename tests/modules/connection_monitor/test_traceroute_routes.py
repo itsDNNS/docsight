@@ -1,5 +1,6 @@
 """Tests for Connection Monitor traceroute API routes."""
 
+import os
 import time
 from unittest.mock import MagicMock, patch
 
@@ -41,7 +42,8 @@ def app(tmp_path):
     routes_mod._storage = storage
     routes_mod._traceroute_probe = mock_tr_probe
 
-    with patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe), \
+    with patch("app.web._config_manager", None), \
+         patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe), \
          patch("app.modules.connection_monitor.routes._get_tz", return_value="UTC"):
         yield app, storage, mock_tr_probe
 
@@ -97,7 +99,10 @@ class TestManualTraceroute:
         mock_cfg.get.side_effect = lambda key, default=None: {
             "admin_password": "hashed_pw",
         }.get(key, default)
+        mock_cfg.data_dir = os.path.dirname(storage.db_path)
         with patch("app.web._config_manager", mock_cfg):
+            from app.web import _init_auth_state
+            _init_auth_state()
             c = flask_app.test_client()
             resp = c.post(f"/api/connection-monitor/traceroute/{tid}")
             assert resp.status_code == 401

@@ -822,8 +822,11 @@ def test_my_collector_success():
 
 **Session Management:**
 - Flask sessions with HTTPOnly cookies
-- SameSite=Strict policy
+- Rolling 30-day lifetime by default (`SESSION_LIFETIME_DAYS`, bounded to 1–365 days)
+- SameSite=Lax policy; reverse-proxy deployments retain Secure HTTPS-only cookies
+- Password-bound session markers invalidate existing logins when the effective admin password changes
 - Persistent session key in `/data/.session_key`
+- Keyed effective-auth state in `/data/.auth_state` detects changes across restarts
 
 **Rate Limiting:**
 - Login: 5 attempts per 15 minutes per IP

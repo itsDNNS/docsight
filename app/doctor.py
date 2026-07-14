@@ -356,7 +356,7 @@ def _check_database(data_dir: Path) -> CheckResult:
 def _check_secret_files(data_dir: Path, raw_config: Mapping[str, Any]) -> CheckResult:
     details: dict[str, Any] = {}
     statuses: list[str] = []
-    for filename in (".config_key", ".session_key"):
+    for filename in (".config_key", ".session_key", ".auth_state"):
         path = data_dir / filename
         if not path.exists():
             statuses.append("warn")

@@ -2,6 +2,7 @@
 
 import csv
 import io
+import os
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -31,7 +32,8 @@ def app(tmp_path):
     import app.modules.connection_monitor.routes as routes_mod
     routes_mod._storage = storage
 
-    with patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe), \
+    with patch("app.web._config_manager", None), \
+         patch("app.modules.connection_monitor.routes._get_probe_engine", return_value=mock_probe), \
          patch("app.modules.connection_monitor.routes._get_tz", return_value="UTC"):
         yield app, storage
 
@@ -45,10 +47,13 @@ def client(app):
     return flask_app.test_client(), storage
 
 
-def _auth_session(c):
+def _auth_session(c, marker_source=None):
     """Set authenticated session for protected routes."""
     with c.session_transaction() as sess:
         sess["authenticated"] = True
+        if marker_source:
+            from app.web import _admin_session_marker
+            sess["auth_marker"] = _admin_session_marker(marker_source)
 
 
 class TestTargetsAPI:
@@ -710,7 +715,10 @@ class TestAuthProtection:
         mock_cfg.get.side_effect = lambda key, default=None: {
             "admin_password": "hashed_pw",
         }.get(key, default)
+        mock_cfg.data_dir = os.path.dirname(storage.db_path)
         with patch("app.web._config_manager", mock_cfg):
+            from app.web import _init_auth_state
+            _init_auth_state()
             yield flask_app.test_client(), storage
 
     def test_targets_get_requires_auth(self, auth_client):
@@ -746,7 +754,7 @@ class TestAuthProtection:
         self, auth_client
     ):
         c, _ = auth_client
-        _auth_session(c)
+        _auth_session(c, "hashed_pw")
         helper_marker = "ROUTE_HELPER_STDERR_INTERNAL_MARKER"
         raw_marker = "ROUTE_RAW_SOCKET_INTERNAL_MARKER"
         helper_failure = subprocess.CompletedProcess(
@@ -802,5 +810,5 @@ class TestAuthProtection:
 
     def test_authenticated_request_passes(self, auth_client):
         c, _ = auth_client
-        _auth_session(c)
+        _auth_session(c, "hashed_pw")
         assert c.get("/api/connection-monitor/targets").status_code == 200

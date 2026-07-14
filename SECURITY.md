@@ -89,10 +89,16 @@ Modal or blocking notices are not allowed for normal release notes, feature anno
 DOCSight includes built-in authentication protecting all routes:
 
 - **Admin password** — hashed with Werkzeug (`scrypt` or `pbkdf2`). Plaintext passwords from older versions are auto-upgraded to hashes on first login.
-- **Session-based login** — browser sessions via Flask's signed cookies.
+- **Session-based login** — browser sessions use Flask's signed cookies and are valid for a rolling 30 days by default. Operators can set `SESSION_LIFETIME_DAYS`; values are bounded to 1–365 days, and malformed values safely use the 30-day default.
 - **API tokens** — Bearer token authentication for programmatic access (see [API Token Security](#api-token-security) below).
 
 All routes are protected by the `require_auth` decorator. Sensitive management endpoints (token creation/revocation, settings) require a session login and cannot be accessed with API tokens alone.
+
+Session cookies remain `HttpOnly` and use `SameSite=Lax`, allowing navigation from external top-level links without allowing normal cross-site subrequests to carry the cookie. Browser sessions are bound to the currently effective admin-password representation with a keyed, non-reversible marker. Changing or removing the password in Settings rotates the persistent signing key and logs out all browsers; environment-backed password changes also invalidate prior sessions when they are next used. Unchanged saved-secret masks, omitted password fields, unrelated settings saves, and safely detected re-entry of the same password do not invalidate sessions.
+
+The session key is stored in `DATA_DIR/.session_key`, so normal restarts with the same data directory preserve valid logins. `DATA_DIR/.auth_state` stores only a keyed fingerprint of the effective authentication state so that observed password removal and later same-value re-enablement cannot revive an old cookie. Both files are atomically written with mode `0600`. Cookies created before password binding was introduced do not contain the required marker and require a one-time login after upgrade. DOCSight does not store the admin password, its hash, or a reusable unkeyed password-derived value in either the cookie or auth-state file.
+
+For HTTPS deployments, enable trusted reverse-proxy mode with `REVERSE_PROXY`; DOCSight then keeps the session cookie `Secure`, so it is sent only over HTTPS. Do not expose an authenticated instance over unencrypted remote HTTP.
 
 ### Login Rate Limiting
 
@@ -184,6 +190,7 @@ Security-relevant events are logged to the `docsis.audit` logger:
 3. **Use strong modem passwords:** DOCSight inherits your modem's security
 4. **Review audit logs:** Check `docker logs docsight` or enable JSON audit logging for structured analysis
 5. **Backup your data:** `data/` directory contains all configuration and history
+6. **Protect backup archives:** Backups contain session-signing and encryption key material; store and transfer them like credentials
 
 ## Defensive Review Checklist
 

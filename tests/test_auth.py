@@ -1,11 +1,24 @@
 """Tests for web UI authentication."""
 
 import json
+import os
 import re
 import sqlite3
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+
 import pytest
 from werkzeug.security import generate_password_hash
-from app.web import app, update_state, init_config, init_storage, _login_attempts, _LOGIN_MAX_TRACKED_IPS
+from app.web import (
+    _AUTH_STATE_CONTEXT,
+    _LOGIN_MAX_TRACKED_IPS,
+    _keyed_sha256_hexdigest,
+    _login_attempts,
+    app,
+    init_config,
+    init_storage,
+    update_state,
+)
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 
@@ -15,6 +28,29 @@ def _login_csrf(client):
     match = re.search(rb'name="csrf_token" value="([^"]+)"', resp.data)
     assert match, "login form should include a CSRF token"
     return match.group(1).decode("utf-8")
+
+
+def _login(client, credential=None):
+    if credential is None:
+        credential = "secret" + "123"
+    return client.post(
+        "/login",
+        data={"password": credential, "csrf_token": _login_csrf(client)},
+        follow_redirects=False,
+    )
+
+
+def test_keyed_sha256_digest_is_compatible_with_existing_auth_state_format():
+    key = bytes(range(32))
+    password_representation = (
+        b"scrypt:32768:8:1$fixed-salt$fixed-password-hash"
+    )
+
+    digest = _keyed_sha256_hexdigest(
+        key, _AUTH_STATE_CONTEXT + password_representation
+    )
+
+    assert digest == "d9657a5a0e8823e7c611426f9e40f0ac2fd3af7c2df8479e90410f238bd89f31"
 
 
 @pytest.fixture
@@ -107,9 +143,43 @@ class TestAuthEnabled:
         assert resp.status_code == 200  # stays on login page
 
     def test_login_correct_password(self, auth_client):
-        resp = auth_client.post("/login", data={"password": "secret123", "csrf_token": _login_csrf(auth_client)}, follow_redirects=False)
+        resp = _login(auth_client)
         assert resp.status_code == 302
         assert resp.headers["Location"] == "/"
+
+    def test_login_cookie_is_persistent_for_thirty_days(self, auth_client):
+        before = datetime.now(timezone.utc)
+        resp = _login(auth_client)
+
+        cookie = resp.headers["Set-Cookie"]
+        expires_match = re.search(r"Expires=([^;]+)", cookie)
+        assert expires_match
+        expires = parsedate_to_datetime(expires_match.group(1))
+        assert 29.9 <= (expires - before).total_seconds() / 86400 <= 30.1
+        assert "HttpOnly" in cookie
+        assert "SameSite=Lax" in cookie
+
+    def test_permanent_cookie_is_refreshed_on_authenticated_requests(self, auth_client):
+        _login(auth_client)
+
+        resp = auth_client.get("/")
+
+        assert "Expires=" in resp.headers["Set-Cookie"]
+        assert "SameSite=Lax" in resp.headers["Set-Cookie"]
+
+    def test_authenticated_session_is_permanent_and_contains_only_marker(self, auth_client, auth_config):
+        _login(auth_client)
+        cookie = auth_client.get_cookie(app.config["SESSION_COOKIE_NAME"])
+        payload = app.session_interface.get_signing_serializer(app).loads(cookie.value)
+
+        assert payload["_permanent"] is True
+        assert payload["authenticated"] is True
+        assert payload["auth_marker"]
+        serialized_payload = json.dumps(payload)
+        assert "secret123" not in serialized_payload
+        assert auth_config.get("admin_password") not in serialized_payload
+        assert "scrypt:" not in serialized_payload
+        assert "pbkdf2:" not in serialized_payload
 
     def test_session_persists(self, auth_client):
         auth_client.post("/login", data={"password": "secret123", "csrf_token": _login_csrf(auth_client)})
@@ -117,12 +187,169 @@ class TestAuthEnabled:
         resp = auth_client.get("/")
         assert resp.status_code == 200
 
-    def test_logout(self, auth_client):
-        auth_client.post("/login", data={"password": "secret123", "csrf_token": _login_csrf(auth_client)})
-        auth_client.get("/logout")
+    def test_logout_is_post_only_and_get_preserves_session(self, auth_client):
+        _login(auth_client)
+
+        get_response = auth_client.get("/logout")
+        assert get_response.status_code == 405
+        assert auth_client.get("/").status_code == 200
+
+        post_response = auth_client.post("/logout")
+        assert post_response.status_code == 302
+        assert post_response.headers["Location"] == "/login"
         resp = auth_client.get("/")
         assert resp.status_code == 302
         assert "/login" in resp.headers["Location"]
+
+    def test_cookie_survives_reinitialization_with_same_data_dir(self, auth_client, auth_config):
+        _login(auth_client)
+        original_key = app.secret_key
+
+        init_config(ConfigManager(auth_config.data_dir))
+
+        assert app.secret_key == original_key
+        assert auth_client.get("/").status_code == 200
+
+    def test_plaintext_password_upgrade_binds_to_saved_hash(self, tmp_path):
+        data_dir = tmp_path / "legacy-password"
+        data_dir.mkdir()
+        (data_dir / "config.json").write_text(
+            json.dumps({"modem_type": "generic", "admin_password": "legacy-password"}),
+            encoding="utf-8",
+        )
+        manager = ConfigManager(str(data_dir))
+        init_config(manager)
+        init_storage(None)
+        app.config["TESTING"] = True
+        client = app.test_client()
+
+        response = _login(client, "legacy-password")
+
+        assert response.status_code == 302
+        assert manager.get("admin_password").startswith(("scrypt:", "pbkdf2:"))
+        assert client.get("/").status_code == 200
+
+        init_config(ConfigManager(str(data_dir)))
+        assert client.get("/").status_code == 200
+
+    def test_cookie_fails_after_config_backed_password_changes(self, auth_client, auth_config):
+        _login(auth_client)
+        auth_config.save({"admin_password": "replacement-password"})
+
+        resp = auth_client.get("/")
+
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]
+
+    def test_cookie_fails_after_environment_password_changes(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("ADMIN_PASSWORD", "environment-password")
+        manager = ConfigManager(str(tmp_path / "env-auth"))
+        manager.save({"modem_type": "generic"})
+        init_config(manager)
+        init_storage(None)
+        app.config["TESTING"] = True
+        with app.test_client() as client:
+            _login(client, "environment-password")
+            assert client.get("/").status_code == 200
+
+            monkeypatch.setenv("ADMIN_PASSWORD", "changed-environment-password")
+            resp = client.get("/")
+
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]
+
+    def test_cookie_does_not_revive_after_environment_password_removal_and_reenable(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("ADMIN_PASSWORD", "environment-password")
+        manager = ConfigManager(str(tmp_path / "env-auth-reenabled"))
+        manager.save({"modem_type": "generic"})
+        init_config(manager)
+        init_storage(None)
+        app.config["TESTING"] = True
+        with app.test_client() as client:
+            _login(client, "environment-password")
+            assert client.get("/").status_code == 200
+
+            monkeypatch.delenv("ADMIN_PASSWORD")
+            assert client.get("/").status_code == 200
+            assert manager.get("admin_password") == ""
+
+            monkeypatch.setenv("ADMIN_PASSWORD", "environment-password")
+            resp = client.get("/")
+
+        assert resp.status_code == 302
+        assert "/login" in resp.headers["Location"]
+        auth_state_path = os.path.join(manager.data_dir, ".auth_state")
+        assert os.path.isfile(auth_state_path)
+        if os.name != "nt":
+            assert os.stat(auth_state_path).st_mode & 0o777 == 0o600
+
+    def test_password_change_invalidates_current_and_other_sessions(self, auth_config):
+        init_config(auth_config)
+        init_storage(None)
+        app.config["TESTING"] = True
+        current = app.test_client()
+        other = app.test_client()
+        _login(current)
+        _login(other)
+        old_key = app.secret_key
+
+        response = current.post("/api/config", json={"admin_password": "replacement-password"})
+
+        assert response.status_code == 200
+        assert app.secret_key != old_key
+        session_key_path = os.path.join(auth_config.data_dir, ".session_key")
+        assert os.path.isfile(session_key_path)
+        if os.name != "nt":
+            assert os.stat(session_key_path).st_mode & 0o777 == 0o600
+        assert current.get("/").status_code == 302
+        assert other.get("/").status_code == 302
+
+    def test_password_removal_invalidates_sessions_before_password_is_reenabled(self, auth_config):
+        init_config(auth_config)
+        init_storage(None)
+        app.config["TESTING"] = True
+        current = app.test_client()
+        other = app.test_client()
+        _login(current)
+        _login(other)
+
+        response = current.post("/api/config", json={"admin_password": ""})
+        assert response.status_code == 200
+        assert auth_config.get("admin_password") == ""
+
+        # Setup behavior remains available while auth is disabled.
+        response = current.post("/api/config", json={"admin_password": "secret123"})
+        assert response.status_code == 200
+        assert current.get("/").status_code == 302
+        assert other.get("/").status_code == 302
+
+    @pytest.mark.parametrize(
+        "saved_data",
+        [
+            {"admin_password": "••••••••", "language": "de"},
+            {"language": "de"},
+            {"admin_password": "secret123"},
+        ],
+        ids=["saved-mask", "omitted-password", "same-password"],
+    )
+    def test_unchanged_password_saves_do_not_invalidate_sessions(self, auth_config, saved_data):
+        init_config(auth_config)
+        init_storage(None)
+        app.config["TESTING"] = True
+        current = app.test_client()
+        other = app.test_client()
+        _login(current)
+        _login(other)
+        original_key = app.secret_key
+
+        response = current.post("/api/config", json=saved_data)
+
+        assert response.status_code == 200
+        assert app.secret_key == original_key
+        assert current.get("/").status_code == 200
+        assert other.get("/").status_code == 200
 
     def test_api_config_requires_auth(self, auth_client):
         resp = auth_client.post(
@@ -312,7 +539,7 @@ class TestApiTokenAuth:
         assert resp.status_code == 200
 
         # Log out so session doesn't mask the token check
-        auth_client_with_storage.get("/logout")
+        auth_client_with_storage.post("/logout")
 
         # Try to use the revoked token
         resp = auth_client_with_storage.get(
@@ -348,7 +575,7 @@ class TestApiTokenAuth:
         token = resp.get_json()["token"]
 
         # Log out, then try to create a token with Bearer auth
-        auth_client_with_storage.get("/logout")
+        auth_client_with_storage.post("/logout")
         resp = auth_client_with_storage.post(
             "/api/tokens",
             data=json.dumps({"name": "child"}),
@@ -356,6 +583,27 @@ class TestApiTokenAuth:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 403
+
+    def test_token_cannot_change_config(self, auth_client_with_storage, auth_config):
+        original_language = auth_config.get("language")
+        original_password = auth_config.get("admin_password")
+        self._login(auth_client_with_storage)
+        resp = auth_client_with_storage.post(
+            "/api/tokens",
+            json={"name": "config-attempt"},
+        )
+        token = resp.get_json()["token"]
+        auth_client_with_storage.post("/logout")
+
+        resp = auth_client_with_storage.post(
+            "/api/config",
+            json={"language": "de", "admin_password": "attacker-password"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert resp.status_code == 403
+        assert auth_config.get("language") == original_language
+        assert auth_config.get("admin_password") == original_password
 
     def test_api_routes_return_401_not_302(self, auth_client_with_storage):
         """API paths return 401 JSON, not 302 redirect."""

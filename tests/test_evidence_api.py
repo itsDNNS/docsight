@@ -44,11 +44,13 @@ class TestEvidenceChecklistApi:
         assert status == 400
         assert response.get_json()["error"] == "from and to required together"
 
-    def test_endpoint_requires_auth_when_admin_password_is_set(self, monkeypatch):
+    def test_endpoint_requires_auth_when_admin_password_is_set(self, monkeypatch, tmp_path):
         config = Mock()
         config.get.side_effect = lambda key, default=None: {"admin_password": "secret"}.get(key, default)
+        config.data_dir = str(tmp_path)
         monkeypatch.setattr(web, "_config_manager", config)
         monkeypatch.setattr(web, "_storage", None)
+        web._init_auth_state()
         app.config["TESTING"] = True
 
         with app.test_client() as client:
