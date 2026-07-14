@@ -23,6 +23,7 @@ SECRET_KEYS = {
     "notify_apprise_token",
     "notify_pwa_push_vapid_private_key",
 }
+PRIVATE_KEYS = set()
 DEMO_HIDE_KEYS = {"bqm_url", "speedtest_tracker_url",
                   "notify_webhook_url", "notify_apprise_url", "notify_apprise_key",
                   "notify_apprise_token", "notify_apprise_tag", "notify_pwa_push_vapid_private_key",
@@ -317,7 +318,7 @@ class ConfigManager:
                 if val and (val.startswith("scrypt:") or val.startswith("pbkdf2:")):
                     return val
                 return self._decrypt(val)
-            if key in SECRET_KEYS:
+            if key in SECRET_KEYS | PRIVATE_KEYS:
                 return self._decrypt(val)
             return val
 
@@ -356,7 +357,7 @@ class ConfigManager:
 
         # In demo mode, don't overwrite hidden private values with empty strings
         if self.is_demo_mode():
-            for key in DEMO_HIDE_KEYS:
+            for key in DEMO_HIDE_KEYS | PRIVATE_KEYS:
                 if key in data and not data[key]:
                     del data[key]
 
@@ -366,8 +367,9 @@ class ConfigManager:
                 if not (data[key].startswith("scrypt:") or data[key].startswith("pbkdf2:")):
                     data[key] = generate_password_hash(data[key])
 
-        # Encrypt secret values before storing
-        for key in SECRET_KEYS:
+        # Encrypt secret and private values before storing. Private values stay
+        # displayable in normal Settings and report forms, unlike password-style secrets.
+        for key in SECRET_KEYS | PRIVATE_KEYS:
             if key in data and data[key]:
                 data[key] = self._encrypt(data[key])
 
@@ -493,7 +495,9 @@ class ConfigManager:
         result = {}
         for key in DEFAULTS:
             val = self.get(key)
-            if mask_secrets and key in (SECRET_KEYS | HASH_KEYS) and val:
+            if mask_secrets and demo and key in PRIVATE_KEYS:
+                result[key] = ""
+            elif mask_secrets and key in (SECRET_KEYS | HASH_KEYS) and val:
                 result[key] = PASSWORD_MASK
             elif mask_secrets and demo and key in DEMO_HIDE_KEYS:
                 result[key] = ""

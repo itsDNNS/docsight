@@ -8,10 +8,21 @@
   "type": "analysis",
   "contributes": {
     "routes": "routes.py",
+    "settings": "templates/reports_settings.html",
     "i18n": "i18n/"
   },
+  "config": {
+    "report_customer_name": "",
+    "report_customer_number": "",
+    "report_customer_address": ""
+  },
+  "configPrivate": [
+    "report_customer_name",
+    "report_customer_number",
+    "report_customer_address"
+  ],
   "menu": {
-    "label_key": "docsight.reports.report_title",
+    "label_key": "docsight.reports.report_settings_title",
     "icon": "file-text",
     "order": 30
   }

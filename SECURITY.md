@@ -192,7 +192,7 @@ Maintainers use this checklist when reviewing changes that touch integration or 
 - **Modem/router response parsing** — driver code parses untrusted modem firmware output and must tolerate missing, malformed, or unexpected fields without crashing the poller.
 - **Import/export paths** — backup, history import, AI/LLM export, journal import, BQM image import, and report output handle user-supplied files or produce shareable evidence.
 - **Local authentication/session handling** — login, session cookies, the `require_auth` decorator, and Bearer token verification.
-- **Token and credential storage** — Fernet-at-rest storage for modem, webhook, Apprise sidecar, and PWA Web Push VAPID private-key secrets, hash-only persistence for the admin password and API tokens, and config redaction.
+- **Token, credential, and private config metadata storage** — Fernet-at-rest storage for modem, webhook, Apprise sidecar, and PWA Web Push VAPID private-key secrets plus report customer defaults, hash-only persistence for the admin password and API tokens, and config redaction.
 - **MQTT/Home Assistant integration payloads** — outbound notifier payload shaping, severity mapping, length limits, and log redaction for webhook URLs.
 - **Module/plugin manifest loading** — manifest validation and the install/list API surface.
 - **Docker/self-hosted runtime defaults** — bundled image defaults, secret bootstrap, and end-to-end auth on a fresh deployment.

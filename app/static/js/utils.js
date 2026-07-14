@@ -166,6 +166,10 @@ function closeReportModal() {
 }
 function resetReportModalState() {
     reportGenerationId += 1;
+    ['report-name', 'report-number', 'report-address'].forEach(function(fieldId) {
+        var field = document.getElementById(fieldId);
+        if (field) field.value = field.defaultValue;
+    });
     document.getElementById('report-step1').style.display = '';
     document.getElementById('report-step2').style.display = 'none';
     var generateBtn = document.getElementById('report-generate-btn');

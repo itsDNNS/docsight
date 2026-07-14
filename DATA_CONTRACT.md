@@ -60,6 +60,8 @@ Generated artifacts should be reviewed before sharing. They may include provider
 
 DOCSight stores local configuration under the configured data directory. Secret-bearing settings include router/modem credentials, MQTT credentials, webhook and Apprise settings, PWA Web Push VAPID private key material, admin password material, and API token hashes.
 
+Report customer defaults are private configuration metadata encrypted at rest. Unlike password-style secrets, they remain displayable and editable in normal local Settings and report forms, and are hidden in demo mode.
+
 Rules:
 
 - Secret values must not be returned unmasked in normal settings responses.

@@ -49,6 +49,7 @@ class ModuleInfo:
     homepage: str = ""
     license: str = ""
     config: dict[str, Any] = field(default_factory=dict)
+    config_private: list[str] = field(default_factory=list)
     menu: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
     error: str | None = None
@@ -100,6 +101,11 @@ def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | 
                 f"Theme modules must not contribute {', '.join(sorted(forbidden))} (security)"
             )
 
+    # Detect builtin unless the caller already knows the module source.
+    if builtin is None:
+        norm = os.path.normpath(module_path).replace("\\", "/")
+        builtin = "/app/modules/" in norm or "\\app\\modules\\" in os.path.normpath(module_path)
+
     config = raw.get("config", {})
     if not isinstance(config, dict):
         raise ManifestError("'config' must be a dict")
@@ -107,10 +113,19 @@ def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | 
     if "config_secrets" in raw:
         raise ManifestError("'config_secrets' is no longer supported")
 
-    # Detect builtin unless the caller already knows the module source.
-    if builtin is None:
-        norm = os.path.normpath(module_path).replace("\\", "/")
-        builtin = "/app/modules/" in norm or "\\app\\modules\\" in os.path.normpath(module_path)
+    config_private = raw.get("configPrivate", [])
+    if not isinstance(config_private, list) or not all(
+        isinstance(key, str) for key in config_private
+    ):
+        raise ManifestError("'configPrivate' must be a list of strings")
+    if "configPrivate" in raw and not builtin:
+        raise ManifestError("'configPrivate' is available to built-in modules only")
+    undeclared_private = set(config_private) - set(config)
+    if undeclared_private:
+        raise ManifestError(
+            "'configPrivate' references undeclared config keys: "
+            + ", ".join(sorted(undeclared_private))
+        )
 
     return ModuleInfo(
         id=mod_id,
@@ -126,6 +141,7 @@ def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | 
         homepage=raw.get("homepage", ""),
         license=raw.get("license", ""),
         config=config,
+        config_private=config_private,
         menu={**{"order": 999}, **raw.get("menu", {})},
         hints=raw.get("hints", {}),
     )
@@ -178,7 +194,7 @@ def discover_modules(
                 continue
 
             try:
-                info = validate_manifest(raw, mod_dir)
+                info = validate_manifest(raw, mod_dir, builtin=False)
             except ManifestError as e:
                 log.warning("Skipping %s: invalid manifest: %s", mod_dir, e)
                 continue
@@ -331,22 +347,31 @@ def register_module_config(
     config_defaults: dict[str, Any],
     module_id: str | None = None,
     builtin: bool = False,
+    config_private: list[str] | None = None,
 ) -> set[str]:
-    """Register a module's non-secret config defaults into the global config system.
+    """Register a module's config defaults into the global config system.
 
-    Module manifests no longer reserve their own secret keys. Core secret and
-    hash-backed settings stay owned by the built-in configuration layer.
+    Private-but-displayable metadata is trusted only for built-in modules. Core
+    secret, private, and hash-backed settings stay unavailable to community
+    modules.
     """
+    private_keys = set(config_private or []) if builtin else set()
     registered_keys: set[str] = set()
     for key, value in config_defaults.items():
         if key in _cfg.DEFAULTS:
+            if key in private_keys:
+                _cfg.PRIVATE_KEYS.add(key)
             log.debug("Config key already exists in core, skipping")
             continue
-        if not builtin and key in (_cfg.SECRET_KEYS | _cfg.HASH_KEYS):
-            log.warning("Skipping a reserved core secret config key")
+        if not builtin and key in (
+            _cfg.SECRET_KEYS | _cfg.PRIVATE_KEYS | _cfg.HASH_KEYS
+        ):
+            log.warning("Skipping a reserved core protected config key")
             continue
         _cfg.DEFAULTS[key] = value
         registered_keys.add(key)
+        if key in private_keys:
+            _cfg.PRIVATE_KEYS.add(key)
         if isinstance(value, bool):
             _cfg.BOOL_KEYS.add(key)
         elif isinstance(value, int):
@@ -758,6 +783,10 @@ class ModuleLoader:
         self._modules = modules
 
         for mod in self._modules:
+            # Privacy classification must survive module disablement so values
+            # already stored by a built-in module remain encrypted/decryptable.
+            if mod.builtin and mod.config_private:
+                _cfg.PRIVATE_KEYS.update(mod.config_private)
             if not mod.enabled:
                 # Theme modules: load theme_data even when disabled so
                 # the settings gallery can show previews for all themes.
@@ -808,6 +837,7 @@ class ModuleLoader:
                 mod.config,
                 module_id=mod.id,
                 builtin=mod.builtin,
+                config_private=mod.config_private,
             )
 
         # i18n

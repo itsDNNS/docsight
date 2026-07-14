@@ -1,0 +1,32 @@
+<!-- ═══ Panel: Reports (Module) ═══ -->
+<div class="settings-panel" id="panel-mod-docsight_reports">
+    <div class="settings-card glass">
+        <div class="card-header">
+            <div class="card-title-group">
+                <div class="card-icon blue">
+                    <i data-lucide="file-text"></i>
+                </div>
+                <div>
+                    <div class="card-title">{{ t['docsight.reports.report_settings_title'] or 'Customer details for reports' }}</div>
+                    <div class="card-subtitle">{{ t['docsight.reports.report_settings_hint'] or 'Save optional customer details as defaults for new reports.' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-grid cols-2">
+            <div class="form-field">
+                <label class="form-label" for="report_customer_name">{{ t['docsight.reports.report_name'] or 'Your name' }}</label>
+                <input class="form-input" type="text" id="report_customer_name" name="report_customer_name" value="{{ config.report_customer_name }}">
+            </div>
+            <div class="form-field">
+                <label class="form-label" for="report_customer_number">{{ t['docsight.reports.report_customer_number'] or 'Customer/contract number' }}</label>
+                <input class="form-input" type="text" id="report_customer_number" name="report_customer_number" value="{{ config.report_customer_number }}">
+            </div>
+        </div>
+        <div class="form-field" style="margin-top: var(--space-md);">
+            <label class="form-label" for="report_customer_address">{{ t['docsight.reports.report_address'] or 'Your address' }}</label>
+            <textarea class="form-input" id="report_customer_address" name="report_customer_address" rows="3">{{ config.report_customer_address }}</textarea>
+            <span class="form-hint">{{ t['docsight.reports.report_settings_privacy'] or 'Stored encrypted on this DOCSight instance and used to prefill new reports. Changes in the report form apply only to that report. Demo mode hides these values.' }}</span>
+        </div>
+    </div>
+</div>
