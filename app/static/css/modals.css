@@ -202,6 +202,9 @@
     resize: vertical;
     transition: border-color 0.2s var(--ease-out-expo);
 }
+#report-address {
+    min-height: 60px;
+}
 .modal-body textarea:focus {
     outline: none;
     border-color: var(--amethyst);

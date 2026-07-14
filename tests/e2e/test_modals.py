@@ -246,6 +246,78 @@ def test_report_pdf_download_preserves_customer_details_e2e(demo_page):
     assert params["address"] == ["Musterstraße 1, 12345 Musterstadt"]
 
 
+def test_saved_report_defaults_survive_reload_and_modal_edits_are_request_local(
+    browser, configured_page, configured_server
+):
+    """Saved defaults prefill reports while modal-only edits remain temporary."""
+    page = configured_page
+    saved = {
+        "report_customer_name": "Saved Person",
+        "report_customer_number": "SAVED-731",
+        "report_customer_address": "Saved Street 7\n12345 Saved City",
+    }
+
+    page.goto(f"{configured_server}/settings")
+    page.locator('button[data-section="mod-docsight_reports"]').click()
+    for field_id, value in saved.items():
+        page.locator(f"#{field_id}").fill(value)
+    with page.expect_response("**/api/config") as save_response:
+        page.locator('#settings-form button[type="submit"]').click()
+    assert save_response.value.ok
+
+    page.reload(wait_until="networkidle")
+    page.locator('button[data-section="mod-docsight_reports"]').click()
+    for field_id, value in saved.items():
+        expect(page.locator(f"#{field_id}")).to_have_value(value)
+
+    page.goto(configured_server, wait_until="networkidle")
+    page.locator("#report-link").click()
+    modal = page.locator("#report-modal")
+    expect(modal.locator("#report-name")).to_have_value(saved["report_customer_name"])
+    expect(modal.locator("#report-number")).to_have_value(saved["report_customer_number"])
+    report_address = modal.locator("#report-address")
+    expect(report_address).to_have_value(saved["report_customer_address"])
+    address_box = report_address.bounding_box()
+    assert address_box is not None
+    assert 60 <= address_box["height"] <= 120
+
+    fresh_context = browser.new_context()
+    fresh_page = fresh_context.new_page()
+    try:
+        fresh_page.goto(configured_server, wait_until="networkidle")
+        fresh_page.locator("#report-link").click()
+        fresh_modal = fresh_page.locator("#report-modal")
+        expect(fresh_modal.locator("#report-name")).to_have_value(saved["report_customer_name"])
+        expect(fresh_modal.locator("#report-number")).to_have_value(saved["report_customer_number"])
+        expect(fresh_modal.locator("#report-address")).to_have_value(saved["report_customer_address"])
+    finally:
+        fresh_page.close()
+        fresh_context.close()
+
+    page.route(
+        "**/api/complaint?**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body='{"text":"Evidence summary ready."}',
+        ),
+    )
+    modal.locator("#report-name").fill("One-report edit")
+    modal.locator("#report-number").fill("")
+    with page.expect_request("**/api/complaint?**") as report_request:
+        modal.get_by_role("button", name="Build evidence package").click()
+    params = parse_qs(urlparse(report_request.value.url).query, keep_blank_values=True)
+    assert params["name"] == ["One-report edit"]
+    assert params["number"] == [""]
+    assert params["address"] == [saved["report_customer_address"]]
+
+    page.evaluate("closeReportModal()")
+    page.locator("#report-link").click()
+    expect(modal.locator("#report-name")).to_have_value(saved["report_customer_name"])
+    expect(modal.locator("#report-number")).to_have_value(saved["report_customer_number"])
+    expect(modal.locator("#report-address")).to_have_value(saved["report_customer_address"])
+
+
 def test_report_modal_shows_generation_success_and_error_states(demo_page):
     """Report generation exposes progress, success, and actionable error states in the modal."""
     request_urls = []

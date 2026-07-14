@@ -449,7 +449,7 @@ function _isConfigSecretField(inp) {
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
-    form.querySelectorAll('input:not(#theme-toggle-appearance):not(#isp_other_input):not(.notify-toggle):not(.notify-cooldown-input):not(.module-toggle-input), select:not(#isp_select)').forEach(function(inp) {
+    form.querySelectorAll('input:not(#theme-toggle-appearance):not(#isp_other_input):not(.notify-toggle):not(.notify-cooldown-input):not(.module-toggle-input), select:not(#isp_select), textarea').forEach(function(inp) {
         if (inp.type === 'checkbox') {
             data[inp.name] = inp.checked ? inp.value : 'false';
             return;

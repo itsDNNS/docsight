@@ -1347,6 +1347,13 @@ def index():
     t = get_translations(lang)
 
     isp_name = _config_manager.get("isp_name", "") if _config_manager else ""
+    report_customer_name = ""
+    report_customer_number = ""
+    report_customer_address = ""
+    if _config_manager and not demo_mode:
+        report_customer_name = _config_manager.get("report_customer_name", "")
+        report_customer_number = _config_manager.get("report_customer_number", "")
+        report_customer_address = _config_manager.get("report_customer_address", "")
     if demo_mode and not isp_name:
         isp_name = "Vodafone Kabel"
     bqm_configured = bool(
@@ -1408,6 +1415,9 @@ def index():
         error=state["error"],
         theme=theme,
         isp_name=isp_name, connection_info=conn_info,
+        report_customer_name=report_customer_name,
+        report_customer_number=report_customer_number,
+        report_customer_address=report_customer_address,
         bqm_configured=bqm_configured,
         smokeping_configured=smokeping_configured,
         speedtest_configured=speedtest_configured,

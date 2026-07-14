@@ -2619,9 +2619,9 @@
                 <div style="background:var(--bg); border-radius:8px; padding:14px; margin-bottom:10px;">
                     <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">{{ t.report_customer_hint }}</p>
                     <div style="display:flex; flex-direction:column; gap:8px;">
-                        <input id="report-name" type="text" placeholder="{{ t.report_name }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
-                        <input id="report-number" type="text" placeholder="{{ t.report_customer_number }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
-                        <input id="report-address" type="text" placeholder="{{ t.report_address }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
+                        <input id="report-name" type="text" value="{{ report_customer_name }}" placeholder="{{ t.report_name }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
+                        <input id="report-number" type="text" value="{{ report_customer_number }}" placeholder="{{ t.report_customer_number }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit;">
+                        <textarea id="report-address" rows="3" placeholder="{{ t.report_address }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit; resize:vertical;">{{ report_customer_address }}</textarea>
                     </div>
                 </div>
                 {% if bnetz_enabled %}

@@ -34,12 +34,15 @@ def _find_free_port():
         return s.getsockname()[1]
 
 
-def _start_server(data_dir, port, admin_password=None):
+def _start_server(data_dir, port, admin_password=None, demo_mode=True):
     """Boot a real DOCSight instance inside a child process."""
     import os
 
     os.environ["DATA_DIR"] = data_dir
-    os.environ["DEMO_MODE"] = "1"
+    if demo_mode:
+        os.environ["DEMO_MODE"] = "1"
+    else:
+        os.environ.pop("DEMO_MODE", None)
     os.environ["LOG_LEVEL"] = "WARNING"
 
     from app.config import ConfigManager
@@ -49,7 +52,10 @@ def _start_server(data_dir, port, admin_password=None):
     from app.collectors.demo import DemoCollector  # noqa: F811
 
     cfg = ConfigManager(data_dir)
-    save_data = {"demo_mode": True, "modem_type": "demo"}
+    save_data = {
+        "demo_mode": demo_mode,
+        "modem_type": "demo" if demo_mode else "generic",
+    }
     if admin_password:
         save_data["admin_password"] = admin_password
     cfg.save(save_data)
@@ -197,6 +203,38 @@ def demo_page(page, live_server):
 def settings_page(page, live_server):
     """Navigate to the settings page."""
     page.goto(f"{live_server}/settings")
+    page.wait_for_load_state("networkidle")
+    return page
+
+
+@pytest.fixture(scope="session")
+def _configured_data_dir(tmp_path_factory):
+    """Session-scoped data directory for non-demo persisted-settings tests."""
+    return str(tmp_path_factory.mktemp("docsight_e2e_configured"))
+
+
+@pytest.fixture(scope="session")
+def configured_server(_configured_data_dir):
+    """Start a configured non-demo instance with seeded dashboard data."""
+    port = _find_free_port()
+    proc = _MP_CTX.Process(
+        target=_start_server,
+        args=(_configured_data_dir, port, None, False),
+        daemon=True,
+    )
+    proc.start()
+    try:
+        _wait_for_server(port)
+        yield f"http://127.0.0.1:{port}"
+    finally:
+        proc.terminate()
+        proc.join(timeout=5)
+
+
+@pytest.fixture()
+def configured_page(page, configured_server):
+    """Navigate to a configured non-demo dashboard."""
+    page.goto(configured_server)
     page.wait_for_load_state("networkidle")
     return page
 
