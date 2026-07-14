@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 
 from app.modules.speedtest.client import SpeedtestClient
 from app.web import app, init_config, init_storage
-from app.config import ConfigManager
+from app.config import ConfigManager, PASSWORD_MASK
 
 
 # ── Sample API responses ──
@@ -311,17 +311,71 @@ class TestSpeedtestAPI:
 
         resp = speedtest_client.post("/api/test-speedtest", json={
             "speedtest_tracker_url": "http://speedtest.local:8999",
-            "speedtest_tracker_token": "[REDACTED]",
+            "speedtest_tracker_token": PASSWORD_MASK,
         })
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["success"] is True
         assert data["results"] == 1
         assert "download" in data["latest"]
+        assert mock_get.call_args.args[0] == "http://speedtest.local:8999/api/v1/results"
         assert mock_get.call_args.kwargs["verify"] is True
+
+    @patch("app.modules.speedtest.client.SpeedtestClient")
+    def test_api_test_speedtest_rejects_unsaved_destination_without_requesting_it(
+        self, mock_client, speedtest_client
+    ):
+        resp = speedtest_client.post("/api/test-speedtest", json={
+            "speedtest_tracker_url": "http://attacker.example",
+            "speedtest_tracker_token": PASSWORD_MASK,
+        })
+
+        assert resp.status_code == 200
+        assert resp.get_json() == {
+            "success": False,
+            "error": "Save Speedtest Tracker settings before testing.",
+        }
+        mock_client.assert_not_called()
+
+    @patch("app.modules.speedtest.client.SpeedtestClient")
+    def test_api_test_speedtest_uses_saved_credentials(self, mock_client, speedtest_client):
+        mock_client.return_value.get_latest_with_error.return_value = ([], None)
+
+        resp = speedtest_client.post("/api/test-speedtest", json={
+            "speedtest_tracker_url": "http://speedtest.local:8999",
+            "speedtest_tracker_token": "attacker-controlled-token",
+        })
+
+        assert resp.status_code == 200
+        assert resp.get_json() == {"success": True, "results": 0}
+        mock_client.assert_called_once_with(
+            "http://speedtest.local:8999", "test-token", tls_insecure=False
+        )
+
+    @patch("app.modules.speedtest.client.requests.Session.get")
+    def test_api_test_speedtest_allows_saved_destination_trailing_slash(
+        self, mock_get, speedtest_client
+    ):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": []}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        resp = speedtest_client.post("/api/test-speedtest", json={
+            "speedtest_tracker_url": "http://speedtest.local:8999/",
+            "speedtest_tracker_token": PASSWORD_MASK,
+        })
+
+        assert resp.status_code == 200
+        assert resp.get_json() == {"success": True, "results": 0}
+        assert mock_get.call_args.args[0] == "http://speedtest.local:8999/api/v1/results"
 
     @patch("app.modules.speedtest.client.requests.Session.get")
     def test_api_test_speedtest_passes_insecure_tls_flag(self, mock_get, speedtest_client):
+        from app.web import get_config_manager
+
+        get_config_manager().save({"speedtest_tracker_url": "https://speedtest.local:8443"})
+
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"data": [SAMPLE_RESULT]}
         mock_resp.raise_for_status = MagicMock()
@@ -335,6 +389,7 @@ class TestSpeedtestAPI:
 
         assert resp.status_code == 200
         assert resp.get_json()["success"] is True
+        assert mock_get.call_args.args[0] == "https://speedtest.local:8443/api/v1/results"
         assert mock_get.call_args.kwargs["verify"] is False
 
     def test_api_test_speedtest_missing_fields(self, speedtest_client):

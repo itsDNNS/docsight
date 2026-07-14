@@ -175,17 +175,24 @@ def api_test_speedtest():
     """Test Speedtest Tracker connection."""
     _config_manager = get_config_manager()
     try:
-        data = request.get_json()
-        url = data.get("speedtest_tracker_url", "")
-        token = data.get("speedtest_tracker_token", "")
+        data = request.get_json(silent=True) or {}
+        submitted_url = data.get("speedtest_tracker_url", "")
         tls_insecure = _as_bool(data.get("speedtest_tls_insecure", False))
-        # Resolve masked token to real value
-        if token == PASSWORD_MASK and _config_manager:
-            token = _config_manager.get("speedtest_tracker_token", "")
-        if not url or not token:
+        if not submitted_url:
             return jsonify({"success": False, "error": "URL and token are required"})
+
+        saved_url = _config_manager.get("speedtest_tracker_url", "") if _config_manager else ""
+        token = _config_manager.get("speedtest_tracker_token", "") if _config_manager else ""
+        if not saved_url or submitted_url.rstrip("/") != saved_url.rstrip("/"):
+            return jsonify({
+                "success": False,
+                "error": "Save Speedtest Tracker settings before testing.",
+            })
+        if not token:
+            return jsonify({"success": False, "error": "URL and token are required"})
+
         from app.modules.speedtest.client import SpeedtestClient
-        client = SpeedtestClient(url, token, tls_insecure=tls_insecure)
+        client = SpeedtestClient(saved_url, token, tls_insecure=tls_insecure)
         results, error = client.get_latest_with_error(1)
         if error:
             return jsonify({"success": False, "error": error})
