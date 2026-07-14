@@ -3,6 +3,7 @@
 import json
 import os
 import sqlite3
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -161,11 +162,15 @@ def test_doctor_reports_all_auth_state_files_present(tmp_path):
 
     assert secret_state["status"] == "pass"
     for filename in (".config_key", ".session_key", ".auth_state"):
+        path = data_dir / filename
+        actual_mode = stat.S_IMODE(path.stat().st_mode)
         assert secret_state["details"][filename] == {
             "present": True,
-            "mode": "0o600",
+            "mode": oct(actual_mode),
             "size_bytes": len(f"{filename}-value"),
         }
+        if os.name != "nt":
+            assert actual_mode == 0o600
 
 
 def test_doctor_reports_missing_auth_state_file(tmp_path):

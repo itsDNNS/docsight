@@ -281,7 +281,9 @@ class TestAuthEnabled:
         assert resp.status_code == 302
         assert "/login" in resp.headers["Location"]
         auth_state_path = os.path.join(manager.data_dir, ".auth_state")
-        assert os.stat(auth_state_path).st_mode & 0o777 == 0o600
+        assert os.path.isfile(auth_state_path)
+        if os.name != "nt":
+            assert os.stat(auth_state_path).st_mode & 0o777 == 0o600
 
     def test_password_change_invalidates_current_and_other_sessions(self, auth_config):
         init_config(auth_config)
@@ -297,8 +299,10 @@ class TestAuthEnabled:
 
         assert response.status_code == 200
         assert app.secret_key != old_key
-        key_mode = os.stat(os.path.join(auth_config.data_dir, ".session_key")).st_mode & 0o777
-        assert key_mode == 0o600
+        session_key_path = os.path.join(auth_config.data_dir, ".session_key")
+        assert os.path.isfile(session_key_path)
+        if os.name != "nt":
+            assert os.stat(session_key_path).st_mode & 0o777 == 0o600
         assert current.get("/").status_code == 302
         assert other.get("/").status_code == 302
 
