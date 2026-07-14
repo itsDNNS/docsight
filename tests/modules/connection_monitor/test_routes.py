@@ -2,12 +2,14 @@
 
 import csv
 import io
+import subprocess
 import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 import pytest
 
 from app.modules.connection_monitor.routes import bp
+from app.modules.connection_monitor.probe import ProbeEngine
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 
 
@@ -739,6 +741,51 @@ class TestAuthProtection:
     def test_capability_requires_auth(self, auth_client):
         c, _ = auth_client
         assert c.get("/api/connection-monitor/capability").status_code == 401
+
+    def test_authenticated_capability_hides_probe_detection_details(
+        self, auth_client
+    ):
+        c, _ = auth_client
+        _auth_session(c)
+        helper_marker = "ROUTE_HELPER_STDERR_INTERNAL_MARKER"
+        raw_marker = "ROUTE_RAW_SOCKET_INTERNAL_MARKER"
+        helper_failure = subprocess.CompletedProcess(
+            args=["/private/docsight-icmp-helper", "--check"],
+            returncode=2,
+            stdout="",
+            stderr=f"{helper_marker}: /private/helper/config\n",
+        )
+
+        with patch(
+            "app.modules.connection_monitor.probe.os.path.isfile", return_value=True
+        ), patch(
+            "app.modules.connection_monitor.probe.os.access", return_value=True
+        ), patch(
+            "app.modules.connection_monitor.probe.subprocess.run",
+            return_value=helper_failure,
+        ), patch(
+            "app.modules.connection_monitor.probe.socket.socket",
+            side_effect=PermissionError(
+                f"{raw_marker}: permission denied for raw protocol"
+            ),
+        ), patch(
+            "app.modules.connection_monitor.routes._get_probe_engine",
+            side_effect=lambda: ProbeEngine(method="auto"),
+        ):
+            resp = c.get("/api/connection-monitor/capability")
+
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["method"] == "tcp"
+        assert data["reason"] == "ICMP probing is unavailable"
+        assert data["hint"] == (
+            "Add cap_add: [NET_RAW] to your Docker Compose file "
+            "for ICMP probing (more accurate)."
+        )
+        response_text = resp.get_data(as_text=True)
+        assert helper_marker not in response_text
+        assert raw_marker not in response_text
+        assert "/private/" not in response_text
 
     def test_pinned_days_get_requires_auth(self, auth_client):
         c, _ = auth_client

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 PROBE_TIMEOUT_S = 2.0
+ICMP_UNAVAILABLE_REASON = "ICMP probing is unavailable"
 ICMP_HELPER_PATH = os.environ.get(
     "DOCSIGHT_ICMP_HELPER", "/usr/local/bin/docsight-icmp-helper"
 )
@@ -63,9 +64,8 @@ class ProbeEngine:
         self._seq = 0
 
     def _detect_method(self) -> str:
-        """Try ICMP raw socket; fall back to TCP if not permitted."""
-        helper_reason = self._helper_check()
-        if helper_reason is None:
+        """Try the ICMP helper and raw socket before falling back to TCP."""
+        if self._helper_check():
             logger.info("ICMP helper available - using ICMP probing")
             return "icmp"
         try:
@@ -75,12 +75,9 @@ class ProbeEngine:
                 pass
             logger.info("ICMP raw socket available - using ICMP probing")
             return "icmp"
-        except (PermissionError, OSError) as exc:
-            self._fallback_reason = helper_reason or str(exc)
-            logger.warning(
-                "ICMP raw socket not available (%s) - falling back to TCP",
-                self._fallback_reason,
-            )
+        except (PermissionError, OSError):
+            self._fallback_reason = ICMP_UNAVAILABLE_REASON
+            logger.warning("ICMP probing is unavailable - falling back to TCP")
             return "tcp"
 
     def capability_info(self) -> dict[str, str]:
@@ -239,8 +236,8 @@ class ProbeEngine:
         finally:
             sock.close()
 
-    def _helper_check(self) -> str | None | bool:
-        """Return None when helper is usable, otherwise reason/False."""
+    def _helper_check(self) -> bool:
+        """Return whether the configured helper is usable."""
         if not self._helper_available:
             return False
         try:
@@ -251,11 +248,9 @@ class ProbeEngine:
                 timeout=PROBE_TIMEOUT_S + 1,
                 check=False,
             )
-        except (OSError, subprocess.SubprocessError) as exc:
-            return str(exc)
-        if proc.returncode == 0:
-            return None
-        return (proc.stderr or proc.stdout or "helper check failed").strip()
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return proc.returncode == 0
 
     def _icmp_probe_with_helper(self, host: str) -> ProbeResult | None:
         """Run a single ICMP probe via the dedicated helper when present."""
@@ -269,8 +264,8 @@ class ProbeEngine:
                 timeout=PROBE_TIMEOUT_S + 1,
                 check=False,
             )
-        except (OSError, subprocess.SubprocessError) as exc:
-            logger.debug("ICMP helper execution failed for %s: %s", host, exc)
+        except (OSError, subprocess.SubprocessError):
+            logger.debug("ICMP helper execution failed")
             return None
 
         output = (proc.stdout or "").strip()
@@ -282,16 +277,12 @@ class ProbeEngine:
                     method="icmp",
                 )
             except ValueError:
-                logger.debug("ICMP helper returned invalid latency for %s: %r", host, output)
+                logger.debug("ICMP helper returned invalid latency")
                 return None
         if proc.returncode == 1:
             return ProbeResult(latency_ms=None, timeout=True, method="icmp")
 
-        logger.debug(
-            "ICMP helper failed for %s: %s",
-            host,
-            (proc.stderr or output or f"exit {proc.returncode}").strip(),
-        )
+        logger.debug("ICMP helper probe failed")
         return None
 
     @staticmethod

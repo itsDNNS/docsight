@@ -1,5 +1,6 @@
 """Tests for the Connection Monitor probe engine."""
 
+import logging
 import socket
 import subprocess
 import sys
@@ -77,6 +78,98 @@ class TestProbeEngineAutoDetection:
             info = engine.capability_info()
             assert info["method"] == "tcp"
             assert "reason" in info
+
+    @pytest.mark.parametrize(
+        ("helper_error", "helper_marker"),
+        [
+            (
+                OSError("HELPER_OSERROR_INTERNAL_MARKER at /private/helper"),
+                "HELPER_OSERROR_INTERNAL_MARKER",
+            ),
+            (
+                subprocess.TimeoutExpired(
+                    cmd=["/private/HELPER_TIMEOUT_INTERNAL_MARKER", "--check"],
+                    timeout=3,
+                ),
+                "HELPER_TIMEOUT_INTERNAL_MARKER",
+            ),
+        ],
+        ids=["os-error", "subprocess-timeout"],
+    )
+    def test_capability_hides_helper_check_exceptions(
+        self, caplog, helper_error, helper_marker
+    ):
+        raw_marker = "RAW_SOCKET_PERMISSION_INTERNAL_MARKER"
+        caplog.set_level(
+            logging.DEBUG, logger="app.modules.connection_monitor.probe"
+        )
+
+        with patch(
+            "app.modules.connection_monitor.probe.os.path.isfile", return_value=True
+        ), patch(
+            "app.modules.connection_monitor.probe.os.access", return_value=True
+        ), patch(
+            "app.modules.connection_monitor.probe.subprocess.run",
+            side_effect=helper_error,
+        ), patch(
+            "app.modules.connection_monitor.probe.socket.socket",
+            side_effect=PermissionError(
+                f"{raw_marker}: operation denied for /private/raw-socket"
+            ),
+        ):
+            info = ProbeEngine(method="auto").capability_info()
+
+        assert info["method"] == "tcp"
+        assert info["reason"] == "ICMP probing is unavailable"
+        assert info["hint"] == (
+            "Add cap_add: [NET_RAW] to your Docker Compose file "
+            "for ICMP probing (more accurate)."
+        )
+        exposed_text = f"{info!r}\n{caplog.text}"
+        assert "ICMP probing is unavailable - falling back to TCP" in caplog.text
+        assert helper_marker not in exposed_text
+        assert raw_marker not in exposed_text
+        assert "/private/" not in exposed_text
+
+    def test_capability_hides_nonzero_helper_output(self, caplog):
+        stdout_marker = "HELPER_STDOUT_INTERNAL_MARKER"
+        stderr_marker = "HELPER_STDERR_INTERNAL_MARKER"
+        raw_marker = "RAW_SOCKET_OSERROR_INTERNAL_MARKER"
+        helper_failure = subprocess.CompletedProcess(
+            args=["/private/docsight-icmp-helper", "--check"],
+            returncode=2,
+            stdout=f"{stdout_marker}: kernel detail\n",
+            stderr=f"{stderr_marker}: command failed\n",
+        )
+        caplog.set_level(
+            logging.DEBUG, logger="app.modules.connection_monitor.probe"
+        )
+
+        with patch(
+            "app.modules.connection_monitor.probe.os.path.isfile", return_value=True
+        ), patch(
+            "app.modules.connection_monitor.probe.os.access", return_value=True
+        ), patch(
+            "app.modules.connection_monitor.probe.subprocess.run",
+            return_value=helper_failure,
+        ), patch(
+            "app.modules.connection_monitor.probe.socket.socket",
+            side_effect=OSError(f"{raw_marker}: unsupported protocol"),
+        ):
+            info = ProbeEngine(method="auto").capability_info()
+
+        assert info["method"] == "tcp"
+        assert info["reason"] == "ICMP probing is unavailable"
+        assert info["hint"] == (
+            "Add cap_add: [NET_RAW] to your Docker Compose file "
+            "for ICMP probing (more accurate)."
+        )
+        exposed_text = f"{info!r}\n{caplog.text}"
+        assert "ICMP probing is unavailable - falling back to TCP" in caplog.text
+        assert stdout_marker not in exposed_text
+        assert stderr_marker not in exposed_text
+        assert raw_marker not in exposed_text
+        assert "/private/" not in exposed_text
 
 
 class TestTCPProbe:
