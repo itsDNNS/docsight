@@ -9,7 +9,7 @@ from pypdf import PdfReader
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.modules.reports.report import (
-    generate_report, generate_incident_report, generate_complaint_text,
+    IncidentReport, generate_report, generate_incident_report, generate_complaint_text,
     _compute_worst_values, _find_worst_channels,
     _format_threshold_table, _default_warn_thresholds,
 )
@@ -65,6 +65,78 @@ def test_generate_report_with_config():
                           connection_info={"max_downstream_kbps": 1000000, "max_upstream_kbps": 50000})
     assert pdf[:5] == b"%PDF-"
     assert len(pdf) > 5000
+
+
+def test_generate_report_wraps_long_german_health_issues(monkeypatch):
+    issue_render = {}
+    downstream_heading = {}
+    original_multi_cell = IncidentReport.multi_cell
+    original_cell = IncidentReport.cell
+
+    def spy_multi_cell(self, w, h=None, text="", *args, **kwargs):
+        is_issue_line = text.startswith("Probleme:")
+        if is_issue_line:
+            issue_render.update({
+                "w": w,
+                "h": h,
+                "align": kwargs.get("align"),
+                "new_x": kwargs.get("new_x"),
+                "new_y": kwargs.get("new_y"),
+                "before_x": self.x,
+                "before_y": self.y,
+                "left_margin": self.l_margin,
+            })
+        result = original_multi_cell(self, w, h, text, *args, **kwargs)
+        if is_issue_line:
+            issue_render.update({"after_x": self.x, "after_y": self.y})
+        return result
+
+    def spy_cell(self, w=None, h=None, text="", *args, **kwargs):
+        if text == "Downstream-Kanäle":
+            downstream_heading.update({"x": self.x, "y": self.y})
+        return original_cell(self, w, h, text, *args, **kwargs)
+
+    monkeypatch.setattr(IncidentReport, "multi_cell", spy_multi_cell)
+    monkeypatch.setattr(IncidentReport, "cell", spy_cell)
+    analysis = {
+        **MOCK_ANALYSIS,
+        "summary": {
+            **MOCK_ANALYSIS["summary"],
+            "health_issues": [
+                "ds_power_critical",
+                "ds_power_marginal",
+                "ds_power_tolerated",
+                "us_power_critical_low",
+                "us_power_critical_high",
+                "us_power_marginal_low",
+                "us_power_marginal_high",
+                "us_power_tolerated_low",
+                "us_power_tolerated_high",
+                "snr_critical",
+                "snr_marginal",
+                "snr_tolerated",
+                "us_modulation_critical",
+                "us_modulation_marginal",
+                "uncorr_errors_high",
+                "uncorr_errors_critical",
+            ],
+        },
+    }
+
+    generate_report([], analysis, lang="de")
+
+    assert issue_render["w"] == 0
+    assert issue_render["h"] == 6
+    assert issue_render["align"] == "L"
+    assert issue_render["new_x"] == "LMARGIN"
+    assert issue_render["new_y"] == "NEXT"
+    assert issue_render["before_x"] == issue_render["left_margin"]
+    assert issue_render["after_x"] == issue_render["left_margin"]
+    assert issue_render["after_y"] > issue_render["before_y"] + 6
+    assert downstream_heading == {
+        "x": issue_render["left_margin"],
+        "y": issue_render["after_y"] + 2,
+    }
 
 
 def test_compute_worst_values():

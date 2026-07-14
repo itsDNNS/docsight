@@ -595,7 +595,7 @@ def generate_report(
             pdf.set_font("dejavu", "", 10)
             labels = s.get("issue_labels", {})
             translated = [labels.get(i, i) for i in sm["health_issues"]]
-            pdf.cell(0, 6, f"{s['issues']}: {', '.join(translated)}", new_x="LMARGIN", new_y="NEXT")
+            pdf.multi_cell(0, 6, f"{s['issues']}: {', '.join(translated)}", align="L", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
 
         # Current channel table
