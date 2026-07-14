@@ -189,14 +189,6 @@ class SurfboardDriver(ModemDriver):
         )
         return True
 
-    @staticmethod
-    def _body_preview(text: str, limit: int = 200) -> str:
-        """Collapse whitespace and truncate for log output."""
-        collapsed = " ".join(text.split())
-        if len(collapsed) > limit:
-            return collapsed[:limit] + "..."
-        return collapsed
-
     def _html_login_attempt(self) -> str:
         """Single HTML login attempt. Returns the response body or raises."""
         creds = base64.b64encode(
@@ -244,8 +236,8 @@ class SurfboardDriver(ModemDriver):
             if len(body) < 500 or "downstream" not in body.lower():
                 log.warning(
                     "SURFboard HTML login: non-channel response (%d bytes), "
-                    "resetting session and retrying. Preview: %s",
-                    len(body), self._body_preview(body),
+                    "resetting session and retrying",
+                    len(body),
                 )
                 self._fresh_session()
                 body = self._html_login_attempt()
@@ -253,14 +245,19 @@ class SurfboardDriver(ModemDriver):
             if len(body) < 500 or "downstream" not in body.lower():
                 raise TransientHtmlChannelPageError(
                     f"SURFboard HTML login: non-channel response after retry "
-                    f"({len(body)} bytes). Preview: {self._body_preview(body)}"
+                    f"({len(body)} bytes)"
                 )
 
             self._html_status_cache = body
             self._logged_in = True
             log.info("SURFboard HTML login OK (%d bytes)", len(body))
         except requests.RequestException as e:
-            raise RuntimeError(f"SURFboard HTML login failed: {e}")
+            status_code = getattr(e.response, "status_code", None)
+            if isinstance(status_code, int):
+                message = f"SURFboard HTML login failed (HTTP {status_code})"
+            else:
+                message = f"SURFboard HTML login failed: {type(e).__name__}"
+            raise RuntimeError(message) from e
 
     def _html_get_docsis_data(self) -> DocsisData:
         """Retrieve DOCSIS data via HTML table scraping (fallback mode)."""
