@@ -52,6 +52,36 @@ class TestLoginFlow:
         auth_page.goto(f"{auth_server}/settings")
         assert "settings" in auth_page.url.lower() or "Settings" in auth_page.title()
 
+    def test_sidebar_logout_button_logs_out_and_protects_dashboard(self, auth_page, auth_server):
+        auth_page.goto(f"{auth_server}/login")
+        auth_page.fill('input[name="password"]', "e2e-test-password")
+        auth_page.click('button[type="submit"]')
+        auth_page.wait_for_load_state("networkidle")
+
+        logout_button = auth_page.locator('form[action="/logout"] button[type="submit"]')
+        assert logout_button.is_visible()
+        logout_button.click()
+        auth_page.wait_for_url("**/login")
+
+        auth_page.goto(auth_server)
+        assert "/login" in auth_page.url
+
+    def test_storage_state_restores_dashboard_session(self, auth_page, auth_server, browser):
+        auth_page.goto(f"{auth_server}/login")
+        auth_page.fill('input[name="password"]', "e2e-test-password")
+        auth_page.click('button[type="submit"]')
+        auth_page.wait_for_load_state("networkidle")
+        storage_state = auth_page.context.storage_state()
+
+        restored_context = browser.new_context(storage_state=storage_state)
+        try:
+            restored_page = restored_context.new_page()
+            restored_page.goto(auth_server)
+            restored_page.wait_for_load_state("networkidle")
+            assert "/login" not in restored_page.url
+        finally:
+            restored_context.close()
+
 
 class TestProtectedRoutes:
     """Unauthenticated access is blocked."""

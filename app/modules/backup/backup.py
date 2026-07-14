@@ -21,7 +21,7 @@ log = logging.getLogger("docsis.backup")
 # Files under data_dir to include in backups
 DATA_FILES = [
     "docsis_history.db", "connection_monitor.db",
-    "config.json", ".config_key", ".session_key",
+    "config.json", ".config_key", ".session_key", ".auth_state",
 ]
 
 BACKUP_META_FILE = "backup_meta.json"

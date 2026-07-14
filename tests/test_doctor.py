@@ -144,3 +144,40 @@ def test_doctor_uses_only_offline_checks_by_default(tmp_path, monkeypatch):
     monkeypatch.setattr("requests.sessions.Session.request", fail_if_called)
     monkeypatch.setattr("tempfile.NamedTemporaryFile", fail_if_called)
     build_report(data_dir=str(data_dir))
+
+
+def test_doctor_reports_all_auth_state_files_present(tmp_path):
+    from app.doctor import build_report
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    for filename in (".config_key", ".session_key", ".auth_state"):
+        path = data_dir / filename
+        path.write_bytes(f"{filename}-value".encode())
+        path.chmod(0o600)
+
+    report = build_report(data_dir=str(data_dir))
+    secret_state = next(check for check in report["checks"] if check["id"] == "auth.secret_state")
+
+    assert secret_state["status"] == "pass"
+    for filename in (".config_key", ".session_key", ".auth_state"):
+        assert secret_state["details"][filename] == {
+            "present": True,
+            "mode": "0o600",
+            "size_bytes": len(f"{filename}-value"),
+        }
+
+
+def test_doctor_reports_missing_auth_state_file(tmp_path):
+    from app.doctor import build_report
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / ".config_key").write_bytes(b"config-key")
+    (data_dir / ".session_key").write_bytes(b"session-key")
+
+    report = build_report(data_dir=str(data_dir))
+    secret_state = next(check for check in report["checks"] if check["id"] == "auth.secret_state")
+
+    assert secret_state["status"] == "warn"
+    assert secret_state["details"][".auth_state"] == "missing"

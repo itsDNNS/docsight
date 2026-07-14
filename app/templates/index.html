@@ -247,9 +247,11 @@
             <i data-lucide="heart-handshake"></i> {{ t.get('support_nav', 'Support') }}
         </a>
         {% if auth_enabled %}
-        <a class="nav-item" href="/logout">
-            <i data-lucide="log-out"></i> {{ t.logout }}
-        </a>
+        <form action="/logout" method="post">
+            <button type="submit" class="nav-item">
+                <i data-lucide="log-out"></i> {{ t.logout }}
+            </button>
+        </form>
         {% endif %}
     </div>
     <div class="sidebar-footer">

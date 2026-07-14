@@ -1,6 +1,10 @@
 """Tests for security-related web behavior."""
 
 import os
+from datetime import timedelta
+
+import pytest
+
 from app.web import app, update_state, init_config
 from app.config import ConfigManager
 
@@ -43,3 +47,38 @@ class TestSessionKeyPersistence:
         init_config(mgr)
         assert app.secret_key == key1
 
+
+class TestSessionLifetime:
+    def test_default_is_thirty_days(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("SESSION_LIFETIME_DAYS", raising=False)
+        init_config(ConfigManager(str(tmp_path / "default_lifetime")))
+        assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(days=30)
+
+    def test_operator_override(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("SESSION_LIFETIME_DAYS", "45")
+        init_config(ConfigManager(str(tmp_path / "custom_lifetime")))
+        assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(days=45)
+
+    def test_init_config_preserves_reverse_proxy_secure_cookie(self, tmp_path, monkeypatch):
+        monkeypatch.setitem(app.config, "SESSION_COOKIE_SECURE", True)
+
+        init_config(ConfigManager(str(tmp_path / "secure_cookie")))
+
+        assert app.config["SESSION_COOKIE_SECURE"] is True
+
+    @pytest.mark.parametrize(
+        ("configured", "expected_days"),
+        [
+            ("not-a-number", 30),
+            ("", 30),
+            ("0", 1),
+            ("-10", 1),
+            ("999999999999999999999999", 365),
+        ],
+    )
+    def test_invalid_and_unsafe_values_are_defaulted_or_clamped(
+        self, tmp_path, monkeypatch, configured, expected_days
+    ):
+        monkeypatch.setenv("SESSION_LIFETIME_DAYS", configured)
+        init_config(ConfigManager(str(tmp_path / f"lifetime_{expected_days}_{configured}")))
+        assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(days=expected_days)

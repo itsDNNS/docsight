@@ -50,6 +50,7 @@ def data_dir(tmp_path):
     (d / "config.json").write_text(json.dumps(config))
     (d / ".config_key").write_bytes(b"test-key-data")
     (d / ".session_key").write_bytes(b"session-secret")
+    (d / ".auth_state").write_bytes(b"auth-state-fingerprint")
 
     return str(d)
 
@@ -76,6 +77,7 @@ class TestCreateBackup:
             assert "config.json" in names
             assert ".config_key" in names
             assert ".session_key" in names
+            assert ".auth_state" in names
 
     def test_meta_has_required_fields(self, data_dir):
         buf = create_backup(data_dir)
@@ -191,8 +193,10 @@ class TestRestore:
         result = restore_backup(buf, restore_dir)
         assert "docsis_history.db" in result["restored_files"]
         assert "config.json" in result["restored_files"]
+        assert ".auth_state" in result["restored_files"]
         assert os.path.exists(os.path.join(restore_dir, "docsis_history.db"))
         assert os.path.exists(os.path.join(restore_dir, "config.json"))
+        assert (tmp_path / "restore" / ".auth_state").read_bytes() == b"auth-state-fingerprint"
 
     def test_restored_data_correct(self, data_dir, tmp_path):
         buf = create_backup(data_dir)

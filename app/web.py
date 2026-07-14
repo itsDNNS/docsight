@@ -1,6 +1,7 @@
 """Flask web UI for DOCSight – DOCSIS channel monitoring."""
 
 import functools
+import hmac
 import logging
 import math
 import os
@@ -146,6 +147,13 @@ _LOGIN_WINDOW = 900  # 15 min
 _LOGIN_LOCKOUT_BASE = 30  # seconds, doubles each excess attempt
 _LOGIN_MAX_TRACKED_IPS = 2048
 _LOGIN_CSRF_SESSION_KEY = "login_csrf_token"
+_AUTH_MARKER_SESSION_KEY = "auth_marker"
+_AUTH_MARKER_CONTEXT = b"docsight-admin-session-v1\0"
+_AUTH_STATE_CONTEXT = b"docsight-admin-auth-state-v1\0"
+_AUTH_STATE_FILENAME = ".auth_state"
+_SESSION_LIFETIME_DEFAULT_DAYS = 30
+_SESSION_LIFETIME_MIN_DAYS = 1
+_SESSION_LIFETIME_MAX_DAYS = 365
 
 
 def _get_client_ip():
@@ -287,8 +295,9 @@ app = Flask(__name__, template_folder="templates")
 app.secret_key = os.urandom(32)  # overwritten by _init_session_key
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Strict",
-    PERMANENT_SESSION_LIFETIME=timedelta(hours=24),
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=_SESSION_LIFETIME_DEFAULT_DAYS),
+    SESSION_REFRESH_EACH_REQUEST=True,
 )
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -570,22 +579,79 @@ def setup_module_templates(module_loader):
         app.jinja_loader = ChoiceLoader(loaders)
 
 
+def _write_private_file(path, value):
+    """Atomically replace a private state file with mode 0600."""
+    data_dir = os.path.dirname(path)
+    os.makedirs(data_dir, exist_ok=True)
+    temp_path = f"{path}.tmp-{os.getpid()}-{secrets.token_hex(8)}"
+    fd = None
+    try:
+        fd = os.open(
+            temp_path,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+            stat.S_IRUSR | stat.S_IWUSR,
+        )
+        with os.fdopen(fd, "wb") as f:
+            fd = None
+            f.write(value)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, path)
+        try:
+            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+            directory_fd = os.open(data_dir, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError:
+            pass
+    finally:
+        if fd is not None:
+            os.close(fd)
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+
+
 def _init_session_key(data_dir):
     """Load or generate a persistent session secret key."""
     key_path = os.path.join(data_dir, ".session_key")
     if os.path.exists(key_path):
         with open(key_path, "rb") as f:
-            app.secret_key = f.read()
+            key = f.read()
     else:
         key = os.urandom(32)
-        os.makedirs(data_dir, exist_ok=True)
-        with open(key_path, "wb") as f:
-            f.write(key)
-        try:
-            os.chmod(key_path, stat.S_IRUSR | stat.S_IWUSR)
-        except OSError:
-            pass
-        app.secret_key = key
+        _write_private_file(key_path, key)
+    app.secret_key = key
+
+
+def _rotate_session_key():
+    """Persist and activate a new signing key, invalidating all old cookies."""
+    if not _config_manager:
+        raise RuntimeError("Config not initialized")
+    key = os.urandom(32)
+    _write_private_file(os.path.join(_config_manager.data_dir, ".session_key"), key)
+    # In-memory activation assumes today's single-process waitress deployment;
+    # a future multi-worker server must coordinate shared signing-key rotation.
+    app.secret_key = key
+
+
+def _session_lifetime_days():
+    """Return the safe, bounded operator-configured session lifetime."""
+    configured = os.environ.get("SESSION_LIFETIME_DAYS", "").strip()
+    if not configured:
+        return _SESSION_LIFETIME_DEFAULT_DAYS
+    try:
+        days = int(configured)
+    except (TypeError, ValueError):
+        log.warning(
+            "Invalid SESSION_LIFETIME_DAYS; using %d days",
+            _SESSION_LIFETIME_DEFAULT_DAYS,
+        )
+        return _SESSION_LIFETIME_DEFAULT_DAYS
+    return max(_SESSION_LIFETIME_MIN_DAYS, min(_SESSION_LIFETIME_MAX_DAYS, days))
 
 
 def init_config(config_manager, on_config_changed=None):
@@ -594,6 +660,113 @@ def init_config(config_manager, on_config_changed=None):
     _config_manager = config_manager
     _on_config_changed = on_config_changed
     _init_session_key(config_manager.data_dir)
+    _init_auth_state()
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=_session_lifetime_days())
+
+
+def _secret_values_match(left, right):
+    """Compare secret representations without timing-sensitive equality."""
+    return hmac.compare_digest(str(left or "").encode(), str(right or "").encode())
+
+
+def _admin_password_matches(effective_password, candidate):
+    """Safely check whether candidate represents the current admin password."""
+    effective_password = str(effective_password or "")
+    candidate = str(candidate or "")
+    if effective_password.startswith(("scrypt:", "pbkdf2:")):
+        try:
+            return check_password_hash(effective_password, candidate)
+        except (TypeError, ValueError):
+            return False
+    return _secret_values_match(effective_password, candidate)
+
+
+def _auth_state_fingerprint(password_representation=None):
+    """Return a keyed fingerprint of the effective admin-password state."""
+    if password_representation is None:
+        password_representation = (
+            _config_manager.get("admin_password", "") if _config_manager else ""
+        )
+    key = app.secret_key.encode() if isinstance(app.secret_key, str) else app.secret_key
+    value = _AUTH_STATE_CONTEXT + str(password_representation or "").encode("utf-8")
+    return hmac.new(key, value, "sha256").hexdigest()
+
+
+def _auth_state_path():
+    return os.path.join(_config_manager.data_dir, _AUTH_STATE_FILENAME)
+
+
+def _read_auth_state():
+    try:
+        with open(_auth_state_path(), "r", encoding="ascii") as state_file:
+            value = state_file.read().strip()
+    except (FileNotFoundError, OSError, UnicodeError):
+        return None
+    if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+        return None
+    return value
+
+
+def _write_auth_state():
+    fingerprint = _auth_state_fingerprint()
+    _write_private_file(_auth_state_path(), fingerprint.encode("ascii"))
+
+
+def _init_auth_state():
+    """Create auth state or invalidate cookies after an offline state change."""
+    stored = _read_auth_state()
+    current = _auth_state_fingerprint()
+    if stored is None:
+        _write_auth_state()
+    elif not _secret_values_match(stored, current):
+        _rotate_session_key()
+        _write_auth_state()
+
+
+def _sync_auth_state():
+    """Observe runtime auth changes and durably invalidate existing cookies."""
+    if not _config_manager:
+        return
+    stored = _read_auth_state()
+    current = _auth_state_fingerprint()
+    if stored is not None and _secret_values_match(stored, current):
+        return
+    _rotate_session_key()
+    _write_auth_state()
+
+
+def _admin_session_marker(password_representation=None):
+    """Create a keyed, non-reversible marker for the effective password state."""
+    if password_representation is None:
+        if not _config_manager:
+            return ""
+        password_representation = _config_manager.get("admin_password", "")
+    if not password_representation:
+        return ""
+    key = app.secret_key.encode() if isinstance(app.secret_key, str) else app.secret_key
+    value = _AUTH_MARKER_CONTEXT + str(password_representation).encode("utf-8")
+    return hmac.new(key, value, "sha256").hexdigest()
+
+
+def _authenticated_session_is_valid():
+    """Return True only for a password-bound authenticated browser session."""
+    if not session.get("authenticated"):
+        return False
+    actual = session.get(_AUTH_MARKER_SESSION_KEY, "")
+    expected = _admin_session_marker()
+    if actual and expected and _secret_values_match(actual, expected):
+        return True
+    session.clear()
+    return False
+
+
+def _invalidate_admin_sessions():
+    """Globally invalidate signed cookies and clear the current request session."""
+    _rotate_session_key()
+    _write_auth_state()
+    # The request cookie was loaded with the prior key. Clearing after rotation
+    # makes Flask write the logged-out session using the new key on this response.
+    session.clear()
 
 
 def _auth_required():
@@ -604,10 +777,11 @@ def _auth_required():
     """
     if not _config_manager:
         return False
+    _sync_auth_state()
     admin_pw = _config_manager.get("admin_password", "")
     if not admin_pw:
         return False
-    if session.get("authenticated"):
+    if _authenticated_session_is_valid():
         return False
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer ") and _storage:
@@ -635,9 +809,10 @@ def _require_session_auth(f):
     """Decorator: only allow session-based login, no API tokens."""
     @functools.wraps(f)
     def decorated(*args, **kwargs):
+        _sync_auth_state()
         if not _config_manager or not _config_manager.get("admin_password", ""):
             return f(*args, **kwargs)
-        if not session.get("authenticated"):
+        if not _authenticated_session_is_valid():
             # Token auth is not sufficient for this endpoint
             if getattr(request, "_api_token", None) or request.headers.get("Authorization", "").startswith("Bearer "):
                 return jsonify({"error": "Session authentication required"}), 403
@@ -650,6 +825,7 @@ def _require_session_auth(f):
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    _sync_auth_state()
     if not _config_manager or not _config_manager.get("admin_password", ""):
         return redirect("/")
     lang = _get_lang()
@@ -674,15 +850,20 @@ def login():
         if stored.startswith(("scrypt:", "pbkdf2:")):
             success = check_password_hash(stored, pw)
         else:
-            success = (pw == stored)
-            if success:
+            success = _secret_values_match(pw, stored)
+            if success and not os.environ.get("ADMIN_PASSWORD"):
                 # Auto-upgrade plaintext password to hash
                 _config_manager.save({"admin_password": pw})
+                stored = _config_manager.get("admin_password", "")
+                # This is the same credential in a safer representation, so
+                # preserve the signing key while rebinding durable auth state.
+                _write_auth_state()
                 audit_log.info("Auto-upgraded plaintext password to hash for ip=%s", ip)
         if success:
             _login_attempts.pop(ip, None)
             session.permanent = True
             session["authenticated"] = True
+            session[_AUTH_MARKER_SESSION_KEY] = _admin_session_marker(stored)
             session.pop(_LOGIN_CSRF_SESSION_KEY, None)
             audit_log.info("Login successful: ip=%s", ip)
             return redirect("/")
@@ -692,9 +873,9 @@ def login():
     return render_template("login.html", t=t, lang=lang, theme=theme, error=error, csrf_token=csrf_token)
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
 def logout():
-    session.pop("authenticated", None)
+    session.clear()
     return redirect("/login")
 
 

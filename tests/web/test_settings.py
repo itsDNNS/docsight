@@ -6,7 +6,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from app.web import init_config, app
+from app.web import init_config, app, _login_attempts
 from app.config import ConfigManager
 
 
@@ -15,6 +15,18 @@ def _rendered_panel(html: str, panel_id: str):
     panel = soup.find(id=panel_id)
     assert panel is not None
     return panel
+
+
+def _login(client, password):
+    _login_attempts.clear()
+    response = client.get("/login")
+    csrf_token = re.search(rb'name="csrf_token" value="([^"]+)"', response.data)
+    assert csrf_token
+    client.post(
+        "/login",
+        data={"password": password, "csrf_token": csrf_token.group(1).decode("utf-8")},
+    )
+
 
 class TestSettingsRoute:
     def test_settings_contains_comcast_xfinity_isp_option(self, client):
@@ -101,8 +113,7 @@ class TestSettingsRoute:
     def test_settings_icon_only_controls_have_accessible_names(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
         init_config(config_mgr)
-        with client.session_transaction() as session:
-            session["authenticated"] = True
+        _login(client, "admin-secret-value")
 
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200
@@ -186,8 +197,7 @@ class TestSettingsRoute:
     def test_settings_admin_password_field_uses_saved_secret_placeholder(self, client, config_mgr):
         config_mgr.save({"admin_password": "admin-secret-value"})
         init_config(config_mgr)
-        with client.session_transaction() as session:
-            session["authenticated"] = True
+        _login(client, "admin-secret-value")
 
         resp = client.get("/settings?lang=en")
 
@@ -222,4 +232,3 @@ class TestSettingsRender:
     def test_settings_renders(self, client):
         resp = client.get("/settings")
         assert resp.status_code == 200
-

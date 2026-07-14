@@ -8,11 +8,12 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, request, jsonify
 
 from app.web import (
-    require_auth, _require_session_auth,
+    require_auth, _require_session_auth, _admin_password_matches,
+    _invalidate_admin_sessions, _secret_values_match,
     get_config_manager, get_storage, get_on_config_changed,
     _get_client_ip, _localize_timestamps,
 )
-from app.config import POLL_MIN, POLL_MAX, SECRET_KEYS, HASH_KEYS
+from app.config import POLL_MIN, POLL_MAX, SECRET_KEYS, HASH_KEYS, PASSWORD_MASK
 
 audit_log = logging.getLogger("docsis.audit")
 log = logging.getLogger("docsis.web")
@@ -44,7 +45,7 @@ def run_bqm_initial_fetch(config_manager=None, storage=None):
 
 
 @config_bp.route("/api/config", methods=["POST"])
-@require_auth
+@_require_session_auth
 def api_config():
     """Save configuration."""
     _config_manager = get_config_manager()
@@ -54,6 +55,14 @@ def api_config():
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data"}), 400
+        data = dict(data)
+        previous_admin_password = _config_manager.get("admin_password", "")
+        admin_password_requested = "admin_password" in data
+        if admin_password_requested and (
+            data["admin_password"] == PASSWORD_MASK
+            or _admin_password_matches(previous_admin_password, data["admin_password"])
+        ):
+            del data["admin_password"]
         # Validate timezone if provided
         if "timezone" in data and data["timezone"]:
             try:
@@ -67,8 +76,6 @@ def api_config():
                 data["poll_interval"] = max(POLL_MIN, min(POLL_MAX, pi))
             except (ValueError, TypeError):
                 pass
-        changed_keys = [k for k in data if k not in SECRET_KEYS and k not in HASH_KEYS]
-        secret_changed = [k for k in data if k in SECRET_KEYS or k in HASH_KEYS]
         previous_bqm_url = (_config_manager.get("bqm_url") or "").strip()
         requested_bqm_url = (data.get("bqm_url") or "").strip() if "bqm_url" in data else previous_bqm_url
         should_fetch_bqm = (
@@ -77,6 +84,15 @@ def api_config():
             and _should_run_bqm_initial_fetch(requested_bqm_url)
         )
         _config_manager.save(data)
+        effective_admin_password = _config_manager.get("admin_password", "")
+        admin_password_changed = (
+            admin_password_requested
+            and not _secret_values_match(previous_admin_password, effective_admin_password)
+        )
+        if admin_password_changed:
+            _invalidate_admin_sessions()
+        changed_keys = [k for k in data if k not in SECRET_KEYS and k not in HASH_KEYS]
+        secret_changed = [k for k in data if k in SECRET_KEYS or k in HASH_KEYS]
         audit_log.info(
             "Config changed: ip=%s keys=%s secrets_changed=%s",
             _get_client_ip(), changed_keys, secret_changed,
