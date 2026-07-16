@@ -81,7 +81,7 @@ def test_windows_desktop_workflow_attaches_release_assets():
     release_block = named_step_block(workflow, "Attach assets to release")
     assert "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in release_block
     assert "TAG_NAME: ${{ github.event.release.tag_name }}" in release_block
-    assert "gh release upload" in release_block
+    assert 'gh release upload "$TAG_NAME" --repo "$GITHUB_REPOSITORY"' in release_block
     assert "release-assets/*.zip" in release_block
     assert "release-assets/*.sha256" in release_block
 

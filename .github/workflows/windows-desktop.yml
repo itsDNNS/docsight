@@ -108,4 +108,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.event.release.tag_name }}
-        run: gh release upload "$TAG_NAME" release-assets/*.zip release-assets/*.sha256 --clobber
+        run: gh release upload "$TAG_NAME" --repo "$GITHUB_REPOSITORY" release-assets/*.zip release-assets/*.sha256 --clobber
