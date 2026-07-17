@@ -40,6 +40,35 @@ def modulation_page_mobile(page, live_server):
     return page
 
 
+def _wait_for_distribution_chart(page, *, direction, min_samples):
+    """Wait until the requested distribution chart has replaced stale content."""
+    page.wait_for_function(
+        """
+        ({direction, minSamples}) => {
+            const container = document.querySelector("[id^='mod-dist-chart-']");
+            if (!container || !container.isConnected) return false;
+
+            const bounds = container.getBoundingClientRect();
+            if (bounds.width <= 50 || bounds.height <= 50) return false;
+
+            const group = container.closest('.mod-protocol-group');
+            if (!group || group.dataset.direction !== direction) return false;
+
+            return (window._modCharts || []).some((chart) => {
+                const root = chart && chart.root;
+                const samples = chart && chart.data && chart.data[0]
+                    ? chart.data[0].length
+                    : 0;
+                return root && root.isConnected && container.contains(root)
+                    && samples >= minSamples;
+            });
+        }
+        """,
+        arg={"direction": direction, "minSamples": min_samples},
+        timeout=150_000,
+    )
+
+
 # ── Full Page Screenshots ──
 
 class TestFullPageScreenshots:
@@ -119,14 +148,22 @@ class TestChartRendering:
 
     def test_charts_rerender_on_direction_switch(self, modulation_page):
         modulation_page.locator('#modulation-direction-tabs .trend-tab[data-dir="ds"]').click()
-        modulation_page.wait_for_timeout(1500)
+        _wait_for_distribution_chart(
+            modulation_page,
+            direction="ds",
+            min_samples=7,
+        )
         canvas = modulation_page.locator("[id^='mod-dist-chart-']").first
         box = canvas.bounding_box()
         assert box is not None and box["width"] > 50
 
     def test_charts_rerender_on_range_switch(self, modulation_page):
         modulation_page.locator('#modulation-range-tabs .trend-tab[data-days="30"]').click()
-        modulation_page.wait_for_timeout(1500)
+        _wait_for_distribution_chart(
+            modulation_page,
+            direction="us",
+            min_samples=30,
+        )
         canvas = modulation_page.locator("[id^='mod-dist-chart-']").first
         box = canvas.bounding_box()
         assert box is not None and box["width"] > 50
