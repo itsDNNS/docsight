@@ -2,7 +2,7 @@ name: Full browser E2E
 
 on:
   schedule:
-    - cron: "23 3 * * *"
+    - cron: "23 3 * * 1"
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
@@ -11,11 +11,38 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      browser: ${{ steps.filter.outputs.browser }}
+    steps:
+      - name: Filter browser-relevant changes
+        id: filter
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+        with:
+          filters: |
+            browser:
+              - 'app/templates/**'
+              - 'app/static/**'
+              - 'app/modules/**'
+              - 'app/web.py'
+              - 'tests/e2e/**'
+              - 'requirements.txt'
+              - '.github/workflows/full-e2e.yml'
+
   full-e2e:
+    needs: changes
     if: >-
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.pull_request.labels.*.name, 'full-e2e')
+      !cancelled() &&
+      (
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        contains(github.event.pull_request.labels.*.name, 'full-e2e') ||
+        needs.changes.outputs.browser == 'true'
+      )
     runs-on: ubuntu-latest
 
     steps:
