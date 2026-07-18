@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview is een proefversie",
   "desktop_preview_notice_body": "Gebruik DOCSight Desktop Preview om de app lokaal te verkennen. Gebruik Docker voor betrouwbare 24/7-monitoring; slaapstand of sluimerstand pauzeert de gegevensverzameling.",
-  "desktop_preview_notice_link": "Lees mogelijkheden en beperkingen"
+  "desktop_preview_notice_link": "Lees mogelijkheden en beperkingen",
+  "correlation_reachability": "Bereikbaarheid",
+  "correlation_reachability_hint": "Bereikbaarheidsvakken tonen de waargenomen dekking van de Verbindingsmonitor; activeer de grafiek om de details te openen.",
+  "correlation_reachability_ok": "OK",
+  "correlation_reachability_degraded": "Verminderd",
+  "correlation_reachability_down": "Niet bereikbaar",
+  "correlation_reachability_unknown": "Onbekend",
+  "correlation_reachability_state": "Status",
+  "correlation_reachability_window": "Tijdvenster",
+  "correlation_reachability_loss": "Waargenomen pakketverlies",
+  "correlation_reachability_samples": "Metingen",
+  "correlation_reachability_targets": "Waargenomen doelen",
+  "correlation_reachability_scope": "Doelbereik",
+  "correlation_reachability_drilldown": "Details van Verbindingsmonitor openen",
+  "correlation_reachability_aria": "Samenvatting bereikbaarheid"
 }

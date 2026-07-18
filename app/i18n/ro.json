@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview este o versiune de probă",
   "desktop_preview_notice_body": "Folosiți DOCSight Desktop Preview pentru a explora aplicația local. Pentru monitorizare fiabilă 24/7, folosiți Docker; somnul sau hibernarea laptopului oprește temporar colectarea datelor.",
-  "desktop_preview_notice_link": "Citiți capabilitățile și limitele"
+  "desktop_preview_notice_link": "Citiți capabilitățile și limitele",
+  "correlation_reachability": "Accesibilitate",
+  "correlation_reachability_hint": "Intervalele de accesibilitate arată acoperirea observată de Monitorul conexiunii; activați graficul pentru a deschide detaliile.",
+  "correlation_reachability_ok": "În regulă",
+  "correlation_reachability_degraded": "Degradată",
+  "correlation_reachability_down": "Indisponibilă",
+  "correlation_reachability_unknown": "Necunoscută",
+  "correlation_reachability_state": "Stare",
+  "correlation_reachability_window": "Interval",
+  "correlation_reachability_loss": "Pierdere de pachete observată",
+  "correlation_reachability_samples": "Eșantioane",
+  "correlation_reachability_targets": "Ținte observate",
+  "correlation_reachability_scope": "Domeniul țintelor",
+  "correlation_reachability_drilldown": "Deschide detaliile Monitorului conexiunii",
+  "correlation_reachability_aria": "Rezumatul accesibilității"
 }

@@ -1,7 +1,11 @@
 """Browser coverage for the correlation timeline UI."""
 
+import csv
+import io
+
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from playwright.sync_api import expect
 
 DESKTOP_VIEWPORT = {"width": 1440, "height": 1000}
@@ -125,7 +129,7 @@ def _sample_correlation_severity_edge_data():
 
 def _point_measurement_data():
     """Sparse Speedtests with modem and event evidence between the tests."""
-    base = datetime.now(timezone.utc).replace(microsecond=0)
+    base = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(hours=8)
 
     def ts(hours):
         return (base + timedelta(hours=hours)).isoformat().replace("+00:00", "Z")
@@ -178,7 +182,7 @@ def _point_measurement_data():
 
 
 def _single_point_measurement_data():
-    base = datetime.now(timezone.utc).replace(microsecond=0)
+    base = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(hours=8)
 
     def ts(hours):
         return (base + timedelta(hours=hours)).isoformat().replace("+00:00", "Z")
@@ -213,7 +217,7 @@ def _single_point_measurement_data():
 
 
 def _dense_point_measurement_data():
-    base = datetime.now(timezone.utc).replace(microsecond=0)
+    base = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(hours=7)
 
     def ts(seconds):
         return (base + timedelta(seconds=seconds)).isoformat().replace("+00:00", "Z")
@@ -230,7 +234,7 @@ def _dense_point_measurement_data():
 
 
 def _partial_point_measurement_data():
-    base = datetime.now(timezone.utc).replace(microsecond=0)
+    base = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(hours=3)
 
     def ts(hours):
         return (base + timedelta(hours=hours)).isoformat().replace("+00:00", "Z")
@@ -335,22 +339,61 @@ def _record_correlation_canvas_operations(page):
 
 
 def _route_correlation(page, payload=None):
-    page.route("**/api/correlation?**", lambda route: route.fulfill(json=payload or _sample_correlation_data()))
+    page.route("**/api/correlation?**", lambda route: route.fulfill(json=_sample_correlation_data() if payload is None else payload))
     page.route("**/api/weather/range?**", lambda route: route.fulfill(json=[]))
     page.route("**/api/fritzbox/segment-utilization/range?**", lambda route: route.fulfill(json=[]))
+    page.route("**/api/connection-monitor/targets", lambda route: route.fulfill(json=[]))
+    page.route(
+        "**/api/connection-monitor/samples/**",
+        lambda route: route.fulfill(
+            json={
+                "meta": {"resolution": "raw", "bucket_seconds": None, "blended": False, "mixed": False},
+                "samples": [],
+            }
+        ),
+    )
 
 
 def _route_sample_correlation(page):
     _route_correlation(page)
 
 
-def _open_correlation(page, viewport=DESKTOP_VIEWPORT):
+def _route_reachability(page, samples_by_target, targets=None, request_count=None):
+    targets = targets if targets is not None else [
+        {"id": target_id, "label": f"Target {target_id}", "enabled": True, "poll_interval_ms": 10000}
+        for target_id in sorted(samples_by_target)
+    ]
+
+    def targets_handler(route):
+        if request_count is not None:
+            request_count["targets"] = request_count.get("targets", 0) + 1
+        route.fulfill(json=targets)
+
+    def samples_handler(route):
+        target_id = int(route.request.url.split("/samples/", 1)[1].split("?", 1)[0])
+        if request_count is not None:
+            request_count["samples"] = request_count.get("samples", 0) + 1
+        route.fulfill(
+            json={
+                "meta": {"resolution": "raw", "bucket_seconds": None, "blended": False, "mixed": False},
+                "samples": samples_by_target.get(target_id, []),
+            }
+        )
+
+    page.unroute("**/api/connection-monitor/targets")
+    page.unroute("**/api/connection-monitor/samples/**")
+    page.route("**/api/connection-monitor/targets", targets_handler)
+    page.route("**/api/connection-monitor/samples/**", samples_handler)
+
+
+def _open_correlation(page, viewport=DESKTOP_VIEWPORT, expect_table=True):
     page.set_viewport_size(viewport)
     base_url = page.url.split("#", 1)[0].split("?", 1)[0].rstrip("/")
     page.goto(f"{base_url}/?lang=en#correlation", wait_until="networkidle")
     page.wait_for_selector("#view-correlation.active", state="visible")
     page.wait_for_selector("#correlation-chart-container", state="visible")
-    page.wait_for_selector("#correlation-table-card", state="visible")
+    if expect_table:
+        page.wait_for_selector("#correlation-table-card", state="visible")
 
 
 def _hover_correlation_timestamp(page, timestamp):
@@ -371,6 +414,524 @@ def _hover_correlation_timestamp(page, timestamp):
     tooltip = page.locator("#correlation-tooltip")
     expect(tooltip).to_be_visible()
     return tooltip
+
+
+def test_reachability_bucket_helper_uses_coverage_weighting_and_unknown_gaps(demo_page):
+    page = demo_page
+    result = page.evaluate(
+        """
+        () => window._corrBucketReachability([
+            {
+                target: { id: 1, label: 'Gateway', poll_interval_ms: 10000 },
+                samples: [
+                    { timestamp: 1000, bucket_seconds: null, packet_loss_pct: 100, sample_count: 1 },
+                    { timestamp: 1040, bucket_seconds: 20, packet_loss_pct: 0, sample_count: 3 },
+                ],
+            },
+            {
+                target: { id: 2, label: 'Resolver', poll_interval_ms: 20000 },
+                samples: [
+                    { timestamp: 1005, bucket_seconds: null, packet_loss_pct: 0, sample_count: 1 },
+                    { timestamp: 1040, bucket_seconds: 20, packet_loss_pct: 100, sample_count: 1 },
+                ],
+            },
+        ], 1000000, 1080000, 8)
+        """
+    )
+
+    assert len(result) == 8
+    assert [bucket["startMs"] for bucket in result] == list(range(1000000, 1080000, 10000))
+    # A failed target plus a healthy target is degraded, never down.
+    assert result[0]["state"] == "degraded"
+    assert result[0]["lossPct"] == 50
+    assert result[0]["sampleCount"] == 2
+    assert result[0]["targetsObserved"] == 2
+    # Offset coverage intersects both adjacent display buckets.
+    assert result[1]["state"] == "ok"
+    assert result[2]["state"] == "ok"
+    assert result[3]["state"] == "unknown"
+    # Aggregate sample_count weights loss: (0*3 + 100*1) / 4.
+    assert result[4]["state"] == "degraded"
+    assert result[4]["lossPct"] == 25
+    assert result[4]["sampleCount"] == 4
+    assert result[4]["targetsObserved"] == 2
+    assert result[5]["state"] == "degraded"
+    assert result[6]["state"] == "unknown"
+
+
+def test_reachability_bucket_helper_empty_never_ok_and_caps_long_ranges(demo_page):
+    page = demo_page
+    result = page.evaluate(
+        """
+        () => ({
+            empty: window._corrBucketReachability([], 0, 1000, 10),
+            long: window._corrBucketReachability([
+                {
+                    target: { id: 1, poll_interval_ms: 5000 },
+                    samples: [{ timestamp: 1700000000, bucket_seconds: 3600, packet_loss_pct: 100, sample_count: 720 }],
+                },
+            ], 1700000000000, 1707776000000, 1000),
+        })
+        """
+    )
+
+    assert len(result["empty"]) == 10
+    assert {bucket["state"] for bucket in result["empty"]} == {"unknown"}
+    assert len(result["long"]) == 300
+    assert result["long"][0]["startMs"] == 1700000000000
+    assert result["long"][-1]["endMs"] == 1707776000000
+
+
+def test_reachability_bucket_helper_classifies_all_four_states_and_all_target_down(demo_page):
+    page = demo_page
+    result = page.evaluate(
+        """
+        () => window._corrBucketReachability([
+            {
+                target: { id: 1, poll_interval_ms: 10000 },
+                samples: [
+                    { timestamp: 2000, packet_loss_pct: 0, sample_count: 1 },
+                    { timestamp: 2010, packet_loss_pct: 25, sample_count: 2 },
+                    { timestamp: 2020, packet_loss_pct: 100, sample_count: 1 },
+                ],
+            },
+            {
+                target: { id: 2, poll_interval_ms: 10000 },
+                samples: [
+                    { timestamp: 2020, packet_loss_pct: 100, sample_count: 3 },
+                ],
+            },
+        ], 2000000, 2040000, 4)
+        """
+    )
+
+    assert [bucket["state"] for bucket in result] == ["ok", "degraded", "down", "unknown"]
+    assert result[2]["lossPct"] == 100
+    assert result[2]["sampleCount"] == 4
+    assert result[2]["targetsObserved"] == 2
+
+
+@pytest.mark.parametrize("viewport", [DESKTOP_VIEWPORT, MOBILE_VIEWPORT])
+def test_correlation_renders_aligned_reachability_lane_and_legend(demo_page, viewport):
+    page = demo_page
+    page.set_viewport_size(viewport)
+    now = int(datetime.now(timezone.utc).timestamp())
+    _record_correlation_canvas_operations(page)
+    _route_correlation(page)
+    _route_reachability(
+        page,
+        {
+            1: [
+                {"timestamp": now - 2400, "bucket_seconds": 600, "packet_loss_pct": 0, "sample_count": 120},
+                {"timestamp": now - 1200, "bucket_seconds": 600, "packet_loss_pct": 100, "sample_count": 120},
+            ],
+            2: [
+                {"timestamp": now - 1200, "bucket_seconds": 600, "packet_loss_pct": 0, "sample_count": 120},
+            ],
+        },
+    )
+    _open_correlation(page, viewport)
+
+    state = page.evaluate(
+        """
+        () => ({
+            lane: window._corrChartState.reachabilityLane,
+            buckets: window._corrChartState.reachabilityBuckets,
+            height: document.querySelector('#correlation-chart').height / devicePixelRatio,
+            fills: window.__corrCanvasOps.filter((op) => op.kind === 'fillRect'),
+        })
+        """
+    )
+    assert state["lane"]
+    assert state["height"] == 306
+    assert len(state["buckets"]) <= 300
+    assert any(bucket["state"] == "ok" for bucket in state["buckets"])
+    assert any(bucket["state"] == "degraded" for bucket in state["buckets"])
+    assert any(bucket["state"] == "unknown" for bucket in state["buckets"])
+    assert any(abs(fill["args"][1] - state["lane"]["y"]) < 0.01 for fill in state["fills"])
+    expect(page.locator('#correlation-legend [data-metric="reachability"]')).to_be_visible()
+    described_by = page.locator("#correlation-overlay").get_attribute("aria-describedby").split()
+    assert "correlation-reachability-hint" in described_by
+
+
+def test_sparse_cm_only_chart_uses_complete_selected_range_with_unknown_edges(demo_page):
+    page = demo_page
+    _route_correlation(page)
+    _open_correlation(page)
+
+    result = page.evaluate(
+        """
+        () => {
+            const startMs = Date.UTC(2024, 0, 1, 0, 0, 0);
+            const endMs = startMs + 24 * 60 * 60 * 1000;
+            const sampleStartMs = startMs + 12 * 60 * 60 * 1000;
+            const sampleEndMs = sampleStartMs + 5 * 60 * 1000;
+            window._corrSelectedRange = { startMs, endMs };
+            window._corrTargetData = [{
+                target: { id: 1, label: 'Fixed healthy target', poll_interval_ms: 5000 },
+                samples: [{
+                    timestamp: sampleStartMs / 1000,
+                    bucket_seconds: 300,
+                    packet_loss_pct: 0,
+                    sample_count: 60,
+                }],
+            }];
+            window._correlationData = [];
+            window._corrZoom = null;
+            window.renderCorrelationChart([]);
+
+            const state = window._corrChartState;
+            const observedBuckets = state.reachabilityBuckets.filter(
+                (bucket) => bucket.startMs < sampleEndMs && bucket.endMs > sampleStartMs
+            );
+            const unknownCount = state.reachabilityBuckets.filter(
+                (bucket) => bucket.state === 'unknown'
+            ).length;
+            return {
+                startMs,
+                endMs,
+                tMin: state.tMin,
+                tMax: state.tMax,
+                tMinFull: state.tMinFull,
+                tMaxFull: state.tMaxFull,
+                firstState: state.reachabilityBuckets[0].state,
+                lastState: state.reachabilityBuckets[state.reachabilityBuckets.length - 1].state,
+                observedStates: observedBuckets.map((bucket) => bucket.state),
+                unknownCount,
+                ariaLabel: document.querySelector('#correlation-overlay').getAttribute('aria-label'),
+            };
+        }
+        """
+    )
+
+    assert result["tMin"] == result["tMinFull"] == result["startMs"]
+    assert result["tMax"] == result["tMaxFull"] == result["endMs"]
+    assert result["firstState"] == "unknown"
+    assert result["lastState"] == "unknown"
+    assert result["observedStates"]
+    assert set(result["observedStates"]) == {"ok"}
+    assert result["unknownCount"] > 0
+    assert f'Unknown {result["unknownCount"]}' in result["ariaLabel"]
+
+
+def test_reachability_legend_tooltip_and_mouse_keyboard_drilldown(demo_page):
+    page = demo_page
+    now = int(datetime.now(timezone.utc).timestamp())
+    _route_correlation(page)
+    _route_reachability(
+        page,
+        {1: [{"timestamp": now - 1800, "bucket_seconds": 900, "packet_loss_pct": 12.5, "sample_count": 18}]},
+        targets=[{"id": 1, "label": "Gateway", "enabled": True, "poll_interval_ms": 5000}],
+    )
+    _open_correlation(page)
+
+    overlay = page.locator("#correlation-overlay")
+    expect(overlay).to_have_attribute("role", "button")
+    expect(overlay).to_have_attribute("tabindex", "0")
+
+    legend = page.locator('#correlation-legend [data-metric="reachability"]')
+    legend.click()
+    expect(legend).to_have_class("disabled")
+    assert page.evaluate("() => window._corrVisible.reachability") is False
+    expect(overlay).to_have_attribute("role", "img")
+    assert overlay.get_attribute("tabindex") is None
+    legend.click()
+    assert page.evaluate("() => window._corrVisible.reachability") is True
+    expect(overlay).to_have_attribute("role", "button")
+    expect(overlay).to_have_attribute("tabindex", "0")
+
+    lane_point = page.evaluate(
+        """
+        () => {
+            const st = window._corrChartState;
+            const bucket = st.reachabilityBuckets.find((item) => item.sampleCount > 0);
+            return {
+                x: st.xScale((bucket.startMs + bucket.endMs) / 2),
+                y: st.reachabilityLane.y + st.reachabilityLane.height / 2,
+            };
+        }
+        """
+    )
+    box = overlay.bounding_box()
+    page.mouse.move(box["x"] + lane_point["x"], box["y"] + lane_point["y"])
+    tooltip = page.locator("#correlation-tooltip")
+    expect(tooltip).to_be_visible()
+    tooltip_text = tooltip.inner_text()
+    for expected in ("Reachability", "State", "Window", "Observed packet loss", "Samples", "Observed targets", "Target scope", "Gateway"):
+        assert expected in tooltip_text
+
+    overlay.focus()
+    overlay.press("Enter")
+    expect(page.locator("#view-connection-monitor.active")).to_be_visible()
+    destination_title = page.locator("#cm-detail-view .view-page-title")
+    expect(destination_title).to_have_attribute("tabindex", "-1")
+    expect(destination_title).to_be_focused()
+    page.evaluate("() => window.switchView('correlation')")
+    page.wait_for_selector("#view-correlation.active")
+    page.wait_for_selector("#correlation-chart-container", state="visible")
+    overlay.focus()
+    overlay.press("Space")
+    expect(page.locator("#view-connection-monitor.active")).to_be_visible()
+    expect(destination_title).to_be_focused()
+    page.evaluate("() => window.switchView('correlation')")
+    page.wait_for_selector("#view-correlation.active")
+    page.wait_for_selector("#correlation-chart-container", state="visible")
+    overlay = page.locator("#correlation-overlay")
+    box = overlay.bounding_box()
+    lane_point = page.evaluate(
+        "() => ({ x: window._corrChartState.pad.left + 2, y: window._corrChartState.reachabilityLane.y + 2 })"
+    )
+    page.mouse.click(box["x"] + lane_point["x"], box["y"] + lane_point["y"])
+    expect(page.locator("#view-connection-monitor.active")).to_be_visible()
+    expect(destination_title).to_be_focused()
+
+
+def test_correlation_zoom_rebuckets_loaded_samples_without_cm_refetch(demo_page):
+    page = demo_page
+    now = int(datetime.now(timezone.utc).timestamp())
+    request_count = {}
+    _route_correlation(page)
+    _route_reachability(
+        page,
+        {1: [{"timestamp": now - 3600, "bucket_seconds": 1800, "packet_loss_pct": 100, "sample_count": 360}]},
+        request_count=request_count,
+    )
+    _open_correlation(page)
+    initial_requests = dict(request_count)
+    result = page.evaluate(
+        """
+        () => {
+            const before = window._corrChartState.reachabilityBuckets;
+            const observed = before.find((bucket) => bucket.sampleCount > 0);
+            window._corrZoom = { tMin: observed.startMs, tMax: observed.endMs };
+            window.renderCorrelationChart(window._correlationData);
+            return {
+                beforeWidth: before[0].endMs - before[0].startMs,
+                afterWidth: window._corrChartState.reachabilityBuckets[0].endMs - window._corrChartState.reachabilityBuckets[0].startMs,
+            };
+        }
+        """
+    )
+    assert request_count == initial_requests
+    assert result["afterWidth"] < result["beforeWidth"]
+
+
+def test_drag_zoom_ending_in_reachability_lane_suppresses_drilldown(demo_page):
+    page = demo_page
+    now = int(datetime.now(timezone.utc).timestamp())
+    request_count = {}
+    _route_correlation(page)
+    _route_reachability(
+        page,
+        {1: [{"timestamp": now - 3600, "bucket_seconds": 1800, "packet_loss_pct": 25, "sample_count": 360}]},
+        request_count=request_count,
+    )
+    _open_correlation(page)
+    initial_requests = dict(request_count)
+    drag = page.evaluate(
+        """
+        () => {
+            const st = window._corrChartState;
+            return {
+                startX: st.pad.left + st.plotW * 0.2,
+                startY: st.pad.top + st.plotH / 2,
+                endX: st.pad.left + st.plotW * 0.7,
+                endY: st.reachabilityLane.y + st.reachabilityLane.height / 2,
+                initialSpan: st.tMax - st.tMin,
+            };
+        }
+        """
+    )
+    overlay = page.locator("#correlation-overlay")
+    box = overlay.bounding_box()
+    assert box is not None
+
+    page.mouse.move(box["x"] + drag["startX"], box["y"] + drag["startY"])
+    page.mouse.down()
+    page.mouse.move(box["x"] + drag["endX"], box["y"] + drag["endY"])
+    page.mouse.up()
+    page.wait_for_function("() => window._corrZoom !== null")
+
+    zoom_span = page.evaluate("() => window._corrZoom.tMax - window._corrZoom.tMin")
+    assert zoom_span < drag["initialSpan"]
+    expect(page.locator("#view-correlation.active")).to_be_visible()
+    expect(page.locator("#view-connection-monitor.active")).to_have_count(0)
+    assert request_count == initial_requests
+
+
+@pytest.mark.parametrize("mode", ["zero_targets", "no_samples", "samples_outside", "api_error"])
+def test_correlation_cm_empty_and_error_states_leave_base_chart_usable(demo_page, mode):
+    page = demo_page
+    console_errors = []
+    page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
+    _route_correlation(page)
+    if mode == "zero_targets":
+        _route_reachability(page, {}, targets=[])
+    elif mode == "no_samples":
+        _route_reachability(page, {1: []})
+    elif mode == "samples_outside":
+        old_timestamp = int((datetime.now(timezone.utc) - timedelta(days=2)).timestamp())
+        _route_reachability(
+            page,
+            {1: [{"timestamp": old_timestamp, "bucket_seconds": 60, "packet_loss_pct": 0, "sample_count": 12}]},
+        )
+    else:
+        page.route("**/api/connection-monitor/targets", lambda route: route.fulfill(json=None))
+    _open_correlation(page)
+
+    expect(page.locator("#correlation-chart-container")).to_be_visible()
+    assert page.evaluate("() => window._corrChartState.reachabilityLane") is None
+    assert page.locator('#correlation-legend [data-metric="reachability"]').count() == 0
+    overlay = page.locator("#correlation-overlay")
+    expect(overlay).to_have_attribute("role", "img")
+    assert overlay.get_attribute("tabindex") is None
+    expected_state = {
+        "zero_targets": "targets_absent",
+        "no_samples": "no_samples",
+        "samples_outside": "samples_outside_range",
+        "api_error": "fetch_error",
+    }[mode]
+    assert page.evaluate("() => window._corrCmState") == expected_state
+    assert console_errors == []
+
+
+def test_cm_only_correlation_remains_available_with_paused_collector_history(demo_page):
+    page = demo_page
+    now = int(datetime.now(timezone.utc).timestamp())
+    _route_correlation(page, payload=[])
+    _route_reachability(
+        page,
+        {1: [{"timestamp": now - 600, "bucket_seconds": 300, "packet_loss_pct": 0, "sample_count": 60}]},
+        targets=[{"id": 1, "label": "Historical target", "enabled": True, "poll_interval_ms": 5000}],
+    )
+    _open_correlation(page, expect_table=False)
+
+    expect(page.locator('.nav-item[data-view="correlation"]')).to_be_attached()
+    expect(page.locator("#correlation-chart-container")).to_be_visible()
+    expect(page.locator('#correlation-legend [data-metric="reachability"]')).to_be_visible()
+    expect(page.locator("#correlation-table-card")).to_be_hidden()
+    assert page.evaluate("() => window._corrCmState") == "ready"
+
+
+def test_correlation_fetches_samples_only_for_enabled_targets(demo_page):
+    page = demo_page
+    now = int(datetime.now(timezone.utc).timestamp())
+    fetched_target_ids = []
+    _route_correlation(page)
+    targets = [
+        {"id": 1, "label": "Enabled history", "enabled": True, "poll_interval_ms": 5000},
+        {"id": 2, "label": "Disabled target", "enabled": False, "poll_interval_ms": 5000},
+    ]
+    page.route("**/api/connection-monitor/targets", lambda route: route.fulfill(json=targets))
+
+    def sample_handler(route):
+        target_id = int(route.request.url.split("/samples/", 1)[1].split("?", 1)[0])
+        fetched_target_ids.append(target_id)
+        route.fulfill(
+            json={
+                "meta": {"resolution": "raw", "bucket_seconds": None},
+                "samples": [{"timestamp": now - 300, "bucket_seconds": 60, "packet_loss_pct": 0, "sample_count": 12}],
+            }
+        )
+
+    page.route("**/api/connection-monitor/samples/**", sample_handler)
+    _open_correlation(page)
+
+    assert fetched_target_ids
+    assert set(fetched_target_ids) == {1}
+
+
+def test_module_absent_gate_makes_no_connection_monitor_requests(demo_page):
+    page = demo_page
+    _route_correlation(page)
+    request_count = {}
+    _route_reachability(page, {}, targets=[], request_count=request_count)
+    _open_correlation(page)
+    request_count.clear()
+    page.evaluate(
+        """
+        () => {
+            window.CORRELATION_CM_AVAILABLE = false;
+            window.loadCorrelationData();
+        }
+        """
+    )
+    page.wait_for_function("() => document.querySelector('#correlation-loading').style.display === 'none'")
+    assert request_count == {}
+    assert page.evaluate("() => window._corrCmState") == "module_absent"
+
+
+def test_reachability_csv_contract_and_png_composition(demo_page):
+    page = demo_page
+    now = int(datetime.now(timezone.utc).timestamp())
+    page.add_init_script(
+        """
+        (() => {
+            window.__corrExport = { drawSources: [], legendText: [], csv: null };
+            const drawImage = CanvasRenderingContext2D.prototype.drawImage;
+            CanvasRenderingContext2D.prototype.drawImage = function(source, ...args) {
+                if (source && source.id) window.__corrExport.drawSources.push(source.id);
+                return drawImage.call(this, source, ...args);
+            };
+            const fillText = CanvasRenderingContext2D.prototype.fillText;
+            CanvasRenderingContext2D.prototype.fillText = function(value, ...args) {
+                if (!this.canvas.id) window.__corrExport.legendText.push(String(value));
+                return fillText.call(this, value, ...args);
+            };
+            const createObjectURL = URL.createObjectURL.bind(URL);
+            URL.createObjectURL = function(blob) {
+                blob.text().then((text) => { window.__corrExport.csv = text; });
+                return createObjectURL(blob);
+            };
+            HTMLAnchorElement.prototype.click = function() {};
+        })();
+        """
+    )
+    payload = _single_point_measurement_data()
+    _route_correlation(page, payload)
+    malicious_label = '  =HYPERLINK("https://evil.invalid","click")'
+    _route_reachability(
+        page,
+        {1: [{"timestamp": now - 900, "bucket_seconds": 300, "packet_loss_pct": 25, "sample_count": 60}]},
+        targets=[{"id": 1, "label": malicious_label, "enabled": True, "poll_interval_ms": 5000}],
+    )
+    _open_correlation(page)
+    page.evaluate("() => { window._corrExportPNG(); window._corrExportCSV(); }")
+    page.wait_for_function("() => window.__corrExport.csv !== null")
+    exported = page.evaluate("() => window.__corrExport")
+
+    assert "correlation-chart" in exported["drawSources"]
+    assert "correlation-overlay" in exported["drawSources"]
+    assert any("Reachability" in text for text in exported["legendText"])
+    lines = exported["csv"].splitlines()
+    assert lines[0].split(",") == [
+        "timestamp", "source", "health", "ds_snr_min", "ds_power_avg", "us_power_avg",
+        "ds_uncorrectable_errors", "download_mbps", "upload_mbps", "ping_ms", "severity", "message",
+        "state", "packet_loss_pct", "sample_count", "bucket_start", "bucket_end", "target_scope",
+    ]
+    speed_row = next(line for line in lines[1:] if ",speedtest," in line)
+    assert speed_row.split(",")[-6:] == ["", "", "", "", "", ""]
+    cm_rows = [line for line in lines[1:] if ",connection_monitor," in line]
+    assert cm_rows
+    assert any(",degraded,25,60," in line for line in cm_rows)
+    parsed_rows = list(csv.DictReader(io.StringIO(exported["csv"])))
+    target_scopes = [row["target_scope"] for row in parsed_rows if row["source"] == "connection_monitor"]
+    assert "'" + malicious_label in target_scopes
+    assert malicious_label not in target_scopes
+
+
+def test_localized_reachability_aria_summary(demo_page):
+    page = demo_page
+    now = int(datetime.now(timezone.utc).timestamp())
+    _route_correlation(page)
+    _route_reachability(page, {1: [{"timestamp": now - 600, "bucket_seconds": 300, "packet_loss_pct": 0, "sample_count": 60}]})
+    base_url = page.url.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    page.goto(f"{base_url}/?lang=de#correlation", wait_until="networkidle")
+    page.wait_for_selector("#correlation-chart-container", state="visible")
+    aria_label = page.locator("#correlation-overlay").get_attribute("aria-label")
+    assert "Erreichbarkeit" in aria_label
+    assert "Zusammenfassung" in aria_label
+    assert "Reachability summary" not in aria_label
 
 
 def test_correlation_renders_sparse_speedtests_as_unconnected_point_measurements(demo_page):
@@ -527,7 +1088,8 @@ def test_correlation_speedtest_help_accessibility_and_tooltip_details(demo_page)
     expect(help_text).to_contain_text("individual measurements")
     expect(help_text).to_contain_text("between tests")
     overlay = page.locator("#correlation-overlay")
-    expect(overlay).to_have_attribute("aria-describedby", "correlation-speedtest-hint")
+    described_by = overlay.get_attribute("aria-describedby").split()
+    assert "correlation-speedtest-hint" in described_by
     aria_label = overlay.get_attribute("aria-label")
     assert aria_label
     assert "chart" in aria_label.lower()

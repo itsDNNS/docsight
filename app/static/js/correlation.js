@@ -3,9 +3,12 @@
 /* ═══ Correlation Analysis ═══ */
 var _correlationData = [];
 var _correlationChart = null;
-var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: false, temperature: true, segmentDs: true, segmentUs: false };
+var _corrVisible = { snr: true, txPower: true, dsPower: true, download: true, upload: true, events: false, errors: true, poorSignal: false, temperature: true, segmentDs: true, segmentUs: false, reachability: true };
 var _corrWeatherData = [];
 var _corrSegmentData = [];
+var _corrTargetData = [];
+var _corrCmState = typeof CORRELATION_CM_AVAILABLE !== 'undefined' && CORRELATION_CM_AVAILABLE ? 'targets_absent' : 'module_absent';
+var _corrSelectedRange = null;
 var _corrChartState = null; // Stores scales/data for tooltip lookups
 var _corrZoom = null; // { tMin, tMax } when zoomed in
 // Event type/severity sub-filter: operational events hidden by default
@@ -96,6 +99,157 @@ function _corrFormatTimestamp(timestamp) {
         ' ' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0') + ':' + String(date.getSeconds()).padStart(2, '0');
 }
 
+function _corrTarget(entry) {
+    return entry && entry.target ? entry.target : (entry || {});
+}
+
+function _corrSampleInterval(sample, target) {
+    if (!sample || typeof sample.timestamp !== 'number' || !isFinite(sample.timestamp)) return null;
+    var coverageSeconds = typeof sample.bucket_seconds === 'number' && isFinite(sample.bucket_seconds) && sample.bucket_seconds > 0
+        ? sample.bucket_seconds
+        : Number(target && target.poll_interval_ms) / 1000;
+    if (!isFinite(coverageSeconds) || coverageSeconds <= 0) return null;
+    var startMs = sample.timestamp * 1000;
+    return { startMs: startMs, endMs: startMs + coverageSeconds * 1000 };
+}
+
+function _corrSetOverlayActionable(overlay, actionable) {
+    if (!overlay) return;
+    overlay.setAttribute('role', actionable ? 'button' : 'img');
+    if (actionable) overlay.setAttribute('tabindex', '0');
+    else overlay.removeAttribute('tabindex');
+}
+
+/**
+ * Re-bucket loaded Connection Monitor samples into time-proportional display buckets.
+ * CM timestamps are epoch seconds; this helper normalizes them to milliseconds.
+ */
+function _corrBucketReachability(targetData, tMinMs, tMaxMs, bucketCount) {
+    var requestedCount = Math.floor(Number(bucketCount));
+    var count = Math.min(300, Math.max(1, isFinite(requestedCount) ? requestedCount : 1));
+    if (!isFinite(tMinMs) || !isFinite(tMaxMs) || tMaxMs <= tMinMs) return [];
+    var widthMs = (tMaxMs - tMinMs) / count;
+    var buckets = [];
+    for (var bi = 0; bi < count; bi++) {
+        var bucketStart = tMinMs + bi * widthMs;
+        var bucketEnd = bi === count - 1 ? tMaxMs : tMinMs + (bi + 1) * widthMs;
+        var sampleCount = 0;
+        var weightedLoss = 0;
+        var allDown = true;
+        var targetKeys = {};
+        var targetLabels = [];
+
+        (targetData || []).forEach(function(entry, targetIndex) {
+            var target = _corrTarget(entry);
+            var key = target.id != null ? 'id:' + target.id : 'index:' + targetIndex;
+            var label = target.label || target.host || String(target.id != null ? target.id : targetIndex + 1);
+            var targetObserved = false;
+            (entry.samples || []).forEach(function(sample) {
+                var interval = _corrSampleInterval(sample, target);
+                if (!interval || interval.startMs >= bucketEnd || interval.endMs <= bucketStart) return;
+                var loss = Number(sample.packet_loss_pct);
+                if (!isFinite(loss) || loss < 0 || loss > 100) return;
+                var weight = Number(sample.sample_count);
+                if (!isFinite(weight) || weight <= 0) weight = 1;
+                sampleCount += weight;
+                weightedLoss += loss * weight;
+                if (loss !== 100) allDown = false;
+                targetObserved = true;
+            });
+            if (targetObserved && !targetKeys[key]) {
+                targetKeys[key] = true;
+                targetLabels.push(label);
+            }
+        });
+
+        var lossPct = sampleCount > 0 ? weightedLoss / sampleCount : null;
+        var state = 'unknown';
+        if (sampleCount > 0) {
+            if (allDown && lossPct === 100) state = 'down';
+            else if (lossPct === 0) state = 'ok';
+            else state = 'degraded';
+        }
+        buckets.push({
+            startMs: bucketStart,
+            endMs: bucketEnd,
+            state: state,
+            lossPct: lossPct,
+            sampleCount: sampleCount,
+            targetsObserved: targetLabels.length,
+            targetScope: targetLabels.join(' | ')
+        });
+    }
+    return buckets;
+}
+
+function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
+    if (typeof CORRELATION_CM_AVAILABLE === 'undefined' || !CORRELATION_CM_AVAILABLE) {
+        _corrCmState = 'module_absent';
+        _corrTargetData = [];
+        return Promise.resolve(null);
+    }
+    var boundedPoints = Math.min(1000, Math.max(1, Number(maxPoints) || 300));
+    return fetch('/api/connection-monitor/targets')
+        .then(function(response) {
+            if (!response.ok) throw new Error('Connection Monitor targets unavailable');
+            return response.json();
+        })
+        .catch(function() { return null; })
+        .then(function(targets) {
+            if (!targets) {
+                _corrCmState = 'fetch_error';
+                _corrTargetData = [];
+                return null;
+            }
+            var enabled = targets.filter(function(target) { return !!target.enabled; });
+            if (enabled.length === 0) {
+                _corrCmState = 'targets_absent';
+                _corrTargetData = [];
+                return [];
+            }
+            var requests = enabled.map(function(target) {
+                var url = '/api/connection-monitor/samples/' + target.id
+                    + '?start=' + encodeURIComponent(startEpoch)
+                    + '&end=' + encodeURIComponent(endEpoch)
+                    + '&resolution=auto&max_points=' + encodeURIComponent(boundedPoints)
+                    + '&limit=0';
+                return fetch(url)
+                    .then(function(response) {
+                        if (!response.ok) throw new Error('Connection Monitor samples unavailable');
+                        return response.json();
+                    })
+                    .then(function(payload) {
+                        return { target: target, samples: Array.isArray(payload.samples) ? payload.samples : [], meta: payload.meta || null };
+                    })
+                    .catch(function() { return null; });
+            });
+            return Promise.all(requests).then(function(results) {
+                if (results.some(function(result) { return result === null; })) {
+                    _corrCmState = 'fetch_error';
+                    _corrTargetData = [];
+                    return null;
+                }
+                _corrTargetData = results;
+                var allSamples = results.reduce(function(total, entry) { return total + entry.samples.length; }, 0);
+                if (allSamples === 0) {
+                    _corrCmState = 'no_samples';
+                    return results;
+                }
+                var startMs = startEpoch * 1000;
+                var endMs = endEpoch * 1000;
+                var intersects = results.some(function(entry) {
+                    return entry.samples.some(function(sample) {
+                        var interval = _corrSampleInterval(sample, entry.target);
+                        return interval && interval.startMs < endMs && interval.endMs > startMs;
+                    });
+                });
+                _corrCmState = intersects ? 'ready' : 'samples_outside_range';
+                if (!intersects) _corrTargetData = [];
+                return results;
+            });
+        });
+}
+
 function _corrBuildSpeedMarks(speedtests, xScale, yScale, tMin, tMax, visibleMetrics) {
     var visiblePoints = [];
     for (var i = 0; i < speedtests.length; i++) {
@@ -183,7 +337,7 @@ function _corrDrawSpeedMarks(ctx, marks, baselineY, colors, visibleMetrics) {
     var observer = new ResizeObserver(function() {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function() {
-            if (_correlationData && _correlationData.length > 0) {
+            if ((_correlationData && _correlationData.length > 0) || _corrTargetData.length > 0) {
                 renderCorrelationChart(_correlationData);
             }
         }, 150);
@@ -201,6 +355,9 @@ function loadCorrelationData() {
     var noData = document.getElementById('correlation-no-data');
     var chartContainer = document.getElementById('correlation-chart-container');
     var tableCard = document.getElementById('correlation-table-card');
+    var overlay = document.getElementById('correlation-overlay');
+    _corrSetOverlayActionable(overlay, false);
+    if (overlay) overlay.setAttribute('aria-label', T.correlation_chart_aria_label || 'Signal correlation chart');
     loading.style.display = 'flex';
     noData.style.display = 'none';
     chartContainer.style.display = 'none';
@@ -210,6 +367,9 @@ function loadCorrelationData() {
     var now = new Date();
     var wEnd = now.toISOString().substring(0, 19) + 'Z';
     var wStart = new Date(now.getTime() - parseInt(hours) * 3600000).toISOString().substring(0, 19) + 'Z';
+    var startEpoch = Math.floor(new Date(wStart).getTime() / 1000);
+    var endEpoch = Math.ceil(new Date(wEnd).getTime() / 1000);
+    _corrSelectedRange = { startMs: startEpoch * 1000, endMs: endEpoch * 1000 };
     var weatherUrl = '/api/weather/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
 
     var segmentUrl = '/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
@@ -217,22 +377,28 @@ function loadCorrelationData() {
     Promise.all([
         fetch('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture').then(function(r) { return r.json(); }),
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
-        fetch(segmentUrl).then(function(r) { return r.json(); }).catch(function() { return []; })
+        fetch(segmentUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
+        _corrFetchReachability(startEpoch, endEpoch, 300).catch(function() {
+            _corrCmState = 'fetch_error';
+            _corrTargetData = [];
+            return null;
+        })
     ]).then(function(results) {
-            var data = results[0];
+            var data = Array.isArray(results[0]) ? results[0] : [];
             _corrWeatherData = results[1] || [];
             _corrSegmentData = results[2] || [];
             loading.style.display = 'none';
             _correlationData = data;
-            if (!data || data.length === 0) {
+            var hasReachability = _corrTargetData.some(function(entry) { return entry.samples && entry.samples.length > 0; });
+            if (data.length === 0 && !hasReachability) {
                 noData.textContent = T.correlation_no_data;
                 noData.style.display = 'block';
                 return;
             }
             chartContainer.style.display = 'block';
-            tableCard.style.display = 'block';
+            tableCard.style.display = data.length > 0 ? 'block' : 'none';
             renderCorrelationChart(data);
-            renderCorrelationTable(data);
+            if (data.length > 0) renderCorrelationTable(data);
         })
         .catch(function() {
             loading.style.display = 'none';
@@ -250,7 +416,12 @@ function renderCorrelationChart(data) {
     var dpr = window.devicePixelRatio || 1;
     var rect = canvas.parentElement.getBoundingClientRect();
     var W = rect.width;
-    var H = 280;
+    var hasLoadedReachability = _corrTargetData.some(function(entry) {
+        var target = _corrTarget(entry);
+        return (entry.samples || []).some(function(sample) { return !!_corrSampleInterval(sample, target); });
+    });
+    var reachabilityLaneHeight = hasLoadedReachability ? 26 : 0;
+    var H = 280 + reachabilityLaneHeight;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     canvas.style.width = W + 'px';
@@ -260,6 +431,8 @@ function renderCorrelationChart(data) {
 
     // Setup overlay canvas to match main canvas
     var overlay = document.getElementById('correlation-overlay');
+    _corrSetOverlayActionable(overlay, false);
+    overlay.setAttribute('aria-label', T.correlation_chart_aria_label || 'Signal correlation chart');
     overlay.width = W * dpr;
     overlay.height = H * dpr;
     overlay.style.width = W + 'px';
@@ -268,7 +441,7 @@ function renderCorrelationChart(data) {
     octx.scale(dpr, dpr);
     octx.clearRect(0, 0, W, H);
 
-    var pad = { top: 20, right: 60, bottom: 40, left: 60 };
+    var pad = { top: 20, right: 60, bottom: 40 + reachabilityLaneHeight, left: 60 };
     var plotW = W - pad.left - pad.right;
     var plotH = H - pad.top - pad.bottom;
 
@@ -276,7 +449,7 @@ function renderCorrelationChart(data) {
     var speedtest = data.filter(function(d) { return d.source === 'speedtest'; });
     var events = data.filter(function(d) { return d.source === 'event'; });
 
-    if (modem.length === 0 && speedtest.length === 0) {
+    if (modem.length === 0 && speedtest.length === 0 && !hasLoadedReachability) {
         ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#888';
         ctx.font = '13px system-ui, sans-serif';
         ctx.textAlign = 'center';
@@ -285,9 +458,22 @@ function renderCorrelationChart(data) {
     }
 
     // Time range (with zoom support)
-    var allTs = data.map(function(d) { return new Date(d.timestamp).getTime(); });
-    var tMinFull = Math.min.apply(null, allTs);
-    var tMaxFull = Math.max.apply(null, allTs);
+    var allTs = data.map(function(d) { return new Date(d.timestamp).getTime(); }).filter(function(ts) { return isFinite(ts); });
+    _corrTargetData.forEach(function(entry) {
+        var target = _corrTarget(entry);
+        (entry.samples || []).forEach(function(sample) {
+            var interval = _corrSampleInterval(sample, target);
+            if (!interval) return;
+            allTs.push(interval.startMs, interval.endMs);
+        });
+    });
+    var hasValidSelectedRange = _corrSelectedRange
+        && typeof _corrSelectedRange.startMs === 'number' && isFinite(_corrSelectedRange.startMs)
+        && typeof _corrSelectedRange.endMs === 'number' && isFinite(_corrSelectedRange.endMs)
+        && _corrSelectedRange.endMs > _corrSelectedRange.startMs;
+    if (!hasValidSelectedRange && allTs.length === 0) return;
+    var tMinFull = hasValidSelectedRange ? _corrSelectedRange.startMs : Math.min.apply(null, allTs);
+    var tMaxFull = hasValidSelectedRange ? _corrSelectedRange.endMs : Math.max.apply(null, allTs);
     if (tMinFull === tMaxFull) { tMaxFull = tMinFull + 3600000; }
     var tMin = _corrZoom ? _corrZoom.tMin : tMinFull;
     var tMax = _corrZoom ? _corrZoom.tMax : tMaxFull;
@@ -358,6 +544,12 @@ function renderCorrelationChart(data) {
     var warnColor = _cssColor('--warn', '#ff9800');
     var critColor = _cssColor('--crit', '#f44336');
     var accentColor = _cssColor('--accent', '#2196f3');
+    var reachabilityColors = { ok: goodColor, degraded: warnColor, down: critColor, unknown: textColor };
+    var reachabilityBucketCount = Math.min(300, Math.max(1, Math.floor(plotW / 3)));
+    var reachabilityBuckets = hasLoadedReachability
+        ? _corrBucketReachability(_corrTargetData, tMin, tMax, reachabilityBucketCount)
+        : [];
+    var reachabilityLane = reachabilityBuckets.length > 0 ? { y: H - 22, height: 18 } : null;
 
     // Store chart state for tooltip lookups
     var sortedSpeedtest = speedtest.slice().sort(function(a, b) {
@@ -375,11 +567,37 @@ function renderCorrelationChart(data) {
         tempMin: tempMin, tempMax: tempMax,
         dlMin: dlMin, dlMax: dlMax,
         modem: modem, speedtest: sortedSpeedtest, speedMarks: speedMarks, events: events, data: data,
-        weather: weather, segment: segment,
+        weather: weather, segment: segment, reachabilityBuckets: reachabilityBuckets, reachabilityLane: reachabilityLane,
         xScale: xScale, ySnr: ySnr, yTx: yTx, yDsPower: yDsPower, yDl: yDl, yTemp: yTemp, ySegment: ySegment,
-        colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: downloadColor, upload: uploadColor, event: warnColor, errors: errorColor, temperature: tempColor, segmentDs: segDsColor, segmentUs: segUsColor, text: textColor, grid: gridColor },
+        colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: downloadColor, upload: uploadColor, event: warnColor, errors: errorColor, temperature: tempColor, segmentDs: segDsColor, segmentUs: segUsColor, reachability: reachabilityColors, text: textColor, grid: gridColor },
         dpr: dpr
     };
+
+    if (reachabilityLane && _corrVisible.reachability) {
+        ctx.save();
+        for (var rb = 0; rb < reachabilityBuckets.length; rb++) {
+            var reachBucket = reachabilityBuckets[rb];
+            var reachX1 = Math.max(pad.left, xScale(reachBucket.startMs));
+            var reachX2 = Math.min(pad.left + plotW, xScale(reachBucket.endMs));
+            if (reachX2 <= reachX1) continue;
+            ctx.globalAlpha = reachBucket.state === 'unknown' ? 0.35 : 0.82;
+            ctx.fillStyle = reachabilityColors[reachBucket.state];
+            ctx.fillRect(reachX1, reachabilityLane.y, Math.max(1, reachX2 - reachX1), reachabilityLane.height);
+            ctx.globalAlpha = 0.7;
+            ctx.strokeStyle = gridColor;
+            ctx.lineWidth = 0.5;
+            ctx.strokeRect(reachX1, reachabilityLane.y, Math.max(1, reachX2 - reachX1), reachabilityLane.height);
+            if (reachX2 - reachX1 >= 18) {
+                ctx.globalAlpha = 0.95;
+                ctx.fillStyle = reachBucket.state === 'unknown' ? textColor : '#fff';
+                ctx.font = 'bold 9px system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                var stateMark = reachBucket.state === 'ok' ? '\u2713' : reachBucket.state === 'degraded' ? '!' : reachBucket.state === 'down' ? '\u00d7' : '?';
+                ctx.fillText(stateMark, (reachX1 + reachX2) / 2, reachabilityLane.y + 12);
+            }
+        }
+        ctx.restore();
+    }
 
     // Grid lines
     ctx.strokeStyle = gridColor;
@@ -662,15 +880,32 @@ function renderCorrelationChart(data) {
         legendItems.push({ metric: 'segmentDs', color: segDsColor, label: '&#9644; ' + (T.seg_correlation_ds || 'Segment DS (%)') });
         legendItems.push({ metric: 'segmentUs', color: segUsColor, label: '&#9644; ' + (T.seg_correlation_us || 'Segment US (%)') });
     }
+    if (reachabilityBuckets.length > 0) {
+        legendItems.push({ metric: 'reachability', color: accentColor, label: '&#9646; ' + (T.correlation_reachability || 'Reachability') });
+    }
     legend.innerHTML = legendItems.map(function(item) {
-        var cls = _corrVisible[item.metric] ? '' : ' disabled';
+        var cls = _corrVisible[item.metric] ? '' : 'disabled';
         if (item.metric === 'events') {
             var filterBadge = item.visibleEventCount < item.totalEventCount ? ' <span style="font-size:0.7em;opacity:0.7;">(' + item.visibleEventCount + '/' + item.totalEventCount + ')</span>' : '';
-            return '<span data-metric="events" tabindex="0" role="button" class="' + cls + ' corr-legend-events" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + filterBadge +
+            var eventCls = cls ? cls + ' corr-legend-events' : 'corr-legend-events';
+            return '<span data-metric="events" tabindex="0" role="button" class="' + eventCls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + filterBadge +
                 ' <span class="corr-event-filter-btn" title="' + (T.correlation_event_filter || 'Event Filter') + '">&#9881;</span></span>';
         }
         return '<span data-metric="' + item.metric + '" tabindex="0" role="button" class="' + cls + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '" style="color:' + item.color + ';">' + item.label + '</span>';
     }).join('') + '<span data-metric="poorSignal" tabindex="0" role="button" class="corr-poor-signal-badge' + (_corrVisible.poorSignal ? '' : ' disabled') + '" title="' + (T.correlation_toggle_hint || 'Click to toggle') + '">' + (T.correlation_poor_signal || 'Poor Signal') + '</span>';
+
+    var overlayLabel = T.correlation_chart_aria_label || 'Signal correlation chart';
+    if (reachabilityBuckets.length > 0) {
+        var reachabilityCounts = { ok: 0, degraded: 0, down: 0, unknown: 0 };
+        reachabilityBuckets.forEach(function(bucket) { reachabilityCounts[bucket.state]++; });
+        overlayLabel += '. ' + (T.correlation_reachability_aria || 'Reachability summary') + ': '
+            + (T.correlation_reachability_ok || 'OK') + ' ' + reachabilityCounts.ok + ', '
+            + (T.correlation_reachability_degraded || 'Degraded') + ' ' + reachabilityCounts.degraded + ', '
+            + (T.correlation_reachability_down || 'Down') + ' ' + reachabilityCounts.down + ', '
+            + (T.correlation_reachability_unknown || 'Unknown') + ' ' + reachabilityCounts.unknown + '.';
+    }
+    overlay.setAttribute('aria-label', overlayLabel);
+    _corrSetOverlayActionable(overlay, !!(reachabilityLane && _corrVisible.reachability));
 
     // Event filter popover
     var filterBtn = legend.querySelector('.corr-event-filter-btn');
@@ -792,13 +1027,14 @@ function renderCorrelationChart(data) {
 
 function _corrResetZoom() {
     _corrZoom = null;
-    if (_correlationData && _correlationData.length > 0) {
+    if ((_correlationData && _correlationData.length > 0) || _corrTargetData.length > 0) {
         renderCorrelationChart(_correlationData);
     }
 }
 
 function _setupCorrelationTooltip(overlay, octx) {
     var tooltip = document.getElementById('correlation-tooltip');
+    var suppressNextClick = overlay._corrSuppressNextClick === true;
 
     // Remove old listeners by replacing the overlay node
     var newOverlay = overlay.cloneNode(true);
@@ -807,6 +1043,9 @@ function _setupCorrelationTooltip(overlay, octx) {
     var st = _corrChartState;
     if (!st) return;
     newOctx.setTransform(st.dpr, 0, 0, st.dpr, 0, 0);
+    if (suppressNextClick) {
+        setTimeout(function() { suppressNextClick = false; }, 0);
+    }
 
     // Drag-zoom state
     var dragStart = null; // mouseX where drag started
@@ -834,10 +1073,45 @@ function _setupCorrelationTooltip(overlay, octx) {
             var t2 = st.tMin + (x2 - st.pad.left) / st.plotW * (st.tMax - st.tMin);
             _corrZoom = { tMin: t1, tMax: t2 };
             dragStart = null;
+            // Carry suppression to the replacement overlay rendered below so
+            // the click synthesized for this drag cannot trigger drill-down.
+            suppressNextClick = true;
+            newOverlay._corrSuppressNextClick = true;
             renderCorrelationChart(st.data);
             return;
         }
         dragStart = null;
+    });
+
+    function openReachabilityDetail() {
+        if (!st.reachabilityLane || !_corrVisible.reachability) return;
+        if (typeof switchView !== 'function') return;
+        switchView('connection-monitor');
+        var detailView = document.getElementById('view-connection-monitor');
+        var detailTitle = document.querySelector('#cm-detail-view .view-page-title');
+        if (detailView && detailView.classList.contains('active') && detailTitle) detailTitle.focus();
+    }
+
+    newOverlay.addEventListener('click', function(e) {
+        if (suppressNextClick) {
+            suppressNextClick = false;
+            return;
+        }
+        if (!st.reachabilityLane || !_corrVisible.reachability) return;
+        var rect = newOverlay.getBoundingClientRect();
+        var mouseX = e.clientX - rect.left;
+        var mouseY = e.clientY - rect.top;
+        if (mouseX >= st.pad.left && mouseX <= st.pad.left + st.plotW
+                && mouseY >= st.reachabilityLane.y && mouseY <= st.reachabilityLane.y + st.reachabilityLane.height) {
+            openReachabilityDetail();
+        }
+    });
+
+    newOverlay.addEventListener('keydown', function(e) {
+        if ((e.key === 'Enter' || e.key === ' ') && st.reachabilityLane && _corrVisible.reachability) {
+            e.preventDefault();
+            openReachabilityDetail();
+        }
     });
 
     newOverlay.addEventListener('mousemove', function(e) {
@@ -863,8 +1137,11 @@ function _setupCorrelationTooltip(overlay, octx) {
             return;
         }
 
-        // Only interact within plot area
-        if (mouseX < st.pad.left || mouseX > st.pad.left + st.plotW || mouseY < st.pad.top || mouseY > st.pad.top + st.plotH) {
+        var inPlot = mouseY >= st.pad.top && mouseY <= st.pad.top + st.plotH;
+        var inReachabilityLane = st.reachabilityLane && _corrVisible.reachability
+            && mouseY >= st.reachabilityLane.y && mouseY <= st.reachabilityLane.y + st.reachabilityLane.height;
+        // Only interact within the shared time axis or the Reachability lane.
+        if (mouseX < st.pad.left || mouseX > st.pad.left + st.plotW || (!inPlot && !inReachabilityLane)) {
             newOctx.clearRect(0, 0, st.W, st.H);
             tooltip.style.display = 'none';
             return;
@@ -872,6 +1149,17 @@ function _setupCorrelationTooltip(overlay, octx) {
 
         // Convert mouseX to timestamp
         var tHover = st.tMin + (mouseX - st.pad.left) / st.plotW * (st.tMax - st.tMin);
+
+        var reachabilityBucket = null;
+        if (st.reachabilityBuckets && _corrVisible.reachability) {
+            for (var rbi = 0; rbi < st.reachabilityBuckets.length; rbi++) {
+                var candidateBucket = st.reachabilityBuckets[rbi];
+                if (tHover >= candidateBucket.startMs && (tHover < candidateBucket.endMs || (rbi === st.reachabilityBuckets.length - 1 && tHover === candidateBucket.endMs))) {
+                    reachabilityBucket = candidateBucket;
+                    break;
+                }
+            }
+        }
 
         // Find nearest modem point whenever any modem-derived series is visible.
         // Previously gated on SNR alone, which hid TX Power / DS Power / Errors from
@@ -1068,6 +1356,27 @@ function _setupCorrelationTooltip(overlay, octx) {
         }
         if (nearestWeather && _corrVisible.temperature && nearestWeather.temperature != null) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.temperature + ';"></span> ' + (T.temperature || 'Temperature') + ': ' + fmtTemp(nearestWeather.temperature) + '</div>';
+        }
+        if (reachabilityBucket) {
+            var stateLabels = {
+                ok: T.correlation_reachability_ok || 'OK',
+                degraded: T.correlation_reachability_degraded || 'Degraded',
+                down: T.correlation_reachability_down || 'Down',
+                unknown: T.correlation_reachability_unknown || 'Unknown'
+            };
+            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.reachability[reachabilityBucket.state] + ';"></span> '
+                + (T.correlation_reachability || 'Reachability') + ' — '
+                + (T.correlation_reachability_state || 'State') + ': ' + stateLabels[reachabilityBucket.state] + '</div>';
+            html += '<div class="tt-row">' + (T.correlation_reachability_window || 'Window') + ': '
+                + escapeHtml(_corrFormatTimestamp(new Date(reachabilityBucket.startMs).toISOString())) + ' — '
+                + escapeHtml(_corrFormatTimestamp(new Date(reachabilityBucket.endMs).toISOString())) + '</div>';
+            html += '<div class="tt-row">' + (T.correlation_reachability_loss || 'Observed packet loss') + ': '
+                + (reachabilityBucket.lossPct == null ? '—' : reachabilityBucket.lossPct.toFixed(2) + '%') + '</div>';
+            html += '<div class="tt-row">' + (T.correlation_reachability_samples || 'Samples') + ': ' + reachabilityBucket.sampleCount + '</div>';
+            html += '<div class="tt-row">' + (T.correlation_reachability_targets || 'Observed targets') + ': ' + reachabilityBucket.targetsObserved + '</div>';
+            html += '<div class="tt-row">' + (T.correlation_reachability_scope || 'Target scope') + ': '
+                + (reachabilityBucket.targetScope ? escapeHtml(reachabilityBucket.targetScope) : '—') + '</div>';
+            html += '<div class="tt-row">' + (T.correlation_reachability_drilldown || 'Open Connection Monitor details') + '</div>';
         }
         // Segment utilization tooltip (numeric-only server data, same innerHTML pattern as above)
         if (st.segment && st.segment.length > 0) {
@@ -1343,21 +1652,52 @@ function _corrExportPNG() {
     link.click();
 }
 
+function _corrEncodeCSVCell(value) {
+    if (value == null || value === '') return '';
+    if (typeof value !== 'string') return value;
+
+    var firstMeaningful = value.search(/\S/);
+    var hasLeadingControlPrefix = /^[\s]*[\t\r]/.test(value);
+    if (hasLeadingControlPrefix
+            || (firstMeaningful !== -1 && '=+-@'.indexOf(value.charAt(firstMeaningful)) !== -1)) {
+        value = "'" + value;
+    }
+    if (/[",\r\n]/.test(value)) return '"' + value.replace(/"/g, '""') + '"';
+    return value;
+}
+
 function _corrExportCSV() {
-    if (!_correlationData || _correlationData.length === 0) return;
-    var headers = ['timestamp', 'source', 'health', 'ds_snr_min', 'ds_power_avg', 'us_power_avg', 'ds_uncorrectable_errors', 'download_mbps', 'upload_mbps', 'ping_ms', 'severity', 'message'];
-    var rows = [headers.join(',')];
+    var reachabilityBuckets = _corrChartState && _corrChartState.reachabilityBuckets ? _corrChartState.reachabilityBuckets : [];
+    if ((!_correlationData || _correlationData.length === 0) && reachabilityBuckets.length === 0) return;
+    var baseHeaders = ['timestamp', 'source', 'health', 'ds_snr_min', 'ds_power_avg', 'us_power_avg', 'ds_uncorrectable_errors', 'download_mbps', 'upload_mbps', 'ping_ms', 'severity', 'message'];
+    var reachabilityHeaders = ['state', 'packet_loss_pct', 'sample_count', 'bucket_start', 'bucket_end', 'target_scope'];
+    var headers = baseHeaders.concat(reachabilityHeaders);
+    var rows = [headers.map(_corrEncodeCSVCell).join(',')];
     for (var i = 0; i < _correlationData.length; i++) {
         var d = _correlationData[i];
         var row = headers.map(function(h) {
+            if (reachabilityHeaders.indexOf(h) !== -1) return '';
             var v = d[h];
-            if (v == null) return '';
-            if (typeof v === 'string' && (v.indexOf(',') !== -1 || v.indexOf('"') !== -1)) {
-                return '"' + v.replace(/"/g, '""') + '"';
-            }
-            return v;
+            return _corrEncodeCSVCell(v);
         });
         rows.push(row.join(','));
+    }
+    for (var ri = 0; ri < reachabilityBuckets.length; ri++) {
+        var bucket = reachabilityBuckets[ri];
+        var reachabilityRow = {
+            timestamp: new Date(bucket.startMs).toISOString(),
+            source: 'connection_monitor',
+            state: bucket.state,
+            packet_loss_pct: bucket.lossPct == null ? '' : Number(bucket.lossPct.toFixed(4)),
+            sample_count: bucket.sampleCount,
+            bucket_start: new Date(bucket.startMs).toISOString(),
+            bucket_end: new Date(bucket.endMs).toISOString(),
+            target_scope: bucket.targetScope || ''
+        };
+        rows.push(headers.map(function(h) {
+            var v = reachabilityRow[h];
+            return _corrEncodeCSVCell(v);
+        }).join(','));
     }
     var blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     var link = document.createElement('a');

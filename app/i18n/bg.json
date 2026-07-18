@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview е пробна версия",
   "desktop_preview_notice_body": "Използвайте DOCSight Desktop Preview, за да разгледате приложението локално. За надеждно 24/7 наблюдение използвайте Docker; заспиване или хибернация на лаптопа спира събирането на данни.",
-  "desktop_preview_notice_link": "Прочетете възможности и ограничения"
+  "desktop_preview_notice_link": "Прочетете възможности и ограничения",
+  "correlation_reachability": "Достъпност",
+  "correlation_reachability_hint": "Интервалите за достъпност показват наблюдаваното покритие от Монитора на връзката; активирайте диаграмата, за да отворите подробностите.",
+  "correlation_reachability_ok": "Нормално",
+  "correlation_reachability_degraded": "Влошено",
+  "correlation_reachability_down": "Недостъпно",
+  "correlation_reachability_unknown": "Неизвестно",
+  "correlation_reachability_state": "Състояние",
+  "correlation_reachability_window": "Интервал",
+  "correlation_reachability_loss": "Наблюдавана загуба на пакети",
+  "correlation_reachability_samples": "Проби",
+  "correlation_reachability_targets": "Наблюдавани цели",
+  "correlation_reachability_scope": "Обхват на целите",
+  "correlation_reachability_drilldown": "Отваряне на подробностите в Монитор на връзката",
+  "correlation_reachability_aria": "Обобщение на достъпността"
 }

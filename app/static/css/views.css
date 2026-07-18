@@ -682,6 +682,10 @@
     left: 0;
     pointer-events: auto;
 }
+.correlation-chart-wrap canvas.correlation-overlay:focus-visible {
+    outline: 2px solid var(--amethyst, var(--accent));
+    outline-offset: 2px;
+}
 .correlation-tooltip {
     position: absolute;
     pointer-events: none;

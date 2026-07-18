@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview yra bandomoji versija",
   "desktop_preview_notice_body": "Naudokite DOCSight Desktop Preview programai vietoje išbandyti. Patikimam 24/7 stebėjimui naudokite Docker; kompiuterio miegas ar hibernacija sustabdo duomenų rinkimą.",
-  "desktop_preview_notice_link": "Skaityti galimybes ir ribas"
+  "desktop_preview_notice_link": "Skaityti galimybes ir ribas",
+  "correlation_reachability": "Pasiekiamumas",
+  "correlation_reachability_hint": "Pasiekiamumo intervalai rodo Ryšio stebėjimo priemonės užfiksuotą aprėptį; suaktyvinkite diagramą, kad atvertumėte išsamią informaciją.",
+  "correlation_reachability_ok": "Gerai",
+  "correlation_reachability_degraded": "Pablogėjęs",
+  "correlation_reachability_down": "Nepasiekiamas",
+  "correlation_reachability_unknown": "Nežinomas",
+  "correlation_reachability_state": "Būsena",
+  "correlation_reachability_window": "Laiko intervalas",
+  "correlation_reachability_loss": "Stebėtas paketų praradimas",
+  "correlation_reachability_samples": "Mėginiai",
+  "correlation_reachability_targets": "Stebėti tikslai",
+  "correlation_reachability_scope": "Tikslų aprėptis",
+  "correlation_reachability_drilldown": "Atverti Ryšio stebėjimo informaciją",
+  "correlation_reachability_aria": "Pasiekiamumo suvestinė"
 }

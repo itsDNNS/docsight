@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview är en testversion",
   "desktop_preview_notice_body": "Använd DOCSight Desktop Preview för att utforska appen lokalt. För tillförlitlig övervakning dygnet runt, använd Docker; viloläge eller strömsparläge pausar datainsamlingen.",
-  "desktop_preview_notice_link": "Läs funktioner och begränsningar"
+  "desktop_preview_notice_link": "Läs funktioner och begränsningar",
+  "correlation_reachability": "Nåbarhet",
+  "correlation_reachability_hint": "Nåbarhetsintervallen visar observerad täckning från Anslutningsövervakaren; aktivera diagrammet för att öppna detaljerna.",
+  "correlation_reachability_ok": "OK",
+  "correlation_reachability_degraded": "Försämrad",
+  "correlation_reachability_down": "Nere",
+  "correlation_reachability_unknown": "Okänd",
+  "correlation_reachability_state": "Tillstånd",
+  "correlation_reachability_window": "Tidsfönster",
+  "correlation_reachability_loss": "Observerad paketförlust",
+  "correlation_reachability_samples": "Mätningar",
+  "correlation_reachability_targets": "Observerade mål",
+  "correlation_reachability_scope": "Målomfattning",
+  "correlation_reachability_drilldown": "Öppna detaljer i Anslutningsövervakaren",
+  "correlation_reachability_aria": "Sammanfattning av nåbarhet"
 }

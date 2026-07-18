@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview on kokeiluversio",
   "desktop_preview_notice_body": "Käytä DOCSight Desktop Previewiä sovelluksen paikalliseen kokeiluun. Luotettavaan 24/7-valvontaan käytä Dockeria; lepotila tai horrostila keskeyttää datan keruun.",
-  "desktop_preview_notice_link": "Lue ominaisuudet ja rajoitukset"
+  "desktop_preview_notice_link": "Lue ominaisuudet ja rajoitukset",
+  "correlation_reachability": "Tavoitettavuus",
+  "correlation_reachability_hint": "Tavoitettavuusjaksot näyttävät Yhteysmonitorin havaitseman kattavuuden; avaa tiedot aktivoimalla kaavio.",
+  "correlation_reachability_ok": "Kunnossa",
+  "correlation_reachability_degraded": "Heikentynyt",
+  "correlation_reachability_down": "Ei tavoitettavissa",
+  "correlation_reachability_unknown": "Tuntematon",
+  "correlation_reachability_state": "Tila",
+  "correlation_reachability_window": "Aikaväli",
+  "correlation_reachability_loss": "Havaittu pakettihäviö",
+  "correlation_reachability_samples": "Näytteet",
+  "correlation_reachability_targets": "Havaitut kohteet",
+  "correlation_reachability_scope": "Kohteiden laajuus",
+  "correlation_reachability_drilldown": "Avaa Yhteysmonitorin tiedot",
+  "correlation_reachability_aria": "Tavoitettavuuden yhteenveto"
 }

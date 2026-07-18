@@ -42,6 +42,7 @@
     <script src="/static/vendor/lucide.min.js?v={{ version|urlencode }}"></script>
 </head>
 <body>
+{% set connection_monitor_installed = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
 <div id="offline-status-banner" class="offline-status-banner" role="status" aria-live="polite" hidden>
     <strong>Offline</strong>
     <span>Showing last-known dashboard shell in read-only mode. Live modem data and manual refresh are unavailable until DOCSight reconnects.</span>
@@ -112,7 +113,7 @@
         {% endif %}
         <!-- Secondary analysis views (collapsible) -->
         {% set analysis_items = [] %}
-        {% if speedtest_configured or bqm_configured %}{% if analysis_items.append('correlation') %}{% endif %}{% endif %}
+        {% if speedtest_configured or bqm_configured or connection_monitor_installed %}{% if analysis_items.append('correlation') %}{% endif %}{% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}{% if analysis_items.append('connection_monitor') %}{% endif %}{% endif %}
         {% if is_fritzbox and segment_utilization_enabled %}{% if analysis_items.append('segment') %}{% endif %}{% endif %}
         {% if modules|selectattr('id', 'equalto', 'docsight.comparison')|list %}{% if analysis_items.append('comparison') %}{% endif %}{% endif %}
@@ -125,7 +126,7 @@
                 <i data-lucide="chevron-down" class="nav-toggle-icon"></i>
             </div>
             <div class="nav-section-items">
-                {% if speedtest_configured or bqm_configured %}
+                {% if speedtest_configured or bqm_configured or connection_monitor_installed %}
                 <button class="nav-item" data-view="correlation" data-nav-icon="bar-chart-3" data-nav-title="{{ t.correlation_analysis }}">
                     <i data-lucide="bar-chart-3"></i> {{ t.correlation_analysis }}
                 </button>
@@ -1604,7 +1605,7 @@
 {% endif %}
 
 <!-- ═══ View: Correlation Analysis ═══ -->
-{% if speedtest_configured or bqm_configured %}
+{% if speedtest_configured or bqm_configured or connection_monitor_installed %}
 <div id="view-correlation" class="view">
     <div class="view-page-header">
         <div class="view-page-header-left">
@@ -1655,11 +1656,14 @@
             </div>
             <div class="correlation-chart-wrap">
                 <canvas id="correlation-chart"></canvas>
-                <canvas id="correlation-overlay" class="correlation-overlay" role="img" aria-label="{{ t.correlation_chart_aria_label }}" aria-describedby="correlation-speedtest-hint"></canvas>
+                <canvas id="correlation-overlay" class="correlation-overlay" role="img" tabindex="0" aria-label="{{ t.correlation_chart_aria_label }}" aria-describedby="correlation-speedtest-hint{% if connection_monitor_installed %} correlation-reachability-hint{% endif %}"></canvas>
                 <div class="correlation-tooltip" id="correlation-tooltip"></div>
                 <button type="button" class="correlation-zoom-reset" id="correlation-zoom-reset" style="display:none;" onclick="_corrResetZoom()">{{ t.chart_reset_zoom }}</button>
                 <div class="correlation-chart-legend" id="correlation-legend"></div>
                 <p class="correlation-speedtest-hint" id="correlation-speedtest-hint">{{ t.correlation_speedtest_hint }}</p>
+                {% if connection_monitor_installed %}
+                <p class="correlation-speedtest-hint" id="correlation-reachability-hint">{{ t.get('correlation_reachability_hint', 'Reachability buckets show observed Connection Monitor coverage; activate the chart to open Connection Monitor details.') }}</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -2826,6 +2830,7 @@
 var T = {{ t|tojson }};
 var currentLang = {{ lang|tojson }};
 var TEMPERATURE_UNIT = {{ temperature_unit|tojson }};
+var CORRELATION_CM_AVAILABLE = {{ (connection_monitor_installed|length > 0)|tojson }};
 
 (function() {
     var LAST_KNOWN_STORAGE_KEY = 'docsight:last-known-dashboard-shell';

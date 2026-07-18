@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview is a tryout build",
   "desktop_preview_notice_body": "Use DOCSight Desktop Preview to explore the app locally. For reliable 24/7 monitoring, use Docker; laptop sleep or hibernate pauses data collection.",
-  "desktop_preview_notice_link": "Read capabilities and limits"
+  "desktop_preview_notice_link": "Read capabilities and limits",
+  "correlation_reachability": "Reachability",
+  "correlation_reachability_hint": "Reachability buckets show observed Connection Monitor coverage; activate the chart to open Connection Monitor details.",
+  "correlation_reachability_ok": "OK",
+  "correlation_reachability_degraded": "Degraded",
+  "correlation_reachability_down": "Down",
+  "correlation_reachability_unknown": "Unknown",
+  "correlation_reachability_state": "State",
+  "correlation_reachability_window": "Window",
+  "correlation_reachability_loss": "Observed packet loss",
+  "correlation_reachability_samples": "Samples",
+  "correlation_reachability_targets": "Observed targets",
+  "correlation_reachability_scope": "Target scope",
+  "correlation_reachability_drilldown": "Open Connection Monitor details",
+  "correlation_reachability_aria": "Reachability summary"
 }

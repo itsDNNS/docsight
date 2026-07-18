@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview to wersja próbna",
   "desktop_preview_notice_body": "Użyj DOCSight Desktop Preview, aby lokalnie poznać aplikację. Do niezawodnego monitoringu 24/7 użyj Dockera; uśpienie lub hibernacja laptopa wstrzymuje zbieranie danych.",
-  "desktop_preview_notice_link": "Zobacz możliwości i ograniczenia"
+  "desktop_preview_notice_link": "Zobacz możliwości i ograniczenia",
+  "correlation_reachability": "Osiągalność",
+  "correlation_reachability_hint": "Przedziały osiągalności pokazują pokrycie zaobserwowane przez Monitor połączenia; aktywuj wykres, aby otworzyć szczegóły.",
+  "correlation_reachability_ok": "OK",
+  "correlation_reachability_degraded": "Pogorszona",
+  "correlation_reachability_down": "Niedostępna",
+  "correlation_reachability_unknown": "Nieznana",
+  "correlation_reachability_state": "Stan",
+  "correlation_reachability_window": "Przedział czasu",
+  "correlation_reachability_loss": "Zaobserwowana utrata pakietów",
+  "correlation_reachability_samples": "Próbki",
+  "correlation_reachability_targets": "Zaobserwowane cele",
+  "correlation_reachability_scope": "Zakres celów",
+  "correlation_reachability_drilldown": "Otwórz szczegóły Monitora połączenia",
+  "correlation_reachability_aria": "Podsumowanie osiągalności"
 }

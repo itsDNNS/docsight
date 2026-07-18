@@ -288,6 +288,7 @@ def _compress_samples(samples: list[dict], start: float | None, end: float | Non
 
         compressed.append({
             "timestamp": bucket["timestamp"],
+            "bucket_seconds": bucket_seconds,
             "latency_ms": avg_latency,
             "min_latency_ms": bucket["min_latency_ms"],
             "max_latency_ms": bucket["max_latency_ms"],
@@ -309,6 +310,7 @@ def _append_raw_samples(samples: list[dict], raw_rows: list[dict]) -> int:
     for s in raw_rows:
         samples.append({
             "timestamp": s["timestamp"],
+            "bucket_seconds": None,
             "latency_ms": s["latency_ms"],
             "min_latency_ms": None,
             "max_latency_ms": None,
@@ -325,6 +327,7 @@ def _append_aggregated_samples(samples: list[dict], agg_rows: list[dict]) -> int
     for a in agg_rows:
         samples.append({
             "timestamp": a["bucket_start"],
+            "bucket_seconds": a["bucket_seconds"],
             "latency_ms": a["avg_latency_ms"],
             "min_latency_ms": a["min_latency_ms"],
             "max_latency_ms": a["max_latency_ms"],

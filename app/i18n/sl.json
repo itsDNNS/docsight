@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview je preizkusna različica",
   "desktop_preview_notice_body": "Uporabite DOCSight Desktop Preview za lokalno spoznavanje aplikacije. Za zanesljiv nadzor 24/7 uporabite Docker; spanje ali hibernacija prenosnika začasno ustavi zbiranje podatkov.",
-  "desktop_preview_notice_link": "Preberi zmožnosti in omejitve"
+  "desktop_preview_notice_link": "Preberi zmožnosti in omejitve",
+  "correlation_reachability": "Dosegljivost",
+  "correlation_reachability_hint": "Intervali dosegljivosti prikazujejo opaženo pokritost Nadzornika povezave; aktivirajte grafikon, da odprete podrobnosti.",
+  "correlation_reachability_ok": "V redu",
+  "correlation_reachability_degraded": "Poslabšana",
+  "correlation_reachability_down": "Nedosegljiva",
+  "correlation_reachability_unknown": "Neznana",
+  "correlation_reachability_state": "Stanje",
+  "correlation_reachability_window": "Časovno okno",
+  "correlation_reachability_loss": "Opažena izguba paketov",
+  "correlation_reachability_samples": "Vzorci",
+  "correlation_reachability_targets": "Opaženi cilji",
+  "correlation_reachability_scope": "Obseg ciljev",
+  "correlation_reachability_drilldown": "Odpri podrobnosti Nadzornika povezave",
+  "correlation_reachability_aria": "Povzetek dosegljivosti"
 }
