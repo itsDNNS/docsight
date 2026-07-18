@@ -751,6 +751,8 @@
   "correlation_events": "Arrangementer",
   "correlation_poor_signal": "Dårlig signal",
   "correlation_toggle_hint": "Klikk for å veksle",
+  "correlation_speedtest_hint": "Speedtest-verdier er enkeltmålinger og sier ikke noe om tilgjengelighet mellom testene.",
+  "correlation_chart_aria_label": "Signalkorrelasjonsdiagram med punktvise Speedtest-målinger",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX Power",
   "correlation_tt_ds_power": "DS Power",

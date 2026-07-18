@@ -751,6 +751,8 @@
   "correlation_events": "Evenimente",
   "correlation_poor_signal": "Semnal slab",
   "correlation_toggle_hint": "Faceți clic pentru a comuta",
+  "correlation_speedtest_hint": "Valorile Speedtest sunt măsurători individuale și nu indică disponibilitatea între teste.",
+  "correlation_chart_aria_label": "Grafic de corelare a semnalului cu măsurători Speedtest punctuale",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "Putere TX",
   "correlation_tt_ds_power": "DS Power",

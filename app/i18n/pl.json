@@ -751,6 +751,8 @@
   "correlation_events": "Wydarzenia",
   "correlation_poor_signal": "Słaby sygnał",
   "correlation_toggle_hint": "Kliknij, aby przełączyć",
+  "correlation_speedtest_hint": "Wartości Speedtest są pojedynczymi pomiarami i nie wskazują dostępności między testami.",
+  "correlation_chart_aria_label": "Wykres korelacji sygnału z punktowymi pomiarami Speedtest",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "Moc TX",
   "correlation_tt_ds_power": "DS Power",

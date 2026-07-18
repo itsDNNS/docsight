@@ -751,6 +751,8 @@
   "correlation_events": "Događaji",
   "correlation_poor_signal": "Loš signal",
   "correlation_toggle_hint": "Kliknite za prebacivanje",
+  "correlation_speedtest_hint": "Vrijednosti Speedtesta pojedinačna su mjerenja i ne pokazuju dostupnost između testova.",
+  "correlation_chart_aria_label": "Grafikon korelacije signala s trenutnim mjerenjima Speedtesta",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX snaga",
   "correlation_tt_ds_power": "DS Snaga",

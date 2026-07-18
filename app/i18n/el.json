@@ -751,6 +751,8 @@
   "correlation_events": "Εκδηλώσεις",
   "correlation_poor_signal": "Κακό σήμα",
   "correlation_toggle_hint": "Κάντε κλικ για εναλλαγή",
+  "correlation_speedtest_hint": "Οι τιμές Speedtest είναι μεμονωμένες μετρήσεις και δεν υποδεικνύουν διαθεσιμότητα μεταξύ των δοκιμών.",
+  "correlation_chart_aria_label": "Γράφημα συσχέτισης σήματος με στιγμιαίες μετρήσεις Speedtest",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX Power",
   "correlation_tt_ds_power": "DS Power",

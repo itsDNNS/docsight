@@ -751,6 +751,8 @@
   "correlation_events": "Dogodki",
   "correlation_poor_signal": "Slab signal",
   "correlation_toggle_hint": "Kliknite za preklop",
+  "correlation_speedtest_hint": "Vrednosti Speedtest so posamezne meritve in ne kažejo razpoložljivosti med testi.",
+  "correlation_chart_aria_label": "Graf korelacije signala s trenutnimi meritvami Speedtest",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX moč",
   "correlation_tt_ds_power": "DS Power",

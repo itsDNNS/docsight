@@ -751,6 +751,8 @@
   "correlation_events": "Udalosti",
   "correlation_poor_signal": "Slabý signál",
   "correlation_toggle_hint": "Kliknutím prepnete",
+  "correlation_speedtest_hint": "Hodnoty Speedtest sú jednotlivé merania a nevypovedajú o dostupnosti medzi testami.",
+  "correlation_chart_aria_label": "Graf korelácie signálu s meraniami Speedtest v konkrétnych okamihoch",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX Power",
   "correlation_tt_ds_power": "DS Power",

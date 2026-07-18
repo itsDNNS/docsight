@@ -751,6 +751,8 @@
   "correlation_events": "Notikumi",
   "correlation_poor_signal": "Slikts signāls",
   "correlation_toggle_hint": "Noklikšķiniet, lai pārslēgtu",
+  "correlation_speedtest_hint": "Speedtest vērtības ir atsevišķi mērījumi un nenorāda pieejamību starp testiem.",
+  "correlation_chart_aria_label": "Signāla korelācijas diagramma ar konkrēta laika Speedtest mērījumiem",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX jauda",
   "correlation_tt_ds_power": "DS Power",

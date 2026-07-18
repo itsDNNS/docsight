@@ -794,6 +794,14 @@
 .correlation-chart-legend span[data-metric].disabled:hover {
     opacity: 0.5;
 }
+.correlation-speedtest-hint {
+    max-width: 760px;
+    margin: 2px auto 0;
+    color: var(--text-muted, var(--muted));
+    font-size: 0.74em;
+    line-height: 1.45;
+    text-align: center;
+}
 
 .corr-legend-events {
     position: relative;

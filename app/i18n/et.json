@@ -751,6 +751,8 @@
   "correlation_events": "Sündmused",
   "correlation_poor_signal": "Halb signaal",
   "correlation_toggle_hint": "Klõpsake ümberlülitamiseks",
+  "correlation_speedtest_hint": "Speedtesti väärtused on üksikud mõõtmised ega näita testidevahelist kättesaadavust.",
+  "correlation_chart_aria_label": "Signaali korrelatsioonigraafik ajahetke Speedtesti mõõtmistega",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX võimsus",
   "correlation_tt_ds_power": "DS Power",

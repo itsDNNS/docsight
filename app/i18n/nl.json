@@ -751,6 +751,8 @@
   "correlation_events": "Evenementen",
   "correlation_poor_signal": "Slecht signaal",
   "correlation_toggle_hint": "Klik om te schakelen",
+  "correlation_speedtest_hint": "Speedtest-waarden zijn afzonderlijke metingen en geven geen beschikbaarheid tussen tests aan.",
+  "correlation_chart_aria_label": "Signaalcorrelatiegrafiek met tijdstipgebonden Speedtest-metingen",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX-vermogen",
   "correlation_tt_ds_power": "DS Vermogen",

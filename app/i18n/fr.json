@@ -743,6 +743,8 @@
   "correlation_events": "Événements",
   "correlation_poor_signal": "Signal faible",
   "correlation_toggle_hint": "Cliquer pour basculer",
+  "correlation_speedtest_hint": "Les valeurs Speedtest sont des mesures individuelles et n'indiquent pas la disponibilité entre les tests.",
+  "correlation_chart_aria_label": "Graphique de corrélation du signal avec des mesures Speedtest ponctuelles",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "Puissance TX",
   "correlation_tt_ds_power": "Puissance DS",
