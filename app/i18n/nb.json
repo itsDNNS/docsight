@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview er en prøveversjon",
   "desktop_preview_notice_body": "Bruk DOCSight Desktop Preview for å utforske appen lokalt. For pålitelig 24/7-overvåking, bruk Docker; hvilemodus eller dvalemodus pauser datainnsamlingen.",
-  "desktop_preview_notice_link": "Les funksjoner og begrensninger"
+  "desktop_preview_notice_link": "Les funksjoner og begrensninger",
+  "correlation_reachability": "Tilgjengelighet",
+  "correlation_reachability_hint": "Tilgjengelighetsintervallene viser observert dekning fra Tilkoblingsmonitoren; aktiver diagrammet for å åpne detaljene.",
+  "correlation_reachability_ok": "OK",
+  "correlation_reachability_degraded": "Forringet",
+  "correlation_reachability_down": "Nede",
+  "correlation_reachability_unknown": "Ukjent",
+  "correlation_reachability_state": "Tilstand",
+  "correlation_reachability_window": "Tidsvindu",
+  "correlation_reachability_loss": "Observert pakketap",
+  "correlation_reachability_samples": "Målinger",
+  "correlation_reachability_targets": "Observerte mål",
+  "correlation_reachability_scope": "Målomfang",
+  "correlation_reachability_drilldown": "Åpne detaljer i Tilkoblingsmonitoren",
+  "correlation_reachability_aria": "Sammendrag av tilgjengelighet"
 }

@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview ir izmēģinājuma versija",
   "desktop_preview_notice_body": "Izmantojiet DOCSight Desktop Preview, lai lokāli iepazītu lietotni. Uzticamai 24/7 uzraudzībai izmantojiet Docker; klēpjdatora miegs vai hibernācija aptur datu vākšanu.",
-  "desktop_preview_notice_link": "Lasīt iespējas un ierobežojumus"
+  "desktop_preview_notice_link": "Lasīt iespējas un ierobežojumus",
+  "correlation_reachability": "Sasniedzamība",
+  "correlation_reachability_hint": "Sasniedzamības intervāli rāda Savienojuma pārrauga novēroto pārklājumu; aktivizējiet diagrammu, lai atvērtu detalizētu informāciju.",
+  "correlation_reachability_ok": "Labi",
+  "correlation_reachability_degraded": "Pasliktināta",
+  "correlation_reachability_down": "Nav sasniedzams",
+  "correlation_reachability_unknown": "Nezināma",
+  "correlation_reachability_state": "Stāvoklis",
+  "correlation_reachability_window": "Laika intervāls",
+  "correlation_reachability_loss": "Novērotais pakešu zudums",
+  "correlation_reachability_samples": "Paraugi",
+  "correlation_reachability_targets": "Novērotie mērķi",
+  "correlation_reachability_scope": "Mērķu tvērums",
+  "correlation_reachability_drilldown": "Atvērt Savienojuma pārrauga informāciju",
+  "correlation_reachability_aria": "Sasniedzamības kopsavilkums"
 }

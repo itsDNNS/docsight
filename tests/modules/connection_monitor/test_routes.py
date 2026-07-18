@@ -181,6 +181,7 @@ class TestSamplesResolution:
         assert "packet_loss_pct" in s
         assert "sample_count" in s
         assert s["sample_count"] == 1
+        assert s["bucket_seconds"] is None
         assert s["min_latency_ms"] is None
         assert s["max_latency_ms"] is None
         assert s["p95_latency_ms"] is None
@@ -200,8 +201,14 @@ class TestSamplesResolution:
         assert s["packet_loss_pct"] == 100.0
         assert s["latency_ms"] is None
 
-    def test_forced_resolution(self, client):
-        """Explicit resolution param should force that tier."""
+    @pytest.mark.parametrize(
+        ("resolution", "bucket_seconds"),
+        (("1min", 60), ("5min", 300), ("1hr", 3600)),
+    )
+    def test_forced_resolution_reports_per_sample_tier_width(
+        self, client, resolution, bucket_seconds
+    ):
+        """Explicit aggregate tiers expose the row's coverage on every sample."""
         c, storage = client
         tid = storage.create_target("Test", "1.1.1.1")
         now = time.time()
@@ -211,15 +218,18 @@ class TestSamplesResolution:
                    (target_id, bucket_start, bucket_seconds,
                     avg_latency_ms, min_latency_ms, max_latency_ms,
                     p95_latency_ms, packet_loss_pct, sample_count)
-                   VALUES (?, ?, 60, 15.0, 10.0, 20.0, 18.0, 0.0, 12)""",
-                (tid, now - 500),
+                   VALUES (?, ?, ?, 15.0, 10.0, 20.0, 18.0, 0.0, 12)""",
+                (tid, now - 500, bucket_seconds),
             )
-        resp = c.get(f"/api/connection-monitor/samples/{tid}?resolution=1min&start={now - 600}&end={now}")
+        resp = c.get(
+            f"/api/connection-monitor/samples/{tid}?resolution={resolution}&start={now - 600}&end={now}"
+        )
         data = resp.get_json()
-        assert data["meta"]["resolution"] == "1min"
-        assert data["meta"]["bucket_seconds"] == 60
+        assert data["meta"]["resolution"] == resolution
+        assert data["meta"]["bucket_seconds"] == bucket_seconds
         assert len(data["samples"]) == 1
         s = data["samples"][0]
+        assert s["bucket_seconds"] == bucket_seconds
         assert s["min_latency_ms"] == 10.0
         assert s["max_latency_ms"] == 20.0
         assert s["sample_count"] == 12
@@ -252,6 +262,7 @@ class TestSamplesResolution:
         assert data["samples"][0]["timestamp"] < data["samples"][1]["timestamp"]
         assert data["samples"][0]["min_latency_ms"] is not None
         assert data["samples"][1]["min_latency_ms"] is None
+        assert [sample["bucket_seconds"] for sample in data["samples"]] == [60, None]
 
     def test_auto_90d_range_keeps_recent_raw_data(self, client):
         """A 90d range should still show current raw data even before older buckets exist."""
@@ -307,6 +318,7 @@ class TestSamplesResolution:
         assert data["samples"][0]["min_latency_ms"] is not None
         assert data["samples"][1]["min_latency_ms"] is not None
         assert data["samples"][2]["min_latency_ms"] is None
+        assert [sample["bucket_seconds"] for sample in data["samples"]] == [300, 60, None]
 
     def test_auto_without_explicit_range_stays_raw_only(self, client):
         """Without start/end, auto resolution should keep the legacy raw-only behavior."""
@@ -404,6 +416,7 @@ class TestSamplesResolution:
         assert "sample_count" in data["samples"][0]
         assert "packet_loss_pct" in data["samples"][0]
         assert sum(sample["sample_count"] for sample in data["samples"]) == 120
+        assert {sample["bucket_seconds"] for sample in data["samples"]} == {12}
 
 
 class TestPinnedDaysAPI:

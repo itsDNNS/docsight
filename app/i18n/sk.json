@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview je skúšobné zostavenie",
   "desktop_preview_notice_body": "Použite DOCSight Desktop Preview na lokálne vyskúšanie aplikácie. Na spoľahlivé monitorovanie 24/7 použite Docker; spánok alebo hibernácia notebooku pozastaví zber dát.",
-  "desktop_preview_notice_link": "Prečítať možnosti a obmedzenia"
+  "desktop_preview_notice_link": "Prečítať možnosti a obmedzenia",
+  "correlation_reachability": "Dostupnosť",
+  "correlation_reachability_hint": "Intervaly dostupnosti zobrazujú pozorované pokrytie Monitoru pripojenia; aktivovaním grafu otvoríte podrobnosti.",
+  "correlation_reachability_ok": "V poriadku",
+  "correlation_reachability_degraded": "Zhoršená",
+  "correlation_reachability_down": "Nedostupná",
+  "correlation_reachability_unknown": "Neznáma",
+  "correlation_reachability_state": "Stav",
+  "correlation_reachability_window": "Časové okno",
+  "correlation_reachability_loss": "Pozorovaná strata paketov",
+  "correlation_reachability_samples": "Vzorky",
+  "correlation_reachability_targets": "Pozorované ciele",
+  "correlation_reachability_scope": "Rozsah cieľov",
+  "correlation_reachability_drilldown": "Otvoriť podrobnosti Monitoru pripojenia",
+  "correlation_reachability_aria": "Súhrn dostupnosti"
 }

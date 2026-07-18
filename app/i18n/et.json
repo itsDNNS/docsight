@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview on prooviversioon",
   "desktop_preview_notice_body": "Kasuta DOCSight Desktop Preview’d rakenduse kohalikuks proovimiseks. Usaldusväärseks 24/7 jälgimiseks kasuta Dockerit; sülearvuti unerežiim või talveuni peatab andmete kogumise.",
-  "desktop_preview_notice_link": "Loe võimalusi ja piiranguid"
+  "desktop_preview_notice_link": "Loe võimalusi ja piiranguid",
+  "correlation_reachability": "Kättesaadavus",
+  "correlation_reachability_hint": "Kättesaadavuse vahemikud näitavad Ühenduse jälgija vaadeldud katvust; üksikasjade avamiseks aktiveeri diagramm.",
+  "correlation_reachability_ok": "Korras",
+  "correlation_reachability_degraded": "Halvenenud",
+  "correlation_reachability_down": "Maha",
+  "correlation_reachability_unknown": "Teadmata",
+  "correlation_reachability_state": "Olek",
+  "correlation_reachability_window": "Ajavahemik",
+  "correlation_reachability_loss": "Vaadeldud paketkadu",
+  "correlation_reachability_samples": "Proovid",
+  "correlation_reachability_targets": "Vaadeldud sihtmärgid",
+  "correlation_reachability_scope": "Sihtmärkide ulatus",
+  "correlation_reachability_drilldown": "Ava Ühenduse jälgija üksikasjad",
+  "correlation_reachability_aria": "Kättesaadavuse kokkuvõte"
 }

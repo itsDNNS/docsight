@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "A Desktop Preview próba build",
   "desktop_preview_notice_body": "A DOCSight Desktop Preview helyi kipróbálásra való. Megbízható 24/7 monitorozáshoz használj Dockert; a laptop alvó vagy hibernált állapota szünetelteti az adatgyűjtést.",
-  "desktop_preview_notice_link": "Képességek és korlátok"
+  "desktop_preview_notice_link": "Képességek és korlátok",
+  "correlation_reachability": "Elérhetőség",
+  "correlation_reachability_hint": "Az elérhetőségi időszakok a Kapcsolatfigyelő által megfigyelt lefedettséget mutatják; a részletek megnyitásához aktiválja a diagramot.",
+  "correlation_reachability_ok": "Rendben",
+  "correlation_reachability_degraded": "Romlott",
+  "correlation_reachability_down": "Nem elérhető",
+  "correlation_reachability_unknown": "Ismeretlen",
+  "correlation_reachability_state": "Állapot",
+  "correlation_reachability_window": "Időablak",
+  "correlation_reachability_loss": "Megfigyelt csomagvesztés",
+  "correlation_reachability_samples": "Minták",
+  "correlation_reachability_targets": "Megfigyelt célok",
+  "correlation_reachability_scope": "Célok köre",
+  "correlation_reachability_drilldown": "Kapcsolatfigyelő részleteinek megnyitása",
+  "correlation_reachability_aria": "Elérhetőségi összefoglaló"
 }

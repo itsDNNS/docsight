@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Desktop Preview é uma versão de teste",
   "desktop_preview_notice_body": "Use o DOCSight Desktop Preview para explorar a app localmente. Para monitorização fiável 24/7, use Docker; suspensão ou hibernação do portátil pausa a recolha de dados.",
-  "desktop_preview_notice_link": "Ler capacidades e limites"
+  "desktop_preview_notice_link": "Ler capacidades e limites",
+  "correlation_reachability": "Acessibilidade",
+  "correlation_reachability_hint": "Os intervalos de acessibilidade mostram a cobertura observada pelo Monitor de ligação; ative o gráfico para abrir os detalhes.",
+  "correlation_reachability_ok": "OK",
+  "correlation_reachability_degraded": "Degradada",
+  "correlation_reachability_down": "Indisponível",
+  "correlation_reachability_unknown": "Desconhecida",
+  "correlation_reachability_state": "Estado",
+  "correlation_reachability_window": "Intervalo",
+  "correlation_reachability_loss": "Perda de pacotes observada",
+  "correlation_reachability_samples": "Amostras",
+  "correlation_reachability_targets": "Destinos observados",
+  "correlation_reachability_scope": "Âmbito dos destinos",
+  "correlation_reachability_drilldown": "Abrir detalhes do Monitor de ligação",
+  "correlation_reachability_aria": "Resumo da acessibilidade"
 }

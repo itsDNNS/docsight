@@ -1102,5 +1102,19 @@
   "desktop_preview_badge": "Desktop Preview",
   "desktop_preview_notice_title": "Το Desktop Preview είναι δοκιμαστική έκδοση",
   "desktop_preview_notice_body": "Χρησιμοποιήστε το DOCSight Desktop Preview για τοπική δοκιμή της εφαρμογής. Για αξιόπιστη παρακολούθηση 24/7, χρησιμοποιήστε Docker· η αναστολή ή αδρανοποίηση του φορητού διακόπτει τη συλλογή δεδομένων.",
-  "desktop_preview_notice_link": "Διαβάστε δυνατότητες και όρια"
+  "desktop_preview_notice_link": "Διαβάστε δυνατότητες και όρια",
+  "correlation_reachability": "Προσβασιμότητα",
+  "correlation_reachability_hint": "Τα διαστήματα προσβασιμότητας δείχνουν την παρατηρούμενη κάλυψη της Παρακολούθησης σύνδεσης· ενεργοποιήστε το γράφημα για να ανοίξετε τις λεπτομέρειες.",
+  "correlation_reachability_ok": "Κανονική",
+  "correlation_reachability_degraded": "Υποβαθμισμένη",
+  "correlation_reachability_down": "Εκτός λειτουργίας",
+  "correlation_reachability_unknown": "Άγνωστη",
+  "correlation_reachability_state": "Κατάσταση",
+  "correlation_reachability_window": "Χρονικό διάστημα",
+  "correlation_reachability_loss": "Παρατηρούμενη απώλεια πακέτων",
+  "correlation_reachability_samples": "Δείγματα",
+  "correlation_reachability_targets": "Παρατηρούμενοι στόχοι",
+  "correlation_reachability_scope": "Εύρος στόχων",
+  "correlation_reachability_drilldown": "Άνοιγμα λεπτομερειών Παρακολούθησης σύνδεσης",
+  "correlation_reachability_aria": "Σύνοψη προσβασιμότητας"
 }
