@@ -751,6 +751,8 @@
   "correlation_events": "Eventi",
   "correlation_poor_signal": "Segnale scarso",
   "correlation_toggle_hint": "Fare clic per attivare/disattivare",
+  "correlation_speedtest_hint": "I valori Speedtest sono misurazioni individuali e non indicano la disponibilità tra un test e l'altro.",
+  "correlation_chart_aria_label": "Grafico di correlazione del segnale con misurazioni Speedtest puntuali",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "Potenza TX",
   "correlation_tt_ds_power": "Potenza DS",

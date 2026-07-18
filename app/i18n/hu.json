@@ -751,6 +751,8 @@
   "correlation_events": "Események",
   "correlation_poor_signal": "Gyenge jel",
   "correlation_toggle_hint": "Kattintson a váltáshoz",
+  "correlation_speedtest_hint": "A Speedtest-értékek egyedi mérések, és nem jelzik a tesztek közötti rendelkezésre állást.",
+  "correlation_chart_aria_label": "Jelkorrelációs diagram időponthoz kötött Speedtest-mérésekkel",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX teljesítmény",
   "correlation_tt_ds_power": "DS Power",

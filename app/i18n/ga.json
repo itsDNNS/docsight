@@ -751,6 +751,8 @@
   "correlation_events": "Imeachtaí",
   "correlation_poor_signal": "Comhartha bocht",
   "correlation_toggle_hint": "Cliceáil chun scoránaigh",
+  "correlation_speedtest_hint": "Is tomhais aonair iad luachanna Speedtest agus ní léiríonn siad infhaighteacht idir tástálacha.",
+  "correlation_chart_aria_label": "Cairt chomhghaolmhaireachta comhartha le tomhais Speedtest ag pointí ama",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX Cumhacht",
   "correlation_tt_ds_power": "DS Cumhacht",

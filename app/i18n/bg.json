@@ -751,6 +751,8 @@
   "correlation_events": "Събития",
   "correlation_poor_signal": "Слаб сигнал",
   "correlation_toggle_hint": "Щракнете за превключване",
+  "correlation_speedtest_hint": "Стойностите от Speedtest са отделни измервания и не показват наличност между тестовете.",
+  "correlation_chart_aria_label": "Диаграма за корелация на сигнала с моментни измервания от Speedtest",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX мощност",
   "correlation_tt_ds_power": "DS Power",

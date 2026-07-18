@@ -1655,10 +1655,11 @@
             </div>
             <div class="correlation-chart-wrap">
                 <canvas id="correlation-chart"></canvas>
-                <canvas id="correlation-overlay" class="correlation-overlay" role="img" aria-label="Signal correlation chart"></canvas>
+                <canvas id="correlation-overlay" class="correlation-overlay" role="img" aria-label="{{ t.correlation_chart_aria_label }}" aria-describedby="correlation-speedtest-hint"></canvas>
                 <div class="correlation-tooltip" id="correlation-tooltip"></div>
                 <button type="button" class="correlation-zoom-reset" id="correlation-zoom-reset" style="display:none;" onclick="_corrResetZoom()">{{ t.chart_reset_zoom }}</button>
                 <div class="correlation-chart-legend" id="correlation-legend"></div>
+                <p class="correlation-speedtest-hint" id="correlation-speedtest-hint">{{ t.correlation_speedtest_hint }}</p>
             </div>
         </div>
     </div>

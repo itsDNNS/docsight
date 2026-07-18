@@ -751,6 +751,8 @@
   "correlation_events": "Tapahtumat",
   "correlation_poor_signal": "Huono signaali",
   "correlation_toggle_hint": "Napsauta vaihtaaksesi",
+  "correlation_speedtest_hint": "Speedtest-arvot ovat yksittäisiä mittauksia eivätkä osoita saatavuutta testien välillä.",
+  "correlation_chart_aria_label": "Signaalin korrelaatiokaavio hetkellisillä Speedtest-mittauksilla",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX-teho",
   "correlation_tt_ds_power": "DS Power",

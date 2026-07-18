@@ -751,6 +751,8 @@
   "correlation_events": "Events",
   "correlation_poor_signal": "Poor Signal",
   "correlation_toggle_hint": "Click to toggle",
+  "correlation_speedtest_hint": "Speedtest values are individual measurements and do not indicate availability between tests.",
+  "correlation_chart_aria_label": "Signal correlation chart with point-in-time Speedtest measurements",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX Power",
   "correlation_tt_ds_power": "DS Power",

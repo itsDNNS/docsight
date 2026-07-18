@@ -751,6 +751,8 @@
   "correlation_events": "Renginiai",
   "correlation_poor_signal": "Blogas signalas",
   "correlation_toggle_hint": "Spustelėkite, kad perjungtumėte",
+  "correlation_speedtest_hint": "Speedtest reikšmės yra atskiri matavimai ir nerodo pasiekiamumo tarp testų.",
+  "correlation_chart_aria_label": "Signalo koreliacijos diagrama su momentiniais Speedtest matavimais",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "TX galia",
   "correlation_tt_ds_power": "DS galia",

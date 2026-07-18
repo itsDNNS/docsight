@@ -85,6 +85,98 @@ function _corrFilteredEvents(events) {
     });
 }
 
+function _corrMeasurement(value) {
+    return typeof value === 'number' && isFinite(value) && value >= 0 ? value : null;
+}
+
+function _corrFormatTimestamp(timestamp) {
+    var date = new Date(timestamp);
+    if (isNaN(date.getTime())) return String(timestamp || '');
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0') +
+        ' ' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0') + ':' + String(date.getSeconds()).padStart(2, '0');
+}
+
+function _corrBuildSpeedMarks(speedtests, xScale, yScale, tMin, tMax, visibleMetrics) {
+    var visiblePoints = [];
+    for (var i = 0; i < speedtests.length; i++) {
+        var timestampMs = new Date(speedtests[i].timestamp).getTime();
+        if (isFinite(timestampMs) && timestampMs >= tMin && timestampMs <= tMax) {
+            visiblePoints.push({ index: i, x: xScale(timestampMs) });
+        }
+    }
+
+    var nearestVisibleDistances = [];
+    for (var vi = 0; vi < visiblePoints.length; vi++) {
+        var previousDistance = vi > 0 ? Math.abs(visiblePoints[vi].x - visiblePoints[vi - 1].x) : Infinity;
+        var nextDistance = vi < visiblePoints.length - 1 ? Math.abs(visiblePoints[vi + 1].x - visiblePoints[vi].x) : Infinity;
+        nearestVisibleDistances[visiblePoints[vi].index] = Math.min(previousDistance, nextDistance);
+    }
+
+    var singleVisibleSample = visiblePoints.length === 1;
+    return speedtests.map(function(sample, index) {
+        var timestampMs = new Date(sample.timestamp).getTime();
+        var timestampX = xScale(timestampMs);
+        var visible = isFinite(timestampMs) && timestampMs >= tMin && timestampMs <= tMax;
+        var nearestVisibleDistance = visible ? nearestVisibleDistances[index] : Infinity;
+
+        var download = _corrMeasurement(sample.download_mbps);
+        var upload = _corrMeasurement(sample.upload_mbps);
+        var canSeparatePair = visibleMetrics.download && visibleMetrics.upload && download !== null && upload !== null && nearestVisibleDistance >= 8;
+        var offset = canSeparatePair ? Math.min(2, nearestVisibleDistance / 4) : 0;
+        return {
+            timestamp: sample.timestamp,
+            timestampMs: timestampMs,
+            timestampX: timestampX,
+            visible: visible,
+            nearestVisibleDistance: nearestVisibleDistance,
+            offset: offset,
+            stemWidth: nearestVisibleDistance < 8 ? 1 : 1.5,
+            headRadius: singleVisibleSample ? 4.5 : 3.5,
+            hasDownload: download !== null,
+            hasUpload: upload !== null,
+            downloadX: timestampX - offset,
+            uploadX: timestampX + offset,
+            downloadY: download !== null ? yScale(download) : null,
+            uploadY: upload !== null ? yScale(upload) : null
+        };
+    });
+}
+
+function _corrDrawSpeedMarks(ctx, marks, baselineY, colors, visibleMetrics) {
+    if (visibleMetrics.download) {
+        for (var di = 0; di < marks.length; di++) {
+            var mark = marks[di];
+            if (!mark.visible || !mark.hasDownload) continue;
+            ctx.beginPath();
+            ctx.moveTo(mark.downloadX, baselineY);
+            ctx.lineTo(mark.downloadX, mark.downloadY);
+            ctx.strokeStyle = colors.download;
+            ctx.lineWidth = mark.stemWidth;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(mark.downloadX, mark.downloadY, mark.headRadius, 0, Math.PI * 2);
+            ctx.fillStyle = colors.download;
+            ctx.fill();
+        }
+    }
+    if (visibleMetrics.upload) {
+        for (var ui = 0; ui < marks.length; ui++) {
+            var mark = marks[ui];
+            if (!mark.visible || !mark.hasUpload) continue;
+            ctx.beginPath();
+            ctx.moveTo(mark.uploadX, baselineY);
+            ctx.lineTo(mark.uploadX, mark.uploadY);
+            ctx.strokeStyle = colors.upload;
+            ctx.lineWidth = mark.stemWidth;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(mark.uploadX, mark.uploadY, mark.headRadius, 0, Math.PI * 2);
+            ctx.fillStyle = colors.upload;
+            ctx.fill();
+        }
+    }
+}
+
 // Re-render chart on container resize
 (function() {
     var resizeTimer;
@@ -209,9 +301,10 @@ function renderCorrelationChart(data) {
     function ySnr(v) { return pad.top + plotH - (v - snrMin) / (snrMax - snrMin) * plotH; }
 
     // Speed axis (right, for speedtest download/upload)
-    var dlValues = speedtest.map(function(d) { return d.download_mbps || 0; });
-    var ulValues = speedtest.map(function(d) { return d.upload_mbps || 0; });
-    var speedMax = dlValues.length ? Math.ceil(Math.max.apply(null, dlValues) * 1.1) : 500;
+    var dlValues = speedtest.map(function(d) { return _corrMeasurement(d.download_mbps); }).filter(function(v) { return v !== null; });
+    var ulValues = speedtest.map(function(d) { return _corrMeasurement(d.upload_mbps); }).filter(function(v) { return v !== null; });
+    var speedValues = dlValues.concat(ulValues);
+    var speedMax = speedValues.length ? Math.max(1, Math.ceil(Math.max.apply(null, speedValues) * 1.1)) : 500;
     var dlMax = speedMax;
     var dlMin = 0;
     function yDl(v) { return pad.top + plotH - (v - dlMin) / (dlMax - dlMin) * plotH; }
@@ -270,6 +363,10 @@ function renderCorrelationChart(data) {
     var sortedSpeedtest = speedtest.slice().sort(function(a, b) {
         return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
     });
+    var speedMarks = _corrBuildSpeedMarks(sortedSpeedtest, xScale, yDl, tMin, tMax, {
+        download: _corrVisible.download,
+        upload: _corrVisible.upload
+    });
     _corrChartState = {
         pad: pad, plotW: plotW, plotH: plotH, W: W, H: H,
         tMin: tMin, tMax: tMax, tMinFull: tMinFull, tMaxFull: tMaxFull,
@@ -277,7 +374,7 @@ function renderCorrelationChart(data) {
         dsPowerMin: dsPowerMin, dsPowerMax: dsPowerMax, errorMax: errorMax,
         tempMin: tempMin, tempMax: tempMax,
         dlMin: dlMin, dlMax: dlMax,
-        modem: modem, speedtest: sortedSpeedtest, events: events, data: data,
+        modem: modem, speedtest: sortedSpeedtest, speedMarks: speedMarks, events: events, data: data,
         weather: weather, segment: segment,
         xScale: xScale, ySnr: ySnr, yTx: yTx, yDsPower: yDsPower, yDl: yDl, yTemp: yTemp, ySegment: ySegment,
         colors: { snr: snrColor, txPower: txColor, dsPower: dsPowerColor, download: downloadColor, upload: uploadColor, event: warnColor, errors: errorColor, temperature: tempColor, segmentDs: segDsColor, segmentUs: segUsColor, text: textColor, grid: gridColor },
@@ -322,6 +419,35 @@ function renderCorrelationChart(data) {
         ctx.fillText('Mbps', 0, 0);
         ctx.restore();
     }
+
+    // Draw modem health background bands behind every evidence source.
+    if (_corrVisible.poorSignal) {
+        for (var i = 0; i < modem.length; i++) {
+            var x1 = xScale(new Date(modem[i].timestamp).getTime());
+            var x2 = i < modem.length - 1 ? xScale(new Date(modem[i + 1].timestamp).getTime()) : x1 + 2;
+            var h = modem[i].health;
+            if (h === 'critical') {
+                ctx.fillStyle = 'rgba(244,67,54,0.08)';
+            } else if (h === 'marginal') {
+                ctx.fillStyle = 'rgba(255,152,0,0.06)';
+            } else if (h === 'tolerated') {
+                ctx.fillStyle = 'rgba(132,204,22,0.06)';
+            } else {
+                continue;
+            }
+            ctx.fillRect(x1, pad.top, x2 - x1, plotH);
+        }
+    }
+
+    // Speedtests are point-in-time measurements. Draw their stems and heads
+    // before signal/error/event evidence so those sources remain visually on top.
+    _corrDrawSpeedMarks(ctx, speedMarks, yDl(0), {
+        download: downloadColor,
+        upload: uploadColor
+    }, {
+        download: _corrVisible.download,
+        upload: _corrVisible.upload
+    });
 
     // Draw modem SNR line without an area fill to keep the chart uncluttered
     if (_corrVisible.snr && modem.length > 1) {
@@ -407,97 +533,6 @@ function renderCorrelationChart(data) {
             if (spikeH < 2) spikeH = 2;
             ctx.fillStyle = errorColor;
             ctx.fillRect(x - 1.5, pad.top + plotH - spikeH, 3, spikeH);
-        }
-    }
-
-    // Draw modem health background bands
-    if (_corrVisible.poorSignal) {
-        for (var i = 0; i < modem.length; i++) {
-            var x1 = xScale(new Date(modem[i].timestamp).getTime());
-            var x2 = i < modem.length - 1 ? xScale(new Date(modem[i + 1].timestamp).getTime()) : x1 + 2;
-            var h = modem[i].health;
-            if (h === 'critical') {
-                ctx.fillStyle = 'rgba(244,67,54,0.08)';
-            } else if (h === 'marginal') {
-                ctx.fillStyle = 'rgba(255,152,0,0.06)';
-            } else if (h === 'tolerated') {
-                ctx.fillStyle = 'rgba(132,204,22,0.06)';
-            } else {
-                continue;
-            }
-            ctx.fillRect(x1, pad.top, x2 - x1, plotH);
-        }
-    }
-
-    // Draw speedtest lines
-    if (sortedSpeedtest.length > 1) {
-        // Download line without an area fill
-        if (_corrVisible.download) {
-            ctx.beginPath();
-            for (var i = 0; i < sortedSpeedtest.length; i++) {
-                var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
-                var y = yDl(sortedSpeedtest[i].download_mbps || 0);
-                if (i === 0) { ctx.moveTo(x, y); }
-                else {
-                    var x0 = xScale(new Date(sortedSpeedtest[i - 1].timestamp).getTime());
-                    var y0 = yDl(sortedSpeedtest[i - 1].download_mbps || 0);
-                    var cpx = x0 + (x - x0) * 0.4;
-                    ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
-                }
-            }
-            ctx.strokeStyle = downloadColor;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
-
-        // Upload line
-        if (_corrVisible.upload) {
-            ctx.beginPath();
-            for (var i = 0; i < sortedSpeedtest.length; i++) {
-                var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
-                var y = yDl(sortedSpeedtest[i].upload_mbps || 0);
-                if (i === 0) { ctx.moveTo(x, y); }
-                else {
-                    var x0 = xScale(new Date(sortedSpeedtest[i - 1].timestamp).getTime());
-                    var y0 = yDl(sortedSpeedtest[i - 1].upload_mbps || 0);
-                    var cpx = x0 + (x - x0) * 0.4;
-                    ctx.bezierCurveTo(cpx, y0, x - (x - x0) * 0.4, y, x, y);
-                }
-            }
-            ctx.strokeStyle = uploadColor;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
-
-        // Data point dots
-        for (var i = 0; i < sortedSpeedtest.length; i++) {
-            var x = xScale(new Date(sortedSpeedtest[i].timestamp).getTime());
-            if (_corrVisible.download) {
-                ctx.beginPath();
-                ctx.arc(x, yDl(sortedSpeedtest[i].download_mbps || 0), 3, 0, Math.PI * 2);
-                ctx.fillStyle = downloadColor;
-                ctx.fill();
-            }
-            if (_corrVisible.upload) {
-                ctx.beginPath();
-                ctx.arc(x, yDl(sortedSpeedtest[i].upload_mbps || 0), 3, 0, Math.PI * 2);
-                ctx.fillStyle = uploadColor;
-                ctx.fill();
-            }
-        }
-    } else if (sortedSpeedtest.length === 1) {
-        var x = xScale(new Date(sortedSpeedtest[0].timestamp).getTime());
-        if (_corrVisible.download) {
-            ctx.beginPath();
-            ctx.arc(x, yDl(sortedSpeedtest[0].download_mbps || 0), 5, 0, Math.PI * 2);
-            ctx.fillStyle = downloadColor;
-            ctx.fill();
-        }
-        if (_corrVisible.upload) {
-            ctx.beginPath();
-            ctx.arc(x, yDl(sortedSpeedtest[0].upload_mbps || 0), 5, 0, Math.PI * 2);
-            ctx.fillStyle = uploadColor;
-            ctx.fill();
         }
     }
 
@@ -600,8 +635,8 @@ function renderCorrelationChart(data) {
         }
     }
     if (speedtest.length > 0) {
-        legendItems.push({ metric: 'download', color: downloadColor, label: '&#9644; ' + (T.correlation_download || 'Download (Mbps)') });
-        legendItems.push({ metric: 'upload', color: uploadColor, label: '&#9644; ' + (T.correlation_upload || 'Upload (Mbps)') });
+        legendItems.push({ metric: 'download', color: downloadColor, label: '&#9474;&#9679; ' + (T.correlation_download || 'Download (Mbps)') });
+        legendItems.push({ metric: 'upload', color: uploadColor, label: '&#9474;&#9679; ' + (T.correlation_upload || 'Upload (Mbps)') });
     }
     if (events.length > 0) {
         // Populate filters for all event types/severities in current data
@@ -856,12 +891,18 @@ function _setupCorrelationTooltip(overlay, octx) {
 
         // Find nearest speedtest point
         var nearestSpeed = null;
+        var nearestSpeedMark = null;
         if (st.speedtest.length > 0 && (_corrVisible.download || _corrVisible.upload)) {
             var bestDist = Infinity;
             for (var i = 0; i < st.speedtest.length; i++) {
+                if (!st.speedMarks[i] || !st.speedMarks[i].visible) continue;
                 var ts = new Date(st.speedtest[i].timestamp).getTime();
                 var dist = Math.abs(ts - tHover);
-                if (dist < bestDist) { bestDist = dist; nearestSpeed = st.speedtest[i]; }
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    nearestSpeed = st.speedtest[i];
+                    nearestSpeedMark = st.speedMarks[i];
+                }
             }
         }
 
@@ -933,10 +974,10 @@ function _setupCorrelationTooltip(overlay, octx) {
             newOctx.lineWidth = 2;
             newOctx.stroke();
         }
-        if (nearestSpeed) {
-            if (_corrVisible.download) {
-                var dx = st.xScale(new Date(nearestSpeed.timestamp).getTime());
-                var dy = st.yDl(nearestSpeed.download_mbps || 0);
+        if (nearestSpeed && nearestSpeedMark) {
+            if (_corrVisible.download && nearestSpeedMark.hasDownload) {
+                var dx = nearestSpeedMark.downloadX;
+                var dy = nearestSpeedMark.downloadY;
                 newOctx.beginPath();
                 newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
                 newOctx.fillStyle = st.colors.download;
@@ -945,9 +986,9 @@ function _setupCorrelationTooltip(overlay, octx) {
                 newOctx.lineWidth = 2;
                 newOctx.stroke();
             }
-            if (_corrVisible.upload) {
-                var dx = st.xScale(new Date(nearestSpeed.timestamp).getTime());
-                var dy = st.yDl(nearestSpeed.upload_mbps || 0);
+            if (_corrVisible.upload && nearestSpeedMark.hasUpload) {
+                var dx = nearestSpeedMark.uploadX;
+                var dy = nearestSpeedMark.uploadY;
                 newOctx.beginPath();
                 newOctx.arc(dx, dy, 5, 0, Math.PI * 2);
                 newOctx.fillStyle = st.colors.upload;
@@ -999,11 +1040,28 @@ function _setupCorrelationTooltip(overlay, octx) {
         if (nearestModem && _corrVisible.errors && (nearestModem.ds_uncorrectable_errors || 0) > 0) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.errors + ';"></span> ' + (T.correlation_tt_errors || 'Errors') + ': ' + nearestModem.ds_uncorrectable_errors.toLocaleString() + '</div>';
         }
-        if (nearestSpeed && _corrVisible.download) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> ' + (T.correlation_tt_download || 'Download') + ': ' + (nearestSpeed.download_mbps || 0).toFixed(1) + ' Mbps</div>';
-        }
-        if (nearestSpeed && _corrVisible.upload) {
-            html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.upload + ';"></span> ' + (T.correlation_tt_upload || 'Upload') + ': ' + (nearestSpeed.upload_mbps || 0).toFixed(1) + ' Mbps</div>';
+        if (nearestSpeed) {
+            var speedDownload = _corrMeasurement(nearestSpeed.download_mbps);
+            var speedUpload = _corrMeasurement(nearestSpeed.upload_mbps);
+            var speedPing = _corrMeasurement(nearestSpeed.ping_ms);
+            var speedJitter = _corrMeasurement(nearestSpeed.jitter_ms);
+            var speedPacketLoss = _corrMeasurement(nearestSpeed.packet_loss_pct);
+            html += '<div class="tt-row tt-speedtest-time">' + (T.timestamp || 'Timestamp') + ': ' + escapeHtml(_corrFormatTimestamp(nearestSpeed.timestamp)) + '</div>';
+            if (_corrVisible.download && speedDownload !== null) {
+                html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.download + ';"></span> ' + (T.correlation_tt_download || 'Download') + ': ' + speedDownload.toFixed(1) + ' Mbps</div>';
+            }
+            if (_corrVisible.upload && speedUpload !== null) {
+                html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.upload + ';"></span> ' + (T.correlation_tt_upload || 'Upload') + ': ' + speedUpload.toFixed(1) + ' Mbps</div>';
+            }
+            if (speedPing !== null) {
+                html += '<div class="tt-row">' + (T.speedtest_ping || T.ping || 'Ping') + ': ' + speedPing.toFixed(1) + ' ms</div>';
+            }
+            if (speedJitter !== null) {
+                html += '<div class="tt-row">' + (T.jitter || 'Jitter') + ': ' + speedJitter.toFixed(1) + ' ms</div>';
+            }
+            if (speedPacketLoss !== null) {
+                html += '<div class="tt-row">' + (T.packet_loss || 'Packet Loss') + ': ' + speedPacketLoss.toFixed(1) + '%</div>';
+            }
         }
         if (nearestEvent && _corrVisible.events) {
             html += '<div class="tt-row"><span class="tt-dot" style="background:' + st.colors.event + ';"></span> ' + (T.correlation_tt_event || 'Event') + ': ' + escapeHtml(nearestEvent.message || nearestEvent.severity || '') + '</div>';
@@ -1169,20 +1227,19 @@ function _corrHighlightFromTable(timestamp, source) {
     } else if (source === 'speedtest') {
         for (var i = 0; i < st.speedtest.length; i++) {
             if (st.speedtest[i].timestamp === timestamp) {
-                if (_corrVisible.download) {
-                    var dy = st.yDl(st.speedtest[i].download_mbps || 0);
+                var speedMark = st.speedMarks[i];
+                if (_corrVisible.download && speedMark.hasDownload) {
                     octx.beginPath();
-                    octx.arc(x, dy, 6, 0, Math.PI * 2);
+                    octx.arc(speedMark.downloadX, speedMark.downloadY, 6, 0, Math.PI * 2);
                     octx.fillStyle = st.colors.download;
                     octx.fill();
                     octx.strokeStyle = '#fff';
                     octx.lineWidth = 2;
                     octx.stroke();
                 }
-                if (_corrVisible.upload) {
-                    var dy = st.yDl(st.speedtest[i].upload_mbps || 0);
+                if (_corrVisible.upload && speedMark.hasUpload) {
                     octx.beginPath();
-                    octx.arc(x, dy, 6, 0, Math.PI * 2);
+                    octx.arc(speedMark.uploadX, speedMark.uploadY, 6, 0, Math.PI * 2);
                     octx.fillStyle = st.colors.upload;
                     octx.fill();
                     octx.strokeStyle = '#fff';

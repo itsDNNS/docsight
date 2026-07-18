@@ -746,6 +746,8 @@
   "correlation_events": "Eventos",
   "correlation_poor_signal": "Señal deficiente",
   "correlation_toggle_hint": "Clic para alternar",
+  "correlation_speedtest_hint": "Los valores de Speedtest son mediciones individuales y no indican disponibilidad entre pruebas.",
+  "correlation_chart_aria_label": "Gráfico de correlación de señal con mediciones puntuales de Speedtest",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "Potencia TX",
   "correlation_tt_ds_power": "Potencia DS",

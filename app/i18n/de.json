@@ -751,6 +751,8 @@
   "correlation_events": "Ereignisse",
   "correlation_poor_signal": "Schlechtes Signal",
   "correlation_toggle_hint": "Klicken zum Ein-/Ausblenden",
+  "correlation_speedtest_hint": "Speedtest-Werte sind Einzelmessungen und sagen nichts über die Verfügbarkeit zwischen den Tests aus.",
+  "correlation_chart_aria_label": "Signal-Korrelationsdiagramm mit punktuellen Speedtest-Messungen",
   "correlation_tt_snr": "SNR",
   "correlation_tt_tx_power": "Sendeleistung",
   "correlation_tt_ds_power": "DS Pegel",
