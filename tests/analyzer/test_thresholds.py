@@ -8,6 +8,7 @@ _TEST_THRESHOLDS = {
     "downstream_power": {
         "_default": "256QAM",
         "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]},
+        "ofdm": {"good": [-12, 12], "warning": [-15, 15], "critical": [-15, 15]},
     },
     "upstream_power": {
         "_default": "sc_qam",
@@ -98,6 +99,31 @@ class TestSetThresholds:
         assert t["crit_min"] == -8
         assert t["crit_max"] == 20
 
+    def test_ds_ofdm_power_getter_reads_family_row(self):
+        t = analyzer._get_ds_power_thresholds("4096QAM", channel_family="ofdm")
+        assert t == {
+            "good_min": -12,
+            "good_max": 12,
+            "warn_min": -15,
+            "warn_max": 15,
+            "crit_min": -15,
+            "crit_max": 15,
+        }
+
+    def test_ds_ofdm_power_getter_keeps_legacy_custom_profile_fallback(self):
+        analyzer.set_thresholds({
+            **_TEST_THRESHOLDS,
+            "downstream_power": {
+                "_default": "256QAM",
+                "256QAM": {"good": [-4, 13], "warning": [-6, 18], "critical": [-8, 20]},
+            },
+        })
+
+        t = analyzer._get_ds_power_thresholds("4096QAM", channel_family="ofdm")
+
+        assert t["good_min"] == -4
+        assert t["crit_min"] == -8
+
     def test_us_power_getter_sc_qam(self):
         t = analyzer._get_us_power_thresholds("sc_qam")
         assert t["good_min"] == 41
@@ -112,6 +138,20 @@ class TestSetThresholds:
         t = analyzer._get_snr_thresholds("256QAM")
         assert t["good_min"] == 33
         assert t["crit_min"] == 30
+
+    def test_ofdm_snr_getter_keeps_legacy_custom_profile_fallback(self):
+        analyzer.set_thresholds({
+            **_TEST_THRESHOLDS,
+            "snr": {
+                "_default": "256QAM",
+                "256QAM": {"good_min": 33, "warning_min": 31, "critical_min": 30},
+                "4096QAM": {"good_min": 45, "warning_min": 43, "critical_min": 41},
+            },
+        })
+
+        t = analyzer._get_snr_thresholds("4096QAM", channel_family="ofdm")
+
+        assert t == {"good_min": 45, "warn_min": 43, "crit_min": 41}
 
     def test_error_threshold_percent(self):
         t = analyzer._get_uncorr_thresholds()

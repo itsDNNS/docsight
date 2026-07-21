@@ -8,6 +8,7 @@ from app import analyzer
 from app.storage import snapshot as snapshot_module
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
+from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 
 
 @pytest.fixture
@@ -26,6 +27,10 @@ def sample_analysis():
 
 
 class TestSnapshotStorage:
+    def test_current_analyzer_schema_and_builtin_profile_versions(self):
+        assert analyzer.ANALYZER_SCHEMA_VERSION == 2
+        assert BUILTIN_THRESHOLD_PROFILES[0]["version"] == "1.1.0"
+
     def test_save_and_list(self, storage, sample_analysis):
         storage.save_snapshot(sample_analysis)
         snapshots = storage.get_snapshot_list()

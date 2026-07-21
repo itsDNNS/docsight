@@ -133,3 +133,38 @@ def test_modulation_i18n_covers_all_offered_languages_with_local_capacity_copy()
         for key, source in english.items():
             for placeholder in placeholder_pattern.findall(source):
                 assert placeholder in data[key], f"{lang}/{key} lost {placeholder}"
+
+
+def test_signal_family_status_and_signal_quality_copy_cover_all_core_locales():
+    core_i18n_dir = Path("app/i18n")
+    locale_paths = sorted(path for path in core_i18n_dir.glob("*.json") if path.name != "template.json")
+    english = json.loads((core_i18n_dir / "en.json").read_text(encoding="utf-8"))
+    touched_keys = {
+        "issue_snr_critical",
+        "issue_snr_critical_desc",
+        "issue_snr_marginal",
+        "issue_snr_marginal_desc",
+        "issue_snr_tolerated",
+        "issue_snr_tolerated_desc",
+    }
+    placeholder_pattern = re.compile(r"\{[^}]+\}")
+    fixed_db_pattern = re.compile(r"\b\d+(?:[.,]\d+)?\s*dB\b", re.IGNORECASE)
+
+    assert len(locale_paths) == 24
+    assert english["signal_family_status_label"] == "Family status"
+
+    for path in locale_paths:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert data["signal_family_status_label"], path.stem
+        if path.stem != "en":
+            assert data["signal_family_status_label"] != english["signal_family_status_label"], (
+                f"{path.stem}/signal_family_status_label is an English fallback"
+            )
+        for key in touched_keys:
+            assert key in data, f"{path.stem}/{key} missing"
+            assert set(placeholder_pattern.findall(data[key])) == set(
+                placeholder_pattern.findall(english[key])
+            ), f"{path.stem}/{key} placeholder mismatch"
+            assert not fixed_db_pattern.search(data[key]), f"{path.stem}/{key} contains a fixed dB threshold"
+            if path.stem != "en":
+                assert data[key] != english[key], f"{path.stem}/{key} is an English fallback"

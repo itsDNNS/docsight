@@ -84,6 +84,7 @@ class TestDashboardSections:
         ofdma_card = demo_page.locator("#metric-us-ofdma-card")
         assert ofdma_card.is_visible()
         assert "US POWER (OFDMA)" in ofdma_card.text_content()
+        assert ofdma_card.locator(".metric-status-row .metric-sub-label").text_content() == "Family status"
 
         geometry = demo_page.evaluate(
             """

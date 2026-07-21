@@ -364,7 +364,11 @@ class TestAnalyzerIntegration:
 
         assert result["summary"]["ds_total"] == 5  # 3 QAM + 2 OFDM
         assert result["summary"]["us_total"] == 3
-        assert result["summary"]["health"] in ("good", "marginal", "poor")
+        assert result["summary"]["health"] == "tolerated"
+        downstream = result["summary"]["signal_families"]["downstream"]
+        assert downstream["health"] == "good"
+        assert downstream["families"]["ofdm"]["mer"]["health"] == "good"
+        assert result["summary"]["health_issues"] == ["us_power_tolerated_low"]
         assert len(result["ds_channels"]) == 5
         assert len(result["us_channels"]) == 3
 

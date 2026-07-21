@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from app.web import app, update_state, init_config, init_storage, _snr_channel_family
+from app.web import app, update_state, init_config, init_storage, _build_metric_ranges, _snr_channel_family
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.modules.bnetz.storage import BnetzStorage
@@ -655,10 +655,94 @@ class TestIndexRoute:
         assert "style=\"color:var(--warn);\"" in card
         status_row = card[card.index('<div class="metric-sub metric-status-row">'):]
         status_row = status_row[:status_row.index("</div>")]
+        assert '<span class="metric-sub-label">Family status</span>' in status_row
         assert "badge badge-critical" in status_row
         assert "metric-status-cause" not in status_row
         assert "Modulation" not in status_row
         assert "--metric-range-accent: var(--warn);" in card
+
+    def test_home_signal_family_card_renders_same_metric_driver_when_average_is_good(self, client, sample_analysis):
+        _add_mixed_signal_families(sample_analysis)
+        ofdm = sample_analysis["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        ofdm.update({
+            "count": 2,
+            "health": "warning",
+            "health_cause": "mer",
+            "health_counts": {"good": 1, "tolerated": 0, "warning": 1, "critical": 0},
+            "health_driver": {
+                "channel_id": 194,
+                "dimension": "mer",
+                "family": "ofdm",
+                "direction": "downstream",
+                "health": "warning",
+                "unit": "dB",
+                "value": 25.0,
+            },
+        })
+        ofdm["mer"].update({"avg": 27.0, "min": 25.0, "max": 29.0, "health": "warning"})
+        sample_analysis["summary"]["ds_ofdm_mer_avg"] = 27.0
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        card = _element_by_id(resp.get_data(as_text=True), "metric-ds-ofdm-mer-card")
+        assert "27.0<span class=\"unit\">dB</span>" in card
+        assert "--metric-range-accent: var(--good);" in card
+        assert '<div class="metric-sub metric-health-driver-row">' in card
+        assert "Ch 194" in card
+        assert "MER 25.0 dB" in card
+
+    def test_reported_ofdm_fixture_web_range_agrees_with_good_family_mer_health(self):
+        analysis = {
+            "summary": {
+                "ds_ofdm_mer_avg": 35.5,
+                "signal_families": {
+                    "downstream": {
+                        "families": {
+                            "ofdm": {
+                                "family": "ofdm",
+                                "count": 2,
+                                "health": "good",
+                                "health_cause": None,
+                                "health_driver": None,
+                                "mer": _family_metric("good", 35.5, 33.0, 38.0),
+                                "power": _family_metric("good", -5.3, -8.1, -2.6),
+                                "modulation": _family_modulation("4096QAM"),
+                            }
+                        }
+                    },
+                    "upstream": {"families": {}},
+                },
+            },
+            "ds_channels": [
+                {"channel_id": 193, "power": -2.6, "snr": 38.0, "modulation": "4096QAM", "docsis_version": "3.1"},
+                {"channel_id": 194, "power": -8.1, "snr": 33.0, "modulation": "4096QAM", "docsis_version": "3.1"},
+            ],
+            "us_channels": [],
+        }
+
+        metric_ranges = _build_metric_ranges(analysis)
+
+        family = analysis["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        family_mer_health = family["mer"]["health"]
+        assert metric_ranges["ds_ofdm_mer"]["health"] == "good"
+        assert metric_ranges["ds_ofdm_mer"]["health"] == family_mer_health
+        assert metric_ranges["ds_ofdm_power"]["health"] == "good"
+        assert metric_ranges["ds_ofdm_power"]["health"] == family["power"]["health"]
+        assert family["health"] == "good"
+        assert family["health_cause"] is None
+        assert family["health_driver"] is None
+
+    def test_legacy_metric_card_keeps_generic_status_label(self, client, sample_analysis):
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/?lang=en")
+
+        assert resp.status_code == 200
+        card = _metric_card(resp.get_data(as_text=True), "DS Power")
+        assert '<span class="metric-sub-label">Status</span>' in card
+        assert "Family status" not in card
 
     def test_home_signal_family_card_renders_distribution_and_driver_outside_status(self, client, sample_analysis):
         _add_mixed_signal_families(sample_analysis)
