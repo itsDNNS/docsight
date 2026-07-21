@@ -211,44 +211,50 @@ class TestOFDMThresholds:
         section = {"256QAM": {}, "_default": "256QAM"}
         assert _resolve_modulation("UNKNOWN", section) == "256QAM"
 
-    def test_4096qam_snr_good(self):
-        """4096QAM channel with MER 41 dB is good (threshold: good_min=40)."""
+    @pytest.mark.parametrize(
+        ("mer", "expected_health"),
+        [
+            (24.4, "critical"),
+            (24.5, "warning"),
+            (25.5, "tolerated"),
+            (27.0, "good"),
+        ],
+    )
+    def test_ofdm_mer_boundaries_use_ofdm_thresholds(self, mer, expected_health):
         data = _make_data(
-            ds31=[_make_ds31(100, power=5.0, mer="41.0")],
+            ds31=[_make_ds31(100, power=5.0, mer=str(mer))],
             us30=[_make_us30(1, power=42.0)],
         )
-        result = analyze(data)
-        ch = result["ds_channels"][0]
-        assert ch["health"] == "good"
 
-    def test_4096qam_snr_tolerated(self):
-        """4096QAM channel with MER 39.5 dB triggers SNR tolerated (good_min=40, warn_min=38, crit=36)."""
+        result = analyze(data)
+
+        channel = result["ds_channels"][0]
+        family = result["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        assert channel.get("snr_health", "good") == expected_health
+        assert channel["health"] == expected_health
+        assert family["mer"]["health"] == expected_health
+
+    @pytest.mark.parametrize("mer", [33.0, 38.0])
+    def test_docsis31_ofdm_labelled_4096qam_uses_ofdm_thresholds(self, mer):
         data = _make_data(
-            ds31=[_make_ds31(100, power=5.0, mer="39.5")],
+            ds31=[_make_ds31(100, power=5.0, mer=str(mer))],
             us30=[_make_us30(1, power=42.0)],
         )
-        result = analyze(data)
-        ch = result["ds_channels"][0]
-        assert "snr tolerated" in ch["health_detail"]
 
-    def test_4096qam_snr_critical(self):
-        """4096QAM channel with MER 35 dB is critical (threshold: immediate_min=36)."""
-        data = _make_data(
-            ds31=[_make_ds31(100, power=5.0, mer="35.0")],
-            us30=[_make_us30(1, power=42.0)],
-        )
         result = analyze(data)
-        ch = result["ds_channels"][0]
-        assert "snr critical" in ch["health_detail"]
 
-    def test_ofdm_type_field_uses_4096qam_thresholds(self):
-        """Channel with type=OFDM (no modulation field) uses 4096QAM thresholds."""
+        channel = result["ds_channels"][0]
+        family = result["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        assert channel.get("snr_health", "good") == "good"
+        assert family["mer"]["health"] == "good"
+
+    def test_ofdm_type_field_uses_ofdm_thresholds(self):
         ds_ofdm = {
             "channelID": 200,
             "frequency": "134-325 MHz",
             "powerLevel": "5.0",
             "type": "OFDM",
-            "mer": "39.5",
+            "mer": "33.0",
             "corrErrors": 0,
             "nonCorrErrors": 0,
         }
@@ -258,8 +264,30 @@ class TestOFDMThresholds:
         )
         result = analyze(data)
         ch = result["ds_channels"][0]
-        # MER 39.5 is below 4096QAM good_min (40) but above warn_min (38), so tolerated
-        assert "snr tolerated" in ch["health_detail"]
+        assert ch["channel_family"] == "ofdm"
+        assert ch.get("snr_health", "good") == "good"
+
+    @pytest.mark.parametrize(
+        ("mse", "expected_health"),
+        [
+            ("-28.9", "critical"),
+            ("-29.0", "warning"),
+            ("-31.0", "tolerated"),
+            ("-33.0", "good"),
+        ],
+    )
+    def test_sc_qam_snr_boundaries_are_unchanged(self, mse, expected_health):
+        data = _make_data(
+            ds30=[_make_ds30(1, power=2.0, mse=mse)],
+            us30=[_make_us30(1, power=42.0)],
+        )
+
+        result = analyze(data)
+
+        channel = result["ds_channels"][0]
+        family = result["summary"]["signal_families"]["downstream"]["families"]["sc_qam"]
+        assert channel.get("snr_health", "good") == expected_health
+        assert family["snr"]["health"] == expected_health
 
 
 # -- Family-level signal summaries --
@@ -292,8 +320,8 @@ class TestSignalFamilySummaries:
         assert set(families) == {"sc_qam", "ofdm"}
         assert families["sc_qam"]["snr"]["avg"] == 36.0
         assert families["ofdm"]["mer"]["avg"] == 37.0
-        assert families["ofdm"]["mer"]["health"] == "warning"
-        assert downstream["health"] == "warning"
+        assert families["ofdm"]["mer"]["health"] == "good"
+        assert downstream["health"] == "good"
 
     def test_docsis31_high_qam_profile_is_ofdm_not_sc_qam(self):
         data = _make_data(
@@ -585,7 +613,7 @@ class TestSignalFamilySummaries:
                 {
                     "channelID": 194,
                     "frequency": "167 MHz",
-                    "powerLevel": "-7.5",
+                    "powerLevel": "-15.1",
                     "modulation": "1024QAM",
                     "mer": "33.0",
                 },
@@ -596,7 +624,7 @@ class TestSignalFamilySummaries:
         result = analyze(data)
 
         ofdm = result["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
-        assert ofdm["power"]["avg"] == 0.8
+        assert ofdm["power"]["avg"] == -3.0
         assert ofdm["health"] == "critical"
         assert ofdm["health_cause"] == "power"
         assert ofdm["health_counts"] == {"good": 1, "tolerated": 0, "warning": 0, "critical": 1}
@@ -607,8 +635,76 @@ class TestSignalFamilySummaries:
             "direction": "downstream",
             "health": "critical",
             "unit": "dBmV",
-            "value": -7.5,
+            "value": -15.1,
         }
+
+    @pytest.mark.parametrize(
+        ("power", "expected_health"),
+        [
+            (-15.1, "critical"),
+            (-15.0, "tolerated"),
+            (-12.1, "tolerated"),
+            (-12.0, "good"),
+            (12.0, "good"),
+            (12.1, "tolerated"),
+            (15.0, "tolerated"),
+            (15.1, "critical"),
+        ],
+    )
+    def test_ofdm_power_boundaries_use_ofdm_family_profile(self, power, expected_health):
+        data = _make_data(
+            ds31=[_make_ds31(193, power=power, mer="38.0")],
+            us30=[_make_us30(1, power=42.0)],
+        )
+
+        result = analyze(data)
+
+        channel = result["ds_channels"][0]
+        family = result["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        assert channel.get("power_health", "good") == expected_health
+        assert family["power"]["health"] == expected_health
+
+    def test_reported_ofdm_fixture_is_good_for_mer_and_power(self):
+        data = _make_data(
+            ds31=[
+                _make_ds31(193, power=-2.6, mer="38.0"),
+                _make_ds31(194, power=-8.1, mer="33.0"),
+            ],
+            us30=[_make_us30(1, power=42.0)],
+        )
+
+        result = analyze(data)
+
+        channels = result["ds_channels"]
+        family = result["summary"]["signal_families"]["downstream"]["families"]["ofdm"]
+        assert [
+            (channel["channel_id"], channel["power"], channel["snr"], channel["modulation"])
+            for channel in channels
+        ] == [
+            (193, -2.6, 38.0, "4096QAM"),
+            (194, -8.1, 33.0, "4096QAM"),
+        ]
+        assert [channel.get("snr_health", "good") for channel in channels] == ["good", "good"]
+        assert family["mer"] == {
+            "available": True,
+            "min": 33.0,
+            "avg": 35.5,
+            "max": 38.0,
+            "health": "good",
+        }
+        assert family["power"] == {
+            "available": True,
+            "min": -8.1,
+            "avg": -5.3,
+            "max": -2.6,
+            "health": "good",
+        }
+        assert "snr_critical" not in result["summary"]["health_issues"]
+        assert "ds_power_critical" not in result["summary"]["health_issues"]
+        assert family["health"] == "good"
+        assert family["health_cause"] is None
+        assert result["summary"]["health"] == "good"
+        assert family["health_driver"] is None
 
     def test_upstream_sc_qam_family_counts_and_driver_explain_modulation_outlier(self):
         data = _make_data(
@@ -665,7 +761,7 @@ class TestSignalFamilySummaries:
 
     def test_downstream_ofdm_family_health_surfaces_mer_cause(self):
         data = _make_data(
-            ds31=[_make_ds31(100, power=5.0, mer="35.0")],
+            ds31=[_make_ds31(100, power=5.0, mer="24.4")],
             us30=[_make_us30(1, power=42.0)],
         )
 
@@ -684,7 +780,7 @@ class TestSignalFamilySummaries:
             "direction": "downstream",
             "health": "critical",
             "unit": "dB",
-            "value": 35.0,
+            "value": 24.4,
         }
 
 
@@ -797,4 +893,3 @@ _TEST_THRESHOLDS = {
     "upstream_modulation": {"critical_max_qam": 4, "warning_max_qam": 16},
     "errors": {"uncorrectable_pct": {"warning": 1.0, "critical": 3.0}},
 }
-

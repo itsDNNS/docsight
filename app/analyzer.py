@@ -21,7 +21,7 @@ log = logging.getLogger("docsis.analyzer")
 
 # --- Dynamic thresholds (set by module loader) ---
 _thresholds = {}
-ANALYZER_SCHEMA_VERSION = 1
+ANALYZER_SCHEMA_VERSION = 2
 _threshold_profile = {"id": None, "version": None}
 
 # Hardcoded fallback (VFKD values) used if no threshold profile is loaded
@@ -32,6 +32,7 @@ _FALLBACK_THRESHOLDS = {
         "256QAM":  {"good": [-4.0, 13.0],  "warning": [-6.0, 15.0],  "critical": [-8.0, 16.0]},
         "1024QAM": {"good": [-2.0, 15.0],  "warning": [-4.0, 16.0],  "critical": [-6.0, 16.0]},
         "4096QAM": {"good": [-2.0, 15.0],  "warning": [-4.0, 16.0],  "critical": [-6.0, 16.0]},
+        "ofdm":    {"good": [-12.0, 12.0], "warning": [-15.0, 15.0], "critical": [-15.0, 15.0]},
     },
     "upstream_power": {
         "_default": "sc_qam",
@@ -89,11 +90,14 @@ def _resolve_modulation(modulation, section):
     return _modulation_threshold_key(modulation, section)
 
 
-def _get_ds_power_thresholds(modulation=None):
+def _get_ds_power_thresholds(modulation=None, *, channel_family: str | None = None):
     """Get DS power thresholds for a given modulation."""
     ds = _t().get("downstream_power", {})
-    mod = _resolve_modulation(modulation, ds)
-    t = ds.get(mod, {})
+    if channel_family == "ofdm" and "ofdm" in ds:
+        t = ds["ofdm"]
+    else:
+        mod = _resolve_modulation(modulation, ds)
+        t = ds.get(mod, {})
     good = t.get("good", [-4.0, 13.0])
     warn = t.get("warning", good)
     crit = t.get("critical", [-8.0, 20.0])
@@ -129,11 +133,16 @@ def _get_us_power_thresholds(channel_type=None):
     }
 
 
-def _get_snr_thresholds(modulation=None):
+def _get_snr_thresholds(modulation=None, *, channel_family: str | None = None):
     """Get SNR thresholds for a given modulation."""
     snr = _t().get("snr", {})
-    mod = _resolve_modulation(modulation, snr)
-    t = snr.get(mod, {})
+    if not isinstance(snr, dict):
+        snr = {}
+    if channel_family == "ofdm" and "ofdm" in snr:
+        t = snr["ofdm"]
+    else:
+        mod = _resolve_modulation(modulation, snr)
+        t = snr.get(mod, {})
     return {
         "good_min": t.get("good_min", 33.0),
         "warn_min": t.get("warning_min", t.get("good_min", 33.0)),
@@ -741,7 +750,13 @@ def _build_signal_family_summary(ds_channels, us_channels):
     }
 
 
-def _assess_ds_channel(ch, docsis_ver, *, modulation_docsis_ver: str | None = None):
+def _assess_ds_channel(
+    ch,
+    docsis_ver,
+    *,
+    modulation_docsis_ver: str | None = None,
+    channel_family: str | None = None,
+):
     """Assess a single downstream channel. Returns (health, health_detail)."""
     issues = []
     raw_power = ch.get("powerLevel")
@@ -750,7 +765,7 @@ def _assess_ds_channel(ch, docsis_ver, *, modulation_docsis_ver: str | None = No
     if raw_power is not None:
         power = _parse_float(raw_power)
         if power is not None:
-            pt = _get_ds_power_thresholds(modulation)
+            pt = _get_ds_power_thresholds(modulation, channel_family=channel_family)
             if power < pt["crit_min"] or power > pt["crit_max"]:
                 issues.append("power critical")
             elif power < pt["warn_min"] or power > pt["warn_max"]:
@@ -768,7 +783,7 @@ def _assess_ds_channel(ch, docsis_ver, *, modulation_docsis_ver: str | None = No
         snr_val = _parse_float(raw_mer)
 
     if snr_val is not None:
-        st = _get_snr_thresholds(modulation)
+        st = _get_snr_thresholds(modulation, channel_family=channel_family)
         if snr_val < st["crit_min"]:
             issues.append("snr critical")
         elif snr_val < st["warn_min"]:
@@ -908,6 +923,7 @@ def analyze(data: DocsisData) -> AnalysisResult:
             ch,
             "3.1",
             modulation_docsis_ver=modulation_docsis_ver,
+            channel_family=channel_family,
         )
         metric_h = _metric_healths(health_detail.split(" + ") if health_detail else [])
         metric_h["modulation_health"] = _assess_ds_modulation(ds_modulation, modulation_docsis_ver)

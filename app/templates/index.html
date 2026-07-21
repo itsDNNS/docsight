@@ -853,7 +853,7 @@
             {% endif %}
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
-                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="metric-sub-label">{{ t.get('signal_family_status_label', 'Family status') }}</span>
                     <span class="badge badge-{{ raw_health }} badge-{{ health_class }}">{{ health_labels.get(raw_health, health_labels.get(health_class, raw_health|title)) }}</span>
                 </span>
             </div>

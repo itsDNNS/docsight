@@ -11,8 +11,8 @@ BUILTIN_THRESHOLD_PROFILES: tuple[dict[str, object], ...] = (
     {
         "id": "docsight.thresholds_vfkd",
         "name": "VFKD Thresholds",
-        "description": "Signal thresholds based on the official Vodafone pNTP Interface Specification v1.06",
-        "version": "1.0.0",
+        "description": "Signal thresholds based on the official Vodafone pNTP and referenced DOCSIS specifications",
+        "version": "1.1.0",
         "author": "itsDNNS",
         "minAppVersion": "2026.2",
         "thresholds": {
@@ -21,7 +21,8 @@ BUILTIN_THRESHOLD_PROFILES: tuple[dict[str, object], ...] = (
                 "operator": "Vodafone Kabel Deutschland",
                 "docsis_variant": "eurodocsis",
                 "source": "https://www.vodafone.de/media/downloads/pdf/VF-DOCSIS-Interface-Specification-v1.06.pdf",
-                "notes": "Based on Vodafone pNTP Interface Specification v1.06 (13.09.2021). Power values converted from dBuV to dBmV (dBmV = dBuV - 60). SNR/MER in dB. Warning/critical boundaries derived from spec nominal vs absolute maximum ranges.",
+                "cablelabs_source": "https://www.cablelabs.com/specifications/physical-layer-specification?v=I08",
+                "notes": "Based primarily on Vodafone pNTP Interface Specification v1.06 (13.09.2021). Power values converted from dBuV to dBmV (dBmV = dBuV - 60). SNR/MER in dB. Warning/critical boundaries derived from spec nominal vs absolute maximum ranges. OFDM downstream power bands use CableLabs DOCSIS 3.1 PHY CM-SP-PHYv3.1-I08-151210 Table 7-40 and section 9.3.9. Table 7-40 defines an equivalent PSD to SC-QAM level range of -15 to +15 dBmV per 6 MHz; section 9.3.9 specifies +/-3 dB measurement accuracy from -12 to +12 dBmV and +/-5 dB accuracy from -15 to +15 dBmV. DOCSight maps the tighter range to good and the remaining documented level range to tolerated. Warning and critical use the same outer range, so there is no invented warning-only band. Table 7-40 states that its level range does not imply BER performance or capability versus QAM, and the 4096QAM minimum-P6AVG table is not used as a generic downstream power health limit. Aggregate OFDM channel MER is assessed against the ofdm row; 1024QAM/4096QAM SNR entries remain profile-support references, and the 25.5 dB warning is DOCSight-derived.",
             },
             "downstream_power": {
                 "_default": "256QAM",
@@ -29,6 +30,7 @@ BUILTIN_THRESHOLD_PROFILES: tuple[dict[str, object], ...] = (
                 "256QAM": {"good": [-4.0, 13.0], "warning": [-6.0, 15.0], "critical": [-8.0, 16.0]},
                 "1024QAM": {"good": [-2.0, 15.0], "warning": [-4.0, 16.0], "critical": [-6.0, 16.0]},
                 "4096QAM": {"good": [-2.0, 15.0], "warning": [-4.0, 16.0], "critical": [-6.0, 16.0]},
+                "ofdm": {"good": [-12.0, 12.0], "warning": [-15.0, 15.0], "critical": [-15.0, 15.0]},
             },
             "upstream_power": {
                 "_default": "sc_qam",
