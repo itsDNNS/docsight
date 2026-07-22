@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from app.storage import SnapshotStorage
+from app.analyzer import analyze
 from app.event_detector import EventDetector
 from app.web import app, init_config, init_storage
 from app.config import ConfigManager
@@ -39,6 +40,23 @@ def events_client(tmp_path, storage):
 @pytest.fixture
 def detector():
     return EventDetector()
+
+
+def _analyze_ofdm(mer):
+    return analyze({
+        "docsis": "3.1",
+        "downstream": [{
+            "channelID": 1,
+            "frequency": "602 MHz",
+            "powerLevel": "-8.2",
+            "type": "OFDM",
+            "modulation": "4096QAM",
+            "mer": str(mer),
+            "corrErrors": 0,
+            "nonCorrErrors": 0,
+        }],
+        "upstream": [],
+    })
 
 
 def _make_analysis(health="good", ds_power_avg=2.5, us_power_avg=42.0,
@@ -445,6 +463,7 @@ class TestEventDetector:
         snr_events = [e for e in events if e["event_type"] == "snr_change"]
         assert len(snr_events) == 1
         assert snr_events[0]["severity"] == "warning"
+        assert snr_events[0]["details"]["threshold_value"] == 33.0
 
     def test_snr_drop_warning_includes_affected_channel_details(self, detector):
         prev_channels = [
@@ -1604,6 +1623,40 @@ def test_snr_change_uses_analyzer_channel_health_when_available(detector):
     affected = snr_events[0]["details"]["affected_channels"][0]
     assert affected["current_health"] == "critical"
     assert affected["channel_type"] == "OFDM"
+
+
+def test_ofdm_good_mer_change_does_not_emit_snr_change(detector):
+    previous = _analyze_ofdm(33.0)
+    current = _analyze_ofdm(32.0)
+    assert previous["ds_channels"][0]["health"] == "good"
+    assert current["ds_channels"][0]["health"] == "good"
+    assert previous["summary"]["signal_families"]["downstream"]["families"]["ofdm"]["mer"]["health"] == "good"
+    assert current["summary"]["signal_families"]["downstream"]["families"]["ofdm"]["mer"]["health"] == "good"
+
+    detector.check(previous)
+    events = detector.check(current)
+
+    assert [event for event in events if event["event_type"] == "snr_change"] == []
+
+
+def test_ofdm_analyzer_health_transition_emits_snr_change(detector):
+    previous = _analyze_ofdm(27.0)
+    current = _analyze_ofdm(26.5)
+    previous_channel = previous["ds_channels"][0]
+    current_channel = current["ds_channels"][0]
+    assert "snr_health" not in previous_channel
+    assert current_channel["snr_health"] == "tolerated"
+
+    detector.check(previous)
+    events = detector.check(current)
+
+    snr_events = [event for event in events if event["event_type"] == "snr_change"]
+    assert len(snr_events) == 1
+    assert snr_events[0]["details"]["threshold"] == "tolerated"
+    assert "threshold_value" not in snr_events[0]["details"]
+    affected = snr_events[0]["details"]["affected_channels"]
+    assert affected[0]["prev_health"] == "good"
+    assert affected[0]["current_health"] == "tolerated"
 
 
 def test_modulation_change_includes_analyzer_modulation_health(detector):

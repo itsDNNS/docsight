@@ -264,7 +264,9 @@ class EventDetector:
             return
 
         health_affected = self._snr_affected_channels_by_health(cur_analysis, prev_analysis)
-        if health_affected:
+        if health_affected is not None:
+            if not health_affected:
+                return
             worst = max(
                 health_affected,
                 key=lambda channel: {"good": 0, "tolerated": 1, "warning": 2, "critical": 3}.get(channel.get("current_health"), 0),
@@ -329,8 +331,9 @@ class EventDetector:
 
     @staticmethod
     def _snr_affected_channels_by_health(cur_analysis, prev_analysis):
-        """Identify SNR/MER health degradations from analyzer channel metadata."""
+        """Return analyzer health degradations, or ``None`` for legacy data."""
         health_rank = {"missing": -1, "good": 0, "tolerated": 1, "warning": 2, "critical": 3}
+        analyzer_families = {"sc_qam", "ofdm"}
         prev_channels = {}
         for ch in prev_analysis.get("ds_channels", []):
             key = _normalize_channel_id(ch.get("channel_id"))
@@ -338,6 +341,7 @@ class EventDetector:
                 prev_channels[key] = ch
 
         affected = []
+        found_comparable = False
         for cur_ch in cur_analysis.get("ds_channels", []):
             key = _normalize_channel_id(cur_ch.get("channel_id"))
             if key is None:
@@ -345,17 +349,24 @@ class EventDetector:
             prev_ch = prev_channels.get(key)
             if not prev_ch:
                 continue
+            prev_snr = _coerce_float(prev_ch.get("snr"))
+            cur_snr = _coerce_float(cur_ch.get("snr"))
+            if prev_snr is None or cur_snr is None:
+                continue
+            found_comparable = True
             prev_health = prev_ch.get("snr_health")
             cur_health = cur_ch.get("snr_health")
+            if not prev_health and prev_ch.get("channel_family") in analyzer_families:
+                prev_health = "good"
+            if not cur_health and cur_ch.get("channel_family") in analyzer_families:
+                cur_health = "good"
             if not prev_health or not cur_health:
-                continue
+                return None
             if health_rank.get(cur_health, 0) <= health_rank.get(prev_health, 0):
                 continue
             if health_rank.get(cur_health, 0) <= health_rank.get("good", 0):
                 continue
-            prev_snr = _coerce_float(prev_ch.get("snr"))
-            cur_snr = _coerce_float(cur_ch.get("snr"))
-            delta = None if prev_snr is None or cur_snr is None else round(cur_snr - prev_snr, 1)
+            delta = round(cur_snr - prev_snr, 1)
             affected.append({
                 "channel": cur_ch.get("channel_id"),
                 "frequency": cur_ch.get("frequency") or prev_ch.get("frequency") or "",
@@ -364,13 +375,13 @@ class EventDetector:
                 "modulation": cur_ch.get("modulation") or prev_ch.get("modulation") or "",
                 "prev": prev_snr,
                 "current": cur_snr,
-                "delta": None if delta is None else (0.0 if delta == -0.0 else delta),
+                "delta": 0.0 if delta == -0.0 else delta,
                 "prev_health": prev_health,
                 "current_health": cur_health,
                 "threshold": cur_health,
             })
         affected.sort(key=lambda ch: ({"critical": 0, "warning": 1, "tolerated": 2}.get(ch.get("current_health"), 3), ch.get("current") is None, ch.get("current") or 0, str(ch.get("channel"))))
-        return affected
+        return affected if found_comparable else None
 
     @staticmethod
     def _snr_affected_channels(cur_analysis, prev_analysis, thresholds):
