@@ -8,11 +8,10 @@ from datetime import datetime
 
 from fpdf import FPDF
 
-from app.analyzer import get_thresholds
+from app.analyzer import _get_ds_power_thresholds, _get_snr_thresholds, get_thresholds
 from app.docsis_utils import (
     channel_type_label as _channel_type_label,
     classify_channel_family as _classify_channel_family,
-    modulation_threshold_key as _modulation_threshold_key,
 )
 
 log = logging.getLogger("docsis.report")
@@ -82,7 +81,7 @@ def _format_threshold_table():
     return rows
 
 
-def _default_warn_thresholds():
+def _default_warn_thresholds(ds_snr_warn_min=None):
     """Get default warning thresholds as display strings for report."""
     t = get_thresholds()
     ds = t.get("downstream_power", {}).get("256QAM", {})
@@ -93,7 +92,7 @@ def _default_warn_thresholds():
     return {
         "ds_power": f"{ds_w[0]} to {ds_w[1]} dBmV",
         "us_power": f"{us_w[0]} to {us_w[1]} dBmV",
-        "snr": f">= {snr.get('warning_min', 31.0)} dB",
+        "snr": f">= {ds_snr_warn_min if ds_snr_warn_min is not None else snr.get('warning_min', 31.0)} dB",
     }
 
 
@@ -109,8 +108,6 @@ def _build_diagnostic_notes(current_analysis):
     notes = []
     t = get_thresholds()
     us_thresholds = t.get("upstream_power", {})
-    ds_thresholds = t.get("downstream_power", {})
-    snr_thresholds = t.get("snr", {})
 
     def metric_allows_note(ch, metric_key):
         health = ch.get(metric_key)
@@ -154,42 +151,40 @@ def _build_diagnostic_notes(current_analysis):
 
     for ch in current_analysis.get("ds_channels", []):
         mod = (ch.get("modulation") or "256QAM").upper()
-        lookup = _modulation_threshold_key(mod, ds_thresholds)
+        family = ch.get("channel_family") or _classify_channel_family("ds", ch)
         channel_label = _channel_type_label("ds", ch) or mod
         power = ch.get("power")
         if power is not None and metric_allows_note(ch, "power_health"):
-            spec = ds_thresholds.get(lookup, ds_thresholds.get("256QAM", {}))
-            crit = spec.get("critical", [-8.0, 20.0])
-            if power > crit[1]:
-                deviation = round((power - crit[1]) / max(abs(crit[1]), 1) * 100)
+            spec = _get_ds_power_thresholds(mod, channel_family=family)
+            if power > spec["crit_max"]:
+                deviation = round((power - spec["crit_max"]) / max(abs(spec["crit_max"]), 1) * 100)
                 notes.append({
                     "type": "ds_power_high",
                     "channel_id": ch.get("channel_id", "?"),
                     "channel_type": channel_label,
                     "metric": "downstream power",
                     "value": power,
-                    "spec_max": crit[1],
+                    "spec_max": spec["crit_max"],
                     "deviation_pct": deviation,
                     "severity": "extreme" if deviation > 50 else "critical",
                 })
-            elif power < crit[0]:
-                deviation = round((crit[0] - power) / max(abs(crit[0]), 1) * 100)
+            elif power < spec["crit_min"]:
+                deviation = round((spec["crit_min"] - power) / max(abs(spec["crit_min"]), 1) * 100)
                 notes.append({
                     "type": "ds_power_low",
                     "channel_id": ch.get("channel_id", "?"),
                     "channel_type": channel_label,
                     "metric": "downstream power",
                     "value": power,
-                    "spec_min": crit[0],
+                    "spec_min": spec["crit_min"],
                     "deviation_pct": deviation,
                     "severity": "extreme" if deviation > 50 else "critical",
                 })
 
         snr = ch.get("snr")
         if snr is not None and metric_allows_note(ch, "snr_health"):
-            snr_lookup = _modulation_threshold_key(mod, snr_thresholds)
-            snr_spec = snr_thresholds.get(snr_lookup, snr_thresholds.get("256QAM", {}))
-            snr_crit = snr_spec.get("critical_min", 29.0)
+            snr_spec = _get_snr_thresholds(mod, channel_family=family)
+            snr_crit = snr_spec["crit_min"]
             if snr < snr_crit:
                 deviation = round((snr_crit - snr) / max(snr_crit, 1) * 100)
                 notes.append({
@@ -385,6 +380,7 @@ def _compute_worst_values(snapshots):
         "ds_power_min": 0,
         "us_power_max": 0,
         "ds_snr_min": 999,
+        "ds_snr_warn_min": None,
         "ds_uncorrectable_max": None,
         "ds_correctable_max": None,
         "health_critical_count": 0,
@@ -400,8 +396,27 @@ def _compute_worst_values(snapshots):
             worst["ds_power_min"] = s.get("ds_power_min", 0)
         if s.get("us_power_max", 0) > worst["us_power_max"]:
             worst["us_power_max"] = s.get("us_power_max", 0)
-        if s.get("ds_snr_min", 999) < worst["ds_snr_min"]:
-            worst["ds_snr_min"] = s.get("ds_snr_min", 999)
+        ds_snr_min = s.get("ds_snr_min", 999)
+        if ds_snr_min < worst["ds_snr_min"]:
+            worst["ds_snr_min"] = ds_snr_min
+            worst["ds_snr_warn_min"] = None
+        if ds_snr_min == worst["ds_snr_min"] and worst["ds_snr_warn_min"] is None:
+            try:
+                target_snr = float(ds_snr_min)
+            except (TypeError, ValueError):
+                target_snr = None
+            if target_snr is not None:
+                for ch in snap.get("ds_channels") or []:
+                    try:
+                        channel_snr = float(ch.get("snr"))
+                    except (TypeError, ValueError):
+                        continue
+                    if channel_snr != target_snr:
+                        continue
+                    family = ch.get("channel_family") or _classify_channel_family("ds", ch)
+                    snr_spec = _get_snr_thresholds(ch.get("modulation"), channel_family=family)
+                    worst["ds_snr_warn_min"] = snr_spec["warn_min"]
+                    break
         errors_supported = s.get("errors_supported", True)
         uncorr_errors = s.get("ds_uncorrectable_errors") if errors_supported else None
         corr_errors = s.get("ds_correctable_errors") if errors_supported else None
@@ -698,7 +713,7 @@ def generate_report(
         pdf.cell(0, 6, s["worst_recorded"], new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("dejavu", "", 10)
 
-        warn = _default_warn_thresholds()
+        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
         pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {warn['ds_power']})")
         pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {warn['us_power']})")
         pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {warn['snr']})")
@@ -749,7 +764,7 @@ def generate_report(
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
-        warn = _default_warn_thresholds()
+        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
         start = snapshots[0]["timestamp"][:10]
         end = snapshots[-1]["timestamp"][:10]
         poor_pct = round(worst['health_critical_count'] / max(worst['total_snapshots'], 1) * 100)
@@ -881,7 +896,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
         pdf.cell(0, 6, s["worst_recorded"], new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("dejavu", "", 10)
 
-        warn = _default_warn_thresholds()
+        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
         pdf._key_value(s["ds_power_worst"], f"{worst['ds_power_max']} dBmV (threshold: {warn['ds_power']})")
         pdf._key_value(s["us_power_worst"], f"{worst['us_power_max']} dBmV (threshold: {warn['us_power']})")
         pdf._key_value(s["ds_snr_worst"], f"{worst['ds_snr_min']} dB (threshold: {warn['snr']})")
@@ -1042,7 +1057,7 @@ def generate_incident_report(incident, entries, snapshots, speedtests, bnetz_lis
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
-        warn = _default_warn_thresholds()
+        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
         start = snapshots[0]["timestamp"][:10]
         end = snapshots[-1]["timestamp"][:10]
         poor_pct = round(worst['health_critical_count'] / max(worst['total_snapshots'], 1) * 100)
@@ -1184,7 +1199,7 @@ def generate_complaint_text(snapshots, config=None, connection_info=None, lang="
 
     if snapshots:
         worst = _compute_worst_values(snapshots)
-        warn = _default_warn_thresholds()
+        warn = _default_warn_thresholds(worst["ds_snr_warn_min"])
         start = snapshots[0]["timestamp"][:10]
         end = snapshots[-1]["timestamp"][:10]
         poor_pct = round(worst['health_critical_count'] / max(worst['total_snapshots'], 1) * 100)
