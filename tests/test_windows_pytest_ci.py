@@ -35,7 +35,7 @@ def test_windows_pytest_job_runs_portable_subset_with_windows_lock():
     windows_job = job_block(workflow, "test-windows")
 
     assert "runs-on: windows-latest" in windows_job
-    assert "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0" in windows_job
+    assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in windows_job
     assert "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97" in windows_job
     assert "python-version: \"3.13\"" in windows_job
     assert "cache-dependency-path: packaging/windows/requirements-test-windows.txt" in windows_job
