@@ -5,6 +5,7 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
+from app.blueprints.modules_bp import _remove_downloaded_module
 from app.config import ConfigManager
 from app.storage import SnapshotStorage
 from app.web import app, init_config, init_storage
@@ -24,6 +25,27 @@ def client(tmp_path, storage):
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
+
+
+def test_download_cleanup_is_confined_to_module_root(tmp_path):
+    modules_dir = tmp_path / "modules"
+    inside = modules_dir / "community.failed"
+    outside = tmp_path / "outside"
+    inside.mkdir(parents=True)
+    outside.mkdir()
+
+    _remove_downloaded_module(str(modules_dir), str(outside))
+    _remove_downloaded_module(str(modules_dir), str(modules_dir))
+
+    assert outside.is_dir()
+    assert modules_dir.is_dir()
+    assert inside.is_dir()
+
+    _remove_downloaded_module(str(modules_dir), str(inside))
+
+    assert not inside.exists()
+    assert outside.is_dir()
+    assert modules_dir.is_dir()
 
 
 class TestModulesRegistry:

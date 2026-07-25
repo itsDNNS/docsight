@@ -14,11 +14,9 @@ from app.web import (
     _get_client_ip, _localize_timestamps,
 )
 from app.config import (
-    HASH_KEYS,
     PASSWORD_MASK,
     POLL_MAX,
     POLL_MIN,
-    is_secret_key,
 )
 
 audit_log = logging.getLogger("docsis.audit")
@@ -97,16 +95,7 @@ def api_config():
         )
         if admin_password_changed:
             _invalidate_admin_sessions()
-        changed_keys = [
-            key for key in data if not is_secret_key(key) and key not in HASH_KEYS
-        ]
-        secret_change_count = sum(
-            1 for key in data if is_secret_key(key) or key in HASH_KEYS
-        )
-        audit_log.info(
-            "Config changed: ip=%s keys=%s secret_change_count=%d",
-            _get_client_ip(), changed_keys, secret_change_count,
-        )
+        audit_log.info("Config changed: ip=%s", _get_client_ip())
         _on_config_changed = get_on_config_changed()
         if _on_config_changed:
             _on_config_changed()

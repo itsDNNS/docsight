@@ -149,12 +149,11 @@ def validate_manifest_contract(
         config = {}
 
     config_secrets = _validate_unique_string_list(raw, "config_secrets", errors)
-    undeclared_secrets = sorted(set(config_secrets) - set(config))
+    undeclared_secrets = set(config_secrets) - set(config)
     if undeclared_secrets:
-        errors.append(
-            "'config_secrets' references undeclared config keys: "
-            + ", ".join(undeclared_secrets)
-        )
+        # Secret key names are sensitive-adjacent metadata and must not reach
+        # CLI output or discovery logs through the validation error.
+        errors.append("'config_secrets' references undeclared config keys")
     non_string_secret_defaults = [
         key
         for key in config_secrets

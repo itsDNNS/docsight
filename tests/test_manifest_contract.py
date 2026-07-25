@@ -61,3 +61,24 @@ def test_contract_rejects_non_string_secret_defaults():
         errors = validate_manifest_contract(manifest, builtin=False)
 
         assert "'config_secrets' defaults must be strings" in errors
+
+
+def test_contract_cli_does_not_print_undeclared_secret_names(tmp_path):
+    secret_marker = "private_token_name_marker"
+    manifest = _valid_manifest()
+    manifest["config_secrets"] = [secret_marker]
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "app" / "manifest_contract.py"), str(manifest_path)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "'config_secrets' references undeclared config keys" in result.stderr
+    assert secret_marker not in result.stdout
+    assert secret_marker not in result.stderr
