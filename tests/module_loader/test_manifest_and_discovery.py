@@ -63,8 +63,8 @@ class TestValidateManifest:
         assert info.config == {"weather_enabled": False, "weather_api_token": ""}
         assert info.menu["icon"] == "thermometer"
 
-    def test_config_secrets_metadata_is_not_supported(self):
-        """Module-owned config secret metadata is not part of the manifest contract."""
+    def test_config_secrets_metadata_is_validated(self):
+        """Module-owned secrets must be unique strings declared in config."""
         raw = {
             "id": "docsight.weather",
             "name": "Weather",
@@ -78,7 +78,68 @@ class TestValidateManifest:
             "config_secrets": ["weather_api_token"],
         }
 
-        with pytest.raises(ManifestError, match="config_secrets"):
+        info = validate_manifest(raw, "/modules/weather")
+        assert info.config_secrets == ["weather_api_token"]
+
+    @pytest.mark.parametrize(
+        ("config_secrets", "message"),
+        [
+            ("weather_api_token", "list of unique strings"),
+            ([1], "list of unique strings"),
+            (["weather_api_token", "weather_api_token"], "unique"),
+            (["missing_token"], "undeclared"),
+        ],
+    )
+    def test_invalid_config_secrets_fail_closed(self, config_secrets, message):
+        raw = {
+            "id": "docsight.weather",
+            "name": "Weather",
+            "description": "Weather overlay",
+            "version": "1.0.0",
+            "author": "DOCSight Team",
+            "minAppVersion": "2026.2",
+            "type": "integration",
+            "contributes": {},
+            "config": {"weather_api_token": ""},
+            "config_secrets": config_secrets,
+        }
+
+        with pytest.raises(ManifestError, match=message):
+            validate_manifest(raw, "/modules/weather")
+
+    @pytest.mark.parametrize("default", [False, 0, 1, [], {}])
+    def test_config_secret_defaults_must_be_strings(self, default):
+        raw = {
+            "id": "docsight.weather",
+            "name": "Weather",
+            "description": "Weather overlay",
+            "version": "1.0.0",
+            "author": "DOCSight Team",
+            "minAppVersion": "2026.2",
+            "type": "integration",
+            "contributes": {},
+            "config": {"weather_api_token": default},
+            "config_secrets": ["weather_api_token"],
+        }
+
+        with pytest.raises(ManifestError, match="defaults must be strings"):
+            validate_manifest(raw, "/modules/weather")
+
+    def test_unknown_top_level_capability_fails_closed(self):
+        raw = {
+            "id": "docsight.weather",
+            "name": "Weather",
+            "description": "Weather overlay",
+            "version": "1.0.0",
+            "author": "DOCSight Team",
+            "minAppVersion": "2026.2",
+            "type": "integration",
+            "contributes": {},
+            "config": {},
+            "configVault": {"provider": "example"},
+        }
+
+        with pytest.raises(ManifestError, match="Unsupported manifest fields"):
             validate_manifest(raw, "/modules/weather")
 
     def test_missing_required_field_raises(self):
@@ -219,6 +280,24 @@ class TestDiscoverModules:
             assert len(modules) == 1
             assert modules[0].id == "test.good"
 
+    def test_invalid_secret_declaration_is_not_logged(self, tmp_path, caplog):
+        secret_key = "sensitive_access_code"
+        self._make_module(
+            str(tmp_path),
+            "invalid_secret",
+            self._valid_manifest(
+                "test.invalid_secret",
+                config={"declared_value": ""},
+                config_secrets=[secret_key],
+            ),
+        )
+
+        with caplog.at_level("WARNING", logger="docsis.modules"):
+            modules = discover_modules(search_paths=[str(tmp_path)])
+
+        assert modules == []
+        assert secret_key not in caplog.text
+
     def test_skip_nonexistent_directory(self):
         """Non-existent search paths are silently skipped."""
         modules = discover_modules(search_paths=["/nonexistent/path"])
@@ -242,4 +321,3 @@ class TestDiscoverModules:
                 f.write("{not valid json")
             modules = discover_modules(search_paths=[d])
             assert len(modules) == 0
-

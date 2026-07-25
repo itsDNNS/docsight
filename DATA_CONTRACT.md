@@ -58,14 +58,14 @@ Generated artifacts should be reviewed before sharing. They may include provider
 
 ## Configuration and secrets
 
-DOCSight stores local configuration under the configured data directory. Secret-bearing settings include router/modem credentials, MQTT credentials, webhook and Apprise settings, PWA Web Push VAPID private key material, admin password material, and API token hashes.
+DOCSight stores local configuration under the configured data directory. Secret-bearing settings include router/modem credentials, MQTT credentials, webhook and Apprise settings, PWA Web Push VAPID private key material, declared community module secrets, admin password material, and API token hashes.
 
 Report customer defaults are private configuration metadata encrypted at rest. Unlike password-style secrets, they remain displayable and editable in normal local Settings and report forms, and are hidden in demo mode.
 
 Rules:
 
 - Secret values must not be returned unmasked in normal settings responses.
-- Password placeholders must preserve saved secrets without replacing them with mask text.
+- Saved-secret fields must use explicit metadata, keep plaintext out of HTML, and preserve the existing value when the standard mask is submitted unchanged.
 - Hash-only values such as admin passwords and API tokens must not be converted back to plaintext.
 - Logs and diagnostics must avoid printing raw credentials, raw tokens, cookie values, bearer tokens, webhook URLs with embedded credentials, private key material, or provider account identifiers.
 - Support output should use stable labels, counts, booleans, and redacted prefixes instead of raw secret values.
@@ -175,8 +175,12 @@ Community and built-in modules may define module-owned config. Module-owned conf
 
 Rules:
 
-- Community modules must not claim reserved core secret keys such as modem or admin credentials.
-- Community collectors receive a restricted config proxy that hides core secret and hash-backed settings.
+- Community manifests may opt declared config keys into `config_secrets`. Declarations must be unique strings that reference keys in the same manifest's `config`, and each referenced default must be a string so encrypted values cannot be coerced as booleans or integers.
+- All discovered modules, including disabled modules, reserve their secret declarations before enabled modules load. A declared secret key must be exclusive to its owner's `config`; overlap with another module's plain or secret config fails every affected module closed. Installation runs the same ownership check against modules already on disk and rejects collisions before persistence.
+- Community modules must not claim core secret, hash-backed, private, or core configuration keys.
+- Declared community module secrets are encrypted at rest and masked in normal Settings data. The standard mask preserves an untouched saved value.
+- Community collectors receive a module-identified config proxy. It can decrypt only that module's valid owned secrets and hides core secret and hash-backed settings, built-in private settings, and every other module's secret.
+- Built-in-only `configPrivate` values are encrypted but remain displayable private metadata. They are not write-only secrets and community manifests cannot use `configPrivate`.
 - Module manifests, default settings, and system module code are system-owned files. Saved module configuration is user-owned local data.
 
 ## Demo mode and real monitored data

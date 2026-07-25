@@ -23,7 +23,14 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlsplit
 
-from .config import DEFAULTS, DEMO_HIDE_KEYS, ENV_MAP, HASH_KEYS, SECRET_KEYS
+from .config import (
+    DEFAULTS,
+    DEMO_HIDE_KEYS,
+    ENV_MAP,
+    HASH_KEYS,
+    MODULE_SECRET_KEYS,
+    SECRET_KEYS,
+)
 
 DOCTOR_VERSION = 1
 STATUS_ORDER = ("pass", "warn", "fail", "skipped")
@@ -88,6 +95,7 @@ def _is_sensitive_key(key: str | None) -> bool:
     lowered = key.lower()
     return (
         key in SECRET_KEYS
+        or key in MODULE_SECRET_KEYS
         or key in HASH_KEYS
         or key in DEMO_HIDE_KEYS
         or any(part in lowered for part in _SENSITIVE_NAME_PARTS)

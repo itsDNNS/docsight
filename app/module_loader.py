@@ -5,8 +5,8 @@ import importlib.util
 import json
 import logging
 import os
-import re
 import sys
+from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, cast
@@ -17,17 +17,18 @@ from app import analyzer as _analyzer
 from app import config as _cfg
 from app.builtin_modules import BUILTIN_MODULE_DIRS, BUILTIN_PYTHON_CONTRIBUTIONS
 from app.i18n import _TRANSLATIONS
+from app.manifest_contract import (
+    ID_PATTERN,
+    REQUIRED_FIELDS,
+    VALID_CONTRIBUTES,
+    VALID_TYPES,
+    validate_manifest_contract,
+)
 from app.path_safety import safe_manifest_ref, safe_manifest_subpath
 from app.theme_registry import BUILTIN_THEMES
 from app.threshold_profiles import BUILTIN_THRESHOLD_PROFILES
 
 log = logging.getLogger("docsis.modules")
-
-VALID_TYPES = {"integration", "analysis", "theme"}
-VALID_CONTRIBUTES = {"collector", "routes", "settings", "tab", "card", "i18n", "static", "publisher", "thresholds", "theme"}
-REQUIRED_FIELDS = {"id", "name", "description", "version", "author", "minAppVersion", "type", "contributes"}
-ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.]+$")
-
 
 class ManifestError(Exception):
     """Raised when a manifest.json is invalid."""
@@ -49,6 +50,7 @@ class ModuleInfo:
     homepage: str = ""
     license: str = ""
     config: dict[str, Any] = field(default_factory=dict)
+    config_secrets: list[str] = field(default_factory=list)
     config_private: list[str] = field(default_factory=list)
     menu: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
@@ -68,64 +70,21 @@ def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | 
 
     Raises ManifestError if the manifest is invalid.
     """
-    missing = REQUIRED_FIELDS - set(raw.keys())
-    if missing:
-        raise ManifestError(f"Missing required fields: {', '.join(sorted(missing))}")
-
-    # ID format
-    mod_id = raw["id"]
-    if not isinstance(mod_id, str) or not ID_PATTERN.match(mod_id):
-        raise ManifestError(
-            f"Invalid id '{mod_id}': must be lowercase alphanumeric with dots/underscores, "
-            f"starting with a letter (e.g. 'docsight.weather')"
-        )
-
-    # Type
-    mod_type = raw["type"]
-    if mod_type not in VALID_TYPES:
-        raise ManifestError(f"Invalid type '{mod_type}': must be one of {sorted(VALID_TYPES)}")
-
-    # Contributes keys
-    contributes = raw.get("contributes", {})
-    if not isinstance(contributes, dict):
-        raise ManifestError("'contributes' must be a dict")
-    unknown = set(contributes.keys()) - VALID_CONTRIBUTES
-    if unknown:
-        raise ManifestError(f"Unknown contributes keys: {', '.join(sorted(unknown))}")
-
-    # Security: theme modules must not execute Python code
-    if mod_type == "theme":
-        forbidden = {"collector", "routes", "publisher"} & set(contributes.keys())
-        if forbidden:
-            raise ManifestError(
-                f"Theme modules must not contribute {', '.join(sorted(forbidden))} (security)"
-            )
-
     # Detect builtin unless the caller already knows the module source.
     if builtin is None:
         norm = os.path.normpath(module_path).replace("\\", "/")
         builtin = "/app/modules/" in norm or "\\app\\modules\\" in os.path.normpath(module_path)
 
+    errors = validate_manifest_contract(raw, builtin=builtin)
+    if errors:
+        raise ManifestError(errors[0])
+
+    mod_id = raw["id"]
+    mod_type = raw["type"]
+    contributes = raw["contributes"]
     config = raw.get("config", {})
-    if not isinstance(config, dict):
-        raise ManifestError("'config' must be a dict")
-
-    if "config_secrets" in raw:
-        raise ManifestError("'config_secrets' is no longer supported")
-
+    config_secrets = raw.get("config_secrets", [])
     config_private = raw.get("configPrivate", [])
-    if not isinstance(config_private, list) or not all(
-        isinstance(key, str) for key in config_private
-    ):
-        raise ManifestError("'configPrivate' must be a list of strings")
-    if "configPrivate" in raw and not builtin:
-        raise ManifestError("'configPrivate' is available to built-in modules only")
-    undeclared_private = set(config_private) - set(config)
-    if undeclared_private:
-        raise ManifestError(
-            "'configPrivate' references undeclared config keys: "
-            + ", ".join(sorted(undeclared_private))
-        )
 
     return ModuleInfo(
         id=mod_id,
@@ -141,6 +100,7 @@ def validate_manifest(raw: dict[str, Any], module_path: str, *, builtin: bool | 
         homepage=raw.get("homepage", ""),
         license=raw.get("license", ""),
         config=config,
+        config_secrets=config_secrets,
         config_private=config_private,
         menu={**{"order": 999}, **raw.get("menu", {})},
         hints=raw.get("hints", {}),
@@ -195,8 +155,8 @@ def discover_modules(
 
             try:
                 info = validate_manifest(raw, mod_dir, builtin=False)
-            except ManifestError as e:
-                log.warning("Skipping %s: invalid manifest: %s", mod_dir, e)
+            except ManifestError:
+                log.warning("Skipping %s: invalid manifest", mod_dir)
                 continue
 
             if info.id in seen_ids:
@@ -240,8 +200,8 @@ def discover_builtin_modules(
 
         try:
             info = validate_manifest(raw, mod_dir, builtin=True)
-        except ManifestError as e:
-            log.warning("Skipping built-in module %s: invalid manifest: %s", entry, e)
+        except ManifestError:
+            log.warning("Skipping built-in module %s: invalid manifest", entry)
             continue
 
         if info.id in seen_ids:
@@ -347,17 +307,27 @@ def register_module_config(
     config_defaults: dict[str, Any],
     module_id: str | None = None,
     builtin: bool = False,
+    config_secrets: list[str] | None = None,
     config_private: list[str] | None = None,
 ) -> set[str]:
     """Register a module's config defaults into the global config system.
 
-    Private-but-displayable metadata is trusted only for built-in modules. Core
-    secret, private, and hash-backed settings stay unavailable to community
-    modules.
+    Private-but-displayable metadata is trusted only for built-in modules.
+    Community secret defaults are accepted only after deterministic ownership
+    reservation. Core secret, private, and hash-backed settings stay
+    unavailable to community modules.
     """
+    secret_keys = set(config_secrets or [])
     private_keys = set(config_private or []) if builtin else set()
     registered_keys: set[str] = set()
     for key, value in config_defaults.items():
+        if (
+            key in secret_keys
+            and not builtin
+            and _cfg.MODULE_SECRET_OWNERS.get(key) != module_id
+        ):
+            log.warning("Skipping an unreserved module secret config key")
+            continue
         if key in _cfg.DEFAULTS:
             if key in private_keys:
                 _cfg.PRIVATE_KEYS.add(key)
@@ -370,13 +340,102 @@ def register_module_config(
             continue
         _cfg.DEFAULTS[key] = value
         registered_keys.add(key)
+        if key in secret_keys and builtin:
+            _cfg.SECRET_KEYS.add(key)
         if key in private_keys:
             _cfg.PRIVATE_KEYS.add(key)
+        if _cfg.is_secret_key(key):
+            # Secret values are encrypted strings at rest. Never route them
+            # through bool/int coercion even if a non-manifest caller supplied
+            # an invalid non-string default.
+            continue
         if isinstance(value, bool):
             _cfg.BOOL_KEYS.add(key)
         elif isinstance(value, int):
             _cfg.INT_KEYS.add(key)
     return registered_keys
+
+
+def evaluate_module_secret_ownership(
+    modules: list[ModuleInfo],
+) -> tuple[set[str], dict[str, str], dict[str, str]]:
+    """Return reserved keys, valid owners, and fail-closed module errors.
+
+    A secret key is valid only when the declaring module is also the sole
+    community module that declares that key in ``config``. This prevents a
+    disabled or newly installed module from taking over another module's plain
+    configuration value by reclassifying the shared key as its own secret.
+    """
+    protected = (
+        set(_cfg.CORE_CONFIG_KEYS)
+        | _cfg.SECRET_KEYS
+        | _cfg.HASH_KEYS
+        | _cfg.PRIVATE_KEYS
+    )
+    for module in modules:
+        if module.builtin:
+            protected.update(module.config)
+
+    secret_claims: dict[str, list[ModuleInfo]] = defaultdict(list)
+    config_claims: dict[str, list[ModuleInfo]] = defaultdict(list)
+    for module in modules:
+        if module.builtin:
+            continue
+        for key in module.config:
+            config_claims[key].append(module)
+        for key in module.config_secrets:
+            secret_claims[key].append(module)
+
+    reserved_keys = {key for key in secret_claims if key not in protected}
+    owners: dict[str, str] = {}
+    errors: dict[str, str] = {}
+    for key, claimants in secret_claims.items():
+        if key in protected:
+            for module in claimants:
+                errors[module.id] = (
+                    "Module secret declaration conflicts with protected configuration"
+                )
+            continue
+
+        config_users = config_claims.get(key, [])
+        valid_owner = (
+            len(claimants) == 1
+            and len(config_users) == 1
+            and config_users[0].id == claimants[0].id
+        )
+        if not valid_owner:
+            for module in [*claimants, *config_users]:
+                errors[module.id] = "Module secret ownership conflict"
+            continue
+
+        owners[key] = claimants[0].id
+
+    return reserved_keys, owners, errors
+
+
+def reserve_module_secrets(modules: list[ModuleInfo]) -> None:
+    """Reserve all community secret declarations before any module loads."""
+    reserved_keys, owners, errors = evaluate_module_secret_ownership(modules)
+    for module in modules:
+        if module.id in errors:
+            module.error = errors[module.id]
+
+    protected_count = sum(
+        1 for error in errors.values() if "protected configuration" in error
+    )
+    conflict_count = len(errors) - protected_count
+    if protected_count:
+        log.warning(
+            "Rejected protected module secret declarations from %d module(s)",
+            protected_count,
+        )
+    if conflict_count:
+        log.warning(
+            "Rejected conflicting module secret declarations affecting %d module(s)",
+            conflict_count,
+        )
+
+    _cfg.set_module_secret_registry(reserved_keys, owners)
 
 
 def merge_module_i18n(module_id: str, i18n_dir: str) -> None:
@@ -782,11 +841,19 @@ class ModuleLoader:
         )
         self._modules = modules
 
+        # Built-in private metadata is a separate, displayable classification.
+        # Register it before community secret claims are evaluated.
+        for mod in self._modules:
+            if mod.builtin and mod.config_private:
+                _cfg.PRIVATE_KEYS.update(mod.config_private)
+        reserve_module_secrets(self._modules)
+
         for mod in self._modules:
             # Privacy classification must survive module disablement so values
             # already stored by a built-in module remain encrypted/decryptable.
-            if mod.builtin and mod.config_private:
-                _cfg.PRIVATE_KEYS.update(mod.config_private)
+            if mod.error:
+                log.warning("Module '%s' rejected before load", mod.id)
+                continue
             if not mod.enabled:
                 # Theme modules: load theme_data even when disabled so
                 # the settings gallery can show previews for all themes.
@@ -837,6 +904,7 @@ class ModuleLoader:
                 mod.config,
                 module_id=mod.id,
                 builtin=mod.builtin,
+                config_secrets=mod.config_secrets,
                 config_private=mod.config_private,
             )
 

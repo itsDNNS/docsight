@@ -9,7 +9,7 @@ import logging
 from .base import Collector, CollectorResult
 from .modem import ModemCollector
 from .demo import DemoCollector
-from ..config import SECRET_KEYS, HASH_KEYS
+from .. import config as _config
 
 log = logging.getLogger("docsis.collectors")
 
@@ -17,19 +17,29 @@ log = logging.getLogger("docsis.collectors")
 class _ModuleConfigProxy:
     """Read-only config proxy that hides secret values from community modules."""
 
-    def __init__(self, config_mgr):
+    def __init__(self, config_mgr, module_id=None):
         self._cfg = config_mgr
-        self._blocked = SECRET_KEYS | HASH_KEYS
+        self._module_id = module_id
 
     def get(self, key, default=None):
-        if key in self._blocked:
+        if key in _config.SECRET_KEYS | _config.HASH_KEYS | _config.PRIVATE_KEYS:
+            return default
+        if (
+            key in _config.MODULE_SECRET_KEYS
+            and _config.MODULE_SECRET_OWNERS.get(key) != self._module_id
+        ):
             return default
         return self._cfg.get(key, default)
 
     def get_all(self, mask_secrets=False):
         result = self._cfg.get_all(mask_secrets=True)
-        for key in self._blocked:
+        for key in _config.SECRET_KEYS | _config.HASH_KEYS | _config.PRIVATE_KEYS:
             result.pop(key, None)
+        for key in _config.MODULE_SECRET_KEYS:
+            if _config.MODULE_SECRET_OWNERS.get(key) != self._module_id:
+                result.pop(key, None)
+            elif not mask_secrets and key in result:
+                result[key] = self._cfg.get(key)
         return result
 
     def is_configured(self):
@@ -121,7 +131,7 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
                     if mod.builtin:
                         mod_cfg = config_mgr
                     else:
-                        mod_cfg = _ModuleConfigProxy(config_mgr)
+                        mod_cfg = _ModuleConfigProxy(config_mgr, mod.id)
                     c = mod.collector_class(
                         config_mgr=mod_cfg,
                         storage=storage,

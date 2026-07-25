@@ -125,6 +125,115 @@ class TestModulesInstall:
         config = json.loads((tmp_path / "config" / "config.json").read_text(encoding="utf-8"))
         assert "community.test" in config["disabled_modules"].split(",")
 
+    def test_invalid_manifest_returns_422_and_removes_download(self, client, tmp_path, monkeypatch):
+        """Downloaded manifests are client errors and never leave partial installs."""
+        modules_dir = tmp_path / "modules"
+        monkeypatch.setenv("MODULES_DIR", str(modules_dir))
+
+        def fake_download(_url, target_dir):
+            os.makedirs(target_dir, exist_ok=True)
+            manifest = {
+                "id": "community.invalid",
+                "name": "Invalid",
+                "description": "Invalid secret declaration",
+                "version": "1.0.0",
+                "author": "DOCSight",
+                "minAppVersion": "2026.2",
+                "type": "integration",
+                "contributes": {},
+                "config": {"token": ""},
+                "config_secrets": ["missing"],
+            }
+            with open(os.path.join(target_dir, "manifest.json"), "w", encoding="utf-8") as handle:
+                json.dump(manifest, handle)
+            return True
+
+        with patch("app.blueprints.modules_bp.download_github_directory", side_effect=fake_download):
+            response = client.post(
+                "/api/modules/install",
+                data=json.dumps(
+                    {
+                        "id": "community.invalid",
+                        "download_url": "https://api.github.com/test",
+                    }
+                ),
+                content_type="application/json",
+            )
+
+        assert response.status_code == 422
+        assert json.loads(response.data) == {
+            "success": False,
+            "error": "Invalid module manifest",
+        }
+        assert not (modules_dir / "community.invalid").exists()
+
+    def test_secret_claim_collision_is_rejected_during_install(
+        self, client, tmp_path, monkeypatch
+    ):
+        """An installed module's plain config cannot be taken over as a secret."""
+        modules_dir = tmp_path / "modules"
+        victim_dir = modules_dir / "victim"
+        victim_dir.mkdir(parents=True)
+        shared_key = "shared_module_setting"
+        victim_manifest = {
+            "id": "community.victim",
+            "name": "Victim",
+            "description": "Existing module",
+            "version": "1.0.0",
+            "author": "DOCSight",
+            "minAppVersion": "2026.2",
+            "type": "integration",
+            "contributes": {},
+            "config": {shared_key: "victim-default"},
+        }
+        (victim_dir / "manifest.json").write_text(
+            json.dumps(victim_manifest), encoding="utf-8"
+        )
+        monkeypatch.setenv("MODULES_DIR", str(modules_dir))
+
+        def fake_download(_url, target_dir):
+            os.makedirs(target_dir, exist_ok=True)
+            claimant_manifest = {
+                "id": "community.claimant",
+                "name": "Claimant",
+                "description": "Conflicting module",
+                "version": "1.0.0",
+                "author": "DOCSight",
+                "minAppVersion": "2026.2",
+                "type": "integration",
+                "contributes": {},
+                "config": {shared_key: ""},
+                "config_secrets": [shared_key],
+            }
+            with open(
+                os.path.join(target_dir, "manifest.json"), "w", encoding="utf-8"
+            ) as handle:
+                json.dump(claimant_manifest, handle)
+            return True
+
+        with patch(
+            "app.blueprints.modules_bp.download_github_directory",
+            side_effect=fake_download,
+        ):
+            response = client.post(
+                "/api/modules/install",
+                data=json.dumps(
+                    {
+                        "id": "community.claimant",
+                        "download_url": "https://api.github.com/test",
+                    }
+                ),
+                content_type="application/json",
+            )
+
+        assert response.status_code == 422
+        assert json.loads(response.data) == {
+            "success": False,
+            "error": "Invalid module manifest",
+        }
+        assert victim_dir.exists()
+        assert not (modules_dir / "community.claimant").exists()
+
 
 class TestThemesInstall:
     def test_rejects_invalid_theme_id(self, client):

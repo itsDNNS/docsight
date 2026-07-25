@@ -48,13 +48,38 @@ def test_frontend_secret_fields_cover_saved_secret_inputs():
     assert expected <= secret_fields
 
 
-def test_frontend_masks_saved_secret_inputs_without_hardcoded_names():
-    """Community module secret fields should use the saved marker, not JS edits."""
+def test_frontend_masks_saved_secret_inputs_without_hardcoded_module_names():
+    """Runtime module-secret metadata must cover old and current templates."""
     js = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
+    template = (ROOT / "app" / "templates" / "settings.html").read_text(
+        encoding="utf-8"
+    )
+    web = (ROOT / "app" / "web.py").read_text(encoding="utf-8")
 
     assert "function _isConfigSecretField" in js
     assert "_isSavedSecretField(inp)" in js
     assert "if (_isConfigSecretField(inp))" in js
+    assert "MODULE_SECRET_FIELDS" in js
+    assert "SAVED_MODULE_SECRET_FIELDS" in js
+    assert "SAVED_SECRET_FIELDS.indexOf(el.name) !== -1" in js
+    assert "var MODULE_SECRET_FIELDS = {{ module_secret_fields | tojson }};" in template
+    assert (
+        "var SAVED_MODULE_SECRET_FIELDS = {{ saved_module_secret_fields | tojson }};"
+        in template
+    )
+    assert "module_secret_fields=sorted(MODULE_SECRET_KEYS)" in web
+    assert "config.get(key) == PASSWORD_MASK" in web
+
+
+def test_saved_secret_detection_does_not_parse_placeholder_text():
+    """Saved state is explicit metadata, independent of localized copy."""
+    js = (ROOT / "app" / "static" / "js" / "settings.js").read_text(encoding="utf-8")
+
+    saved_secret_function = js.split(
+        "function _isSavedSecretField", 1
+    )[1].split("function _shouldTreatSavedSecretEventAsUserEdit", 1)[0]
+    assert "dataset.savedSecret === 'true'" in saved_secret_function
+    assert "placeholder" not in saved_secret_function
 
 
 def test_saved_secret_dirty_detection_requires_active_field_before_user_edit():

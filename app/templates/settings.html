@@ -232,6 +232,8 @@ var currentLang = '{{ lang }}';
 var currentTz = '{{ config.timezone|default("", true) }}';
 try { var savedCooldowns = JSON.parse({{ config.notify_cooldowns|default("{}")|tojson }}); } catch(e) { var savedCooldowns = {}; }
 var DRIVER_HINTS = {{ driver_hints | tojson }};
+var MODULE_SECRET_FIELDS = {{ module_secret_fields | tojson }};
+var SAVED_MODULE_SECRET_FIELDS = {{ saved_module_secret_fields | tojson }};
 </script>
 <script src="/static/js/modals.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/utils.js?v={{ version|urlencode }}"></script>

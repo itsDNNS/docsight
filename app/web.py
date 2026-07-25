@@ -21,7 +21,7 @@ from markupsafe import Markup
 from werkzeug.security import check_password_hash
 from zoneinfo import available_timezones
 
-from .config import POLL_MIN, POLL_MAX
+from .config import MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
 from .docsis_utils import qam_rank
 from .gaming_index import compute_gaming_index
@@ -1719,6 +1719,10 @@ def settings():
     return render_template(
         "settings.html",
         config=config,
+        module_secret_fields=sorted(MODULE_SECRET_KEYS),
+        saved_module_secret_fields=sorted(
+            key for key in MODULE_SECRET_KEYS if config.get(key) == PASSWORD_MASK
+        ),
         theme=theme,
         poll_min=POLL_MIN,
         poll_max=POLL_MAX,

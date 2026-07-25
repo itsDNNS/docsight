@@ -31,6 +31,27 @@ DEMO_HIDE_KEYS = {"bqm_url", "speedtest_tracker_url",
                   "mqtt_topic_prefix", "mqtt_discovery_prefix"}
 HASH_KEYS = {"admin_password"}
 PASSWORD_MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+MODULE_SECRET_KEYS: set[str] = set()
+MODULE_SECRET_OWNERS: dict[str, str] = {}
+
+
+def set_module_secret_registry(keys: set[str], owners: dict[str, str]) -> None:
+    """Replace module-secret reservations while retaining shared set objects."""
+    MODULE_SECRET_KEYS.clear()
+    MODULE_SECRET_KEYS.update(keys)
+    MODULE_SECRET_OWNERS.clear()
+    MODULE_SECRET_OWNERS.update(owners)
+    # A key may change from normal scalar config to secret config after a module
+    # update within the same process. Secret encryption must always take
+    # precedence over stale bool/int coercion metadata from an earlier load.
+    BOOL_KEYS.difference_update(keys)
+    INT_KEYS.difference_update(keys)
+
+
+def is_secret_key(key: str) -> bool:
+    """Return whether a config key uses write-only secret semantics."""
+    return key in SECRET_KEYS or key in MODULE_SECRET_KEYS
+
 
 DEFAULTS = {
     "modem_type": "fritzbox",
@@ -97,6 +118,7 @@ DEFAULTS = {
     "sc_trigger_packet_loss": False,
     "sc_trigger_packet_loss_min_pct": "5.0",
 }
+CORE_CONFIG_KEYS = frozenset(DEFAULTS)
 
 ENV_MAP = {
     "modem_type": "MODEM_TYPE",
@@ -318,7 +340,7 @@ class ConfigManager:
                 if val and (val.startswith("scrypt:") or val.startswith("pbkdf2:")):
                     return val
                 return self._decrypt(val)
-            if key in SECRET_KEYS | PRIVATE_KEYS:
+            if is_secret_key(key) or key in PRIVATE_KEYS:
                 return self._decrypt(val)
             return val
 
@@ -351,7 +373,7 @@ class ConfigManager:
                 self._validate_url(key, data[key])
 
         # Don't overwrite passwords with the mask placeholder
-        for key in SECRET_KEYS | HASH_KEYS:
+        for key in MODULE_SECRET_KEYS | SECRET_KEYS | HASH_KEYS:
             if key in data and data[key] == PASSWORD_MASK:
                 del data[key]
 
@@ -369,7 +391,7 @@ class ConfigManager:
 
         # Encrypt secret and private values before storing. Private values stay
         # displayable in normal Settings and report forms, unlike password-style secrets.
-        for key in SECRET_KEYS | PRIVATE_KEYS:
+        for key in MODULE_SECRET_KEYS | SECRET_KEYS | PRIVATE_KEYS:
             if key in data and data[key]:
                 data[key] = self._encrypt(data[key])
 
@@ -497,7 +519,9 @@ class ConfigManager:
             val = self.get(key)
             if mask_secrets and demo and key in PRIVATE_KEYS:
                 result[key] = ""
-            elif mask_secrets and key in (SECRET_KEYS | HASH_KEYS) and val:
+            elif mask_secrets and (
+                key in SECRET_KEYS or key in MODULE_SECRET_KEYS or key in HASH_KEYS
+            ) and val:
                 result[key] = PASSWORD_MASK
             elif mask_secrets and demo and key in DEMO_HIDE_KEYS:
                 result[key] = ""

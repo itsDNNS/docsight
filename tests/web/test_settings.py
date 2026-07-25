@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 
 from app.web import init_config, app, _login_attempts
 from app.config import ConfigManager
+from app.module_loader import register_module_config
+from app import config as config_module
 
 
 def _rendered_panel(html: str, panel_id: str):
@@ -33,6 +35,47 @@ class TestSettingsRoute:
         resp = client.get("/settings?lang=en")
         assert resp.status_code == 200
         assert b"Comcast/Xfinity" in resp.data
+
+    def test_settings_exports_runtime_module_secret_metadata(self, client, config_mgr):
+        key = "community_runtime_secret"
+        previous_keys = set(config_module.MODULE_SECRET_KEYS)
+        previous_owners = dict(config_module.MODULE_SECRET_OWNERS)
+        had_default = key in config_module.DEFAULTS
+        previous_default = config_module.DEFAULTS.get(key)
+        try:
+            config_module.set_module_secret_registry(
+                previous_keys | {key},
+                {**previous_owners, key: "community.runtime"},
+            )
+            register_module_config(
+                {key: ""}, module_id="community.runtime", builtin=False
+            )
+            config_mgr.save({key: "runtime-secret-value"})
+            init_config(config_mgr)
+
+            response = client.get("/settings?lang=en")
+            html = response.data.decode("utf-8")
+
+            assert response.status_code == 200
+            module_match = re.search(
+                r"var MODULE_SECRET_FIELDS = (\[[^;]*\]);", html
+            )
+            saved_match = re.search(
+                r"var SAVED_MODULE_SECRET_FIELDS = (\[[^;]*\]);", html
+            )
+            assert module_match is not None
+            assert saved_match is not None
+            module_fields = json.loads(module_match.group(1))
+            saved_fields = json.loads(saved_match.group(1))
+            assert key in module_fields
+            assert key in saved_fields
+            assert "runtime-secret-value" not in html
+        finally:
+            config_module.set_module_secret_registry(previous_keys, previous_owners)
+            if had_default:
+                config_module.DEFAULTS[key] = previous_default
+            else:
+                config_module.DEFAULTS.pop(key, None)
 
     def test_settings_extensions_panel_lists_rendered_feature_toggles(self, client):
         resp = client.get("/settings?lang=en")

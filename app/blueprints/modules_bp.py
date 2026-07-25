@@ -8,7 +8,13 @@ import shutil
 from flask import Blueprint, jsonify, request
 
 from app.module_download import download_github_directory, fetch_registry as fetch_module_registry
-from app.module_loader import ID_PATTERN, validate_manifest
+from app.module_loader import (
+    ID_PATTERN,
+    ManifestError,
+    discover_modules,
+    evaluate_module_secret_ownership,
+    validate_manifest,
+)
 from app.module_paths import get_modules_dir
 from app.path_safety import safe_child_path
 from app.theme_registry import download_theme, fetch_registry as fetch_theme_registry
@@ -364,17 +370,35 @@ def api_modules_install():
     manifest_path = _real_manifest
     if not os.path.isfile(manifest_path):
         shutil.rmtree(target_dir, ignore_errors=True)
-        return jsonify({"success": False, "error": "Downloaded module missing manifest.json"}), 500
+        return jsonify({"success": False, "error": "Invalid module manifest"}), 422
 
     try:
         with open(manifest_path) as f:
             manifest = json.load(f)
-        validate_manifest(manifest, target_dir)
+        validate_manifest(manifest, target_dir, builtin=False)
         if manifest.get("id") != mod_id:
-            raise ValueError(f"Manifest ID '{manifest.get('id')}' does not match requested ID '{mod_id}'")
-    except Exception as e:
+            raise ManifestError("Manifest ID does not match requested ID")
+
+        builtin_modules = []
+        if loader:
+            builtin_modules = [module for module in loader.get_modules() if module.builtin]
+        builtin_ids = {module.id for module in builtin_modules}
+        community_modules = discover_modules(
+            [modules_dir],
+            known_ids=builtin_ids,
+        )
+        _, _, ownership_errors = evaluate_module_secret_ownership(
+            [*builtin_modules, *community_modules]
+        )
+        if mod_id in ownership_errors:
+            raise ManifestError("Module secret ownership conflict")
+    except (json.JSONDecodeError, OSError, ManifestError):
         shutil.rmtree(target_dir, ignore_errors=True)
-        return jsonify({"success": False, "error": f"Invalid module: {e}"}), 500
+        return jsonify({"success": False, "error": "Invalid module manifest"}), 422
+    except Exception:
+        shutil.rmtree(target_dir, ignore_errors=True)
+        log.exception("Unexpected module manifest validation failure")
+        return jsonify({"success": False, "error": "Module validation failed"}), 500
 
     # Persist as disabled-by-default
     config_mgr = get_config_manager()
