@@ -46,6 +46,10 @@ driver_registry.register_builtin("hitron_coda_4680", "app.drivers.hitron_coda_46
 driver_registry.register_builtin("sagemcom", "app.drivers.sagemcom.SagemcomDriver",
                                  "Sagemcom F@st 3896",
                                  hints={"default_url": "http://192.168.100.1", "default_user": "admin"})
+driver_registry.register_builtin("f3896lg", "app.drivers.f3896lg.F3896LGDriver",
+                                 "Sagemcom F3896LG (Virgin Media Hub 5 / Liberty Global)",
+                                 hints={"default_url": "https://192.168.100.1",
+                                        "credentials_required": False})
 driver_registry.register_builtin("sercom_dm1000", "app.drivers.sercom_dm1000.SercomDM1000Driver",
                                  "Sercom DM1000",
                                  hints={"default_url": "http://192.168.100.1", "default_user": "technician"})

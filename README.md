@@ -288,6 +288,7 @@ DOCSight supports **18 modem families** out of the box and also offers **Generic
 - **Sercomm Ultra Hub 7 class gateways**
 - **CH7465 Connect Box family**
 - **Sagemcom F@st 3896:** JSON-RPC API
+- **Sagemcom F3896LG** (Virgin Media Hub 5, Liberty Global firmware): unauthenticated REST API, works in modem mode
 - **Technicolor TC4400**
 - **Arris SURFboard** (S33, S34, SB8200): HNAP1 API
 - **Arris SB6183:** HTTP status pages, no authentication required
