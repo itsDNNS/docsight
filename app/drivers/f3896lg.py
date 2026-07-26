@@ -15,11 +15,14 @@ usually https://192.168.100.1 -- self-signed certificate):
     /rest/v1/cablemodem/downstream    channels: sc_qam + ofdm
     /rest/v1/cablemodem/upstream      channels: atdma + ofdma
     /rest/v1/cablemodem/state_        docsisVersion/uptime/status
+                                        (docsisVersion is not firmware)
     /rest/v1/cablemodem/serviceflows  provisioned max rates
     /rest/v1/cablemodem/registration  used as the connectivity/login check
 
-Firmware quirk: OFDM/OFDMA channel `power` is reported scaled x10
-(380 == 38.0 dBmV, -118 == -11.8 dBmV). SC-QAM/ATDMA power is not scaled.
+Firmware quirk: OFDM/OFDMA channel `power` and OFDM `rxMer` are reported
+scaled x10 (380 == 38.0 dBmV, -118 == -11.8 dBmV, 390 == 39.0 dB).
+SC-QAM/ATDMA values are not scaled.
+This API does not expose a firmware/software version.
 Verified against a Virgin Media (UK) Hub 5 in modem mode.
 """
 
@@ -28,10 +31,9 @@ from __future__ import annotations
 import logging
 
 import requests
-import urllib3
 
-from .base import ModemDriver
 from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
+from .base import ModemDriver
 
 log = logging.getLogger("docsis.driver.f3896lg")
 
@@ -45,14 +47,26 @@ class F3896LGDriver(ModemDriver):
         super().__init__(url.rstrip("/"), user, password)
         self._session = requests.Session()
         self._session.verify = False  # self-signed cert on the modem
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     # -- transport --
 
     def _get(self, path: str) -> dict:
         r = self._session.get(f"{self._url}/rest/v1/{path}", timeout=_TIMEOUT)
         r.raise_for_status()
-        return r.json()
+        payload = r.json()
+        if not isinstance(payload, dict):
+            raise RuntimeError("F3896LG REST API returned a non-object JSON payload")
+        return payload
+
+    def _get_channels(self, path: str, section_name: str) -> list[dict]:
+        payload = self._get(path)
+        section = payload.get(section_name)
+        if not isinstance(section, dict):
+            raise RuntimeError(f"F3896LG REST API returned invalid {section_name} payload")
+        channels = section.get("channels")
+        if not isinstance(channels, list):
+            raise RuntimeError(f"F3896LG REST API returned invalid {section_name} channels")
+        return channels
 
     # -- ModemDriver interface --
 
@@ -62,12 +76,12 @@ class F3896LGDriver(ModemDriver):
             data = self._get("cablemodem/registration")
         except requests.RequestException as e:
             raise RuntimeError(f"F3896LG REST API not reachable: {e}") from e
-        if "registration" not in data:
-            raise RuntimeError("F3896LG REST API returned unexpected payload")
+        if not isinstance(data.get("registration"), dict):
+            raise RuntimeError("F3896LG REST API returned unexpected registration payload")
 
     def get_docsis_data(self) -> DocsisData:
-        ds = self._get("cablemodem/downstream").get("downstream", {}).get("channels", [])
-        us = self._get("cablemodem/upstream").get("upstream", {}).get("channels", [])
+        ds = self._get_channels("cablemodem/downstream", "downstream")
+        us = self._get_channels("cablemodem/upstream", "upstream")
 
         ds30, ds31 = self._parse_downstream(ds)
         us30, us31 = self._parse_upstream(us)
@@ -83,30 +97,44 @@ class F3896LGDriver(ModemDriver):
         }
         try:
             cm = self._get("cablemodem/state_").get("cablemodem", {})
-            info["sw_version"] = f"DOCSIS {cm.get('docsisVersion', '?')}"
             if cm.get("status"):
                 info["docsis_status"] = str(cm["status"])
             if cm.get("upTime") is not None:
                 info["uptime_seconds"] = int(cm["upTime"])
-        except (requests.RequestException, ValueError, TypeError) as e:
+        except (requests.RequestException, RuntimeError, ValueError, TypeError) as e:
             log.warning("F3896LG device info fetch failed: %s", e)
         return info
 
     def get_connection_info(self) -> ConnectionInfo:
-        out: ConnectionInfo = {}
+        out: ConnectionInfo = {"connection_type": "DOCSIS 3.1"}
+        max_rates: dict[str, int] = {}
         try:
             flows = self._get("cablemodem/serviceflows").get("serviceFlows", [])
             for entry in flows:
-                flow = entry.get("serviceFlow", {})
-                rate = flow.get("maxTrafficRate")
-                if not rate:
+                if not isinstance(entry, dict):
                     continue
-                if flow.get("direction") == "downstream":
-                    out["max_downstream_kbps"] = int(rate) // 1000
-                elif flow.get("direction") == "upstream":
-                    out["max_upstream_kbps"] = int(rate) // 1000
-            out["connection_type"] = "DOCSIS 3.1"
-        except (requests.RequestException, ValueError, TypeError) as e:
+                flow = entry.get("serviceFlow", {})
+                if not isinstance(flow, dict):
+                    continue
+                try:
+                    rate = int(flow.get("maxTrafficRate"))
+                except (TypeError, ValueError):
+                    continue
+                if rate <= 0:
+                    continue
+                direction = flow.get("direction")
+                if direction == "downstream":
+                    key = "max_downstream_kbps"
+                elif direction == "upstream":
+                    key = "max_upstream_kbps"
+                else:
+                    continue
+                max_rates[key] = max(max_rates.get(key, 0), rate)
+            if "max_downstream_kbps" in max_rates:
+                out["max_downstream_kbps"] = max_rates["max_downstream_kbps"] // 1000
+            if "max_upstream_kbps" in max_rates:
+                out["max_upstream_kbps"] = max_rates["max_upstream_kbps"] // 1000
+        except (requests.RequestException, RuntimeError, ValueError, TypeError) as e:
             log.warning("F3896LG connection info fetch failed: %s", e)
         return out
 
@@ -116,21 +144,44 @@ class F3896LGDriver(ModemDriver):
         ds30: list[RawChannel] = []
         ds31: list[RawChannel] = []
         for ch in channels:
+            if not isinstance(ch, dict):
+                continue
             if not ch.get("lockStatus", False):
+                continue
+            channel_type = ch.get("channelType")
+            if channel_type not in {"sc_qam", "ofdm"}:
+                log.debug("Skipping unknown downstream channel type %r", channel_type)
                 continue
             try:
                 mer = ch.get("rxMer")
-                if ch.get("channelType") == "ofdm":
-                    ds31.append({
+                if channel_type == "ofdm":
+                    try:
+                        power = self._unscale(ch.get("power"))
+                    except (ValueError, TypeError):
+                        log.warning("Invalid F3896LG OFDM power %r; using no power", ch.get("power"))
+                        power = None
+                    try:
+                        mer = self._unscale(mer)
+                    except (ValueError, TypeError):
+                        log.warning("Invalid F3896LG OFDM rxMer %r; using no MER", mer)
+                        mer = None
+                    if mer == 0:
+                        mer = None
+                    profile_modulation = self._modulation(ch.get("modulation", ""))
+                    channel: RawChannel = {
                         "channelID": ch.get("channelId", 0),
                         "type": "OFDM",
-                        "frequency": self._hz_to_mhz(ch.get("frequency")),
-                        "powerLevel": self._unscale(ch.get("power")),
-                        "mer": mer if mer else None,
+                        "frequency": self._mhz(ch.get("firstActiveSubcarrier")),
+                        "powerLevel": power,
+                        "mer": mer,
                         "mse": None,
+                        "modulation": "OFDM",
                         "corrErrors": ch.get("correctedErrors"),
                         "nonCorrErrors": ch.get("uncorrectedErrors"),
-                    })
+                    }
+                    if profile_modulation:
+                        channel["profile_modulation"] = profile_modulation
+                    ds31.append(channel)
                 else:
                     snr = ch.get("snr") or mer
                     ds30.append({
@@ -151,18 +202,33 @@ class F3896LGDriver(ModemDriver):
         us30: list[RawChannel] = []
         us31: list[RawChannel] = []
         for ch in channels:
+            if not isinstance(ch, dict):
+                continue
             if not ch.get("lockStatus", False):
                 continue
+            channel_type = ch.get("channelType")
+            if channel_type not in {"atdma", "ofdma"}:
+                log.debug("Skipping unknown upstream channel type %r", channel_type)
+                continue
             try:
-                if ch.get("channelType") == "ofdma":
-                    us31.append({
+                if channel_type == "ofdma":
+                    try:
+                        power = self._unscale(ch.get("power"))
+                    except (ValueError, TypeError):
+                        log.warning("Invalid F3896LG OFDMA power %r; using no power", ch.get("power"))
+                        power = None
+                    profile_modulation = self._modulation(ch.get("modulation", ""))
+                    channel: RawChannel = {
                         "channelID": ch.get("channelId", 0),
                         "type": "OFDMA",
-                        "frequency": self._hz_to_mhz(ch.get("frequency")),
-                        "powerLevel": self._unscale(ch.get("power")),
+                        "frequency": self._mhz(ch.get("firstActiveSubcarrier")),
+                        "powerLevel": power,
                         "modulation": "OFDMA",
                         "multiplex": "",
-                    })
+                    }
+                    if profile_modulation:
+                        channel["profile_modulation"] = profile_modulation
+                    us31.append(channel)
                 else:
                     us30.append({
                         "channelID": ch.get("channelId", 0),
@@ -183,6 +249,13 @@ class F3896LGDriver(ModemDriver):
         if not freq_hz:
             return ""
         return f"{float(freq_hz) / 1_000_000:g} MHz"
+
+    @staticmethod
+    def _mhz(freq_mhz) -> str:
+        """Format the lower/first active subcarrier frequency, not channel center."""
+        if not freq_mhz:
+            return ""
+        return f"{float(freq_mhz):g} MHz"
 
     @staticmethod
     def _unscale(power) -> float | None:

@@ -31,7 +31,7 @@
 </p>
 
 <p align="center">
-  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>Demo</strong> • <strong>Reports</strong> • <strong>18 modem families</strong> • <strong>MIT</strong>
+  <strong>Self-hosted</strong> • <strong>Local data</strong> • <strong>Demo</strong> • <strong>Reports</strong> • <strong>19 modem families</strong> • <strong>MIT</strong>
 </p>
 
 <p align="center">
@@ -279,7 +279,7 @@ More views from the product:
 
 ## Supported Hardware
 
-DOCSight supports **18 modem families** out of the box and also offers **Generic Router mode** for fiber, DSL, and satellite connections.
+DOCSight supports **19 modem families** out of the box and also offers **Generic Router mode** for fiber, DSL, and satellite connections.
 
 ### Common setups
 
@@ -288,7 +288,7 @@ DOCSight supports **18 modem families** out of the box and also offers **Generic
 - **Sercomm Ultra Hub 7 class gateways**
 - **CH7465 Connect Box family**
 - **Sagemcom F@st 3896:** JSON-RPC API
-- **Sagemcom F3896LG** (Virgin Media Hub 5, Liberty Global firmware): unauthenticated REST API, works in modem mode
+- **Sagemcom F3896LG** (Hub 5 / Liberty Global REST firmware): unauthenticated API, works in modem mode
 - **Technicolor TC4400**
 - **Arris SURFboard** (S33, S34, SB8200): HNAP1 API
 - **Arris SB6183:** HTTP status pages, no authentication required

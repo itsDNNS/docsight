@@ -383,3 +383,12 @@ def test_public_surface_avoids_real_provider_names_outside_setup_docs() -> None:
     pattern = re.compile(r"\b(Vodafone|Unitymedia|Telekom|Comcast|Xfinity|Spectrum|Virgin Media|Rogers|Bell)\b", re.I)
     for path in paths:
         assert not pattern.search(path.read_text(encoding="utf-8")), path
+
+
+def test_public_modem_family_counts_match_registry() -> None:
+    from app.drivers import driver_registry
+
+    family_count = len(driver_registry.get_all_type_keys() - {"generic"})
+    claim = f"{family_count} modem families"
+    assert claim in README.read_text(encoding="utf-8")
+    assert claim in INDEX.read_text(encoding="utf-8")
