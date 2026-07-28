@@ -7,6 +7,7 @@
 <p align="center">
   <a href="https://itsdnns.github.io/docsight/">Product page</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="#get-started">Get Started</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
+  <a href="https://github.com/itsDNNS/docsight/releases/latest">Windows Preview</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="#supported-hardware">Supported Hardware</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="DATA_CONTRACT.md">Data contract</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
@@ -47,7 +48,7 @@
 
 ## Get Started
 
-Start with the fastest path for your setup. On Windows 10/11, use the [Windows quick start](docs/windows-quick-start.md) for Docker Desktop checks, a PowerShell-safe command, and common startup fixes.
+Start with the fastest path for your setup. On Windows 10/11, download the unsigned portable [Windows Desktop Preview from the latest release](https://github.com/itsDNNS/docsight/releases/latest) for a quick first look without Docker. For continuous monitoring, use the [Windows quick start](docs/windows-quick-start.md).
 
 ### Option 1: Try the demo
 

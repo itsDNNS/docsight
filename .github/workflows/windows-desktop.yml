@@ -33,6 +33,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       artifact-name: ${{ steps.artifact.outputs.name }}
+      asset-base: ${{ steps.artifact.outputs.asset-base }}
 
     steps:
       - name: Checkout
@@ -80,6 +81,7 @@ jobs:
         run: |
           $safeVersion = "${{ steps.version.outputs.version }}" -replace '[^A-Za-z0-9._-]', '-'
           "name=docsight-desktop-preview-win64-$safeVersion" >> $env:GITHUB_OUTPUT
+          "asset-base=DOCSight-Desktop-Preview-win64-$safeVersion" >> $env:GITHUB_OUTPUT
 
       - name: Upload desktop artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -87,8 +89,8 @@ jobs:
           name: ${{ steps.artifact.outputs.name }}
           if-no-files-found: error
           path: |
-            packaging/windows/dist/DOCSight-Desktop-Preview-win64-*.zip
-            packaging/windows/dist/DOCSight-Desktop-Preview-win64-*.zip.sha256
+            packaging/windows/dist/${{ steps.artifact.outputs.asset-base }}.zip
+            packaging/windows/dist/${{ steps.artifact.outputs.asset-base }}.zip.sha256
 
   attach-release-assets:
     if: github.event_name == 'release'
@@ -108,4 +110,113 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.event.release.tag_name }}
-        run: gh release upload "$TAG_NAME" --repo "$GITHUB_REPOSITORY" release-assets/*.zip release-assets/*.sha256 --clobber
+          ASSET_BASE: ${{ needs.build.outputs.asset-base }}
+        run: |
+          gh release upload "$TAG_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            "release-assets/$ASSET_BASE.zip" \
+            "release-assets/$ASSET_BASE.zip.sha256" \
+            --clobber
+
+      - name: Verify published release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          EXPECTED_ZIP: ${{ needs.build.outputs.asset-base }}.zip
+          EXPECTED_SHA256: ${{ needs.build.outputs.asset-base }}.zip.sha256
+        run: |
+          max_attempts=3
+          release_assets_read=0
+          for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+            if release_assets_output="$(
+              gh release view "$TAG_NAME" \
+                --repo "$GITHUB_REPOSITORY" \
+                --json assets \
+                --jq '.assets[].name'
+            )"; then
+              if [[ -n "$release_assets_output" ]]; then
+                release_assets_read=1
+                break
+              fi
+              failure_message="Published release returned no assets."
+            else
+              failure_message="Unable to read published release assets."
+            fi
+
+            if (( attempt < max_attempts )); then
+              echo "::warning::$failure_message Retrying ($attempt/$max_attempts)."
+              sleep "$((2 ** attempt))"
+            fi
+          done
+          if (( release_assets_read == 0 )); then
+            echo "::error::$failure_message Failed after $max_attempts attempts."
+            exit 1
+          fi
+
+          mapfile -t release_assets <<< "$release_assets_output"
+          expected_zip_count=0
+          expected_sha256_count=0
+          unexpected_preview_assets=0
+          for asset in "${release_assets[@]}"; do
+            case "$asset" in
+              "$EXPECTED_ZIP")
+                ((expected_zip_count += 1))
+                ;;
+              "$EXPECTED_SHA256")
+                ((expected_sha256_count += 1))
+                ;;
+              *)
+                asset_lowercase="${asset,,}"
+                case "$asset_lowercase" in
+                  docsight-desktop-preview-win64-*)
+                    echo "::error::Published release contains unexpected Windows Preview asset: $asset"
+                    unexpected_preview_assets=1
+                    ;;
+                esac
+                ;;
+            esac
+          done
+
+          if (( expected_zip_count != 1 )); then
+            echo "::error::Published release must contain exactly one expected Windows Preview ZIP: $EXPECTED_ZIP"
+            exit 1
+          fi
+          if (( expected_sha256_count != 1 )); then
+            echo "::error::Published release must contain exactly one expected Windows Preview checksum: $EXPECTED_SHA256"
+            exit 1
+          fi
+          if (( unexpected_preview_assets != 0 )); then
+            exit 1
+          fi
+
+          verification_dir="$(mktemp -d)"
+          trap 'rm -rf -- "$verification_dir"' EXIT
+          if ! gh release download "$TAG_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir "$verification_dir" \
+            --pattern "$EXPECTED_ZIP" \
+            --pattern "$EXPECTED_SHA256"; then
+            echo "::error::Unable to download the expected published Windows Preview assets."
+            exit 1
+          fi
+
+          zip_path="$verification_dir/$EXPECTED_ZIP"
+          checksum_path="$verification_dir/$EXPECTED_SHA256"
+          if [[ ! -f "$zip_path" || ! -f "$checksum_path" ]]; then
+            echo "::error::Downloaded Windows Preview assets are incomplete."
+            exit 1
+          fi
+
+          checksum_line="$(head -n 1 -- "$checksum_path")"
+          read -r expected_hash _ <<< "$checksum_line"
+          if [[ ! "$expected_hash" =~ ^[[:xdigit:]]{64}$ ]]; then
+            echo "::error::Published Windows Preview checksum is empty or invalid."
+            exit 1
+          fi
+
+          actual_hash_output="$(sha256sum -- "$zip_path")"
+          read -r actual_hash _ <<< "$actual_hash_output"
+          if [[ "${actual_hash,,}" != "${expected_hash,,}" ]]; then
+            echo "::error::Published Windows Preview ZIP does not match its published checksum."
+            exit 1
+          fi

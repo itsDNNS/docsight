@@ -13,32 +13,47 @@ Use it for first contact, demos, and short local tests. For reliable 24/7 monito
 | Monitor your line continuously on a machine that stays awake, or after host restarts | Docker Desktop on an always-awake Windows PC, or another always-on Docker host |
 | Run DOCSight on a NAS, mini-PC, server, or homelab | Docker |
 
-## Download and verify
+## Download and start
 
-1. Open the DOCSight [GitHub releases](https://github.com/itsDNNS/docsight/releases).
-2. Download the Windows Desktop Preview ZIP when a release provides one. The asset name uses this shape:
+1. Open the [latest DOCSight release](https://github.com/itsDNNS/docsight/releases/latest).
+2. Under **Assets**, download the unsigned portable Windows Desktop Preview ZIP. Its versioned name uses this shape:
 
    ```text
    DOCSight-Desktop-Preview-win64-<version>.zip
    ```
 
-3. Download the matching `.sha256` file.
-4. In PowerShell, verify the checksum from the folder where you saved the files:
+3. Extract the ZIP to a folder such as `Downloads\DOCSight` or `C:\Tools\DOCSight`.
+4. Start `DOCSight.exe`.
 
-   ```powershell
-   Get-FileHash .\DOCSight-Desktop-Preview-win64-<version>.zip -Algorithm SHA256
-   Get-Content .\DOCSight-Desktop-Preview-win64-<version>.zip.sha256
-   ```
+You do not need a GitHub account for this download path. PowerShell and checksum verification are optional.
 
-   The hash values must match.
-5. Extract the ZIP to a folder such as `Downloads\DOCSight` or `C:\Tools\DOCSight`.
-6. Start `DOCSight.exe`.
+## Optional: verify download integrity
+
+Each Windows Preview ZIP has a matching checksum asset named:
+
+```text
+DOCSight-Desktop-Preview-win64-<version>.zip.sha256
+```
+
+For an optional integrity check, download that file from the same GitHub release. In PowerShell, run these commands from the folder where you saved both files:
+
+```powershell
+$zip = ".\DOCSight-Desktop-Preview-win64-<version>.zip"
+$checksumFile = "$zip.sha256"
+$checksumText = Get-Content -LiteralPath $checksumFile -Raw
+$expectedHash = if ([string]::IsNullOrWhiteSpace($checksumText)) { "" } else { ($checksumText.Trim() -split '\s+', 2)[0] }
+$actualHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+$checksumMatches = [string]::Equals($actualHash, $expectedHash, [System.StringComparison]::OrdinalIgnoreCase)
+$checksumMatches
+```
+
+The final command returns `True` only when the ZIP hash matches the first hash value in the checksum file. SHA-256 is hexadecimal, so uppercase and lowercase letters represent the same hash value and are compared case-insensitively. A matching SHA256 checksum verifies download integrity against the published checksum. It does not verify publisher identity and does not replace a code signature.
 
 ## First start and SmartScreen
 
-The preview is a portable app. Early builds may be unsigned. Windows SmartScreen can therefore show an "unrecognized app" warning even when the checksum matches the release checksum.
+The preview is a portable, unsigned app while signing provider onboarding is pending. Windows SmartScreen can therefore show an "unrecognized app" warning.
 
-If you downloaded DOCSight from the official GitHub release and the SHA256 checksum matches, choose **More info** and then **Run anyway**.
+If you downloaded DOCSight from the official GitHub release and choose to continue, select **More info** and then **Run anyway**.
 
 DOCSight starts a local web app and opens your default browser. The address is local to your PC, normally similar to:
 

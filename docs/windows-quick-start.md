@@ -4,10 +4,10 @@ DOCSight has two Windows paths:
 
 | If you want to... | Start here |
 |---|---|
-| Try DOCSight without Docker | [Desktop Preview for Windows](windows-desktop-preview.md) |
+| Try DOCSight without Docker | [Download the portable Desktop Preview](https://github.com/itsDNNS/docsight/releases/latest), then read the [usage notes](windows-desktop-preview.md) |
 | Monitor your connection continuously | Docker Desktop quick start below |
 
-The Desktop Preview is a portable ZIP for demos and short local tryouts. For 24/7 monitoring, use Docker Desktop or another always-on Docker host.
+The Desktop Preview is an unsigned portable ZIP for demos and short local tryouts. It is published through GitHub Releases. For 24/7 monitoring, use Docker Desktop or another always-on Docker host.
 
 DOCSight runs on Windows through Docker Desktop for continuous monitoring. Docker Desktop provides the Linux container runtime and DOCSight keeps its data in a Docker volume.
 

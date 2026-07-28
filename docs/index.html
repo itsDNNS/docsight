@@ -83,6 +83,7 @@
     h1 { margin: 16px 0 18px; font-size: clamp(2.45rem, 5vw, 4.9rem); line-height: 1; letter-spacing: -0.07em; }
     .lead { margin: 0; color: #d8e2f4; font-size: clamp(1.08rem, 2vw, 1.32rem); max-width: 670px; }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 30px 0 24px; }
+    .preview-boundary { flex: 0 0 100%; max-width: 670px; margin: 0; color: var(--soft); font-size: 0.9rem; }
     .btn {
       display: inline-flex;
       align-items: center;
@@ -208,6 +209,8 @@
           <p class="lead">DOCSight records signal history, speed tests, latency, modem events and your own notes locally, so intermittent cable problems do not disappear into "looks fine from here".</p>
           <div class="hero-actions">
             <a class="btn primary" href="https://github.com/itsDNNS/docsight#option-1-try-the-demo">Try the demo</a>
+            <a class="btn" href="https://github.com/itsDNNS/docsight/releases/latest">Download Windows Preview</a>
+            <p class="preview-boundary">The Windows download is an unsigned portable Preview for short local tests. For continuous monitoring, use Docker on an always-on machine.</p>
             <a class="btn" href="#proof">See example evidence</a>
             <a class="btn" href="https://github.com/itsDNNS/docsight/wiki/Installation">Install DOCSight</a>
           </div>

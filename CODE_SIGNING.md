@@ -53,16 +53,26 @@ with the Windows SDK SignTool:
 signtool verify /pa /v .\DOCSight\DOCSight.exe
 ```
 
-Until then, preview artifacts are unsigned. Download the ZIP and its
-corresponding `.sha256` file from the same release, calculate the ZIP's SHA-256
-digest, and compare the values before use:
+Until then, preview artifacts are unsigned. Each Windows Preview ZIP on the
+official release has a corresponding `.sha256` asset for an optional advanced
+integrity check. Download both files from the same release, then run this
+optional PowerShell comparison from the folder containing them:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\DOCSight-Desktop-Preview-win64-<version>.zip
+$zip = ".\DOCSight-Desktop-Preview-win64-<version>.zip"
+$checksumFile = "$zip.sha256"
+$checksumText = Get-Content -LiteralPath $checksumFile -Raw
+$expectedHash = if ([string]::IsNullOrWhiteSpace($checksumText)) { "" } else { ($checksumText.Trim() -split '\s+', 2)[0] }
+$actualHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+$checksumMatches = [string]::Equals($actualHash, $expectedHash, [System.StringComparison]::OrdinalIgnoreCase)
+$checksumMatches
 ```
 
-A matching checksum verifies download integrity against the published checksum.
-It does not provide publisher authentication or replace a code signature.
+The final command returns `True` only when the ZIP hash matches the first hash
+value in the checksum file. SHA-256 is hexadecimal, so uppercase and lowercase
+letters represent the same hash value and are compared case-insensitively. A
+matching checksum verifies download integrity against the published checksum.
+It does not verify publisher identity or replace a code signature.
 
 ## Privacy and security reporting
 

@@ -72,7 +72,7 @@ packaging/windows/dist/DOCSight-Desktop-Preview-win64-<version>.zip.sha256
 ```
 
 Current preview artifacts are unsigned while provider onboarding is pending.
-Downloaders should verify the preview ZIP against its published `.sha256` file.
+The matching `.sha256` release asset is available for optional integrity checks.
 See the [code signing policy](../../CODE_SIGNING.md) for the onboarding status,
 intended release scope, and verification guidance.
 
@@ -87,7 +87,8 @@ The `Windows Desktop Preview` workflow builds the portable package on
 `windows-latest`, smoke-tests the built `DOCSight.exe` against
 `http://127.0.0.1:<port>/health`, and uploads the ZIP plus `.sha256` as workflow
 artifacts. Published releases also receive the ZIP and checksum as release
-assets.
+assets. Workflow artifacts are CI evidence only. Users download the unsigned
+portable Preview from [GitHub Releases](https://github.com/itsDNNS/docsight/releases/latest).
 
 For local Windows smoke testing after a build:
 

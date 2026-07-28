@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WINDOWS_PACKAGING = ROOT / "packaging" / "windows"
 CODE_SIGNING_POLICY = ROOT / "CODE_SIGNING.md"
+WINDOWS_WORKFLOW = ROOT / ".github" / "workflows" / "windows-desktop.yml"
+
+
+def safe_version_rule(text: str, assignment: str) -> tuple[str, str]:
+    match = re.search(
+        rf"{re.escape(assignment)}.*?-replace\s+"
+        r"'(?P<pattern>[^']+)',\s*'(?P<replacement>[^']*)'",
+        text,
+    )
+    assert match, f"safe-version replacement not found for {assignment}"
+    return match.group("pattern"), match.group("replacement")
 
 
 def test_windows_packaging_files_exist():
@@ -72,6 +84,35 @@ def test_build_script_uses_hash_pinned_requirements_and_creates_zip_hash():
     assert "DOCSight-Desktop-Preview-win64-$SafeVersion.zip" in script
     assert "Compress-Archive -Path $BundleDir" in script
     assert "Get-FileHash -Algorithm SHA256" in script
+
+
+def test_workflow_and_build_script_apply_the_same_versioned_zip_convention():
+    build_script = (WINDOWS_PACKAGING / "build.ps1").read_text(encoding="utf-8")
+    workflow = WINDOWS_WORKFLOW.read_text(encoding="utf-8")
+    build_rule = safe_version_rule(build_script, "return ($Value")
+    workflow_rule = safe_version_rule(workflow, '$safeVersion = "')
+    versions = {
+        "v1.2.3": "v1.2.3",
+        "2026-07-28_rc.1": "2026-07-28_rc.1",
+        "v1.2.3+build 7": "v1.2.3-build-7",
+        "release/1:beta?x": "release-1-beta-x",
+        "ä/1": "--1",
+    }
+
+    for version, expected_safe_version in versions.items():
+        expected_name = (
+            f"DOCSight-Desktop-Preview-win64-{expected_safe_version}.zip"
+        )
+        build_name = (
+            "DOCSight-Desktop-Preview-win64-"
+            f"{re.sub(build_rule[0], build_rule[1], version)}.zip"
+        )
+        workflow_name = (
+            "DOCSight-Desktop-Preview-win64-"
+            f"{re.sub(workflow_rule[0], workflow_rule[1], version)}.zip"
+        )
+        assert build_name == expected_name
+        assert workflow_name == expected_name
 
 
 def test_build_lock_contains_windows_pyinstaller_dependencies():

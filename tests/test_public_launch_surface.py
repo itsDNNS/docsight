@@ -14,6 +14,11 @@ INDEX = DOCS / "index.html"
 README = ROOT / "README.md"
 SECURITY = ROOT / "SECURITY.md"
 DATA_CONTRACT = ROOT / "DATA_CONTRACT.md"
+LATEST_RELEASE_URL = "https://github.com/itsDNNS/docsight/releases/latest"
+PREVIEW_BOUNDARY_COPY = (
+    "The Windows download is an unsigned portable Preview for short local tests. "
+    "For continuous monitoring, use Docker on an always-on machine."
+)
 UNLINKED_PUBLIC_IMAGES = [
     DOCS / "docsight.png",
     DOCS / "screenshots" / "setup.png",
@@ -32,6 +37,10 @@ class LandingParser(HTMLParser):
         self._in_title = False
         self.meta: dict[tuple[str, str], str] = {}
         self.links: list[str] = []
+        self.link_details: list[tuple[str, str, str]] = []
+        self._link_href = ""
+        self._link_class = ""
+        self._link_text: list[str] = []
         self.images: list[str] = []
         self.h1 = ""
         self._h1_depth = 0
@@ -47,6 +56,9 @@ class LandingParser(HTMLParser):
                 self.meta[("property", data["property"])] = data["content"]
         if tag == "a" and data.get("href"):
             self.links.append(data["href"])
+            self._link_href = data["href"]
+            self._link_class = data.get("class", "")
+            self._link_text = []
         if tag == "img" and data.get("src"):
             self.images.append(data["src"])
         if tag == "source" and data.get("srcset"):
@@ -55,6 +67,12 @@ class LandingParser(HTMLParser):
             self._h1_depth = 1
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "a" and self._link_href:
+            label = " ".join("".join(self._link_text).split())
+            self.link_details.append((self._link_href, label, self._link_class))
+            self._link_href = ""
+            self._link_class = ""
+            self._link_text = []
         if tag == "title":
             self._in_title = False
         if tag == "h1":
@@ -63,6 +81,8 @@ class LandingParser(HTMLParser):
     def handle_data(self, data: str) -> None:
         if self._in_title:
             self.title += data
+        if self._link_href:
+            self._link_text.append(data)
         if self._h1_depth:
             self.h1 += data
 
@@ -104,6 +124,32 @@ def test_landing_page_links_to_proof_pack_notes() -> None:
     parser = parse_landing()
 
     assert "https://github.com/itsDNNS/docsight/blob/main/docs/proof-pack.md" in parser.links
+
+
+def test_landing_page_has_visible_styled_windows_preview_release_action() -> None:
+    parser = parse_landing()
+    landing = INDEX.read_text(encoding="utf-8")
+
+    matching_actions = [
+        (label, classes)
+        for href, label, classes in parser.link_details
+        if href == LATEST_RELEASE_URL
+    ]
+
+    assert matching_actions == [("Download Windows Preview", "btn")]
+    preview_entry = re.search(
+        rf'(?s)<div class="hero-actions">\s*'
+        rf'<a class="btn primary" href="[^"]+">Try the demo</a>\s*'
+        rf'<a class="btn" href="{re.escape(LATEST_RELEASE_URL)}">'
+        rf'Download Windows Preview</a>\s*'
+        rf'<p class="preview-boundary">{re.escape(PREVIEW_BOUNDARY_COPY)}</p>\s*'
+        rf'<a class="btn" href="#proof">See example evidence</a>\s*'
+        rf'<a class="btn" href="https://github\.com/itsDNNS/docsight/wiki/Installation">'
+        rf'Install DOCSight</a>\s*'
+        rf'</div>\s*<ul class="trust"',
+        landing,
+    )
+    assert preview_entry
 
 
 def test_landing_page_references_only_existing_local_assets() -> None:
