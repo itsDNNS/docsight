@@ -89,28 +89,6 @@ def _start_server(data_dir, port, admin_password=None, demo_mode=True):
                 web.app.register_blueprint(mod.blueprint)
                 existing.add(mod.blueprint.name)
 
-    # Initialize module storage tables (needed for demo data seeding)
-    try:
-        from app.modules.speedtest.storage import SpeedtestStorage
-        SpeedtestStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.bqm.storage import BqmStorage
-        BqmStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.bnetz.storage import BnetzStorage
-        BnetzStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.journal.storage import JournalStorage
-        JournalStorage(db_path)
-    except ImportError:
-        pass
-
     # Seed demo data via DemoCollector
     event_detector = EventDetector()
     collector = DemoCollector(
@@ -248,22 +226,74 @@ def auth_page(page, auth_server):
 # ── Unconfigured server (setup wizard) ──
 
 
-def _start_unconfigured_server(data_dir, port):
-    """Boot a DOCSight instance that is NOT configured — shows /setup."""
+def _start_unconfigured_server(data_dir, port, desktop_mode=False):
+    """Boot first run with the production runtime in normal or desktop mode."""
     os.environ["DATA_DIR"] = data_dir
     os.environ.pop("DEMO_MODE", None)
+    if desktop_mode:
+        os.environ["DOCSIGHT_DESKTOP_MODE"] = "1"
+    else:
+        os.environ.pop("DOCSIGHT_DESKTOP_MODE", None)
     os.environ["LOG_LEVEL"] = "WARNING"
 
-    from app.config import ConfigManager
     from app import web
+    from app.config import ConfigManager
+    from app.main import polling_loop
+    from app.runtime import RuntimeController
+    from app.storage import SnapshotStorage
 
     cfg = ConfigManager(data_dir)
-    # Do NOT call cfg.save() — leave unconfigured so /setup renders
+    db_path = os.path.join(data_dir, "docsis_history.db")
+    storage = SnapshotStorage(db_path, max_days=7)
+    storage.set_timezone("UTC")
 
-    web.init_config(cfg)
-    web.init_storage(None)
+    web.init_storage(storage)
     web.init_collector(None)
     web.init_collectors([])
+    runtime = RuntimeController(cfg, storage, polling_loop)
+    web.init_config(
+        cfg,
+        on_config_changed=runtime.apply_config_changed,
+        runtime_controller=runtime,
+    )
+
+    from app.module_loader import ModuleLoader
+
+    builtin_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "app", "modules")
+    )
+    module_loader = ModuleLoader(
+        web.app,
+        search_paths=[],
+        disabled_ids=set(),
+        builtin_base_path=builtin_path,
+    )
+    module_loader.load_all()
+    web.init_modules(module_loader)
+    web.setup_module_templates(module_loader)
+
+    existing = {blueprint.name for blueprint in web.app.blueprints.values()}
+    for module in module_loader.get_enabled_modules():
+        if (
+            hasattr(module, "blueprint")
+            and module.blueprint
+            and module.blueprint.name not in existing
+        ):
+            web.app.register_blueprint(module.blueprint)
+            existing.add(module.blueprint.name)
+
+    from flask import jsonify
+
+    def first_run_runtime_status():
+        status = runtime.status()
+        status["demo_ready"] = bool(web.get_state().get("analysis"))
+        return jsonify(status)
+
+    web.app.add_url_rule(
+        "/__runtime-status",
+        endpoint="first_run_runtime_status",
+        view_func=first_run_runtime_status,
+    )
 
     from waitress import serve
 
@@ -272,13 +302,13 @@ def _start_unconfigured_server(data_dir, port):
 
 @pytest.fixture(scope="session")
 def _setup_data_dir(tmp_path_factory):
-    """Session-scoped temp directory for the unconfigured server."""
+    """Session-scoped temp directory for standard Docker-style first run."""
     return str(tmp_path_factory.mktemp("docsight_e2e_setup"))
 
 
 @pytest.fixture(scope="session")
 def setup_server(_setup_data_dir):
-    """Start an unconfigured DOCSight server and return its base URL."""
+    """Start standard first run without the desktop-preview hint."""
     port = _find_free_port()
     proc = _MP_CTX.Process(
         target=_start_unconfigured_server,
@@ -298,8 +328,68 @@ def setup_server(_setup_data_dir):
 def setup_page(page, setup_server):
     """Navigate to the unconfigured server — lands on /setup."""
     page.goto(setup_server)
-    page.wait_for_load_state("networkidle")
+    page.locator("#start-demo-btn").wait_for(state="visible")
     return page
+
+
+@pytest.fixture(scope="session")
+def _desktop_setup_data_dir(tmp_path_factory):
+    """Session-scoped temp directory for explicit desktop-preview first run."""
+    return str(tmp_path_factory.mktemp("docsight_e2e_desktop_setup"))
+
+
+@pytest.fixture(scope="session")
+def desktop_setup_server(_desktop_setup_data_dir):
+    """Start the same first-run runtime with desktop preview enabled."""
+    port = _find_free_port()
+    proc = _MP_CTX.Process(
+        target=_start_unconfigured_server,
+        args=(_desktop_setup_data_dir, port, True),
+        daemon=True,
+    )
+    proc.start()
+    try:
+        _wait_for_server(port)
+        yield f"http://127.0.0.1:{port}"
+    finally:
+        proc.terminate()
+        proc.join(timeout=5)
+
+
+@pytest.fixture()
+def desktop_setup_page(page, desktop_setup_server):
+    """Navigate to the explicit desktop-preview first-run page."""
+    page.goto(desktop_setup_server)
+    page.locator("#start-demo-btn").wait_for(state="visible")
+    return page
+
+
+@pytest.fixture()
+def first_run_instance(tmp_path):
+    """Start a fresh, state-isolated instance for one-click Demo Mode tests."""
+    data_dir = str(tmp_path / "docsight_first_run")
+    port = _find_free_port()
+    proc = _MP_CTX.Process(
+        target=_start_unconfigured_server,
+        args=(data_dir, port),
+        daemon=True,
+    )
+    proc.start()
+    try:
+        _wait_for_server(port)
+        yield {
+            "url": f"http://127.0.0.1:{port}",
+            "data_dir": data_dir,
+        }
+    finally:
+        proc.terminate()
+        proc.join(timeout=5)
+
+
+@pytest.fixture()
+def first_run_server(first_run_instance):
+    """Return the URL of a fresh first-run production-runtime instance."""
+    return first_run_instance["url"]
 
 
 # ── FritzBox server (segment utilization) ──
@@ -349,28 +439,6 @@ def _start_fritzbox_server(data_dir, port):
             if mod.blueprint.name not in existing:
                 web.app.register_blueprint(mod.blueprint)
                 existing.add(mod.blueprint.name)
-
-    # Initialize module storage tables
-    try:
-        from app.modules.speedtest.storage import SpeedtestStorage
-        SpeedtestStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.bqm.storage import BqmStorage
-        BqmStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.bnetz.storage import BnetzStorage
-        BnetzStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.journal.storage import JournalStorage
-        JournalStorage(db_path)
-    except ImportError:
-        pass
 
     # Seed demo data
     event_detector = EventDetector()

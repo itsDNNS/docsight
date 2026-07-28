@@ -1,8 +1,17 @@
 """Tests for Connection Monitor storage layer."""
 
+import sqlite3
 import time
+from datetime import datetime, timezone
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
 import pytest
 
+from app.collectors.demo import (
+    DEMO_CONNECTION_MONITOR_TARGETS,
+    DemoCollector,
+)
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 
 
@@ -51,6 +60,209 @@ class TestTargetCRUD:
 
     def test_get_nonexistent_target(self, storage):
         assert storage.get_target(999) is None
+
+    def test_purge_demo_data_preserves_live_targets_and_samples(self, storage):
+        live_id = storage.create_target("Live", "192.0.2.1")
+        demo_id = storage.create_target("Demo", "198.51.100.1", is_demo=True)
+        now = time.time()
+        storage.save_samples([
+            {
+                "target_id": live_id,
+                "timestamp": now,
+                "latency_ms": 10.0,
+                "timeout": False,
+                "probe_method": "tcp",
+            },
+            {
+                "target_id": demo_id,
+                "timestamp": now,
+                "latency_ms": 20.0,
+                "timeout": False,
+                "probe_method": "tcp",
+            },
+        ])
+        storage.save_trace(
+            live_id,
+            now,
+            "demo-check",
+            [],
+            "demo-route",
+            True,
+            is_demo=True,
+        )
+
+        purged = storage.purge_demo_data()
+
+        assert purged == 2
+        assert storage.get_target(live_id)["is_demo"] == 0
+        assert len(storage.get_samples(live_id)) == 1
+        assert storage.get_traces(live_id) == []
+        assert storage.get_target(demo_id) is None
+        assert storage.get_samples(demo_id) == []
+
+    def test_legacy_demo_schema_is_backfilled_seeded_without_duplicates_and_purged(
+        self, tmp_path, monkeypatch
+    ):
+        db_path = tmp_path / "connection_monitor.db"
+        sample_count = 6
+        interval = 14400
+        start = 1_700_000_000.0
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("""
+                CREATE TABLE connection_targets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    label TEXT NOT NULL,
+                    host TEXT NOT NULL,
+                    enabled BOOLEAN NOT NULL DEFAULT 1,
+                    poll_interval_ms INTEGER NOT NULL DEFAULT 5000,
+                    probe_method TEXT NOT NULL DEFAULT 'auto',
+                    tcp_port INTEGER NOT NULL DEFAULT 443,
+                    created_at REAL NOT NULL
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE connection_samples (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    target_id INTEGER NOT NULL,
+                    timestamp REAL NOT NULL,
+                    latency_ms REAL,
+                    timeout BOOLEAN NOT NULL DEFAULT 0,
+                    probe_method TEXT NOT NULL,
+                    FOREIGN KEY (target_id) REFERENCES connection_targets(id)
+                        ON DELETE CASCADE
+                )
+            """)
+            for offset, (name, label, host) in enumerate(
+                DEMO_CONNECTION_MONITOR_TARGETS
+            ):
+                target_id = conn.execute(
+                    """
+                    INSERT INTO connection_targets
+                        (label, host, enabled, poll_interval_ms, probe_method,
+                         tcp_port, created_at)
+                    VALUES (?, ?, 1, 5000, 'auto', 443, ?)
+                    """,
+                    (label, host, 1000.0 + offset / 10),
+                ).lastrowid
+                rows = []
+                for index in range(sample_count):
+                    timeout = name != "gateway" and index == 2
+                    latency = None if timeout else (
+                        150.0 if name != "gateway" and index == 4
+                        else 1.5 if name == "gateway"
+                        else 15.0
+                    )
+                    rows.append(
+                        (
+                            target_id,
+                            start + index * interval,
+                            latency,
+                            timeout,
+                            "tcp",
+                        )
+                    )
+                conn.executemany(
+                    """
+                    INSERT INTO connection_samples
+                        (target_id, timestamp, latency_ms, timeout, probe_method)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    rows,
+                )
+
+        migrated = ConnectionMonitorStorage(str(db_path))
+        live_id = migrated.create_target("User target", "192.0.2.2")
+        assert {row["is_demo"] for row in migrated.get_targets()} == {0}
+
+        monkeypatch.setattr(
+            "app.collectors.demo.DEMO_CONNECTION_MONITOR_DAYS", 1
+        )
+        monkeypatch.setattr(
+            "app.collectors.demo.DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS",
+            interval,
+        )
+        collector = DemoCollector(
+            analyzer_fn=MagicMock(),
+            event_detector=MagicMock(),
+            storage=SimpleNamespace(
+                db_path=str(tmp_path / "docsis_history.db"),
+                max_days=7,
+            ),
+            mqtt_pub=None,
+            web=MagicMock(),
+            poll_interval=300,
+        )
+
+        collector._seed_connection_monitor_data(datetime.now(timezone.utc))
+
+        targets = migrated.get_targets()
+        assert migrated.get_target(live_id)["is_demo"] == 0
+        assert len(targets) == 4
+        for _name, label, host in DEMO_CONNECTION_MONITOR_TARGETS:
+            matches = [
+                target
+                for target in targets
+                if target["label"] == label and target["host"] == host
+            ]
+            assert len(matches) == 1
+            assert matches[0]["is_demo"] == 1
+
+        assert migrated.purge_demo_data() == 8
+        assert migrated.get_targets() == [migrated.get_target(live_id)]
+        with migrated._connect() as conn:
+            assert conn.execute(
+                "SELECT COUNT(*) FROM connection_samples"
+            ).fetchone()[0] == 0
+
+    def test_partial_legacy_target_set_is_preserved_as_user_data(self, storage):
+        gateway = storage.create_target("Gateway", "192.168.178.1")
+        storage.save_samples([
+            {
+                "target_id": gateway,
+                "timestamp": 1000.0 + index * 10,
+                "latency_ms": 1.5,
+                "timeout": False,
+                "probe_method": "tcp",
+            }
+            for index in range(6)
+        ])
+
+        updated = storage.backfill_legacy_demo_provenance(
+            DEMO_CONNECTION_MONITOR_TARGETS,
+            expected_sample_count=6,
+            interval_seconds=10,
+        )
+
+        assert updated == 0
+        assert storage.get_target(gateway)["is_demo"] == 0
+        assert len(storage.get_samples(gateway)) == 6
+
+    def test_complete_metadata_with_non_synthetic_samples_is_preserved(self, storage):
+        target_ids = {}
+        for name, label, host in DEMO_CONNECTION_MONITOR_TARGETS:
+            target_ids[name] = storage.create_target(label, host)
+            storage.save_samples([
+                {
+                    "target_id": target_ids[name],
+                    "timestamp": 1000.0 + index * 11,
+                    "latency_ms": 1.5 if name == "gateway" else 15.0,
+                    "timeout": False,
+                    "probe_method": "tcp",
+                }
+                for index in range(6)
+            ])
+
+        updated = storage.backfill_legacy_demo_provenance(
+            DEMO_CONNECTION_MONITOR_TARGETS,
+            expected_sample_count=6,
+            interval_seconds=10,
+        )
+
+        assert updated == 0
+        assert all(
+            storage.get_target(target_id)["is_demo"] == 0
+            for target_id in target_ids.values()
+        )
 
 
 class TestSamples:

@@ -1,0 +1,28 @@
+{% if demo_mode %}
+<section class="demo-mode-banner" id="demo-mode-banner" aria-labelledby="demo-mode-banner-title">
+    <div class="demo-mode-banner-icon" aria-hidden="true">
+        <i data-lucide="flask-conical"></i>
+    </div>
+    <div class="demo-mode-banner-copy">
+        <strong id="demo-mode-banner-title">{{ t.demo_banner_title }}</strong>
+        <span>{{ t.demo_banner_body }}</span>
+        <span class="demo-mode-banner-status" id="demo-mode-banner-status" role="status" aria-live="polite" aria-atomic="true"></span>
+    </div>
+    <div class="demo-mode-banner-actions">
+        {% if demo_mode_locked %}
+        <span class="demo-mode-banner-managed" role="status">
+            <i data-lucide="lock" aria-hidden="true"></i>
+            {{ t.demo_banner_managed }}
+        </span>
+        {% else %}
+        <button type="button" class="btn btn-primary" data-demo-action="connect" onclick="exitDemoMode('connect')">
+            <i data-lucide="radio" aria-hidden="true"></i>
+            {{ t.demo_banner_connect }}
+        </button>
+        <button type="button" class="btn btn-ghost" data-demo-action="exit" onclick="exitDemoMode('exit')">
+            {{ t.demo_banner_exit }}
+        </button>
+        {% endif %}
+    </div>
+</section>
+{% endif %}

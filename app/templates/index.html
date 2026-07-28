@@ -285,6 +285,7 @@
 
 <!-- Main Area -->
 <main class="app-main">
+{% include 'includes/demo_banner.html' %}
 
 <!-- ═══ View: Dashboard ═══ -->
 <div class="main-content">
@@ -3416,6 +3417,7 @@ var CORRELATION_CM_AVAILABLE = {{ (connection_monitor_installed|length > 0)|tojs
 <script src="/static/js/events.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/utils.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/notices.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/demo-mode.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/speedtest.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/correlation.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/segment-utilization.js?v={{ version|urlencode }}"></script>

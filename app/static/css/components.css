@@ -126,6 +126,99 @@ body {
   letter-spacing: 0.06em;
 }
 
+/* ── Demo Mode Banner ── */
+.demo-mode-banner {
+  position: relative;
+  z-index: 28;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid color-mix(in srgb, var(--warn) 28%, var(--glass-border));
+  background: color-mix(in srgb, var(--warn) 9%, var(--void-deep));
+}
+.demo-mode-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--warn-muted);
+  color: var(--warn);
+}
+.demo-mode-banner-icon svg { width: 18px; height: 18px; }
+.demo-mode-banner-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-xs);
+  min-width: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.demo-mode-banner-copy strong {
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+.demo-mode-banner-status {
+  width: 100%;
+  min-height: 0;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+.demo-mode-banner-status:empty { display: none; }
+.demo-mode-banner-status.error { color: var(--crit); }
+.demo-mode-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.demo-mode-banner-actions .btn {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+}
+.demo-mode-banner-managed {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  max-width: 30rem;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.demo-mode-banner-managed svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--warn);
+}
+@media (max-width: 700px) {
+  .demo-mode-banner {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .demo-mode-banner-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .demo-mode-banner-actions .btn {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+  }
+  .demo-mode-banner-managed {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+}
+
 /* ── Status Dots ── */
 .status-dot {
   width: 8px; height: 8px;

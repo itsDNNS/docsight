@@ -501,6 +501,7 @@ class TestDesktopCorrelationLayout:
         page.wait_for_selector("#correlation-table-card", state="visible")
         page.wait_for_selector("#correlation-tbody tr[data-ts]")
         page.locator("#correlation-table-wrap").evaluate("wrap => { wrap.style.maxHeight = '96px'; }")
+        page.locator("#correlation-table thead th").first.scroll_into_view_if_needed()
 
         header_state = page.locator("#correlation-table thead th").first.evaluate(
             r"""

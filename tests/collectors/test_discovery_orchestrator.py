@@ -69,6 +69,33 @@ class TestDiscoverCollectors:
         web.get_module_loader.return_value = module_loader
         return web
 
+    @patch("app.collectors.DemoCollector")
+    def test_demo_discovers_only_local_demo_collector(self, mock_demo_cls):
+        from app.collectors import discover_collectors
+
+        config_mgr = self._make_config_mgr()
+        config_mgr.is_demo_mode.return_value = True
+        demo_collector = MagicMock()
+        demo_collector.name = "demo"
+        mock_demo_cls.return_value = demo_collector
+        module_collector_cls = MagicMock()
+        web = self._make_web_with_modules([
+            (module_collector_cls, "docsight.weather"),
+        ])
+
+        collectors = discover_collectors(
+            config_mgr,
+            self._make_storage(),
+            MagicMock(),
+            None,
+            web,
+            MagicMock(),
+        )
+
+        assert collectors == [demo_collector]
+        web.get_module_loader.assert_not_called()
+        module_collector_cls.assert_not_called()
+
     @patch("app.drivers.driver_registry.load_driver")
     def test_discover_returns_modem_plus_modules(self, mock_load):
         from app.collectors import discover_collectors

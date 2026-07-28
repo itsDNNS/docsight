@@ -240,6 +240,7 @@ class DemoCollector(Collector):
 
     def _seed_demo_data(self):
         """Populate storage with 9 months of snapshots, events, journal, speedtest, and BQM."""
+        self._initialize_module_storages()
         # Purge any existing demo data first (handles container rebuilds with persisted volume)
         self._storage.purge_demo_data()
         # Keep all demo data — don't let cleanup purge the seeded history
@@ -254,6 +255,21 @@ class DemoCollector(Collector):
         self._seed_bnetz_measurements(now)
         self._seed_weather_data(now)
         self._seed_connection_monitor_data(now)
+
+    def _initialize_module_storages(self):
+        """Create and migrate every module table populated by the demo seed."""
+        from app.modules.bnetz.storage import BnetzStorage
+        from app.modules.bqm.storage import BqmStorage
+        from app.modules.journal.storage import JournalStorage
+        from app.modules.speedtest.storage import SpeedtestStorage
+        from app.modules.weather.storage import WeatherStorage
+
+        db_path = self._storage.db_path
+        SpeedtestStorage(db_path)
+        BqmStorage(db_path)
+        BnetzStorage(db_path)
+        WeatherStorage(db_path)
+        JournalStorage(db_path)
 
     def _seed_history(self, now):
         """Generate 9 months of historical snapshots (every 15 min)."""
@@ -1005,13 +1021,22 @@ class DemoCollector(Collector):
         cm_db = os.path.join(data_dir, "connection_monitor.db")
         cm = ConnectionMonitorStorage(cm_db)
 
-        # Purge existing demo targets/samples
-        with cm._connect() as conn:
-            conn.execute("DELETE FROM connection_samples")
-            conn.execute("DELETE FROM connection_targets")
+        cm.backfill_legacy_demo_provenance(
+            DEMO_CONNECTION_MONITOR_TARGETS,
+            expected_sample_count=(
+                DEMO_CONNECTION_MONITOR_DAYS
+                * 86400
+                // DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS
+            ),
+            interval_seconds=DEMO_CONNECTION_MONITOR_INTERVAL_SECONDS,
+        )
+
+        # Purge only rows owned by an earlier demo seed. Live targets and their
+        # samples must survive demo refreshes and the later migration to live.
+        cm.purge_demo_data()
 
         target_ids = {
-            name: cm.create_target(label, host)
+            name: cm.create_target(label, host, is_demo=True)
             for name, label, host in DEMO_CONNECTION_MONITOR_TARGETS
         }
 

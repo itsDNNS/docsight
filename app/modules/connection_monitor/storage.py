@@ -37,9 +37,18 @@ class ConnectionMonitorStorage:
                     poll_interval_ms INTEGER NOT NULL DEFAULT 5000,
                     probe_method TEXT NOT NULL DEFAULT 'auto',
                     tcp_port INTEGER NOT NULL DEFAULT 443,
-                    created_at REAL NOT NULL
+                    created_at REAL NOT NULL,
+                    is_demo INTEGER NOT NULL DEFAULT 0
                 )
             """)
+            target_columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(connection_targets)")
+            }
+            if "is_demo" not in target_columns:
+                conn.execute(
+                    "ALTER TABLE connection_targets "
+                    "ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0"
+                )
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS connection_samples (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -152,13 +161,24 @@ class ConnectionMonitorStorage:
         poll_interval_ms: int = 5000,
         probe_method: str = "auto",
         tcp_port: int = 443,
+        is_demo: bool = False,
     ) -> int:
         with self._connect() as conn:
             cur = conn.execute(
                 """INSERT INTO connection_targets
-                   (label, host, enabled, poll_interval_ms, probe_method, tcp_port, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (label, host, enabled, poll_interval_ms, probe_method, tcp_port, time.time()),
+                   (label, host, enabled, poll_interval_ms, probe_method,
+                    tcp_port, created_at, is_demo)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    label,
+                    host,
+                    enabled,
+                    poll_interval_ms,
+                    probe_method,
+                    tcp_port,
+                    time.time(),
+                    int(is_demo),
+                ),
             )
             return cur.lastrowid
 
@@ -646,9 +666,145 @@ class ConnectionMonitorStorage:
             else:
                 conn.execute("DELETE FROM traceroute_traces WHERE timestamp < ?", (cutoff,))
 
-    def purge_demo_traces(self):
+    def backfill_legacy_demo_provenance(
+        self,
+        expected_targets,
+        *,
+        expected_sample_count: int,
+        interval_seconds: int,
+    ) -> int:
+        """Mark the complete legacy demo target set after a strong data match.
+
+        This is intentionally opt-in: callers invoke it only while handling an
+        already active demo lifecycle. Target metadata, creation timing, the
+        complete synthetic timestamp grid, and latency/loss characteristics
+        must all match before any row is relabeled.
+        """
+        expected_targets = tuple(expected_targets)
+        if (
+            len(expected_targets) < 2
+            or expected_sample_count <= 1
+            or interval_seconds <= 0
+        ):
+            return 0
+
         with self._connect() as conn:
-            conn.execute("DELETE FROM traceroute_traces WHERE is_demo = 1")
+            matched = {}
+            for name, label, host in expected_targets:
+                rows = conn.execute(
+                    """
+                    SELECT id, created_at
+                    FROM connection_targets
+                    WHERE is_demo = 0
+                      AND label = ?
+                      AND host = ?
+                      AND enabled = 1
+                      AND poll_interval_ms = 5000
+                      AND probe_method = 'auto'
+                      AND tcp_port = 443
+                    """,
+                    (label, host),
+                ).fetchall()
+                if len(rows) != 1:
+                    return 0
+                matched[name] = rows[0]
+
+            target_ids = [row["id"] for row in matched.values()]
+            if len(set(target_ids)) != len(expected_targets):
+                return 0
+
+            created_values = [row["created_at"] for row in matched.values()]
+            if max(created_values) - min(created_values) > 5:
+                return 0
+
+            common_timestamps = None
+            for name, row in matched.items():
+                samples = conn.execute(
+                    """
+                    SELECT timestamp
+                    FROM connection_samples
+                    WHERE target_id = ?
+                    ORDER BY timestamp
+                    LIMIT ?
+                    """,
+                    (row["id"], expected_sample_count),
+                ).fetchall()
+                timestamps = tuple(sample["timestamp"] for sample in samples)
+                if len(timestamps) != expected_sample_count:
+                    return 0
+                if any(
+                    abs((current - previous) - interval_seconds) > 0.001
+                    for previous, current in zip(timestamps, timestamps[1:])
+                ):
+                    return 0
+                if common_timestamps is None:
+                    common_timestamps = timestamps
+                elif timestamps != common_timestamps:
+                    return 0
+
+                summary = conn.execute(
+                    """
+                    SELECT
+                        COUNT(*) AS sample_count,
+                        COUNT(DISTINCT timestamp) AS distinct_timestamps,
+                        SUM(CASE WHEN timeout = 1 THEN 1 ELSE 0 END) AS timeouts,
+                        MIN(latency_ms) AS min_latency,
+                        MAX(latency_ms) AS max_latency,
+                        SUM(CASE WHEN probe_method != 'tcp' THEN 1 ELSE 0 END)
+                            AS other_methods
+                    FROM connection_samples
+                    WHERE target_id = ?
+                      AND timestamp >= ?
+                      AND timestamp <= ?
+                    """,
+                    (row["id"], timestamps[0], timestamps[-1]),
+                ).fetchone()
+                if (
+                    summary["sample_count"] != expected_sample_count
+                    or summary["distinct_timestamps"] != expected_sample_count
+                    or summary["other_methods"] != 0
+                ):
+                    return 0
+                if name == "gateway":
+                    if (
+                        summary["timeouts"] != 0
+                        or summary["min_latency"] < 0.79
+                        or summary["max_latency"] > 3.01
+                    ):
+                        return 0
+                elif (
+                    summary["timeouts"] <= 0
+                    or summary["max_latency"] is None
+                    or summary["max_latency"] < 100
+                ):
+                    return 0
+
+            placeholders = ", ".join("?" for _ in target_ids)
+            updated = conn.execute(
+                f"""
+                UPDATE connection_targets
+                SET is_demo = 1
+                WHERE is_demo = 0 AND id IN ({placeholders})
+                """,
+                target_ids,
+            ).rowcount
+            if updated:
+                logger.info(
+                    "Marked %d legacy Connection Monitor demo targets",
+                    updated,
+                )
+            return updated
+
+    def purge_demo_data(self) -> int:
+        """Delete demo-owned targets and traces while preserving live data."""
+        with self._connect() as conn:
+            traces = conn.execute(
+                "DELETE FROM traceroute_traces WHERE is_demo = 1"
+            ).rowcount
+            targets = conn.execute(
+                "DELETE FROM connection_targets WHERE is_demo = 1"
+            ).rowcount
+            return traces + targets
 
     # --- Retention ---
 

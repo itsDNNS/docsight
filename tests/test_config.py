@@ -2,6 +2,9 @@
 
 import json
 import os
+from pathlib import Path
+from unittest.mock import Mock
+
 import pytest
 from app.config import ConfigManager, DEFAULTS, SECRET_KEYS, HASH_KEYS, PASSWORD_MASK, URL_KEYS
 
@@ -14,6 +17,22 @@ def tmp_data_dir(tmp_path):
 @pytest.fixture
 def config(tmp_data_dir):
     return ConfigManager(tmp_data_dir)
+
+
+def test_config_save_keeps_atomic_replace_when_chmod_is_unsupported(
+    tmp_path, monkeypatch
+):
+    config = ConfigManager(str(tmp_path / "chmod-unsupported"))
+    monkeypatch.setattr(
+        "app.config.os.chmod",
+        Mock(side_effect=OSError("operation not supported")),
+    )
+
+    config.save({"language": "de"})
+
+    assert config.get("language") == "de"
+    persisted = json.loads(Path(config.config_path).read_text(encoding="utf-8"))
+    assert persisted["language"] == "de"
 
 
 class TestConfigDefaults:

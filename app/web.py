@@ -490,6 +490,7 @@ _state = {
 _storage = None
 _config_manager = None
 _on_config_changed = None
+_runtime_controller = None
 _modem_collector = None
 _collectors = []
 _last_manual_poll = 0.0
@@ -531,6 +532,11 @@ def _get_dismissed_notice_ids():
 def get_on_config_changed():
     """Get the config changed callback."""
     return _on_config_changed
+
+
+def get_runtime_controller():
+    """Get the polling runtime controller, when initialized by the entrypoint."""
+    return _runtime_controller
 
 
 def get_last_manual_poll():
@@ -654,11 +660,12 @@ def _session_lifetime_days():
     return max(_SESSION_LIFETIME_MIN_DAYS, min(_SESSION_LIFETIME_MAX_DAYS, days))
 
 
-def init_config(config_manager, on_config_changed=None):
-    """Set the config manager and optional change callback."""
-    global _config_manager, _on_config_changed
+def init_config(config_manager, on_config_changed=None, runtime_controller=None):
+    """Set config state, its change callback, and optional runtime owner."""
+    global _config_manager, _on_config_changed, _runtime_controller
     _config_manager = config_manager
     _on_config_changed = on_config_changed
+    _runtime_controller = runtime_controller
     _init_session_key(config_manager.data_dir)
     _init_auth_state()
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=_session_lifetime_days())
@@ -1618,6 +1625,9 @@ def index():
         has_us_ofdma=_has_us_ofdma(analysis),
         device_info=dev_info,
         demo_mode=demo_mode,
+        demo_mode_locked=bool(
+            _config_manager and _config_manager.is_demo_mode_forced()
+        ),
         gaming_quality_enabled=gaming_quality_enabled,
         segment_utilization_enabled=segment_utilization_enabled,
         gaming_index=gaming_index,
@@ -1735,6 +1745,9 @@ def settings():
         modem_types=modem_types,
         driver_hints=driver_hints,
         demo_mode=demo_mode,
+        demo_mode_locked=bool(
+            _config_manager and _config_manager.is_demo_mode_forced()
+        ),
         timezones=_get_iana_timezones(),
         iana_tz=iana_tz,
         tz_is_posix=tz_is_posix,

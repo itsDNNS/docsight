@@ -71,16 +71,6 @@ def _apply_timezone(cfg):
             time.tzset()
 
 
-def _handle_config_changed(config_mgr, storage, start_polling):
-    """Reload config and apply runtime changes after a web UI save."""
-    log.info("Configuration changed, restarting polling loop")
-    config_mgr._load()
-    _apply_timezone(config_mgr)
-    storage.max_days = config_mgr.get("history_days", 7)
-    if config_mgr.is_configured():
-        start_polling()
-
-
 def _get_modem_config_key(config_mgr):
     """Return modem config tuple for driver hot-swap change detection."""
     return (
@@ -360,13 +350,15 @@ def polling_loop(config_mgr, storage, stop_event):
 
             stop_event.wait(1)
     finally:
-        executor.shutdown(wait=False, cancel_futures=True)
         for c in collectors:
             if hasattr(c, "stop"):
                 try:
                     c.stop()
                 except Exception:
                     pass
+        # A runtime transition must not return while collector work from the
+        # previous configuration can still mutate storage or web state.
+        executor.shutdown(wait=True, cancel_futures=True)
 
     # Cleanup MQTT
     if mqtt_pub:
@@ -394,28 +386,14 @@ def main():
 
     web.init_storage(storage)
 
-    # Polling thread management
-    poll_thread = None
-    poll_stop = None
+    from .runtime import RuntimeController
 
-    def start_polling():
-        nonlocal poll_thread, poll_stop
-        if poll_thread and poll_thread.is_alive():
-            poll_stop.set()
-            poll_thread.join(timeout=10)
-        web.reset_modem_state()
-        poll_stop = threading.Event()
-        poll_thread = threading.Thread(
-            target=polling_loop, args=(config_mgr, storage, poll_stop), daemon=True
-        )
-        poll_thread.start()
-        log.info("Polling loop started")
-
-    def on_config_changed():
-        """Called when config is saved via web UI."""
-        _handle_config_changed(config_mgr, storage, start_polling)
-
-    web.init_config(config_mgr, on_config_changed)
+    runtime = RuntimeController(config_mgr, storage, polling_loop)
+    web.init_config(
+        config_mgr,
+        on_config_changed=runtime.apply_config_changed,
+        runtime_controller=runtime,
+    )
 
     # Module system
     from .module_loader import ModuleLoader
@@ -461,7 +439,7 @@ def main():
 
     # Start polling if already configured
     if config_mgr.is_configured():
-        start_polling()
+        runtime.start_polling()
     else:
         log.info("Not configured yet - open http://localhost:%d for setup", web_port)
 
@@ -471,8 +449,7 @@ def main():
             time.sleep(60)
     except KeyboardInterrupt:
         log.info("Shutting down")
-        if poll_stop:
-            poll_stop.set()
+        runtime.shutdown()
 
 
 if __name__ == "__main__":

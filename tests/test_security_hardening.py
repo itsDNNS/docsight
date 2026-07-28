@@ -190,6 +190,12 @@ class TestCommunityRouteProtection:
         blocked = any(test_route.startswith(p) for p in _PROTECTED_API_PREFIXES)
         assert blocked is True
 
+    def test_api_demo_prefix_protected(self):
+        from app.module_loader import _PROTECTED_API_PREFIXES
+        test_route = "/api/demo/start"
+        blocked = any(test_route.startswith(p) for p in _PROTECTED_API_PREFIXES)
+        assert blocked is True
+
     def test_module_api_route_allowed(self):
         """Module-specific API routes like /api/weather/... should be allowed."""
         from app.module_loader import _PROTECTED_ROUTES, _PROTECTED_API_PREFIXES

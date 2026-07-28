@@ -120,6 +120,12 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             if segment_collector.is_enabled():
                 collectors.append(segment_collector)
 
+    # Demo data for built-in module views is seeded locally by DemoCollector.
+    # Do not start integration collectors here: some of them perform outbound
+    # requests even when their visible data is already supplied by the demo.
+    if config_mgr.is_demo_mode():
+        return collectors
+
     # ── Module collectors ──
     module_loader = web.get_module_loader() if hasattr(web, 'get_module_loader') else None
     if module_loader:

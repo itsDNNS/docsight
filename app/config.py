@@ -4,6 +4,9 @@ import json
 import logging
 import os
 import stat
+import threading
+from copy import deepcopy
+from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from cryptography.fernet import Fernet
@@ -223,6 +226,14 @@ _ALLOWED_URL_SCHEMES = {"http", "https"}
 _NON_EMPTY_KEYS = set()
 
 
+@dataclass(frozen=True)
+class ConfigSnapshot:
+    """Exact persisted state used to roll back a failed runtime transition."""
+
+    existed: bool
+    values: dict
+
+
 class ConfigManager:
     """Loads config from config.json, env vars override file values.
     Passwords are encrypted at rest using Fernet (AES-128-CBC)."""
@@ -300,6 +311,47 @@ class ConfigManager:
             except Exception as e:
                 log.warning("Failed to save migrated config: %s", e)
 
+    def snapshot(self) -> ConfigSnapshot:
+        """Capture raw encrypted values without exposing effective secrets."""
+        return ConfigSnapshot(
+            existed=os.path.exists(self.config_path),
+            values=deepcopy(self._file_config),
+        )
+
+    def restore(self, snapshot: ConfigSnapshot) -> None:
+        """Restore a previously captured persisted and in-memory config."""
+        self._file_config = deepcopy(snapshot.values)
+        if snapshot.existed:
+            self._write_file_config()
+            return
+        try:
+            os.unlink(self.config_path)
+        except FileNotFoundError:
+            pass
+
+    def _write_file_config(self) -> None:
+        """Atomically persist the current raw config with private permissions."""
+        temp_path = (
+            f"{self.config_path}.tmp-{os.getpid()}-{threading.get_ident()}"
+        )
+        try:
+            with open(temp_path, "w") as f:
+                json.dump(self._file_config, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            try:
+                os.chmod(temp_path, stat.S_IRUSR | stat.S_IWUSR)
+            except OSError:
+                # Some mounted/network filesystems reject chmod even though
+                # the atomic write and replace are supported.
+                pass
+            os.replace(temp_path, self.config_path)
+        finally:
+            try:
+                os.unlink(temp_path)
+            except FileNotFoundError:
+                pass
+
     def _get_default_disabled_modules(self):
         """Keep existing Smokeping setups active while new installs default it off."""
         if self._file_config.get("smokeping_url") and self._file_config.get("smokeping_targets"):
@@ -366,6 +418,7 @@ class ConfigManager:
     def save(self, data):
         """Save config values to config.json. Passwords are encrypted."""
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+        previous = deepcopy(self._file_config)
 
         # Validate URL keys before any mutation
         for key in URL_KEYS:
@@ -400,30 +453,31 @@ class ConfigManager:
             if key in data and not data[key]:
                 data[key] = DEFAULTS[key]
 
-        # Merge with existing config
-        self._file_config.update(data)
-
-        # Cast int keys
-        for key in INT_KEYS:
-            if key in self._file_config:
-                try:
-                    self._file_config[key] = int(self._file_config[key])
-                except (ValueError, TypeError):
-                    pass
-
-        # Cast bool keys
-        for key in BOOL_KEYS:
-            if key in self._file_config:
-                val = self._file_config[key]
-                if isinstance(val, str):
-                    self._file_config[key] = val.lower() in ("true", "1", "yes", "on")
-
-        with open(self.config_path, "w") as f:
-            json.dump(self._file_config, f, indent=2)
         try:
-            os.chmod(self.config_path, stat.S_IRUSR | stat.S_IWUSR)
-        except OSError:
-            pass
+            # Merge with existing config
+            self._file_config.update(data)
+
+            # Cast int keys
+            for key in INT_KEYS:
+                if key in self._file_config:
+                    try:
+                        self._file_config[key] = int(self._file_config[key])
+                    except (ValueError, TypeError):
+                        pass
+
+            # Cast bool keys
+            for key in BOOL_KEYS:
+                if key in self._file_config:
+                    val = self._file_config[key]
+                    if isinstance(val, str):
+                        self._file_config[key] = val.lower() in (
+                            "true", "1", "yes", "on"
+                        )
+
+            self._write_file_config()
+        except Exception:
+            self._file_config = previous
+            raise
         log.info("Config saved to %s", self.config_path)
 
     def is_configured(self):
@@ -435,6 +489,14 @@ class ConfigManager:
     def is_demo_mode(self):
         """True if DEMO_MODE is enabled."""
         return bool(self.get("demo_mode"))
+
+    def is_demo_mode_forced(self):
+        """True when an active environment override keeps Demo Mode enabled."""
+        value = os.environ.get(ENV_MAP["demo_mode"])
+        return bool(
+            value
+            and value.strip().lower() in ("true", "1", "yes", "on")
+        )
 
     def is_update_check_enabled(self):
         """True if release update checks against GitHub are enabled."""

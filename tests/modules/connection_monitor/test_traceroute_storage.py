@@ -140,17 +140,6 @@ class TestTracerouteStorage:
 
         assert storage.get_trace_hops(trace_id) == []
 
-    def test_purge_demo_traces(self, storage):
-        """purge_demo_traces should delete is_demo=1 rows, keep is_demo=0."""
-        tid = storage.create_target("Test", "1.1.1.1")
-        demo_id = storage.save_trace(tid, time.time(), "demo", _make_hops(1), "fp1", True, is_demo=True)
-        real_id = storage.save_trace(tid, time.time(), "manual", _make_hops(1), "fp2", True, is_demo=False)
-
-        storage.purge_demo_traces()
-
-        assert storage.get_trace(demo_id) is None
-        assert storage.get_trace(real_id) is not None
-
     def test_empty_trace_list(self, storage):
         """No traces for a target should return an empty list."""
         tid = storage.create_target("Test", "1.1.1.1")

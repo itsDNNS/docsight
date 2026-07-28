@@ -35,29 +35,48 @@
 
 <!-- Header -->
 <div class="setup-header">
-    <h1 class="setup-title">{{ t.initial_setup }}</h1>
-    <p class="setup-subtitle">{{ t.setup_welcome }}</p>
+    <h1 class="setup-title">{{ t.first_run_title }}</h1>
+    <p class="setup-subtitle">{{ t.first_run_intro }}</p>
 </div>
 
-<!-- Start Choice -->
+<!-- Value-led first-run choice -->
 <div id="setup-start" class="step-content active">
-    <div class="choice-grid">
-        <div class="choice-card glass" onclick="startFreshSetup()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-            <div class="card-icon purple">
-                <i data-lucide="settings"></i>
-            </div>
-            <div class="card-title">{{ t.setup_fresh }}</div>
-            <div class="card-desc">{{ t.setup_fresh_desc }}</div>
+    <section class="first-run-card glass" aria-labelledby="first-run-demo-heading">
+        <div class="first-run-icon" aria-hidden="true">
+            <i data-lucide="bar-chart-3"></i>
         </div>
-        <div class="choice-card glass" onclick="startRestore()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-            <div class="card-icon blue">
-                <i data-lucide="archive-restore"></i>
-            </div>
-            <div class="card-title">{{ t.setup_restore }}</div>
-            <div class="card-desc">{{ t.setup_restore_desc }}</div>
+        <div class="first-run-content">
+            <h2 id="first-run-demo-heading">{{ t.first_run_demo_title }}</h2>
+            <p>{{ t.first_run_demo_desc }}</p>
+            <button type="button" class="btn btn-primary first-run-primary" id="start-demo-btn" data-demo-ready-timeout-ms="45000" onclick="activateDemo()">
+                <i data-lucide="play" class="setup-icon-sm"></i>
+                {{ t.first_run_demo_button }}
+            </button>
+            <div class="first-run-status" id="demo-start-status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1" hidden></div>
+            <p class="first-run-trust">
+                <i data-lucide="shield" class="setup-icon-sm" aria-hidden="true"></i>
+                <span>{{ t.first_run_local_trust }}</span>
+            </p>
         </div>
+    </section>
+
+    <div class="first-run-alternatives" role="group" aria-label="{{ t.first_run_other_options }}">
+        <button type="button" class="btn btn-ghost" id="connect-modem-btn" onclick="startFreshSetup()">
+            <i data-lucide="radio" class="setup-icon-sm"></i>
+            {{ t.first_run_connect_button }}
+        </button>
+        <button type="button" class="setup-text-action" id="restore-backup-btn" onclick="startRestore()">
+            <i data-lucide="archive-restore" class="setup-icon-sm"></i>
+            {{ t.first_run_restore_button }}
+        </button>
     </div>
-    <p class="setup-subtitle">{{ t.setup_start_desc }}</p>
+
+    {% if desktop_mode %}
+    <aside class="desktop-preview-first-run">
+        <i data-lucide="settings" class="setup-icon-sm" aria-hidden="true"></i>
+        <span>{{ t.desktop_preview_first_run }}</span>
+    </aside>
+    {% endif %}
 </div>
 
 <!-- Restore UI -->
@@ -174,7 +193,17 @@
                     <i data-lucide="wifi" class="setup-icon-sm"></i>
                     {{ t.test_connection }}
                 </button>
-                <div class="test-result" id="test-result"></div>
+                <div class="test-result" id="test-result" role="status" aria-live="polite"></div>
+                <div class="setup-recovery-actions" id="test-connection-recovery" hidden>
+                    <button type="button" class="btn btn-ghost" onclick="testConnection()">
+                        <i data-lucide="refresh-cw" class="setup-icon-sm"></i>
+                        {{ t.first_run_retry_connection }}
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="startDemoFallback()">
+                        <i data-lucide="play" class="setup-icon-sm"></i>
+                        {{ t.first_run_try_demo }}
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -258,6 +287,16 @@
         </div>
 
         <div class="test-result" id="setup-submit-result" role="status" aria-live="polite" tabindex="-1"></div>
+        <div class="setup-recovery-actions" id="setup-submit-recovery" hidden>
+            <button type="button" class="btn btn-ghost" onclick="retrySetupSave()">
+                <i data-lucide="refresh-cw" class="setup-icon-sm"></i>
+                {{ t.first_run_retry_save }}
+            </button>
+            <button type="button" class="btn btn-primary" onclick="startDemoFallback()">
+                <i data-lucide="play" class="setup-icon-sm"></i>
+                {{ t.first_run_try_demo }}
+            </button>
+        </div>
 
         <div class="setup-actions">
             <button type="button" class="btn btn-ghost" onclick="prevStep(2)">
@@ -278,6 +317,110 @@
 
 <script>
 let currentStep = 1;
+const DEMO_READY_TIMEOUT_MS = 45000;
+let demoStartAccepted = false;
+let demoStartPending = false;
+
+function setDemoStartStatus(message, state) {
+    var status = document.getElementById('demo-start-status');
+    status.hidden = false;
+    status.className = 'first-run-status ' + (state || '');
+    status.textContent = message;
+    status.setAttribute('aria-busy', state === 'pending' ? 'true' : 'false');
+}
+
+function resetDemoStartButton() {
+    var btn = document.getElementById('start-demo-btn');
+    btn.disabled = false;
+    _setButtonLoading(btn, 'refresh-cw', {{ t.first_run_demo_retry|tojson }});
+}
+
+function waitForDemoReady() {
+    var configuredTimeout = Number(
+        document.getElementById('start-demo-btn').dataset.demoReadyTimeoutMs
+    );
+    var timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout >= 0
+        ? configuredTimeout
+        : DEMO_READY_TIMEOUT_MS;
+    var deadline = Date.now() + timeoutMs;
+
+    async function poll() {
+        var ready = false;
+        try {
+            var response = await fetch('/health', {cache: 'no-store'});
+            if (response.ok) {
+                var health = await response.json();
+                ready = Boolean(
+                    health.docsis_health
+                    && health.docsis_health !== 'waiting'
+                );
+            }
+        } catch (error) {
+            ready = false;
+        }
+        if (ready) {
+            window.location.assign('/');
+            return;
+        }
+        if (Date.now() >= deadline) {
+            throw new Error('timeout');
+        }
+        await new Promise(function(resolve) {
+            window.setTimeout(
+                resolve,
+                Math.min(500, Math.max(1, deadline - Date.now()))
+            );
+        });
+        return poll();
+    }
+
+    return poll();
+}
+
+async function activateDemo() {
+    if (demoStartPending) return;
+    demoStartPending = true;
+    var btn = document.getElementById('start-demo-btn');
+    btn.disabled = true;
+    _setButtonLoading(
+        btn,
+        'loader-2',
+        demoStartAccepted ? {{ t.first_run_demo_loading|tojson }} : {{ t.first_run_demo_starting|tojson }}
+    );
+    setDemoStartStatus(
+        demoStartAccepted ? {{ t.first_run_demo_loading|tojson }} : {{ t.first_run_demo_starting|tojson }},
+        'pending'
+    );
+
+    try {
+        if (!demoStartAccepted) {
+            var response = await fetch('/api/demo/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: '{}'
+            });
+            var result = await response.json();
+            if (!response.ok || !result.success) throw new Error('start');
+            demoStartAccepted = true;
+        }
+        setDemoStartStatus({{ t.first_run_demo_loading|tojson }}, 'pending');
+        await waitForDemoReady();
+    } catch (error) {
+        var message = demoStartAccepted
+            ? {{ t.first_run_demo_timeout|tojson }}
+            : {{ t.first_run_demo_error|tojson }};
+        setDemoStartStatus(message, 'error');
+        resetDemoStartButton();
+        document.getElementById('demo-start-status').focus({preventScroll: true});
+    } finally {
+        demoStartPending = false;
+    }
+}
+
+function startDemoFallback() {
+    backToStart();
+    activateDemo();
+}
 
 function nextStep(step) {
     document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
@@ -326,10 +469,12 @@ function _setButtonLoading(btn, iconName, text) {
 async function testConnection() {
     var btn = document.getElementById('test-conn-btn');
     var resultDiv = document.getElementById('test-result');
+    var recovery = document.getElementById('test-connection-recovery');
 
     btn.disabled = true;
     _setButtonLoading(btn, 'loader-2', '{{ t.testing }}');
     resultDiv.style.display = 'none';
+    recovery.hidden = true;
 
     try {
         var data = {
@@ -353,12 +498,14 @@ async function testConnection() {
         } else {
             resultDiv.className = 'test-result error';
             resultDiv.textContent = '✗ ' + (result.error || '{{ t.connection_failed }}');
+            recovery.hidden = false;
         }
         resultDiv.style.display = 'block';
     } catch(err) {
         resultDiv.className = 'test-result error';
         resultDiv.textContent = '✗ {{ t.network_error }}: ' + err.message;
         resultDiv.style.display = 'block';
+        recovery.hidden = false;
     }
 
     btn.disabled = false;
@@ -367,11 +514,17 @@ async function testConnection() {
 
 function showSetupSubmitError(message) {
     var resultDiv = document.getElementById('setup-submit-result');
+    var recovery = document.getElementById('setup-submit-recovery');
     if (!resultDiv) return;
     resultDiv.className = 'test-result error';
     resultDiv.textContent = '✗ ' + message;
     resultDiv.style.display = 'block';
+    recovery.hidden = false;
     resultDiv.focus && resultDiv.focus({preventScroll: true});
+}
+
+function retrySetupSave() {
+    document.getElementById('setup-form').requestSubmit();
 }
 
 // Form submission
@@ -379,6 +532,7 @@ document.getElementById('setup-form').addEventListener('submit', async function(
     e.preventDefault();
 
     var btn = document.getElementById('submit-btn');
+    document.getElementById('setup-submit-recovery').hidden = true;
     btn.disabled = true;
     _setButtonLoading(btn, 'loader-2', '{{ t.saving }}');
 
@@ -475,6 +629,9 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleUsernameField();
     document.getElementById('modem_type').addEventListener('change', toggleUsernameField);
     lucide.createIcons();
+    if (new URLSearchParams(window.location.search).get('connect') === '1') {
+        startFreshSetup();
+    }
 });
 
 /* ── Setup Start Choice ── */
@@ -517,7 +674,7 @@ function _showResultLoading(resultDiv, text) {
     resultDiv.style.background = 'var(--amethyst-muted)';
     resultDiv.style.border = '1px solid rgba(124,58,237,0.2)';
     resultDiv.style.color = 'var(--text-secondary)';
-    // Build DOM nodes instead of innerHTML
+    // Build status content with DOM nodes.
     while (resultDiv.firstChild) resultDiv.removeChild(resultDiv.firstChild);
     var icon = document.createElement('i');
     icon.setAttribute('data-lucide', 'loader-2');
