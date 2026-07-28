@@ -100,6 +100,64 @@ def test_smoke_script_launches_built_exe_and_checks_loopback_health():
     assert "python -m app.main" not in script
 
 
+def test_smoke_script_runs_copied_bundle_from_hostile_temp_path():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    smoke_root = re.search(r"(?m)^\$SmokeRoot\s*=(?P<assignment>.+)$", script)
+    assert smoke_root
+    smoke_root_assignment = smoke_root.group("assignment")
+    assert '"DOCSight smoke "' in smoke_root_assignment
+    code_point = re.search(r"\[char\]0x(?P<hex>[0-9A-Fa-f]+)", smoke_root_assignment)
+    assert code_point
+    assert int(code_point.group("hex"), 16) > 127
+    assert "Copy-Item -LiteralPath $BundleDir" in script
+    assert "$Executable = Join-Path $LaunchBundleDir" in script
+    assert "-WorkingDirectory $LaunchBundleDir" in script
+    assert script.index("Copy-Item -LiteralPath $BundleDir") < script.index(
+        "Start-Process -FilePath $Executable"
+    )
+
+
+def test_smoke_script_proves_reports_route_before_seeding_generic_state():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert "/api/report" in script
+    assert "$EmptyReportResponse.StatusCode -ne 404" in script
+    assert '$EmptyReportPayload.error -ne "No data available"' in script
+    assert "/api/config" in script
+    assert 'modem_type = "generic"' in script
+    assert "$SetupPayload.success -ne $true" in script
+    assert script.index("$EmptyReportResponse") < script.index("$SetupResponse")
+
+
+def test_smoke_script_checks_real_pdf_response_from_packaged_process():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert "Add-Type -AssemblyName System.Net.Http" in script
+    assert "$PdfResponse.ContentType" in script
+    assert '"application/pdf"' in script
+    assert "$PdfResponse.Bytes" in script
+    assert '"%PDF-"' in script
+    assert script.index("$SetupResponse") < script.index("$PdfResponse")
+
+
+def test_smoke_script_rejects_reports_import_errors_and_preserves_cleanup():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert "docsight\\.reports" in script
+    assert "failed to import routes" in script
+    assert "No module named" in script
+    assert "unittest" in script
+    assert script.index("$PdfResponse.ContentType") < script.index("$LogText")
+    assert re.search(
+        r"}\s*catch\s*{\s*Write-SmokeLog\s*throw\s*}\s*finally\s*{",
+        script,
+    )
+    assert "Stop-Process -Id $Process.Id -Force" in script
+    assert "$env:LOCALAPPDATA = $PreviousLocalAppData" in script
+    assert "Remove-Item -Recurse -Force $SmokeRoot" in script
+
+
 def test_step_block_helper_does_not_capture_next_step():
     workflow = WORKFLOW.read_text(encoding="utf-8")
     build_block = named_step_block(workflow, "Build portable package")

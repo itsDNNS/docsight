@@ -74,7 +74,6 @@ a = Analysis(
     excludes=[
         "tkinter",
         "pytest",
-        "unittest",
     ],
     noarchive=False,
     optimize=0,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,26 @@ def test_pyinstaller_spec_collects_app_tree_and_version_file():
     assert "(str(VERSION_FILE), \".\")" in spec_text
     assert "docsight-icmp-helper" not in spec_text
     assert "docsight-traceroute-helper" not in spec_text
+
+
+def test_pyinstaller_spec_keeps_intended_exclusions_without_unittest():
+    spec_path = WINDOWS_PACKAGING / "docsight.spec"
+    tree = ast.parse(spec_path.read_text(encoding="utf-8"), filename=str(spec_path))
+    analysis_call = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "Analysis"
+    )
+    excludes_keyword = next(
+        keyword for keyword in analysis_call.keywords if keyword.arg == "excludes"
+    )
+    exclusions = ast.literal_eval(excludes_keyword.value)
+
+    assert "tkinter" in exclusions
+    assert "pytest" in exclusions
+    assert "unittest" not in exclusions
 
 
 def test_build_script_uses_hash_pinned_requirements_and_creates_zip_hash():
