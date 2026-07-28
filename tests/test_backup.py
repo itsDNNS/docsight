@@ -4,11 +4,15 @@ import json
 import os
 import sqlite3
 import tarfile
+from datetime import datetime as real_datetime
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 from io import BytesIO
 
+from app.modules.backup import backup as backup_module
 from app.modules.backup.backup import (
     BACKUP_META_FILE,
     FORMAT_VERSION,
@@ -119,11 +123,200 @@ class TestCreateBackup:
             assert "docsis_history.db" not in names
             assert BACKUP_META_FILE in names
 
+    def test_compatibility_backup_uses_data_volume_for_vacuum_workspace(
+        self, data_dir, monkeypatch
+    ):
+        real_temporary_directory = backup_module.tempfile.TemporaryDirectory
+        temporary_directories = []
+
+        def checked_temporary_directory(*args, **kwargs):
+            temporary_directories.append(kwargs)
+            return real_temporary_directory(*args, **kwargs)
+
+        monkeypatch.setattr(
+            backup_module.tempfile,
+            "TemporaryDirectory",
+            checked_temporary_directory,
+        )
+
+        create_backup(data_dir)
+
+        assert len(temporary_directories) == 1
+        assert temporary_directories[0]["dir"] == data_dir
+        assert temporary_directories[0]["prefix"].startswith(".")
+
     def test_create_to_file(self, data_dir, backup_dir):
         filename = create_backup_to_file(data_dir, backup_dir)
         assert filename.startswith("docsight_backup_")
         assert filename.endswith(".tar.gz")
         assert os.path.exists(os.path.join(backup_dir, filename))
+
+    def test_create_to_file_uses_atomic_file_backed_archive(
+        self, data_dir, backup_dir, monkeypatch
+    ):
+        """Scheduled backups build on disk and publish only a complete archive."""
+        real_replace = os.replace
+        real_write_backup_archive = backup_module._write_backup_archive
+        replace_calls = []
+        work_dirs = []
+
+        def fail_in_memory_path(*args, **kwargs):
+            raise AssertionError("scheduled backup used create_backup()")
+
+        def checked_replace(src, dst):
+            src_path = Path(src)
+            dst_path = Path(dst)
+            assert src_path.parent == Path(backup_dir)
+            assert dst_path.parent == Path(backup_dir)
+            assert tarfile.is_tarfile(src_path)
+            replace_calls.append((src_path, dst_path))
+            real_replace(src, dst)
+
+        def checked_archive_write(data_path, archive_target, work_dir=None):
+            work_dirs.append(work_dir)
+            return real_write_backup_archive(
+                data_path, archive_target, work_dir=work_dir
+            )
+
+        monkeypatch.setattr(backup_module, "create_backup", fail_in_memory_path)
+        monkeypatch.setattr(backup_module.os, "replace", checked_replace)
+        monkeypatch.setattr(
+            backup_module, "_write_backup_archive", checked_archive_write
+        )
+
+        filename = create_backup_to_file(data_dir, backup_dir)
+        archive_path = Path(backup_dir) / filename
+
+        assert len(replace_calls) == 1
+        assert replace_calls[0][1] == archive_path
+        assert work_dirs == [data_dir]
+        assert archive_path.is_file()
+        with tarfile.open(archive_path, mode="r:gz") as tar:
+            assert BACKUP_META_FILE in tar.getnames()
+            assert "docsis_history.db" in tar.getnames()
+            assert "config.json" in tar.getnames()
+        assert set(Path(backup_dir).iterdir()) == {archive_path}
+
+    def test_create_to_file_removes_partial_temp_after_archive_failure(
+        self, data_dir, backup_dir, monkeypatch
+    ):
+        """A failed archive write leaves an existing completed backup untouched."""
+
+        class FixedDatetime:
+            @classmethod
+            def now(cls, tz=None):
+                return real_datetime(2026, 7, 28, 12, 34, 56, tzinfo=tz)
+
+        completed = Path(backup_dir) / "docsight_backup_2026-07-28_123456.tar.gz"
+        completed.write_bytes(b"existing-complete-backup")
+
+        def fail_archive_write(_data_dir, archive_target, work_dir=None):
+            assert work_dir == data_dir
+            Path(archive_target).write_bytes(b"partial")
+            raise RuntimeError("injected archive failure")
+
+        monkeypatch.setattr(backup_module, "datetime", FixedDatetime)
+        monkeypatch.setattr(
+            backup_module, "_write_backup_archive", fail_archive_write, raising=False
+        )
+
+        with pytest.raises(RuntimeError, match="injected archive failure"):
+            create_backup_to_file(data_dir, backup_dir)
+
+        assert completed.read_bytes() == b"existing-complete-backup"
+        assert set(Path(backup_dir).iterdir()) == {completed}
+
+
+class TestBackupDownloadRoute:
+    @staticmethod
+    def _app(data_dir, monkeypatch):
+        from flask import Flask
+        from app.modules.backup import routes
+
+        config_mgr = MagicMock()
+        config_mgr.data_dir = data_dir
+
+        test_app = Flask(__name__)
+        test_app.config.update(TESTING=True, SECRET_KEY="test-secret")
+        test_app.register_blueprint(routes.bp)
+        monkeypatch.setattr(routes, "get_config_manager", lambda: config_mgr)
+        monkeypatch.setattr("app.web._auth_required", lambda: False)
+        return test_app
+
+    def test_download_is_file_backed_and_cleans_up_on_close(
+        self, data_dir, tmp_path, monkeypatch
+    ):
+        from app.modules.backup import routes
+
+        temp_dir = tmp_path / "manual-backup"
+        archive_work_dirs = []
+
+        def make_temp_dir(*args, **kwargs):
+            assert kwargs["dir"] == data_dir
+            assert kwargs["prefix"].startswith(".")
+            temp_dir.mkdir()
+            return str(temp_dir)
+
+        real_write_backup_archive = routes._write_backup_archive
+
+        def checked_archive_write(data_path, archive_target, work_dir=None):
+            archive_work_dirs.append(work_dir)
+            return real_write_backup_archive(
+                data_path, archive_target, work_dir=work_dir
+            )
+
+        monkeypatch.setattr(
+            routes, "_write_backup_archive", checked_archive_write
+        )
+        monkeypatch.setattr(
+            routes, "tempfile", SimpleNamespace(mkdtemp=make_temp_dir), raising=False
+        )
+        app = self._app(data_dir, monkeypatch)
+
+        response = app.test_client().post("/api/backup", buffered=False)
+
+        assert response.status_code == 200
+        assert response.mimetype == "application/gzip"
+        assert "attachment" in response.headers["Content-Disposition"]
+        assert not isinstance(response.response, BytesIO)
+        assert archive_work_dirs == [str(temp_dir)]
+        archives = list(temp_dir.glob("*.tar.gz"))
+        assert len(archives) == 1
+        assert tarfile.is_tarfile(archives[0])
+
+        response.close()
+
+        assert not temp_dir.exists()
+
+    def test_download_cleans_up_after_archive_write_exception(
+        self, data_dir, tmp_path, monkeypatch
+    ):
+        from app.modules.backup import routes
+
+        temp_dir = tmp_path / "failed-manual-backup"
+
+        def make_temp_dir(*args, **kwargs):
+            assert kwargs["dir"] == data_dir
+            assert kwargs["prefix"].startswith(".")
+            temp_dir.mkdir()
+            return str(temp_dir)
+
+        def fail_archive_write(*args, **kwargs):
+            raise RuntimeError("injected route archive failure")
+
+        monkeypatch.setattr(
+            routes, "tempfile", SimpleNamespace(mkdtemp=make_temp_dir), raising=False
+        )
+        monkeypatch.setattr(
+            routes, "_write_backup_archive", fail_archive_write, raising=False
+        )
+        app = self._app(data_dir, monkeypatch)
+
+        response = app.test_client().post("/api/backup")
+
+        assert response.status_code == 500
+        assert response.get_json() == {"error": "injected route archive failure"}
+        assert not temp_dir.exists()
 
 
 # ── TestValidateBackup ──

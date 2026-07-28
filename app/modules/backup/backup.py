@@ -94,10 +94,21 @@ def create_backup(data_dir):
     Returns:
         BytesIO containing the .tar.gz archive.
     """
-    db_files = {"docsis_history.db", "connection_monitor.db"}
-
     buf = BytesIO()
-    with tempfile.TemporaryDirectory() as tmp:
+    _write_backup_archive(data_dir, buf, work_dir=data_dir)
+    buf.seek(0)
+    return buf
+
+
+def _write_backup_archive(data_dir, archive_target, work_dir=None):
+    """Write a backup archive to a path or binary file object."""
+    db_files = {"docsis_history.db", "connection_monitor.db"}
+    if work_dir is None:
+        work_dir = data_dir
+
+    with tempfile.TemporaryDirectory(
+        prefix=".docsight-backup-work-", dir=work_dir
+    ) as tmp:
         # Vacuum all databases for consistent copies
         vacuumed = {}
         for db_name in db_files:
@@ -116,7 +127,12 @@ def create_backup(data_dir):
         with open(meta_path, "w") as f:
             json.dump(meta, f, indent=2)
 
-        with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        if isinstance(archive_target, (str, bytes, os.PathLike)):
+            tar_context = tarfile.open(name=archive_target, mode="w:gz")
+        else:
+            tar_context = tarfile.open(fileobj=archive_target, mode="w:gz")
+
+        with tar_context as tar:
             tar.add(meta_path, arcname=BACKUP_META_FILE)
             for db_name, has_db in vacuumed.items():
                 if has_db:
@@ -128,12 +144,9 @@ def create_backup(data_dir):
                 if os.path.exists(fpath):
                     tar.add(fpath, arcname=fname)
 
-    buf.seek(0)
-    return buf
-
 
 def create_backup_to_file(data_dir, dest_dir):
-    """Create a backup and write it to dest_dir.
+    """Create a backup and atomically publish it in dest_dir.
 
     Returns:
         Filename of the created backup.
@@ -143,9 +156,26 @@ def create_backup_to_file(data_dir, dest_dir):
     filename = f"docsight_backup_{ts}.tar.gz"
     dest_path = os.path.join(dest_dir, filename)
 
-    buf = create_backup(data_dir)
-    with open(dest_path, "wb") as f:
-        f.write(buf.read())
+    temp_fd, temp_path = tempfile.mkstemp(
+        prefix=f".{filename}.", suffix=".tmp", dir=dest_dir
+    )
+    try:
+        os.close(temp_fd)
+        temp_fd = None
+        _write_backup_archive(data_dir, temp_path, work_dir=data_dir)
+        os.replace(temp_path, dest_path)
+        temp_path = None
+    finally:
+        if temp_fd is not None:
+            try:
+                os.close(temp_fd)
+            except OSError:
+                pass
+        if temp_path is not None:
+            try:
+                os.remove(temp_path)
+            except FileNotFoundError:
+                pass
 
     log.info("Backup saved to %s", dest_path)
     return filename

@@ -2,6 +2,8 @@
 
 import logging
 import os
+import shutil
+import tempfile
 import time
 from collections import defaultdict
 from datetime import datetime
@@ -17,7 +19,7 @@ from app.web import (
 from werkzeug.utils import secure_filename
 
 from .backup import (
-    browse_directory, cleanup_old_backups, create_backup, create_backup_to_file,
+    _write_backup_archive, browse_directory, cleanup_old_backups, create_backup_to_file,
     list_backups, restore_backup, validate_backup,
 )
 
@@ -30,6 +32,33 @@ bp = Blueprint("backup_bp", __name__)
 _restore_attempts: dict[str, list[float]] = defaultdict(list)
 _RESTORE_MAX_ATTEMPTS = 5
 _RESTORE_WINDOW = 3600  # 1 hour
+
+
+class _CleanupOnClose:
+    """Proxy a WSGI iterable and run cleanup when the iterable is closed."""
+
+    def __init__(self, iterable, cleanup):
+        self._iterator = iter(iterable)
+        self._iterable = iterable
+        self._cleanup = cleanup
+        self._closed = False
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._iterator)
+
+    def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            close = getattr(self._iterable, "close", None)
+            if close is not None:
+                close()
+        finally:
+            self._cleanup()
 
 
 def _check_restore_rate_limit() -> bool:
@@ -62,13 +91,40 @@ def api_backup_download():
     _config_manager = get_config_manager()
     if not _config_manager:
         return jsonify({"error": "Not initialized"}), 500
+    temp_dir = None
+    response = None
     try:
-        buf = create_backup(_config_manager.data_dir)
         ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         filename = f"docsight_backup_{ts}.tar.gz"
+        temp_dir = tempfile.mkdtemp(
+            prefix=".docsight-backup-download-",
+            dir=_config_manager.data_dir,
+        )
+        archive_path = os.path.join(temp_dir, filename)
+        _write_backup_archive(
+            _config_manager.data_dir,
+            archive_path,
+            work_dir=temp_dir,
+        )
+        response = send_file(
+            archive_path,
+            mimetype="application/gzip",
+            as_attachment=True,
+            download_name=filename,
+        )
+        cleanup_dir = temp_dir
+        response.response = _CleanupOnClose(
+            response.response,
+            lambda: shutil.rmtree(cleanup_dir, ignore_errors=True),
+        )
+        temp_dir = None
         audit_log.info("Backup downloaded: ip=%s", _get_client_ip())
-        return send_file(buf, mimetype="application/gzip", as_attachment=True, download_name=filename)
+        return response
     except Exception as e:
+        if response is not None:
+            response.close()
+        if temp_dir is not None:
+            shutil.rmtree(temp_dir, ignore_errors=True)
         log.error("Backup creation failed: %s", e)
         return jsonify({"error": str(e)}), 500
 

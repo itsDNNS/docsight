@@ -4,9 +4,12 @@
 
 import os
 import tempfile
+import threading
 import time
-import pytest
+from concurrent.futures import Future
 from unittest.mock import MagicMock, patch, PropertyMock
+
+import pytest
 
 from app.collectors.base import Collector, CollectorResult
 from app.collectors.modem import ModemCollector
@@ -229,6 +232,187 @@ class TestPollingLoopOrchestrator:
         mgr.is_backup_configured.return_value = False
         mgr.get.return_value = ""
         return mgr
+
+    @patch("app.main.discover_collectors")
+    @patch("app.main.web")
+    def test_long_running_collector_is_tracked_until_result(
+        self, mock_web, mock_discover, caplog, monkeypatch
+    ):
+        """A collector crossing the old observation window is not resubmitted."""
+        from app import main
+
+        polling_loop = main.polling_loop
+        monkeypatch.setattr(main, "COLLECTOR_LONG_RUNNING_SECONDS", 0)
+
+        started = threading.Event()
+        release = threading.Event()
+        success_recorded = threading.Event()
+
+        class SlowCollector(Collector):
+            name = "slow"
+
+            def __init__(self):
+                super().__init__(poll_interval_seconds=3600)
+                self.collect_calls = 0
+                self.success_calls = 0
+                self.failure_calls = 0
+                self.skip_calls = 0
+
+            def collect(self):
+                self.collect_calls += 1
+                started.set()
+                assert release.wait(2)
+                return CollectorResult(source=self.name)
+
+            def record_success(self):
+                self.success_calls += 1
+                super().record_success()
+                success_recorded.set()
+
+            def record_failure(self):
+                self.failure_calls += 1
+                super().record_failure()
+
+            def record_skip(self):
+                self.skip_calls += 1
+                super().record_skip()
+
+        collector = SlowCollector()
+        mock_discover.return_value = [collector]
+        config_mgr = self._make_config_mgr()
+        storage = self._make_storage()
+        stop = threading.Event()
+        tick = 0
+        deadline = None
+
+        def advance_tick(timeout=None):
+            nonlocal tick, deadline
+            tick += 1
+            if tick == 1:
+                assert started.wait(1)
+            elif tick == 2:
+                assert collector.collect_calls == 1
+                release.set()
+                deadline = time.monotonic() + 2
+            elif success_recorded.is_set():
+                stop.set()
+                return True
+            else:
+                assert deadline is not None
+                assert time.monotonic() < deadline
+            return False
+
+        stop.wait = advance_tick
+
+        polling_loop(config_mgr, storage, stop)
+
+        assert collector.collect_calls == 1
+        assert collector.success_calls == 1
+        assert collector.failure_calls == 0
+        assert collector.skip_calls == 0
+        warnings = [
+            record for record in caplog.records
+            if "slow: still running after" in record.getMessage()
+        ]
+        assert len(warnings) == 1
+
+    @patch("app.drivers.driver_registry.load_driver")
+    @patch("app.collectors.modem.ModemCollector")
+    @patch("app.main.discover_collectors")
+    @patch("app.main.web")
+    def test_hot_swap_waits_for_in_flight_collector_with_same_name(
+        self, mock_web, mock_discover, mock_modem_cls, mock_load, monkeypatch
+    ):
+        """A replacement modem waits for the prior modem future to finish."""
+        from app import main
+
+        class ControlledCollector(Collector):
+            name = "modem"
+
+            def __init__(self):
+                super().__init__(poll_interval_seconds=3600)
+                self.success_calls = 0
+                self.success_recorded = threading.Event()
+
+            def collect(self):
+                raise AssertionError("controlled executor should not invoke collect()")
+
+            def record_success(self):
+                self.success_calls += 1
+                super().record_success()
+                self.success_recorded.set()
+
+        old_collector = ControlledCollector()
+        replacement_collector = ControlledCollector()
+        mock_discover.return_value = [old_collector]
+        mock_modem_cls.return_value = replacement_collector
+
+        submissions = []
+        futures = {}
+
+        class ControlledExecutor:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def submit(self, fn, collector):
+                future = Future()
+                submissions.append(collector)
+                futures[collector] = future
+                if collector is replacement_collector:
+                    future.set_result(
+                        (collector, CollectorResult(source=collector.name))
+                    )
+                return future
+
+            def shutdown(self, *args, **kwargs):
+                pass
+
+        monkeypatch.setattr(main, "ThreadPoolExecutor", ControlledExecutor)
+
+        config_mgr = self._make_config_mgr()
+        modem_type = "fritzbox"
+
+        def get_config(key, default=None):
+            return {
+                "modem_type": modem_type,
+                "modem_url": "http://fritz.box",
+                "modem_user": "admin",
+                "modem_password": "pass",
+            }.get(key, default)
+
+        config_mgr.get.side_effect = get_config
+        storage = self._make_storage()
+        stop = threading.Event()
+        tick = 0
+
+        def advance_tick(timeout=None):
+            nonlocal tick, modem_type
+            tick += 1
+            if tick == 1:
+                assert submissions == [old_collector]
+                modem_type = "tc4400"
+            elif tick == 2:
+                assert submissions == [old_collector]
+                futures[old_collector].set_result(
+                    (
+                        old_collector,
+                        CollectorResult(source=old_collector.name),
+                    )
+                )
+            elif tick == 3:
+                assert submissions == [old_collector, replacement_collector]
+                assert old_collector.success_recorded.is_set()
+                assert replacement_collector.success_recorded.is_set()
+                stop.set()
+                return True
+            return False
+
+        stop.wait = advance_tick
+
+        main.polling_loop(config_mgr, storage, stop)
+
+        assert old_collector.success_calls == 1
+        assert replacement_collector.success_calls == 1
 
     @patch("app.drivers.driver_registry.load_driver")
     @patch("app.main.web")

@@ -5,7 +5,7 @@ import logging
 import os
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 from . import analyzer, web
 from .config import ConfigManager
@@ -27,6 +27,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 log = logging.getLogger("docsis.main")
+
+COLLECTOR_LONG_RUNNING_SECONDS = 120
 
 
 class _AuditJsonFormatter(logging.Formatter):
@@ -233,8 +235,52 @@ def polling_loop(config_mgr, storage, stop_event):
     executor = ThreadPoolExecutor(
         max_workers=len(collectors), thread_name_prefix="collector"
     )
+    in_flight = {}
+
+    def _process_in_flight():
+        """Record completed collector runs and warn once for long-running work."""
+        now = time.monotonic()
+        for future, state in list(in_flight.items()):
+            collector = state["collector"]
+            if not future.done():
+                elapsed = now - state["submitted_at"]
+                if (
+                    elapsed >= COLLECTOR_LONG_RUNNING_SECONDS
+                    and not state["warned"]
+                ):
+                    state["warned"] = True
+                    log.warning(
+                        "%s: still running after %ds",
+                        collector.name,
+                        COLLECTOR_LONG_RUNNING_SECONDS,
+                    )
+                continue
+
+            del in_flight[future]
+            try:
+                _, result = future.result()
+                if result is None:
+                    continue  # skipped (collect lock busy)
+                if result.success:
+                    collector.record_success()
+                else:
+                    collector.record_failure()
+                    log.warning("%s: %s", collector.name, result.error)
+            except _TransientHtmlError:
+                collector.record_skip()
+                log.warning(
+                    "%s: transient HTML response, skipping poll", collector.name
+                )
+            except Exception as e:
+                collector.record_failure()
+                log.error("%s error: %s", collector.name, e)
+                if collector.name in ("modem", "demo"):
+                    web.update_state(error=e)
+
     try:
         while not stop_event.is_set():
+            _process_in_flight()
+
             # ── Driver hot-swap: detect modem config change ──
             if modem_config_key is not None and modem_collector:
                 new_key = _get_modem_config_key(config_mgr)
@@ -268,44 +314,26 @@ def polling_loop(config_mgr, storage, stop_event):
                     modem_config_key = new_key
                     log.info("Driver hot-swapped to %s", new_key[0])
 
-            futures = {}
             for collector in collectors:
                 if stop_event.is_set():
                     break
+                if any(
+                    state["collector"].name == collector.name
+                    for state in in_flight.values()
+                ):
+                    continue
                 if not collector.is_enabled():
                     continue
                 if not collector.should_poll():
                     continue
                 future = executor.submit(_run_collector, collector)
-                futures[future] = collector
+                in_flight[future] = {
+                    "collector": collector,
+                    "submitted_at": time.monotonic(),
+                    "warned": False,
+                }
 
-            try:
-                for future in as_completed(futures, timeout=120):
-                    if stop_event.is_set():
-                        break
-                    collector = futures[future]
-                    try:
-                        _, result = future.result()
-                        if result is None:
-                            continue  # skipped (collect lock busy)
-                        if result.success:
-                            collector.record_success()
-                        else:
-                            collector.record_failure()
-                            log.warning("%s: %s", collector.name, result.error)
-                    except _TransientHtmlError:
-                        collector.record_skip()
-                        log.warning("%s: transient HTML response, skipping poll", collector.name)
-                    except Exception as e:
-                        collector.record_failure()
-                        log.error("%s error: %s", collector.name, e)
-                        if collector.name in ("modem", "demo"):
-                            web.update_state(error=e)
-            except TimeoutError:
-                for future, collector in futures.items():
-                    if not future.done():
-                        log.error("%s: timed out after 120s", collector.name)
-                        future.cancel()
+            _process_in_flight()
 
             # ── Smart Capture expiry check (every 60s) ──
             if smart_capture:
