@@ -71,6 +71,11 @@ packaging/windows/dist/DOCSight-Desktop-Preview-win64-<version>.zip
 packaging/windows/dist/DOCSight-Desktop-Preview-win64-<version>.zip.sha256
 ```
 
+Current preview artifacts are unsigned while provider onboarding is pending.
+Downloaders should verify the preview ZIP against its published `.sha256` file.
+See the [code signing policy](../../CODE_SIGNING.md) for the onboarding status,
+intended release scope, and verification guidance.
+
 The build uses a Windows-resolved, hash-pinned runtime install from
 `requirements-runtime-windows.txt` and a cross-platform, hash-pinned build-tool
 install from `requirements-build.txt`. The generated `VERSION` file is bundled
@@ -111,4 +116,4 @@ Windows packaging tree out of the Docker build context as well.
 
 - No tray icon, WebView shell, auto-start, updater, installer, MSI, or MSIX.
 - No native Windows ICMP/traceroute diagnostics.
-- No code signing.
+- No code-signing integration while provider onboarding is pending.

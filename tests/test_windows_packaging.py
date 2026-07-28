@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WINDOWS_PACKAGING = ROOT / "packaging" / "windows"
+CODE_SIGNING_POLICY = ROOT / "CODE_SIGNING.md"
 
 
 def test_windows_packaging_files_exist():
@@ -79,3 +80,52 @@ def test_gitignore_excludes_windows_build_outputs():
 
     assert "packaging/windows/build/" in gitignore
     assert "packaging/windows/dist/" in gitignore
+
+
+def test_windows_code_signing_policy_public_contract():
+    policy = CODE_SIGNING_POLICY.read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    windows_readme = (WINDOWS_PACKAGING / "README.md").read_text(encoding="utf-8")
+    normalized_policy = " ".join(policy.split())
+    policy_lower = normalized_policy.lower()
+    windows_readme_lower = " ".join(windows_readme.split()).lower()
+    attribution = (
+        "Free code signing provided by SignPath.io, "
+        "certificate by SignPath Foundation"
+    )
+    conditional_heading = "## Conditional provider attribution"
+    status_text, conditional_text = policy.split(conditional_heading, maxsplit=1)
+
+    assert policy.startswith("# Code signing policy\n")
+    assert attribution not in status_text
+    assert attribution in conditional_text
+    assert (
+        "will apply only if provider approval and onboarding succeed"
+        in policy_lower
+    )
+    assert "windows artifacts remain unsigned" in policy_lower
+    assert "still in progress" in policy_lower
+    assert "official tagged release" in policy_lower
+    for excluded_context in ("pull request", "fork", "untrusted context"):
+        assert excluded_context in policy_lower
+    assert "not eligible for signing" in policy_lower
+    assert "source-control account" in policy_lower
+    assert "future signing-approval account" in policy_lower
+    assert "must use multi-factor authentication (mfa)" in policy_lower
+    for approval_check in (
+        "release source",
+        "workflow result",
+        "artifact identity",
+        "expected version",
+    ):
+        assert approval_check in policy_lower
+    assert "## Revocation and incidents" in policy
+    assert "stop approving and publishing" in policy_lower
+    assert "request revocation" in policy_lower
+    assert "impact and verification guidance" in policy_lower
+    assert "https://github.com/itsDNNS/docsight/releases" in policy
+    assert "[SECURITY.md](SECURITY.md)" in policy
+    assert '<a href="CODE_SIGNING.md">Code signing</a>' in readme
+    assert "[code signing policy](../../CODE_SIGNING.md)" in windows_readme
+    assert "preview artifacts are unsigned" in windows_readme_lower
+    assert "provider onboarding is pending" in windows_readme_lower

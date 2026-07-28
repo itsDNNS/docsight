@@ -10,6 +10,7 @@
   <a href="#supported-hardware">Supported Hardware</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="https://github.com/itsDNNS/docsight/wiki">Wiki</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="DATA_CONTRACT.md">Data contract</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
+  <a href="CODE_SIGNING.md">Code signing</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="https://github.com/itsDNNS/docsight/releases">Releases</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
   <a href="https://github.com/itsDNNS/docsight/wiki/Roadmap">Roadmap</a>
 </p>
