@@ -82,17 +82,39 @@ def test_apply_timezone_calls_tzset_when_available(monkeypatch):
     assert calls == ["tzset"]
 
 
-def test_config_save_handler_uses_guarded_timezone_path(monkeypatch):
-    restart_calls = []
+def test_config_save_handler_stops_then_restarts_when_configured(monkeypatch):
+    lifecycle_calls = []
     cfg = _Config(timezone="Europe/Berlin", history_days=30, configured=True)
     storage = _Storage()
 
     monkeypatch.delenv("TZ", raising=False)
     monkeypatch.delattr(app_main.time, "tzset", raising=False)
 
-    app_main._handle_config_changed(cfg, storage, lambda: restart_calls.append("restart"))
+    app_main._handle_config_changed(
+        cfg,
+        storage,
+        lambda: lifecycle_calls.append("stop"),
+        lambda: lifecycle_calls.append("start"),
+    )
 
     assert cfg.load_calls == 1
     assert os.environ["TZ"] == "Europe/Berlin"
     assert storage.max_days == 30
-    assert restart_calls == ["restart"]
+    assert lifecycle_calls == ["stop", "start"]
+
+
+def test_config_save_handler_stops_without_restart_when_unconfigured(monkeypatch):
+    lifecycle_calls = []
+    cfg = _Config(timezone="UTC", configured=False)
+    storage = _Storage()
+
+    monkeypatch.setattr(app_main, "_apply_timezone", lambda _cfg: None)
+
+    app_main._handle_config_changed(
+        cfg,
+        storage,
+        lambda: lifecycle_calls.append("stop"),
+        lambda: lifecycle_calls.append("start"),
+    )
+
+    assert lifecycle_calls == ["stop"]

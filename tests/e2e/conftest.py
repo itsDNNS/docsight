@@ -270,6 +270,37 @@ def _start_unconfigured_server(data_dir, port):
     serve(web.app, host="127.0.0.1", port=port, **_WAITRESS_KWARGS)
 
 
+def _start_first_run_server(data_dir, port):
+    """Boot the production startup path with a fresh data directory."""
+    os.environ["DATA_DIR"] = data_dir
+    os.environ["WEB_HOST"] = "127.0.0.1"
+    os.environ["WEB_PORT"] = str(port)
+    os.environ.pop("DEMO_MODE", None)
+    os.environ["LOG_LEVEL"] = "WARNING"
+
+    from app.main import main
+
+    main()
+
+
+@pytest.fixture()
+def first_run_server(tmp_path):
+    """Start a fresh production-path instance for one-click activation tests."""
+    port = _find_free_port()
+    proc = _MP_CTX.Process(
+        target=_start_first_run_server,
+        args=(str(tmp_path / "first-run"), port),
+        daemon=True,
+    )
+    proc.start()
+    try:
+        _wait_for_server(port)
+        yield f"http://127.0.0.1:{port}"
+    finally:
+        proc.terminate()
+        proc.join(timeout=5)
+
+
 @pytest.fixture(scope="session")
 def _setup_data_dir(tmp_path_factory):
     """Session-scoped temp directory for the unconfigured server."""

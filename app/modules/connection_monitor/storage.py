@@ -37,9 +37,19 @@ class ConnectionMonitorStorage:
                     poll_interval_ms INTEGER NOT NULL DEFAULT 5000,
                     probe_method TEXT NOT NULL DEFAULT 'auto',
                     tcp_port INTEGER NOT NULL DEFAULT 443,
+                    is_demo INTEGER NOT NULL DEFAULT 0,
                     created_at REAL NOT NULL
                 )
             """)
+            target_columns = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(connection_targets)")
+            }
+            if "is_demo" not in target_columns:
+                conn.execute(
+                    "ALTER TABLE connection_targets "
+                    "ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0"
+                )
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS connection_samples (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -152,13 +162,18 @@ class ConnectionMonitorStorage:
         poll_interval_ms: int = 5000,
         probe_method: str = "auto",
         tcp_port: int = 443,
+        is_demo: bool = False,
     ) -> int:
         with self._connect() as conn:
             cur = conn.execute(
                 """INSERT INTO connection_targets
-                   (label, host, enabled, poll_interval_ms, probe_method, tcp_port, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (label, host, enabled, poll_interval_ms, probe_method, tcp_port, time.time()),
+                   (label, host, enabled, poll_interval_ms, probe_method, tcp_port,
+                    is_demo, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    label, host, enabled, poll_interval_ms, probe_method,
+                    tcp_port, int(is_demo), time.time(),
+                ),
             )
             return cur.lastrowid
 
@@ -195,6 +210,14 @@ class ConnectionMonitorStorage:
             conn.execute(
                 "DELETE FROM connection_targets WHERE id = ?", (target_id,)
             )
+
+    def purge_demo_targets(self) -> int:
+        """Delete demo targets and their cascaded samples without touching user targets."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                "DELETE FROM connection_targets WHERE is_demo = 1"
+            )
+            return cur.rowcount
 
     # --- Samples ---
 

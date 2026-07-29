@@ -939,6 +939,10 @@ def inject_auth():
         "desktop_preview_doc_url": DESKTOP_PREVIEW_DOC_URL,
         "desktop_preview_notice_id": DESKTOP_PREVIEW_NOTICE_ID,
         "desktop_preview_notice_dismissed": desktop_mode and DESKTOP_PREVIEW_NOTICE_ID in _get_dismissed_notice_ids(),
+        "demo_mode_forced": bool(
+            _config_manager
+            and getattr(_config_manager, "is_demo_mode_forced", lambda: False)()
+        ),
     }
 
 

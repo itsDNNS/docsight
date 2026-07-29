@@ -56,11 +56,13 @@ Open this URL in your browser:
 http://localhost:8765
 ```
 
-The setup wizard lets you choose Demo Mode, a supported DOCSIS modem, or Generic Router mode.
+The first-run page lets you open a populated local demo in one click, connect a supported DOCSIS modem or Generic Router, or restore a backup.
 
 ## Optional: try Demo Mode first
 
-If you want to explore DOCSight before connecting a real modem, run a separate demo container:
+Select **View demo** on the first-run page. It uses the same local DOCSight instance and does not require modem details or credentials.
+
+For an automatically starting, dedicated demo container instead, run:
 
 ```powershell
 docker run -d --name docsight-demo --restart unless-stopped -p 8765:8765 -e DEMO_MODE=true ghcr.io/itsdnns/docsight:latest

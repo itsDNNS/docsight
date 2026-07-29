@@ -261,7 +261,7 @@ Driver.get_docsis_data()
 **Purpose:** Generate realistic DOCSIS data for testing without a real modem
 **Poll Interval:** Configurable (default 900s)
 **Data Source:** `app/fixtures/demo_channels.json` with per-poll random variation
-**Activation:** `DEMO_MODE=true` environment variable
+**Activation:** `DEMO_MODE=true` environment variable, or the fresh first-run action backed by `POST /api/demo/start`
 
 **Pipeline:**
 ```
@@ -282,6 +282,7 @@ _generate_data() (base channels + variation)
 - All demo rows marked with `is_demo=1` flag for clean separation from user data
 - Purge-before-seed on container rebuild prevents duplicate data
 - Device info: "DOCSight Demo Router", Connection: 250/40 Mbit/s Cable
+- Demo discovery selects only `DemoCollector`; optional module collectors are not started while Demo Mode is active
 
 **Live Migration:**
 Users can switch from demo to live mode via Settings UI or `POST /api/demo/migrate`. This purges all `is_demo=1` rows while preserving user-created entries, disables demo mode, and restarts polling for real modem data.

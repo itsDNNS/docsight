@@ -154,6 +154,65 @@ def api_tokens_revoke(token_id):
     return jsonify({"success": True})
 
 
+@config_bp.route("/api/demo/start", methods=["POST"])
+@_require_session_auth
+def api_demo_start():
+    """Activate the local demo collector on an unconfigured instance."""
+    if not request.is_json:
+        return jsonify({
+            "success": False,
+            "demo_mode": False,
+            "status": "invalid_request",
+        }), 415
+    _config_manager = get_config_manager()
+    if not _config_manager:
+        return jsonify({
+            "success": False,
+            "demo_mode": False,
+            "status": "unavailable",
+        }), 500
+    if _config_manager.is_demo_mode():
+        return jsonify({
+            "success": True,
+            "demo_mode": True,
+            "status": "active",
+        })
+    if _config_manager.is_configured():
+        return jsonify({
+            "success": False,
+            "demo_mode": False,
+            "status": "live_configured",
+        }), 409
+
+    _on_config_changed = get_on_config_changed()
+    activated = False
+    try:
+        _config_manager.save({"demo_mode": True})
+        activated = True
+        audit_log.info("Demo started: ip=%s", _get_client_ip())
+        if _on_config_changed:
+            _on_config_changed()
+        return jsonify({
+            "success": True,
+            "demo_mode": True,
+            "status": "active",
+        })
+    except Exception as e:
+        log.error("Demo start failed: %s", e)
+        if activated:
+            try:
+                _config_manager.save({"demo_mode": False})
+                if _on_config_changed:
+                    _on_config_changed()
+            except Exception:
+                log.exception("Failed to roll back Demo Mode activation")
+        return jsonify({
+            "success": False,
+            "demo_mode": _config_manager.is_demo_mode(),
+            "status": "error",
+        }), 500
+
+
 @config_bp.route("/api/demo/migrate", methods=["POST"])
 @require_auth
 def api_demo_migrate():
@@ -162,8 +221,21 @@ def api_demo_migrate():
     _storage = get_storage()
     if not _config_manager or not _config_manager.is_demo_mode():
         return jsonify({"success": False, "error": "Not in demo mode"}), 400
+    if _config_manager.is_demo_mode_forced():
+        return jsonify({
+            "success": False,
+            "error": "demo_mode_forced",
+            "locked": True,
+        }), 409
     if not _storage:
         return jsonify({"success": False, "error": "Storage not initialized"}), 500
+    next_choice = (request.get_json(silent=True) or {}).get("next", "exit")
+    next_paths = {
+        "connect": "/setup?connect=1",
+        "exit": "/setup",
+    }
+    if next_choice not in next_paths:
+        return jsonify({"success": False, "error": "Invalid next path"}), 400
     try:
         purged = _storage.purge_demo_data()
         # Purge demo traceroute traces from Connection Monitor
@@ -171,6 +243,7 @@ def api_demo_migrate():
         cm_db_path = os.path.join(os.environ.get("DATA_DIR", "/data"), "connection_monitor.db")
         if os.path.exists(cm_db_path):
             cm_storage = ConnectionMonitorStorage(cm_db_path)
+            cm_storage.purge_demo_targets()
             cm_storage.purge_demo_traces()
         _config_manager.save({"demo_mode": False})
         _storage.max_days = _config_manager.get("history_days", 7)
@@ -178,7 +251,11 @@ def api_demo_migrate():
         _on_config_changed = get_on_config_changed()
         if _on_config_changed:
             _on_config_changed()
-        return jsonify({"success": True, "purged": purged})
+        return jsonify({
+            "success": True,
+            "purged": purged,
+            "next": next_paths[next_choice],
+        })
     except Exception as e:
         log.error("Demo migration failed: %s", e)
         return jsonify({"success": False, "error": str(e)}), 500

@@ -837,64 +837,6 @@ function unsubscribePwaPush() {
         });
 }
 
-/* ── Demo Migration ── */
-function migrateToLive() {
-    var msg = T.demo_migrate_confirm || 'This will delete all demo data and switch to live mode. Your own entries will be kept. Continue?';
-    docsightConfirm({
-        title: T.demo_migrate || 'Switch to live mode',
-        message: msg,
-        confirmText: T.continue || 'Continue',
-        cancelText: T.cancel || 'Cancel',
-        danger: true
-    }).then(function(confirmed) {
-        if (!confirmed) return;
-        runDemoMigration();
-    });
-}
-
-function runDemoMigration() {
-    var el = document.getElementById('migrate-result');
-    el.className = 'test-result test-loading';
-    el.style.display = 'flex';
-    el.textContent = '';
-    var span = document.createElement('span');
-    span.textContent = '\u23F3';
-    el.appendChild(span);
-    el.appendChild(document.createTextNode(' ' + (T.demo_migrating || 'Migrating...')));
-    fetch('/api/demo/migrate', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: '{}'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-        el.textContent = '';
-        if (res.success) {
-            el.className = 'test-result test-ok';
-            var check = document.createElement('span');
-            check.className = 'check-icon';
-            check.textContent = '\u2713';
-            el.appendChild(check);
-            el.appendChild(document.createTextNode(' ' + (T.demo_migrate_success || 'Migration complete')));
-            setTimeout(function() { location.reload(); }, 1500);
-        } else {
-            el.className = 'test-result test-fail';
-            var x = document.createElement('span');
-            x.textContent = '\u2717';
-            el.appendChild(x);
-            el.appendChild(document.createTextNode(' ' + (res.error || T.unknown_error || 'Unknown error')));
-        }
-    })
-    .catch(function() {
-        el.textContent = '';
-        el.className = 'test-result test-fail';
-        var x = document.createElement('span');
-        x.textContent = '\u2717';
-        el.appendChild(x);
-        el.appendChild(document.createTextNode(' ' + (T.network_error || 'Network error')));
-    });
-}
-
 /* ── Unsaved Changes ── */
 var _formDirty = false;
 var _manualDirty = false;

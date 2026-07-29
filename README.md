@@ -66,7 +66,7 @@ docker run -d --name docsight --restart unless-stopped -p 8765:8765 -v docsight_
 
 Windows PowerShell users can paste the same command as one line. Before running it, make sure Docker Desktop is installed and the Docker engine is running.
 
-Open `http://localhost:8765`, then choose Demo Mode, a supported DOCSIS modem, or Generic Router mode in the setup wizard.
+Open `http://localhost:8765`, then explore the populated local demo in one click or connect a supported DOCSIS modem or Generic Router. Backup restore remains available from the same first-run page.
 
 [Windows quick start](docs/windows-quick-start.md) | [Full installation guide](https://github.com/itsDNNS/docsight/wiki/Installation) | [Example Compose Stacks](https://github.com/itsDNNS/docsight/wiki/Example-Compose-Stacks)
 

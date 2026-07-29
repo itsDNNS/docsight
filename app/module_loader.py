@@ -512,7 +512,7 @@ _PROTECTED_ROUTES = {
     "/", "/login", "/logout", "/setup", "/settings", "/health", "/sw.js",
 }
 _PROTECTED_API_PREFIXES = (
-    "/api/config", "/api/data", "/api/tokens",
+    "/api/config", "/api/data", "/api/tokens", "/api/demo",
     "/api/poll", "/api/status", "/api/history", "/api/events", "/api/trends",
     "/api/export", "/api/correlation",
     "/api/modules/", "/api/themes/",

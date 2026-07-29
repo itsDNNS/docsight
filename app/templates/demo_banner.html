@@ -1,0 +1,23 @@
+{% if demo_mode %}
+<aside class="demo-banner glass" id="demo-banner" aria-label="{{ t.demo_banner_title }}">
+    <div class="demo-banner-copy">
+        <i data-lucide="flask-conical" aria-hidden="true"></i>
+        <div>
+            <strong>{{ t.demo_banner_title }}</strong>
+            <span>{{ t.demo_banner_desc }}</span>
+            {% if demo_mode_forced %}
+            <span class="demo-banner-locked">{{ t.demo_forced_notice }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="demo-banner-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="demo-connect-modem" onclick="leaveDemo('connect', this)" {% if demo_mode_forced %}disabled{% endif %}>
+            {{ t.demo_connect_own_modem }}
+        </button>
+        <button type="button" class="demo-exit-action" id="demo-exit" onclick="leaveDemo('exit', this)" {% if demo_mode_forced %}disabled{% endif %}>
+            {{ t.demo_exit }}
+        </button>
+    </div>
+    <div class="demo-banner-result" id="demo-banner-result" role="status" aria-live="polite"></div>
+</aside>
+{% endif %}

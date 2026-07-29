@@ -71,9 +71,10 @@ def _apply_timezone(cfg):
             time.tzset()
 
 
-def _handle_config_changed(config_mgr, storage, start_polling):
+def _handle_config_changed(config_mgr, storage, stop_polling, start_polling):
     """Reload config and apply runtime changes after a web UI save."""
     log.info("Configuration changed, restarting polling loop")
+    stop_polling()
     config_mgr._load()
     _apply_timezone(config_mgr)
     storage.max_days = config_mgr.get("history_days", 7)
@@ -398,11 +399,17 @@ def main():
     poll_thread = None
     poll_stop = None
 
-    def start_polling():
+    def stop_polling():
         nonlocal poll_thread, poll_stop
         if poll_thread and poll_thread.is_alive():
             poll_stop.set()
             poll_thread.join(timeout=10)
+        poll_thread = None
+        poll_stop = None
+
+    def start_polling():
+        nonlocal poll_thread, poll_stop
+        stop_polling()
         web.reset_modem_state()
         poll_stop = threading.Event()
         poll_thread = threading.Thread(
@@ -413,7 +420,7 @@ def main():
 
     def on_config_changed():
         """Called when config is saved via web UI."""
-        _handle_config_changed(config_mgr, storage, start_polling)
+        _handle_config_changed(config_mgr, storage, stop_polling, start_polling)
 
     web.init_config(config_mgr, on_config_changed)
 

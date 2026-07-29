@@ -436,6 +436,11 @@ class ConfigManager:
         """True if DEMO_MODE is enabled."""
         return bool(self.get("demo_mode"))
 
+    def is_demo_mode_forced(self):
+        """True when the environment, rather than config.json, enables demo mode."""
+        value = os.environ.get(ENV_MAP["demo_mode"], "")
+        return value.lower() in ("true", "1", "yes", "on")
+
     def is_update_check_enabled(self):
         """True if release update checks against GitHub are enabled."""
         return self._get_bool("update_check_enabled")

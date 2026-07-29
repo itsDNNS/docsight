@@ -137,6 +137,8 @@
         </div>
 
         <form id="settings-form" autocomplete="off">
+            {% include 'demo_banner.html' %}
+
             {% if desktop_mode and not desktop_preview_notice_dismissed %}
             <div class="notice-stack settings-notice-stack desktop-preview-notice-stack">
                 <article class="maintainer-notice notice-info desktop-preview-notice" data-notice-id="{{ desktop_preview_notice_id }}">
@@ -153,30 +155,6 @@
                         <i data-lucide="x"></i>
                     </button>
                 </article>
-            </div>
-            {% endif %}
-
-            {% if demo_mode %}
-            <!-- ═══ Demo Mode Migration Banner ═══ -->
-            <div class="settings-card glass" style="border-color: rgba(245,158,11,0.3);" id="demo-migrate-banner">
-                <div class="card-header">
-                    <div class="card-title-group">
-                        <div class="card-icon amber">
-                            <i data-lucide="flask-conical"></i>
-                        </div>
-                        <div>
-                            <div class="card-title">{{ t.demo_migrate_title }}</div>
-                            <div class="card-subtitle">{{ t.demo_migrate_desc }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="btn-row">
-                    <button type="button" class="btn btn-ghost" style="border-color: var(--warning); color: var(--warning);" onclick="migrateToLive()">
-                        <i data-lucide="arrow-right-circle" style="width:16px;height:16px;"></i>
-                        {{ t.demo_migrate_button }}
-                    </button>
-                </div>
-                <div class="test-result" id="migrate-result"></div>
             </div>
             {% endif %}
 
@@ -238,6 +216,7 @@ var SAVED_MODULE_SECRET_FIELDS = {{ saved_module_secret_fields | tojson }};
 <script src="/static/js/modals.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/utils.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/notices.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/demo-banner.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/settings.js?v={{ version|urlencode }}"></script>
 {% for mod in modules if mod.has_js %}
 <script src="/modules/{{ mod.id }}/static/main.js?v={{ version|urlencode }}"></script>

@@ -238,8 +238,22 @@ class DemoCollector(Collector):
 
         return CollectorResult(source=self.name, data=analysis)
 
+    def _ensure_demo_module_tables(self):
+        """Create local module tables before direct demo inserts on a fresh instance."""
+        from app.modules.bnetz.storage import BnetzStorage
+        from app.modules.bqm.storage import BqmStorage
+        from app.modules.speedtest.storage import SpeedtestStorage
+        from app.modules.weather.storage import WeatherStorage
+
+        db_path = self._storage.db_path
+        SpeedtestStorage(db_path)
+        BqmStorage(db_path)
+        BnetzStorage(db_path)
+        WeatherStorage(db_path)
+
     def _seed_demo_data(self):
         """Populate storage with 9 months of snapshots, events, journal, speedtest, and BQM."""
+        self._ensure_demo_module_tables()
         # Purge any existing demo data first (handles container rebuilds with persisted volume)
         self._storage.purge_demo_data()
         # Keep all demo data — don't let cleanup purge the seeded history
@@ -1005,13 +1019,13 @@ class DemoCollector(Collector):
         cm_db = os.path.join(data_dir, "connection_monitor.db")
         cm = ConnectionMonitorStorage(cm_db)
 
-        # Purge existing demo targets/samples
-        with cm._connect() as conn:
-            conn.execute("DELETE FROM connection_samples")
-            conn.execute("DELETE FROM connection_targets")
+        # Purge only targets created by an earlier demo seed. Samples and
+        # traces are removed through the target foreign-key cascades.
+        cm.purge_demo_targets()
+        cm.purge_demo_traces()
 
         target_ids = {
-            name: cm.create_target(label, host)
+            name: cm.create_target(label, host, is_demo=True)
             for name, label, host in DEMO_CONNECTION_MONITOR_TARGETS
         }
 

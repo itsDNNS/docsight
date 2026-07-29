@@ -290,6 +290,7 @@
 <div class="main-content">
 <div id="view-dashboard" class="view active dashboard-view">
 
+{% include 'demo_banner.html' %}
 
 {% if desktop_mode and not desktop_preview_notice_dismissed %}
 <div class="notice-stack dashboard-notice-stack desktop-preview-notice-stack">
@@ -3416,6 +3417,7 @@ var CORRELATION_CM_AVAILABLE = {{ (connection_monitor_installed|length > 0)|tojs
 <script src="/static/js/events.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/utils.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/notices.js?v={{ version|urlencode }}"></script>
+<script src="/static/js/demo-banner.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/speedtest.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/correlation.js?v={{ version|urlencode }}"></script>
 <script src="/static/js/segment-utilization.js?v={{ version|urlencode }}"></script>

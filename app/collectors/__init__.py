@@ -74,7 +74,7 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
     # Demo collector (replaces modem when DEMO_MODE is active)
     if config_mgr.is_demo_mode():
         log.info("Demo mode active — using DemoCollector")
-        collectors.append(DemoCollector(
+        return [DemoCollector(
             analyzer_fn=analyzer.analyze,
             event_detector=event_detector,
             storage=storage,
@@ -83,9 +83,9 @@ def discover_collectors(config_mgr, storage, event_detector, mqtt_pub, web, anal
             poll_interval=config["poll_interval"],
             notifier=notifier,
             smart_capture=smart_capture,
-        ))
+        )]
     # Modem collector (available if modem configured)
-    elif config_mgr.is_configured():
+    if config_mgr.is_configured():
         from ..drivers import driver_registry
 
         modem_type = config.get("modem_type", "fritzbox")

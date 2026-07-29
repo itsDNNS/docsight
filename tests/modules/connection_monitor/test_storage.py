@@ -1,5 +1,6 @@
 """Tests for Connection Monitor storage layer."""
 
+import sqlite3
 import time
 import pytest
 
@@ -48,6 +49,50 @@ class TestTargetCRUD:
         storage.delete_target(tid)
         assert storage.get_target(tid) is None
         assert storage.get_samples(tid) == []
+
+    def test_purge_demo_targets_preserves_user_targets_and_samples(self, storage):
+        user_id = storage.create_target("User", "192.0.2.1")
+        demo_id = storage.create_target("Demo", "198.51.100.1", is_demo=True)
+        storage.save_samples([
+            {"target_id": user_id, "timestamp": time.time(), "latency_ms": 8.0,
+             "timeout": False, "probe_method": "tcp"},
+            {"target_id": demo_id, "timestamp": time.time(), "latency_ms": 18.0,
+             "timeout": False, "probe_method": "tcp"},
+        ])
+
+        assert storage.purge_demo_targets() == 1
+
+        assert storage.get_target(user_id)["is_demo"] == 0
+        assert len(storage.get_samples(user_id)) == 1
+        assert storage.get_target(demo_id) is None
+        assert storage.get_samples(demo_id) == []
+
+    def test_existing_target_table_gets_non_demo_provenance_column(self, tmp_path):
+        db_path = tmp_path / "legacy_cm.db"
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("""
+                CREATE TABLE connection_targets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    label TEXT NOT NULL,
+                    host TEXT NOT NULL,
+                    enabled BOOLEAN NOT NULL DEFAULT 1,
+                    poll_interval_ms INTEGER NOT NULL DEFAULT 5000,
+                    probe_method TEXT NOT NULL DEFAULT 'auto',
+                    tcp_port INTEGER NOT NULL DEFAULT 443,
+                    created_at REAL NOT NULL
+                )
+            """)
+            conn.execute(
+                "INSERT INTO connection_targets (label, host, created_at) "
+                "VALUES ('Existing', '203.0.113.1', ?)",
+                (time.time(),),
+            )
+
+        migrated = ConnectionMonitorStorage(str(db_path))
+
+        assert migrated.get_targets()[0]["is_demo"] == 0
+        assert migrated.purge_demo_targets() == 0
+        assert len(migrated.get_targets()) == 1
 
     def test_get_nonexistent_target(self, storage):
         assert storage.get_target(999) is None
