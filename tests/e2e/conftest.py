@@ -34,7 +34,7 @@ def _find_free_port():
         return s.getsockname()[1]
 
 
-def _start_server(data_dir, port, admin_password=None, demo_mode=True):
+def _start_server(data_dir, port, admin_password=None, demo_mode=True, modem_type=None):
     """Boot a real DOCSight instance inside a child process."""
     import os
 
@@ -54,7 +54,7 @@ def _start_server(data_dir, port, admin_password=None, demo_mode=True):
     cfg = ConfigManager(data_dir)
     save_data = {
         "demo_mode": demo_mode,
-        "modem_type": "demo" if demo_mode else "generic",
+        "modem_type": modem_type or ("demo" if demo_mode else "generic"),
     }
     if admin_password:
         save_data["admin_password"] = admin_password
@@ -197,7 +197,7 @@ def configured_server(_configured_data_dir):
     port = _find_free_port()
     proc = _MP_CTX.Process(
         target=_start_server,
-        args=(_configured_data_dir, port, None, False),
+        args=(_configured_data_dir, port, None, False, "fritzbox"),
         daemon=True,
     )
     proc.start()

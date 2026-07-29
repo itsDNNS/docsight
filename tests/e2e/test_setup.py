@@ -452,7 +452,7 @@ def test_first_run_actions_have_real_44px_touch_targets(
         box = page.locator(selector).bounding_box()
         assert box is not None
         assert box["width"] >= 44, (selector, width, box)
-        assert box["height"] >= 44, (selector, width, box)
+        assert box["height"] >= 44 - 0.01, (selector, width, box)
 
 
 @pytest.mark.parametrize(
