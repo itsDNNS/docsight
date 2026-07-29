@@ -27,9 +27,9 @@ class TestSSRFUrlValidation:
         ("javascript:alert(1)", 400),
         ("data:text/html,<h1>xss</h1>", 400),
     ])
-    def test_url_scheme_validation(self, live_server, page, key, url, expected_status):
+    def test_url_scheme_validation(self, configured_server, page, key, url, expected_status):
         resp = page.request.post(
-            f"{live_server}/api/config",
+            f"{configured_server}/api/config",
             headers={"Content-Type": "application/json"},
             data=json.dumps({key: url}),
         )
@@ -37,9 +37,9 @@ class TestSSRFUrlValidation:
             f"{key}={url} should return {expected_status}, got {resp.status}"
         )
 
-    def test_rejected_url_includes_error_message(self, live_server, page):
+    def test_rejected_url_includes_error_message(self, configured_server, page):
         resp = page.request.post(
-            f"{live_server}/api/config",
+            f"{configured_server}/api/config",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"modem_url": "file:///etc/passwd"}),
         )
@@ -48,9 +48,9 @@ class TestSSRFUrlValidation:
         assert body["success"] is False
         assert "http" in body["error"].lower() and "https" in body["error"].lower()
 
-    def test_empty_url_accepted(self, live_server, page):
+    def test_empty_url_accepted(self, configured_server, page):
         resp = page.request.post(
-            f"{live_server}/api/config",
+            f"{configured_server}/api/config",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"modem_url": ""}),
         )

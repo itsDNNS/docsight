@@ -178,9 +178,9 @@ def demo_page(page, live_server):
 
 
 @pytest.fixture()
-def settings_page(page, live_server):
+def settings_page(page, configured_server):
     """Navigate to the settings page."""
-    page.goto(f"{live_server}/settings")
+    page.goto(f"{configured_server}/settings")
     page.wait_for_load_state("networkidle")
     return page
 
