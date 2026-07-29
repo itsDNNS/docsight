@@ -364,6 +364,21 @@ class RuntimeController:
         with self._state_changed:
             self._request_state_locked(False)
 
+    def quiesce(self, timeout: float | None = None) -> bool:
+        """Request a restartable stop and wait within a bounded interval."""
+        if timeout is None:
+            timeout = self.stop_timeout
+        if timeout < 0:
+            raise ValueError("timeout must not be negative")
+        with self._state_changed:
+            if self._shutting_down:
+                raise RuntimeError("Runtime is shutting down")
+            self._request_state_locked(False)
+            return self._state_changed.wait_for(
+                lambda: self._poll_thread is None,
+                timeout=timeout,
+            )
+
     def start_polling(self) -> None:
         """Request polling, handing off only after any predecessor has exited."""
         with self._state_changed:

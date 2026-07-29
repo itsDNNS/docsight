@@ -168,6 +168,39 @@ def test_runtime_start_and_stop_reset_modem_state_once_per_transition():
     assert collectors_sets == [[], []]
 
 
+def test_runtime_quiesce_is_bounded_and_allows_later_restart():
+    first_started = threading.Event()
+    second_started = threading.Event()
+    starts = 0
+
+    def polling_target(_config, _storage, stop_event):
+        nonlocal starts
+        starts += 1
+        (first_started if starts == 1 else second_started).set()
+        stop_event.wait()
+
+    runtime = RuntimeController(
+        _Config(),
+        _Storage(),
+        polling_target,
+        stop_timeout=0.5,
+    )
+
+    runtime.start_polling()
+    assert first_started.wait(timeout=1)
+
+    assert runtime.quiesce(timeout=0.5) is True
+    assert runtime.is_running is False
+    assert runtime.desired_running is False
+
+    runtime.start_polling()
+    assert second_started.wait(timeout=1)
+    assert runtime.is_running is True
+    assert starts == 2
+
+    runtime.shutdown()
+
+
 def test_slow_poll_handoff_uses_latest_desired_state_without_overlap():
     state_lock = threading.Lock()
     first_started = threading.Event()

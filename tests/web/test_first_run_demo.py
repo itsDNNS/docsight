@@ -12,7 +12,7 @@ import pytest
 from app.config import ConfigManager
 from app.modules.connection_monitor.storage import ConnectionMonitorStorage
 from app.runtime import RuntimeController
-from app.web import app, init_config, init_storage
+from app.web import app, get_runtime_controller, init_config, init_storage
 
 
 @pytest.fixture
@@ -21,7 +21,16 @@ def demo_route_client(tmp_path):
     storage = Mock()
     storage.purge_demo_data.return_value = 17
     callback = Mock()
-    init_config(config, on_config_changed=callback)
+    runtime = Mock(
+        transaction_lock=threading.RLock(),
+        stop_timeout=0.1,
+    )
+    runtime.quiesce.return_value = True
+    init_config(
+        config,
+        on_config_changed=callback,
+        runtime_controller=runtime,
+    )
     init_storage(storage)
     app.config["TESTING"] = True
     with app.test_client() as client:
@@ -92,27 +101,22 @@ def test_config_callback_failure_rolls_back_and_demo_fallback_remains_available(
     assert callback.call_count == 3
 
 
-def test_config_initial_fetch_failure_restores_previous_persisted_state(
+def test_config_save_failure_rolls_back_persisted_and_runtime_state(
     demo_route_client,
 ):
     client, config, _storage, callback = demo_route_client
-    config.save({"language": "de"})
-    before = Path(config.config_path).read_bytes()
-    callback.reset_mock()
+    config.save({"language": "en"})
+    before = config.snapshot()
+    original_save = config.save
 
-    with patch(
-        "app.blueprints.config_bp.run_bqm_initial_fetch",
-        side_effect=RuntimeError("private fetch detail"),
-    ):
+    def save_then_fail(data):
+        original_save(data)
+        raise RuntimeError("private-save-marker /var/internal")
+
+    with patch.object(config, "save", side_effect=save_then_fail):
         response = client.post(
             "/api/config",
-            json={
-                "bqm_url": (
-                    "https://www.thinkbroadband.com/broadband/monitoring/"
-                    "quality/share/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                    "-2-y.csv"
-                )
-            },
+            json={"language": "de", "poll_interval": 120},
         )
 
     assert response.status_code == 500
@@ -120,38 +124,201 @@ def test_config_initial_fetch_failure_restores_previous_persisted_state(
         "success": False,
         "error": "Config save failed",
     }
-    assert b"private fetch detail" not in response.data
-    assert Path(config.config_path).read_bytes() == before
-    assert config.get("language") == "de"
-    assert not config.get("bqm_url")
-    assert callback.call_count == 2
+    assert b"private-save-marker" not in response.data
+    assert b"/var/internal" not in response.data
+    assert config.snapshot() == before
+    assert config.get("language") == "en"
+    callback.assert_called_once_with()
 
 
-def test_config_initial_fetch_error_result_also_rolls_back(demo_route_client):
+def test_config_initial_fetch_exception_keeps_committed_config_and_runtime(
+    demo_route_client,
+):
     client, config, _storage, callback = demo_route_client
     config.save({"language": "de"})
-    before = Path(config.config_path).read_bytes()
     callback.reset_mock()
+    bqm_url = (
+        "https://www.thinkbroadband.com/broadband/monitoring/"
+        "quality/share/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "-2-y.csv"
+    )
 
     with patch(
         "app.blueprints.config_bp.run_bqm_initial_fetch",
-        return_value={"success": False, "error": "fetch failed"},
+        side_effect=RuntimeError(
+            "private-fetch-marker /srv/docsight/internal"
+        ),
     ):
         response = client.post(
             "/api/config",
             json={
-                "bqm_url": (
-                    "https://www.thinkbroadband.com/broadband/monitoring/"
-                    "quality/share/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                    "-2-y.csv"
-                )
+                "language": "fr",
+                "poll_interval": 120,
+                "bqm_url": bqm_url,
             },
         )
 
-    assert response.status_code == 500
-    assert Path(config.config_path).read_bytes() == before
-    assert not config.get("bqm_url")
-    assert callback.call_count == 2
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "success": True,
+        "bqm_initial_fetch": {
+            "success": False,
+            "error": "BQM initial fetch failed; configuration was saved",
+        },
+    }
+    assert b"private-fetch-marker" not in response.data
+    assert b"/srv/docsight/internal" not in response.data
+    assert config.get("language") == "fr"
+    assert config.get("poll_interval") == 120
+    assert config.get("bqm_url") == bqm_url
+    callback.assert_called_once_with()
+
+
+def test_config_initial_fetch_error_result_keeps_committed_config_and_runtime(
+    demo_route_client,
+):
+    client, config, _storage, callback = demo_route_client
+    config.save({"language": "de"})
+    callback.reset_mock()
+    bqm_url = (
+        "https://www.thinkbroadband.com/broadband/monitoring/"
+        "quality/share/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "-2-y.csv"
+    )
+
+    with patch(
+        "app.blueprints.config_bp.run_bqm_initial_fetch",
+        return_value={
+            "success": False,
+            "error": "private-result-marker /opt/internal",
+        },
+    ):
+        response = client.post(
+            "/api/config",
+            json={
+                "language": "nl",
+                "poll_interval": 180,
+                "bqm_url": bqm_url,
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "success": True,
+        "bqm_initial_fetch": {
+            "success": False,
+            "error": "BQM initial fetch failed; configuration was saved",
+        },
+    }
+    assert b"private-result-marker" not in response.data
+    assert b"/opt/internal" not in response.data
+    assert config.get("language") == "nl"
+    assert config.get("poll_interval") == 180
+    assert config.get("bqm_url") == bqm_url
+    callback.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"modem_type": "generic"},
+        {"modem_url": "http://192.0.2.1"},
+        {
+            "modem_type": "fritzbox",
+            "modem_url": "http://192.0.2.1",
+            "language": "de",
+        },
+    ],
+)
+def test_demo_mode_rejects_new_modem_settings_without_mutation(
+    demo_route_client,
+    payload,
+):
+    client, config, _storage, callback = demo_route_client
+    config.save({"demo_mode": True, "language": "en"})
+    before = config.snapshot()
+    callback.reset_mock()
+
+    response = client.post("/api/config", json=payload)
+
+    assert response.status_code == 409
+    assert response.get_json() == {
+        "success": False,
+        "error": (
+            "Modem connection settings cannot be changed "
+            "while Demo Mode is active"
+        ),
+    }
+    assert config.snapshot() == before
+    callback.assert_not_called()
+
+
+def test_demo_mode_keeps_non_connection_settings_saveable(demo_route_client):
+    client, config, _storage, callback = demo_route_client
+    config.save({"demo_mode": True})
+    callback.reset_mock()
+
+    response = client.post(
+        "/api/config",
+        json={"language": "de", "poll_interval": 120},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {"success": True}
+    assert config.is_demo_mode() is True
+    assert config.get("language") == "de"
+    assert config.get("poll_interval") == 120
+    assert "modem_type" not in config._file_config
+    assert "modem_url" not in config._file_config
+    callback.assert_called_once_with()
+
+
+def test_demo_mode_blocks_modem_driver_tests(demo_route_client):
+    client, config, _storage, _callback = demo_route_client
+    config.save({"demo_mode": True})
+
+    with patch("app.drivers.driver_registry.load_driver") as load_driver:
+        response = client.post(
+            "/api/test-modem",
+            json={
+                "modem_type": "fritzbox",
+                "modem_url": "http://192.0.2.1",
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.get_json()["success"] is False
+    load_driver.assert_not_called()
+
+
+@pytest.mark.parametrize("error_type", [ValueError, RuntimeError])
+def test_modem_driver_failures_do_not_expose_internal_details(
+    demo_route_client,
+    error_type,
+):
+    client, _config, _storage, _callback = demo_route_client
+    internal_marker = "internal-modem-test-marker"
+    internal_path = "/srv/docsight/private/modem-secrets.json"
+
+    with patch(
+        "app.drivers.driver_registry.load_driver",
+        side_effect=error_type(f"{internal_marker} {internal_path}"),
+    ):
+        response = client.post(
+            "/api/test-modem",
+            json={
+                "modem_type": "fritzbox",
+                "modem_url": "http://192.0.2.1",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "success": False,
+        "error": "Modem test failed",
+    }
+    assert internal_marker.encode() not in response.data
+    assert internal_path.encode() not in response.data
 
 
 def test_fresh_setup_page_renders_value_choice_and_desktop_boundary(
@@ -233,6 +400,7 @@ def test_demo_exit_purges_only_demo_data_and_returns_explicit_next_path(
     assert config.is_demo_mode() is False
     assert config.is_configured() is False
     assert "modem_type" not in config._file_config
+    get_runtime_controller().quiesce.assert_called_once_with(timeout=0.1)
     callback.assert_called_once_with()
 
 
@@ -289,9 +457,85 @@ def test_demo_exit_retry_recovers_after_runtime_callback_failure(demo_route_clie
         "purged": 17,
         "next_path": "/setup?connect=1",
     }
-    assert storage.purge_demo_data.call_count == 1
+    storage.purge_demo_data.assert_called_once_with()
     assert config.is_demo_mode() is False
     assert callback.call_count == 3
+
+
+def test_demo_exit_runtime_without_callback_fails_before_side_effects(tmp_path):
+    config = ConfigManager(str(tmp_path / "runtime-without-callback"))
+    config.save({"demo_mode": True, "language": "de"})
+    before_snapshot = config.snapshot()
+    before_file = Path(config.config_path).read_bytes()
+    storage = Mock()
+    runtime = Mock(
+        transaction_lock=threading.RLock(),
+        stop_timeout=0.1,
+    )
+    init_config(config, runtime_controller=runtime)
+    init_storage(storage)
+    app.config["TESTING"] = True
+
+    with app.test_client() as client:
+        response = client.post(
+            "/api/demo/migrate",
+            json={"action": "exit"},
+        )
+
+    assert response.status_code == 500
+    assert response.get_json() == {
+        "success": False,
+        "error": "Demo exit failed",
+    }
+    runtime.quiesce.assert_not_called()
+    storage.purge_demo_data.assert_not_called()
+    assert config.snapshot() == before_snapshot
+    assert Path(config.config_path).read_bytes() == before_file
+    init_config(config)
+
+
+@pytest.mark.parametrize(
+    ("action", "next_path"),
+    [
+        ("connect", "/setup?connect=1"),
+        ("exit", "/setup"),
+    ],
+)
+def test_demo_exit_quiesce_failure_rolls_back_without_purge_and_is_retryable(
+    demo_route_client,
+    action,
+    next_path,
+):
+    client, config, storage, callback = demo_route_client
+    config.save({"demo_mode": True, "language": "de"})
+    callback.reset_mock()
+    runtime = get_runtime_controller()
+    runtime.quiesce.side_effect = [False, True]
+
+    first = client.post("/api/demo/migrate", json={"action": action})
+
+    assert first.status_code == 500
+    assert first.get_json() == {
+        "success": False,
+        "error": "Demo exit failed",
+    }
+    assert config.is_demo_mode() is True
+    assert config.get("language") == "de"
+    storage.purge_demo_data.assert_not_called()
+    callback.assert_called_once_with()
+
+    second = client.post("/api/demo/migrate", json={"action": action})
+
+    assert second.status_code == 200
+    assert second.get_json() == {
+        "success": True,
+        "purged": 17,
+        "next_path": next_path,
+    }
+    assert config.is_demo_mode() is False
+    storage.purge_demo_data.assert_called_once_with()
+    assert runtime.quiesce.call_count == 2
+    assert callback.call_count == 2
 
 
 def test_env_managed_demo_exit_is_localized_and_has_no_side_effects(
@@ -823,6 +1067,104 @@ def test_demo_exit_timeout_rolls_back_and_eventually_restarts_demo_once(
 
     runtime.shutdown()
     assert active == 0
+    init_config(config)
+
+
+@pytest.mark.parametrize(
+    ("action", "next_path"),
+    [
+        ("connect", "/setup?connect=1"),
+        ("exit", "/setup"),
+    ],
+)
+def test_legacy_mixed_demo_state_quiesces_before_purge_then_starts_live_runtime(
+    tmp_path,
+    action,
+    next_path,
+):
+    config = ConfigManager(str(tmp_path / f"legacy-mixed-{action}"))
+    config.save({
+        "demo_mode": True,
+        "modem_type": "fritzbox",
+        "modem_url": "http://192.0.2.1",
+    })
+    storage = Mock()
+    storage.max_days = 7
+    demo_started = threading.Event()
+    demo_exited = threading.Event()
+    demo_running = threading.Event()
+    live_started = threading.Event()
+    runtime_apply_finished = threading.Event()
+    starts = 0
+
+    def polling_target(_config, _storage, stop_event):
+        nonlocal starts
+        starts += 1
+        run_number = starts
+        if run_number == 1:
+            demo_running.set()
+            demo_started.set()
+        else:
+            live_started.set()
+        try:
+            stop_event.wait()
+        finally:
+            if run_number == 1:
+                demo_running.clear()
+                demo_exited.set()
+
+    runtime = RuntimeController(
+        config,
+        storage,
+        polling_target,
+        stop_timeout=1,
+    )
+
+    def purge_demo_data():
+        assert demo_exited.is_set()
+        assert not demo_running.is_set()
+        assert runtime_apply_finished.is_set()
+        assert live_started.wait(timeout=1)
+        assert runtime.wait_for_state(True, timeout=0)
+        assert runtime.desired_running is True
+        return 5
+
+    storage.purge_demo_data.side_effect = purge_demo_data
+
+    def apply_runtime_config():
+        runtime.apply_config_changed()
+        runtime_apply_finished.set()
+
+    init_config(
+        config,
+        on_config_changed=apply_runtime_config,
+        runtime_controller=runtime,
+    )
+    init_storage(storage)
+    app.config["TESTING"] = True
+    runtime.start_polling()
+    assert demo_started.wait(timeout=1)
+
+    with app.test_client() as client:
+        response = client.post(
+            "/api/demo/migrate",
+            json={"action": action},
+        )
+
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "success": True,
+        "purged": 5,
+        "next_path": next_path,
+    }
+    assert live_started.wait(timeout=1)
+    assert config.is_demo_mode() is False
+    assert config.is_configured() is True
+    assert config.get("modem_type") == "fritzbox"
+    assert runtime.desired_running is True
+    assert starts == 2
+
+    runtime.shutdown()
     init_config(config)
 
 

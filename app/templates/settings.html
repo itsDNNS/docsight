@@ -208,6 +208,7 @@ var serverOffsetMin = {{ server_tz_offset }};
 var serverTz = '{{ server_tz }}';
 var currentLang = '{{ lang }}';
 var currentTz = '{{ config.timezone|default("", true) }}';
+var demoModeActive = {{ demo_mode | tojson }};
 try { var savedCooldowns = JSON.parse({{ config.notify_cooldowns|default("{}")|tojson }}); } catch(e) { var savedCooldowns = {}; }
 var DRIVER_HINTS = {{ driver_hints | tojson }};
 var MODULE_SECRET_FIELDS = {{ module_secret_fields | tojson }};

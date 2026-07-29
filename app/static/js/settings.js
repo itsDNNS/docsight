@@ -3,7 +3,7 @@
    Extracted from inline + Mobile List→Detail
    ═══════════════════════════════════════════════ */
 
-/* Globals set by template: T, SECTION_TITLES, serverOffsetMin, serverTz, currentLang, currentTz, savedCooldowns */
+/* Globals set by template: T, SECTION_TITLES, serverOffsetMin, serverTz, currentLang, currentTz, demoModeActive, savedCooldowns */
 
 /* ── Section Controller ── */
 var _currentSection = 'connection';
@@ -453,7 +453,9 @@ function _isConfigSecretField(inp) {
 function getFormData() {
     var form = document.getElementById('settings-form');
     var data = {};
+    var demoBlockedFields = ['modem_type', 'modem_url', 'modem_user', 'modem_password'];
     form.querySelectorAll('input:not(#theme-toggle-appearance):not(#isp_other_input):not(.notify-toggle):not(.notify-cooldown-input):not(.module-toggle-input), select:not(#isp_select), textarea').forEach(function(inp) {
+        if (demoModeActive && demoBlockedFields.indexOf(inp.name) !== -1) return;
         if (inp.type === 'checkbox') {
             data[inp.name] = inp.checked ? inp.value : 'false';
             return;

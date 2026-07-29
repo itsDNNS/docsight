@@ -27,6 +27,16 @@ log = logging.getLogger("docsis.web")
 
 config_bp = Blueprint("config_bp", __name__)
 _fallback_runtime_lock = threading.RLock()
+_MODEM_CONNECTION_KEYS = {
+    "modem_type",
+    "modem_url",
+    "modem_user",
+    "modem_password",
+}
+_BQM_INITIAL_FETCH_FAILURE = {
+    "success": False,
+    "error": "BQM initial fetch failed; configuration was saved",
+}
 
 
 def _runtime_lock():
@@ -167,6 +177,17 @@ def api_config():
                 or _admin_password_matches(previous_admin_password, data["admin_password"])
             ):
                 del data["admin_password"]
+            if (
+                _config_manager.is_demo_mode()
+                and _MODEM_CONNECTION_KEYS.intersection(data)
+            ):
+                return jsonify({
+                    "success": False,
+                    "error": (
+                        "Modem connection settings cannot be changed "
+                        "while Demo Mode is active"
+                    ),
+                }), 409
             # Validate timezone if provided
             if "timezone" in data and data["timezone"]:
                 try:
@@ -215,22 +236,45 @@ def api_config():
                         "Configuration URLs must use HTTP or HTTPS."
                     ),
                 }), 400
-            try:
-                if _on_config_changed:
-                    _on_config_changed()
-                response = {"success": True}
-                if should_fetch_bqm:
-                    fetch_result = run_bqm_initial_fetch(
-                        _config_manager, get_storage()
-                    )
-                    if not fetch_result.get("success"):
-                        raise RuntimeError("Initial fetch failed")
-                    response["bqm_initial_fetch"] = fetch_result
             except Exception:
                 _rollback_config(
                     _config_manager, snapshot, _on_config_changed
                 )
                 raise
+            try:
+                if _on_config_changed:
+                    _on_config_changed()
+            except Exception:
+                _rollback_config(
+                    _config_manager, snapshot, _on_config_changed
+                )
+                raise
+
+            response = {"success": True}
+            if should_fetch_bqm:
+                try:
+                    fetch_result = run_bqm_initial_fetch(
+                        _config_manager, get_storage()
+                    )
+                except Exception:
+                    log.exception(
+                        "Optional BQM initial fetch raised after config commit"
+                    )
+                    fetch_result = None
+                if (
+                    isinstance(fetch_result, dict)
+                    and fetch_result.get("success") is True
+                ):
+                    response["bqm_initial_fetch"] = fetch_result
+                else:
+                    if fetch_result is not None:
+                        log.warning(
+                            "Optional BQM initial fetch reported failure "
+                            "after config commit"
+                        )
+                    response["bqm_initial_fetch"] = dict(
+                        _BQM_INITIAL_FETCH_FAILURE
+                    )
 
             effective_admin_password = _config_manager.get("admin_password", "")
             admin_password_changed = (
@@ -353,22 +397,30 @@ def api_demo_migrate():
         if not _storage:
             return jsonify({"success": False, "error": "Storage not initialized"}), 500
 
-        snapshot = _config_manager.snapshot()
         _on_config_changed = get_on_config_changed()
         runtime = get_runtime_controller()
+        if (runtime is None) != (_on_config_changed is None):
+            log.error(
+                "Demo migration refused: runtime controller/config callback mismatch"
+            )
+            return jsonify({
+                "success": False,
+                "error": "Demo exit failed",
+            }), 500
+
+        snapshot = _config_manager.snapshot()
         try:
-            # Stop demo polling before provenance updates or destructive cleanup.
+            # Stop the active demo runtime independently of persisted modem
+            # settings. Legacy installs may contain both demo and modem config.
+            if runtime:
+                if not runtime.quiesce(timeout=runtime.stop_timeout):
+                    raise TimeoutError(
+                        "Demo polling did not stop before destructive cleanup"
+                    )
+
             _config_manager.save({"demo_mode": False})
             if _on_config_changed:
                 _on_config_changed()
-            if runtime and not runtime.wait_for_state(
-                False,
-                timeout=runtime.stop_timeout,
-            ):
-                raise TimeoutError(
-                    "Demo polling did not stop before destructive cleanup"
-                )
-
             purged = _storage.purge_demo_data()
             from app.modules.connection_monitor.storage import ConnectionMonitorStorage
             cm_db_path = os.path.join(_config_manager.data_dir, "connection_monitor.db")

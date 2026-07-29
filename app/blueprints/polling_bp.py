@@ -52,6 +52,11 @@ def _as_bool(value):
 def api_test_modem():
     """Test modem connection."""
     _config_manager = get_config_manager()
+    if _config_manager and _config_manager.is_demo_mode():
+        return jsonify({
+            "success": False,
+            "error": "Modem tests are unavailable in Demo Mode",
+        }), 409
     try:
         data = request.get_json()
         # Resolve masked passwords to real values
@@ -69,11 +74,12 @@ def api_test_modem():
         driver.login()
         info = driver.get_device_info()
         return jsonify({"success": True, "model": info.get("model", "OK")})
-    except ValueError as e:
-        return jsonify({"success": False, "error": str(e)})
-    except Exception as e:
-        log.warning("Modem test failed: %s", e)
-        return jsonify({"success": False, "error": type(e).__name__ + ": " + str(e).split("\n")[0][:200]})
+    except ValueError:
+        log.exception("Modem test failed during request validation")
+        return jsonify({"success": False, "error": "Modem test failed"})
+    except Exception:
+        log.exception("Modem test failed")
+        return jsonify({"success": False, "error": "Modem test failed"})
 
 
 @polling_bp.route("/api/test-mqtt", methods=["POST"])

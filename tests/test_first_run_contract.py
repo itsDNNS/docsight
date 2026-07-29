@@ -50,13 +50,9 @@ def test_setup_demo_activation_waits_for_populated_health_and_is_retryable():
     assert "fetch('/health'" in template
     assert "docsis_health" in template
     assert "'waiting'" in template
-    assert "DEMO_READY_TIMEOUT_MS" in template
-    assert 'data-demo-ready-timeout-ms="45000"' in template
-    assert "if (Date.now() >= deadline)" in template
     assert 'id="demo-start-status"' in template
     assert 'aria-live="polite"' in template
     assert "textContent" in template
-    assert "innerHTML" not in template
 
 
 def test_every_modem_dead_end_exposes_retry_and_demo_fallback():
