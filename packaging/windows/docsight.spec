@@ -58,6 +58,8 @@ if not VERSION_FILE.exists():
 
 datas = collect_app_datas() + [(str(VERSION_FILE), ".")]
 hiddenimports = collect_app_hiddenimports() + [
+    "tkinter",
+    "tkinter.ttk",
     "waitress",
 ]
 
@@ -72,7 +74,6 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        "tkinter",
         "pytest",
     ],
     noarchive=False,
@@ -91,7 +92,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    disable_windowed_traceback=False,
+    disable_windowed_traceback=True,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,

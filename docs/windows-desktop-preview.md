@@ -61,6 +61,18 @@ DOCSight starts a local web app and opens your default browser. The address is l
 http://127.0.0.1:8765
 ```
 
+A small DOCSight startup window appears first. It shows the current local
+address with a **Copy** action from **Start DOCSight** onward and reports
+progress while it prepares local data, starts DOCSight, waits for readiness,
+and attempts to open the browser. After DOCSight is ready and the browser-open
+attempt succeeds, the startup window closes.
+
+If startup cannot finish or the browser cannot be opened, the window stays
+available instead of exiting silently. You can copy the displayed local
+address, choose **Retry** to start a fresh attempt, open the log folder, or
+close DOCSight. A browser-open failure does not mean the local app is
+unavailable: copy the address into a browser to continue.
+
 ## What works in the Desktop Preview
 
 The preview uses the same DOCSight web app and is useful for exploring the product:
@@ -102,7 +114,20 @@ Typical subfolders:
 |---|---|
 | `%LOCALAPPDATA%\DOCSight\data` | Configuration and local monitoring database |
 | `%LOCALAPPDATA%\DOCSight\modules` | Community modules and themes |
-| `%LOCALAPPDATA%\DOCSight\logs` | Desktop launcher and runtime logs |
+| `%LOCALAPPDATA%\DOCSight\logs` | Privacy-filtered launcher diagnostics in `launcher.log`; separate application diagnostics in `runtime.log` |
+
+`launcher.log` contains only sanitized startup/recovery events and is intended
+to be shareable. `runtime.log` contains separate application diagnostics;
+review it before sharing because it can contain instance-specific operational
+details.
+
+The release smoke runs later on `windows-latest`; Linux tests only enforce its
+static contract. The Windows run requires exactly one listener on the smoke
+port and exactly one IPv4 loopback listener owned by the launched process,
+requires `runtime.log` without packaged route/import degradation, and deletes
+the first launcher's log before requiring fresh **Prepare local data** evidence
+from the injected recovery process. That recovery process must also have a
+nonzero main-window handle with the title exactly `DOCSight`.
 
 ## Remove the Desktop Preview
 

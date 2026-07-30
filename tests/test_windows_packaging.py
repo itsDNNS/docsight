@@ -51,9 +51,10 @@ def test_pyinstaller_spec_collects_app_tree_and_version_file():
     assert "docsight-traceroute-helper" not in spec_text
 
 
-def test_pyinstaller_spec_keeps_intended_exclusions_without_unittest():
+def test_pyinstaller_spec_bundles_tk_and_keeps_test_exclusion():
     spec_path = WINDOWS_PACKAGING / "docsight.spec"
-    tree = ast.parse(spec_path.read_text(encoding="utf-8"), filename=str(spec_path))
+    spec_text = spec_path.read_text(encoding="utf-8")
+    tree = ast.parse(spec_text, filename=str(spec_path))
     analysis_call = next(
         node
         for node in ast.walk(tree)
@@ -66,9 +67,18 @@ def test_pyinstaller_spec_keeps_intended_exclusions_without_unittest():
     )
     exclusions = ast.literal_eval(excludes_keyword.value)
 
-    assert "tkinter" in exclusions
+    assert '"tkinter"' in spec_text
+    assert '"tkinter.ttk"' in spec_text
+    assert "tkinter" not in exclusions
     assert "pytest" in exclusions
     assert "unittest" not in exclusions
+
+
+def test_pyinstaller_spec_disables_windowed_tracebacks():
+    spec_text = (WINDOWS_PACKAGING / "docsight.spec").read_text(encoding="utf-8")
+
+    assert "disable_windowed_traceback=True" in spec_text
+    assert "disable_windowed_traceback=False" not in spec_text
 
 
 def test_build_script_uses_hash_pinned_requirements_and_creates_zip_hash():

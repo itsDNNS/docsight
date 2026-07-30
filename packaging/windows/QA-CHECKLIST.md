@@ -28,8 +28,61 @@ Record these values before starting:
 - [ ] Extract the ZIP into a normal user-writable folder such as `Downloads\DOCSight`.
 - [ ] Double-click `DOCSight.exe`.
 - [ ] If SmartScreen appears, confirm the documented flow works: **More info** → **Run anyway** after checksum verification.
+- [ ] A centered DOCSight startup window is visible within **under two seconds** of double-clicking, before slow startup completes.
+- [ ] At 100%, 150%, and 200% display scaling, the startup and expanded recovery layouts remain readable without clipped actions.
+- [ ] The startup window advances through **Prepare local data**, **Start DOCSight**, **Wait for readiness**, and **Open browser**.
+- [ ] The local loopback URL is visible from **Start DOCSight** onward; select **Copy** and paste it into Notepad to verify the exact address.
 - [ ] The default browser opens `http://127.0.0.1:<port>/` without requiring PowerShell, Docker, WSL, or admin setup.
 - [ ] The UI shows the Desktop Preview badge and first-run notice.
+
+## Startup recovery
+
+Run controlled recovery checks from PowerShell in the extracted bundle directory. Use one command block at a time, close the recovery window afterward, and remove the variables before the next normal launch.
+
+**Application-thread failure**
+
+```powershell
+$env:DOCSIGHT_SKIP_BROWSER = "1"
+$env:DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE = "1"
+.\DOCSight.exe
+Remove-Item Env:DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE, Env:DOCSIGHT_SKIP_BROWSER -ErrorAction SilentlyContinue
+```
+
+**No free preview port**
+
+```powershell
+$env:DOCSIGHT_SKIP_BROWSER = "1"
+$env:DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE = "1"
+.\DOCSight.exe
+Remove-Item Env:DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE, Env:DOCSIGHT_SKIP_BROWSER -ErrorAction SilentlyContinue
+```
+
+**Browser-open failure after readiness**
+
+```powershell
+$env:DOCSIGHT_SKIP_BROWSER = "1"
+$env:DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE = "1"
+.\DOCSight.exe
+Remove-Item Env:DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE, Env:DOCSIGHT_SKIP_BROWSER -ErrorAction SilentlyContinue
+```
+
+These switches are ignored unless `DOCSIGHT_SKIP_BROWSER=1` is present.
+
+The release smoke on `windows-latest` separately requires exactly one listener
+on its smoke port and exactly one process-owned IPv4 loopback listener. It also
+requires `runtime.log` without route/import degradation, deletes the successful
+launcher's `launcher.log` before checking fresh injected recovery evidence, and
+requires the recovery process to expose a nonzero main-window handle titled
+exactly `DOCSight`.
+
+- [ ] Capture one screenshot of the normal immediate startup status.
+- [ ] Run the application-thread failure check and capture a screenshot showing readable, plain-language recovery without exception details.
+- [ ] Run the no-port check and verify the address is marked unavailable and **Copy** is disabled. In other error states with a selected port, verify the local URL and **Copy** action still work.
+- [ ] Select **Open log folder** and confirm Explorer opens `%LOCALAPPDATA%\DOCSight\logs` with `launcher.log` and `runtime.log` present.
+- [ ] Treat sanitized `launcher.log` as shareable launcher evidence. Review the separate `runtime.log` diagnostics before sharing them because they may contain instance-specific details.
+- [ ] Select **Retry** and confirm a fresh launcher starts from **Prepare local data** without leaving the prior `DOCSight.exe` process running.
+- [ ] Run the browser-open failure check and verify the recovery window remains visible; copy the URL into a browser and confirm the ready local app is usable.
+- [ ] Select **Close** on an error surface and confirm the launcher process exits.
 
 ## Product click-through
 
@@ -61,6 +114,12 @@ Record these values before starting:
 |---|---|---|
 | Checksum and extraction | | |
 | Double-click startup | | |
+| Immediate status under two seconds | | |
+| Startup phases and URL copy | | |
+| Error screenshot and safe copy | | |
+| Retry and prior-process cleanup | | |
+| Open log folder / `launcher.log` | | |
+| Browser-open failure fallback | | |
 | SmartScreen flow | | |
 | Wizard / Demo Mode | | |
 | Dashboard / glossary / evidence | | |

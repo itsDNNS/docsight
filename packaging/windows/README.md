@@ -12,8 +12,24 @@ Run from the repository root during development:
 python packaging/windows/docsight_desktop.py
 ```
 
-The launcher prepares a per-user runtime tree, starts DOCSight on loopback, and
-opens the default browser when `/health` is ready.
+The launcher first paints a compact native startup window, then prepares a
+per-user runtime tree, starts DOCSight on loopback, and opens the default
+browser when `/health` is ready. The window shows the current local address
+from **Start DOCSight** onward and provides a copy action.
+
+Startup progresses through four visible phases:
+
+1. **Prepare local data**
+2. **Start DOCSight**
+3. **Wait for readiness**
+4. **Open browser**
+
+If the browser opens successfully, the startup window closes after the open
+attempt. If no port is available, readiness times out, the application thread
+stops, or the browser cannot be opened, the launcher remains visible with
+plain-language recovery guidance, the local URL, **Retry**, **Open log folder**,
+and **Close**. Retry starts a fresh launcher process so a previous local server
+cannot be retained by the same process.
 
 ## Runtime contract
 
@@ -26,7 +42,13 @@ On startup the launcher creates and exports:
 | `WEB_HOST` | `127.0.0.1` |
 | `WEB_PORT` | first available port from `8765` through `8775` |
 | `DOCSIGHT_DESKTOP_MODE` | `1` |
-| log file | `%LOCALAPPDATA%\\DOCSight\\logs\\docsight.log` |
+| privacy-filtered launcher phase/recovery log | `%LOCALAPPDATA%\\DOCSight\\logs\\launcher.log` |
+| application runtime diagnostics | `%LOCALAPPDATA%\\DOCSight\\logs\\runtime.log` |
+
+`launcher.log` is deliberately limited to sanitized launcher events and is
+intended to be shareable. `runtime.log` keeps application diagnostics separate;
+review it before sharing because runtime records may contain instance-specific
+operational details.
 
 If `LOCALAPPDATA` is unavailable, the launcher falls back to
 `Path.home() / "AppData" / "Local"` so the same code path is testable outside
@@ -100,8 +122,24 @@ powershell -ExecutionPolicy Bypass -File packaging/windows/smoke_test.ps1 `
 
 The smoke test launches the packaged executable, uses a temporary
 `LOCALAPPDATA`, skips browser launch via `DOCSIGHT_SKIP_BROWSER=1`, verifies the
-`/health` status and version, checks the listener is bound to `127.0.0.1`, and
-then stops the process.
+`/health` status and version, requires exactly one listener on the smoke port
+and exactly one IPv4 `127.0.0.1` listener owned by the launched process, and
+requires `runtime.log` without packaged route/import failures such as
+`failed to import routes` or `No module named`. It validates a real Reports PDF
+and then stops the process. The deterministic recovery check deletes the first
+process's `launcher.log` before the injected launch, requires the second process
+to write the **Prepare local data** recovery evidence, and confirms a nonzero
+main-window handle whose title is exactly `DOCSight`.
+
+The narrowly scoped `DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE=1`,
+`DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE=1`, and
+`DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE=1` switches are honored only while
+`DOCSIGHT_SKIP_BROWSER=1` is active. They are packaging/manual-QA test
+infrastructure and have no effect during normal interactive startup.
+
+The automated smoke verifies process, window-title, logging, listener, API, and
+recovery contracts. Use `QA-CHECKLIST.md` for visual quality, DPI scaling, and
+interactive action checks.
 
 ## Packaging boundary
 
@@ -116,5 +154,6 @@ Windows packaging tree out of the Docker build context as well.
 ## Non-goals for this slice
 
 - No tray icon, WebView shell, auto-start, updater, installer, MSI, or MSIX.
+- No dedicated shutdown control beyond the launcher recovery surface.
 - No native Windows ICMP/traceroute diagnostics.
 - No code-signing integration while provider onboarding is pending.

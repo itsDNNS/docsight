@@ -82,6 +82,11 @@ if (-not (Test-Path $VenvPython)) {
     }
 }
 
+$PointerSize = (& $VenvPython -c "import struct; print(struct.calcsize('P'))").Trim()
+if ($LASTEXITCODE -ne 0 -or $PointerSize -ne "8") {
+    throw "DOCSight Windows builds require a 64-bit Python runtime."
+}
+
 Invoke-Checked $VenvPython -m pip install --upgrade pip
 Invoke-Checked $VenvPython -m pip install --require-hashes -r (Join-Path $ScriptDir "requirements-runtime-windows.txt")
 Invoke-Checked $VenvPython -m pip install --require-hashes -r (Join-Path $ScriptDir "requirements-build.txt")

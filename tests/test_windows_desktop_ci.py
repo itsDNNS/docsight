@@ -14,6 +14,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "windows-desktop.yml"
 SMOKE_SCRIPT = ROOT / "packaging" / "windows" / "smoke_test.ps1"
+WINDOWS_README = ROOT / "packaging" / "windows" / "README.md"
+WINDOWS_QA_CHECKLIST = ROOT / "packaging" / "windows" / "QA-CHECKLIST.md"
+WINDOWS_PREVIEW_DOC = ROOT / "docs" / "windows-desktop-preview.md"
 
 
 def named_step_block(workflow_text: str, step_name: str) -> str:
@@ -168,6 +171,7 @@ def test_windows_desktop_workflow_triggers_and_permissions():
     assert "release:" in workflow
     assert "types: [published]" in workflow
     assert "permissions:\n  contents: read" in workflow
+    assert "  build:\n    timeout-minutes: 30\n    runs-on: windows-latest" in workflow
     assert "attach-release-assets:" in workflow
     assert "permissions:\n      contents: write" in workflow
 
@@ -527,8 +531,149 @@ def test_smoke_script_launches_built_exe_and_checks_loopback_health():
     assert "$Payload.version -ne $ExpectedVersion" in script
     assert "Get-NetTCPConnection -State Listen -LocalPort $Port" in script
     assert "LocalAddress -eq \"127.0.0.1\"" in script
+    assert "OwningProcess -eq $Process.Id" in script
+    assert "Get-PeMachine -Path $Executable" in script
+    assert "0x8664" in script
+    assert "-WindowStyle Hidden" not in script
     assert "DOCSIGHT_SKIP_BROWSER" in script
+    assert "DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE" in script
+    assert "DOCSight\\logs\\launcher.log" in script
+    assert "DOCSight\\logs\\runtime.log" in script
     assert "python -m app.main" not in script
+
+
+def test_smoke_script_requires_one_owned_ipv4_loopback_listener():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert "$Connections.Count -ne 1" in script
+    assert "$OwnedLoopbackListeners.Count -ne 1" in script
+    assert '$_.LocalAddress -eq "127.0.0.1"' in script
+    assert "$_.OwningProcess -eq $Process.Id" in script
+    assert "Expected exactly one listener on smoke port" in script
+    assert "Expected exactly one 127.0.0.1:$Port listener owned by DOCSight" in script
+
+
+def test_smoke_script_prints_both_logs_and_rejects_runtime_import_degradation():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert (
+        '$RuntimeLogFile = Join-Path $LocalAppData "DOCSight\\logs\\runtime.log"'
+        in script
+    )
+    assert "Get-Content -LiteralPath $LauncherLogFile -Tail 200" in script
+    assert "Get-Content -LiteralPath $RuntimeLogFile -Tail 200" in script
+    assert "if (-not (Test-Path -LiteralPath $RuntimeLogFile))" in script
+    assert "Get-Content -LiteralPath $RuntimeLogFile -Raw" in script
+    assert "failed to import routes" in script
+    assert "No module named" in script
+    assert "Write-Host $RuntimeLogText" not in script
+
+
+def test_smoke_script_proves_injected_startup_recovery_without_browser():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert '$env:DOCSIGHT_SKIP_BROWSER = "1"' in script
+    assert '$env:DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE = "1"' in script
+    assert '"Phase: Prepare local data"' in script
+    assert '"Recovery available: app_thread_failure"' in script
+    assert '"failure type: RuntimeError"' in script
+    assert "if ($Process.HasExited)" in script
+    assert "instead of keeping recovery available" in script
+    assert "$Process.Refresh()" in script
+    assert "$Process.MainWindowHandle -eq [IntPtr]::Zero" in script
+    assert '$Process.MainWindowTitle -cne "DOCSight"' in script
+    assert "-WindowStyle Hidden" not in script
+
+
+def test_smoke_script_uses_fresh_launcher_log_for_injected_recovery():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+    launches = [
+        match.start()
+        for match in re.finditer(
+            r"Start-Process -FilePath \$Executable -WorkingDirectory "
+            r"\$LaunchBundleDir -PassThru",
+            script,
+        )
+    ]
+
+    assert len(launches) == 2
+    stop_first_process = script.index(
+        "Stop-Process -Id $Process.Id -Force", launches[0]
+    )
+    wait_for_first_process = script.index(
+        "$FirstProcessStopped = $Process.WaitForExit(10000)", stop_first_process
+    )
+    remove_first_log = script.index(
+        "Remove-Item -LiteralPath $LauncherLogFile -Force", wait_for_first_process
+    )
+    prepare_phase_assertion = script.index('"Phase: Prepare local data"', launches[1])
+    assert (
+        launches[0]
+        < stop_first_process
+        < wait_for_first_process
+        < remove_first_log
+        < launches[1]
+    )
+    assert launches[1] < prepare_phase_assertion
+    assert launches[1] < script.index("$Process.MainWindowHandle", launches[1])
+    assert launches[1] < script.index("$Process.MainWindowTitle", launches[1])
+
+
+def test_smoke_script_restores_all_injection_environment_variables():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+    finally_block = script.rsplit("} finally {", maxsplit=1)[1]
+
+    variables = (
+        ("STARTUP", "Startup"),
+        ("BROWSER", "Browser"),
+        ("NO_PORT", "NoPort"),
+    )
+    for environment_suffix, variable_suffix in variables:
+        environment_name = f"DOCSIGHT_SMOKE_INJECT_{environment_suffix}_FAILURE"
+        assert (
+            f"$PreviousInjected{variable_suffix}Failure = $env:{environment_name}"
+            in script
+        )
+        assert (
+            f"$env:{environment_name} = $PreviousInjected{variable_suffix}Failure"
+            in finally_block
+        )
+
+
+def test_windows_docs_describe_smoke_and_log_sharing_contracts():
+    readme = WINDOWS_README.read_text(encoding="utf-8")
+    qa_checklist = WINDOWS_QA_CHECKLIST.read_text(encoding="utf-8")
+    preview_doc = WINDOWS_PREVIEW_DOC.read_text(encoding="utf-8")
+    combined_docs = "\n".join((readme, qa_checklist, preview_doc))
+
+    assert "from **Start DOCSight** onward" in readme
+    assert "from **Start DOCSight** onward" in qa_checklist
+    assert "from **Start DOCSight** onward" in preview_doc
+    assert "exactly one listener" in combined_docs
+    assert "route/import" in combined_docs
+    assert "fresh **Prepare local data** evidence" in combined_docs
+    assert "nonzero main-window handle" in combined_docs
+    assert "title exactly `DOCSight`" in combined_docs
+    assert "sanitized" in combined_docs
+    assert "shareable" in combined_docs
+    assert "review it before sharing" in combined_docs
+    assert "Linux tests only enforce its\nstatic contract" in preview_doc
+    assert "runs later on `windows-latest`" in preview_doc
+
+
+def test_windows_qa_keeps_all_precise_failure_injection_invocations():
+    qa_checklist = WINDOWS_QA_CHECKLIST.read_text(encoding="utf-8")
+
+    for environment_name in (
+        "DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE",
+        "DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE",
+        "DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE",
+    ):
+        assert f'$env:{environment_name} = "1"' in qa_checklist
+        assert f"Remove-Item Env:{environment_name}," in qa_checklist
+    assert qa_checklist.count('$env:DOCSIGHT_SKIP_BROWSER = "1"') == 3
+    assert qa_checklist.count("Env:DOCSIGHT_SKIP_BROWSER -ErrorAction") == 3
+    assert qa_checklist.count(".\\DOCSight.exe") == 3
 
 
 def test_smoke_script_runs_copied_bundle_from_hostile_temp_path():
@@ -572,14 +717,11 @@ def test_smoke_script_checks_real_pdf_response_from_packaged_process():
     assert script.index("$SetupResponse") < script.index("$PdfResponse")
 
 
-def test_smoke_script_rejects_reports_import_errors_and_preserves_cleanup():
+def test_smoke_script_preserves_cleanup_after_real_reports_route_checks():
     script = SMOKE_SCRIPT.read_text(encoding="utf-8")
 
-    assert "docsight\\.reports" in script
-    assert "failed to import routes" in script
-    assert "No module named" in script
-    assert "unittest" in script
-    assert script.index("$PdfResponse.ContentType") < script.index("$LogText")
+    assert script.index("$EmptyReportResponse") < script.index("$SetupResponse")
+    assert script.index("$SetupResponse") < script.index("$PdfResponse.ContentType")
     assert re.search(
         r"}\s*catch\s*{\s*Write-SmokeLog\s*throw\s*}\s*finally\s*{",
         script,
@@ -587,6 +729,17 @@ def test_smoke_script_rejects_reports_import_errors_and_preserves_cleanup():
     assert "Stop-Process -Id $Process.Id -Force" in script
     assert "$env:LOCALAPPDATA = $PreviousLocalAppData" in script
     assert "Remove-Item -Recurse -Force $SmokeRoot" in script
+
+
+def test_windows_build_and_workflow_require_x64_python():
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    build_script = (ROOT / "packaging" / "windows" / "build.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert "architecture: x64" in workflow
+    assert "struct.calcsize('P')" in build_script
+    assert 'PointerSize -ne "8"' in build_script
 
 
 def test_step_block_helper_does_not_capture_next_step():

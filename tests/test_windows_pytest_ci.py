@@ -126,6 +126,12 @@ def test_manual_qa_checklist_covers_desktop_release_risks():
         "sleep or hibernate",
         "second time",
         "%localappdata%\\docsight",
+        "under two seconds",
+        "copy",
+        "retry",
+        "open log folder",
+        "browser-open failure",
+        "screenshot",
         "uninstall",
     ):
         assert required in lower
