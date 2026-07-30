@@ -62,6 +62,21 @@ def get_web_host():
     return os.environ.get("WEB_HOST", "0.0.0.0")
 
 
+def _wait_for_web_thread(web_thread, stop_polling):
+    """Keep the process alive until the web server stops, then stop pollers."""
+    try:
+        while web_thread.is_alive():
+            time.sleep(0.25)
+        log.error("Web server stopped unexpectedly")
+    except KeyboardInterrupt:
+        log.info("Shutting down")
+        return
+    finally:
+        stop_polling()
+    if os.environ.get("DOCSIGHT_DESKTOP_MODE", "").strip() != "1":
+        raise RuntimeError("Web server stopped unexpectedly")
+
+
 def _apply_timezone(cfg):
     """Apply the configured timezone where the platform supports TZ reloads."""
     tz = cfg.get("timezone")
@@ -472,14 +487,10 @@ def main():
     else:
         log.info("Not configured yet - open http://localhost:%d for setup", web_port)
 
-    # Keep main thread alive
-    try:
-        while True:
-            time.sleep(60)
-    except KeyboardInterrupt:
-        log.info("Shutting down")
-        if poll_stop:
-            poll_stop.set()
+    # Keep the main thread alive while the web server owns its listener. If the
+    # server thread cannot bind, return so the desktop launcher can perform its
+    # bounded fresh-process recovery instead of waiting for readiness forever.
+    _wait_for_web_thread(web_thread, stop_polling)
 
 
 if __name__ == "__main__":

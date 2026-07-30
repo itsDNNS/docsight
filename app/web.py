@@ -24,6 +24,8 @@ from zoneinfo import available_timezones
 from .config import DEFAULTS, MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
 from .docsis_utils import qam_rank
+from .desktop_runtime import desktop_runtime_payload
+from .desktop_runtime_contract import DESKTOP_MODE_ENV
 from .gaming_index import compute_gaming_index
 from .glossary import (
     get_glossary_categories,
@@ -60,7 +62,7 @@ DESKTOP_PREVIEW_DOC_URL = "https://github.com/itsDNNS/docsight/blob/main/docs/wi
 
 def is_desktop_preview_mode() -> bool:
     """Return True when DOCSight runs as the local Desktop Preview build."""
-    return os.environ.get("DOCSIGHT_DESKTOP_MODE") == "1"
+    return os.environ.get(DESKTOP_MODE_ENV) == "1"
 
 
 _THEME_COLLECTIONS = [
@@ -1677,6 +1679,17 @@ def health():
     if _state["analysis"]:
         return {"status": "ok", "docsis_health": _state["analysis"]["summary"]["health"], "version": APP_VERSION}
     return {"status": "ok", "docsis_health": "waiting", "version": APP_VERSION}
+
+
+@app.route("/desktop-runtime")
+def desktop_runtime():
+    """Return authenticated process identity only for desktop loopback clients."""
+    payload, status = desktop_runtime_payload(
+        env=os.environ,
+        remote_address=request.remote_addr,
+        authorization=request.headers.get("Authorization"),
+    )
+    return jsonify(payload), status
 
 
 @app.route("/setup")

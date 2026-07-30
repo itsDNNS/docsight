@@ -58,6 +58,8 @@ if not VERSION_FILE.exists():
 
 datas = collect_app_datas() + [(str(VERSION_FILE), ".")]
 hiddenimports = collect_app_hiddenimports() + [
+    "desktop_instance",
+    "desktop_platform",
     "tkinter",
     "tkinter.ttk",
     "waitress",

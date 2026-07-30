@@ -14,6 +14,7 @@ from app.web import app, init_config, init_storage
 # routes must make an explicit choice: require authentication or extend this
 # allowlist with a product reason.
 PUBLIC_ENDPOINT_METHODS = {
+    "desktop_runtime": {"GET"},  # desktop-mode loopback token authentication
     "health": {"GET"},  # container/runtime health probe
     "metrics_bp.metrics": {"GET"},  # Prometheus scrape endpoint
     "login": {"GET", "POST"},  # authentication entrypoint
@@ -135,6 +136,7 @@ def test_public_route_allowlist_matches_current_route_surface():
     )
 
     assert public_rules == [
+        ("desktop_runtime", "/desktop-runtime", ("GET",)),
         ("health", "/health", ("GET",)),
         ("login", "/login", ("GET", "POST")),
         ("metrics_bp.metrics", "/metrics", ("GET",)),

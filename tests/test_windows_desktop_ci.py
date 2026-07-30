@@ -14,6 +14,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "windows-desktop.yml"
 SMOKE_SCRIPT = ROOT / "packaging" / "windows" / "smoke_test.ps1"
+PYINSTALLER_SPEC = ROOT / "packaging" / "windows" / "docsight.spec"
 WINDOWS_README = ROOT / "packaging" / "windows" / "README.md"
 WINDOWS_QA_CHECKLIST = ROOT / "packaging" / "windows" / "QA-CHECKLIST.md"
 WINDOWS_PREVIEW_DOC = ROOT / "docs" / "windows-desktop-preview.md"
@@ -542,6 +543,43 @@ def test_smoke_script_launches_built_exe_and_checks_loopback_health():
     assert "python -m app.main" not in script
 
 
+def test_pyinstaller_collects_desktop_runtime_ownership_modules():
+    spec_text = PYINSTALLER_SPEC.read_text(encoding="utf-8")
+    launcher = (ROOT / "packaging" / "windows" / "docsight_desktop.py").read_text(
+        encoding="utf-8"
+    )
+    instance = (ROOT / "packaging" / "windows" / "desktop_instance.py").read_text(
+        encoding="utf-8"
+    )
+    platform = (ROOT / "packaging" / "windows" / "desktop_platform.py").read_text(
+        encoding="utf-8"
+    )
+    endpoint = (ROOT / "app" / "desktop_runtime.py").read_text(encoding="utf-8")
+
+    assert '"desktop_instance"' in spec_text
+    assert '"desktop_platform"' in spec_text
+    assert "from desktop_instance import" in launcher
+    assert "collect_app_hiddenimports()" in spec_text
+    assert (ROOT / "app" / "desktop_runtime.py").is_file()
+    assert (ROOT / "app" / "desktop_runtime_contract.py").is_file()
+    assert "from app.desktop_runtime_contract import" in instance
+    assert "from desktop_platform import" in instance
+    assert "desktop_instance" not in platform
+    assert "packaging" not in endpoint
+
+
+def test_launcher_normal_mainloop_exit_runs_runtime_cleanup():
+    launcher = (ROOT / "packaging" / "windows" / "docsight_desktop.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        "root.mainloop()\n        try:\n            desktop_instance.cleanup()"
+        in launcher
+    )
+    assert "Runtime cleanup failed after launcher mainloop exit" in launcher
+
+
 def test_smoke_script_requires_one_owned_ipv4_loopback_listener():
     script = SMOKE_SCRIPT.read_text(encoding="utf-8")
 
@@ -549,8 +587,29 @@ def test_smoke_script_requires_one_owned_ipv4_loopback_listener():
     assert "$OwnedLoopbackListeners.Count -ne 1" in script
     assert '$_.LocalAddress -eq "127.0.0.1"' in script
     assert "$_.OwningProcess -eq $Process.Id" in script
-    assert "Expected exactly one listener on smoke port" in script
-    assert "Expected exactly one 127.0.0.1:$Port listener owned by DOCSight" in script
+    assert "Expected exactly one listener on runtime port" in script
+    assert "Expected exactly one 127.0.0.1:$RuntimePort listener owned by DOCSight" in script
+
+
+def test_smoke_script_executes_single_instance_runtime_handoff_scenarios():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert "[System.Net.Sockets.TcpListener]::new" in script
+    assert "$ForeignListener.Start()" in script
+    assert '$RuntimeStateFile = Join-Path $LocalAppData "DOCSight\\runtime.json"' in script
+    assert "$LaunchOne = Start-Process" in script
+    assert "$LaunchTwo = Start-Process" in script
+    assert "$ThirdProcess = Start-Process" in script
+    assert "did not hand off and exit" in script
+    assert "did not reuse the running desktop instance" in script
+    assert "adopted the foreign listener" in script
+    assert "outside 8765-8775" in script
+    assert "-BearerToken ([string]$RuntimeState.instance_token)" in script
+    assert "accepted the wrong instance token" in script
+    assert "$Process.StartTime.ToUniversalTime().ToFileTimeUtc()" in script
+    assert "process start time does not match" in script
+    assert "Second or third launch replaced" in script
+    assert "crash-leftover runtime record was not replaced" in script
 
 
 def test_smoke_script_prints_both_logs_and_rejects_runtime_import_degradation():
@@ -596,9 +655,9 @@ def test_smoke_script_uses_fresh_launcher_log_for_injected_recovery():
         )
     ]
 
-    assert len(launches) == 2
+    assert len(launches) == 4
     stop_first_process = script.index(
-        "Stop-Process -Id $Process.Id -Force", launches[0]
+        "Stop-Process -Id $Process.Id -Force", launches[2]
     )
     wait_for_first_process = script.index(
         "$FirstProcessStopped = $Process.WaitForExit(10000)", stop_first_process
@@ -606,17 +665,17 @@ def test_smoke_script_uses_fresh_launcher_log_for_injected_recovery():
     remove_first_log = script.index(
         "Remove-Item -LiteralPath $LauncherLogFile -Force", wait_for_first_process
     )
-    prepare_phase_assertion = script.index('"Phase: Prepare local data"', launches[1])
+    prepare_phase_assertion = script.index('"Phase: Prepare local data"', launches[3])
     assert (
         launches[0]
         < stop_first_process
         < wait_for_first_process
         < remove_first_log
-        < launches[1]
+        < launches[3]
     )
-    assert launches[1] < prepare_phase_assertion
-    assert launches[1] < script.index("$Process.MainWindowHandle", launches[1])
-    assert launches[1] < script.index("$Process.MainWindowTitle", launches[1])
+    assert launches[3] < prepare_phase_assertion
+    assert launches[3] < script.index("$Process.MainWindowHandle", launches[3])
+    assert launches[3] < script.index("$Process.MainWindowTitle", launches[3])
 
 
 def test_smoke_script_restores_all_injection_environment_variables():
@@ -645,6 +704,7 @@ def test_windows_docs_describe_smoke_and_log_sharing_contracts():
     qa_checklist = WINDOWS_QA_CHECKLIST.read_text(encoding="utf-8")
     preview_doc = WINDOWS_PREVIEW_DOC.read_text(encoding="utf-8")
     combined_docs = "\n".join((readme, qa_checklist, preview_doc))
+    normalized_docs = " ".join(combined_docs.split())
 
     assert "from **Start DOCSight** onward" in readme
     assert "from **Start DOCSight** onward" in qa_checklist
@@ -659,6 +719,18 @@ def test_windows_docs_describe_smoke_and_log_sharing_contracts():
     assert "review it before sharing" in combined_docs
     assert "Linux tests only enforce its\nstatic contract" in preview_doc
     assert "runs later on `windows-latest`" in preview_doc
+    assert "`Global\\` namespace" in combined_docs
+    assert "current user's SID" in combined_docs
+    assert "independent process-token SID lookup" in normalized_docs
+    assert "both SID lookups fail, startup fails safely" in normalized_docs
+    assert "mutex name always remains SID-derived" in normalized_docs
+    assert "Different Windows users" in combined_docs
+    assert "process creation time" in combined_docs
+    assert "token-authenticated" in combined_docs
+    assert "second/third-launch handoff" in combined_docs
+    assert "ordinary `/health`" in combined_docs
+    assert "`127.0.0.1`" in combined_docs
+    assert "must not run alongside another DOCSight desktop instance" in readme
 
 
 def test_windows_qa_keeps_all_precise_failure_injection_invocations():

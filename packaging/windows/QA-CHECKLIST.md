@@ -69,11 +69,14 @@ Remove-Item Env:DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE, Env:DOCSIGHT_SKIP_BROWSER
 These switches are ignored unless `DOCSIGHT_SKIP_BROWSER=1` is present.
 
 The release smoke on `windows-latest` separately requires exactly one listener
-on its smoke port and exactly one process-owned IPv4 loopback listener. It also
-requires `runtime.log` without route/import degradation, deletes the successful
-launcher's `launcher.log` before checking fresh injected recovery evidence, and
-requires the recovery process to expose a nonzero main-window handle titled
-exactly `DOCSight`.
+on its selected fallback port and exactly one process-owned IPv4 loopback
+listener. It occupies the preferred port with a foreign listener, races two
+launchers, validates `runtime.json` and its authenticated endpoint, and checks
+that second and third launches exit after handoff. It also requires
+`runtime.log` without route/import degradation, deletes the successful
+launcher's `launcher.log` before checking fresh **Prepare local data** evidence,
+proves stale runtime replacement, and requires the recovery process to expose a
+nonzero main-window handle with the title exactly `DOCSight`.
 
 - [ ] Capture one screenshot of the normal immediate startup status.
 - [ ] Run the application-thread failure check and capture a screenshot showing readable, plain-language recovery without exception details.
@@ -101,7 +104,14 @@ exactly `DOCSight`.
 
 ## Process and data location
 
-- [ ] Launch `DOCSight.exe` a second time while the first instance is running; it should reuse/open the existing local instance instead of starting a conflicting server.
+- [ ] Launch `DOCSight.exe` a second time and a third time while the first instance is running; both should reuse/open the exact existing local port, exit successfully, and start no additional server.
+- [ ] Start two launchers as close together as practical and confirm only one owner/listener remains after readiness.
+- [ ] With a temporary loopback listener occupying port `8765`, start DOCSight and confirm it starts once on an allowed fallback from `8766` through `8775` without adopting the foreign service.
+- [ ] Confirm the only DOCSight listener is IPv4 `127.0.0.1`; no wildcard, LAN, or IPv6 listener is present.
+- [ ] Inspect `%LOCALAPPDATA%\DOCSight\runtime.json` and confirm it has schema version, owner PID, selected port, application version, process start time, and a long random instance token.
+- [ ] End the owner process, leave `runtime.json` in place, and start DOCSight again; confirm the new owner replaces the stale PID, start time, and token.
+- [ ] Replace `runtime.json` with malformed JSON while DOCSight is stopped, then start again and confirm the malformed record is recovered.
+- [ ] If multiple interactive sessions are available for one Windows account, start from the second session and confirm it reuses the same owner. Confirm a different Windows account does not reuse that server.
 - [ ] Verify logs and data are created under `%LOCALAPPDATA%\DOCSight`.
 - [ ] Close DOCSight and confirm the process exits cleanly.
 - [ ] Delete the extracted Desktop Preview folder.

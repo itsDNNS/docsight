@@ -42,6 +42,7 @@ On startup the launcher creates and exports:
 | `WEB_HOST` | `127.0.0.1` |
 | `WEB_PORT` | first available port from `8765` through `8775` |
 | `DOCSIGHT_DESKTOP_MODE` | `1` |
+| authenticated desktop runtime record | `%LOCALAPPDATA%\\DOCSight\\runtime.json` |
 | privacy-filtered launcher phase/recovery log | `%LOCALAPPDATA%\\DOCSight\\logs\\launcher.log` |
 | application runtime diagnostics | `%LOCALAPPDATA%\\DOCSight\\logs\\runtime.log` |
 
@@ -56,12 +57,35 @@ Windows.
 
 ## Single-instance behavior
 
-Before starting a new process, the launcher probes the preferred port's
-`/health` endpoint. If the response looks like DOCSight (`status: ok` and a
-`version` field), it opens the browser to that existing instance and exits.
+Before selecting a port or starting the server, the launcher acquires a
+machine-visible Windows named mutex derived from the current user's SID. The
+`Global\` namespace makes the mutex visible across Windows sessions for that
+same user. Different Windows users derive different mutex names and do not
+share a desktop server. If the direct current-user token lookup is unavailable,
+the launcher uses an independent process-token SID lookup against its current
+process and uses that SID for both ownership validation and mutex identity. If
+both SID lookups fail, startup fails safely before creating a mutex. The mutex
+name always remains SID-derived.
+
+The owner holds the mutex for its complete lifetime and atomically replaces
+`%LOCALAPPDATA%\DOCSight\runtime.json`. The versioned record contains the
+process ID, loopback port, application version, Windows process creation time,
+and a cryptographically random per-run token. A later launcher reuses the
+record only after the PID, process owner, creation time, and token-authenticated
+desktop runtime endpoint all match. An ordinary DOCSight-looking `/health`
+response is never enough for handoff.
+
+Second and third launches wait at most 10 seconds while the first owner is
+starting. Once validated, they open the exact running loopback port and exit
+without starting another application server. If an owner crashed, the
+abandoned mutex and stale or malformed runtime record are recovered by a later
+launch. The public runtime cleanup API removes the record on explicit normal
+exit; a future quit control only needs to call that API.
 
 If the preferred port is occupied by another service, the launcher walks the
-portable preview range and starts on the next free port.
+portable preview range and starts once on the next free port. The server always
+binds `127.0.0.1`. If the selected port is lost before the server binds, the
+launcher performs at most one clean retry in a fresh process.
 
 ## Portable ZIP build
 
@@ -120,16 +144,20 @@ powershell -ExecutionPolicy Bypass -File packaging/windows/smoke_test.ps1 `
   -ExpectedVersion v2026-07-09.1
 ```
 
-The smoke test launches the packaged executable, uses a temporary
-`LOCALAPPDATA`, skips browser launch via `DOCSIGHT_SKIP_BROWSER=1`, verifies the
-`/health` status and version, requires exactly one listener on the smoke port
-and exactly one IPv4 `127.0.0.1` listener owned by the launched process, and
-requires `runtime.log` without packaged route/import failures such as
-`failed to import routes` or `No module named`. It validates a real Reports PDF
-and then stops the process. The deterministic recovery check deletes the first
-process's `launcher.log` before the injected launch, requires the second process
-to write the **Prepare local data** recovery evidence, and confirms a nonzero
-main-window handle whose title is exactly `DOCSight`.
+The local smoke uses the real per-user SID mutex and must not run alongside another DOCSight desktop instance for that account.
+
+The smoke test launches the packaged executable from two parallel launchers,
+uses a temporary `LOCALAPPDATA`, and occupies the preferred port with a foreign
+listener. It requires one owner on an allowed fallback, validates the exact
+runtime schema, PID, process start time, random token, authenticated endpoint,
+second/third-launch handoff, and exactly one IPv4 `127.0.0.1` listener owned by
+the runtime PID. It also requires `runtime.log` without packaged route/import
+failures such as `failed to import routes` or `No module named`, validates a
+real Reports PDF, and then stops the process. The deterministic recovery check
+deletes the first process's `launcher.log` before the injected launch, requires
+fresh **Prepare local data** evidence, proves that crash-leftover runtime state
+is replaced, and confirms a nonzero main-window handle whose title is exactly
+`DOCSight`.
 
 The narrowly scoped `DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE=1`,
 `DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE=1`, and

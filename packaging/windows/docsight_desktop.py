@@ -8,7 +8,6 @@ and opens the user's browser from a worker thread.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import queue
@@ -18,8 +17,6 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.error
-import urllib.request
 import webbrowser
 from dataclasses import dataclass, replace
 from enum import Enum
@@ -27,13 +24,30 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any, Callable, MutableMapping
 
+WINDOWS_PACKAGING_DIR = Path(__file__).resolve().parent
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
+for import_root in (SOURCE_ROOT, WINDOWS_PACKAGING_DIR):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
+
+from app.desktop_runtime_contract import (  # noqa: E402
+    DESKTOP_MODE_ENV,
+    WEB_PORT_ENV,
+)
+from desktop_instance import (  # noqa: E402
+    DesktopInstance,
+    DesktopInstanceError,
+    InstanceRole,
+    InstanceUnavailableError,
+    create_desktop_instance,
+)
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 MAX_PORT = 8775
 HEALTH_TIMEOUT_SECONDS = 30
 EVENT_POLL_MILLISECONDS = 75
 RELAUNCH_HANDLE_OPTION = "--docsight-relaunch-handle="
+BIND_RETRY_ENV = "DOCSIGHT_DESKTOP_BIND_RETRY"
 
 LOG = logging.getLogger("docsight.desktop")
 
@@ -101,14 +115,14 @@ class DesktopPaths:
     logs_dir: Path
     log_file: Path
     runtime_log_file: Path
+    runtime_file: Path
 
 
 @dataclass(frozen=True)
 class PortSelection:
-    """Selected local web port and whether an existing instance owns it."""
+    """Selected free local web port for a new owner."""
 
     port: int
-    existing_instance: bool = False
 
 
 @dataclass(frozen=True)
@@ -254,6 +268,7 @@ def resolve_desktop_paths(
         logs_dir=logs_dir,
         log_file=logs_dir / "launcher.log",
         runtime_log_file=logs_dir / "runtime.log",
+        runtime_file=base_dir / "runtime.json",
     )
 
 
@@ -270,7 +285,7 @@ def configure_desktop_environment(
     runtime_env["DATA_DIR"] = str(paths.data_dir)
     runtime_env["MODULES_DIR"] = str(paths.modules_dir)
     runtime_env["WEB_HOST"] = DEFAULT_HOST
-    runtime_env["DOCSIGHT_DESKTOP_MODE"] = "1"
+    runtime_env[DESKTOP_MODE_ENV] = "1"
     return paths
 
 
@@ -367,31 +382,6 @@ def local_url(port: int) -> str:
     return f"http://{DEFAULT_HOST}:{port}/"
 
 
-def _health_url(port: int) -> str:
-    return f"{local_url(port)}health"
-
-
-def _fetch_health_json(port: int, timeout: float = 0.5) -> dict | None:
-    """Fetch and parse a local DOCSight health response, returning None on miss."""
-    request = urllib.request.Request(_health_url(port), headers={"Accept": "application/json"})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read(4096).decode("utf-8")
-    except (OSError, urllib.error.URLError, TimeoutError):
-        return None
-
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError:
-        return None
-    return payload if isinstance(payload, dict) else None
-
-
-def is_docsight_health_payload(payload: object) -> bool:
-    """Return True when a health payload looks like a DOCSight instance."""
-    return isinstance(payload, dict) and payload.get("status") == "ok" and "version" in payload
-
-
 def _can_bind_local_port(
     port: int,
     *,
@@ -415,7 +405,7 @@ def _can_bind_local_port(
 
 
 def _preferred_port(env: MutableMapping[str, str]) -> int:
-    raw = env.get("WEB_PORT", str(DEFAULT_PORT))
+    raw = env.get(WEB_PORT_ENV, str(DEFAULT_PORT))
     try:
         port = int(raw)
     except (TypeError, ValueError):
@@ -428,19 +418,16 @@ def select_port(
     *,
     max_port: int = MAX_PORT,
 ) -> PortSelection:
-    """Select a loopback port or detect an already-running DOCSight instance."""
+    """Select a free loopback port for the mutex-owning desktop instance."""
     runtime_env = env if env is not None else os.environ
     preferred = _preferred_port(runtime_env)
 
-    existing_payload = _fetch_health_json(preferred)
-    if is_docsight_health_payload(existing_payload):
-        return PortSelection(port=preferred, existing_instance=True)
-
     candidates = [preferred]
-    if preferred <= max_port:
-        candidates.extend(port for port in range(max(DEFAULT_PORT, preferred + 1), max_port + 1))
-    else:
-        candidates.extend(range(DEFAULT_PORT, max_port + 1))
+    candidates.extend(
+        port
+        for port in range(DEFAULT_PORT, max_port + 1)
+        if port != preferred
+    )
 
     seen: set[int] = set()
     for port in candidates:
@@ -448,8 +435,8 @@ def select_port(
             continue
         seen.add(port)
         if _can_bind_local_port(port):
-            runtime_env["WEB_PORT"] = str(port)
-            return PortSelection(port=port, existing_instance=False)
+            runtime_env[WEB_PORT_ENV] = str(port)
+            return PortSelection(port=port)
 
     raise RuntimeError("No free loopback port")
 
@@ -502,12 +489,14 @@ def _wait_for_ready(
     port: int,
     app_handle: AppThreadHandle | None,
     timeout_seconds: float = HEALTH_TIMEOUT_SECONDS,
+    *,
+    readiness_probe: Callable[[], bool],
 ) -> WaitOutcome:
     deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         if app_handle is not None and app_handle.stopped.is_set():
             return WaitOutcome.APP_FAILED
-        if is_docsight_health_payload(_fetch_health_json(port, timeout=1.0)):
+        if readiness_probe():
             return WaitOutcome.READY
         time.sleep(0.5)
     if app_handle is not None and app_handle.stopped.is_set():
@@ -713,11 +702,24 @@ def terminate_current_launcher(exit_function: Callable[[int], object] | None = N
 def relaunch_launcher(
     *,
     spawn: Callable[[], object] = spawn_launcher_process,
+    cleanup: Callable[[], object] | None = None,
     terminate: Callable[[], object] = terminate_current_launcher,
 ) -> None:
     """Start a normal fresh launcher attempt, then terminate this launcher."""
     spawn()
+    cleanup_error: BaseException | None = None
+    if cleanup is not None:
+        try:
+            cleanup()
+        except BaseException as exc:
+            cleanup_error = exc
+            LOG.error(
+                "Runtime cleanup failed during relaunch (failure type: %s)",
+                _safe_exception_type(exc),
+            )
     terminate()
+    if cleanup_error is not None:
+        raise cleanup_error
 
 
 def _relaunch_parent_handle(argv: list[str] | None = None) -> int | None:
@@ -766,11 +768,13 @@ class StartupRunner:
         paths: DesktopPaths,
         env: MutableMapping[str, str] | None = None,
         *,
+        desktop_instance: DesktopInstance,
         is_relaunch: bool = False,
         handoff_outcome: HandoffOutcome = HandoffOutcome.COMPLETE,
     ) -> None:
         self.controller = controller
         self.paths = paths
+        self.desktop_instance = desktop_instance
         self.env = env if env is not None else os.environ
         self.is_relaunch = is_relaunch
         self.handoff_outcome = handoff_outcome
@@ -815,6 +819,25 @@ class StartupRunner:
                 )
                 return
 
+            try:
+                instance_decision = self.desktop_instance.coordinate()
+            except InstanceUnavailableError as exc:
+                self._emit_error(
+                    attempt,
+                    RecoveryCode.TIMEOUT,
+                    "",
+                    _safe_exception_type(exc),
+                )
+                return
+            except DesktopInstanceError as exc:
+                self._emit_error(
+                    attempt,
+                    RecoveryCode.STARTUP_FAILED,
+                    "",
+                    _safe_exception_type(exc),
+                )
+                return
+
             smoke_enabled = (
                 self.env.get("DOCSIGHT_SKIP_BROWSER") == "1"
                 and not self.is_relaunch
@@ -831,24 +854,46 @@ class StartupRunner:
                 )
                 return
 
-            try:
-                selection = select_port(self.env)
-            except RuntimeError as exc:
-                self._emit_error(
-                    attempt,
-                    RecoveryCode.NO_PORT,
-                    "",
-                    _safe_exception_type(exc),
-                )
-                return
+            if instance_decision.role is InstanceRole.FOLLOWER:
+                assert instance_decision.port is not None
+                selection = PortSelection(instance_decision.port)
+                owns_server = False
+            else:
+                owns_server = True
+                try:
+                    selection = select_port(self.env)
+                except RuntimeError as exc:
+                    self._emit_error(
+                        attempt,
+                        RecoveryCode.NO_PORT,
+                        "",
+                        _safe_exception_type(exc),
+                    )
+                    return
+                try:
+                    _ensure_repo_on_path()
+                    from app.version import get_app_version
+
+                    self.desktop_instance.publish(
+                        port=selection.port,
+                        application_version=get_app_version(),
+                    )
+                except BaseException as exc:
+                    self._emit_error(
+                        attempt,
+                        RecoveryCode.STARTUP_FAILED,
+                        url,
+                        _safe_exception_type(exc),
+                    )
+                    return
 
             url = local_url(selection.port)
             self.controller.emit(_phase_event(attempt, StartupPhase.START, url))
             LOG.info("Phase: %s", StartupPhase.START.value)
 
             app_handle: AppThreadHandle | None = None
-            if selection.existing_instance:
-                LOG.info("Existing DOCSight instance detected on %s", url)
+            if not owns_server:
+                LOG.info("Validated existing DOCSight desktop instance on %s", url)
             else:
                 LOG.info("Starting DOCSight on %s", url)
                 inject_smoke_failure = (
@@ -865,10 +910,37 @@ class StartupRunner:
             LOG.info("Phase: %s", StartupPhase.WAIT.value)
             outcome = (
                 WaitOutcome.READY
-                if selection.existing_instance
-                else _wait_for_ready(selection.port, app_handle)
+                if not owns_server
+                else _wait_for_ready(
+                    selection.port,
+                    app_handle,
+                    readiness_probe=self.desktop_instance.validate_published_runtime,
+                )
             )
             if outcome is WaitOutcome.APP_FAILED:
+                if (
+                    owns_server
+                    and app_handle is not None
+                    and app_handle.failure_type is None
+                    and self.env.get(BIND_RETRY_ENV) != "1"
+                    and not _can_bind_local_port(selection.port)
+                ):
+                    LOG.warning(
+                        "Selected loopback port was lost before readiness; "
+                        "starting one fresh launcher attempt"
+                    )
+                    self.env[BIND_RETRY_ENV] = "1"
+                    try:
+                        relaunch_launcher(cleanup=self.desktop_instance.cleanup)
+                    except BaseException as exc:
+                        self.env.pop(BIND_RETRY_ENV, None)
+                        self._emit_error(
+                            attempt,
+                            RecoveryCode.RELAUNCH_FAILED,
+                            url,
+                            _safe_exception_type(exc),
+                        )
+                    return
                 failure_type = (
                     app_handle.failure_type
                     if app_handle is not None and app_handle.failure_type
@@ -893,6 +965,7 @@ class StartupRunner:
             self.controller.emit(_phase_event(attempt, StartupPhase.OPEN, url))
             LOG.info("Phase: %s", StartupPhase.OPEN.value)
             LOG.info("DOCSight is ready on %s", url)
+            self.env.pop(BIND_RETRY_ENV, None)
             if (
                 smoke_enabled
                 and self.env.get("DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE") == "1"
@@ -928,7 +1001,7 @@ class StartupRunner:
                     attempt=attempt,
                     kind=EventKind.READY,
                     url=url,
-                    owns_server=not selection.existing_instance,
+                    owns_server=owns_server,
                 )
             )
 
@@ -979,6 +1052,7 @@ class TkLauncher:
         controller: LauncherController,
         runner: StartupRunner,
         paths: DesktopPaths,
+        desktop_instance: DesktopInstance,
     ) -> None:
         self.root = root
         self.tk = tk_module
@@ -986,6 +1060,7 @@ class TkLauncher:
         self.controller = controller
         self.runner = runner
         self.paths = paths
+        self.desktop_instance = desktop_instance
         self._worker: threading.Thread | None = None
         self.root.report_callback_exception = self._report_callback_exception
         self._build()
@@ -1138,11 +1213,8 @@ class TkLauncher:
             )
         else:
             self.actions.grid_remove()
-        if state.ready and state.recovery is None:
-            if state.owns_server:
-                self.root.withdraw()
-            else:
-                self.root.after(0, self.root.destroy)
+        if state.ready and state.recovery is None and state.owns_server:
+            self.root.withdraw()
 
     def _report_callback_exception(
         self,
@@ -1217,8 +1289,9 @@ class TkLauncher:
         )
         self.render()
         LOG.info("Retry requested; starting a fresh launcher process")
+        self.runner.env.pop(BIND_RETRY_ENV, None)
         try:
-            relaunch_launcher()
+            relaunch_launcher(cleanup=self.desktop_instance.cleanup)
         except BaseException as exc:
             LOG.error(
                 "Recovery available: %s (failure type: %s)",
@@ -1237,6 +1310,10 @@ class TkLauncher:
 
     def _close(self) -> None:
         self.root.destroy()
+        try:
+            self.desktop_instance.cleanup()
+        except BaseException:
+            pass
         os._exit(self.controller.exit_code)
 
 
@@ -1271,6 +1348,7 @@ def run_desktop() -> int:
     """Paint the launcher, then run startup work through its event queue."""
     runtime_env = os.environ
     paths: DesktopPaths | None = None
+    desktop_instance: DesktopInstance | None = None
     try:
         paths = configure_desktop_environment(runtime_env)
         parent_handle = _relaunch_parent_handle()
@@ -1280,6 +1358,7 @@ def run_desktop() -> int:
             else HandoffOutcome.COMPLETE
         )
         configure_logging(paths.log_file, paths.runtime_log_file)
+        desktop_instance = create_desktop_instance(paths.runtime_file, runtime_env)
 
         import tkinter as tk
         from tkinter import ttk
@@ -1290,17 +1369,40 @@ def run_desktop() -> int:
             controller,
             paths,
             runtime_env,
+            desktop_instance=desktop_instance,
             is_relaunch=parent_handle is not None,
             handoff_outcome=handoff_outcome,
         )
-        view = TkLauncher(root, tk, ttk, controller, runner, paths)
+        view = TkLauncher(
+            root,
+            tk,
+            ttk,
+            controller,
+            runner,
+            paths,
+            desktop_instance,
+        )
 
         root.update()
         root.after(50, view.start)
         root.after(EVENT_POLL_MILLISECONDS, view.poll)
         root.mainloop()
+        try:
+            desktop_instance.cleanup()
+        except BaseException as exc:
+            LOG.error(
+                "Runtime cleanup failed after launcher mainloop exit "
+                "(failure type: %s)",
+                _safe_exception_type(exc),
+            )
+            return 1
         return controller.exit_code
     except BaseException as exc:
+        if desktop_instance is not None:
+            try:
+                desktop_instance.cleanup()
+            except BaseException:
+                pass
         try:
             LOG.error(
                 "Recovery unavailable: startup_surface_failure (failure type: %s)",

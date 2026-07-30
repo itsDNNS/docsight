@@ -27,13 +27,20 @@ $PreviousInjectedStartupFailure = $env:DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE
 $PreviousInjectedBrowserFailure = $env:DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE
 $PreviousInjectedNoPortFailure = $env:DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE
 $Process = $null
+$LaunchOne = $null
+$LaunchTwo = $null
+$FollowerProcess = $null
+$ThirdProcess = $null
+$ForeignListener = $null
 $HttpHandler = $null
 $HttpClient = $null
 $LauncherLogFile = Join-Path $LocalAppData "DOCSight\logs\launcher.log"
 $RuntimeLogFile = Join-Path $LocalAppData "DOCSight\logs\runtime.log"
-$HealthUrl = "http://127.0.0.1:$Port/health"
-$ReportUrl = "http://127.0.0.1:$Port/api/report"
-$ConfigUrl = "http://127.0.0.1:$Port/api/config"
+$RuntimeStateFile = Join-Path $LocalAppData "DOCSight\runtime.json"
+$HealthUrl = $null
+$ReportUrl = $null
+$ConfigUrl = $null
+$DesktopRuntimeUrl = $null
 
 function Write-SmokeLog {
     if (Test-Path -LiteralPath $LauncherLogFile) {
@@ -76,7 +83,8 @@ function Invoke-SmokeHttpRequest {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
         [ValidateSet("GET", "POST")][string]$Method = "GET",
-        [string]$JsonBody
+        [string]$JsonBody,
+        [string]$BearerToken
     )
 
     $Request = [System.Net.Http.HttpRequestMessage]::new(
@@ -84,6 +92,12 @@ function Invoke-SmokeHttpRequest {
         [System.Uri]::new($Url)
     )
     try {
+        if ($PSBoundParameters.ContainsKey("BearerToken")) {
+            $Request.Headers.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new(
+                "Bearer",
+                $BearerToken
+            )
+        }
         if ($PSBoundParameters.ContainsKey("JsonBody")) {
             $Request.Content = [System.Net.Http.StringContent]::new(
                 $JsonBody,
@@ -128,6 +142,11 @@ try {
     if ($ExistingListeners.Count -gt 0) {
         throw "Smoke port $Port is already in use before DOCSight starts."
     }
+    $ForeignListener = [System.Net.Sockets.TcpListener]::new(
+        [System.Net.IPAddress]::Loopback,
+        $Port
+    )
+    $ForeignListener.Start()
 
     $env:LOCALAPPDATA = $LocalAppData
     $env:WEB_PORT = [string]$Port
@@ -141,20 +160,45 @@ try {
     $HttpClient = [System.Net.Http.HttpClient]::new($HttpHandler)
     $HttpClient.Timeout = [TimeSpan]::FromSeconds([Math]::Max(3, $TimeoutSeconds))
 
-    $Process = Start-Process -FilePath $Executable -WorkingDirectory $LaunchBundleDir -PassThru
+    # Start two launchers back-to-back while a foreign listener owns the
+    # preferred port. Exactly one launcher must become the fallback-port owner.
+    $LaunchOne = Start-Process -FilePath $Executable -WorkingDirectory $LaunchBundleDir -PassThru
+    $LaunchTwo = Start-Process -FilePath $Executable -WorkingDirectory $LaunchBundleDir -PassThru
     $Deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     $Payload = $null
+    $RuntimeState = $null
+    $DesktopRuntimePayload = $null
 
     while ((Get-Date) -lt $Deadline) {
-        if ($Process.HasExited) {
+        $LaunchOne.Refresh()
+        $LaunchTwo.Refresh()
+        if ($LaunchOne.HasExited -and $LaunchTwo.HasExited) {
             Write-SmokeLog
-            throw "DOCSight exited before /health became ready with exit code $($Process.ExitCode)."
+            throw "Both parallel DOCSight launchers exited before runtime readiness."
         }
 
         try {
-            $Payload = Invoke-RestMethod -Uri $HealthUrl -TimeoutSec 3
-            if ($Payload.status -eq "ok") {
-                break
+            if (Test-Path -LiteralPath $RuntimeStateFile) {
+                $RuntimeState = Get-Content -LiteralPath $RuntimeStateFile -Raw | ConvertFrom-Json
+                $RuntimePort = [int]$RuntimeState.port
+                $HealthUrl = "http://127.0.0.1:$RuntimePort/health"
+                $ReportUrl = "http://127.0.0.1:$RuntimePort/api/report"
+                $ConfigUrl = "http://127.0.0.1:$RuntimePort/api/config"
+                $DesktopRuntimeUrl = "http://127.0.0.1:$RuntimePort/desktop-runtime"
+                $Payload = Invoke-RestMethod -Uri $HealthUrl -TimeoutSec 3
+                $DesktopRuntimeResponse = Invoke-SmokeHttpRequest `
+                    -Url $DesktopRuntimeUrl `
+                    -BearerToken ([string]$RuntimeState.instance_token)
+                if ($DesktopRuntimeResponse.StatusCode -eq 200) {
+                    $DesktopRuntimePayload = $DesktopRuntimeResponse.Body | ConvertFrom-Json
+                }
+                if (
+                    $Payload.status -eq "ok" -and
+                    $null -ne $DesktopRuntimePayload -and
+                    $DesktopRuntimePayload.status -eq "ok"
+                ) {
+                    break
+                }
             }
         } catch {
             Start-Sleep -Milliseconds 500
@@ -164,9 +208,13 @@ try {
         Start-Sleep -Milliseconds 500
     }
 
-    if ($null -eq $Payload) {
+    if ($null -eq $RuntimeState) {
         Write-SmokeLog
-        throw "DOCSight /health did not respond within $TimeoutSeconds seconds."
+        throw "DOCSight did not publish runtime.json within $TimeoutSeconds seconds."
+    }
+    if ($null -eq $Payload -or $null -eq $DesktopRuntimePayload) {
+        Write-SmokeLog
+        throw "DOCSight runtime endpoints did not become ready within $TimeoutSeconds seconds."
     }
     if ($Payload.status -ne "ok") {
         Write-SmokeLog
@@ -177,12 +225,99 @@ try {
         throw "DOCSight /health returned version '$($Payload.version)' instead of '$ExpectedVersion'."
     }
 
+    $RuntimeFields = @($RuntimeState.PSObject.Properties.Name | Sort-Object)
+    $ExpectedRuntimeFields = @(
+        "application_version",
+        "instance_token",
+        "pid",
+        "port",
+        "process_start_time",
+        "schema_version"
+    ) | Sort-Object
+    $RuntimeFieldDifference = @(Compare-Object $RuntimeFields $ExpectedRuntimeFields)
+    if ($RuntimeFieldDifference.Count -ne 0) {
+        Write-SmokeLog
+        throw "runtime.json does not contain the exact versioned desktop runtime schema."
+    }
+    if ([int]$RuntimeState.schema_version -ne 1) {
+        throw "runtime.json schema_version is not 1."
+    }
+    if ([int]$RuntimeState.port -eq $Port) {
+        throw "DOCSight adopted the foreign listener on preferred port $Port."
+    }
+    if ([int]$RuntimeState.port -lt 8765 -or [int]$RuntimeState.port -gt 8775) {
+        throw "DOCSight selected fallback port '$($RuntimeState.port)' outside 8765-8775."
+    }
+    if ([string]$RuntimeState.application_version -ne $ExpectedVersion) {
+        throw "runtime.json application version does not match the packaged build."
+    }
+    if ([string]$RuntimeState.instance_token -notmatch "^[A-Za-z0-9_-]{43,128}$") {
+        throw "runtime.json instance token is malformed."
+    }
+
+    $ParallelLaunches = @($LaunchOne, $LaunchTwo)
+    $OwnerCandidates = @($ParallelLaunches | Where-Object {
+        $_.Id -eq [int]$RuntimeState.pid
+    })
+    if ($OwnerCandidates.Count -ne 1) {
+        Write-SmokeLog
+        throw "runtime.json PID does not identify exactly one parallel launcher."
+    }
+    $Process = $OwnerCandidates[0]
+    $FollowerProcess = @($ParallelLaunches | Where-Object {
+        $_.Id -ne $Process.Id
+    })[0]
     $Process.Refresh()
     if ($Process.HasExited) {
         Write-SmokeLog
         throw "DOCSight exited after readiness with exit code $($Process.ExitCode)."
     }
-    $Connections = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)
+    $ExpectedStartTime = $Process.StartTime.ToUniversalTime().ToFileTimeUtc()
+    if ([int64]$RuntimeState.process_start_time -ne $ExpectedStartTime) {
+        throw "runtime.json process start time does not match its owner process."
+    }
+    if (
+        [int]$DesktopRuntimePayload.pid -ne $Process.Id -or
+        [int]$DesktopRuntimePayload.port -ne [int]$RuntimeState.port -or
+        [int64]$DesktopRuntimePayload.process_start_time -ne $ExpectedStartTime -or
+        [string]$DesktopRuntimePayload.instance_token -cne [string]$RuntimeState.instance_token -or
+        [string]$DesktopRuntimePayload.application_version -cne $ExpectedVersion
+    ) {
+        throw "Authenticated desktop runtime payload does not exactly match runtime.json."
+    }
+
+    $RejectedTokenResponse = Invoke-SmokeHttpRequest `
+        -Url $DesktopRuntimeUrl `
+        -BearerToken (("B" * 43) -join "")
+    if ($RejectedTokenResponse.StatusCode -ne 404) {
+        throw "Desktop runtime endpoint accepted the wrong instance token."
+    }
+
+    if (-not $FollowerProcess.WaitForExit(15000)) {
+        throw "The non-owner parallel launcher did not hand off and exit."
+    }
+    if ($FollowerProcess.ExitCode -ne 0) {
+        throw "The non-owner parallel launcher exited with code $($FollowerProcess.ExitCode)."
+    }
+
+    $ThirdProcess = Start-Process -FilePath $Executable -WorkingDirectory $LaunchBundleDir -PassThru
+    if (-not $ThirdProcess.WaitForExit(15000)) {
+        throw "The third launcher did not reuse the running desktop instance."
+    }
+    if ($ThirdProcess.ExitCode -ne 0) {
+        throw "The third launcher exited with code $($ThirdProcess.ExitCode)."
+    }
+    $StateAfterHandoffs = Get-Content -LiteralPath $RuntimeStateFile -Raw | ConvertFrom-Json
+    if (
+        [int]$StateAfterHandoffs.pid -ne $Process.Id -or
+        [int]$StateAfterHandoffs.port -ne [int]$RuntimeState.port -or
+        [string]$StateAfterHandoffs.instance_token -cne [string]$RuntimeState.instance_token
+    ) {
+        throw "Second or third launch replaced the existing owner's runtime state."
+    }
+
+    $RuntimePort = [int]$RuntimeState.port
+    $Connections = @(Get-NetTCPConnection -State Listen -LocalPort $RuntimePort -ErrorAction SilentlyContinue)
     $OwnedLoopbackListeners = @($Connections | Where-Object {
         $_.LocalAddress -eq "127.0.0.1" -and $_.OwningProcess -eq $Process.Id
     })
@@ -194,12 +329,12 @@ try {
             $ObservedListeners = "none"
         }
         Write-SmokeLog
-        throw "Expected exactly one listener on smoke port $Port; observed: $ObservedListeners"
+        throw "Expected exactly one listener on runtime port $RuntimePort; observed: $ObservedListeners"
     }
     if ($OwnedLoopbackListeners.Count -ne 1) {
         $ObservedListener = "$($Connections[0].LocalAddress) owned by PID $($Connections[0].OwningProcess)"
         Write-SmokeLog
-        throw "Expected exactly one 127.0.0.1:$Port listener owned by DOCSight process $($Process.Id); observed: $ObservedListener"
+        throw "Expected exactly one 127.0.0.1:$RuntimePort listener owned by DOCSight process $($Process.Id); observed: $ObservedListener"
     }
 
     if (-not (Test-Path -LiteralPath $RuntimeLogFile)) {
@@ -284,6 +419,7 @@ try {
         throw "DOCSight launcher log not found for post-smoke validation: $LauncherLogFile"
     }
 
+    $PreviousRuntimeToken = [string]$RuntimeState.instance_token
     Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
     $FirstProcessStopped = $Process.WaitForExit(10000)
     if (-not $FirstProcessStopped) {
@@ -306,6 +442,7 @@ try {
     $FailureDeadline = (Get-Date).AddSeconds([Math]::Min(20, $TimeoutSeconds))
     $FailureContractObserved = $false
     $RecoveryWindowObserved = $false
+    $StaleRuntimeRecovered = $false
     while ((Get-Date) -lt $FailureDeadline) {
         $Process.Refresh()
         if ($Process.HasExited) {
@@ -328,7 +465,24 @@ try {
         ) {
             $RecoveryWindowObserved = $true
         }
-        if ($FailureContractObserved -and $RecoveryWindowObserved) {
+        if (Test-Path -LiteralPath $RuntimeStateFile) {
+            try {
+                $RecoveryRuntimeState = Get-Content -LiteralPath $RuntimeStateFile -Raw | ConvertFrom-Json
+                if (
+                    [int]$RecoveryRuntimeState.pid -eq $Process.Id -and
+                    [string]$RecoveryRuntimeState.instance_token -cne $PreviousRuntimeToken
+                ) {
+                    $StaleRuntimeRecovered = $true
+                }
+            } catch {
+                $StaleRuntimeRecovered = $false
+            }
+        }
+        if (
+            $FailureContractObserved -and
+            $RecoveryWindowObserved -and
+            $StaleRuntimeRecovered
+        ) {
             break
         }
         Start-Sleep -Milliseconds 250
@@ -336,6 +490,10 @@ try {
     if (-not $FailureContractObserved) {
         Write-SmokeLog
         throw "Injected startup failure did not produce the expected launcher phase and recovery log contract."
+    }
+    if (-not $StaleRuntimeRecovered) {
+        Write-SmokeLog
+        throw "A crash-leftover runtime record was not replaced by the next owner."
     }
     $Process.Refresh()
     if ($Process.HasExited) {
@@ -351,14 +509,27 @@ try {
         throw "Injected startup failure main window title was not exactly 'DOCSight'."
     }
 
-    Write-Host "DOCSight Desktop smoke passed: AMD64 package startup, exactly-one owned loopback listener, runtime imports, Reports PDF, and fresh visible app-thread recovery contracts are valid."
+    Write-Host "DOCSight Desktop smoke passed: foreign-port fallback, parallel single ownership, authenticated second/third-launch handoff, loopback binding, packaged routes, and stale-state recovery are valid."
 } catch {
     Write-SmokeLog
     throw
 } finally {
-    if ($null -ne $Process -and -not $Process.HasExited) {
-        Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
-        $Process.WaitForExit(10000) | Out-Null
+    $CleanupProcesses = @(
+        $Process,
+        $LaunchOne,
+        $LaunchTwo,
+        $FollowerProcess,
+        $ThirdProcess
+    ) | Where-Object { $null -ne $_ } | Sort-Object Id -Unique
+    foreach ($CleanupProcess in $CleanupProcesses) {
+        $CleanupProcess.Refresh()
+        if (-not $CleanupProcess.HasExited) {
+            Stop-Process -Id $CleanupProcess.Id -Force -ErrorAction SilentlyContinue
+            $CleanupProcess.WaitForExit(10000) | Out-Null
+        }
+    }
+    if ($null -ne $ForeignListener) {
+        $ForeignListener.Stop()
     }
     if ($null -ne $HttpClient) {
         $HttpClient.Dispose()

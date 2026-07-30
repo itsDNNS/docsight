@@ -67,6 +67,12 @@ progress while it prepares local data, starts DOCSight, waits for readiness,
 and attempts to open the browser. After DOCSight is ready and the browser-open
 attempt succeeds, the startup window closes.
 
+Starting `DOCSight.exe` again reuses the already-running instance for the same
+Windows user. The later launcher waits for authenticated local readiness, opens
+the exact existing address, and exits without starting another server. This
+also works across multiple signed-in Windows sessions for the same account.
+Different Windows users keep separate instances and data.
+
 If startup cannot finish or the browser cannot be opened, the window stays
 available instead of exiting silently. You can copy the displayed local
 address, choose **Retry** to start a fresh attempt, open the log folder, or
@@ -115,19 +121,38 @@ Typical subfolders:
 | `%LOCALAPPDATA%\DOCSight\data` | Configuration and local monitoring database |
 | `%LOCALAPPDATA%\DOCSight\modules` | Community modules and themes |
 | `%LOCALAPPDATA%\DOCSight\logs` | Privacy-filtered launcher diagnostics in `launcher.log`; separate application diagnostics in `runtime.log` |
+| `%LOCALAPPDATA%\DOCSight\runtime.json` | Versioned single-instance identity; replaced atomically and recovered after crashes |
 
 `launcher.log` contains only sanitized startup/recovery events and is intended
 to be shareable. `runtime.log` contains separate application diagnostics;
 review it before sharing because it can contain instance-specific operational
 details.
 
+`runtime.json` contains the owning PID, selected loopback port, application
+version, process creation time, and a random per-run token. A launcher adopts
+that address only when the Windows process owner and creation time match and a
+token-authenticated loopback endpoint returns the same identity. Stale PIDs,
+reused PIDs, foreign listeners, malformed records, and ordinary `/health`
+responses are rejected. The record is not a LAN-access credential: the
+Desktop Preview remains bound only to `127.0.0.1`.
+
+The per-user mutex uses Windows' machine-visible `Global\` namespace and is
+derived from the account SID, so it coordinates the same user across Windows
+sessions without sharing a server across users. If the direct token lookup
+fails, an independent process-token SID lookup establishes both the current
+owner identity and the same SID-derived mutex name. If both SID lookups fail,
+startup fails safely before mutex creation; the mutex name always remains
+SID-derived.
+
 The release smoke runs later on `windows-latest`; Linux tests only enforce its
-static contract. The Windows run requires exactly one listener on the smoke
-port and exactly one IPv4 loopback listener owned by the launched process,
-requires `runtime.log` without packaged route/import degradation, and deletes
-the first launcher's log before requiring fresh **Prepare local data** evidence
-from the injected recovery process. That recovery process must also have a
-nonzero main-window handle with the title exactly `DOCSight`.
+static contract. The Windows run occupies the preferred port, races two
+launchers, requires one allowed fallback and exactly one IPv4 loopback listener
+owned by the validated runtime PID, and checks authenticated second/third
+launch handoff. It also requires `runtime.log` without packaged route/import
+degradation and deletes the first launcher's log before requiring fresh
+**Prepare local data** evidence from the injected recovery process. That
+recovery process must replace stale runtime state and expose a nonzero
+main-window handle with the title exactly `DOCSight`.
 
 ## Remove the Desktop Preview
 

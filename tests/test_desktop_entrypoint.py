@@ -48,6 +48,29 @@ def make_controller(port: int = 8765) -> object:
     return controller
 
 
+class FakeDesktopInstance:
+    def __init__(self, *, role=None, port=None, coordinate_error=None):
+        self.role = role or desktop.InstanceRole.OWNER
+        self.port = port
+        self.coordinate_error = coordinate_error
+        self.published = []
+        self.cleanup_calls = 0
+
+    def coordinate(self):
+        if self.coordinate_error is not None:
+            raise self.coordinate_error
+        return SimpleNamespace(role=self.role, port=self.port)
+
+    def publish(self, *, port, application_version):
+        self.published.append((port, application_version))
+
+    def validate_published_runtime(self):
+        return True
+
+    def cleanup(self):
+        self.cleanup_calls += 1
+
+
 def run_runner(monkeypatch, tmp_path, *, selection=None, wait=None, browser=True):
     controller = make_controller()
     paths = make_paths(tmp_path)
@@ -70,7 +93,7 @@ def run_runner(monkeypatch, tmp_path, *, selection=None, wait=None, browser=True
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle: wait or desktop.WaitOutcome.READY,
+        lambda port, app_handle, **_kwargs: wait or desktop.WaitOutcome.READY,
     )
     if isinstance(browser, BaseException):
         def raise_browser(port, env):
@@ -80,7 +103,12 @@ def run_runner(monkeypatch, tmp_path, *, selection=None, wait=None, browser=True
     else:
         monkeypatch.setattr(desktop, "open_browser", lambda port, env: browser)
 
-    runner = desktop.StartupRunner(controller, paths, {})
+    runner = desktop.StartupRunner(
+        controller,
+        paths,
+        {},
+        desktop_instance=FakeDesktopInstance(),
+    )
     runner.run(controller.state.attempt)
     controller.drain_events()
     return controller, handle
@@ -97,6 +125,7 @@ def test_resolve_desktop_paths_uses_localappdata(tmp_path):
     assert paths.logs_dir == paths.base_dir / "logs"
     assert paths.log_file == paths.logs_dir / "launcher.log"
     assert paths.runtime_log_file == paths.logs_dir / "runtime.log"
+    assert paths.runtime_file == paths.base_dir / "runtime.json"
 
 
 def test_resolve_desktop_paths_falls_back_to_home_localappdata(tmp_path):
@@ -119,69 +148,65 @@ def test_configure_desktop_environment_creates_paths_and_exports_contract(tmp_pa
     assert env["DOCSIGHT_DESKTOP_MODE"] == "1"
 
 
-@pytest.mark.parametrize(
-    ("payload", "expected"),
-    [
-        ({"status": "ok", "version": "v2026-07-05.1", "docsis_health": "waiting"}, True),
-        ({"status": "ok", "docsis_health": "waiting"}, False),
-        ({"status": "error", "version": "v2026-07-05.1"}, False),
-        (None, False),
-        (["not", "a", "dict"], False),
-    ],
-)
-def test_detects_docsight_health_payload(payload, expected):
-    assert desktop.is_docsight_health_payload(payload) is expected
-
-
-def test_select_port_opens_existing_docsight_instance(monkeypatch):
+def test_select_port_never_adopts_docsight_looking_foreign_listener(monkeypatch):
     env = {"WEB_PORT": "8765"}
+    bind_results = {8765: False, 8766: True}
 
-    monkeypatch.setattr(desktop, "_fetch_health_json", lambda port: {"status": "ok", "version": "dev"})
-    monkeypatch.setattr(
-        desktop,
-        "_can_bind_local_port",
-        lambda port: pytest.fail("existing instance should skip bind probe"),
-    )
+    monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: bind_results[port])
 
-    selection = desktop.select_port(env)
+    selection = desktop.select_port(env, max_port=8766)
 
-    assert selection == desktop.PortSelection(port=8765, existing_instance=True)
-    assert "WEB_PORT" in env
+    assert selection == desktop.PortSelection(port=8766)
+    assert env["WEB_PORT"] == "8766"
 
 
 def test_select_port_walks_when_preferred_port_has_non_docsight_service(monkeypatch):
     env = {"WEB_PORT": "8765"}
     bind_results = {8765: False, 8766: True}
 
-    monkeypatch.setattr(desktop, "_fetch_health_json", lambda port: {"status": "ok", "service": "other"})
     monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: bind_results[port])
 
     selection = desktop.select_port(env, max_port=8766)
 
-    assert selection == desktop.PortSelection(port=8766, existing_instance=False)
+    assert selection == desktop.PortSelection(port=8766)
     assert env["WEB_PORT"] == "8766"
 
 
 def test_select_port_uses_default_when_web_port_is_invalid(monkeypatch):
     env = {"WEB_PORT": "not-a-port"}
 
-    monkeypatch.setattr(desktop, "_fetch_health_json", lambda port: None)
     monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: port == 8765)
 
     selection = desktop.select_port(env, max_port=8765)
 
-    assert selection == desktop.PortSelection(port=8765, existing_instance=False)
+    assert selection == desktop.PortSelection(port=8765)
     assert env["WEB_PORT"] == "8765"
 
 
 def test_select_port_raises_when_range_is_unavailable(monkeypatch):
     env = {"WEB_PORT": "8765"}
 
-    monkeypatch.setattr(desktop, "_fetch_health_json", lambda port: None)
     monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: False)
 
     with pytest.raises(RuntimeError, match="No free loopback port"):
         desktop.select_port(env, max_port=8766)
+
+
+def test_select_port_reconsiders_full_range_after_inherited_preference(
+    monkeypatch,
+):
+    env = {"WEB_PORT": "8770"}
+    attempted = []
+
+    def can_bind(port):
+        attempted.append(port)
+        return port == 8766
+
+    monkeypatch.setattr(desktop, "_can_bind_local_port", can_bind)
+
+    assert desktop.select_port(env) == desktop.PortSelection(8766)
+    assert attempted == [8770, 8765, 8766]
+    assert env["WEB_PORT"] == "8766"
 
 
 @pytest.mark.parametrize(
@@ -321,10 +346,19 @@ def test_startup_runner_reaches_ready_and_emits_all_phases(monkeypatch, tmp_path
     monkeypatch.setattr(desktop, "configure_desktop_environment", lambda env: paths)
     monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8766))
     monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
-    monkeypatch.setattr(desktop, "_wait_for_ready", lambda port, app_handle: desktop.WaitOutcome.READY)
+    monkeypatch.setattr(
+        desktop,
+        "_wait_for_ready",
+        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.READY,
+    )
     monkeypatch.setattr(desktop, "open_browser", lambda port, env: True)
 
-    desktop.StartupRunner(controller, paths, {}).run(controller.state.attempt)
+    desktop.StartupRunner(
+        controller,
+        paths,
+        {},
+        desktop_instance=FakeDesktopInstance(),
+    ).run(controller.state.attempt)
     controller.drain_events()
 
     assert [event.phase for event in emitted if event.kind is desktop.EventKind.PHASE] == [
@@ -347,7 +381,12 @@ def test_startup_runner_reports_no_free_port(monkeypatch, tmp_path):
         lambda env: (_ for _ in ()).throw(RuntimeError("occupied by secret service")),
     )
 
-    desktop.StartupRunner(controller, paths, {}).run(controller.state.attempt)
+    desktop.StartupRunner(
+        controller,
+        paths,
+        {},
+        desktop_instance=FakeDesktopInstance(),
+    ).run(controller.state.attempt)
     controller.drain_events()
 
     assert controller.state.recovery is desktop.RecoveryCode.NO_PORT
@@ -377,12 +416,108 @@ def test_startup_runner_reports_app_thread_system_exit(monkeypatch, tmp_path):
     monkeypatch.setattr(desktop, "configure_desktop_environment", lambda env: paths)
     monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
     monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
-    monkeypatch.setattr(desktop, "_wait_for_ready", lambda port, app_handle: desktop.WaitOutcome.APP_FAILED)
-    desktop.StartupRunner(controller, paths, {}).run(controller.state.attempt)
+    monkeypatch.setattr(
+        desktop,
+        "_wait_for_ready",
+        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
+    )
+    desktop.StartupRunner(
+        controller,
+        paths,
+        {},
+        desktop_instance=FakeDesktopInstance(),
+    ).run(controller.state.attempt)
     controller.drain_events()
 
     assert controller.state.recovery is desktop.RecoveryCode.APP_FAILED
     assert controller.state.status == "DOCSight stopped unexpectedly during startup."
+
+
+def test_bind_loss_uses_one_fresh_process_retry_and_cleans_runtime(
+    monkeypatch,
+    tmp_path,
+):
+    controller = make_controller()
+    paths = make_paths(tmp_path)
+    env = {}
+    instance = FakeDesktopInstance()
+    stopped = threading.Event()
+    stopped.set()
+    handle = desktop.AppThreadHandle(
+        thread=SimpleNamespace(join=lambda: None),
+        stopped=stopped,
+    )
+    calls = []
+    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
+    monkeypatch.setattr(
+        desktop,
+        "_start_app_thread",
+        lambda: calls.append("start_app") or handle,
+    )
+    monkeypatch.setattr(
+        desktop,
+        "_wait_for_ready",
+        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
+    )
+    monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: False)
+
+    def relaunch(*, cleanup):
+        calls.append("spawn")
+        cleanup()
+        calls.append("terminate")
+
+    monkeypatch.setattr(desktop, "relaunch_launcher", relaunch)
+
+    desktop.StartupRunner(
+        controller,
+        paths,
+        env,
+        desktop_instance=instance,
+    ).run(controller.state.attempt)
+    controller.drain_events()
+
+    assert calls == ["start_app", "spawn", "terminate"]
+    assert instance.cleanup_calls == 1
+    assert env[desktop.BIND_RETRY_ENV] == "1"
+    assert controller.state.recovery is None
+
+
+def test_bind_loss_retry_is_bounded_across_fresh_launcher_process(
+    monkeypatch,
+    tmp_path,
+):
+    controller = make_controller()
+    paths = make_paths(tmp_path)
+    env = {desktop.BIND_RETRY_ENV: "1"}
+    stopped = threading.Event()
+    stopped.set()
+    handle = desktop.AppThreadHandle(
+        thread=SimpleNamespace(join=lambda: None),
+        stopped=stopped,
+    )
+    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(
+        desktop,
+        "_wait_for_ready",
+        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
+    )
+    monkeypatch.setattr(desktop, "_can_bind_local_port", lambda port: False)
+    monkeypatch.setattr(
+        desktop,
+        "relaunch_launcher",
+        lambda **_kwargs: pytest.fail("the clean bind retry must happen only once"),
+    )
+
+    desktop.StartupRunner(
+        controller,
+        paths,
+        env,
+        desktop_instance=FakeDesktopInstance(),
+    ).run(controller.state.attempt)
+    controller.drain_events()
+
+    assert controller.state.recovery is desktop.RecoveryCode.APP_FAILED
 
 
 @pytest.mark.parametrize(
@@ -411,6 +546,81 @@ def test_browser_open_failures_keep_ready_recovery_surface(
     assert "credential" not in controller.state.status
 
 
+def test_browser_failure_retains_mutex_until_main_thread_cleanup(
+    monkeypatch,
+    tmp_path,
+):
+    from desktop_platform import Win32NamedMutex
+
+    api_calls = []
+    api = SimpleNamespace(
+        CreateMutexW=lambda *_args: 55,
+        WaitForSingleObject=lambda *_args: (
+            api_calls.append(("wait", threading.get_ident())) or 0
+        ),
+        ReleaseMutex=lambda *_args: (
+            api_calls.append(("release", threading.get_ident())) or True
+        ),
+        CloseHandle=lambda *_args: (
+            api_calls.append(("close", threading.get_ident())) or True
+        ),
+    )
+    mutex = Win32NamedMutex("Global\\browser-failure", kernel32=api)
+
+    class RetainingInstance:
+        def coordinate(self):
+            assert mutex.acquire()
+            return SimpleNamespace(role=desktop.InstanceRole.OWNER, port=None)
+
+        def publish(self, **_kwargs):
+            return None
+
+        def validate_published_runtime(self):
+            return True
+
+        def cleanup(self):
+            mutex.close()
+
+    handle = desktop.AppThreadHandle(
+        thread=SimpleNamespace(join=lambda: None),
+        stopped=threading.Event(),
+    )
+    monkeypatch.setattr(desktop, "select_port", lambda _env: desktop.PortSelection(8765))
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda: handle)
+    monkeypatch.setattr(
+        desktop,
+        "_wait_for_ready",
+        lambda *_args, **_kwargs: desktop.WaitOutcome.READY,
+    )
+    monkeypatch.setattr(desktop, "open_browser", lambda *_args: False)
+    controller = make_controller()
+    instance = RetainingInstance()
+    runner = desktop.StartupRunner(
+        controller,
+        make_paths(tmp_path),
+        {},
+        desktop_instance=instance,
+    )
+    worker = threading.Thread(target=runner.run, args=(controller.state.attempt,))
+    worker.start()
+    worker.join()
+    controller.drain_events()
+
+    assert controller.state.recovery is desktop.RecoveryCode.BROWSER_FAILED
+    assert [name for name, _thread_id in api_calls] == ["wait"]
+
+    caller_thread = threading.get_ident()
+    instance.cleanup()
+
+    assert [name for name, _thread_id in api_calls] == [
+        "wait",
+        "release",
+        "close",
+    ]
+    assert len({thread_id for _name, thread_id in api_calls}) == 1
+    assert api_calls[0][1] != caller_thread
+
+
 def test_existing_instance_runs_wait_and_browser_phases_without_app_thread(
     monkeypatch,
     tmp_path,
@@ -421,7 +631,7 @@ def test_existing_instance_runs_wait_and_browser_phases_without_app_thread(
     monkeypatch.setattr(
         desktop,
         "select_port",
-        lambda env: desktop.PortSelection(8765, existing_instance=True),
+        lambda env: pytest.fail("a validated follower must use runtime state"),
     )
     monkeypatch.setattr(
         desktop,
@@ -430,12 +640,52 @@ def test_existing_instance_runs_wait_and_browser_phases_without_app_thread(
     )
     monkeypatch.setattr(desktop, "open_browser", lambda port, env: True)
 
-    desktop.StartupRunner(controller, paths, {}).run(controller.state.attempt)
+    desktop.StartupRunner(
+        controller,
+        paths,
+        {},
+        desktop_instance=FakeDesktopInstance(
+            role=desktop.InstanceRole.FOLLOWER,
+            port=8765,
+        ),
+    ).run(controller.state.attempt)
     controller.drain_events()
 
     assert controller.state.ready is True
     assert controller.state.owns_server is False
     assert controller.state.closed is True
+    assert controller.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("error", "recovery"),
+    [
+        (
+            desktop.InstanceUnavailableError("not ready"),
+            desktop.RecoveryCode.TIMEOUT,
+        ),
+        (
+            desktop.DesktopInstanceError("unsafe owner"),
+            desktop.RecoveryCode.STARTUP_FAILED,
+        ),
+    ],
+)
+def test_instance_coordination_errors_map_to_safe_recovery(
+    tmp_path,
+    error,
+    recovery,
+):
+    controller = make_controller()
+    desktop.StartupRunner(
+        controller,
+        make_paths(tmp_path),
+        {},
+        desktop_instance=FakeDesktopInstance(coordinate_error=error),
+    ).run(controller.state.attempt)
+    controller.drain_events()
+
+    assert controller.state.recovery is recovery
+    assert type(error).__name__ not in controller.state.status
 
 
 def test_app_thread_wrapper_captures_baseexception_type_without_message(monkeypatch):
@@ -618,6 +868,36 @@ def test_relaunch_spawns_before_terminating_current_process():
     assert calls == ["spawn", "terminate"]
 
 
+def test_relaunch_cleans_runtime_after_spawn_before_terminating():
+    calls = []
+
+    desktop.relaunch_launcher(
+        spawn=lambda: calls.append("spawn"),
+        cleanup=lambda: calls.append("cleanup"),
+        terminate=lambda: calls.append("terminate"),
+    )
+
+    assert calls == ["spawn", "cleanup", "terminate"]
+
+
+def test_relaunch_still_terminates_when_cleanup_fails():
+    calls = []
+    failure = RuntimeError("cleanup failed")
+
+    def cleanup():
+        calls.append("cleanup")
+        raise failure
+
+    with pytest.raises(RuntimeError, match="cleanup failed"):
+        desktop.relaunch_launcher(
+            spawn=lambda: calls.append("spawn"),
+            cleanup=cleanup,
+            terminate=lambda: calls.append("terminate"),
+        )
+
+    assert calls == ["spawn", "cleanup", "terminate"]
+
+
 def test_spawn_launcher_process_is_isolated_for_unit_tests(monkeypatch):
     calls = []
     monkeypatch.setattr(desktop, "launcher_working_directory", lambda: ROOT)
@@ -736,6 +1016,7 @@ def test_parent_handoff_timeout_stays_on_recovery_before_port_selection(
         controller,
         paths,
         {},
+        desktop_instance=FakeDesktopInstance(),
         is_relaunch=True,
         handoff_outcome=desktop.HandoffOutcome.TIMEOUT,
     ).run(controller.state.attempt)
@@ -794,6 +1075,11 @@ def test_run_desktop_waits_before_single_logging_configuration(
     )
     monkeypatch.setattr(
         desktop,
+        "create_desktop_instance",
+        lambda runtime_file, env: FakeDesktopInstance(),
+    )
+    monkeypatch.setattr(
+        desktop,
         "show_fatal_startup_message",
         lambda logs_dir: calls.append("fatal"),
     )
@@ -802,6 +1088,103 @@ def test_run_desktop_waits_before_single_logging_configuration(
     assert calls[:-1] == expected_prefix
     assert calls[-1] == "fatal"
     assert calls.count("logging") == 1
+
+
+def test_run_desktop_normal_mainloop_exit_cleans_owner_runtime(
+    monkeypatch,
+    tmp_path,
+):
+    calls = []
+    paths = make_paths(tmp_path)
+    instance = FakeDesktopInstance()
+    root = SimpleNamespace(
+        update=lambda: calls.append("update"),
+        after=lambda *_args: calls.append("after"),
+        mainloop=lambda: calls.append("mainloop"),
+    )
+    fake_tk = SimpleNamespace(ttk=SimpleNamespace(), Tk=lambda: root)
+    monkeypatch.setitem(sys.modules, "tkinter", fake_tk)
+    monkeypatch.setattr(
+        desktop,
+        "configure_desktop_environment",
+        lambda _env: paths,
+    )
+    monkeypatch.setattr(desktop, "_relaunch_parent_handle", lambda: None)
+    monkeypatch.setattr(desktop, "configure_logging", lambda *_args: None)
+    monkeypatch.setattr(
+        desktop,
+        "create_desktop_instance",
+        lambda *_args: instance,
+    )
+    monkeypatch.setattr(desktop, "TkLauncher", lambda *_args: SimpleNamespace(
+        start=lambda: None,
+        poll=lambda: None,
+    ))
+
+    assert desktop.run_desktop() == 0
+    assert calls == ["update", "after", "after", "mainloop"]
+    assert instance.cleanup_calls == 1
+
+
+def test_run_desktop_mainloop_cleanup_failure_is_not_startup_surface_failure(
+    monkeypatch,
+    tmp_path,
+):
+    calls = []
+    logged = []
+    paths = make_paths(tmp_path)
+
+    class CleanupFailureInstance(FakeDesktopInstance):
+        def cleanup(self):
+            self.cleanup_calls += 1
+            raise RuntimeError("cleanup secret")
+
+    instance = CleanupFailureInstance()
+    root = SimpleNamespace(
+        update=lambda: None,
+        after=lambda *_args: None,
+        mainloop=lambda: calls.append("mainloop"),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "tkinter",
+        SimpleNamespace(ttk=SimpleNamespace(), Tk=lambda: root),
+    )
+    monkeypatch.setattr(
+        desktop,
+        "configure_desktop_environment",
+        lambda _env: paths,
+    )
+    monkeypatch.setattr(desktop, "_relaunch_parent_handle", lambda: None)
+    monkeypatch.setattr(desktop, "configure_logging", lambda *_args: None)
+    monkeypatch.setattr(
+        desktop,
+        "create_desktop_instance",
+        lambda *_args: instance,
+    )
+    monkeypatch.setattr(
+        desktop,
+        "TkLauncher",
+        lambda *_args: SimpleNamespace(start=lambda: None, poll=lambda: None),
+    )
+    monkeypatch.setattr(
+        desktop,
+        "show_fatal_startup_message",
+        lambda _logs_dir: calls.append("fatal"),
+    )
+    monkeypatch.setattr(
+        desktop.LOG,
+        "error",
+        lambda message, *args: logged.append(message % args),
+    )
+
+    assert desktop.run_desktop() == 1
+    assert calls == ["mainloop"]
+    assert instance.cleanup_calls == 1
+    assert logged == [
+        "Runtime cleanup failed after launcher mainloop exit "
+        "(failure type: RuntimeError)"
+    ]
 
 
 def test_runtime_root_uses_source_checkout_by_default():
@@ -920,6 +1303,7 @@ def test_startup_failure_logging_omits_raw_exception_and_traceback(
         controller,
         paths,
         {"LOCALAPPDATA": str(tmp_path)},
+        desktop_instance=FakeDesktopInstance(),
     ).run(controller.state.attempt)
     for handler in desktop.LOG.handlers:
         handler.flush()
@@ -951,6 +1335,7 @@ def test_generic_startup_failure_is_recorded_by_private_launcher_log(
         controller,
         paths,
         {"LOCALAPPDATA": str(tmp_path)},
+        desktop_instance=FakeDesktopInstance(),
     ).run(controller.state.attempt)
     controller.drain_events()
     for handler in desktop.LOG.handlers:
@@ -991,7 +1376,7 @@ def test_smoke_failure_injection_requires_browser_skip_boundary(monkeypatch, tmp
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle: (
+        lambda port, app_handle, **_kwargs: (
             desktop.WaitOutcome.APP_FAILED
             if app_handle.stopped.is_set()
             else desktop.WaitOutcome.READY
@@ -1002,6 +1387,7 @@ def test_smoke_failure_injection_requires_browser_skip_boundary(monkeypatch, tmp
         controller,
         paths,
         {"DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE": "1"},
+        desktop_instance=FakeDesktopInstance(),
     ).run(controller.state.attempt)
     controller.drain_events()
 
@@ -1014,7 +1400,12 @@ def test_smoke_failure_injection_requires_browser_skip_boundary(monkeypatch, tmp
         "DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE": "1",
     }
 
-    desktop.StartupRunner(controller, paths, env).run(controller.state.attempt)
+    desktop.StartupRunner(
+        controller,
+        paths,
+        env,
+        desktop_instance=FakeDesktopInstance(),
+    ).run(controller.state.attempt)
     controller.drain_events()
 
     assert controller.state.recovery is desktop.RecoveryCode.APP_FAILED
@@ -1040,7 +1431,7 @@ def test_relaunch_handle_makes_smoke_failure_injection_one_shot(monkeypatch, tmp
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle: desktop.WaitOutcome.READY,
+        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.READY,
     )
     monkeypatch.setattr(desktop, "open_browser", lambda port, env: True)
 
@@ -1051,6 +1442,7 @@ def test_relaunch_handle_makes_smoke_failure_injection_one_shot(monkeypatch, tmp
             "DOCSIGHT_SKIP_BROWSER": "1",
             "DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE": "1",
         },
+        desktop_instance=FakeDesktopInstance(),
         is_relaunch=True,
     ).run(controller.state.attempt)
     controller.drain_events()
@@ -1074,7 +1466,7 @@ def test_browser_smoke_injection_reaches_recovery_without_browser(
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle: desktop.WaitOutcome.READY,
+        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.READY,
     )
     monkeypatch.setattr(
         desktop,
@@ -1089,6 +1481,7 @@ def test_browser_smoke_injection_reaches_recovery_without_browser(
             "DOCSIGHT_SKIP_BROWSER": "1",
             "DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE": "1",
         },
+        desktop_instance=FakeDesktopInstance(),
     ).run(controller.state.attempt)
     controller.drain_events()
 
@@ -1116,6 +1509,7 @@ def test_no_port_smoke_injection_clears_url_before_port_selection(
             "DOCSIGHT_SKIP_BROWSER": "1",
             "DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE": "1",
         },
+        desktop_instance=FakeDesktopInstance(),
     ).run(controller.state.attempt)
     controller.drain_events()
 
@@ -1147,7 +1541,7 @@ def test_relaunch_does_not_repeat_new_smoke_injections(
     monkeypatch.setattr(
         desktop,
         "_wait_for_ready",
-        lambda port, app_handle: desktop.WaitOutcome.READY,
+        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.READY,
     )
     monkeypatch.setattr(
         desktop,
@@ -1162,6 +1556,7 @@ def test_relaunch_does_not_repeat_new_smoke_injections(
             "DOCSIGHT_SKIP_BROWSER": "1",
             injection_name: "1",
         },
+        desktop_instance=FakeDesktopInstance(),
         is_relaunch=True,
     ).run(controller.state.attempt)
     controller.drain_events()
@@ -1243,6 +1638,39 @@ def test_poll_failure_recovers_and_schedules_next_poll():
     assert values["after"] == [(desktop.EVENT_POLL_MILLISECONDS, view.poll)]
 
 
+def test_follower_window_is_destroyed_once_by_poll_path():
+    calls = []
+    controller = make_controller()
+    controller.state = desktop.replace(
+        controller.state,
+        phase=desktop.StartupPhase.OPEN,
+        ready=True,
+        owns_server=False,
+        closed=True,
+    )
+    controller.drain_events = lambda: False
+    view = desktop.TkLauncher.__new__(desktop.TkLauncher)
+    view.controller = controller
+    view.status_var = SimpleNamespace(set=lambda _value: None)
+    view.url_var = SimpleNamespace(set=lambda _value: None)
+    view.copy_button = SimpleNamespace(configure=lambda **_kwargs: None)
+    view.phase_labels = [
+        SimpleNamespace(configure=lambda **_kwargs: None)
+        for _phase in desktop.PHASES
+    ]
+    view.actions = SimpleNamespace(grid_remove=lambda: None)
+    view.root = SimpleNamespace(
+        withdraw=lambda: calls.append("withdraw"),
+        destroy=lambda: calls.append("destroy"),
+        after=lambda *_args: calls.append("after"),
+    )
+
+    view._render_full()
+    view.poll()
+
+    assert calls == ["destroy"]
+
+
 def test_tk_launcher_installs_callback_exception_boundary(monkeypatch, tmp_path):
     root = SimpleNamespace()
     monkeypatch.setattr(desktop.TkLauncher, "_build", lambda self: None)
@@ -1254,6 +1682,7 @@ def test_tk_launcher_installs_callback_exception_boundary(monkeypatch, tmp_path)
         make_controller(),
         SimpleNamespace(),
         make_paths(tmp_path),
+        FakeDesktopInstance(),
     )
 
     assert root.report_callback_exception == view._report_callback_exception
@@ -1307,6 +1736,7 @@ def test_close_destroys_window_and_terminates_process(monkeypatch):
     view = desktop.TkLauncher.__new__(desktop.TkLauncher)
     view.root = SimpleNamespace(destroy=lambda: calls.append("destroy"))
     view.controller = SimpleNamespace(exit_code=1)
+    view.desktop_instance = FakeDesktopInstance()
     monkeypatch.setattr(desktop.os, "_exit", lambda code: calls.append(("exit", code)))
 
     view._close()
