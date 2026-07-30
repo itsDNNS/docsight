@@ -133,13 +133,14 @@
                 var stats = collectStats(enabled);
 
                 if (stats.avgLatency != null) {
-                    setText(elements.latency, fmtNumber(stats.avgLatency, 1) + ' ms ' + translate('metric_average_label', 'avg').toLowerCase());
+                    setText(elements.latency, fmtNumber(stats.avgLatency, 1));
+                    appendText(elements.latency, 'ms', 'unit');
                 } else {
                     setText(elements.latency, '–');
                 }
                 if (elements.latency) elements.latency.style.color = 'var(--' + health.key + ')';
 
-                setText(elements.avg, ok.length + '/' + enabled.length + ' OK');
+                setText(elements.avg, translate('metric_average_label', 'Avg') + ' · ' + ok.length + '/' + enabled.length + ' OK');
                 setText(elements.badge, health.badge);
                 if (elements.badge) elements.badge.className = 'badge badge-' + health.key;
 

@@ -3,6 +3,7 @@
 import re
 
 import pytest
+from playwright.sync_api import expect
 
 
 class TestDashboardLoad:
@@ -261,6 +262,59 @@ class TestDashboardSections:
         assert card.count() == 1
         assert card.get_attribute("role") == "button"
         assert card.get_attribute("tabindex") == "0"
+
+    def test_enabled_connection_monitor_card_uses_standard_kpi_anatomy(self, demo_page):
+        demo_page.route(
+            "**/api/connection-monitor/summary",
+            lambda route: route.fulfill(
+                json={
+                    "1": {
+                        "label": "Cloudflare",
+                        "host": "1.1.1.1",
+                        "enabled": True,
+                        "avg_latency_ms": 39.9,
+                        "min_latency_ms": 37.2,
+                        "max_latency_ms": 43.6,
+                        "packet_loss_pct": 0,
+                    }
+                }
+            ),
+        )
+        demo_page.reload(wait_until="networkidle")
+
+        latency = demo_page.locator("#cm-card-latency")
+        average = demo_page.locator("#cm-card-avg")
+        badge = demo_page.locator("#cm-card-badge")
+        expect(average).to_have_text("Avg · 1/1 OK")
+
+        assert latency.text_content() == "39.9ms"
+        assert latency.locator(":scope > .unit").count() == 1
+        assert latency.locator(":scope > .unit").text_content() == "ms"
+        assert "Avg" not in latency.text_content()
+        assert average.text_content() == "Avg · 1/1 OK"
+        assert badge.text_content() == "Good"
+
+        structure = demo_page.evaluate(
+            """
+            () => {
+                const latency = document.querySelector('#cm-card-latency');
+                const average = document.querySelector('#cm-card-avg');
+                const averageRow = average && average.closest('.metric-average-row');
+                return {
+                    primaryText: latency && latency.firstChild && latency.firstChild.nodeValue,
+                    unitParentIsPrimary: latency && latency.querySelector(':scope > .unit')?.parentElement === latency,
+                    averageParentIsSecondaryRow: averageRow?.contains(average) === true,
+                    primaryContainsAverage: latency?.contains(average) === true,
+                };
+            }
+            """
+        )
+        assert structure == {
+            "primaryText": "39.9",
+            "unitParentIsPrimary": True,
+            "averageParentIsSecondaryRow": True,
+            "primaryContainsAverage": False,
+        }
 
     def test_disabled_connection_monitor_card_shows_no_data_state(self, demo_page):
         status = demo_page.locator("#cm-card-latency")
