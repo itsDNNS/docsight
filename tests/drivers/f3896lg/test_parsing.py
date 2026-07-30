@@ -114,7 +114,7 @@ class TestDownstream:
         assert ch["type"] == "OFDM"
         # firmware reports OFDM power scaled x10: -118 -> -11.8 dBmV
         assert ch["powerLevel"] == -11.8
-        assert ch["frequency"] == "1108 MHz"
+        assert ch["frequency"] == ""
         assert ch["modulation"] == "OFDM"
         assert ch["profile_modulation"] == "4096QAM"
         # rxMer 0 means "not reported" on this firmware
@@ -159,7 +159,7 @@ class TestDownstream:
 
         assert len(ds31) == 1
         assert ds31[0]["mer"] is None
-        assert ds31[0]["frequency"] == "1108 MHz"
+        assert ds31[0]["frequency"] == ""
         assert ds31[0]["powerLevel"] == -11.8
         assert ds31[0]["profile_modulation"] == "4096QAM"
         assert ds31[0]["corrErrors"] == 12
@@ -221,7 +221,7 @@ class TestUpstream:
         assert ch["type"] == "OFDMA"
         # firmware reports OFDMA power scaled x10: 380 -> 38.0 dBmV
         assert ch["powerLevel"] == 38.0
-        assert ch["frequency"] == "74 MHz"
+        assert ch["frequency"] == ""
         assert ch["modulation"] == "OFDMA"
         assert ch["profile_modulation"] == "256QAM"
 

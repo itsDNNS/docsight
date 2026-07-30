@@ -168,10 +168,12 @@ class F3896LGDriver(ModemDriver):
                     if mer == 0:
                         mer = None
                     profile_modulation = self._modulation(ch.get("modulation", ""))
+                    # firstActiveSubcarrier is an index; without a subcarrier-zero/base
+                    # frequency from the API, the channel frequency remains unknown.
                     channel: RawChannel = {
                         "channelID": ch.get("channelId", 0),
                         "type": "OFDM",
-                        "frequency": self._mhz(ch.get("firstActiveSubcarrier")),
+                        "frequency": "",
                         "powerLevel": power,
                         "mer": mer,
                         "mse": None,
@@ -218,10 +220,12 @@ class F3896LGDriver(ModemDriver):
                         log.warning("Invalid F3896LG OFDMA power %r; using no power", ch.get("power"))
                         power = None
                     profile_modulation = self._modulation(ch.get("modulation", ""))
+                    # firstActiveSubcarrier is an index; without a subcarrier-zero/base
+                    # frequency from the API, the channel frequency remains unknown.
                     channel: RawChannel = {
                         "channelID": ch.get("channelId", 0),
                         "type": "OFDMA",
-                        "frequency": self._mhz(ch.get("firstActiveSubcarrier")),
+                        "frequency": "",
                         "powerLevel": power,
                         "modulation": "OFDMA",
                         "multiplex": "",
@@ -249,13 +253,6 @@ class F3896LGDriver(ModemDriver):
         if not freq_hz:
             return ""
         return f"{float(freq_hz) / 1_000_000:g} MHz"
-
-    @staticmethod
-    def _mhz(freq_mhz) -> str:
-        """Format the lower/first active subcarrier frequency, not channel center."""
-        if not freq_mhz:
-            return ""
-        return f"{float(freq_mhz):g} MHz"
 
     @staticmethod
     def _unscale(power) -> float | None:
