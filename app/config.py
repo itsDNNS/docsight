@@ -351,6 +351,10 @@ class ConfigManager:
             return default
         return DEFAULTS.get(key)
 
+    def has_stored_value(self, key):
+        """Return whether config.json contains this key, excluding defaults/env."""
+        return key in self._file_config
+
     @staticmethod
     def _validate_url(key, value):
         """Validate that URL keys use http or https scheme only."""

@@ -36,6 +36,10 @@ class TestConfigDefaults:
     def test_smokeping_module_disabled_by_default(self, config):
         assert config.get("disabled_modules") == "docsight.smokeping"
 
+    def test_default_value_is_not_reported_as_stored(self, config):
+        assert config.get("language") == "en"
+        assert config.has_stored_value("language") is False
+
 
 class TestConfigSaveLoad:
     def test_save_and_load(self, tmp_data_dir):
@@ -50,6 +54,14 @@ class TestConfigSaveLoad:
     def test_save_creates_file(self, config, tmp_data_dir):
         config.save({"modem_user": "test"})
         assert os.path.exists(os.path.join(tmp_data_dir, "config.json"))
+
+    def test_saved_value_is_reported_as_stored_after_reload(self, tmp_data_dir):
+        config = ConfigManager(tmp_data_dir)
+        config.save({"language": "de"})
+
+        reloaded = ConfigManager(tmp_data_dir)
+
+        assert reloaded.has_stored_value("language") is True
 
     def test_int_keys_cast(self, tmp_data_dir):
         config = ConfigManager(tmp_data_dir)

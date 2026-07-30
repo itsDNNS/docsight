@@ -326,6 +326,28 @@ def setup_server(_setup_data_dir):
 
 
 @pytest.fixture()
+def isolated_setup_server(tmp_path):
+    """Start an unconfigured server with fresh data for one language test."""
+    data_dir = str(tmp_path / "isolated-setup")
+    port = _find_free_port()
+    proc = _MP_CTX.Process(
+        target=_start_unconfigured_server,
+        args=(data_dir, port),
+        daemon=True,
+    )
+    proc.start()
+    try:
+        _wait_for_server(port)
+        yield {
+            "url": f"http://127.0.0.1:{port}",
+            "data_dir": data_dir,
+        }
+    finally:
+        proc.terminate()
+        proc.join(timeout=5)
+
+
+@pytest.fixture()
 def setup_page(page, setup_server):
     """Navigate to the unconfigured server — lands on /setup."""
     page.goto(setup_server)

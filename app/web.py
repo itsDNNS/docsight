@@ -21,7 +21,7 @@ from markupsafe import Markup
 from werkzeug.security import check_password_hash
 from zoneinfo import available_timezones
 
-from .config import MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
+from .config import DEFAULTS, MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
 from .docsis_utils import qam_rank
 from .gaming_index import compute_gaming_index
@@ -428,6 +428,35 @@ def _get_lang():
     if _config_manager:
         return _config_manager.get("language", "en")
     return "en"
+
+
+def _get_setup_lang():
+    """Resolve and persist the language for the unconfigured setup route."""
+    lang = request.args.get("lang")
+    if lang in LANGUAGES:
+        if _config_manager:
+            _config_manager.save({"language": lang})
+        return lang
+
+    if _config_manager and _config_manager.has_stored_value("language"):
+        return _config_manager.get("language", DEFAULTS["language"])
+
+    inferred = DEFAULTS["language"]
+    for requested, quality in request.accept_languages:
+        if quality <= 0:
+            continue
+        normalized = requested.lower().replace("_", "-")
+        if normalized in LANGUAGES:
+            inferred = normalized
+            break
+        base = normalized.split("-", 1)[0]
+        if base in LANGUAGES:
+            inferred = base
+            break
+
+    if _config_manager:
+        _config_manager.save({"language": inferred})
+    return inferred
 
 
 def _get_tz_name():
@@ -1655,7 +1684,7 @@ def setup():
     if _config_manager and (_config_manager.is_configured() or _config_manager.is_demo_mode()):
         return redirect("/")
     config = _config_manager.get_all(mask_secrets=True) if _config_manager else {}
-    lang = _get_lang()
+    lang = _get_setup_lang()
     t = get_translations(lang)
     tz_name, tz_offset = _server_tz_info()
     from .drivers import driver_registry
