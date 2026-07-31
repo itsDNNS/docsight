@@ -482,6 +482,54 @@ def test_bind_loss_uses_one_fresh_process_retry_and_cleans_runtime(
     assert controller.state.recovery is None
 
 
+def test_close_requested_app_failure_does_not_retry_bind_or_relaunch(
+    monkeypatch,
+    tmp_path,
+):
+    controller = make_controller()
+    paths = make_paths(tmp_path)
+    env = {}
+    server_lifecycle = desktop.ServerLifecycleController()
+    server_lifecycle.close()
+    stopped = threading.Event()
+    stopped.set()
+    handle = desktop.AppThreadHandle(
+        thread=SimpleNamespace(join=lambda: None),
+        stopped=stopped,
+    )
+    calls = []
+    monkeypatch.setattr(desktop, "select_port", lambda env: desktop.PortSelection(8765))
+    monkeypatch.setattr(desktop, "_start_app_thread", lambda _lifecycle: handle)
+    monkeypatch.setattr(
+        desktop,
+        "_wait_for_ready",
+        lambda port, app_handle, **_kwargs: desktop.WaitOutcome.APP_FAILED,
+    )
+    monkeypatch.setattr(
+        desktop,
+        "_can_bind_local_port",
+        lambda port: calls.append(("bind", port)) or False,
+    )
+    monkeypatch.setattr(
+        desktop,
+        "relaunch_launcher",
+        lambda **_kwargs: calls.append("relaunch"),
+    )
+
+    desktop.StartupRunner(
+        controller,
+        paths,
+        env,
+        desktop_instance=FakeDesktopInstance(),
+        server_lifecycle=server_lifecycle,
+    ).run(controller.state.attempt)
+    controller.drain_events()
+
+    assert calls == []
+    assert desktop.BIND_RETRY_ENV not in env
+    assert controller.state.recovery is desktop.RecoveryCode.APP_FAILED
+
+
 def test_bind_loss_retry_is_bounded_across_fresh_launcher_process(
     monkeypatch,
     tmp_path,
@@ -1658,41 +1706,81 @@ def test_poll_failure_recovers_and_schedules_next_poll():
     assert values["after"] == [(desktop.EVENT_POLL_MILLISECONDS, view.poll)]
 
 
-def test_follower_window_is_destroyed_once_by_poll_path():
-    calls = []
-    controller = make_controller()
-    controller.state = desktop.replace(
-        controller.state,
-        phase=desktop.StartupPhase.OPEN,
-        ready=True,
-        owns_server=False,
-        closed=True,
+def test_follower_run_desktop_exits_zero_and_destroys_window_once(
+    monkeypatch,
+    tmp_path,
+):
+    paths = make_paths(tmp_path)
+    instance = FakeDesktopInstance(role=desktop.InstanceRole.FOLLOWER, port=8765)
+    destroy_calls = []
+    process_exits = []
+
+    class FakeRoot:
+        def __init__(self):
+            self.callbacks = []
+
+        def update(self):
+            return None
+
+        def after(self, delay, callback):
+            self.callbacks.append((delay, callback))
+
+        def mainloop(self):
+            start = self.callbacks[0][1]
+            poll = self.callbacks[1][1]
+            start()
+            view = start.__self__
+            view._worker.join(timeout=2)
+            assert not view._worker.is_alive()
+            poll()
+
+        def destroy(self):
+            destroy_calls.append("destroy")
+            if len(destroy_calls) > 1:
+                raise RuntimeError("Tk.destroy is not idempotent")
+
+    root = FakeRoot()
+    launcher_class = desktop.TkLauncher
+    monkeypatch.setitem(
+        sys.modules,
+        "tkinter",
+        SimpleNamespace(ttk=SimpleNamespace(), Tk=lambda: root),
     )
-    controller.drain_events = lambda: False
-    view = desktop.TkLauncher.__new__(desktop.TkLauncher)
-    view.controller = controller
-    view.status_var = SimpleNamespace(set=lambda _value: None)
-    view.url_var = SimpleNamespace(set=lambda _value: None)
-    view.copy_button = SimpleNamespace(configure=lambda **_kwargs: None)
-    view.phase_labels = [
-        SimpleNamespace(configure=lambda **_kwargs: None)
-        for _phase in desktop.PHASES
+    monkeypatch.setattr(
+        desktop,
+        "configure_desktop_environment",
+        lambda _env: paths,
+    )
+    monkeypatch.setattr(desktop, "_relaunch_parent_handle", lambda: None)
+    monkeypatch.setattr(desktop, "configure_logging", lambda *_args: None)
+    monkeypatch.setattr(desktop, "create_desktop_instance", lambda *_args: instance)
+    monkeypatch.setattr(desktop, "open_browser", lambda *_args: True)
+    monkeypatch.setattr(
+        desktop,
+        "_start_app_thread",
+        lambda *_args, **_kwargs: pytest.fail("a follower must not start a server"),
+    )
+    monkeypatch.setattr(launcher_class, "_build", lambda self: None)
+
+    def make_view(*args, **kwargs):
+        view = launcher_class(
+            *args,
+            **kwargs,
+            process_exit=lambda code: process_exits.append(code),
+        )
+        view.render = lambda: None
+        return view
+
+    monkeypatch.setattr(desktop, "TkLauncher", make_view)
+
+    assert desktop.run_desktop() == 0
+    assert destroy_calls == ["destroy"]
+    assert process_exits == []
+    assert instance.cleanup_calls == 1
+    assert [delay for delay, _callback in root.callbacks] == [
+        50,
+        desktop.EVENT_POLL_MILLISECONDS,
     ]
-    view.actions = SimpleNamespace(grid_remove=lambda: None)
-    view.root = SimpleNamespace(
-        withdraw=lambda: calls.append("withdraw"),
-        destroy=lambda: calls.append("destroy"),
-        after=lambda *_args: calls.append("after"),
-    )
-    view.smoke_quit_trigger = None
-    view.command_dispatcher = desktop.TrayCommandDispatcher()
-    view.shutdown = SimpleNamespace(requested=False)
-    view._tray_started = True
-
-    view._render_full()
-    view.poll()
-
-    assert calls == ["destroy"]
 
 
 def test_tk_launcher_installs_callback_exception_boundary(monkeypatch, tmp_path):

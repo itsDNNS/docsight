@@ -1048,6 +1048,10 @@ class StartupRunner:
                     owns_server
                     and app_handle is not None
                     and app_handle.failure_type is None
+                    and (
+                        self.server_lifecycle is None
+                        or not self.server_lifecycle.close_requested
+                    )
                     and self.env.get(BIND_RETRY_ENV) != "1"
                     and not _can_bind_local_port(selection.port)
                 ):
@@ -1319,7 +1323,7 @@ class TkLauncher:
                 self.render()
             state = self.controller.state
             if state.closed:
-                self.root.destroy()
+                self.shutdown.request()
                 return
             self._ensure_tray_started()
         except BaseException as exc:
