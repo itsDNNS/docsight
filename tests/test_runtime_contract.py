@@ -40,6 +40,13 @@ def test_run_web_defaults_to_public_bind(monkeypatch):
     server_calls = []
 
     class FakeServer:
+        active_channels = {}
+
+        class task_dispatcher:
+            @staticmethod
+            def shutdown(*, cancel_pending, timeout):
+                server_calls.append(("shutdown", cancel_pending, timeout))
+
         def run(self):
             server_calls.append("run")
 
@@ -62,7 +69,7 @@ def test_run_web_defaults_to_public_bind(monkeypatch):
     lifecycle.close()
 
     assert calls == [{"host": "0.0.0.0", "port": 8765, "threads": 4}]
-    assert server_calls == ["run", "close"]
+    assert server_calls == ["run", "close", ("shutdown", True, 1.0)]
 
 
 def test_run_web_honors_web_host_env(monkeypatch):

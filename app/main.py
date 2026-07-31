@@ -14,6 +14,7 @@ from .module_paths import get_modules_dir
 from .server_lifecycle import ServerLifecycleController
 from .storage import SnapshotStorage
 from .tz import guess_iana_timezone, utc_cutoff
+from .waitress_server import WaitressServerAdapter
 
 from .collectors import discover_collectors
 
@@ -59,11 +60,13 @@ def run_web(
     from waitress import create_server
 
     host = get_web_host()
-    server = create_server(
-        web.app,
-        host=host,
-        port=port,
-        threads=4,
+    server = WaitressServerAdapter(
+        create_server(
+            web.app,
+            host=host,
+            port=port,
+            threads=4,
+        )
     )
     lifecycle = server_lifecycle or ServerLifecycleController()
     lifecycle.attach(server)
