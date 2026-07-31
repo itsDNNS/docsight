@@ -26,17 +26,20 @@ $PreviousSkipBrowser = $env:DOCSIGHT_SKIP_BROWSER
 $PreviousInjectedStartupFailure = $env:DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE
 $PreviousInjectedBrowserFailure = $env:DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE
 $PreviousInjectedNoPortFailure = $env:DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE
+$PreviousSmokeQuitSentinel = $env:DOCSIGHT_SMOKE_QUIT_SENTINEL
 $Process = $null
 $LaunchOne = $null
 $LaunchTwo = $null
 $FollowerProcess = $null
 $ThirdProcess = $null
+$CycleTwoProcess = $null
 $ForeignListener = $null
 $HttpHandler = $null
 $HttpClient = $null
 $LauncherLogFile = Join-Path $LocalAppData "DOCSight\logs\launcher.log"
 $RuntimeLogFile = Join-Path $LocalAppData "DOCSight\logs\runtime.log"
 $RuntimeStateFile = Join-Path $LocalAppData "DOCSight\runtime.json"
+$SmokeQuitSentinel = Join-Path $LocalAppData "DOCSight\smoke-quit.signal"
 $HealthUrl = $null
 $ReportUrl = $null
 $ConfigUrl = $null
@@ -127,6 +130,88 @@ function Invoke-SmokeHttpRequest {
     }
 }
 
+function Assert-NoPackagedProcess {
+    $PackagedProcesses = @(Get-CimInstance Win32_Process | Where-Object {
+        -not [string]::IsNullOrWhiteSpace($_.ExecutablePath) -and
+        [string]::Equals(
+            [System.IO.Path]::GetFullPath($_.ExecutablePath),
+            $Executable,
+            [System.StringComparison]::OrdinalIgnoreCase
+        )
+    })
+    if ($PackagedProcesses.Count -ne 0) {
+        throw "A packaged DOCSight process remained after graceful quit."
+    }
+}
+
+function Assert-NoOwnerChildren {
+    param([Parameter(Mandatory = $true)][System.Diagnostics.Process]$Owner)
+
+    $Children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($Owner.Id)")
+    if ($Children.Count -ne 0) {
+        throw "The DOCSight owner created an unexpected child process."
+    }
+}
+
+function Assert-DataFilesReopen {
+    $DataFiles = @(Get-ChildItem -LiteralPath (Join-Path $LocalAppData "DOCSight\data") -File)
+    if ($DataFiles.Count -eq 0) {
+        throw "Graceful smoke did not create any DATA_DIR files."
+    }
+    foreach ($DataFile in $DataFiles) {
+        $Stream = [System.IO.File]::Open(
+            $DataFile.FullName,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::ReadWrite,
+            [System.IO.FileShare]::None
+        )
+        $Stream.Dispose()
+    }
+}
+
+function Request-GracefulQuit {
+    param(
+        [Parameter(Mandatory = $true)][System.Diagnostics.Process]$Owner,
+        [Parameter(Mandatory = $true)][int]$RuntimePort,
+        [Parameter(Mandatory = $true)][string]$CycleName
+    )
+
+    Assert-NoOwnerChildren -Owner $Owner
+    [System.IO.File]::WriteAllText(
+        $SmokeQuitSentinel,
+        "quit",
+        [System.Text.UTF8Encoding]::new($false)
+    )
+    if (-not $Owner.WaitForExit(25000)) {
+        Write-SmokeLog
+        throw "$CycleName did not exit through the graceful quit command."
+    }
+    if ($Owner.ExitCode -ne 0) {
+        Write-SmokeLog
+        throw "$CycleName graceful quit returned exit code $($Owner.ExitCode)."
+    }
+
+    $PortCloseDeadline = (Get-Date).AddSeconds(10)
+    do {
+        $RemainingListeners = @(
+            Get-NetTCPConnection -State Listen -LocalPort $RuntimePort -ErrorAction SilentlyContinue
+        )
+        if ($RemainingListeners.Count -eq 0) {
+            break
+        }
+        Start-Sleep -Milliseconds 250
+    } while ((Get-Date) -lt $PortCloseDeadline)
+
+    if ($RemainingListeners.Count -ne 0) {
+        throw "$CycleName left its selected port listening after graceful quit."
+    }
+    if (Test-Path -LiteralPath $RuntimeStateFile) {
+        throw "$CycleName left runtime.json after graceful quit."
+    }
+    Assert-NoPackagedProcess
+    Assert-DataFilesReopen
+}
+
 try {
     New-Item -ItemType Directory -Force -Path $SmokeRoot | Out-Null
     Copy-Item -LiteralPath $BundleDir -Destination $LaunchBundleDir -Recurse -Force
@@ -154,6 +239,7 @@ try {
     $env:DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE = $null
     $env:DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE = $null
     $env:DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE = $null
+    $env:DOCSIGHT_SMOKE_QUIT_SENTINEL = $SmokeQuitSentinel
 
     $HttpHandler = [System.Net.Http.HttpClientHandler]::new()
     $HttpHandler.UseProxy = $false
@@ -420,14 +506,84 @@ try {
     }
 
     $PreviousRuntimeToken = [string]$RuntimeState.instance_token
-    Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
-    $FirstProcessStopped = $Process.WaitForExit(10000)
-    if (-not $FirstProcessStopped) {
-        Write-SmokeLog
-        throw "Successful packaged process did not stop before injected recovery validation."
+    $StaleRuntimeJson = Get-Content -LiteralPath $RuntimeStateFile -Raw
+    Request-GracefulQuit `
+        -Owner $Process `
+        -RuntimePort ([int]$RuntimeState.port) `
+        -CycleName "First packaged cycle"
+    $Process = $null
+    $PersistedConfigFile = Join-Path $LocalAppData "DOCSight\data\config.json"
+    if (
+        -not (Test-Path -LiteralPath $PersistedConfigFile) -or
+        (Get-Content -LiteralPath $PersistedConfigFile -Raw) -notmatch '"modem_type"\s*:\s*"generic"'
+    ) {
+        throw "Second packaged cycle could not reopen the persisted setup."
     }
+
+    # Reopen the same DATA_DIR, prove the persisted setup is readable, perform
+    # another real setup write, and quit through the identical command path.
+    $CycleTwoProcess = Start-Process -FilePath $Executable -WorkingDirectory $LaunchBundleDir -PassThru
+    $Process = $CycleTwoProcess
+    $CycleTwoDeadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $CycleTwoState = $null
+    $CycleTwoPayload = $null
+    while ((Get-Date) -lt $CycleTwoDeadline) {
+        $Process.Refresh()
+        if ($Process.HasExited) {
+            Write-SmokeLog
+            throw "Second packaged cycle exited before readiness."
+        }
+        try {
+            if (Test-Path -LiteralPath $RuntimeStateFile) {
+                $CycleTwoState = Get-Content -LiteralPath $RuntimeStateFile -Raw | ConvertFrom-Json
+                if ([int]$CycleTwoState.pid -eq $Process.Id) {
+                    $CycleTwoHealthUrl = "http://127.0.0.1:$([int]$CycleTwoState.port)/health"
+                    $CycleTwoPayload = Invoke-RestMethod -Uri $CycleTwoHealthUrl -TimeoutSec 3
+                    if ($CycleTwoPayload.status -eq "ok") {
+                        break
+                    }
+                }
+            }
+        } catch {
+            Start-Sleep -Milliseconds 500
+            continue
+        }
+        Start-Sleep -Milliseconds 500
+    }
+    if ($null -eq $CycleTwoState -or $CycleTwoPayload.status -ne "ok") {
+        Write-SmokeLog
+        throw "Second packaged cycle did not become ready."
+    }
+    if (
+        [int]$CycleTwoState.pid -eq [int]$RuntimeState.pid -or
+        [string]$CycleTwoState.instance_token -ceq $PreviousRuntimeToken
+    ) {
+        throw "Second packaged cycle reused the previous owner identity."
+    }
+    Assert-NoOwnerChildren -Owner $Process
+    $CycleTwoConfigUrl = "http://127.0.0.1:$([int]$CycleTwoState.port)/api/config"
+    $CycleTwoSetupResponse = Invoke-SmokeHttpRequest `
+        -Url $CycleTwoConfigUrl `
+        -Method "POST" `
+        -JsonBody $SetupJson
+    if ($CycleTwoSetupResponse.StatusCode -ne 200) {
+        Write-SmokeLog
+        throw "Second packaged cycle setup write failed."
+    }
+    Request-GracefulQuit `
+        -Owner $Process `
+        -RuntimePort ([int]$CycleTwoState.port) `
+        -CycleName "Second packaged cycle"
     $Process = $null
 
+    # Preserve the existing stale-record recovery coverage without killing a
+    # process: restore the first cycle's authenticated record after its clean
+    # shutdown, then require the next owner to replace it.
+    [System.IO.File]::WriteAllText(
+        $RuntimeStateFile,
+        $StaleRuntimeJson,
+        [System.Text.UTF8Encoding]::new($false)
+    )
     if (Test-Path -LiteralPath $LauncherLogFile) {
         Remove-Item -LiteralPath $LauncherLogFile -Force
     }
@@ -509,7 +665,7 @@ try {
         throw "Injected startup failure main window title was not exactly 'DOCSight'."
     }
 
-    Write-Host "DOCSight Desktop smoke passed: foreign-port fallback, parallel single ownership, authenticated second/third-launch handoff, loopback binding, packaged routes, and stale-state recovery are valid."
+    Write-Host "DOCSight Desktop smoke passed: single ownership, packaged routes, two graceful open/write/quit cycles, listener and runtime cleanup, data reopen, and stale-state recovery are valid."
 } catch {
     Write-SmokeLog
     throw
@@ -519,7 +675,8 @@ try {
         $LaunchOne,
         $LaunchTwo,
         $FollowerProcess,
-        $ThirdProcess
+        $ThirdProcess,
+        $CycleTwoProcess
     ) | Where-Object { $null -ne $_ } | Sort-Object Id -Unique
     foreach ($CleanupProcess in $CleanupProcesses) {
         $CleanupProcess.Refresh()
@@ -543,6 +700,7 @@ try {
     $env:DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE = $PreviousInjectedStartupFailure
     $env:DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE = $PreviousInjectedBrowserFailure
     $env:DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE = $PreviousInjectedNoPortFailure
+    $env:DOCSIGHT_SMOKE_QUIT_SENTINEL = $PreviousSmokeQuitSentinel
 
     if (Test-Path $SmokeRoot) {
         Remove-Item -Recurse -Force $SmokeRoot -ErrorAction SilentlyContinue

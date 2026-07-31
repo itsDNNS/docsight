@@ -19,6 +19,7 @@ docs/**/*.md
 !docs/self-hosted-directory-submission.md
 !docs/public-launch-follow-up-issues.md
 !docs/notifications-apprise.md
+!docs/windows-desktop-preview.md
 docs/superpowers/
 
 # Internal development docs (belong in workspace, not repo)

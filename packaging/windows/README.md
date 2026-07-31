@@ -15,7 +15,9 @@ python packaging/windows/docsight_desktop.py
 The launcher first paints a compact native startup window, then prepares a
 per-user runtime tree, starts DOCSight on loopback, and opens the default
 browser when `/health` is ready. The window shows the current local address
-from **Start DOCSight** onward and provides a copy action.
+from **Start DOCSight** onward and provides a copy action. Once the owner is
+ready, the window hides and a notification-area icon remains available.
+Closing the browser does not exit DOCSight.
 
 Startup progresses through four visible phases:
 
@@ -24,12 +26,22 @@ Startup progresses through four visible phases:
 3. **Wait for readiness**
 4. **Open browser**
 
-If the browser opens successfully, the startup window closes after the open
-attempt. If no port is available, readiness times out, the application thread
-stops, or the browser cannot be opened, the launcher remains visible with
+If the browser opens successfully, the startup window hides after the open
+attempt. The tray icon's default/double-click action and **Open DOCSight**
+action open the exact active owner URL. **Open log folder** opens the per-user
+logs, and **Quit** performs the bounded shutdown described below.
+
+On a German Windows UI these labels are **DOCSight öffnen**,
+**Log-Ordner öffnen**, and **Beenden**. Language selection uses the Windows UI
+language; English is the documented fallback for every other language or a
+detection failure.
+
+If no port is available, readiness times out, the application thread stops, or
+the browser or native tray cannot be opened, the launcher remains visible with
 plain-language recovery guidance, the local URL, **Retry**, **Open log folder**,
-and **Close**. Retry starts a fresh launcher process so a previous local server
-cannot be retained by the same process.
+and **Close**. A tray-start failure never hides the only control path. Retry is
+startup recovery only and starts a fresh launcher process; normal **Quit**
+never launches a replacement.
 
 ## Runtime contract
 
@@ -45,6 +57,7 @@ On startup the launcher creates and exports:
 | authenticated desktop runtime record | `%LOCALAPPDATA%\\DOCSight\\runtime.json` |
 | privacy-filtered launcher phase/recovery log | `%LOCALAPPDATA%\\DOCSight\\logs\\launcher.log` |
 | application runtime diagnostics | `%LOCALAPPDATA%\\DOCSight\\logs\\runtime.log` |
+| one-time tray explanation marker | `%LOCALAPPDATA%\\DOCSight\\tray-notification-v1` |
 
 `launcher.log` is deliberately limited to sanitized launcher events and is
 intended to be shareable. `runtime.log` keeps application diagnostics separate;
@@ -80,12 +93,40 @@ starting. Once validated, they open the exact running loopback port and exit
 without starting another application server. If an owner crashed, the
 abandoned mutex and stale or malformed runtime record are recovered by a later
 launch. The public runtime cleanup API removes the record on explicit normal
-exit; a future quit control only needs to call that API.
+exit.
 
 If the preferred port is occupied by another service, the launcher walks the
 portable preview range and starts once on the next free port. The server always
 binds `127.0.0.1`. If the selected port is lost before the server binds, the
 launcher performs at most one clean retry in a fresh process.
+
+## Tray and shutdown lifecycle
+
+The owner creates a minimal generated tray image after authenticated readiness.
+The first successful tray start shows a one-time notification explaining that
+closing the browser leaves DOCSight running and that the tray can reopen or
+quit it. The marker is written only after notification succeeds.
+
+Tray callbacks never touch Tk. They enqueue commands at a narrow dispatch
+boundary, and the launcher consumes those commands on the Tk thread. The
+launcher reads the active URL at command execution time, so tray actions cannot
+reopen a stale preferred port.
+
+The platform-neutral server lifecycle in `app/` retains the Waitress server
+created by `waitress.create_server()` behind `run()` and `close()`. Dependency
+direction stays one-way:
+
+```text
+app server lifecycle <- desktop launcher <- Windows tray adapter
+```
+
+Quit is idempotent and centralized. It requests server close, waits at most
+12 seconds for the application/startup worker and its polling cleanup, then
+stops the tray and calls `DesktopInstance.cleanup()`. If the bounded join does
+not finish or server close fails, logs contain only stable failure codes and
+exception class names; the launcher cleans tray/runtime ownership as far as
+possible and uses process exit code 1 as the last resort. It does not retry,
+spawn a replacement, or leave a second owner.
 
 ## Portable ZIP build
 
@@ -152,22 +193,32 @@ listener. It requires one owner on an allowed fallback, validates the exact
 runtime schema, PID, process start time, random token, authenticated endpoint,
 second/third-launch handoff, and exactly one IPv4 `127.0.0.1` listener owned by
 the runtime PID. It also requires `runtime.log` without packaged route/import
-failures such as `failed to import routes` or `No module named`, validates a
-real Reports PDF, and then stops the process. The deterministic recovery check
-deletes the first process's `launcher.log` before the injected launch, requires
-fresh **Prepare local data** evidence, proves that crash-leftover runtime state
-is replaced, and confirms a nonzero main-window handle whose title is exactly
-`DOCSight`.
+failures such as `failed to import routes` or `No module named`, and validates a
+real Reports PDF. It then uses a sentinel under the temporary
+`%LOCALAPPDATA%\DOCSight` directory. The sentinel is accepted only when
+`DOCSIGHT_SKIP_BROWSER=1` and feeds the same centralized quit command as the
+real tray. Across two open/setup/quit cycles, the smoke requires process exit,
+selected-port closure, `runtime.json` removal, no child or duplicate packaged
+process, persisted setup reopening, a second real write, and exclusive reopen
+of the resulting `DATA_DIR` files. The deterministic recovery check then
+requires fresh **Prepare local data** evidence, proves that restored stale
+runtime state is replaced, and confirms a nonzero main-window handle whose
+title is exactly `DOCSight`.
 
 The narrowly scoped `DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE=1`,
 `DOCSIGHT_SMOKE_INJECT_BROWSER_FAILURE=1`, and
 `DOCSIGHT_SMOKE_INJECT_NO_PORT_FAILURE=1` switches are honored only while
 `DOCSIGHT_SKIP_BROWSER=1` is active. They are packaging/manual-QA test
 infrastructure and have no effect during normal interactive startup.
+`DOCSIGHT_SMOKE_QUIT_SENTINEL` has the same browser-skip gate and is additionally
+restricted to a direct child path under the active per-user DOCSight directory.
+It is local packaged-smoke infrastructure, not an HTTP endpoint.
 
-The automated smoke verifies process, window-title, logging, listener, API, and
-recovery contracts. Use `QA-CHECKLIST.md` for visual quality, DPI scaling, and
-interactive action checks.
+The automated smoke verifies non-interactive process, logging, listener, API,
+data-reopen, and recovery contracts. A GitHub-hosted runner does not prove that
+the notification-area icon is visible or that mouse/menu interaction works.
+Use `QA-CHECKLIST.md` for those interactive Windows checks, visual quality, and
+DPI scaling.
 
 ## Packaging boundary
 
@@ -179,9 +230,13 @@ The `packaging/` tree is not copied into the Docker image. The final Dockerfile
 copies only the application/runtime paths it needs, and `.dockerignore` keeps the
 Windows packaging tree out of the Docker build context as well.
 
+The runtime adds `pystray` as a small notification-area adapter. Pillow was
+already present and supplies the generated preview image; final application
+icon and PE version metadata remain separate work.
+
 ## Non-goals for this slice
 
-- No tray icon, WebView shell, auto-start, updater, installer, MSI, or MSIX.
-- No dedicated shutdown control beyond the launcher recovery surface.
+- No WebView shell, auto-start, updater, installer, MSI, or MSIX.
+- No final application icon or PE version metadata.
 - No native Windows ICMP/traceroute diagnostics.
 - No code-signing integration while provider onboarding is pending.

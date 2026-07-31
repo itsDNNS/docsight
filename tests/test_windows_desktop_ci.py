@@ -558,6 +558,8 @@ def test_pyinstaller_collects_desktop_runtime_ownership_modules():
 
     assert '"desktop_instance"' in spec_text
     assert '"desktop_platform"' in spec_text
+    assert '"tray"' in spec_text
+    assert '"pystray._win32"' in spec_text
     assert "from desktop_instance import" in launcher
     assert "collect_app_hiddenimports()" in spec_text
     assert (ROOT / "app" / "desktop_runtime.py").is_file()
@@ -573,11 +575,11 @@ def test_launcher_normal_mainloop_exit_runs_runtime_cleanup():
         encoding="utf-8"
     )
 
-    assert (
-        "root.mainloop()\n        try:\n            desktop_instance.cleanup()"
-        in launcher
-    )
-    assert "Runtime cleanup failed after launcher mainloop exit" in launcher
+    assert "root.mainloop()" in launcher
+    assert "view.shutdown.request()" in launcher
+    assert "self.server_lifecycle.close" in launcher
+    assert "worker.join(self.timeout_seconds)" in launcher
+    assert "self.cleanup" in launcher
 
 
 def test_smoke_script_requires_one_owned_ipv4_loopback_listener():
@@ -655,27 +657,33 @@ def test_smoke_script_uses_fresh_launcher_log_for_injected_recovery():
         )
     ]
 
-    assert len(launches) == 4
-    stop_first_process = script.index(
-        "Stop-Process -Id $Process.Id -Force", launches[2]
+    assert len(launches) == 5
+    first_graceful_quit = script.index(
+        'CycleName "First packaged cycle"', launches[2]
     )
-    wait_for_first_process = script.index(
-        "$FirstProcessStopped = $Process.WaitForExit(10000)", stop_first_process
+    second_cycle = launches[3]
+    second_graceful_quit = script.index(
+        'CycleName "Second packaged cycle"', second_cycle
     )
     remove_first_log = script.index(
-        "Remove-Item -LiteralPath $LauncherLogFile -Force", wait_for_first_process
+        "Remove-Item -LiteralPath $LauncherLogFile -Force", second_graceful_quit
     )
-    prepare_phase_assertion = script.index('"Phase: Prepare local data"', launches[3])
+    injected_launch = launches[4]
+    prepare_phase_assertion = script.index(
+        '"Phase: Prepare local data"',
+        injected_launch,
+    )
     assert (
         launches[0]
-        < stop_first_process
-        < wait_for_first_process
+        < first_graceful_quit
+        < second_cycle
+        < second_graceful_quit
         < remove_first_log
-        < launches[3]
+        < injected_launch
     )
-    assert launches[3] < prepare_phase_assertion
-    assert launches[3] < script.index("$Process.MainWindowHandle", launches[3])
-    assert launches[3] < script.index("$Process.MainWindowTitle", launches[3])
+    assert injected_launch < prepare_phase_assertion
+    assert injected_launch < script.index("$Process.MainWindowHandle", injected_launch)
+    assert injected_launch < script.index("$Process.MainWindowTitle", injected_launch)
 
 
 def test_smoke_script_restores_all_injection_environment_variables():
@@ -697,6 +705,32 @@ def test_smoke_script_restores_all_injection_environment_variables():
             f"$env:{environment_name} = $PreviousInjected{variable_suffix}Failure"
             in finally_block
         )
+    assert (
+        "$PreviousSmokeQuitSentinel = $env:DOCSIGHT_SMOKE_QUIT_SENTINEL"
+        in script
+    )
+    assert (
+        "$env:DOCSIGHT_SMOKE_QUIT_SENTINEL = $PreviousSmokeQuitSentinel"
+        in finally_block
+    )
+
+
+def test_smoke_script_proves_two_shared_command_graceful_quit_cycles():
+    script = SMOKE_SCRIPT.read_text(encoding="utf-8")
+
+    assert '$env:DOCSIGHT_SMOKE_QUIT_SENTINEL = $SmokeQuitSentinel' in script
+    assert script.count("Request-GracefulQuit `") == 2
+    assert 'CycleName "First packaged cycle"' in script
+    assert 'CycleName "Second packaged cycle"' in script
+    assert "did not exit through the graceful quit command" in script
+    assert "left its selected port listening after graceful quit" in script
+    assert "left runtime.json after graceful quit" in script
+    assert "A packaged DOCSight process remained after graceful quit" in script
+    assert "The DOCSight owner created an unexpected child process" in script
+    assert "Assert-DataFilesReopen" in script
+    assert "Second packaged cycle could not reopen the persisted setup" in script
+    assert "Second packaged cycle setup write failed" in script
+    assert "two graceful open/write/quit cycles" in script
 
 
 def test_windows_docs_describe_smoke_and_log_sharing_contracts():
@@ -731,6 +765,10 @@ def test_windows_docs_describe_smoke_and_log_sharing_contracts():
     assert "ordinary `/health`" in combined_docs
     assert "`127.0.0.1`" in combined_docs
     assert "must not run alongside another DOCSight desktop instance" in readme
+    assert (
+        "!docs/windows-desktop-preview.md"
+        in (ROOT / ".gitignore").read_text(encoding="utf-8")
+    )
 
 
 def test_windows_qa_keeps_all_precise_failure_injection_invocations():
@@ -798,7 +836,7 @@ def test_smoke_script_preserves_cleanup_after_real_reports_route_checks():
         r"}\s*catch\s*{\s*Write-SmokeLog\s*throw\s*}\s*finally\s*{",
         script,
     )
-    assert "Stop-Process -Id $Process.Id -Force" in script
+    assert "Stop-Process -Id $CleanupProcess.Id -Force" in script
     assert "$env:LOCALAPPDATA = $PreviousLocalAppData" in script
     assert "Remove-Item -Recurse -Force $SmokeRoot" in script
 

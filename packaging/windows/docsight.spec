@@ -60,6 +60,9 @@ datas = collect_app_datas() + [(str(VERSION_FILE), ".")]
 hiddenimports = collect_app_hiddenimports() + [
     "desktop_instance",
     "desktop_platform",
+    "tray",
+    "pystray",
+    "pystray._win32",
     "tkinter",
     "tkinter.ttk",
     "waitress",

@@ -2,9 +2,11 @@
 
 import os
 import sys
+import threading
 import types
 
 from app import main as app_main
+from app.server_lifecycle import ServerLifecycleController
 
 
 class _Config:
@@ -35,30 +37,96 @@ class _Storage:
 
 def test_run_web_defaults_to_public_bind(monkeypatch):
     calls = []
+    server_calls = []
 
-    def fake_serve(app, **kwargs):
+    class FakeServer:
+        def run(self):
+            server_calls.append("run")
+
+        def close(self):
+            server_calls.append("close")
+
+    def fake_create_server(app, **kwargs):
         calls.append(kwargs)
+        return FakeServer()
 
     monkeypatch.delenv("WEB_HOST", raising=False)
-    monkeypatch.setitem(sys.modules, "waitress", types.SimpleNamespace(serve=fake_serve))
+    monkeypatch.setitem(
+        sys.modules,
+        "waitress",
+        types.SimpleNamespace(create_server=fake_create_server),
+    )
+    lifecycle = ServerLifecycleController()
 
-    app_main.run_web(8765)
+    app_main.run_web(8765, lifecycle)
+    lifecycle.close()
 
-    assert calls == [{"host": "0.0.0.0", "port": 8765, "threads": 4, "_quiet": True}]
+    assert calls == [{"host": "0.0.0.0", "port": 8765, "threads": 4}]
+    assert server_calls == ["run", "close"]
 
 
 def test_run_web_honors_web_host_env(monkeypatch):
     calls = []
 
-    def fake_serve(app, **kwargs):
+    class FakeServer:
+        def run(self):
+            calls.append("run")
+
+        def close(self):
+            calls.append("close")
+
+    def fake_create_server(app, **kwargs):
         calls.append(kwargs)
+        return FakeServer()
 
     monkeypatch.setenv("WEB_HOST", "127.0.0.1")
-    monkeypatch.setitem(sys.modules, "waitress", types.SimpleNamespace(serve=fake_serve))
+    monkeypatch.setitem(
+        sys.modules,
+        "waitress",
+        types.SimpleNamespace(create_server=fake_create_server),
+    )
 
     app_main.run_web(8770)
 
-    assert calls == [{"host": "127.0.0.1", "port": 8770, "threads": 4, "_quiet": True}]
+    assert calls == [
+        {"host": "127.0.0.1", "port": 8770, "threads": 4},
+        "run",
+    ]
+
+
+def test_server_lifecycle_close_is_idempotent_and_closes_late_server():
+    calls = []
+    server = types.SimpleNamespace(
+        run=lambda: calls.append("run"),
+        close=lambda: calls.append("close"),
+    )
+    lifecycle = ServerLifecycleController()
+
+    lifecycle.close()
+    lifecycle.close()
+    lifecycle.attach(server)
+    lifecycle.close()
+
+    assert calls == ["close"]
+
+
+def test_server_lifecycle_concurrent_close_reaches_server_once():
+    calls = []
+    lifecycle = ServerLifecycleController()
+    lifecycle.attach(
+        types.SimpleNamespace(
+            run=lambda: None,
+            close=lambda: calls.append("close"),
+        )
+    )
+    threads = [threading.Thread(target=lifecycle.close) for _index in range(8)]
+
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert calls == ["close"]
 
 
 def test_apply_timezone_skips_missing_tzset(monkeypatch):

@@ -11,6 +11,7 @@ from . import analyzer, web
 from .config import ConfigManager
 from .event_detector import EventDetector
 from .module_paths import get_modules_dir
+from .server_lifecycle import ServerLifecycleController
 from .storage import SnapshotStorage
 from .tz import guess_iana_timezone, utc_cutoff
 
@@ -50,11 +51,23 @@ if os.environ.get("DOCSIGHT_AUDIT_JSON", "").strip() == "1":
     _audit.propagate = False
 
 
-def run_web(port):
+def run_web(
+    port: int,
+    server_lifecycle: ServerLifecycleController | None = None,
+) -> None:
     """Run production web server in a separate thread."""
-    from waitress import serve
+    from waitress import create_server
+
     host = get_web_host()
-    serve(web.app, host=host, port=port, threads=4, _quiet=True)
+    server = create_server(
+        web.app,
+        host=host,
+        port=port,
+        threads=4,
+    )
+    lifecycle = server_lifecycle or ServerLifecycleController()
+    lifecycle.attach(server)
+    server.run()
 
 
 def get_web_host():
@@ -62,12 +75,19 @@ def get_web_host():
     return os.environ.get("WEB_HOST", "0.0.0.0")
 
 
-def _wait_for_web_thread(web_thread, stop_polling):
+def _wait_for_web_thread(
+    web_thread,
+    stop_polling,
+    server_lifecycle: ServerLifecycleController | None = None,
+):
     """Keep the process alive until the web server stops, then stop pollers."""
     try:
         while web_thread.is_alive():
             time.sleep(0.25)
-        log.error("Web server stopped unexpectedly")
+        if server_lifecycle is not None and server_lifecycle.close_requested:
+            log.info("Web server stopped after shutdown request")
+        else:
+            log.error("Web server stopped unexpectedly")
     except KeyboardInterrupt:
         log.info("Shutting down")
         return
@@ -393,7 +413,7 @@ def polling_loop(config_mgr, storage, stop_event):
     log.info("Polling loop stopped")
 
 
-def main():
+def main(server_lifecycle: ServerLifecycleController | None = None):
     data_dir = os.environ.get("DATA_DIR", "/data")
     config_mgr = ConfigManager(data_dir)
     _apply_timezone(config_mgr)
@@ -477,7 +497,12 @@ def main():
     # Start Flask
     web_port = config_mgr.get("web_port", 8765)
     web_host = get_web_host()
-    web_thread = threading.Thread(target=run_web, args=(web_port,), daemon=True)
+    lifecycle = server_lifecycle or ServerLifecycleController()
+    web_thread = threading.Thread(
+        target=run_web,
+        args=(web_port, lifecycle),
+        daemon=True,
+    )
     web_thread.start()
     log.info("Web UI started on %s:%d", web_host, web_port)
 
@@ -490,7 +515,7 @@ def main():
     # Keep the main thread alive while the web server owns its listener. If the
     # server thread cannot bind, return so the desktop launcher can perform its
     # bounded fresh-process recovery instead of waiting for readiness forever.
-    _wait_for_web_thread(web_thread, stop_polling)
+    _wait_for_web_thread(web_thread, stop_polling, lifecycle)
 
 
 if __name__ == "__main__":

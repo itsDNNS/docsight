@@ -65,7 +65,19 @@ A small DOCSight startup window appears first. It shows the current local
 address with a **Copy** action from **Start DOCSight** onward and reports
 progress while it prepares local data, starts DOCSight, waits for readiness,
 and attempts to open the browser. After DOCSight is ready and the browser-open
-attempt succeeds, the startup window closes.
+attempt succeeds, the startup window hides and a tray icon remains. Closing the
+browser does not exit DOCSight.
+
+Double-click the tray icon, or select **Open DOCSight**, to reopen the exact
+active local address. The other menu actions are **Open log folder** and
+**Quit**. On a German Windows UI the labels are **DOCSight öffnen**,
+**Log-Ordner öffnen**, and **Beenden**; English is the fallback for other UI
+languages or when Windows language detection is unavailable.
+
+The first successful tray start shows a one-time notification explaining this
+browser-versus-process behavior. Its marker is stored at
+`%LOCALAPPDATA%\DOCSight\tray-notification-v1`, so it is not shown on every
+launch.
 
 Starting `DOCSight.exe` again reuses the already-running instance for the same
 Windows user. The later launcher waits for authenticated local readiness, opens
@@ -76,8 +88,16 @@ Different Windows users keep separate instances and data.
 If startup cannot finish or the browser cannot be opened, the window stays
 available instead of exiting silently. You can copy the displayed local
 address, choose **Retry** to start a fresh attempt, open the log folder, or
-close DOCSight. A browser-open failure does not mean the local app is
-unavailable: copy the address into a browser to continue.
+close DOCSight. If native tray startup fails, this sanitized recovery surface
+stays visible rather than hiding the only controls. A browser-open failure does
+not mean the local app is unavailable: copy the address into a browser to
+continue.
+
+Tray **Quit** uses one centralized shutdown path. It closes the local server,
+waits at most 12 seconds for application/startup and polling cleanup, stops the
+tray, and removes the runtime ownership record. If that bounded shutdown cannot
+finish, DOCSight logs only stable failure codes and exception class names and
+uses process exit code 1 as a last resort. Quit never launches a replacement.
 
 ## What works in the Desktop Preview
 
@@ -152,11 +172,17 @@ launch handoff. It also requires `runtime.log` without packaged route/import
 degradation and deletes the first launcher's log before requiring fresh
 **Prepare local data** evidence from the injected recovery process. That
 recovery process must replace stale runtime state and expose a nonzero
-main-window handle with the title exactly `DOCSight`.
+main-window handle with the title exactly `DOCSight`. Through a local sentinel
+enabled only with `DOCSIGHT_SKIP_BROWSER=1`, it also feeds the same quit command
+used by the tray. Two packaged open/setup/quit cycles must exit, close their
+selected ports, remove runtime state, leave no child or duplicate packaged
+process, reopen persisted setup, perform another write, and release the created
+data files. This automation does not prove tray visibility or mouse/menu
+behavior; those remain explicit interactive Windows QA steps.
 
 ## Remove the Desktop Preview
 
-1. Close DOCSight.
+1. Quit DOCSight from its tray icon.
 2. Delete the extracted Desktop Preview folder.
 3. If you also want to remove local data, delete:
 

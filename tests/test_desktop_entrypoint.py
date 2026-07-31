@@ -1116,10 +1116,21 @@ def test_run_desktop_normal_mainloop_exit_cleans_owner_runtime(
         "create_desktop_instance",
         lambda *_args: instance,
     )
-    monkeypatch.setattr(desktop, "TkLauncher", lambda *_args: SimpleNamespace(
-        start=lambda: None,
-        poll=lambda: None,
-    ))
+    def make_view(*_args, server_lifecycle, **_kwargs):
+        return SimpleNamespace(
+            start=lambda: None,
+            poll=lambda: None,
+            shutdown=desktop.DesktopShutdown(
+                server_lifecycle=server_lifecycle,
+                worker_supplier=lambda: None,
+                tray_supplier=lambda: None,
+                cleanup=instance.cleanup,
+                destroy_window=lambda: None,
+                process_exit=lambda _code: None,
+            ),
+        )
+
+    monkeypatch.setattr(desktop, "TkLauncher", make_view)
 
     assert desktop.run_desktop() == 0
     assert calls == ["update", "after", "after", "mainloop"]
@@ -1162,11 +1173,21 @@ def test_run_desktop_mainloop_cleanup_failure_is_not_startup_surface_failure(
         "create_desktop_instance",
         lambda *_args: instance,
     )
-    monkeypatch.setattr(
-        desktop,
-        "TkLauncher",
-        lambda *_args: SimpleNamespace(start=lambda: None, poll=lambda: None),
-    )
+    def make_view(*_args, server_lifecycle, **_kwargs):
+        return SimpleNamespace(
+            start=lambda: None,
+            poll=lambda: None,
+            shutdown=desktop.DesktopShutdown(
+                server_lifecycle=server_lifecycle,
+                worker_supplier=lambda: None,
+                tray_supplier=lambda: None,
+                cleanup=instance.cleanup,
+                destroy_window=lambda: None,
+                process_exit=lambda _code: None,
+            ),
+        )
+
+    monkeypatch.setattr(desktop, "TkLauncher", make_view)
     monkeypatch.setattr(
         desktop,
         "show_fatal_startup_message",
@@ -1182,8 +1203,7 @@ def test_run_desktop_mainloop_cleanup_failure_is_not_startup_surface_failure(
     assert calls == ["mainloop"]
     assert instance.cleanup_calls == 1
     assert logged == [
-        "Runtime cleanup failed after launcher mainloop exit "
-        "(failure type: RuntimeError)"
+        "Desktop shutdown: runtime_cleanup_failed (failure type: RuntimeError)"
     ]
 
 
@@ -1664,6 +1684,10 @@ def test_follower_window_is_destroyed_once_by_poll_path():
         destroy=lambda: calls.append("destroy"),
         after=lambda *_args: calls.append("after"),
     )
+    view.smoke_quit_trigger = None
+    view.command_dispatcher = desktop.TrayCommandDispatcher()
+    view.shutdown = SimpleNamespace(requested=False)
+    view._tray_started = True
 
     view._render_full()
     view.poll()
@@ -1672,7 +1696,7 @@ def test_follower_window_is_destroyed_once_by_poll_path():
 
 
 def test_tk_launcher_installs_callback_exception_boundary(monkeypatch, tmp_path):
-    root = SimpleNamespace()
+    root = SimpleNamespace(destroy=lambda: None)
     monkeypatch.setattr(desktop.TkLauncher, "_build", lambda self: None)
 
     view = desktop.TkLauncher(
@@ -1732,13 +1756,202 @@ def test_pre_ui_failure_returns_error_and_uses_fallback(monkeypatch):
 
 
 def test_close_destroys_window_and_terminates_process(monkeypatch):
-    calls = []
+    requested = []
     view = desktop.TkLauncher.__new__(desktop.TkLauncher)
-    view.root = SimpleNamespace(destroy=lambda: calls.append("destroy"))
-    view.controller = SimpleNamespace(exit_code=1)
-    view.desktop_instance = FakeDesktopInstance()
-    monkeypatch.setattr(desktop.os, "_exit", lambda code: calls.append(("exit", code)))
+    view.command_dispatcher = SimpleNamespace(
+        request=lambda command: requested.append(command)
+    )
 
     view._close()
 
-    assert calls == ["destroy", ("exit", 1)]
+    assert requested == [desktop.TrayCommand.QUIT]
+
+
+def test_tray_open_command_uses_exact_active_runtime_url(monkeypatch):
+    opened = []
+    view = desktop.TkLauncher.__new__(desktop.TkLauncher)
+    view.controller = SimpleNamespace(
+        state=SimpleNamespace(url="http://127.0.0.1:8773/")
+    )
+    view.paths = SimpleNamespace(logs_dir=Path("logs"))
+    view.shutdown = SimpleNamespace(request=lambda: None)
+    monkeypatch.setattr(desktop, "open_url", lambda url: opened.append(url) or True)
+
+    view._handle_tray_command(desktop.TrayCommand.OPEN_APP)
+
+    assert opened == ["http://127.0.0.1:8773/"]
+
+
+def test_tray_log_command_uses_owner_log_folder(monkeypatch, tmp_path):
+    opened = []
+    view = desktop.TkLauncher.__new__(desktop.TkLauncher)
+    view.controller = SimpleNamespace(state=SimpleNamespace(url=""))
+    view.paths = SimpleNamespace(logs_dir=tmp_path / "logs")
+    view.shutdown = SimpleNamespace(request=lambda: None)
+    monkeypatch.setattr(
+        desktop,
+        "open_log_folder",
+        lambda path: opened.append(path) or True,
+    )
+
+    view._handle_tray_command(desktop.TrayCommand.OPEN_LOGS)
+
+    assert opened == [tmp_path / "logs"]
+
+
+def test_interactive_tray_start_failure_restores_sanitized_recovery(
+    monkeypatch,
+    tmp_path,
+):
+    logged = []
+    rendered = []
+    controller = make_controller()
+    controller.state = desktop.replace(
+        controller.state,
+        ready=True,
+        owns_server=True,
+    )
+    view = desktop.TkLauncher.__new__(desktop.TkLauncher)
+    view.controller = controller
+    view.runner = SimpleNamespace(env={})
+    view.command_dispatcher = desktop.TrayCommandDispatcher()
+    view.paths = make_paths(tmp_path)
+    view._tray = None
+    view._tray_started = False
+    view.render = lambda: rendered.append("render")
+
+    class FailingTray:
+        def __init__(self, *_args):
+            pass
+
+        def start(self):
+            raise RuntimeError("private path")
+
+    monkeypatch.setattr(desktop, "WindowsTray", FailingTray)
+    monkeypatch.setattr(
+        desktop.LOG,
+        "error",
+        lambda message, *args: logged.append(message % args),
+    )
+
+    view._ensure_tray_started()
+
+    assert rendered == ["render"]
+    assert controller.state.recovery is desktop.RecoveryCode.STARTUP_FAILED
+    assert "tray controls could not start" in controller.state.status
+    assert logged == [
+        "Recovery available: tray_startup_failure (failure type: RuntimeError)"
+    ]
+    assert "private path" not in logged[0]
+
+
+def test_shutdown_is_idempotent_and_orders_server_worker_tray_cleanup():
+    calls = []
+    worker = SimpleNamespace(
+        join=lambda timeout: calls.append(("join", timeout)),
+        is_alive=lambda: False,
+    )
+    shutdown = desktop.DesktopShutdown(
+        server_lifecycle=SimpleNamespace(close=lambda: calls.append("server.close")),
+        worker_supplier=lambda: worker,
+        tray_supplier=lambda: SimpleNamespace(
+            stop=lambda: calls.append("tray.stop")
+        ),
+        cleanup=lambda: calls.append("instance.cleanup"),
+        destroy_window=lambda: calls.append("window.destroy"),
+        process_exit=lambda code: calls.append(("process.exit", code)),
+        timeout_seconds=3,
+    )
+
+    assert shutdown.request()
+    assert not shutdown.request()
+    assert calls == [
+        "server.close",
+        ("join", 3),
+        "tray.stop",
+        "instance.cleanup",
+        "window.destroy",
+    ]
+
+
+def test_shutdown_timeout_uses_last_resort_after_tray_and_cleanup():
+    calls = []
+    worker = SimpleNamespace(
+        join=lambda timeout: calls.append(("join", timeout)),
+        is_alive=lambda: True,
+    )
+    shutdown = desktop.DesktopShutdown(
+        server_lifecycle=SimpleNamespace(close=lambda: calls.append("server.close")),
+        worker_supplier=lambda: worker,
+        tray_supplier=lambda: SimpleNamespace(
+            stop=lambda: calls.append("tray.stop")
+        ),
+        cleanup=lambda: calls.append("instance.cleanup"),
+        destroy_window=lambda: calls.append("window.destroy"),
+        process_exit=lambda code: calls.append(("process.exit", code)),
+        timeout_seconds=2,
+    )
+
+    assert not shutdown.request()
+    assert calls == [
+        "server.close",
+        ("join", 2),
+        "tray.stop",
+        "instance.cleanup",
+        "window.destroy",
+        ("process.exit", 1),
+    ]
+
+
+def test_shutdown_cleanup_failure_uses_last_resort_after_all_cleanup_steps():
+    calls = []
+
+    def fail_cleanup():
+        calls.append("instance.cleanup")
+        raise RuntimeError("private path")
+
+    shutdown = desktop.DesktopShutdown(
+        server_lifecycle=SimpleNamespace(close=lambda: calls.append("server.close")),
+        worker_supplier=lambda: None,
+        tray_supplier=lambda: SimpleNamespace(
+            stop=lambda: calls.append("tray.stop")
+        ),
+        cleanup=fail_cleanup,
+        destroy_window=lambda: calls.append("window.destroy"),
+        process_exit=lambda code: calls.append(("process.exit", code)),
+    )
+
+    assert not shutdown.request()
+    assert calls == [
+        "server.close",
+        "tray.stop",
+        "instance.cleanup",
+        "window.destroy",
+        ("process.exit", 1),
+    ]
+
+
+def test_shutdown_failure_logs_only_stable_code_and_exception_class(monkeypatch):
+    logged = []
+    shutdown = desktop.DesktopShutdown(
+        server_lifecycle=SimpleNamespace(
+            close=lambda: (_ for _ in ()).throw(RuntimeError("secret path"))
+        ),
+        worker_supplier=lambda: None,
+        tray_supplier=lambda: None,
+        cleanup=lambda: None,
+        destroy_window=lambda: None,
+        process_exit=lambda _code: None,
+    )
+    monkeypatch.setattr(
+        desktop.LOG,
+        "error",
+        lambda message, *args: logged.append(message % args),
+    )
+
+    shutdown.request()
+
+    assert logged == [
+        "Desktop shutdown: server_close_failed (failure type: RuntimeError)"
+    ]
+    assert "secret" not in logged[0]

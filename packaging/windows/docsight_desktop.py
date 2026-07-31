@@ -34,12 +34,19 @@ from app.desktop_runtime_contract import (  # noqa: E402
     DESKTOP_MODE_ENV,
     WEB_PORT_ENV,
 )
+from app.server_lifecycle import ServerLifecycleController  # noqa: E402
 from desktop_instance import (  # noqa: E402
     DesktopInstance,
     DesktopInstanceError,
     InstanceRole,
     InstanceUnavailableError,
     create_desktop_instance,
+)
+from tray import (  # noqa: E402
+    TrayCommand,
+    TrayCommandDispatcher,
+    WindowsTray,
+    create_smoke_quit_trigger,
 )
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
@@ -48,6 +55,8 @@ HEALTH_TIMEOUT_SECONDS = 30
 EVENT_POLL_MILLISECONDS = 75
 RELAUNCH_HANDLE_OPTION = "--docsight-relaunch-handle="
 BIND_RETRY_ENV = "DOCSIGHT_DESKTOP_BIND_RETRY"
+GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS = 12
+TRAY_NOTIFICATION_MARKER = "tray-notification-v1"
 
 LOG = logging.getLogger("docsight.desktop")
 
@@ -461,7 +470,96 @@ def _safe_exception_type(exc: BaseException) -> str:
     return cleaned or "Exception"
 
 
-def _start_app_thread(*, inject_smoke_failure: bool = False) -> AppThreadHandle:
+class DesktopShutdown:
+    """Own the one bounded, idempotent desktop shutdown sequence.
+
+    The twelve-second production bound allows the polling loop's existing
+    ten-second cleanup join to finish before the owner uses its last-resort
+    process exit.
+    """
+
+    def __init__(
+        self,
+        *,
+        server_lifecycle: ServerLifecycleController,
+        worker_supplier: Callable[[], threading.Thread | None],
+        tray_supplier: Callable[[], WindowsTray | None],
+        cleanup: Callable[[], object],
+        destroy_window: Callable[[], object],
+        process_exit: Callable[[int], object] = os._exit,
+        timeout_seconds: float = GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS,
+    ) -> None:
+        self.server_lifecycle = server_lifecycle
+        self.worker_supplier = worker_supplier
+        self.tray_supplier = tray_supplier
+        self.cleanup = cleanup
+        self.destroy_window = destroy_window
+        self.process_exit = process_exit
+        self.timeout_seconds = timeout_seconds
+        self._lock = threading.Lock()
+        self._requested = False
+
+    @property
+    def requested(self) -> bool:
+        with self._lock:
+            return self._requested
+
+    def _safe_call(self, code: str, operation: Callable[[], object]) -> bool:
+        try:
+            operation()
+        except BaseException as exc:
+            LOG.error(
+                "Desktop shutdown: %s (failure type: %s)",
+                code,
+                _safe_exception_type(exc),
+            )
+            return False
+        return True
+
+    def request(self) -> bool:
+        """Close, join, stop native UI, clean ownership, then exit if needed."""
+        with self._lock:
+            if self._requested:
+                return False
+            self._requested = True
+
+        graceful = self._safe_call(
+            "server_close_failed",
+            self.server_lifecycle.close,
+        )
+        worker = self.worker_supplier()
+        if worker is not None and worker is not threading.current_thread():
+            worker.join(self.timeout_seconds)
+            if worker.is_alive():
+                graceful = False
+                LOG.error("Desktop shutdown: graceful_timeout")
+
+        tray = self.tray_supplier()
+        if tray is not None:
+            tray_stopped = self._safe_call("tray_stop_failed", tray.stop)
+        else:
+            tray_stopped = True
+        cleanup_finished = self._safe_call(
+            "runtime_cleanup_failed",
+            self.cleanup,
+        )
+        window_destroyed = self._safe_call(
+            "window_destroy_failed",
+            self.destroy_window,
+        )
+
+        completed = graceful and tray_stopped and cleanup_finished and window_destroyed
+        if not completed:
+            self.process_exit(1)
+            return False
+        return True
+
+
+def _start_app_thread(
+    server_lifecycle: ServerLifecycleController | None = None,
+    *,
+    inject_smoke_failure: bool = False,
+) -> AppThreadHandle:
     """Start the application behind a BaseException-safe completion handle."""
     stopped = threading.Event()
     handle = AppThreadHandle(thread=None, stopped=stopped)
@@ -473,7 +571,10 @@ def _start_app_thread(*, inject_smoke_failure: bool = False) -> AppThreadHandle:
             _ensure_repo_on_path()
             from app.main import main as app_main
 
-            app_main()
+            if server_lifecycle is None:
+                app_main()
+            else:
+                app_main(server_lifecycle=server_lifecycle)
         except BaseException as exc:
             handle.failure_type = _safe_exception_type(exc)
         finally:
@@ -517,9 +618,25 @@ def open_browser(
     if runtime_env.get("DOCSIGHT_SKIP_BROWSER") == "1":
         LOG.info("Skipping browser launch because DOCSIGHT_SKIP_BROWSER=1")
         return True
+    return open_url(
+        local_url(port),
+        browser_open=browser_open,
+        platform=platform,
+        com_api=com_api,
+    )
+
+
+def open_url(
+    url: str,
+    browser_open: Callable[[str], object] | None = None,
+    *,
+    platform: str | None = None,
+    com_api: object | None = None,
+) -> bool:
+    """Open an exact owner runtime URL, balancing Windows COM setup."""
     if browser_open is not None or (platform or sys.platform) != "win32":
         opener = browser_open or webbrowser.open
-        return bool(opener(local_url(port)))
+        return bool(opener(url))
 
     api: Any = com_api
     if api is None:
@@ -537,7 +654,7 @@ def open_browser(
     if not initialized and not changed_mode:
         raise OSError("COM apartment initialization failed")
     try:
-        return bool(webbrowser.open(local_url(port)))
+        return bool(webbrowser.open(url))
     finally:
         if initialized:
             api.CoUninitialize()
@@ -771,6 +888,7 @@ class StartupRunner:
         desktop_instance: DesktopInstance,
         is_relaunch: bool = False,
         handoff_outcome: HandoffOutcome = HandoffOutcome.COMPLETE,
+        server_lifecycle: ServerLifecycleController | None = None,
     ) -> None:
         self.controller = controller
         self.paths = paths
@@ -778,6 +896,7 @@ class StartupRunner:
         self.env = env if env is not None else os.environ
         self.is_relaunch = is_relaunch
         self.handoff_outcome = handoff_outcome
+        self.server_lifecycle = server_lifecycle
 
     def _emit_error(
         self,
@@ -900,11 +1019,18 @@ class StartupRunner:
                     smoke_enabled
                     and self.env.get("DOCSIGHT_SMOKE_INJECT_STARTUP_FAILURE") == "1"
                 )
-                app_handle = (
-                    _start_app_thread(inject_smoke_failure=True)
-                    if inject_smoke_failure
-                    else _start_app_thread()
-                )
+                if inject_smoke_failure:
+                    if self.server_lifecycle is None:
+                        app_handle = _start_app_thread(inject_smoke_failure=True)
+                    else:
+                        app_handle = _start_app_thread(
+                            self.server_lifecycle,
+                            inject_smoke_failure=True,
+                        )
+                elif self.server_lifecycle is None:
+                    app_handle = _start_app_thread()
+                else:
+                    app_handle = _start_app_thread(self.server_lifecycle)
 
             self.controller.emit(_phase_event(attempt, StartupPhase.WAIT, url))
             LOG.info("Phase: %s", StartupPhase.WAIT.value)
@@ -1053,6 +1179,10 @@ class TkLauncher:
         runner: StartupRunner,
         paths: DesktopPaths,
         desktop_instance: DesktopInstance,
+        *,
+        server_lifecycle: ServerLifecycleController | None = None,
+        command_dispatcher: TrayCommandDispatcher | None = None,
+        process_exit: Callable[[int], object] = os._exit,
     ) -> None:
         self.root = root
         self.tk = tk_module
@@ -1062,6 +1192,22 @@ class TkLauncher:
         self.paths = paths
         self.desktop_instance = desktop_instance
         self._worker: threading.Thread | None = None
+        self.command_dispatcher = command_dispatcher or TrayCommandDispatcher()
+        self.smoke_quit_trigger = create_smoke_quit_trigger(
+            getattr(runner, "env", os.environ),
+            paths.base_dir,
+            self.command_dispatcher,
+        )
+        self._tray: WindowsTray | None = None
+        self._tray_started = False
+        self.shutdown = DesktopShutdown(
+            server_lifecycle=server_lifecycle or ServerLifecycleController(),
+            worker_supplier=lambda: self._worker,
+            tray_supplier=lambda: self._tray,
+            cleanup=self.desktop_instance.cleanup,
+            destroy_window=self.root.destroy,
+            process_exit=process_exit,
+        )
         self.root.report_callback_exception = self._report_callback_exception
         self._build()
 
@@ -1164,12 +1310,18 @@ class TkLauncher:
 
     def poll(self) -> None:
         try:
+            if self.smoke_quit_trigger is not None:
+                self.smoke_quit_trigger.poll()
+            self.command_dispatcher.drain(self._handle_tray_command)
+            if self.shutdown.requested:
+                return
             if self.controller.drain_events():
                 self.render()
             state = self.controller.state
             if state.closed:
                 self.root.destroy()
                 return
+            self._ensure_tray_started()
         except BaseException as exc:
             self._recover_ui_exception(exc)
         try:
@@ -1281,6 +1433,76 @@ class TkLauncher:
                 "You can find it under your local DOCSight data folder."
             )
 
+    def _handle_tray_command(self, command: TrayCommand) -> None:
+        """Execute queued commands on the Tk thread."""
+        if command is TrayCommand.QUIT:
+            self.shutdown.request()
+            return
+        if command is TrayCommand.STARTUP_FAILED:
+            self._show_tray_failure("TraySetupFailed")
+            return
+        if command is TrayCommand.OPEN_APP:
+            try:
+                if self.controller.state.url:
+                    open_url(self.controller.state.url)
+            except BaseException as exc:
+                LOG.error(
+                    "Tray command failed: open_app_failed (failure type: %s)",
+                    _safe_exception_type(exc),
+                )
+            return
+        if command is TrayCommand.OPEN_LOGS:
+            try:
+                open_log_folder(self.paths.logs_dir)
+            except BaseException as exc:
+                LOG.error(
+                    "Tray command failed: open_logs_failed (failure type: %s)",
+                    _safe_exception_type(exc),
+                )
+
+    def _ensure_tray_started(self) -> None:
+        state = self.controller.state
+        if (
+            self._tray_started
+            or not state.ready
+            or state.recovery is not None
+            or not state.owns_server
+        ):
+            return
+        self._tray_started = True
+        if self.runner.env.get("DOCSIGHT_SKIP_BROWSER") == "1":
+            return
+        try:
+            self._tray = WindowsTray(
+                self.command_dispatcher,
+                self.paths.base_dir / TRAY_NOTIFICATION_MARKER,
+            )
+            self._tray.start()
+        except BaseException as exc:
+            self._tray = None
+            self._show_tray_failure(_safe_exception_type(exc))
+
+    def _show_tray_failure(self, failure_type: str) -> None:
+        """Keep a visible sanitized owner control path after tray failure."""
+        if self.controller.state.recovery is not None:
+            return
+        state = self.controller.state
+        LOG.error(
+            "Recovery available: tray_startup_failure (failure type: %s)",
+            failure_type,
+        )
+        self.controller.exit_code = 1
+        self.controller.state = replace(
+            state,
+            status=(
+                "DOCSight is running, but its tray controls could not start. "
+                "Use this window to open logs or close DOCSight."
+            ),
+            ready=False,
+            recovery=RecoveryCode.STARTUP_FAILED,
+        )
+        self.render()
+
     def _retry(self) -> None:
         attempt = self.controller.begin_attempt()
         self.controller.state = replace(
@@ -1309,12 +1531,7 @@ class TkLauncher:
             )
 
     def _close(self) -> None:
-        self.root.destroy()
-        try:
-            self.desktop_instance.cleanup()
-        except BaseException:
-            pass
-        os._exit(self.controller.exit_code)
+        self.command_dispatcher.request(TrayCommand.QUIT)
 
 
 def show_fatal_startup_message(
@@ -1359,6 +1576,8 @@ def run_desktop() -> int:
         )
         configure_logging(paths.log_file, paths.runtime_log_file)
         desktop_instance = create_desktop_instance(paths.runtime_file, runtime_env)
+        server_lifecycle = ServerLifecycleController()
+        command_dispatcher = TrayCommandDispatcher()
 
         import tkinter as tk
         from tkinter import ttk
@@ -1372,6 +1591,7 @@ def run_desktop() -> int:
             desktop_instance=desktop_instance,
             is_relaunch=parent_handle is not None,
             handoff_outcome=handoff_outcome,
+            server_lifecycle=server_lifecycle,
         )
         view = TkLauncher(
             root,
@@ -1381,20 +1601,15 @@ def run_desktop() -> int:
             runner,
             paths,
             desktop_instance,
+            server_lifecycle=server_lifecycle,
+            command_dispatcher=command_dispatcher,
         )
 
         root.update()
         root.after(50, view.start)
         root.after(EVENT_POLL_MILLISECONDS, view.poll)
         root.mainloop()
-        try:
-            desktop_instance.cleanup()
-        except BaseException as exc:
-            LOG.error(
-                "Runtime cleanup failed after launcher mainloop exit "
-                "(failure type: %s)",
-                _safe_exception_type(exc),
-            )
+        if not view.shutdown.requested and not view.shutdown.request():
             return 1
         return controller.exit_code
     except BaseException as exc:

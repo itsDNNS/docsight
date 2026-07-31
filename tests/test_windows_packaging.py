@@ -25,6 +25,7 @@ def safe_version_rule(text: str, assignment: str) -> tuple[str, str]:
 def test_windows_packaging_files_exist():
     for relative in (
         "docsight_desktop.py",
+        "tray.py",
         "docsight.spec",
         "build.ps1",
         "requirements-build.in",
@@ -139,6 +140,25 @@ def test_runtime_windows_lock_contains_windows_marked_dependencies():
     assert "click==8.4.2" in lock_text
     assert "colorama==0.4.6" in lock_text
     assert "tzdata==2026.2" in lock_text
+    assert "pystray==0.19.5" in lock_text
+
+
+def test_both_windows_locks_pin_tray_and_transitive_dependency_hashes():
+    for lock_name in (
+        "requirements-runtime-windows.txt",
+        "requirements-test-windows.txt",
+    ):
+        lock_text = (WINDOWS_PACKAGING / lock_name).read_text(encoding="utf-8")
+        assert "pystray==0.19.5 \\\n    --hash=sha256:" in lock_text
+        assert "six==1.17.0 \\\n    --hash=sha256:" in lock_text
+
+
+def test_pyinstaller_spec_bundles_native_tray_adapter():
+    spec_text = (WINDOWS_PACKAGING / "docsight.spec").read_text(encoding="utf-8")
+
+    assert '"tray"' in spec_text
+    assert '"pystray"' in spec_text
+    assert '"pystray._win32"' in spec_text
 
 
 def test_docker_context_excludes_windows_packaging():

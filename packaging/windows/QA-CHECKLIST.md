@@ -34,6 +34,24 @@ Record these values before starting:
 - [ ] The local loopback URL is visible from **Start DOCSight** onward; select **Copy** and paste it into Notepad to verify the exact address.
 - [ ] The default browser opens `http://127.0.0.1:<port>/` without requiring PowerShell, Docker, WSL, or admin setup.
 - [ ] The UI shows the Desktop Preview badge and first-run notice.
+- [ ] A one-time Windows notification explains that closing the browser does not exit DOCSight and that it remains available through the tray.
+- [ ] Confirm `%LOCALAPPDATA%\DOCSight\tray-notification-v1` exists after the notification, then launch again and verify the notification is not repeated.
+
+## Tray lifecycle and native language
+
+These checks require an interactive Windows notification area. They are not
+proved by the packaged smoke on a GitHub-hosted runner.
+
+- [ ] After readiness, confirm the startup window hides and exactly one DOCSight tray icon remains visible while the owner process runs.
+- [ ] Close every DOCSight browser tab/window. Confirm the owner process and selected loopback listener remain running intentionally.
+- [ ] Double-click the tray icon and verify the exact active `http://127.0.0.1:<port>/` URL reopens.
+- [ ] Open the tray menu and select **Open DOCSight**; verify it opens the same active URL, including when the owner selected a fallback port.
+- [ ] Select **Open log folder** and verify Explorer opens `%LOCALAPPDATA%\DOCSight\logs`.
+- [ ] On a German Windows UI, verify the labels are **DOCSight öffnen**, **Log-Ordner öffnen**, and **Beenden**.
+- [ ] On a non-German Windows UI, verify the fallback labels are **Open DOCSight**, **Open log folder**, and **Quit**.
+- [ ] Select **Quit** / **Beenden** and verify the process exits, the selected port closes, and `%LOCALAPPDATA%\DOCSight\runtime.json` is removed.
+- [ ] Start and quit a second time, then confirm no duplicate process, child process, listener, runtime record, database lock, or other file-handle leak remains.
+- [ ] If tray startup is deliberately made unavailable in a development build, verify the sanitized startup/recovery window is visible and remains the control path.
 
 ## Startup recovery
 
@@ -76,7 +94,11 @@ that second and third launches exit after handoff. It also requires
 `runtime.log` without route/import degradation, deletes the successful
 launcher's `launcher.log` before checking fresh **Prepare local data** evidence,
 proves stale runtime replacement, and requires the recovery process to expose a
-nonzero main-window handle with the title exactly `DOCSight`.
+nonzero main-window handle with the title exactly `DOCSight`. It also performs
+two non-interactive open/setup/graceful-quit cycles through a local sentinel
+that shares the tray command path. Each cycle requires process exit, port
+closure, runtime-state removal, no child or duplicate packaged process, and
+successful exclusive reopen of created `DATA_DIR` files.
 
 - [ ] Capture one screenshot of the normal immediate startup status.
 - [ ] Run the application-thread failure check and capture a screenshot showing readable, plain-language recovery without exception details.
@@ -85,7 +107,9 @@ nonzero main-window handle with the title exactly `DOCSight`.
 - [ ] Treat sanitized `launcher.log` as shareable launcher evidence. Review the separate `runtime.log` diagnostics before sharing them because they may contain instance-specific details.
 - [ ] Select **Retry** and confirm a fresh launcher starts from **Prepare local data** without leaving the prior `DOCSight.exe` process running.
 - [ ] Run the browser-open failure check and verify the recovery window remains visible; copy the URL into a browser and confirm the ready local app is usable.
-- [ ] Select **Close** on an error surface and confirm the launcher process exits.
+- [ ] Select **Close** on an error surface and confirm it uses the same shutdown path and the launcher process exits.
+- [ ] Review `launcher.log` after normal quit. The server close is followed by at most a 12-second wait for application/startup and polling cleanup, then tray stop and runtime cleanup.
+- [ ] In a development-only forced timeout check, confirm logs expose only stable codes/exception class names and the process exits with code 1 without starting a replacement.
 
 ## Product click-through
 
@@ -113,7 +137,7 @@ nonzero main-window handle with the title exactly `DOCSight`.
 - [ ] Replace `runtime.json` with malformed JSON while DOCSight is stopped, then start again and confirm the malformed record is recovered.
 - [ ] If multiple interactive sessions are available for one Windows account, start from the second session and confirm it reuses the same owner. Confirm a different Windows account does not reuse that server.
 - [ ] Verify logs and data are created under `%LOCALAPPDATA%\DOCSight`.
-- [ ] Close DOCSight and confirm the process exits cleanly.
+- [ ] Quit DOCSight from the tray and confirm the process exits cleanly.
 - [ ] Delete the extracted Desktop Preview folder.
 - [ ] Delete `%LOCALAPPDATA%\DOCSight` when a full uninstall/reset is intended.
 - [ ] Re-extract and start again to confirm a clean first-run state.
@@ -130,6 +154,10 @@ nonzero main-window handle with the title exactly `DOCSight`.
 | Retry and prior-process cleanup | | |
 | Open log folder / `launcher.log` | | |
 | Browser-open failure fallback | | |
+| Tray visibility / default action / menu | | |
+| German labels / English fallback | | |
+| One-time tray notification | | |
+| Graceful quit / second-cycle leak check | | |
 | SmartScreen flow | | |
 | Wizard / Demo Mode | | |
 | Dashboard / glossary / evidence | | |
