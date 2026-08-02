@@ -361,6 +361,8 @@ class SnapshotMethods:
 
     def get_current_channels(self):
         """Return DS and US channels from the latest snapshot."""
+        from app.channel_selector import attach_channel_selectors
+
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT ds_channels_json, us_channels_json FROM snapshots ORDER BY timestamp DESC LIMIT 1"
@@ -368,6 +370,6 @@ class SnapshotMethods:
         if not row:
             return {"ds_channels": [], "us_channels": []}
         return {
-            "ds_channels": json.loads(row[0]),
-            "us_channels": json.loads(row[1]),
+            "ds_channels": attach_channel_selectors(json.loads(row[0])),
+            "us_channels": attach_channel_selectors(json.loads(row[1])),
         }

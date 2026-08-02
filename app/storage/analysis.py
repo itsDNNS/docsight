@@ -3,11 +3,29 @@
 import json
 import sqlite3
 
+from app.channel_selector import match_channel, match_channels
+
 from ..tz import utc_cutoff
 from .error_counters import unwrap_uint32_counter_series
 
 
 _CHANNEL_ERROR_KEYS = ("correctable_errors", "uncorrectable_errors")
+
+
+def _history_row(timestamp, channel, *, include_frequency=False):
+    row = {
+        "timestamp": timestamp,
+        "power": channel.get("power"),
+        "snr": channel.get("snr"),
+        "correctable_errors": channel.get("correctable_errors"),
+        "uncorrectable_errors": channel.get("uncorrectable_errors"),
+        "modulation": channel.get("modulation", ""),
+    }
+    if include_frequency:
+        row["frequency"] = channel.get("frequency", "")
+    else:
+        row["health"] = channel.get("health", "")
+    return row
 
 
 class AnalysisMethods:
@@ -168,11 +186,13 @@ class AnalysisMethods:
         timeline.sort(key=lambda x: x["timestamp"])
         return timeline
 
-    def get_channel_history(self, channel_id, direction, days=7, hours=None):
+    def get_channel_history(
+        self, channel_id, direction, days=7, hours=None, selector=None
+    ):
         """Return time series for a single channel over the selected window.
+        An exact selector takes precedence over the legacy unique channel_id.
         direction: 'ds' or 'us'. Returns list of dicts with timestamp + channel fields."""
         _COL_MAP = {"ds": "ds_channels_json", "us": "us_channels_json"}
-        channel_id = int(channel_id)
         _COL_MAP[direction]  # validated in web.py to be 'ds' or 'us'
         cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
         with self._connect() as conn:
@@ -189,30 +209,27 @@ class AnalysisMethods:
         results = []
         for ts, channels_json in rows:
             channels = json.loads(channels_json)
-            for ch in channels:
-                try:
-                    stored_id = int(float(ch.get("channel_id", 0)))
-                except (ValueError, TypeError):
-                    stored_id = ch.get("channel_id")
-                if stored_id == channel_id:
-                    results.append({
-                        "timestamp": ts,
-                        "power": ch.get("power"),
-                        "snr": ch.get("snr"),
-                        "correctable_errors": ch.get("correctable_errors"),
-                        "uncorrectable_errors": ch.get("uncorrectable_errors"),
-                        "modulation": ch.get("modulation", ""),
-                        "health": ch.get("health", ""),
-                    })
-                    break
+            channel = match_channel(
+                channels, selector=selector, channel_id=channel_id
+            )
+            if channel is not None:
+                results.append(_history_row(ts, channel))
         unwrap_uint32_counter_series(results, _CHANNEL_ERROR_KEYS)
         return results
 
-    def get_multi_channel_history(self, channel_ids, direction, days=7, hours=None):
+    def get_multi_channel_history(
+        self, channel_ids, direction, days=7, hours=None, selectors=None
+    ):
         """Return time series for multiple channels over the selected window.
-        direction: 'ds' or 'us'. Returns dict {channel_id: [{timestamp, power, snr, ...}, ...]}"""
+        Exact selectors take precedence over legacy unique channel IDs.
+        direction: 'ds' or 'us'. Returns keyed lists of channel history rows."""
+        selectors = list(selectors or [])
         channel_ids = [int(c) for c in channel_ids]
-        channel_set = set(channel_ids)
+        targets = (
+            [(selector, {"selector": selector}) for selector in selectors]
+            if selectors
+            else [(channel_id, {"channel_id": channel_id}) for channel_id in channel_ids]
+        )
         cutoff = utc_cutoff(hours=hours) if hours is not None else utc_cutoff(days=days)
         col = "ds_channels_json" if direction == "ds" else "us_channels_json"
         with self._connect() as conn:
@@ -220,24 +237,20 @@ class AnalysisMethods:
                 f"SELECT timestamp, {col} FROM snapshots WHERE timestamp >= ? ORDER BY timestamp",
                 (cutoff,),
             ).fetchall()
-        results = {cid: [] for cid in channel_ids}
+        results = {key: [] for key, _match_args in targets}
         for ts, channels_json in rows:
             channels = json.loads(channels_json)
-            for ch in channels:
-                try:
-                    cid = int(float(ch.get("channel_id", 0)))
-                except (ValueError, TypeError):
-                    cid = ch.get("channel_id")
-                if cid in channel_set:
-                    results[cid].append({
-                        "timestamp": ts,
-                        "power": ch.get("power"),
-                        "snr": ch.get("snr"),
-                        "correctable_errors": ch.get("correctable_errors"),
-                        "uncorrectable_errors": ch.get("uncorrectable_errors"),
-                        "modulation": ch.get("modulation", ""),
-                        "frequency": ch.get("frequency", ""),
-                    })
+            matches = match_channels(
+                channels,
+                selectors=selectors if selectors else None,
+                channel_ids=channel_ids if not selectors else None,
+            )
+            for key, _match_args in targets:
+                channel = matches.get(key)
+                if channel is not None:
+                    results[key].append(
+                        _history_row(ts, channel, include_frequency=True)
+                    )
         for rows_for_channel in results.values():
             unwrap_uint32_counter_series(rows_for_channel, _CHANNEL_ERROR_KEYS)
         return results

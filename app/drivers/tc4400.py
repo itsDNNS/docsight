@@ -261,7 +261,9 @@ class TC4400Driver(ModemDriver):
         }
 
         for i, h in enumerate(headers):
-            if "channel" in h and ("id" in h or "index" in h):
+            if "channel" in h and "id" in h:
+                col["channel_id"] = i
+            elif "channel" in h and "index" in h and col["channel_id"] is None:
                 col["channel_id"] = i
             elif "lock" in h:
                 col["lock_status"] = i

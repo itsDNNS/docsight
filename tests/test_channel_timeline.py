@@ -56,6 +56,19 @@ def _make_analysis(ds_channels=None, us_channels=None):
     }
 
 
+def _duplicate_id_analysis(first_frequency="634 MHz", second_frequency="738 MHz"):
+    return _make_analysis(ds_channels=[
+        {"channel_id": 0, "frequency": first_frequency, "power": 4.8,
+         "modulation": "256QAM", "snr": 38.1, "correctable_errors": 10,
+         "uncorrectable_errors": 2, "docsis_version": "3.0",
+         "health": "good", "health_detail": ""},
+        {"channel_id": 0, "frequency": second_frequency, "power": -1.7,
+         "modulation": "OFDM", "snr": 41.2, "correctable_errors": 20,
+         "uncorrectable_errors": 3, "docsis_version": "3.1",
+         "health": "warning", "health_detail": "power warning low"},
+    ])
+
+
 @pytest.fixture
 def storage(tmp_path):
     db_path = str(tmp_path / "test.db")
@@ -305,6 +318,107 @@ class TestGetChannelHistory:
         assert len(result[1]) == 1
         assert result[1][0]["power"] == 5.2
 
+    def test_ambiguous_legacy_id_returns_no_unrelated_first_match(self, storage):
+        storage.save_snapshot(_duplicate_id_analysis())
+
+        assert storage.get_channel_history(0, "ds", days=7) == []
+
+    def test_selector_keeps_duplicate_ids_independent_and_normalizes_frequency(self, storage):
+        older = _duplicate_id_analysis(634, "738.0 MHz")
+        newer = _duplicate_id_analysis("634.0 MHz", 738)
+        newer["ds_channels"][0]["power"] = 5.1
+        newer["ds_channels"][1]["power"] = -2.0
+        _insert_snapshot(storage, older, _utc_ts(timedelta(minutes=2)))
+        _insert_snapshot(storage, newer, _utc_ts(timedelta(minutes=1)))
+        current = storage.get_current_channels()["ds_channels"]
+        first_selector = current[0]["selector"]
+        second_selector = current[1]["selector"]
+
+        first = storage.get_channel_history(
+            0, "ds", days=7, selector=first_selector
+        )
+        second = storage.get_channel_history(
+            0, "ds", days=7, selector=second_selector
+        )
+
+        assert [row["power"] for row in first] == [4.8, 5.1]
+        assert [row["power"] for row in second] == [-1.7, -2.0]
+
+    def test_selector_supports_duplicate_invalid_ids(self, storage):
+        analysis = _duplicate_id_analysis()
+        analysis["ds_channels"][0]["channel_id"] = None
+        analysis["ds_channels"][1]["channel_id"] = None
+        storage.save_snapshot(analysis)
+        current = storage.get_current_channels()["ds_channels"]
+
+        first = storage.get_channel_history(
+            None, "ds", days=7, selector=current[0]["selector"]
+        )
+        second = storage.get_channel_history(
+            None, "ds", days=7, selector=current[1]["selector"]
+        )
+
+        assert first[0]["power"] == 4.8
+        assert second[0]["power"] == -1.7
+
+    def test_explicit_unmatched_selector_returns_empty(self, storage):
+        storage.save_snapshot(_duplicate_id_analysis())
+
+        assert storage.get_channel_history(
+            0, "ds", days=7, selector="not-a-channel"
+        ) == []
+
+    def test_ambiguous_selector_returns_empty(self, storage):
+        storage.save_snapshot(_duplicate_id_analysis("634 MHz", 634.0))
+        selector = storage.get_current_channels()["ds_channels"][0]["selector"]
+
+        assert storage.get_channel_history(
+            0, "ds", days=7, selector=selector
+        ) == []
+
+    def test_multi_selector_history_does_not_merge_duplicate_ids(self, storage):
+        storage.save_snapshot(_duplicate_id_analysis())
+        current = storage.get_current_channels()["ds_channels"]
+        selectors = [channel["selector"] for channel in current]
+
+        result = storage.get_multi_channel_history(
+            [], "ds", days=7, selectors=selectors
+        )
+
+        assert result[selectors[0]][0]["power"] == 4.8
+        assert result[selectors[1]][0]["power"] == -1.7
+
+    def test_multi_selector_history_indexes_each_snapshot_channel_once(
+        self, storage, monkeypatch
+    ):
+        analysis = _make_analysis(ds_channels=[
+            {"channel_id": 0, "frequency": f"{600 + index} MHz", "power": index}
+            for index in range(32)
+        ])
+        storage.save_snapshot(analysis)
+        selectors = [
+            channel["selector"]
+            for channel in storage.get_current_channels()["ds_channels"]
+        ]
+        from app import channel_selector as selector_module
+
+        original = selector_module.channel_selector
+        calls = 0
+
+        def counted_selector(channel):
+            nonlocal calls
+            calls += 1
+            return original(channel)
+
+        monkeypatch.setattr(selector_module, "channel_selector", counted_selector)
+
+        result = storage.get_multi_channel_history(
+            [], "ds", days=7, selectors=selectors
+        )
+
+        assert all(len(result[selector]) == 1 for selector in selectors)
+        assert calls == 32
+
 
 class TestGetCurrentChannels:
     def test_returns_channels(self, storage):
@@ -317,6 +431,15 @@ class TestGetCurrentChannels:
     def test_empty_storage(self, storage):
         result = storage.get_current_channels()
         assert result == {"ds_channels": [], "us_channels": []}
+
+    def test_exposes_stable_distinct_selectors_for_duplicate_ids(self, storage):
+        storage.save_snapshot(_duplicate_id_analysis())
+
+        result = storage.get_current_channels()["ds_channels"]
+
+        assert result[0]["selector"] != result[1]["selector"]
+        assert result[0]["selector_required"] is True
+        assert result[1]["selector_required"] is True
 
 
 # ── API Tests ──
@@ -411,6 +534,39 @@ class TestChannelHistoryEndpoint:
 
         assert resp.status_code == 400
 
+    def test_selector_returns_exact_duplicate_channel(self, client):
+        c, s = client
+        s.save_snapshot(_duplicate_id_analysis())
+        selector = json.loads(c.get("/api/channels").data)["ds_channels"][1]["selector"]
+
+        resp = c.get(
+            "/api/channel-history",
+            query_string={"selector": selector, "direction": "ds", "range": "1d"},
+        )
+
+        assert resp.status_code == 200
+        assert json.loads(resp.data)[0]["power"] == -1.7
+
+    def test_ambiguous_legacy_api_request_returns_empty(self, client):
+        c, s = client
+        s.save_snapshot(_duplicate_id_analysis())
+
+        resp = c.get("/api/channel-history?channel_id=0&direction=ds&range=1d")
+
+        assert resp.status_code == 200
+        assert json.loads(resp.data) == []
+
+    def test_explicit_unmatched_api_selector_returns_empty(self, client):
+        c, s = client
+        s.save_snapshot(_duplicate_id_analysis())
+
+        resp = c.get(
+            "/api/channel-history?selector=not-a-channel&direction=ds&range=1d"
+        )
+
+        assert resp.status_code == 200
+        assert json.loads(resp.data) == []
+
 
 class TestChannelCompareEndpoint:
     def test_returns_multiple_channels(self, client):
@@ -457,3 +613,23 @@ class TestChannelCompareEndpoint:
         assert resp.status_code == 400
         data = json.loads(resp.data)
         assert data["error"] == "maximum 64 channels"
+
+    def test_selectors_keep_duplicate_id_channels_separate(self, client):
+        c, s = client
+        s.save_snapshot(_duplicate_id_analysis())
+        channels = json.loads(c.get("/api/channels").data)["ds_channels"]
+        selectors = [channel["selector"] for channel in channels]
+
+        resp = c.get(
+            "/api/channel-compare",
+            query_string={
+                "selectors": ",".join(selectors),
+                "direction": "ds",
+                "range": "1d",
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data[selectors[0]][0]["power"] == 4.8
+        assert data[selectors[1]][0]["power"] == -1.7

@@ -255,6 +255,54 @@ class TestChartZoom:
 class TestChannelCharts:
     """Charts in the Channels > Timeline view."""
 
+    def test_duplicate_id_timeline_restores_exact_selector_and_requests_same_channel(self, demo_page):
+        selectors = {"634": "selector634", "738": "selector738"}
+        history_requests = []
+        demo_page.route(
+            "**/api/channels",
+            lambda route: route.fulfill(json={
+                "ds_channels": [
+                    {"channel_id": 0, "frequency": "634 MHz", "power": 4.8,
+                     "snr": 38.1, "docsis_version": "3.0", "health": "good",
+                     "selector": selectors["634"], "selector_required": True},
+                    {"channel_id": 0, "frequency": "738 MHz", "power": -1.7,
+                     "snr": 41.2, "docsis_version": "3.1", "health": "warning",
+                     "selector": selectors["738"], "selector_required": True},
+                ],
+                "us_channels": [],
+            }),
+        )
+
+        def history_route(route):
+            history_requests.append(route.request.url)
+            power = -1.7 if "selector=selector738" in route.request.url else 4.8
+            route.fulfill(json=[{
+                "timestamp": "2026-05-01T12:00:00",
+                "power": power,
+                "snr": 41.2,
+                "modulation": "OFDM",
+                "correctable_errors": 20,
+                "uncorrectable_errors": 3,
+            }])
+
+        demo_page.route("**/api/channel-history**", history_route)
+        base_url = demo_page.url.split("#", 1)[0]
+        demo_page.goto(
+            base_url + "#channels?mode=timeline&dir=ds&selector=selector738&range=1d"
+        )
+        wait_for_uplot(demo_page, "chart-ch-power")
+
+        select = demo_page.locator("#channel-select")
+        assert select.locator("option:checked").text_content() == "DS 0 (738 MHz)"
+        assert "738 MHz" in demo_page.locator("#channel-info-bar").text_content()
+        assert "Power -1.7 dBmV" in demo_page.locator("#channel-info-bar").text_content()
+        assert "selector=selector738" in demo_page.url
+        assert history_requests and "selector=selector738" in history_requests[-1]
+        assert "channel_id=" not in history_requests[-1]
+        assert demo_page.evaluate(
+            "window.charts['chart-ch-power'].data[1][0]"
+        ) == -1.7
+
     def test_channel_unused_controls_follow_selection_state(self, demo_page):
         """Range and clear controls should only show after a usable channel selection."""
         navigate_to_channels(demo_page)
@@ -420,6 +468,55 @@ class TestChannelCharts:
 
 class TestCompareCharts:
     """Charts in the Channels > Compare view."""
+
+    def test_duplicate_id_channels_coexist_with_distinct_compare_data(self, demo_page):
+        compare_requests = []
+        demo_page.route(
+            "**/api/channels",
+            lambda route: route.fulfill(json={
+                "ds_channels": [
+                    {"channel_id": 0, "frequency": "634 MHz", "docsis_version": "3.0",
+                     "selector": "selector634", "selector_required": True},
+                    {"channel_id": 0, "frequency": "738 MHz", "docsis_version": "3.1",
+                     "selector": "selector738", "selector_required": True},
+                ],
+                "us_channels": [],
+            }),
+        )
+
+        def compare_route(route):
+            compare_requests.append(route.request.url)
+            route.fulfill(json={
+                "selector634": [{"timestamp": "2026-05-01T12:00:00", "power": 4.8,
+                                   "snr": 38.1, "modulation": "256QAM"}],
+                "selector738": [{"timestamp": "2026-05-01T12:00:00", "power": -1.7,
+                                   "snr": 41.2, "modulation": "OFDM"}],
+            })
+
+        demo_page.route("**/api/channel-compare**", compare_route)
+        navigate_to_channels(demo_page)
+        demo_page.locator('.trend-tab[data-value="compare"]').click()
+
+        compare_select = demo_page.locator("#compare-channel-select")
+        compare_select.select_option(label="DS 0 (634 MHz)")
+        demo_page.locator("#compare-add-btn").click()
+        expect(demo_page.locator("#compare-chips .compare-chip")).to_have_count(1)
+        expect(
+            compare_select.locator('option', has_text="DS 0 (634 MHz)")
+        ).to_have_count(0)
+        compare_select.select_option(label="DS 0 (738 MHz)")
+        demo_page.locator("#compare-add-btn").click()
+        wait_for_uplot(demo_page, "chart-cmp-power")
+
+        chips = demo_page.locator("#compare-chips .compare-chip")
+        assert chips.count() == 2
+        assert "634 MHz" in chips.nth(0).text_content()
+        assert "738 MHz" in chips.nth(1).text_content()
+        assert "selectors=selector634%2Cselector738" in demo_page.url
+        assert "selectors=selector634%2Cselector738" in compare_requests[-1]
+        assert demo_page.evaluate(
+            "window.charts['chart-cmp-power'].data.slice(1, 3).map(series => series[0])"
+        ) == [4.8, -1.7]
 
     def test_compare_mode_renders_power_chart(self, demo_page):
         """Compare mode with channels should render power overlay chart."""

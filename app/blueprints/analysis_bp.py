@@ -146,22 +146,26 @@ def _channel_history_window_args():
 @require_auth
 def api_channel_history():
     """Return per-channel time series data.
-    ?channel_id=X&direction=ds|us&range=1h|6h|1d|2d|3d|7d|30d|90d
-    Legacy ?days=N remains supported."""
+    ?selector=X selects an exact channel identity; legacy ?channel_id=N remains
+    supported for IDs that uniquely identify a channel. ?days=N also remains
+    supported as a legacy time window."""
     _storage = get_storage()
     if not _storage:
         return jsonify([])
+    selector = request.args.get("selector")
     channel_id = request.args.get("channel_id", type=int)
     direction = request.args.get("direction", "ds")
     window_args, range_error = _channel_history_window_args()
     if range_error:
         return range_error
     assert window_args is not None
-    if channel_id is None:
-        return jsonify({"error": "channel_id is required"}), 400
+    if selector is None and channel_id is None:
+        return jsonify({"error": "channel_id or selector is required"}), 400
     if direction not in ("ds", "us"):
         return jsonify({"error": "direction must be 'ds' or 'us'"}), 400
-    data = _storage.get_channel_history(channel_id, direction, **window_args)
+    data = _storage.get_channel_history(
+        channel_id, direction, selector=selector, **window_args
+    )
     _localize_timestamps(data)
     return jsonify(data)
 
@@ -170,30 +174,37 @@ def api_channel_history():
 @require_auth
 def api_channel_compare():
     """Return per-channel time series for multiple channels.
-    ?channels=1,2,3&direction=ds|us&range=1h|6h|1d|2d|3d|7d|30d|90d
-    Legacy ?days=N remains supported."""
+    ?selectors=X,Y selects exact channel identities; legacy ?channels=1,2,3
+    remains supported for unique IDs. ?days=N also remains supported."""
     _storage = get_storage()
     if not _storage:
         return jsonify({})
     channels_param = request.args.get("channels", "")
+    selectors_param = request.args.get("selectors", "")
     direction = request.args.get("direction", "ds")
     window_args, range_error = _channel_history_window_args()
     if range_error:
         return range_error
     assert window_args is not None
-    if not channels_param:
-        return jsonify({"error": "channels parameter is required"}), 400
+    if not channels_param and not selectors_param:
+        return jsonify({"error": "channels or selectors parameter is required"}), 400
     if direction not in ("ds", "us"):
         return jsonify({"error": "direction must be 'ds' or 'us'"}), 400
-    try:
-        channel_ids = [int(c.strip()) for c in channels_param.split(",") if c.strip()]
-    except ValueError:
-        return jsonify({"error": "channels must be comma-separated integers"}), 400
-    if len(channel_ids) > 64:
+    selectors = [item.strip() for item in selectors_param.split(",") if item.strip()]
+    channel_ids = []
+    if not selectors:
+        try:
+            channel_ids = [int(c.strip()) for c in channels_param.split(",") if c.strip()]
+        except ValueError:
+            return jsonify({"error": "channels must be comma-separated integers"}), 400
+    requested_count = len(selectors) if selectors else len(channel_ids)
+    if requested_count > 64:
         return jsonify({"error": "maximum 64 channels"}), 400
-    if not channel_ids:
+    if requested_count == 0:
         return jsonify({"error": "at least one channel required"}), 400
-    result = _storage.get_multi_channel_history(channel_ids, direction, **window_args)
+    result = _storage.get_multi_channel_history(
+        channel_ids, direction, selectors=selectors, **window_args
+    )
     # Convert int keys to strings for JSON
     return jsonify({str(k): v for k, v in result.items()})
 

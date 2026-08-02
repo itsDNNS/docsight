@@ -98,6 +98,23 @@ def test_tc4400_downstream_sc_qam_type_is_canonical():
     assert channels[0]["mse"] == -39.5
 
 
+@pytest.mark.parametrize(
+    ("headers", "expected_index"),
+    [
+        (["Channel ID", "Channel Index", "Lock Status", "Frequency"], 0),
+        (["Channel Index", "Channel ID", "Lock Status", "Frequency"], 1),
+    ],
+)
+def test_tc4400_column_mapping_always_prefers_explicit_channel_id(
+    headers, expected_index
+):
+    driver = TC4400Driver("http://192.168.100.1", "user", "pass")
+
+    columns = driver._map_columns([header.lower() for header in headers])
+
+    assert columns["channel_id"] == expected_index
+
+
 def test_vodafone_cga_docsis31_types_are_uppercase():
     class Response:
         def json(self):

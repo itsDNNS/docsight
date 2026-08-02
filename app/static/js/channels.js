@@ -5,7 +5,9 @@
 
 /* ── Channel State URL Persistence ── */
 /* Hash format: #channels?mode=timeline&dir=ds&channel=42&range=1d
+   Exact:       #channels?mode=timeline&dir=ds&selector=<opaque>&range=1d
    Compare:     #channels?mode=compare&dir=us&range=30d&channels=1,2,3
+   Exact:       #channels?mode=compare&dir=ds&range=7d&selectors=<opaque>,<opaque>
    Preset:      #channels?mode=compare&dir=ds&range=7d&preset=all */
 
 function _channelRangeHours(range) {
@@ -28,6 +30,65 @@ function _normalizeChannelRangeValue(value) {
     return allowed.indexOf(raw) !== -1 ? raw : '1d';
 }
 
+function _channelReference(ch) {
+    var id = String(ch.channel_id);
+    var legacyId = ch.legacy_channel_id !== undefined
+        ? String(ch.legacy_channel_id)
+        : id;
+    var selector = ch.selector || '';
+    var usesSelector = !!ch.selector_required;
+    return {
+        id: id,
+        legacyId: legacyId,
+        selector: selector,
+        usesSelector: usesSelector,
+        key: usesSelector ? 'selector:' + selector : 'id:' + legacyId
+    };
+}
+
+function _channelOptionValue(direction, ref) {
+    return ref.usesSelector
+        ? direction + '-selector-' + ref.selector
+        : direction + '-' + ref.legacyId;
+}
+
+function _readChannelSelection(select) {
+    if (!select || !select.value || select.selectedIndex < 0) return null;
+    var option = select.options[select.selectedIndex];
+    if (!option || option.dataset.channelId === undefined) return null;
+    var usesSelector = option.dataset.selectorRequired === 'true';
+    return {
+        direction: option.dataset.direction,
+        id: option.dataset.channelId,
+        legacyId: option.dataset.legacyChannelId,
+        selector: option.dataset.selector || '',
+        usesSelector: usesSelector,
+        key: usesSelector ? 'selector:' + (option.dataset.selector || '') : 'id:' + option.dataset.legacyChannelId,
+        option: option
+    };
+}
+
+function _findChannelOption(select, direction, field, value) {
+    if (!select) return null;
+    var found = null;
+    for (var i = 0; i < select.options.length; i++) {
+        var option = select.options[i];
+        if (option.dataset.direction === direction && option.dataset[field] === String(value)) {
+            if (found) return null;
+            found = option;
+        }
+    }
+    return found;
+}
+
+function _compareUsesSelectors() {
+    return _compareChannels.some(function(ch) { return ch.usesSelector; });
+}
+
+function _compareDataKey(ch, usesSelectors) {
+    return usesSelectors ? ch.selector : String(ch.legacyId);
+}
+
 function parseChannelHash() {
     var hash = location.hash.replace('#', '');
     var qIdx = hash.indexOf('?');
@@ -46,11 +107,11 @@ function writeChannelHash() {
     var params = ['mode=' + mode];
     if (mode === 'timeline') {
         var sel = document.getElementById('channel-select');
-        var val = sel ? sel.value : '';
-        if (val) {
-            var parts = val.split('-');
-            params.push('dir=' + parts[0]);
-            params.push('channel=' + parts[1]);
+        var ref = _readChannelSelection(sel);
+        if (ref) {
+            params.push('dir=' + ref.direction);
+            if (ref.usesSelector) params.push('selector=' + encodeURIComponent(ref.selector));
+            else params.push('channel=' + encodeURIComponent(ref.legacyId));
         }
         params.push('range=' + encodeURIComponent(getPillValue('channel-time-tabs') || '1d'));
     } else {
@@ -59,10 +120,15 @@ function writeChannelHash() {
         if (_comparePreset === 'all') {
             params.push('preset=all');
         } else if (_compareChannels.length > 0) {
-            var ids = _compareChannels.map(function(c) { return c.id; });
-            ids.sort(function(a, b) { return a - b; });
-            ids = ids.filter(function(v, i, a) { return i === 0 || a[i - 1] !== v; });
-            params.push('channels=' + ids.join(','));
+            if (_compareUsesSelectors()) {
+                var selectors = _compareChannels.map(function(c) { return c.selector; });
+                params.push('selectors=' + encodeURIComponent(selectors.join(',')));
+            } else {
+                var ids = _compareChannels.map(function(c) { return c.legacyId; });
+                ids.sort(function(a, b) { return Number(a) - Number(b); });
+                ids = ids.filter(function(v, i, a) { return i === 0 || a[i - 1] !== v; });
+                params.push('channels=' + ids.join(','));
+            }
         }
     }
     history.replaceState(null, '', '#channels?' + params.join('&'));
@@ -101,9 +167,15 @@ function initChannelView() {
         if (params.mode === 'timeline') {
             setPillByValue('channel-time-tabs', _normalizeChannelRangeValue(params.range || params.days || '1d'));
             var sel = document.getElementById('channel-select');
-            if (params.dir && params.channel) {
-                sel.value = params.dir + '-' + params.channel;
-                if (sel.value === params.dir + '-' + params.channel) {
+            var restoredOption = null;
+            if (params.dir && params.selector) {
+                restoredOption = _findChannelOption(sel, params.dir, 'selector', params.selector);
+            } else if (params.dir && params.channel) {
+                restoredOption = _findChannelOption(sel, params.dir, 'legacyChannelId', params.channel);
+            }
+            if (restoredOption) {
+                sel.value = restoredOption.value;
+                if (sel.value === restoredOption.value) {
                     loadChannelTimeline();
                     return;
                 }
@@ -123,20 +195,26 @@ function initChannelView() {
             updateCompareActionLabels();
             if (params.preset === 'all') {
                 addAllCompareChannels();
-            } else if (params.channels) {
-                var channelIds = params.channels.split(',').map(function(s) { return parseInt(s); });
+            } else if (params.selectors || params.channels) {
+                var selectorKeys = params.selectors ? params.selectors.split(',') : [];
+                var channelIds = params.channels ? params.channels.split(',') : [];
                 var dir = params.dir || 'ds';
                 fetch('/api/channels')
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
                         var available = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
                         _compareChannels = [];
-                        channelIds.forEach(function(id) {
+                        var requested = selectorKeys.length ? selectorKeys : channelIds;
+                        requested.forEach(function(value) {
+                            var matched = [];
                             for (var i = 0; i < available.length; i++) {
-                                if (available[i].channel_id === id) {
-                                    _compareChannels.push(buildCompareChannelEntry(available[i], _compareChannels.length, dir));
-                                    break;
-                                }
+                                var matches = selectorKeys.length
+                                    ? available[i].selector === value
+                                    : _channelReference(available[i]).legacyId === String(value);
+                                if (matches) matched.push(available[i]);
+                            }
+                            if (matched.length === 1) {
+                                _compareChannels.push(buildCompareChannelEntry(matched[0], _compareChannels.length, dir));
                             }
                         });
                         renderCompareChips();
@@ -195,8 +273,7 @@ function switchChannelMode() {
             document.getElementById('channel-no-data').style.display = 'none';
         } else {
             // Restore info bar for already-selected channel
-            var cparts = sel.value.split('-');
-            _updateChannelInfoBar(cparts[0], cparts[1]);
+            _updateChannelInfoBar(_readChannelSelection(sel));
         }
     }
     _updateChannelSelectionControls();
@@ -220,8 +297,14 @@ function loadChannelList(callback) {
                 var grp = document.createElement('optgroup');
                 grp.label = T.downstream_channels || 'Downstream Channels';
                 ds.forEach(function(ch) {
+                    var ref = _channelReference(ch);
                     var opt = document.createElement('option');
-                    opt.value = 'ds-' + ch.channel_id;
+                    opt.value = _channelOptionValue('ds', ref);
+                    opt.dataset.direction = 'ds';
+                    opt.dataset.channelId = ref.id;
+                    opt.dataset.legacyChannelId = ref.legacyId;
+                    opt.dataset.selector = ref.selector;
+                    opt.dataset.selectorRequired = ref.usesSelector ? 'true' : 'false';
                     opt.dataset.docsis = ch.docsis_version || '3.0';
                     opt.textContent = 'DS ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
                     grp.appendChild(opt);
@@ -232,8 +315,14 @@ function loadChannelList(callback) {
                 var grp2 = document.createElement('optgroup');
                 grp2.label = T.upstream_channels || 'Upstream Channels';
                 us.forEach(function(ch) {
+                    var ref = _channelReference(ch);
                     var opt = document.createElement('option');
-                    opt.value = 'us-' + ch.channel_id;
+                    opt.value = _channelOptionValue('us', ref);
+                    opt.dataset.direction = 'us';
+                    opt.dataset.channelId = ref.id;
+                    opt.dataset.legacyChannelId = ref.legacyId;
+                    opt.dataset.selector = ref.selector;
+                    opt.dataset.selectorRequired = ref.usesSelector ? 'true' : 'false';
                     opt.dataset.docsis = ch.docsis_version || '3.0';
                     opt.textContent = 'US ' + ch.channel_id + ' (' + (ch.frequency || '') + ')';
                     grp2.appendChild(opt);
@@ -414,24 +503,25 @@ function toggleCompareTempOverlay() {
 }
 window.toggleCompareTempOverlay = toggleCompareTempOverlay;
 
-function _updateChannelInfoBar(direction, channelId) {
+function _updateChannelInfoBar(ref) {
     var bar = document.getElementById('channel-info-bar');
     if (!bar) return;
-    if (!_cachedChannelData) { bar.style.display = 'none'; return; }
-    var channels = direction === 'ds'
+    if (!_cachedChannelData || !ref) { bar.style.display = 'none'; return; }
+    var channels = ref.direction === 'ds'
         ? (_cachedChannelData.ds_channels || [])
         : (_cachedChannelData.us_channels || []);
     var ch = null;
     for (var i = 0; i < channels.length; i++) {
-        if (String(channels[i].channel_id) === String(channelId)) { ch = channels[i]; break; }
+        var candidate = _channelReference(channels[i]);
+        if (candidate.key === ref.key) { ch = channels[i]; break; }
     }
     if (!ch) { bar.style.display = 'none'; return; }
     while (bar.firstChild) bar.removeChild(bar.firstChild);
-    var dir = direction.toUpperCase();
+    var dir = ref.direction.toUpperCase();
     var health = ch.health || 'unknown';
     var healthLabel = T['health_' + health] || health;
 
-    bar.appendChild(_makeInfoItem(dir + ' ' + channelId, true));
+    bar.appendChild(_makeInfoItem(dir + ' ' + ref.id, true));
     bar.appendChild(_makeInfoSep());
     if (ch.frequency) {
         var freqStr = String(ch.frequency);
@@ -558,11 +648,15 @@ function loadChannelTimeline() {
         writeChannelHash();
         return;
     }
-    var parts = val.split('-');
+    var ref = _readChannelSelection(sel);
+    if (!ref) {
+        sel.value = '';
+        loadChannelTimeline();
+        return;
+    }
     _updateChannelSelectionControls();
-    var direction = parts[0];
-    var channelId = parts[1];
-    var selectedOpt = sel.options[sel.selectedIndex];
+    var direction = ref.direction;
+    var selectedOpt = ref.option;
     var docsisVersion = selectedOpt ? selectedOpt.dataset.docsis || '3.0' : '3.0';
     var days = getPillValue('channel-time-tabs') || '1d';
     writeChannelHash();
@@ -572,9 +666,12 @@ function loadChannelTimeline() {
     chartsEl.style.display = 'none';
     emptyEl.style.display = 'none';
     noDataEl.style.display = 'none';
-    _updateChannelInfoBar(direction, channelId);
+    _updateChannelInfoBar(ref);
 
-    fetch('/api/channel-history?channel_id=' + channelId + '&direction=' + direction + '&range=' + encodeURIComponent(days))
+    var identityParam = ref.usesSelector
+        ? 'selector=' + encodeURIComponent(ref.selector)
+        : 'channel_id=' + encodeURIComponent(ref.legacyId);
+    fetch('/api/channel-history?' + identityParam + '&direction=' + direction + '&range=' + encodeURIComponent(days))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (requestId !== _channelTimelineRequestSeq) return;
@@ -642,8 +739,13 @@ function getComparePresetLabel(dir) {
 
 function buildCompareChannelEntry(ch, index, dir) {
     var prefix = dir === 'ds' ? 'DS' : 'US';
+    var ref = _channelReference(ch);
     return {
-        id: ch.channel_id,
+        id: ref.id,
+        legacyId: ref.legacyId,
+        selector: ref.selector,
+        usesSelector: ref.usesSelector,
+        key: ref.key,
         label: prefix + ' ' + ch.channel_id + ' (' + (ch.frequency || '') + ')',
         color: compareColor(index),
         docsis: ch.docsis_version || '3.0'
@@ -685,10 +787,15 @@ function populateCompareChannelList(data) {
     sel.innerHTML = '<option value="">' + (T.select_channel || 'Select Channel') + '</option>';
     var channels = dir === 'ds' ? (data.ds_channels || []) : (data.us_channels || []);
     channels.forEach(function(ch) {
-        var already = _compareChannels.some(function(c) { return c.id === ch.channel_id; });
+        var ref = _channelReference(ch);
+        var already = _compareChannels.some(function(c) { return c.key === ref.key; });
         if (already) return;
         var opt = document.createElement('option');
-        opt.value = ch.channel_id;
+        opt.value = ref.key;
+        opt.dataset.channelId = ref.id;
+        opt.dataset.legacyChannelId = ref.legacyId;
+        opt.dataset.selector = ref.selector;
+        opt.dataset.selectorRequired = ref.usesSelector ? 'true' : 'false';
         opt.dataset.docsis = ch.docsis_version || '3.0';
         opt.dataset.freq = ch.frequency || '';
         var prefix = dir === 'ds' ? 'DS' : 'US';
@@ -745,13 +852,23 @@ function addCompareChannel() {
         return;
     }
     _comparePreset = null;
-    var id = parseInt(opt.value);
-    if (_compareChannels.some(function(c) { return c.id === id; })) return;
+    var ref = {
+        id: opt.dataset.channelId,
+        legacyId: opt.dataset.legacyChannelId,
+        selector: opt.dataset.selector || '',
+        usesSelector: opt.dataset.selectorRequired === 'true',
+        key: opt.value
+    };
+    if (_compareChannels.some(function(c) { return c.key === ref.key; })) return;
     var dir = getCompareDirection();
     var prefix = dir === 'ds' ? 'DS' : 'US';
     _compareChannels.push({
-        id: id,
-        label: prefix + ' ' + id + ' (' + (opt.dataset.freq || '') + ')',
+        id: ref.id,
+        legacyId: ref.legacyId,
+        selector: ref.selector,
+        usesSelector: ref.usesSelector,
+        key: ref.key,
+        label: prefix + ' ' + ref.id + ' (' + (opt.dataset.freq || '') + ')',
         color: compareColor(_compareChannels.length),
         docsis: opt.dataset.docsis || '3.0'
     });
@@ -804,9 +921,9 @@ function clearCompareChannels() {
 }
 window.clearCompareChannels = clearCompareChannels;
 
-function removeCompareChannel(id) {
+function removeCompareChannel(key) {
     _comparePreset = null;
-    _compareChannels = _compareChannels.filter(function(c) { return c.id !== id; });
+    _compareChannels = _compareChannels.filter(function(c) { return c.key !== key; });
     // Re-assign colors sequentially
     _compareChannels.forEach(function(c, i) { c.color = compareColor(i); });
     renderCompareChips();
@@ -837,7 +954,12 @@ function renderCompareChips() {
         var chip = document.createElement('span');
         chip.className = 'compare-chip';
         chip.style.backgroundColor = ch.color;
-        chip.innerHTML = escapeHtml(ch.label) + ' <button class="compare-chip-remove" onclick="removeCompareChannel(' + ch.id + ')">&times;</button>';
+        chip.textContent = ch.label + ' ';
+        var remove = document.createElement('button');
+        remove.className = 'compare-chip-remove';
+        remove.innerHTML = '&times;';
+        remove.onclick = function() { removeCompareChannel(ch.key); };
+        chip.appendChild(remove);
         container.appendChild(chip);
     });
 }
@@ -851,20 +973,22 @@ function _renderCompareCharts() {
     var dir = ctx.dir || getCompareDirection();
     var xLabels = docsightFormatXAxisLabels(timestamps, days);
     var tempOpts = _channelWeatherHasData(_lastCompareWeather) ? { tempData: _lastCompareWeather } : null;
+    var usesSelectors = !!ctx.usesSelectors;
 
     // Build lookup maps per channel: timestamp -> data point
     var lookups = {};
     _compareChannels.forEach(function(ch) {
         var map = {};
-        (data[String(ch.id)] || []).forEach(function(d) { map[d.timestamp] = d; });
-        lookups[ch.id] = map;
+        var dataKey = _compareDataKey(ch, usesSelectors);
+        (data[dataKey] || []).forEach(function(d) { map[d.timestamp] = d; });
+        lookups[ch.key] = map;
     });
 
     // Power Chart
     var powerDatasets = _compareChannels.map(function(ch) {
         return {
             label: 'CH ' + ch.id,
-            data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.power : null; }),
+            data: timestamps.map(function(ts) { var d = lookups[ch.key][ts]; return d ? d.power : null; }),
             color: ch.color,
             showPoints: false
         };
@@ -879,7 +1003,7 @@ function _renderCompareCharts() {
         var snrDatasets = _compareChannels.map(function(ch) {
             return {
                 label: 'CH ' + ch.id,
-                data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d ? d.snr : null; }),
+                data: timestamps.map(function(ts) { var d = lookups[ch.key][ts]; return d ? d.snr : null; }),
                 color: ch.color,
                 showPoints: false
             };
@@ -892,7 +1016,7 @@ function _renderCompareCharts() {
     // Errors Chart (DS only, lines not bars)
     if (dir === 'ds') {
         var compareHasErrors = _compareChannels.some(function(ch) {
-            return _hasChannelDocsisErrorSeries(data[String(ch.id)] || []);
+            return _hasChannelDocsisErrorSeries(data[_compareDataKey(ch, usesSelectors)] || []);
         });
         _setChartCardVisible('compare-errors-card', 'chart-cmp-errors', compareHasErrors);
         if (compareHasErrors) {
@@ -900,13 +1024,13 @@ function _renderCompareCharts() {
             _compareChannels.forEach(function(ch) {
                 errorDatasets.push({
                     label: 'CH ' + ch.id + ' ' + (T.uncorrectable || 'Uncorr.'),
-                    data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.uncorrectable_errors != null ? d.uncorrectable_errors : null; }),
+                    data: timestamps.map(function(ts) { var d = lookups[ch.key][ts]; return d && d.uncorrectable_errors != null ? d.uncorrectable_errors : null; }),
                     color: ch.color,
                     showPoints: false
                 });
                 errorDatasets.push({
                     label: 'CH ' + ch.id + ' ' + (T.correctable || 'Corr.'),
-                    data: timestamps.map(function(ts) { var d = lookups[ch.id][ts]; return d && d.correctable_errors != null ? d.correctable_errors : null; }),
+                    data: timestamps.map(function(ts) { var d = lookups[ch.key][ts]; return d && d.correctable_errors != null ? d.correctable_errors : null; }),
                     color: ch.color,
                     dashed: true,
                     showPoints: false
@@ -922,7 +1046,7 @@ function _renderCompareCharts() {
     var modCard = document.getElementById('compare-modulation-card');
     var hasMod = false;
     _compareChannels.forEach(function(ch) {
-        var chData = data[String(ch.id)] || [];
+        var chData = data[_compareDataKey(ch, usesSelectors)] || [];
         if (chData.some(function(d) { return d.modulation; })) hasMod = true;
     });
     if (!hasMod) {
@@ -932,7 +1056,7 @@ function _renderCompareCharts() {
         // Collect all unique QAM values
         var allQam = {};
         _compareChannels.forEach(function(ch) {
-            (data[String(ch.id)] || []).forEach(function(d) {
+            (data[_compareDataKey(ch, usesSelectors)] || []).forEach(function(d) {
                 if (d.modulation) allQam[d.modulation] = true;
             });
         });
@@ -949,7 +1073,7 @@ function _renderCompareCharts() {
             return {
                 label: 'CH ' + ch.id,
                 data: timestamps.map(function(ts) {
-                    var d = lookups[ch.id][ts];
+                    var d = lookups[ch.key][ts];
                     if (!d || !d.modulation) return null;
                     return qamMap[d.modulation] !== undefined ? qamMap[d.modulation] : null;
                 }),
@@ -994,7 +1118,11 @@ function loadCompareCharts() {
     }
     var dir = getCompareDirection();
     var days = getPillValue('compare-time-tabs') || '1d';
-    var ids = _compareChannels.map(function(c) { return c.id; }).join(',');
+    var usesSelectors = _compareUsesSelectors();
+    var identityName = usesSelectors ? 'selectors' : 'channels';
+    var identities = _compareChannels.map(function(c) {
+        return usesSelectors ? c.selector : c.legacyId;
+    }).join(',');
     writeChannelHash();
     var requestId = ++_compareRequestSeq;
 
@@ -1002,7 +1130,7 @@ function loadCompareCharts() {
     chartsEl.style.display = 'none';
     emptyEl.style.display = 'none';
 
-    fetch('/api/channel-compare?channels=' + ids + '&direction=' + dir + '&range=' + encodeURIComponent(days))
+    fetch('/api/channel-compare?' + identityName + '=' + encodeURIComponent(identities) + '&direction=' + dir + '&range=' + encodeURIComponent(days))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (requestId !== _compareRequestSeq) return;
@@ -1012,7 +1140,7 @@ function loadCompareCharts() {
             // Build unified timestamp list from all channels
             var tsSet = {};
             _compareChannels.forEach(function(ch) {
-                var chData = data[String(ch.id)] || [];
+                var chData = data[_compareDataKey(ch, usesSelectors)] || [];
                 chData.forEach(function(d) { tsSet[d.timestamp] = true; });
             });
             var timestamps = Object.keys(tsSet).sort();
@@ -1030,7 +1158,8 @@ function loadCompareCharts() {
                 data: data,
                 timestamps: timestamps,
                 days: days,
-                dir: dir
+                dir: dir,
+                usesSelectors: usesSelectors
             };
             _lastCompareWeather = null;
             _updateCompareTempToggle();
