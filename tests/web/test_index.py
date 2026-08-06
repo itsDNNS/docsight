@@ -334,19 +334,72 @@ class TestIndexRoute:
         assert resp.status_code == 200
         assert b'id="metric-errors-card"' not in resp.data
 
-    def test_index_partial_error_support_hides_uncomputable_error_card(self, client, sample_analysis):
+    def test_index_partial_error_support_shows_raw_evidence_and_unavailable_ratio(self, client, sample_analysis):
         sample_analysis["summary"]["errors_supported"] = True
         sample_analysis["summary"]["ds_correctable_errors"] = None
         sample_analysis["summary"]["ds_uncorrectable_errors"] = 1000
         sample_analysis["summary"]["ds_uncorr_pct"] = None
+        sample_analysis["summary"]["error_counter_coverage"] = {
+            "total_channels": 1,
+            "correctable_channels": 0,
+            "uncorrectable_channels": 1,
+            "comparable_channels": 0,
+            "partial_channels": 1,
+            "unsupported_channels": 0,
+            "families": {},
+        }
         update_state(analysis=sample_analysis)
 
         resp = client.get("/")
 
         assert resp.status_code == 200
-        assert b'id="metric-errors-card"' not in resp.data
+        assert b'id="metric-errors-card"' in resp.data
+        assert b"Share unavailable" in resp.data
+        assert b"Raw uncorrectable total" in resp.data
+        assert b"1k" in resp.data
         assert b">None<" not in resp.data
         assert b"None Corr" not in resp.data
+
+    def test_index_mixed_error_support_labels_comparable_ratio_scope(self, client, sample_analysis):
+        sample_analysis["summary"].update({
+            "errors_supported": True,
+            "ds_correctable_errors": 9900,
+            "ds_uncorrectable_errors": 1100,
+            "ds_comparable_correctable_errors": 9900,
+            "ds_comparable_uncorrectable_errors": 100,
+            "ds_uncorr_pct": 1.0,
+            "health": "warning",
+            "health_issues": ["uncorr_errors_high"],
+            "error_counter_coverage": {
+                "total_channels": 2,
+                "correctable_channels": 1,
+                "uncorrectable_channels": 2,
+                "comparable_channels": 1,
+                "partial_channels": 1,
+                "unsupported_channels": 0,
+                "families": {},
+            },
+        })
+        update_state(analysis=sample_analysis)
+
+        resp = client.get("/")
+
+        assert resp.status_code == 200
+        assert b'id="metric-errors-card"' in resp.data
+        assert b"Uncorrectable error share" in resp.data
+        assert b'1.0<span class="unit">%</span>' in resp.data
+        assert b"Calculated from 1 of 2 downstream channels" in resp.data
+        assert b"Raw correctable total" in resp.data
+        assert b"Raw uncorrectable total" in resp.data
+        assert b"9.9k" in resp.data
+        assert b"1.1k" in resp.data
+        assert b"Uncorrectable error share elevated" in resp.data
+        assert (
+            b"The uncorrectable share on comparable channels reached the warning threshold. "
+            b"Watch whether the counters continue to grow and inspect the affected channels."
+            in resp.data
+        )
+        assert b"Over 10,000 uncorrectable errors detected" not in resp.data
 
     def test_average_kpi_cards_do_not_use_worst_channel_status(self, client, sample_analysis):
         """Average Home KPI cards keep value, marker, color, and badge aligned."""

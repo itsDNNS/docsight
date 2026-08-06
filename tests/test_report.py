@@ -59,6 +59,24 @@ def test_generate_report_no_snapshots():
     assert pdf[:5] == b"%PDF-"
 
 
+def test_report_worst_values_keep_raw_mixed_counter_totals():
+    analysis = {
+        **MOCK_ANALYSIS,
+        "summary": {
+            **MOCK_ANALYSIS["summary"],
+            "errors_supported": True,
+            "ds_correctable_errors": 9900,
+            "ds_uncorrectable_errors": 1100,
+            "ds_uncorr_pct": 1.0,
+        },
+    }
+
+    worst = _compute_worst_values([analysis])
+
+    assert worst["ds_correctable_max"] == 9900
+    assert worst["ds_uncorrectable_max"] == 1100
+
+
 def test_generate_report_with_config():
     pdf = generate_report(MOCK_SNAPSHOTS, MOCK_ANALYSIS,
                           config={"isp_name": "Vodafone", "modem_type": "FRITZ!Box 6690"},

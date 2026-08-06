@@ -40,3 +40,33 @@ class TestSnapshotsAPI:
         resp = client.get("/api/snapshots/1999-01-01T00:00:00Z")
         assert resp.status_code == 404
 
+    def test_snapshot_api_preserves_raw_values_and_null_comparable_ratio(self, client, tmp_path, sample_analysis):
+        sample_analysis["summary"].update({
+            "errors_supported": True,
+            "ds_correctable_errors": None,
+            "ds_uncorrectable_errors": 1000,
+            "ds_comparable_correctable_errors": None,
+            "ds_comparable_uncorrectable_errors": None,
+            "ds_uncorr_pct": None,
+            "error_counter_coverage": {
+                "total_channels": 1,
+                "correctable_channels": 0,
+                "uncorrectable_channels": 1,
+                "comparable_channels": 0,
+                "partial_channels": 1,
+                "unsupported_channels": 0,
+                "families": {},
+            },
+        })
+        storage = SnapshotStorage(str(tmp_path / "partial.db"), max_days=7)
+        storage.save_snapshot(sample_analysis)
+        init_storage(storage)
+
+        timestamp = storage.get_snapshot_list()[0]
+        response = client.get(f"/api/snapshots/{timestamp}")
+
+        assert response.status_code == 200
+        summary = response.get_json()["summary"]
+        assert summary["ds_correctable_errors"] is None
+        assert summary["ds_uncorrectable_errors"] == 1000
+        assert summary["ds_uncorr_pct"] is None

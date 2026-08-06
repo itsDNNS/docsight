@@ -184,12 +184,16 @@ class TestSpikeSuppression:
         from app.analyzer import apply_cumulative_error_baseline, apply_spike_suppression
         mock_now.return_value = "2026-03-01T15:00:00Z"
         previous = {
+            "analysis_meta": {"analyzer_schema": 3},
             "summary": {
                 "health": "good",
                 "health_issues": [],
                 "ds_uncorr_pct": 0.0,
                 "ds_correctable_errors": 155000,
                 "ds_uncorrectable_errors": 1000500,
+                "ds_comparable_correctable_errors": 155000,
+                "ds_comparable_uncorrectable_errors": 1000500,
+                "error_counter_coverage": {"comparable_channels": 1},
                 "errors_supported": True,
                 "error_baseline": {
                     "active": True,
@@ -201,9 +205,17 @@ class TestSpikeSuppression:
                     "ds_uncorrectable_recent_delta": 500,
                     "ds_correctable_delta": 0,
                     "ds_uncorrectable_delta": 500,
+                    "ds_comparable_correctable_baseline": 155000,
+                    "ds_comparable_uncorrectable_baseline": 1000000,
+                    "ds_raw_uncorrectable_baseline": 1000000,
+                    "comparable_channel_keys": ["3.0|sc_qam|1|602 MHz"],
                 },
             },
-            "ds_channels": [],
+            "ds_channels": [{
+                "channel_id": 1, "frequency": "602 MHz", "docsis_version": "3.0",
+                "channel_family": "sc_qam", "correctable_errors": 155000,
+                "uncorrectable_errors": 1000500,
+            }],
             "us_channels": [],
         }
         analysis = {
@@ -213,9 +225,16 @@ class TestSpikeSuppression:
                 "ds_uncorr_pct": 86.6,
                 "ds_correctable_errors": 155000,
                 "ds_uncorrectable_errors": 1001000,
+                "ds_comparable_correctable_errors": 155000,
+                "ds_comparable_uncorrectable_errors": 1001000,
+                "error_counter_coverage": {"comparable_channels": 1},
                 "errors_supported": True,
             },
-            "ds_channels": [],
+            "ds_channels": [{
+                "channel_id": 1, "frequency": "602 MHz", "docsis_version": "3.0",
+                "channel_family": "sc_qam", "correctable_errors": 155000,
+                "uncorrectable_errors": 1001000,
+            }],
             "us_channels": [],
         }
 
@@ -232,12 +251,16 @@ class TestSpikeSuppression:
         from app.analyzer import apply_cumulative_error_baseline, apply_spike_suppression
         mock_now.return_value = "2026-03-01T15:00:00Z"
         previous = cast(AnalysisResult, {
+            "analysis_meta": {"analyzer_schema": 3},
             "summary": {
                 "health": "critical",
                 "health_issues": ["uncorr_errors_critical"],
                 "ds_uncorr_pct": 100.0,
                 "ds_correctable_errors": 155000,
                 "ds_uncorrectable_errors": 1001000,
+                "ds_comparable_correctable_errors": 155000,
+                "ds_comparable_uncorrectable_errors": 1001000,
+                "error_counter_coverage": {"comparable_channels": 1},
                 "errors_supported": True,
                 "error_baseline": {
                     "active": True,
@@ -249,9 +272,17 @@ class TestSpikeSuppression:
                     "ds_uncorrectable_recent_delta": 1000,
                     "ds_correctable_delta": 0,
                     "ds_uncorrectable_delta": 1000,
+                    "ds_comparable_correctable_baseline": 155000,
+                    "ds_comparable_uncorrectable_baseline": 1000000,
+                    "ds_raw_uncorrectable_baseline": 1000000,
+                    "comparable_channel_keys": ["3.0|sc_qam|1|602 MHz"],
                 },
             },
-            "ds_channels": [],
+            "ds_channels": [{
+                "channel_id": 1, "frequency": "602 MHz", "docsis_version": "3.0",
+                "channel_family": "sc_qam", "correctable_errors": 155000,
+                "uncorrectable_errors": 1001000,
+            }],
             "us_channels": [],
         })
         analysis = cast(AnalysisResult, {
@@ -261,9 +292,16 @@ class TestSpikeSuppression:
                 "ds_uncorr_pct": 86.6,
                 "ds_correctable_errors": 155000,
                 "ds_uncorrectable_errors": 1001000,
+                "ds_comparable_correctable_errors": 155000,
+                "ds_comparable_uncorrectable_errors": 1001000,
+                "error_counter_coverage": {"comparable_channels": 1},
                 "errors_supported": True,
             },
-            "ds_channels": [],
+            "ds_channels": [{
+                "channel_id": 1, "frequency": "602 MHz", "docsis_version": "3.0",
+                "channel_family": "sc_qam", "correctable_errors": 155000,
+                "uncorrectable_errors": 1001000,
+            }],
             "us_channels": [],
         })
 
@@ -286,6 +324,9 @@ class TestCumulativeErrorBaseline:
             "ds_uncorr_pct": round((uncorr / (corr + uncorr)) * 100, 2) if corr + uncorr else 0.0,
             "ds_correctable_errors": corr,
             "ds_uncorrectable_errors": uncorr,
+            "ds_comparable_correctable_errors": corr,
+            "ds_comparable_uncorrectable_errors": uncorr,
+            "error_counter_coverage": {"comparable_channels": 1},
             "errors_supported": True,
         }
         if baseline is not None:
@@ -300,10 +341,19 @@ class TestCumulativeErrorBaseline:
                 "ds_uncorrectable_recent_delta": 0,
                 "ds_correctable_delta": corr - base_corr,
                 "ds_uncorrectable_delta": uncorr - base_uncorr,
+                "ds_comparable_correctable_baseline": base_corr,
+                "ds_comparable_uncorrectable_baseline": base_uncorr,
+                "ds_raw_uncorrectable_baseline": base_uncorr,
+                "comparable_channel_keys": ["3.0|sc_qam|1|602 MHz"],
             }
         return {
+            "analysis_meta": {"analyzer_schema": 3},
             "summary": summary,
-            "ds_channels": [],
+            "ds_channels": [{
+                "channel_id": 1, "frequency": "602 MHz", "docsis_version": "3.0",
+                "channel_family": "sc_qam", "correctable_errors": corr,
+                "uncorrectable_errors": uncorr,
+            }],
             "us_channels": [],
         }
 

@@ -14,6 +14,11 @@ from .docsis_utils import (
     modulation_threshold_key as _modulation_threshold_key,
     parse_qam_order as _parse_qam_order,
 )
+from .error_counters import (
+    aggregate_error_counters,
+    calculate_error_counter_growth,
+    uncorrectable_percentage,
+)
 from .types import AnalysisResult, DocsisData, SignalFamilyHealthCause
 from .tz import utc_now, _parse_utc
 
@@ -21,7 +26,7 @@ log = logging.getLogger("docsis.analyzer")
 
 # --- Dynamic thresholds (set by module loader) ---
 _thresholds = {}
-ANALYZER_SCHEMA_VERSION = 2
+ANALYZER_SCHEMA_VERSION = 3
 _threshold_profile = {"id": None, "version": None}
 
 # Hardcoded fallback (VFKD values) used if no threshold profile is loaded
@@ -287,13 +292,12 @@ def apply_cumulative_error_baseline(
     """Score uncorrectable errors against observed cumulative counter growth.
 
     Modems often expose correctable/uncorrectable counters as totals since the
-    last modem reboot. The analyzer keeps those raw totals in the summary and
-    channel data, but health should not treat pre-existing counters from the
-    first DOCSight observation as active trouble forever. Once a previous
-    snapshot exists, keep carrying the first comparable DOCSight totals as the
-    health baseline and score the uncorrectable percentage from cumulative
-    growth since that baseline. If counters decrease, treat it as a modem
-    reset/reboot and establish a fresh baseline.
+    last modem reboot. The analyzer keeps all available raw totals in the
+    summary and channel data, but health should not treat pre-existing counters
+    as active trouble forever. Once a schema-3 predecessor exists, score the
+    ratio from cumulative growth on channels that expose both counter types.
+    Raw all-channel uncorrectable growth is tracked separately for evidence.
+    Cohort changes and counter decreases establish a fresh baseline.
 
     A recent observed error_spike deliberately bypasses this baseline path so
     the existing spike-expiry window continues to hold the penalty until it
@@ -304,56 +308,34 @@ def apply_cumulative_error_baseline(
 
     summary = analysis.get("summary", {})
     previous_summary = previous_analysis.get("summary", {})
-    if summary.get("errors_supported") is False or previous_summary.get("errors_supported") is False:
-        return
-
-    current_corr = _coerce_counter(summary.get("ds_correctable_errors"))
-    current_uncorr = _coerce_counter(summary.get("ds_uncorrectable_errors"))
-    previous_corr = _coerce_counter(previous_summary.get("ds_correctable_errors"))
-    previous_uncorr = _coerce_counter(previous_summary.get("ds_uncorrectable_errors"))
-    if any(v is None for v in (current_corr, current_uncorr, previous_corr, previous_uncorr)):
-        return
-    assert current_corr is not None
-    assert current_uncorr is not None
-    assert previous_corr is not None
-    assert previous_uncorr is not None
-
+    current_counters = aggregate_error_counters(analysis.get("ds_channels", []))
+    previous_counters = aggregate_error_counters(previous_analysis.get("ds_channels", []))
     previous_baseline = previous_summary.get("error_baseline")
-    if isinstance(previous_baseline, dict):
-        baseline_corr = _coerce_counter(previous_baseline.get("ds_correctable_baseline"))
-        baseline_uncorr = _coerce_counter(previous_baseline.get("ds_uncorrectable_baseline"))
-    else:
-        baseline_corr = None
-        baseline_uncorr = None
-    if baseline_corr is None or baseline_uncorr is None:
-        baseline_corr = previous_corr
-        baseline_uncorr = previous_uncorr
+    if not isinstance(previous_baseline, dict):
+        previous_baseline = None
 
-    counter_reset = (
-        current_corr < previous_corr
-        or current_uncorr < previous_uncorr
-        or current_corr < baseline_corr
-        or current_uncorr < baseline_uncorr
+    previous_meta = previous_analysis.get("analysis_meta")
+    previous_schema = previous_meta.get("analyzer_schema") if isinstance(previous_meta, dict) else None
+    has_comparable_provenance = (
+        "ds_comparable_correctable_errors" in previous_summary
+        and "ds_comparable_uncorrectable_errors" in previous_summary
+        and isinstance(previous_summary.get("error_counter_coverage"), dict)
     )
-    if counter_reset:
-        baseline_corr = current_corr
-        baseline_uncorr = current_uncorr
-        corr_recent_delta = 0
-        uncorr_recent_delta = 0
-        corr_delta = 0
-        uncorr_delta = 0
-    else:
-        corr_recent_delta = current_corr - previous_corr
-        uncorr_recent_delta = current_uncorr - previous_uncorr
-        corr_delta = current_corr - baseline_corr
-        uncorr_delta = current_uncorr - baseline_uncorr
+    growth = calculate_error_counter_growth(
+        current_counters,
+        previous_counters,
+        previous_baseline=previous_baseline,
+        force_fresh_baseline=previous_schema != ANALYZER_SCHEMA_VERSION or not has_comparable_provenance,
+    )
 
     et = _get_uncorr_thresholds()
-    delta_codewords = corr_delta + uncorr_delta
-    uncorr_pct = 0.0
+    uncorr_pct = uncorrectable_percentage(
+        growth.comparable_correctable_delta,
+        growth.comparable_uncorrectable_delta,
+        min_codewords=et["min_codewords"],
+    )
     uncorr_issue = None
-    if delta_codewords >= et["min_codewords"]:
-        uncorr_pct = round((uncorr_delta / delta_codewords) * 100, 2)
+    if uncorr_pct is not None:
         if uncorr_pct >= et["critical"]:
             uncorr_issue = "uncorr_errors_critical"
         elif uncorr_pct >= et["warning"]:
@@ -365,14 +347,28 @@ def apply_cumulative_error_baseline(
         summary["health_issues"].append(uncorr_issue)
     summary["error_baseline"] = {
         "active": True,
-        "basis": "docsight_baseline_delta",
-        "counter_reset": counter_reset,
-        "ds_correctable_baseline": baseline_corr,
-        "ds_uncorrectable_baseline": baseline_uncorr,
-        "ds_correctable_recent_delta": corr_recent_delta,
-        "ds_uncorrectable_recent_delta": uncorr_recent_delta,
-        "ds_correctable_delta": corr_delta,
-        "ds_uncorrectable_delta": uncorr_delta,
+        "basis": "comparable_channel_baseline_delta",
+        "counter_reset": growth.counter_reset,
+        "comparable_counter_reset": growth.comparable_counter_reset,
+        "raw_uncorrectable_counter_reset": growth.raw_uncorrectable_counter_reset,
+        "schema_baseline": growth.schema_baseline,
+        "comparable_channel_keys": list(growth.comparable_channel_keys),
+        "ds_comparable_correctable_baseline": growth.comparable_correctable_baseline,
+        "ds_comparable_uncorrectable_baseline": growth.comparable_uncorrectable_baseline,
+        "ds_raw_uncorrectable_baseline": growth.raw_uncorrectable_baseline,
+        "ds_comparable_correctable_recent_delta": growth.comparable_correctable_recent_delta,
+        "ds_comparable_uncorrectable_recent_delta": growth.comparable_uncorrectable_recent_delta,
+        "ds_raw_uncorrectable_recent_delta": growth.raw_uncorrectable_recent_delta,
+        "ds_comparable_correctable_delta": growth.comparable_correctable_delta,
+        "ds_comparable_uncorrectable_delta": growth.comparable_uncorrectable_delta,
+        "ds_raw_uncorrectable_delta": growth.raw_uncorrectable_delta,
+        # Compatibility aliases now explicitly describe the comparable cohort.
+        "ds_correctable_baseline": growth.comparable_correctable_baseline,
+        "ds_uncorrectable_baseline": growth.comparable_uncorrectable_baseline,
+        "ds_correctable_recent_delta": growth.comparable_correctable_recent_delta,
+        "ds_uncorrectable_recent_delta": growth.comparable_uncorrectable_recent_delta,
+        "ds_correctable_delta": growth.comparable_correctable_delta,
+        "ds_uncorrectable_delta": growth.comparable_uncorrectable_delta,
     }
     _recalculate_summary_health(summary)
 
@@ -1032,19 +1028,9 @@ def analyze(data: DocsisData) -> AnalysisResult:
     us_powers = [c["power"] for c in us_channels if c["power"] is not None]
     ds_snrs = [c["snr"] for c in ds_channels if c["snr"] is not None]
 
-    has_corr_data = any(c["correctable_errors"] is not None for c in ds_channels)
-    has_uncorr_data = any(c["uncorrectable_errors"] is not None for c in ds_channels)
-    has_error_data = has_corr_data or has_uncorr_data
-    total_corr = (
-        sum(c["correctable_errors"] for c in ds_channels if c["correctable_errors"] is not None)
-        if has_corr_data
-        else None
-    )
-    total_uncorr = (
-        sum(c["uncorrectable_errors"] for c in ds_channels if c["uncorrectable_errors"] is not None)
-        if has_uncorr_data
-        else None
-    )
+    error_counters = aggregate_error_counters(ds_channels)
+    total_corr = error_counters.raw_correctable
+    total_uncorr = error_counters.raw_uncorrectable
 
     ds_bitrates = [c["theoretical_bitrate"] for c in ds_channels if c.get("theoretical_bitrate") is not None]
     ds_capacity = round(sum(ds_bitrates), 1) if ds_bitrates else None
@@ -1073,7 +1059,10 @@ def analyze(data: DocsisData) -> AnalysisResult:
         "ds_snr_avg": round(sum(ds_snrs) / len(ds_snrs), 1) if ds_snrs else 0,
         "ds_correctable_errors": total_corr,
         "ds_uncorrectable_errors": total_uncorr,
-        "errors_supported": has_error_data,
+        "ds_comparable_correctable_errors": error_counters.comparable_correctable,
+        "ds_comparable_uncorrectable_errors": error_counters.comparable_uncorrectable,
+        "error_counter_coverage": error_counters.coverage_dict(),
+        "errors_supported": error_counters.supported,
         "ds_capacity_mbps": ds_capacity,
         "us_capacity_mbps": us_capacity,
         "capacity_coverage": capacity_coverage,
@@ -1139,19 +1128,17 @@ def analyze(data: DocsisData) -> AnalysisResult:
     elif any("snr tolerated" in c["health_detail"] for c in ds_channels):
         issues.append("snr_tolerated")
 
-    total_codewords = (total_corr or 0) + (total_uncorr or 0)
     et = _get_uncorr_thresholds()
-    if has_corr_data and has_uncorr_data:
-        if total_codewords >= et["min_codewords"]:
-            uncorr_pct = round(((total_uncorr or 0) / total_codewords) * 100, 2)
-            if uncorr_pct >= et["critical"]:
-                issues.append("uncorr_errors_critical")
-            elif uncorr_pct >= et["warning"]:
-                issues.append("uncorr_errors_high")
-        else:
-            uncorr_pct = 0.0
-    else:
-        uncorr_pct = None
+    uncorr_pct = uncorrectable_percentage(
+        error_counters.comparable_correctable,
+        error_counters.comparable_uncorrectable,
+        min_codewords=et["min_codewords"],
+    )
+    if uncorr_pct is not None:
+        if uncorr_pct >= et["critical"]:
+            issues.append("uncorr_errors_critical")
+        elif uncorr_pct >= et["warning"]:
+            issues.append("uncorr_errors_high")
     summary["ds_uncorr_pct"] = uncorr_pct
 
     if not issues:

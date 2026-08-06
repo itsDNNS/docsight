@@ -28,7 +28,7 @@ def sample_analysis():
 
 class TestSnapshotStorage:
     def test_current_analyzer_schema_and_builtin_profile_versions(self):
-        assert analyzer.ANALYZER_SCHEMA_VERSION == 2
+        assert analyzer.ANALYZER_SCHEMA_VERSION == 3
         assert BUILTIN_THRESHOLD_PROFILES[0]["version"] == "1.1.0"
 
     def test_save_and_list(self, storage, sample_analysis):
@@ -268,6 +268,33 @@ class TestSnapshotStorage:
 
         assert intraday[0]["ds_correctable_errors"] == 0
         assert intraday[0]["ds_uncorrectable_errors"] == 0
+
+    def test_snapshot_preserves_raw_mixed_counter_values_and_additive_coverage(self, storage, sample_analysis):
+        sample_analysis["summary"].update({
+            "errors_supported": True,
+            "ds_correctable_errors": 9900,
+            "ds_uncorrectable_errors": 1100,
+            "ds_comparable_correctable_errors": 9900,
+            "ds_comparable_uncorrectable_errors": 100,
+            "ds_uncorr_pct": 1.0,
+            "error_counter_coverage": {
+                "total_channels": 2,
+                "correctable_channels": 1,
+                "uncorrectable_channels": 2,
+                "comparable_channels": 1,
+                "partial_channels": 1,
+                "unsupported_channels": 0,
+                "families": {},
+            },
+        })
+
+        storage.save_snapshot(sample_analysis)
+        snapshot = storage.get_latest_snapshot()
+
+        assert snapshot["summary"]["ds_correctable_errors"] == 9900
+        assert snapshot["summary"]["ds_uncorrectable_errors"] == 1100
+        assert snapshot["summary"]["ds_uncorr_pct"] == 1.0
+        assert snapshot["summary"]["error_counter_coverage"]["comparable_channels"] == 1
 
     def test_summary_trends_unwrap_aggregate_uint32_counter_wrap(self, storage):
         summaries = [

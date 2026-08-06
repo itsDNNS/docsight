@@ -612,17 +612,27 @@ class EventDetector:
         delta = uncorr_cur - uncorr_prev
 
         if delta > UNCORR_SPIKE_THRESHOLD:
+            details = {
+                "prev": uncorr_prev,
+                "current": uncorr_cur,
+                "delta": delta,
+                "threshold_delta": UNCORR_SPIKE_THRESHOLD,
+                "basis": "raw_all_supported_downstream_channels",
+            }
+            baseline = cur.get("error_baseline")
+            if isinstance(baseline, dict):
+                raw_recent = baseline.get("ds_raw_uncorrectable_recent_delta")
+                comparable_recent = baseline.get("ds_comparable_uncorrectable_recent_delta")
+                if raw_recent is not None:
+                    details["raw_uncorrectable_recent_delta"] = raw_recent
+                if comparable_recent is not None:
+                    details["comparable_uncorrectable_recent_delta"] = comparable_recent
             events.append({
                 "timestamp": ts,
                 "severity": "warning",
                 "event_type": "error_spike",
                 "message": f"Uncorrectable errors jumped by {delta:,} (from {uncorr_prev:,} to {uncorr_cur:,})",
-                "details": {
-                    "prev": uncorr_prev,
-                    "current": uncorr_cur,
-                    "delta": delta,
-                    "threshold_delta": UNCORR_SPIKE_THRESHOLD,
-                },
+                "details": details,
             })
 
     def _check_restart(self, events, ts, cur, prev):

@@ -9,7 +9,7 @@ from typing import Any, Mapping, Sequence
 
 import pytest
 
-from app.analyzer import analyze, apply_cumulative_error_baseline
+from app.analyzer import ANALYZER_SCHEMA_VERSION, analyze, apply_cumulative_error_baseline
 from app.event_detector import EventDetector
 from app.modules.evidence.checklist import build_checklist
 
@@ -68,6 +68,8 @@ def _assert_channel_expectations(channels: Sequence[Mapping[str, Any]], expected
 def test_docsis_fixture_analyzer_golden_contracts(fixture_path: Path):
     case = _load_case(fixture_path)
     previous = analyze(case["previous_raw"]) if "previous_raw" in case else None
+    if previous is not None:
+        previous["analysis_meta"] = {"analyzer_schema": ANALYZER_SCHEMA_VERSION}
     analysis = analyze(case["raw"])
     if case.get("postprocess") == "cumulative_error_baseline":
         apply_cumulative_error_baseline(analysis, previous, recent_spike_active=False)

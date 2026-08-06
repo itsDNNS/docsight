@@ -123,18 +123,32 @@ class SpikeSuppression(TypedDict):
     expiry_hours: int
 
 
-class ErrorBaseline(TypedDict):
+class ErrorBaseline(TypedDict, total=False):
     """Observed cumulative counter baseline metadata."""
 
     active: bool
     basis: str
     counter_reset: bool
-    ds_correctable_baseline: int
-    ds_uncorrectable_baseline: int
-    ds_correctable_recent_delta: int
-    ds_uncorrectable_recent_delta: int
-    ds_correctable_delta: int
-    ds_uncorrectable_delta: int
+    comparable_counter_reset: bool
+    raw_uncorrectable_counter_reset: bool
+    schema_baseline: bool
+    comparable_channel_keys: list[str]
+    ds_comparable_correctable_baseline: int | None
+    ds_comparable_uncorrectable_baseline: int | None
+    ds_raw_uncorrectable_baseline: int | None
+    ds_comparable_correctable_recent_delta: int | None
+    ds_comparable_uncorrectable_recent_delta: int | None
+    ds_raw_uncorrectable_recent_delta: int | None
+    ds_comparable_correctable_delta: int | None
+    ds_comparable_uncorrectable_delta: int | None
+    ds_raw_uncorrectable_delta: int | None
+    # Compatibility aliases for the comparable cohort.
+    ds_correctable_baseline: int | None
+    ds_uncorrectable_baseline: int | None
+    ds_correctable_recent_delta: int | None
+    ds_uncorrectable_recent_delta: int | None
+    ds_correctable_delta: int | None
+    ds_uncorrectable_delta: int | None
 
 
 # ── Analysis Summary ─────────────────────────────────────────────
@@ -212,6 +226,23 @@ class SignalFamiliesSummary(TypedDict):
     upstream: SignalDirectionSummary
 
 
+class ErrorCounterCoverageCounts(TypedDict):
+    """Per-scope downstream error-counter support counts."""
+
+    total_channels: int
+    correctable_channels: int
+    uncorrectable_channels: int
+    comparable_channels: int
+    partial_channels: int
+    unsupported_channels: int
+
+
+class ErrorCounterCoverage(ErrorCounterCoverageCounts):
+    """Overall downstream coverage with additive DOCSIS family context."""
+
+    families: dict[str, ErrorCounterCoverageCounts]
+
+
 class AnalysisSummary(TypedDict):
     """Summary metrics from analyzer.analyze()."""
 
@@ -228,6 +259,9 @@ class AnalysisSummary(TypedDict):
     ds_snr_avg: float
     ds_correctable_errors: int | None
     ds_uncorrectable_errors: int | None
+    ds_comparable_correctable_errors: int | None
+    ds_comparable_uncorrectable_errors: int | None
+    error_counter_coverage: ErrorCounterCoverage
     errors_supported: bool
     ds_capacity_mbps: float | None
     us_capacity_mbps: float | None

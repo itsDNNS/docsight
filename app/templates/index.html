@@ -1014,7 +1014,11 @@
         {% endif %}
 
         {# Card 4: Errors #}
-        {% if (s.errors_supported is not defined or s.errors_supported) and s.ds_uncorr_pct is not none %}
+        {% if (s.errors_supported is not defined or s.errors_supported) and (s.ds_correctable_errors is not none or s.ds_uncorrectable_errors is not none) %}
+        {% set error_coverage = s.get('error_counter_coverage', {}) %}
+        {% set comparable_channels = error_coverage.get('comparable_channels', s.ds_total if s.ds_uncorr_pct is not none else 0) %}
+        {% set error_total_channels = error_coverage.get('total_channels', s.ds_total) %}
+        {% set error_coverage_text = t.get('error_ratio_coverage', 'Calculated from {comparable} of {total} downstream channels').replace('{comparable}', comparable_channels|string).replace('{total}', error_total_channels|string) %}
         <div class="metric-card glass" id="metric-errors-card">
             <span class="glossary-hint" data-glossary-term-id="uncorrectable_errors" data-glossary-term-label="{{ t.get('glossary_page_title', 'Glossary') }}"><i data-lucide="info"></i><div class="glossary-popover">{{ t.glossary_errors }}</div></span>
             <div class="metric-header">
@@ -1022,21 +1026,37 @@
                 <div class="metric-icon amber"><i data-lucide="alert-triangle"></i></div>
             </div>
             <div class="metric-value-row">
+                {% if s.ds_uncorr_pct is not none %}
                 <div class="metric-value" style="color:var(--{{ error_health }});">{{ s.ds_uncorr_pct }}<span class="unit">%</span></div>
+                {% else %}
+                <div class="metric-value" style="color:var(--muted);">{{ t.get('error_ratio_unavailable', 'Share unavailable') }}</div>
+                {% endif %}
                 <canvas class="metric-spark" id="spark-errors" width="144" height="56" aria-hidden="true"></canvas>
             </div>
             <div class="metric-sub metric-status-row">
                 <span class="metric-context">
-                    <span class="metric-sub-label">{{ t.get('metric_status_label', 'Status') }}</span>
+                    <span class="metric-sub-label">{{ t.get('error_ratio_comparable_label', 'Uncorrectable error share') }}</span>
+                    {% if s.ds_uncorr_pct is not none %}
                     <span class="badge badge-{{ error_health }}">{{ health_labels[error_health] }}</span>
+                    {% endif %}
                 </span>
+                <span class="range">{{ error_coverage_text }}</span>
             </div>
-            {% set error_count_caption %}
-                    {% if s.ds_correctable_errors is not none %}{{ s.ds_correctable_errors|fmt_k }} {{ t.corr }}{% endif %}
-                    {% if s.ds_correctable_errors is not none and s.ds_uncorrectable_errors is not none %} / {% endif %}
-                    {% if s.ds_uncorrectable_errors is not none %}{{ s.ds_uncorrectable_errors|fmt_k }} {{ t.uncorr }}{% endif %}
-            {% endset %}
-            {{ metric_range_viz(metric_ranges.errors, error_health, health_labels.good, t.get('metric_error_count', 'Error count'), error_count_caption|trim) }}
+            <div class="metric-range-caption">
+                {% if s.ds_correctable_errors is not none %}
+                <span>{{ t.get('error_raw_correctable_total', 'Raw correctable total') }}</span>
+                <strong>{{ s.ds_correctable_errors|fmt_k }}</strong>
+                {% endif %}
+            </div>
+            <div class="metric-range-caption">
+                {% if s.ds_uncorrectable_errors is not none %}
+                <span>{{ t.get('error_raw_uncorrectable_total', 'Raw uncorrectable total') }}</span>
+                <strong>{{ s.ds_uncorrectable_errors|fmt_k }}</strong>
+                {% endif %}
+            </div>
+            {% if s.ds_uncorr_pct is not none %}
+            {{ metric_range_viz(metric_ranges.errors, error_health, health_labels.good) }}
+            {% endif %}
         </div>
         {% endif %}
 

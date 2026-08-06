@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from app.storage import SnapshotStorage
-from app.analyzer import analyze
+from app.analyzer import analyze, apply_cumulative_error_baseline
 from app.event_detector import EventDetector
 from app.web import app, init_config, init_storage
 from app.config import ConfigManager
@@ -895,6 +895,40 @@ class TestEventDetector:
         err_events = [e for e in events if e["event_type"] == "error_spike"]
         assert len(err_events) == 1
         assert err_events[0]["severity"] == "warning"
+
+    def test_error_spike_uses_raw_all_channel_uncorrectable_growth(self, detector):
+        """Uncorrectable-only channel growth remains event evidence."""
+        previous = analyze({
+            "channelDs": {
+                "docsis30": [{"channelID": 1, "powerLevel": "0", "modulation": "256QAM",
+                              "mse": "-35", "corrErrors": 9900, "nonCorrErrors": 100}],
+                "docsis31": [{"channelID": 100, "powerLevel": "0", "type": "OFDM",
+                              "mer": "38", "nonCorrErrors": 1000}],
+            },
+            "channelUs": {"docsis30": [], "docsis31": []},
+        })
+        current = analyze({
+            "channelDs": {
+                "docsis30": [{"channelID": 1, "powerLevel": "0", "modulation": "256QAM",
+                              "mse": "-35", "corrErrors": 9900, "nonCorrErrors": 100}],
+                "docsis31": [{"channelID": 100, "powerLevel": "0", "type": "OFDM",
+                              "mer": "38", "nonCorrErrors": 2501}],
+            },
+            "channelUs": {"docsis30": [], "docsis31": []},
+        })
+        previous["analysis_meta"] = {"analyzer_schema": 3}
+        apply_cumulative_error_baseline(current, previous)
+
+        detector.check(previous)
+        events = detector.check(current)
+
+        event = next(event for event in events if event["event_type"] == "error_spike")
+        assert event["details"]["delta"] == 1501
+        assert event["details"]["basis"] == "raw_all_supported_downstream_channels"
+        assert event["details"]["raw_uncorrectable_recent_delta"] == 1501
+        assert event["details"]["comparable_uncorrectable_recent_delta"] == 0
+        assert current["summary"]["ds_uncorr_pct"] == 0.0
+        assert "uncorr_errors_critical" not in current["summary"]["health_issues"]
 
     def test_error_no_spike_small_increase(self, detector):
         detector.check(_make_analysis(ds_uncorrectable_errors=100))
