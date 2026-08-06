@@ -6,7 +6,7 @@ This page keeps public positioning honest by separating shipped capabilities fro
 
 | Area | Status | Notes |
 |---|---|---|
-| DOCSIS signal monitoring | Shipped | Signal health, channels, modulation, SNR and power history for supported modem families. |
+| DOCSIS signal monitoring | Shipped | Signal health, channels, modulation, SNR, power history, raw error counters and comparable-channel error coverage for supported modem families. |
 | Generic Router mode | Shipped | Useful for non-cable connections, but strongest DOCSIS evidence needs cable signal data. |
 | Demo mode | Shipped | Generates realistic synthetic history for evaluation without a modem. |
 | Correlation analysis | Shipped | Combines signal, speed, latency, events and notes into one investigation view. |
