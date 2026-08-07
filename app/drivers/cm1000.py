@@ -1,24 +1,23 @@
 """Netgear CM1000 driver for DOCSight.
 
-The CM1000 exposes server-rendered DOCSIS channel tables on
-``/DocsisStatus.asp``. Firmware variants use either HTTP Basic auth or a
-Netgear Genie form login with a per-page ``webToken``. The driver supports
-both authentication styles and maps table columns by header name so layouts
-with or without an ``Unerrored Codewords`` column are handled correctly.
+The CM1000 exposes DOCSIS channel data on ``/DocsisStatus.asp``. Firmware
+variants use either pipe-delimited JavaScript values or server-rendered
+tables, and authenticate with HTTP Basic auth or a Netgear Genie form login
+with a per-page ``webToken``. Table columns are mapped by header name so
+layouts with or without an ``Unerrored Codewords`` column remain compatible.
 """
 
 from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
 
+from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 from .base import ModemDriver
 from .utils import hz_to_mhz, normalize_modulation
-from ..types import ConnectionInfo, DeviceInfo, DocsisData, RawChannel
 
 log = logging.getLogger("docsis.driver.cm1000")
 
@@ -28,6 +27,17 @@ _LOGIN_ACTION = "/goform/GenieLogin"
 _TABLE_IDS = ("dsTable", "usTable", "d31dsTable", "d31usTable")
 _NUMBER_RE = re.compile(r"[-+]?\d+(?:\.\d+)?")
 _HEADER_RE = re.compile(r"[^a-z0-9]+")
+_FUNCTION_START_RE = re.compile(r"function\s+(?P<name>\w+)\s*\(\)\s*\{")
+_TAG_VALUE_ASSIGNMENT_RE = re.compile(
+    r"\bvar\s+tagValueList\s*=\s*(?P<value>.*?);", re.DOTALL
+)
+_STRING_LITERAL_RE = re.compile(
+    r"'(?P<single>(?:\\.|[^'\\])*)'|\"(?P<double>(?:\\.|[^\"\\])*)\"",
+    re.DOTALL,
+)
+_DS_TAG_VALUE_FUNCTION = "InitDsTableTagValue"
+_US_TAG_VALUE_FUNCTION = "InitUsTableTagValue"
+_TAG_VALUE_FIELDS_PER_ROW = 7
 
 # CM1000 downstream SC-QAM channels use the North American 6 MHz
 # ITU-T J.83 Annex B profiles. The modem status page does not expose symbol
@@ -128,15 +138,23 @@ class CM1000Driver(ModemDriver):
                 ) from exc
             except requests.RequestException as exc:
                 raise RuntimeError(f"CM1000 authentication failed: {exc}") from exc
-            except RuntimeError:
-                raise
 
     def get_docsis_data(self) -> DocsisData:
         html = self._fetch_status_page()
         soup = BeautifulSoup(html, "html.parser")
 
-        ds30 = self._parse_downstream_table(soup, "dsTable", docsis31=False)
-        us30 = self._parse_upstream_table(soup, "usTable", docsis31=False)
+        ds_tag_values = self._extract_tag_value_list(html, _DS_TAG_VALUE_FUNCTION)
+        if ds_tag_values is not None:
+            ds30 = self._parse_downstream_tag_values(ds_tag_values)
+        else:
+            ds30 = self._parse_downstream_table(soup, "dsTable", docsis31=False)
+
+        us_tag_values = self._extract_tag_value_list(html, _US_TAG_VALUE_FUNCTION)
+        if us_tag_values is not None:
+            us30 = self._parse_upstream_tag_values(us_tag_values)
+        else:
+            us30 = self._parse_upstream_table(soup, "usTable", docsis31=False)
+
         ds31 = self._parse_downstream_table(soup, "d31dsTable", docsis31=True)
         us31 = self._parse_upstream_table(soup, "d31usTable", docsis31=True)
 
@@ -198,9 +216,10 @@ class CM1000Driver(ModemDriver):
         payload["loginPassword"] = self._password
         payload.setdefault("login", "1")
 
-        action = str(form.get("action") or _LOGIN_ACTION)
-        post_url = urljoin(self._url + "/", action.lstrip("/"))
-        submit = self._session.post(post_url, data=payload, timeout=30)
+        post_url = self._url + _LOGIN_ACTION
+        submit = self._session.post(
+            post_url, data=payload, timeout=30, allow_redirects=False
+        )
         submit.raise_for_status()
 
     @staticmethod
@@ -208,7 +227,12 @@ class CM1000Driver(ModemDriver):
         if not html:
             return False
         soup = BeautifulSoup(html, "html.parser")
-        return any(soup.find("table", id=table_id) is not None for table_id in _TABLE_IDS)
+        if any(soup.find("table", id=table_id) is not None for table_id in _TABLE_IDS):
+            return True
+        return any(
+            CM1000Driver._extract_tag_value_list(html, function_name) is not None
+            for function_name in (_DS_TAG_VALUE_FUNCTION, _US_TAG_VALUE_FUNCTION)
+        )
 
     @staticmethod
     def _ensure_status_page(html: str) -> None:
@@ -278,6 +302,184 @@ class CM1000Driver(ModemDriver):
         if not value:
             value = cls._get(row, "channel") or row.get("0", "")
         return cls._parse_int(value)
+
+    @classmethod
+    def _parse_downstream_tag_values(cls, raw: str) -> list[RawChannel]:
+        """Parse seven-field DOCSIS 3.0 downstream JavaScript rows."""
+        rows = cls._split_tag_value_rows(raw)
+        if rows is None:
+            return []
+
+        result: list[RawChannel] = []
+        for row in rows:
+            if row[1].strip().lower() != "locked":
+                continue
+
+            channel_id = cls._parse_int(row[3])
+            if channel_id is None:
+                continue
+            snr = cls._parse_float(row[6])
+            modulation = normalize_modulation(row[2])
+            channel: RawChannel = {
+                "channelID": channel_id,
+                "frequency": hz_to_mhz(row[4]),
+                "powerLevel": cls._parse_float(row[5]),
+                "mer": snr,
+                "mse": -snr if snr is not None else None,
+                "modulation": modulation,
+                "corrErrors": None,
+                "nonCorrErrors": None,
+            }
+            symbol_rate = _ANNEX_B_DOWNSTREAM_SYMBOL_RATES.get(modulation)
+            if symbol_rate is not None:
+                channel["symbolRate"] = symbol_rate
+            result.append(channel)
+        return result
+
+    @classmethod
+    def _parse_upstream_tag_values(cls, raw: str) -> list[RawChannel]:
+        """Parse seven-field DOCSIS 3.0 upstream JavaScript rows."""
+        rows = cls._split_tag_value_rows(raw)
+        if rows is None:
+            return []
+
+        result: list[RawChannel] = []
+        for row in rows:
+            if row[1].strip().lower() != "locked":
+                continue
+
+            channel_id = cls._parse_int(row[3])
+            if channel_id is None:
+                continue
+            modulation = normalize_modulation(row[2])
+            channel: RawChannel = {
+                "channelID": channel_id,
+                "frequency": hz_to_mhz(row[5]),
+                "powerLevel": cls._parse_float(row[6]),
+                "modulation": modulation,
+                "multiplex": modulation,
+            }
+            symbol_rate = cls._parse_int(row[4])
+            if symbol_rate is not None:
+                channel["symbolRate"] = symbol_rate
+            result.append(channel)
+        return result
+
+    @staticmethod
+    def _extract_function_body(html: str, function_name: str) -> str | None:
+        """Return the body of a named no-argument JavaScript function."""
+        for match in _FUNCTION_START_RE.finditer(html):
+            if match.group("name") != function_name:
+                continue
+
+            body_start = match.end()
+            depth = 1
+            index = body_start
+            while index < len(html) and depth:
+                if html[index] == "{":
+                    depth += 1
+                elif html[index] == "}":
+                    depth -= 1
+                index += 1
+
+            if depth == 0:
+                return html[body_start : index - 1]
+            return None
+        return None
+
+    @staticmethod
+    def _strip_javascript_comments(source: str) -> str:
+        """Remove JavaScript comments while preserving quoted string contents."""
+        result: list[str] = []
+        index = 0
+        quote: str | None = None
+
+        while index < len(source):
+            char = source[index]
+            if quote is not None:
+                result.append(char)
+                if char == "\\" and index + 1 < len(source):
+                    index += 1
+                    result.append(source[index])
+                elif char == quote:
+                    quote = None
+                index += 1
+                continue
+
+            if char in {"'", '"'}:
+                quote = char
+                result.append(char)
+                index += 1
+                continue
+
+            if source.startswith("//", index):
+                newline = source.find("\n", index + 2)
+                if newline == -1:
+                    break
+                result.append("\n")
+                index = newline + 1
+                continue
+
+            if source.startswith("/*", index):
+                comment_end = source.find("*/", index + 2)
+                if comment_end == -1:
+                    break
+                result.append(" ")
+                index = comment_end + 2
+                continue
+
+            result.append(char)
+            index += 1
+
+        return "".join(result)
+
+    @classmethod
+    def _extract_tag_value_list(cls, html: str, function_name: str) -> str | None:
+        """Extract the live, possibly concatenated tagValueList assignment."""
+        body = cls._extract_function_body(html, function_name)
+        if body is None:
+            return None
+
+        body = cls._strip_javascript_comments(body)
+        assignment = _TAG_VALUE_ASSIGNMENT_RE.search(body)
+        if assignment is None:
+            return None
+
+        literals: list[str] = []
+        for match in _STRING_LITERAL_RE.finditer(assignment.group("value")):
+            value = match.group("single")
+            if value is None:
+                value = match.group("double")
+            literals.append(
+                value.replace(r"\'", "'")
+                .replace(r'\"', '"')
+                .replace(r"\\", "\\")
+            )
+        if not literals:
+            return None
+
+        payload = "".join(literals)
+        return payload if cls._split_tag_value_rows(payload) is not None else None
+
+    @staticmethod
+    def _split_tag_value_rows(raw: str) -> list[list[str]] | None:
+        """Validate and split a leading-count tagValueList into seven-field rows."""
+        parts = raw.split("|")
+        count_prefix = parts[0].strip()
+        if not count_prefix.isdecimal():
+            return None
+
+        row_count = int(count_prefix)
+        values = parts[1:]
+        if values and not values[-1]:
+            values.pop()
+        if len(values) != row_count * _TAG_VALUE_FIELDS_PER_ROW:
+            return None
+
+        return [
+            values[index : index + _TAG_VALUE_FIELDS_PER_ROW]
+            for index in range(0, len(values), _TAG_VALUE_FIELDS_PER_ROW)
+        ]
 
     @classmethod
     def _parse_downstream_table(

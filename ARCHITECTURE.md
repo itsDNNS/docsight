@@ -408,6 +408,7 @@ class ModemDriver(ABC):
 | `cm3500` | `cm3500.py` | Arris CM3500B | Form POST (IP-based session) |
 | `connectbox` | `connectbox.py` | Unitymedia Connect Box (CH7465) | Session cookie |
 | `vodafone_station` | `vodafone_station.py` | CGA6444VF, CGA4322DE, TG3442DE | Auto-detected (see below) |
+| `cm1000` | `cm1000.py` | Netgear CM1000 | HTTP Basic or local Genie form |
 | `cm3000` | `cm3000.py` | Netgear CM3000 | HTTP Basic Auth |
 | `surfboard` | `surfboard.py` | Arris SURFboard S33/S34/SB8200 | HNAP1 HMAC-SHA256 |
 | `sb6183` | `sb6183.py` | Arris SB6183 | None (HTTP status pages) |

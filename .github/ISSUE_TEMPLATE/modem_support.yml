@@ -27,7 +27,7 @@ body:
     attributes:
       label: "Model Number"
       description: "Full model number (check the label on the device)"
-      placeholder: "e.g., Arris TG3442DE, Netgear CM1000"
+      placeholder: "e.g., Arris TG3442DE, Motorola MB8611"
     validations:
       required: true
 

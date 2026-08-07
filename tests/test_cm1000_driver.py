@@ -1,9 +1,14 @@
+from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 import requests
 
 from app.drivers.cm1000 import CM1000Driver
+
+CM1000_JS_HTML = (
+    Path(__file__).parent / "fixtures" / "cm1000" / "DocsisStatus.asp.html"
+).read_text(encoding="utf-8")
 
 STATUS_HTML = """
 <html><head><title>NETGEAR Cable Modem CM1000</title></head><body>
@@ -104,8 +109,66 @@ def test_login_uses_genie_webtoken_form_flow(driver):
             "loginPassword": "secret",
         },
         timeout=30,
+        allow_redirects=False,
     )
     assert driver._status_html == STATUS_HTML
+
+
+@pytest.mark.parametrize(
+    "hostile_action",
+    ["https://attacker.invalid/collect", "//attacker.invalid/collect"],
+)
+def test_form_login_never_posts_credentials_to_form_action(driver, hostile_action):
+    hostile_login_html = LOGIN_HTML.replace(
+        'action="/goform/GenieLogin"', f'action="{hostile_action}"'
+    )
+
+    with patch.object(
+        driver._session, "get", return_value=response(hostile_login_html)
+    ), patch.object(driver._session, "post", return_value=response("ok")) as post:
+        driver._login_via_form()
+
+    post.assert_called_once_with(
+        "http://192.168.100.1/goform/GenieLogin",
+        data={
+            "webToken": "abc123",
+            "login": "1",
+            "loginUsername": "admin",
+            "loginPassword": "secret",
+        },
+        timeout=30,
+        allow_redirects=False,
+    )
+    assert hostile_action not in [args[0] for args, _kwargs in post.call_args_list]
+
+
+def test_form_login_disables_redirects(driver):
+    with patch.object(
+        driver._session, "get", return_value=response(LOGIN_HTML)
+    ), patch.object(driver._session, "post", return_value=response("", 302)) as post:
+        driver._login_via_form()
+
+    assert post.call_args.kwargs["allow_redirects"] is False
+
+
+def test_login_clears_basic_auth_before_form_post_and_retries_status_page(driver):
+    auth_during_post = []
+
+    def submit(*_args, **_kwargs):
+        auth_during_post.append(driver._session.auth)
+        return response("", 302)
+
+    with patch.object(
+        driver._session,
+        "get",
+        side_effect=[response("login", 401), response(LOGIN_HTML), response(STATUS_HTML)],
+    ) as get, patch.object(driver._session, "post", side_effect=submit):
+        driver.login()
+
+    assert auth_during_post == [None]
+    assert get.call_args_list[-1] == call(
+        "http://192.168.100.1/DocsisStatus.asp", timeout=30
+    )
 
 
 def test_login_rejects_non_status_page_after_form_login(driver):
@@ -113,9 +176,10 @@ def test_login_rejects_non_status_page_after_form_login(driver):
         driver._session,
         "get",
         side_effect=[response("login", 401), response(LOGIN_HTML), response("still login")],
-    ), patch.object(driver._session, "post", return_value=response("ok")):
-        with pytest.raises(RuntimeError, match="did not return DocsisStatus.asp"):
-            driver.login()
+    ), patch.object(
+        driver._session, "post", return_value=response("ok")
+    ), pytest.raises(RuntimeError, match="did not return DocsisStatus.asp"):
+        driver.login()
 
 
 def test_login_retries_once_on_connection_reset(driver):
@@ -177,6 +241,133 @@ def test_parses_all_four_channel_families(driver):
         "modulation": "OFDMA",
         "multiplex": "",
     }]
+
+
+def test_real_javascript_fixture_is_recognized_and_parsed(driver):
+    assert driver._is_status_page(CM1000_JS_HTML)
+    driver._status_html = CM1000_JS_HTML
+
+    data = driver.get_docsis_data()
+
+    assert data["channelDs"]["docsis30"] == [{
+        "channelID": 143,
+        "frequency": "453 MHz",
+        "powerLevel": -2.5,
+        "mer": 48.5,
+        "mse": -48.5,
+        "modulation": "64QAM",
+        "symbolRate": 5057,
+        "corrErrors": None,
+        "nonCorrErrors": None,
+    }]
+    assert data["channelUs"]["docsis30"] == [{
+        "channelID": 1,
+        "frequency": "33 MHz",
+        "powerLevel": 34.8,
+        "modulation": "TDMA",
+        "multiplex": "TDMA",
+        "symbolRate": 2560,
+    }]
+    assert data["channelDs"]["docsis31"] == []
+    assert data["channelUs"]["docsis31"] == []
+
+
+def test_javascript_families_take_precedence_and_docsis31_tables_remain_fallback(driver):
+    driver._status_html = CM1000_JS_HTML + STATUS_HTML
+
+    data = driver.get_docsis_data()
+
+    assert [channel["channelID"] for channel in data["channelDs"]["docsis30"]] == [143]
+    assert [channel["channelID"] for channel in data["channelUs"]["docsis30"]] == [1]
+    assert [channel["channelID"] for channel in data["channelDs"]["docsis31"]] == [159]
+    assert [channel["channelID"] for channel in data["channelUs"]["docsis31"]] == [41]
+
+
+def test_malformed_javascript_function_falls_back_to_downstream_table(driver):
+    driver._status_html = """
+    <script>
+    function InitDsTableTagValue()
+    {
+        /* var tagValueList = '1|comment-only'; */
+        return [];
+    }
+    </script>
+    """ + SIXTY_FOUR_QAM_HTML
+
+    channels = driver.get_docsis_data()["channelDs"]["docsis30"]
+
+    assert [channel["channelID"] for channel in channels] == [2]
+
+
+def test_empty_javascript_payload_falls_back_to_downstream_table(driver):
+    javascript = """
+    <script>
+    function InitDsTableTagValue()
+    {
+        var tagValueList = "";
+        return tagValueList.split("|");
+    }
+    </script>
+    """
+    assert not driver._is_status_page(javascript)
+    driver._status_html = javascript + SIXTY_FOUR_QAM_HTML
+
+    channels = driver.get_docsis_data()["channelDs"]["docsis30"]
+
+    assert [channel["channelID"] for channel in channels] == [2]
+
+
+def test_mismatched_javascript_count_falls_back_to_downstream_table(driver):
+    javascript = """
+    <script>
+    function InitDsTableTagValue()
+    {
+        var tagValueList = "2|1|Locked|256QAM|99|591000000|-2.5|40.0";
+        return tagValueList.split("|");
+    }
+    </script>
+    """
+    assert not driver._is_status_page(javascript)
+    driver._status_html = javascript + SIXTY_FOUR_QAM_HTML
+
+    channels = driver.get_docsis_data()["channelDs"]["docsis30"]
+
+    assert [channel["channelID"] for channel in channels] == [2]
+
+
+def test_valid_zero_row_javascript_payload_suppresses_table_fallback(driver):
+    javascript = """
+    <script>
+    function InitDsTableTagValue()
+    {
+        var tagValueList = "0";
+        return tagValueList.split("|");
+    }
+    </script>
+    """
+    assert driver._is_status_page(javascript)
+    driver._status_html = javascript + SIXTY_FOUR_QAM_HTML
+
+    channels = driver.get_docsis_data()["channelDs"]["docsis30"]
+
+    assert channels == []
+
+
+def test_line_commented_placeholder_is_ignored_before_live_assignment(driver):
+    driver._status_html = """
+    <script>
+    function InitDsTableTagValue()
+    {
+        // var tagValueList = "1|placeholder|Locked|256QAM|98|591000000|0|40";
+        var tagValueList = "1|http://modem/status|Locked|64QAM|99|453000000|-2.5|48.5";
+        return tagValueList.split("|");
+    }
+    </script>
+    """ + SIXTY_FOUR_QAM_HTML
+
+    channels = driver.get_docsis_data()["channelDs"]["docsis30"]
+
+    assert [channel["channelID"] for channel in channels] == [99]
 
 
 def test_header_mapping_supports_layout_without_unerrored_column(driver):

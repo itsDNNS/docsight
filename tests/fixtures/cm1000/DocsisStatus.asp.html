@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+    <title>NETGEAR Modem CM1000v2</title>
+    <script type="text/javascript">
+        function InitUsTableTagValue()
+        {
+            /*
+              Channel (text) | Lock Status (text) | US Channel Type (text) | Channel ID (text) | Symbol Rate (text) | Frequency (text) | Power (text)
+            */
+            /*
+                var tagValueList = "4" +
+                    "|1|Not Locked|Unknown|0|0|0|0.0" +
+                    "|2|Not Locked|Unknown|0|0|0|0.0" +
+                    "|3|Not Locked|Unknown|0|0|0|0.0" +
+                    "|4|Not Locked|Unknown|0|0|0|0.0";
+            */
+            var tagValueList = '4|1|Locked|TDMA|1|2560|33000000 Hz|34.8|2|Not Locked|Unknown|0|0|0 Hz|0.0|3|Not Locked|Unknown|0|0|0 Hz|0.0|4|Not Locked|Unknown|0|0|0 Hz|0.0';
+
+            return tagValueList.split("|");
+        }
+
+        function InitDsTableTagValue()
+        {
+            /*
+              Channel (text) | Lock Status (text) | Modulation (text) | Channel ID (text) | Frequency (text) | Power (text) | SNR (text)
+            */
+            /*
+                var tagValueList = "8" +
+                    "|1|Locked|Unknown|0|809500000|-61.6|0.0" +
+                    "|2|Not Locked|Unknown|0|0|0.0|0.0" +
+                    "|3|Not Locked|Unknown|0|0|0.0|0.0" +
+                    "|4|Not Locked|Unknown|0|0|0.0|0.0" +
+                    "|5|Not Locked|Unknown|0|0|0.0|0.0" +
+                    "|6|Not Locked|Unknown|0|0|0.0|0.0" +
+                    "|7|Not Locked|Unknown|0|0|0.0|0.0" +
+                    "|8|Not Locked|Unknown|0|0|0.0|0.0";
+            */
+            var tagValueList = '8|1|Locked|QAM64|143|453000000 Hz|-2.5|48.5|2|Not Locked|Unknown|0|0 Hz|0.0|0.0|3|Not Locked|Unknown|0|0 Hz|0.0|0.0|4|Not Locked|Unknown|0|0 Hz|0.0|0.0|5|Not Locked|Unknown|0|0 Hz|0.0|0.0|6|Not Locked|Unknown|0|0 Hz|0.0|0.0|7|Not Locked|Unknown|0|0 Hz|0.0|0.0|8|Not Locked|Unknown|0|0 Hz|0.0|0.0';
+
+            return tagValueList.split("|");
+        }
+    </script>
+</head>
+<body></body>
+</html>
