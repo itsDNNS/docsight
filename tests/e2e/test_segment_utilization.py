@@ -477,19 +477,48 @@ class TestSegmentCorrelation:
         box = overlay.bounding_box()
         assert box, "Correlation overlay should be present for hover interactions"
 
-        modem_row = fritzbox_page.locator('#correlation-tbody tr[data-src="modem"]').first
-        row_ts = modem_row.get_attribute("data-ts")
-        assert row_ts, "Correlation table should include at least one modem transition row"
-        hover_x = fritzbox_page.evaluate(
+        modem_point = fritzbox_page.evaluate(
             """
-            (rowTs) => {
+            () => {
                 const st = window._corrChartState;
-                return st.xScale(new Date(rowTs).getTime());
+                const timelineTimestamps = new Set(
+                    Array.from(
+                        document.querySelectorAll(
+                            '#correlation-tbody tr[data-src="modem"]'
+                        )
+                    ).map((row) => row.getAttribute('data-ts'))
+                );
+                const point = st.modem.find((item) => {
+                    const timestamp = new Date(item.timestamp).getTime();
+                    return timestamp >= st.tMin && timestamp <= st.tMax
+                        && timelineTimestamps.has(item.timestamp);
+                });
+                if (!point) return null;
+                const timestamp = new Date(point.timestamp).getTime();
+                return {
+                    timestamp: point.timestamp,
+                    x: Math.max(
+                        st.pad.left + 1,
+                        Math.min(st.pad.left + st.plotW - 1, st.xScale(timestamp))
+                    ),
+                };
             }
             """,
-            row_ts,
         )
-        fritzbox_page.mouse.move(box["x"] + hover_x, box["y"] + box["height"] * 0.45)
+        assert modem_point, "Correlation chart should include an in-range modem point"
+
+        modem_row = fritzbox_page.locator(
+            f'#correlation-tbody tr[data-src="modem"][data-ts="{modem_point["timestamp"]}"]'
+        )
+        assert modem_row.count() > 0, (
+            "Correlation timeline should include a modem row matching the selected "
+            f'chart point timestamp {modem_point["timestamp"]}'
+        )
+        modem_row = modem_row.first
+
+        fritzbox_page.mouse.move(
+            box["x"] + modem_point["x"], box["y"] + box["height"] * 0.45
+        )
         fritzbox_page.wait_for_timeout(400)
 
         tooltip = fritzbox_page.locator("#correlation-tooltip")

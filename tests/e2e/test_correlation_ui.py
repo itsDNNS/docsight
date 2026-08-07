@@ -677,7 +677,9 @@ def test_reachability_legend_tooltip_and_mouse_keyboard_drilldown(demo_page):
     page.wait_for_selector("#view-correlation.active")
     page.wait_for_selector("#correlation-chart-container", state="visible")
     overlay = page.locator("#correlation-overlay")
+    expect(overlay).to_be_visible()
     box = overlay.bounding_box()
+    assert box is not None, "Correlation overlay should have a bounding box"
     lane_point = page.evaluate(
         "() => ({ x: window._corrChartState.pad.left + 2, y: window._corrChartState.reachabilityLane.y + 2 })"
     )
