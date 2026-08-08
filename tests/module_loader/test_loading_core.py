@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 from flask import Flask
+import app.module_loader as module_loader
 from app.module_loader import ModuleInfo, validate_manifest, ManifestError, discover_modules, register_module_config, merge_module_i18n, load_module_routes, load_module_collector, load_module_publisher, setup_module_static, setup_module_templates, ModuleLoader
 
 class TestRegisterModuleConfig:
@@ -390,6 +391,30 @@ class TestStaticAndTemplates:
                 assert b"console.log" in resp.data
                 resp.close()
 
+    def test_module_static_endpoint_and_url_helper_share_prefix_aware_contract(self):
+        endpoint = module_loader.module_static_endpoint("test.mod")
+        assert endpoint == "module_static_test.mod"
+
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
+            static_dir = os.path.join(d, "static")
+            os.makedirs(static_dir)
+            with open(os.path.join(static_dir, "test.js"), "w") as f:
+                f.write("console.log('hello');")
+            setup_module_static(app, "test.mod", d, "static/")
+
+            with app.test_request_context(
+                "/", environ_overrides={"SCRIPT_NAME": "/docsight"}
+            ):
+                assert module_loader.module_static_url(
+                    "test.mod", "test.js", v="1.2.3"
+                ) == "/docsight/modules/test.mod/static/test.js?v=1.2.3"
+
+            with app.test_request_context("/"):
+                assert module_loader.module_static_url(
+                    "test.mod", "test.js", v="1.2.3"
+                ) == "/modules/test.mod/static/test.js?v=1.2.3"
+
     def test_template_paths_collected(self):
         """Module template paths are resolved to absolute paths."""
         with tempfile.TemporaryDirectory() as d:
@@ -516,6 +541,113 @@ def status():
 class TestModuleAssetDetection:
     """Test convention-based CSS/JS detection."""
 
+    def test_colliding_legacy_static_endpoint_ids_remain_isolated(self, tmp_path):
+        """Dots and underscores in valid IDs must not alias static endpoints."""
+        module_specs = (
+            ("01_conventional", "foo.bar", {}, "static", "conventional bytes"),
+            (
+                "02_explicit",
+                "foo_bar",
+                {"static": "assets/"},
+                "assets",
+                "explicit bytes",
+            ),
+        )
+        for directory, module_id, contributes, static_subdir, content in module_specs:
+            module_dir = tmp_path / directory
+            module_dir.mkdir()
+            (module_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "id": module_id,
+                        "name": module_id,
+                        "description": "Static endpoint collision regression",
+                        "version": "1.0.0",
+                        "author": "Test",
+                        "minAppVersion": "2026.2",
+                        "type": "integration",
+                        "contributes": contributes,
+                    }
+                )
+            )
+            static_dir = module_dir / static_subdir
+            static_dir.mkdir()
+            (static_dir / "main.js").write_text(content)
+
+        app = Flask(__name__)
+        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
+        loaded = loader.load_all()
+
+        assert {mod.id for mod in loaded} == {"foo.bar", "foo_bar"}
+        assert all(mod.enabled and mod.error is None for mod in loaded)
+        assert {mod.id for mod in loader.get_enabled_modules()} == {"foo.bar", "foo_bar"}
+
+        dotted_endpoint = module_loader.module_static_endpoint("foo.bar")
+        underscored_endpoint = module_loader.module_static_endpoint("foo_bar")
+        assert dotted_endpoint == "module_static_foo.bar"
+        assert underscored_endpoint == "module_static_foo_bar"
+        assert dotted_endpoint != underscored_endpoint
+        assert dotted_endpoint in app.view_functions
+        assert underscored_endpoint in app.view_functions
+
+        client = app.test_client()
+        dotted_response = client.get("/modules/foo.bar/static/main.js")
+        underscored_response = client.get("/modules/foo_bar/static/main.js")
+        assert dotted_response.status_code == 200
+        assert underscored_response.status_code == 200
+        assert dotted_response.get_data() == b"conventional bytes"
+        assert underscored_response.get_data() == b"explicit bytes"
+
+        with app.test_request_context(
+            "/", environ_overrides={"SCRIPT_NAME": "/docsight"}
+        ):
+            assert module_loader.module_static_url(
+                "foo.bar", "main.js", v="1.2.3"
+            ) == "/docsight/modules/foo.bar/static/main.js?v=1.2.3"
+            assert module_loader.module_static_url(
+                "foo_bar", "main.js", v="1.2.3"
+            ) == "/docsight/modules/foo_bar/static/main.js?v=1.2.3"
+
+    def test_conventional_static_assets_register_prefix_aware_endpoint(self, tmp_path):
+        """Convention assets and their URL helper share the registered route."""
+        mod_dir = tmp_path / "community"
+        mod_dir.mkdir()
+        (mod_dir / "manifest.json").write_text(json.dumps({
+            "id": "community.conventional", "name": "Conventional Assets",
+            "description": "d", "version": "1.0.0", "author": "a",
+            "minAppVersion": "2026.2", "type": "integration",
+            "contributes": {},
+        }))
+        static = mod_dir / "static"
+        static.mkdir()
+        (static / "main.js").write_text("console.log('conventional')")
+
+        app = Flask(__name__)
+        loader = ModuleLoader(app, search_paths=[str(tmp_path)])
+        loader.load_all()
+
+        mod = loader.get_enabled_modules()[0]
+        endpoint = module_loader.module_static_endpoint(mod.id)
+        assert mod.has_js is True
+        assert endpoint in app.view_functions
+
+        with app.test_request_context("/"):
+            assert module_loader.module_static_url(
+                mod.id, "main.js", v="1.2.3"
+            ) == "/modules/community.conventional/static/main.js?v=1.2.3"
+        with app.test_request_context(
+            "/", environ_overrides={"SCRIPT_NAME": "/docsight"}
+        ):
+            assert module_loader.module_static_url(
+                mod.id, "main.js", v="1.2.3"
+            ) == "/docsight/modules/community.conventional/static/main.js?v=1.2.3"
+
+        response = app.test_client().get(
+            "/modules/community.conventional/static/main.js"
+        )
+        assert response.status_code == 200
+        assert response.get_data(as_text=True) == "console.log('conventional')"
+
     def test_has_css_when_style_exists(self, tmp_path):
         """Module with static/style.css gets has_css=True."""
         mod_dir = tmp_path / "mymod"
@@ -579,4 +711,3 @@ _VALID_THRESHOLDS = {
     "upstream_power": {"_default": "sc_qam", "sc_qam": {"good": [41, 47], "warning": [37, 51], "critical": [35, 53]}},
     "snr": {"_default": "256QAM", "256QAM": {"good_min": 33, "warning_min": 31, "critical_min": 30}},
 }
-

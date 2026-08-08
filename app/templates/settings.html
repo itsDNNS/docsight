@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#06080f">
     <title>DOCSight - {{ t.settings }}</title>
-    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-    <link rel="apple-touch-icon" href="/static/icon.png">
-    <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/fonts.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/tokens.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/components.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/modals.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/settings.css?v={{ version|urlencode }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css', v=version) }}">
     {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
-    <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="{{ module_static_url(mod.id, 'style.css', v=version) }}">
     {% endfor %}
     {% if active_theme_data %}
     <style id="theme-module-vars">
@@ -30,7 +30,7 @@
     }
     </style>
     {% endif %}
-    <script src="/static/vendor/lucide.min.js?v={{ version|urlencode }}"></script>
+    <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>
 
@@ -42,9 +42,9 @@
 <div class="settings-layout">
     <!-- ═══ Sidebar ═══ -->
     <nav class="sidebar" id="settings-sidebar">
-        <a href="/" class="sidebar-header">
+        <a href="{{ url_for('index') }}" class="sidebar-header">
             <div class="sidebar-logo">
-                <img src="/static/logo.svg" alt="DOCSight" style="width:20px;height:20px;filter:brightness(0) invert(1);">
+                <img src="{{ url_for('static', filename='logo.svg') }}" alt="DOCSight" style="width:20px;height:20px;filter:brightness(0) invert(1);">
             </div>
             <div>
                 <div class="sidebar-title">DOCSight</div>
@@ -213,13 +213,13 @@ var DRIVER_HINTS = {{ driver_hints | tojson }};
 var MODULE_SECRET_FIELDS = {{ module_secret_fields | tojson }};
 var SAVED_MODULE_SECRET_FIELDS = {{ saved_module_secret_fields | tojson }};
 </script>
-<script src="/static/js/modals.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/utils.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/notices.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/demo-banner.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/settings.js?v={{ version|urlencode }}"></script>
+<script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/settings.js', v=version) }}"></script>
 {% for mod in modules if mod.has_js %}
-<script src="/modules/{{ mod.id }}/static/main.js?v={{ version|urlencode }}"></script>
+<script src="{{ module_static_url(mod.id, 'main.js', v=version) }}"></script>
 {% endfor %}
 
 </body>

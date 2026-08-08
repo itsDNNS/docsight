@@ -8,19 +8,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <title>DOCSight</title>
-    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-    <link rel="apple-touch-icon" href="/static/icon.png">
-    <link rel="manifest" href="/static/manifest.json">
-    <link rel="stylesheet" href="/static/css/fonts.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/tokens.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/components.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/main.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/views.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/modals.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/glossary.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/segment-utilization.css?v={{ version|urlencode }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/views.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/glossary.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/segment-utilization.css', v=version) }}">
     {% for mod in modules|sort(attribute='menu.order') if mod.has_css %}
-    <link rel="stylesheet" href="/modules/{{ mod.id }}/static/style.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="{{ module_static_url(mod.id, 'style.css', v=version) }}">
     {% endfor %}
     {% if active_theme_data %}
     <style id="theme-module-vars">
@@ -39,7 +39,7 @@
     {% if config.font_family == 'system' %}
     <style id="font-override">:root { --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }</style>
     {% endif %}
-    <script src="/static/vendor/lucide.min.js?v={{ version|urlencode }}"></script>
+    <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>
 {% set connection_monitor_installed = modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
@@ -70,7 +70,7 @@
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar" aria-label="Main navigation" aria-hidden="true">
     <div class="sidebar-header">
-        <div class="sidebar-logo"><img src="/static/logo.svg" alt="DOCSight" width="18" height="18"></div>
+        <div class="sidebar-logo"><img src="{{ url_for('static', filename='logo.svg') }}" alt="DOCSight" width="18" height="18"></div>
         <div class="sidebar-brand-text">
             <div class="sidebar-title">DOCSight</div>
             <div class="sidebar-subtitle">{{ t.sidebar_monitoring }}</div>
@@ -241,14 +241,14 @@
         </div>
         {% endif %}
         <div style="flex:1;"></div>
-        <a class="nav-item" href="/settings">
+        <a class="nav-item" href="{{ url_for('settings') }}">
             <i data-lucide="settings"></i> {{ t.settings }}
         </a>
-        <a class="nav-item" href="/settings#support">
+        <a class="nav-item" href="{{ url_for('settings', _anchor='support') }}">
             <i data-lucide="heart-handshake"></i> {{ t.get('support_nav', 'Support') }}
         </a>
         {% if auth_enabled %}
-        <form action="/logout" method="post">
+        <form action="{{ url_for('logout') }}" method="post">
             <button type="submit" class="nav-item">
                 <i data-lucide="log-out"></i> {{ t.logout }}
             </button>
@@ -1156,7 +1156,7 @@
         {% endif %}
     </div>
     {% if modules|selectattr('id', 'equalto', 'docsight.connection_monitor')|list %}
-    <script src="/modules/docsight.connection_monitor/static/js/connection-monitor-card.js?v={{ version|urlencode }}"></script>
+    <script src="{{ module_static_url('docsight.connection_monitor', 'js/connection-monitor-card.js', v=version) }}"></script>
     {% endif %}
 
     {# ══════════════════════════════════════════════════════════════════════════
@@ -1887,7 +1887,7 @@
                 <span>{{ t.event_log }}</span>
             </div>
             <div class="events-card-actions">
-                <a class="btn-export-events" id="events-export-csv" href="/api/events/export.csv?exclude_operational=true" download>{{ t.event_export_csv }}</a>
+                <a class="btn-export-events" id="events-export-csv" href="{{ url_for('events_bp.api_events_export_csv', exclude_operational='true') }}" download>{{ t.event_export_csv }}</a>
                 <button class="btn-ack-all" id="btn-ack-all" onclick="acknowledgeAllEvents()" style="display:none;">&#10003; {{ t.event_acknowledge_all }}</button>
             </div>
         </div>
@@ -2554,7 +2554,7 @@
         <div id="speedtest-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
         <div class="modal-footer">
             <button class="btn btn-muted" onclick="closeSpeedtestSetupModal()">{{ t.close }}</button>
-            <a class="btn btn-accent" href="/settings#mod-docsight_speedtest">⚙ {{ t.get('speedtest_setup_open_settings', 'Open Speedtest settings') }}</a>
+            <a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_speedtest') }}">⚙ {{ t.get('speedtest_setup_open_settings', 'Open Speedtest settings') }}</a>
         </div>
     </div>
 </div>
@@ -2574,7 +2574,7 @@
             <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('bqm_setup_validate_text', 'After saving a CSV Yesterday URL, DOCSight performs one initial fetch. Use CSV bulk import for up to 12 months of history or longer gaps.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('bqm-setup-status', 'bqm')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
         </div>
         <div id="bqm-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
-        <div class="modal-footer"><button class="btn btn-muted" onclick="closeBqmSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="/settings#mod-docsight_bqm">⚙ {{ t.get('bqm_setup_open_settings', 'Open BQM settings') }}</a></div>
+        <div class="modal-footer"><button class="btn btn-muted" onclick="closeBqmSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_bqm') }}">⚙ {{ t.get('bqm_setup_open_settings', 'Open BQM settings') }}</a></div>
     </div>
 </div>
 
@@ -2594,7 +2594,7 @@
             <section class="setup-guide-card"><h3>{{ t.get('setup_validate_title', 'Validate') }}</h3><p>{{ t.get('smokeping_setup_validate_text', 'After saving the endpoint, validate that DOCSight can discover target graphs.') }}</p><button class="btn btn-muted" onclick="validateSetupGuidance('smokeping-setup-status', 'smokeping')">{{ t.get('setup_validate_source', 'Review validation path') }}</button></section>
         </div>
         <div id="smokeping-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
-        <div class="modal-footer"><button class="btn btn-muted" onclick="closeSmokepingSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="/settings#mod-docsight_smokeping">⚙ {{ t.get('smokeping_setup_open_settings', 'Open SmokePing settings') }}</a></div>
+        <div class="modal-footer"><button class="btn btn-muted" onclick="closeSmokepingSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_smokeping') }}">⚙ {{ t.get('smokeping_setup_open_settings', 'Open SmokePing settings') }}</a></div>
     </div>
 </div>
 {% endif %}
@@ -2761,8 +2761,8 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<link rel="stylesheet" href="/static/vendor/uPlot.min.css?v={{ version|urlencode }}">
-<script src="/static/vendor/uPlot.min.js?v={{ version|urlencode }}"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/uPlot.min.css', v=version) }}">
+<script src="{{ url_for('static', filename='vendor/uPlot.min.js', v=version) }}"></script>
 <script src="{{ url_for('static', filename='js/hero-chart.js') }}?v={{ version|urlencode }}"></script>
 <script src="{{ url_for('static', filename='js/sparklines.js') }}?v={{ version|urlencode }}"></script>
 
@@ -2846,7 +2846,7 @@
 })();
 </script>
 
-<script src="/static/js/chart-engine.js?v={{ version|urlencode }}"></script>
+<script src="{{ url_for('static', filename='js/chart-engine.js', v=version) }}"></script>
 <script>
 var T = {{ t|tojson }};
 var currentLang = {{ lang|tojson }};
@@ -3427,25 +3427,27 @@ var CORRELATION_CM_AVAILABLE = {{ (connection_monitor_installed|length > 0)|tojs
 })();
 
 </script>
-<script src="/static/js/modals.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/journal.js?v={{ version|urlencode }}"></script>
-<script src="/modules/docsight.bqm/static/js/bqm-chart.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/bqm.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/trends.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/channels.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/integrations.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/events.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/utils.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/notices.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/demo-banner.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/speedtest.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/correlation.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/segment-utilization.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/glossary-page.js?v={{ version|urlencode }}"></script>
-<script src="/static/js/glossary.js?v={{ version|urlencode }}"></script>
+<script src="{{ url_for('static', filename='js/modals.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/journal.js', v=version) }}"></script>
+{% if modules|selectattr('id', 'equalto', 'docsight.bqm')|list %}
+<script src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
+{% endif %}
+<script src="{{ url_for('static', filename='js/bqm.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/trends.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/channels.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/integrations.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/events.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/utils.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/notices.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/demo-banner.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/speedtest.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/correlation.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/segment-utilization.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/glossary-page.js', v=version) }}"></script>
+<script src="{{ url_for('static', filename='js/glossary.js', v=version) }}"></script>
 
 {% for mod in modules if mod.has_js %}
-<script src="/modules/{{ mod.id }}/static/main.js?v={{ version|urlencode }}"></script>
+<script src="{{ module_static_url(mod.id, 'main.js', v=version) }}"></script>
 {% endfor %}
 
 <script>

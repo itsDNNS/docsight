@@ -11,7 +11,7 @@
         {% for term in glossary_terms %}
         {% set category = glossary_category_by_id[term.category] %}
         {% set search_text = term.title ~ ' ' ~ term.id ~ ' ' ~ category.title ~ ' ' ~ (term.aliases|join(' ')) ~ ' ' ~ (term.tags|join(' ')) ~ ' ' ~ (term.source_pages|join(' ')) ~ ' ' ~ (term.ui_contexts|join(' ')) %}
-        <a data-glossary-term data-term-id="{{ term.id }}" data-category="{{ term.category }}" data-tags="{{ term.tags|join(' ') }}" data-source-pages="{{ term.source_pages|join(' ') }}" data-ui-contexts="{{ term.ui_contexts|join(' ') }}" data-search-title="{{ term.title|e }}" data-search-aliases="{{ term.aliases|join(' ')|e }}" data-search-alias-values="{{ term.aliases|join('|||')|e }}" data-search-id="{{ term.id|e }}" data-search-metadata="{{ (category.title ~ ' ' ~ (term.tags|join(' ')) ~ ' ' ~ (term.source_pages|join(' ')) ~ ' ' ~ (term.ui_contexts|join(' ')))|e }}" data-search="{{ search_text|e }}" class="glossary-term-link {{ 'active' if glossary_selected_term and glossary_selected_term.id == term.id else '' }}" href="/?lang={{ lang|urlencode }}#glossary?term={{ term.id|urlencode }}" aria-current="{{ 'page' if glossary_selected_term and glossary_selected_term.id == term.id else 'false' }}">
+        <a data-glossary-term data-term-id="{{ term.id }}" data-category="{{ term.category }}" data-tags="{{ term.tags|join(' ') }}" data-source-pages="{{ term.source_pages|join(' ') }}" data-ui-contexts="{{ term.ui_contexts|join(' ') }}" data-search-title="{{ term.title|e }}" data-search-aliases="{{ term.aliases|join(' ')|e }}" data-search-alias-values="{{ term.aliases|join('|||')|e }}" data-search-id="{{ term.id|e }}" data-search-metadata="{{ (category.title ~ ' ' ~ (term.tags|join(' ')) ~ ' ' ~ (term.source_pages|join(' ')) ~ ' ' ~ (term.ui_contexts|join(' ')))|e }}" data-search="{{ search_text|e }}" class="glossary-term-link {{ 'active' if glossary_selected_term and glossary_selected_term.id == term.id else '' }}" href="{{ url_for('index', lang=lang, _anchor='glossary?term=' ~ term.id) }}" aria-current="{{ 'page' if glossary_selected_term and glossary_selected_term.id == term.id else 'false' }}">
             {{ term.title }}
         </a>
         {% endfor %}
@@ -86,7 +86,7 @@
                 {% for related_id in term.related %}
                 {% set related = glossary_term_by_id.get(related_id) %}
                 {% if related %}
-                <a class="glossary-related-link" data-glossary-related-term href="/?lang={{ lang|urlencode }}#glossary?term={{ related.id|urlencode }}">{{ related.title }}</a>
+                <a class="glossary-related-link" data-glossary-related-term href="{{ url_for('index', lang=lang, _anchor='glossary?term=' ~ related.id) }}">{{ related.title }}</a>
                 {% endif %}
                 {% endfor %}
             </nav>

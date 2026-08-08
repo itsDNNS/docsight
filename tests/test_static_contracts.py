@@ -7,7 +7,9 @@ import re
 import subprocess
 from collections import Counter
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+
+from jinja2 import Template
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
@@ -47,8 +49,20 @@ STATIC_JS_CSS_TAG_RE = re.compile(
     re.IGNORECASE,
 )
 STATIC_URL_FOR_JS_CSS_TAG_RE = re.compile(
-    r"<(?:script|link)\b[^>]+(?:src|href)=['\"](\{\{\s*url_for\('static',\s*filename='[^']+\.(?:js|css)'\)\s*\}\}(?:\?[^'\"]*)?)['\"]",
+    r"<(?:script|link)\b[^>]+(?:src|href)=(['\"])(\{\{.*?\}\}(?:\?[^'\"]*)?)\1",
     re.IGNORECASE,
+)
+STATIC_URL_FOR_RE = re.compile(
+    r"url_for\(\s*['\"]static['\"]\s*,\s*filename\s*=\s*['\"]([^'\"]+)['\"]([^)]*)\)"
+)
+MODULE_STATIC_LITERAL_RE = re.compile(
+    r"module_static_url\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]([^)]*)\)"
+)
+MODULE_STATIC_DYNAMIC_RE = re.compile(
+    r"module_static_url\(\s*mod\.id\s*,\s*['\"]([^'\"]+)['\"]([^)]*)\)"
+)
+ROOT_RELATIVE_ATTRIBUTE_RE = re.compile(
+    r"<[^>]*\b(?:href|src|action)\s*=\s*['\"]/"
 )
 MISMATCHED_HEADING_RE = re.compile(r"<(span|h2)\b[^>]*>[^\n]*</(?!\1>)(span|h2)>")
 
@@ -83,14 +97,22 @@ def local_asset_path(url: str, module_dirs: dict[str, Path] | None = None) -> Pa
     return None
 
 
-def collect_literal_asset_urls(paths: Iterable[Path]) -> dict[Path, set[str]]:
-    urls: dict[Path, set[str]] = {}
-    for path in paths:
-        text = path.read_text(encoding="utf-8")
-        matches = {match.group(1) for match in STATIC_URL_RE.finditer(text)}
-        if matches:
-            urls[path] = matches
+def collect_template_asset_urls(text: str) -> set[str]:
+    """Return statically resolvable literal and Jinja-generated asset URLs."""
+    urls = {match.group(1) for match in STATIC_URL_RE.finditer(text)}
+    urls.update(f"/static/{match.group(1)}" for match in STATIC_URL_FOR_RE.finditer(text))
+    urls.update(
+        f"/modules/{match.group(1)}/static/{match.group(2)}"
+        for match in MODULE_STATIC_LITERAL_RE.finditer(text)
+    )
     return urls
+
+
+def generated_js_css_reference_is_versioned(value: str) -> bool:
+    return (
+        "?v={{ version|urlencode }}" in value
+        or re.search(r"\bv\s*=\s*version\b", value) is not None
+    )
 
 
 def collect_required_lucide_icons() -> set[str]:
@@ -152,13 +174,13 @@ def test_pwa_manifest_metadata_and_declared_assets_are_valid() -> None:
     assert missing == []
 
 
-def test_templates_reference_existing_literal_static_assets() -> None:
+def test_templates_reference_existing_static_assets() -> None:
     template_paths = sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
-    references = collect_literal_asset_urls(template_paths)
     module_dirs = module_id_to_dir()
 
     missing = []
-    for source, urls in references.items():
+    for source in template_paths:
+        urls = collect_template_asset_urls(source.read_text(encoding="utf-8"))
         for url in sorted(urls):
             path = local_asset_path(url, module_dirs)
             if path is not None and not path.is_file():
@@ -174,12 +196,119 @@ def test_template_static_js_and_css_urls_are_versioned() -> None:
 
     for path in template_paths:
         text = path.read_text(encoding="utf-8")
-        for match in list(STATIC_JS_CSS_TAG_RE.finditer(text)) + list(STATIC_URL_FOR_JS_CSS_TAG_RE.finditer(text)):
+        for match in STATIC_JS_CSS_TAG_RE.finditer(text):
             url = match.group(1)
             if "?v={{ version|urlencode }}" not in url:
                 offenders.append(f"{path.relative_to(ROOT)} -> {url}")
+        for match in STATIC_URL_FOR_JS_CSS_TAG_RE.finditer(text):
+            value = match.group(2)
+            if re.search(r"\.(?:js|css)(?:['\"]|\))", value) and not generated_js_css_reference_is_versioned(value):
+                offenders.append(f"{path.relative_to(ROOT)} -> {value}")
 
     assert offenders == []
+
+
+def test_template_asset_extraction_supports_url_helpers() -> None:
+    text = """
+    <link href="{{ url_for('static', filename='css/main.css', v=version) }}">
+    <script src="{{ module_static_url('docsight.bqm', 'js/bqm-chart.js', v=version) }}"></script>
+    """
+
+    assert collect_template_asset_urls(text) == {
+        "/static/css/main.css",
+        "/modules/docsight.bqm/static/js/bqm-chart.js",
+    }
+    missing = collect_template_asset_urls(
+        "{{ module_static_url('docsight.bqm', 'js/missing.js', v=version) }}"
+    )
+    assert missing == {"/modules/docsight.bqm/static/js/missing.js"}
+    assert not local_asset_path(missing.pop()).is_file()
+    assert not generated_js_css_reference_is_versioned(
+        "{{ url_for('static', filename='css/main.css') }}"
+    )
+
+
+def test_dynamic_module_asset_helpers_are_gated_by_the_matching_module_flag() -> None:
+    template_paths = sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
+    bindings = set()
+    for path in template_paths:
+        text = path.read_text(encoding="utf-8")
+        for match in MODULE_STATIC_DYNAMIC_RE.finditer(text):
+            loop_start = text.rfind("{% for", 0, match.start())
+            loop_header_end = text.find("%}", loop_start)
+            loop_end = text.find("{% endfor %}", match.end())
+            assert loop_start >= 0 and loop_header_end < match.start() < loop_end
+            loop_header = text[loop_start:loop_header_end + 2]
+            flag = re.search(r"\bmod\.(has_css|has_js)\b", loop_header)
+            assert flag is not None, f"{path.relative_to(ROOT)} -> {match.group(0)}"
+            bindings.add((flag.group(1), match.group(1)))
+
+    assert bindings == {("has_css", "style.css"), ("has_js", "main.js")}
+
+
+def test_disabled_bqm_does_not_resolve_or_render_fixed_module_asset() -> None:
+    index = (TEMPLATES / "index.html").read_text(encoding="utf-8")
+    guarded_script = re.search(
+        r"({%\s*if\s+modules\|selectattr\(\s*['\"]id['\"]\s*,\s*"
+        r"['\"]equalto['\"]\s*,\s*['\"]docsight\.bqm['\"]\s*\)\|list\s*%}"
+        r"\s*<script\s+src=\"{{\s*module_static_url\(\s*['\"]docsight\.bqm['\"]\s*,"
+        r"\s*['\"]js/bqm-chart\.js['\"]\s*,\s*v=version\s*\)\s*}}\"></script>"
+        r"\s*{%\s*endif\s*%})",
+        index,
+        re.DOTALL,
+    )
+    assert guarded_script is not None
+
+    helper_calls = []
+
+    def module_static_url(*args, **kwargs):
+        helper_calls.append((args, kwargs))
+        return "/must-not-render"
+
+    rendered = Template(guarded_script.group(1)).render(
+        modules=[], version="test", module_static_url=module_static_url
+    )
+
+    assert helper_calls == []
+    assert "/modules/docsight.bqm/" not in rendered
+    assert "/must-not-render" not in rendered
+
+
+def test_templates_do_not_emit_root_relative_application_attributes() -> None:
+    offenders = []
+    template_paths = sorted(TEMPLATES.rglob("*.html")) + sorted(MODULES.glob("*/templates/*.html"))
+    for path in template_paths:
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if ROOT_RELATIVE_ATTRIBUTE_RE.search(line):
+                offenders.append(f"{path.relative_to(ROOT)}:{lineno}")
+
+    assert offenders == []
+
+
+def test_server_redirects_do_not_use_literal_root_relative_targets() -> None:
+    offenders = []
+    for path in [APP / "web.py", MODULES / "backup" / "routes.py"]:
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if re.search(r"redirect\(\s*f?['\"]/", line):
+                offenders.append(f"{path.relative_to(ROOT)}:{lineno}")
+
+    assert offenders == []
+
+
+def test_setup_navigation_targets_are_server_generated() -> None:
+    setup = (TEMPLATES / "setup.html").read_text(encoding="utf-8")
+
+    assert not re.search(r"window\.location\.(?:href\s*=|assign\()\s*['\"]/", setup)
+    assert "url_for('index')" in setup
+    assert "url_for('login')" in setup
+
+
+def test_font_sources_are_relative_to_the_stylesheet() -> None:
+    fonts_css = (STATIC / "css" / "fonts.css").read_text(encoding="utf-8")
+    sources = re.findall(r"src:\s*url\(([^)]+)\)", fonts_css)
+
+    assert len(sources) == 4
+    assert all(source.startswith("../fonts/") for source in sources)
 
 
 def test_service_worker_precache_references_existing_public_assets() -> None:

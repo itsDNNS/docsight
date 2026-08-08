@@ -11,7 +11,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, cast
 
-from flask import send_from_directory
+from flask import send_from_directory, url_for
 
 from app import analyzer as _analyzer
 from app import config as _cfg
@@ -699,6 +699,16 @@ def load_module_publisher(module_id: str, module_path: str, spec: str):
     return _load_module_class(module_id, module_path, spec, "publisher")
 
 
+def module_static_endpoint(module_id: str) -> str:
+    """Return the stable Flask endpoint name for a module's static files."""
+    return f"module_static_{module_id}"
+
+
+def module_static_url(module_id: str, filename: str, **values: Any) -> str:
+    """Build a module-static URL using the registered endpoint contract."""
+    return url_for(module_static_endpoint(module_id), filename=filename, **values)
+
+
 def setup_module_static(app, module_id: str, module_path: str, static_subdir: str) -> None:
     """Mount a module's static directory at /modules/<id>/static/."""
     static_dir = safe_manifest_subpath(module_path, static_subdir.rstrip("/"))
@@ -712,7 +722,7 @@ def setup_module_static(app, module_id: str, module_path: str, static_subdir: st
         return send_from_directory(_dir, filename)
 
     # Use a unique endpoint name per module
-    endpoint = f"module_static_{module_id.replace('.', '_')}"
+    endpoint = module_static_endpoint(module_id)
     app.add_url_rule(route, endpoint=endpoint, view_func=serve_static)
     log.info("Module '%s': serving static files at /modules/%s/static/", module_id, module_id)
 
@@ -917,9 +927,13 @@ class ModuleLoader:
         if "routes" in c:
             load_module_routes(self._app, mod.id, mod.path, c["routes"], builtin=mod.builtin)
 
-        # Static files
-        if "static" in c:
-            setup_module_static(self._app, mod.id, mod.path, c["static"])
+        # Static files and convention-based asset detection
+        static_subdir = c.get("static", "static/").rstrip("/")
+        static_dir = safe_manifest_subpath(mod.path, static_subdir)
+        if os.path.isdir(static_dir):
+            setup_module_static(self._app, mod.id, mod.path, static_subdir)
+            mod.has_css = os.path.isfile(os.path.join(static_dir, "style.css"))
+            mod.has_js = os.path.isfile(os.path.join(static_dir, "main.js"))
 
         # Template paths
         mod.template_paths = setup_module_templates(mod.id, mod.path, c)
@@ -967,13 +981,6 @@ class ModuleLoader:
             else:
                 validate_theme(mod.theme_data)
             log.info("Module '%s': loaded theme profile", mod.id)
-
-        # Convention-based asset detection
-        static_subdir = c.get("static", "static/").rstrip("/")
-        static_dir = safe_manifest_subpath(mod.path, static_subdir)
-        if os.path.isdir(static_dir):
-            mod.has_css = os.path.isfile(os.path.join(static_dir, "style.css"))
-            mod.has_js = os.path.isfile(os.path.join(static_dir, "main.js"))
 
     def get_modules(self) -> list[ModuleInfo]:
         """Return all discovered modules (enabled and disabled)."""

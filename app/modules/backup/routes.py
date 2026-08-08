@@ -8,7 +8,7 @@ import time
 from collections import defaultdict
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify, redirect, send_file
+from flask import Blueprint, request, jsonify, redirect, send_file, url_for
 
 from app.web import (
     require_auth, _auth_required,
@@ -191,7 +191,7 @@ def api_restore_validate():
     """
     _config_manager = get_config_manager()
     if _config_manager and _config_manager.is_configured() and _auth_required():
-        return redirect("/login")
+        return redirect(url_for("login"))
     if not (_config_manager and _config_manager.is_configured()):
         if _check_restore_rate_limit():
             audit_log.warning("Restore rate limit exceeded: ip=%s", _get_client_ip())
@@ -223,7 +223,7 @@ def api_restore():
     if _config_manager is None:
         return jsonify({"error": "Not initialized"}), 500
     if _config_manager.is_configured() and _auth_required():
-        return redirect("/login")
+        return redirect(url_for("login"))
     if not _config_manager.is_configured():
         if _check_restore_rate_limit():
             audit_log.warning("Restore rate limit exceeded: ip=%s", _get_client_ip())

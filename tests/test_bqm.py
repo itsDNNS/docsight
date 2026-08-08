@@ -6,11 +6,13 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
+import app.web as web
 from app.modules.bqm.collector import BQMCollector
 from app.modules.bqm.thinkbroadband import fetch_graph
 from app.modules.bqm.storage import BqmStorage
+from app.module_loader import ModuleInfo
 from app.storage import SnapshotStorage
-from app.web import app, init_config, init_storage
+from app.web import app, init_config, init_modules, init_storage
 from app.config import ConfigManager
 
 
@@ -342,6 +344,35 @@ def _reset_bqm_module_storage():
     bqm_routes._storage = None
 
 
+def _enabled_bqm_loader():
+    module = ModuleInfo(
+        id="docsight.bqm",
+        name="BQM",
+        description="Test module context",
+        version="1.0.0",
+        author="DOCSight",
+        min_app_version="2026.2",
+        type="integration",
+        contributes={},
+        path="",
+    )
+
+    class Loader:
+        @staticmethod
+        def get_enabled_modules():
+            return [module]
+
+        @staticmethod
+        def get_modules():
+            return [module]
+
+        @staticmethod
+        def get_theme_modules():
+            return []
+
+    return Loader()
+
+
 @pytest.fixture
 def bqm_api_storage(tmp_path, sample_png, sample_csv_rows):
     """Storage pre-loaded with a BQM graph for today."""
@@ -368,11 +399,16 @@ def bqm_client(tmp_path, bqm_api_storage):
     mgr.save({"modem_password": "test", "modem_type": "fritzbox", "bqm_url": "https://example.com/graph.png"})
     init_config(mgr)
     init_storage(s)
+    previous_module_loader = web.get_module_loader()
+    init_modules(_enabled_bqm_loader())
     _reset_bqm_module_storage()
     app.config["TESTING"] = True
-    with app.test_client() as client:
-        yield client, today
-    _reset_bqm_module_storage()
+    try:
+        with app.test_client() as client:
+            yield client, today
+    finally:
+        init_modules(previous_module_loader)
+        _reset_bqm_module_storage()
 
 
 class TestBQMAPI:
@@ -600,6 +636,20 @@ class TestBqmUiRender:
         assert 'id="bqm-7d-btn"' in html
         assert 'id="bqm-30d-btn"' in html
         assert '/modules/docsight.bqm/static/js/bqm-chart.js' in html
+
+    def test_index_omits_chart_script_when_bqm_module_is_disabled(self, bqm_client):
+        client, _ = bqm_client
+        enabled_loader = web.get_module_loader()
+        try:
+            init_modules(None)
+            resp = client.get("/")
+        finally:
+            init_modules(enabled_loader)
+
+        assert resp.status_code == 200
+        assert '/modules/docsight.bqm/static/js/bqm-chart.js' not in resp.get_data(
+            as_text=True
+        )
 
     def test_index_renders_view_toggle(self, bqm_client):
         """Toggle buttons for uPlot/PNG must exist in the BQM card header."""

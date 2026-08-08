@@ -4,13 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DOCSight - {{ t.login_title }}</title>
-    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-    <link rel="icon" type="image/png" href="/static/icon.png">
-    <link rel="apple-touch-icon" href="/static/icon.png">
-    <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#7c3aed">
-    <link rel="stylesheet" href="/static/css/fonts.css?v={{ version|urlencode }}">
-    <link rel="stylesheet" href="/static/css/tokens.css?v={{ version|urlencode }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=version) }}">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -105,7 +105,7 @@
 </head>
 <body>
     <div class="login-box">
-        <img src="/static/icon.png" alt="DOCSight" style="width:64px;height:64px;border-radius:var(--radius-md);display:block;margin:0 auto 12px;">
+        <img src="{{ url_for('static', filename='icon.png') }}" alt="DOCSight" style="width:64px;height:64px;border-radius:var(--radius-md);display:block;margin:0 auto 12px;">
         <h1>DOCSight</h1>
         <p class="hint">{{ t.login_hint }}</p>
         {% if error %}
