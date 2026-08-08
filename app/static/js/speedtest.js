@@ -36,7 +36,7 @@ function loadSpeedtestHistory() {
     _speedtestAllData = [];
     _signalCache = {};
     _speedtestVisible = 50;
-    fetch('/api/speedtest?count=2000')
+    fetch(docsightUrl('/api/speedtest?count=2000'))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (loading) loading.style.display = 'none';
@@ -420,7 +420,7 @@ function toggleSpeedtestSignal(btn) {
     if (_signalCache[id]) {
         _renderSignalDetail(_signalCache[id], container);
     } else {
-        fetch('/api/speedtest/' + id + '/signal')
+        fetch(docsightUrl('/api/speedtest/' + id + '/signal'))
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 _signalCache[id] = data;
@@ -439,7 +439,7 @@ function toggleSpeedtestSignal(btn) {
     if (_enrichedCache[id]) {
         _renderEnrichedDetail(_enrichedCache[id], enrichedDiv);
     } else {
-        fetch('/api/speedtest/' + id)
+        fetch(docsightUrl('/api/speedtest/' + id))
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 _enrichedCache[id] = data;
@@ -731,11 +731,11 @@ function runSpeedtest() {
     _setRunBtnState(btn, true);
 
     // Fetch the current latest ID from the server (not stale cache)
-    fetch('/api/speedtest?count=1')
+    fetch(docsightUrl('/api/speedtest?count=1'))
         .then(function(r) { return r.json(); })
         .then(function(latest) {
             var lastId = (latest && latest.length > 0) ? latest[0].id : 0;
-            return fetch('/api/speedtest/run', {method: 'POST'})
+            return fetch(docsightUrl('/api/speedtest/run'), {method: 'POST'})
                 .then(function(r) {
                     return r.json()
                         .catch(function() { return {error: 'Unexpected response'}; })
@@ -753,7 +753,7 @@ function runSpeedtest() {
                     setTimeout(function() {
                         var pollInterval = setInterval(function() {
                             attempts++;
-                            fetch('/api/speedtest?count=1')
+                            fetch(docsightUrl('/api/speedtest?count=1'))
                                 .then(function(r) { return r.json(); })
                                 .then(function(data) {
                                     if (data && data.length > 0 && data[0].id > lastId) {

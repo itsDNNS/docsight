@@ -50,7 +50,7 @@
         if (!container) return;
 
         // The hero card is a 24h sparkline, so fetch the normalized 1d trend range directly.
-        fetch('/api/trends?range=1d')
+        fetch(docsightUrl('/api/trends?range=1d'))
             .then(function(r) {
                 if (!r.ok) throw new Error('API error: ' + r.status);
                 return r.json();

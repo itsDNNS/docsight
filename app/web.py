@@ -23,6 +23,7 @@ from zoneinfo import available_timezones
 
 from .config import DEFAULTS, MODULE_SECRET_KEYS, PASSWORD_MASK, POLL_MIN, POLL_MAX
 from .analyzer import get_thresholds
+from .base_path import normalize_base_path
 from .docsis_utils import qam_rank
 from .desktop_runtime import desktop_runtime_payload
 from .desktop_runtime_contract import DESKTOP_MODE_ENV
@@ -918,6 +919,16 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+@app.context_processor
+def inject_browser_url_bootstrap():
+    """Expose only the canonical mount path needed by browser URL sinks."""
+    return {
+        "browser_url_bootstrap": {
+            "basePath": normalize_base_path(request.environ.get("SCRIPT_NAME", "")),
+        },
+    }
 
 
 @app.context_processor

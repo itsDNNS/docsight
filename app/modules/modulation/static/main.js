@@ -202,7 +202,7 @@ function _cssVar(name) {
 
 /* ── Overview (multi-day) ── */
 function fetchOverview() {
-    fetch('/api/modulation/distribution?direction=' + _modDirection + '&days=' + _modDays)
+    fetch(docsightUrl('/api/modulation/distribution?direction=' + _modDirection + '&days=' + _modDays))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             var noData = document.getElementById('modulation-no-data');
@@ -745,7 +745,7 @@ function modBackToOverview() {
 }
 
 function fetchIntraday(dateStr) {
-    var url = '/api/modulation/intraday?direction=' + _modDirection;
+    var url = docsightUrl('/api/modulation/intraday?direction=' + _modDirection);
     if (dateStr) url += '&date=' + dateStr;
 
     fetch(url)

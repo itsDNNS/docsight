@@ -72,7 +72,7 @@ def test_demo_banner_confirms_exit_and_redirects_expired_sessions():
     assert "window.docsightConfirm" in script
     assert "demo_migrate_confirm" in script
     assert "response.status === 401 || response.status === 403" in script
-    assert "window.location.assign('/login')" in script
+    assert "window.location.assign(docsightUrl('/login'))" in script
 
 
 def test_demo_banner_actions_render_on_dashboard_and_settings(tmp_path, monkeypatch):

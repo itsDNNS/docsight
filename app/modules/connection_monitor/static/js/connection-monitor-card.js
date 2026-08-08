@@ -103,7 +103,7 @@
     }
 
     function updateCard() {
-        fetch('/api/connection-monitor/summary')
+        fetch(docsightUrl('/api/connection-monitor/summary'))
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var elements = {

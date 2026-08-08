@@ -11,7 +11,7 @@ function loadBnetzData() {
     loading.style.display = 'block';
     empty.style.display = 'none';
     card.style.display = 'none';
-    fetch('/api/bnetz/measurements').then(function(r) { return r.json(); }).then(function(data) {
+    fetch(docsightUrl('/api/bnetz/measurements')).then(function(r) { return r.json(); }).then(function(data) {
         loading.style.display = 'none';
         if (!data || data.length === 0) {
             empty.style.display = 'block';
@@ -52,7 +52,7 @@ function loadBnetzData() {
                 '<td data-label="' + escapeHtml(T.bnetz_verdict || 'Verdict') + '" class="bnetz-verdict ' + verdictClass + '" title="' + verdictText + '">' + verdictIcon + '<span class="bnetz-verdict-text">' + escapeHtml(verdictText) + '</span></td>' +
                 '<td data-label="' + escapeHtml(T.actions || 'Actions') + '" class="bnetz-actions-cell" onclick="event.stopPropagation();">' +
                     complaintBtn +
-                    (m.source !== 'csv_import' ? '<a href="/api/bnetz/pdf/' + m.id + '" class="bnetz-action-btn" title="PDF"><i data-lucide="file-down"></i></a>' : '') +
+                    (m.source !== 'csv_import' ? '<a href="' + docsightUrl('/api/bnetz/pdf/' + m.id) + '" class="bnetz-action-btn" title="PDF"><i data-lucide="file-down"></i></a>' : '') +
                     '<a href="javascript:void(0)" class="bnetz-action-btn bnetz-action-delete" onclick="deleteBnetzFromView(' + m.id + ')" title="' + (T.delete_incident || 'Delete') + '"><i data-lucide="trash-2"></i></a>' +
                 '</td>';
             tbody.appendChild(tr);
@@ -80,7 +80,7 @@ function loadBnetzData() {
     var watcherBanner = document.getElementById('bnetz-watcher-status');
     var watcherText = document.getElementById('bnetz-watcher-text');
     if (watcherBanner) {
-        fetch('/api/collectors/status').then(function(r) { return r.json(); }).then(function(collectors) {
+        fetch(docsightUrl('/api/collectors/status')).then(function(r) { return r.json(); }).then(function(collectors) {
             var watcher = null;
             for (var i = 0; i < collectors.length; i++) {
                 if (collectors[i].name === 'bnetz_watcher') { watcher = collectors[i]; break; }
@@ -160,7 +160,7 @@ function uploadBnetzFromView(input) {
     if (!input.files || !input.files[0]) return;
     var fd = new FormData();
     fd.append('file', input.files[0]);
-    fetch('/api/bnetz/upload', {method: 'POST', body: fd})
+    fetch(docsightUrl('/api/bnetz/upload'), {method: 'POST', body: fd})
         .then(function(r) { return r.json(); })
         .then(function(data) {
             input.value = '';
@@ -179,8 +179,7 @@ function deleteBnetzFromView(id) {
         danger: true
     }).then(function(confirmed) {
         if (!confirmed) return null;
-        return fetch('/api/bnetz/' + id, {method: 'DELETE'});
+        return fetch(docsightUrl('/api/bnetz/' + id), {method: 'DELETE'});
     })
         .then(function(r) { if (r) loadBnetzData(); });
 }
-

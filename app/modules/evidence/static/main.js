@@ -107,12 +107,12 @@ function _evidenceRunAction(event) {
 function _evidenceBuildUrl() {
     var incidentId = (document.getElementById('evidence-incident-id').value || '').trim();
     if (incidentId) {
-        return '/api/evidence/checklist?incident_id=' + encodeURIComponent(incidentId);
+        return docsightUrl('/api/evidence/checklist?incident_id=' + encodeURIComponent(incidentId));
     }
     var from = _evidenceToIso(document.getElementById('evidence-from').value);
     var to = _evidenceToIso(document.getElementById('evidence-to').value);
     if (!from || !to) return null;
-    return '/api/evidence/checklist?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to);
+    return docsightUrl('/api/evidence/checklist?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to));
 }
 
 function _evidenceRenderCounts(summary) {

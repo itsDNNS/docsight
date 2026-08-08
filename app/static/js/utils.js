@@ -46,7 +46,7 @@ function exportForLLM() {
     } else {
         document.getElementById('export-modal').classList.add('open');
     }
-    fetch('/api/export?mode=' + encodeURIComponent(mode))
+    fetch(docsightUrl('/api/export?mode=' + encodeURIComponent(mode)))
         .then(function(r) {
             return r.json().then(function(data) {
                 if (!r.ok || data.error) {
@@ -234,7 +234,7 @@ function generateComplaint() {
     btn.textContent = '...';
     setReportBuilderStatus(T.report_builder_building || 'Building evidence package...', 'progress');
     var generationId = reportGenerationId;
-    fetch('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address + bnetzParam + comparisonParam)
+    fetch(docsightUrl('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address + bnetzParam + comparisonParam))
         .then(function(r) {
             return r.json().then(function(data) {
                 if (!r.ok || data.error) {
@@ -303,7 +303,7 @@ function downloadReport() {
         params.set('comparison_from_b', cmp.period_b.from);
         params.set('comparison_to_b', cmp.period_b.to);
     }
-    window.location.href = '/api/report?' + params.toString();
+    window.location.href = docsightUrl('/api/report?' + params.toString());
 }
 function copyExport() {
     var textarea = document.getElementById('export-text');

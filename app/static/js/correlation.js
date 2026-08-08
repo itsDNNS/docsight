@@ -189,7 +189,7 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
         return Promise.resolve(null);
     }
     var boundedPoints = Math.min(1000, Math.max(1, Number(maxPoints) || 300));
-    return fetch('/api/connection-monitor/targets')
+    return fetch(docsightUrl('/api/connection-monitor/targets'))
         .then(function(response) {
             if (!response.ok) throw new Error('Connection Monitor targets unavailable');
             return response.json();
@@ -208,11 +208,11 @@ function _corrFetchReachability(startEpoch, endEpoch, maxPoints) {
                 return [];
             }
             var requests = enabled.map(function(target) {
-                var url = '/api/connection-monitor/samples/' + target.id
+                var url = docsightUrl('/api/connection-monitor/samples/' + target.id
                     + '?start=' + encodeURIComponent(startEpoch)
                     + '&end=' + encodeURIComponent(endEpoch)
                     + '&resolution=auto&max_points=' + encodeURIComponent(boundedPoints)
-                    + '&limit=0';
+                    + '&limit=0');
                 return fetch(url)
                     .then(function(response) {
                         if (!response.ok) throw new Error('Connection Monitor samples unavailable');
@@ -370,12 +370,12 @@ function loadCorrelationData() {
     var startEpoch = Math.floor(new Date(wStart).getTime() / 1000);
     var endEpoch = Math.ceil(new Date(wEnd).getTime() / 1000);
     _corrSelectedRange = { startMs: startEpoch * 1000, endMs: endEpoch * 1000 };
-    var weatherUrl = '/api/weather/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
+    var weatherUrl = docsightUrl('/api/weather/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd));
 
-    var segmentUrl = '/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd);
+    var segmentUrl = docsightUrl('/api/fritzbox/segment-utilization/range?start=' + encodeURIComponent(wStart) + '&end=' + encodeURIComponent(wEnd));
 
     Promise.all([
-        fetch('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture').then(function(r) { return r.json(); }),
+        fetch(docsightUrl('/api/correlation?hours=' + hours + '&sources=modem,speedtest,events,capture')).then(function(r) { return r.json(); }),
         fetch(weatherUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         fetch(segmentUrl).then(function(r) { return r.json(); }).catch(function() { return []; }),
         _corrFetchReachability(startEpoch, endEpoch, 300).catch(function() {

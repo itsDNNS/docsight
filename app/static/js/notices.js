@@ -10,7 +10,7 @@
 
   window.dismissMaintainerNotice = function(noticeId) {
     if (!noticeId) return;
-    fetch('/api/notices/' + encodeURIComponent(noticeId) + '/dismiss', {
+    fetch(docsightUrl('/api/notices/' + encodeURIComponent(noticeId) + '/dismiss'), {
       method: 'POST',
       headers: {'Accept': 'application/json'}
     }).then(function(response) {

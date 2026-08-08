@@ -127,6 +127,19 @@ We prefer new languages to be contributed by people who actually use the tool in
 
 DOCSight supports community modules that extend functionality without modifying core code. Modules can add API endpoints, data collectors, settings panels, dashboard tabs, and more.
 
+### Browser URL contract
+
+DOCSight may be mounted below a reverse-proxy path such as `/docsight`. Browser code in core and community modules must pass every app-owned root-relative URL through `window.docsightUrl(path)` at the point where it is used. This includes `fetch()` targets, constructed API URLs, generated `href`/`src` attributes, downloads, and internal navigation:
+
+```javascript
+fetch(docsightUrl('/api/example'));
+image.src = docsightUrl('/api/example/image/' + id);
+```
+
+The helper is loaded before module scripts on DOCSight's standalone pages. It accepts only a safe internal string beginning with exactly one `/`, preserves query strings and fragments, and throws for relative, absolute, protocol-relative, traversal, malformed, or ambiguously encoded input. Modules should not catch that error and retry with an unprefixed URL.
+
+Keep server-rendered Jinja URLs on `url_for()` or `module_static_url()`. External links, `blob:`/`data:` URLs, and current-document query/hash navigation do not use `docsightUrl()`. Do not patch browser globals such as `fetch` or `location`, and do not copy or infer the deployment prefix in module code.
+
 See the **[DOCSight Community Modules](https://github.com/itsDNNS/docsight-modules)** repository for the development guide, starter template, and submission process.
 
 ## Adding Modem Support

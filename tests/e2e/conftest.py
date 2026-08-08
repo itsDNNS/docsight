@@ -10,6 +10,13 @@ import requests
 
 _MP_CTX = multiprocessing.get_context("spawn")
 _WAITRESS_KWARGS = {"threads": 2, "_quiet": True, "asyncore_use_poll": True}
+_DEFERRED_AP4_ROOT_PATHS = {
+    "/sw.js",
+    "/static/manifest.json",
+    "/api/notifications/pwa/status",
+    "/api/notifications/pwa/subscribe",
+    "/api/notifications/pwa/unsubscribe",
+}
 
 
 @pytest.fixture(scope="session")
@@ -34,7 +41,41 @@ def _find_free_port():
         return s.getsockname()[1]
 
 
-def _start_server(data_dir, port, admin_password=None, demo_mode=True):
+def _deferred_ap4_or_not_found(environ, start_response):
+    """Keep the AP3 mount strict while tolerating only the documented AP4 escapes."""
+    from werkzeug.wrappers import Response
+
+    path = environ.get("PATH_INFO", "")
+    if path not in _DEFERRED_AP4_ROOT_PATHS:
+        return Response("Not Found\n", status=404)(environ, start_response)
+    if path == "/sw.js":
+        return Response("/* deferred AP4 test stub */\n", content_type="text/javascript")(
+            environ, start_response
+        )
+    if path == "/static/manifest.json":
+        return Response("{}", content_type="application/manifest+json")(
+            environ, start_response
+        )
+    return Response(
+        '{"configured":false,"subscription_count":0}',
+        content_type="application/json",
+    )(environ, start_response)
+
+
+def _mounted_app(application, mount_path):
+    if not mount_path:
+        return application
+    from werkzeug.middleware.dispatcher import DispatcherMiddleware
+
+    return DispatcherMiddleware(
+        _deferred_ap4_or_not_found,
+        {mount_path: application},
+    )
+
+
+def _start_server(
+    data_dir, port, admin_password=None, demo_mode=True, mount_path=""
+):
     """Boot a real DOCSight instance inside a child process."""
     import os
 
@@ -44,6 +85,8 @@ def _start_server(data_dir, port, admin_password=None, demo_mode=True):
     else:
         os.environ.pop("DEMO_MODE", None)
     os.environ["LOG_LEVEL"] = "WARNING"
+    os.environ.pop("BASE_PATH", None)
+    os.environ.pop("REVERSE_PROXY_PREFIX", None)
 
     from app.config import ConfigManager
     from app.storage import SnapshotStorage
@@ -125,12 +168,17 @@ def _start_server(data_dir, port, admin_password=None, demo_mode=True):
 
     from waitress import serve
 
-    serve(web.app, host="127.0.0.1", port=port, **_WAITRESS_KWARGS)
+    serve(
+        _mounted_app(web.app, mount_path),
+        host="127.0.0.1",
+        port=port,
+        **_WAITRESS_KWARGS,
+    )
 
 
-def _wait_for_server(port, timeout=150):
+def _wait_for_server(port, timeout=150, mount_path=""):
     """Poll /health until the server responds or timeout."""
-    url = f"http://127.0.0.1:{port}/health"
+    url = f"http://127.0.0.1:{port}{mount_path}/health"
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
@@ -248,11 +296,13 @@ def auth_page(page, auth_server):
 # ── Unconfigured server (setup wizard) ──
 
 
-def _start_unconfigured_server(data_dir, port):
+def _start_unconfigured_server(data_dir, port, mount_path=""):
     """Boot a DOCSight instance that is NOT configured — shows /setup."""
     os.environ["DATA_DIR"] = data_dir
     os.environ.pop("DEMO_MODE", None)
     os.environ["LOG_LEVEL"] = "WARNING"
+    os.environ.pop("BASE_PATH", None)
+    os.environ.pop("REVERSE_PROXY_PREFIX", None)
 
     from app.config import ConfigManager
     from app import web
@@ -267,7 +317,12 @@ def _start_unconfigured_server(data_dir, port):
 
     from waitress import serve
 
-    serve(web.app, host="127.0.0.1", port=port, **_WAITRESS_KWARGS)
+    serve(
+        _mounted_app(web.app, mount_path),
+        host="127.0.0.1",
+        port=port,
+        **_WAITRESS_KWARGS,
+    )
 
 
 def _start_first_run_server(data_dir, port):
@@ -353,6 +408,47 @@ def setup_page(page, setup_server):
     page.goto(setup_server)
     page.wait_for_load_state("networkidle")
     return page
+
+
+@pytest.fixture(
+    scope="session",
+    params=["", "/docsight"],
+    ids=["root-mount", "docsight-mount"],
+)
+def path_prefix_servers(request, tmp_path_factory):
+    """Serve auth and setup apps through a real WSGI mount for AP3 smoke tests."""
+    mount_path = request.param
+    label = "root" if not mount_path else "docsight"
+    auth_port = _find_free_port()
+    setup_port = _find_free_port()
+    credential = "ap3-browser-credential"
+    auth_dir = str(tmp_path_factory.mktemp(f"docsight_ap3_auth_{label}"))
+    setup_dir = str(tmp_path_factory.mktemp(f"docsight_ap3_setup_{label}"))
+    auth_proc = _MP_CTX.Process(
+        target=_start_server,
+        args=(auth_dir, auth_port, credential, True, mount_path),
+        daemon=True,
+    )
+    setup_proc = _MP_CTX.Process(
+        target=_start_unconfigured_server,
+        args=(setup_dir, setup_port, mount_path),
+        daemon=True,
+    )
+    auth_proc.start()
+    setup_proc.start()
+    try:
+        _wait_for_server(auth_port, mount_path=mount_path)
+        _wait_for_server(setup_port, mount_path=mount_path)
+        yield {
+            "mount_path": mount_path,
+            "app_url": f"http://127.0.0.1:{auth_port}{mount_path}",
+            "setup_url": f"http://127.0.0.1:{setup_port}{mount_path}",
+            "password": credential,
+        }
+    finally:
+        for proc in (auth_proc, setup_proc):
+            proc.terminate()
+            proc.join(timeout=5)
 
 
 # ── FritzBox server (segment utilization) ──

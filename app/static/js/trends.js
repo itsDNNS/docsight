@@ -139,8 +139,8 @@ function loadTrends(range) {
     _lastTrendRange = range;
 
     var wr = _getWeatherRange(range);
-    var trendsUrl = '/api/trends?range=' + encodeURIComponent(range || '1d');
-    var weatherUrl = '/api/weather/range?start=' + encodeURIComponent(wr.start) + '&end=' + encodeURIComponent(wr.end);
+    var trendsUrl = docsightUrl('/api/trends?range=' + encodeURIComponent(range || '1d'));
+    var weatherUrl = docsightUrl('/api/weather/range?start=' + encodeURIComponent(wr.start) + '&end=' + encodeURIComponent(wr.end));
 
     Promise.all([
         fetch(trendsUrl).then(function(r) { return r.json(); }),

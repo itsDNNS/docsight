@@ -27,18 +27,18 @@
         result.textContent = '';
 
         try {
-            var response = await fetch('/api/demo/migrate', {
+            var response = await fetch(docsightUrl('/api/demo/migrate'), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({next: nextChoice})
             });
             if (response.status === 401 || response.status === 403) {
-                window.location.assign('/login');
+                window.location.assign(docsightUrl('/login'));
                 return;
             }
             var payload = await response.json();
             if (!response.ok || !payload.success) throw new Error(payload.error || '');
-            window.location.assign(payload.next);
+            window.location.assign(docsightUrl(payload.next));
         } catch (error) {
             buttons.forEach(function(item) { item.disabled = false; });
             result.textContent = (window.T && window.T.demo_action_failed) || 'The demo could not be closed. Please try again.';

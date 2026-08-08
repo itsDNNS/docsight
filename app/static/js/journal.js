@@ -142,7 +142,7 @@ function loadJournal(searchQuery) {
     var bulkBar = document.getElementById('journal-bulk-bar');
     if (bulkBar) bulkBar.style.display = 'none';
 
-    var url = '/api/journal?limit=1000';
+    var url = docsightUrl('/api/journal?limit=1000');
     if (searchQuery) url += '&search=' + encodeURIComponent(searchQuery);
     if (_activeIncidentFilter !== null) url += '&incident_id=' + _activeIncidentFilter;
 
@@ -337,7 +337,7 @@ function openEntryModal(entryId) {
         titleEl.textContent = T.edit_entry || 'Edit Entry';
         if (saveBtn) saveBtn.textContent = T.entry_update_action || 'Update entry';
         deleteBtn.style.display = '';
-        fetch('/api/journal/' + entryId)
+        fetch(docsightUrl('/api/journal/' + entryId))
             .then(function(r) { return r.json(); })
             .then(function(entry) {
                 idEl.value = entry.id;
@@ -391,7 +391,7 @@ function renderAttachments(attachments, container, incidentId) {
         var isImage = att.mime_type && att.mime_type.indexOf('image/') === 0;
         var thumbHtml = '';
         if (isImage) {
-            thumbHtml = '<img class="attachment-thumb" src="/api/attachments/' + att.id + '" alt="">';
+            thumbHtml = '<img class="attachment-thumb" src="' + docsightUrl('/api/attachments/' + att.id) + '" alt="">';
         } else if (att.mime_type === 'application/pdf') {
             thumbHtml = '<div class="attachment-icon">&#128196;</div>';
         } else {
@@ -401,7 +401,7 @@ function renderAttachments(attachments, container, incidentId) {
             '<div class="attachment-info">' +
                 '<span class="attachment-name">' + escapeHtml(att.filename) + '</span>' +
                 '<div class="attachment-actions">' +
-                    '<a href="/api/attachments/' + att.id + '" download title="Download">&#11015;</a>' +
+                    '<a href="' + docsightUrl('/api/attachments/' + att.id) + '" download title="Download">&#11015;</a>' +
                     '<button onclick="deleteAttachment(' + att.id + ', ' + incidentId + ')" title="Delete">&#128465;</button>' +
                 '</div>' +
             '</div>';
@@ -425,7 +425,7 @@ function saveEntry() {
     var incidentSel = document.getElementById('entry-incident-select');
     var incidentIdVal = incidentSel ? incidentSel.value : '';
     var payload = JSON.stringify({date: dateVal, title: titleVal, description: descVal, icon: iconVal, incident_id: incidentIdVal ? parseInt(incidentIdVal) : null});
-    var url = entryId ? '/api/journal/' + entryId : '/api/journal';
+    var url = docsightUrl(entryId ? '/api/journal/' + entryId : '/api/journal');
     var method = entryId ? 'PUT' : 'POST';
 
     fetch(url, {method: method, headers: {'Content-Type': 'application/json'}, body: payload})
@@ -468,7 +468,7 @@ function deleteEntry() {
         danger: true
     }).then(function(confirmed) {
         if (!confirmed) return null;
-        return fetch('/api/journal/' + entryId, {method: 'DELETE'});
+        return fetch(docsightUrl('/api/journal/' + entryId), {method: 'DELETE'});
     })
         .then(function(r) { return r ? r.json() : null; })
         .then(function(res) {
@@ -505,7 +505,7 @@ function handleEntryFileUpload(input) {
             uploadBtn.disabled = false;
             input.value = '';
             // Reload attachments
-            fetch('/api/journal/' + incidentId)
+            fetch(docsightUrl('/api/journal/' + incidentId))
                 .then(function(r) { return r.json(); })
                 .then(function(inc) {
                     renderAttachments(inc.attachments || [], document.getElementById('entry-attachment-list'), incidentId);
@@ -521,16 +521,16 @@ function handleEntryFileUpload(input) {
 function uploadOneFile(incidentId, file) {
     var formData = new FormData();
     formData.append('file', file);
-    return fetch('/api/journal/' + incidentId + '/attachments', {method: 'POST', body: formData})
+    return fetch(docsightUrl('/api/journal/' + incidentId + '/attachments'), {method: 'POST', body: formData})
         .then(function(r) { return r.json().then(function(d) { return r.status >= 400 ? {error: d.error} : d; }); })
         .catch(function() { return {error: T.network_error || 'Upload failed'}; });
 }
 
 function deleteAttachment(attachmentId, incidentId) {
-    fetch('/api/attachments/' + attachmentId, {method: 'DELETE'})
+    fetch(docsightUrl('/api/attachments/' + attachmentId), {method: 'DELETE'})
         .then(function(r) { return r.json(); })
         .then(function() {
-            fetch('/api/journal/' + incidentId)
+            fetch(docsightUrl('/api/journal/' + incidentId))
                 .then(function(r) { return r.json(); })
                 .then(function(inc) {
                     renderAttachments(inc.attachments || [], document.getElementById('entry-attachment-list'), incidentId);
@@ -668,7 +668,7 @@ function handleImportFile(input) {
     var formData = new FormData();
     formData.append('file', file);
 
-    fetch('/api/journal/import/preview', {method: 'POST', body: formData})
+    fetch(docsightUrl('/api/journal/import/preview'), {method: 'POST', body: formData})
         .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
         .then(function(res) {
             document.getElementById('import-loading').style.display = 'none';
@@ -788,7 +788,7 @@ function confirmImport() {
     btn.disabled = true;
     btn.textContent = T.import_importing;
 
-    fetch('/api/journal/import/confirm', {
+    fetch(docsightUrl('/api/journal/import/confirm'), {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({rows: selectedRows})
@@ -831,7 +831,7 @@ function deleteAllEntries() {
             showToast(T.delete_all_cancelled, 'error');
             return null;
         }
-        return fetch('/api/journal/batch', {
+        return fetch(docsightUrl('/api/journal/batch'), {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({all: true, confirm: 'DELETE_ALL'})
@@ -852,7 +852,7 @@ function deleteAllEntries() {
 
 /* ── Incident Containers ── */
 function loadIncidents() {
-    fetch('/api/incidents')
+    fetch(docsightUrl('/api/incidents'))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             _incidentsData = data || [];
@@ -979,7 +979,7 @@ window.openIncidentTimeline = function(incidentId) {
 
     _timelineActive = true;
 
-    fetch('/api/incidents/' + incidentId + '/timeline')
+    fetch(docsightUrl('/api/incidents/' + incidentId + '/timeline'))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.error) {
@@ -1020,7 +1020,7 @@ window.downloadIncidentPdf = function(incidentId, incidentName) {
     if (numberInput) params.set('number', numberInput.value);
     if (addressInput) params.set('address', addressInput.value);
     if (btn) { btn.disabled = true; btn.textContent = '\u23F3'; }
-    fetch('/api/incidents/' + incidentId + '/report?' + params.toString())
+    fetch(docsightUrl('/api/incidents/' + incidentId + '/report?' + params.toString()))
         .then(function(r) {
             if (!r.ok) throw new Error('Failed');
             return r.blob();
@@ -1519,7 +1519,7 @@ function openIncidentModal(incidentId) {
         titleEl.textContent = T.incident_edit || 'Edit Incident';
         if (saveBtn) saveBtn.textContent = T.incident_update_action || 'Update incident';
         deleteBtn.style.display = '';
-        fetch('/api/incidents/' + incidentId)
+        fetch(docsightUrl('/api/incidents/' + incidentId))
             .then(function(r) { return r.json(); })
             .then(function(inc) {
                 idEl.value = inc.id;
@@ -1585,7 +1585,7 @@ function saveIncident() {
     }
 
     var payload = JSON.stringify({name: nameVal, description: descVal, status: statusVal, start_date: startVal, end_date: endVal, icon: iconVal});
-    var url = incidentId ? '/api/incidents/' + incidentId : '/api/incidents';
+    var url = docsightUrl(incidentId ? '/api/incidents/' + incidentId : '/api/incidents');
     var method = incidentId ? 'PUT' : 'POST';
 
     fetch(url, {method: method, headers: {'Content-Type': 'application/json'}, body: payload})
@@ -1613,7 +1613,7 @@ function deleteIncident() {
         danger: true
     }).then(function(confirmed) {
         if (!confirmed) return null;
-        return fetch('/api/incidents/' + incidentId, {method: 'DELETE'});
+        return fetch(docsightUrl('/api/incidents/' + incidentId), {method: 'DELETE'});
     })
         .then(function(r) { return r ? r.json() : null; })
         .then(function(res) {
@@ -1739,7 +1739,7 @@ function bulkAssign() {
         return;
     }
     if (_selectedEntryIds.length === 0) return;
-    fetch('/api/incidents/' + incidentId + '/assign', {
+    fetch(docsightUrl('/api/incidents/' + incidentId + '/assign'), {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({entry_ids: _selectedEntryIds})
@@ -1756,7 +1756,7 @@ function bulkAssign() {
 
 function bulkUnassign() {
     if (_selectedEntryIds.length === 0) return;
-    fetch('/api/journal/unassign', {
+    fetch(docsightUrl('/api/journal/unassign'), {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({entry_ids: _selectedEntryIds})
@@ -1780,7 +1780,7 @@ function toggleExportDropdown(e) {
 function exportJournal(fmt) {
     var dd = document.getElementById('journal-export-dropdown');
     dd.classList.remove('open');
-    var url = '/api/journal/export?format=' + fmt;
+    var url = docsightUrl('/api/journal/export?format=' + fmt);
     if (_activeIncidentFilter !== null && _activeIncidentFilter > 0) {
         url += '&incident_id=' + _activeIncidentFilter;
     }

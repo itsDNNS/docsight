@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css', v=version) }}">
+    {% include 'partials/browser_url_bootstrap.html' %}
     <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>
@@ -380,7 +381,7 @@ async function testConnection() {
             modem_password: document.getElementById('modem_password').value
         };
 
-        var response = await fetch('/api/test-modem', {
+        var response = await fetch(docsightUrl('/api/test-modem'), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -458,7 +459,7 @@ document.getElementById('setup-form').addEventListener('submit', async function(
     var data = Object.fromEntries(formData.entries());
 
     try {
-        var response = await fetch('/api/config', {
+        var response = await fetch(docsightUrl('/api/config'), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -592,7 +593,7 @@ async function waitForDemoData(resetDeadline) {
     }
     _showDemoStatus(SETUP_T.setup_demo_waiting);
     try {
-        var response = await fetch('/health', {cache: 'no-store'});
+        var response = await fetch(docsightUrl('/health'), {cache: 'no-store'});
         var health = await response.json();
         if (response.ok && health.docsis_health !== 'waiting') {
             window.location.assign(SETUP_INDEX_URL);
@@ -630,7 +631,7 @@ async function startDemo() {
     _setButtonLoading(button, 'loader-2', SETUP_T.setup_demo_starting);
     _showDemoStatus(SETUP_T.setup_demo_starting);
     try {
-        var response = await fetch('/api/demo/start', {
+        var response = await fetch(docsightUrl('/api/demo/start'), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: '{}'
@@ -748,7 +749,7 @@ async function validateRestoreFile() {
     formData.append('file', fileInput.files[0]);
 
     try {
-        var response = await fetch('/api/restore/validate', { method: 'POST', body: formData });
+        var response = await fetch(docsightUrl('/api/restore/validate'), { method: 'POST', body: formData });
         var res = await response.json();
 
         if (res.valid) {
@@ -777,7 +778,7 @@ async function doRestore() {
     formData.append('file', fileInput.files[0]);
 
     try {
-        var response = await fetch('/api/restore', { method: 'POST', body: formData });
+        var response = await fetch(docsightUrl('/api/restore'), { method: 'POST', body: formData });
         var res = await response.json();
 
         if (res.success) {

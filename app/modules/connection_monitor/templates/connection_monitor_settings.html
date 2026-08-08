@@ -157,7 +157,7 @@
                 var patch = {};
                 patch[input.dataset.field] = input.value.trim();
                 if (!patch[input.dataset.field]) return;
-                fetch('/api/connection-monitor/targets/' + target.id, {
+                fetch(docsightUrl('/api/connection-monitor/targets/' + target.id), {
                     method: 'PUT',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(patch)
@@ -173,7 +173,7 @@
         // Remove target
         removeBtn.addEventListener('click', function () {
             var tid = removeBtn.dataset.remove;
-            fetch('/api/connection-monitor/targets/' + tid, {method: 'DELETE'})
+            fetch(docsightUrl('/api/connection-monitor/targets/' + tid), {method: 'DELETE'})
                 .then(function (res) {
                     if (res.ok) row.remove();
                 });
@@ -184,7 +184,7 @@
     }
 
     function loadTargets() {
-        fetch('/api/connection-monitor/targets')
+        fetch(docsightUrl('/api/connection-monitor/targets'))
             .then(function (res) { return res.json(); })
             .then(function (targets) {
                 while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
@@ -196,7 +196,7 @@
     }
 
     addBtn.addEventListener('click', function () {
-        fetch('/api/connection-monitor/targets', {
+        fetch(docsightUrl('/api/connection-monitor/targets'), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({label: 'New target', host: ''})

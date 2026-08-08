@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 import re
 
 from bs4 import BeautifulSoup
@@ -96,6 +97,40 @@ def _application_root_attributes(html: str) -> list[str]:
         for attribute in ("href", "src", "action")
         if isinstance((value := tag.get(attribute)), str) and value.startswith("/")
     ]
+
+
+def _browser_bootstrap(html: str) -> tuple[dict[str, str], BeautifulSoup]:
+    soup = BeautifulSoup(html, "html.parser")
+    element = soup.find("script", id="docsight-url-bootstrap")
+    assert element is not None
+    assert element.get("type") == "application/json"
+    return json.loads(element.get_text()), soup
+
+
+def _assert_url_helper_precedes_application_scripts(html: str, prefix: str) -> None:
+    _, soup = _browser_bootstrap(html)
+    scripts = soup.find_all("script")
+    helper_index = next(
+        index
+        for index, script in enumerate(scripts)
+        if (script.get("src") or "").startswith(f"{prefix}/static/js/url-contract.js")
+    )
+    bootstrap_index = next(
+        index
+        for index, script in enumerate(scripts)
+        if script.get("id") == "docsight-url-bootstrap"
+    )
+
+    assert bootstrap_index < helper_index
+    for index, script in enumerate(scripts):
+        if index == bootstrap_index or index == helper_index:
+            continue
+        src = script.get("src")
+        is_application_script = src is None or src.startswith(
+            f"{prefix}/static/js/"
+        ) or src.startswith(f"{prefix}/modules/")
+        if is_application_script:
+            assert index > helper_index
 
 
 def _configured_manager(tmp_path, *, password: str = "") -> ConfigManager:
@@ -265,3 +300,42 @@ def test_root_mount_keeps_existing_effective_server_generated_paths(
     assert 'href="/settings"' in html
     assert 'src="/static/js/modals.js?v=' in html
     assert 'src="/modules/docsight.bqm/static/js/bqm-chart.js?v=' in html
+
+
+def test_browser_url_bootstrap_is_minimal_canonical_and_early(
+    client, sample_analysis, tmp_path
+):
+    update_state(analysis=sample_analysis)
+    dashboard_html = client.get(
+        "/?lang=en", environ_overrides=PREFIX_ENV
+    ).get_data(as_text=True)
+    settings_html = client.get(
+        "/settings?lang=en", environ_overrides=PREFIX_ENV
+    ).get_data(as_text=True)
+
+    credential = "bootstrap-credential"
+    init_config(_configured_manager(tmp_path / "auth", password=credential))
+    login_html = client.get(
+        "/login", environ_overrides=PREFIX_ENV
+    ).get_data(as_text=True)
+
+    init_config(ConfigManager(str(tmp_path / "setup")))
+    setup_html = client.get(
+        "/setup", environ_overrides=PREFIX_ENV
+    ).get_data(as_text=True)
+
+    for html in (dashboard_html, settings_html, login_html, setup_html):
+        bootstrap, _ = _browser_bootstrap(html)
+        assert bootstrap == {"basePath": "/docsight"}
+        assert set(bootstrap) == {"basePath"}
+        _assert_url_helper_precedes_application_scripts(html, "/docsight")
+
+
+def test_root_browser_url_bootstrap_preserves_root_deployment(client, sample_analysis):
+    update_state(analysis=sample_analysis)
+
+    html = client.get("/?lang=en").get_data(as_text=True)
+    bootstrap, _ = _browser_bootstrap(html)
+
+    assert bootstrap == {"basePath": ""}
+    _assert_url_helper_precedes_application_scripts(html, "")

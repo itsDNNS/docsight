@@ -1492,6 +1492,7 @@ class TestEventsJsRendering:
             const ctx = {
                 T: {},
                 escapeHtml: (s) => String(s),
+                docsightUrl: (path) => path,
                 document: {
                     getElementById: () => null,
                     querySelectorAll: () => [],

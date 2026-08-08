@@ -71,7 +71,7 @@ function updateEventsExportLink() {
     if (_hideOperational) params.set('exclude_operational', 'true');
     if (_deviceOnlyFilter) params.set('event_prefix', 'device_');
     var qs = params.toString();
-    exportLink.href = '/api/events/export.csv' + (qs ? '?' + qs : '');
+    exportLink.href = docsightUrl('/api/events/export.csv' + (qs ? '?' + qs : ''));
 }
 
 /* ── Rich event message formatter ── */
@@ -273,7 +273,7 @@ function loadEvents(append) {
         moreBtn.style.display = 'none';
     }
 
-    fetch('/api/events' + params)
+    fetch(docsightUrl('/api/events' + params))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             loading.style.display = 'none';
@@ -333,7 +333,7 @@ function loadMoreEvents() {
 
 function acknowledgeEvent(eventId, e) {
     if (e) e.stopPropagation();
-    fetch('/api/events/' + eventId + '/acknowledge', { method: 'POST' })
+    fetch(docsightUrl('/api/events/' + eventId + '/acknowledge'), { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) loadEvents();
@@ -341,7 +341,7 @@ function acknowledgeEvent(eventId, e) {
 }
 
 function acknowledgeAllEvents() {
-    fetch('/api/events/acknowledge-all', { method: 'POST' })
+    fetch(docsightUrl('/api/events/acknowledge-all'), { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.success) loadEvents();
@@ -388,7 +388,7 @@ window.refreshEventBadge = function() {
     
     params += (params ? '&' : '?') + 't=' + Date.now();
 
-    fetch('/api/events/count' + params)
+    fetch(docsightUrl('/api/events/count' + params))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (requestId === _badgeRequestCount) {

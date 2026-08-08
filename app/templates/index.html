@@ -39,6 +39,7 @@
     {% if config.font_family == 'system' %}
     <style id="font-override">:root { --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }</style>
     {% endif %}
+    {% include 'partials/browser_url_bootstrap.html' %}
     <script src="{{ url_for('static', filename='vendor/lucide.min.js', v=version) }}"></script>
 </head>
 <body>
@@ -3364,7 +3365,7 @@ var CORRELATION_CM_AVAILABLE = {{ (connection_monitor_installed|length > 0)|tojs
             if (refreshBtn.disabled) return;
             refreshBtn.disabled = true;
             refreshBtn.classList.add('spinning');
-            fetch('/api/poll', {method: 'POST'})
+            fetch(docsightUrl('/api/poll'), {method: 'POST'})
                 .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
                 .then(function(res) {
                     if (res.data.success) {

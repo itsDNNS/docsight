@@ -30,7 +30,7 @@ function loadFritzCableData() {
     msg.style.display = 'none';
     content.style.display = 'none';
 
-    fetch('/api/fritzbox/segment-utilization?range=' + encodeURIComponent(_fritzCableRange))
+    fetch(docsightUrl('/api/fritzbox/segment-utilization?range=' + encodeURIComponent(_fritzCableRange)))
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (skel) skel.style.display = 'none';
@@ -74,7 +74,7 @@ function _fritzCableLoadEvents() {
     status.className = 'fritz-cable-events-status is-loading';
     status.style.display = 'block';
 
-    var url = '/api/fritzbox/segment-utilization/events'
+    var url = docsightUrl('/api/fritzbox/segment-utilization/events')
         + '?range=' + encodeURIComponent(_fritzCableRange)
         + '&threshold=' + _FRITZ_EVENT_THRESHOLD
         + '&min_minutes=' + _FRITZ_EVENT_MIN_MINUTES;

@@ -88,7 +88,7 @@
     }
 
     function refresh() {
-        fetch('/api/trends')
+        fetch(docsightUrl('/api/trends'))
             .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
             .then(function(data) {
                 if (!Array.isArray(data) || data.length === 0) return;

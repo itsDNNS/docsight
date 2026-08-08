@@ -59,19 +59,19 @@
 
     window.cmExportCsv = function(targetId) {
         var range = getExportWindow();
-        triggerExport('/api/connection-monitor/export/' + targetId + '?start=' + range.start + '&end=' + range.end + '&resolution=' + lastResolution);
+        triggerExport(docsightUrl('/api/connection-monitor/export/' + targetId + '?start=' + range.start + '&end=' + range.end + '&resolution=' + lastResolution));
     };
 
     window.cmExportRawLog = function(targetId) {
         var range = getExportWindow();
-        triggerExport('/api/connection-monitor/export/' + targetId + '?start=' + range.start + '&end=' + range.end + '&resolution=raw&format=pinglog');
+        triggerExport(docsightUrl('/api/connection-monitor/export/' + targetId + '?start=' + range.start + '&end=' + range.end + '&resolution=raw&format=pinglog'));
     };
 
     // --- Pin Button ---
 
     function pinCurrentDay() {
         var ts = Math.floor(Date.now() / 1000);
-        fetch('/api/connection-monitor/pinned-days', {
+        fetch(docsightUrl('/api/connection-monitor/pinned-days'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ timestamp: ts })
@@ -98,7 +98,7 @@
     // --- Pinned Days Bar ---
 
     function loadPinnedDays() {
-        fetch('/api/connection-monitor/pinned-days')
+        fetch(docsightUrl('/api/connection-monitor/pinned-days'))
             .then(function(r) { return r.json(); })
             .then(function(days) {
                 renderPinnedDays(days);
@@ -147,7 +147,7 @@
             removeBtn.onclick = function(e) {
                 e.stopPropagation();
                 var removedActiveDay = pinnedDayView && pinnedDayView.date === day.date;
-                fetch('/api/connection-monitor/pinned-days/' + day.date, { method: 'DELETE' })
+                fetch(docsightUrl('/api/connection-monitor/pinned-days/' + day.date), { method: 'DELETE' })
                     .then(function() {
                         if (removedActiveDay) {
                             pinnedDayView = null;
@@ -194,7 +194,7 @@
             pinBtn.onclick = pinCurrentDay;
         }
 
-        fetch('/api/connection-monitor/capability')
+        fetch(docsightUrl('/api/connection-monitor/capability'))
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var el = document.getElementById('cm-capability-info');
@@ -234,7 +234,7 @@
     }
 
     function loadTargets() {
-        fetch('/api/connection-monitor/targets')
+        fetch(docsightUrl('/api/connection-monitor/targets'))
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 targets = data.filter(function(t) { return t.enabled; });
@@ -265,7 +265,7 @@
 
         // Fetch samples for ALL targets in parallel
         var samplePromises = targets.map(function(t) {
-            var url = '/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + end + '&limit=0';
+            var url = docsightUrl('/api/connection-monitor/samples/' + t.id + '?start=' + start + '&end=' + end + '&limit=0');
             if (pinnedDayView) {
                 url += '&resolution=raw';
             } else if (maxPoints > 0) {
@@ -276,12 +276,12 @@
                 .then(function(data) { return { target: t, samples: data.samples, meta: data.meta }; });
         });
 
-        var statsPromise = fetch('/api/connection-monitor/stats?start=' + start + '&end=' + end)
+        var statsPromise = fetch(docsightUrl('/api/connection-monitor/stats?start=' + start + '&end=' + end))
             .then(function(r) { return r.json(); });
 
         // Fetch outages for ALL targets in parallel
         var outagePromises = targets.map(function(t) {
-            return fetch('/api/connection-monitor/outages/' + t.id + '?start=' + start + '&end=' + end)
+            return fetch(docsightUrl('/api/connection-monitor/outages/' + t.id + '?start=' + start + '&end=' + end))
                 .then(function(r) { return r.json(); })
                 .then(function(outages) { return { target: t, outages: outages }; });
         });
@@ -535,7 +535,7 @@
 
     function loadTraceHistory() {
         if (!trSelectedTargetId) return;
-        fetch('/api/connection-monitor/traces/' + trSelectedTargetId)
+        fetch(docsightUrl('/api/connection-monitor/traces/' + trSelectedTargetId))
             .then(function(r) { return r.json(); })
             .then(function(traces) {
                 renderTraceHistory(traces);
@@ -635,7 +635,7 @@
         if (control) control.setAttribute('aria-expanded', 'true');
 
         // Fetch detail
-        fetch('/api/connection-monitor/trace/' + traceId)
+        fetch(docsightUrl('/api/connection-monitor/trace/' + traceId))
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var detailRow = document.createElement('tr');
@@ -755,7 +755,7 @@
         if (label) label.textContent = btn.dataset.running || 'Running traceroute...';
         else btn.textContent = btn.dataset.running || 'Running traceroute...';
 
-        fetch('/api/connection-monitor/traceroute/' + trSelectedTargetId, { method: 'POST' })
+        fetch(docsightUrl('/api/connection-monitor/traceroute/' + trSelectedTargetId), { method: 'POST' })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 btn.disabled = false;

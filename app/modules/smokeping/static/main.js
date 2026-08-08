@@ -20,7 +20,7 @@ function loadSmokepingGraphs() {
     content.innerHTML = '';
     noData.style.display = 'none';
 
-    fetch('/api/smokeping/targets')
+    fetch(docsightUrl('/api/smokeping/targets'))
         .then(function(r) { return r.json(); })
         .then(function(targets) {
             if (!targets || targets.length === 0) {
@@ -41,7 +41,7 @@ function loadSmokepingGraphs() {
                 img.style.maxWidth = '100%';
                 img.style.borderRadius = '8px';
                 img.alt = target;
-                img.src = '/api/smokeping/graph/' + encodeURIComponent(target) + '/' + _smokepingSpan;
+                img.src = docsightUrl('/api/smokeping/graph/' + encodeURIComponent(target) + '/' + _smokepingSpan);
                 img.onerror = function() {
                     wrap.innerHTML = '<div class="no-data-msg" style="display:block;">' + (T.smokeping_no_data || T['docsight.smokeping.smokeping_no_data'] || 'Could not load graph.') + '</div>';
                 };
