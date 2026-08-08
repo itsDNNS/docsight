@@ -153,8 +153,9 @@ def test_main_rejects_invalid_base_path_before_runtime_setup(monkeypatch, caplog
     assert sentinel not in caplog.text
 
 
-def test_untrusted_forwarded_prefix_is_ignored():
-    client = _make_app().test_client()
+@pytest.mark.parametrize("trusted_hops", [None, "0"])
+def test_untrusted_forwarded_prefix_is_ignored(trusted_hops):
+    client = _make_app(trusted_hops=trusted_hops).test_client()
 
     response = client.get("/", headers={"X-Forwarded-Prefix": "/attacker"})
 
@@ -164,6 +165,36 @@ def test_untrusted_forwarded_prefix_is_ignored():
         "path_info": "/",
         "script_name": "",
     }
+
+
+def test_disabled_prefix_trust_does_not_require_forwarded_prefix():
+    client = _make_app(trusted_hops="0").test_client()
+
+    response = client.get("/session")
+
+    assert response.status_code == 200
+    assert "Path=/" in response.headers["Set-Cookie"]
+
+
+def test_missing_trusted_forwarded_prefix_returns_400_without_cookie():
+    client = _make_app(trusted_hops="1").test_client()
+
+    response = client.get("/session")
+
+    assert response.status_code == 400
+    assert response.data == b"Bad Request\n"
+    assert "Set-Cookie" not in response.headers
+
+
+@pytest.mark.parametrize("header", ["", ",", '""', '"unterminated'])
+def test_empty_or_malformed_forwarded_prefix_list_returns_400_without_cookie(header):
+    client = _make_app(trusted_hops="1").test_client()
+
+    response = client.get("/session", headers={"X-Forwarded-Prefix": header})
+
+    assert response.status_code == 400
+    assert response.data == b"Bad Request\n"
+    assert "Set-Cookie" not in response.headers
 
 
 def test_trusted_prefix_uses_proxyfix_right_to_left_hop_selection():
@@ -190,13 +221,27 @@ def test_malformed_unselected_forwarded_prefix_is_ignored():
     assert response.get_json()["script_name"] == "/docsight"
 
 
-def test_incomplete_forwarded_prefix_chain_does_not_trust_available_value():
+def test_incomplete_trusted_chain_returns_400_without_cookie():
     client = _make_app(trusted_hops="2").test_client()
 
-    response = client.get("/", headers={"X-Forwarded-Prefix": "/attacker"})
+    response = client.get(
+        "/session",
+        headers={"X-Forwarded-Prefix": "/attacker"},
+    )
 
-    assert response.status_code == 200
-    assert response.get_json()["script_name"] == ""
+    assert response.status_code == 400
+    assert response.data == b"Bad Request\n"
+    assert "Set-Cookie" not in response.headers
+
+
+def test_missing_trusted_forwarded_prefix_with_fixed_base_path_returns_400():
+    client = _make_app(base_path="/docsight", trusted_hops="1").test_client()
+
+    response = client.get("/session")
+
+    assert response.status_code == 400
+    assert response.data == b"Bad Request\n"
+    assert "Set-Cookie" not in response.headers
 
 
 def test_selected_malformed_forwarded_prefix_returns_safe_unreflected_400(caplog):
@@ -218,7 +263,6 @@ def test_selected_malformed_forwarded_prefix_returns_safe_unreflected_400(caplog
     ("base_path", "header", "existing_script_name"),
     [
         ("/docsight", "/docsight", "/docsight"),
-        ("/docsight", None, "/docsight"),
         (None, "/docsight", "/docsight"),
     ],
 )

@@ -64,11 +64,11 @@ def parse_trusted_prefix_hops(value: str | None) -> int:
 def _trusted_header_value(trusted_hops: int, value: str | None) -> str | None:
     """Select a list-header value with Werkzeug ProxyFix semantics."""
 
-    if not (trusted_hops and value):
+    if not trusted_hops:
         return None
-    values = parse_list_header(value)
+    values = parse_list_header(value or "")
     if len(values) >= trusted_hops:
-        return values[-trusted_hops]
+        return values[-trusted_hops] or None
     return None
 
 
@@ -109,6 +109,8 @@ class BasePathMiddleware:
             self.trusted_hops,
             environ.get("HTTP_X_FORWARDED_PREFIX"),
         )
+        if self.trusted_hops and selected_raw is None:
+            return _bad_request(start_response)
 
         try:
             existing = normalize_base_path(existing_raw) if existing_present else None
