@@ -57,9 +57,11 @@ _SERIAL_CUSTOMER_RE = re.compile(
 )
 _LONG_SECRET_RE = re.compile(r"(?i)(?:token|secret|password|passwd|key)=([^&\s]+)")
 _ALLOWED_ENV_KEYS = {
+    "BASE_PATH",
     "DATA_DIR",
     "DEMO_MODE",
     "REVERSE_PROXY",
+    "REVERSE_PROXY_PREFIX",
     "DOCSIGHT_AUDIT_JSON",
     "LOG_LEVEL",
     "MODULES_DIR",
@@ -163,6 +165,8 @@ def redact_value(value: Any, key: str | None = None) -> Any:
     text = str(value)
     if not text:
         return text
+    if key and key.upper() == "BASE_PATH":
+        return {"configured": True}
     if _is_sensitive_key(key):
         return _MASK
     if _looks_like_url_key(key) or re.match(r"^[a-z][a-z0-9+.-]*://", text, re.I):

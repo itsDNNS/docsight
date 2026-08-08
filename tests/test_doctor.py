@@ -65,6 +65,33 @@ def test_doctor_json_and_human_output_redact_sensitive_sentinels(tmp_path, monke
     assert "<redacted>" in human
 
 
+def test_doctor_reports_base_path_state_without_ingress_token(tmp_path):
+    from app.doctor import build_report, format_human
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    sentinel = "BASE_PATH_SENTINEL_TOKEN_106"
+    base_path = f"/api/hassio_ingress/{sentinel}"
+
+    report = build_report(
+        data_dir=str(data_dir),
+        environ={
+            "BASE_PATH": base_path,
+            "REVERSE_PROXY_PREFIX": "2",
+        },
+    )
+    serialized = json.dumps(report, sort_keys=True)
+    human = format_human(report, color=False)
+    setup = next(check for check in report["checks"] if check["id"] == "config.setup")
+
+    assert setup["details"]["env_overrides"]["BASE_PATH"] == {"configured": True}
+    assert setup["details"]["env_overrides"]["REVERSE_PROXY_PREFIX"] == "2"
+    assert sentinel not in serialized
+    assert sentinel not in human
+    assert base_path not in serialized
+    assert base_path not in human
+
+
 def test_doctor_marks_optional_integrations_as_skipped_or_warn_not_core_fail(tmp_path):
     from app.doctor import build_report
 

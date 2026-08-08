@@ -8,6 +8,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from . import analyzer, web
+from .base_path import configure_base_path
 from .config import ConfigManager
 from .event_detector import EventDetector
 from .module_paths import get_modules_dir
@@ -417,6 +418,8 @@ def polling_loop(config_mgr, storage, stop_event):
 
 
 def main(server_lifecycle: ServerLifecycleController | None = None):
+    configure_base_path(web.app)
+
     data_dir = os.environ.get("DATA_DIR", "/data")
     config_mgr = ConfigManager(data_dir)
     _apply_timezone(config_mgr)
