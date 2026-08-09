@@ -1,19 +1,8 @@
-"""Browser smoke coverage for AP3 root and reverse-proxy path-prefix behavior."""
+"""Browser smoke coverage for root and reverse-proxy path-prefix behavior."""
 
 from __future__ import annotations
 
 from urllib.parse import urlsplit
-
-
-# These are the only root escapes explicitly deferred to AP4. The WSGI fixture
-# returns harmless stubs for them so AP3 failures remain visible and unambiguous.
-DEFERRED_AP4_ROOT_PATHS = {
-    "/sw.js",
-    "/static/manifest.json",
-    "/api/notifications/pwa/status",
-    "/api/notifications/pwa/subscribe",
-    "/api/notifications/pwa/unsubscribe",
-}
 
 
 def _record_browser_activity(page, origins):
@@ -57,8 +46,6 @@ def _assert_prefix_safe(urls, origins, mount_path):
         if f"{parsed.scheme}://{parsed.netloc}" not in origins:
             continue
         if parsed.path == mount_path or parsed.path.startswith(mount_path + "/"):
-            continue
-        if parsed.path in DEFERRED_AP4_ROOT_PATHS:
             continue
         escaped.append(value)
     assert escaped == []

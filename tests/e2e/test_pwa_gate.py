@@ -1,38 +1,114 @@
 """PWA installability and offline behavior gate."""
 
-from playwright.sync_api import expect
+from urllib.parse import urlsplit
+
+from playwright.sync_api import Error as PlaywrightError, expect
 
 from app.web import APP_VERSION
 
 
-def test_manifest_loads_and_service_worker_can_be_enabled_for_e2e(page, live_server):
-    """Local E2E should be able to opt into the same service worker path production uses."""
-    page.goto(f"{live_server}/?enable-sw-test=1")
+def _open_authenticated_pwa(page, servers):
+    app_url = servers["app_url"]
+    page.goto(f"{app_url}/login", wait_until="domcontentloaded")
+    if urlsplit(page.url).path.endswith("/login"):
+        page.fill('input[name="password"]', servers["password"])
+        page.click('button[type="submit"]')
+        page.wait_for_load_state("networkidle")
+    page.goto(f"{app_url}/?enable-sw-test=1")
     page.wait_for_load_state("networkidle")
+    return app_url
+
+
+def _chromium_app_id(page):
+    session = page.context.new_cdp_session(page)
+    try:
+        return session.send("Page.getAppId").get("appId")
+    except PlaywrightError as exc:
+        message = str(exc).lower()
+        if "page.getappid" in message and (
+            "wasn't found" in message
+            or "method not found" in message
+            or "-32601" in message
+        ):
+            return None
+        raise
+    finally:
+        session.detach()
+
+
+def test_manifest_and_service_worker_resolve_to_each_mount(page, path_prefix_servers):
+    """Manifest members and registration scope stay inside root and prefixed mounts."""
+    requests = []
+    page.on("request", lambda request: requests.append(request.url))
+    app_url = _open_authenticated_pwa(page, path_prefix_servers)
 
     manifest = page.evaluate(
         """
         async () => {
-            const res = await fetch('/static/manifest.json');
-            return await res.json();
+            const manifestUrl = document.querySelector('link[rel="manifest"]').href;
+            const res = await fetch(manifestUrl);
+            const data = await res.json();
+            const resolve = value => new URL(value, manifestUrl).href;
+            const startUrl = resolve(data.start_url);
+            const startUrlOrigin = new URL(startUrl).origin + '/';
+            return {
+                display: data.display,
+                id: new URL(data.id, startUrlOrigin).href,
+                rawId: data.id,
+                startUrl,
+                scope: resolve(data.scope),
+                icons: data.icons.map(icon => resolve(icon.src)),
+                shortcuts: data.shortcuts.map(shortcut => resolve(shortcut.url)),
+                screenshots: data.screenshots.map(screenshot => resolve(screenshot.src))
+            };
         }
         """
     )
-    assert manifest["id"] == "/"
+    mounted_root = f"{app_url}/"
+    assert manifest["id"] == mounted_root
+    assert manifest["rawId"] == urlsplit(mounted_root).path
     assert manifest["display"] == "standalone"
-    assert manifest["shortcuts"]
-    assert "screenshots" in manifest and manifest["screenshots"]
+    assert manifest["scope"] == mounted_root
+    assert manifest["startUrl"] == f"{mounted_root}?source=pwa"
+    assert set(manifest["icons"]) == {
+        f"{mounted_root}static/icon.png",
+        f"{mounted_root}static/logo.svg",
+    }
+    assert all(url.startswith(mounted_root) for url in manifest["shortcuts"])
+    assert all(url.startswith(mounted_root) for url in manifest["screenshots"])
 
-    sw_ready = page.evaluate(
+    chromium_app_id = _chromium_app_id(page)
+    if chromium_app_id is not None:
+        assert chromium_app_id == mounted_root
+
+    sw_registration = page.evaluate(
         """
         async () => {
-            if (!('serviceWorker' in navigator)) return false;
+            if (!('serviceWorker' in navigator)) return null;
             const registration = await navigator.serviceWorker.ready;
-            return Boolean(registration && registration.active && registration.scope.endsWith('/'));
+            return registration && registration.active ? {
+                scriptUrl: registration.active.scriptURL,
+                scope: registration.scope
+            } : null;
         }
         """
     )
-    assert sw_ready is True
+    assert sw_registration == {
+        "scriptUrl": f"{mounted_root}sw.js",
+        "scope": mounted_root,
+    }
+
+    origin = f"{urlsplit(app_url).scheme}://{urlsplit(app_url).netloc}"
+    mount_path = path_prefix_servers["mount_path"]
+    same_origin_paths = [
+        urlsplit(url).path for url in requests if url.startswith(f"{origin}/")
+    ]
+    assert f"{mount_path}/static/manifest.json" in same_origin_paths
+    if mount_path:
+        assert all(
+            path == mount_path or path.startswith(f"{mount_path}/")
+            for path in same_origin_paths
+        )
 
 
 def test_static_js_and_css_requests_include_app_version(page, live_server):
@@ -59,10 +135,11 @@ def test_static_js_and_css_requests_include_app_version(page, live_server):
     assert offenders == []
 
 
-def test_offline_cached_shell_is_explicitly_read_only(page, context, live_server):
+def test_offline_cached_shell_is_explicitly_read_only(
+    page, context, path_prefix_servers
+):
     """Offline reload should show cached shell state without pretending live data is current."""
-    page.goto(f"{live_server}/?enable-sw-test=1")
-    page.wait_for_load_state("networkidle")
+    _open_authenticated_pwa(page, path_prefix_servers)
     page.evaluate("() => navigator.serviceWorker.ready")
 
     context.set_offline(True)

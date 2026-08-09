@@ -190,6 +190,12 @@ def test_settings_exposes_explicit_pwa_push_controls_without_auto_permission_pro
     assert "This browser is not subscribed yet" in js
     assert "Notification.requestPermission()" in js
     assert js.index("function subscribePwaPush()") < js.index("Notification.requestPermission()")
+    for path in (
+        "/api/notifications/pwa/status",
+        "/api/notifications/pwa/subscribe",
+        "/api/notifications/pwa/unsubscribe",
+    ):
+        assert f"docsightUrl('{path}')" in js
 
 
 def test_dispatcher_adds_pwa_channel_and_reuses_severity_and_cooldown_controls(tmp_path):

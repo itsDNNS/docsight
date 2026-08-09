@@ -10,13 +10,6 @@ import requests
 
 _MP_CTX = multiprocessing.get_context("spawn")
 _WAITRESS_KWARGS = {"threads": 2, "_quiet": True, "asyncore_use_poll": True}
-_DEFERRED_AP4_ROOT_PATHS = {
-    "/sw.js",
-    "/static/manifest.json",
-    "/api/notifications/pwa/status",
-    "/api/notifications/pwa/subscribe",
-    "/api/notifications/pwa/unsubscribe",
-}
 
 
 @pytest.fixture(scope="session")
@@ -41,25 +34,11 @@ def _find_free_port():
         return s.getsockname()[1]
 
 
-def _deferred_ap4_or_not_found(environ, start_response):
-    """Keep the AP3 mount strict while tolerating only the documented AP4 escapes."""
+def _not_found(environ, start_response):
+    """Reject every request that escapes a mounted DOCSight application."""
     from werkzeug.wrappers import Response
 
-    path = environ.get("PATH_INFO", "")
-    if path not in _DEFERRED_AP4_ROOT_PATHS:
-        return Response("Not Found\n", status=404)(environ, start_response)
-    if path == "/sw.js":
-        return Response("/* deferred AP4 test stub */\n", content_type="text/javascript")(
-            environ, start_response
-        )
-    if path == "/static/manifest.json":
-        return Response("{}", content_type="application/manifest+json")(
-            environ, start_response
-        )
-    return Response(
-        '{"configured":false,"subscription_count":0}',
-        content_type="application/json",
-    )(environ, start_response)
+    return Response("Not Found\n", status=404)(environ, start_response)
 
 
 def _mounted_app(application, mount_path):
@@ -68,7 +47,7 @@ def _mounted_app(application, mount_path):
     from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
     return DispatcherMiddleware(
-        _deferred_ap4_or_not_found,
+        _not_found,
         {mount_path: application},
     )
 
@@ -416,7 +395,7 @@ def setup_page(page, setup_server):
     ids=["root-mount", "docsight-mount"],
 )
 def path_prefix_servers(request, tmp_path_factory):
-    """Serve auth and setup apps through a real WSGI mount for AP3 smoke tests."""
+    """Serve auth and setup apps through real root/prefix WSGI mounts."""
     mount_path = request.param
     label = "root" if not mount_path else "docsight"
     auth_port = _find_free_port()

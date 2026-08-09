@@ -752,7 +752,7 @@ function refreshPwaPushStatus() {
         return Promise.resolve(null);
     }
     return Promise.all([
-        fetch('/api/notifications/pwa/status').then(function(r) { return r.json(); }),
+        fetch(docsightUrl('/api/notifications/pwa/status')).then(function(r) { return r.json(); }),
         _getCurrentPwaSubscription()
     ])
         .then(function(values) {
@@ -793,7 +793,7 @@ function subscribePwaPush() {
                 });
             })
             .then(function(subscription) {
-                return fetch('/api/notifications/pwa/subscribe', {
+                return fetch(docsightUrl('/api/notifications/pwa/subscribe'), {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({subscription: subscription.toJSON()})
@@ -819,7 +819,7 @@ function unsubscribePwaPush() {
             if (!subscription) return null;
             var endpoint = subscription.endpoint;
             return subscription.unsubscribe().then(function() {
-                return fetch('/api/notifications/pwa/unsubscribe', {
+                return fetch(docsightUrl('/api/notifications/pwa/unsubscribe'), {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({endpoint: endpoint})

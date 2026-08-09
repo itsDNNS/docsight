@@ -15,7 +15,7 @@ HELPER = ROOT / "app/static/js/url-contract.js"
 DEMO_BANNER = ROOT / "app/static/js/demo-banner.js"
 
 EXPECTED_CONTRACT_CALLS = {
-    "app/templates/index.html": 1,
+    "app/templates/index.html": 4,
     "app/templates/setup.html": 6,
     "app/modules/connection_monitor/templates/connection_monitor_settings.html": 4,
     "app/static/js/bqm.js": 9,
@@ -29,7 +29,7 @@ EXPECTED_CONTRACT_CALLS = {
     "app/static/js/journal.js": 22,
     "app/static/js/notices.js": 1,
     "app/static/js/segment-utilization.js": 2,
-    "app/static/js/settings.js": 23,
+    "app/static/js/settings.js": 26,
     "app/static/js/sparklines.js": 1,
     "app/static/js/speedtest.js": 6,
     "app/static/js/trends.js": 2,
@@ -296,7 +296,7 @@ def test_inventoried_files_keep_the_reviewed_contract_sites():
     }
 
     assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 128  # 127 AP3 sinks plus payload.next
+    assert sum(actual.values()) == 134  # reviewed browser URL contract sites
 
 
 def test_inventoried_actual_literal_forms_have_no_unwrapped_ap3_sink():
@@ -319,16 +319,8 @@ def test_inventoried_actual_literal_forms_have_no_unwrapped_ap3_sink():
         "window.location.href = '/api",
         'window.location.href = "/api',
     )
-    deferred = {
-        "fetch('/api/notifications/pwa/status')",
-        "fetch('/api/notifications/pwa/subscribe'",
-        "fetch('/api/notifications/pwa/unsubscribe'",
-    }
     for relative in EXPECTED_CONTRACT_CALLS:
         source = (ROOT / relative).read_text(encoding="utf-8")
-        if relative == "app/static/js/settings.js":
-            for allowed in deferred:
-                source = source.replace(allowed, "")
         for form in forbidden_forms:
             if form in source:
                 offenders.append(f"{relative}: {form}")
@@ -345,7 +337,7 @@ def test_representative_site_mutations_are_detected(label, path, required):
     assert label in _missing_representative_sites({path: mutated})
 
 
-def test_only_the_exact_deferred_pwa_fetches_remain_unwrapped():
+def test_pwa_fetches_use_the_browser_url_contract():
     settings = (ROOT / "app/static/js/settings.js").read_text(encoding="utf-8")
     unwrapped = [
         line.strip()
@@ -353,8 +345,7 @@ def test_only_the_exact_deferred_pwa_fetches_remain_unwrapped():
         if "fetch('/" in line
     ]
 
-    assert unwrapped == [
-        "fetch('/api/notifications/pwa/status').then(function(r) { return r.json(); }),",
-        "return fetch('/api/notifications/pwa/subscribe', {",
-        "return fetch('/api/notifications/pwa/unsubscribe', {",
-    ]
+    assert unwrapped == []
+    assert "fetch(docsightUrl('/api/notifications/pwa/status'))" in settings
+    assert "fetch(docsightUrl('/api/notifications/pwa/subscribe')," in settings
+    assert "fetch(docsightUrl('/api/notifications/pwa/unsubscribe')," in settings

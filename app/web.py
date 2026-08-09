@@ -1,6 +1,7 @@
 """Flask web UI for DOCSight – DOCSIS channel monitoring."""
 
 import functools
+import json
 import logging
 import math
 import os
@@ -1539,6 +1540,16 @@ def _build_capacity_context(analysis, booked_download=0, booked_upload=0):
 @app.route("/sw.js")
 def service_worker():
     return send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
+
+
+@app.route("/static/manifest.json")
+def web_app_manifest():
+    with open(os.path.join(app.static_folder, "manifest.json"), encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    manifest["id"] = url_for("index")
+    response = jsonify(manifest)
+    response.mimetype = "application/manifest+json"
+    return response
 
 
 def _build_glossary_context(lang, t, selected_term_id=None):

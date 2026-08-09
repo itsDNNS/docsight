@@ -8,6 +8,7 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from urllib.parse import urljoin, urlsplit
 
 from jinja2 import Template
 
@@ -152,23 +153,33 @@ def test_lucide_bundle_is_app_subset_and_covers_rendered_icons() -> None:
 
 def test_pwa_manifest_metadata_and_declared_assets_are_valid() -> None:
     manifest = read_json(STATIC / "manifest.json")
+    manifest_url = "https://docsight.test/static/manifest.json"
 
     assert manifest["name"].startswith("DOCSight")
     assert manifest["short_name"] == "DOCSight"
     assert manifest["display"] == "standalone"
-    assert manifest["start_url"].startswith("/")
-    assert manifest["scope"] == "/"
+    assert "id" not in manifest
+    assert urljoin(manifest_url, manifest["start_url"]) == (
+        "https://docsight.test/?source=pwa"
+    )
+    assert urljoin(manifest_url, manifest["scope"]) == "https://docsight.test/"
     assert {item["form_factor"] for item in manifest["screenshots"]} == {"narrow", "wide"}
 
-    declared_assets = [icon["src"] for icon in manifest["icons"]]
-    declared_assets += [shot["src"] for shot in manifest["screenshots"]]
+    declared_assets = [urljoin(manifest_url, icon["src"]) for icon in manifest["icons"]]
+    declared_assets += [
+        urljoin(manifest_url, shot["src"]) for shot in manifest["screenshots"]
+    ]
     for shortcut in manifest["shortcuts"]:
-        assert shortcut["url"].startswith("/")
-        declared_assets.extend(icon["src"] for icon in shortcut["icons"])
+        assert urljoin(manifest_url, shortcut["url"]).startswith(
+            "https://docsight.test/?source=pwa#"
+        )
+        declared_assets.extend(
+            urljoin(manifest_url, icon["src"]) for icon in shortcut["icons"]
+        )
 
     missing = []
     for url in declared_assets:
-        path = local_asset_path(url)
+        path = local_asset_path(urlsplit(url).path)
         if path is None or not path.is_file():
             missing.append(url)
     assert missing == []

@@ -21,6 +21,7 @@ PUBLIC_ENDPOINT_METHODS = {
     "service_worker": {"GET"},  # PWA service-worker asset
     "setup": {"GET"},  # first-run setup page
     "static": {"GET"},  # Flask static assets
+    "web_app_manifest": {"GET"},  # public PWA installability asset
 }
 
 PUBLIC_ENDPOINT_PREFIX_METHODS = {
@@ -143,6 +144,7 @@ def test_public_route_allowlist_matches_current_route_surface():
         ("service_worker", "/sw.js", ("GET",)),
         ("setup", "/setup", ("GET",)),
         ("static", "/static/<path:filename>", ("GET",)),
+        ("web_app_manifest", "/static/manifest.json", ("GET",)),
     ]
     assert all(
         endpoint.startswith("module_static_")

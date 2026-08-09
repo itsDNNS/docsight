@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 import json
 import re
+from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 import pytest
@@ -300,6 +301,46 @@ def test_root_mount_keeps_existing_effective_server_generated_paths(
     assert 'href="/settings"' in html
     assert 'src="/static/js/modals.js?v=' in html
     assert 'src="/modules/docsight.bqm/static/js/bqm-chart.js?v=' in html
+
+
+@pytest.mark.parametrize(
+    ("environ", "mount_path"),
+    [({}, ""), (PREFIX_ENV, "/docsight")],
+    ids=["root", "docsight-prefix"],
+)
+def test_pwa_routes_and_manifest_identity_follow_effective_mount(
+    client, sample_analysis, environ, mount_path
+):
+    update_state(analysis=sample_analysis)
+
+    dashboard = client.get("/", environ_overrides=environ)
+    service_worker = client.get("/sw.js", environ_overrides=environ)
+    manifest_response = client.get(
+        "/static/manifest.json", environ_overrides=environ
+    )
+
+    assert dashboard.status_code == 200
+    assert f'rel="manifest" href="{mount_path}/static/manifest.json"' in dashboard.get_data(
+        as_text=True
+    )
+    assert service_worker.status_code == 200
+    assert service_worker.mimetype == "application/javascript"
+    assert "self.registration.scope" in service_worker.get_data(as_text=True)
+    assert manifest_response.status_code == 200
+    assert manifest_response.mimetype == "application/manifest+json"
+    manifest = manifest_response.get_json()
+    expected_id = f"{mount_path}/"
+    assert manifest["id"] == expected_id
+    assert manifest["start_url"] == "../?source=pwa"
+    assert manifest["scope"] == "../"
+
+    manifest_url = f"https://example.test{mount_path}/static/manifest.json"
+    start_url = urljoin(manifest_url, manifest["start_url"])
+    parsed_start_url = urlsplit(start_url)
+    start_url_origin = f"{parsed_start_url.scheme}://{parsed_start_url.netloc}/"
+    assert urljoin(start_url_origin, manifest["id"]) == (
+        f"https://example.test{expected_id}"
+    )
 
 
 def test_browser_url_bootstrap_is_minimal_canonical_and_early(
