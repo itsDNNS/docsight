@@ -53,7 +53,13 @@ def _mounted_app(application, mount_path):
 
 
 def _start_server(
-    data_dir, port, admin_password=None, demo_mode=True, mount_path=""
+    data_dir,
+    port,
+    admin_password=None,
+    demo_mode=True,
+    mount_path="",
+    base_path=None,
+    trusted_prefix_hops=None,
 ):
     """Boot a real DOCSight instance inside a child process."""
     import os
@@ -66,6 +72,10 @@ def _start_server(
     os.environ["LOG_LEVEL"] = "WARNING"
     os.environ.pop("BASE_PATH", None)
     os.environ.pop("REVERSE_PROXY_PREFIX", None)
+    if base_path is not None:
+        os.environ["BASE_PATH"] = base_path
+    if trusted_prefix_hops is not None:
+        os.environ["REVERSE_PROXY_PREFIX"] = str(trusted_prefix_hops)
 
     from app.config import ConfigManager
     from app.storage import SnapshotStorage
@@ -110,6 +120,11 @@ def _start_server(
             if mod.blueprint.name not in existing:
                 web.app.register_blueprint(mod.blueprint)
                 existing.add(mod.blueprint.name)
+
+    if base_path is not None or trusted_prefix_hops is not None:
+        from app.base_path import configure_base_path
+
+        configure_base_path(web.app)
 
     # Initialize module storage tables (needed for demo data seeding)
     try:
@@ -275,13 +290,23 @@ def auth_page(page, auth_server):
 # ── Unconfigured server (setup wizard) ──
 
 
-def _start_unconfigured_server(data_dir, port, mount_path=""):
+def _start_unconfigured_server(
+    data_dir,
+    port,
+    mount_path="",
+    base_path=None,
+    trusted_prefix_hops=None,
+):
     """Boot a DOCSight instance that is NOT configured — shows /setup."""
     os.environ["DATA_DIR"] = data_dir
     os.environ.pop("DEMO_MODE", None)
     os.environ["LOG_LEVEL"] = "WARNING"
     os.environ.pop("BASE_PATH", None)
     os.environ.pop("REVERSE_PROXY_PREFIX", None)
+    if base_path is not None:
+        os.environ["BASE_PATH"] = base_path
+    if trusted_prefix_hops is not None:
+        os.environ["REVERSE_PROXY_PREFIX"] = str(trusted_prefix_hops)
 
     from app.config import ConfigManager
     from app import web
@@ -293,6 +318,11 @@ def _start_unconfigured_server(data_dir, port, mount_path=""):
     web.init_storage(None)
     web.init_collector(None)
     web.init_collectors([])
+
+    if base_path is not None or trusted_prefix_hops is not None:
+        from app.base_path import configure_base_path
+
+        configure_base_path(web.app)
 
     from waitress import serve
 
@@ -400,9 +430,9 @@ def path_prefix_servers(request, tmp_path_factory):
     label = "root" if not mount_path else "docsight"
     auth_port = _find_free_port()
     setup_port = _find_free_port()
-    credential = "ap3-browser-credential"
-    auth_dir = str(tmp_path_factory.mktemp(f"docsight_ap3_auth_{label}"))
-    setup_dir = str(tmp_path_factory.mktemp(f"docsight_ap3_setup_{label}"))
+    credential = "browser-contract-password"
+    auth_dir = str(tmp_path_factory.mktemp(f"docsight_mount_auth_{label}"))
+    setup_dir = str(tmp_path_factory.mktemp(f"docsight_mount_setup_{label}"))
     auth_proc = _MP_CTX.Process(
         target=_start_server,
         args=(auth_dir, auth_port, credential, True, mount_path),
@@ -428,6 +458,128 @@ def path_prefix_servers(request, tmp_path_factory):
         for proc in (auth_proc, setup_proc):
             proc.terminate()
             proc.join(timeout=5)
+
+
+_NETWORK_PREFIX_CASES = [
+    pytest.param(
+        {
+            "label": "explicit_docsight",
+            "mount_path": "/docsight",
+            "base_path": "/docsight",
+            "trusted_prefix_hops": None,
+            "forwarded_prefix_chain": None,
+        },
+        id="explicit-docsight-mount",
+    ),
+    pytest.param(
+        {
+            "label": "trusted_docsight",
+            "mount_path": "/docsight",
+            "base_path": None,
+            "trusted_prefix_hops": 2,
+            "forwarded_prefix_chain": "/docsight, /docsight",
+        },
+        id="trusted-docsight-mount",
+    ),
+    pytest.param(
+        {
+            "label": "explicit_wrapper_shape",
+            "mount_path": "/api/hassio_ingress/synthetic-test-entry",
+            "base_path": "/api/hassio_ingress/synthetic-test-entry",
+            "trusted_prefix_hops": None,
+            "forwarded_prefix_chain": None,
+        },
+        id="explicit-wrapper-shaped-mount",
+    ),
+]
+
+
+class _RedactedProxyServers(dict):
+    def __repr__(self) -> str:
+        return "<real proxy server contract>"
+
+
+@pytest.fixture(scope="session", params=_NETWORK_PREFIX_CASES)
+def real_proxy_servers(request, tmp_path_factory):
+    """Run DOCSight behind a separate prefix-stripping HTTP proxy process."""
+    from tests.e2e.prefix_proxy import serve_prefix_proxy
+
+    case = request.param
+    auth_upstream_port = _find_free_port()
+    setup_upstream_port = _find_free_port()
+    auth_proxy_port = _find_free_port()
+    setup_proxy_port = _find_free_port()
+    credential = "network-proxy-test-password"
+    label = case["label"]
+    auth_dir = str(tmp_path_factory.mktemp(f"network_proxy_auth_{label}"))
+    setup_dir = str(tmp_path_factory.mktemp(f"network_proxy_setup_{label}"))
+
+    auth_upstream = _MP_CTX.Process(
+        target=_start_server,
+        args=(
+            auth_dir,
+            auth_upstream_port,
+            credential,
+            True,
+            "",
+            case["base_path"],
+            case["trusted_prefix_hops"],
+        ),
+        daemon=True,
+    )
+    setup_upstream = _MP_CTX.Process(
+        target=_start_unconfigured_server,
+        args=(
+            setup_dir,
+            setup_upstream_port,
+            "",
+            case["base_path"],
+            case["trusted_prefix_hops"],
+        ),
+        daemon=True,
+    )
+    auth_proxy = _MP_CTX.Process(
+        target=serve_prefix_proxy,
+        args=(
+            auth_proxy_port,
+            auth_upstream_port,
+            case["mount_path"],
+            case["forwarded_prefix_chain"],
+        ),
+        daemon=True,
+    )
+    setup_proxy = _MP_CTX.Process(
+        target=serve_prefix_proxy,
+        args=(
+            setup_proxy_port,
+            setup_upstream_port,
+            case["mount_path"],
+            case["forwarded_prefix_chain"],
+        ),
+        daemon=True,
+    )
+    processes = (auth_upstream, setup_upstream, auth_proxy, setup_proxy)
+    for process in processes:
+        process.start()
+    try:
+        _wait_for_server(auth_proxy_port, mount_path=case["mount_path"])
+        _wait_for_server(setup_proxy_port, mount_path=case["mount_path"])
+        yield _RedactedProxyServers(
+            {
+                "mount_path": case["mount_path"],
+                "app_url": (
+                    f"http://127.0.0.1:{auth_proxy_port}{case['mount_path']}"
+                ),
+                "setup_url": (
+                    f"http://127.0.0.1:{setup_proxy_port}{case['mount_path']}"
+                ),
+                "password": credential,
+            }
+        )
+    finally:
+        for process in processes:
+            process.terminate()
+            process.join(timeout=5)
 
 
 # ── FritzBox server (segment utilization) ──

@@ -100,6 +100,36 @@ The session key is stored in `DATA_DIR/.session_key`, so normal restarts with th
 
 For HTTPS deployments, enable trusted reverse-proxy mode with `REVERSE_PROXY`; DOCSight then keeps the session cookie `Secure`, so it is sent only over HTTPS. Do not expose an authenticated instance over unencrypted remote HTTP.
 
+### Reverse-Proxy Path Prefixes
+
+DOCSight Core has two generic ways to learn an external URL mount after a reverse
+proxy strips that mount from the upstream request path:
+
+- **Explicit mode:** set `BASE_PATH` to the exact external mount. This is the
+  preferred mode when deployment configuration already knows the mount.
+- **Trusted-prefix mode:** set `REVERSE_PROXY_PREFIX` to the exact number of
+  trusted `X-Forwarded-Prefix` hops. Hop selection is right-to-left and fails
+  closed when the chain is missing, too short, malformed, or ambiguous.
+
+If explicit `BASE_PATH`, a selected trusted header value, and an existing WSGI
+`SCRIPT_NAME` are present together, all selected sources must agree after strict
+normalization. Explicit root (`BASE_PATH=/`) participates in that agreement.
+Malformed values and disagreements receive a generic, unreflected bad request;
+mount values are not written to that response or application logs.
+
+The edge proxy must accept DOCSight only on the configured same-origin mount,
+strip that prefix before forwarding, and strip any client-supplied
+`X-Forwarded-Prefix`. In trusted-prefix mode it must replace the header with its
+own canonical value or chain. Never append to an untrusted incoming value.
+`REVERSE_PROXY` separately controls trust for client/protocol forwarding and
+secure cookies; it does not enable URL-prefix trust.
+
+A Home Assistant-shaped mount does not give DOCSight Core a Home Assistant
+identity or session. Home Assistant may authenticate access to its Ingress
+gateway, but DOCSight keeps its own authentication boundary. See the
+[path-prefix reverse-proxy guide](docs/reverse-proxy.md) for configuration and
+healthcheck examples.
+
 ### Login Rate Limiting
 
 Failed login attempts are rate-limited per IP address:

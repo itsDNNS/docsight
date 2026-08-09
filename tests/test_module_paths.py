@@ -55,7 +55,9 @@ def test_container_prepares_community_module_storage():
 
 def test_docker_healthcheck_uses_configured_web_port():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    healthcheck = (ROOT / "app" / "healthcheck.py").read_text(encoding="utf-8")
 
-    assert "os.environ.get('WEB_PORT', '8765')" in dockerfile
-    assert "http://localhost:{port}/health" in dockerfile
-    assert "localhost:8765/health" not in dockerfile
+    assert 'CMD ["python", "-m", "app.healthcheck"]' in dockerfile
+    assert "python -c" not in dockerfile
+    assert 'environ.get("WEB_PORT", _DEFAULT_WEB_PORT)' in healthcheck
+    assert 'f"http://localhost:{port}/health"' in healthcheck

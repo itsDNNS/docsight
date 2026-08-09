@@ -299,7 +299,7 @@ def test_inventoried_files_keep_the_reviewed_contract_sites():
     assert sum(actual.values()) == 134  # reviewed browser URL contract sites
 
 
-def test_inventoried_actual_literal_forms_have_no_unwrapped_ap3_sink():
+def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():
     offenders = []
     forbidden_forms = (
         "fetch('/api",

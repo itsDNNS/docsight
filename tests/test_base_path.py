@@ -135,7 +135,7 @@ def test_rejects_invalid_trusted_prefix_hops(configured):
 def test_main_rejects_invalid_base_path_before_runtime_setup(monkeypatch, caplog):
     from app import main as app_main
 
-    sentinel = "STARTUP_INGRESS_TOKEN_106"
+    sentinel = "STARTUP_SENSITIVE_MOUNT_VALUE"
     config_calls = []
     monkeypatch.setenv("BASE_PATH", f"/api/hassio_ingress/{sentinel}%2f..")
     monkeypatch.delenv("REVERSE_PROXY_PREFIX", raising=False)
@@ -245,7 +245,7 @@ def test_missing_trusted_forwarded_prefix_with_fixed_base_path_returns_400():
 
 
 def test_selected_malformed_forwarded_prefix_returns_safe_unreflected_400(caplog):
-    sentinel = "SENSITIVE_INGRESS_TOKEN_106"
+    sentinel = "REQUEST_SENSITIVE_MOUNT_VALUE"
     client = _make_app(trusted_hops="1").test_client()
 
     response = client.get(

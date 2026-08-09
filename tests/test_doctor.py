@@ -70,7 +70,7 @@ def test_doctor_reports_base_path_state_without_ingress_token(tmp_path):
 
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    sentinel = "BASE_PATH_SENTINEL_TOKEN_106"
+    sentinel = "BASE_PATH_SENSITIVE_MOUNT_VALUE"
     base_path = f"/api/hassio_ingress/{sentinel}"
 
     report = build_report(

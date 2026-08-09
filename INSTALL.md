@@ -61,4 +61,7 @@ Without these binaries, traceroute and ICMP probes will log errors but the rest 
 
 ## Reverse Proxy
 
-Exposing DOCSight beyond your local network? See the [reverse proxy guide](https://github.com/itsDNNS/docsight/wiki/Reverse-Proxy) for Caddy, Nginx, and Traefik examples with TLS.
+For HTTPS, forwarded client/protocol headers, or an external path prefix such as
+`/docsight`, start with the in-repository [path-prefix reverse-proxy guide](docs/reverse-proxy.md).
+The broader [reverse proxy wiki guide](https://github.com/itsDNNS/docsight/wiki/Reverse-Proxy)
+covers additional Caddy, Nginx, and Traefik deployment examples.

@@ -8,6 +8,23 @@ This document describes the technical architecture of DOCSight.
 
 DOCSight is built around a **modular collector pattern** that separates data collection, analysis, storage, and presentation into independent, testable components.
 
+### Reverse-proxy mount contract and wrapper boundary
+
+DOCSight Core implements a generic proxy-stripped mount contract in
+`app/base_path.py`. An operator can provide an explicit `BASE_PATH`, or can opt
+into an exact trusted `X-Forwarded-Prefix` hop count with
+`REVERSE_PROXY_PREFIX`. Core validates all selected sources, sets the request
+`SCRIPT_NAME`, and leaves the already-stripped upstream `PATH_INFO` unchanged.
+Browser URLs, cookies, the manifest, and the service worker then remain scoped
+to that effective same-origin mount.
+
+This contract is independent of Home Assistant. DOCSight Core does not call the
+Supervisor API, query Supervisor app information, or consume Home Assistant
+identity or authentication headers. A Home Assistant wrapper may query
+Supervisor app information and set an explicit `BASE_PATH` before starting
+DOCSight, but the wrapper owns that platform integration. Core continues to
+use its own authentication and generic reverse-proxy contract.
+
 ---
 
 ## System Architecture
