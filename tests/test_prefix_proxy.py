@@ -27,6 +27,23 @@ def test_accepts_normal_upstream_response_metadata():
     )
 
 
+def test_reconstructs_validated_metadata_before_emission():
+    class UpstreamText(str):
+        pass
+
+    reason = UpstreamText("Partial Content")
+    name = UpstreamText("X-Upstream")
+    value = UpstreamText("safe value")
+
+    _, safe_reason, [(safe_name, safe_value)] = (
+        _validate_upstream_response_metadata(206, reason, [(name, value)])
+    )
+
+    assert safe_reason == reason and type(safe_reason) is str
+    assert safe_name == name and type(safe_name) is str
+    assert safe_value == value and type(safe_value) is str
+
+
 @pytest.mark.parametrize("status", [True, "200", 99, 600])
 def test_rejects_invalid_upstream_status(status):
     with pytest.raises(ValueError, match="upstream response metadata"):

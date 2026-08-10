@@ -19,26 +19,43 @@ _HOP_BY_HOP_HEADERS = {
 _MAX_REASON_LENGTH = 256
 _MAX_HEADER_NAME_LENGTH = 128
 _MAX_HEADER_VALUE_LENGTH = 8192
-_HEADER_NAME_CHARACTERS = frozenset(
+_HEADER_NAME_TEXT = (
     "!#$%&'*+-.^_`|~ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 )
+_HEADER_NAME_CHARACTERS = frozenset(_HEADER_NAME_TEXT)
+_LATIN1_CHARACTERS = tuple(chr(codepoint) for codepoint in range(256))
 
 
-def _valid_field_text(value: object, max_length: int) -> bool:
-    """Accept bounded HTTP field text and reject output-splitting bytes."""
+def _validated_field_text(value: object, max_length: int) -> str:
+    """Return a bounded, reconstructed field value without splitting bytes."""
 
     if not isinstance(value, str) or len(value) > max_length:
-        return False
+        raise ValueError("invalid upstream response metadata")
     try:
         value.encode("latin-1")
-    except UnicodeEncodeError:
-        return False
-    return all(
+    except UnicodeEncodeError as exc:
+        raise ValueError("invalid upstream response metadata") from exc
+    if not all(
         character == "\t"
         or 0x20 <= ord(character) <= 0x7E
         or ord(character) >= 0x80
         for character in value
-    )
+    ):
+        raise ValueError("invalid upstream response metadata")
+    return "".join(_LATIN1_CHARACTERS[ord(character)] for character in value)
+
+
+def _validated_header_name(value: object) -> str:
+    """Return a reconstructed RFC token suitable for ``send_header``."""
+
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > _MAX_HEADER_NAME_LENGTH
+        or any(character not in _HEADER_NAME_CHARACTERS for character in value)
+    ):
+        raise ValueError("invalid upstream response metadata")
+    return "".join(_LATIN1_CHARACTERS[ord(character)] for character in value)
 
 
 def _validate_upstream_response_metadata(
@@ -54,21 +71,14 @@ def _validate_upstream_response_metadata(
         or not 100 <= status <= 599
     ):
         raise ValueError("invalid upstream response metadata")
-    if not _valid_field_text(reason, _MAX_REASON_LENGTH):
-        raise ValueError("invalid upstream response metadata")
+    safe_reason = _validated_field_text(reason, _MAX_REASON_LENGTH)
 
     validated_headers = []
     for name, value in headers:
-        if (
-            not isinstance(name, str)
-            or not name
-            or len(name) > _MAX_HEADER_NAME_LENGTH
-            or any(character not in _HEADER_NAME_CHARACTERS for character in name)
-            or not _valid_field_text(value, _MAX_HEADER_VALUE_LENGTH)
-        ):
-            raise ValueError("invalid upstream response metadata")
-        validated_headers.append((name, value))
-    return status, reason, validated_headers
+        safe_name = _validated_header_name(name)
+        safe_value = _validated_field_text(value, _MAX_HEADER_VALUE_LENGTH)
+        validated_headers.append((safe_name, safe_value))
+    return status, safe_reason, validated_headers
 
 
 def serve_prefix_proxy(
