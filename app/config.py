@@ -35,6 +35,15 @@ MODULE_SECRET_KEYS: set[str] = set()
 MODULE_SECRET_OWNERS: dict[str, str] = {}
 
 
+def parse_config_bool(value) -> bool:
+    """Parse a boolean value supplied by config, JSON, or form input."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 def set_module_secret_registry(keys: set[str], owners: dict[str, str]) -> None:
     """Replace module-secret reservations while retaining shared set objects."""
     MODULE_SECRET_KEYS.clear()

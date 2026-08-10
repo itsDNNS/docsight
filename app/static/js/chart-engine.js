@@ -740,7 +740,7 @@ function openChartZoom(canvasId) {
     var label = card ? card.querySelector('.chart-label') : null;
     document.getElementById('chart-zoom-title').textContent = label ? label.textContent : '';
     var overlay = document.getElementById('chart-zoom-overlay');
-    overlay.classList.add('open');
+    window.DOCSightModal.open(overlay);
 
     setTimeout(function() {
         if (zoomChart) { zoomChart.destroy(); zoomChart = null; }
@@ -911,6 +911,6 @@ function openChartZoom(canvasId) {
 }
 
 function closeChartZoom() {
-    document.getElementById('chart-zoom-overlay').classList.remove('open');
+    window.DOCSightModal.close('chart-zoom-overlay');
     if (zoomChart) { zoomChart.destroy(); zoomChart = null; }
 }

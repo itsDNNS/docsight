@@ -9,6 +9,7 @@ from typing import Any
 
 import requests
 
+from ...config import parse_config_bool
 from ...tz import utc_now
 from ...types import EventDict
 from ..types import CAPTURE_ACTION_TYPE, ExecutionStatus
@@ -17,15 +18,6 @@ log = logging.getLogger("docsis.smart_capture.adapters.speedtest")
 
 DEFAULT_MATCH_WINDOW_SECONDS = 900  # 15 minutes
 _ACCEPTED_STATUS_CODES = {200, 201, 202, 204}
-
-
-def _as_bool(value: Any) -> bool:
-    """Parse booleans from config values."""
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return False
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 class SpeedtestAdapter:
@@ -37,7 +29,7 @@ class SpeedtestAdapter:
         self._config = config_mgr
         url = config_mgr.get("speedtest_tracker_url", "").rstrip("/")
         token = config_mgr.get("speedtest_tracker_token", "")
-        tls_insecure = _as_bool(config_mgr.get("speedtest_tls_insecure", False))
+        tls_insecure = parse_config_bool(config_mgr.get("speedtest_tls_insecure", False))
         self._run_url = f"{url}/api/v1/speedtests/run"
         self._results_url = f"{url}/api/v1/results"
         self._verify_tls = not tls_insecure

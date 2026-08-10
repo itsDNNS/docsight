@@ -317,6 +317,60 @@ class TestBackupDownloadRoute:
         assert response.get_json() == {"error": "injected route archive failure"}
         assert not temp_dir.exists()
 
+    def test_download_closes_stream_before_running_registered_cleanup(
+        self, data_dir, tmp_path, monkeypatch
+    ):
+        from flask import Response
+        from app.modules.backup import routes
+
+        temp_dir = tmp_path / "close-order-backup"
+        close_events = []
+
+        class TrackingIterable:
+            def __iter__(self):
+                yield b"archive"
+
+            def close(self):
+                close_events.append("iterable")
+
+        def make_temp_dir(*args, **kwargs):
+            temp_dir.mkdir()
+            return str(temp_dir)
+
+        def write_archive(data_path, archive_target, work_dir=None):
+            Path(archive_target).write_bytes(b"archive")
+
+        def remove_temp_dir(path, ignore_errors=False):
+            assert path == str(temp_dir)
+            assert ignore_errors is True
+            close_events.append("cleanup")
+
+        monkeypatch.setattr(
+            routes, "tempfile", SimpleNamespace(mkdtemp=make_temp_dir), raising=False
+        )
+        monkeypatch.setattr(routes, "_write_backup_archive", write_archive)
+        monkeypatch.setattr(
+            routes,
+            "send_file",
+            lambda *args, **kwargs: Response(
+                TrackingIterable(),
+                mimetype="application/gzip",
+                direct_passthrough=True,
+            ),
+        )
+        monkeypatch.setattr(routes.shutil, "rmtree", remove_temp_dir)
+        app = self._app(data_dir, monkeypatch)
+
+        response = app.test_client().post("/api/backup", buffered=False)
+
+        assert close_events == []
+        assert next(iter(response.response)) == b"archive"
+        assert close_events == []
+
+        response.close()
+
+        assert close_events == ["iterable", "cleanup"]
+
 
 # ── TestValidateBackup ──
 

@@ -9,10 +9,10 @@ function escapeHtml(str) {
 /* ── Export for AI Analysis ── */
 var exportRawText = '';
 var exportLoadId = 0;
-var exportObserverAttached = false;
+var exportCloseHandlerAttached = false;
 function isExportModalOpen() {
     var modal = document.getElementById('export-modal');
-    return !!(modal && (modal.classList.contains('open') || modal.getAttribute('data-modal-open') === 'true'));
+    return !!(modal && modal.open);
 }
 function resetExportState() {
     exportLoadId += 1;
@@ -22,17 +22,15 @@ function resetExportState() {
     updateExportSize();
     setExportStatus('');
 }
-function ensureExportModalObserver() {
-    if (exportObserverAttached || typeof MutationObserver === 'undefined') return;
+function ensureExportModalCloseHandler() {
+    if (exportCloseHandlerAttached) return;
     var modal = document.getElementById('export-modal');
     if (!modal) return;
-    exportObserverAttached = true;
-    new MutationObserver(function() {
-        if (!isExportModalOpen()) resetExportState();
-    }).observe(modal, { attributes: true, attributeFilter: ['class', 'data-modal-open', 'style'] });
+    exportCloseHandlerAttached = true;
+    modal.addEventListener('close', resetExportState);
 }
 function exportForLLM() {
-    ensureExportModalObserver();
+    ensureExportModalCloseHandler();
     var textarea = document.getElementById('export-text');
     var modeEl = document.querySelector('input[name="export-mode"]:checked');
     var mode = modeEl ? modeEl.value : 'full';

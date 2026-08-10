@@ -197,11 +197,3 @@ document.querySelectorAll('.chart-expand-btn').forEach(function(btn) {
         openChartZoom(btn.getAttribute('data-chart'));
     });
 });
-
-/* Close chart zoom on Escape */
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && document.getElementById('chart-zoom-overlay').classList.contains('open')) {
-        closeChartZoom();
-        return;
-    }
-});

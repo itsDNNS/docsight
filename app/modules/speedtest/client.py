@@ -5,23 +5,16 @@ from datetime import datetime, timezone
 
 import requests
 
+from app.config import parse_config_bool
+
 log = logging.getLogger("docsis.speedtest")
-
-
-def _as_bool(value):
-    """Parse booleans from config/form values."""
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return False
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 class SpeedtestClient:
     """Client for the Speedtest Tracker API (github.com/alexjustesen/speedtest-tracker)."""
 
     def __init__(self, url, token, tls_insecure: bool | str = False):
-        tls_insecure = _as_bool(tls_insecure)
+        tls_insecure = parse_config_bool(tls_insecure)
         self.base_url = url.rstrip("/")
         self.token = token
         self.verify_tls = not tls_insecure

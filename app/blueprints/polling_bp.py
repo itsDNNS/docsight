@@ -11,7 +11,7 @@ from app.web import (
     get_last_manual_poll, set_last_manual_poll,
     _get_lang,
 )
-from app.config import PASSWORD_MASK
+from app.config import PASSWORD_MASK, parse_config_bool
 from app.i18n import get_translations
 
 log = logging.getLogger("docsis.web")
@@ -35,15 +35,6 @@ def _pwa_push_configured(config_mgr):
         and config_mgr.get("notify_pwa_push_vapid_public_key")
         and config_mgr.get("notify_pwa_push_vapid_private_key")
     )
-
-
-def _as_bool(value):
-    """Parse booleans from JSON/form payloads."""
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return False
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 @polling_bp.route("/api/test-modem", methods=["POST"])
@@ -177,7 +168,7 @@ def api_test_speedtest():
     try:
         data = request.get_json(silent=True) or {}
         submitted_url = data.get("speedtest_tracker_url", "")
-        tls_insecure = _as_bool(data.get("speedtest_tls_insecure", False))
+        tls_insecure = parse_config_bool(data.get("speedtest_tls_insecure", False))
         if not submitted_url:
             return jsonify({"success": False, "error": "URL and token are required"})
 

@@ -352,7 +352,7 @@ function openEntryModal(entryId) {
                 attachSection.style.display = '';
                 if (uploadBtn) uploadBtn.disabled = false;
                 if (uploadHint) uploadHint.textContent = '';
-                modal.classList.add('open');
+                window.DOCSightModal.open(modal);
             });
     } else {
         titleEl.textContent = T.new_entry || 'New Entry';
@@ -369,7 +369,7 @@ function openEntryModal(entryId) {
         attachSection.style.display = '';
         if (uploadBtn) uploadBtn.disabled = true;
         if (uploadHint) uploadHint.textContent = T.entry_save_before_upload || 'Create the entry first, then attach evidence files.';
-        modal.classList.add('open');
+        window.DOCSightModal.open(modal);
     }
 }
 
@@ -380,7 +380,7 @@ function openEntryModal(entryId) {
 })();
 
 function closeEntryModal() {
-    document.getElementById('entry-modal').classList.remove('open');
+    window.DOCSightModal.close('entry-modal');
 }
 
 function renderAttachments(attachments, container, incidentId) {
@@ -1529,7 +1529,7 @@ function openIncidentModal(incidentId) {
                     countSection.style.display = 'none';
                     if (emptyEvidenceSection) emptyEvidenceSection.style.display = '';
                 }
-                modal.classList.add('open');
+                window.DOCSightModal.open(modal);
             });
     } else {
         titleEl.textContent = T.incident_new || 'New Incident';
@@ -1545,7 +1545,7 @@ function openIncidentModal(incidentId) {
         deleteBtn.style.display = 'none';
         countSection.style.display = 'none';
         if (emptyEvidenceSection) emptyEvidenceSection.style.display = '';
-        modal.classList.add('open');
+        window.DOCSightModal.open(modal);
     }
 }
 
@@ -1557,7 +1557,7 @@ function openIncidentReportFromModal() {
 }
 
 function closeIncidentModal() {
-    document.getElementById('incident-container-modal').classList.remove('open');
+    window.DOCSightModal.close('incident-container-modal');
 }
 
 function saveIncident() {

@@ -90,7 +90,7 @@
 </div>
 
 <!-- ═══ Directory Browser Modal ═══ -->
-<div id="browse-modal" class="browse-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="browse-modal-title" aria-describedby="browse-status" tabindex="-1">
+<dialog id="browse-modal" class="browse-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="browse-modal-title" aria-describedby="browse-status">
     <div class="browse-modal">
         <div class="browse-modal-header">
             <h3 id="browse-modal-title">{{ t['docsight.backup.backup_select_dir'] or 'Select Directory' }}</h3>
@@ -110,4 +110,4 @@
             <button type="button" class="btn btn-primary btn-sm" onclick="selectBrowsePath()">{{ t['docsight.backup.backup_select'] or 'Select' }}</button>
         </div>
     </div>
-</div>
+</dialog>

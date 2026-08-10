@@ -3,7 +3,7 @@
  * All targets overlaid in one chart with threshold zones and packet loss markers.
  * Uses renderChart() from chart-engine.js with custom loss markers plugin.
  */
-/* global renderChart, charts */
+/* global renderChart, charts, bandPlugin */
 var CMCharts = (function() {
     'use strict';
 
@@ -66,47 +66,6 @@ var CMCharts = (function() {
                         showResetBtn(u);
                     }
                     u.setSelect({ left: 0, width: 0, top: 0, height: 0 }, false);
-                }]
-            }
-        };
-    }
-
-    /**
-     * uPlot plugin: fill a band between two series (min/max range for aggregated data).
-     */
-    function bandPlugin(minSeriesIdx, maxSeriesIdx, color) {
-        return {
-            hooks: {
-                draw: [function(u) {
-                    var ctx = u.ctx;
-                    var minData = u.data[minSeriesIdx];
-                    var maxData = u.data[maxSeriesIdx];
-                    if (!minData || !maxData) return;
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
-                    ctx.clip();
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
-                    var started = false;
-                    for (var i = 0; i < maxData.length; i++) {
-                        if (maxData[i] != null && minData[i] != null) {
-                            var x = u.valToPos(u.data[0][i], 'x', true);
-                            var y = u.valToPos(maxData[i], u.series[minSeriesIdx].scale, true);
-                            if (!started) { ctx.moveTo(x, y); started = true; }
-                            else ctx.lineTo(x, y);
-                        }
-                    }
-                    for (var i = minData.length - 1; i >= 0; i--) {
-                        if (maxData[i] != null && minData[i] != null) {
-                            var x = u.valToPos(u.data[0][i], 'x', true);
-                            var y = u.valToPos(minData[i], u.series[minSeriesIdx].scale, true);
-                            ctx.lineTo(x, y);
-                        }
-                    }
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.restore();
                 }]
             }
         };

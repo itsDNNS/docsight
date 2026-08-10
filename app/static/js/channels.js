@@ -93,10 +93,11 @@ function parseChannelHash() {
     var hash = location.hash.replace('#', '');
     var qIdx = hash.indexOf('?');
     if (qIdx === -1) return {};
+    var query = hash.substring(qIdx + 1);
+    decodeURI(query); // Preserve the prior URIError for malformed percent escapes.
     var params = {};
-    hash.substring(qIdx + 1).split('&').forEach(function(pair) {
-        var kv = pair.split('=');
-        if (kv.length === 2) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+    new URLSearchParams(query.replace(/\+/g, '%2B')).forEach(function(value, key) {
+        params[key] = value;
     });
     return params;
 }
