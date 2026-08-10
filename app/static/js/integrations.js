@@ -1,6 +1,96 @@
 /* ── BNetzA Breitbandmessung ── */
 /* Extracted from IIFE – depends on: T, showToast */
 
+function _bnetzIcon(name) {
+    var icon = document.createElement('i');
+    icon.setAttribute('data-lucide', name);
+    return icon;
+}
+
+function _bnetzCell(label, text) {
+    var cell = document.createElement('td');
+    cell.setAttribute('data-label', label);
+    cell.textContent = text;
+    return cell;
+}
+
+function _bnetzActionButton(className, title, iconName, handler) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = className;
+    button.title = title;
+    button.appendChild(_bnetzIcon(iconName));
+    button.addEventListener('click', handler);
+    return button;
+}
+
+function _bnetzMeasurementSection(label, measurements, minimum, normal) {
+    var section = document.createElement('div');
+    var heading = document.createElement('span');
+    heading.className = 'bnetz-detail-label';
+    heading.textContent = label;
+    section.appendChild(heading);
+
+    var table = document.createElement('table');
+    table.className = 'bnetz-detail-table';
+    var header = document.createElement('tr');
+    [T.bnetz_measurement_nr || 'Nr.', T.bnetz_measurement_time || 'Time', T.bnetz_measurement_speed || 'Speed'].forEach(function(text, index) {
+        var th = document.createElement('th');
+        if (index === 2) th.className = 'bnetz-detail-speed-col';
+        th.textContent = text;
+        header.appendChild(th);
+    });
+    table.appendChild(header);
+
+    measurements.forEach(function(measurement, index) {
+        var speed = measurement.mbps || measurement.speed || measurement.value || 0;
+        var color = 'var(--text)';
+        if (minimum && speed < minimum) color = 'var(--crit)';
+        else if (normal && speed < normal) color = 'var(--warn, orange)';
+
+        var row = document.createElement('tr');
+        var numberCell = document.createElement('td');
+        numberCell.textContent = index + 1;
+        row.appendChild(numberCell);
+        var timeCell = document.createElement('td');
+        timeCell.textContent = (measurement.date || '') + ' ' + (measurement.time || '');
+        row.appendChild(timeCell);
+        var speedCell = document.createElement('td');
+        speedCell.className = 'bnetz-detail-speed-col';
+        speedCell.style.color = color;
+        speedCell.textContent = (typeof speed === 'number' ? speed.toFixed(1) : speed) + ' Mbit/s';
+        row.appendChild(speedCell);
+        table.appendChild(row);
+    });
+    section.appendChild(table);
+    return section;
+}
+
+function buildBnetzDetail(m) {
+    var measurements = m.measurements || {};
+    var download = measurements.download || [];
+    var upload = measurements.upload || [];
+    var grid = document.createElement('div');
+    grid.className = 'bnetz-detail-grid';
+    if (download.length > 0) {
+        grid.appendChild(_bnetzMeasurementSection(
+            T.download || 'Download',
+            download,
+            m.download_min_tariff,
+            m.download_normal_tariff
+        ));
+    }
+    if (upload.length > 0) {
+        grid.appendChild(_bnetzMeasurementSection(
+            T.upload || 'Upload',
+            upload,
+            m.upload_min_tariff,
+            m.upload_normal_tariff
+        ));
+    }
+    return grid;
+}
+
 /* ── BNetzA Breitbandmessung ── */
 function loadBnetzData() {
     var loading = document.getElementById('bnetz-loading');
@@ -18,12 +108,9 @@ function loadBnetzData() {
             return;
         }
         card.style.display = 'block';
-        tbody.innerHTML = '';
+        tbody.replaceChildren();
         data.forEach(function(m, idx) {
             var hasDeviation = m.verdict_download === 'deviation' || m.verdict_upload === 'deviation';
-            var verdictIcon = hasDeviation
-                ? '<i data-lucide="triangle-alert"></i>'
-                : '<i data-lucide="circle-check"></i>';
             var verdictText = hasDeviation ? T.bnetz_verdict_deviation : T.bnetz_verdict_ok;
             var verdictClass = hasDeviation ? 'val-crit' : 'val-good';
             var dlPct = m.download_max_tariff ? Math.round(m.download_measured_avg / m.download_max_tariff * 100) : 0;
@@ -37,24 +124,62 @@ function loadBnetzData() {
             if (hasMeasurements) {
                 tr.onclick = function() { toggleBnetzDetail(idx); };
             }
-            var complaintBtn = '';
-            if (hasDeviation) {
-                complaintBtn = '<a href="javascript:void(0)" class="bnetz-action-btn" onclick="generateBnetzComplaint(' + m.id + ')" ' +
-                    'title="' + (T.bnetz_generate_complaint || 'Generate complaint') + '">' +
-                    '<i data-lucide="file-pen"></i></a>';
+
+            var dateCell = _bnetzCell(T.bnetz_date || 'Date', '');
+            if (hasMeasurements) {
+                var expandButton = document.createElement('button');
+                expandButton.type = 'button';
+                expandButton.className = 'bnetz-expand-btn';
+                expandButton.id = 'bnetz-arrow-' + idx;
+                expandButton.setAttribute('aria-label', T.expand || 'Expand');
+                expandButton.appendChild(_bnetzIcon('chevron-right'));
+                dateCell.appendChild(expandButton);
+                dateCell.appendChild(document.createTextNode(' '));
             }
-            tr.innerHTML = '<td data-label="' + escapeHtml(T.bnetz_date || 'Date') + '">' + (hasMeasurements ? '<button class="bnetz-expand-btn" id="bnetz-arrow-' + idx + '" aria-label="' + escapeHtml(T.expand || 'Expand') + '"><i data-lucide="chevron-right"></i></button> ' : '') + escapeHtml(m.date || '') + '</td>' +
-                '<td data-label="' + escapeHtml(T.bnetz_provider || 'Provider') + '">' + escapeHtml(m.provider || '-') + '</td>' +
-                '<td data-label="' + escapeHtml(T.bnetz_download_target || 'Download target') + '">' + (m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-') + '</td>' +
-                '<td data-label="' + escapeHtml(T.bnetz_download_actual || 'Download measured') + '">' + Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : '') + '</td>' +
-                '<td data-label="' + escapeHtml(T.bnetz_upload_target || 'Upload target') + '">' + (m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-') + '</td>' +
-                '<td data-label="' + escapeHtml(T.bnetz_upload_actual || 'Upload measured') + '">' + Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : '') + '</td>' +
-                '<td data-label="' + escapeHtml(T.bnetz_verdict || 'Verdict') + '" class="bnetz-verdict ' + verdictClass + '" title="' + verdictText + '">' + verdictIcon + '<span class="bnetz-verdict-text">' + escapeHtml(verdictText) + '</span></td>' +
-                '<td data-label="' + escapeHtml(T.actions || 'Actions') + '" class="bnetz-actions-cell" onclick="event.stopPropagation();">' +
-                    complaintBtn +
-                    (m.source !== 'csv_import' ? '<a href="' + docsightUrl('/api/bnetz/pdf/' + m.id) + '" class="bnetz-action-btn" title="PDF"><i data-lucide="file-down"></i></a>' : '') +
-                    '<a href="javascript:void(0)" class="bnetz-action-btn bnetz-action-delete" onclick="deleteBnetzFromView(' + m.id + ')" title="' + (T.delete_incident || 'Delete') + '"><i data-lucide="trash-2"></i></a>' +
-                '</td>';
+            dateCell.appendChild(document.createTextNode(m.date || ''));
+            tr.appendChild(dateCell);
+            tr.appendChild(_bnetzCell(T.bnetz_provider || 'Provider', m.provider || '-'));
+            tr.appendChild(_bnetzCell(T.bnetz_download_target || 'Download target', m.download_max_tariff ? Math.round(m.download_max_tariff) + ' Mbit/s' : '-'));
+            tr.appendChild(_bnetzCell(T.bnetz_download_actual || 'Download measured', Math.round(m.download_measured_avg || 0) + ' Mbit/s' + (dlPct ? ' (' + dlPct + '%)' : '')));
+            tr.appendChild(_bnetzCell(T.bnetz_upload_target || 'Upload target', m.upload_max_tariff ? Math.round(m.upload_max_tariff) + ' Mbit/s' : '-'));
+            tr.appendChild(_bnetzCell(T.bnetz_upload_actual || 'Upload measured', Math.round(m.upload_measured_avg || 0) + ' Mbit/s' + (ulPct ? ' (' + ulPct + '%)' : '')));
+
+            var verdictCell = _bnetzCell(T.bnetz_verdict || 'Verdict', '');
+            verdictCell.className = 'bnetz-verdict ' + verdictClass;
+            verdictCell.title = verdictText;
+            verdictCell.appendChild(_bnetzIcon(hasDeviation ? 'triangle-alert' : 'circle-check'));
+            var verdictLabel = document.createElement('span');
+            verdictLabel.className = 'bnetz-verdict-text';
+            verdictLabel.textContent = verdictText;
+            verdictCell.appendChild(verdictLabel);
+            tr.appendChild(verdictCell);
+
+            var actionsCell = _bnetzCell(T.actions || 'Actions', '');
+            actionsCell.className = 'bnetz-actions-cell';
+            actionsCell.addEventListener('click', function(event) { event.stopPropagation(); });
+            if (hasDeviation) {
+                actionsCell.appendChild(_bnetzActionButton(
+                    'bnetz-action-btn',
+                    T.bnetz_generate_complaint || 'Generate complaint',
+                    'file-pen',
+                    function() { generateBnetzComplaint(m.id); }
+                ));
+            }
+            if (m.source !== 'csv_import') {
+                var pdfLink = document.createElement('a');
+                pdfLink.href = docsightUrl('/api/bnetz/pdf/' + encodeURIComponent(String(m.id)));
+                pdfLink.className = 'bnetz-action-btn';
+                pdfLink.title = 'PDF';
+                pdfLink.appendChild(_bnetzIcon('file-down'));
+                actionsCell.appendChild(pdfLink);
+            }
+            actionsCell.appendChild(_bnetzActionButton(
+                'bnetz-action-btn bnetz-action-delete',
+                T.delete_incident || 'Delete',
+                'trash-2',
+                function() { deleteBnetzFromView(m.id); }
+            ));
+            tr.appendChild(actionsCell);
             tbody.appendChild(tr);
             // Detail expand row (hidden by default)
             if (hasMeasurements) {
@@ -64,7 +189,7 @@ function loadBnetzData() {
                 var detailTd = document.createElement('td');
                 detailTd.colSpan = 8;
                 detailTd.className = 'bnetz-detail-cell';
-                detailTd.innerHTML = buildBnetzDetailHtml(m);
+                detailTd.appendChild(buildBnetzDetail(m));
                 detailTr.appendChild(detailTd);
                 tbody.appendChild(detailTr);
             }
@@ -107,53 +232,6 @@ function toggleBnetzDetail(idx) {
     var isOpen = row.style.display !== 'none';
     row.style.display = isOpen ? 'none' : 'table-row';
     if (arrow) arrow.classList.toggle('open', !isOpen);
-}
-
-function buildBnetzDetailHtml(m) {
-    var ms = m.measurements || {};
-    var dlList = ms.download || [];
-    var ulList = ms.upload || [];
-    var html = '<div class="bnetz-detail-grid">';
-    // Download measurements
-    if (dlList.length > 0) {
-        html += '<div><span class="bnetz-detail-label">' + (T.download || 'Download') + '</span>';
-        html += '<table class="bnetz-detail-table">';
-        html += '<tr><th>' + (T.bnetz_measurement_nr || 'Nr.') + '</th>' +
-            '<th>' + (T.bnetz_measurement_time || 'Time') + '</th>' +
-            '<th class="bnetz-detail-speed-col">' + (T.bnetz_measurement_speed || 'Speed') + '</th></tr>';
-        dlList.forEach(function(meas, i) {
-            var speed = meas.mbps || meas.speed || meas.value || 0;
-            var color = 'var(--text)';
-            if (m.download_min_tariff && speed < m.download_min_tariff) color = 'var(--crit)';
-            else if (m.download_normal_tariff && speed < m.download_normal_tariff) color = 'var(--warn, orange)';
-            html += '<tr>' +
-                '<td>' + (i + 1) + '</td>' +
-                '<td>' + escapeHtml(meas.date || '') + ' ' + escapeHtml(meas.time || '') + '</td>' +
-                '<td class="bnetz-detail-speed-col" style="color:' + color + ';">' + (typeof speed === 'number' ? speed.toFixed(1) : speed) + ' Mbit/s</td></tr>';
-        });
-        html += '</table></div>';
-    }
-    // Upload measurements
-    if (ulList.length > 0) {
-        html += '<div><span class="bnetz-detail-label">' + (T.upload || 'Upload') + '</span>';
-        html += '<table class="bnetz-detail-table">';
-        html += '<tr><th>' + (T.bnetz_measurement_nr || 'Nr.') + '</th>' +
-            '<th>' + (T.bnetz_measurement_time || 'Time') + '</th>' +
-            '<th class="bnetz-detail-speed-col">' + (T.bnetz_measurement_speed || 'Speed') + '</th></tr>';
-        ulList.forEach(function(meas, i) {
-            var speed = meas.mbps || meas.speed || meas.value || 0;
-            var color = 'var(--text)';
-            if (m.upload_min_tariff && speed < m.upload_min_tariff) color = 'var(--crit)';
-            else if (m.upload_normal_tariff && speed < m.upload_normal_tariff) color = 'var(--warn, orange)';
-            html += '<tr>' +
-                '<td>' + (i + 1) + '</td>' +
-                '<td>' + escapeHtml(meas.date || '') + ' ' + escapeHtml(meas.time || '') + '</td>' +
-                '<td class="bnetz-detail-speed-col" style="color:' + color + ';">' + (typeof speed === 'number' ? speed.toFixed(1) : speed) + ' Mbit/s</td></tr>';
-        });
-        html += '</table></div>';
-    }
-    html += '</div>';
-    return html;
 }
 
 function uploadBnetzFromView(input) {

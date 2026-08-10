@@ -25,6 +25,7 @@
 .bnetz-action-btn {
     display: inline-flex; align-items: center; justify-content: center;
     padding: 4px; margin-right: 4px; border-radius: var(--radius-sm, 4px);
+    background: none; border: none; cursor: pointer; font: inherit;
     color: var(--text-muted); text-decoration: none;
     transition: color 0.2s ease, background 0.2s ease;
 }

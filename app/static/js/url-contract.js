@@ -3,12 +3,6 @@
 
     var contractError = 'DOCSight browser URL contract is unavailable';
 
-    function failClosed() {
-        throw new Error(contractError);
-    }
-
-    window.docsightUrl = failClosed;
-
     function isControlCharacter(value) {
         for (var i = 0; i < value.length; i++) {
             var code = value.charCodeAt(i);
@@ -108,18 +102,30 @@
     var keys = Object.keys(bootstrap);
     if (keys.length !== 1 || keys[0] !== 'basePath' || !validBasePath(bootstrap.basePath)) throw new Error(contractError);
 
-    var basePath = bootstrap.basePath;
-    window.docsightUrl = function(path) {
-        if (!validInternalUrl(path)) throw new TypeError('DOCSight URL must be a safe root-relative internal URL');
-        if (!basePath) return path;
+    var basePath = '';
+    if (bootstrap.basePath) {
+        var segments = bootstrap.basePath.slice(1).split('/');
+        var canonicalSegments = [];
+        for (var segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+            canonicalSegments.push(encodeURIComponent(segments[segmentIndex]));
+        }
+        basePath = '/' + canonicalSegments.join('/');
+    }
+    Object.defineProperty(window, 'docsightUrl', {
+        configurable: false,
+        writable: false,
+        value: function(path) {
+            if (!validInternalUrl(path)) throw new TypeError('DOCSight URL must be a safe root-relative internal URL');
+            if (!basePath) return path;
 
-        var query = path.indexOf('?');
-        var fragment = path.indexOf('#');
-        var boundary = path.length;
-        if (query !== -1 && query < boundary) boundary = query;
-        if (fragment !== -1 && fragment < boundary) boundary = fragment;
-        var pathname = path.slice(0, boundary);
-        if (pathname === basePath || pathname.indexOf(basePath + '/') === 0) return path;
-        return basePath + path;
-    };
+            var query = path.indexOf('?');
+            var fragment = path.indexOf('#');
+            var boundary = path.length;
+            if (query !== -1 && query < boundary) boundary = query;
+            if (fragment !== -1 && fragment < boundary) boundary = fragment;
+            var pathname = path.slice(0, boundary);
+            if (pathname === basePath || pathname.indexOf(basePath + '/') === 0) return path;
+            return basePath + path;
+        }
+    });
 })();

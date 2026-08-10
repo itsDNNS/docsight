@@ -67,6 +67,27 @@ def test_normalize_base_path(configured, expected):
     assert normalize_base_path(configured) == expected
 
 
+def test_accepts_every_base_path_segment_character_at_the_length_limit():
+    segment = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._~-"
+    segment += "a" * (128 - len(segment))
+
+    assert normalize_base_path(f"/{segment}") == f"/{segment}"
+
+
+@pytest.mark.parametrize(
+    "character",
+    ["!", "$", "&", "'", "(", ")", "+", ",", ":", ";", "=", "@", "["],
+)
+def test_rejects_characters_outside_the_base_path_segment_grammar(character):
+    with pytest.raises(BasePathConfigurationError, match="BASE_PATH is invalid"):
+        normalize_base_path(f"/safe{character}segment")
+
+
+def test_rejects_overlong_repetitive_segment_without_regex_backtracking():
+    with pytest.raises(BasePathConfigurationError, match="BASE_PATH is invalid"):
+        normalize_base_path("/" + "-" * 128 + "!")
+
+
 @pytest.mark.parametrize(
     "configured",
     [

@@ -16,6 +16,59 @@ _HOP_BY_HOP_HEADERS = {
     "transfer-encoding",
     "upgrade",
 }
+_MAX_REASON_LENGTH = 256
+_MAX_HEADER_NAME_LENGTH = 128
+_MAX_HEADER_VALUE_LENGTH = 8192
+_HEADER_NAME_CHARACTERS = frozenset(
+    "!#$%&'*+-.^_`|~ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+)
+
+
+def _valid_field_text(value: object, max_length: int) -> bool:
+    """Accept bounded HTTP field text and reject output-splitting bytes."""
+
+    if not isinstance(value, str) or len(value) > max_length:
+        return False
+    try:
+        value.encode("latin-1")
+    except UnicodeEncodeError:
+        return False
+    return all(
+        character == "\t"
+        or 0x20 <= ord(character) <= 0x7E
+        or ord(character) >= 0x80
+        for character in value
+    )
+
+
+def _validate_upstream_response_metadata(
+    status: object,
+    reason: object,
+    headers: list[tuple[str, str]],
+) -> tuple[int, str, list[tuple[str, str]]]:
+    """Validate upstream metadata before it reaches BaseHTTPRequestHandler."""
+
+    if (
+        isinstance(status, bool)
+        or not isinstance(status, int)
+        or not 100 <= status <= 599
+    ):
+        raise ValueError("invalid upstream response metadata")
+    if not _valid_field_text(reason, _MAX_REASON_LENGTH):
+        raise ValueError("invalid upstream response metadata")
+
+    validated_headers = []
+    for name, value in headers:
+        if (
+            not isinstance(name, str)
+            or not name
+            or len(name) > _MAX_HEADER_NAME_LENGTH
+            or any(character not in _HEADER_NAME_CHARACTERS for character in name)
+            or not _valid_field_text(value, _MAX_HEADER_VALUE_LENGTH)
+        ):
+            raise ValueError("invalid upstream response metadata")
+        validated_headers.append((name, value))
+    return status, reason, validated_headers
 
 
 def serve_prefix_proxy(
@@ -107,9 +160,17 @@ def serve_prefix_proxy(
                 )
                 response = connection.getresponse()
                 response_body = response.read()
+                response_headers = response.getheaders()
+                response_status, response_reason, response_headers = (
+                    _validate_upstream_response_metadata(
+                        response.status,
+                        response.reason,
+                        response_headers,
+                    )
+                )
                 response_connection_tokens = {
                     item.strip().lower()
-                    for name, value in response.getheaders()
+                    for name, value in response_headers
                     if name.lower() == "connection"
                     for item in value.split(",")
                     if item.strip()
@@ -119,15 +180,15 @@ def serve_prefix_proxy(
                     | response_connection_tokens
                     | {"content-length"}
                 )
-            except (OSError, http.client.HTTPException):
+            except (OSError, ValueError, http.client.HTTPException):
                 self._plain_response(502, b"Bad Gateway\n")
                 return
             finally:
                 connection.close()
 
             try:
-                self.send_response(response.status, response.reason)
-                for name, value in response.getheaders():
+                self.send_response(response_status, response_reason)
+                for name, value in response_headers:
                     if name.lower() not in response_excluded:
                         self.send_header(name, value)
                 self.send_header("Content-Length", str(len(response_body)))

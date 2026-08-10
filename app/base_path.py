@@ -14,13 +14,26 @@ from werkzeug.http import parse_list_header
 _MAX_BASE_PATH_LENGTH = 1024
 _MAX_SEGMENT_LENGTH = 128
 _MAX_TRUSTED_PREFIX_HOPS = 32
-_SEGMENT_RE = re.compile(r"[A-Za-z0-9._~-]+\Z")
+_SEGMENT_CHARACTERS = frozenset(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._~-"
+)
 _HOPS_RE = re.compile(r"(?:0|[1-9][0-9]*)\Z")
 _BAD_REQUEST_BODY = b"Bad Request\n"
 
 
 class BasePathConfigurationError(ValueError):
     """Raised when base-path trust configuration is unsafe or ambiguous."""
+
+
+def _valid_segment(segment: str) -> bool:
+    """Validate one bounded base-path segment with no regex backtracking."""
+
+    return (
+        bool(segment)
+        and len(segment) <= _MAX_SEGMENT_LENGTH
+        and segment not in {".", ".."}
+        and all(character in _SEGMENT_CHARACTERS for character in segment)
+    )
 
 
 def normalize_base_path(value: str | None) -> str:
@@ -38,12 +51,7 @@ def normalize_base_path(value: str | None) -> str:
         raise BasePathConfigurationError("BASE_PATH is invalid")
 
     segments = value[1:].split("/")
-    if any(
-        segment in {".", ".."}
-        or len(segment) > _MAX_SEGMENT_LENGTH
-        or _SEGMENT_RE.fullmatch(segment) is None
-        for segment in segments
-    ):
+    if any(not _valid_segment(segment) for segment in segments):
         raise BasePathConfigurationError("BASE_PATH is invalid")
     return value
 

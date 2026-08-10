@@ -306,3 +306,70 @@ class TestBnetzTableEscaping:
                 # Check the provider cell for no raw HTML
                 first_row_html = rows.first.inner_html()
                 assert "<script" not in first_row_html.lower()
+
+    def test_bnetz_api_markup_is_rendered_only_as_text(self, demo_page):
+        marker = '<img src=x onerror="window.__bnetzDomXss = true">'
+        payload = [
+            {
+                "id": "measurement-42",
+                "date": marker,
+                "provider": marker,
+                "source": "csv_import",
+                "verdict_download": "deviation",
+                "verdict_upload": "ok",
+                "download_max_tariff": 100,
+                "download_measured_avg": 50,
+                "upload_max_tariff": 20,
+                "upload_measured_avg": 20,
+                "measurements": {
+                    "download": [
+                        {"date": marker, "time": marker, "mbps": marker}
+                    ],
+                    "upload": [],
+                },
+            }
+        ]
+        demo_page.route(
+            "**/api/bnetz/measurements",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(payload),
+            ),
+        )
+        demo_page.evaluate("window.__bnetzDomXss = false")
+
+        demo_page.locator('.nav-item[data-view="bnetz"]').click()
+        row = demo_page.locator("#bnetz-tbody tr[data-bnetz-idx]").first
+        row.wait_for(state="visible")
+
+        assert row.locator("td").nth(0).inner_text().strip() == marker
+        assert row.locator("td").nth(1).inner_text() == marker
+        row.click()
+        assert demo_page.locator("#bnetz-tbody [onerror]").count() == 0
+        assert demo_page.locator('a[href^="javascript:"]').count() == 0
+        assert demo_page.evaluate("window.__bnetzDomXss") is False
+
+
+class TestSmokepingEscaping:
+    def test_target_markup_is_text_and_error_fallback_has_no_html_sink(
+        self, demo_page
+    ):
+        target = '<img src=x onerror="window.__smokepingDomXss = true">'
+        demo_page.route(
+            "**/api/smokeping/targets",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps([target]),
+            ),
+        )
+        demo_page.evaluate("window.__smokepingDomXss = false")
+
+        demo_page.locator('.nav-item[data-view="smokeping"]').click()
+        label = demo_page.locator("#smokeping-content .chart-label").first
+        label.wait_for(state="visible")
+
+        assert label.inner_text() == target
+        assert label.locator("img").count() == 0
+        assert demo_page.evaluate("window.__smokepingDomXss") is False

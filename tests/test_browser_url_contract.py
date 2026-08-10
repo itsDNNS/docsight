@@ -68,6 +68,44 @@ const results = request.inputs.map(function(value) {
 process.stdout.write(JSON.stringify({initError: initError, results: results}));
 """
 
+DEMO_REDIRECT_HARNESS = r"""
+const fs = require('fs');
+const request = JSON.parse(fs.readFileSync(0, 'utf8'));
+const button = {disabled: false};
+const banner = {querySelectorAll: function() { return [button]; }};
+const result = {textContent: ''};
+const assignments = [];
+global.window = {
+    T: {},
+    docsightConfirm: async function() { return true; },
+    location: {assign: function(value) { assignments.push(value); }}
+};
+global.document = {
+    getElementById: function(id) {
+        if (id === 'demo-banner') return banner;
+        if (id === 'demo-banner-result') return result;
+        return null;
+    }
+};
+global.docsightUrl = function(value) {
+    if (typeof value !== 'string' || value.charAt(0) !== '/' || value.charAt(1) === '/') {
+        throw new TypeError('unsafe URL');
+    }
+    return '/docsight' + value;
+};
+global.fetch = async function() {
+    return {
+        status: 200,
+        ok: true,
+        json: async function() { return {success: true, next: request.responseNext}; }
+    };
+};
+eval(fs.readFileSync(process.argv[1], 'utf8'));
+window.leaveDemo(request.nextChoice, button).then(function() {
+    process.stdout.write(JSON.stringify({assignments: assignments, disabled: button.disabled}));
+});
+"""
+
 
 def _run_helper(
     bootstrap: object = None,
@@ -97,6 +135,17 @@ def _run_helper(
     return json.loads(completed.stdout)
 
 
+def _run_demo_redirect(next_choice: str, response_next: str) -> dict[str, object]:
+    completed = subprocess.run(
+        ["node", "-e", DEMO_REDIRECT_HARNESS, str(DEMO_BANNER)],
+        input=json.dumps({"nextChoice": next_choice, "responseNext": response_next}),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
 @pytest.mark.parametrize(
     ("base_path", "source", "expected"),
     [
@@ -113,6 +162,7 @@ def _run_helper(
         ("/docsight", "/docsight/api/poll", "/docsight/api/poll"),
         ("/docsight", "/docsight-extra/api", "/docsight/docsight-extra/api"),
         ("/docsight", "/file%20name", "/docsight/file%20name"),
+        ("/A.z_~-/b", "/api/poll", "/A.z_~-/b/api/poll"),
     ],
 )
 def test_docsight_url_root_and_prefixed_behavior(base_path, source, expected):
@@ -207,6 +257,10 @@ def test_invalid_or_missing_bootstrap_fails_closed(
 def test_helper_does_not_patch_browser_primitives():
     source = HELPER.read_text(encoding="utf-8")
 
+    assert "Object.defineProperty(window, 'docsightUrl'" in source
+    assert "configurable: false" in source
+    assert "writable: false" in source
+    assert "window.docsightUrl =" not in source
     assert "window.fetch" not in source
     assert "XMLHttpRequest" not in source
     assert re.search(
@@ -215,10 +269,18 @@ def test_helper_does_not_patch_browser_primitives():
     assert "window.location" not in source
 
 
+def test_bootstrap_base_path_is_rebuilt_from_encoded_validated_segments():
+    source = HELPER.read_text(encoding="utf-8")
+
+    assert "canonicalSegments.push(encodeURIComponent(segments[" in source
+    assert "basePath = '/' + canonicalSegments.join('/')" in source
+
+
 def test_demo_next_navigation_uses_the_strict_contract():
     source = DEMO_BANNER.read_text(encoding="utf-8")
 
-    assert "window.location.assign(docsightUrl(payload.next));" in source
+    assert "payload.next !== expectedNext" in source
+    assert "window.location.assign(docsightUrl(expectedNext));" in source
     assert "window.location.assign(payload.next);" not in source
     outcome = _run_helper(
         {"basePath": "/docsight"},
@@ -229,6 +291,29 @@ def test_demo_next_navigation_uses_the_strict_contract():
         "value": "/docsight/settings#modules",
     }
     assert all(not item["ok"] for item in outcome["results"][1:])
+
+
+def test_demo_redirect_navigates_only_to_the_allowlisted_response():
+    assert _run_demo_redirect("exit", "/setup") == {
+        "assignments": ["/docsight/setup"],
+        "disabled": True,
+    }
+
+
+@pytest.mark.parametrize(
+    "response_next",
+    [
+        "/unexpected",
+        "//evil.example/",
+        "https://evil.example/",
+        "javascript:alert(1)",
+    ],
+)
+def test_demo_redirect_fails_closed_on_unexpected_api_destination(response_next):
+    assert _run_demo_redirect("exit", response_next) == {
+        "assignments": [],
+        "disabled": False,
+    }
 
 
 REPRESENTATIVE_SITES = [
@@ -243,9 +328,9 @@ REPRESENTATIVE_SITES = [
         "var url = docsightUrl('/api/weather/range?start='",
     ),
     (
-        "generated HTML",
+        "DOM-constructed link",
         ROOT / "app/static/js/integrations.js",
-        "'<a href=\"' + docsightUrl('/api/bnetz/pdf/' + m.id)",
+        "pdfLink.href = docsightUrl('/api/bnetz/pdf/'",
     ),
     (
         "image source",

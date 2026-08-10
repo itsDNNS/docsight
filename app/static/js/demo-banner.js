@@ -33,7 +33,9 @@
             }
             var payload = await response.json();
             if (!response.ok || !payload.success) throw new Error(payload.error || '');
-            window.location.assign(docsightUrl(payload.next));
+            var expectedNext = {connect: '/setup?connect=1', exit: '/setup'}[nextChoice];
+            if (!expectedNext || payload.next !== expectedNext) throw new Error('Invalid redirect');
+            window.location.assign(docsightUrl(expectedNext));
         } catch (error) {
             buttons.forEach(function(item) { item.disabled = false; });
             result.textContent = (window.T && window.T.demo_action_failed) || 'The demo could not be closed. Please try again.';
