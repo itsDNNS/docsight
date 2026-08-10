@@ -474,7 +474,6 @@ function importBqmCsv() {
 
 function openBqmImportModal() {
     _bqmImportFiles = [];
-    var modal = document.getElementById('bqm-import-modal');
     document.getElementById('bqm-import-dropzone').style.display = '';
     document.getElementById('bqm-import-options').style.display = 'none';
     document.getElementById('bqm-import-status').style.display = 'none';
@@ -484,19 +483,11 @@ function openBqmImportModal() {
     document.getElementById('bqm-import-offset').value = '0';
     document.getElementById('bqm-import-tbody').innerHTML = '';
     setBqmImportValidationState(T.bqm_import_validation_choose || 'Choose PNG or JPEG BQM graph images. DOCSight will preview dates before importing.', 'info');
-    if (window.DOCSightModal) {
-        window.DOCSightModal.open('bqm-import-modal');
-    } else {
-        modal.classList.add('open');
-    }
+    window.DOCSightModal.open('bqm-import-modal');
 }
 
 function closeBqmImportModal() {
-    if (window.DOCSightModal) {
-        window.DOCSightModal.close('bqm-import-modal');
-    } else {
-        document.getElementById('bqm-import-modal').classList.remove('open');
-    }
+    window.DOCSightModal.close('bqm-import-modal');
     // Revoke thumb URLs
     _bqmImportFiles.forEach(function(f) { if (f.thumbUrl) URL.revokeObjectURL(f.thumbUrl); });
     _bqmImportFiles = [];

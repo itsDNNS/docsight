@@ -219,10 +219,6 @@ BOOL_KEYS = {"demo_mode", "update_check_enabled", "gaming_quality_enabled", "seg
 URL_KEYS = {"modem_url", "bqm_url", "speedtest_tracker_url", "notify_webhook_url", "notify_apprise_url"}
 _ALLOWED_URL_SCHEMES = {"http", "https"}
 
-# Keys where an empty string should fall back to the DEFAULTS value
-_NON_EMPTY_KEYS = set()
-
-
 class ConfigManager:
     """Loads config from config.json, env vars override file values.
     Passwords are encrypted at rest using Fernet (AES-128-CBC)."""
@@ -328,9 +324,6 @@ class ConfigManager:
 
         if key in self._file_config:
             val = self._file_config[key]
-            # Keys that must not be empty: fall through to defaults
-            if key in _NON_EMPTY_KEYS and not val:
-                return DEFAULTS[key]
             if key in INT_KEYS and not isinstance(val, int):
                 if val == "" or val is None:
                     return default if default is not None else 0
@@ -398,11 +391,6 @@ class ConfigManager:
         for key in MODULE_SECRET_KEYS | SECRET_KEYS | PRIVATE_KEYS:
             if key in data and data[key]:
                 data[key] = self._encrypt(data[key])
-
-        # Replace empty strings with defaults for keys that require a value
-        for key in _NON_EMPTY_KEYS:
-            if key in data and not data[key]:
-                data[key] = DEFAULTS[key]
 
         # Merge with existing config
         self._file_config.update(data)

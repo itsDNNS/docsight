@@ -41,11 +41,7 @@ function exportForLLM() {
     textarea.value = T.export_no_data;
     setExportStatus(T.export_loading || 'Loading export preview...', 'progress');
     updateExportSize();
-    if (window.DOCSightModal) {
-        window.DOCSightModal.open('export-modal');
-    } else {
-        document.getElementById('export-modal').classList.add('open');
-    }
+    window.DOCSightModal.open('export-modal');
     fetch(docsightUrl('/api/export?mode=' + encodeURIComponent(mode)))
         .then(function(r) {
             return r.json().then(function(data) {
@@ -71,11 +67,7 @@ function exportForLLM() {
 }
 function closeExportModal() {
     exportLoadId += 1;
-    if (window.DOCSightModal) {
-        window.DOCSightModal.close('export-modal');
-    } else {
-        document.getElementById('export-modal').classList.remove('open');
-    }
+    window.DOCSightModal.close('export-modal');
 }
 function setExportStatus(message, type) {
     var status = document.getElementById('export-status');
@@ -126,27 +118,15 @@ function updateExportSize() {
     indicator.textContent = chars.toLocaleString() + ' ' + (T.export_size_characters || 'characters') + ' · ~' + approxTokens.toLocaleString() + ' ' + (T.export_size_tokens || 'tokens');
 }
 function openBqmSetupModal() {
-    if (window.DOCSightModal) {
-        window.DOCSightModal.open('bqm-setup-modal');
-    } else {
-        document.getElementById('bqm-setup-modal').classList.add('open');
-    }
+    window.DOCSightModal.open('bqm-setup-modal');
 }
 function closeBqmSetupModal() {
-    if (window.DOCSightModal) {
-        window.DOCSightModal.close('bqm-setup-modal');
-    } else {
-        document.getElementById('bqm-setup-modal').classList.remove('open');
-    }
+    window.DOCSightModal.close('bqm-setup-modal');
 }
 var reportGenerationId = 0;
 function openReportModal() {
     resetReportModalState();
-    if (window.DOCSightModal) {
-        window.DOCSightModal.open('report-modal');
-    } else {
-        document.getElementById('report-modal').classList.add('open');
-    }
+    window.DOCSightModal.open('report-modal');
     syncComparisonReportState();
     // Close sidebar on mobile
     var sb = document.getElementById('sidebar');
@@ -157,11 +137,7 @@ function openReportModal() {
     }
 }
 function closeReportModal() {
-    if (window.DOCSightModal) {
-        window.DOCSightModal.close('report-modal');
-    } else {
-        document.getElementById('report-modal').classList.remove('open');
-    }
+    window.DOCSightModal.close('report-modal');
     resetReportModalState();
 }
 function resetReportModalState() {
@@ -349,18 +325,10 @@ function downloadExportMarkdown() {
     setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
 function openSpeedtestSetupModal() {
-    if (window.DOCSightModal) {
-        window.DOCSightModal.open('speedtest-setup-modal');
-    } else {
-        document.getElementById('speedtest-setup-modal').classList.add('open');
-    }
+    window.DOCSightModal.open('speedtest-setup-modal');
 }
 function closeSpeedtestSetupModal() {
-    if (window.DOCSightModal) {
-        window.DOCSightModal.close('speedtest-setup-modal');
-    } else {
-        document.getElementById('speedtest-setup-modal').classList.remove('open');
-    }
+    window.DOCSightModal.close('speedtest-setup-modal');
 }
 function setSetupStatus(statusId, message, type) {
     var status = document.getElementById(statusId);

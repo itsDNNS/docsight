@@ -543,7 +543,6 @@ function deleteAttachment(attachmentId, incidentId) {
 var _importPreviewData = null;
 
 function openImportModal() {
-    var modal = document.getElementById('import-modal');
     document.getElementById('import-upload-zone').style.display = '';
     document.getElementById('import-loading').style.display = 'none';
     document.getElementById('import-preview').style.display = 'none';
@@ -551,19 +550,11 @@ function openImportModal() {
     document.getElementById('import-file-input').value = '';
     setImportValidationState(T.import_validation_choose || 'Choose a CSV or Excel file. DOCSight will preview rows before importing.', 'info');
     _importPreviewData = null;
-    if (window.DOCSightModal) {
-        window.DOCSightModal.open('import-modal');
-    } else {
-        modal.classList.add('open');
-    }
+    window.DOCSightModal.open('import-modal');
 }
 
 function closeImportModal() {
-    if (window.DOCSightModal) {
-        window.DOCSightModal.close('import-modal');
-    } else {
-        document.getElementById('import-modal').classList.remove('open');
-    }
+    window.DOCSightModal.close('import-modal');
 }
 
 function setImportValidationState(message, tone) {

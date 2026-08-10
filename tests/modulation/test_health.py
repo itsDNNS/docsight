@@ -11,10 +11,7 @@ from app.modules.modulation.engine import (
     _canonical_label,
     _distribution_pct,
     _degraded_qam_threshold,
-    _health_index,
     _health_index_for_group,
-    _numeric_low_qam_pct,
-    _group_channels_by_protocol,
     _modulation_periods,
     _simplify_timeline,
     _channel_summary,
@@ -136,64 +133,6 @@ class TestDistributionPct:
         assert result == {"64QAM": 100.0}
 
 
-# ── _health_index (legacy global scale) ──
-
-class TestHealthIndex:
-    def test_no_observations(self):
-        assert _health_index([]) is None
-
-    def test_ofdm_only_returns_none(self):
-        obs = [("OFDM", None), ("OFDMA", None)]
-        assert _health_index(obs) is None
-
-    def test_all_qpsk_is_zero(self):
-        obs = [("4QAM", 4)] * 10
-        assert _health_index(obs) == 0.0
-
-    def test_all_4096qam_is_100(self):
-        obs = [("4096QAM", 4096)] * 10
-        assert _health_index(obs) == 100.0
-
-    def test_all_256qam(self):
-        obs = [("256QAM", 256)] * 10
-        assert _health_index(obs) == 60.0
-
-    def test_mixed_ignores_ofdm(self):
-        obs = [("256QAM", 256)] * 5 + [("OFDM", None)] * 5
-        assert _health_index(obs) == 60.0
-
-    def test_clamped_at_boundaries(self):
-        obs = [("4QAM", 4)]
-        assert _health_index(obs) >= 0
-
-    def test_all_64qam(self):
-        obs = [("64QAM", 64)] * 10
-        assert _health_index(obs) == 40.0
-
-    def test_mixed_qam_weighted_average(self):
-        obs = [("4QAM", 4)] * 5 + [("256QAM", 256)] * 5
-        assert _health_index(obs) == 30.0
-
-    def test_health_index_range(self):
-        for qam in [4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]:
-            obs = [(f"{qam}QAM", qam)] * 5
-            hi = _health_index(obs)
-            assert 0 <= hi <= 100, f"QAM {qam} produced health_index {hi}"
-
-    def test_single_observation(self):
-        obs = [("256QAM", 256)]
-        assert _health_index(obs) == 60.0
-
-    def test_monotonically_increasing(self):
-        qam_orders = [4, 16, 64, 256, 1024, 4096]
-        indices = []
-        for qam in qam_orders:
-            obs = [(f"{qam}QAM", qam)] * 10
-            indices.append(_health_index(obs))
-        for i in range(1, len(indices)):
-            assert indices[i] > indices[i - 1]
-
-
 # ── _health_index_for_group (per-protocol scaling) ──
 
 class TestHealthIndexForGroup:
@@ -251,46 +190,3 @@ class TestDegradedThresholds:
 
     def test_us31_uses_64qam_threshold(self):
         assert _degraded_qam_threshold("us", "3.1", 16) == 64
-
-
-# ── _numeric_low_qam_pct ──
-
-class TestNumericLowQamPct:
-    def test_no_observations(self):
-        assert _numeric_low_qam_pct([], 16) == 0
-
-    def test_all_low(self):
-        obs = [("4QAM", 4)] * 10
-        assert _numeric_low_qam_pct(obs, 16) == 100.0
-
-    def test_none_low(self):
-        obs = [("256QAM", 256)] * 10
-        assert _numeric_low_qam_pct(obs, 16) == 0.0
-
-    def test_mixed(self):
-        obs = [("4QAM", 4)] * 2 + [("256QAM", 256)] * 8
-        assert _numeric_low_qam_pct(obs, 16) == 20.0
-
-    def test_threshold_boundary(self):
-        obs = [("16QAM", 16)] * 5 + [("64QAM", 64)] * 5
-        assert _numeric_low_qam_pct(obs, 16) == 50.0
-
-
-    def test_threshold_64_excludes_128qam(self):
-        obs = [("64QAM", 64)] * 4 + [("128QAM", 128)] * 6
-        assert _numeric_low_qam_pct(obs, 64) == 40.0
-
-    def test_ignores_ofdm(self):
-        obs = [("4QAM", 4)] * 1 + [("64QAM", 64)] * 1 + [("OFDM", None)] * 8
-        assert _numeric_low_qam_pct(obs, 16) == 50.0
-
-    def test_custom_threshold_64(self):
-        obs = [("16QAM", 16)] * 3 + [("64QAM", 64)] * 2 + [("256QAM", 256)] * 5
-        assert _numeric_low_qam_pct(obs, 64) == 50.0
-
-    def test_ofdm_only_returns_zero(self):
-        obs = [("OFDM", None)] * 10
-        assert _numeric_low_qam_pct(obs, 16) == 0
-
-
-# ── _group_channels_by_protocol ──

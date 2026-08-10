@@ -11,10 +11,7 @@ from app.modules.modulation.engine import (
     _canonical_label,
     _distribution_pct,
     _degraded_qam_threshold,
-    _health_index,
     _health_index_for_group,
-    _numeric_low_qam_pct,
-    _group_channels_by_protocol,
     _modulation_periods,
     _simplify_timeline,
     _channel_summary,
@@ -26,37 +23,6 @@ from app.modules.modulation.engine import (
     MAX_QAM,
     DISCLAIMER,
 )
-
-
-# ── _parse_qam_order ──
-
-class TestGroupChannelsByProtocol:
-    def test_single_version(self):
-        channels = [
-            {"channel_id": 1, "docsis_version": "3.0"},
-            {"channel_id": 2, "docsis_version": "3.0"},
-        ]
-        result = _group_channels_by_protocol(channels)
-        assert list(result.keys()) == ["3.0"]
-        assert len(result["3.0"]) == 2
-
-    def test_mixed_versions(self):
-        channels = [
-            {"channel_id": 1, "docsis_version": "3.0"},
-            {"channel_id": 2, "docsis_version": "3.1"},
-            {"channel_id": 3, "docsis_version": "3.0"},
-        ]
-        result = _group_channels_by_protocol(channels)
-        assert len(result["3.0"]) == 2
-        assert len(result["3.1"]) == 1
-
-    def test_missing_version_defaults_to_30(self):
-        channels = [{"channel_id": 1}]
-        result = _group_channels_by_protocol(channels)
-        assert "3.0" in result
-
-    def test_empty(self):
-        assert _group_channels_by_protocol([]) == {}
 
 
 # ── _modulation_periods ──
@@ -184,4 +150,3 @@ def _make_channels(modulations, docsis_version="3.0"):
         {"modulation": m, "channel_id": i, "docsis_version": docsis_version}
         for i, m in enumerate(modulations)
     ]
-

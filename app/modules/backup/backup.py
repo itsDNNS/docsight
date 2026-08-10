@@ -88,18 +88,6 @@ def _vacuum_db(data_dir, db_name, dest_path):
     return True
 
 
-def create_backup(data_dir):
-    """Create a backup archive in memory.
-
-    Returns:
-        BytesIO containing the .tar.gz archive.
-    """
-    buf = BytesIO()
-    _write_backup_archive(data_dir, buf, work_dir=data_dir)
-    buf.seek(0)
-    return buf
-
-
 def _write_backup_archive(data_dir, archive_target, work_dir=None):
     """Write a backup archive to a path or binary file object."""
     db_files = {"docsis_history.db", "connection_monitor.db"}

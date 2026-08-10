@@ -468,8 +468,6 @@ def test_module_driver_registration_path_is_not_supported() -> None:
     module_loader = (ROOT / "app" / "module_loader.py").read_text(encoding="utf-8")
     driver_registry = (ROOT / "app" / "drivers" / "registry.py").read_text(encoding="utf-8")
     main = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
-    module_card = (ROOT / "app" / "templates" / "settings" / "_module_card.html").read_text(encoding="utf-8")
-
     for removed in [
         "load_module_driver",
         "driver_class",
@@ -483,7 +481,6 @@ def test_module_driver_registration_path_is_not_supported() -> None:
         assert removed not in main
 
     assert '"driver"' not in module_loader
-    assert "mod.type == 'driver'" not in module_card
     assert not (MODULES / "thresholds_vfkd" / "manifest.json").exists()
     assert "BUILTIN_THRESHOLD_PROFILES" in (ROOT / "app" / "threshold_profiles.py").read_text(encoding="utf-8")
 
