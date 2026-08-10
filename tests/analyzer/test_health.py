@@ -4,55 +4,12 @@ import pytest
 from unittest.mock import patch
 from app import analyzer
 from app.analyzer import analyze, _parse_float, _parse_qam_order, _resolve_modulation, _channel_bitrate_mbps, _metric_healths
-
-
-# -- Helper to build FritzBox-style channel data --
-
-def _make_ds30(channel_id=1, power=3.0, mse="-35.0", corr=0, uncorr=0):
-    return {
-        "channelID": channel_id,
-        "frequency": "602 MHz",
-        "powerLevel": str(power),
-        "modulation": "256QAM",
-        "mse": str(mse),
-        "corrErrors": corr,
-        "nonCorrErrors": uncorr,
-    }
-
-
-def _make_ds31(channel_id=100, power=5.0, mer="38.0", corr=0, uncorr=0):
-    return {
-        "channelID": channel_id,
-        "frequency": "159 MHz",
-        "powerLevel": str(power),
-        "modulation": "4096QAM",
-        "mer": str(mer),
-        "corrErrors": corr,
-        "nonCorrErrors": uncorr,
-    }
-
-
-def _make_us30(channel_id=1, power=42.0, modulation="64QAM"):
-    return {
-        "channelID": channel_id,
-        "frequency": "37 MHz",
-        "powerLevel": str(power),
-        "modulation": modulation,
-        "multiplex": "ATDMA",
-    }
-
-
-def _make_data(ds30=None, ds31=None, us30=None, us31=None):
-    return {
-        "channelDs": {
-            "docsis30": ds30 or [],
-            "docsis31": ds31 or [],
-        },
-        "channelUs": {
-            "docsis30": us30 or [],
-            "docsis31": us31 or [],
-        },
-    }
+from tests.analyzer.factories import (
+    make_data as _make_data,
+    make_ds30 as _make_ds30,
+    make_ds31 as _make_ds31,
+    make_us30 as _make_us30,
+)
 
 
 # -- parse_float --

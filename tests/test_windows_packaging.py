@@ -434,14 +434,19 @@ def test_runtime_windows_lock_contains_windows_marked_dependencies():
     assert "pystray==0.19.5" in lock_text
 
 
-def test_both_windows_locks_pin_tray_and_transitive_dependency_hashes():
-    for lock_name in (
-        "requirements-runtime-windows.txt",
-        "requirements-test-windows.txt",
-    ):
-        lock_text = (WINDOWS_PACKAGING / lock_name).read_text(encoding="utf-8")
-        assert "pystray==0.19.5 \\\n    --hash=sha256:" in lock_text
-        assert "six==1.17.0 \\\n    --hash=sha256:" in lock_text
+def test_windows_runtime_and_test_locks_keep_separate_hashed_ownership():
+    runtime_lock = (WINDOWS_PACKAGING / "requirements-runtime-windows.txt").read_text(
+        encoding="utf-8"
+    )
+    test_lock = (WINDOWS_PACKAGING / "requirements-test-windows.txt").read_text(
+        encoding="utf-8"
+    )
+
+    assert "pystray==0.19.5 \\\n    --hash=sha256:" in runtime_lock
+    assert "six==1.17.0 \\\n    --hash=sha256:" in runtime_lock
+    assert re.search(r"(?m)^pytest==\S+ \\\n    --hash=sha256:", test_lock)
+    for runtime_package in ("colorama", "pystray", "six", "tzdata"):
+        assert not re.search(rf"(?m)^{runtime_package}==", test_lock)
 
 
 def test_pyinstaller_spec_bundles_native_tray_adapter():
