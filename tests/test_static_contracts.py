@@ -431,10 +431,86 @@ def test_static_templates_keep_basic_heading_markup_well_formed() -> None:
 
 def test_snapshot_storage_uses_single_storage_base() -> None:
     storage_init = (ROOT / "app" / "storage" / "__init__.py").read_text(encoding="utf-8")
-    assert "class SnapshotStorage(StorageBase):" in storage_init
-    assert "class SnapshotStorage(\n" not in storage_init
-    assert "_STORAGE_METHOD_GROUPS" in storage_init
-    assert "Mixin" not in storage_init
+    assert "_STORAGE_METHOD_GROUPS" not in storage_init
+    assert "setattr(SnapshotStorage" not in storage_init
+
+    from app.storage import SnapshotStorage
+    from app.storage.base import StorageBase
+
+    assert SnapshotStorage.__mro__.count(StorageBase) == 1
+    assert SnapshotStorage.__bases__[-1] is StorageBase
+    assert hasattr(SnapshotStorage, "save_snapshot")
+    assert hasattr(SnapshotStorage, "save_event")
+    assert hasattr(SnapshotStorage, "create_api_token")
+
+
+def test_shared_modals_use_native_dialog_contract() -> None:
+    index = (TEMPLATES / "index.html").read_text(encoding="utf-8")
+    backup_settings = (
+        MODULES / "backup" / "templates" / "backup_settings.html"
+    ).read_text(encoding="utf-8")
+    modal_script = (STATIC / "js" / "modals.js").read_text(encoding="utf-8")
+
+    for modal_id in (
+        "bqm-import-modal",
+        "entry-modal",
+        "incident-container-modal",
+        "import-modal",
+        "speedtest-setup-modal",
+        "bqm-setup-modal",
+        "smokeping-setup-modal",
+        "report-modal",
+        "chart-zoom-overlay",
+        "export-modal",
+    ):
+        assert re.search(rf"<dialog\b[^>]*\bid=\"{modal_id}\"", index)
+    assert re.search(r'<dialog\b[^>]*\bid="browse-modal"', backup_settings)
+
+    assert ".showModal()" in modal_script
+    assert ".close()" in modal_script
+    for removed_helper in (
+        "activeStack",
+        "FOCUSABLE",
+        "handleTab",
+        "focusin",
+        "MutationObserver",
+        "ensureModalSemantics",
+    ):
+        assert removed_helper not in modal_script
+
+
+def test_modal_consumers_have_no_absent_api_fallbacks() -> None:
+    consumers = [
+        STATIC / "js" / "bqm.js",
+        STATIC / "js" / "journal.js",
+        STATIC / "js" / "utils.js",
+        STATIC / "js" / "demo-banner.js",
+        MODULES / "smokeping" / "static" / "main.js",
+    ]
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in consumers)
+
+    assert "if (window.DOCSightModal)" not in combined
+    assert "typeof window.docsightConfirm" not in combined
+    assert "window.confirm(" not in combined
+
+
+def test_frontend_simplifications_keep_single_owners() -> None:
+    settings = (STATIC / "js" / "settings.js").read_text(encoding="utf-8")
+    connection_charts = (
+        MODULES
+        / "connection_monitor"
+        / "static"
+        / "js"
+        / "connection-monitor-charts.js"
+    ).read_text(encoding="utf-8")
+    index = (TEMPLATES / "index.html").read_text(encoding="utf-8")
+
+    assert "function _runModuleAction(" in settings
+    assert "_runModuleAction(e, id, 'install', downloadUrl);" in settings
+    assert "_runModuleAction(e, id, 'uninstall');" in settings
+    assert "function bandPlugin(" not in connection_charts
+    assert "bandPlugin(datasets.length - 1, datasets.length, bandColor)" in connection_charts
+    assert "Escape key closes topmost open modal" not in index
 
 
 def test_smart_capture_speedtest_adapter_tests_are_consolidated() -> None:
@@ -468,8 +544,6 @@ def test_module_driver_registration_path_is_not_supported() -> None:
     module_loader = (ROOT / "app" / "module_loader.py").read_text(encoding="utf-8")
     driver_registry = (ROOT / "app" / "drivers" / "registry.py").read_text(encoding="utf-8")
     main = (ROOT / "app" / "main.py").read_text(encoding="utf-8")
-    module_card = (ROOT / "app" / "templates" / "settings" / "_module_card.html").read_text(encoding="utf-8")
-
     for removed in [
         "load_module_driver",
         "driver_class",
@@ -483,7 +557,6 @@ def test_module_driver_registration_path_is_not_supported() -> None:
         assert removed not in main
 
     assert '"driver"' not in module_loader
-    assert "mod.type == 'driver'" not in module_card
     assert not (MODULES / "thresholds_vfkd" / "manifest.json").exists()
     assert "BUILTIN_THRESHOLD_PROFILES" in (ROOT / "app" / "threshold_profiles.py").read_text(encoding="utf-8")
 

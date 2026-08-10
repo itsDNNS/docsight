@@ -4,6 +4,9 @@ import multiprocessing
 import os
 import socket
 import time
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
 
 import pytest
 import requests
@@ -52,60 +55,53 @@ def _mounted_app(application, mount_path):
     )
 
 
-def _start_server(
-    data_dir,
-    port,
-    admin_password=None,
-    demo_mode=True,
-    mount_path="",
-    base_path=None,
-    trusted_prefix_hops=None,
-):
-    """Boot a real DOCSight instance inside a child process."""
-    import os
+@dataclass(frozen=True)
+class _ServerTarget:
+    """Pickle-safe configuration for one isolated E2E server process."""
 
-    os.environ["DATA_DIR"] = data_dir
-    if demo_mode:
+    data_dir: str
+    port: int
+    configured: bool = True
+    admin_password: str | None = None
+    demo_mode: bool = True
+    modem_type: str | None = None
+    mount_path: str = ""
+    base_path: str | None = None
+    trusted_prefix_hops: int | None = None
+    production_startup: bool = False
+    post_seed_callback: Callable[[str], None] | None = None
+
+
+def _configure_server_environment(target: _ServerTarget) -> None:
+    os.environ["DATA_DIR"] = target.data_dir
+    if target.demo_mode:
         os.environ["DEMO_MODE"] = "1"
     else:
         os.environ.pop("DEMO_MODE", None)
     os.environ["LOG_LEVEL"] = "WARNING"
     os.environ.pop("BASE_PATH", None)
     os.environ.pop("REVERSE_PROXY_PREFIX", None)
-    if base_path is not None:
-        os.environ["BASE_PATH"] = base_path
-    if trusted_prefix_hops is not None:
-        os.environ["REVERSE_PROXY_PREFIX"] = str(trusted_prefix_hops)
+    if target.base_path is not None:
+        os.environ["BASE_PATH"] = target.base_path
+    if target.trusted_prefix_hops is not None:
+        os.environ["REVERSE_PROXY_PREFIX"] = str(target.trusted_prefix_hops)
 
-    from app.config import ConfigManager
-    from app.storage import SnapshotStorage
-    from app import web, analyzer
-    from app.event_detector import EventDetector
-    from app.collectors.demo import DemoCollector  # noqa: F811
 
-    cfg = ConfigManager(data_dir)
-    save_data = {
-        "demo_mode": demo_mode,
-        "modem_type": "demo" if demo_mode else "generic",
-    }
-    if admin_password:
-        save_data["admin_password"] = admin_password
-    cfg.save(save_data)
+def _configure_base_path(target: _ServerTarget, application) -> None:
+    if target.base_path is None and target.trusted_prefix_hops is None:
+        return
+    from app.base_path import configure_base_path
 
-    db_path = os.path.join(data_dir, "docsis_history.db")
-    storage = SnapshotStorage(db_path, max_days=7)
-    storage.set_timezone("UTC")
+    configure_base_path(application)
 
-    web.init_storage(storage)
-    web.init_config(cfg)
-    web.init_collector(None)
-    web.init_collectors([])
 
-    # Load modules so templates render correctly
+def _initialize_modules(web, db_path: str) -> None:
+    """Load built-ins and their storage tables exactly as production-like E2E needs."""
     from app.module_loader import ModuleLoader
 
-    builtin_path = os.path.join(os.path.dirname(__file__), "..", "..", "app", "modules")
-    builtin_path = os.path.abspath(builtin_path)
+    builtin_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "app", "modules")
+    )
     module_loader = ModuleLoader(
         web.app, search_paths=[], disabled_ids=set(), builtin_base_path=builtin_path
     )
@@ -113,59 +109,106 @@ def _start_server(
     web.init_modules(module_loader)
     web.setup_module_templates(module_loader)
 
-    # Register module blueprints
-    existing = {b.name for b in web.app.blueprints.values()}
-    for mod in module_loader.get_enabled_modules():
-        if hasattr(mod, "blueprint") and mod.blueprint:
-            if mod.blueprint.name not in existing:
-                web.app.register_blueprint(mod.blueprint)
-                existing.add(mod.blueprint.name)
+    existing = {blueprint.name for blueprint in web.app.blueprints.values()}
+    for module in module_loader.get_enabled_modules():
+        if hasattr(module, "blueprint") and module.blueprint:
+            if module.blueprint.name not in existing:
+                web.app.register_blueprint(module.blueprint)
+                existing.add(module.blueprint.name)
 
-    if base_path is not None or trusted_prefix_hops is not None:
-        from app.base_path import configure_base_path
-
-        configure_base_path(web.app)
-
-    # Initialize module storage tables (needed for demo data seeding)
     try:
         from app.modules.speedtest.storage import SpeedtestStorage
+
         SpeedtestStorage(db_path)
     except ImportError:
         pass
     try:
         from app.modules.bqm.storage import BqmStorage
+
         BqmStorage(db_path)
     except ImportError:
         pass
     try:
         from app.modules.bnetz.storage import BnetzStorage
+
         BnetzStorage(db_path)
     except ImportError:
         pass
     try:
         from app.modules.journal.storage import JournalStorage
+
         JournalStorage(db_path)
     except ImportError:
         pass
 
-    # Seed demo data via DemoCollector
-    event_detector = EventDetector()
-    collector = DemoCollector(
-        analyzer_fn=analyzer.analyze,
-        event_detector=event_detector,
-        storage=storage,
-        mqtt_pub=None,
-        web=web,
-        poll_interval=300,
-    )
-    collector.collect()
+
+def _serve_server(target: _ServerTarget) -> None:
+    """Boot any E2E DOCSight server variant inside a child process."""
+    if target.production_startup:
+        os.environ["DATA_DIR"] = target.data_dir
+        os.environ["WEB_HOST"] = "127.0.0.1"
+        os.environ["WEB_PORT"] = str(target.port)
+        os.environ.pop("DEMO_MODE", None)
+        os.environ["LOG_LEVEL"] = "WARNING"
+        from app.main import main
+
+        main()
+        return
+
+    _configure_server_environment(target)
+
+    from app import analyzer, web
+    from app.config import ConfigManager
+
+    config = ConfigManager(target.data_dir)
+    if not target.configured:
+        web.init_config(config)
+        web.init_storage(None)
+        web.init_collector(None)
+        web.init_collectors([])
+    else:
+        from app.collectors.demo import DemoCollector
+        from app.event_detector import EventDetector
+        from app.storage import SnapshotStorage
+
+        config_data = {
+            "demo_mode": target.demo_mode,
+            "modem_type": target.modem_type
+            or ("demo" if target.demo_mode else "generic"),
+        }
+        if target.admin_password:
+            config_data["admin_password"] = target.admin_password
+        config.save(config_data)
+
+        db_path = os.path.join(target.data_dir, "docsis_history.db")
+        storage = SnapshotStorage(db_path, max_days=7)
+        storage.set_timezone("UTC")
+        web.init_storage(storage)
+        web.init_config(config)
+        web.init_collector(None)
+        web.init_collectors([])
+        _initialize_modules(web, db_path)
+
+        collector = DemoCollector(
+            analyzer_fn=analyzer.analyze,
+            event_detector=EventDetector(),
+            storage=storage,
+            mqtt_pub=None,
+            web=web,
+            poll_interval=300,
+        )
+        collector.collect()
+        if target.post_seed_callback is not None:
+            target.post_seed_callback(db_path)
+
+    _configure_base_path(target, web.app)
 
     from waitress import serve
 
     serve(
-        _mounted_app(web.app, mount_path),
+        _mounted_app(web.app, target.mount_path),
         host="127.0.0.1",
-        port=port,
+        port=target.port,
         **_WAITRESS_KWARGS,
     )
 
@@ -185,6 +228,29 @@ def _wait_for_server(port, timeout=150, mount_path=""):
     raise RuntimeError(f"Live server on port {port} did not start within {timeout}s")
 
 
+@contextmanager
+def _running_processes(
+    process_specs: list[tuple[Callable[..., None], tuple]],
+    readiness_targets: list[tuple[int, str]],
+) -> Iterator[None]:
+    """Start, await, and always terminate an isolated group of child processes."""
+    processes = []
+    try:
+        for process_target, args in process_specs:
+            process = _MP_CTX.Process(target=process_target, args=args, daemon=True)
+            process.start()
+            processes.append(process)
+        for port, mount_path in readiness_targets:
+            _wait_for_server(port, mount_path=mount_path)
+        yield
+    finally:
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+        for process in processes:
+            process.join(timeout=5)
+
+
 @pytest.fixture(scope="session")
 def _demo_data_dir(tmp_path_factory):
     """Session-scoped temp directory for the demo server."""
@@ -201,36 +267,23 @@ def _auth_data_dir(tmp_path_factory):
 def live_server(_demo_data_dir):
     """Start a DOCSight demo server (no auth) and return its base URL."""
     port = _find_free_port()
-    proc = _MP_CTX.Process(
-        target=_start_server,
-        args=(_demo_data_dir, port),
-        daemon=True,
-    )
-    proc.start()
-    try:
-        _wait_for_server(port)
+    target = _ServerTarget(_demo_data_dir, port)
+    with _running_processes([(_serve_server, (target,))], [(port, "")]):
         yield f"http://127.0.0.1:{port}"
-    finally:
-        proc.terminate()
-        proc.join(timeout=5)
 
 
 @pytest.fixture(scope="session")
 def auth_server(_auth_data_dir):
     """Start a DOCSight server with admin password and return its base URL."""
     port = _find_free_port()
-    proc = _MP_CTX.Process(
-        target=_start_server,
-        args=(_auth_data_dir, port, "e2e-test-password"),
-        daemon=True,
+    credential = "e2e-test-password"
+    target = _ServerTarget(
+        _auth_data_dir,
+        port,
+        admin_password=credential,
     )
-    proc.start()
-    try:
-        _wait_for_server(port)
+    with _running_processes([(_serve_server, (target,))], [(port, "")]):
         yield f"http://127.0.0.1:{port}"
-    finally:
-        proc.terminate()
-        proc.join(timeout=5)
 
 
 @pytest.fixture()
@@ -259,18 +312,9 @@ def _configured_data_dir(tmp_path_factory):
 def configured_server(_configured_data_dir):
     """Start a configured non-demo instance with seeded dashboard data."""
     port = _find_free_port()
-    proc = _MP_CTX.Process(
-        target=_start_server,
-        args=(_configured_data_dir, port, None, False),
-        daemon=True,
-    )
-    proc.start()
-    try:
-        _wait_for_server(port)
+    target = _ServerTarget(_configured_data_dir, port, demo_mode=False)
+    with _running_processes([(_serve_server, (target,))], [(port, "")]):
         yield f"http://127.0.0.1:{port}"
-    finally:
-        proc.terminate()
-        proc.join(timeout=5)
 
 
 @pytest.fixture()
@@ -290,79 +334,19 @@ def auth_page(page, auth_server):
 # ── Unconfigured server (setup wizard) ──
 
 
-def _start_unconfigured_server(
-    data_dir,
-    port,
-    mount_path="",
-    base_path=None,
-    trusted_prefix_hops=None,
-):
-    """Boot a DOCSight instance that is NOT configured — shows /setup."""
-    os.environ["DATA_DIR"] = data_dir
-    os.environ.pop("DEMO_MODE", None)
-    os.environ["LOG_LEVEL"] = "WARNING"
-    os.environ.pop("BASE_PATH", None)
-    os.environ.pop("REVERSE_PROXY_PREFIX", None)
-    if base_path is not None:
-        os.environ["BASE_PATH"] = base_path
-    if trusted_prefix_hops is not None:
-        os.environ["REVERSE_PROXY_PREFIX"] = str(trusted_prefix_hops)
-
-    from app.config import ConfigManager
-    from app import web
-
-    cfg = ConfigManager(data_dir)
-    # Do NOT call cfg.save() — leave unconfigured so /setup renders
-
-    web.init_config(cfg)
-    web.init_storage(None)
-    web.init_collector(None)
-    web.init_collectors([])
-
-    if base_path is not None or trusted_prefix_hops is not None:
-        from app.base_path import configure_base_path
-
-        configure_base_path(web.app)
-
-    from waitress import serve
-
-    serve(
-        _mounted_app(web.app, mount_path),
-        host="127.0.0.1",
-        port=port,
-        **_WAITRESS_KWARGS,
-    )
-
-
-def _start_first_run_server(data_dir, port):
-    """Boot the production startup path with a fresh data directory."""
-    os.environ["DATA_DIR"] = data_dir
-    os.environ["WEB_HOST"] = "127.0.0.1"
-    os.environ["WEB_PORT"] = str(port)
-    os.environ.pop("DEMO_MODE", None)
-    os.environ["LOG_LEVEL"] = "WARNING"
-
-    from app.main import main
-
-    main()
-
-
 @pytest.fixture()
 def first_run_server(tmp_path):
     """Start a fresh production-path instance for one-click activation tests."""
     port = _find_free_port()
-    proc = _MP_CTX.Process(
-        target=_start_first_run_server,
-        args=(str(tmp_path / "first-run"), port),
-        daemon=True,
+    target = _ServerTarget(
+        str(tmp_path / "first-run"),
+        port,
+        configured=False,
+        demo_mode=False,
+        production_startup=True,
     )
-    proc.start()
-    try:
-        _wait_for_server(port)
+    with _running_processes([(_serve_server, (target,))], [(port, "")]):
         yield f"http://127.0.0.1:{port}"
-    finally:
-        proc.terminate()
-        proc.join(timeout=5)
 
 
 @pytest.fixture(scope="session")
@@ -375,18 +359,14 @@ def _setup_data_dir(tmp_path_factory):
 def setup_server(_setup_data_dir):
     """Start an unconfigured DOCSight server and return its base URL."""
     port = _find_free_port()
-    proc = _MP_CTX.Process(
-        target=_start_unconfigured_server,
-        args=(_setup_data_dir, port),
-        daemon=True,
+    target = _ServerTarget(
+        _setup_data_dir,
+        port,
+        configured=False,
+        demo_mode=False,
     )
-    proc.start()
-    try:
-        _wait_for_server(port)
+    with _running_processes([(_serve_server, (target,))], [(port, "")]):
         yield f"http://127.0.0.1:{port}"
-    finally:
-        proc.terminate()
-        proc.join(timeout=5)
 
 
 @pytest.fixture()
@@ -394,21 +374,17 @@ def isolated_setup_server(tmp_path):
     """Start an unconfigured server with fresh data for one language test."""
     data_dir = str(tmp_path / "isolated-setup")
     port = _find_free_port()
-    proc = _MP_CTX.Process(
-        target=_start_unconfigured_server,
-        args=(data_dir, port),
-        daemon=True,
+    target = _ServerTarget(
+        data_dir,
+        port,
+        configured=False,
+        demo_mode=False,
     )
-    proc.start()
-    try:
-        _wait_for_server(port)
+    with _running_processes([(_serve_server, (target,))], [(port, "")]):
         yield {
             "url": f"http://127.0.0.1:{port}",
             "data_dir": data_dir,
         }
-    finally:
-        proc.terminate()
-        proc.join(timeout=5)
 
 
 @pytest.fixture()
@@ -433,31 +409,32 @@ def path_prefix_servers(request, tmp_path_factory):
     credential = "browser-contract-password"
     auth_dir = str(tmp_path_factory.mktemp(f"docsight_mount_auth_{label}"))
     setup_dir = str(tmp_path_factory.mktemp(f"docsight_mount_setup_{label}"))
-    auth_proc = _MP_CTX.Process(
-        target=_start_server,
-        args=(auth_dir, auth_port, credential, True, mount_path),
-        daemon=True,
+    auth_target = _ServerTarget(
+        auth_dir,
+        auth_port,
+        admin_password=credential,
+        mount_path=mount_path,
     )
-    setup_proc = _MP_CTX.Process(
-        target=_start_unconfigured_server,
-        args=(setup_dir, setup_port, mount_path),
-        daemon=True,
+    setup_target = _ServerTarget(
+        setup_dir,
+        setup_port,
+        configured=False,
+        demo_mode=False,
+        mount_path=mount_path,
     )
-    auth_proc.start()
-    setup_proc.start()
-    try:
-        _wait_for_server(auth_port, mount_path=mount_path)
-        _wait_for_server(setup_port, mount_path=mount_path)
+    with _running_processes(
+        [
+            (_serve_server, (auth_target,)),
+            (_serve_server, (setup_target,)),
+        ],
+        [(auth_port, mount_path), (setup_port, mount_path)],
+    ):
         yield {
             "mount_path": mount_path,
             "app_url": f"http://127.0.0.1:{auth_port}{mount_path}",
             "setup_url": f"http://127.0.0.1:{setup_port}{mount_path}",
             "password": credential,
         }
-    finally:
-        for proc in (auth_proc, setup_proc):
-            proc.terminate()
-            proc.join(timeout=5)
 
 
 _NETWORK_PREFIX_CASES = [
@@ -514,56 +491,49 @@ def real_proxy_servers(request, tmp_path_factory):
     auth_dir = str(tmp_path_factory.mktemp(f"network_proxy_auth_{label}"))
     setup_dir = str(tmp_path_factory.mktemp(f"network_proxy_setup_{label}"))
 
-    auth_upstream = _MP_CTX.Process(
-        target=_start_server,
-        args=(
-            auth_dir,
-            auth_upstream_port,
-            credential,
-            True,
-            "",
-            case["base_path"],
-            case["trusted_prefix_hops"],
-        ),
-        daemon=True,
+    auth_target = _ServerTarget(
+        auth_dir,
+        auth_upstream_port,
+        admin_password=credential,
+        base_path=case["base_path"],
+        trusted_prefix_hops=case["trusted_prefix_hops"],
     )
-    setup_upstream = _MP_CTX.Process(
-        target=_start_unconfigured_server,
-        args=(
-            setup_dir,
-            setup_upstream_port,
-            "",
-            case["base_path"],
-            case["trusted_prefix_hops"],
-        ),
-        daemon=True,
+    setup_target = _ServerTarget(
+        setup_dir,
+        setup_upstream_port,
+        configured=False,
+        demo_mode=False,
+        base_path=case["base_path"],
+        trusted_prefix_hops=case["trusted_prefix_hops"],
     )
-    auth_proxy = _MP_CTX.Process(
-        target=serve_prefix_proxy,
-        args=(
-            auth_proxy_port,
-            auth_upstream_port,
-            case["mount_path"],
-            case["forwarded_prefix_chain"],
-        ),
-        daemon=True,
-    )
-    setup_proxy = _MP_CTX.Process(
-        target=serve_prefix_proxy,
-        args=(
-            setup_proxy_port,
-            setup_upstream_port,
-            case["mount_path"],
-            case["forwarded_prefix_chain"],
-        ),
-        daemon=True,
-    )
-    processes = (auth_upstream, setup_upstream, auth_proxy, setup_proxy)
-    for process in processes:
-        process.start()
-    try:
-        _wait_for_server(auth_proxy_port, mount_path=case["mount_path"])
-        _wait_for_server(setup_proxy_port, mount_path=case["mount_path"])
+    with _running_processes(
+        [
+            (_serve_server, (auth_target,)),
+            (_serve_server, (setup_target,)),
+            (
+                serve_prefix_proxy,
+                (
+                    auth_proxy_port,
+                    auth_upstream_port,
+                    case["mount_path"],
+                    case["forwarded_prefix_chain"],
+                ),
+            ),
+            (
+                serve_prefix_proxy,
+                (
+                    setup_proxy_port,
+                    setup_upstream_port,
+                    case["mount_path"],
+                    case["forwarded_prefix_chain"],
+                ),
+            ),
+        ],
+        [
+            (auth_proxy_port, case["mount_path"]),
+            (setup_proxy_port, case["mount_path"]),
+        ],
+    ):
         yield _RedactedProxyServers(
             {
                 "mount_path": case["mount_path"],
@@ -576,112 +546,36 @@ def real_proxy_servers(request, tmp_path_factory):
                 "password": credential,
             }
         )
-    finally:
-        for process in processes:
-            process.terminate()
-            process.join(timeout=5)
 
 
 # ── FritzBox server (segment utilization) ──
 
 
-def _start_fritzbox_server(data_dir, port):
-    """Boot a DOCSight instance with modem_type=fritzbox and seeded segment data."""
-    import os
+def _seed_fritzbox_segment_data(db_path: str) -> None:
+    """Seed 48 hours of deterministic one-minute segment utilization samples."""
+    import random
     from datetime import datetime, timedelta, timezone
 
-    os.environ["DATA_DIR"] = data_dir
-    os.environ["DEMO_MODE"] = "1"
-    os.environ["LOG_LEVEL"] = "WARNING"
-
-    from app.config import ConfigManager
-    from app.storage import SnapshotStorage
-    from app import web, analyzer
-    from app.event_detector import EventDetector
-    from app.collectors.demo import DemoCollector
-
-    cfg = ConfigManager(data_dir)
-    cfg.save({"demo_mode": True, "modem_type": "fritzbox"})
-
-    db_path = os.path.join(data_dir, "docsis_history.db")
-    storage = SnapshotStorage(db_path, max_days=7)
-    storage.set_timezone("UTC")
-
-    web.init_storage(storage)
-    web.init_config(cfg)
-    web.init_collector(None)
-    web.init_collectors([])
-
-    from app.module_loader import ModuleLoader
-
-    builtin_path = os.path.join(os.path.dirname(__file__), "..", "..", "app", "modules")
-    builtin_path = os.path.abspath(builtin_path)
-    module_loader = ModuleLoader(
-        web.app, search_paths=[], disabled_ids=set(), builtin_base_path=builtin_path
-    )
-    module_loader.load_all()
-    web.init_modules(module_loader)
-    web.setup_module_templates(module_loader)
-
-    existing = {b.name for b in web.app.blueprints.values()}
-    for mod in module_loader.get_enabled_modules():
-        if hasattr(mod, "blueprint") and mod.blueprint:
-            if mod.blueprint.name not in existing:
-                web.app.register_blueprint(mod.blueprint)
-                existing.add(mod.blueprint.name)
-
-    # Initialize module storage tables
-    try:
-        from app.modules.speedtest.storage import SpeedtestStorage
-        SpeedtestStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.bqm.storage import BqmStorage
-        BqmStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.bnetz.storage import BnetzStorage
-        BnetzStorage(db_path)
-    except ImportError:
-        pass
-    try:
-        from app.modules.journal.storage import JournalStorage
-        JournalStorage(db_path)
-    except ImportError:
-        pass
-
-    # Seed demo data
-    event_detector = EventDetector()
-    collector = DemoCollector(
-        analyzer_fn=analyzer.analyze,
-        event_detector=event_detector,
-        storage=storage,
-        mqtt_pub=None,
-        web=web,
-        poll_interval=300,
-    )
-    collector.collect()
-
-    # Seed segment utilization data (48h of samples, 1 per minute)
     from app.storage.segment_utilization import SegmentUtilizationStorage
-    import random
 
-    seg_storage = SegmentUtilizationStorage(db_path)
+    segment_storage = SegmentUtilizationStorage(db_path)
     now = datetime.now(timezone.utc)
     random.seed(42)
-    for i in range(2880):  # 48h * 60 min
-        ts = (now - timedelta(minutes=2880 - i)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        ds_total = 15.0 + random.uniform(-5, 25)
-        us_total = 8.0 + random.uniform(-3, 15)
-        ds_own = ds_total * random.uniform(0.01, 0.15)
-        us_own = us_total * random.uniform(0.01, 0.10)
-        seg_storage.save_at(ts, round(ds_total, 1), round(us_total, 1),
-                            round(ds_own, 2), round(us_own, 2))
-
-    from waitress import serve
-    serve(web.app, host="127.0.0.1", port=port, **_WAITRESS_KWARGS)
+    for index in range(2880):
+        timestamp = (now - timedelta(minutes=2880 - index)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        downstream_total = 15.0 + random.uniform(-5, 25)
+        upstream_total = 8.0 + random.uniform(-3, 15)
+        downstream_own = downstream_total * random.uniform(0.01, 0.15)
+        upstream_own = upstream_total * random.uniform(0.01, 0.10)
+        segment_storage.save_at(
+            timestamp,
+            round(downstream_total, 1),
+            round(upstream_total, 1),
+            round(downstream_own, 2),
+            round(upstream_own, 2),
+        )
 
 
 @pytest.fixture(scope="session")
@@ -694,18 +588,14 @@ def _fritzbox_data_dir(tmp_path_factory):
 def fritzbox_server(_fritzbox_data_dir):
     """Start a DOCSight server with modem_type=fritzbox and segment data."""
     port = _find_free_port()
-    proc = _MP_CTX.Process(
-        target=_start_fritzbox_server,
-        args=(_fritzbox_data_dir, port),
-        daemon=True,
+    target = _ServerTarget(
+        _fritzbox_data_dir,
+        port,
+        modem_type="fritzbox",
+        post_seed_callback=_seed_fritzbox_segment_data,
     )
-    proc.start()
-    try:
-        _wait_for_server(port)
+    with _running_processes([(_serve_server, (target,))], [(port, "")]):
         yield f"http://127.0.0.1:{port}"
-    finally:
-        proc.terminate()
-        proc.join(timeout=5)
 
 
 @pytest.fixture()

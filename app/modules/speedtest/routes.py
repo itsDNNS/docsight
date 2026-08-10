@@ -6,6 +6,7 @@ import time
 import requests
 from flask import Blueprint, request, jsonify
 
+from app.config import parse_config_bool
 from app.web import require_auth, get_config_manager, get_state, get_storage, clear_speedtest_latest
 from app.i18n import get_translations
 from app.storage.sqlite import connect_sqlite
@@ -23,15 +24,6 @@ _storage = None
 # Rate-limit: track last manual trigger timestamp
 _last_trigger_ts = 0
 _TRIGGER_COOLDOWN = 60  # seconds
-
-
-def _as_bool(value):
-    """Parse booleans from config/form payloads."""
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return False
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _get_speedtest_storage():
@@ -120,7 +112,7 @@ def api_speedtest():
     if ss:
         try:
             stt_url = _config_manager.get("speedtest_tracker_url")
-            tls_insecure = _as_bool(_config_manager.get("speedtest_tls_insecure", False))
+            tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
             client = SpeedtestClient(
                 stt_url,
                 _config_manager.get("speedtest_tracker_token"),
@@ -160,7 +152,7 @@ def api_speedtest():
         _annotate_smart_capture(enriched, ss.db_path)
         return jsonify(enriched)
     # Fallback: no storage, fetch directly
-    tls_insecure = _as_bool(_config_manager.get("speedtest_tls_insecure", False))
+    tls_insecure = parse_config_bool(_config_manager.get("speedtest_tls_insecure", False))
     client = SpeedtestClient(
         _config_manager.get("speedtest_tracker_url"),
         _config_manager.get("speedtest_tracker_token"),
@@ -254,7 +246,9 @@ def api_speedtest_run():
 
     url = _config_manager.get("speedtest_tracker_url", "").rstrip("/")
     token = _config_manager.get("speedtest_tracker_token", "")
-    tls_insecure = _as_bool(_config_manager.get("speedtest_tls_insecure", False))
+    tls_insecure = parse_config_bool(
+        _config_manager.get("speedtest_tls_insecure", False)
+    )
     try:
         resp = requests.post(
             f"{url}/api/v1/speedtests/run",

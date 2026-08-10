@@ -3,7 +3,15 @@
 import json
 import os
 import pytest
-from app.config import ConfigManager, DEFAULTS, SECRET_KEYS, HASH_KEYS, PASSWORD_MASK, URL_KEYS
+from app.config import (
+    ConfigManager,
+    DEFAULTS,
+    SECRET_KEYS,
+    HASH_KEYS,
+    PASSWORD_MASK,
+    URL_KEYS,
+    parse_config_bool,
+)
 
 
 @pytest.fixture
@@ -39,6 +47,28 @@ class TestConfigDefaults:
     def test_default_value_is_not_reported_as_stored(self, config):
         assert config.get("language") == "en"
         assert config.has_stored_value("language") is False
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, True),
+        (False, False),
+        (None, False),
+        ("  TRUE  ", True),
+        ("1", True),
+        ("yes", True),
+        ("On", True),
+        (1, True),
+        ("false", False),
+        ("0", False),
+        ("off", False),
+        ("", False),
+        (object(), False),
+    ],
+)
+def test_parse_config_bool_preserves_config_payload_semantics(value, expected):
+    assert parse_config_bool(value) is expected
 
 
 class TestConfigSaveLoad:

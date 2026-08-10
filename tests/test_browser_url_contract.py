@@ -29,7 +29,7 @@ EXPECTED_CONTRACT_CALLS = {
     "app/static/js/journal.js": 22,
     "app/static/js/notices.js": 1,
     "app/static/js/segment-utilization.js": 2,
-    "app/static/js/settings.js": 26,
+    "app/static/js/settings.js": 25,
     "app/static/js/sparklines.js": 1,
     "app/static/js/speedtest.js": 6,
     "app/static/js/trends.js": 2,
@@ -296,7 +296,7 @@ def test_inventoried_files_keep_the_reviewed_contract_sites():
     }
 
     assert actual == EXPECTED_CONTRACT_CALLS
-    assert sum(actual.values()) == 134  # reviewed browser URL contract sites
+    assert sum(actual.values()) == 133  # reviewed browser URL contract sites
 
 
 def test_inventoried_actual_literal_forms_have_no_unwrapped_url_sink():

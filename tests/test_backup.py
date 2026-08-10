@@ -19,7 +19,6 @@ from app.modules.backup.backup import (
     MAGIC,
     browse_directory,
     cleanup_old_backups,
-    create_backup,
     create_backup_to_file,
     list_backups,
     restore_backup,
@@ -67,14 +66,19 @@ def backup_dir(tmp_path):
     return str(d)
 
 
+@pytest.fixture
+def backup_path(data_dir, backup_dir):
+    """Create an archive through the production file-backed backup path."""
+    filename = create_backup_to_file(data_dir, backup_dir)
+    return Path(backup_dir) / filename
+
+
 # ── TestCreateBackup ──
 
 
 class TestCreateBackup:
-    def test_creates_valid_archive(self, data_dir):
-        buf = create_backup(data_dir)
-        assert buf.tell() == 0  # seek(0) was called
-        with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+    def test_creates_valid_archive(self, backup_path):
+        with tarfile.open(backup_path, mode="r:gz") as tar:
             names = tar.getnames()
             assert BACKUP_META_FILE in names
             assert "docsis_history.db" in names
@@ -83,9 +87,8 @@ class TestCreateBackup:
             assert ".session_key" in names
             assert ".auth_state" in names
 
-    def test_meta_has_required_fields(self, data_dir):
-        buf = create_backup(data_dir)
-        with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+    def test_meta_has_required_fields(self, backup_path):
+        with tarfile.open(backup_path, mode="r:gz") as tar:
             meta = json.loads(tar.extractfile(BACKUP_META_FILE).read())
             assert meta["magic"] == MAGIC
             assert meta["format_version"] == FORMAT_VERSION
@@ -93,10 +96,9 @@ class TestCreateBackup:
             assert "app_version" in meta
             assert "tables" in meta
 
-    def test_demo_data_excluded(self, data_dir):
-        buf = create_backup(data_dir)
+    def test_demo_data_excluded(self, backup_path):
         # Extract the DB from the archive and check demo data is gone
-        with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+        with tarfile.open(backup_path, mode="r:gz") as tar:
             import tempfile
             with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
                 tmp.write(tar.extractfile("docsis_history.db").read())
@@ -117,14 +119,15 @@ class TestCreateBackup:
         d = tmp_path / "empty_data"
         d.mkdir()
         (d / "config.json").write_text("{}")
-        buf = create_backup(str(d))
-        with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+        backup_dir = tmp_path / "backups"
+        filename = create_backup_to_file(str(d), backup_dir)
+        with tarfile.open(backup_dir / filename, mode="r:gz") as tar:
             names = tar.getnames()
             assert "docsis_history.db" not in names
             assert BACKUP_META_FILE in names
 
-    def test_compatibility_backup_uses_data_volume_for_vacuum_workspace(
-        self, data_dir, monkeypatch
+    def test_backup_uses_data_volume_for_vacuum_workspace(
+        self, data_dir, backup_dir, monkeypatch
     ):
         real_temporary_directory = backup_module.tempfile.TemporaryDirectory
         temporary_directories = []
@@ -139,7 +142,7 @@ class TestCreateBackup:
             checked_temporary_directory,
         )
 
-        create_backup(data_dir)
+        create_backup_to_file(data_dir, backup_dir)
 
         assert len(temporary_directories) == 1
         assert temporary_directories[0]["dir"] == data_dir
@@ -160,9 +163,6 @@ class TestCreateBackup:
         replace_calls = []
         work_dirs = []
 
-        def fail_in_memory_path(*args, **kwargs):
-            raise AssertionError("scheduled backup used create_backup()")
-
         def checked_replace(src, dst):
             src_path = Path(src)
             dst_path = Path(dst)
@@ -178,7 +178,6 @@ class TestCreateBackup:
                 data_path, archive_target, work_dir=work_dir
             )
 
-        monkeypatch.setattr(backup_module, "create_backup", fail_in_memory_path)
         monkeypatch.setattr(backup_module.os, "replace", checked_replace)
         monkeypatch.setattr(
             backup_module, "_write_backup_archive", checked_archive_write
@@ -318,22 +317,75 @@ class TestBackupDownloadRoute:
         assert response.get_json() == {"error": "injected route archive failure"}
         assert not temp_dir.exists()
 
+    def test_download_closes_stream_before_running_registered_cleanup(
+        self, data_dir, tmp_path, monkeypatch
+    ):
+        from flask import Response
+        from app.modules.backup import routes
+
+        temp_dir = tmp_path / "close-order-backup"
+        close_events = []
+
+        class TrackingIterable:
+            def __iter__(self):
+                yield b"archive"
+
+            def close(self):
+                close_events.append("iterable")
+
+        def make_temp_dir(*args, **kwargs):
+            temp_dir.mkdir()
+            return str(temp_dir)
+
+        def write_archive(data_path, archive_target, work_dir=None):
+            Path(archive_target).write_bytes(b"archive")
+
+        def remove_temp_dir(path, ignore_errors=False):
+            assert path == str(temp_dir)
+            assert ignore_errors is True
+            close_events.append("cleanup")
+
+        monkeypatch.setattr(
+            routes, "tempfile", SimpleNamespace(mkdtemp=make_temp_dir), raising=False
+        )
+        monkeypatch.setattr(routes, "_write_backup_archive", write_archive)
+        monkeypatch.setattr(
+            routes,
+            "send_file",
+            lambda *args, **kwargs: Response(
+                TrackingIterable(),
+                mimetype="application/gzip",
+                direct_passthrough=True,
+            ),
+        )
+        monkeypatch.setattr(routes.shutil, "rmtree", remove_temp_dir)
+        app = self._app(data_dir, monkeypatch)
+
+        response = app.test_client().post("/api/backup", buffered=False)
+
+        assert close_events == []
+        assert next(iter(response.response)) == b"archive"
+        assert close_events == []
+
+        response.close()
+
+        assert close_events == ["iterable", "cleanup"]
+
 
 # ── TestValidateBackup ──
 
 
 class TestValidateBackup:
-    def test_valid_backup(self, data_dir):
-        buf = create_backup(data_dir)
-        meta = validate_backup(buf)
+    def test_valid_backup(self, backup_path):
+        with backup_path.open("rb") as archive:
+            meta = validate_backup(archive)
         assert meta["magic"] == MAGIC
         assert meta["has_database"] is True
         assert meta["has_config"] is True
         assert "files" in meta
 
-    def test_accepts_bytes(self, data_dir):
-        buf = create_backup(data_dir)
-        meta = validate_backup(buf.read())
+    def test_accepts_bytes(self, backup_path):
+        meta = validate_backup(backup_path.read_bytes())
         assert meta["magic"] == MAGIC
 
     def test_invalid_archive(self):
@@ -380,10 +432,10 @@ class TestValidateBackup:
 
 
 class TestRestore:
-    def test_restores_files(self, data_dir, tmp_path):
-        buf = create_backup(data_dir)
+    def test_restores_files(self, backup_path, tmp_path):
         restore_dir = str(tmp_path / "restore")
-        result = restore_backup(buf, restore_dir)
+        with backup_path.open("rb") as archive:
+            result = restore_backup(archive, restore_dir)
         assert "docsis_history.db" in result["restored_files"]
         assert "config.json" in result["restored_files"]
         assert ".auth_state" in result["restored_files"]
@@ -391,10 +443,10 @@ class TestRestore:
         assert os.path.exists(os.path.join(restore_dir, "config.json"))
         assert (tmp_path / "restore" / ".auth_state").read_bytes() == b"auth-state-fingerprint"
 
-    def test_restored_data_correct(self, data_dir, tmp_path):
-        buf = create_backup(data_dir)
+    def test_restored_data_correct(self, backup_path, tmp_path):
         restore_dir = str(tmp_path / "restore")
-        restore_backup(buf, restore_dir)
+        with backup_path.open("rb") as archive:
+            restore_backup(archive, restore_dir)
 
         # Check config
         with open(os.path.join(restore_dir, "config.json")) as f:
@@ -407,10 +459,9 @@ class TestRestore:
         assert count == 1  # demo row was excluded
         conn.close()
 
-    def test_accepts_bytes(self, data_dir, tmp_path):
-        buf = create_backup(data_dir)
+    def test_accepts_bytes(self, backup_path, tmp_path):
         restore_dir = str(tmp_path / "restore")
-        result = restore_backup(buf.read(), restore_dir)
+        result = restore_backup(backup_path.read_bytes(), restore_dir)
         assert len(result["restored_files"]) > 0
 
 

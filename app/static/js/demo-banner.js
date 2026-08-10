@@ -8,18 +8,13 @@
 
         var message = (window.T && window.T.demo_migrate_confirm) ||
             'This will remove the demo data. Your own entries will be kept. Continue?';
-        var confirmed;
-        if (typeof window.docsightConfirm === 'function') {
-            confirmed = await window.docsightConfirm({
-                title: (window.T && window.T.demo_migrate_title) || 'Demo Mode Active',
-                message: message,
-                confirmText: (window.T && window.T.demo_migrate_button) || 'Leave Demo Mode',
-                cancelText: (window.T && window.T.cancel) || 'Cancel',
-                danger: true
-            });
-        } else {
-            confirmed = window.confirm(message);
-        }
+        var confirmed = await window.docsightConfirm({
+            title: (window.T && window.T.demo_migrate_title) || 'Demo Mode Active',
+            message: message,
+            confirmText: (window.T && window.T.demo_migrate_button) || 'Leave Demo Mode',
+            cancelText: (window.T && window.T.cancel) || 'Cancel',
+            danger: true
+        });
         if (!confirmed) return;
 
         var buttons = banner.querySelectorAll('button');

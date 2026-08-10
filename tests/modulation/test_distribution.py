@@ -9,22 +9,10 @@ from app.modules.modulation.engine import (
     compute_distribution_v2,
     compute_intraday,
 )
-
-
-def _make_snapshot(timestamp, us_channels=None, ds_channels=None):
-    return {
-        "timestamp": timestamp,
-        "us_channels": us_channels or [],
-        "ds_channels": ds_channels or [],
-        "summary": {},
-    }
-
-
-def _make_channels(modulations, docsis_version="3.0"):
-    return [
-        {"modulation": m, "channel_id": i, "docsis_version": docsis_version}
-        for i, m in enumerate(modulations)
-    ]
+from tests.modulation.factories import (
+    make_channels as _make_channels,
+    make_snapshot as _make_snapshot,
+)
 
 
 

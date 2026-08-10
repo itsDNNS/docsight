@@ -1537,11 +1537,11 @@
 {% endif %}
 
 <!-- ═══ BQM Import Modal ═══ -->
-<div class="modal-overlay" id="bqm-import-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-import-modal-title" onclick="if(event.target===this)closeBqmImportModal()">
+<dialog class="modal-overlay" id="bqm-import-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-import-modal-title" onclick="if(event.target===this)closeBqmImportModal()" oncancel="event.preventDefault(); closeBqmImportModal()">
     <div class="modal" style="max-width:800px;">
         <div class="modal-header">
             <h2 id="bqm-import-modal-title">{{ t.bqm_import_title }}</h2>
-            <button class="modal-close" onclick="closeBqmImportModal()">&times;</button>
+            <button class="modal-close" onclick="closeBqmImportModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
             <!-- Drop zone -->
@@ -1595,7 +1595,7 @@
             </div>
         </div>
     </div>
-</div>
+</dialog>
 
 <!-- BQM CSV Import (inline, below calendar) -->
 <div id="bqm-csv-import-section" class="bqm-csv-import" style="display:none; margin:16px auto; max-width:480px; text-align:center;">
@@ -2082,14 +2082,14 @@
 </div>
 
 <!-- ═══ Entry Modal ═══ -->
-<div class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" onclick="if(event.target===this)closeEntryModal()">
+<dialog class="modal-overlay" id="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" onclick="if(event.target===this)closeEntryModal()">
     <div class="modal" style="max-width:640px;">
         <div class="modal-header">
             <div style="display:flex;align-items:center;gap:10px;">
                 <span id="entry-modal-icon" class="incident-modal-icon"></span>
                 <h2 id="entry-modal-title"></h2>
             </div>
-            <button class="modal-close" onclick="closeEntryModal()">&times;</button>
+            <button class="modal-close" onclick="closeEntryModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
             <p class="incident-modal-intro">{{ t.get('entry_modal_intro', 'Capture what happened and link the evidence DOCSight can turn into an ISP-ready timeline.') }}</p>
@@ -2143,14 +2143,14 @@
             </div>
         </div>
     </div>
-</div>
+</dialog>
 
 <!-- ═══ Incident Container Modal ═══ -->
-<div class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title" onclick="if(event.target===this)closeIncidentModal()">
+<dialog class="modal-overlay" id="incident-container-modal" role="dialog" aria-modal="true" aria-labelledby="incident-container-modal-title" onclick="if(event.target===this)closeIncidentModal()">
     <div class="modal incident-container-modal" style="max-width:560px;">
         <div class="modal-header">
             <h2 id="incident-container-modal-title"></h2>
-            <button class="modal-close" onclick="closeIncidentModal()">&times;</button>
+            <button class="modal-close" onclick="closeIncidentModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
             <p class="incident-modal-intro">{{ t.get('incident_modal_intro', 'Group related entries and evidence so DOCSight can build one clear incident timeline and report path.') }}</p>
@@ -2210,14 +2210,14 @@
             </div>
         </div>
     </div>
-</div>
+</dialog>
 
 <!-- ═══ Import Modal ═══ -->
-<div class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onclick="if(event.target===this)closeImportModal()">
+<dialog class="modal-overlay" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title" onclick="if(event.target===this)closeImportModal()">
     <div class="modal" style="max-width:900px;">
         <div class="modal-header">
             <h2 id="import-modal-title">{{ t.import_incidents }}</h2>
-            <button class="modal-close" onclick="closeImportModal()">&times;</button>
+            <button class="modal-close" onclick="closeImportModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div class="modal-body" style="overflow-y:auto;">
             <!-- Upload zone -->
@@ -2269,7 +2269,7 @@
             </div>
         </div>
     </div>
-</div>
+</dialog>
 
 <!-- ═══ View: Speedtest ═══ -->
 {% if speedtest_configured %}
@@ -2517,7 +2517,7 @@
 </div><!-- /app-layout -->
 
 <!-- Speedtest Setup Modal -->
-<div class="modal-overlay" id="speedtest-setup-modal" role="dialog" aria-modal="true" aria-labelledby="speedtest-setup-modal-title">
+<dialog class="modal-overlay" id="speedtest-setup-modal" role="dialog" aria-modal="true" aria-labelledby="speedtest-setup-modal-title">
     <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
             <h2 id="speedtest-setup-modal-title">⚡ {{ t.get('speedtest_setup_guided_title', 'Speedtest Tracker setup') }}</h2>
@@ -2558,10 +2558,10 @@
             <a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_speedtest') }}">⚙ {{ t.get('speedtest_setup_open_settings', 'Open Speedtest settings') }}</a>
         </div>
     </div>
-</div>
+</dialog>
 
 <!-- BQM Setup Modal -->
-<div class="modal-overlay" id="bqm-setup-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-setup-modal-title">
+<dialog class="modal-overlay" id="bqm-setup-modal" role="dialog" aria-modal="true" aria-labelledby="bqm-setup-modal-title">
     <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
             <h2 id="bqm-setup-modal-title">📈 {{ t.get('bqm_setup_guided_title', 'ThinkBroadband BQM setup') }}</h2>
@@ -2577,11 +2577,11 @@
         <div id="bqm-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
         <div class="modal-footer"><button class="btn btn-muted" onclick="closeBqmSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_bqm') }}">⚙ {{ t.get('bqm_setup_open_settings', 'Open BQM settings') }}</a></div>
     </div>
-</div>
+</dialog>
 
 <!-- Smokeping Setup Modal -->
 {% if modules|selectattr('id', 'equalto', 'docsight.smokeping')|list %}
-<div class="modal-overlay" id="smokeping-setup-modal" role="dialog" aria-modal="true" aria-labelledby="smokeping-setup-modal-title">
+<dialog class="modal-overlay" id="smokeping-setup-modal" role="dialog" aria-modal="true" aria-labelledby="smokeping-setup-modal-title">
     <div class="modal modal-wide setup-guide-modal">
         <div class="modal-header">
             <h2 id="smokeping-setup-modal-title">📡 {{ t.get('smokeping_setup_guided_title', 'SmokePing setup') }}</h2>
@@ -2597,15 +2597,15 @@
         <div id="smokeping-setup-status" class="setup-validation-status" role="status" aria-live="polite"></div>
         <div class="modal-footer"><button class="btn btn-muted" onclick="closeSmokepingSetupModal()">{{ t.close }}</button><a class="btn btn-accent" href="{{ url_for('settings', _anchor='mod-docsight_smokeping') }}">⚙ {{ t.get('smokeping_setup_open_settings', 'Open SmokePing settings') }}</a></div>
     </div>
-</div>
+</dialog>
 {% endif %}
 
 <!-- Report Modal -->
-<div class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" onclick="if(event.target===this)closeReportModal()">
+<dialog class="modal-overlay" id="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" onclick="if(event.target===this)closeReportModal()" oncancel="event.preventDefault(); closeReportModal()">
     <div class="modal" style="max-width:800px;">
         <div class="modal-header">
             <h2 id="report-modal-title">{{ t.get('report_builder_title', 'ISP-ready evidence package') }}</h2>
-            <button class="modal-close" onclick="closeReportModal()">&times;</button>
+            <button class="modal-close" onclick="closeReportModal()" aria-label="{{ t.close }}">&times;</button>
         </div>
         <p class="modal-hint">{{ t.get('report_builder_intro', 'Build a local evidence package for ISP support or complaint escalation.') }}</p>
         <div id="report-builder-status" class="report-builder-status" role="status" aria-live="polite"></div>
@@ -2685,21 +2685,21 @@
             <button class="btn btn-accent" id="report-pdf-btn" style="display:none;" onclick="downloadReport()">&#128196; {{ t.get('report_download_package', 'Download PDF package') }}</button>
         </div>
     </div>
-</div>
+</dialog>
 
 <!-- Chart Zoom Modal -->
-<div class="chart-zoom-overlay" id="chart-zoom-overlay" role="dialog" aria-modal="true" aria-labelledby="chart-zoom-title" onclick="if(event.target===this)closeChartZoom()">
+<dialog class="chart-zoom-overlay" id="chart-zoom-overlay" role="dialog" aria-modal="true" aria-labelledby="chart-zoom-title" onclick="if(event.target===this)closeChartZoom()" oncancel="event.preventDefault(); closeChartZoom()">
     <div class="chart-zoom-modal">
         <div class="modal-header">
             <h2 id="chart-zoom-title"></h2>
-            <button class="modal-close" onclick="closeChartZoom()">&times;</button>
+            <button class="modal-close" onclick="closeChartZoom()" aria-label="{{ t.close }}">&times;</button>
         </div>
         <div id="chart-zoom-canvas" style="flex:1;min-height:0;width:100%;"></div>
     </div>
-</div>
+</dialog>
 
 <!-- Export Modal -->
-<div class="modal-overlay" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+<dialog class="modal-overlay" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
     <div class="modal modal-wide">
         <div class="modal-header">
             <h2 id="export-modal-title">{{ t.export_title }}</h2>
@@ -2759,7 +2759,7 @@
             <button class="btn btn-accent" id="export-copy-btn" onclick="copyExport()">{{ t.get('export_copy', 'Copy export') }}</button>
         </div>
     </div>
-</div>
+</dialog>
 
 <div class="toast" id="toast"></div>
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/uPlot.min.css', v=version) }}">
@@ -3462,29 +3462,6 @@ var CORRELATION_CM_AVAILABLE = {{ (connection_monitor_installed|length > 0)|tojs
     lucide.createIcons();
   });
 
-  // Escape key closes topmost open modal
-  document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Escape') return;
-    var closers = [
-      ['chart-zoom-overlay', closeChartZoom],
-      ['export-modal', typeof closeExportModal === 'function' ? closeExportModal : null],
-      ['report-modal', typeof closeReportModal === 'function' ? closeReportModal : null],
-      ['entry-modal', typeof closeEntryModal === 'function' ? closeEntryModal : null],
-      ['incident-container-modal', typeof closeIncidentModal === 'function' ? closeIncidentModal : null],
-      ['import-modal', typeof closeImportModal === 'function' ? closeImportModal : null],
-      ['bqm-import-modal', typeof closeBqmImportModal === 'function' ? closeBqmImportModal : null],
-      ['speedtest-setup-modal', typeof closeSpeedtestSetupModal === 'function' ? closeSpeedtestSetupModal : null],
-      ['bqm-setup-modal', typeof closeBqmSetupModal === 'function' ? closeBqmSetupModal : null],
-      ['smokeping-setup-modal', typeof closeSmokepingSetupModal === 'function' ? closeSmokepingSetupModal : null]
-    ];
-    for (var i = 0; i < closers.length; i++) {
-      var el = document.getElementById(closers[i][0]);
-      if (el && (el.classList.contains('open') || el.style.display === 'flex')) {
-        if (closers[i][1]) closers[i][1]();
-        break;
-      }
-    }
-  });
 </script>
 
 

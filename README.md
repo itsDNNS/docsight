@@ -382,6 +382,8 @@ DOCSight includes a focused Playwright gate for mobile regressions across the ma
 To run the same gate locally:
 
 ```bash
+python -m pip install --require-hashes -r requirements.txt
+python -m pip install --require-hashes -r requirements-test.txt
 python -m pip install pytest-playwright==0.7.2 playwright==1.58.0
 python -m playwright install chromium
 TZ=UTC python -m pytest -q tests/e2e/test_mobile_quality_gate.py --tb=short

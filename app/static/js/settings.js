@@ -2160,17 +2160,24 @@ function _renderRegistryCards(gallery, modules) {
     });
 }
 
-/* Two-step install: first click shows "Confirm?", second click installs */
-function installModule(e, id, downloadUrl) {
+function _runModuleAction(e, id, action, downloadUrl) {
     var btn = e.currentTarget;
+    var installing = action === 'install';
+    var idleClass = installing ? 'btn-install' : 'btn-uninstall';
+    var idleText = installing
+        ? (T.extensions_install || 'Install')
+        : (T.extensions_uninstall || 'Uninstall');
+    var failedText = installing
+        ? (T.extensions_install_failed || 'Installation failed')
+        : (T.extensions_uninstall_failed || 'Uninstall failed');
     if (btn.dataset.confirmPending !== 'true') {
         btn.dataset.confirmPending = 'true';
         btn.className = 'btn btn-sm btn-confirm';
         btn.textContent = T.extensions_confirm || 'Confirm?';
         btn._resetTimer = setTimeout(function() {
             btn.dataset.confirmPending = 'false';
-            btn.className = 'btn btn-sm btn-install';
-            btn.textContent = T.extensions_install || 'Install';
+            btn.className = 'btn btn-sm ' + idleClass;
+            btn.textContent = idleText;
         }, 3000);
         return;
     }
@@ -2179,75 +2186,45 @@ function installModule(e, id, downloadUrl) {
     btn.disabled = true;
     btn.textContent = '...';
 
-    fetch(docsightUrl('/api/modules/install'), {
+    var payload = {id: id};
+    if (installing) payload.download_url = downloadUrl;
+    fetch(docsightUrl('/api/modules/' + action), {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: id, download_url: downloadUrl}),
+        body: JSON.stringify(payload),
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.success) {
-            showToast(T.extensions_install_success || 'Module installed successfully', true);
+            showToast(
+                installing
+                    ? (T.extensions_install_success || 'Module installed successfully')
+                    : (T.extensions_uninstall_success || 'Module uninstalled'),
+                true
+            );
             var banner = document.getElementById('module-restart-banner');
             if (banner) { banner.style.display = ''; if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]}); }
             refreshModuleRegistry();
         } else {
-            showToast(data.error || (T.extensions_install_failed || 'Installation failed'), false);
+            showToast(data.error || failedText, false);
             btn.disabled = false;
-            btn.className = 'btn btn-sm btn-install';
-            btn.textContent = T.extensions_install || 'Install';
+            btn.className = 'btn btn-sm ' + idleClass;
+            btn.textContent = idleText;
         }
     })
     .catch(function(err) {
-        showToast((T.extensions_install_failed || 'Installation failed') + ': ' + err.message, false);
+        showToast(failedText + ': ' + err.message, false);
         btn.disabled = false;
-        btn.className = 'btn btn-sm btn-install';
-        btn.textContent = T.extensions_install || 'Install';
+        btn.className = 'btn btn-sm ' + idleClass;
+        btn.textContent = idleText;
     });
 }
 
-/* Two-step uninstall */
-function uninstallModule(e, id) {
-    var btn = e.currentTarget;
-    if (btn.dataset.confirmPending !== 'true') {
-        btn.dataset.confirmPending = 'true';
-        btn.className = 'btn btn-sm btn-confirm';
-        btn.textContent = T.extensions_confirm || 'Confirm?';
-        btn._resetTimer = setTimeout(function() {
-            btn.dataset.confirmPending = 'false';
-            btn.className = 'btn btn-sm btn-uninstall';
-            btn.textContent = T.extensions_uninstall || 'Uninstall';
-        }, 3000);
-        return;
-    }
-    clearTimeout(btn._resetTimer);
-    btn.dataset.confirmPending = 'false';
-    btn.disabled = true;
-    btn.textContent = '...';
+/* Thin public entry points retained for existing card click handlers. */
+function installModule(e, id, downloadUrl) {
+    _runModuleAction(e, id, 'install', downloadUrl);
+}
 
-    fetch(docsightUrl('/api/modules/uninstall'), {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: id}),
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            showToast(T.extensions_uninstall_success || 'Module uninstalled', true);
-            var banner = document.getElementById('module-restart-banner');
-            if (banner) { banner.style.display = ''; if (typeof lucide !== 'undefined') lucide.createIcons({nodes: [banner]}); }
-            refreshModuleRegistry();
-        } else {
-            showToast(data.error || (T.extensions_uninstall_failed || 'Uninstall failed'), false);
-            btn.disabled = false;
-            btn.className = 'btn btn-sm btn-uninstall';
-            btn.textContent = T.extensions_uninstall || 'Uninstall';
-        }
-    })
-    .catch(function(err) {
-        showToast((T.extensions_uninstall_failed || 'Uninstall failed') + ': ' + err.message, false);
-        btn.disabled = false;
-        btn.className = 'btn btn-sm btn-uninstall';
-        btn.textContent = T.extensions_uninstall || 'Uninstall';
-    });
+function uninstallModule(e, id) {
+    _runModuleAction(e, id, 'uninstall');
 }

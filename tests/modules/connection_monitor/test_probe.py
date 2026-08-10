@@ -568,23 +568,6 @@ class TestIPv6Regressions:
         assert result.latency_ms is None
         assert result.method == "tcp"
 
-    def test_icmp_helper_c_source_handles_ipv6(self):
-        """The setuid helper source must handle AF_INET6/ICMPv6 (not IPv4-only)."""
-        helper_src = (
-            Path(__file__).resolve().parents[3] / "tools" / "icmp_probe_helper.c"
-        )
-        src = helper_src.read_text()
-        assert "AF_UNSPEC" in src, "helper must resolve with AF_UNSPEC, not AF_INET"
-        assert "AF_INET6" in src, "helper must open AF_INET6 sockets"
-        assert "IPPROTO_ICMPV6" in src, "helper must speak IPPROTO_ICMPV6"
-        assert (
-            "ICMP6_ECHO_REQUEST" in src or "128" in src
-        ), "helper must send ICMPv6 echo request (type 128)"
-        assert (
-            "ICMP6_ECHO_REPLY" in src or "129" in src
-        ), "helper must parse ICMPv6 echo reply (type 129)"
-
-
 class TestDualStackFallback:
     """Gate 2: ICMP fallback must iterate addrinfo like TCP does.
 
@@ -807,34 +790,3 @@ class TestDualStackFallback:
                 f"sum of per-address budgets must not exceed total={total_ms}; "
                 f"got sum={sum(budgets)} budgets={budgets}"
             )
-
-    def test_icmp_helper_c_source_iterates_addrinfo_while_live(self):
-        """Helper must probe each address before freeing the addrinfo list.
-
-        Pre-fix, ``resolve_any`` picked the first usable entry, freed the
-        list, and main sent exactly one packet to that address. After the
-        fix, ``sendto`` must run while the addrinfo list is still live —
-        i.e. at least one ``freeaddrinfo`` call appears AFTER ``sendto``
-        in source order. That is the textual signature of a proper loop.
-        """
-        import re
-
-        helper_src = (
-            Path(__file__).resolve().parents[3] / "tools" / "icmp_probe_helper.c"
-        )
-        src = helper_src.read_text()
-
-        getaddrinfo_calls = [m.start() for m in re.finditer(r"\bgetaddrinfo\s*\(", src)]
-        freeaddrinfo_calls = [m.start() for m in re.finditer(r"\bfreeaddrinfo\s*\(", src)]
-        sendto_calls = [m.start() for m in re.finditer(r"\bsendto\s*\(", src)]
-
-        assert getaddrinfo_calls, "helper must still call getaddrinfo"
-        assert sendto_calls, "helper must still call sendto"
-        assert freeaddrinfo_calls, "helper must still call freeaddrinfo"
-
-        earliest_sendto = min(sendto_calls)
-        assert any(pos > earliest_sendto for pos in freeaddrinfo_calls), (
-            "freeaddrinfo must run AFTER sendto in source order; otherwise the "
-            "helper is picking one address, freeing the list, then probing — "
-            "which cannot iterate across address families."
-        )

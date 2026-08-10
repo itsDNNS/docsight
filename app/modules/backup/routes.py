@@ -34,33 +34,6 @@ _RESTORE_MAX_ATTEMPTS = 5
 _RESTORE_WINDOW = 3600  # 1 hour
 
 
-class _CleanupOnClose:
-    """Proxy a WSGI iterable and run cleanup when the iterable is closed."""
-
-    def __init__(self, iterable, cleanup):
-        self._iterator = iter(iterable)
-        self._iterable = iterable
-        self._cleanup = cleanup
-        self._closed = False
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return next(self._iterator)
-
-    def close(self):
-        if self._closed:
-            return
-        self._closed = True
-        try:
-            close = getattr(self._iterable, "close", None)
-            if close is not None:
-                close()
-        finally:
-            self._cleanup()
-
-
 def _check_restore_rate_limit() -> bool:
     """Return True if the client has exceeded the restore rate limit."""
     ip = _get_client_ip()
@@ -113,10 +86,13 @@ def api_backup_download():
             download_name=filename,
         )
         cleanup_dir = temp_dir
-        response.response = _CleanupOnClose(
-            response.response,
-            lambda: shutil.rmtree(cleanup_dir, ignore_errors=True),
+        response.call_on_close(
+            lambda: shutil.rmtree(cleanup_dir, ignore_errors=True)
         )
+        # send_file uses direct passthrough by default, which returns its file
+        # wrapper directly and bypasses Response.close(). Keep iteration lazy
+        # while ensuring the WSGI closing iterator runs the registered cleanup.
+        response.direct_passthrough = False
         temp_dir = None
         audit_log.info("Backup downloaded: ip=%s", _get_client_ip())
         return response

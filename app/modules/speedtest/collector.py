@@ -3,7 +3,9 @@
 import logging
 
 from app.collectors.base import Collector, CollectorResult
-from .client import SpeedtestClient, _as_bool
+from app.config import parse_config_bool
+
+from .client import SpeedtestClient
 from .storage import SpeedtestStorage
 
 log = logging.getLogger("docsis.collector.speedtest")
@@ -30,7 +32,9 @@ class SpeedtestCollector(Collector):
     def _ensure_client(self):
         """Re-initialize client if the configured URL changed."""
         url = self._config_mgr.get("speedtest_tracker_url")
-        tls_insecure = _as_bool(self._config_mgr.get("speedtest_tls_insecure", False))
+        tls_insecure = parse_config_bool(
+            self._config_mgr.get("speedtest_tls_insecure", False)
+        )
         if url != self._last_url or tls_insecure != self._last_tls_insecure:
             token = self._config_mgr.get("speedtest_tracker_token")
             self._client = SpeedtestClient(url, token, tls_insecure=tls_insecure)

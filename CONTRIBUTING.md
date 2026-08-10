@@ -36,8 +36,8 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed technical documentation an
 ```bash
 git clone https://github.com/itsDNNS/docsight.git
 cd docsight
-pip install -r requirements.txt
-pip install pytest
+python -m pip install --require-hashes -r requirements.txt
+python -m pip install --require-hashes -r requirements-test.txt
 ```
 
 ## Docker Development

@@ -296,30 +296,6 @@ def _low_qam_counts(observations, threshold):
     return low_count, len(numeric)
 
 
-def _numeric_low_qam_pct(observations, threshold):
-    """Compute % of numeric-QAM observations where qam_order <= threshold.
-
-    This helper is intentionally numeric-only for health-facing internals. Visible
-    Low-QAM exposure uses raw low-QAM counts over total sample counts so Unknown
-    samples stay in the same denominator as the distribution chart.
-    """
-    low_count, numeric_count = _low_qam_counts(observations, threshold)
-    return round(low_count / numeric_count * 100, 1) if numeric_count else 0
-
-
-def _group_channels_by_protocol(channels):
-    """Group a list of channel dicts by docsis_version.
-
-    Returns dict: {"3.0": [ch, ...], "3.1": [ch, ...]}
-    Channels without docsis_version default to "3.0".
-    """
-    groups = defaultdict(list)
-    for ch in channels:
-        ver = ch.get("docsis_version", "3.0")
-        groups[ver].append(ch)
-    return dict(groups)
-
-
 def _degraded_qam_threshold(direction, docsis_version, default_threshold):
     """Return the DOCSight Low-QAM Exposure threshold for a protocol group.
 
@@ -813,28 +789,6 @@ def _build_degraded_events(periods, threshold=16):
             "point_in_time": start == end,
         })
     return events
-
-
-# ── Legacy compat: keep old functions available for tests ────────────
-
-
-def _health_index(observations):
-    """Legacy health index (global scale QPSK→4096QAM).
-
-    weight = log2(qam_order) → range 2 (QPSK) to 12 (4096QAM)
-    index = 100 * (weighted_avg - 2) / (12 - 2), clamped 0–100
-
-    Returns None if no numeric-QAM observations exist.
-    """
-    numeric = [(label, qam) for label, qam in observations if qam is not None]
-    if not numeric:
-        return None
-
-    total_weight = sum(math.log2(qam) for _, qam in numeric)
-    weighted_avg = total_weight / len(numeric)
-
-    index = 100 * (weighted_avg - 2) / (12 - 2)
-    return round(max(0, min(100, index)), 1)
 
 
 def _weighted_pct_from_counts(low_count, total_count):
