@@ -177,5 +177,18 @@
   "report_builder_building": "Building evidence package...",
   "report_builder_ready": "Evidence package ready. Review the letter text, then copy it or download the PDF package.",
   "report_builder_error": "Report generation failed. Try a different report period or verify that monitoring data exists.",
-  "report_builder_copied": "Letter text copied. Attach the PDF package when you contact your ISP."
+  "report_builder_copied": "Letter text copied. Attach the PDF package when you contact your ISP.",
+  "report_fixed_period_title": "Problem window",
+  "report_change_problem_window": "Change problem window",
+  "report_readiness_title": "Evidence readiness",
+  "report_status_present": "Ready",
+  "report_status_stale": "Stale",
+  "report_status_missing": "Missing",
+  "report_status_optional": "Optional",
+  "report_status_not_applicable": "Not applicable",
+  "report_status_unavailable": "Unavailable",
+  "report_supporting_evidence_title": "Supporting evidence",
+  "report_supporting_evidence_hint": "These optional sources support the report; they do not replace its problem window.",
+  "report_window_mismatch": "The server returned a different problem window. Choose Change problem window and rebuild the checklist before trying again.",
+  "report_fixed_scope_invalid": "The selected problem window is incomplete. Return to Evidence Journey and rebuild the checklist."
 }

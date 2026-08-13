@@ -177,5 +177,18 @@
   "report_builder_building": "Bizonyítékcsomag készítése...",
   "report_builder_ready": "Bizonyítékcsomag készen áll. Tekintse át a levél szövegét, majd másolja ki, vagy töltse le a PDF csomagot.",
   "report_builder_error": "A jelentéskészítés nem sikerült. Próbáljon ki egy másik jelentési időszakot, vagy ellenőrizze, hogy vannak-e megfigyelési adatok.",
-  "report_builder_copied": "Levél szövege másolva. Csatlakoztassa a PDF csomagot, amikor kapcsolatba lép internetszolgáltatójával."
+  "report_builder_copied": "Levél szövege másolva. Csatlakoztassa a PDF csomagot, amikor kapcsolatba lép internetszolgáltatójával.",
+  "report_fixed_period_title": "A probléma időszaka",
+  "report_change_problem_window": "Problémaidőszak módosítása",
+  "report_readiness_title": "Bizonyítékok készenléte",
+  "report_status_present": "Kész",
+  "report_status_stale": "Elavult",
+  "report_status_missing": "Hiányzik",
+  "report_status_optional": "Nem kötelező",
+  "report_status_not_applicable": "Nem alkalmazható",
+  "report_status_unavailable": "Nem érhető el",
+  "report_supporting_evidence_title": "Kiegészítő bizonyítékok",
+  "report_supporting_evidence_hint": "Ezek a választható források alátámasztják a jelentést, de nem helyettesítik a probléma időszakát.",
+  "report_window_mismatch": "A kiszolgáló eltérő problémaidőszakot adott vissza. Válassza a „Problémaidőszak módosítása” lehetőséget, és újrapróbálkozás előtt készítse el újra az ellenőrzőlistát.",
+  "report_fixed_scope_invalid": "A kiválasztott problémaidőszak hiányos. Térjen vissza a Bizonyítékok útjához, és készítse el újra az ellenőrzőlistát."
 }

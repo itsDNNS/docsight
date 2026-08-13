@@ -177,5 +177,18 @@
   "report_builder_building": "Gradimo paket dokazov ...",
   "report_builder_ready": "Paket dokazov pripravljen. Preglejte besedilo pisma, nato ga kopirajte ali prenesite paket PDF.",
   "report_builder_error": "Generiranje poročila ni uspelo. Poskusite z drugim obdobjem poročila ali preverite, ali podatki spremljanja obstajajo.",
-  "report_builder_copied": "Besedilo pisma je kopirano. Ko se obrnete na ponudnika internetnih storitev, priložite paket PDF."
+  "report_builder_copied": "Besedilo pisma je kopirano. Ko se obrnete na ponudnika internetnih storitev, priložite paket PDF.",
+  "report_fixed_period_title": "Obdobje težave",
+  "report_change_problem_window": "Spremeni obdobje težave",
+  "report_readiness_title": "Pripravljenost dokazov",
+  "report_status_present": "Pripravljeno",
+  "report_status_stale": "Zastarelo",
+  "report_status_missing": "Manjka",
+  "report_status_optional": "Izbirno",
+  "report_status_not_applicable": "Ni primerno",
+  "report_status_unavailable": "Ni na voljo",
+  "report_supporting_evidence_title": "Podporni dokazi",
+  "report_supporting_evidence_hint": "Ti izbirni viri podpirajo poročilo, vendar ne nadomestijo njegovega obdobja težave.",
+  "report_window_mismatch": "Strežnik je vrnil drugo obdobje težave. Izberite »Spremeni obdobje težave« in pred ponovnim poskusom znova sestavite kontrolni seznam.",
+  "report_fixed_scope_invalid": "Izbrano obdobje težave ni popolno. Vrnite se na Pot dokazov in znova sestavite kontrolni seznam."
 }

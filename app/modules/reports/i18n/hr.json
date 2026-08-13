@@ -177,5 +177,18 @@
   "report_builder_building": "Izgradnja paketa dokaza...",
   "report_builder_ready": "Paket dokaza spreman. Pregledajte tekst pisma, zatim ga kopirajte ili preuzmite paket PDF.",
   "report_builder_error": "Generiranje izvješća nije uspjelo. Pokušajte s drugim razdobljem izvješća ili provjerite postoje li podaci praćenja.",
-  "report_builder_copied": "Tekst pisma kopiran. Priložite paket PDF kada kontaktirate svog ISP-a."
+  "report_builder_copied": "Tekst pisma kopiran. Priložite paket PDF kada kontaktirate svog ISP-a.",
+  "report_fixed_period_title": "Razdoblje problema",
+  "report_change_problem_window": "Promijeni razdoblje problema",
+  "report_readiness_title": "Spremnost dokaza",
+  "report_status_present": "Spremno",
+  "report_status_stale": "Zastarjelo",
+  "report_status_missing": "Nedostaje",
+  "report_status_optional": "Neobavezno",
+  "report_status_not_applicable": "Nije primjenjivo",
+  "report_status_unavailable": "Nedostupno",
+  "report_supporting_evidence_title": "Popratni dokazi",
+  "report_supporting_evidence_hint": "Ovi neobavezni izvori podupiru izvješće, ali ne zamjenjuju njegovo razdoblje problema.",
+  "report_window_mismatch": "Poslužitelj je vratio drugo razdoblje problema. Odaberite „Promijeni razdoblje problema“ i ponovno izradite kontrolni popis prije novog pokušaja.",
+  "report_fixed_scope_invalid": "Odabrano razdoblje problema nije potpuno. Vratite se na Put dokaza i ponovno izradite kontrolni popis."
 }

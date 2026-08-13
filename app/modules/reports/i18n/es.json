@@ -177,5 +177,18 @@
   "report_builder_building": "Creando paquete de pruebas...",
   "report_builder_ready": "Paquete de pruebas listo. Revisa el texto de la carta y cópialo o descarga el paquete PDF.",
   "report_builder_error": "No se pudo generar el informe. Prueba otro período o verifica que existan datos de monitorización.",
-  "report_builder_copied": "Texto de la carta copiado. Adjunta el paquete PDF cuando contactes con tu ISP."
+  "report_builder_copied": "Texto de la carta copiado. Adjunta el paquete PDF cuando contactes con tu ISP.",
+  "report_fixed_period_title": "Periodo del problema",
+  "report_change_problem_window": "Cambiar el periodo del problema",
+  "report_readiness_title": "Disponibilidad de las pruebas",
+  "report_status_present": "Listo",
+  "report_status_stale": "Desactualizado",
+  "report_status_missing": "Falta",
+  "report_status_optional": "Opcional",
+  "report_status_not_applicable": "No aplicable",
+  "report_status_unavailable": "No disponible",
+  "report_supporting_evidence_title": "Pruebas complementarias",
+  "report_supporting_evidence_hint": "Estas fuentes opcionales respaldan el informe; no sustituyen el periodo del problema.",
+  "report_window_mismatch": "El servidor devolvió un periodo del problema diferente. Elige «Cambiar el periodo del problema» y vuelve a crear la lista antes de intentarlo de nuevo.",
+  "report_fixed_scope_invalid": "El periodo del problema seleccionado está incompleto. Vuelve al recorrido de pruebas y crea de nuevo la lista."
 }

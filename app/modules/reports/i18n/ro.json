@@ -177,5 +177,18 @@
   "report_builder_building": "Construirea pachetului de dovezi...",
   "report_builder_ready": "Pachet de dovezi gata. Examinați textul scrisorii, apoi copiați-l sau descărcați pachetul PDF.",
   "report_builder_error": "Generarea raportului a eșuat. Încercați o altă perioadă de raportare sau verificați dacă există date de monitorizare.",
-  "report_builder_copied": "Textul scrisorii a fost copiat. Atașați pachetul PDF atunci când contactați ISP-ul dumneavoastră."
+  "report_builder_copied": "Textul scrisorii a fost copiat. Atașați pachetul PDF atunci când contactați ISP-ul dumneavoastră.",
+  "report_fixed_period_title": "Perioada problemei",
+  "report_change_problem_window": "Schimbați perioada problemei",
+  "report_readiness_title": "Disponibilitatea dovezilor",
+  "report_status_present": "Pregătit",
+  "report_status_stale": "Învechit",
+  "report_status_missing": "Lipsește",
+  "report_status_optional": "Opțional",
+  "report_status_not_applicable": "Nu se aplică",
+  "report_status_unavailable": "Indisponibil",
+  "report_supporting_evidence_title": "Dovezi suplimentare",
+  "report_supporting_evidence_hint": "Aceste surse opționale susțin raportul, dar nu înlocuiesc perioada problemei.",
+  "report_window_mismatch": "Serverul a returnat o altă perioadă a problemei. Alegeți „Schimbați perioada problemei” și refaceți lista înainte de a încerca din nou.",
+  "report_fixed_scope_invalid": "Perioada selectată a problemei este incompletă. Reveniți la Parcursul dovezilor și refaceți lista."
 }

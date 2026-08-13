@@ -177,5 +177,18 @@
   "report_builder_building": "Budování balíčku důkazů...",
   "report_builder_ready": "Balíček důkazů připraven. Zkontrolujte text dopisu a poté jej zkopírujte nebo si stáhněte balíček PDF.",
   "report_builder_error": "Generování zprávy se nezdařilo. Zkuste jiné období hlášení nebo ověřte, zda existují data monitorování.",
-  "report_builder_copied": "Text dopisu zkopírován. Až budete kontaktovat svého ISP, připojte balíček PDF."
+  "report_builder_copied": "Text dopisu zkopírován. Až budete kontaktovat svého ISP, připojte balíček PDF.",
+  "report_fixed_period_title": "Období problému",
+  "report_change_problem_window": "Změnit období problému",
+  "report_readiness_title": "Připravenost důkazů",
+  "report_status_present": "Připraveno",
+  "report_status_stale": "Zastaralé",
+  "report_status_missing": "Chybí",
+  "report_status_optional": "Volitelné",
+  "report_status_not_applicable": "Nelze použít",
+  "report_status_unavailable": "Nedostupné",
+  "report_supporting_evidence_title": "Podpůrné důkazy",
+  "report_supporting_evidence_hint": "Tyto volitelné zdroje podporují zprávu, ale nenahrazují její období problému.",
+  "report_window_mismatch": "Server vrátil jiné období problému. Zvolte „Změnit období problému“ a před dalším pokusem znovu sestavte kontrolní seznam.",
+  "report_fixed_scope_invalid": "Vybrané období problému není úplné. Vraťte se do Průvodce důkazy a znovu sestavte kontrolní seznam."
 }

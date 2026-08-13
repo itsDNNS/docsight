@@ -177,5 +177,18 @@
   "report_builder_building": "Byggebevispakke...",
   "report_builder_ready": "Bevispakke klar. Gennemgå brevteksten, og kopier den derefter eller download PDF-pakken.",
   "report_builder_error": "Rapportgenerering mislykkedes. Prøv en anden rapportperiode, eller bekræft, at der findes overvågningsdata.",
-  "report_builder_copied": "Brevtekst kopieret. Vedhæft PDF-pakken, når du kontakter din internetudbyder."
+  "report_builder_copied": "Brevtekst kopieret. Vedhæft PDF-pakken, når du kontakter din internetudbyder.",
+  "report_fixed_period_title": "Problemperiode",
+  "report_change_problem_window": "Skift problemperiode",
+  "report_readiness_title": "Bevisernes klarhed",
+  "report_status_present": "Klar",
+  "report_status_stale": "Forældet",
+  "report_status_missing": "Mangler",
+  "report_status_optional": "Valgfri",
+  "report_status_not_applicable": "Ikke relevant",
+  "report_status_unavailable": "Ikke tilgængelig",
+  "report_supporting_evidence_title": "Understøttende beviser",
+  "report_supporting_evidence_hint": "Disse valgfrie kilder understøtter rapporten, men erstatter ikke dens problemperiode.",
+  "report_window_mismatch": "Serveren returnerede en anden problemperiode. Vælg „Skift problemperiode“, og opbyg tjeklisten igen, før du prøver på ny.",
+  "report_fixed_scope_invalid": "Den valgte problemperiode er ufuldstændig. Gå tilbage til Bevisforløb, og opbyg tjeklisten igen."
 }

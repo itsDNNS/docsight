@@ -177,5 +177,18 @@
   "report_builder_building": "Bygga bevispaket...",
   "report_builder_ready": "Bevispaket redo. Granska brevtexten och kopiera den eller ladda ner PDF-paketet.",
   "report_builder_error": "Rapportgenerering misslyckades. Prova en annan rapportperiod eller kontrollera att övervakningsdata finns.",
-  "report_builder_copied": "Brevtext kopierad. Bifoga PDF-paketet när du kontaktar din internetleverantör."
+  "report_builder_copied": "Brevtext kopierad. Bifoga PDF-paketet när du kontaktar din internetleverantör.",
+  "report_fixed_period_title": "Problemperiod",
+  "report_change_problem_window": "Ändra problemperiod",
+  "report_readiness_title": "Bevisens beredskap",
+  "report_status_present": "Klar",
+  "report_status_stale": "Inaktuell",
+  "report_status_missing": "Saknas",
+  "report_status_optional": "Valfri",
+  "report_status_not_applicable": "Ej tillämplig",
+  "report_status_unavailable": "Inte tillgänglig",
+  "report_supporting_evidence_title": "Stödjande bevis",
+  "report_supporting_evidence_hint": "Dessa valfria källor stöder rapporten men ersätter inte dess problemperiod.",
+  "report_window_mismatch": "Servern returnerade en annan problemperiod. Välj ”Ändra problemperiod” och bygg om checklistan innan du försöker igen.",
+  "report_fixed_scope_invalid": "Den valda problemperioden är ofullständig. Gå tillbaka till Bevisresan och bygg om checklistan."
 }

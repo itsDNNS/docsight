@@ -177,5 +177,18 @@
   "report_builder_building": "Nachweispaket wird erstellt...",
   "report_builder_ready": "Nachweispaket bereit. Prüfe den Brieftext und kopiere ihn oder lade das PDF-Paket herunter.",
   "report_builder_error": "Report-Erstellung fehlgeschlagen. Wähle einen anderen Zeitraum oder prüfe, ob Monitoringdaten vorhanden sind.",
-  "report_builder_copied": "Brieftext kopiert. Hänge das PDF-Paket an, wenn du deinen ISP kontaktierst."
+  "report_builder_copied": "Brieftext kopiert. Hänge das PDF-Paket an, wenn du deinen ISP kontaktierst.",
+  "report_fixed_period_title": "Problemzeitraum",
+  "report_change_problem_window": "Problemzeitraum ändern",
+  "report_readiness_title": "Verfügbarkeit der Nachweise",
+  "report_status_present": "Bereit",
+  "report_status_stale": "Veraltet",
+  "report_status_missing": "Fehlt",
+  "report_status_optional": "Optional",
+  "report_status_not_applicable": "Nicht zutreffend",
+  "report_status_unavailable": "Nicht verfügbar",
+  "report_supporting_evidence_title": "Unterstützende Nachweise",
+  "report_supporting_evidence_hint": "Diese optionalen Quellen unterstützen den Report; sie ersetzen nicht seinen Problemzeitraum.",
+  "report_window_mismatch": "Der Server hat einen anderen Problemzeitraum zurückgegeben. Wähle „Problemzeitraum ändern“ und erstelle die Checkliste neu, bevor du es erneut versuchst.",
+  "report_fixed_scope_invalid": "Der ausgewählte Problemzeitraum ist unvollständig. Kehre zur Nachweisführung zurück und erstelle die Checkliste neu."
 }

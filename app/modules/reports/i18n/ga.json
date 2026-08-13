@@ -177,5 +177,18 @@
   "report_builder_building": "Pacáiste fianaise tógála...",
   "report_builder_ready": "Pacáiste fianaise réidh. Athbhreithnigh téacs na litreach, ansin cóipeáil é nó íoslódáil an pacáiste PDF.",
   "report_builder_error": "Theip ar ghiniúint tuairisce. Bain triail as tréimhse tuairisce eile nó deimhnigh go bhfuil sonraí monatóireachta ann.",
-  "report_builder_copied": "Cóipeáil téacs na litreach. Ceangail an pacáiste PDF nuair a dhéanann tú teagmháil le do ISP."
+  "report_builder_copied": "Cóipeáil téacs na litreach. Ceangail an pacáiste PDF nuair a dhéanann tú teagmháil le do ISP.",
+  "report_fixed_period_title": "Tréimhse na faidhbe",
+  "report_change_problem_window": "Athraigh tréimhse na faidhbe",
+  "report_readiness_title": "Ullmhacht na fianaise",
+  "report_status_present": "Réidh",
+  "report_status_stale": "As dáta",
+  "report_status_missing": "Ar iarraidh",
+  "report_status_optional": "Roghnach",
+  "report_status_not_applicable": "Neamhbhainteach",
+  "report_status_unavailable": "Níl ar fáil",
+  "report_supporting_evidence_title": "Fianaise tacaíochta",
+  "report_supporting_evidence_hint": "Tacaíonn na foinsí roghnacha seo leis an tuairisc; ní ghlacann siad áit thréimhse na faidhbe.",
+  "report_window_mismatch": "Chuir an freastalaí tréimhse eile faidhbe ar ais. Roghnaigh “Athraigh tréimhse na faidhbe” agus tóg an seicliosta arís sula mbaineann tú triail eile as.",
+  "report_fixed_scope_invalid": "Tá tréimhse roghnaithe na faidhbe neamhiomlán. Fill ar Thuras na Fianaise agus tóg an seicliosta arís."
 }

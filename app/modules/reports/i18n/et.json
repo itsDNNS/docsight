@@ -177,5 +177,18 @@
   "report_builder_building": "Tõendite paketi koostamine...",
   "report_builder_ready": "Tõendite pakett valmis. Vaadake kirja tekst üle, seejärel kopeerige see või laadige alla pakett PDF.",
   "report_builder_error": "Aruande genereerimine ebaõnnestus. Proovige mõnda teist aruandeperioodi või kontrollige seireandmete olemasolu.",
-  "report_builder_copied": "Kirja tekst on kopeeritud. Kui võtate ühendust oma Interneti-teenuse pakkujaga, kinnitage pakett PDF."
+  "report_builder_copied": "Kirja tekst on kopeeritud. Kui võtate ühendust oma Interneti-teenuse pakkujaga, kinnitage pakett PDF.",
+  "report_fixed_period_title": "Probleemi ajavahemik",
+  "report_change_problem_window": "Muuda probleemi ajavahemikku",
+  "report_readiness_title": "Tõendite valmisolek",
+  "report_status_present": "Valmis",
+  "report_status_stale": "Aegunud",
+  "report_status_missing": "Puudub",
+  "report_status_optional": "Valikuline",
+  "report_status_not_applicable": "Ei kohaldu",
+  "report_status_unavailable": "Pole saadaval",
+  "report_supporting_evidence_title": "Toetavad tõendid",
+  "report_supporting_evidence_hint": "Need valikulised allikad toetavad aruannet, kuid ei asenda selle probleemi ajavahemikku.",
+  "report_window_mismatch": "Server tagastas teise probleemi ajavahemiku. Valige „Muuda probleemi ajavahemikku“ ja koostage kontrollnimekiri enne uut katset uuesti.",
+  "report_fixed_scope_invalid": "Valitud probleemi ajavahemik on puudulik. Naaske tõendite teekonda ja koostage kontrollnimekiri uuesti."
 }

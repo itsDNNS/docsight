@@ -177,5 +177,18 @@
   "report_builder_building": "Pierādījumu paketes izveide...",
   "report_builder_ready": "Pierādījumu pakete ir gatava. Pārskatiet vēstules tekstu, pēc tam kopējiet to vai lejupielādējiet PDF pakotni.",
   "report_builder_error": "Pārskatu ģenerēšana neizdevās. Izmēģiniet citu pārskata periodu vai pārbaudiet, vai pastāv uzraudzības dati.",
-  "report_builder_copied": "Vēstules teksts ir nokopēts. Sazinoties ar interneta pakalpojumu sniedzēju, pievienojiet PDF pakotni."
+  "report_builder_copied": "Vēstules teksts ir nokopēts. Sazinoties ar interneta pakalpojumu sniedzēju, pievienojiet PDF pakotni.",
+  "report_fixed_period_title": "Problēmas periods",
+  "report_change_problem_window": "Mainīt problēmas periodu",
+  "report_readiness_title": "Pierādījumu gatavība",
+  "report_status_present": "Gatavs",
+  "report_status_stale": "Novecojis",
+  "report_status_missing": "Trūkst",
+  "report_status_optional": "Neobligāts",
+  "report_status_not_applicable": "Nav piemērojams",
+  "report_status_unavailable": "Nav pieejams",
+  "report_supporting_evidence_title": "Papildu pierādījumi",
+  "report_supporting_evidence_hint": "Šie neobligātie avoti papildina pārskatu, bet neaizstāj tā problēmas periodu.",
+  "report_window_mismatch": "Serveris atgrieza citu problēmas periodu. Izvēlieties “Mainīt problēmas periodu” un pirms atkārtota mēģinājuma vēlreiz izveidojiet kontrolsarakstu.",
+  "report_fixed_scope_invalid": "Izvēlētais problēmas periods ir nepilnīgs. Atgriezieties Pierādījumu ceļā un vēlreiz izveidojiet kontrolsarakstu."
 }

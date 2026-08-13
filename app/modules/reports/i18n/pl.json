@@ -177,5 +177,18 @@
   "report_builder_building": "Pakiet dowodów budowlanych...",
   "report_builder_ready": "Pakiet dowodów gotowy. Przejrzyj tekst listu, a następnie skopiuj go lub pobierz pakiet PDF.",
   "report_builder_error": "Wygenerowanie raportu nie powiodło się. Wypróbuj inny okres raportu lub sprawdź, czy istnieją dane monitorowania.",
-  "report_builder_copied": "Tekst listu skopiowany. Dołącz pakiet PDF, kontaktując się ze swoim dostawcą usług internetowych."
+  "report_builder_copied": "Tekst listu skopiowany. Dołącz pakiet PDF, kontaktując się ze swoim dostawcą usług internetowych.",
+  "report_fixed_period_title": "Okres występowania problemu",
+  "report_change_problem_window": "Zmień okres problemu",
+  "report_readiness_title": "Gotowość dowodów",
+  "report_status_present": "Gotowe",
+  "report_status_stale": "Nieaktualne",
+  "report_status_missing": "Brak",
+  "report_status_optional": "Opcjonalne",
+  "report_status_not_applicable": "Nie dotyczy",
+  "report_status_unavailable": "Niedostępne",
+  "report_supporting_evidence_title": "Dowody uzupełniające",
+  "report_supporting_evidence_hint": "Te opcjonalne źródła uzupełniają raport, ale nie zastępują okresu występowania problemu.",
+  "report_window_mismatch": "Serwer zwrócił inny okres występowania problemu. Wybierz „Zmień okres problemu” i ponownie utwórz listę kontrolną przed kolejną próbą.",
+  "report_fixed_scope_invalid": "Wybrany okres występowania problemu jest niepełny. Wróć do Ścieżki dowodów i ponownie utwórz listę kontrolną."
 }

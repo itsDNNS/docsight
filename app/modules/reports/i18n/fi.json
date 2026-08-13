@@ -177,5 +177,18 @@
   "report_builder_building": "Todistuspaketin rakentaminen...",
   "report_builder_ready": "Todistuspaketti valmis. Tarkista kirjeteksti ja kopioi se tai lataa PDF-paketti.",
   "report_builder_error": "Raportin luominen epäonnistui. Kokeile toista raportointijaksoa tai varmista, että seurantatietoja on olemassa.",
-  "report_builder_copied": "Kirjeen teksti kopioitu. Liitä PDF-paketti, kun otat yhteyttä Internet-palveluntarjoajaasi."
+  "report_builder_copied": "Kirjeen teksti kopioitu. Liitä PDF-paketti, kun otat yhteyttä Internet-palveluntarjoajaasi.",
+  "report_fixed_period_title": "Ongelman ajanjakso",
+  "report_change_problem_window": "Vaihda ongelman ajanjaksoa",
+  "report_readiness_title": "Todisteiden valmius",
+  "report_status_present": "Valmis",
+  "report_status_stale": "Vanhentunut",
+  "report_status_missing": "Puuttuu",
+  "report_status_optional": "Valinnainen",
+  "report_status_not_applicable": "Ei sovellu",
+  "report_status_unavailable": "Ei saatavilla",
+  "report_supporting_evidence_title": "Täydentävät todisteet",
+  "report_supporting_evidence_hint": "Nämä valinnaiset lähteet tukevat raporttia, mutta eivät korvaa sen ongelman ajanjaksoa.",
+  "report_window_mismatch": "Palvelin palautti eri ongelman ajanjakson. Valitse ”Vaihda ongelman ajanjaksoa” ja muodosta tarkistuslista uudelleen ennen uutta yritystä.",
+  "report_fixed_scope_invalid": "Valittu ongelman ajanjakso on puutteellinen. Palaa Todistepolkuun ja muodosta tarkistuslista uudelleen."
 }

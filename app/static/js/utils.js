@@ -122,8 +122,11 @@ function closeBqmSetupModal() {
     window.DOCSightModal.close('bqm-setup-modal');
 }
 var reportGenerationId = 0;
-function openReportModal() {
+var reportScope = null;
+function openReportModal(scope) {
+    reportScope = scope === undefined ? null : scope;
     resetReportModalState();
+    renderReportScope();
     window.DOCSightModal.open('report-modal');
     syncComparisonReportState();
     // Close sidebar on mobile
@@ -137,6 +140,90 @@ function openReportModal() {
 function closeReportModal() {
     window.DOCSightModal.close('report-modal');
     resetReportModalState();
+    reportScope = null;
+}
+function isValidReportScope(scope) {
+    return !!(scope && scope.window && typeof scope.window.from === 'string' && scope.window.from &&
+        typeof scope.window.to === 'string' && scope.window.to);
+}
+function formatReportScopeDate(value) {
+    try {
+        var locale = document.documentElement.lang || undefined;
+        return new Intl.DateTimeFormat(locale, {dateStyle: 'medium', timeStyle: 'short'}).format(new Date(value));
+    } catch (error) {
+        return value;
+    }
+}
+function reportReadinessStatus(status) {
+    var labels = {
+        present: T.report_status_present || 'Ready',
+        stale: T.report_status_stale || 'Stale',
+        missing: T.report_status_missing || 'Missing',
+        optional: T.report_status_optional || 'Optional',
+        not_applicable: T.report_status_not_applicable || 'Not applicable',
+        unavailable: T.report_status_unavailable || 'Unavailable'
+    };
+    return labels[status] || labels.missing;
+}
+function renderReportReadiness() {
+    var summaryRoot = document.getElementById('report-readiness-summary');
+    var list = document.getElementById('report-readiness-list');
+    if (!summaryRoot || !list) return;
+    summaryRoot.textContent = '';
+    list.textContent = '';
+    var summary = reportScope && reportScope.summary || {};
+    ['present', 'stale', 'missing', 'optional', 'not_applicable', 'unavailable'].forEach(function(status) {
+        if (!Object.prototype.hasOwnProperty.call(summary, status)) return;
+        var item = document.createElement('span');
+        item.className = 'report-readiness-count report-status-' + status;
+        item.textContent = reportReadinessStatus(status) + ': ' + summary[status];
+        summaryRoot.appendChild(item);
+    });
+    var items = reportScope && reportScope.items || [];
+    items.forEach(function(item) {
+        var status = item.status || 'missing';
+        var row = document.createElement('li');
+        row.className = 'report-readiness-row report-status-' + status;
+        var label = document.createElement('span');
+        label.textContent = T[item.label_key] || item.label_key || item.key || '';
+        var statusLabel = document.createElement('strong');
+        statusLabel.textContent = reportReadinessStatus(status);
+        row.appendChild(label);
+        row.appendChild(statusLabel);
+        list.appendChild(row);
+    });
+}
+function renderReportScope() {
+    var fixedScope = document.getElementById('report-fixed-scope');
+    var daysField = document.getElementById('report-days-field');
+    var days = document.getElementById('report-days');
+    var isFixed = !!reportScope;
+    fixedScope.hidden = !isFixed;
+    daysField.hidden = isFixed;
+    days.disabled = isFixed;
+    if (!isFixed) return;
+    if (!isValidReportScope(reportScope)) {
+        setReportBuilderStatus(T.report_fixed_scope_invalid || 'The selected problem window is incomplete. Return to Evidence Journey and rebuild the checklist.', 'error');
+        document.getElementById('report-generate-btn').disabled = true;
+        return;
+    }
+    var windowData = reportScope && reportScope.window;
+    document.getElementById('report-period-label').textContent = windowData.label || '';
+    var from = document.getElementById('report-period-from');
+    var to = document.getElementById('report-period-to');
+    from.dateTime = windowData.from;
+    to.dateTime = windowData.to;
+    from.textContent = formatReportScopeDate(windowData.from);
+    to.textContent = formatReportScopeDate(windowData.to);
+    renderReportReadiness();
+}
+function changeReportProblemWindow() {
+    var scope = reportScope;
+    reportGenerationId += 1;
+    window.DOCSightModal.close('report-modal');
+    resetReportModalState();
+    reportScope = null;
+    if (scope && typeof scope.changeWindow === 'function') scope.changeWindow();
 }
 function resetReportModalState() {
     reportGenerationId += 1;
@@ -157,6 +244,12 @@ function resetReportModalState() {
     if (bnetzIdField) bnetzIdField.value = '';
     var complaintText = document.getElementById('report-complaint-text');
     if (complaintText) complaintText.value = '';
+    var days = document.getElementById('report-days');
+    var daysField = document.getElementById('report-days-field');
+    var fixedScope = document.getElementById('report-fixed-scope');
+    if (days) days.disabled = false;
+    if (daysField) daysField.hidden = false;
+    if (fixedScope) fixedScope.hidden = true;
     setReportBuilderStatus('');
 }
 function setReportBuilderStatus(message, type) {
@@ -181,34 +274,59 @@ function syncComparisonReportState() {
         ? (T.report_include_comparison_ready || 'The current comparison results will be attached to the complaint and PDF report.')
         : (T.report_include_comparison_hint || 'Run a comparison first to attach the current before/after evidence.');
 }
-function generateComplaint() {
-    var days = document.getElementById('report-days').value;
-    var lang = document.getElementById('report-lang').value;
-    var name = encodeURIComponent(document.getElementById('report-name').value);
-    var number = encodeURIComponent(document.getElementById('report-number').value);
-    var address = encodeURIComponent(document.getElementById('report-address').value);
+function reportResponseMatchesScope(data) {
+    if (!reportScope) return true;
+    return !!(data && data.window &&
+        data.window.from === reportScope.window.from &&
+        data.window.to === reportScope.window.to);
+}
+function buildReportRequestParams() {
+    var params = new URLSearchParams();
+    if (reportScope) {
+        if (!isValidReportScope(reportScope)) {
+            throw new Error(T.report_fixed_scope_invalid || 'The selected problem window is incomplete. Return to Evidence Journey and rebuild the checklist.');
+        }
+        params.set('from', reportScope.window.from);
+        params.set('to', reportScope.window.to);
+    } else {
+        params.set('days', document.getElementById('report-days').value);
+    }
+    params.set('lang', document.getElementById('report-lang').value);
+    params.set('name', document.getElementById('report-name').value);
+    params.set('number', document.getElementById('report-number').value);
+    params.set('address', document.getElementById('report-address').value);
     var includeBnetz = document.getElementById('report-include-bnetz');
-    var bnetzParam = (includeBnetz && includeBnetz.checked) ? '&include_bnetz=true' : '';
-    var comparisonParam = '';
+    if (includeBnetz && includeBnetz.checked) params.set('include_bnetz', 'true');
     var bnetzIdField = document.getElementById('report-bnetz-id');
     if (bnetzIdField && bnetzIdField.value) {
-        bnetzParam = '&bnetz_id=' + encodeURIComponent(bnetzIdField.value);
+        params.set('bnetz_id', bnetzIdField.value);
     }
     var includeComparison = document.getElementById('report-include-comparison');
     if (includeComparison && includeComparison.checked && window.__docsightComparisonResult) {
         var cmp = window.__docsightComparisonResult;
-        comparisonParam =
-            '&comparison_from_a=' + encodeURIComponent(cmp.period_a.from) +
-            '&comparison_to_a=' + encodeURIComponent(cmp.period_a.to) +
-            '&comparison_from_b=' + encodeURIComponent(cmp.period_b.from) +
-            '&comparison_to_b=' + encodeURIComponent(cmp.period_b.to);
+        params.set('comparison_from_a', cmp.period_a.from);
+        params.set('comparison_to_a', cmp.period_a.to);
+        params.set('comparison_from_b', cmp.period_b.from);
+        params.set('comparison_to_b', cmp.period_b.to);
     }
+    return params;
+}
+function generateComplaint() {
     var btn = document.getElementById('report-generate-btn');
     btn.disabled = true;
     btn.textContent = '...';
     setReportBuilderStatus(T.report_builder_building || 'Building evidence package...', 'progress');
     var generationId = reportGenerationId;
-    fetch(docsightUrl('/api/complaint?days=' + days + '&lang=' + lang + '&name=' + name + '&number=' + number + '&address=' + address + bnetzParam + comparisonParam))
+    var params;
+    try {
+        params = buildReportRequestParams();
+    } catch (error) {
+        btn.disabled = false;
+        btn.textContent = '\u270E ' + (T.report_build_package || 'Build evidence package');
+        setReportBuilderStatus(error.message, 'error');
+        return;
+    }
+    fetch(docsightUrl('/api/complaint?' + params.toString()))
         .then(function(r) {
             return r.json().then(function(data) {
                 if (!r.ok || data.error) {
@@ -219,6 +337,9 @@ function generateComplaint() {
         })
         .then(function(data) {
             if (generationId !== reportGenerationId) return;
+            if (!reportResponseMatchesScope(data)) {
+                throw new Error(T.report_window_mismatch || 'The server returned a different problem window. Choose Change problem window and rebuild the checklist before trying again.');
+            }
             document.getElementById('report-complaint-text').value = data.text;
             document.getElementById('report-step1').style.display = 'none';
             document.getElementById('report-step2').style.display = 'block';
@@ -263,20 +384,7 @@ function copyComplaint() {
     }
 }
 function downloadReport() {
-    var params = new URLSearchParams();
-    params.set('days', document.getElementById('report-days').value);
-    params.set('lang', document.getElementById('report-lang').value);
-    params.set('name', document.getElementById('report-name').value);
-    params.set('number', document.getElementById('report-number').value);
-    params.set('address', document.getElementById('report-address').value);
-    var includeComparison = document.getElementById('report-include-comparison');
-    if (includeComparison && includeComparison.checked && window.__docsightComparisonResult) {
-        var cmp = window.__docsightComparisonResult;
-        params.set('comparison_from_a', cmp.period_a.from);
-        params.set('comparison_to_a', cmp.period_a.to);
-        params.set('comparison_from_b', cmp.period_b.from);
-        params.set('comparison_to_b', cmp.period_b.to);
-    }
+    var params = buildReportRequestParams();
     window.location.href = docsightUrl('/api/report?' + params.toString());
 }
 function copyExport() {

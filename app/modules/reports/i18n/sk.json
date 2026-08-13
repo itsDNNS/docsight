@@ -177,5 +177,18 @@
   "report_builder_building": "Budovanie balíka dôkazov...",
   "report_builder_ready": "Balík dôkazov pripravený. Skontrolujte text listu a potom ho skopírujte alebo si stiahnite balík PDF.",
   "report_builder_error": "Generovanie správy zlyhalo. Skúste iné obdobie prehľadu alebo overte, či existujú údaje monitorovania.",
-  "report_builder_copied": "Text listu bol skopírovaný. Keď budete kontaktovať svojho ISP, priložte balík PDF."
+  "report_builder_copied": "Text listu bol skopírovaný. Keď budete kontaktovať svojho ISP, priložte balík PDF.",
+  "report_fixed_period_title": "Obdobie problému",
+  "report_change_problem_window": "Zmeniť obdobie problému",
+  "report_readiness_title": "Pripravenosť dôkazov",
+  "report_status_present": "Pripravené",
+  "report_status_stale": "Zastarané",
+  "report_status_missing": "Chýba",
+  "report_status_optional": "Voliteľné",
+  "report_status_not_applicable": "Nevzťahuje sa",
+  "report_status_unavailable": "Nedostupné",
+  "report_supporting_evidence_title": "Podporné dôkazy",
+  "report_supporting_evidence_hint": "Tieto voliteľné zdroje podporujú správu, ale nenahrádzajú jej obdobie problému.",
+  "report_window_mismatch": "Server vrátil iné obdobie problému. Vyberte „Zmeniť obdobie problému“ a pred ďalším pokusom znova zostavte kontrolný zoznam.",
+  "report_fixed_scope_invalid": "Vybrané obdobie problému nie je úplné. Vráťte sa do Sprievodcu dôkazmi a znova zostavte kontrolný zoznam."
 }

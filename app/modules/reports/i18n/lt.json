@@ -177,5 +177,18 @@
   "report_builder_building": "Sukurti įrodymų paketą...",
   "report_builder_ready": "Paruoštas įrodymų paketas. Peržiūrėkite laiško tekstą, tada nukopijuokite jį arba atsisiųskite paketą PDF.",
   "report_builder_error": "Nepavyko generuoti ataskaitos. Išbandykite kitą ataskaitos laikotarpį arba patikrinkite, ar yra stebėjimo duomenų.",
-  "report_builder_copied": "Laiško tekstas nukopijuotas. Susisiekę su IPT pridėkite PDF paketą."
+  "report_builder_copied": "Laiško tekstas nukopijuotas. Susisiekę su IPT pridėkite PDF paketą.",
+  "report_fixed_period_title": "Problemos laikotarpis",
+  "report_change_problem_window": "Keisti problemos laikotarpį",
+  "report_readiness_title": "Įrodymų parengtis",
+  "report_status_present": "Parengta",
+  "report_status_stale": "Pasenę",
+  "report_status_missing": "Trūksta",
+  "report_status_optional": "Neprivaloma",
+  "report_status_not_applicable": "Netaikoma",
+  "report_status_unavailable": "Nepasiekiama",
+  "report_supporting_evidence_title": "Papildomi įrodymai",
+  "report_supporting_evidence_hint": "Šie neprivalomi šaltiniai papildo ataskaitą, bet nepakeičia jos problemos laikotarpio.",
+  "report_window_mismatch": "Serveris grąžino kitą problemos laikotarpį. Pasirinkite „Keisti problemos laikotarpį“ ir prieš bandydami dar kartą iš naujo sudarykite kontrolinį sąrašą.",
+  "report_fixed_scope_invalid": "Pasirinktas problemos laikotarpis yra neišsamus. Grįžkite į Įrodymų kelią ir iš naujo sudarykite kontrolinį sąrašą."
 }

@@ -177,5 +177,18 @@
   "report_builder_building": "Création du dossier de preuves...",
   "report_builder_ready": "Dossier de preuves prêt. Relisez le texte de la lettre, puis copiez-le ou téléchargez le dossier PDF.",
   "report_builder_error": "La génération du rapport a échoué. Essayez une autre période ou vérifiez que des données de surveillance existent.",
-  "report_builder_copied": "Texte de la lettre copié. Joignez le dossier PDF lorsque vous contactez votre FAI."
+  "report_builder_copied": "Texte de la lettre copié. Joignez le dossier PDF lorsque vous contactez votre FAI.",
+  "report_fixed_period_title": "Période du problème",
+  "report_change_problem_window": "Modifier la période du problème",
+  "report_readiness_title": "Disponibilité des preuves",
+  "report_status_present": "Prêt",
+  "report_status_stale": "Périmé",
+  "report_status_missing": "Manquant",
+  "report_status_optional": "Facultatif",
+  "report_status_not_applicable": "Sans objet",
+  "report_status_unavailable": "Indisponible",
+  "report_supporting_evidence_title": "Preuves complémentaires",
+  "report_supporting_evidence_hint": "Ces sources facultatives étayent le rapport ; elles ne remplacent pas la période du problème.",
+  "report_window_mismatch": "Le serveur a renvoyé une autre période du problème. Choisissez « Modifier la période du problème » et recréez la liste avant de réessayer.",
+  "report_fixed_scope_invalid": "La période du problème sélectionnée est incomplète. Revenez au parcours des preuves et recréez la liste."
 }

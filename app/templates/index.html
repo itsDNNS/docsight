@@ -2612,6 +2612,27 @@
         <div class="modal-body" style="padding: 10px 0;">
             <!-- Step 1: Settings & Customer Info -->
             <div id="report-step1">
+                <section id="report-fixed-scope" class="report-fixed-scope" aria-labelledby="report-fixed-period-title" hidden>
+                    <div class="report-period-card">
+                        <div>
+                            <h3 id="report-fixed-period-title">{{ t.get('report_fixed_period_title', 'Problem window') }}</h3>
+                            <strong id="report-period-label"></strong>
+                            <p class="report-period-range">
+                                <time id="report-period-from"></time>
+                                <span aria-hidden="true">–</span>
+                                <time id="report-period-to"></time>
+                            </p>
+                        </div>
+                        <button class="btn btn-muted report-change-window" type="button" onclick="changeReportProblemWindow()">
+                            {{ t.get('report_change_problem_window', 'Change problem window') }}
+                        </button>
+                    </div>
+                    <div class="report-readiness" aria-labelledby="report-readiness-title">
+                        <h3 id="report-readiness-title">{{ t.get('report_readiness_title', 'Evidence readiness') }}</h3>
+                        <div id="report-readiness-summary" class="report-readiness-summary"></div>
+                        <ul id="report-readiness-list" class="report-readiness-list"></ul>
+                    </div>
+                </section>
                 <div class="report-builder-preview" aria-labelledby="report-builder-preview-title">
                     <div>
                         <h3 id="report-builder-preview-title">{{ t.get('report_builder_preview_title', 'What DOCSight will include') }}</h3>
@@ -2628,7 +2649,7 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
-                    <div>
+                    <div id="report-days-field">
                         <label style="font-size:13px; color:var(--muted);">{{ t.report_days }}</label><br>
                         <select id="report-days" style="margin-top:4px; padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
                             <option value="1">1</option><option value="3">3</option>
@@ -2653,23 +2674,27 @@
                         <textarea id="report-address" rows="3" placeholder="{{ t.report_address }}" style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit; resize:vertical;">{{ report_customer_address }}</textarea>
                     </div>
                 </div>
-                {% if bnetz_enabled %}
-                <div style="margin-top:10px;">
-                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text);">
-                        <input type="checkbox" id="report-include-bnetz" checked>
-                        {{ t.report_include_bnetz }}
-                    </label>
-                </div>
-                {% endif %}
-                <div style="margin-top:10px;">
-                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text);">
-                        <input type="checkbox" id="report-include-comparison">
-                        {{ t.get('report_include_comparison', 'Include active before/after comparison') }}
-                    </label>
-                    <div id="report-comparison-note" style="font-size:12px; color:var(--muted); margin-top:6px;">
-                        {{ t.get('report_include_comparison_hint', 'Run a comparison first to attach the current before/after evidence.') }}
+                <section class="report-supporting-evidence" aria-labelledby="report-supporting-evidence-title">
+                    <h3 id="report-supporting-evidence-title">{{ t.get('report_supporting_evidence_title', 'Supporting evidence') }}</h3>
+                    <p>{{ t.get('report_supporting_evidence_hint', 'These optional sources support the report; they do not replace its problem window.') }}</p>
+                    {% if bnetz_enabled %}
+                    <div>
+                        <label>
+                            <input type="checkbox" id="report-include-bnetz" checked>
+                            {{ t.report_include_bnetz }}
+                        </label>
                     </div>
-                </div>
+                    {% endif %}
+                    <div>
+                        <label>
+                            <input type="checkbox" id="report-include-comparison">
+                            {{ t.get('report_include_comparison', 'Include active before/after comparison') }}
+                        </label>
+                        <div id="report-comparison-note" class="report-supporting-note">
+                            {{ t.get('report_include_comparison_hint', 'Run a comparison first to attach the current before/after evidence.') }}
+                        </div>
+                    </div>
+                </section>
                 <input type="hidden" id="report-bnetz-id" value="">
             </div>
             <!-- Step 2: Generated complaint text (hidden initially) -->

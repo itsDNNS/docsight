@@ -177,5 +177,18 @@
   "report_builder_building": "Construindo pacote de evidências...",
   "report_builder_ready": "Pacote de evidências pronto. Revise o texto da carta e copie-o ou baixe o pacote PDF.",
   "report_builder_error": "Falha na geração do relatório. Experimente um período de relatório diferente ou verifique se existem dados de monitoramento.",
-  "report_builder_copied": "Texto da carta copiado. Anexe o pacote PDF ao entrar em contato com seu ISP."
+  "report_builder_copied": "Texto da carta copiado. Anexe o pacote PDF ao entrar em contato com seu ISP.",
+  "report_fixed_period_title": "Período do problema",
+  "report_change_problem_window": "Alterar o período do problema",
+  "report_readiness_title": "Disponibilidade das evidências",
+  "report_status_present": "Pronto",
+  "report_status_stale": "Desatualizado",
+  "report_status_missing": "Em falta",
+  "report_status_optional": "Opcional",
+  "report_status_not_applicable": "Não aplicável",
+  "report_status_unavailable": "Indisponível",
+  "report_supporting_evidence_title": "Evidências complementares",
+  "report_supporting_evidence_hint": "Estas fontes opcionais complementam o relatório, mas não substituem o período do problema.",
+  "report_window_mismatch": "O servidor devolveu um período do problema diferente. Selecione «Alterar o período do problema» e recrie a lista antes de tentar novamente.",
+  "report_fixed_scope_invalid": "O período do problema selecionado está incompleto. Volte ao percurso das evidências e recrie a lista."
 }

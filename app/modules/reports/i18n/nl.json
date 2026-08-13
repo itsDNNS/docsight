@@ -177,5 +177,18 @@
   "report_builder_building": "Bewijspakket opbouwen...",
   "report_builder_ready": "Bewijspakket klaar. Bekijk de brieftekst en kopieer deze of download het PDF-pakket.",
   "report_builder_error": "Het genereren van rapporten is mislukt. Probeer een andere rapportperiode of controleer of er monitoringgegevens bestaan.",
-  "report_builder_copied": "Brieftekst gekopieerd. Voeg het PDF-pakket toe wanneer u contact opneemt met uw ISP."
+  "report_builder_copied": "Brieftekst gekopieerd. Voeg het PDF-pakket toe wanneer u contact opneemt met uw ISP.",
+  "report_fixed_period_title": "Probleemperiode",
+  "report_change_problem_window": "Probleemperiode wijzigen",
+  "report_readiness_title": "Beschikbaarheid van bewijs",
+  "report_status_present": "Gereed",
+  "report_status_stale": "Verouderd",
+  "report_status_missing": "Ontbreekt",
+  "report_status_optional": "Optioneel",
+  "report_status_not_applicable": "Niet van toepassing",
+  "report_status_unavailable": "Niet beschikbaar",
+  "report_supporting_evidence_title": "Ondersteunend bewijs",
+  "report_supporting_evidence_hint": "Deze optionele bronnen ondersteunen het rapport, maar vervangen de probleemperiode niet.",
+  "report_window_mismatch": "De server heeft een andere probleemperiode geretourneerd. Kies ‘Probleemperiode wijzigen’ en bouw de checklist opnieuw voordat u het nogmaals probeert.",
+  "report_fixed_scope_invalid": "De geselecteerde probleemperiode is onvolledig. Ga terug naar de bewijsroute en bouw de checklist opnieuw."
 }

@@ -73,6 +73,24 @@ function _evidenceActionLabel(item) {
     return _evidenceT('docsight.evidence.action.' + (action || view || 'review'), 'Open related view');
 }
 
+function _evidenceReportScope(payload) {
+    if (!payload || !payload.window) return null;
+    return {
+        window: payload.window,
+        items: payload.items,
+        summary: payload.summary,
+        incident_id: payload.window.incident_id,
+        changeWindow: function() {
+            if (typeof switchView === 'function') switchView('evidence');
+            window.requestAnimationFrame(function() {
+                var focusId = payload.window.kind === 'incident' ? 'evidence-incident-id' : 'evidence-from';
+                var target = document.getElementById(focusId);
+                if (target) target.focus({preventScroll: false});
+            });
+        }
+    };
+}
+
 function _evidenceSourceLabel(source) {
     return _evidenceT('docsight.evidence.source.' + source.key, String(source.key || '').replace(/_/g, ' '));
 }
@@ -98,7 +116,7 @@ function _evidenceRunAction(event) {
     var action = trigger.getAttribute('data-evidence-action');
     var view = trigger.getAttribute('data-evidence-view');
     if (action === 'report' && typeof openReportModal === 'function') {
-        openReportModal();
+        openReportModal(_evidenceReportScope(_evidenceLastPayload));
     } else if (view && typeof switchView === 'function') {
         switchView(view);
     }
