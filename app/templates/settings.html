@@ -191,7 +191,7 @@
 
 {% set settings_bootstrap_modules = [] %}
 {% for mod in modules if mod.template_paths.get('settings') %}
-{% if settings_bootstrap_modules.append({'id': mod.id, 'labelKey': mod.menu.label_key, 'name': mod.name}) %}{% endif %}
+{% if settings_bootstrap_modules.append({'id': mod.id, 'labelKey': mod.menu.get('label_key', ''), 'name': mod.name}) %}{% endif %}
 {% endfor %}
 <script type="application/json" id="docsight-settings-bootstrap">{{ {
     'translations': t,
